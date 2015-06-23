@@ -1,0 +1,20 @@
+# Sphinx inventory version 2
+# Project: Python
+# Version: 3.4
+# The remainder of this file should be compressed using zlib.
+bytes py:function -1 library/functions.html#bytes -
+TimeoutError py:exception -1 library/exceptions.html#TimeoutError -
+builtins.object py:class -1 library/functions.html#object -
+builtins.list py:class -1 library/functions.html#list -
+builtins.type py:class -1 library/functions.html#type -
+builtins.classmethod py:class -1 library/functions.html#classmethod -
+builtins.SyntaxWarning py:exception -1 library/exceptions.html#SyntaxWarning -
+builtins.RuntimeWarning py:exception -1 library/exceptions.html#RuntimeWarning -
+builtins.ValueError py:exception -1 library/exceptions.html#ValueError -
+object py:function -1 library/functions.html#object -
+object py:class -1 library/functions.html#object -
+urllib.request.urlopen py:function -1 library/urllib.request.html#urllib.request.urlopen -
+concurrent.futures.Future py:class -1 library/concurrent.futures.html#concurrent.futures.Future -
+concurrent.futures.ThreadPoolExecutor py:class -1 library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor -
+queue.Queue py:class -1 library/queue.html#queue.Queue -
+print() py:function -1 library/functions.html#print -

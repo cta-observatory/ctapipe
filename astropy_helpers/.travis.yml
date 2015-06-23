@@ -1,0 +1,57 @@
+# We set the language to c because python isn't supported on the MacOS X nodes
+# on Travis. However, the language ends up being irrelevant anyway, since we
+# install Python ourselves using conda.
+language: c
+
+os:
+    - osx
+    - linux
+
+env:
+  matrix:
+    - PYTHON_VERSION=2.6
+    - PYTHON_VERSION=2.7
+    - PYTHON_VERSION=3.3
+    - PYTHON_VERSION=3.4
+  global:
+      - SETUPTOOLS_VERSION=stable
+
+matrix:
+    include:
+        - os: linux
+          env: PYTHON_VERSION=2.7 SETUPTOOLS_VERSION=dev
+
+before_install:
+
+    # Use utf8 encoding. Should be default, but this is insurance against
+    # future changes
+    - export PYTHONIOENCODING=UTF8
+
+    # Install conda
+    - source continuous-integration/travis/install_conda_$TRAVIS_OS_NAME.sh
+
+    # Install graphviz
+    - source continuous-integration/travis/install_graphviz_$TRAVIS_OS_NAME.sh
+
+install:
+    - conda create --yes -n test python=$PYTHON_VERSION
+    - source activate test
+    - conda install --yes pip "pytest<2.6" sphinx cython numpy
+    - pip install coveralls pytest-cov
+    # We cannot install the developer version of setuptools using pip because
+    # pip tries to remove the previous version of setuptools before the
+    # installation is complete, which causes issues. Instead, we just install
+    # setuptools manually.
+    - if [[ $SETUPTOOLS_VERSION == dev ]]; then conda install --yes mercurial mock; fi
+    - if [[ $SETUPTOOLS_VERSION == dev ]]; then hg clone https://bitbucket.org/pypa/setuptools; cd setuptools; python setup.py install; cd ..; fi
+
+before_script:
+    # Some of the tests use git commands that require a user to be configured
+    - git config --global user.name "A U Thor"
+    - git config --global user.email "author@example.com"
+
+script:
+    - py.test --cov astropy_helpers astropy_helpers
+
+after_success:
+    - coveralls
