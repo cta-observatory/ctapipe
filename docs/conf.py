@@ -52,6 +52,9 @@ setup_cfg = dict(conf.items('metadata'))
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.2'
 
+# del intersphinx_mapping['h5py']
+# intersphinx_mapping['astroquery'] = ('http://astroquery.readthedocs.org/en/latest/', None)
+
 # To perform a Sphinx version check that needs to be more specific than
 # major.minor, call `check_sphinx_version("x.y.z")` here.
 # check_sphinx_version("1.2.1")
@@ -102,7 +105,7 @@ release = package.__version__
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes. To override the custom theme, set this to the
 # name of a builtin theme or the name of a custom theme in html_theme_path.
-#html_theme = None
+html_theme = 'default'
 
 # Custom sidebar templates, maps document names to template names.
 #html_sidebars = {}
@@ -154,3 +157,20 @@ if eval(setup_cfg.get('edit_on_github')):
 
     edit_on_github_source_root = ""
     edit_on_github_doc_root = "docs"
+
+# on_rtd is whether we are on readthedocs.org
+import os
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    try:
+        import sphinx_rtd_theme
+    except ImportError:
+        raise ImportError("It looks like you don't have the sphinx_rtd_theme "
+                          "package installed. This documentation "
+                          "uses the Read The Docs theme, so you must install this "
+                          "first. For example, pip install sphinx_rtd_theme")
+    html_theme = 'sphinx_rtd_theme'
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
+# otherwise, readthedocs.org uses their theme by default, so no need to specify it

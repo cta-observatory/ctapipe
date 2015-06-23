@@ -1,17 +1,32 @@
-Documentation
-=============
+.. include:: references.txt
 
-This is an affiliated package for the AstroPy package. The documentation for
-this package is here:
+.. _ctapipe:
+
+****************************************************
+CTA Python pipeline experimental version (`ctapipe`)
+****************************************************
+
+What is ctapipe?
+================
+
+To be written ...
+
+* Code, feature requests, bug reports, pull requests: https://github.com/astroplanners/astroplan
+* Docs: https://ctapipe.readthedocs.org/
+* License: BSD-3
+* Python 3.3 or later (Python 2 is not supported)
+
+.. _ctapipe_docs:
+
+General documentation
+=====================
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
-  packagename/index.rst
+  getting_started/index
 
-.. note:: The layout of this directory is simply a suggestion.  To follow
-          traditional practice, do *not* edit this page, but instead place
-          all documentation for the affiliated package inside ``packagename/``.
-          The traditional practice was intended to allow the affiliated
-          package to eventually be merged into the main astropy package.
-          You can follow this practice or choose your own layout.
+Reference/API
+=============
+
+.. automodapi:: ctapipe

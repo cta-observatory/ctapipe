@@ -1,8 +1,6 @@
 language: python
 
 python:
-    - 2.6
-    - 2.7
     - 3.3
     - 3.4
     # This is just for "egg_info".  All other builds are explicitly given in the matrix
@@ -21,38 +19,28 @@ env:
 matrix:
     include:
 
-        # Do a coverage test in Python 2.
-        - python: 2.7
+        # Do a coverage test in Python 3.
+        - python: 3.4
           env: SETUP_CMD='test --coverage'
 
         # Check for sphinx doc build warnings - we do this first because it
         # may run for a long time
-        - python: 2.7
+        - python: 3.4
           env: SETUP_CMD='build_sphinx -w'
 
         # Try Astropy development version
-        - python: 2.7
-          env: ASTROPY_VERSION=development SETUP_CMD='test'
         - python: 3.3
           env: ASTROPY_VERSION=development SETUP_CMD='test'
 
         # Try all python versions with the latest numpy
-        - python: 2.6
-          env: SETUP_CMD='test'
-        - python: 2.7
-          env: SETUP_CMD='test'
         - python: 3.3
           env: SETUP_CMD='test'
         - python: 3.4
           env: SETUP_CMD='test'
 
         # Try older numpy versions
-        - python: 2.7
+        - python: 3.4
           env: NUMPY_VERSION=1.8 SETUP_CMD='test'
-        - python: 2.7
-          env: NUMPY_VERSION=1.7 SETUP_CMD='test'
-        - python: 2.7
-          env: NUMPY_VERSION=1.6 SETUP_CMD='test'
 
 before_install:
 
@@ -94,9 +82,6 @@ install:
     # - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL ...; fi
 
     # DOCUMENTATION DEPENDENCIES
-    # build_sphinx needs sphinx and matplotlib (for plot_directive). Note that
-    # this matplotlib will *not* work with py 3.x, but our sphinx build is
-    # currently 2.7, so that's fine
     - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION Sphinx matplotlib; fi
 
     # COVERAGE DEPENDENCIES
@@ -106,7 +91,4 @@ script:
    - python setup.py $SETUP_CMD
 
 after_success:
-    # If coveralls.io is set up for this package, uncomment the line
-    # below and replace "packagename" with the name of your package.
-    # The coveragerc file may be customized as needed for your package.
-    # - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='packagename/tests/coveragerc'; fi
+     - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='ctapipe/tests/coveragerc'; fi
