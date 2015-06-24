@@ -1,6 +1,6 @@
-numpy >= 1.6
+numpy
 matplotlib
 Cython
 astropy-helpers
-astropy >= 1.0
-pytz
+astropy
+
