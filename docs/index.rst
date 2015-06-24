@@ -11,10 +11,10 @@ What is ctapipe?
 
 To be written ...
 
-* Code, feature requests, bug reports, pull requests: https://github.com/astroplanners/astroplan
+* Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
 * Docs: https://ctapipe.readthedocs.org/
 * License: BSD-3
-* Python 3.3 or later (Python 2 is not supported)
+* Python 3.4 or later (Python 2 is not supported)
 
 .. _ctapipe_docs:
 
@@ -25,6 +25,9 @@ General documentation
   :maxdepth: 1
 
   getting_started/index
+  calib/index
+  reco/index
+  analysis/index
 
 Reference/API
 =============
