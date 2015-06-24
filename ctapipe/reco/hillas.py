@@ -1,7 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Hillas shower parametrization.
 """
-from __future__ import print_function, division
 import numpy as np
 
 __all__ = ['hillas_parameters']
