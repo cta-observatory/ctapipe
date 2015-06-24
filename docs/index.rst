@@ -28,10 +28,10 @@ General documentation
   calib/index
   reco/index
   analysis/index
+  tools/index
 
 Reference/API
 =============
-
 
 Development Help
 ================
