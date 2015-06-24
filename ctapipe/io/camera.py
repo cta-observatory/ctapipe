@@ -9,36 +9,51 @@ from collections import namedtuple
 
 __all__ = ['CameraGeometry',
            'load_camera_geometry',
-           'make_rectangular_camera_geometry']
+           'make_rectangular_camera_geometry' ]
 
 CameraGeometry = namedtuple("CameraGeometry",
-                           "pix_id, pix_x, pix_y, neighbor_ids, pix_type")
+                            ['cam_id','pix_id',
+                             'pix_x','pix_y','pix_r',
+                             'pix_area',
+                             'neighbor_ids',
+                             'pix_type'])
 
 def load_camera_geometry(cam_id, geomfile='chercam.fits.gz'):
     """
-    Read camera geometry from a  FITS file with a CHERCAM extension
+    Read camera geometry from a  FITS file with a CHERCAM extension.
 
     Parameters
     ----------
 
     cam_id : int
         ID number of camera in the fits file
-    geomfile: str
+    geomfile : str
         FITS file containing camera geometry in CHERCAM extension
     
+    Examples
+    --------
+
+    >>> geom = load_camera_geometry(1)
+    >>> neighbors1 = geom.pix_id[g.neighbor_ids[1].compressed()]
+    >>> print("Neighbors of pixel 1 are: {}".format(neighbors))
+
     Returns
     -------
-    a :class:CameraGeometry object
+    a `CameraGeometry` object
 
     """
-    camtable = Table.read(geomfile, extension="CHERCAM")
+    camtable = Table.read(geomfile, hdu="CHERCAM")
     geom = camtable[camtable['CAM_ID'] == cam_id]
-
+    neigh = geom['PIX_NEIG'].data
+    
     return CameraGeometry(
+        cam_id=cam_id,
         pix_id=geom['PIX_ID'].data,
         pix_x=geom['PIX_POSX'].data * geom['PIX_POSX'].unit,
         pix_y=geom['PIX_POSY'].data * geom['PIX_POSY'].unit,
-        neighbor_ids=geom['PIX_NEIG'].data,
+        pix_r=geom['PIX_DIAM']/2.0,
+        pix_area=geom['PIX_AREA'],
+        neighbor_ids=np.ma.masked_array(neigh, neigh<0),
         pix_type='hexagonal'  )
 
 
