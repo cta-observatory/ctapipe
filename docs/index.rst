@@ -32,4 +32,9 @@ General documentation
 Reference/API
 =============
 
+
+Development Help
+================
+* Development workflow examples from AstroPy: http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
+
 .. automodapi:: ctapipe
