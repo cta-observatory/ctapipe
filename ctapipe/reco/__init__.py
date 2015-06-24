@@ -2,3 +2,5 @@
 """
 Reconstruction
 """
+from .hillas import *
+
