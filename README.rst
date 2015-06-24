@@ -1,7 +1,10 @@
 ctapipe
 =======
 
-CTA Python pipeline experimental version
+CTA Python pipeline experimental version.
+
+This is code for exploring a CTA data processing framework. It is not
+official and recommended for use!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://ctapipe.readthedocs.org/
