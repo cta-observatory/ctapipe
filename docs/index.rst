@@ -29,6 +29,7 @@ General documentation
   reco/index
   analysis/index
   tools/index
+  io/index
 
 Reference/API
 =============
