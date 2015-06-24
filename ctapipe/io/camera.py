@@ -5,6 +5,7 @@ Utilities for reading or working with Camera geometry files
 import numpy as np
 from astropy.table import Table
 from astropy import units as u
+from collections import namedtuple
 
 __all__ = ['CameraGeometry',
            'load_camera_geometry',
