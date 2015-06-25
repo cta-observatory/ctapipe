@@ -12,6 +12,7 @@ env:
         - ASTROPY_VERSION=stable
         - CONDA_INSTALL='conda install -c astropy-ci-extras --yes'
         - PIP_INSTALL='pip install'
+        - INSTALL_OPTIONAL=true
     matrix:
         - SETUP_CMD='egg_info'
 
@@ -26,6 +27,10 @@ matrix:
         # may run for a long time
         - python: 3.4
           env: SETUP_CMD='build_sphinx -w'
+
+        # Try with optional dependencies disabled
+        - python: 3.4
+          env: SETUP_CMD='test' INSTALL_OPTIONAL=false
 
         # Try Astropy development version
         - python: 3.4
@@ -56,6 +61,11 @@ before_install:
     # DOCUMENTATION DEPENDENCIES
     - if [[ $SETUP_CMD == build_sphinx* ]]; then sudo apt-get install graphviz texlive-latex-extra dvipng; fi
 
+    # Make sure that interactive matplotlib backends work
+    - export DISPLAY=:99.0
+    - sh -e /etc/init.d/xvfb start
+
+
 install:
 
     # CONDA
@@ -70,14 +80,8 @@ install:
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy; fi
 
-    # TODO: these get always installed ... need to configure optional dependencies correctly in this file.
     # OPTIONAL DEPENDENCIES
-    # Here you can add any dependencies your package may have. You can use
-    # conda for packages available through conda, or pip for any other
-    # packages. You should leave the `numpy=$NUMPY_VERSION` in the `conda`
-    # install since this ensures Numpy does not get automatically upgraded.
-     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL scipy scikit-learn numba ... ; fi
-    # - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL ...; fi
+    - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL scipy h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
     - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION Sphinx matplotlib; fi
