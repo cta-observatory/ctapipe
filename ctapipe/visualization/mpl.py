@@ -3,6 +3,7 @@ Visualization routines using MatPlotLib
 """
 
 from matplotlib import pyplot as plt
+from matplotlib import transforms
 from matplotlib.collections import RegularPolyCollection
 import numpy as np
 
@@ -11,8 +12,8 @@ __all__ = ['CameraDisplay']
 
 class CameraDisplay(object):
 
-    """ 
-    Camera Display using MatPlotLib 
+    """
+    Camera Display using MatPlotLib
 
     Parameters
     ----------
@@ -26,6 +27,7 @@ class CameraDisplay(object):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.polys = None
+        self.cmap = plt.cm.jet
 
         # initialize the plot and generate the pixels as a
         # PolyCollection
@@ -34,14 +36,22 @@ class CameraDisplay(object):
                       self.geom.pix_r.data)
         offsets = list(zip(xx, yy))
 
+        offset_trans = self.axes.transData
+        trans = self.axes.transData
+        fig = self.axes.get_figure()
+        trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0 / 72.0)
+        self.axes.set_aspect('equal', 'datalim')
+
         if self.geom.pix_type == 'hexagonal':
             self.polys = RegularPolyCollection(numsides=6,
-                                               rotation=np.radians(90),
+                                               rotation=np.radians(0),
                                                offsets=offsets,
                                                sizes=self._radius_to_size(rr),
-                                               transOffset=self.axes.transData)
-            self.polys.set_facecolor('black')
-            self.polys.set_linestyle('none')
+                                               transOffset=offset_trans)
+            self.polys.set_cmap(plt.cm.jet)
+            self.polys.set_linewidth(0)
+            self.polys.set_array(np.zeros_like(self.geom.pix_x))
+            self.polys.set_transform(trans)
             self.axes.add_collection(self.polys, autolim=True)
         else:
             raise ValueError(
@@ -55,8 +65,11 @@ class CameraDisplay(object):
     def _radius_to_size(self, radii):
         """compute radius in screen coordinates and returns the size in
         points^2, needed for the size parameter of
-        RegularPolyCollection
+        RegularPolyCollection. This may not be needed if the
+        transormations are set up correctly
+
         """
+
         rr = radii.ravel()
         center = np.zeros([len(rr), 2])
         offset = np.column_stack([center[:, 0], rr])
@@ -64,29 +77,18 @@ class CameraDisplay(object):
         offset_pix = (self.axes.transData.transform(center)
                       - self.axes.transData.transform(offset))
         rad_pix = offset_pix[:, 1]
-        return np.pi * rad_pix ** 2
+        rad_pix.shape = radii.shape
+        return (np.pi * rad_pix ** 2) / 2.0
 
-    def draw_image(self, image, scale=None):
+    def draw_image(self, image):
         """
         Change the image displayed on the Camera. 
-
 
         Parameters
         ----------
         image: array_like
             array of values corresponding to the pixels in the CameraGeometry.
-        scale: None or (float,float)
-            if None, autoscale to min/max value of image. Otherwise
-            pass the (min,max values)
         """
 
-        if scale is None:
-            self.polys.set_facecolors(image / np.max(image))
-        else:
-            # TODO: implement me
-            pass
-
-        self.axes.update()
-
-
-    
+        self.polys.set_array(image)
+        plt.draw()  # is there a better way to update this?
