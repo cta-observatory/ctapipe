@@ -3,4 +3,5 @@
 Visualization: Methods for displaying data 
 """
 
+from .mpl import *
 
