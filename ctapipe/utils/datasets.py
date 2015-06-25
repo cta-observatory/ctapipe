@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 __all__ = ['CTAPipeDatasetsNotFoundError',
-           'get_datasets_path',
-           'get_file',
+           'get_ctapipe_extra_path',
+           'get_path',
            ]
 
 
