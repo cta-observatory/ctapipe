@@ -22,7 +22,7 @@ Make sure the tests and examples code finds the test and example files:
 
 .. code-block:: bash
 
-    export CTAPIPE_EXTRA_DIR=$PWD
+    export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
 
 Run the tests to make sure everything is OK:
 

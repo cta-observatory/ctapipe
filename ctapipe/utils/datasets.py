@@ -1,22 +1,37 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
+from pathlib import Path
+
+__all__ = ['CTAPipeDatasetsNotFoundError',
+           'get_datasets_path',
+           'get_file',
+           ]
 
 
-def get_datasets_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
-    """Get path to test and example datasets.
+class CTAPipeDatasetsNotFoundError(Exception):
+    """ctapipe datasets not found error.
+    """
+
+
+def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
+    """Get path to `ctapipe-extra`.
 
     First try shell environment variable.
     Then try git submodule in the right location.
     """
     try:
-        return os.environ[environ_variable_name]
+        return Path(os.environ[environ_variable_name])
     except KeyError:
         pass
 
     import ctapipe
-    path = os.path.join(os.path.dirname(ctapipe.__file__), os.pardir, 'ctapipe-extra', 'datasets')
-    print(path)
-    if os.path.exists(path):
+    path = Path(ctapipe.__file__).parent.joinpath('ctapipe-extra')
+    if path.exists():
         return path
 
-    return None
+    raise CTAPipeDatasetsNotFoundError
+
+
+def get_path(file_path):
+    path = Path(get_ctapipe_extra_path(), 'datasets', file_path)
+    return path.as_posix()
