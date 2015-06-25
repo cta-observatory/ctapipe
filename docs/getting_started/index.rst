@@ -18,6 +18,12 @@ Clone the `ctapipe-extra <https://github.com/cta-observatory/ctapipe-extra>`__ g
     git submodule init
     git submodule update
 
+Make sure the tests and examples code finds the test and example files:
+
+.. code-block:: bash
+
+    export CTAPIPE_EXTRA_DIR=$PWD
+
 Run the tests to make sure everything is OK:
 
 .. code-block:: bash
@@ -42,8 +48,8 @@ Run the example IPython notebooks:
 
 .. code-block:: bash
 
-    cd examples
-    python xxx_example.py
+    cd ctapipe-extra/notebooks
+    ipython notebook
 
 Run the command line tools:
 
