@@ -1,5 +1,6 @@
-ctapipe
-=======
+=========
+ ctapipe
+=========
 
 CTA Python pipeline experimental version.
 
@@ -10,7 +11,7 @@ official and recommended for use!
 * Docs: https://ctapipe.readthedocs.org/
 
 Status shields
-++++++++++++++
+==============
 
 (mostly useful for developers)
 
