@@ -12,7 +12,7 @@ Introduction
 `ctapipe.datasets` contains functions to download and generate test and example datasets.
 
 To keep the ``ctapipe`` code repo small, we have decided to put the test and example files
- as well as the IPython notebooks in a separate repo:
+as well as the IPython notebooks in a separate repo:
 https://github.com/cta-observatory/ctapipe-extra
 
 This sounds easy, but in detail is tricky because ``ctapipe-extra`` has to be versioned

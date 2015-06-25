@@ -30,6 +30,8 @@ General documentation
   analysis/index
   tools/index
   io/index
+  datasets/index
+
 
 Reference/API
 =============
