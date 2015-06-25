@@ -42,7 +42,7 @@ class CameraDisplay(object):
         trans = self.axes.transData
         fig = self.axes.get_figure()
         trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0/72.0)
-
+        self.axes.set_aspect('equal', 'datalim')
                
         if self.geom.pix_type == 'hexagonal':
             self.polys = RegularPolyCollection(numsides=6,
@@ -78,7 +78,7 @@ class CameraDisplay(object):
                       - self.axes.transData.transform(offset))
         rad_pix = offset_pix[:, 1]
         rad_pix.shape = radii.shape
-        return (np.pi * rad_pix ** 2)/1.5
+        return (np.pi * rad_pix ** 2)/2.0
 
     def draw_image(self, image):
         """
