@@ -12,8 +12,8 @@ __all__ = ['CameraDisplay']
 
 class CameraDisplay(object):
 
-    """ 
-    Camera Display using MatPlotLib 
+    """
+    Camera Display using MatPlotLib
 
     Parameters
     ----------
@@ -36,14 +36,12 @@ class CameraDisplay(object):
                       self.geom.pix_r.data)
         offsets = list(zip(xx, yy))
 
-
         offset_trans = self.axes.transData
-        #        offset_trans = transforms.IdentityTransform()
         trans = self.axes.transData
         fig = self.axes.get_figure()
-        trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0/72.0)
+        trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0 / 72.0)
         self.axes.set_aspect('equal', 'datalim')
-               
+
         if self.geom.pix_type == 'hexagonal':
             self.polys = RegularPolyCollection(numsides=6,
                                                rotation=np.radians(0),
@@ -63,11 +61,13 @@ class CameraDisplay(object):
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
         self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
         self.axes.autoscale_view()
-        
+
     def _radius_to_size(self, radii):
         """compute radius in screen coordinates and returns the size in
         points^2, needed for the size parameter of
-        RegularPolyCollection
+        RegularPolyCollection. This may not be needed if the
+        transormations are set up correctly
+
         """
 
         rr = radii.ravel()
@@ -78,7 +78,7 @@ class CameraDisplay(object):
                       - self.axes.transData.transform(offset))
         rad_pix = offset_pix[:, 1]
         rad_pix.shape = radii.shape
-        return (np.pi * rad_pix ** 2)/2.0
+        return (np.pi * rad_pix ** 2) / 2.0
 
     def draw_image(self, image):
         """
@@ -90,6 +90,5 @@ class CameraDisplay(object):
             array of values corresponding to the pixels in the CameraGeometry.
         """
 
-        self.polys.set_array( image )
-        plt.draw()
-
+        self.polys.set_array(image)
+        plt.draw()  # is there a better way to update this?
