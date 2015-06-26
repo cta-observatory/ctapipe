@@ -8,7 +8,7 @@ help:
 	@echo '  init  -- set up shell to use and work on ctapipe'
 	@echo '  clean -- remove temp files'
 	@echo '  test  -- run tests'
-	@echo '  docs  -- generate Sphinx docs'
+	@echo '  doc  -- generate Sphinx docs'
 	@echo ''
 
 init:
@@ -26,6 +26,7 @@ test:
 doc:
 	python setup.py build_sphinx
 
+# any other command can be passed to setup.py
 %:
 	python setup.py $@
 
