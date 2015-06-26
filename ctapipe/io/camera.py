@@ -5,14 +5,15 @@ import numpy as np
 from astropy.table import Table
 from astropy import units as u
 from collections import namedtuple
+from ctapipe.utils.datasets import get_path
 
 __all__ = ['CameraGeometry',
-           'load_camera_geometry',
+           'get_camera_geometry',
+           'load_camera_geometry_from_file',
            'make_rectangular_camera_geometry'
            ]
 
-__doctest_skip__ = ['load_camera_geometry',
-                    ]
+#__doctest_skip__ = ['load_camera_geometry_from_file'  ]
 
 CameraGeometry = namedtuple("CameraGeometry",
                             ['cam_id', 'pix_id',
@@ -22,7 +23,37 @@ CameraGeometry = namedtuple("CameraGeometry",
                              'pix_type'])
 
 
-def load_camera_geometry(cam_id, geomfile='chercam.fits.gz'):
+def get_camera_geometry(instrument_name, cam_id):
+    """Helper function to provide the camera geometry definition for a
+    camera by name
+
+    Parameters
+    ----------
+    instrument_name: ['hess',]
+        name of instrument
+    cam_id: int
+        identifier of camera, in case of multiple versions
+
+    Returns
+    -------
+    a `CameraGeometry` object
+
+
+    Example
+    -------
+
+    >>> geom_ct1 = get_camera_geometry( "hess", 1 )
+
+    """
+
+    # let's assume the instrument name is encoded in the
+    # filename
+    name = instrument_name.lower()
+    geomfile = get_path('{}_camgeom.fits.gz'.format(name))
+    return load_camera_geometry_from_file(cam_id, geomfile=geomfile)
+
+
+def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     """
     Read camera geometry from a  FITS file with a CHERCAM extension.
 
@@ -33,13 +64,15 @@ def load_camera_geometry(cam_id, geomfile='chercam.fits.gz'):
         ID number of camera in the fits file
     geomfile : str
         FITS file containing camera geometry in CHERCAM extension
-    
+
     Examples
     --------
 
-    >>> geom = load_camera_geometry(1)
-    >>> neighbors1 = geom.pix_id[g.neighbor_ids[1].compressed()]
-    >>> print("Neighbors of pixel 1 are: {}".format(neighbors))
+    ```python
+    geom = load_camera_geometry(1)
+    neighbors1 = geom.pix_id[g.neighbor_ids[1].compressed()]
+    print("Neighbors of pixel 1 are: {}".format(neighbors))
+    ```
 
     Returns
     -------
@@ -76,7 +109,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         min and max of x pixel coordinates in meters
     range_y: (float,float)
         min and max of y pixel coodinates in meters
-    
+
     Returns
     -------
     CameraGeometry object

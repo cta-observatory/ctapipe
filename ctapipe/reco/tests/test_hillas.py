@@ -7,7 +7,7 @@ from ...utils.datasets import get_path
 
 
 def test_hillas_parameters():
-    filename = get_path('chercam.fits.gz')
+    filename = get_path('hess_camgeom.fits.gz')
     # TODO: this test currently doesn't make sense ...
     # it's just to show how to access test files
     table = Table.read(filename, format='fits')
