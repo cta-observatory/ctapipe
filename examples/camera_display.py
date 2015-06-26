@@ -35,3 +35,5 @@ disp.add_moment_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
                         length=hillas['length'].value,
                         width=hillas['width'].value, phi=np.radians(35),
                         edgecolor='white', linewidth=2)
+
+plt.show()
