@@ -1,5 +1,11 @@
-"""
-Utilities for reading or working with Camera geometry files
+"""Utilities for reading or working with Camera geometry files
+
+TODO:
+-----
+
+ - don't use `namedtuple` for CameraGeometry, since it's immutable and thus is
+   pass-by-value (which could be slow). 
+
 """
 import numpy as np
 from astropy.table import Table
@@ -21,7 +27,6 @@ CameraGeometry = namedtuple("CameraGeometry",
                              'pix_area',
                              'neighbor_ids',
                              'pix_type'])
-
 
 def get_camera_geometry(instrument_name, cam_id):
     """Helper function to provide the camera geometry definition for a
@@ -65,17 +70,9 @@ def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     geomfile : str
         FITS file containing camera geometry in CHERCAM extension
 
-    Examples
-    --------
-
-    ```python
-    geom = load_camera_geometry(1)
-    neighbors1 = geom.pix_id[g.neighbor_ids[1].compressed()]
-    print("Neighbors of pixel 1 are: {}".format(neighbors))
-    ```
-
     Returns
     -------
+
     a `CameraGeometry` object
 
     """
