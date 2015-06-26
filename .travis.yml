@@ -90,6 +90,7 @@ install:
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
 
 script:
+   - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
    - python setup.py $SETUP_CMD
 
 after_success:
