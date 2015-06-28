@@ -30,6 +30,7 @@ General documentation
   analysis/index
   tools/index
   io/index
+  visualization/index
   datasets/index
 
 

@@ -12,7 +12,6 @@ __all__ = ['CameraDisplay']
 
 
 class CameraDisplay(object):
-
     """Camera Display using MatPlotLib
 
     Parameters
@@ -48,15 +47,15 @@ class CameraDisplay(object):
         offset_trans = self.axes.transData
         fig = self.axes.get_figure()
         trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0 / 72.0)
-        #trans= self.axes.transData 
+        #trans = self.axes.transData
         self.axes.set_aspect('equal', 'datalim')
 
         if self.geom.pix_type == 'hexagonal':
             self.pixels = RegularPolyCollection(numsides=6,
-                                               rotation=np.radians(0),
-                                               offsets=offsets,
-                                               sizes=self._radius_to_size(rr),
-                                               transOffset=offset_trans)
+                                                rotation=np.radians(0),
+                                                offsets=offsets,
+                                                sizes=self._radius_to_size(rr),
+                                                transOffset=offset_trans)
             self.pixels.set_cmap(plt.cm.jet)
             self.pixels.set_linewidth(0)
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
@@ -79,9 +78,7 @@ class CameraDisplay(object):
 
         """
         return radii*np.pi*550  # hard-coded for now until better transform
-        return np.pi*radii**2
-       
-
+        #return np.pi * radii ** 2
 
     def set_cmap(self, cmap):
         """ Change the color map """
@@ -96,12 +93,15 @@ class CameraDisplay(object):
         image: array_like
             array of values corresponding to the pixels in the CameraGeometry.
         """
-
+        if image.shape != self.geom.pix_x.shape:
+            raise ValueError("Image has a different shape {} than the" 
+                             "given CameraGeometry {}"
+                             .format(image.shape, self.geom.pix_x.shape))
         self.pixels.set_array(image)
         plt.draw()  # is there a better way to update this?
 
-    def add_moment_ellipse(self, centroid, length, width , phi, assymmetry=0.0,
-                            **kwargs):
+    def add_moment_ellipse(self, centroid, length, width, phi, assymmetry=0.0,
+                           **kwargs):
         """
         plot an ellipse on top of the camera
 
@@ -119,7 +119,7 @@ class CameraDisplay(object):
             3rd-order moment for directionality if known
         kwargs: 
             any MatPlotLib style arguments to pass to the Ellipse patch
-        
+
         TODO:
         -----
         - Check consistency of phi angle
@@ -130,4 +130,3 @@ class CameraDisplay(object):
         self.axes.add_patch(ellipse)
         plt.draw()
         return ellipse
-
