@@ -10,7 +10,7 @@ from ctapipe.reco import hillas_parameters
 import numpy as np
 
 
-# load the camera 
+# load the camera
 geom = io.get_camera_geometry("hess", 1)
 disp = visualization.CameraDisplay(geom)
 

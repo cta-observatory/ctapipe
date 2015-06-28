@@ -35,7 +35,7 @@ class CameraDisplay(object):
     def __init__(self, geometry, axes=None, title="Camera"):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
-        self.polys = None
+        self.pixels = None
         self.cmap = plt.cm.jet
 
         # initialize the plot and generate the pixels as a
@@ -46,22 +46,22 @@ class CameraDisplay(object):
         offsets = list(zip(xx, yy))
 
         offset_trans = self.axes.transData
-        trans = self.axes.transData
         fig = self.axes.get_figure()
         trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0 / 72.0)
+        #trans= self.axes.transData 
         self.axes.set_aspect('equal', 'datalim')
 
         if self.geom.pix_type == 'hexagonal':
-            self.polys = RegularPolyCollection(numsides=6,
+            self.pixels = RegularPolyCollection(numsides=6,
                                                rotation=np.radians(0),
                                                offsets=offsets,
                                                sizes=self._radius_to_size(rr),
                                                transOffset=offset_trans)
-            self.polys.set_cmap(plt.cm.jet)
-            self.polys.set_linewidth(0)
-            self.polys.set_array(np.zeros_like(self.geom.pix_x))
-            self.polys.set_transform(trans)
-            self.axes.add_collection(self.polys, autolim=True)
+            self.pixels.set_cmap(plt.cm.jet)
+            self.pixels.set_linewidth(0)
+            self.pixels.set_array(np.zeros_like(self.geom.pix_x))
+            self.pixels.set_transform(trans)
+            self.axes.add_collection(self.pixels, autolim=True)
         else:
             raise ValueError(
                 "Unimplemented pixel type: {}", self.geom.pix_type)
@@ -78,16 +78,14 @@ class CameraDisplay(object):
         transormations are set up correctly
 
         """
+        return radii*np.pi*550  # hard-coded for now until better transform
+        return np.pi*radii**2
+       
 
-        rr = radii.ravel()
-        center = np.zeros([len(rr), 2])
-        offset = np.column_stack([center[:, 0], rr])
 
-        offset_pix = (self.axes.transData.transform(center)
-                      - self.axes.transData.transform(offset))
-        rad_pix = offset_pix[:, 1]
-        rad_pix.shape = radii.shape
-        return (np.pi * rad_pix ** 2) / 2.0
+    def set_cmap(self, cmap):
+        """ Change the color map """
+        self.pixels.set_cmap(cmap)
 
     def draw_image(self, image):
         """
@@ -99,7 +97,7 @@ class CameraDisplay(object):
             array of values corresponding to the pixels in the CameraGeometry.
         """
 
-        self.polys.set_array(image)
+        self.pixels.set_array(image)
         plt.draw()  # is there a better way to update this?
 
     def add_moment_ellipse(self, centroid, length, width , phi, assymmetry=0.0,

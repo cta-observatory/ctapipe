@@ -23,7 +23,7 @@ for ii in range(ncams):
 
     image, _, _ = mock.make_mock_shower_image(geom, model, intensity=50,
                                               nsb_level_pe=1000)
-    disp.polys.set_cmap(cmaps[ii])
+    disp.set_cmap(cmaps[ii])
     disp.draw_image(image)
 
 
