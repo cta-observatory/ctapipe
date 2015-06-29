@@ -20,7 +20,6 @@ __all__ = ['CameraGeometry',
            ]
 
 #__doctest_skip__ = ['load_camera_geometry_from_file'  ]
-
 CameraGeometry = namedtuple("CameraGeometry",
                             ['cam_id', 'pix_id',
                              'pix_x', 'pix_y', 'pix_r',
@@ -56,8 +55,19 @@ def get_camera_geometry(instrument_name, cam_id):
     # filename
     name = instrument_name.lower()
     geomfile = get_path('{}_camgeom.fits.gz'.format(name))
-    return load_camera_geometry_from_file(cam_id, geomfile=geomfile)
 
+    geom = load_camera_geometry_from_file(cam_id, geomfile=geomfile)
+    neigh = geom['PIX_NEIG'].data
+    
+    return CameraGeometry(
+        cam_id=cam_id,
+        pix_id=geom['PIX_ID'].data,
+        pix_x=geom['PIX_POSX'].data * geom['PIX_POSX'].unit,
+        pix_y=geom['PIX_POSY'].data * geom['PIX_POSY'].unit,
+        pix_r=geom['PIX_DIAM'] / 2.0,
+        pix_area=geom['PIX_AREA'],
+        neighbor_ids=np.ma.masked_array(neigh, neigh < 0),
+        pix_type='hexagonal')
 
 def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     """
@@ -79,17 +89,7 @@ def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     """
     camtable = Table.read(geomfile, hdu="CHERCAM")
     geom = camtable[camtable['CAM_ID'] == cam_id]
-    neigh = geom['PIX_NEIG'].data
-
-    return CameraGeometry(
-        cam_id=cam_id,
-        pix_id=geom['PIX_ID'].data,
-        pix_x=geom['PIX_POSX'].data * geom['PIX_POSX'].unit,
-        pix_y=geom['PIX_POSY'].data * geom['PIX_POSY'].unit,
-        pix_r=geom['PIX_DIAM'] / 2.0,
-        pix_area=geom['PIX_AREA'],
-        neighbor_ids=np.ma.masked_array(neigh, neigh < 0),
-        pix_type='hexagonal')
+    return geom
 
 
 def make_rectangular_camera_geometry(npix_x=40, npix_y=40,

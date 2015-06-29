@@ -1,17 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Hillas shower parametrization.
 
-As an example, two versions are implemented here. Things to resolve:
+TODO:
+-----
 
-* the two use different output names. Should unify the output (e.g.
-  define the columns somehow: in a class? a namedtiple?)
-* once there is a data structure, one could modify CameraDisplay to
-  have a helper method like overlay_hillas( hillas )
+*Should have a separate function to c
+
 
 """
 import numpy as np
 
-__all__ = ['hillas_parameters']
+__all__ = ['hillas_parameters','hillas_parameters_2']
 
 
 def hillas_parameters(x, y, s):
@@ -90,6 +89,7 @@ def hillas_parameters(x, y, s):
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
+    """ Alternate implementation of Hillas parameters """
     pix_x = np.asanyarray(pix_x, dtype=np.float64)
     pix_y = np.asanyarray(pix_y, dtype=np.float64)
     image = np.asanyarray(image, dtype=np.float64)
