@@ -8,7 +8,7 @@ Example:
     from ctapipe.io import camera
     geom = camera.make_rectangular_camera_geometry()
     showermodel = shower_model(centroid=[0.25, 0.0], 
-                               length=0.1,width=0.02, phi=np.radians(40))
+                               length=0.1,width=0.02, psi=np.radians(40))
     image, signal, noise = make_mock_shower_image(geom, showermodel)
                                             
 
@@ -17,7 +17,7 @@ Example:
 import numpy as np
 from scipy.stats import multivariate_normal
 
-def shower_model(centroid, width, length, phi):
+def shower_model(centroid, width, length, psi):
     """
     Create a stastical model (2D gaussian) for a shower image in a
     camera.
@@ -31,8 +31,8 @@ def shower_model(centroid, width, length, phi):
         width of shower (minor axis)
     length: float
         length of shower (major axis)
-    phi: float
-        rotation angle in radians
+    psi: float
+        rotation angle in radians about the centroid (0=up)
 
     Returns
     -------
@@ -41,9 +41,9 @@ def shower_model(centroid, width, length, phi):
 
     """
     aligned_covariance = np.array([[width, 0], [0, length]])
-    # rotate by phi angle: C' = R C R+
-    rotation = np.array([[np.cos(phi), -np.sin(phi)],
-                         [np.sin(phi),  np.cos(phi)]])
+    # rotate by psi angle: C' = R C R+
+    rotation = np.array([[np.cos(psi), -np.sin(psi)],
+                         [np.sin(psi),  np.cos(psi)]])
     rotated_covariance = rotation.dot(aligned_covariance).dot(rotation.T)
     return multivariate_normal(mean=centroid, cov=rotated_covariance)
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     geom = camera.make_rectangular_camera_geometry()
 
     showermodel = shower_model(centroid=[0.25, 0.0], length=0.1,
-                               width=0.02, phi=np.radians(40))
+                               width=0.02, psi=np.radians(40))
 
     image, signal, noise = make_mock_shower_image(geom, showermodel,
                                                   intensity=20, nsb_level_pe=30)

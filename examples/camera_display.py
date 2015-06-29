@@ -18,7 +18,7 @@ disp = visualization.CameraDisplay(geom)
 model = mock.shower_model(centroid=(0.2, 0.0),
                           width=0.01,
                           length=0.1,
-                          phi=np.radians(35))
+                          psi=np.radians(35))
 
 image, _, _ = mock.make_mock_shower_image(geom, model, intensity=50,
                                           nsb_level_pe=1000)
@@ -33,9 +33,11 @@ print(hillas)
 
 # show the camera image and overlay Hillas ellipse
 disp.set_image(image)
-disp.add_moment_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
-                        length=hillas['length'].value,
-                        width=hillas['width'].value, phi=np.radians(35),
-                        edgecolor='black', linewidth=3)
+disp.add_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
+                 length=hillas['length'].value,
+                 width=hillas['width'].value, angle=np.radians(35),
+                 edgecolor='black', linewidth=3)
 
 plt.show()
+
+

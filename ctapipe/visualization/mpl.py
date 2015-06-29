@@ -106,7 +106,7 @@ class CameraDisplay(object):
         self.pixels.set_array(image)
         plt.draw()  # is there a better way to update this?
 
-    def add_moment_ellipse(self, centroid, length, width, phi, assymmetry=0.0,
+    def add_ellipse(self, centroid, length, width, angle, assymmetry=0.0,
                            **kwargs):
         """
         plot an ellipse on top of the camera
@@ -119,20 +119,16 @@ class CameraDisplay(object):
             major axis
         width: float
             minor axis
-        phi: float
-            rotation angle wrt "up", clockwise, in radians
+        angle: float
+            rotation angle wrt "up" about the centroid, clockwise, in radians
         assymmetry: float
             3rd-order moment for directionality if known
         kwargs: 
             any MatPlotLib style arguments to pass to the Ellipse patch
 
-        TODO:
-        -----
-        - Check consistency of phi angle
-
         """
         ellipse = Ellipse(xy=centroid, width=width, height=length,
-                          angle=np.degrees(phi), fill=False, **kwargs)
+                          angle=np.degrees(angle), fill=False, **kwargs)
         self.axes.add_patch(ellipse)
         plt.draw()
         return ellipse
