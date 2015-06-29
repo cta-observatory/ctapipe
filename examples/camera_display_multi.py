@@ -12,7 +12,7 @@ geom = io.get_camera_geometry("hess", 1)
 ncams = 4
 cmaps = [plt.cm.jet, plt.cm.afmhot, plt.cm.terrain, plt.cm.autumn]
 
-fig, ax = plt.subplots(1, ncams, figsize=(15, 5))
+fig, ax = plt.subplots(1, ncams, figsize=(15, 5),sharey=True, sharex=True)
 
 for ii in range(ncams):
     disp = visualization.CameraDisplay(geom, axes=ax[ii],
@@ -24,7 +24,7 @@ for ii in range(ncams):
     image, _, _ = mock.make_mock_shower_image(geom, model, intensity=50,
                                               nsb_level_pe=1000)
     disp.set_cmap(cmaps[ii])
-    disp.draw_image(image)
+    disp.set_image(image)
 
-
+plt.tight_layout()
 plt.show()

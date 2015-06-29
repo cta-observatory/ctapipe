@@ -32,10 +32,10 @@ hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
 print(hillas)
 
 # show the camera image and overlay Hillas ellipse
-disp.draw_image(image)
+disp.set_image(image)
 disp.add_moment_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
                         length=hillas['length'].value,
                         width=hillas['width'].value, phi=np.radians(35),
-                        edgecolor='white', linewidth=2)
+                        edgecolor='black', linewidth=3)
 
 plt.show()

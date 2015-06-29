@@ -45,9 +45,11 @@ class CameraDisplay(object):
         offsets = list(zip(xx, yy))
 
         offset_trans = self.axes.transData
+        #offset_trans = transforms.IdentityTransform()
         fig = self.axes.get_figure()
         trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0 / 72.0)
         #trans = self.axes.transData
+        #trans = transforms.IdentityTransform()
         self.axes.set_aspect('equal', 'datalim')
 
         if self.geom.pix_type == 'hexagonal':
@@ -59,11 +61,15 @@ class CameraDisplay(object):
             self.pixels.set_cmap(plt.cm.jet)
             self.pixels.set_linewidth(0)
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
-            self.pixels.set_transform(trans)
+            #self.pixels.set_transform(trans)
+            #self.pixels.set_offset_position('data')
+            print("POS: ",self.pixels.get_offset_position())
+            print("tran: ",self.pixels.get_offset_transform())
             self.axes.add_collection(self.pixels, autolim=True)
         else:
             raise ValueError(
                 "Unimplemented pixel type: {}", self.geom.pix_type)
+
 
         self.axes.set_title(title)
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
@@ -84,7 +90,7 @@ class CameraDisplay(object):
         """ Change the color map """
         self.pixels.set_cmap(cmap)
 
-    def draw_image(self, image):
+    def set_image(self, image):
         """
         Change the image displayed on the Camera. 
 
