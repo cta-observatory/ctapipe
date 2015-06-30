@@ -8,5 +8,3 @@ def test_make_rectangular_camera_geometry():
 
 def test_load_hess_camera():
     geom = get_camera_geometry("hess", 1)
-
-

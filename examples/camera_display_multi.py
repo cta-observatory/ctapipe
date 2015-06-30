@@ -12,24 +12,23 @@ from ctapipe.reco.hillas import hillas_parameters_2 as hillas_parameters
 import numpy as np
 
 
-if __name__ == '__main__':
+def draw_several_cams(geom):
 
     ncams = 4
     cmaps = [plt.cm.jet, plt.cm.afmhot, plt.cm.terrain, plt.cm.autumn]
-
-    geom = io.get_camera_geometry("hess", 1)
     fig, ax = plt.subplots(1, ncams, figsize=(15, 4), sharey=True, sharex=True)
 
     for ii in range(ncams):
         disp = visualization.CameraDisplay(geom, axes=ax[ii],
                                            title="CT{}".format(ii + 1))
-        
+
         model = mock.shower_model(centroid=(0.2 - ii * 0.1, -ii * 0.05),
                                   width=0.005 + 0.001 * ii,
                                   length=0.1 + 0.05 * ii,
                                   psi=np.radians(ii * 20))
 
-        image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
+        image, _, _ = mock.make_mock_shower_image(geom, model.pdf,
+                                                  intensity=50,
                                                   nsb_level_pe=1000)
 
         clean = image.copy()
@@ -42,6 +41,15 @@ if __name__ == '__main__':
                          length=hillas['length'], width=hillas['width'],
                          angle=hillas['psi'],
                          linewidth=3, color='blue')
+
+
+if __name__ == '__main__':
+
+    hexgeom = io.get_camera_geometry("hess", 1)
+    recgeom = io.make_rectangular_camera_geometry()
+
+    draw_several_cams(hexgeom)
+    draw_several_cams(recgeom)
 
     plt.tight_layout()
     plt.show()

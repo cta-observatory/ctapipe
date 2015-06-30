@@ -9,7 +9,7 @@ Example:
     geom = camera.make_rectangular_camera_geometry()
     showermodel = shower_model(centroid=[0.25, 0.0], 
                                length=0.1,width=0.02, psi=np.radians(40))
-    image, signal, noise = make_mock_shower_image(geom, showermodel)
+    image, signal, noise = make_mock_shower_image(geom, showermodel.pdf)
                                             
 
 """

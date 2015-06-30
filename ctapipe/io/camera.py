@@ -116,8 +116,20 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
     bx = np.linspace(range_x[0], range_x[1], npix_x)
     by = np.linspace(range_y[0], range_y[1], npix_y)
     xx, yy = np.meshgrid(bx, by)
-
+    xx = xx.ravel()
+    yy = yy.ravel()
+    
     ids = np.arange(npix_x * npix_y)
+    
     neighs = None  # todo
 
-    return CameraGeometry(ids, xx * u.m, yy * u.m, neighs, pix_type="rectangular")
+    return CameraGeometry(
+        cam_id=-1,
+        pix_id=ids,
+        pix_x=xx * u.m,
+        pix_y=yy * u.m,
+        pix_r=np.ones_like(xx) * (xx[1]-xx[0])/2.0 * u.m,
+        pix_area=np.ones_like(xx)* (xx[1]-xx[0])*(yy[1]-yy[0]) * u.m**2,
+        neighbor_ids=None,
+        pix_type='rectangular')
+    

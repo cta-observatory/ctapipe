@@ -43,7 +43,7 @@ class CameraDisplay(object):
         # RegularPolyCollection
 
         xx, yy, rr = (self.geom.pix_x.value, self.geom.pix_y.value,
-                      self.geom.pix_r.data)
+                      self.geom.pix_r)
         offsets = list(zip(xx, yy))
 
         offset_trans = self.axes.transData
@@ -54,9 +54,23 @@ class CameraDisplay(object):
         #trans = transforms.IdentityTransform()
         self.axes.set_aspect('equal', 'datalim')
 
-        if self.geom.pix_type == 'hexagonal':
+        if self.geom.pix_type.startswith('hex'):
             self.pixels = RegularPolyCollection(numsides=6,
                                                 rotation=np.radians(0),
+                                                offsets=offsets,
+                                                sizes=self._radius_to_size(rr),
+                                                transOffset=offset_trans)
+            self.pixels.set_cmap(plt.cm.jet)
+            self.pixels.set_linewidth(0)
+            self.pixels.set_array(np.zeros_like(self.geom.pix_x))
+            #self.pixels.set_transform(trans)
+            #self.pixels.set_offset_position('data')
+            logger.debug("POS:{}".format(self.pixels.get_offset_position()))
+            logger.debug("TRN:{}".format(self.pixels.get_offset_transform()))
+            self.axes.add_collection(self.pixels, autolim=True)
+        elif self.geom.pix_type.startswith('rect'):
+            self.pixels = RegularPolyCollection(numsides=4,
+                                                rotation=np.radians(45),
                                                 offsets=offsets,
                                                 sizes=self._radius_to_size(rr),
                                                 transOffset=offset_trans)
