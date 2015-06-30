@@ -14,13 +14,13 @@ help:
 init:
 	git submodule init
 	git submodule update
-	export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
+	export CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra
 
 clean:
 	rm -rf build docs/_build docs/api
 
 test:
-	export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
+	export CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra
 	python setup.py test -V
 
 doc:
@@ -29,9 +29,3 @@ doc:
 # any other command can be passed to setup.py
 %:
 	python setup.py $@
-
-
-
-
-
-
