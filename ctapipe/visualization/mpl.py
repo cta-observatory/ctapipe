@@ -7,9 +7,11 @@ from matplotlib import transforms
 from matplotlib.collections import RegularPolyCollection
 from matplotlib.patches import Ellipse
 import numpy as np
+import logging
 
 __all__ = ['CameraDisplay']
 
+logger = logging.getLogger(__name__)
 
 class CameraDisplay(object):
     """Camera Display using MatPlotLib
@@ -63,8 +65,8 @@ class CameraDisplay(object):
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
             #self.pixels.set_transform(trans)
             #self.pixels.set_offset_position('data')
-            print("POS: ",self.pixels.get_offset_position())
-            print("tran: ",self.pixels.get_offset_transform())
+            logger.debug("POS:{}".format(self.pixels.get_offset_position()))
+            logger.debug("TRN:{}".format(self.pixels.get_offset_transform()))
             self.axes.add_collection(self.pixels, autolim=True)
         else:
             raise ValueError(
