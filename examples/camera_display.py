@@ -20,7 +20,7 @@ model = mock.shower_model(centroid=(0.2, 0.0),
                           length=0.1,
                           psi=np.radians(35))
 
-image, _, _ = mock.make_mock_shower_image(geom, model, intensity=50,
+image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
                                           nsb_level_pe=1000)
 
 # apply really stupid image cleaning (single threshold):

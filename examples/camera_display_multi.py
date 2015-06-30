@@ -1,3 +1,8 @@
+"""
+Demo to show multiple shower images on a single figure using
+`CameraDisplay` and really simple mock shower images (not
+simulations). Also shows how to change the color palette. 
+"""
 
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
@@ -6,34 +11,37 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.reco.hillas import hillas_parameters_2 as hillas_parameters
 import numpy as np
 
-geom = io.get_camera_geometry("hess", 1)
 
-# show several camera images:
-ncams = 4
-cmaps = [plt.cm.jet, plt.cm.afmhot, plt.cm.terrain, plt.cm.autumn]
+if __name__ == '__main__':
 
-fig, ax = plt.subplots(1, ncams, figsize=(15, 5),sharey=True, sharex=True)
+    ncams = 4
+    cmaps = [plt.cm.jet, plt.cm.afmhot, plt.cm.terrain, plt.cm.autumn]
 
-for ii in range(ncams):
-    disp = visualization.CameraDisplay(geom, axes=ax[ii],
-                                       title="CT{}".format(ii + 1))
-    model = mock.shower_model(centroid=(0.2 - ii * 0.1, -ii * 0.05),
-                              width=0.005 + 0.001*ii,
-                              length=0.1+0.05*ii, psi=np.radians(ii * 20))
+    geom = io.get_camera_geometry("hess", 1)
+    fig, ax = plt.subplots(1, ncams, figsize=(15, 4), sharey=True, sharex=True)
 
-    image, _, _ = mock.make_mock_shower_image(geom, model, intensity=50,
-                                              nsb_level_pe=1000)
+    for ii in range(ncams):
+        disp = visualization.CameraDisplay(geom, axes=ax[ii],
+                                           title="CT{}".format(ii + 1))
+        
+        model = mock.shower_model(centroid=(0.2 - ii * 0.1, -ii * 0.05),
+                                  width=0.005 + 0.001 * ii,
+                                  length=0.1 + 0.05 * ii,
+                                  psi=np.radians(ii * 20))
 
-    clean = image.copy()
-    clean[image <= 3.0 * image.mean()] = 0.0
-    hillas = hillas_parameters(geom.pix_x.value, geom.pix_y.value, clean)
-    
-    disp.set_cmap(cmaps[ii])
-    disp.set_image(image)
-    disp.add_ellipse( centroid=(hillas['cx'],hillas['cy']),
-                      length=hillas['length'],width=hillas['width'],
-                      angle=hillas['psi'],
-                      linewidth=3, color='blue' )
+        image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
+                                                  nsb_level_pe=1000)
 
-plt.tight_layout()
-plt.show()
+        clean = image.copy()
+        clean[image <= 3.0 * image.mean()] = 0.0
+        hillas = hillas_parameters(geom.pix_x.value, geom.pix_y.value, clean)
+
+        disp.set_cmap(cmaps[ii])
+        disp.set_image(image)
+        disp.add_ellipse(centroid=(hillas['cx'], hillas['cy']),
+                         length=hillas['length'], width=hillas['width'],
+                         angle=hillas['psi'],
+                         linewidth=3, color='blue')
+
+    plt.tight_layout()
+    plt.show()
