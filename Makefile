@@ -26,6 +26,9 @@ test:
 doc:
 	python setup.py build_sphinx
 
+docshow:
+	python setup.py build_sphinx --open-docs-in-browser
+
 # any other command can be passed to setup.py
 %:
 	python setup.py $@
