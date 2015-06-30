@@ -4,11 +4,12 @@ help:
 	@echo ''
 	@echo 'ctapipe available make targets:'
 	@echo ''
-	@echo '  help  -- print this help message (the default)'
-	@echo '  init  -- set up shell to use and work on ctapipe'
-	@echo '  clean -- remove temp files'
-	@echo '  test  -- run tests'
-	@echo '  doc  -- generate Sphinx docs'
+	@echo '  help    -- print this help message (the default)'
+	@echo '  init    -- set up shell to use and work on ctapipe'
+	@echo '  clean   -- remove temp files'
+	@echo '  test    -- run tests'
+	@echo '  doc     -- generate Sphinx docs'
+	@echo '  docshow -- generate and display docs in browser'
 	@echo ''
 
 init:
