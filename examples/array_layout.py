@@ -16,3 +16,6 @@ if __name__ == '__main__':
         name = "CT{tid}:{tclass}".format(tid=tel['TELID'],
                                          tclass=io.tel_class_name(tel['CLASS']))
         plt.text(tel['POSX'],tel['POSY'], name)
+
+
+    plt.show()
