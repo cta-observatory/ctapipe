@@ -6,6 +6,9 @@
 CTA Python pipeline experimental version (`ctapipe`)
 ****************************************************
 
+.. image:: cameras.png
+
+
 What is ctapipe?
 ================
 
