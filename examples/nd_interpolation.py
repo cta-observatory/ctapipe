@@ -25,16 +25,23 @@ if __name__ == '__main__':
     # Now, construct an interpolator that we can use to get values at
     # any point:
     centers = [energy_table.binCenters(ii) for ii in range(energy_table.ndims)]
-    energy_lookup = RegularGridInterpolator(centers, energy_table.hist)
+    energy_lookup = RegularGridInterpolator(centers, energy_table.hist,
+                                            bounds_error=False,fill_value=-100)
 
     # energy_lookup is now just a continuous function of log(SIZE),
     # DISTANCE in m.  We can now plot some curves from the
     # interpolator.  The errorbars will be the sqrt(Ncounts) for each
     # interpolated position, just as an example
+    #
+    # Note that the LUT we used is does not have very high statistics,
+    # so the interpolation starts to be affected by noise at the high
+    # end. In a real case, we would want to use a table that has been
+    # sanitized (smoothed and extrapolated)
 
     lsize = np.linspace(1.5, 5.0, 100)
     dists = np.linspace(50, 100, 5)
 
+    plt.figure()
     plt.title("Variation of energy with size and impact distance")
     plt.xlabel("SIZE (P.E.)")
     plt.ylabel("ENERGY (TeV)")
@@ -44,8 +51,22 @@ if __name__ == '__main__':
                  label="DIST={:.1f} m".format(dist))
 
     plt.legend(loc="best")
+    
+    # Using the interpolator, reinterpolate the lookup table onto an NxN
+    # grid (regardless of its original dimensions):
+    
+    N =50
+    xmin, xmax = energy_table.binCenters(0)[0], energy_table.binCenters(0)[-1]
+    ymin, ymax = energy_table.binCenters(1)[0], energy_table.binCenters(1)[-1]
+    X, Y = np.meshgrid( np.linspace(xmin,xmax,N), np.linspace(ymin, ymax, N) )
+    points = list(zip(X.ravel(),Y.ravel()))
+    E = energy_lookup(points).reshape((N, N))
+    
+    plt.figure()
+    plt.imshow(E, interpolation='none', origin='lower')
+    plt.title("Lookup table interpolated to an {0}x{0} grid".format(N))
 
-    # note that the LUT we used is does not have very high statistics,
-    # so the interpolation starts to be affected by noise at the high
-    # end. In a real case, we would want to use a table that has been
-    # sanitized (smoothed and extrapolated)
+    plt.show()
+
+    
+    
