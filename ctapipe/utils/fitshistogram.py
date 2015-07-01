@@ -3,9 +3,9 @@ from astropy.wcs import WCS
 import numpy as np
 import math
 
-from matplotlib import pyplot
 from scipy import ndimage
 
+__all__ = ['Histogram']
 
 class Histogram(object):
     """
@@ -211,9 +211,9 @@ class Histogram(object):
             # note that histogramdd returns edges for 0-N+1 (including
             # the lower edge of the non-existant next bin), so we do
             # the same here to keep things the same
-            a = np.zeros( (self._bins[dim]+1, ndim ) )
-            a[:,dim] = np.arange( self._bins[dim]+1 )+0.5
-            edges.append(wcs.wcs_pix2world( a )[:,dim])
+            ax = np.zeros( (self._bins[dim]+1, ndim ) )
+            ax[:,dim] = np.arange( self._bins[dim]+1 )+0.5
+            edges.append(wcs.wcs_pix2world( ax,1 )[:,dim])
             self._ranges.append( (edges[dim][0],edges[dim][-1]) )
             self._ctypes.append(hdu.header["CTYPE%d"%(dim+1)])
             if (hdu.header.get("CNAME%d"%(dim+1))):
@@ -281,6 +281,8 @@ class Histogram(object):
         """
         draw the histogram using pcolormesh() (only works for 2D histograms currently)
         """
+        from matplotlib import pyplot
+
         if self.hist.ndim < 2:
             raise ValueError("Too few dimensions")
 
@@ -295,6 +297,8 @@ class Histogram(object):
         pyplot.ylabel( self.axisNames[dims[1]] )
         
     def draw1D(self, dim=0, **kwargs):
+        from matplotlib import pyplot
+
         # todo fix this to work properly with dim argument!
         pyplot.plot( self.binCenters(dim), self.hist, drawstyle='steps-mid', 
                      **kwargs)
