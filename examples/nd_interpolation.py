@@ -30,8 +30,7 @@ if __name__ == '__main__':
 
     # energy_lookup is now just a continuous function of log(SIZE),
     # DISTANCE in m.  We can now plot some curves from the
-    # interpolator.  The errorbars will be the sqrt(Ncounts) for each
-    # interpolated position, just as an example
+    # interpolator.  
     #
     # Note that the LUT we used is does not have very high statistics,
     # so the interpolation starts to be affected by noise at the high

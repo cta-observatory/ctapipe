@@ -21,8 +21,7 @@ clean:
 	rm -rf build docs/_build docs/api
 
 test:
-	export CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra
-	python setup.py test -V
+	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py test -V
 
 doc:
 	python setup.py build_sphinx
