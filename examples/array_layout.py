@@ -3,6 +3,7 @@ import matplotlib.pylab as plt
 
 if __name__ == '__main__':
 
+    plt.style.use("ggplot")
     layout = io.get_array_layout("hess")
     X = layout['POSX']
     Y = layout['POSY']
@@ -11,7 +12,8 @@ if __name__ == '__main__':
     plt.title("Array Layout: {}".format(layout.meta['ARRAY']))
     plt.xlabel("{} ({})".format(X.name, X.unit))
     plt.ylabel("{} ({})".format(Y.name, Y.unit))
-
+    plt.grid()
+    
     for tel in layout:
         name = "CT{tid}:{tclass}".format(tid=tel['TELID'],
                                          tclass=io.tel_class_name(tel['CLASS']))

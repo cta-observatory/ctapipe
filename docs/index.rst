@@ -43,5 +43,6 @@ Reference/API
 Development Help
 ================
 * Development workflow examples from AstroPy: http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
-
+* GIT tutorial: https://www.atlassian.com/git/tutorials/syncing/git-pull
+  
 .. automodapi:: ctapipe

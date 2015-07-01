@@ -4,8 +4,12 @@
 TODO:
 -----
 
-*Should have a separate function to c
+- Should have a separate function or option to compute 3rd order
+  moments + assymmetry (whichi are not always needed)
 
+- remove alpha calculation (which is only about (0,0), and make a get
+  alpha function that does it from an arbitrary point given a
+  pre-computed list of parameters
 
 """
 import numpy as np
@@ -89,7 +93,18 @@ def hillas_parameters(x, y, s):
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
-    """ Alternate implementation of Hillas parameters """
+    """ Alternate implementation of Hillas parameters.
+
+    Parameters
+    ----------
+    pix_x : array_like
+        Pixel x-coordinate
+    pix_y : array_like
+        Pixel y-coordinate
+    image : array_like
+        Pixel values corresponding
+
+    """
     pix_x = np.asanyarray(pix_x, dtype=np.float64)
     pix_y = np.asanyarray(pix_y, dtype=np.float64)
     image = np.asanyarray(image, dtype=np.float64)
@@ -112,14 +127,14 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     # calculate variances
 
-    vx2 = moms[2] - moms[0] ** 2
-    vy2 = moms[3] - moms[1] ** 2
+    vx2 = moms[2] - moms[0]**2
+    vy2 = moms[3] - moms[1]**2
     vxy = moms[4] - moms[0] * moms[1]
 
     # common factors:
 
     dd = vy2 - vx2
-    zz = np.sqrt(dd ** 2 + 4.0 * vxy ** 2)
+    zz = np.sqrt(dd**2 + 4.0 * vxy**2)
 
     # miss
 
@@ -128,21 +143,22 @@ def hillas_parameters_2(pix_x, pix_y, image):
     miss = np.sqrt((uu * moms[0] ** 2 + vv * moms[1] ** 2) / 2.0
                    - moms[0] * moms[1] * 2.0 * vxy / zz)
 
-    # parameters
+    # shower shape parameters
 
     width = np.sqrt(vx2 + vy2 - zz)
     length = np.sqrt(vx2 + vy2 + zz)
-    distance = np.hypot(moms[0], moms[1])
     azwidth = np.sqrt(moms[2] + moms[3] - zz)
 
-    # angles
+    # rotation angle of ellipse relative to centroid
 
     tanpsi_numer = (dd + zz) * moms[1] + 2.0 * vxy * moms[0]
     tanpsi_denom = (2 * vxy * moms[1]) - (dd - zz) * moms[0]
     psi = np.pi/2.0 + np.arctan2(tanpsi_numer, tanpsi_denom)
-    alpha = np.arcsin(miss / distance)
+
+    # polar coordinates of centroid
+    
+    distance = np.hypot(moms[0], moms[1])
     phi = np.arctan2(moms[1], moms[0])
 
     return dict(size=size, cx=moms[0], cy=moms[1], length=length, width=width,
-                distance = distance, azwidth=azwidth, psi=psi, phi=phi,
-                alpha=alpha)
+                distance = distance, azwidth=azwidth, psi=psi, phi=phi )
