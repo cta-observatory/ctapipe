@@ -8,10 +8,14 @@ __all__ = ['CTAPipeDatasetsNotFoundError',
            ]
 
 
-class CTAPipeDatasetsNotFoundError(Exception):
+class CTAPipeDatasetsNotFoundError(RuntimeError):
     """ctapipe datasets not found error.
     """
-
+    def __init__(self, path):
+        # Call the base class constructor with the parameters it needs
+        message = "Does not exist: '{}'".format(path)
+        super(RuntimeError, self).__init__(message)
+    
 
 def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
     """Get path to `ctapipe-extra`.
@@ -29,7 +33,7 @@ def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
     if path.exists():
         return path
 
-    raise CTAPipeDatasetsNotFoundError
+    raise CTAPipeDatasetsNotFoundError(path)
 
 
 def get_path(file_path):
