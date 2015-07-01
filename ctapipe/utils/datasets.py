@@ -28,7 +28,7 @@ def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
         pass
 
     import ctapipe
-    path = Path(ctapipe.__file__).parent.joinpath('ctapipe-extra')
+    path = Path(ctapipe.__file__).parent.parent.joinpath('ctapipe-extra')
     if path.exists():
         return path
 
