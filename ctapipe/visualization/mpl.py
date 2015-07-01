@@ -24,10 +24,10 @@ class CameraDisplay(object):
     axis : `matplotlib.axes._subplots.AxesSubplot`
         a MatPlotLib Axis object to plot on, or None to create a new one
 
-    Implementation Details:
-    -----------------------
+    Notes
+    -----
 
-    Pixels are rendered as a
+    Implementation detail: Pixels are rendered as a
     `matplotlib.collections.RegularPolyCollection`, which is the most
     efficient way in MatPlotLib to display complex pixel shapes.
 
