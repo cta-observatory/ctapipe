@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # interpolated position, just as an example
 
     lsize = np.linspace(1.5, 5.0, 100)
-    dists = np.linspace(10, 80, 5)
+    dists = np.linspace(50, 100, 5)
 
     plt.title("Variation of energy with size and impact distance")
     plt.xlabel("SIZE (P.E.)")
