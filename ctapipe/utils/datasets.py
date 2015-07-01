@@ -12,7 +12,6 @@ class CTAPipeDatasetsNotFoundError(RuntimeError):
     """ctapipe datasets not found error.
     """
     def __init__(self, path):
-        # Call the base class constructor with the parameters it needs
         message = "Does not exist: '{}'".format(path)
         super(RuntimeError, self).__init__(message)
     
