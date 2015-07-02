@@ -11,6 +11,8 @@ help:
 	@echo '  doc     -- generate Sphinx docs'
 	@echo '  docshow -- generate and display docs in browser'
 	@echo ''
+	@echo '  dist    -- build a conda package for distribution'
+	@echo ''
 
 init:
 	git submodule init
@@ -28,6 +30,9 @@ doc:
 
 docshow:
 	python setup.py build_sphinx --open-docs-in-browser
+
+dist:
+	python setup.py bdist_conda
 
 # any other command can be passed to setup.py
 %:
