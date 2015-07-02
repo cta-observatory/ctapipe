@@ -10,44 +10,48 @@ from ctapipe.reco import hillas_parameters
 import numpy as np
 
 
-# load the camera
-geom = io.get_camera_geometry("hess", 1)
-disp = visualization.CameraDisplay(geom)
-
-# create a fake camera image to display:
-model = mock.shower_model(centroid=(0.2, 0.0),
-                          width=0.01,
-                          length=0.1,
-                          psi=np.radians(35))
-
-image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
-                                          nsb_level_pe=1000)
-
-# apply really stupid image cleaning (single threshold):
-clean = image.copy()
-clean[image <= 3.0 * image.mean()] = 0.0
-
-# calculate image parameters
-hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
-print(hillas)
-
-# show the camera image and overlay Hillas ellipse
-disp.set_image(image)
-disp.add_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
-                 length=hillas['length'].value,
-                 width=hillas['width'].value, angle=np.radians(35),
-                 edgecolor='black', linewidth=3)
-
-
 # display the neighbors of a selected pixel:
-pix = 100
-neigh = geom.neighbors[pix]  # neighbor indices (not pixel ids)
-x,y = geom.pix_x[pix].value, geom.pix_y[pix].value
-for nn in neigh:
-    nx,ny = geom.pix_x[nn].value, geom.pix_y[nn].value
-    plt.plot( [x,nx], [y,ny], color='r' )
-    
+def draw_neighbors(geom, pixel_index, color='r'):
+    neigh = geom.neighbors[pixel_index]  # neighbor indices (not pixel ids)
+    x, y = geom.pix_x[pixel_index].value, geom.pix_y[pixel_index].value
+    for nn in neigh:
+        nx, ny = geom.pix_x[nn].value, geom.pix_y[nn].value
+        plt.plot([x, nx], [y, ny], color=color)
 
-plt.show()
+if __name__ == '__main__':
 
+    # load the camera
+    geom = io.get_camera_geometry("hess", 1)
+    disp = visualization.CameraDisplay(geom)
 
+    # create a fake camera image to display:
+    model = mock.shower_model(centroid=(0.2, 0.0),
+                              width=0.01,
+                              length=0.1,
+                              psi=np.radians(35))
+
+    image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
+                                              nsb_level_pe=1000)
+
+    # apply really stupid image cleaning (single threshold):
+    clean = image.copy()
+    clean[image <= 3.0 * image.mean()] = 0.0
+
+    # calculate image parameters
+    hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
+    print(hillas)
+
+    # show the camera image and overlay Hillas ellipse
+    disp.set_image(image)
+    disp.add_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
+                     length=hillas['length'].value,
+                     width=hillas['width'].value, angle=np.radians(35),
+                     edgecolor='black', linewidth=3)
+
+    # draw the neighbors of pixel 100 in red, and the
+    # neighbor-neighbors in green
+    for ii in geom.neighbors[100]:
+        draw_neighbors(geom, ii, color='green')
+    draw_neighbors(geom, 100, color='red')
+
+    plt.show()
