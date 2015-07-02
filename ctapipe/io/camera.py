@@ -30,7 +30,7 @@ CameraGeometry = namedtuple("CameraGeometry",
                              'pix_type'])
 
 
-def find_neighbor_pixels(pix_ids, pix_x, pix_y, rad):
+def find_neighbor_pixels(pix_x, pix_y, rad):
     """
     use a KD-Tree to quickly find nearest neighbors of the pixels in a camera. 
 
@@ -146,16 +146,15 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
     yy = yy.ravel()
 
     ids = np.arange(npix_x * npix_y)
-
-    neighs = None  # todo
+    rr = np.ones_like(xx) * (xx[1] - xx[0]) / 2.0 * u.m
 
     return CameraGeometry(
         cam_id=-1,
         pix_id=ids,
         pix_x=xx * u.m,
         pix_y=yy * u.m,
-        pix_r=np.ones_like(xx) * (xx[1] - xx[0]) / 2.0 * u.m,
+        pix_r=rr,
         pix_area=np.ones_like(
             xx) * (xx[1] - xx[0]) * (yy[1] - yy[0]) * u.m ** 2,
-        neighbors=find_neighbor_pixels( pix_x,pix_y, r=pix_r*(2.1) ),
+        neighbors=None, #find_neighbor_pixels(xx,yy,rad=rr*(2.1)),
         pix_type='rectangular')
