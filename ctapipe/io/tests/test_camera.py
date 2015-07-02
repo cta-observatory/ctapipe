@@ -14,4 +14,4 @@ def test_load_hess_camera():
 def test_find_neighbor_pixels():
     x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
     neigh = find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
-    assert(neigh[11] == [6, 11, 10, 12])
+    assert(set(neigh[11]) == set([16, 6, 10, 12]))

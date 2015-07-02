@@ -51,8 +51,11 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
 
     """
     points = np.column_stack([pix_x, pix_y])
+    indices = np.arange(len(points))
     kdtree = KDTree(points)
-    neighbors = [kdtree.query_ball_point(p, r=rad)[1:] for p in points]
+    neighbors = [kdtree.query_ball_point(p, r=rad) for p in points]
+    for nn, ii in zip(neighbors, indices):
+        nn.remove(ii)  # get rid of the pixel itself
     return neighbors
 
 

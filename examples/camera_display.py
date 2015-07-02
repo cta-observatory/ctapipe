@@ -38,6 +38,16 @@ disp.add_ellipse(centroid=(hillas['x'].value, hillas['y'].value),
                  width=hillas['width'].value, angle=np.radians(35),
                  edgecolor='black', linewidth=3)
 
+
+# display the neighbors of a selected pixel:
+pix = 100
+neigh = geom.neighbors[pix]  # neighbor indices (not pixel ids)
+x,y = geom.pix_x[pix].value, geom.pix_y[pix].value
+for nn in neigh:
+    nx,ny = geom.pix_x[nn].value, geom.pix_y[nn].value
+    plt.plot( [x,nx], [y,ny], color='r' )
+    
+
 plt.show()
 
 
