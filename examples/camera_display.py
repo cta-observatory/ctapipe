@@ -5,18 +5,17 @@ Example of drawing a Camera using a mock shower image
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
 from ctapipe.reco import mock
-from ctapipe.utils.datasets import get_path
 from ctapipe.reco import hillas_parameters
 import numpy as np
 
 
-# display the neighbors of a selected pixel:
-def draw_neighbors(geom, pixel_index, color='r',**kwargs):
+def draw_neighbors(geom, pixel_index, color='r', **kwargs):
+    """ draw lines between a pixel and its neighbors"""
     neigh = geom.neighbors[pixel_index]  # neighbor indices (not pixel ids)
     x, y = geom.pix_x[pixel_index].value, geom.pix_y[pixel_index].value
     for nn in neigh:
         nx, ny = geom.pix_x[nn].value, geom.pix_y[nn].value
-        plt.plot([x, nx], [y, ny], color=color,**kwargs)
+        plt.plot([x, nx], [y, ny], color=color, **kwargs)
 
 if __name__ == '__main__':
 
