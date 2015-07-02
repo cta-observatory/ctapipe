@@ -8,34 +8,29 @@ Check out the `ctapipe <https://github.com/cta-observatory/ctapipe>`__ repo from
 
 .. code-block:: bash
 
-    git clone https://github.com/cta-observatory/ctapipe-extra.git   # if you like HTTPS
-    git clone git@github.com:cta-observatory/ctapipe-extra.git       # if you like SSH
+    git clone https://github.com/cta-observatory/ctapipe.git   # if you like HTTPS
+    git clone git@github.com:cta-observatory/ctapipe.git       # if you like SSH
 
 Clone the `ctapipe-extra <https://github.com/cta-observatory/ctapipe-extra>`__ git submodule repo from Github:
 
 .. code-block:: bash
 
+    cd ctapipe
     git submodule init
     git submodule update
 
-Make sure the tests and examples code finds the test and example files:
-
-.. code-block:: bash
-
-    export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
-
+Make sure the tests and examples code finds the test and example files.
 Run the tests to make sure everything is OK:
 
 .. code-block:: bash
 
-    python setup.py test
+   make test
 
 Build the HTML docs locally and open them in your web browser:
 
 .. code-block:: bash
 
-    python setup.py build_sphinx
-    open docs/_build/html/index.html
+   make docshow
 
 Run the example Python scripts:
 
@@ -43,13 +38,6 @@ Run the example Python scripts:
 
     cd examples
     python xxx_example.py
-
-Run the example IPython notebooks:
-
-.. code-block:: bash
-
-    cd ctapipe-extra/notebooks
-    ipython notebook
 
 Run the command line tools:
 
