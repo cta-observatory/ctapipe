@@ -12,7 +12,7 @@ from astropy.table import Table
 from astropy import units as u
 from collections import namedtuple
 from ctapipe.utils.datasets import get_path
-from scipy.spatial import KDTree
+from scipy.spatial import cKDTree as KDTree
 
 __all__ = ['CameraGeometry',
            'get_camera_geometry',
@@ -31,8 +31,9 @@ CameraGeometry = namedtuple("CameraGeometry",
 
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
-    """
-    use a KD-Tree to quickly find nearest neighbors of the pixels in a camera. 
+    """use a KD-Tree to quickly find nearest neighbors of the pixels in a
+    camera. This function can be used to find the neighbor pixels if
+    they are not already present in a camera geometry file.
 
     Parameters
     ----------
@@ -41,11 +42,13 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     pix_y: array_like
         y position of each pixels
     rad: float
-        radius to consider neighbor 
+        radius to consider neighbor it should be slightly larger
+        than the pixel diameter.
 
     Returns
     -------
     array of neighbor indices in a list for each pixel
+
     """
     points = np.column_stack([pix_x, pix_y])
     kdtree = KDTree(points)
@@ -53,7 +56,7 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def get_camera_geometry(instrument_name, cam_id):
+def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     """Helper function to provide the camera geometry definition for a
     camera by name
 
@@ -63,6 +66,9 @@ def get_camera_geometry(instrument_name, cam_id):
         name of instrument
     cam_id: int
         identifier of camera, in case of multiple versions
+    recalc_neighbors: bool
+        if True, recalculate the neighbor pixel list, otherwise
+        use what is in the file
 
     Returns
     -------
@@ -83,8 +89,14 @@ def get_camera_geometry(instrument_name, cam_id):
     geomfile = get_path('{}_camgeom.fits.gz'.format(name))
 
     geom = load_camera_geometry_from_file(cam_id, geomfile=geomfile)
-    neigh = geom['PIX_NEIG'].data
+    neigh_list = geom['PIX_NEIG'].data
+    neigh = np.ma.masked_array(neigh_list, neigh_list < 0),
 
+    if recalc_neighbors is True:
+        neigh = find_neighbor_pixels(geom['PIX_POSX'].data,
+                                     geom['PIX_POSY'].data,
+                                     geom['PIX_DIAM'].data.mean() + 0.01)
+                                     
     return CameraGeometry(
         cam_id=cam_id,
         pix_id=geom['PIX_ID'].data,
@@ -92,7 +104,7 @@ def get_camera_geometry(instrument_name, cam_id):
         pix_y=geom['PIX_POSY'].data * geom['PIX_POSY'].unit,
         pix_r=geom['PIX_DIAM'] / 2.0,
         pix_area=geom['PIX_AREA'],
-        neighbors=np.ma.masked_array(neigh, neigh < 0),
+        neighbors=neigh,
         pix_type='hexagonal')
 
 
