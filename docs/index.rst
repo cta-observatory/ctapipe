@@ -2,9 +2,11 @@
 
 .. _ctapipe:
 
-****************************************************
-CTA Python pipeline experimental version (`ctapipe`)
-****************************************************
+======================================================
+ CTA Expermental Pipeline Framework (:mod:`ctapipe`)
+======================================================
+
+**version**:  |version|
 
 .. image:: cameras.png
 
@@ -12,7 +14,12 @@ CTA Python pipeline experimental version (`ctapipe`)
 What is ctapipe?
 ================
 
-To be written ...
+`ctapipe` is an experimental framework for the data processing
+pipelines for CTA.
+
+.. CAUTION::
+   This is not yet stable code, so expect large and rapid changes to
+   structure and functionality as we explore various design choices. 
 
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
 * Docs: https://ctapipe.readthedocs.org/
@@ -36,13 +43,10 @@ General documentation
   visualization/index
   datasets/index
 
-
-Reference/API
-=============
-
+  
 Development Help
 ================
 * Development workflow examples from AstroPy: http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
 * GIT tutorial: https://www.atlassian.com/git/tutorials/syncing/git-pull
+* Code distribution and Packaging https://packaging.python.org/en/latest/
   
-.. automodapi:: ctapipe

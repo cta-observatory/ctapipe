@@ -48,8 +48,8 @@ if __name__ == '__main__':
     hexgeom = io.get_camera_geometry("hess", 1)
     recgeom = io.make_rectangular_camera_geometry()
 
-    draw_several_cams(hexgeom)
     draw_several_cams(recgeom)
+    draw_several_cams(hexgeom)
 
     plt.tight_layout()
     plt.show()
