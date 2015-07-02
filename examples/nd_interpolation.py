@@ -17,11 +17,17 @@ from ctapipe.utils import Histogram
 
 if __name__ == '__main__':
 
+    # Load an example datacube (an energy table generated for a
+    # small subset of HESS simulations) to use as a lookup table. Here
+    # we will use the Histogram class, which automatically loads both
+    # the data cube and creates arrays for the coordinates of each
+    # axis.
+    
     testfile = get_path("hess_ct001_energylut.fits.gz")
-
     energy_hdu = fits.open(testfile)['MEAN']
     energy_table = Histogram(initFromFITS=energy_hdu)
-
+    print(energy_table)
+    
     # Now, construct an interpolator that we can use to get values at
     # any point:
     centers = [energy_table.binCenters(ii) for ii in range(energy_table.ndims)]
@@ -54,7 +60,7 @@ if __name__ == '__main__':
     # Using the interpolator, reinterpolate the lookup table onto an NxN
     # grid (regardless of its original dimensions):
     
-    N =50
+    N = 50
     xmin, xmax = energy_table.binCenters(0)[0], energy_table.binCenters(0)[-1]
     ymin, ymax = energy_table.binCenters(1)[0], energy_table.binCenters(1)[-1]
     X, Y = np.meshgrid( np.linspace(xmin,xmax,N), np.linspace(ymin, ymax, N) )

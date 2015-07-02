@@ -71,14 +71,14 @@ class Histogram(object):
             self.axisNames = np.array(self.axisNames)
             self.axisNames.resize(self.ndims)
         else:
-            self.axisNames = []
-            for x in range(self.ndims):
-                self.axisNames.append("")
-
+            self.axisNames = ["axis{}".format(x) for x in range(self.ndims)]
+        
     def __str__(self,):
-        print("Histogram(name={name},ranges={ranges},nbins={nbins})"
-              .format(self.name, self._ranges, self._nbins))
-
+        return ("Histogram(name='{name}', axes={axnames}, "
+                "nbins={nbins}, ranges={ranges})"
+                .format(name=self.name, ranges=self._ranges,
+                        nbins=self._nbins, axnames=self.axisNames))
+    
     @property
     def binLowerEdges(self):
         """

@@ -14,6 +14,12 @@ class TestFITSHistogram(unittest.TestCase):
     def setUp(self):
         pass
 
+    def test_to_string(self):
+        H = fitshistogram.Histogram(
+            nbins=[5, 10], ranges=[[-2.5, 2.5], [-1, 1]],
+            name="testhisto")
+        print(H)
+    
     def testSimpleFillAndRead(self):
         """
         """
