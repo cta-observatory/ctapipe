@@ -46,7 +46,12 @@ Run the command line tools:
     python setup.py install
     ctapipe-info --tools
 
-Start hacking and contributing:
+**Start hacking and contributing:**  The following command will put
+the package in "developer mode", meaning that it will make a symlink
+of your checked-out working directory in your local (user) python
+package library directory (which is usually something like
+`$HOME/.local/lib/python/site-packages/`. Then you can access the development
+`ctapipe` from anywhere on your system.
 
 .. code-block:: bash
 

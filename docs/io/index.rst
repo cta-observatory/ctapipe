@@ -10,7 +10,7 @@ Introduction
 ============
 
 `ctapipe.io` contains functions and classes for loading data and
-support for some data structures like `class`:CameraGeometry
+support for some data structures like :class:`~ctapipe.io.camera.CameraGeometry`
 
 
 Getting Started
