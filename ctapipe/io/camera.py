@@ -52,6 +52,7 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     neighbors = [kdtree.query_ball_point(p, r=rad)[1:] for p in points]
     return neighbors
 
+
 def get_camera_geometry(instrument_name, cam_id):
     """Helper function to provide the camera geometry definition for a
     camera by name
@@ -147,14 +148,14 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
 
     ids = np.arange(npix_x * npix_y)
     rr = np.ones_like(xx) * (xx[1] - xx[0]) / 2.0 * u.m
-
+    nn = find_neighbor_pixels(xx, yy, rad=rr.value.mean() * 2.001)
     return CameraGeometry(
         cam_id=-1,
         pix_id=ids,
         pix_x=xx * u.m,
         pix_y=yy * u.m,
         pix_r=rr,
-        pix_area=np.ones_like(
-            xx) * (xx[1] - xx[0]) * (yy[1] - yy[0]) * u.m ** 2,
-        neighbors=None, #find_neighbor_pixels(xx,yy,rad=rr*(2.1)),
+        pix_area=(np.ones_like(xx) * (xx[1] - xx[0])
+                  * (yy[1] - yy[0]) * u.m**2),
+        neighbors=nn,
         pix_type='rectangular')
