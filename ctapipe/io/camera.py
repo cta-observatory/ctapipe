@@ -12,11 +12,13 @@ from astropy.table import Table
 from astropy import units as u
 from collections import namedtuple
 from ctapipe.utils.datasets import get_path
+from scipy.spatial import KDTree
 
 __all__ = ['CameraGeometry',
            'get_camera_geometry',
            'load_camera_geometry_from_file',
-           'make_rectangular_camera_geometry'
+           'make_rectangular_camera_geometry',
+           'find_neighbor_pixels'
            ]
 
 #__doctest_skip__ = ['load_camera_geometry_from_file'  ]
@@ -24,8 +26,31 @@ CameraGeometry = namedtuple("CameraGeometry",
                             ['cam_id', 'pix_id',
                              'pix_x', 'pix_y', 'pix_r',
                              'pix_area',
-                             'neighbor_ids',
+                             'neighbors',
                              'pix_type'])
+
+
+def find_neighbor_pixels(pix_ids, pix_x, pix_y, rad):
+    """
+    use a KD-Tree to quickly find nearest neighbors of the pixels in a camera. 
+
+    Parameters
+    ----------
+    pix_x: array_like
+        x position of each pixel
+    pix_y: array_like
+        y position of each pixels
+    rad: float
+        radius to consider neighbor 
+
+    Returns
+    -------
+    array of neighbor indices in a list for each pixel
+    """
+    points = np.column_stack([pix_x, pix_y])
+    kdtree = KDTree(points)
+    neighbors = [kdtree.query_ball_point(p, r=rad)[1:] for p in points]
+    return neighbors
 
 def get_camera_geometry(instrument_name, cam_id):
     """Helper function to provide the camera geometry definition for a
@@ -47,7 +72,7 @@ def get_camera_geometry(instrument_name, cam_id):
     -------
 
     >>> geom_ct1 = get_camera_geometry( "hess", 1 )
-    >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbor_ids[1].compressed()]
+    >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbors[1].compressed()]
 
     """
 
@@ -58,7 +83,7 @@ def get_camera_geometry(instrument_name, cam_id):
 
     geom = load_camera_geometry_from_file(cam_id, geomfile=geomfile)
     neigh = geom['PIX_NEIG'].data
-    
+
     return CameraGeometry(
         cam_id=cam_id,
         pix_id=geom['PIX_ID'].data,
@@ -66,8 +91,9 @@ def get_camera_geometry(instrument_name, cam_id):
         pix_y=geom['PIX_POSY'].data * geom['PIX_POSY'].unit,
         pix_r=geom['PIX_DIAM'] / 2.0,
         pix_area=geom['PIX_AREA'],
-        neighbor_ids=np.ma.masked_array(neigh, neigh < 0),
+        neighbors=np.ma.masked_array(neigh, neigh < 0),
         pix_type='hexagonal')
+
 
 def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     """
@@ -118,9 +144,9 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
     xx, yy = np.meshgrid(bx, by)
     xx = xx.ravel()
     yy = yy.ravel()
-    
+
     ids = np.arange(npix_x * npix_y)
-    
+
     neighs = None  # todo
 
     return CameraGeometry(
@@ -128,8 +154,8 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pix_id=ids,
         pix_x=xx * u.m,
         pix_y=yy * u.m,
-        pix_r=np.ones_like(xx) * (xx[1]-xx[0])/2.0 * u.m,
-        pix_area=np.ones_like(xx)* (xx[1]-xx[0])*(yy[1]-yy[0]) * u.m**2,
-        neighbor_ids=None,
+        pix_r=np.ones_like(xx) * (xx[1] - xx[0]) / 2.0 * u.m,
+        pix_area=np.ones_like(
+            xx) * (xx[1] - xx[0]) * (yy[1] - yy[0]) * u.m ** 2,
+        neighbors=find_neighbor_pixels( pix_x,pix_y, r=pix_r*(2.1) ),
         pix_type='rectangular')
-    
