@@ -11,12 +11,12 @@ import numpy as np
 
 
 # display the neighbors of a selected pixel:
-def draw_neighbors(geom, pixel_index, color='r'):
+def draw_neighbors(geom, pixel_index, color='r',**kwargs):
     neigh = geom.neighbors[pixel_index]  # neighbor indices (not pixel ids)
     x, y = geom.pix_x[pixel_index].value, geom.pix_y[pixel_index].value
     for nn in neigh:
         nx, ny = geom.pix_x[nn].value, geom.pix_y[nn].value
-        plt.plot([x, nx], [y, ny], color=color)
+        plt.plot([x, nx], [y, ny], color=color,**kwargs)
 
 if __name__ == '__main__':
 
@@ -50,8 +50,8 @@ if __name__ == '__main__':
 
     # draw the neighbors of pixel 100 in red, and the
     # neighbor-neighbors in green
-    for ii in geom.neighbors[100]:
+    for ii in geom.neighbors[130]:
         draw_neighbors(geom, ii, color='green')
-    draw_neighbors(geom, 100, color='red')
+    draw_neighbors(geom, 130, color='red',lw=2)
 
     plt.show()
