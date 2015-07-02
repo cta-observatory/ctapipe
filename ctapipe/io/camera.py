@@ -79,7 +79,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     -------
 
     >>> geom_ct1 = get_camera_geometry( "hess", 1 )
-    >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbors[1].compressed()]
+    >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbors[1]]
 
     """
 
