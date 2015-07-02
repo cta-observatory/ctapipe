@@ -33,15 +33,10 @@ General documentation
 
 .. toctree::
   :maxdepth: 1
+  :glob:
 
   getting_started/index
-  calib/index
-  reco/index
-  analysis/index
-  tools/index
-  io/index
-  visualization/index
-  datasets/index
+  */index
 
   
 Development Help
