@@ -16,16 +16,24 @@ Quick Start for Devs
 ====================
 
 First install Anaconda python distribution for Python3.4
-http://continuum.io/downloads#py34 (if you already use anaconda, but
-with python 2.7, you can create a second anaconda virtual environment
-for python3 following the instructions here:
-http://continuum.io/blog/anaconda-python-3)
+http://continuum.io/downloads#py34
 
+If you already use anaconda, but with python 2.7, you can create a
+second anaconda virtual environment for python3 following the instructions here:
+http://continuum.io/blog/anaconda-python-3)::
+  
+    # only if you already run anaconda: install a new virtualenv for
+    # cta development:
+    conda create -n pycta python=3.4 anaconda
+    source activate pycta  # to switch to the cta python virtualenv
+    
 Anaconda's distribution doesn't interfere with your local python
 distribution if you have one, and can be installed without root
 privileges. It contains all the required packages. To "activate"
 Anaconda's python, just put it's bin directory in your path: (e.g.
-`export PATH=$HOME/anaconda/bin:$PATH`). You can use a shell macro to
+`export PATH=$HOME/anaconda/bin:$PATH`).
+
+You can use a shell macro to
 enable that to be able to swtch between your system python and this
 one. After installing anaconda and setting your PATH, run::
 
