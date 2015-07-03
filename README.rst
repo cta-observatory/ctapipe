@@ -45,9 +45,11 @@ package will be importable ::
 
     python setup.py develop  
 
-Inside the ctapipe directory, you can type "make docshow" to
-build and display the docs and code browser. or "make test" to run the
-tests. 
+next steps::
+
+    make docshow   # build and show the documentation
+    make test      # run the tests
+    
 
 Status shields
 ==============
