@@ -74,6 +74,11 @@ astronomical calculations. Specifically:
 * `astropy.convolution`: convolution and filtering (built upon
   scipy.signal, but with more robust defaults) 
 
+subpackages of Astropy that are not marked as "reasonable stable" or
+"mature" should be avoided until their interfaces are solidified. The
+list can be found on the astropy documentation page, under the list
+*current status of subpackages* 
+  
 
 FITS Table Access
 =================

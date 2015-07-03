@@ -58,6 +58,12 @@ package library directory (which is usually something like
     python setup.py develop
     edit .
 
+To update to the latest development version (merging in remote changes
+to your local working copy):
 
+.. code-block:: bash
+
+   git pull               
+               
 For further information, see http://astropy.readthedocs.org/en/latest/
 ... most things in ctapipe work the same.
