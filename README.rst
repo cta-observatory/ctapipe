@@ -16,7 +16,10 @@ Quick Start for Devs
 ====================
 
 First install Anaconda python distribution for Python3.4
-http://continuum.io/downloads#py34
+http://continuum.io/downloads#py34 (if you already use anaconda, but
+with python 2.7, you can create a second anaconda virtual environment
+for python3 following the instructions here:
+http://continuum.io/blog/anaconda-python-3)
 
 Anaconda's distribution doesn't interfere with your local python
 distribution if you have one, and can be installed without root
