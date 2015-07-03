@@ -11,7 +11,7 @@ import fitsio
 import time
 import numpy as np
 from matplotlib import pyplot as plt
-from generatortest import *
+from image_processing_with_generators.py import *
 
 def fits_table_source(url, extension):
     """
