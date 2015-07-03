@@ -91,8 +91,8 @@ def get_rad_profile(img):
 def subtract_background(image_stream, background_stream):
     while True:
         try:
-            im = image_stream.next()
-            bg = background_stream.next()
+            im = next(image_stream)
+            bg = next(background_stream)
             norm = im.sum()/bg.sum()
             yield (im-bg*norm)
         except:
@@ -105,7 +105,7 @@ def sink(image_stream):
     for image in image_stream:
         counter += 1
         if counter % 1000 == 0:
-            print "processed ", counter , "images"
+            print("processed ", counter , "images")
 
 
 def lightcurve_binner(image_stream, dt=10):
@@ -151,7 +151,7 @@ def lightcurve_sink(value_stream):
 def display_image_sink(image_stream, vmax=None, fig=None, interval=30):
     
     def update(iframe, axim, image_stream):
-        im = image_stream.next()
+        im = next(image_stream)
         axim.set_array( im  )
         if vmax is None:
             axim.set_clim( 0, im.max()*0.90 )
@@ -160,7 +160,7 @@ def display_image_sink(image_stream, vmax=None, fig=None, interval=30):
     if fig is None:
         fig = plt.figure()
         
-    image = image_stream.next()
+    image = next(image_stream)
     axim = plt.imshow( image, interpolation='nearest', vmax=vmax)
     ani = animation.FuncAnimation(fig, update, fargs=[axim,image_stream],
                                   blit=True, interval=interval)

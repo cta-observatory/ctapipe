@@ -25,13 +25,13 @@ def fits_table_source(url, extension):
     fitsfile = fitsio.FITS(url, iter_row_buffer=10000)
     table = fitsfile[extension]
 
-    print "--INPUT --------------"
-    print fitsfile
-    print ""
-    print table
-    print "----------------------"
+    print("--INPUT --------------")
+    print(fitsfile)
+    print("")
+    print(table)
+    print("----------------------")
 
-    for ii in xrange(n_entries):
+    for ii in range(n_entries):
         row = table[ii]
         yield row.view(np.recarray)
 
@@ -46,7 +46,7 @@ def show_throughput(stream, every=1000):
             count=0
             curtime=time.time()
             dt = curtime-prevtime
-            print "{:10d} events, {:4.1f} evt/s".format( tot, every/dt )
+            print("{:10d} events, {:4.1f} evt/s".format( tot, every/dt ))
             prevtime=curtime
 
 
@@ -116,9 +116,9 @@ def print_event(stream):
     isfirst = True
     for item in stream:
         if isfirst:
-            print item.dtype.names
+            print(item.dtype.names)
             isfirst = False
-        print item
+        print(item)
         yield item
 
 

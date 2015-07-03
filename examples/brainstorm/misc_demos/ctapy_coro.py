@@ -27,13 +27,13 @@ def fits_table_driver(output, url, extension):
     fitsfile = fitsio.FITS(url, iter_row_buffer=10000)
     table = fitsfile[extension]
 
-    print "--INPUT --------------"
-    print fitsfile
-    print ""
-    print table
-    print "----------------------"
+    print("--INPUT --------------")
+    print(fitsfile)
+    print("")
+    print(table)
+    print("----------------------")
 
-    for ii in xrange(n_entries):
+    for ii in range(n_entries):
         data = table[ii]
         output.send( dict( event=data ) )
 
@@ -41,7 +41,7 @@ def fits_table_driver(output, url, extension):
 def print_data(output):
     while True:
         data = (yield)
-        print data
+        print(data)
         if output:
             output.send(data)
 
@@ -57,7 +57,7 @@ def show_throughput(output, every=1000, multfactor=1):
             count=0
             curtime=time.time()
             dt = curtime-prevtime
-            print "{:10d} events, {:4.1f} evt/s".format( tot, every*multfactor/dt )
+            print("{:10d} events, {:4.1f} evt/s".format( tot, every*multfactor/dt ))
             prevtime=curtime
         output.send(data)
 

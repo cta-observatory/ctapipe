@@ -10,6 +10,7 @@ help:
 	@echo '  test    -- run tests'
 	@echo '  doc     -- generate Sphinx docs'
 	@echo '  docshow -- generate and display docs in browser'
+	@echo '  analyze -- do a static code check and report errors'
 	@echo ''
 	@echo '  dist    -- build a conda package for distribution'
 	@echo ''
@@ -33,6 +34,12 @@ docshow:
 
 dist:
 	python setup.py bdist_conda
+
+
+analyze:
+	@echo "ctapipe module"
+	@echo "===================================================="
+	@pyflakes ctapipe examples
 
 # any other command can be passed to setup.py
 %:
