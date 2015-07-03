@@ -1,8 +1,8 @@
 .. _reco:
 
-*************************************
-Event reconstruction (`ctapipe.reco`)
-*************************************
+================
+ Reconstruction
+================
 
 .. currentmodule:: ctapipe.reco
 
@@ -10,8 +10,11 @@ Introduction
 ============
 
 `ctapipe.reco` contains functions and classes to reconstruct events.
+This will include two levels:
 
-TODO: add high-level description.
+* Camera-level pre-procssing (images and parameterizations)
+* Array-level reconstruction (showers)
+
 
 Getting Started
 ===============

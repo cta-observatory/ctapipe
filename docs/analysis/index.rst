@@ -1,8 +1,8 @@
 .. _analysis:
 
-*****************************
-Analysis (`ctapipe.analysis`)
-*****************************
+==========
+ Analysis
+==========
 
 .. currentmodule:: ctapipe.analysis
 
