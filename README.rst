@@ -27,11 +27,13 @@ enable that to be able to swtch between your system python and this
 one. After installing anaconda and setting your PATH, run
 
 .. codeblock:: bash
+               
     conda update --all
 
 then for the CTA pipe module:
 
 .. codeblock:: bash
+               
     git clone https://github.com/cta-observatory/ctapipe.git
     cd ctapipe
     git submodule init
@@ -43,6 +45,7 @@ package in your local python package directory). After that the
 package will be importable:
 
 .. codeblock:: bash
+               
     python setup.py develop  
 
 Inside the ctapipe directory, you can type "make docshow" to
