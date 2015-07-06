@@ -5,7 +5,7 @@ TODO:
 -----
 
 - Should have a separate function or option to compute 3rd order
-  moments + assymmetry (whichi are not always needed)
+  moments + assymmetry (which are not always needed)
 
 - remove alpha calculation (which is only about (0,0), and make a get
   alpha function that does it from an arbitrary point given a
@@ -93,7 +93,7 @@ def hillas_parameters(x, y, s):
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
-    """ Alternate implementation of Hillas parameters.
+    """Alternate implementation of Hillas parameters.
 
     Parameters
     ----------
@@ -104,6 +104,10 @@ def hillas_parameters_2(pix_x, pix_y, image):
     image : array_like
         Pixel values corresponding
 
+    Returns
+    -------
+    hillas_parameters : dict
+        Dictionary of Hillas parameters
     """
     pix_x = np.asanyarray(pix_x, dtype=np.float64)
     pix_y = np.asanyarray(pix_y, dtype=np.float64)
@@ -161,4 +165,4 @@ def hillas_parameters_2(pix_x, pix_y, image):
     phi = np.arctan2(moms[1], moms[0])
 
     return dict(size=size, cx=moms[0], cy=moms[1], length=length, width=width,
-                distance = distance, azwidth=azwidth, psi=psi, phi=phi )
+                distance=distance, azwidth=azwidth, psi=psi, phi=phi)
