@@ -83,28 +83,3 @@ def make_mock_shower_image(geom, showerpdf, intensity=50, nsb_level_pe=50):
     image = (signal + noise) - np.mean(noise)
 
     return image, signal, noise
-
-
-if __name__ == '__main__':
-
-    from matplotlib import pylab as plt
-    from ctapipe.io import camera
-
-    geom = camera.make_rectangular_camera_geometry()
-
-    showermodel = shower_model(centroid=[0.25, 0.0], length=0.1,
-                               width=0.02, psi=np.radians(40))
-
-    image, signal, noise = make_mock_shower_image(geom, showermodel.pdf,
-                                                  intensity=20, nsb_level_pe=30)
-
-    plt.figure(figsize=(10, 3))
-    plt.subplot(1, 3, 1)
-    plt.imshow(signal, interpolation='none')
-    plt.colorbar()
-    plt.subplot(1, 3, 2)
-    plt.imshow(noise, interpolation='none')
-    plt.colorbar()
-    plt.subplot(1, 3, 3)
-    plt.imshow(image, interpolation='none')
-    plt.colorbar()
