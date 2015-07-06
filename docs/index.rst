@@ -22,7 +22,7 @@ pipelines for CTA.
    structure and functionality as we explore various design choices. 
 
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
-* Docs: https://ctapipe.readthedocs.org/
+* Docs: https://cta-observatory.github.io/ctapipe/
 * License: BSD-3
 * Python 3.4 or later (Python 2 is not supported)
 

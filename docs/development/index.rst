@@ -6,3 +6,4 @@ Development Resources
    style-guide
    support-libraries
    futureplans
+   maintainer-info

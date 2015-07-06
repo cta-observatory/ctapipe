@@ -4,15 +4,16 @@ help:
 	@echo ''
 	@echo 'ctapipe available make targets:'
 	@echo ''
-	@echo '  help    -- print this help message (the default)'
-	@echo '  init    -- set up shell to use and work on ctapipe'
-	@echo '  clean   -- remove temp files'
-	@echo '  test    -- run tests'
-	@echo '  doc     -- generate Sphinx docs'
-	@echo '  docshow -- generate and display docs in browser'
-	@echo '  analyze -- do a static code check and report errors'
+	@echo '  help         Print this help message (the default)'
+	@echo '  init         Set up shell to use and work on ctapipe'
+	@echo '  clean        Remove temp files'
+	@echo '  test         Run tests'
+	@echo '  doc          Generate Sphinx docs'
+	@echo '  docshow      Generate and display docs in browser'
+	@echo '  analyze      Do a static code check and report errors'
 	@echo ''
-	@echo '  dist    -- build a conda package for distribution'
+	@echo '  dist         Build a conda package for distribution'
+	@echo '  doc-publish  Publish docs online'
 	@echo ''
 
 init:
@@ -31,6 +32,9 @@ doc:
 
 docshow:
 	python setup.py build_sphinx --open-docs-in-browser
+
+doc-publish:
+	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
 
 dist:
 	python setup.py bdist_conda

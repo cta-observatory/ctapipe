@@ -8,7 +8,7 @@ This is code for exploring a CTA data processing framework. It is not
 official and not recommended for use!
 
 * Code: https://github.com/cta-observatory/ctapipe
-* Docs: https://ctapipe.readthedocs.org/
+* Docs: https://cta-observatory.github.io/ctapipe/
 
 * .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.org/cta-observatory/ctapipe
