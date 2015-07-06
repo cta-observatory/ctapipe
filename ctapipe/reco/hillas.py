@@ -17,7 +17,7 @@ import numpy as np
 __all__ = ['hillas_parameters','hillas_parameters_2']
 
 
-def hillas_parameters(x, y, s):
+def hillas_parameters(pix_x, pix_y, image):
     """Compute Hillas parameters for a given shower image.
 
     Reference: Appendix of the Whipple Crab paper Weekes et al. (1998)
@@ -26,31 +26,31 @@ def hillas_parameters(x, y, s):
 
     Parameters
     ----------
-    x : array_like
+    pix_x : array_like
         Pixel x-coordinate
-    y : array_like
+    pix_y : array_like
         Pixel y-coordinate
-    s : array_like
-        Pixel value
+    image : array_like
+        Pixel values corresponding
 
     Returns
     -------
     hillas_parameters : dict
         Dictionary of Hillas parameters
     """
-    x = np.asanyarray(x, dtype=np.float64)
-    y = np.asanyarray(y, dtype=np.float64)
-    s = np.asanyarray(s, dtype=np.float64)
-    assert x.shape == s.shape
-    assert y.shape == s.shape
+    pix_x = np.asanyarray(pix_x, dtype=np.float64)
+    pix_y = np.asanyarray(pix_y, dtype=np.float64)
+    image = np.asanyarray(image, dtype=np.float64)
+    assert pix_x.shape == image.shape
+    assert pix_y.shape == image.shape
 
     # Compute image moments
-    _s = np.sum(s)
-    m_x = np.sum(s * x) / _s
-    m_y = np.sum(s * y) / _s
-    m_xx = np.sum(s * x * x) / _s  # note: typo in paper
-    m_yy = np.sum(s * y * y) / _s
-    m_xy = np.sum(s * x * y) / _s  # note: typo in paper
+    _s = np.sum(image)
+    m_x = np.sum(image * pix_x) / _s
+    m_y = np.sum(image * pix_y) / _s
+    m_xx = np.sum(image * pix_x * pix_x) / _s  # note: typo in paper
+    m_yy = np.sum(image * pix_y * pix_y) / _s
+    m_xy = np.sum(image * pix_x * pix_y) / _s  # note: typo in paper
 
     # Compute major axis line representation y = a * x + b
     S_xx = m_xx - m_x * m_x
@@ -72,9 +72,9 @@ def hillas_parameters(x, y, s):
     # Compute azwidth by transforming to (p, q) coordinates
     sin_theta = m_y / r
     cos_theta = m_x / r
-    q = (m_x - x) * sin_theta + (y - m_y) * cos_theta
-    m_q = np.sum(s * q) / _s
-    m_qq = np.sum(s * q * q) / _s
+    q = (m_x - pix_x) * sin_theta + (pix_y - m_y) * cos_theta
+    m_q = np.sum(image * q) / _s
+    m_qq = np.sum(image * q * q) / _s
     azwidth_2 = m_qq - m_q * m_q
     azwidth = np.sqrt(azwidth_2)
 
@@ -93,7 +93,11 @@ def hillas_parameters(x, y, s):
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
-    """Alternate implementation of Hillas parameters.
+    """Compute Hillas parameters for a given shower image.
+
+    Alternate implementation of `hillas_parameters` ...
+    in the end we'll just keep one, but we're using Hilllas parameter
+    computation as an example for performance checks.
 
     Parameters
     ----------
