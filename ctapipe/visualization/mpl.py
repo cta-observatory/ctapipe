@@ -25,7 +25,7 @@ class CameraDisplay(object):
 
     Notes
     -----
-
+    
     Implementation detail: Pixels are rendered as a
     `matplotlib.collections.RegularPolyCollection`, which is the most
     efficient way in MatPlotLib to display complex pixel shapes.
@@ -76,8 +76,6 @@ class CameraDisplay(object):
             self.pixels.set_cmap(plt.cm.jet)
             self.pixels.set_linewidth(0)
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
-            #self.pixels.set_transform(trans)
-            #self.pixels.set_offset_position('data')
             logger.debug("POS:{}".format(self.pixels.get_offset_position()))
             logger.debug("TRN:{}".format(self.pixels.get_offset_transform()))
             self.axes.add_collection(self.pixels, autolim=True)

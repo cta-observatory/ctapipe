@@ -37,8 +37,6 @@ dist:
 
 
 analyze:
-	@echo "ctapipe module"
-	@echo "===================================================="
 	@pyflakes ctapipe examples
 
 # any other command can be passed to setup.py
