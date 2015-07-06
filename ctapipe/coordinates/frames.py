@@ -62,10 +62,18 @@ __all__ = [
 
 
 class CameraFrame(BaseCoordinateFrame):
+    """Camera coordinate frame.
+    """
     default_representation = CartesianRepresentation
 
 
 class TelescopeFrame(BaseCoordinateFrame):
+    """Telescope coordinate frame.
+
+    Frame attributes:
+
+    - Focal length
+    """
     default_representation = CartesianRepresentation
 
     # TODO: probably this should not have a default!
@@ -74,6 +82,8 @@ class TelescopeFrame(BaseCoordinateFrame):
 
 
 class TiltedTelescopeFrame(BaseCoordinateFrame):
+    """Tilted telescope coordinate frame.
+    """
     default_representation = CartesianRepresentation
 
     # Is this the right frame for these attributes?
@@ -83,6 +93,8 @@ class TiltedTelescopeFrame(BaseCoordinateFrame):
 
 
 class GroundFrame(BaseCoordinateFrame):
+    """Ground coordinate frame.
+    """
     default_representation = CartesianRepresentation
 
     observatory_location = FrameAttribute(default=None)
