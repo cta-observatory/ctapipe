@@ -37,11 +37,11 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
 
     Parameters
     ----------
-    pix_x: array_like
+    pix_x : array_like
         x position of each pixel
-    pix_y: array_like
+    pix_y : array_like
         y position of each pixels
-    rad: float
+    rad : float
         radius to consider neighbor it should be slightly larger
         than the pixel diameter.
 
@@ -61,15 +61,15 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
 
 def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     """Helper function to provide the camera geometry definition for a
-    camera by name
+    camera by name.
 
     Parameters
     ----------
-    instrument_name: ['hess',]
+    instrument_name : {'hess'}
         name of instrument
-    cam_id: int
+    cam_id : int
         identifier of camera, in case of multiple versions
-    recalc_neighbors: bool
+    recalc_neighbors : bool
         if True, recalculate the neighbor pixel list, otherwise
         use what is in the file
 
@@ -78,8 +78,8 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     a `CameraGeometry` object
 
 
-    Example
-    -------
+    Examples
+    --------
 
     >>> geom_ct1 = get_camera_geometry( "hess", 1 )
     >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbors[1]]
@@ -113,7 +113,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
 
 def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     """
-    Read camera geometry from a  FITS file with a CHERCAM extension.
+    Read camera geometry from a  FITS file with a ``CHERCAM`` extension.
 
     Parameters
     ----------
@@ -121,7 +121,7 @@ def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
     cam_id : int
         ID number of camera in the fits file
     geomfile : str
-        FITS file containing camera geometry in CHERCAM extension
+        FITS file containing camera geometry in ``CHERCAM`` extension
 
     Returns
     -------
@@ -136,19 +136,20 @@ def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
 
 def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
                                      range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
-    """generates a simple camera with 2D rectangular geometry, for
-    testing purposes
+    """Generate a simple camera with 2D rectangular geometry.
+
+    Used for testing.
 
     Parameters
     ----------
-    npix_x: int
+    npix_x : int
         number of pixels in X-dimension
-    npix_y: int
+    npix_y : int
         number of pixels in Y-dimension
-    range_x: (float,float)
+    range_x : (float,float)
         min and max of x pixel coordinates in meters
-    range_y: (float,float)
-        min and max of y pixel coodinates in meters
+    range_y : (float,float)
+        min and max of y pixel coordinates in meters
 
     Returns
     -------

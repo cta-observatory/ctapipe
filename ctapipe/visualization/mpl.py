@@ -18,12 +18,10 @@ class CameraDisplay(object):
 
     Parameters
     ----------
-
-    geometry : `~ctapipe.io.camera.CameraGeometry`
-         Definition of the Camera/Image
-
-    axis : `matplotlib.axes.AxesSubplot`
-         a MatPlotLib Axis object to plot on, or None to create a new one
+    geometry : `~ctapipe.io.CameraGeometry`
+        Definition of the Camera/Image
+    axis : `matplotlib.axes._subplots.AxesSubplot`
+        a MatPlotLib Axis object to plot on, or None to create a new one
 
     Notes
     -----
@@ -85,7 +83,6 @@ class CameraDisplay(object):
             raise ValueError(
                 "Unimplemented pixel type: {}", self.geom.pix_type)
 
-
         self.axes.set_title(title)
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
         self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
@@ -121,8 +118,8 @@ class CameraDisplay(object):
         self.pixels.set_array(image)
         plt.draw()  # is there a better way to update this?
 
-    def add_ellipse(self, centroid, length, width, angle, assymmetry=0.0,
-                           **kwargs):
+    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
+                    **kwargs):
         """
         plot an ellipse on top of the camera
 
@@ -136,7 +133,7 @@ class CameraDisplay(object):
             minor axis
         angle: float
             rotation angle wrt "up" about the centroid, clockwise, in radians
-        assymmetry: float
+        asymmetry: float
             3rd-order moment for directionality if known
         kwargs: 
             any MatPlotLib style arguments to pass to the Ellipse patch

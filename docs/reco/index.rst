@@ -15,18 +15,17 @@ This will include two levels:
 * Camera-level pre-procssing (images and parameterizations)
 * Array-level reconstruction (showers)
 
-
 Getting Started
 ===============
 
-TODO: add examples.
+
+
+.. plot:: reco/shower_example.py
+    :include-source:
+
 
 Reference/API
 =============
 
 .. automodapi:: ctapipe.reco
-    :no-inheritance-diagram:
-
-
-.. automodapi:: ctapipe.reco.mock
     :no-inheritance-diagram:
