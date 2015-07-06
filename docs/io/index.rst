@@ -23,9 +23,17 @@ Reference/API
 .. automodapi:: ctapipe.io.camera
     :no-inheritance-diagram:
 
-Module
-======
+.. automodapi:: ctapipe.io.obsconfig
 
+
+Relationship between different configuration objects.  The arrows show
+what information is needed to look up the next level of configuration.
+
+.. graphviz:: config.dot
+
+
+
+                
 
 
 
