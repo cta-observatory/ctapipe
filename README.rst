@@ -1,6 +1,6 @@
-=========
- ctapipe
-=========
+=======
+ctapipe
+=======
 
 CTA Python pipeline experimental version.
 
@@ -10,6 +10,9 @@ official and not recommended for use!
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://ctapipe.readthedocs.org/
 
+* .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
+    :target: https://travis-ci.org/cta-observatory/ctapipe
+    :alt: Test Status
 
 ====================
 Quick Start for Devs
@@ -57,17 +60,3 @@ next steps::
 
     make docshow   # build and show the documentation
     make test      # run the tests
-    
-
-Status shields
-==============
-
-(mostly useful for developers)
-
-* .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
-    :target: https://travis-ci.org/cta-observatory/ctapipe
-    :alt: Test Status
-
-* .. image:: https://img.shields.io/coveralls/cta-observatory/ctapipe.svg
-    :target: https://coveralls.io/r/cta-observatory/ctapipe
-    :alt: Code Coverage
