@@ -32,4 +32,4 @@ plt.subplot(1, 3, 3)
 plt.imshow(image, interpolation='none')
 plt.colorbar()
 
-plt.show()
+#plt.show()
