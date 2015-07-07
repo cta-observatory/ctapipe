@@ -2,7 +2,6 @@
 """
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import pylab as plt
 from ctapipe.io.camera import make_rectangular_camera_geometry
 from ctapipe.reco import shower_model, make_mock_shower_image
 
@@ -17,19 +16,25 @@ showermodel = shower_model(centroid=[0.25, 0.0], length=0.1,
 image, signal, noise = make_mock_shower_image(geom, showermodel.pdf,
                                               intensity=20, nsb_level_pe=30)
 
+# make them into 2D arrays so we can plot them with imshow
 image.shape = (NX, NY)
 signal.shape = (NX, NY)
 noise.shape = (NX, NY)
 
+# here we just plot the images using imshow().  For a more general
+# case, one should use a ctapipe.visualization.CameraDisplay
 plt.figure(figsize=(10, 3))
 plt.subplot(1, 3, 1)
-plt.imshow(signal, interpolation='none')
+plt.imshow(signal, interpolation='nearest', origin='lower')
+plt.title("Signal")
 plt.colorbar()
 plt.subplot(1, 3, 2)
-plt.imshow(noise, interpolation='none')
+plt.imshow(noise, interpolation='nearest', origin='lower')
+plt.title("Noise")
 plt.colorbar()
 plt.subplot(1, 3, 3)
-plt.imshow(image, interpolation='none')
+plt.imshow(image, interpolation='nearest', origin='lower')
+plt.title("Image")
 plt.colorbar()
 
 #plt.show()
