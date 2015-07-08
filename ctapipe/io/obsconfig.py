@@ -29,7 +29,7 @@ def get_array_id_for_time( obstime ):
     return array_id, array_version
 
 
-class BaseConfig(object):
+class BaseConfig:
     pass
 
 

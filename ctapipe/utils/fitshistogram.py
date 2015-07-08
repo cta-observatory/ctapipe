@@ -8,7 +8,7 @@ from scipy import ndimage
 __all__ = ['Histogram']
 
 
-class Histogram(object):
+class Histogram:
     """A simple N-dimensional histogram class that can be written or read
     from a FITS file. 
 

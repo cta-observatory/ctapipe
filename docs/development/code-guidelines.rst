@@ -30,3 +30,6 @@ basic guidelines:
   added or removed, and the names are fixed.  Unlike C/C++ structs,
   namedtuples are _immutable_, meaning their data cannot be changed
   after they are constructed. 
+
+* Classes don't need to sub-class `object`, because we only support Python 3
+  and new-style classes are the default, i.e. subclassing `object` is superfluous.

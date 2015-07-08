@@ -14,9 +14,8 @@ __all__ = ['CameraDisplay']
 logger = logging.getLogger(__name__)
 
 
-class CameraDisplay(object):
-
-    """Camera Display using MatPlotLib
+class CameraDisplay:
+    """Camera Display using matplotlib.
 
     Parameters
     ----------
