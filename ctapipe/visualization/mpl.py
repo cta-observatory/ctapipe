@@ -26,7 +26,7 @@ class CameraDisplay(object):
     Notes
     -----
     
-    Implementation detail: Pixels are rendered as a
+    * *Implementation detail*: Pixels are rendered as a
     `matplotlib.collections.RegularPolyCollection`, which is the most
     efficient way in MatPlotLib to display complex pixel shapes.
 
@@ -144,3 +144,21 @@ class CameraDisplay(object):
         self.axes.add_patch(ellipse)
         plt.draw()
         return ellipse
+
+    def overlay_moments(self, momparams,**kwargs):
+        """ helper to overlay elipse from a `reco.MomentParameters` structure 
+
+        Parameters
+        ----------
+        self: type
+            description
+        momparams: `reco.MomentParameters`
+            structuring containing Hillas-style parameterization
+        
+
+        """
+
+        self.add_ellipse(centroid=(momparams.cen_x, momparams.cen_y),
+                         length=momparams.length,
+                         width=momparams.width, angle=momparams.psi,
+                         **kwargs)

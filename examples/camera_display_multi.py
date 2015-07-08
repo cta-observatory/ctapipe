@@ -36,10 +36,7 @@ def draw_several_cams(geom):
 
         disp.set_cmap(cmaps[ii])
         disp.set_image(image)
-        disp.add_ellipse(centroid=(hillas['cx'], hillas['cy']),
-                         length=hillas['length'], width=hillas['width'],
-                         angle=hillas['psi'],
-                         linewidth=3, color='blue')
+        disp.overlay_moments(hillas, linewidth=3, color='blue')
 
 
 if __name__ == '__main__':

@@ -13,8 +13,15 @@ TODO:
 
 """
 import numpy as np
+from collections import namedtuple
 
-__all__ = ['hillas_parameters','hillas_parameters_2']
+__all__ = ['MomentParameters', 'hillas_parameters', 'hillas_parameters_2']
+
+
+MomentParameters = namedtuple("MomentParameters",
+                              "size,cen_x,cen_y,length,width,distance,psi")
+HighOrderMomentParameters = namedtuple("HighOrderMomentParameters",
+                                       "skewness,kurtosis,asymmetry")
 
 
 def hillas_parameters(pix_x, pix_y, image):
@@ -35,8 +42,7 @@ def hillas_parameters(pix_x, pix_y, image):
 
     Returns
     -------
-    hillas_parameters : dict
-        Dictionary of Hillas parameters
+    hillas_parameters : MomentParameters
     """
     pix_x = np.asanyarray(pix_x, dtype=np.float64)
     pix_y = np.asanyarray(pix_y, dtype=np.float64)
@@ -78,18 +84,20 @@ def hillas_parameters(pix_x, pix_y, image):
     azwidth_2 = m_qq - m_q * m_q
     azwidth = np.sqrt(azwidth_2)
 
+    return MomentParameters(size=_s, cen_x=m_x, cen_y=m_y, length=length,
+                            width=width, distance=r, psi=None)
     # Return relevant parameters in a dict
-    p = dict()
-    p['x'] = m_x
-    p['y'] = m_y
-    p['a'] = a
-    p['b'] = b
-    p['width'] = width
-    p['length'] = length
-    p['miss'] = miss
-    p['r'] = r
-    p['azwidth'] = azwidth
-    return p
+    # p = dict()
+    # p['x'] = m_x
+    # p['y'] = m_y
+    # p['a'] = a
+    # p['b'] = b
+    # p['width'] = width
+    # p['length'] = length
+    # p['miss'] = miss
+    # p['r'] = r
+    # p['azwidth'] = azwidth
+    # return p
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
@@ -122,7 +130,7 @@ def hillas_parameters_2(pix_x, pix_y, image):
     # Compute image moments (done in a bit faster way, but putting all
     # into one 2D array, where each row will be summed to calculate a
     # moment) However, this doesn't avoid a temporary created for the
-    # 2D array 
+    # 2D array
 
     size = image.sum()
     momdata = np.row_stack([pix_x,
@@ -130,19 +138,19 @@ def hillas_parameters_2(pix_x, pix_y, image):
                             pix_x * pix_x,
                             pix_y * pix_y,
                             pix_x * pix_y]) * image
-    
+
     moms = momdata.sum(axis=1) / size
 
     # calculate variances
 
-    vx2 = moms[2] - moms[0]**2
-    vy2 = moms[3] - moms[1]**2
+    vx2 = moms[2] - moms[0] ** 2
+    vy2 = moms[3] - moms[1] ** 2
     vxy = moms[4] - moms[0] * moms[1]
 
     # common factors:
 
     dd = vy2 - vx2
-    zz = np.sqrt(dd**2 + 4.0 * vxy**2)
+    zz = np.sqrt(dd ** 2 + 4.0 * vxy ** 2)
 
     # miss
 
@@ -161,12 +169,12 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     tanpsi_numer = (dd + zz) * moms[1] + 2.0 * vxy * moms[0]
     tanpsi_denom = (2 * vxy * moms[1]) - (dd - zz) * moms[0]
-    psi = np.pi/2.0 + np.arctan2(tanpsi_numer, tanpsi_denom)
+    psi = np.pi / 2.0 + np.arctan2(tanpsi_numer, tanpsi_denom)
 
     # polar coordinates of centroid
-    
+
     distance = np.hypot(moms[0], moms[1])
     phi = np.arctan2(moms[1], moms[0])
 
-    return dict(size=size, cx=moms[0], cy=moms[1], length=length, width=width,
-                distance=distance, azwidth=azwidth, psi=psi, phi=phi)
+    return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1], length=length,
+                            width=width, distance=distance, psi=psi)
