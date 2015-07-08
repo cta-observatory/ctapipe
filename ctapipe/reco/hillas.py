@@ -5,7 +5,7 @@ TODO:
 -----
 
 - Should have a separate function or option to compute 3rd order
-  moments + assymmetry (which are not always needed)
+  moments + asymmetry (which are not always needed)
 
 - remove alpha calculation (which is only about (0,0), and make a get
   alpha function that does it from an arbitrary point given a
@@ -15,13 +15,35 @@ TODO:
 import numpy as np
 from collections import namedtuple
 
-__all__ = ['MomentParameters', 'hillas_parameters', 'hillas_parameters_2']
+__all__ = [
+    'MomentParameters',
+    'HighOrderMomentParameters',
+    'hillas_parameters',
+    'hillas_parameters_2',
+]
 
 
-MomentParameters = namedtuple("MomentParameters",
-                              "size,cen_x,cen_y,length,width,r,phi,psi,miss")
-HighOrderMomentParameters = namedtuple("HighOrderMomentParameters",
-                                       "skewness,kurtosis,asymmetry")
+MomentParameters = namedtuple(
+    "MomentParameters",
+    "size,cen_x,cen_y,length,width,r,phi,psi,miss"
+)
+"""Shower moment parameters up to second order.
+
+See also
+--------
+HighOrderMomentParameters, hillas_parameters, hillas_parameters_2
+"""
+
+HighOrderMomentParameters = namedtuple(
+    "HighOrderMomentParameters",
+    "skewness,kurtosis,asymmetry"
+)
+"""Shower moment parameters of third order.
+
+See also
+--------
+MomentParameters, hillas_parameters, hillas_parameters_2
+"""
 
 
 def hillas_parameters(pix_x, pix_y, image):
@@ -42,7 +64,7 @@ def hillas_parameters(pix_x, pix_y, image):
 
     Returns
     -------
-    hillas_parameters : MomentParameters
+    hillas_parameters : `MomentParameters`
     """
     pix_x = np.asanyarray(pix_x, dtype=np.float64)
     pix_y = np.asanyarray(pix_y, dtype=np.float64)
@@ -119,8 +141,7 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     Returns
     -------
-    hillas_parameters : dict
-        Dictionary of Hillas parameters
+    hillas_parameters : `MomentParameters`
     """
     pix_x = np.asanyarray(pix_x, dtype=np.float64)
     pix_y = np.asanyarray(pix_y, dtype=np.float64)
