@@ -13,7 +13,9 @@ __all__ = ['CameraDisplay']
 
 logger = logging.getLogger(__name__)
 
+
 class CameraDisplay(object):
+
     """Camera Display using MatPlotLib
 
     Parameters
@@ -25,7 +27,7 @@ class CameraDisplay(object):
 
     Notes
     -----
-    
+
     * *Implementation detail*: Pixels are rendered as a
     `matplotlib.collections.RegularPolyCollection`, which is the most
     efficient way in MatPlotLib to display complex pixel shapes.
@@ -62,8 +64,8 @@ class CameraDisplay(object):
             self.pixels.set_cmap(plt.cm.jet)
             self.pixels.set_linewidth(0)
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
-            #self.pixels.set_transform(trans)
-            #self.pixels.set_offset_position('data')
+            # self.pixels.set_transform(trans)
+            # self.pixels.set_offset_position('data')
             logger.debug("POS:{}".format(self.pixels.get_offset_position()))
             logger.debug("TRN:{}".format(self.pixels.get_offset_transform()))
             self.axes.add_collection(self.pixels, autolim=True)
@@ -95,8 +97,8 @@ class CameraDisplay(object):
         transormations are set up correctly
 
         """
-        return radii*np.pi*550  # hard-coded for now until better transform
-        #return np.pi * radii ** 2
+        return radii * np.pi * 550  # hard-coded for now until better transform
+        # return np.pi * radii ** 2
 
     def set_cmap(self, cmap):
         """ Change the color map """
@@ -112,7 +114,7 @@ class CameraDisplay(object):
             array of values corresponding to the pixels in the CameraGeometry.
         """
         if image.shape != self.geom.pix_x.shape:
-            raise ValueError("Image has a different shape {} than the" 
+            raise ValueError("Image has a different shape {} than the"
                              "given CameraGeometry {}"
                              .format(image.shape, self.geom.pix_x.shape))
         self.pixels.set_array(image)
@@ -145,7 +147,7 @@ class CameraDisplay(object):
         plt.draw()
         return ellipse
 
-    def overlay_moments(self, momparams,**kwargs):
+    def overlay_moments(self, momparams, **kwargs):
         """ helper to overlay elipse from a `reco.MomentParameters` structure 
 
         Parameters
@@ -154,7 +156,7 @@ class CameraDisplay(object):
             description
         momparams: `reco.MomentParameters`
             structuring containing Hillas-style parameterization
-        
+
 
         """
 

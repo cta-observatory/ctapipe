@@ -19,7 +19,7 @@ __all__ = ['MomentParameters', 'hillas_parameters', 'hillas_parameters_2']
 
 
 MomentParameters = namedtuple("MomentParameters",
-                              "size,cen_x,cen_y,length,width,distance,psi")
+                              "size,cen_x,cen_y,length,width,r,phi,psi,miss")
 HighOrderMomentParameters = namedtuple("HighOrderMomentParameters",
                                        "skewness,kurtosis,asymmetry")
 
@@ -74,6 +74,7 @@ def hillas_parameters(pix_x, pix_y, image):
     length = np.sqrt(length_2)
     miss = np.abs(b / (1 + a * a))
     r = np.sqrt(m_x * m_x + m_y * m_y)
+    phi = np.arctan2(m_y,m_x)
 
     # Compute azwidth by transforming to (p, q) coordinates
     sin_theta = m_y / r
@@ -85,7 +86,7 @@ def hillas_parameters(pix_x, pix_y, image):
     azwidth = np.sqrt(azwidth_2)
 
     return MomentParameters(size=_s, cen_x=m_x, cen_y=m_y, length=length,
-                            width=width, distance=r, psi=None)
+                            width=width, r=r, phi=phi, psi=None, miss=miss)
     # Return relevant parameters in a dict
     # p = dict()
     # p['x'] = m_x
@@ -173,8 +174,9 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     # polar coordinates of centroid
 
-    distance = np.hypot(moms[0], moms[1])
+    rr = np.hypot(moms[0], moms[1])
     phi = np.arctan2(moms[1], moms[0])
 
-    return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1], length=length,
-                            width=width, distance=distance, psi=psi)
+    return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1],
+                            length=length, width=width, r=rr, phi=phi,
+                            psi=psi, miss=miss)
