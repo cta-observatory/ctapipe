@@ -137,7 +137,7 @@ class CameraDisplay(object):
             rotation angle wrt "up" about the centroid, clockwise, in radians
         asymmetry: float
             3rd-order moment for directionality if known
-        kwargs: 
+        kwargs:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
