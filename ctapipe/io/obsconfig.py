@@ -32,7 +32,7 @@ def get_site_id_for_time( obstime ):
     return site_id, version
 
 
-class BaseConfig(object):
+class BaseConfig:
     pass
 
 

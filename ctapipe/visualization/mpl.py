@@ -14,24 +14,21 @@ __all__ = ['CameraDisplay']
 logger = logging.getLogger(__name__)
 
 
-class CameraDisplay(object):
-
-    """Camera Display using MatPlotLib
+class CameraDisplay:
+    """Camera Display using matplotlib.
 
     Parameters
     ----------
     geometry : `~ctapipe.io.CameraGeometry`
         Definition of the Camera/Image
-    axis : `matplotlib.axes._subplots.AxesSubplot`
-        a MatPlotLib Axis object to plot on, or None to create a new one
+    axis : `matplotlib.axes.Axes`
+        A matplotlib axes object to plot on, or None to create a new one
 
     Notes
     -----
-
-    * *Implementation detail*: Pixels are rendered as a
+    Implementation detail: Pixels are rendered as a
     `matplotlib.collections.RegularPolyCollection`, which is the most
-    efficient way in MatPlotLib to display complex pixel shapes.
-
+    efficient way in matplotlib to display complex pixel shapes.
     """
 
     def __init__(self, geometry, axes=None, title="Camera"):
