@@ -29,3 +29,7 @@ Reference/API
 
 .. automodapi:: ctapipe.reco
     :no-inheritance-diagram:
+
+
+.. automodapi:: ctapipe.reco.mock
+    :no-inheritance-diagram:

@@ -24,10 +24,10 @@ if __name__ == '__main__':
     disp = visualization.CameraDisplay(geom)
 
     # create a fake camera image to display:
-    model = mock.shower_model(centroid=(0.2, 0.0),
-                              width=0.01,
-                              length=0.1,
-                              psi=np.radians(35))
+    model = mock.generate_2d_shower_model(centroid=(0.2, 0.0),
+                                          width=0.01,
+                                          length=0.1,
+                                          psi=np.radians(35))
 
     image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
                                               nsb_level_pe=1000)
