@@ -1,3 +1,0 @@
-"""
-Definitions related to Components
-"""
