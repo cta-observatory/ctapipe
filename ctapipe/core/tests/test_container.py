@@ -12,6 +12,12 @@ def test_container():
     with pytest.raises(KeyError):
         x = cont["x"]
 
+    with pytest.raises(AttributeError):
+        cont.x = 10
+
+    with pytest.raises(TypeError):
+        cont['x'] = 10
+        
     # test adding an item
     cont.add_item('y')
     assert cont.y is None
