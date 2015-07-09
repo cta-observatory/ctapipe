@@ -1,5 +1,3 @@
-from decorator import decorator
-
 __all__ = ['component', 'Container']
 
 
