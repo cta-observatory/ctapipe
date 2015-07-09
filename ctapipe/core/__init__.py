@@ -2,9 +2,6 @@ from decorator import decorator
 
 __all__ = ['component', 'Container']
 
-import logging
-logger = logging.getLogger(__name__)
-
 
 #@decorator
 def component():
@@ -45,22 +42,27 @@ class Container:
         kwargs: key=value
             initial data (`add_item` is called automatically for each)
         """
-        self.add_item("_name")
-        self._name = name
+        self.add_item("_name", name)
         for key,val in kwargs.items():
             self.__dict__[key] = val
-    
-    def add_item(self, name):
+
+    @property
+    def meta(self):
+        """metadata associated with this container"""
+        if not "_meta" in self.__dict__:
+            self.add_item("_meta", Container("meta"))
+        return self._meta
+            
+    def add_item(self, name,value=None):
         """
         Add a new item of data to this Container, initialized to None by
-        default.
+        default, or value if specified.
         """
 
         if name in self.__dict__:
             raise AttributeError("item '{}' is already in Container"
                                  .format(name))
-        logger.debug("added {}".format(name))
-        self.__dict__[name] = None
+        self.__dict__[name] = value
     
     def __setattr__(self, name, value):
         # prevent setting od values that are not yet registered

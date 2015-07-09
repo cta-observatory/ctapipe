@@ -44,6 +44,8 @@ def hessio_event_source(url, max_events=None):
     cont.add_item("tels_with_data")
     cont.add_item("data")
     cont.add_item("num_channels")
+    cont.meta.add_item('hessio_source.input',url)
+    cont.meta.add_item('hessio_source.max_events',max_events)
     
     for run_id, event_id in eventstream:
 
