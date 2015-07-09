@@ -18,7 +18,7 @@ except ImportError as err:
     raise err
 
 
-def hessio_event_source(url):
+def hessio_event_source(url, max_events=None):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -26,6 +26,8 @@ def hessio_event_source(url):
     ----------
     url: string
         path to file to open
+    max_events: int, optional
+        maximum number of events to read
     """
 
     ret = hessio.file_open(url)
@@ -34,9 +36,15 @@ def hessio_event_source(url):
         raise RuntimeError("hessio_event_source failed to open '{}'"
                            .format(url))
 
+    counter = 0
     eventstream = hessio.move_to_next_event()
     data = Container()
-
+    data.add_item("run_id")
+    data.add_item("event_id")
+    data.add_item("tels_with_data")
+    data.add_item("data")
+    data.add_item("num_channels")
+    
     for run_id, event_id in eventstream:
 
         data.run_id = run_id
@@ -50,10 +58,14 @@ def hessio_event_source(url):
         data.num_channels = defaultdict(int)
 
         for tel_id in data.tels_with_data:
-            data.tel_id = tel_id
             data.num_channels = hessio.get_num_channel(tel_id)
-            for chan in range(data.num_channels):
+            for chan in range(data.num_channels+1):
                 data.data[tel_id][chan] \
                     = hessio.get_pixel_data(channel=chan,
                                             telescopeId=tel_id)
         yield data
+        counter += 1
+
+        if counter > max_events:
+            return
+    
