@@ -21,7 +21,7 @@ class Container:
     must call `~ctapipe.core.Container.add_item` to add a new variable
     to the Container, otherwise an `AttributeError` will be thrown.
     
-    >>> data = Container()
+    >>> data = Container("data")
     >>> data.add_item("x")
     >>> data.x = 3
     >>> print(data.x)
