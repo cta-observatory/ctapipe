@@ -38,32 +38,32 @@ def hessio_event_source(url, max_events=None):
 
     counter = 0
     eventstream = hessio.move_to_next_event()
-    data = Container("hessio_data")
-    data.add_item("run_id")
-    data.add_item("event_id")
-    data.add_item("tels_with_data")
-    data.add_item("data")
-    data.add_item("num_channels")
+    cont = Container("hessio_data")
+    cont.add_item("run_id")
+    cont.add_item("event_id")
+    cont.add_item("tels_with_data")
+    cont.add_item("data")
+    cont.add_item("num_channels")
     
     for run_id, event_id in eventstream:
 
-        data.run_id = run_id
-        data.event_id = event_id
-        data.tels_with_data = hessio.get_teldata_list()
+        cont.run_id = run_id
+        cont.event_id = event_id
+        cont.tels_with_data = hessio.get_teldata_list()
 
         # this should be done in a nicer way to not re-allocate
         # the data each time
 
-        data.data = defaultdict(dict)
-        data.num_channels = defaultdict(int)
+        cont.data = defaultdict(dict)
+        cont.num_channels = defaultdict(int)
 
-        for tel_id in data.tels_with_data:
-            data.num_channels = hessio.get_num_channel(tel_id)
-            for chan in range(data.num_channels+1):
-                data.data[tel_id][chan] \
-                    = hessio.get_pixel_data(channel=chan,
+        for tel_id in cont.tels_with_data:
+            cont.num_channels[tel_id] = hessio.get_num_channel(tel_id)
+            for chan in range(cont.num_channels[tel_id]):
+                cont.data[tel_id][chan] \
+                    = hessio.get_pixel_data(channel=chan+1,
                                             telescopeId=tel_id)
-        yield data
+        yield cont
         counter += 1
 
         if counter > max_events:
