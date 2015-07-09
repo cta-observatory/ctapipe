@@ -18,11 +18,9 @@ class Container:
 
     Container members can be accessed like a dict or with . syntax.
     You can also iterate over the member names (useful for
-    serialization).
-
-    However, new data cannot be added arbitrarily. One must call
-    `~ctapipe.core.Container.add_item` to add a new variable to the
-    Container, otherwise an `AttributeError` will be thrown.
+    serialization). However, new data cannot be added arbitrarily. One
+    must call `~ctapipe.core.Container.add_item` to add a new variable
+    to the Container, otherwise an `AttributeError` will be thrown.
     
     >>> data = Container()
     >>> data.add_item("x")
@@ -34,6 +32,13 @@ class Container:
 
     """
 
+    def __init__(self,name,**kwargs):
+        self.add_item("_name")
+        self._name = name
+        for key,val in kwargs.items():
+            self.add_item(key)
+            self[key] = val
+    
     def add_item(self, name):
         """
         Add a new item of data to this Container, initialized to None by
@@ -59,7 +64,9 @@ class Container:
         return str(self.__dict__)
 
     def __repr__(self):
-        return "Container(" + ", ".join(self.__dict__.keys()) + ")"
+        return '{0}.{1}({2})'.format(self.__class__.__module__,
+                                     self.__class__.__name__,
+                                     ', '.join(self))
 
     def __iter__(self):
         return (k for k in self.__dict__.keys() if not k.startswith("_"))

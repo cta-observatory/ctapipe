@@ -38,7 +38,7 @@ def hessio_event_source(url, max_events=None):
 
     counter = 0
     eventstream = hessio.move_to_next_event()
-    data = Container()
+    data = Container("hessio_data")
     data.add_item("run_id")
     data.add_item("event_id")
     data.add_item("tels_with_data")
