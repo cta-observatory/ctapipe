@@ -16,6 +16,8 @@ class Container:
     """Generic class that can hold and accumulate data to be passed
     between Components.
 
+    
+
     Container members can be accessed like a dict or with . syntax.
     You can also iterate over the member names (useful for
     serialization). However, new data cannot be added arbitrarily. One
@@ -33,11 +35,20 @@ class Container:
     """
 
     def __init__(self,name,**kwargs):
+        """
+        Parameters
+        ----------
+        self: type
+            description
+        name: str
+            name of container instance
+        kwargs: key=value
+            initial data (`add_item` is called automatically for each)
+        """
         self.add_item("_name")
         self._name = name
         for key,val in kwargs.items():
-            self.add_item(key)
-            self[key] = val
+            self.__dict__[key] = val
     
     def add_item(self, name):
         """
@@ -52,21 +63,27 @@ class Container:
         self.__dict__[name] = None
     
     def __setattr__(self, name, value):
+        # prevent setting od values that are not yet registered
         if name not in self.__dict__:
             raise AttributeError("item '{}' doesn't exist in {}"
                                  .format(name, repr(self)))
         self.__dict__[name] = value
     
     def __getitem__(self, name):
+        # allow getting value by string e.g. cont['x']
         return self.__dict__[name]
     
     def __str__(self, ):
+        # string represnetation (e.g. `print(cont)`)
         return str(self.__dict__)
 
     def __repr__(self):
-        return '{0}.{1}({2})'.format(self.__class__.__module__,
-                                     self.__class__.__name__,
-                                     ', '.join(self))
+        # standard representation
+        return '{0}.{1}("{2}", {3})'.format(self.__class__.__module__,
+                                            self.__class__.__name__,
+                                            self._name,
+                                            ', '.join(self))
 
     def __iter__(self):
+        # allow iterating over item names
         return (k for k in self.__dict__.keys() if not k.startswith("_"))
