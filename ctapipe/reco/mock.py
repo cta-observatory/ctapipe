@@ -1,5 +1,6 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-utilities to generate mock (fake) reconstruction inputs for testing purposes.
+Utilities to generate mock (fake) reconstruction inputs for testing purposes.
 
 Example:
 
@@ -24,7 +25,7 @@ __all__ = [
 
 
 def generate_2d_shower_model(centroid, width, length, psi):
-    """Create a stastical model (2D gaussian) for a shower image in a
+    """Create a statistical model (2D gaussian) for a shower image in a
     camera. The model's PDF (`model.pdf`) can be passed to
     `make_mock_shower_image`.
 

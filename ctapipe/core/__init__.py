@@ -1,9 +1,14 @@
-__all__ = ['component', 'Container']
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+
+__all__ = [
+    'component',
+    'Container',
+]
 
 
 #@decorator
 def component():
-    """ Component dectorator """
+    """Component decorator"""
     pass
 
 
@@ -11,14 +16,23 @@ class Container:
     """Generic class that can hold and accumulate data to be passed
     between Components.
 
-    
-
     Container members can be accessed like a dict or with . syntax.
     You can also iterate over the member names (useful for
     serialization). However, new data cannot be added arbitrarily. One
     must call `~ctapipe.core.Container.add_item` to add a new variable
     to the Container, otherwise an `AttributeError` will be thrown.
-    
+
+    Parameters
+    ----------
+    self: type
+        description
+    name: str
+        name of container instance
+    kwargs: key=value
+        initial data (`add_item` is called automatically for each)
+
+    Examples
+    --------
     >>> data = Container("data")
     >>> data.add_item("x")
     >>> data.x = 3
@@ -26,20 +40,9 @@ class Container:
     3
     >>> print(data['x'])
     3
-
     """
 
     def __init__(self,name,**kwargs):
-        """
-        Parameters
-        ----------
-        self: type
-            description
-        name: str
-            name of container instance
-        kwargs: key=value
-            initial data (`add_item` is called automatically for each)
-        """
         self.add_item("_name", name)
         for key,val in kwargs.items():
             self.__dict__[key] = val
@@ -56,7 +59,6 @@ class Container:
         Add a new item of data to this Container, initialized to None by
         default, or value if specified.
         """
-
         if name in self.__dict__:
             raise AttributeError("item '{}' is already in Container"
                                  .format(name))

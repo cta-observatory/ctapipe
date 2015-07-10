@@ -1,4 +1,5 @@
-"""Defintion of Observation Configurations. 
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+"""Definition of Observation Configurations.
 
 The ObsConfig class defines a hierarchy of classes that contain the
 configuration information related to an observation. Each sub-config
@@ -32,12 +33,12 @@ __all__ = [
 ]
 
 
-def get_site_id_for_run( run_id ):
+def get_site_id_for_run(run_id):
     """ lookup which array and version was used for a given run """
     
     return site_id, version
 
-def get_site_id_for_time( obstime ):
+def get_site_id_for_time(obstime):
     """lookup which array and version was used for a given obstime
     (astropy.time.Time)
 
@@ -169,8 +170,7 @@ class SubarrayConfig(BaseConfig):
 
 
 class ObsConfig(BaseConfig):
-
-    """All configuration information related to an observarion run
+    """All configuration information related to an observation run.
     """
 
     def __init__(self, run_id):
@@ -188,7 +188,8 @@ class ObsConfig(BaseConfig):
 
         
 class SimObsConfig(ObsConfig):
-    """ ObsConfig from a simulation run """
+    """ObsConfig from a simulation run.
+    """
 
     def __init__(self, mc_run_id):
         self._mc_run_id = mc_run_id

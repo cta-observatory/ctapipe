@@ -1,9 +1,8 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+import numpy as np
+from scipy import ndimage
 from astropy.io import fits
 from astropy.wcs import WCS
-import numpy as np
-import math
-
-from scipy import ndimage
 
 __all__ = ['Histogram']
 
@@ -349,5 +348,3 @@ class Histogram:
         self._nbins = nbins
         self.hist = ndimage.map_coordinates(self.hist, coords)
         self._binLowerEdges = None  # need to be recalculated
-
-

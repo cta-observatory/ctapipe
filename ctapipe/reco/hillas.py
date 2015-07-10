@@ -109,18 +109,6 @@ def hillas_parameters(pix_x, pix_y, image):
 
     return MomentParameters(size=_s, cen_x=m_x, cen_y=m_y, length=length,
                             width=width, r=r, phi=phi, psi=None, miss=miss)
-    # Return relevant parameters in a dict
-    # p = dict()
-    # p['x'] = m_x
-    # p['y'] = m_y
-    # p['a'] = a
-    # p['b'] = b
-    # p['width'] = width
-    # p['length'] = length
-    # p['miss'] = miss
-    # p['r'] = r
-    # p['azwidth'] = azwidth
-    # return p
 
 
 def hillas_parameters_2(pix_x, pix_y, image):

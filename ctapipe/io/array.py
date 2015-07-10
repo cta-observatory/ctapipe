@@ -1,11 +1,10 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Array Layout utilities
+Array layout utilities
 """
-
-from astropy.table import Table
-from collections import namedtuple
-from ctapipe.utils.datasets import get_path
 from glob import glob
+from astropy.table import Table
+from ctapipe.utils.datasets import get_path
 
 _telclass_map = {0: 'SST', 1: 'MST', 2: 'LST'}
 

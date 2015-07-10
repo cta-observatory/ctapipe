@@ -1,3 +1,4 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Utilities for reading or working with Camera geometry files
 
 TODO:
@@ -28,6 +29,10 @@ CameraGeometry = namedtuple("CameraGeometry",
                              'pix_area',
                              'neighbors',
                              'pix_type'])
+"""Camera geometry.
+
+TODO: describe a bit what this is ...
+"""
 
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
@@ -77,13 +82,11 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     -------
     a `CameraGeometry` object
 
-
     Examples
     --------
 
     >>> geom_ct1 = get_camera_geometry( "hess", 1 )
     >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbors[1]]
-
     """
 
     # let's assume the instrument name is encoded in the

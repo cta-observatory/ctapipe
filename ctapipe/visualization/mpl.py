@@ -1,5 +1,6 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Visualization routines using MatPlotLib
+Visualization routines using matplotlib
 """
 
 from matplotlib import pyplot as plt
