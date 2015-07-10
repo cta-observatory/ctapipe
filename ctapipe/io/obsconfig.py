@@ -16,6 +16,22 @@ from functools import partial
 from collections import defaultdict
 import numpy as np
 
+__all__ = [
+    'get_site_id_for_run',
+    'get_site_id_for_time',
+    'BaseConfig',
+    'CameraConfig',
+    'ArrayTriggerConfig',
+    'TelescopeTriggerConfig',
+    'TelescopeConfig',
+    'ArrayConfig',
+    'OpticsConfig',
+    'SubarrayConfig',
+    'ObsConfig',
+    'SimObsConfig',
+]
+
+
 def get_site_id_for_run( run_id ):
     """ lookup which array and version was used for a given run """
     
@@ -54,12 +70,15 @@ class CameraConfig(BaseConfig):
         self.pix_area = None
         self.focal_plane_offset = 0.0 # offset from focal_length
 
+    @staticmethod
     def load_from_file():
-        pass
-        
+        raise NotImplementedError
+
+
 class ArrayTriggerConfig(BaseConfig):
     """ Contains trigger info for a given run_type """
     pass
+
 
 class TelescopeTriggerConfig(BaseConfig):
     """ Contains trigger info for a given run_type """
@@ -114,8 +133,6 @@ class ArrayConfig(BaseConfig):
 
         return self._telconfig[tel_id]
 
-
-        
     @property
     def num_tels(self):
         return len(self.tel_id)
@@ -141,6 +158,7 @@ class OpticsConfig(BaseConfig):
         self.facet_z = np.array()
         self.facet_area = np.array()
 
+
 class SubarrayConfig(BaseConfig):
     """Description of a particular Subarray used during an observation or
     during a monte-carlo production
@@ -148,6 +166,7 @@ class SubarrayConfig(BaseConfig):
     def __init__(self, run_id):
         super(SubarrayConfig, self).__init__()
         self.run_id = run_id
+
 
 class ObsConfig(BaseConfig):
 
@@ -173,6 +192,3 @@ class SimObsConfig(ObsConfig):
 
     def __init__(self, mc_run_id):
         self._mc_run_id = mc_run_id
-
-    
-        

@@ -17,6 +17,10 @@ except ImportError as err:
                  .format(err))
     raise err
 
+__all__ = [
+    'hessio_event_source',
+]
+
 
 def hessio_event_source(url, max_events=None):
     """A generator that streams data from an EventIO/HESSIO MC data file
