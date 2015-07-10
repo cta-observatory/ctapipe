@@ -1,4 +1,5 @@
-"""Defintion of Observation Configurations. 
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+"""Definition of Observation Configurations.
 
 The ObsConfig class defines a hierarchy of classes that contain the
 configuration information related to an observation. Each sub-config
@@ -16,12 +17,28 @@ from functools import partial
 from collections import defaultdict
 import numpy as np
 
-def get_site_id_for_run( run_id ):
+__all__ = [
+    'get_site_id_for_run',
+    'get_site_id_for_time',
+    'BaseConfig',
+    'CameraConfig',
+    'ArrayTriggerConfig',
+    'TelescopeTriggerConfig',
+    'TelescopeConfig',
+    'ArrayConfig',
+    'OpticsConfig',
+    'SubarrayConfig',
+    'ObsConfig',
+    'SimObsConfig',
+]
+
+
+def get_site_id_for_run(run_id):
     """ lookup which array and version was used for a given run """
     
     return site_id, version
 
-def get_site_id_for_time( obstime ):
+def get_site_id_for_time(obstime):
     """lookup which array and version was used for a given obstime
     (astropy.time.Time)
 
@@ -54,12 +71,15 @@ class CameraConfig(BaseConfig):
         self.pix_area = None
         self.focal_plane_offset = 0.0 # offset from focal_length
 
+    @staticmethod
     def load_from_file():
-        pass
-        
+        raise NotImplementedError
+
+
 class ArrayTriggerConfig(BaseConfig):
     """ Contains trigger info for a given run_type """
     pass
+
 
 class TelescopeTriggerConfig(BaseConfig):
     """ Contains trigger info for a given run_type """
@@ -114,8 +134,6 @@ class ArrayConfig(BaseConfig):
 
         return self._telconfig[tel_id]
 
-
-        
     @property
     def num_tels(self):
         return len(self.tel_id)
@@ -141,6 +159,7 @@ class OpticsConfig(BaseConfig):
         self.facet_z = np.array()
         self.facet_area = np.array()
 
+
 class SubarrayConfig(BaseConfig):
     """Description of a particular Subarray used during an observation or
     during a monte-carlo production
@@ -149,9 +168,9 @@ class SubarrayConfig(BaseConfig):
         super(SubarrayConfig, self).__init__()
         self.run_id = run_id
 
-class ObsConfig(BaseConfig):
 
-    """All configuration information related to an observarion run
+class ObsConfig(BaseConfig):
+    """All configuration information related to an observation run.
     """
 
     def __init__(self, run_id):
@@ -169,10 +188,8 @@ class ObsConfig(BaseConfig):
 
         
 class SimObsConfig(ObsConfig):
-    """ ObsConfig from a simulation run """
+    """ObsConfig from a simulation run.
+    """
 
     def __init__(self, mc_run_id):
         self._mc_run_id = mc_run_id
-
-    
-        

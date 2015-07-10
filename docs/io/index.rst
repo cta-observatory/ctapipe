@@ -34,9 +34,3 @@ when there are changes to the array, telescope, or camera
 configurations associated with a site)
 
 .. graphviz:: config.dot
-
-
-                
-
-
-

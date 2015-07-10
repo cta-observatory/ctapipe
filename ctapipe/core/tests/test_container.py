@@ -1,5 +1,6 @@
-from ctapipe.core import Container
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 import pytest
+from ctapipe.core import Container
 
 
 def test_container():
@@ -7,10 +8,10 @@ def test_container():
     cont = Container("data")
 
     with pytest.raises(AttributeError):
-        x = cont.x
+        cont.x
 
     with pytest.raises(KeyError):
-        x = cont["x"]
+        cont["x"]
 
     with pytest.raises(AttributeError):
         cont.x = 10

@@ -1,10 +1,11 @@
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 Components to read HESSIO data.  
 
 This requires the hessio python library to be installed
 """
 
-from ctapipe.core import  Container
+from ctapipe.core import Container
 from collections import defaultdict
 
 import logging
@@ -17,6 +18,10 @@ except ImportError as err:
                  .format(err))
     raise err
 
+__all__ = [
+    'hessio_event_source',
+]
+
 
 def hessio_event_source(url, max_events=None):
     """A generator that streams data from an EventIO/HESSIO MC data file
@@ -24,9 +29,9 @@ def hessio_event_source(url, max_events=None):
 
     Parameters
     ----------
-    url: string
+    url : str
         path to file to open
-    max_events: int, optional
+    max_events : int, optional
         maximum number of events to read
     """
 
@@ -81,4 +86,3 @@ def hessio_event_source(url, max_events=None):
 
         if counter > max_events:
             return
-    
