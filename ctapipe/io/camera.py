@@ -4,7 +4,7 @@ TODO:
 -----
 
  - don't use `namedtuple` for CameraGeometry, since it's immutable and thus is
-   pass-by-value (which could be slow). 
+   pass-by-value (which could be slow).
 
 """
 import numpy as np
@@ -18,7 +18,7 @@ __all__ = ['CameraGeometry',
            'get_camera_geometry',
            'load_camera_geometry_from_file',
            'make_rectangular_camera_geometry',
-           'find_neighbor_pixels'
+           'find_neighbor_pixels','make_camera_geometry',
            ]
 
 #__doctest_skip__ = ['load_camera_geometry_from_file'  ]
@@ -57,6 +57,23 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     for nn, ii in zip(neighbors, indices):
         nn.remove(ii)  # get rid of the pixel itself
     return neighbors
+
+
+def make_camera_geometry(pix_x, pix_y, pix_type="hexagonal"):
+    """ returns a CameraGeometry filled in from just the x,y positions """
+
+    rad = 0.5 * \
+        np.sqrt((pix_x[1] - pix_x[0]) ** 2 + (pix_y[1] - pix_y[0]) ** 2).value
+
+    return CameraGeometry(cam_id="unknown",
+                          pix_id=np.arange(len(pix_x)),
+                          pix_x=pix_x,
+                          pix_y=pix_y,
+                          pix_r=np.ones_like(pix_x) * rad,
+                          pix_area=np.pi * np.ones_like(pix_x) * rad ** 2,
+                          neighbors=find_neighbor_pixels(pix_x, pix_y,
+                                                         rad+0.01),
+                          pix_type=pix_type)
 
 
 def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
@@ -99,7 +116,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
         neigh = find_neighbor_pixels(geom['PIX_POSX'].data,
                                      geom['PIX_POSY'].data,
                                      geom['PIX_DIAM'].data.mean() + 0.01)
-                                     
+
     return CameraGeometry(
         cam_id=cam_id,
         pix_id=geom['PIX_ID'].data,
@@ -172,6 +189,6 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pix_y=yy * u.m,
         pix_r=rr,
         pix_area=(np.ones_like(xx) * (xx[1] - xx[0])
-                  * (yy[1] - yy[0]) * u.m**2),
+                  * (yy[1] - yy[0]) * u.m ** 2),
         neighbors=nn,
         pix_type='rectangular')

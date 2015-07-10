@@ -11,7 +11,7 @@ import logging
 
 __all__ = ['CameraDisplay']
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 
 class CameraDisplay:
@@ -63,8 +63,6 @@ class CameraDisplay:
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
             # self.pixels.set_transform(trans)
             # self.pixels.set_offset_position('data')
-            logger.debug("POS:{}".format(self.pixels.get_offset_position()))
-            logger.debug("TRN:{}".format(self.pixels.get_offset_transform()))
             self.axes.add_collection(self.pixels, autolim=True)
         elif self.geom.pix_type.startswith('rect'):
             self.pixels = RegularPolyCollection(numsides=4,
@@ -75,8 +73,6 @@ class CameraDisplay:
             self.pixels.set_cmap(plt.cm.jet)
             self.pixels.set_linewidth(0)
             self.pixels.set_array(np.zeros_like(self.geom.pix_x))
-            logger.debug("POS:{}".format(self.pixels.get_offset_position()))
-            logger.debug("TRN:{}".format(self.pixels.get_offset_transform()))
             self.axes.add_collection(self.pixels, autolim=True)
         else:
             raise ValueError(

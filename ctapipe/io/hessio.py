@@ -42,10 +42,15 @@ def hessio_event_source(url, max_events=None):
     cont.add_item("run_id")
     cont.add_item("event_id")
     cont.add_item("tels_with_data")
-    cont.add_item("data")
+    cont.add_item("sampledata")
+    cont.add_item("sumdata")
     cont.add_item("num_channels")
     cont.meta.add_item('hessio_source.input',url)
     cont.meta.add_item('hessio_source.max_events',max_events)
+    cont.add_item('pixel_pos')
+
+    cont.num_channels = defaultdict(int)
+    cont.pixel_pos = defaultdict(int)
     
     for run_id, event_id in eventstream:
 
@@ -56,15 +61,21 @@ def hessio_event_source(url, max_events=None):
         # this should be done in a nicer way to not re-allocate
         # the data each time
 
-        cont.data = defaultdict(dict)
-        cont.num_channels = defaultdict(int)
-
+        cont.sampledata = defaultdict(dict)
+        cont.sumdata = defaultdict(dict)
+        
         for tel_id in cont.tels_with_data:
-            cont.num_channels[tel_id] = hessio.get_num_channel(tel_id)
+            if tel_id not in cont.pixel_pos:
+                cont.pixel_pos[tel_id] = hessio.get_pixel_position(tel_id)
+                cont.num_channels[tel_id] = hessio.get_num_channel(tel_id)
+                
             for chan in range(cont.num_channels[tel_id]):
-                cont.data[tel_id][chan] \
-                    = hessio.get_pixel_data(channel=chan+1,
+                cont.sampledata[tel_id][chan] \
+                    = hessio.get_adc_sample(channel=chan,
                                             telescopeId=tel_id)
+                cont.sumdata[tel_id][chan] \
+                    = hessio.get_adc_sum(channel=chan,
+                                         telescopeId=tel_id)
         yield cont
         counter += 1
 
