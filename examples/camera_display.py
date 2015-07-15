@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     # show the camera image and overlay Hillas ellipse
     disp.set_image(image)
-    disp.overlay_moments(hillas, edgecolor='black', linewidth=3)
+    disp.overlay_moments(hillas, color='black', linewidth=3)
 
     # draw the neighbors of pixel 100 in red, and the
     # neighbor-neighbors in green

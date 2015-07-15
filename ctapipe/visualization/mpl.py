@@ -42,7 +42,7 @@ class CameraDisplay:
     """
 
     def __init__(self, geometry, axes=None, title="Camera",
-                 allow_pick=False, autoupdate=True):
+                 allow_pick=False, autoupdate=True, antialiased=True):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
@@ -90,10 +90,14 @@ class CameraDisplay:
 
         # enable ability to click on pixel and do something
         if allow_pick:
-            self.pixels.set_picker(True)  # enable clik
-            self.pixels.set_pickradius(sqrt(self.geom.pix_area[0]) / np.pi)
-            self.pixels.set_snap(True)  # snap cursor to pixel center
-            self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
+            self.enable_pixel_picker()
+
+    def enable_pixel_picker(self):
+        """ enable ability to click on pixels """
+        self.pixels.set_picker(True)  # enable click
+        self.pixels.set_pickradius(sqrt(self.geom.pix_area[0]) / np.pi)
+        self.pixels.set_snap(True)  # snap cursor to pixel center
+        self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
 
     def _radius_to_size(self, radii):
         """compute radius in screen coordinates and returns the size in
@@ -133,7 +137,7 @@ class CameraDisplay:
     def add_colorbar(self):
         """ add a colobar to the camera plot """
         self.axes.figure.colorbar(self.pixels)
-        
+
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
                     **kwargs):
         """
@@ -166,23 +170,24 @@ class CameraDisplay:
 
         Parameters
         ----------
-        self: type
-            description
         momparams: `reco.MomentParameters`
             structuring containing Hillas-style parameterization
-
+        kwargs: key=value
+            any style keywords to pass to matplotlib (e.g. color='red'
+            or linewidth=6)
         """
 
-        self.add_ellipse(centroid=(momparams.cen_x, momparams.cen_y),
-                         length=momparams.length,
-                         width=momparams.width, angle=momparams.psi,
-                         **kwargs)
-        self.axes.text( momparams.cen_x, momparams.cen_y,
-                        ("({:.02f},{:.02f})\n"
-                         "[w={:.02f},l={:.02f}]")
-                        .format(momparams.cen_x,
-                                momparams.cen_y,
-                                momparams.width, momparams.length ))
+        el = self.add_ellipse(centroid=(momparams.cen_x, momparams.cen_y),
+                              length=momparams.length,
+                              width=momparams.width, angle=momparams.psi,
+                              **kwargs)
+        self.axes.text(momparams.cen_x, momparams.cen_y,
+                       ("({:.02f},{:.02f})\n"
+                        "[w={:.02f},l={:.02f}]")
+                       .format(momparams.cen_x,
+                               momparams.cen_y,
+                               momparams.width, momparams.length),
+                       color=el.get_edgecolor())
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """

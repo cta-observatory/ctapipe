@@ -42,6 +42,7 @@ def display_event(event):
         geom = io.guess_camera_geometry(x * u.m, y * u.m)
         disp = visualization.CameraDisplay(geom, axes=ax,
                                            title="CT{0}".format(tel_id))
+        disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
         disp.set_cmap(random.choice(cmaps))
         data = event.sumdata[tel_id][0]
@@ -63,8 +64,6 @@ if __name__ == '__main__':
     print("If you don't see a plot, run this with "
           "'ipython -i --matplotlib read_hessio.py <filename>")
 
-    plt.show(block=False)
-    
 
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
@@ -73,6 +72,9 @@ if __name__ == '__main__':
         exit()
 
     plt.style.use("ggplot")
+    plt.show(block=False)
+
+    # loop over events and display menu at each event:
     source = hessio_event_source(filename, max_events=1000000)
 
     for event in source:
