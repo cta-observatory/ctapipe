@@ -10,6 +10,7 @@ from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
 from numpy import sqrt
 import numpy as np
 import logging
+import copy
 
 __all__ = ['CameraDisplay']
 
@@ -26,6 +27,10 @@ class CameraDisplay:
         Definition of the Camera/Image
     axis : `matplotlib.axes.Axes`
         A matplotlib axes object to plot on, or None to create a new one
+    title : str
+        Title to put on camera plot
+    allow_pick : bool
+        if True, allow user to click and select a pixel
 
     Notes
     -----
@@ -34,12 +39,14 @@ class CameraDisplay:
     efficient way in matplotlib to display complex pixel shapes.
     """
 
-    def __init__(self, geometry, axes=None, title="Camera"):
+    def __init__(self, geometry, axes=None, title="Camera", allow_pick=False):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
         self.cmap = plt.cm.jet
-
+        self._active_pixel_id = None
+        self._active_pixel = None
+        
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
@@ -63,13 +70,26 @@ class CameraDisplay:
 
         self.pixels = PatchCollection(patches, cmap=self.cmap, linewidth=0)
 
+        self._active_pixel = copy.copy(patches[0])
+        self._active_pixel.set_facecolor('r')
+        self._active_pixel.set_alpha(0.5)
+        self._active_pixel.set_linewidth(2.0)
+        self._active_pixel.set_visible(False)
+        
         self.axes.add_collection(self.pixels)
+        self.axes.add_patch(self._active_pixel)
         self.axes.set_aspect('equal', 'datalim')
         self.axes.set_title(title)
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
         self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
         self.axes.autoscale_view()
-        self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
+
+        # enable ability to click on pixel and do something
+        if allow_pick:
+            self.pixels.set_picker(True) # enable clik
+            self.pixels.set_pickradius(sqrt(self.geom.pix_area[0])/np.pi)
+            self.pixels.set_snap(True)  # snap cursor to pixel center
+            self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
 
     def _radius_to_size(self, radii):
         """compute radius in screen coordinates and returns the size in
@@ -99,8 +119,12 @@ class CameraDisplay:
                              "given CameraGeometry {}"
                              .format(image.shape, self.geom.pix_x.shape))
         self.pixels.set_array(image)
-        plt.draw()  # is there a better way to update this?
+        self.update()
 
+    def update(self):
+        """ signal a redraw if necessary """
+        plt.draw()
+    
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
                     **kwargs):
         """
@@ -147,4 +171,9 @@ class CameraDisplay:
                          **kwargs)
 
     def _on_pick(self, event):
-        print("EVENT: {} N={}".format(event, event.ind))
+        print("Clicked pixel_id {}".format(event.ind))
+        pix_id = event.ind.pop()
+        self._active_pixel.set_visible(True)
+        self._active_pixel.xy = (self.geom.pix_x[pix_id].value,
+                                 self.geom.pix_y[pix_id].value)
+        self.update()
