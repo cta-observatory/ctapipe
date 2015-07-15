@@ -44,14 +44,16 @@ class CameraDisplay:
 
         patches = []
         
-        for  xx, yy, rr  in zip(self.geom.pix_x.value,
+        for  xx, yy, aa  in zip(self.geom.pix_x.value,
                                 self.geom.pix_y.value,
                                 np.array(self.geom.pix_area)):
             if self.geom.pix_type.startswith("hex"):
+                rr = sqrt(aa*2/3/sqrt(3))
                 poly = RegularPolygon((xx, yy), 6, radius=rr,
                                       orientation=np.radians(0),
                                       fill=True)
             else:
+                rr = sqrt(aa)
                 poly = Rectangle((xx, yy), width=2*rr, height=2*rr,
                                       angle=np.radians(0),
                                       fill=True)
