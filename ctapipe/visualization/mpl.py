@@ -29,8 +29,10 @@ class CameraDisplay:
         A matplotlib axes object to plot on, or None to create a new one
     title : str
         Title to put on camera plot
-    allow_pick : bool
+    allow_pick : bool (default False)
         if True, allow user to click and select a pixel
+    autoupdate : bool (default True)
+        redraw automatically (otherwise need to call plt.draw())
 
     Notes
     -----
@@ -39,14 +41,16 @@ class CameraDisplay:
     efficient way in matplotlib to display complex pixel shapes.
     """
 
-    def __init__(self, geometry, axes=None, title="Camera", allow_pick=False):
+    def __init__(self, geometry, axes=None, title="Camera",
+                 allow_pick=False, autoupdate=True):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
         self.cmap = plt.cm.jet
+        self.autoupdate = autoupdate
         self._active_pixel_id = None
         self._active_pixel = None
-        
+
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
@@ -75,7 +79,7 @@ class CameraDisplay:
         self._active_pixel.set_alpha(0.5)
         self._active_pixel.set_linewidth(2.0)
         self._active_pixel.set_visible(False)
-        
+
         self.axes.add_collection(self.pixels)
         self.axes.add_patch(self._active_pixel)
         self.axes.set_aspect('equal', 'datalim')
@@ -86,8 +90,8 @@ class CameraDisplay:
 
         # enable ability to click on pixel and do something
         if allow_pick:
-            self.pixels.set_picker(True) # enable clik
-            self.pixels.set_pickradius(sqrt(self.geom.pix_area[0])/np.pi)
+            self.pixels.set_picker(True)  # enable clik
+            self.pixels.set_pickradius(sqrt(self.geom.pix_area[0]) / np.pi)
             self.pixels.set_snap(True)  # snap cursor to pixel center
             self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
 
@@ -107,7 +111,7 @@ class CameraDisplay:
 
     def set_image(self, image):
         """
-        Change the image displayed on the Camera. 
+        Change the image displayed on the Camera.
 
         Parameters
         ----------
@@ -123,8 +127,13 @@ class CameraDisplay:
 
     def update(self):
         """ signal a redraw if necessary """
-        plt.draw()
-    
+        if self.autoupdate:
+            plt.draw()
+
+    def add_colorbar(self):
+        """ add a colobar to the camera plot """
+        self.axes.figure.colorbar(self.pixels)
+        
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
                     **kwargs):
         """
@@ -149,11 +158,11 @@ class CameraDisplay:
         ellipse = Ellipse(xy=centroid, width=width, height=length,
                           angle=np.degrees(angle), fill=False, **kwargs)
         self.axes.add_patch(ellipse)
-        plt.draw()
+        self.update()
         return ellipse
 
     def overlay_moments(self, momparams, **kwargs):
-        """ helper to overlay elipse from a `reco.MomentParameters` structure 
+        """helper to overlay ellipse from a `reco.MomentParameters` structure
 
         Parameters
         ----------
@@ -162,15 +171,21 @@ class CameraDisplay:
         momparams: `reco.MomentParameters`
             structuring containing Hillas-style parameterization
 
-
         """
 
         self.add_ellipse(centroid=(momparams.cen_x, momparams.cen_y),
                          length=momparams.length,
                          width=momparams.width, angle=momparams.psi,
                          **kwargs)
+        self.axes.text( momparams.cen_x, momparams.cen_y,
+                        ("({:.02f},{:.02f})\n"
+                         "[w={:.02f},l={:.02f}]")
+                        .format(momparams.cen_x,
+                                momparams.cen_y,
+                                momparams.width, momparams.length ))
 
     def _on_pick(self, event):
+        """ handler for when a pixel is clicked """
         print("Clicked pixel_id {}".format(event.ind))
         pix_id = event.ind.pop()
         self._active_pixel.set_visible(True)
