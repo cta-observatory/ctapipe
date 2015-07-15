@@ -14,7 +14,7 @@ from numpy import ceil, sqrt
 import random
 
 
-fig = plt.figure(figsize=(10, 10))
+fig = plt.figure(figsize=(12, 8))
 cmaps = [plt.cm.jet, plt.cm.winter,
          plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
          plt.cm.cool, plt.cm.coolwarm]
@@ -34,7 +34,7 @@ def display_event(event):
 
     for ii, tel_id in enumerate(event.tels_with_data):
         nn = int(ceil(sqrt(ntels)))
-        ax = plt.subplot(nn, nn+1, ii + 1)
+        ax = plt.subplot(nn - 1, nn + 1, ii + 1)
 
         x, y = event.pixel_pos[tel_id]
         geom = io.guess_camera_geometry(x * u.m, y * u.m)

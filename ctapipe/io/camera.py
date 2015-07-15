@@ -66,7 +66,8 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
 
 _npix_to_type = {2048: ('SST', 'rectangular'),
                  1141: ('MST', 'hexagonal'),
-                 1855: ('LST', 'hexagonal')}
+                 1855: ('LST', 'hexagonal'),
+                 11328:('SST', 'rectangular')}
 
 
 def guess_camera_type(npix):
