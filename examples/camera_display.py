@@ -1,3 +1,5 @@
+
+
 """
 Example of drawing a Camera using a mock shower image
 """
@@ -29,8 +31,8 @@ if __name__ == '__main__':
                                           length=0.1,
                                           psi=np.radians(35))
 
-    image, _, _ = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
-                                              nsb_level_pe=1000)
+    image, sig, bg = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
+                                                 nsb_level_pe=1000)
 
     # apply really stupid image cleaning (single threshold):
     clean = image.copy()

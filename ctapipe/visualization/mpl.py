@@ -5,14 +5,15 @@ Visualization routines using matplotlib
 
 from matplotlib import pyplot as plt
 from matplotlib import transforms
-from matplotlib.collections import RegularPolyCollection
-from matplotlib.patches import Ellipse
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from numpy import sqrt
 import numpy as np
 import logging
 
 __all__ = ['CameraDisplay']
 
-#logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class CameraDisplay:
@@ -41,48 +42,35 @@ class CameraDisplay:
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
-        xx, yy, rr = (self.geom.pix_x.value, self.geom.pix_y.value,
-                      self.geom.pix_r)
-        offsets = list(zip(xx, yy))
+        patches = []
+        
+        for  xx, yy, rr  in zip(self.geom.pix_x.value,
+                                self.geom.pix_y.value,
+                                np.array(self.geom.pix_area)):
+            if self.geom.pix_type.startswith("hex"):
+                poly = RegularPolygon((xx, yy), 6, radius=rr,
+                                      orientation=np.radians(0),
+                                      fill=True)
+            else:
+                poly = Rectangle((xx, yy), width=2*rr, height=2*rr,
+                                      angle=np.radians(0),
+                                      fill=True)
+                
 
-        offset_trans = self.axes.transData
-        #offset_trans = transforms.IdentityTransform()
-        fig = self.axes.get_figure()
-        trans = fig.dpi_scale_trans + transforms.Affine2D().scale(1.0 / 72.0)
-        #trans = self.axes.transData
-        #trans = transforms.IdentityTransform()
-        self.axes.set_aspect('equal', 'datalim')
+            patches.append(poly)
+       
 
-        if self.geom.pix_type.startswith('hex'):
-            self.pixels = RegularPolyCollection(numsides=6,
-                                                rotation=np.radians(0),
-                                                offsets=offsets,
-                                                sizes=self._radius_to_size(rr),
-                                                transOffset=offset_trans)
-            self.pixels.set_cmap(plt.cm.jet)
-            self.pixels.set_linewidth(0)
-            self.pixels.set_array(np.zeros_like(self.geom.pix_x))
-            # self.pixels.set_transform(trans)
-            # self.pixels.set_offset_position('data')
-            self.axes.add_collection(self.pixels, autolim=True)
-        elif self.geom.pix_type.startswith('rect'):
-            self.pixels = RegularPolyCollection(numsides=4,
-                                                rotation=np.radians(45),
-                                                offsets=offsets,
-                                                sizes=self._radius_to_size(rr),
-                                                transOffset=offset_trans)
-            self.pixels.set_cmap(plt.cm.jet)
-            self.pixels.set_linewidth(0)
-            self.pixels.set_array(np.zeros_like(self.geom.pix_x))
-            self.axes.add_collection(self.pixels, autolim=True)
-        else:
-            raise ValueError(
-                "Unimplemented pixel type: {}", self.geom.pix_type)
+        self.pixels = PatchCollection( patches, cmap=self.cmap, linewidth=0 )
 
+        self.axes.add_collection( self.pixels )
+        self.axes.set_aspect('equal', 'datalim')        
         self.axes.set_title(title)
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
         self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
         self.axes.autoscale_view()
+        self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
+                      
+                  
 
     def _radius_to_size(self, radii):
         """compute radius in screen coordinates and returns the size in
@@ -158,3 +146,6 @@ class CameraDisplay:
                          length=momparams.length,
                          width=momparams.width, angle=momparams.psi,
                          **kwargs)
+
+    def _on_pick(self, event):
+        print("EVENT: {} N={}".format(event,event.ind))
