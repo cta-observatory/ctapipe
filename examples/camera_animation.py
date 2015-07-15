@@ -1,16 +1,15 @@
-
-
 """
-Example of drawing a Camera using a mock shower image
+Example of drawing and updating a Camera using a mock shower images.
+
+the animation should remain interactive, so try zooming in when it is
+running.
 """
 
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
 from ctapipe.reco import mock
-from ctapipe.reco import hillas_parameters_2 as hillas_parameters
 from matplotlib.animation import FuncAnimation
 import numpy as np
-from matplotlib import pylab as plt
 
 if __name__ == '__main__':
 
