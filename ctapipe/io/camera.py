@@ -19,7 +19,7 @@ __all__ = ['CameraGeometry',
            'get_camera_geometry',
            'load_camera_geometry_from_file',
            'make_rectangular_camera_geometry',
-           'find_neighbor_pixels','make_camera_geometry',
+           'find_neighbor_pixels', 'guess_camera_geometry',
            ]
 
 #__doctest_skip__ = ['load_camera_geometry_from_file'  ]
@@ -64,20 +64,32 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def make_camera_geometry(pix_x, pix_y, pix_type="hexagonal"):
+_npix_to_type = {2048: ('SST', 'rectangular'),
+                 1141: ('MST', 'hexagonal'),
+                 1855: ('LST', 'hexagonal')}
+
+
+def guess_camera_type(npix):
+    global _npix_to_type
+    return _npix_to_type.get(npix, ('unknown', 'hexagonal'))
+
+
+def guess_camera_geometry(pix_x, pix_y):
     """ returns a CameraGeometry filled in from just the x,y positions """
 
     rad = 0.5 * \
         np.sqrt((pix_x[1] - pix_x[0]) ** 2 + (pix_y[1] - pix_y[0]) ** 2).value
 
-    return CameraGeometry(cam_id="unknown",
+    cam_id, pix_type = guess_camera_type(len(pix_x))
+    
+    return CameraGeometry(cam_id=cam_id,
                           pix_id=np.arange(len(pix_x)),
                           pix_x=pix_x,
                           pix_y=pix_y,
                           pix_r=np.ones_like(pix_x) * rad,
                           pix_area=np.pi * np.ones_like(pix_x) * rad ** 2,
                           neighbors=find_neighbor_pixels(pix_x, pix_y,
-                                                         rad+0.01),
+                                                         rad + 0.01),
                           pix_type=pix_type)
 
 
@@ -191,6 +203,6 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pix_x=xx * u.m,
         pix_y=yy * u.m,
         pix_r=rr,
-        pix_area=(2*rr)**2,
+        pix_area=(2 * rr) ** 2,
         neighbors=nn,
         pix_type='rectangular')

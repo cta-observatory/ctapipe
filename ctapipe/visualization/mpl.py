@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class CameraDisplay:
+
     """Camera Display using matplotlib.
 
     Parameters
@@ -43,36 +44,32 @@ class CameraDisplay:
         # RegularPolyCollection
 
         patches = []
-        
-        for  xx, yy, aa  in zip(self.geom.pix_x.value,
-                                self.geom.pix_y.value,
-                                np.array(self.geom.pix_area)):
+
+        for xx, yy, aa in zip(self.geom.pix_x.value,
+                              self.geom.pix_y.value,
+                              np.array(self.geom.pix_area)):
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa*2/3/sqrt(3))
+                rr = sqrt(aa * 2 / 3 / sqrt(3))
                 poly = RegularPolygon((xx, yy), 6, radius=rr,
                                       orientation=np.radians(0),
                                       fill=True)
             else:
-                rr = sqrt(aa)
-                poly = Rectangle((xx, yy), width=2*rr, height=2*rr,
-                                      angle=np.radians(0),
-                                      fill=True)
-                
+                rr = sqrt(aa) * sqrt(2)
+                poly = Rectangle((xx, yy), width=rr, height=rr,
+                                 angle=np.radians(0),
+                                 fill=True)
 
             patches.append(poly)
-       
 
-        self.pixels = PatchCollection( patches, cmap=self.cmap, linewidth=0 )
+        self.pixels = PatchCollection(patches, cmap=self.cmap, linewidth=0)
 
-        self.axes.add_collection( self.pixels )
-        self.axes.set_aspect('equal', 'datalim')        
+        self.axes.add_collection(self.pixels)
+        self.axes.set_aspect('equal', 'datalim')
         self.axes.set_title(title)
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
         self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
         self.axes.autoscale_view()
         self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
-                      
-                  
 
     def _radius_to_size(self, radii):
         """compute radius in screen coordinates and returns the size in
@@ -150,4 +147,4 @@ class CameraDisplay:
                          **kwargs)
 
     def _on_pick(self, event):
-        print("EVENT: {} N={}".format(event,event.ind))
+        print("EVENT: {} N={}".format(event, event.ind))
