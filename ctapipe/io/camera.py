@@ -191,7 +191,6 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pix_x=xx * u.m,
         pix_y=yy * u.m,
         pix_r=rr,
-        pix_area=(np.ones_like(xx) * (xx[1] - xx[0])
-                  * (yy[1] - yy[0]) * u.m ** 2),
+        pix_area=(2*rr)**2,
         neighbors=nn,
         pix_type='rectangular')
