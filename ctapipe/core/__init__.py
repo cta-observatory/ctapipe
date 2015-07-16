@@ -56,9 +56,10 @@ class Container:
 
     def __init__(self, name="Container", **kwargs):
         self.add_item("_name", name)
+        self.add_item("_descriptions", dict())
         for key, val in kwargs.items():
             self.__dict__[key] = val
-
+                    
     @property
     def meta(self):
         """metadata associated with this container"""
@@ -66,7 +67,7 @@ class Container:
             self.add_item("_meta", Container("meta"))
         return self._meta
 
-    def add_item(self, name, value=None, description=None):
+    def add_item(self, name, value=None):
         """
         Add a new item of data to this Container, initialized to None by
         default, or value if specified.

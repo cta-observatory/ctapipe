@@ -43,8 +43,8 @@ def hessio_event_source(url, max_events=None):
     counter = 0
     eventstream = hessio.move_to_next_event()
     event = RawData()
-    event.meta.add_item('hessio_source.input', url)
-    event.meta.add_item('hessio_source.max_events', max_events)
+    event.meta.add_item('hessio__input', url)
+    event.meta.add_item('hessio__max_events', max_events)
 
     for run_id, event_id in eventstream:
 
