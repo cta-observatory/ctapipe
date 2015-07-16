@@ -26,14 +26,14 @@ if __name__ == '__main__':
         width = np.random.uniform(0, 0.01)
         length = np.random.uniform(0, 0.03) + width
         angle = np.random.uniform(0, 360)
-        intens = np.random.uniform(20, 100)
+        intens = np.random.exponential(2)*50
         model = mock.generate_2d_shower_model(centroid=centroid,
                                               width=width,
                                               length=length,
                                               psi=np.radians(angle))
         image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
                                                      intensity=intens,
-                                                     nsb_level_pe=1000)
+                                                     nsb_level_pe=5000)
         image /= image.max()
         disp.set_image(image)
 

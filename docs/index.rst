@@ -10,6 +10,7 @@
 
 .. image:: event.png
    :align: center
+   :width: 90%
 
 What is ctapipe?
 ================
