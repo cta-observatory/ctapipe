@@ -5,8 +5,7 @@ Components to read HESSIO data.
 This requires the hessio python library to be installed
 """
 
-from ctapipe.core import Container
-from collections import defaultdict
+from .containers import RawData, RawCameraData
 
 import logging
 logger = logging.getLogger(__name__)
@@ -43,45 +42,38 @@ def hessio_event_source(url, max_events=None):
 
     counter = 0
     eventstream = hessio.move_to_next_event()
-    cont = Container("hessio_data")
-    cont.add_item("run_id")
-    cont.add_item("event_id")
-    cont.add_item("tels_with_data")
-    cont.add_item("sampledata")
-    cont.add_item("sumdata")
-    cont.add_item("num_channels")
-    cont.meta.add_item('hessio_source.input',url)
-    cont.meta.add_item('hessio_source.max_events',max_events)
-    cont.add_item('pixel_pos')
+    event = RawData()
+    event.meta.add_item('hessio_source.input', url)
+    event.meta.add_item('hessio_source.max_events', max_events)
 
-    cont.num_channels = defaultdict(int)
-    cont.pixel_pos = defaultdict(int)
-    
     for run_id, event_id in eventstream:
 
-        cont.run_id = run_id
-        cont.event_id = event_id
-        cont.tels_with_data = hessio.get_teldata_list()
+        event.run_id = run_id
+        event.event_id = event_id
+        event.tels_with_data = hessio.get_teldata_list()
 
         # this should be done in a nicer way to not re-allocate
         # the data each time
 
-        cont.sampledata = defaultdict(dict)
-        cont.sumdata = defaultdict(dict)
-        
-        for tel_id in cont.tels_with_data:
-            if tel_id not in cont.pixel_pos:
-                cont.pixel_pos[tel_id] = hessio.get_pixel_position(tel_id)
-                cont.num_channels[tel_id] = hessio.get_num_channel(tel_id)
-                
-            for chan in range(cont.num_channels[tel_id]):
-                cont.sampledata[tel_id][chan] \
+        for tel_id in event.tels_with_data:
+
+            # fill pixel position dictionary, if not already done:
+            if tel_id not in event.pixel_pos:
+                event.pixel_pos[tel_id] = hessio.get_pixel_position(tel_id)
+
+            nchans = hessio.get_num_channel(tel_id)
+            event.tel_data[tel_id] = RawCameraData(tel_id)
+            event.tel_data[tel_id].num_channels = nchans
+
+            # load the data per telescope/chan
+            for chan in range(nchans):
+                event.tel_data[tel_id].adc_samples[chan] \
                     = hessio.get_adc_sample(channel=chan,
                                             telescopeId=tel_id)
-                cont.sumdata[tel_id][chan] \
+                event.tel_data[tel_id].adc_sums[chan] \
                     = hessio.get_adc_sum(channel=chan,
                                          telescopeId=tel_id)
-        yield cont
+        yield event
         counter += 1
 
         if counter > max_events:

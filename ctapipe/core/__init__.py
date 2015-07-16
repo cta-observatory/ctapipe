@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
+from pprint import pformat
+
 __all__ = [
     'component',
     'Container',
@@ -13,14 +15,23 @@ def component():
 
 
 class Container:
+
     """Generic class that can hold and accumulate data to be passed
     between Components.
 
-    Container members can be accessed like a dict or with . syntax.
-    You can also iterate over the member names (useful for
-    serialization). However, new data cannot be added arbitrarily. One
-    must call `~ctapipe.core.Container.add_item` to add a new variable
-    to the Container, otherwise an `AttributeError` will be thrown.
+    The purpose of this class is to provide a flexible data structure
+    that works a bit like a dict or blank Python class, but prevents
+    the user from accessing members that have not been defined
+    a-priori (mode like a C struct).  Generally, one can make a
+    sub-class and "Register" all of the members that should be there
+    in the `__init__` method by calling `~Container.add_item`.
+
+    Container members can be accessed like a dict `container['item']
+    or with `continer.item` syntax.  You can also iterate over the
+    member names (useful for serialization). However, new data cannot
+    be added arbitrarily. One must call
+    `~ctapipe.core.Container.add_item` to add a new variable to the
+    Container, otherwise an `AttributeError` will be thrown.
 
     Parameters
     ----------
@@ -40,11 +51,12 @@ class Container:
     3
     >>> print(data['x'])
     3
+
     """
 
-    def __init__(self,name,**kwargs):
+    def __init__(self, name="Container", **kwargs):
         self.add_item("_name", name)
-        for key,val in kwargs.items():
+        for key, val in kwargs.items():
             self.__dict__[key] = val
 
     @property
@@ -53,8 +65,8 @@ class Container:
         if not "_meta" in self.__dict__:
             self.add_item("_meta", Container("meta"))
         return self._meta
-            
-    def add_item(self, name,value=None):
+
+    def add_item(self, name, value=None):
         """
         Add a new item of data to this Container, initialized to None by
         default, or value if specified.
@@ -63,21 +75,21 @@ class Container:
             raise AttributeError("item '{}' is already in Container"
                                  .format(name))
         self.__dict__[name] = value
-    
+
     def __setattr__(self, name, value):
         # prevent setting od values that are not yet registered
         if name not in self.__dict__:
             raise AttributeError("item '{}' doesn't exist in {}"
                                  .format(name, repr(self)))
         self.__dict__[name] = value
-    
+
     def __getitem__(self, name):
         # allow getting value by string e.g. cont['x']
         return self.__dict__[name]
-    
+
     def __str__(self, ):
         # string represnetation (e.g. `print(cont)`)
-        return str(self.__dict__)
+        return pformat(self.__dict__)
 
     def __repr__(self):
         # standard representation

@@ -8,7 +8,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
-from ctapipe.reco import hillas_parameters_2 as hillas_parameters
 from matplotlib import pyplot as plt
 from astropy import units as u
 from numpy import ceil, sqrt
@@ -45,7 +44,8 @@ def display_event(event):
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
         disp.set_cmap(random.choice(cmaps))
-        data = event.sumdata[tel_id][0]
+        chan = 0
+        data = event.tel_data[tel_id].adc_sums[chan]
         data -= data.mean()
         disp.set_image(data)
         disp.add_colorbar()
@@ -57,6 +57,7 @@ def get_input():
     print("d               - Display the event")
     print("p               - Print all event data")
     print("i               - event Info")
+    print("q               - Quit")
     return input("Choice: ")
 
 if __name__ == '__main__':
@@ -88,6 +89,8 @@ if __name__ == '__main__':
                 plt.pause(0.1)
             elif response.startswith("p"):
                 print(event)
+                for teldata in event.tel_data.values():
+                    print(teldata)
             elif response == "" or response.startswith("n"):
                 break
             elif response.startswith('i'):
