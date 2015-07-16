@@ -66,7 +66,7 @@ class Container:
             self.add_item("_meta", Container("meta"))
         return self._meta
 
-    def add_item(self, name, value=None):
+    def add_item(self, name, value=None, description=None):
         """
         Add a new item of data to this Container, initialized to None by
         default, or value if specified.
@@ -75,7 +75,7 @@ class Container:
             raise AttributeError("item '{}' is already in Container"
                                  .format(name))
         self.__dict__[name] = value
-
+        
     def __setattr__(self, name, value):
         # prevent setting od values that are not yet registered
         if name not in self.__dict__:
