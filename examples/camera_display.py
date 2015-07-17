@@ -10,6 +10,8 @@ from ctapipe.reco import mock
 from ctapipe.reco import hillas_parameters_2 as hillas_parameters
 import numpy as np
 
+from pycallgraph import PyCallGraph
+from pycallgraph.output import GraphvizOutput
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):
     """ draw lines between a pixel and its neighbors"""
@@ -50,6 +52,7 @@ if __name__ == '__main__':
     # neighbor-neighbors in green
     for ii in geom.neighbors[130]:
         draw_neighbors(geom, ii, color='green')
-    draw_neighbors(geom, 130, color='red',lw=2)
+
+    draw_neighbors(geom, 130, color='red', lw=2)
 
     plt.show()

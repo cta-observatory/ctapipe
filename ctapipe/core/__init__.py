@@ -22,7 +22,7 @@ class Container:
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
     the user from accessing members that have not been defined
-    a-priori (mode like a C struct).  Generally, one can make a
+    a-priori (more like a C struct).  Generally, one can make a
     sub-class and "Register" all of the members that should be there
     in the `__init__` method by calling `~Container.add_item`.
 
@@ -56,14 +56,13 @@ class Container:
 
     def __init__(self, name="Container", **kwargs):
         self.add_item("_name", name)
-        self.add_item("_descriptions", dict())
         for key, val in kwargs.items():
             self.__dict__[key] = val
                     
     @property
     def meta(self):
         """metadata associated with this container"""
-        if not "_meta" in self.__dict__:
+        if "_meta" not in self.__dict__:
             self.add_item("_meta", Container("meta"))
         return self._meta
 

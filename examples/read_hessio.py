@@ -66,7 +66,6 @@ if __name__ == '__main__':
     print("If you don't see a plot, run this with "
           "'ipython -i --matplotlib read_hessio.py <filename>")
 
-
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
@@ -94,12 +93,13 @@ if __name__ == '__main__':
             elif response == "" or response.startswith("n"):
                 break
             elif response.startswith('i'):
-                for tel in event.sampledata:
-                    for chan in event.sampledata[tel]:
+                for tel in event.tel_data:
+                    for chan in event.tel_data[tel].adc_samples:
                         npix = len(event.pixel_pos[tel][0])
                         print("CT{:4d} ch{} pixels:{} samples:{}"
                               .format(tel, chan, npix,
-                                      event.sampledata[tel][chan].shape[1]))
+                                      event.tel_data[tel].
+                                      adc_samples[chan].shape[1]))
 
             elif response.startswith('q'):
                 break
