@@ -48,9 +48,9 @@ class CameraDisplay:
         self.pixels = None
         self.cmap = plt.cm.jet
         self.autoupdate = autoupdate
-        self._active_pixel_id = None
         self._active_pixel = None
-
+        self._active_pixel_label = None
+        
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
@@ -79,7 +79,14 @@ class CameraDisplay:
         self._active_pixel.set_alpha(0.5)
         self._active_pixel.set_linewidth(2.0)
         self._active_pixel.set_visible(False)
-
+        
+        self._active_pixel_label = plt.text(self._active_pixel.xy[0],
+                                            self._active_pixel.xy[1],
+                                            "0",
+                                            horizontalalignment='center',
+                                            verticalalignment='center')
+        self._active_pixel_label.set_visible(False)
+        
         self.axes.add_collection(self.pixels)
         self.axes.add_patch(self._active_pixel)
         self.axes.set_aspect('equal', 'datalim')
@@ -191,9 +198,20 @@ class CameraDisplay:
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
-        print("Clicked pixel_id {}".format(event.ind))
         pix_id = event.ind.pop()
+        xx, yy = self.geom.pix_x[pix_id].value, self.geom.pix_y[pix_id].value
+        self._active_pixel.xy = (xx, yy)
         self._active_pixel.set_visible(True)
-        self._active_pixel.xy = (self.geom.pix_x[pix_id].value,
-                                 self.geom.pix_y[pix_id].value)
+        self._active_pixel_label.set_x(xx)
+        self._active_pixel_label.set_y(yy)
+        self._active_pixel_label.set_text("{:003d}".format(pix_id))
+        self._active_pixel_label.set_visible(True)
         self.update()
+        self.on_pixel_clicked(pix_id) # call user-function
+
+    def on_pixel_clicked(self,pix_id):
+        """virtual function to overide in sub-classes to do something special
+        when a pixel is clicked
+        """
+        print("Clicked pixel_id {}".format(pix_id))
+
