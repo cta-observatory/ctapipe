@@ -33,12 +33,34 @@ class CameraDisplay:
         if True, allow user to click and select a pixel
     autoupdate : bool (default True)
         redraw automatically (otherwise need to call plt.draw())
+    antialiased : bool  (default True)
+        whether to draw in antialiased mode or not.
 
     Notes
     -----
-    Implementation detail: Pixels are rendered as a
-    `matplotlib.collections.RegularPolyCollection`, which is the most
-    efficient way in matplotlib to display complex pixel shapes.
+
+    Speed: 
+        CameraDisplay is not intended to be very fast (matplotlib
+        is not a very speed performant graphics library, it is
+        intended for nice output plots). However, most of the
+        slowness of CameraDisplay is in the constructor.  Once one is
+        displayed, changing the image that is displayed is relatively
+        fast and efficient. Therefore it is best to initialize an
+        instance, and change the data, rather than generating new
+        CameraDisplays.
+
+    Pixel Implementation: 
+        Pixels are rendered as a
+        `matplotlib.collections.PatchCollection` of Polygons (either 6
+        or 4 sided).  You can access the PatchCollection directly (to
+        e.g. change low-level style parameters) via
+        `CameraDisplay.pixels`
+
+    Output: 
+        Since CameraDisplay uses matplotlib, any display can be
+        saved to any output file supported via
+        plt.savefig(filename). This includes `.pdf` and `.png`.
+
     """
 
     def __init__(self, geometry, axes=None, title="Camera",
@@ -73,12 +95,25 @@ class CameraDisplay:
             patches.append(poly)
 
         self.pixels = PatchCollection(patches, cmap=self.cmap, linewidth=0)
+        self.axes.add_collection(self.pixels)
+        
+        # Set up some nice plot defaults
+        
+        self.axes.set_aspect('equal', 'datalim')
+        self.axes.set_title(title)
+        self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
+        self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
+        self.axes.autoscale_view()
 
+        # set up a patch to display when a pixel is clicked (and
+        # pixel_picker is enabled):
+        
         self._active_pixel = copy.copy(patches[0])
         self._active_pixel.set_facecolor('r')
         self._active_pixel.set_alpha(0.5)
         self._active_pixel.set_linewidth(2.0)
         self._active_pixel.set_visible(False)
+        self.axes.add_patch(self._active_pixel)
         
         self._active_pixel_label = plt.text(self._active_pixel.xy[0],
                                             self._active_pixel.xy[1],
@@ -87,15 +122,9 @@ class CameraDisplay:
                                             verticalalignment='center')
         self._active_pixel_label.set_visible(False)
         
-        self.axes.add_collection(self.pixels)
-        self.axes.add_patch(self._active_pixel)
-        self.axes.set_aspect('equal', 'datalim')
-        self.axes.set_title(title)
-        self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
-        self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
-        self.axes.autoscale_view()
-
-        # enable ability to click on pixel and do something
+        # enable ability to click on pixel and do something (can be
+        # enabled on-the-fly later as well:
+        
         if allow_pick:
             self.enable_pixel_picker()
 
@@ -106,18 +135,16 @@ class CameraDisplay:
         self.pixels.set_snap(True)  # snap cursor to pixel center
         self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
 
-    def _radius_to_size(self, radii):
-        """compute radius in screen coordinates and returns the size in
-        points^2, needed for the size parameter of
-        RegularPolyCollection. This may not be needed if the
-        transormations are set up correctly
-
-        """
-        return radii * np.pi * 550  # hard-coded for now until better transform
-        # return np.pi * radii ** 2
-
     def set_cmap(self, cmap):
-        """ Change the color map """
+        """ Change the color map 
+
+        Parameters
+        ----------
+        self: type
+            description
+        cmap: `matplotlib.colors.ColorMap`
+            a color map, e.g. from `matplotlib.pyplot.cm.*`
+        """
         self.pixels.set_cmap(cmap)
 
     def set_image(self, image):
@@ -129,6 +156,7 @@ class CameraDisplay:
         image: array_like
             array of values corresponding to the pixels in the CameraGeometry.
         """
+        image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
             raise ValueError("Image has a different shape {} than the"
                              "given CameraGeometry {}"
