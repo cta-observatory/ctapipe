@@ -76,5 +76,5 @@ def hessio_event_source(url, max_events=None):
         yield event
         counter += 1
 
-        if counter > max_events:
+        if max_events is not None and counter > max_events:
             return
