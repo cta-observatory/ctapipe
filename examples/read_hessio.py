@@ -93,7 +93,7 @@ if __name__ == '__main__':
             elif response == "" or response.startswith("n"):
                 break
             elif response.startswith('i'):
-                for tel in event.tel_data:
+                for tel in sorted(event.tel_data):
                     for chan in event.tel_data[tel].adc_samples:
                         npix = len(event.pixel_pos[tel][0])
                         print("CT{:4d} ch{} pixels:{} samples:{}"

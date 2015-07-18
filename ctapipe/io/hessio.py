@@ -53,8 +53,10 @@ def hessio_event_source(url, max_events=None):
         event.tels_with_data = hessio.get_teldata_list()
 
         # this should be done in a nicer way to not re-allocate
-        # the data each time
+        # the data each time (right now it's just deleted and garbage collected)
 
+        event.tel_data = dict()  # clear the previous telescopes
+        
         for tel_id in event.tels_with_data:
 
             # fill pixel position dictionary, if not already done:
