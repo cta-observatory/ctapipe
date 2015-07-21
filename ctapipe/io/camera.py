@@ -22,10 +22,19 @@ __all__ = ['CameraGeometry',
            'find_neighbor_pixels', 'guess_camera_geometry',
            ]
 
+
+# dictionary to convert number of pixels to camera type for use in
+# guess_camera_geometry
+_npix_to_type = {2048: ('SST', 'rectangular'),
+                 1141: ('MST', 'hexagonal'),
+                 1855: ('LST', 'hexagonal'),
+                 11328: ('SST', 'rectangular')}
+
+
 #__doctest_skip__ = ['load_camera_geometry_from_file'  ]
 CameraGeometry = namedtuple("CameraGeometry",
                             ['cam_id', 'pix_id',
-                             'pix_x', 'pix_y', 'pix_r',
+                             'pix_x', 'pix_y',
                              'pix_area',
                              'neighbors',
                              'pix_type'])
@@ -55,8 +64,9 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     array of neighbor indices in a list for each pixel
 
     """
-    points = np.column_stack([pix_x, pix_y])
-    indices = np.arange(len(points))
+    
+    points = np.array([pix_x,pix_y]).T
+    indices = np.arange(len(pix_x))
     kdtree = KDTree(points)
     neighbors = [kdtree.query_ball_point(p, r=rad) for p in points]
     for nn, ii in zip(neighbors, indices):
@@ -64,33 +74,27 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-_npix_to_type = {2048: ('SST', 'rectangular'),
-                 1141: ('MST', 'hexagonal'),
-                 1855: ('LST', 'hexagonal'),
-                 11328:('SST', 'rectangular')}
-
-
 def guess_camera_type(npix):
     global _npix_to_type
     return _npix_to_type.get(npix, ('unknown', 'hexagonal'))
 
 
-def guess_camera_geometry(pix_x, pix_y):
+@u.quantity_input
+def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     """ returns a CameraGeometry filled in from just the x,y positions """
 
     rad = 0.5 * \
-        np.sqrt((pix_x[1] - pix_x[0]) ** 2 + (pix_y[1] - pix_y[0]) ** 2).value
+        np.sqrt((pix_x[1] - pix_x[0]) ** 2 + (pix_y[1] - pix_y[0]) ** 2)
 
     cam_id, pix_type = guess_camera_type(len(pix_x))
-    
+
     return CameraGeometry(cam_id=cam_id,
                           pix_id=np.arange(len(pix_x)),
                           pix_x=pix_x,
                           pix_y=pix_y,
-                          pix_r=np.ones_like(pix_x) * rad,
                           pix_area=np.pi * np.ones_like(pix_x) * rad ** 2,
-                          neighbors=find_neighbor_pixels(pix_x, pix_y,
-                                                         rad + 0.01),
+                          neighbors=find_neighbor_pixels(pix_x.value, pix_y.value,
+                                                         rad.value + 0.01),
                           pix_type=pix_type)
 
 
@@ -128,20 +132,25 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     neigh_list = geom['PIX_NEIG'].data
     neigh = np.ma.masked_array(neigh_list, neigh_list < 0),
 
+    # put them all in units of M (conversions are automatic)
+    xx = u.Quantity(geom['PIX_POSX'], u.m)
+    yy = u.Quantity(geom['PIX_POSY'], u.m)
+    dd = u.Quantity(geom['PIX_DIAM'], u.m)
+    aa = u.Quantity(geom['PIX_AREA'], u.m**2)
+
     if recalc_neighbors is True:
-        neigh = find_neighbor_pixels(geom['PIX_POSX'].data,
-                                     geom['PIX_POSY'].data,
-                                     geom['PIX_DIAM'].data.mean() + 0.01)
+        neigh = find_neighbor_pixels(xx.value, yy.value,
+                                     (dd.mean() + 0.01*u.m).value)
 
     return CameraGeometry(
         cam_id=cam_id,
-        pix_id=geom['PIX_ID'].data,
-        pix_x=geom['PIX_POSX'].data * geom['PIX_POSX'].unit,
-        pix_y=geom['PIX_POSY'].data * geom['PIX_POSY'].unit,
-        pix_r=geom['PIX_DIAM'] / 2.0,
-        pix_area=geom['PIX_AREA'],
+        pix_id=np.array(geom['PIX_ID']),
+        pix_x=xx,
+        pix_y=yy,
+        pix_area=aa,
         neighbors=neigh,
-        pix_type='hexagonal')
+        pix_type='hexagonal'
+    )
 
 
 def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
@@ -192,18 +201,18 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
     bx = np.linspace(range_x[0], range_x[1], npix_x)
     by = np.linspace(range_y[0], range_y[1], npix_y)
     xx, yy = np.meshgrid(bx, by)
-    xx = xx.ravel()
-    yy = yy.ravel()
+    xx = xx.ravel() * u.m
+    yy = yy.ravel() * u.m
 
     ids = np.arange(npix_x * npix_y)
-    rr = np.ones_like(xx) * (xx[1] - xx[0]) / 2.0 * u.m
-    nn = find_neighbor_pixels(xx, yy, rad=rr.value.mean() * 2.001)
+    rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
+    nn = find_neighbor_pixels(xx.value, yy.value,
+                              rad=(rr.mean() * 2.001).value)
     return CameraGeometry(
         cam_id=-1,
         pix_id=ids,
         pix_x=xx * u.m,
         pix_y=yy * u.m,
-        pix_r=rr,
         pix_area=(2 * rr) ** 2,
         neighbors=nn,
         pix_type='rectangular')
