@@ -22,7 +22,7 @@ class RawData(Container):
         list of which telescope IDs are present
     pixel_pos : dict of ndarrays by tel_id
         (deprecated)
-    tel_data : dict of `RawCameraData` by tel_id
+    tel : dict of `RawCameraData` by tel_id
         dictionary of the data for each telescope
     """
     
@@ -31,8 +31,7 @@ class RawData(Container):
         self.add_item('run_id')
         self.add_item('event_id')
         self.add_item('tels_with_data')
-        self.add_item('pixel_pos', dict())
-        self.add_item('tel_data', dict())
+        self.add_item('tel', dict())
 
 
 class RawCameraData(Container):
