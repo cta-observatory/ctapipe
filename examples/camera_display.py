@@ -10,9 +10,6 @@ from ctapipe.reco import mock
 from ctapipe.reco import hillas_parameters_2 as hillas_parameters
 import numpy as np
 
-from pycallgraph import PyCallGraph
-from pycallgraph.output import GraphvizOutput
-
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):
     """ draw lines between a pixel and its neighbors"""
     neigh = geom.neighbors[pixel_index]  # neighbor indices (not pixel ids)
