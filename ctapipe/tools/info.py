@@ -1,4 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+""" Display information about ctapipe and its command-line tools. """
 import sys
 import logging
 import importlib
@@ -60,12 +61,16 @@ def _info_tools():
     # full help text from the docstring or ArgumentParser?
     # This is the function names, we want the command-line names
     # that are defined in setup.py !???
-    from ctapipe.tools.utils import get_all_main_functions
-    scripts = get_all_main_functions()
-    names = sorted(scripts.keys())
-    for name in names:
-        print(name)
-
+    from ctapipe.tools.utils import get_all_descriptions
+    from textwrap import TextWrapper
+    wrapper = TextWrapper(initial_indent="- ",
+                          subsequent_indent="                       ",
+                          width=(70 - 23))
+                          
+    scripts = get_all_descriptions()
+    for name, desc in sorted(scripts.items()):
+        print("{0:<20s}".format(name),end='')
+        print(wrapper.fill(desc))
     print('')
 
 

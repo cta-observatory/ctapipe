@@ -64,3 +64,19 @@ def get_all_main_functions():
             out[name] = module.main
 
     return out
+
+def get_all_descriptions():
+
+    mains = get_all_main_functions()
+
+    descriptions = OrderedDict()
+    for name in mains.keys():
+        module = importlib.import_module('ctapipe.tools.{}'.format(name))
+        if hasattr(module, '__doc__'):
+            doc = module.__doc__
+            description = doc[0:doc.find(".")]
+            description.replace("\n", "")
+            descriptions[name] = description
+
+    return descriptions
+    
