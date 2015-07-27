@@ -56,6 +56,8 @@ def _info_version():
 def _info_tools():
     """Print info about command line tools."""
     print('\n*** ctapipe tools ***\n')
+    print('the following can be executed by typing ctapipe-<toolname>')
+    print('')
 
     # TODO: how to get a one-line description or
     # full help text from the docstring or ArgumentParser?
@@ -69,7 +71,7 @@ def _info_tools():
                           
     scripts = get_all_descriptions()
     for name, desc in sorted(scripts.items()):
-        print("{0:<20s}".format(name),end='')
+        print("{0:<20s}".format(name), end='')
         print(wrapper.fill(desc))
     print('')
 
