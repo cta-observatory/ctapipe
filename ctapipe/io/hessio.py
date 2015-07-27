@@ -49,15 +49,15 @@ def hessio_event_source(url, max_events=None):
     container.meta.add_item('pixel_pos', dict())
     container.add_item("dl0", RawData())
 
-
     for run_id, event_id in eventstream:
 
         container.dl0.run_id = run_id
         container.dl0.event_id = event_id
         container.dl0.tels_with_data = hessio.get_teldata_list()
 
-        # this should be done in a nicer way to not re-allocate
-        # the data each time (right now it's just deleted and garbage collected)
+        # this should be done in a nicer way to not re-allocate the
+        # data each time (right now it's just deleted and garbage
+        # collected)
 
         container.dl0.tel = dict()  # clear the previous telescopes
         

@@ -29,7 +29,8 @@ def info(version=False, tools=False, dependencies=False):
 
     TODO: explain.
     """
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(levelname)s - %(message)s')
 
     if version:
         _info_version()
