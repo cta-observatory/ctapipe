@@ -5,6 +5,7 @@ from collections import OrderedDict
 import importlib
 import os
 import glob
+import re
 
 __all__ = ['ArgparseFormatter',
            'get_parser',
@@ -65,6 +66,7 @@ def get_all_main_functions():
 
     return out
 
+
 def get_all_descriptions():
 
     mains = get_all_main_functions()
@@ -73,10 +75,13 @@ def get_all_descriptions():
     for name in mains.keys():
         module = importlib.import_module('ctapipe.tools.{}'.format(name))
         if hasattr(module, '__doc__'):
-            doc = module.__doc__
-            description = doc[0:doc.find(".")]
-            description.replace("\n", "")
-            descriptions[name] = description
+            try:
+                descrip = re.match(r'(?:[^.:;]+[.:;]){1}',
+                                   module.__doc__).group()
+                descrip.replace("\n", "")
+                descriptions[name] = descrip
+            finally:
+                descriptions[name] = "[no documentation]"
 
     return descriptions
     
