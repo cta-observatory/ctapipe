@@ -1,4 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+""" print information about ctapipe and its command-line tools. """
 import sys
 import logging
 import importlib
@@ -29,7 +30,8 @@ def info(version=False, tools=False, dependencies=False):
 
     TODO: explain.
     """
-    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(levelname)s - %(message)s')
 
     if version:
         _info_version()
@@ -54,17 +56,23 @@ def _info_version():
 def _info_tools():
     """Print info about command line tools."""
     print('\n*** ctapipe tools ***\n')
+    print('the following can be executed by typing ctapipe-<toolname>:')
+    print('')
 
     # TODO: how to get a one-line description or
     # full help text from the docstring or ArgumentParser?
     # This is the function names, we want the command-line names
     # that are defined in setup.py !???
-    from ctapipe.tools.utils import get_all_main_functions
-    scripts = get_all_main_functions()
-    names = sorted(scripts.keys())
-    for name in names:
-        print(name)
-
+    from ctapipe.tools.utils import get_all_descriptions
+    from textwrap import TextWrapper
+    wrapper = TextWrapper(initial_indent="- ",
+                          subsequent_indent="                         ",
+                          width=(80 - 23))
+                          
+    scripts = get_all_descriptions()
+    for name, desc in sorted(scripts.items()):
+        print("{:<20s}".format(name), end='')
+        print(wrapper.fill(desc))
     print('')
 
 

@@ -8,8 +8,9 @@
 
 **version**:  |version|
 
-.. image:: cameras.png
-
+.. image:: event.png
+   :align: center
+   :width: 90%
 
 What is ctapipe?
 ================

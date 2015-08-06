@@ -38,7 +38,7 @@ Except for this super-simple example of dividing by the focal length ...
 
     >>> import astropy.units as u
     >>> from ctapipe.coordinates import CameraFrame, TelescopeFrame
-    >>> Camera_coord = CameraFrame(x=1*u.m, y=2*u.m, z=0*u.m)
+    >>> camera_coord = CameraFrame(x=1*u.m, y=2*u.m, z=0*u.m)
     >>> print(camera_coord)
     <CameraFrame Coordinate: (x, y, z) in m
         (1.0, 2.0, 0.0)>

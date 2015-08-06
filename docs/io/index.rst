@@ -20,6 +20,9 @@ Getting Started
 Reference/API
 =============
 
+.. automodapi:: ctapipe.io.containers
+    :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.io.camera
     :no-inheritance-diagram:
 
@@ -34,9 +37,3 @@ when there are changes to the array, telescope, or camera
 configurations associated with a site)
 
 .. graphviz:: config.dot
-
-
-                
-
-
-

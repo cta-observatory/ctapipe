@@ -26,9 +26,10 @@ def draw_several_cams(geom):
                                               width=0.005 + 0.001 * ii,
                                               length=0.1 + 0.05 * ii,
                                               psi=np.radians(ii * 20))
-        image, _, _ = mock.make_mock_shower_image(geom, model.pdf,
-                                                  intensity=50,
-                                                  nsb_level_pe=1000)
+
+        image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
+                                                     intensity=50,
+                                                     nsb_level_pe=1000)
 
         clean = image.copy()
         clean[image <= 3.0 * image.mean()] = 0.0

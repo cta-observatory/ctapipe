@@ -12,7 +12,7 @@ help:
 	@echo '  docshow      Generate and display docs in browser'
 	@echo '  analyze      Do a static code check and report errors'
 	@echo ''
-	@echo '  dist         Build a conda package for distribution'
+	@echo '  conda        Build a conda package for distribution'
 	@echo '  doc-publish  Publish docs online'
 	@echo ''
 
@@ -36,7 +36,7 @@ docshow:
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
 
-dist:
+conda:
 	python setup.py bdist_conda
 
 
