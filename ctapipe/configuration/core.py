@@ -1,7 +1,7 @@
-'''
-https://docs.python.org/2/library/argparse.html
-'''
-
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
+"""
+Configuration service utilities
+"""
 
 from argparse import ArgumentParser
 from configparser import RawConfigParser
@@ -10,7 +10,7 @@ from astropy.io import fits
 import numpy as np
 import sys
 
-
+__all__ = ['ConfigurationException', 'Configuration']
 
 class ConfigurationException(Exception):
     def __init__(self,msg):
@@ -26,11 +26,10 @@ class Configuration(ArgumentParser):
     VALUE_INDEX   = 0
     COMMENT_INDEX = 1
 
-    #--------------------------------------------------------------------------#
     def __init__(self,other=None):   
         """
         Configuration intialization
-        if other's type if Configuration, its _entries dictionary content is copy
+        if other's type is Configuration, its _entries dictionary content is copy
         to this Configuration class 
         """
         ArgumentParser.__init__(self)
@@ -41,7 +40,6 @@ class Configuration(ArgumentParser):
         else:
              self._entries=dict() # 1 SECTION -> n KEY -> pair(value,comment)
 
-    #--------------------------------------------------------------------------#
     def parse_args(self, args=None,namespace=None):       
         """
         Parse command line arguments; 
@@ -59,7 +57,6 @@ class Configuration(ArgumentParser):
         return result
  
     
-    #--------------------------------------------------------------------------#
     def add(self, key, value,comment="", section=DEFAULT):
         """
         Create section if not already exist in self._entries 
@@ -77,7 +74,6 @@ class Configuration(ArgumentParser):
             return False
          
             
-    #--------------------------------------------------------------------------#
     def has_key(self,key,section=DEFAULT):
         """
          Return whether the given option exists in the given section.
@@ -86,7 +82,6 @@ class Configuration(ArgumentParser):
             return key in self._entries[section] # return True is key exists
         return False
 
-    #--------------------------------------------------------------------------#
     def get(self, key,section=DEFAULT):
         """
         return value for corresponding section/key pair
@@ -95,7 +90,6 @@ class Configuration(ArgumentParser):
         if not self.has_key(key,section):
             return None
         return self._entries[section][key][self.VALUE_INDEX]
-    #--------------------------------------------------------------------------#
     def getComment(self, key,section=DEFAULT):
         """
         return value for corresponding section/key pair
@@ -105,14 +99,13 @@ class Configuration(ArgumentParser):
             return None
         return self._entries[section][key][self.COMMENT_INDEX]
         
-    #--------------------------------------------------------------------------#
-    def write(self, filename, type=FITS ,implementation=DATAIMPL):
+    def write(self, filename, impl=FITS ,implementation=DATAIMPL):
         """Write an .ini-format representation of the configuration state.
         """
-        if ( type == self.FITS):
+        if ( impl == self.FITS):
             self._writeFits(filename,implementation)
 
-        elif ( type == self.INI):
+        elif ( impl == self.INI):
             configParser = RawConfigParser()
             self.fill(configParser)
             with open('example.ini', 'w') as configfile: 
@@ -123,11 +116,10 @@ class Configuration(ArgumentParser):
 
                 #self._configParser.write(configfile, space_around_delimiters)
         else:
-            print("Type:",type,'not allowed',file=sys.stderr)
+            print("Format:",impl,'not allowed',file=sys.stderr)
         
         
         
-    #--------------------------------------------------------------------------#
     def _writeFits(self, filename,implementation=DATAIMPL):
         """Write an FITS file representation of the configuration state.
         """
@@ -157,7 +149,6 @@ class Configuration(ArgumentParser):
                 cvalue = fits.Column(name='value', format='A256', array=np.array(value_array))
                 ccomment = fits.Column(name='comments', format='A256', array=np.array(comment_array))
                 # Create the table
-                #hdu = fits.new_table([ckey, cvalue], tbtype='TableHDU')
                 hdu = fits.TableHDU.from_columns([ckey, cvalue,ccomment])
                 hdu.name=section
                 # append table to hduList
@@ -179,8 +170,7 @@ class Configuration(ArgumentParser):
         #table_0.append(filename, data=data, header=header, checksum=False, verify=True)
 
     
-    #--------------------------------------------------------------------------#
-    def read(self, filenames, type=FITS, implementation=DATAIMPL, encoding=None):
+    def read(self, filenames, impl=FITS, implementation=DATAIMPL, encoding=None):
         """Read and parse a filename or a list of filenames.
 
         Files that cannot be opened are silently ignored; this is
@@ -192,18 +182,17 @@ class Configuration(ArgumentParser):
 
         Return list of successfully read files.
         """
-        if type == self.INI:
+        if impl == self.INI:
             configParser = RawConfigParser()
             configParser.optionxform = lambda option: option  
             configParser.read(filenames, encoding)
             self._addOptionFromParser(configParser)
-        elif type==self.FITS:
+        elif impl==self.FITS:
             return self._read_fits(filenames,implementation,encoding)
         else:
-            print("Type:",type,'not allowed',file=sys.stderr)
+            print("Format:",impl,'not allowed',file=sys.stderr)
             return list()
             
-    #--------------------------------------------------------------------------#
     def _read_fits(self, filenames, implementation=DATAIMPL, encoding=None):
         """Read and parse a Fits file or a list of Fits files.
             Return list of successfully read files.
@@ -251,7 +240,6 @@ class Configuration(ArgumentParser):
         return read_ok
 
 
-    #--------------------------------------------------------------------------#
     def _addOptionFromParser(self,configParser):
         """
             fill self._entries from a RawConfigParser
@@ -275,7 +263,6 @@ class Configuration(ArgumentParser):
             self.add(key,value,comment=comment,section=self.DEFAULT)
         # add default section
         return True
-    #--------------------------------------------------------------------------#
     def fill(self,configParser):
         """
             fill a ConfigParser object with self._entries
@@ -297,7 +284,6 @@ class Configuration(ArgumentParser):
         return configParser
         
 
-    #--------------------------------------------------------------------------#
     def list(self,file=sys.stdout, flush=False):
         """ 
         print all options (DEFAULT included)
