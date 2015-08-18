@@ -3,8 +3,11 @@ import sys
 
 from ..core import Configuration, ConfigurationException
 
+
+
 class C():
   pass
+  
 
 def test_argsParser():
 
@@ -15,6 +18,7 @@ def test_argsParser():
     # 3/ restore sys.argv         
     backup =  sys.argv
     sys.argv="executable --name CTA -R --sum".split()
+    foo = sys.argv[1:]
     print("--- Test command line arguments parsing")
     conf = Configuration()
 
@@ -23,8 +27,18 @@ def test_argsParser():
     conf.add_argument("--sum", dest="sfalse", action='store_false')
     conf.add_argument("--miss", dest="miss_false", action='store_false')
 
+    # test with args and namespace named parameter
     c=C()
-    conf.parse_args(namespace=c)
+    res = conf.parse_args(args=foo,namespace=c)
+    assert conf.get("name") == "CTA"
+    assert conf.get("rtrue") == True
+    assert conf.get("sfalse") == False
+
+    # test without optional parameter
+    default_section = conf.parse_args()
+    print('default_section',default_section)
+    assert(default_section["name"][Configuration.VALUE_INDEX] == "CTA")
+    assert(default_section["name"][Configuration.COMMENT_INDEX] == "From command line arguments")
     assert conf.get("name") == "CTA"
     assert conf.get("rtrue") == True
     assert conf.get("sfalse") == False
@@ -60,7 +74,7 @@ def test_name():
     conf.add("key","value",section="section",comment="Mon commentaire")
     conf.list()
     assert conf.get("key","section") == "value"
-    assert conf.getComment("key","section") == "Mon commentaire"
+    assert conf.get_comment("key","section") == "Mon commentaire"
     assert conf.has_key("key","section") == True
     
     #test with DEFAULT section
@@ -123,7 +137,7 @@ def test_configParser():
     print("--- List read Conf to INI format")
     readed_conf.list()
     assert readed_conf.get("ServerAliveInterval") =='45'
-    assert readed_conf.getComment("ServerAliveInterval") =='comment'
+    assert readed_conf.get_comment("ServerAliveInterval") =='comment'
 
     # test Fits Data implemeation
     print("--- Test Write Conf to FITS data table format")
@@ -131,7 +145,7 @@ def test_configParser():
     readed_conf = Configuration()
     readed_conf.read('example.fits')
     assert readed_conf.get("ServerAliveInterval") == '45'
-    assert readed_conf.getComment("ServerAliveInterval") == 'comment'
+    assert readed_conf.get_comment("ServerAliveInterval") == 'comment'
     print("--- List read Conf to Fits table data format")
     readed_conf.list()
     
@@ -142,10 +156,6 @@ def test_configParser():
     readed_conf = Configuration()
     readed_conf.read('example_HEADER.fits',implementation=Configuration.HEADERIMPL)
     assert readed_conf.get("ServerAliveInterval") == '45'
-    assert readed_conf.getComment("ServerAliveInterval") == 'comment'
+    assert readed_conf.get_comment("ServerAliveInterval") == 'comment'
     print("--- List read Conf to Fits Header format")
     readed_conf.list()
-
-
-if __name__ == '__main__':
-  print("main")
