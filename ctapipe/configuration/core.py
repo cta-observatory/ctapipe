@@ -147,6 +147,39 @@ class Configuration(ArgumentParser):
         if not self.has_key(key,section):
             return None
         return self._entries[section][key][self.VALUE_INDEX]
+    
+    def get_list(self, key,section=DEFAULT):
+        """
+        Get a configuration entry value in python list format
+
+        Parameters:
+        -----------
+        key: str
+            key to search in section 
+        section: str , optional
+            section to search key ('DEFAULT' section is used by default)
+ 
+        Returns:
+        --------
+        python list for corresponding section/key pair
+        None is no suitable value exists for section/key
+        """
+        chaine = str(self.get(key,section))
+        l = chaine[1:-1].split(',')
+        return  l
+    
+    def get_section(self,section=DEFAULT):
+        """
+        get dictionary containing all section's entries
+        Parameters:
+        -----------
+        section : str , optional
+        
+        Returns: 
+        --------
+        The dictionary containing all the section's entries
+        """
+        return self._entries[section]
 
     def get_comment(self, key,section=DEFAULT):
         """
@@ -378,8 +411,11 @@ class Configuration(ArgumentParser):
             for key,value_comment in config_parser.items(section):
                 foo = value_comment.split(" ;")
                 value = foo[self.VALUE_INDEX]
-                comment = foo[self.COMMENT_INDEX]
-                comment= comment[1:]
+                try:
+                    comment = foo[self.COMMENT_INDEX]
+                    comment= comment[1:]
+                except IndexError:
+                    comment =""
                 self.add(key,value,comment=comment,section=section)
         
         for key,value_comment in config_parser.defaults().items():

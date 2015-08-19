@@ -7,35 +7,34 @@ import HessioReader as hr
 #mod = import_module(p)
 #met = getattr(mod, m)
 
+def dynamic_class_from_module(section_name):
+    module = conf.get('module',section=section_name)
+    print('module',module)
+    class_name = conf.get('class', section=section_name)
+    print('class_name',class_name)
+    _class = getattr(import_module(module), class_name)
+    print('class_',_class)
+    instance = _class()
+    return instance
 
 
 if __name__ == "__main__":
-    """ 
-    r = hr.HessioReader()
-    r.init()
-    for event in r.do_it():
-        print(event)
-    """ 
 
     conf = Configuration()
     conf.read("./pipeline.ini", impl=Configuration.INI)
     
     
-    pipeline = conf.get_section('PIPELINE')
-    
     # import producer
-    producer = pipeline['PRODUCER'][Configuration.VALUE_INDEX]
+    producer_section_name = conf.get('PRODUCER',section='PIPELINE')
+    producer = dynamic_class_from_module(producer_section_name)
+    producer.init()
+
+    # import stagers
+    stager_list = conf.get_list('STAGES', section='PIPELINE')
+    stager = dynamic_class_from_module(stager_list[0])
+    stager.init()
+
     
-    producer_import = conf.get('import',section=producer)
-    print("producer_import",producer_import)
+    for result in  producer.do_it(): 
+        stager.do_it(result)
     
-    MyClass = getattr(import_module(producer_import), 'HessioReader')
-    instance = MyClass()
-    instance.init()
-    
-    for event in  instance.do_it(): 
-        print(event.dl0.tels_with_data)
-    
-    
-    
-    #consumer = pipeline['CONSUMER'][Configuration.VALUE_INDEX]
