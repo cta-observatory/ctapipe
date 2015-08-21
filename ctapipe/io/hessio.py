@@ -43,13 +43,15 @@ def hessio_event_source(url, max_events=None):
 
     counter = 0
     eventstream = hessio.move_to_next_event()
-    container = Container("hessio_container")
-    container.meta.add_item('hessio__input', url)
-    container.meta.add_item('hessio__max_events', max_events)
-    container.meta.add_item('pixel_pos', dict())
-    container.add_item("dl0", RawData())
+
 
     for run_id, event_id in eventstream:
+
+        container = Container("hessio_container")
+        container.meta.add_item('hessio__input', url)
+        container.meta.add_item('hessio__max_events', max_events)
+        container.meta.add_item('pixel_pos', dict())
+        container.add_item("dl0", RawData())
 
         container.dl0.run_id = run_id
         container.dl0.event_id = event_id
