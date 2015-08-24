@@ -17,6 +17,7 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.configuration.core import Configuration, ConfigurationException
 from ctapipe.core import Container
+from copy import deepcopy
 
 BUBBLE = '__PIPELINE_BUBBLE__'
 POISON = '__PIPELINE_POISON__'
@@ -214,11 +215,11 @@ if __name__ == '__main__':
         conf = Configuration()
         conf.read("./pipeline.ini", impl=Configuration.INI)
         raw_data = conf.get('source', section='HESSIO_READER')
-        source = hessio_event_source(get_path(raw_data), max_events=100)
+        source = hessio_event_source(get_path(raw_data), max_events=3)
         
         for event in source:
             print("--< Generate Event",event.dl0.event_id,">--")#,end="\r")
-            yield event
+            yield deepcopy(event)
         
     def work():
         event = yield
