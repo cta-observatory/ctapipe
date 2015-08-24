@@ -80,8 +80,10 @@ def get_all_descriptions():
                                    module.__doc__).group()
                 descrip.replace("\n", "")
                 descriptions[name] = descrip
-            finally:
-                descriptions[name] = "[no documentation]"
+            except RuntimeError as err:
+                descriptions[name] = "[Couldn't parse docstring: {}]".format(err)
+        else:
+            descriptions[name] = "[no documentation]"
 
     return descriptions
     
