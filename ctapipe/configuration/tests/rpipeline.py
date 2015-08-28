@@ -102,7 +102,7 @@ class MiddlePipelineThread(Thread):
             # Invoke the current stage.
             try:    
                 out = self.coro.send(msg)
-            except (Exception, exc):
+            except (Exception, exc):    
                 self.out_queue.put(PipelineError(exc))
                 return
             
@@ -208,16 +208,28 @@ class Pipeline(object):
         if exc:
             raise exc
 
+
+
 if __name__ == '__main__':
     import time
     
+    conf = Configuration()
+    conf.read("./pipeline.ini", impl=Configuration.INI)
+    
+    
+    # import producer
+    producer_section_name = conf.get('PRODUCER',section='PIPELINE')
+    producer = conf.dynamic_class_from_module(producer_section_name)
+    producer.init()
+    
+    
     def produce():
-        conf = Configuration()
-        conf.read("./pipeline.ini", impl=Configuration.INI)
-        raw_data = conf.get('source', section='HESSIO_READER')
-        source = hessio_event_source(get_path(raw_data), max_events=3)
-        
-        for event in source:
+        #conf = Configuration()
+        #conf.read("./pipeline.ini", impl=Configuration.INI)
+        #raw_data = conf.get('source', section='HESSIO_READER')
+        #source = hessio_event_source(get_path(raw_data), max_events=3)
+        generator = producer.run()
+        for event in generator:
             print("--< Generate Event",event.dl0.event_id,">--")#,end="\r")
             yield deepcopy(event)
         
@@ -241,5 +253,4 @@ if __name__ == '__main__':
     ts_start = time.time()
     Pipeline([produce(), work(), consume()]).run_parallel()
     ts_end = time.time()
-    
     print( 'Parallel time:', ts_end - ts_start)

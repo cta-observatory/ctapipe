@@ -6,6 +6,7 @@ Configuration service utilities
 from argparse import ArgumentParser
 from configparser import RawConfigParser
 from astropy.io import fits
+from importlib import import_module
 
 import numpy as np
 import sys
@@ -428,5 +429,29 @@ class Configuration(ArgumentParser):
         return True
             
             
+    def dynamic_class_from_module(self,section_name):
+        """
+        Create an instance of a class from a configuration service section name
         
+        Parameters:
+        -----------
+        section_name : str
+            Configuration service section name
+                Corresponding section must at least contains the following 3 entries:
+                module: python module name
+                class:  python class name within the module
+                 filename: python modul full path filename 
+            
+
+        Returns:
+        --------
+        A python instance of a class
+        """
+        
+        module = self.get('module',section=section_name)
+        class_name =self.get('class', section=section_name)
+        _class = getattr(import_module(module), class_name)
+        instance = _class(self)
+            
+        return instance
 
