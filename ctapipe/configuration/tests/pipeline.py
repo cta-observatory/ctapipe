@@ -2,6 +2,7 @@ from ctapipe.configuration.core import Configuration, ConfigurationException
 from importlib import import_module
 from ctapipe.utils.datasets import get_path
 
+
 __all__=['dynamic_class_from_module']
 
 import HessioReader as hr
@@ -44,8 +45,7 @@ if __name__ == "__main__":
 
         else: break
         
-    producer.do_it()
-    producer.finish()
+    producer.start()
     
 
         

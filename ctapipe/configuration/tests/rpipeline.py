@@ -18,6 +18,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.configuration.core import Configuration, ConfigurationException
 from ctapipe.core import Container
 from copy import deepcopy
+from sys import exit
 
 BUBBLE = '__PIPELINE_BUBBLE__'
 POISON = '__PIPELINE_POISON__'
@@ -216,29 +217,32 @@ if __name__ == '__main__':
     conf = Configuration()
     conf.read("./pipeline.ini", impl=Configuration.INI)
     
-    
-    # import producer
+    # import and init producer
     producer_section_name = conf.get('PRODUCER',section='PIPELINE')
     producer = conf.dynamic_class_from_module(producer_section_name)
     producer.init()
     
     
+    # import and init stager
+    stagers = conf.getNextStager('PRODUCER')
+    print ( "stagers: " , stagers)
+    if stagers != None and len(stagers)>0:
+        stager_section_name =stagers[0]
+        stager = conf.dynamic_class_from_module(stager_section_name)
+        stager.init()
+        
+    
     def produce():
-        #conf = Configuration()
-        #conf.read("./pipeline.ini", impl=Configuration.INI)
-        #raw_data = conf.get('source', section='HESSIO_READER')
-        #source = hessio_event_source(get_path(raw_data), max_events=3)
         generator = producer.run()
         for event in generator:
-            print("--< Generate Event",event.dl0.event_id,">--")#,end="\r")
+            print("--< Generate Event",event.dl0.event_id,">--")
             yield deepcopy(event)
         
     def work():
-        event = yield
+        input = yield
         while True:
-            print( 'work processing', event.dl0.event_id)
-            time.sleep(2)
-            event = yield event
+            output = stager.run(input) 
+            input = yield output
 
     def consume():
         #filename = self.conf.get('filename', section='WRITER')
@@ -254,3 +258,6 @@ if __name__ == '__main__':
     Pipeline([produce(), work(), consume()]).run_parallel()
     ts_end = time.time()
     print( 'Parallel time:', ts_end - ts_start)
+    
+    
+    producer.finish()

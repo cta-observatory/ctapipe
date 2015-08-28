@@ -36,3 +36,10 @@ class HessioReader():
             yield event
         print("\n--- HessioReader Done ---")
         
+        
+        
+    def finish(self):
+        print ( "--- HessReader finish ---")
+        pass
+        
+        

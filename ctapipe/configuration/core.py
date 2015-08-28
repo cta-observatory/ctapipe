@@ -125,8 +125,8 @@ class Configuration(ArgumentParser):
         -------- 
         whether the given option exists in the given section or not.
         """
-        if section in self._entries:
-            return key in self._entries[section] # return True is key exists
+        if section in self._entries.keys():
+            return key in self._entries[section].keys() # return True is key exists
         return False
 
     def get(self, key,section=DEFAULT):
@@ -169,6 +169,20 @@ class Configuration(ArgumentParser):
         l = chaine[1:-1].split(',')
         return  l
     
+    
+    
+    def get_section_list(self):
+        """
+        Get list of sections name
+
+        Returns:
+        --------
+        python list containing all sections name
+        """
+        return self._entries.keys()
+    
+    
+    
     def get_section(self,section=DEFAULT):
         """
         get dictionary containing all section's entries
@@ -180,7 +194,7 @@ class Configuration(ArgumentParser):
         --------
         The dictionary containing all the section's entries
         """
-        return self._entries[section]
+        return self._entries
 
     def get_comment(self, key,section=DEFAULT):
         """
@@ -454,4 +468,27 @@ class Configuration(ArgumentParser):
         instance = _class(self)
             
         return instance
+    
+    def getNextStager(self,prev_stage):
+        """
+        Parameters:
+        -----------
+        prev_stage : str
+            section name of a  pipeline Produceer or Stager or Consumer
+        
+        Returns:
+        List of section name for nexts stage 
+        """
+        result = list()
+        for section in self.get_section_list():
+           if self.has_key( "prev", section) == True:
+              result.append(section)
+              
+        return result
+                   
+        
+        
+        
+        
+        
 
