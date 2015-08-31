@@ -381,7 +381,7 @@ class Configuration(ArgumentParser):
             for filename in filenames:
                 hdulist = fits.open(filename)
                 for hdu in hdulist:
-                    section = hdu.name
+                    section = hdu.namestager_section_name
                     data = hdu.data
                     if not data is None: 
                         for (key, value,comment) in data:
@@ -482,7 +482,8 @@ class Configuration(ArgumentParser):
         result = list()
         for section in self.get_section_list():
            if self.has_key( "prev", section) == True:
-              result.append(section)
+              if self.get("prev", section ) == prev_stage:
+                result.append(section)
               
         return result
                    

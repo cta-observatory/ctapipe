@@ -224,19 +224,31 @@ if __name__ == '__main__':
     
     
     # import and init stager
-    stagers = conf.getNextStager('PRODUCER')
-    print ( "stagers: " , stagers)
+    print("-------------->Search next stager", producer_section_name )
+    stagers = conf.getNextStager(producer_section_name)
+    print("-------------->Find next stager", stagers)
     if stagers != None and len(stagers)>0:
         stager_section_name =stagers[0]
         stager = conf.dynamic_class_from_module(stager_section_name)
         stager.init()
         
+        # import and init consumer
+        print("--------------> Search next consumer", stager_section_name)
+        consumers = conf.getNextStager(stager_section_name)
+        print("--------------> find consumer:", consumers)
+        if consumers != None and len(consumers)>0:
+            consumer_section_name = consumers[0]
+            print("consumer_section_name:", consumer_section_name)
+            consumer = conf.dynamic_class_from_module(consumer_section_name)
+            consumer.init()
+    
+    else: stager_section_name = None
+        
     
     def produce():
         generator = producer.run()
-        for event in generator:
-            print("--< Generate Event",event.dl0.event_id,">--")
-            yield deepcopy(event)
+        for output in generator:
+            yield deepcopy(output)
         
     def work():
         input = yield
@@ -245,19 +257,17 @@ if __name__ == '__main__':
             input = yield output
 
     def consume():
-        #filename = self.conf.get('filename', section='WRITER')
-        filename = 'test.txt'
-        file = open(filename, 'w')
         while True:
-            event = yield
-            if isinstance(event,Container) :
-              print("Consume" ,event.dl0.event_id)
-              time.sleep(1)
+            input = yield
+            consumer.run(input)
+                
     
     ts_start = time.time()
     Pipeline([produce(), work(), consume()]).run_parallel()
     ts_end = time.time()
-    print( 'Parallel time:', ts_end - ts_start)
-    
-    
     producer.finish()
+    stager.finish()
+    consumer.finish()
+    print( 'Parallel time:', ts_end - ts_start)
+
+    
