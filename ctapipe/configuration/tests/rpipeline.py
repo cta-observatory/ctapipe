@@ -33,12 +33,12 @@ class PipelineError(object):
     def __init__(self, exc):
         self.exc = exc
 
-class FirstPipelineThread(Thread):
+class ProducerThread(Thread):
     """The thread running the first stage in a parallel pipeline setup.
     The coroutine should just be a generator.
     """
     def __init__(self, coro, out_queue):
-        super(FirstPipelineThread, self).__init__()
+        super(ProducerThread, self).__init__()
         self.coro = coro
         self.out_queue = out_queue
         
@@ -76,12 +76,12 @@ class FirstPipelineThread(Thread):
         with self.abort_lock:
             self.abort_flag = True
 
-class MiddlePipelineThread(Thread):
+class StagerThread(Thread):
     """A thread running any stage in the pipeline except the first or
     last.
     """
     def __init__(self, coro, in_queue, out_queue):
-        super(MiddlePipelineThread, self).__init__()
+        super(StagerThread, self).__init__()
         self.coro = coro
         self.in_queue = in_queue
         self.out_queue = out_queue
@@ -116,12 +116,12 @@ class MiddlePipelineThread(Thread):
         # Pipeline is shutting down normally.
         self.out_queue.put(POISON)
 
-class LastPipelineThread(Thread):
+class ConsumerThread(Thread):
     """A thread running the last stage in a pipeline. The coroutine
     should yield nothing.
     """
     def __init__(self, coro, in_queue):
-        super(LastPipelineThread, self).__init__()
+        super(ConsumerThread, self).__init__()
         self.coro = coro
         self.in_queue = in_queue
 
@@ -183,12 +183,12 @@ class Pipeline(object):
         size.
         """
         queues = [Queue(queue_size) for i in range(len(self.stages)-1)]
-        threads = [FirstPipelineThread(self.stages[0], queues[0])]
+        threads = [ProducerThread(self.stages[0], queues[0])]
         for i in range(1, len(self.stages)-1):
-            threads.append(MiddlePipelineThread(
+            threads.append(StagerThread(
                 self.stages[i], queues[i-1], queues[i]
             ))
-        threads.append(LastPipelineThread(self.stages[-1], queues[-1]))
+        threads.append(ConsumerThread(self.stages[-1], queues[-1]))
         
         # Start threads.
         for thread in threads:
