@@ -173,6 +173,7 @@ class Pipeline():
     def finish(self):
         """
         Execute finish method on all producers, stagers and consumers
+        """
         self.producer.finish()
         self.stager.finish()
         self.consumer.finish()
