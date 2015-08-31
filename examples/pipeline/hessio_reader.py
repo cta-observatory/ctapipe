@@ -2,6 +2,8 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.configuration.core import Configuration, ConfigurationException
 import threading
+from copy import deepcopy
+from sys import stderr
 
 
 class HessioReader():
@@ -17,10 +19,16 @@ class HessioReader():
         print("--- HessioReader init ---")
         if self.configuration == None:
             self.configuration = Configuration()
-            self.configuration.read("./pipeline.ini", impl=Configuration.INI)
+            success = self.configuration.read("./pipeline.ini", impl=Configuration.INI)
+            if len(success) == 0: return False  
             
         self.raw_data = self.configuration.get('source', section='HESSIO_READER')
-        self.source = hessio_event_source(get_path(self.raw_data), max_events=10)
+        try:
+            self.source = hessio_event_source(get_path(self.raw_data), max_events=10)
+            return True
+        except(RuntimeError):
+            print("could not open",self.raw_data, file=stderr)
+            return False
         
         
         
@@ -29,7 +37,7 @@ class HessioReader():
         for event in self.source:
             counter+=1
             print("--<HessioReader: Start Event",counter,">--")#,end="\r")
-            yield event
+            yield deepcopy(event)
         print("\n--- HessioReader Done ---")
         
         

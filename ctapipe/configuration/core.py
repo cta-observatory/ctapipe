@@ -67,8 +67,8 @@ class Configuration(ArgumentParser):
         --------
         Dictionary containing configuration entries for 'DEFAULT' section
         """
+        
         #Read arguments from sys.argv and return those previously added
-        #result = super(Configuration, self).parse_args(args,namespace=namespace)
         result = super().parse_args(args,namespace=namespace)
         args = vars(result)
         # Add arguments(key, value) for DEFAULT section
@@ -381,7 +381,7 @@ class Configuration(ArgumentParser):
             for filename in filenames:
                 hdulist = fits.open(filename)
                 for hdu in hdulist:
-                    section = hdu.namestager_section_name
+                    section = hdu.name
                     data = hdu.data
                     if not data is None: 
                         for (key, value,comment) in data:
@@ -454,20 +454,27 @@ class Configuration(ArgumentParser):
                 Corresponding section must at least contains the following 3 entries:
                 module: python module name
                 class:  python class name within the module
-                 filename: python modul full path filename 
-            
-
+                filename: python modul full path filename 
         Returns:
         --------
         A python instance of a class
         """
         
         module = self.get('module',section=section_name)
+        if  module == None : 
+            print ("could not find section", section_name)
+            return None
         class_name =self.get('class', section=section_name)
-        _class = getattr(import_module(module), class_name)
-        instance = _class(self)
+        try:
+            _class = getattr(import_module(module), class_name)
+            instance = _class(self)
+            return instance
+        except(AttributeError):
+            print("Could not create an instance of",section_name,":", module, ":", class_name , file=sys.stderr)
+        except(ImportError):
+            print("Could import module ",module, file=sys.stderr)
             
-        return instance
+            
     
     def getNextStager(self,prev_stage):
         """
