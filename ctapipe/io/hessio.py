@@ -75,10 +75,10 @@ def hessio_event_source(url, max_events=None):
             for chan in range(nchans):
                 container.dl0.tel[tel_id].adc_samples[chan] \
                     = hessio.get_adc_sample(channel=chan,
-                                            telescopeId=tel_id)
+                                            telescope_id=tel_id)
                 container.dl0.tel[tel_id].adc_sums[chan] \
                     = hessio.get_adc_sum(channel=chan,
-                                         telescopeId=tel_id)
+                                         telescope_id=tel_id)
         yield container
         counter += 1
 
