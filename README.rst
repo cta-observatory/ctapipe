@@ -9,7 +9,9 @@ official and not recommended for use!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
+* Example notebooks: https://github.com/cta-observatory/ctapipe/tree/master/examples/notebooks
 
+  
 * .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.org/cta-observatory/ctapipe
     :alt: Test Status
