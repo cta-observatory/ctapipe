@@ -46,7 +46,7 @@ After installing anaconda and setting your PATH, run the following to update the
 
     conda update --all
 
-Next you need to check out the ~ctapipe~ module and initialize it.
+Next you need to check out the ~ctapipe~ module and initialize it::
 
     git clone https://github.com/cta-observatory/ctapipe.git
     cd ctapipe
