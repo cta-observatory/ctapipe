@@ -4,13 +4,13 @@ Visualization routines using matplotlib
 """
 
 from matplotlib import pyplot as plt
-from matplotlib import transforms
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
 from numpy import sqrt
 import numpy as np
 import logging
 import copy
+from astropy import units as u
 
 __all__ = ['CameraDisplay']
 
@@ -78,9 +78,9 @@ class CameraDisplay:
 
         patches = []
 
-        for xx, yy, aa in zip(self.geom.pix_x.value,
-                              self.geom.pix_y.value,
-                              np.array(self.geom.pix_area)):
+        for xx, yy, aa in zip(u.Quantity(self.geom.pix_x).value,
+                              u.Quantity(self.geom.pix_y).value,
+                              u.Quantity(np.array(self.geom.pix_area))):
             if self.geom.pix_type.startswith("hex"):
                 rr = sqrt(aa * 2 / 3 / sqrt(3))
                 poly = RegularPolygon((xx, yy), 6, radius=rr,
@@ -131,7 +131,8 @@ class CameraDisplay:
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
         self.pixels.set_picker(True)  # enable click
-        self.pixels.set_pickradius(sqrt(self.geom.pix_area[0]) / np.pi)
+        self.pixels.set_pickradius(sqrt(u.Quantity(self.geom.pix_area[0])
+                                        .value) / np.pi)
         self.pixels.set_snap(True)  # snap cursor to pixel center
         self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
 
@@ -227,7 +228,8 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind.pop()
-        xx, yy = self.geom.pix_x[pix_id].value, self.geom.pix_y[pix_id].value
+        xx, yy = u.Quantity(self.geom.pix_x[pix_id]).value,\
+                 u.Quantity(self.geom.pix_y[pix_id]).value
         self._active_pixel.xy = (xx, yy)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
@@ -235,9 +237,9 @@ class CameraDisplay:
         self._active_pixel_label.set_text("{:003d}".format(pix_id))
         self._active_pixel_label.set_visible(True)
         self.update()
-        self.on_pixel_clicked(pix_id) # call user-function
+        self.on_pixel_clicked(pix_id)  # call user-function
 
-    def on_pixel_clicked(self,pix_id):
+    def on_pixel_clicked(self, pix_id):
         """virtual function to overide in sub-classes to do something special
         when a pixel is clicked
         """
