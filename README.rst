@@ -29,8 +29,12 @@ http://continuum.io/blog/anaconda-python-3)::
   
     # only if you already run anaconda: install a new virtualenv for
     # cta development:
-    conda create -n pycta python=3.4 anaconda
-    source activate pycta  # to switch to the cta python virtualenv
+    conda create -n cta python=3.4 anaconda
+    source activate cta  # to switch to the cta python virtualenv
+
+later you can switch back to your the root environment (or another) by running::
+    
+    source activate root  
     
 Anaconda's distribution doesn't interfere with your local python
 distribution if you have one, and can be installed without root
@@ -38,27 +42,29 @@ privileges. It contains all the required packages. To "activate"
 Anaconda's python, just put it's bin directory in your path: (e.g.
 `export PATH=$HOME/anaconda/bin:$PATH`).
 
-You can use a shell macro to
-enable that to be able to swtch between your system python and this
-one. After installing anaconda and setting your PATH, run::
+After installing anaconda and setting your PATH, run the following to update the packages (for now we have no version restrictions, so the latest ones usually work)::
 
     conda update --all
 
-then for the CTA pipe module::
+Next you need to check out the ~ctapipe~ module and initialize it.
 
     git clone https://github.com/cta-observatory/ctapipe.git
     cd ctapipe
     git submodule init
     git submodule update
 
-The last two commands fetch the example data files. Then the following
-command will enable development mode (by making symlinks to the
-package in your local python package directory). After that the
-package will be importable ::
+The last two commands fetch the example data files. The following
+command should be run once to enable development mode (by making
+symlinks to the package in your local python package directory). After
+that the package will be importable anywhere on your system::
 
-    python setup.py develop  
+    make develop
 
 next steps::
 
     make docshow   # build and show the documentation
     make test      # run the tests
+
+ look at the examples in ~ctapipe/examples~ and also the notebooks in
+ ~ctapipe/examples/notebooks/~ The README file in that directory will
+ help you run the notebook examples.
