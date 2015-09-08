@@ -20,6 +20,17 @@ class ConfigurationException(Exception):
 
 
 class Configuration(ArgumentParser):
+    """Configuration initialization if other is not None and its type is
+    Configuration, its _entries dictionary content is copy to this
+    Configuration class
+    
+    Parameters
+    ----------
+    other : Configuration object, optional Copies other._entries dictionary's 
+            item in self._entries
+
+    """
+
     DEFAULT = "DEFAULT"
     FITS = "FITS"
     INI = "INI"
@@ -29,16 +40,6 @@ class Configuration(ArgumentParser):
     COMMENT_INDEX = 1
 
     def __init__(self, other=None):
-        """Configuration initialization if other is not None and its type is
-        Configuration, its _entries dictionary content is copy to this
-        Configuration class
-
-        Parameters
-        ----------
-        other : Configuration object, optional
-            Copies other._entries dictionary's item in self._entries
-
-        """
         ArgumentParser.__init__(self)
 
         # Copy other dictionary entries to self._entries
