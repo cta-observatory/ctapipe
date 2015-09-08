@@ -9,7 +9,7 @@ import sys
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_datasets_path
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_path("gamma_test.simtel.gz")
+        filename = get_datasets_path("gamma_test.simtel.gz")
 
     plt.style.use("ggplot")
     plt.show(block=False)
