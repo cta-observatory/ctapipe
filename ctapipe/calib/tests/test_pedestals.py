@@ -20,3 +20,10 @@ def test_calc_pedestals_from_traces():
     assert np.all(pedvars == 0.09)
     assert peds.shape[0] == npix
     assert pedvars.shape[0] == npix
+
+    # try another sample range, where there should be no variances and
+    # all 1.0 peds:
+    peds, pedvars = pedestals.calc_pedestals_from_traces(traces, 12, 32)
+
+    assert np.all(peds == 1.0)
+    assert np.all(pedvars == 0)
