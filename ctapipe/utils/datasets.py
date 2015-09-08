@@ -4,7 +4,7 @@ from pathlib import Path
 
 __all__ = ['CTAPipeDatasetsNotFoundError',
            'get_ctapipe_extra_path',
-           'get_path',
+           'get_datasets_path',
            ]
 
 
@@ -35,6 +35,10 @@ def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
     raise CTAPipeDatasetsNotFoundError(path)
 
 
-def get_path(file_path):
+def get_datasets_path(file_path):
     path = Path(get_ctapipe_extra_path(), 'datasets', file_path)
     return path.as_posix()
+
+
+def get_path(file_path):
+    return get_datasets_path(file_path)
