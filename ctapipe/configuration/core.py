@@ -241,12 +241,14 @@ class Configuration(ArgumentParser):
             return list()
 
     def list(self, file=sys.stdout, flush=False):
-        """ 
+        """
         print all options (DEFAULT included)
+
         Parameters:
-        ----------
-        file: 
-            file objects used by the interpreter for standard  output 
+        -----------
+
+        file:
+            file objects used by the interpreter for standard  output
             and errors:
         flush: boolean , optional
             flush keyword argument is true, the stream is forcibly flushed.
