@@ -6,12 +6,14 @@ import os
 
 
 def get_file_type(filename):
-    """Returns a string with the type of the given file (guessed from the
+    """
+    Returns a string with the type of the given file (guessed from the
     extension). The '.gz' or '.bz2' compression extensions are
-    ignored. For example:
+    ignored.
 
     >>> get_file_type('myfile.fits.gz')
     'fits'
+
     """
     root, ext = os.path.splitext(filename)
     if ext in ['.gz', '.bz2']:
@@ -20,7 +22,7 @@ def get_file_type(filename):
     ext = ext[1:]  # strip off leading '.'
 
     # special cases:
-    if ext in {'fit', 'FITS', 'FIT'}:
+    if ext in ['fit', 'FITS', 'FIT']:
         ext = 'fits'
 
     return ext

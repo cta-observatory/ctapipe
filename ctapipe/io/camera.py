@@ -8,12 +8,16 @@ TODO:
    pass-by-value (which could be slow).
 
 """
-import numpy as np
-from astropy.table import Table
-from astropy import units as u
 from collections import namedtuple
-from ctapipe.utils.datasets import get_path
+
+import numpy as np
+from astropy import units as u
+from astropy.table import Table
 from scipy.spatial import cKDTree as KDTree
+
+from .files import get_file_type
+from ctapipe.utils.datasets import get_path
+
 
 __all__ = ['CameraGeometry',
            'get_camera_geometry',
@@ -31,7 +35,6 @@ _npix_to_type = {2048: ('SST', 'rectangular'),
                  11328: ('SST', 'rectangular')}
 
 
-#__doctest_skip__ = ['load_camera_geometry_from_file'  ]
 CameraGeometry = namedtuple("CameraGeometry",
                             ['cam_id', 'pix_id',
                              'pix_x', 'pix_y',
@@ -64,8 +67,8 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     array of neighbor indices in a list for each pixel
 
     """
-    
-    points = np.array([pix_x,pix_y]).T
+
+    points = np.array([pix_x, pix_y]).T
     indices = np.arange(len(pix_x))
     kdtree = KDTree(points)
     neighbors = [kdtree.query_ball_point(p, r=rad) for p in points]
@@ -136,11 +139,11 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     xx = u.Quantity(geom['PIX_POSX'], u.m)
     yy = u.Quantity(geom['PIX_POSY'], u.m)
     dd = u.Quantity(geom['PIX_DIAM'], u.m)
-    aa = u.Quantity(geom['PIX_AREA'], u.m**2)
+    aa = u.Quantity(geom['PIX_AREA'], u.m ** 2)
 
     if recalc_neighbors is True:
         neigh = find_neighbor_pixels(xx.value, yy.value,
-                                     (dd.mean() + 0.01*u.m).value)
+                                     (dd.mean() + 0.01 * u.m).value)
 
     return CameraGeometry(
         cam_id=cam_id,
@@ -154,6 +157,12 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
 
 
 def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
+    filetype = get_file_type(geomfile)
+    if filetype == 'fits':
+        return _load_camera_geometry_from_fits_file(cam_id, geomfile)
+
+
+def _load_camera_geometry_from_fits_file(cam_id, geomfile='chercam.fits.gz'):
     """
     Read camera geometry from a  FITS file with a ``CHERCAM`` extension.
 
