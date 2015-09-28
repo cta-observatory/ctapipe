@@ -50,13 +50,15 @@ if __name__ == '__main__':
             disp.enable_pixel_picker()
             plt.show(block=False)
 
+        # display the event
         disp.set_image(event.dl0.tel[args.tel].adc_sums[args.channel])
         disp.axes.set_title('CT{:03d}, event {:010d}'
-                            .format(args.tel,event.dl0.event_id))
+                            .format(args.tel, event.dl0.event_id))
+        disp.set_limits_percent(70)
         plt.pause(0.1)
 
     print("FINISHED READING DATA FILE")
-        
+
     if disp is None:
         print('No events for tel {} were found in {}. Try a different'
               .format(args.tel, args.filename),

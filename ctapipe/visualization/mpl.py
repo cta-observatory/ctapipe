@@ -72,7 +72,7 @@ class CameraDisplay:
         self.autoupdate = autoupdate
         self._active_pixel = None
         self._active_pixel_label = None
-        
+
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
@@ -87,7 +87,7 @@ class CameraDisplay:
                                       orientation=np.radians(0),
                                       fill=True)
             else:
-                rr = sqrt(aa) 
+                rr = sqrt(aa)
                 poly = Rectangle((xx, yy), width=rr, height=rr,
                                  angle=np.radians(0),
                                  fill=True)
@@ -96,9 +96,9 @@ class CameraDisplay:
 
         self.pixels = PatchCollection(patches, cmap=self.cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
-        
+
         # Set up some nice plot defaults
-        
+
         self.axes.set_aspect('equal', 'datalim')
         self.axes.set_title(title)
         self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
@@ -107,24 +107,24 @@ class CameraDisplay:
 
         # set up a patch to display when a pixel is clicked (and
         # pixel_picker is enabled):
-        
+
         self._active_pixel = copy.copy(patches[0])
         self._active_pixel.set_facecolor('r')
         self._active_pixel.set_alpha(0.5)
         self._active_pixel.set_linewidth(2.0)
         self._active_pixel.set_visible(False)
         self.axes.add_patch(self._active_pixel)
-        
+
         self._active_pixel_label = plt.text(self._active_pixel.xy[0],
                                             self._active_pixel.xy[1],
                                             "0",
                                             horizontalalignment='center',
                                             verticalalignment='center')
         self._active_pixel_label.set_visible(False)
-        
+
         # enable ability to click on pixel and do something (can be
         # enabled on-the-fly later as well:
-        
+
         if allow_pick:
             self.enable_pixel_picker()
 
@@ -135,6 +135,19 @@ class CameraDisplay:
                                         .value) / np.pi)
         self.pixels.set_snap(True)  # snap cursor to pixel center
         self.axes.figure.canvas.mpl_connect('pick_event', self._on_pick)
+
+    def set_limits_minmax(self, zmin, zmax):
+        """ set the color scale limits from min to max """
+        self.pixels.set_clim(zmin, zmax)
+        self.update()
+
+    def set_limits_percent(self, percent=95):
+        """ auto-scale the color range to percent of maximum """
+        zmin = self.pixels.get_array().min()
+        zmax = self.pixels.get_array().max()
+        dz = zmax - zmin
+        frac = percent / 100.0
+        self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     def set_cmap(self, cmap):
         """ Change the color map 
@@ -244,4 +257,3 @@ class CameraDisplay:
         when a pixel is clicked
         """
         print("Clicked pixel_id {}".format(pix_id))
-
