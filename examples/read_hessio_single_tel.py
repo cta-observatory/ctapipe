@@ -10,6 +10,7 @@ is not a fast operation)
 """
 import sys
 import logging
+import argparse
 logging.basicConfig(level=logging.DEBUG)
 
 from ctapipe.utils.datasets import get_datasets_path
@@ -21,29 +22,40 @@ from astropy import units as u
 
 if __name__ == '__main__':
 
-    if len(sys.argv) > 1:
-        filename = sys.argv.pop(1)
-    else:
-        filename = get_datasets_path("gamma_test.simtel.gz")
+    parser = argparse.ArgumentParser(description='show single telescope')
+    parser.add_argument('tel', metavar='TEL_ID', type=int)
+    parser.add_argument('filename', metavar='EVENTIO_FILE', nargs='?',
+                        default=get_datasets_path('gamma_test.simtel.gz'))
+    parser.add_argument('-m', '--max-events', type=int, default=10)
+    parser.add_argument('-c', '--channel', type=int, default=0)
+    args = parser.parse_args()
 
-    tel = 103
-    chan = 0
-    source = hessio_event_source(filename, single_tel=tel, max_events=100)
+    source = hessio_event_source(args.filename,
+                                 single_tel=args.tel,
+                                 max_events=args.max_events)
     disp = None
 
-    print("SELECTING EVENTS FROM TELESCOPE {}".format(tel))
-    print("=" * 70)
+    print('SELECTING EVENTS FROM TELESCOPE {}'.format(args.tel))
+    print('=' * 70)
 
     for event in source:
 
-        print("COUNT: {}".format(event.count))
+        print('Scanning input file... count = {}'.format(event.count))
         print(event.dl0)
 
         if disp is None:
-            x, y = event.meta.pixel_pos[tel]
+            x, y = event.meta.pixel_pos[args.tel]
             geom = io.guess_camera_geometry(x * u.m, y * u.m)
-            disp = visualization.CameraDisplay(geom, title="CT{}".format(tel))
+            disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
+            disp.set_cmap(plt.cm.coolwarm)
             plt.show(block=False)
-            
-        disp.set_image(event.dl0.tel[tel].adc_sums[chan])
+
+        disp.set_image(event.dl0.tel[args.tel].adc_sums[args.channel])
         plt.pause(0.1)
+
+    print("FINISHED READING DATA FILE")
+        
+    if disp is None:
+        print('No events for tel {} were found in {}. Try a different'
+              .format(args.tel, args.filename),
+              'EventIO file or another telescope')
