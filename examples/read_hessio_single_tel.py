@@ -47,10 +47,12 @@ if __name__ == '__main__':
             x, y = event.meta.pixel_pos[args.tel]
             geom = io.guess_camera_geometry(x * u.m, y * u.m)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
-            disp.set_cmap(plt.cm.coolwarm)
+            disp.enable_pixel_picker()
             plt.show(block=False)
 
         disp.set_image(event.dl0.tel[args.tel].adc_sums[args.channel])
+        disp.axes.set_title('CT{:03d}, event {:010d}'
+                            .format(args.tel,event.dl0.event_id))
         plt.pause(0.1)
 
     print("FINISHED READING DATA FILE")

@@ -95,7 +95,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     cam_id, pix_type = guess_camera_type(len(pix_x))
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
-    dist = 0.5 * np.sqrt(dx**2 + dy**2)  # dist between two pixels
+    dist = np.sqrt(dx**2 + dy**2)  # dist between two pixels
 
     if pix_type.startswith('hex'):
         rad = dist/np.sqrt(3)  # radius to vertex of hexagon
