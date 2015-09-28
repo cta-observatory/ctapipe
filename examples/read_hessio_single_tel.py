@@ -26,9 +26,8 @@ if __name__ == '__main__':
     else:
         filename = get_datasets_path("gamma_test.simtel.gz")
 
-    tel = 25
-
-    # loop over events and display menu at each event:
+    tel = 103
+    chan = 0
     source = hessio_event_source(filename, single_tel=tel, max_events=100)
     disp = None
 
@@ -44,6 +43,7 @@ if __name__ == '__main__':
             x, y = event.meta.pixel_pos[tel]
             geom = io.guess_camera_geometry(x * u.m, y * u.m)
             disp = visualization.CameraDisplay(geom, title="CT{}".format(tel))
-
-        disp.set_image(event.dl0.tel[tel].adc_sums[0])
+            plt.show(block=False)
+            
+        disp.set_image(event.dl0.tel[tel].adc_sums[chan])
         plt.pause(0.1)
