@@ -82,12 +82,12 @@ class CameraDisplay:
                               u.Quantity(self.geom.pix_y).value,
                               u.Quantity(np.array(self.geom.pix_area))):
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3))
+                rr = 2*sqrt(aa * 2 / 3 / sqrt(3))
                 poly = RegularPolygon((xx, yy), 6, radius=rr,
                                       orientation=np.radians(0),
                                       fill=True)
             else:
-                rr = sqrt(aa) * sqrt(2)
+                rr = 2*sqrt(aa) 
                 poly = Rectangle((xx, yy), width=rr, height=rr,
                                  angle=np.radians(0),
                                  fill=True)

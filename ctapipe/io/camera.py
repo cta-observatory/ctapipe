@@ -84,20 +84,35 @@ def guess_camera_type(npix):
 
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
-    """ returns a CameraGeometry filled in from just the x,y positions """
-
-    rad = 0.5 * \
-        np.sqrt((pix_x[1] - pix_x[0]) ** 2 + (pix_y[1] - pix_y[0]) ** 2)
+    """ returns a CameraGeometry filled in from just the x,y positions 
+    
+    Assumes:
+    --------
+    - the pixels are square or hexagonal
+    - the first two pixels are adjacent
+    """
 
     cam_id, pix_type = guess_camera_type(len(pix_x))
+    dx = pix_x[1] - pix_x[0]
+    dy = pix_y[1] - pix_y[0]
+    dist = 0.5 * np.sqrt(dx**2 + dy**2)  # dist between two pixels
+
+    if pix_type.startswith('hex'):
+        rad = dist/np.sqrt(3)  # radius to vertex of hexagon
+        area = rad**2 * (3*np.sqrt(3)/2.0)  # area of hexagon
+    elif pix_type.startswith('rect'):
+        area = dist**2
+    else:
+        raise KeyError("unsupported pixel type")
 
     return CameraGeometry(cam_id=cam_id,
                           pix_id=np.arange(len(pix_x)),
                           pix_x=pix_x,
                           pix_y=pix_y,
-                          pix_area=np.pi * np.ones_like(pix_x) * rad ** 2,
-                          neighbors=find_neighbor_pixels(pix_x.value, pix_y.value,
-                                                         rad.value + 0.01),
+                          pix_area=np.ones(pix_x.shape) * area,
+                          neighbors=find_neighbor_pixels(pix_x.value,
+                                                         pix_y.value,
+                                                         dx.value + 0.01),
                           pix_type=pix_type)
 
 
