@@ -4,11 +4,12 @@ Components to read HESSIO data.
 
 This requires the hessio python library to be installed
 """
-
-from ctapipe.core import Container
-from .containers import RawData, RawCameraData
-
 import logging
+
+from .containers import RawData, RawCameraData
+from ctapipe.core import Container
+
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -23,7 +24,7 @@ __all__ = [
 ]
 
 
-def hessio_event_source(url, max_events=None):
+def hessio_event_source(url, max_events=None, single_tel=None):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -33,6 +34,12 @@ def hessio_event_source(url, max_events=None):
         path to file to open
     max_events : int, optional
         maximum number of events to read
+    single_tel : int
+        select only a single telescope, if None, all are read. This is
+        to emulate the final CTA data format, where there would be 1
+        telescope per file (whereas in current monte-carlo, they are
+        all interleaved into one file)
+
     """
 
     ret = hessio.file_open(url)
@@ -48,24 +55,33 @@ def hessio_event_source(url, max_events=None):
     container.meta.add_item('hessio__max_events', max_events)
     container.meta.add_item('pixel_pos', dict())
     container.add_item("dl0", RawData())
+    container.add_item("count")
 
     for run_id, event_id in eventstream:
 
         container.dl0.run_id = run_id
         container.dl0.event_id = event_id
         container.dl0.tels_with_data = hessio.get_teldata_list()
+        container.count = counter
+        
+        # handle single-telescope case (ignore others:
+        if single_tel is not None:
+            if single_tel not in container.dl0.tels_with_data:
+                continue
+            container.dl0.tels_with_data = [single_tel, ]
 
         # this should be done in a nicer way to not re-allocate the
         # data each time (right now it's just deleted and garbage
         # collected)
 
         container.dl0.tel = dict()  # clear the previous telescopes
-        
+
         for tel_id in container.dl0.tels_with_data:
 
             # fill pixel position dictionary, if not already done:
             if tel_id not in container.meta.pixel_pos:
-                container.meta.pixel_pos[tel_id] = hessio.get_pixel_position(tel_id)
+                container.meta.pixel_pos[
+                    tel_id] = hessio.get_pixel_position(tel_id)
 
             nchans = hessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)

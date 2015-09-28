@@ -36,6 +36,8 @@ def display_event(event):
 
     plt.suptitle("EVENT {}".format(event.dl0.event_id))
 
+    disps = []
+    
     for ii, tel_id in enumerate(event.dl0.tels_with_data):
         print("\t draw cam {}...".format(tel_id))
         nn = int(ceil(sqrt(ntels)))
@@ -53,7 +55,9 @@ def display_event(event):
         signals -= signals.mean()
         disp.set_image(signals)
         disp.add_colorbar()
+        disps.append(disp)
 
+    return disps
 
 def get_input():
     print("============================================")
@@ -75,7 +79,7 @@ if __name__ == '__main__':
     plt.show(block=False)
 
     # loop over events and display menu at each event:
-    source = hessio_event_source(filename, max_events=1000000)
+    source = hessio_event_source(filename)
 
     for event in source:
 
@@ -85,7 +89,7 @@ if __name__ == '__main__':
         while True:
             response = get_input()
             if response.startswith("d"):
-                display_event(event)
+                disps = display_event(event)
                 plt.pause(0.1)
             elif response.startswith("p"):
                 print("--event-------------------")
