@@ -8,7 +8,7 @@ Example:
 
     >>> from ctapipe.io import camera
     >>> geom = camera.make_rectangular_camera_geometry(20,20)
-    >>> showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], length=0.1,width=0.02, psi=np.radians(40))
+    >>> showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], length=0.1,width=0.02, psi='40d')
     >>> image, signal, noise = make_mock_shower_image(geom, showermodel.pdf)
     >>> print(image.shape)
     (400,)
@@ -17,6 +17,7 @@ Example:
 """
 import numpy as np
 from scipy.stats import multivariate_normal
+from ..utils import linalg
 
 __all__ = [
     'generate_2d_shower_model',
@@ -37,8 +38,8 @@ def generate_2d_shower_model(centroid, width, length, psi):
         width of shower (minor axis)
     length : float
         length of shower (major axis)
-    psi : float
-        rotation angle in radians about the centroid (0=up)
+    psi : convertable to `astropy.coordinates.Angle`
+        rotation angle about the centroid (0=up)
 
     Returns
     -------
@@ -48,8 +49,7 @@ def generate_2d_shower_model(centroid, width, length, psi):
     """
     aligned_covariance = np.array([[width, 0], [0, length]])
     # rotate by psi angle: C' = R C R+
-    rotation = np.array([[np.cos(psi), -np.sin(psi)],
-                         [np.sin(psi),  np.cos(psi)]])
+    rotation = linalg.rotation_matrix_2d(psi)
     rotated_covariance = rotation.dot(aligned_covariance).dot(rotation.T)
     return multivariate_normal(mean=centroid, cov=rotated_covariance)
 

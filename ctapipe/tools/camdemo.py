@@ -10,6 +10,8 @@ from ctapipe import io, visualization
 from ctapipe.reco import mock
 from matplotlib.animation import FuncAnimation
 import numpy as np
+from astropy import units as u
+
 
 from .utils import get_parser
 
@@ -31,13 +33,13 @@ def _display_cam_animation():
         model = mock.generate_2d_shower_model(centroid=centroid,
                                               width=width,
                                               length=length,
-                                              psi=np.radians(angle))
+                                              psi=angle*u.deg)
         image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
                                                      intensity=intens,
                                                      nsb_level_pe=5000)
         image /= image.max()
         disp.set_image(image)
-
+        
     anim = FuncAnimation(fig, update, interval=50)
     plt.show()
 

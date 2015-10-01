@@ -29,7 +29,7 @@ if __name__ == '__main__':
     model = mock.generate_2d_shower_model(centroid=(0.2, 0.0),
                                           width=0.01,
                                           length=0.1,
-                                          psi=np.radians(35))
+                                          psi='35d')
 
     image, sig, bg = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
                                                  nsb_level_pe=1000)

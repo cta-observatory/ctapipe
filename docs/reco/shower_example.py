@@ -11,7 +11,7 @@ NY = 40
 geom = make_rectangular_camera_geometry(NX, NY)
 
 showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], length=0.1,
-                           width=0.02, psi=np.radians(40))
+                                       width=0.02, psi='40d')
 
 image, signal, noise = make_mock_shower_image(geom, showermodel.pdf,
                                               intensity=20, nsb_level_pe=30)

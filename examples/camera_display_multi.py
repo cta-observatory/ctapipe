@@ -9,6 +9,8 @@ from ctapipe import io, visualization
 from ctapipe.reco import mock
 from ctapipe.reco.hillas import hillas_parameters_2 as hillas_parameters
 import numpy as np
+from astropy import units as u
+
 
 
 def draw_several_cams(geom):
@@ -25,7 +27,7 @@ def draw_several_cams(geom):
                                                         -ii * 0.05),
                                               width=0.005 + 0.001 * ii,
                                               length=0.1 + 0.05 * ii,
-                                              psi=np.radians(ii * 20))
+                                              psi=ii * 20 * u.deg)
 
         image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
                                                      intensity=50,

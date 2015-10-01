@@ -17,7 +17,7 @@ from numpy import deprecate
 
 from .files import get_file_type
 from ctapipe.utils.datasets import get_path
-from ctapipe.core.linalg import rotation_matrix_2d
+from ctapipe.utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'get_camera_geometry',
@@ -43,19 +43,30 @@ class CameraGeometry:
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
-
-    The default constructor requires all parameters to be included
-    However, several convenience constructors are included that will
-    create a CameraGeometry object with information filled in:
-
-    * `CameraGeometry.guess(pix_x, pix_y)'
-    * `CameraGeometry.from_name(instrument_name, tel_id)'
-    * `CameraGeometry.from_file(filename, tel_id)'
-
     """
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y,
                  pix_area, neighbors, pix_type):
+        """
+        Parameters
+        ----------
+        self: type
+            description
+        cam_id: camera id name or number
+            camera identification string
+        pix_id: array(int)
+            pixels id numbers
+        pix_x: array with units
+            position of each pixel (x-coordinate)
+        pix_y: array with units
+            position of each pixel (y-coordinate)
+        pix_area: array(float)
+            surface area of each pixe
+        neighbors: list(arrays)
+            adjacency list for each pixel
+        pix_type: string
+            either 'rectangular' or 'hexagonal'
+        """
         self.cam_id = cam_id
         self.pix_id = pix_id
         self.pix_x = pix_x
