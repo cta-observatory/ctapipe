@@ -22,7 +22,7 @@ def draw_neighbors(geom, pixel_index, color='r', **kwargs):
 if __name__ == '__main__':
 
     # load the camera
-    geom = io.get_camera_geometry("hess", 1)
+    geom = io.CameraGeometry.from_name("hess", 1)
     disp = visualization.CameraDisplay(geom)
 
     # create a fake camera image to display:

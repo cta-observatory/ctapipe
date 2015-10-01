@@ -17,7 +17,7 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     # load the camera
-    geom = io.get_camera_geometry("hess", 1)
+    geom = io.CameraGeometry.from_name("hess", 1)
     disp = visualization.CameraDisplay(geom, axes=ax)
     disp.set_cmap(plt.cm.terrain)
 

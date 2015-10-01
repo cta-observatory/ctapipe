@@ -8,13 +8,12 @@ TODO:
    pass-by-value (which could be slow).
 
 """
-from collections import namedtuple
-
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from scipy.spatial import cKDTree as KDTree
+from numpy import deprecate
 
 from .files import get_file_type
 from ctapipe.utils.datasets import get_path
@@ -22,7 +21,6 @@ from ctapipe.core.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'get_camera_geometry',
-           'load_camera_geometry_from_file',
            'make_rectangular_camera_geometry',
            'find_neighbor_pixels', 'guess_camera_geometry',
            ]
@@ -37,8 +35,22 @@ _npix_to_type = {2048: ('SST', 'rectangular'),
 
 
 class CameraGeometry:
+    """`CameraGeometry` is a class that stores information about a
+    Cherenkov Camera that us useful for imaging algorithms and
+    displays. It contains lists of pixel positions, areas, pixel
+    shapes, as well as a neighbor (adjacency) list for each pixel.
 
-    """Documentation for CameraGeometry
+    The class is intended to be generic, and work with any Cherenkov
+    Camera geometry, including those that have square vs hexagonal
+    pixels, gaps between pixels, etc.
+
+    The default constructor requires all parameters to be included
+    However, several convenience constructors are included that will
+    create a CameraGeometry object with information filled in:
+
+    * `CameraGeometry.guess(pix_x, pix_y)'
+    * `CameraGeometry.from_name(instrument_name, tel_id)'
+    * `CameraGeometry.from_file(filename, tel_id)'
 
     """
 
@@ -52,24 +64,63 @@ class CameraGeometry:
         self.neighbors = neighbors
         self.pix_type = pix_type
 
+    @classmethod
+    def guess(cls, pix_x, pix_y):
+        """
+        Construct a `CameraGeometry` by guessing the appropriate quantities
+        from a list of pixel positions.
+        """
+        return guess_camera_geometry(pix_x, pix_y)
+
+    @classmethod
+    def from_name(cls, name, tel_id):
+        """
+        Construct a `CameraGeometry` from the name of the instrument and
+        telescope id, if it can be found in a standard database.
+        """
+        return get_camera_geometry(name, tel_id)
+
+    @classmethod
+    def from_file(cls, filename, tel_id):
+        """
+        Construct a `CameraGeometry` from the a data file
+        """
+        filetype = get_file_type(filename)
+        if filetype == 'simtel':
+            return _load_camera_geometry_from_hessio_file(tel_id, filename)
+        else:
+            raise TypeError("File type {} not supported".format(filetype))
+
     def rotate(self, angle):
-        """rotate the camera coordinates by specified angle. Modifies the
-        CameraGeometry in-place (so after this is called, the pix_x
-        and pix_y arrays are rotated. For a more general pixel
-        correction, you should use a coordinate transformation or
-        pointing correction.
+        """rotate the camera coordinates about the center of the camera by
+        specified angle. Modifies the CameraGeometry in-place (so
+        after this is called, the pix_x and pix_y arrays are
+        rotated.
+
+        Note:
+        -----
+
+        This is intended only to correct simulated data that are
+        rotated by a fixed angle.  For the more general case of
+        correction for camera pointing errors (rotations,
+        translations, skews, etc), you should use a true coordinate
+        transformation defined in `ctapipe.coordinates`.
 
         Parameters
         ----------
-        angle: quantity that can be converted to an `astropy.coordinates.Angle`
+
+        angle: value convertable to an `astropy.coordinates.Angle`
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
+
         """
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
 
-
+# ======================================================================
+# utility functions:
+# ======================================================================
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
     """use a KD-Tree to quickly find nearest neighbors of the pixels in a
@@ -101,14 +152,14 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def guess_camera_type(npix):
+def _guess_camera_type(npix):
     global _npix_to_type
     return _npix_to_type.get(npix, ('unknown', 'hexagonal'))
 
 
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
-    """ returns a CameraGeometry filled in from just the x,y positions 
+    """ returns a CameraGeometry filled in from just the x,y positions
 
     Assumes:
     --------
@@ -116,7 +167,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     - the first two pixels are adjacent
     """
 
-    cam_id, pix_type = guess_camera_type(len(pix_x))
+    cam_id, pix_type = _guess_camera_type(len(pix_x))
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
@@ -170,7 +221,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     name = instrument_name.lower()
     geomfile = get_path('{}_camgeom.fits.gz'.format(name))
 
-    geom = load_camera_geometry_from_file(cam_id, geomfile=geomfile)
+    geom = _load_camera_table_from_file(cam_id, geomfile=geomfile)
     neigh_list = geom['PIX_NEIG'].data
     neigh = np.ma.masked_array(neigh_list, neigh_list < 0),
 
@@ -195,10 +246,12 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     )
 
 
-def load_camera_geometry_from_file(cam_id, geomfile='chercam.fits.gz'):
+def _load_camera_table_from_file(cam_id, geomfile='chercam.fits.gz'):
     filetype = get_file_type(geomfile)
     if filetype == 'fits':
         return _load_camera_geometry_from_fits_file(cam_id, geomfile)
+    else:
+        raise NameError("file type not supported")
 
 
 def _load_camera_geometry_from_fits_file(cam_id, geomfile='chercam.fits.gz'):
@@ -222,6 +275,16 @@ def _load_camera_geometry_from_fits_file(cam_id, geomfile='chercam.fits.gz'):
     camtable = Table.read(geomfile, hdu="CHERCAM")
     geom = camtable[camtable['CAM_ID'] == cam_id]
     return geom
+
+
+def _load_camera_geometry_from_hessio_file(tel_id, filename):
+    import hessio  # warning, non-rentrant!
+    hessio.file_open(filename)
+    events = hessio.move_to_next_event()
+    next(events)  # load at least one event to get all the headers
+    pix_x, pix_y = hessio.get_pixel_position(tel_id)
+    hessio.close_file()
+    return CameraGeometry.guess(pix_x * u.m, pix_y * u.m)
 
 
 def make_rectangular_camera_geometry(npix_x=40, npix_y=40,

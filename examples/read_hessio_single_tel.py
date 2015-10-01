@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
         if disp is None:
             x, y = event.meta.pixel_pos[args.tel]
-            geom = io.guess_camera_geometry(x * u.m, y * u.m)
+            geom = io.CameraGeometry.guess(x * u.m, y * u.m)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             disp.enable_pixel_picker()
             plt.show(block=False)

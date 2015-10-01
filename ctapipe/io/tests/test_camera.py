@@ -1,5 +1,6 @@
 from ..camera import *
 import numpy as np
+from astropy import units as u
 
 
 def test_make_rectangular_camera_geometry():
@@ -8,7 +9,20 @@ def test_make_rectangular_camera_geometry():
 
 
 def test_load_hess_camera():
-    get_camera_geometry("hess", 1)
+    geom = CameraGeometry.from_name("hess", 1)
+    assert len(geom.pix_x) == 960
+
+
+def test_rotate_camera():
+    geom = make_rectangular_camera_geometry(10, 10)
+    geom.rotate('10d')
+
+
+def test_guess_camera():
+    px = np.linspace(-10, 10, 2048) * u.m
+    py = np.linspace(-10, 10, 2048) * u.m
+    geom = CameraGeometry.guess(px, py)
+    assert geom.pix_type.startswith('rect')
 
 
 def test_find_neighbor_pixels():
