@@ -12,12 +12,13 @@ from collections import namedtuple
 
 import numpy as np
 from astropy import units as u
+from astropy.coordinates import Angle
 from astropy.table import Table
 from scipy.spatial import cKDTree as KDTree
 
 from .files import get_file_type
 from ctapipe.utils.datasets import get_path
-
+from ctapipe.core.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'get_camera_geometry',
@@ -35,16 +36,39 @@ _npix_to_type = {2048: ('SST', 'rectangular'),
                  11328: ('SST', 'rectangular')}
 
 
-CameraGeometry = namedtuple("CameraGeometry",
-                            ['cam_id', 'pix_id',
-                             'pix_x', 'pix_y',
-                             'pix_area',
-                             'neighbors',
-                             'pix_type'])
-"""Camera geometry.
+class CameraGeometry:
 
-TODO: describe a bit what this is ...
-"""
+    """Documentation for CameraGeometry
+
+    """
+
+    def __init__(self, cam_id, pix_id, pix_x, pix_y,
+                 pix_area, neighbors, pix_type):
+        self.cam_id = cam_id
+        self.pix_id = pix_id
+        self.pix_x = pix_x
+        self.pix_y = pix_y
+        self.pix_area = pix_area
+        self.neighbors = neighbors
+        self.pix_type = pix_type
+
+    def rotate(self, angle):
+        """rotate the camera coordinates by specified angle. Modifies the
+        CameraGeometry in-place (so after this is called, the pix_x
+        and pix_y arrays are rotated. For a more general pixel
+        correction, you should use a coordinate transformation or
+        pointing correction.
+
+        Parameters
+        ----------
+        angle: quantity that can be converted to an `astropy.coordinates.Angle`
+            rotation angle with unit (e.g. 12 * u.deg), or "12d"
+        """
+        rotmat = rotation_matrix_2d(angle)
+        rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
+        self.pix_x = rotated[0] * self.pix_x.unit
+        self.pix_y = rotated[1] * self.pix_x.unit
+
 
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
@@ -85,7 +109,7 @@ def guess_camera_type(npix):
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     """ returns a CameraGeometry filled in from just the x,y positions 
-    
+
     Assumes:
     --------
     - the pixels are square or hexagonal
@@ -95,13 +119,13 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     cam_id, pix_type = guess_camera_type(len(pix_x))
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
-    dist = np.sqrt(dx**2 + dy**2)  # dist between two pixels
+    dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
 
     if pix_type.startswith('hex'):
-        rad = dist/np.sqrt(3)  # radius to vertex of hexagon
-        area = rad**2 * (3*np.sqrt(3)/2.0)  # area of hexagon
+        rad = dist / np.sqrt(3)  # radius to vertex of hexagon
+        area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
     elif pix_type.startswith('rect'):
-        area = dist**2
+        area = dist ** 2
     else:
         raise KeyError("unsupported pixel type")
 
