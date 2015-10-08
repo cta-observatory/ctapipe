@@ -5,14 +5,14 @@ Visualization routines using matplotlib
 
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
 from numpy import sqrt
 import numpy as np
 import logging
 import copy
 from astropy import units as u
 
-__all__ = ['CameraDisplay']
+__all__ = ['CameraDisplay', 'ArrayDisplay']
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class CameraDisplay:
     Notes
     -----
 
-    Speed: 
+    Speed:
         CameraDisplay is not intended to be very fast (matplotlib
         is not a very speed performant graphics library, it is
         intended for nice output plots). However, most of the
@@ -49,14 +49,14 @@ class CameraDisplay:
         instance, and change the data, rather than generating new
         CameraDisplays.
 
-    Pixel Implementation: 
+    Pixel Implementation:
         Pixels are rendered as a
         `matplotlib.collections.PatchCollection` of Polygons (either 6
         or 4 sided).  You can access the PatchCollection directly (to
         e.g. change low-level style parameters) via
         `CameraDisplay.pixels`
 
-    Output: 
+    Output:
         Since CameraDisplay uses matplotlib, any display can be
         saved to any output file supported via
         plt.savefig(filename). This includes `.pdf` and `.png`.
@@ -150,7 +150,7 @@ class CameraDisplay:
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     def set_cmap(self, cmap):
-        """ Change the color map 
+        """ Change the color map
 
         Parameters
         ----------
@@ -257,3 +257,43 @@ class CameraDisplay:
         when a pixel is clicked
         """
         print("Clicked pixel_id {}".format(pix_id))
+
+
+class ArrayDisplay:
+
+    """
+    Display a top-town view of a telescope array
+    """
+
+    def __init__(self, telx, tely, mirrorarea,
+                 axes=None, title="Array", autoupdate=True):
+
+        patches = [Circle(xy=(x, y), radius=np.sqrt(a))
+                   for x, y, a in zip(telx, tely, mirrorarea)]
+
+        self.autoupdate = autoupdate
+        self.telescopes = PatchCollection(patches)
+        self.telescopes.set_clim(0, 100)
+        self.telescopes.set_array(np.zeros(len(telx)))
+        self.telescopes.set_cmap('spectral_r')
+        self.telescopes.set_edgecolor('none')
+
+        self.axes = axes if axes is not None else plt.gca()
+        self.axes.add_collection(self.telescopes)
+        self.axes.set_aspect(1.0)
+        self.axes.set_title(title)
+        self.axes.set_xlim(-1000, 1000)
+        self.axes.set_ylim(-1000, 1000)
+
+        self.bar = plt.colorbar(self.telescopes)
+        self.bar.set_label("Intensity")
+
+    def set_intensities(self, intensities):
+        """ set the telescope colors to display  """
+        self.telescopes.set_array(intensities)
+        self._update()
+
+    def _update(self):
+        """ signal a redraw if necessary """
+        if self.autoupdate:
+            plt.draw()
