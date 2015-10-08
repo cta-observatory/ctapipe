@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
 
+    plt.style.use("ggplot")
     arrayfile = datasets.get_path("PROD2_telconfig.fits.gz")
     tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
 
@@ -17,7 +18,9 @@ if __name__ == '__main__':
 
     intensities = np.zeros(len(tels))
 
-    for ii in range(100):
+    # do a small animation to show various trigger patterns:
+    
+    for ii in range(20):
         # generate a random trigger pattern and integrated intensity:
         ntrig = np.random.poisson(10)
         trigmask = np.random.random_integers(len(tels) - 1, size=ntrig)
