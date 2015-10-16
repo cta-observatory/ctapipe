@@ -28,10 +28,11 @@ test:
 	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py test -V
 
 doc:
-	python setup.py build_sphinx
+	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py build_sphinx
 
 docshow:
-	python setup.py build_sphinx --open-docs-in-browser
+	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py \
+		build_sphinx --open-docs-in-browser
 
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html

@@ -1,6 +1,5 @@
 """Example how to make a mock shower image and plot it.
 """
-import numpy as np
 import matplotlib.pyplot as plt
 from ctapipe.io.camera import make_rectangular_camera_geometry
 from ctapipe.reco import generate_2d_shower_model, make_mock_shower_image
