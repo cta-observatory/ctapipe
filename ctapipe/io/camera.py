@@ -1,12 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-"""Utilities for reading or working with Camera geometry files
-
-TODO:
------
-
- - don't use `namedtuple` for CameraGeometry, since it's immutable and thus is
-   pass-by-value (which could be slow).
-
+"""
+Utilities for reading or working with Camera geometry files
 """
 import numpy as np
 from astropy import units as u
@@ -132,6 +126,7 @@ class CameraGeometry:
 # ======================================================================
 # utility functions:
 # ======================================================================
+
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
     """use a KD-Tree to quickly find nearest neighbors of the pixels in a
