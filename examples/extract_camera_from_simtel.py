@@ -1,19 +1,15 @@
+"""
+Simple example to read some camera geometry info from a
+SimTelArray data file (using pyhessio) and write it to a set of FITS tables.
+"""
 import hessio as h
 import sys
 from astropy.table import Table
 from astropy import units as u
-import numpy as np
 from ctapipe import io
-from astropy.io import fits
-
 
 # TODO: use io.fits instead and make the table be variable length
 # TODO: make this a tool (ctapipe-eventio2tels)
-# TODO: make CameraGeometry a real class, with class methods to create one from a guess, etc. e.g. geom = CameraGeometry.guess_from_pixel_positions(px,py),
-# CameraGeometry.from_file("cam.fits", tel_id=1)
-# CameraGeometry.from_file("events.eventio.gz", tel_id=1)
-# move camerageometry stuff to ctapipe.instrument
-# instrument.Camera.load(filename)
 
 if __name__ == '__main__':
 
@@ -23,15 +19,11 @@ if __name__ == '__main__':
     event = h.move_to_next_event()
     next(event)
 
-    tel_id = []
-    pix_x = []
-    pix_y = []
-
     for telid in range(1, h.get_num_telescope()):
         try:
             px, py = h.get_pixel_position(telid)
             camtab = Table(names=['PIX_POS_X', 'PIX_POS_Y'],
-                             data=[px * u.m, py * u.m])
+                           data=[px * u.m, py * u.m])
             camtab.meta['N_PIX'] = h.get_num_pixels(telid)
             camtab.meta['N_SAMPS'] = h.get_num_samples(telid)
             camtab.meta['N_TIMES'] = h.get_pixel_timing_num_times_types(telid)
