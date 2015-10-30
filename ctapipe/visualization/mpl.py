@@ -176,6 +176,7 @@ class CameraDisplay:
                              "given CameraGeometry {}"
                              .format(image.shape, self.geom.pix_x.shape))
         self.pixels.set_array(image)
+        plt.sci(self.pixels)
         self.update()
 
     def update(self):
