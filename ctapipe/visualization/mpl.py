@@ -68,7 +68,6 @@ class CameraDisplay:
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
-        self.cmap = plt.cm.jet
         self.autoupdate = autoupdate
         self._active_pixel = None
         self._active_pixel_label = None
@@ -94,7 +93,7 @@ class CameraDisplay:
 
             patches.append(poly)
 
-        self.pixels = PatchCollection(patches, cmap=self.cmap, linewidth=0)
+        self.pixels = PatchCollection(patches, cmap='hot', linewidth=0)
         self.axes.add_collection(self.pixels)
 
         # Set up some nice plot defaults
@@ -149,7 +148,12 @@ class CameraDisplay:
         frac = percent / 100.0
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
-    def set_cmap(self, cmap):
+    @property
+    def cmap(self):
+        return self.pixels.get_cmap()
+
+    @cmap.setter
+    def cmap(self, cmap):
         """ Change the color map
 
         Parameters
@@ -161,6 +165,11 @@ class CameraDisplay:
         """
         self.pixels.set_cmap(cmap)
 
+    @property
+    def image(self):
+        return self.pixels.get_array()
+
+    @image.setter
     def set_image(self, image):
         """
         Change the image displayed on the Camera.
