@@ -25,7 +25,9 @@ class CameraDisplay:
     ----------
     geometry : `~ctapipe.io.CameraGeometry`
         Definition of the Camera/Image
-    axis : `matplotlib.axes.Axes`
+    image: array_like
+        array of values corresponding to the pixels in the CameraGeometry.
+    axes : `matplotlib.axes.Axes`
         A matplotlib axes object to plot on, or None to create a new one
     title : str
         Title to put on camera plot
@@ -63,7 +65,7 @@ class CameraDisplay:
 
     """
 
-    def __init__(self, geometry, axes=None, title="Camera",
+    def __init__(self, geometry, image=None, axes=None, title="Camera",
                  allow_pick=False, autoupdate=True, antialiased=True):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
@@ -126,6 +128,9 @@ class CameraDisplay:
 
         if allow_pick:
             self.enable_pixel_picker()
+
+        if image is not None:
+            self.image = image
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
