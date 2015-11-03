@@ -22,7 +22,7 @@ def _display_cam_animation():
     # load the camera
     geom = io.get_camera_geometry("hess", 1)
     disp = visualization.CameraDisplay(geom, axes=ax)
-    disp.set_cmap(plt.cm.terrain)
+    disp.cmap = plt.cm.terrain
 
     def update(frame):
         centroid = np.random.uniform(-0.5, 0.5, size=2)
@@ -38,7 +38,8 @@ def _display_cam_animation():
                                                      intensity=intens,
                                                      nsb_level_pe=5000)
         image /= image.max()
-        disp.set_image(image)
+        disp.image = image
+        disp.set_limits_percent(100)
         
     anim = FuncAnimation(fig, update, interval=50)
     plt.show()

@@ -131,6 +131,8 @@ class CameraDisplay:
 
         if image is not None:
             self.image = image
+        else:
+            self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
@@ -175,7 +177,7 @@ class CameraDisplay:
         return self.pixels.get_array()
 
     @image.setter
-    def set_image(self, image):
+    def image(self, image):
         """
         Change the image displayed on the Camera.
 
@@ -190,9 +192,19 @@ class CameraDisplay:
                              "given CameraGeometry {}"
                              .format(image.shape, self.geom.pix_x.shape))
         self.pixels.set_array(image)
-        plt.sci(self.pixels)
+
+        try:
+            plt.sci(self.pixels)  # BUG: fails if multiple displays per figure
+        except ValueError:
+            pass
+
         self.update()
 
+    def set_image(self, image):
+        logger.warn("set_image(x) is deprecated:"
+                    " use CameraDisplay.image = x instead")
+        self.image = image
+        
     def update(self):
         """ signal a redraw if necessary """
         if self.autoupdate:

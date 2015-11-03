@@ -5,9 +5,6 @@
 # if no filename is given, a default example file will be used
 # containing ~10 events
 #
-import sys
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 from ctapipe.utils.datasets import get_datasets_path
 from ctapipe.io.hessio import hessio_event_source
@@ -17,6 +14,9 @@ from astropy import units as u
 from numpy import ceil, sqrt
 import random
 
+import sys
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 fig = plt.figure(figsize=(12, 8))
 cmaps = [plt.cm.jet, plt.cm.winter,
@@ -37,7 +37,7 @@ def display_event(event):
     plt.suptitle("EVENT {}".format(event.dl0.event_id))
 
     disps = []
-    
+
     for ii, tel_id in enumerate(event.dl0.tels_with_data):
         print("\t draw cam {}...".format(tel_id))
         nn = int(ceil(sqrt(ntels)))
@@ -49,15 +49,17 @@ def display_event(event):
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
-        disp.set_cmap(random.choice(cmaps))
+        disp.cmap = random.choice(cmaps)
         chan = 0
-        signals = event.dl0.tel[tel_id].adc_sums[chan]
+        signals = event.dl0.tel[tel_id].adc_sums[chan].astype(float)
         signals -= signals.mean()
-        disp.set_image(signals)
+        disp.image = signals
+        disp.set_limits_percent(95)
         disp.add_colorbar()
         disps.append(disp)
 
     return disps
+
 
 def get_input():
     print("============================================")

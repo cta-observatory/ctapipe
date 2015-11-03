@@ -43,7 +43,7 @@ if __name__ == '__main__':
     print(hillas)
 
     # show the camera image and overlay Hillas ellipse
-    disp.set_image(image)
+    disp.image = image
     disp.overlay_moments(hillas, color='black', linewidth=3)
 
     # draw the neighbors of pixel 100 in red, and the
@@ -51,6 +51,6 @@ if __name__ == '__main__':
     for ii in geom.neighbors[130]:
         draw_neighbors(geom, ii, color='green')
 
-    draw_neighbors(geom, 130, color='red', lw=2)
+    draw_neighbors(geom, 130, color='cyan', lw=2)
 
     plt.show()

@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # load the camera
     geom = io.CameraGeometry.from_name("hess", 1)
     disp = visualization.CameraDisplay(geom, axes=ax)
-    disp.set_cmap(plt.cm.terrain)
+    disp.cmap = plt.cm.terrain
 
     def update(frame):
         centroid = np.random.uniform(-0.5, 0.5, size=2)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
                                                      intensity=intens,
                                                      nsb_level_pe=5000)
         image /= image.max()
-        disp.set_image(image)
+        disp.image = image
 
     anim = FuncAnimation(fig, update, interval=50)
     plt.show()
