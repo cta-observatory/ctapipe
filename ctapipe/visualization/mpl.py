@@ -25,7 +25,9 @@ class CameraDisplay:
     ----------
     geometry : `~ctapipe.io.CameraGeometry`
         Definition of the Camera/Image
-    axis : `matplotlib.axes.Axes`
+    image: array_like
+        array of values corresponding to the pixels in the CameraGeometry.
+    axes : `matplotlib.axes.Axes`
         A matplotlib axes object to plot on, or None to create a new one
     title : str
         Title to put on camera plot
@@ -63,12 +65,11 @@ class CameraDisplay:
 
     """
 
-    def __init__(self, geometry, axes=None, title="Camera",
+    def __init__(self, geometry, image=None, axes=None, title="Camera",
                  allow_pick=False, autoupdate=True, antialiased=True):
         self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
-        self.cmap = plt.cm.jet
         self.autoupdate = autoupdate
         self._active_pixel = None
         self._active_pixel_label = None
@@ -94,7 +95,7 @@ class CameraDisplay:
 
             patches.append(poly)
 
-        self.pixels = PatchCollection(patches, cmap=self.cmap, linewidth=0)
+        self.pixels = PatchCollection(patches, cmap='hot', linewidth=0)
         self.axes.add_collection(self.pixels)
 
         # Set up some nice plot defaults
@@ -128,6 +129,9 @@ class CameraDisplay:
         if allow_pick:
             self.enable_pixel_picker()
 
+        if image is not None:
+            self.image = image
+
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
         self.pixels.set_picker(True)  # enable click
@@ -149,7 +153,12 @@ class CameraDisplay:
         frac = percent / 100.0
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
-    def set_cmap(self, cmap):
+    @property
+    def cmap(self):
+        return self.pixels.get_cmap()
+
+    @cmap.setter
+    def cmap(self, cmap):
         """ Change the color map
 
         Parameters
@@ -161,6 +170,11 @@ class CameraDisplay:
         """
         self.pixels.set_cmap(cmap)
 
+    @property
+    def image(self):
+        return self.pixels.get_array()
+
+    @image.setter
     def set_image(self, image):
         """
         Change the image displayed on the Camera.
@@ -176,6 +190,7 @@ class CameraDisplay:
                              "given CameraGeometry {}"
                              .format(image.shape, self.geom.pix_x.shape))
         self.pixels.set_array(image)
+        plt.sci(self.pixels)
         self.update()
 
     def update(self):
