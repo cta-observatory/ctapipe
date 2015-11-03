@@ -273,7 +273,7 @@ class Histogram:
         ndims = len(self._nbins)
 
         bins = np.array([np.digitize(world[:, ii],
-                                     self.binLowerEdges[ii][1:-1])
+                                     self.binLowerEdges[ii][1:])
                          for ii in range(ndims)])
 
         maxbin = np.array(self.hist.shape)

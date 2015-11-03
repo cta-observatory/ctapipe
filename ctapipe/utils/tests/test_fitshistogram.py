@@ -42,7 +42,7 @@ def test_histogram_range_fill_and_read():
     for nxbins in np.arange(1, 50, 1):
         for xx in np.arange(-2.0, 2.0, 0.1):
             pp = (xx + 0.01829384, 0.1)
-            coords = np.ones((N, 2)) * pp
+            coords = np.ones((N, 2)) * np.array(pp)
             hist = Histogram(nbins=[nxbins, 10],
                              ranges=[[-2.5, 2.5], [-1, 1]])
             hist.fill(coords)
