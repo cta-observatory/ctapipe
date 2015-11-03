@@ -48,12 +48,11 @@ if __name__ == '__main__':
             geom = io.CameraGeometry.guess(x * u.m, y * u.m)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             disp.enable_pixel_picker()
-            disp.set_image(zeros_like(geom.pix_x.value))
             disp.add_colorbar()
             plt.show(block=False)
 
         # display the event
-        disp.set_image(event.dl0.tel[args.tel].adc_sums[args.channel])
+        disp.image = event.dl0.tel[args.tel].adc_sums[args.channel]
         disp.axes.set_title('CT{:03d}, event {:010d}'
                             .format(args.tel, event.dl0.event_id))
         disp.set_limits_percent(70)

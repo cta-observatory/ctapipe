@@ -22,6 +22,8 @@ def draw_several_cams(geom):
     for ii in range(ncams):
         disp = visualization.CameraDisplay(geom, axes=ax[ii],
                                            title="CT{}".format(ii + 1))
+        disp.cmap = cmaps[ii]
+
 
         model = mock.generate_2d_shower_model(centroid=(0.2 - ii * 0.1,
                                                         -ii * 0.05),
@@ -37,8 +39,7 @@ def draw_several_cams(geom):
         clean[image <= 3.0 * image.mean()] = 0.0
         hillas = hillas_parameters(geom.pix_x.value, geom.pix_y.value, clean)
 
-        disp.set_cmap(cmaps[ii])
-        disp.set_image(image)
+        disp.image = image
         disp.overlay_moments(hillas, linewidth=3, color='blue')
 
 
