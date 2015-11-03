@@ -8,16 +8,16 @@ sequence to find ones with the appropriate telescope, therefore this
 is not a fast operation)
 
 """
-import sys
-import logging
-import argparse
-logging.basicConfig(level=logging.DEBUG)
-
 from ctapipe.utils.datasets import get_datasets_path
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
 from astropy import units as u
+from numpy import zeros_like
+
+import logging
+import argparse
+logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == '__main__':
@@ -48,6 +48,8 @@ if __name__ == '__main__':
             geom = io.CameraGeometry.guess(x * u.m, y * u.m)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             disp.enable_pixel_picker()
+            disp.set_image(zeros_like(geom.pix_x.value))
+            disp.add_colorbar()
             plt.show(block=False)
 
         # display the event
