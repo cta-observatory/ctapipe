@@ -21,8 +21,8 @@ def test_camera_display_multiple():
     geom = io.CameraGeometry.from_name("HESS", 1)
     fig, ax = plt.subplots(2, 1)
 
-    d1 = CameraDisplay(geom, axes=ax[0])
-    d2 = CameraDisplay(geom, axes=ax[1])
+    d1 = CameraDisplay(geom, ax=ax[0])
+    d2 = CameraDisplay(geom, ax=ax[1])
 
     image = ones(len(geom.pix_x), dtype=float)
     d1.image = image
