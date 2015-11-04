@@ -46,6 +46,7 @@ distribute-*.tar.gz
 # Other
 .*.swp
 *~
+\#*
 
 # Mac OSX
 .DS_Store
@@ -55,3 +56,5 @@ distribute-*.tar.gz
 
 # ipython notebook checkpoints
 .ipynb_checkpoints
+.cache*
+.cache
