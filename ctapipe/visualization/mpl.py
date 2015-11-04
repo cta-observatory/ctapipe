@@ -204,15 +204,20 @@ class CameraDisplay:
         logger.warn("set_image(x) is deprecated:"
                     " use CameraDisplay.image = x instead")
         self.image = image
-        
+
     def update(self):
         """ signal a redraw if necessary """
         if self.autoupdate:
             plt.draw()
 
-    def add_colorbar(self):
-        """ add a colobar to the camera plot """
-        self.axes.figure.colorbar(self.pixels)
+    def add_colorbar(self, **kwargs):
+        """
+        add a colobar to the camera plot
+        kwargs are passed to figure.colorbar(self.pixels, **kwargs)
+        See matplotlib documentation for the supported kwargs:
+        http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
+        """
+        self.axes.figure.colorbar(self.pixels, **kwargs)
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
                     **kwargs):
@@ -318,7 +323,7 @@ class ArrayDisplay:
     @property
     def intensities(self):
         return self.telescopes.get_array()
-        
+
     @intensities.setter
     def intensities(self, intensities):
         """ set the telescope colors to display  """
