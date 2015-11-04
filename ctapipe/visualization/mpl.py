@@ -188,15 +188,14 @@ class CameraDisplay:
         """
         image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
-            raise ValueError("Image has a different shape {} than the"
-                             "given CameraGeometry {}"
-                             .format(image.shape, self.geom.pix_x.shape))
-        self.pixels.set_array(image)
+            raise ValueError(
+                "Image has a different shape {} than the"
+                "given CameraGeometry {}"
+                .format(image.shape, self.geom.pix_x.shape)
+            )
 
-        try:
-            plt.sci(self.pixels)  # BUG: fails if multiple displays per figure
-        except ValueError:
-            pass
+        self.pixels.set_array(image)
+        self.axes._sci(self.pixels)
 
         self.update()
 
