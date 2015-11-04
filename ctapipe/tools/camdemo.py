@@ -21,7 +21,7 @@ def _display_cam_animation():
 
     # load the camera
     geom = io.get_camera_geometry("hess", 1)
-    disp = visualization.CameraDisplay(geom, axes=ax)
+    disp = visualization.CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
 
     def update(frame):

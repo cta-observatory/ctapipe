@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     # load the camera
     geom = io.CameraGeometry.from_name("hess", 1)
-    disp = visualization.CameraDisplay(geom, axes=ax)
+    disp = visualization.CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
 
     def update(frame):

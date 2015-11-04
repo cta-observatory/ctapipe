@@ -27,7 +27,7 @@ class CameraDisplay:
         Definition of the Camera/Image
     image: array_like
         array of values corresponding to the pixels in the CameraGeometry.
-    axes : `matplotlib.axes.Axes`
+    ax : `matplotlib.axes.Axes`
         A matplotlib axes object to plot on, or None to create a new one
     title : str
         Title to put on camera plot
@@ -65,9 +65,9 @@ class CameraDisplay:
 
     """
 
-    def __init__(self, geometry, image=None, axes=None, title="Camera",
+    def __init__(self, geometry, image=None, ax=None, title="Camera",
                  allow_pick=False, autoupdate=True, antialiased=True):
-        self.axes = axes if axes is not None else plt.gca()
+        self.axes = ax if ax is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
         self.autoupdate = autoupdate

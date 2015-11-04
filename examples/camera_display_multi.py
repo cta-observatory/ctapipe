@@ -20,7 +20,7 @@ def draw_several_cams(geom):
     fig, ax = plt.subplots(1, ncams, figsize=(15, 4), sharey=True, sharex=True)
 
     for ii in range(ncams):
-        disp = visualization.CameraDisplay(geom, axes=ax[ii],
+        disp = visualization.CameraDisplay(geom, ax=ax[ii],
                                            title="CT{}".format(ii + 1))
         disp.cmap = cmaps[ii]
 

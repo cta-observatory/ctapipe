@@ -45,7 +45,7 @@ def display_event(event):
 
         x, y = event.meta.pixel_pos[tel_id]
         geom = io.CameraGeometry.guess(x * u.m, y * u.m)
-        disp = visualization.CameraDisplay(geom, axes=ax,
+        disp = visualization.CameraDisplay(geom, ax=ax,
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
