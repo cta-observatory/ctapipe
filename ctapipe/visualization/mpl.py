@@ -196,8 +196,6 @@ class CameraDisplay:
             )
 
         self.pixels.set_array(image)
-        self.axes._sci(self.pixels)
-
         self.update()
 
     def set_image(self, image):
