@@ -47,6 +47,7 @@ distribute-*.tar.gz
 .*.swp
 *~
 \#*
+.\#*
 
 # Mac OSX
 .DS_Store
