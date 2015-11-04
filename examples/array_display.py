@@ -27,5 +27,5 @@ if __name__ == '__main__':
         intensities[:] = 0
         intensities[trigmask] = np.random.uniform(0, 100, size=ntrig)
         # update the display:
-        adisp.set_intensities(intensities)
+        adisp.intensities = intensities
         plt.pause(0.5)
