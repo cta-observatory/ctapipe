@@ -16,7 +16,8 @@ from astropy import units as u
 
 from .utils import get_parser
 
-counter = 0
+_counter = 0
+
 
 def _display_cam_animation():
     plt.style.use("ggplot")
@@ -28,7 +29,7 @@ def _display_cam_animation():
     disp.cmap = plt.cm.terrain
 
     def update(frame):
-        global counter
+        global _counter
         centroid = np.random.uniform(-0.5, 0.5, size=2)
         width = np.random.uniform(0, 0.01)
         length = np.random.uniform(0, 0.03) + width
@@ -41,19 +42,20 @@ def _display_cam_animation():
         image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
                                                      intensity=intens,
                                                      nsb_level_pe=5000)
-        # alternate between cleaned and uncleaned images
-        if counter > 10:
+
+        # alternate between cleaned and raw images
+        if _counter > 20:
             plt.suptitle("Image Cleaning ON")
             cleanmask = reco.tailcuts_clean(geom, image, pedvars=80)
             image[cleanmask == 0] = 0  # zero noise pixels
-        if counter >= 20:
+        if _counter >= 40:
             plt.suptitle("Image Cleaning OFF")
-            counter = 0
+            _counter = 0
 
         image /= image.max()
         disp.image = image
         disp.set_limits_percent(100)
-        counter += 1
+        _counter += 1
 
     anim = FuncAnimation(fig, update, interval=100)
     plt.show()

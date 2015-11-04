@@ -29,8 +29,11 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
     Returns:
     --------
 
-    A boolean mask of "clean" pixels (to get a clean image just use
-    `image[mask]`, or to get their pixel ids use `geom.pix_id[mask]`
+    A boolean mask of "clean" pixels (to get a clean image and pixel
+    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
+    image size, just set unclean pixels to 0 or similar, do
+    `image[mask] = 0`
+
     """
 
     clean_mask = image >= picture_thresh * pedvars  # starts as picture pixels
@@ -43,25 +46,3 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     clean_mask[boundary_ids] = True
     return clean_mask
-
-
-if __name__ == '__main__':
-
-    from ctapipe import io
-    import numpy as np
-
-    geom = io.CameraGeometry.from_name("HESS", 1)
-    image = np.zeros_like(geom.pix_id, dtype=np.float)
-    pedvar = np.ones_like(geom.pix_id, dtype=np.float)
-
-    # some test data
-    N = 40
-    some_neighs = geom.neighbors[N][0:3]  # pick 4 neighbors
-    image[N] = 5.0              # set a single image pixel
-    image[some_neighs] = 3.0    # make some boundaries that are neighbors
-    image[10] = 3.0             # a boundary that is not a neighbor
-
-    mask = tailcuts_clean(geom, image, pedvar)
-
-    print((mask > 0).sum(), "clean pixels")
-    print(geom.pix_id[mask])
