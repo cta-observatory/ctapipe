@@ -67,7 +67,7 @@ class CameraDisplay:
 
     def __init__(self, geometry, image=None, ax=None, title="Camera",
                  allow_pick=False, autoupdate=True, antialiased=True):
-        self.axes = ax if ax is not None else plt.gca()
+        self.axes = axes if axes is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
         self.autoupdate = autoupdate
@@ -171,6 +171,7 @@ class CameraDisplay:
             a color map, e.g. from `matplotlib.pyplot.cm.*`
         """
         self.pixels.set_cmap(cmap)
+        self.update()
 
     @property
     def image(self):
