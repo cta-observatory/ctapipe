@@ -3,16 +3,17 @@ import matplotlib.pyplot as plt
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_datasets_path
 from ctapipe.calib import pedestals
-
+import numpy as np
 
 def plot_peds(peds, pedvars):
     """ make a quick plot of the pedestal values"""
+    pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
-    plt.plot(peds)
+    plt.scatter(pixid, peds)
     plt.title("Pedestals for event {}".format(event.dl0.event_id))
 
     plt.subplot(1, 2, 2)
-    plt.plot(pedvars)
+    plt.scatter(pixid, pedvars)
     plt.title("Ped Variances for event {}".format(event.dl0.event_id))
 
 
@@ -29,8 +30,8 @@ if __name__ == '__main__':
     # chosen based on the telescope type, since some have shorter
     # sample windows:
 
-    start = 20
-    end = -1  # -1 mean last sample
+    start = 15
+    end = None  # None means through sample
 
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
