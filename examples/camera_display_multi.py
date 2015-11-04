@@ -40,6 +40,7 @@ def draw_several_cams(geom):
         hillas = hillas_parameters(geom.pix_x.value, geom.pix_y.value, clean)
 
         disp.image = image
+        disp.set_limits_percent(95)
         disp.overlay_moments(hillas, linewidth=3, color='blue')
 
 
