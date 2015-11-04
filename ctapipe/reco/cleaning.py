@@ -2,8 +2,9 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
+__all__ = ['tailcuts_clean']
 
-def tailcuts_clean(geom, image, pedvar, picture_thresh=4.25,
+def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
                    boundary_thresh=2.25):
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
@@ -18,7 +19,7 @@ def tailcuts_clean(geom, image, pedvar, picture_thresh=4.25,
         Camera geometry information
     image: array
         pedestal-subtracted, flat-fielded pixel values
-    pedvar: array
+    pedvars: array
         pedestal dispersion corresponding to image
     picture_thresh: float
         high threshold as multiple of the pedvar
@@ -32,9 +33,11 @@ def tailcuts_clean(geom, image, pedvar, picture_thresh=4.25,
     `image[mask]`, or to get their pixel ids use `geom.pix_id[mask]`
     """
 
-    clean_mask = image >= picture_thresh * pedvar
-    boundary_mask = image >= boundary_thresh * pedvar
+    clean_mask = image >= picture_thresh * pedvars  # starts as picture pixels
 
+    # good boundary pixels are those that have any picture pixel as a
+    # neighbor
+    boundary_mask = image >= boundary_thresh * pedvars
     boundary_ids = [pix_id for pix_id in geom.pix_id[boundary_mask]
                     if clean_mask[geom.neighbors[pix_id]].any()]
 
@@ -51,6 +54,7 @@ if __name__ == '__main__':
     image = np.zeros_like(geom.pix_id, dtype=np.float)
     pedvar = np.ones_like(geom.pix_id, dtype=np.float)
 
+    # some test data
     N = 40
     some_neighs = geom.neighbors[N][0:3]  # pick 4 neighbors
     image[N] = 5.0              # set a single image pixel
@@ -61,5 +65,3 @@ if __name__ == '__main__':
 
     print((mask > 0).sum(), "clean pixels")
     print(geom.pix_id[mask])
-    
-

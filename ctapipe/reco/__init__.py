@@ -14,3 +14,4 @@ the hillas module. Things to resolve:
 """
 from .hillas import *
 from .mock import *
+from .cleaning import *
