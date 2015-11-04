@@ -8,9 +8,7 @@ import matplotlib.pylab as plt
 from ctapipe import io, visualization
 from ctapipe.reco import mock
 from ctapipe.reco.hillas import hillas_parameters_2 as hillas_parameters
-import numpy as np
 from astropy import units as u
-
 
 
 def draw_several_cams(geom):
@@ -23,7 +21,6 @@ def draw_several_cams(geom):
         disp = visualization.CameraDisplay(geom, ax=ax[ii],
                                            title="CT{}".format(ii + 1))
         disp.cmap = cmaps[ii]
-
 
         model = mock.generate_2d_shower_model(centroid=(0.2 - ii * 0.1,
                                                         -ii * 0.05),

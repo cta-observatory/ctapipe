@@ -1,5 +1,3 @@
-
-
 """
 Example of drawing a Camera using a mock shower image
 """
@@ -8,7 +6,6 @@ import matplotlib.pylab as plt
 from ctapipe import io, visualization
 from ctapipe.reco import mock
 from ctapipe.reco import hillas_parameters_2 as hillas_parameters
-import numpy as np
 
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):
@@ -24,6 +21,8 @@ if __name__ == '__main__':
     # load the camera
     geom = io.CameraGeometry.from_name("hess", 1)
     disp = visualization.CameraDisplay(geom)
+    disp.set_limits_minmax(0, 300)
+    disp.add_colorbar()
 
     # create a fake camera image to display:
     model = mock.generate_2d_shower_model(centroid=(0.2, 0.0),
@@ -31,7 +30,8 @@ if __name__ == '__main__':
                                           length=0.1,
                                           psi='35d')
 
-    image, sig, bg = mock.make_mock_shower_image(geom, model.pdf, intensity=50,
+    image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
+                                                 intensity=50,
                                                  nsb_level_pe=1000)
 
     # apply really stupid image cleaning (single threshold):
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     # show the camera image and overlay Hillas ellipse
     disp.image = image
-    disp.overlay_moments(hillas, color='black', linewidth=3)
+    disp.overlay_moments(hillas, color='seagreen', linewidth=3)
 
     # draw the neighbors of pixel 100 in red, and the
     # neighbor-neighbors in green
