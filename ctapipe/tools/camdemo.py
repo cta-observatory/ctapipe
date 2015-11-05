@@ -21,7 +21,8 @@ _counter = 0
 
 def _display_cam_animation():
     plt.style.use("ggplot")
-    fig, ax = plt.subplots()
+    fig = plt.figure(num="ctapipe Camera Demo", figsize=(7, 7))
+    ax = plt.subplot(111)
 
     # load the camera
     geom = io.get_camera_geometry("hess", 1)
