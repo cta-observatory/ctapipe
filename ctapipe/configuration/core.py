@@ -151,7 +151,7 @@ class Configuration(ArgumentParser):
         value for corresponding section/key pair
         None is no suitable value exists for section/key
         """
-        if key not in section:
+        if not self.has_key(key, section):
             return None
         return self._entries[section][key][self.VALUE_INDEX]
 
@@ -171,7 +171,7 @@ class Configuration(ArgumentParser):
         comment for corresponding section/key pair
         None is no suitable value exits for section/key
         """
-        if key not in section:
+        if not self.has_key(key, section):
             return None
         return self._entries[section][key][self.COMMENT_INDEX]
 
