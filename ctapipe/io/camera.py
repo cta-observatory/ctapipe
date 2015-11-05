@@ -14,10 +14,7 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
-           'get_camera_geometry',
-           'make_rectangular_camera_geometry',
-           'find_neighbor_pixels', 'guess_camera_geometry',
-           ]
+           'make_rectangular_camera_geometry']
 
 
 # dictionary to convert number of pixels to camera type for use in
