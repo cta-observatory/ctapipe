@@ -15,13 +15,13 @@ def test_tailcuts_clean():
     image[some_neighs] = 3.0    # make some boundaries that are neighbors
     image[10] = 3.0             # a boundary that is not a neighbor
 
-    mask = cleaning.tailcuts_clean(geom, image, pedvar)
+    mask = cleaning.tailcuts_clean(geom, image, pedvar,
+                                   picture_thresh=4.5,
+                                   boundary_thresh=2.5)
 
     print((mask > 0).sum(), "clean pixels")
     print(geom.pix_id[mask])
-    
+
     assert 10 not in geom.pix_id[mask]
     assert set(some_neighs).union({N}) == set(geom.pix_id[mask])
     assert (mask > 0).sum() == 4
-
-
