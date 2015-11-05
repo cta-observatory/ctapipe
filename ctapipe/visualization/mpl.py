@@ -316,16 +316,16 @@ class ArrayDisplay:
         self.axes.set_ylim(-1000, 1000)
 
         self.bar = plt.colorbar(self.telescopes)
-        self.bar.set_label("Intensity")
+        self.bar.set_label("Value")
 
     @property
-    def intensities(self):
+    def values(self):
         return self.telescopes.get_array()
 
-    @intensities.setter
-    def intensities(self, intensities):
+    @values.setter
+    def values(self, values):
         """ set the telescope colors to display  """
-        self.telescopes.set_array(intensities)
+        self.telescopes.set_array(values)
         self._update()
 
     def _update(self):

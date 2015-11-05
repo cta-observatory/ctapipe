@@ -1,24 +1,34 @@
-from ctapipe import io
 from ctapipe.visualization import ArrayDisplay
+from ctapipe.utils import datasets
+
+from astropy.table import Table
+from numpy import ones_like
 import matplotlib.pylab as plt
 
 if __name__ == '__main__':
 
     plt.style.use("ggplot")
-    layout = io.get_array_layout("hess")
-    X = layout['POSX']
-    Y = layout['POSY']
-    A = layout['MIRAREA']
-    A[:] = 132
+    plt.figure(figsize=(9.5, 8.5))
 
-    ad = ArrayDisplay(X, Y, A, title="HESS")
+    # load up an example table that has the telescope positions and
+    # mirror areas in it:
+    arrayfile = datasets.get_path("PROD2_telconfig.fits.gz")
+    tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
+
+    X = tels['TelX']
+    Y = tels['TelY']
+    A = tels['MirrorArea'] * 2  # exaggerate scale a bit
+
+    # display the array, and set the color value to 50
+    ad = ArrayDisplay(X, Y, A, title="Prod 2 Full Array")
+    ad.values = ones_like(X) * 50
 
     # label them
-    for tel in layout:
-        name = "CT{tid}:{tclass}".format(tid=tel['TELID'],
-                                         tclass=io.tel_class_name(tel['CLASS']))
-        plt.text(tel['POSX'], tel['POSY'], name)
+    for tel in tels:
+        name = "CT{tid}".format(tid=tel['TelID'])
+        plt.text(tel['TelX'], tel['TelY'], name, fontsize=8)
 
-    ad.axes.set_xlim(-300, 300)
-    ad.axes.set_ylim(-300, 300)
+    ad.axes.set_xlim(-1000, 1000)
+    ad.axes.set_ylim(-1000, 1000)
+    plt.tight_layout()
     plt.show()
