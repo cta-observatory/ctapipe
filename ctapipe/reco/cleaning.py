@@ -4,6 +4,7 @@ Image Cleaning Algorithms (identification of noisy pixels)
 
 __all__ = ['tailcuts_clean']
 
+
 def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
                    boundary_thresh=2.25):
     """Clean an image by selection pixels that pass a two-threshold
@@ -15,23 +16,26 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     Parameters
     ----------
-    geom: `CameraGeometry`
+    geom: `ctapipe.io.CameraGeometry`
         Camera geometry information
     image: array
         pedestal-subtracted, flat-fielded pixel values
-    pedvars: array
-        pedestal dispersion corresponding to image
+    pedvars: array or scalar
+        pedestal dispersion of all pixels, or any other
+        multiplicative factor that one wants to use to normalize the
+        thresholds (e.g. if your image is already in PE units, this could
+        simply be set to 1, and the thresholds defined in PE)
     picture_thresh: float
         high threshold as multiple of the pedvar
     boundary_thresh: float
         low-threshold as mutiple of pedvar (+ nearest neighbor)
 
-    Returns:
-    --------
+    Returns
+    -------
 
-    A boolean mask of "clean" pixels (to get a clean image and pixel
+    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
     list, use `image[mask], geom.pix_id[mask]`, or to keep the same
-    image size, just set unclean pixels to 0 or similar, do
+    image size and just set unclean pixels to 0 or similar, use
     `image[mask] = 0`
 
     """

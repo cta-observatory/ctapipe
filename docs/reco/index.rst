@@ -18,8 +18,6 @@ This will include two levels:
 Getting Started
 ===============
 
-
-
 .. plot:: reco/shower_example.py
     :include-source:
 
