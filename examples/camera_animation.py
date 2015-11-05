@@ -22,22 +22,24 @@ if __name__ == '__main__':
     geom = io.CameraGeometry.from_name("hess", 1)
     disp = visualization.CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
+    disp.add_colorbar(ax=ax)
 
     def update(frame):
         centroid = np.random.uniform(-0.5, 0.5, size=2)
         width = np.random.uniform(0, 0.01)
         length = np.random.uniform(0, 0.03) + width
         angle = np.random.uniform(0, 360)
-        intens = np.random.exponential(2)*50
+        intens = np.random.exponential(2) * 50
         model = mock.generate_2d_shower_model(centroid=centroid,
                                               width=width,
                                               length=length,
-                                              psi=angle*u.deg)
+                                              psi=angle * u.deg)
         image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
                                                      intensity=intens,
                                                      nsb_level_pe=5000)
         image /= image.max()
         disp.image = image
+        disp.set_limits_percent(95)
 
     anim = FuncAnimation(fig, update, interval=50)
     plt.show()
