@@ -23,12 +23,11 @@ class Configuration(ArgumentParser):
     """Configuration initialization if other is not None and its type is
     Configuration, its _entries dictionary content is copy to this
     Configuration class
-    
+
     Parameters
     ----------
-    other : Configuration object, optional Copies other._entries dictionary's 
-            item in self._entries
-
+    other : Configuration object, optional
+        Copies other._entries dictionary's  item in self._entries
     """
 
     DEFAULT = "DEFAULT"
@@ -56,18 +55,20 @@ class Configuration(ArgumentParser):
         details.  By default, the argument strings are taken from
         sys.argv
 
+
         Parameters
         ----------
         args : object , optional
-        The argument strings are taken from args instead of sys.args
-        Warning: args must contains only arguments(flag/value) no program name
+            The argument strings are taken from args instead of
+            sys.args Warning: args must contains only
+            arguments(flag/value) no program name
 
-        namespace: object , optional
-        Populates special attribute __dict__ containing
-        the namespace’s symbol table
+        namespace : object , optional
+            Populates special attribute __dict__ containing
+            the namespace’s symbol table
 
-        Returns:
-        --------
+        Returns
+        -------
         Dictionary containing configuration entries for 'DEFAULT' section
 
         """
@@ -76,7 +77,7 @@ class Configuration(ArgumentParser):
         # self).parse_args(args,namespace=namespace)
         result = super().parse_args(args, namespace=namespace)
         args = vars(result)
-        
+
         # Add arguments(key, value) for DEFAULT section
         for key, value in args.items():
             self.add(key, value, "From command line arguments", self.DEFAULT)
@@ -86,7 +87,7 @@ class Configuration(ArgumentParser):
 
     def add(self, key, value, comment="", section=DEFAULT):
         """
-        Create section if not already exist in self._entries 
+        Create section if not already exist in self._entries
         Add configuration variable for corresponding section/key
         Into 'DEFAULT' section by default
 
@@ -101,9 +102,9 @@ class Configuration(ArgumentParser):
         section : str , optional
             section for the new entry to be add
 
-        Returns:
+        Returns
         --------
-        True is option is added
+        True is option is added, 
         False is option already exist
         """
         if section not in self._entries:
@@ -119,14 +120,15 @@ class Configuration(ArgumentParser):
         """
         Checks if a configuration entry exist
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         key: str
             key to search in section
         section: str , optional
             section to search key ('DEFAULT' section is used by default)
-        Returns:
-        --------
+
+        Returns
+        -------
         whether the given option exists in the given section or not.
         """
         if section in self._entries:
@@ -137,19 +139,19 @@ class Configuration(ArgumentParser):
         """
         Get a configuration entry value
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         key: str
             key to search in section
         section: str , optional
             section to search key ('DEFAULT' section is used by default)
 
-        Returns:
+        Returns
         --------
         value for corresponding section/key pair
         None is no suitable value exists for section/key
         """
-        if not self.has_key(key, section):
+        if key not in section:
             return None
         return self._entries[section][key][self.VALUE_INDEX]
 
@@ -160,16 +162,16 @@ class Configuration(ArgumentParser):
         Parameters:
         -----------
         key: str
-            key to search in section 
+            key to search in section
         section: str , optional
             section to search key ('DEFAULT' section is used by default)
 
         Returns
-        ------- 
+        -------
         comment for corresponding section/key pair
         None is no suitable value exits for section/key
         """
-        if not self.has_key(key, section):
+        if key not in section:
             return None
         return self._entries[section][key][self.COMMENT_INDEX]
 
@@ -199,7 +201,8 @@ class Configuration(ArgumentParser):
         else:
             print("Format:", impl, 'not allowed', file=sys.stderr)
 
-    def read(self, filenames, impl=FITS, implementation=DATAIMPL, encoding=None):
+    def read(self, filenames, impl=FITS, implementation=DATAIMPL,
+             encoding=None):
         """
         Read filename or a list of filenames and parse configuration entries.
 
@@ -222,8 +225,8 @@ class Configuration(ArgumentParser):
             DATAIMPL -> Use Fits data table
             HEADERIMP -> Use fits header
 
-        Returns:
-        ------- 
+        Returns
+        -------
         list of successfully read files.
         """
         if impl == self.INI:
@@ -256,9 +259,9 @@ class Configuration(ArgumentParser):
         for section in self._entries.keys():
             print("[", section, "]", file=file, flush=flush)
             for key, value_comment in self._entries[section].items():
-                print (key, "=", value_comment[self.VALUE_INDEX], "; ",
-                       value_comment[self.COMMENT_INDEX], file=file,
-                       flush=flush)
+                print(key, "=", value_comment[self.VALUE_INDEX], "; ",
+                      value_comment[self.COMMENT_INDEX], file=file,
+                      flush=flush)
 
     def _fill(self, config_parser):
         """
@@ -276,8 +279,9 @@ class Configuration(ArgumentParser):
                 config_parser.add_section(section)
             for key, value_comment_tuple in self._entries[section].items():
                 # dico[section][key] = value
-                value_comment = value_comment_tuple[
-                    self.VALUE_INDEX] + " ; " + value_comment_tuple[self.COMMENT_INDEX]
+                value_comment = value_comment_tuple[self.VALUE_INDEX]\
+                                + " ; " \
+                                + value_comment_tuple[self.COMMENT_INDEX]
                 config_parser.set(section, key, value_comment)
         return config_parser
 
@@ -345,7 +349,7 @@ class Configuration(ArgumentParser):
                 for hdu in hdulist:
                     section = hdu.name
                     data = hdu.data
-                    if not data is None:
+                    if data is not None:
                         for (key, value, comment) in data:
                             try:
                                 self.add(key, value, comment=comment,
@@ -382,7 +386,7 @@ class Configuration(ArgumentParser):
 
     def _addOptionFromParser(self, config_parser):
         """
-            fill self._entries from a RawConfigParser
+        fill self._entries from a RawConfigParser
         """
         if not isinstance(config_parser, RawConfigParser):
             return False
