@@ -70,6 +70,7 @@ class CameraDisplay:
         self.axes = ax if ax is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
+        self.colorbar = None
         self.autoupdate = autoupdate
         self._active_pixel = None
         self._active_pixel_label = None
@@ -196,6 +197,8 @@ class CameraDisplay:
             )
 
         self.pixels.set_array(image)
+        self.pixels.changed()
+        self.pixels.autoscale()
         self.update()
 
     def set_image(self, image):
@@ -206,7 +209,9 @@ class CameraDisplay:
     def update(self):
         """ signal a redraw if necessary """
         if self.autoupdate:
-            plt.draw()
+            self.axes.figure.canvas.draw()
+        if self.colorbar is not None:
+            self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):
         """
@@ -215,7 +220,12 @@ class CameraDisplay:
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
         """
-        self.axes.figure.colorbar(self.pixels, **kwargs)
+        if self.colorbar is not None:
+            raise ValueError(
+                'There is already a colorbar attached to this CameraDisplay'
+            )
+        else:
+            self.colorbar = self.axes.figure.colorbar(self.pixels, **kwargs)
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
                     **kwargs):
@@ -224,7 +234,7 @@ class CameraDisplay:
 
         Parameters
         ----------
-        centroid: (float,float)
+        centroid: (float, float)
             position of centroid
         length: float
             major axis
