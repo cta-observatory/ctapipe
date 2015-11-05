@@ -1,14 +1,14 @@
+# skip these tests if matplotlib can't be imported
 import pytest
-from ..mpl import CameraDisplay, ArrayDisplay
+plt = pytest.importorskip("matplotlib.pyplot")
+
 from ctapipe import io
 from numpy import ones
 
-# skip these tests if matplotlib can't be imported
-plt = pytest.importorskip("matplotlib.pyplot")
-
-
 def test_camera_display_single():
     """ test CameraDisplay functionality """
+    from ..mpl import CameraDisplay
+
     geom = io.CameraGeometry.from_name("HESS", 1)
     disp = CameraDisplay(geom)
     image = ones(len(geom.pix_x), dtype=float)
@@ -21,6 +21,8 @@ def test_camera_display_single():
 
 def test_camera_display_multiple():
     """ create a figure with 2 subplots, each with a CameraDisplay """
+    from ..mpl import CameraDisplay
+    
     geom = io.CameraGeometry.from_name("HESS", 1)
     fig, ax = plt.subplots(2, 1)
 
@@ -33,6 +35,7 @@ def test_camera_display_multiple():
 
 
 def test_array_display():
+    from ..mpl import ArrayDisplay
 
     # load some test data
     layout = io.get_array_layout("hess")

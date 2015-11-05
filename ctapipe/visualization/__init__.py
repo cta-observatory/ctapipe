@@ -3,5 +3,8 @@
 Visualization: Methods for displaying data 
 """
 
-from .mpl import *
+try:
+    from .mpl import *
+except ImportError:
+    pass
 
