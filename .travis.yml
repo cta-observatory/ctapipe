@@ -40,9 +40,10 @@ matrix:
         - python: 3.4
           env: SETUP_CMD='test'
 
+        # Currently broken: https://github.com/cta-observatory/ctapipe/pull/33#issuecomment-153979923
         # Try older numpy versions
-        - python: 3.4
-          env: NUMPY_VERSION=1.8 SETUP_CMD='test'
+#        - python: 3.4
+#          env: NUMPY_VERSION=1.8 SETUP_CMD='test'
 
 before_install:
 
@@ -86,13 +87,13 @@ install:
 
     # ASTROPY
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
-    - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION astropy; fi
+    - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL astropy; fi
 
     # OPTIONAL DEPENDENCIES
     - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION Sphinx matplotlib; fi
+    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib; fi
 
     # COVERAGE DEPENDENCIES
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
