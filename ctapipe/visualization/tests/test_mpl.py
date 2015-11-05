@@ -1,7 +1,10 @@
+import pytest
 from ..mpl import CameraDisplay, ArrayDisplay
 from ctapipe import io
 from numpy import ones
-from matplotlib import pyplot as plt
+
+# skip these tests if matplotlib can't be imported
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 def test_camera_display_single():

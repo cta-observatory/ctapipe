@@ -25,7 +25,7 @@ def _display_cam_animation():
     ax = plt.subplot(111)
 
     # load the camera
-    geom = io.get_camera_geometry("hess", 1)
+    geom = io.CameraGeometry.from_name("hess", 1)
     disp = visualization.CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
 
