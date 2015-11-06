@@ -9,7 +9,7 @@ import re
 
 __all__ = ['ArgparseFormatter',
            'get_parser',
-           'get_installed_scripts',
+           'get_installed_tools',
            'get_all_main_functions',
            ]
 
@@ -31,7 +31,7 @@ def get_parser(function=None, description='N/A'):
     return parser
 
 
-def get_installed_scripts():
+def get_installed_tools():
     """Get list of installed scripts via ``pkg-resources``.
 
     See http://peak.telecommunity.com/DevCenter/PkgResources#convenience-api
@@ -40,8 +40,8 @@ def get_installed_scripts():
     of installed packages matches the available scripts somehow?
     """
     from pkg_resources import get_entry_map
-    console_scripts = get_entry_map('ctapipe')['console_scripts']
-    return console_scripts
+    console_tools = get_entry_map('ctapipe')['console_scripts']
+    return console_tools
 
 
 def get_all_main_functions():
@@ -69,11 +69,11 @@ def get_all_main_functions():
 
 def get_all_descriptions():
 
-    mains = get_all_main_functions()
+    tools = get_installed_tools()
 
     descriptions = OrderedDict()
-    for name in mains.keys():
-        module = importlib.import_module('ctapipe.tools.{}'.format(name))
+    for name,info in tools.items():
+        module = importlib.import_module(info.module_name)
         if hasattr(module, '__doc__'):
             try:
                 descrip = re.match(r'(?:[^.:;]+[.:;]){1}',

@@ -65,15 +65,16 @@ def _info_tools():
     # that are defined in setup.py !???
     from ctapipe.tools.utils import get_all_descriptions
     from textwrap import TextWrapper
-    wrapper = TextWrapper(initial_indent="- ",
-                          subsequent_indent="                         ",
-                          width=(80 - 23))
+    wrapper = TextWrapper(width=80,
+                          subsequent_indent=" "*35 )
                           
     scripts = get_all_descriptions()
     for name, desc in sorted(scripts.items()):
-        print("{:<20s}".format(name), end='')
-        print(wrapper.fill(desc))
+        text ="{:<30s}  - {}".format(name, desc) 
+        print(wrapper.fill(text))
+        print('')
     print('')
+
 
 
 def _info_dependencies():
