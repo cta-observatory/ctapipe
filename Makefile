@@ -50,6 +50,9 @@ conda:
 analyze:
 	@pyflakes ctapipe examples
 
+pep8:
+	@pep8 --statistics
+
 
 trailing-spaces:
 	find $(PROJECT) examples docs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
