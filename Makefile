@@ -1,19 +1,23 @@
 # Makefile with some convenient quick ways to do common things
 
+PROJECT=ctapipe
+
 help:
 	@echo ''
-	@echo 'ctapipe available make targets:'
+	@echo '$(PROJECT) available make targets:'
 	@echo ''
 	@echo '  help         Print this help message (the default)'
 	@echo '  init         Set up shell to use and work on ctapipe'
+	@echo '  develop      make symlinks to this package in python install dir'
 	@echo '  clean        Remove temp files'
 	@echo '  test         Run tests'
 	@echo '  doc          Generate Sphinx docs'
-	@echo '  docshow      Generate and display docs in browser'
+	@echo '  doc-show     Generate and display docs in browser'
 	@echo '  analyze      Do a static code check and report errors'
 	@echo ''
+	@echo 'Advanced targets (for experts)'
 	@echo '  conda        Build a conda package for distribution'
-	@echo '  doc-publish  Publish docs online'
+	@echo '  doc-publish  Upload docs to static GitHub page'
 	@echo ''
 
 init:
@@ -22,7 +26,10 @@ init:
 	export CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra
 
 clean:
-	rm -rf build docs/_build docs/api
+	$(RM) -rf build docs/_build docs/api htmlcov
+	find . -name "*.pyc" -exec rm {} \;
+	find . -name "*.so" -exec rm {} \;
+	find . -name __pycache__ | xargs rm -fr
 
 test:
 	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py test -V
@@ -30,7 +37,7 @@ test:
 doc:
 	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py build_sphinx
 
-docshow:
+doc-show:
 	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py \
 		build_sphinx --open-docs-in-browser
 
@@ -40,10 +47,14 @@ doc-publish:
 conda:
 	python setup.py bdist_conda
 
-
 analyze:
 	@pyflakes ctapipe examples
+
+
+trailing-spaces:
+	find $(PROJECT) examples docs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
 
 # any other command can be passed to setup.py
 %:
 	python setup.py $@
+
