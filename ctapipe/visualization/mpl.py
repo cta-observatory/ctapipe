@@ -6,6 +6,7 @@ Visualization routines using matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
+from matplotlib.colors import Normalize, LogNorm
 from numpy import sqrt
 import numpy as np
 import logging
@@ -29,8 +30,13 @@ class CameraDisplay:
         array of values corresponding to the pixels in the CameraGeometry.
     ax : `matplotlib.axes.Axes`
         A matplotlib axes object to plot on, or None to create a new one
-    title : str
+    title : str (default "Camera")
         Title to put on camera plot
+    norm : str or matplotlib.color.Normalize instance (default 'lin')
+        Normalization for the color scale.
+        Supported str arguments are
+           'lin': linear scale
+           'log': logarithmic scale (base 10)
     allow_pick : bool (default False)
         if True, allow user to click and select a pixel
     autoupdate : bool (default True)
@@ -65,8 +71,17 @@ class CameraDisplay:
 
     """
 
-    def __init__(self, geometry, image=None, ax=None, title="Camera",
-                 allow_pick=False, autoupdate=True, antialiased=True):
+    def __init__(
+            self,
+            geometry,
+            image=None,
+            ax=None,
+            title="Camera",
+            norm="lin",
+            allow_pick=False,
+            autoupdate=True,
+            antialiased=True,
+            ):
         self.axes = ax if ax is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
@@ -135,6 +150,8 @@ class CameraDisplay:
         else:
             self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
 
+        self.norm = norm
+
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
         self.pixels.set_picker(True)  # enable click
@@ -155,6 +172,31 @@ class CameraDisplay:
         dz = zmax - zmin
         frac = percent / 100.0
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
+
+    @property
+    def norm(self):
+        '''
+        The norm instance of the Display
+        Possible values:
+            "lin": linear scale
+            "log": log scale
+            any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
+        '''
+        return self.pixels.norm
+
+    @norm.setter
+    def norm(self, norm):
+        if norm == 'lin':
+            self.pixels.norm = Normalize()
+        elif norm == 'log':
+            self.pixels.norm = LogNorm()
+        elif isinstance(norm, Normalize):
+            self.pixels.norm = norm
+        else:
+            raise ValueError('Unsupported norm: {}'.format(norm))
+
+        self.pixels.changed()
+        self.update()
 
     @property
     def cmap(self):
@@ -209,9 +251,10 @@ class CameraDisplay:
     def update(self):
         """ signal a redraw if necessary """
         if self.autoupdate:
+            if self.colorbar is not None:
+                self.colorbar.update_normal(self.pixels)
+                self.colorbar.draw_all()
             self.axes.figure.canvas.draw()
-        if self.colorbar is not None:
-            self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):
         """
@@ -226,6 +269,7 @@ class CameraDisplay:
             )
         else:
             self.colorbar = self.axes.figure.colorbar(self.pixels, **kwargs)
+        self.update()
 
     def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
                     **kwargs):
@@ -297,6 +341,9 @@ class CameraDisplay:
         when a pixel is clicked
         """
         print("Clicked pixel_id {}".format(pix_id))
+
+    def show(self):
+        self.axes.figure.show()
 
 
 class ArrayDisplay:
