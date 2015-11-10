@@ -106,7 +106,7 @@ def sink(image_stream):
 
 
 def lightcurve_binner(image_stream, dt=10):
-    """ input: image, output: image with no modification 
+    """ input: image, output: image with no modification
     returns the lightcurve, when the stream ends
     """
 

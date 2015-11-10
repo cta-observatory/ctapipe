@@ -64,3 +64,5 @@ if __name__ == '__main__':
         print('No events for tel {} were found in {}. Try a different'
               .format(args.tel, args.filename),
               'EventIO file or another telescope')
+
+

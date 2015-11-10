@@ -6,8 +6,8 @@
 * https://github.com/esheldon/fitsio
 * http://sahandsaba.com/understanding-asyncio-node-js-python-3-4.html
 """
- 
-import fitsio 
+
+import fitsio
 import time
 import numpy as np
 from matplotlib import pyplot as plt
@@ -18,7 +18,7 @@ def fits_table_source(url, extension):
     url -- fits file to open (local filename or URL)
     extension -- name or number of extension (HDU)
     """
-        
+
     header = fitsio.read_header(url, ext=extension)
     n_entries = header["NAXIS2"]
 
@@ -55,7 +55,7 @@ def histogram_column(stream, itemname,every=10000):
     ax = fig.gca()
     count =0
     bins = np.linspace(-10,10,100)
-    hist = np.zeros( len(bins)+1 ) 
+    hist = np.zeros( len(bins)+1 )
     for data in stream:
         val =data[itemname]
         if np.isfinite(val):
@@ -70,7 +70,7 @@ def histogram_column(stream, itemname,every=10000):
         yield data # pass through
 
 
-        
+
 def make_image(stream, bins=(100,100), range=[[-5,5],[-5,5]], nevents=100 ):
     """ Generates an image every `nevents` events """
     image = np.zeros( shape=bins )
@@ -79,13 +79,13 @@ def make_image(stream, bins=(100,100), range=[[-5,5],[-5,5]], nevents=100 ):
     count = 0
     xpoints = list()
     ypoints = list()
-    
+
     for data in stream:
         detx = data.DETX[0]
         dety = data.DETY[0]
 
         # accumulate points for efficiency:
-        if (detx > range[0][0] and detx < range[0][1] 
+        if (detx > range[0][0] and detx < range[0][1]
             and dety > range[1][0] and dety < range[1][1] ):
             xpoints.append( detx )
             ypoints.append( dety )
@@ -105,13 +105,13 @@ def make_image(stream, bins=(100,100), range=[[-5,5],[-5,5]], nevents=100 ):
             xpoints = list()
             ypoints = list()
 
-        
+
 def event_loop(stream, sleep=None):
     for data in stream:
         if sleep is not None:
             time.sleep(sleep)
 
-    
+
 def print_event(stream):
     isfirst = True
     for item in stream:
@@ -133,9 +133,9 @@ def display_image(stream, pause=0.01):
     plt.show(False)
     plt.draw()
     yield image
-    
+
     background = fig.canvas.copy_from_bbox(ax.bbox)
-    
+
     # update the plot on next item:
     for image in stream:
         axim.set_array( image )
@@ -145,8 +145,8 @@ def display_image(stream, pause=0.01):
 
 if __name__ == '__main__':
 
-    
-    
+
+
 #    hh = histogram_column(histogram_column(instream,"DETX"),"AZ")
 #    thru = show_throughput(hh)
 
@@ -166,9 +166,9 @@ if __name__ == '__main__':
 #    for image in imsum:
 #        pass
     #event_loop(p, sleep=1)
-    
 
 
 
-    
-    
+
+
+

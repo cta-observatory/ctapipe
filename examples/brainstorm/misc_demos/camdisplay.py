@@ -3,7 +3,7 @@ from astropy.io import fits
 import numpy as np
 from argparse import ArgumentParser
 import sys
-import fitsio 
+import fitsio
 
 import wx
 try:
@@ -22,7 +22,7 @@ class Poly(object):
         self.vertices =  np.array(list(zip(np.cos(angles),np.sin(angles))))
 
     def draw(self, cr, xx, yy, size=1.0):
-        """    
+        """
         Draw a polygon
         Arguments:
         - `cr`: cairo context
@@ -33,12 +33,12 @@ class Poly(object):
 
         cr.move_to(xx,yy) #center of hexagon
         cr.rel_move_to(0.5*size,-1.0*size)
-        
+
         for vx,vy in self.vertices:
-            cr.rel_line_to( vx*size,vy*size )          
- 
+            cr.rel_line_to( vx*size,vy*size )
+
         cr.close_path()
-        
+
 
 def cairo_draw_camera( cr, pix_x, pix_y, pix_r, pix_val, poly=Poly(6,theta0=90)):
     """
@@ -56,21 +56,21 @@ def cairo_draw_camera( cr, pix_x, pix_y, pix_r, pix_val, poly=Poly(6,theta0=90))
 
     pix_val[pix_val>1.0] = 1.0
     pix_val[pix_val<0.0] = 0.0
-    
+
     for xx,yy,rr,vv in zip(pix_x,pix_y,pix_r, pix_val):
         cr.set_source_rgb(1, 0, 0)
         poly.draw(cr,xx,yy,rr)
         cr.set_source_rgb(vv**0.2, vv**0.7, vv**2.0)
         cr.fill()
 
-        
+
 class CameraFrame(wx.Frame):
     def __init__(self, parent, title,numcams=1):
         wx.Frame.__init__(self, parent, title=title, size=(640,640))
         self.canvas = []
         self.canvas = CameraPanel(self)
         self.Show()
-                
+
 class CameraPanel(wx.Panel):
     """ a Cairo Panel that draws a Cherenkov Camera with Hexagonal Bins """
     def __init__(self, parent):
@@ -86,10 +86,10 @@ class CameraPanel(wx.Panel):
         self.Bind(wx.EVT_TIMER, self._on_timer, self.refreshtimer)
         #self.refreshtimer.Start(1)
 
-        
+
     def _on_timer(self,event ):
         self.Refresh()
-    
+
     def set_camera_geom( self, pix_x, pix_y, pix_r, poly=Poly(6,theta0=90) ):
         self.pix_x = pix_x
         self.pix_y = pix_y
@@ -103,29 +103,29 @@ class CameraPanel(wx.Panel):
 
     def set_rotation(self,val):
         self._rotation = val
-        
+
     def _on_paint(self, evt):
         dc = wx.PaintDC(self)
         width, height = self.GetClientSize()
         cr = wx.lib.wxcairo.ContextFromDC(dc)
 
         # background color:
-        cr.set_source_rgb(0.2, 0.4, 0.6) 
+        cr.set_source_rgb(0.2, 0.4, 0.6)
         cr.rectangle(0, 0, width, height)
         cr.fill()
-        
-        
+
+
         cr.translate(width/2.,height/2.) # move to center
         cr.scale( width/2.0*self._scale,height/2.0*self._scale )
         cr.rotate( self._rotation )
         cr.set_line_width(0.005)
-        
+
         cairo_draw_camera(cr, self.pix_x, self.pix_y,
                           self.pix_r, self.pix_val)
-                
 
 
-    
+
+
 if __name__ == '__main__':
 
     def update_data(wxevent):
@@ -133,10 +133,10 @@ if __name__ == '__main__':
         global camframe, refreshtimer,max_events,tel_id
 
         event = tevents[eventnum]
-        
+
         compressed_val= event["TEL_IMG_INT"]
         compressed_ipix = event["TEL_IMG_IPIX"]
-        
+
         # apply scaling and cuts:
         compressed_val /= 0.90*compressed_val.max()
         compressed_val[compressed_val>1.0] = 1.0
@@ -151,14 +151,14 @@ if __name__ == '__main__':
         camframe.canvas.Refresh()
         eventnum += 1
         if eventnum >= max_events:
-            eventnum = 0 
+            eventnum = 0
 
 
     parser = ArgumentParser( prog="camdisplay" )
     parser.add_argument("--camfile",type=str, default="chercam.fits.gz")
     parser.add_argument("televentsfile",type=str)
     opts = parser.parse_args(sys.argv[1:])
-            
+
     # load the camera info:
     print("LOADING CAMERA from {}".format(opts.camfile))
     camera = Table.read("chercam.fits.gz")
@@ -168,7 +168,7 @@ if __name__ == '__main__':
     pix_r = camera['PIX_DIAM'][mask]/2.0
     pix_val = np.zeros(shape=len(pix_x))+np.random.normal(size=len(pix_x))
 
-    
+
     # load the data and do some stuff with it:
     print("LOADING DATA from {}".format(opts.televentsfile))
     header = fitsio.read_header(opts.televentsfile, ext="TEVENTS")
@@ -176,8 +176,8 @@ if __name__ == '__main__':
     tevents = fitsio.FITS(opts.televentsfile,iter_row_buffer=1000)['TEVENTS']
     print(" --> found {}  events".format(max_events))
     eventnum = 0
-    
-    
+
+
     if haveCairo:
         app = wx.App(False)
         camframe = CameraFrame(None, 'Basic Camera Display')
@@ -187,7 +187,7 @@ if __name__ == '__main__':
         refreshtimer = wx.Timer(camframe)
         camframe.Bind(wx.EVT_TIMER, update_data, refreshtimer)
         refreshtimer.Start(10)
-        
+
         app.MainLoop()
     else:
         print("Error! PyCairo or a related dependency was not found")
