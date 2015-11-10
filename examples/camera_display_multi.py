@@ -50,7 +50,7 @@ def draw_several_cams(geom, ncams=4):
 
 if __name__ == '__main__':
 
-    hexgeom = io.get_camera_geometry("hess", 1)
+    hexgeom = io.CameraGeometry.from_name("hess", 1)
     recgeom = io.make_rectangular_camera_geometry()
 
     draw_several_cams(recgeom)
