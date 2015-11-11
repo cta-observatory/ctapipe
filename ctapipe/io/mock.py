@@ -96,10 +96,9 @@ def mock_event_source(
             container.dl0.tel[tel_id].num_channels = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))
-            means = np.random.normal(15, 1, n_pix)
-            stds = np.random.uniform(3, 6, n_pix)
-            for pix, (mean, std) in enumerate(zip(means, stds)):
-                samples[pix, :] = norm.pdf(t, mean, std) * image[pix]
+            means = np.random.normal(15, 1, (n_pix, 1))
+            stds = np.random.uniform(3, 6, (n_pix, 1))
+            samples = image[:, np.newaxis] * norm.pdf(t, means, stds)
 
             for chan in range(n_channels):
                 container.dl0.tel[tel_id].adc_samples[chan] = samples
