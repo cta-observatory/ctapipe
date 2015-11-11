@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_datasets_path
 from ctapipe.calib import pedestals
+from ctapipe.instrument import InstrumentDescription as ID
 import numpy as np
 
 def plot_peds(peds, pedvars):
@@ -18,6 +19,8 @@ def plot_peds(peds, pedvars):
 
 
 if __name__ == '__main__':
+
+    cam = ID.Camera()
 
     # if a filename is specified, use it, otherwise load sample data
     if len(sys.argv) > 1:
