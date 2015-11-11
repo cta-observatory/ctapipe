@@ -1,5 +1,6 @@
 from ctapipe.visualization import ArrayDisplay
 from ctapipe.utils import datasets
+from ctapipe.instrument import InstrumentDescription as ID
 
 from astropy.table import Table
 from numpy import ones_like
@@ -13,20 +14,24 @@ if __name__ == '__main__':
     # load up an example table that has the telescope positions and
     # mirror areas in it:
     arrayfile = datasets.get_path("PROD2_telconfig.fits.gz")
-    tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
+    ID.initialize_telescope(arrayfile)
+    tel = ID.Telescope()
+    opt = ID.Optics()
 
-    X = tels['TelX']
-    Y = tels['TelY']
-    A = tels['MirrorArea'] * 2  # exaggerate scale a bit
+    Id = tel.getTelescopeID()
+    X = tel.getTelescopePosX()
+    Y = tel.getTelescopePosY()
+    A = opt.getMirrorArea() * 2  # exaggerate scale a bit
+    n = tel.getTelescopeNumber()
 
     # display the array, and set the color value to 50
     ad = ArrayDisplay(X, Y, A, title="Prod 2 Full Array")
     ad.values = ones_like(X) * 50
 
     # label them
-    for tel in tels:
-        name = "CT{tid}".format(tid=tel['TelID'])
-        plt.text(tel['TelX'], tel['TelY'], name, fontsize=8)
+    for i in range(n):
+        name = "CT%i" % Id[i]
+        plt.text(X[i], Y[i], name, fontsize=8)
 
     ad.axes.set_xlim(-1000, 1000)
     ad.axes.set_ylim(-1000, 1000)
