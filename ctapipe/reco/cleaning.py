@@ -5,7 +5,6 @@ Image Cleaning Algorithms (identification of noisy pixels)
 __all__ = ['tailcuts_clean','dilate']
 
 
-
 def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
                    boundary_thresh=2.25):
     """Clean an image by selection pixels that pass a two-threshold
