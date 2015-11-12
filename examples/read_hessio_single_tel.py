@@ -13,7 +13,6 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
 from astropy import units as u
-from numpy import zeros_like
 
 import logging
 import argparse
@@ -28,6 +27,10 @@ if __name__ == '__main__':
                         default=get_datasets_path('gamma_test.simtel.gz'))
     parser.add_argument('-m', '--max-events', type=int, default=10)
     parser.add_argument('-c', '--channel', type=int, default=0)
+    parser.add_argument('-w', '--write', action='store_true',
+                        help='write images to files')
+    parser.add_argument('-t', '--show-time', action='store_true',
+                        help='show time-variablity')
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
@@ -52,11 +55,26 @@ if __name__ == '__main__':
             plt.show(block=False)
 
         # display the event
-        disp.image = event.dl0.tel[args.tel].adc_sums[args.channel]
         disp.axes.set_title('CT{:03d}, event {:010d}'
                             .format(args.tel, event.dl0.event_id))
-        disp.set_limits_percent(70)
-        plt.pause(0.1)
+        if args.show_time:
+            # display time-varying event
+            data = event.dl0.tel[args.tel].adc_samples[args.channel]
+            for ii in range(data.shape[1]):
+                disp.image = data[:, ii]
+                disp.set_limits_percent(70)
+                plt.pause(0.01)
+                if args.write:
+                    plt.savefig('CT{:03d}_EV{:010d}_S{:02d}.png'
+                                .format(args.tel, event.dl0.event_id, ii))
+        else:
+            # display integrated event:
+            disp.image = event.dl0.tel[args.tel].adc_sums[args.channel]
+            disp.set_limits_percent(70)
+            plt.pause(0.1)
+            if args.write:
+                plt.savefig('CT{:03d}_EV{:010d}.png'.format(args.tel,
+                                                            event.dl0.event_id))
 
     print("FINISHED READING DATA FILE")
 
@@ -64,5 +82,3 @@ if __name__ == '__main__':
         print('No events for tel {} were found in {}. Try a different'
               .format(args.tel, args.filename),
               'EventIO file or another telescope')
-
-
