@@ -13,9 +13,9 @@ from ctapipe.core import Container
 logger = logging.getLogger(__name__)
 
 try:
-    import hessio
+    import pyhessio
 except ImportError as err:
-    logger.fatal("the `hessio` python module is required to access MC data: {}"
+    logger.fatal("the `pyhessio` python module is required to access MC data: {}"
                  .format(err))
     raise err
 
@@ -42,14 +42,14 @@ def hessio_event_source(url, max_events=None, single_tel=None):
 
     """
 
-    ret = hessio.file_open(url)
+    ret = pyhessio.file_open(url)
 
     if ret is not 0:
         raise RuntimeError("hessio_event_source failed to open '{}'"
                            .format(url))
 
     counter = 0
-    eventstream = hessio.move_to_next_event()
+    eventstream = pyhessio.move_to_next_event()
     container = Container("hessio_container")
     container.meta.add_item('hessio__input', url)
     container.meta.add_item('hessio__max_events', max_events)
@@ -61,7 +61,7 @@ def hessio_event_source(url, max_events=None, single_tel=None):
 
         container.dl0.run_id = run_id
         container.dl0.event_id = event_id
-        container.dl0.tels_with_data = hessio.get_teldata_list()
+        container.dl0.tels_with_data = pyhessio.get_teldata_list()
         container.count = counter
         
         # handle single-telescope case (ignore others:
@@ -81,19 +81,19 @@ def hessio_event_source(url, max_events=None, single_tel=None):
             # fill pixel position dictionary, if not already done:
             if tel_id not in container.meta.pixel_pos:
                 container.meta.pixel_pos[
-                    tel_id] = hessio.get_pixel_position(tel_id)
+                    tel_id] = pyhessio.get_pixel_position(tel_id)
 
-            nchans = hessio.get_num_channel(tel_id)
+            nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)
             container.dl0.tel[tel_id].num_channels = nchans
 
             # load the data per telescope/chan
             for chan in range(nchans):
                 container.dl0.tel[tel_id].adc_samples[chan] \
-                    = hessio.get_adc_sample(channel=chan,
+                    = pyhessio.get_adc_sample(channel=chan,
                                             telescope_id=tel_id)
                 container.dl0.tel[tel_id].adc_sums[chan] \
-                    = hessio.get_adc_sum(channel=chan,
+                    = pyhessio.get_adc_sum(channel=chan,
                                          telescope_id=tel_id)
         yield container
         counter += 1
