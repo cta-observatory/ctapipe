@@ -13,13 +13,13 @@ TODO:
 
 """
 import numpy as np
+from astropy.units import Quantity
 from collections import namedtuple
 
 __all__ = [
     'MomentParameters',
     'HighOrderMomentParameters',
     'hillas_parameters',
-    'hillas_parameters_2',
 ]
 
 
@@ -46,7 +46,7 @@ MomentParameters, hillas_parameters, hillas_parameters_2
 """
 
 
-def hillas_parameters(pix_x, pix_y, image):
+def hillas_parameters_1(pix_x, pix_y, image):
     """Compute Hillas parameters for a given shower image.
 
     Reference: Appendix of the Whipple Crab paper Weekes et al. (1998)
@@ -66,8 +66,8 @@ def hillas_parameters(pix_x, pix_y, image):
     -------
     hillas_parameters : `MomentParameters`
     """
-    pix_x = np.asanyarray(pix_x, dtype=np.float64)
-    pix_y = np.asanyarray(pix_y, dtype=np.float64)
+    pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
+    pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
@@ -96,7 +96,7 @@ def hillas_parameters(pix_x, pix_y, image):
     length = np.sqrt(length_2)
     miss = np.abs(b / (1 + a * a))
     r = np.sqrt(m_x * m_x + m_y * m_y)
-    phi = np.arctan2(m_y,m_x)
+    phi = np.arctan2(m_y, m_x)
 
     # Compute azwidth by transforming to (p, q) coordinates
     sin_theta = m_y / r
@@ -131,8 +131,8 @@ def hillas_parameters_2(pix_x, pix_y, image):
     -------
     hillas_parameters : `MomentParameters`
     """
-    pix_x = np.asanyarray(pix_x, dtype=np.float64)
-    pix_y = np.asanyarray(pix_y, dtype=np.float64)
+    pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
+    pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
@@ -189,3 +189,7 @@ def hillas_parameters_2(pix_x, pix_y, image):
     return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1],
                             length=length, width=width, r=rr, phi=phi,
                             psi=psi, miss=miss)
+
+
+# use the 2 version by default
+hillas_parameters = hillas_parameters_2
