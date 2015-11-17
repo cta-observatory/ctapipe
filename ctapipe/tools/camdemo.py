@@ -47,15 +47,14 @@ def _display_cam_animation():
         # alternate between cleaned and raw images
         if _counter > 20:
             plt.suptitle("Image Cleaning ON")
-            cleanmask = reco.tailcuts_clean(geom, image, pedvars=80)
+            cleanmask = reco.cleaning.tailcuts_clean(geom, image, pedvars=80)
             for ii in range(3):
-                reco.dilate(geom, cleanmask)
+                reco.cleaning.dilate(geom, cleanmask)
             image[cleanmask == 0] = 0  # zero noise pixels
         if _counter >= 40:
             plt.suptitle("Image Cleaning OFF")
             _counter = 0
 
-        image /= image.max()
         disp.image = image
         disp.set_limits_percent(100)
         _counter += 1

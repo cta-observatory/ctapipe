@@ -10,8 +10,8 @@ the hillas module. Things to resolve:
   define the columns somehow: in a class? a namedtiple?)
 * or keep it simple, but in the Container wrapper map the dict to columns?
 
-
 """
+
 from .hillas import *
 from .mock import *
-from .cleaning import *
+from . import cleaning

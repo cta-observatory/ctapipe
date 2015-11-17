@@ -2,7 +2,7 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
-__all__ = ['tailcuts_clean','dilate']
+__all__ = ['tailcuts_clean', 'dilate']
 
 
 def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
