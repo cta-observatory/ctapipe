@@ -1,6 +1,7 @@
 # Makefile with some convenient quick ways to do common things
 
 PROJECT=ctapipe
+PYTHON=CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python
 
 help:
 	@echo ''
@@ -23,7 +24,6 @@ help:
 init:
 	git submodule init
 	git submodule update
-	export CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra
 
 clean:
 	$(RM) -rf build docs/_build docs/api htmlcov
@@ -32,14 +32,13 @@ clean:
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py test -V
+	$(PYTHON) setup.py test -V --coverage $<
 
 doc:
-	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py build_sphinx
+	$(PYTHON) setup.py build_sphinx
 
 doc-show:
-	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py \
-		build_sphinx --open-docs-in-browser
+	$(PYTHON) setup.py build_sphinx --open-docs-in-browser
 
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
@@ -59,5 +58,5 @@ trailing-spaces:
 
 # any other command can be passed to setup.py
 %:
-	python setup.py $@
+	$(PYTHON) setup.py $@
 
