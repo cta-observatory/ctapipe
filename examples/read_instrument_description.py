@@ -43,17 +43,25 @@ if __name__ == '__main__':
     
     #Now we can print some telescope, optics and camera configurations, e.g.
     #the telescoppe IDs of all telescopes whose data is stored in the files
+    print('Telescope IDs (of fits and hessio file):')
     print(tel1.tel_id)
     print(tel2.tel_id)
+    print('----------------------------')
     
     #and the mirror areas of the first telescope of the files (if the data of
     #a specific configuration is not stored in the file, a `-1` is retured.)
-    print(opt1[0].mir_area)
-    print(opt2[0].mir_area)
+    print('Mirror Area of the first telescope (of fits and hessio file).',
+          'Returned, when the whole telescope data is read from the file:')
+    print('{0:.2f}'.format(opt1[0].mir_area))
+    print('{0:.2f}'.format(opt2[0].mir_area))
+    print('----------------------------')
     
     #and the camera FOV of the second telescope of the files:
-    print(cam1[1].cam_fov)
-    print(cam2[1].cam_fov)
+    print('Camera FOV of the second telescope (of fits and hessio file).',
+          'Returned, when the whole telescope data is read from the file:')
+    print('{0:.2f}'.format(cam1[1].cam_fov))
+    print('{0:.2f}'.format(cam2[1].cam_fov))
+    print('----------------------------')
     
     #But, one can also load only the camera or the optics configuration of
     #a specific telescope with ID `tel_id` (of course the configuration of this
@@ -62,13 +70,19 @@ if __name__ == '__main__':
     #camera with ID 1 and ID 18:
     cam1 = ID.Camera.initialize(filename1,1,item1)
     cam2 = ID.Camera.initialize(filename2,18,item2)
-    print(cam1.cam_fov)
-    print(cam2.cam_fov)
+    print('Camera FOV of the first (18th) telescope of fits (hessio) file.',
+          'Returned, when only the camera data is read from the file:')
+    print('{0:.2f}'.format(cam1.cam_fov))
+    print('{0:.2f}'.format(cam2.cam_fov))
+    print('----------------------------')
     
     opt1 = ID.Optics.initialize(filename1,1,item1)
     opt2 = ID.Optics.initialize(filename2,18,item2)
-    print(opt1.mir_area)
-    print(opt2.mir_area)
+    print('Mirror Area of the first (18th) telescope of fits (hessio) file.',
+          'Returned, when only the optics data is read from the file:')
+    print('{0:.2f}'.format(opt1.mir_area))
+    print('{0:.2f}'.format(opt2.mir_area))
+    print('----------------------------')
     
     #At the end, the files should be closed:
     uf.close(filename1,item1)

@@ -50,10 +50,10 @@ class Initialize:
         tel_id: int
             ID of the telescope whose optics information should be loaded
         """
-        cam_fov = -1
+        cam_fov = -1*u.degree
         pix_posX = h.get_pixel_position(tel_id)[0]*u.m
         pix_posY = h.get_pixel_position(tel_id)[1]*u.m
-        pix_posZ = [-1]
+        pix_posZ = [-1*u.m]
         pix_id = np.arange(len(pix_posX))
         cam_class,pix_area,pix_type,dx = _guess_camera_geometry(pix_posX,pix_posY)
         pix_neighbors = _find_neighbor_pixels(pix_posX.value,pix_posY.value,
@@ -96,10 +96,10 @@ class Initialize:
             pix_id.append(hdulist[2].data[i]['PixelID'])
     
     
-        pix_posX = [-1]
-        pix_posY = [-1]
-        pix_posZ = [-1]
-        pix_area = [-1]
+        pix_posX = [-1*u.m]
+        pix_posY = [-1*u.m]
+        pix_posZ = [-1*u.m]
+        pix_area = [-1*u.m**2]
         pix_type = -1
         pix_neighbors = [-1]
     
@@ -155,8 +155,6 @@ def _guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     else:
         raise KeyError("unsupported pixel type")
     pix_area = (np.ones(pix_x.shape) * area)
-
-    print(pix_area,dx)
 
     return cam_class,pix_area,pix_type,dx
 
