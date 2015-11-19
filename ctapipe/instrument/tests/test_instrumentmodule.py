@@ -17,17 +17,18 @@ def test_load_file():
     assert(load(filename2)==0)
     
 def test_read_telescope_data():
-    tel1 = Telescope.initialize(filename1,load(filename1))
-    tel2 = Telescope.initialize(filename2,load(filename2))
-    print(len(tel1[0].tel_id))    
-    assert(len(tel1[0].tel_id)>0)
-    assert(len(tel2[0].tel_id)>0)
-    opt1 = tel1[1]
-    opt2 = tel2[1]
+    instr1 = Telescope.initialize(filename1,load(filename1))
+    instr2 = Telescope.initialize(filename2,load(filename2))
+    tel1 = instr1[0]
+    tel2 = instr2[0]    
+    assert(len(tel1.tel_id)>0)
+    assert(len(tel2.tel_id)>0)
+    opt1 = instr1[1]
+    opt2 = instr2[1]
     assert(opt1[0].mir_area != 0)    
     assert(opt2[0].mir_area != 0) 
-    cam1 = tel1[2]
-    cam2 = tel2[2]
+    cam1 = instr1[2]
+    cam2 = instr2[2]
     assert(cam1[0].cam_fov != 0)
     assert(cam2[0].cam_fov != 0)
     
