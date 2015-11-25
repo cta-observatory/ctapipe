@@ -37,6 +37,7 @@ General documentation
   :glob:
 
   getting_started/index
+  development/index
   */index
 
   

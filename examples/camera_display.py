@@ -5,7 +5,7 @@ Example of drawing a Camera using a mock shower image
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
 from ctapipe.reco import mock
-from ctapipe.reco import hillas_parameters_2 as hillas_parameters
+from ctapipe.reco import hillas_parameters
 
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):

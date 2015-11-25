@@ -4,20 +4,26 @@
 Getting Started
 ***************
 
-Check out the `ctapipe <https://github.com/cta-observatory/ctapipe>`__ repo from Github:
+If you want to access SimTelArrray data files (recommended), you must first install the `pyhessio` package.  This can be done by:
+
+.. code-block:: bash
+
+		git clone https://github.com/cta-observatory/pyhessio
+		conda build pyhessio
+		conda install pyhessio
+
+Next, check out the `ctapipe <https://github.com/cta-observatory/ctapipe>`__ repo:
 
 .. code-block:: bash
 
     git clone https://github.com/cta-observatory/ctapipe.git   # if you like HTTPS
-    git clone git@github.com:cta-observatory/ctapipe.git       # if you like SSH
-
-Clone the `ctapipe-extra <https://github.com/cta-observatory/ctapipe-extra>`__ git submodule repo from Github:
-
+ 
 .. code-block:: bash
 
     cd ctapipe
-    git submodule init
-    git submodule update
+    make init     # will fetch required sub-repos and set up package 
+    make develop  # will make symlinks in your python library dir
+
 
 Make sure the tests and examples code finds the test and example files.
 Run the tests to make sure everything is OK:
@@ -30,7 +36,7 @@ Build the HTML docs locally and open them in your web browser:
 
 .. code-block:: bash
 
-   make docshow
+   make doc-show
 
 Run the example Python scripts:
 
@@ -55,7 +61,7 @@ package library directory (which is usually something like
 
 .. code-block:: bash
 
-    python setup.py develop
+    make develop
     edit .
 
 To update to the latest development version (merging in remote changes

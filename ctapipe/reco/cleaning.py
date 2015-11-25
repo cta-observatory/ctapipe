@@ -2,7 +2,7 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
-__all__ = ['tailcuts_clean']
+__all__ = ['tailcuts_clean', 'dilate']
 
 
 def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
@@ -13,6 +13,9 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
     have a signal higher than the picture threshold will be retained,
     along with all those above the boundary threshold that are
     neighbors of a picture pixel.
+
+    To include extra neighbor rows of pixels beyond what are accepted, use the
+    `ctapipe.reco.dialate` function.
 
     Parameters
     ----------
@@ -50,3 +53,15 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     clean_mask[boundary_ids] = True
     return clean_mask
+
+
+def dilate(geom, mask):
+    """Add one row of neighbors to the True values of a pixel mask.  This
+    can be used to include extra rows of pixels in a mask that was
+    pre-computed, e.g. via `tailcuts_clean`.
+
+    Modifies mask in-place by default (pass `mask.copy()` if you want
+    to maintain a copy of the undialated data)
+    """
+    for pixid in geom.pix_id[mask]:
+        mask[geom.neighbors[pixid]] = True

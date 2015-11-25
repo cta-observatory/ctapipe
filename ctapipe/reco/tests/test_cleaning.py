@@ -25,3 +25,24 @@ def test_tailcuts_clean():
     assert 10 not in geom.pix_id[mask]
     assert set(some_neighs).union({N}) == set(geom.pix_id[mask])
     assert (mask > 0).sum() == 4
+
+
+def test_dilate():
+
+    geom = io.CameraGeometry.from_name("HESS", 1)
+    mask = np.zeros_like(geom.pix_id, dtype=bool)
+
+    mask[100] = True  # a single pixel far from a border is true.
+    assert mask.sum() == 1
+
+    # dilate a single row
+    cleaning.dilate(geom, mask)
+    assert mask.sum() == 1 + 6
+
+    # dilate a second row
+    cleaning.dilate(geom, mask)
+    assert mask.sum() == 1 + 6 + 12
+
+    # dilate a third row
+    cleaning.dilate(geom, mask)
+    assert mask.sum() == 1 + 6 + 12 + 18

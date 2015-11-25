@@ -4,7 +4,7 @@ dump a FITS table ofthe event times and trigger patterns from a simtelarray inpu
 import sys
 import argparse
 
-import hessio
+import pyhessio
 import numpy as np
 from astropy.table import Table
 from astropy.time import Time
@@ -37,11 +37,11 @@ def main():
     starttime = None
         
     try:
-        hessio.file_open(args.filename)
+        pyhessio.file_open(args.filename)
 
-        for run_id, event_id in hessio.move_to_next_event():
+        for run_id, event_id in pyhessio.move_to_next_event():
 
-            ts, tns = hessio.get_central_event_gps_time()
+            ts, tns = pyhessio.get_central_event_gps_time()
             gpstime = Time(ts*u.s, tns*u.ns, format='gps', scale='utc')
             if starttime is None:
                 starttime = gpstime
@@ -50,7 +50,7 @@ def main():
                                 
             # build the trigger pattern as a fixed-length array
             # (better for storage in FITS format)
-            trigtels = hessio.get_telescope_with_data_list()
+            trigtels = pyhessio.get_telescope_with_data_list()
             trigpattern[:] = 0        # zero the trigger pattern
             trigpattern[trigtels] = 1  # set the triggered telescopes to 1
 
@@ -64,4 +64,4 @@ def main():
         print("ERROR: {}, stopping".format(err))
         
     finally:
-        hessio.close_file()
+        pyhessio.close_file()

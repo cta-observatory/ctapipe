@@ -16,13 +16,13 @@ data structures related to the observatory layout, like
 soon to an instrument package.
 
 
-Getting Started
-===============
+Acces to Raw Data
+=================
 
 The `ctapipe.io.hessio` package provides a convenient wrapper to
 reading *simtelarray* data files, like those used in CTA monte-carlo
-productions. It requires the `hessio` (*pyhessioxxx*) package to be
-installed.
+productions. It requires the `pyhessio` package to be installed (see
+:ref:`getting_started` for instructions installing `pyhessio`).
 
 .. figure:: shower.png
 	    
