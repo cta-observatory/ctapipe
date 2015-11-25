@@ -1,5 +1,9 @@
 import hessio as h
+import imp
+import os
 from astropy.io import fits
+import re
+import textwrap
 
 __all__ = ['get_file_type','load','close','LoadClose']
            
@@ -16,6 +20,8 @@ def get_file_type(filename):
     """
     if  ('fit' or 'FITS' or 'FIT') in filename:
         return 'fits'
+    elif 'cfg' in filename:
+        return 'ascii'
     else:
         return 'hessio'
 
@@ -49,8 +55,9 @@ def close(filename,item):
         ----------
         filename: string
             name of the file
-        item: of various type depending on the file extension
-            return value of the opening/loading process of the file
+        item: of various type depending on the file extension,
+            return value of the opening/loading process of the file,
+            for ASCII files: must be the filename!
         """
         
         ext = get_file_type(filename)
@@ -118,10 +125,54 @@ class LoadClose:
         print("Fits file has been closed.")    
         hdulist.close()
     
+    def getVarFromFile(filename):
+        f = open(filename)
+        global data
+        data = imp.load_source('data', '', f)
+        f.close()
+        
     def load_ascii(filename):
         """Function to open and load an ASCII file"""
-        print("ASCI file %s has been opened" % filename)
+        file = open(filename,'r')
+        print("ASCI file %s has been opened." % filename)
+        temp_filename = '%s_temp.txt' % os.path.splitext(os.path.basename(filename))[0]
+        print("Temporary file ",temp_filename," created.")
+        temp_file = open(temp_filename, 'w')    
+        for line in file:
+            if 'echo' in line:
+                line = line.replace('echo','#')
+            if "%" in line:
+                line = line.replace('%','#')
+            if line.startswith('#'):
+                pass
+            else:
+                if '=' in line:
+                    index1 = line.index('=')
+                    if '#' in line:
+                        index2 = line.index('#')-1
+                    else:
+                        index2 = len(line)-1
+                    line = line[:index1+1]+'['+line[index1+1:index2]+']'+'\n'
+                    for i in range(4):
+                        try: float(line[index1+2+i])
+                        except: x = False
+                        else:
+                            x = True
+                            break
+                    if x==False: line = line[:index1+2]+'"'+line[index1+2:index2+1]+'"'+']'+'\n'
+                else:
+                    line = '\n'
+            line = textwrap.dedent(line)
+            temp_file.write(line) 
+        file.close()
+        print("ASCII file has been closed.")
+        temp_file.close()
+        print("Temporaryly created file has been closed.")
+        LoadClose.getVarFromFile(temp_filename)
+        return data
         
-    def close_ascii():
+    def close_ascii(filename):
         """Function to open and load an ASCII file"""
-        print("ASCII file has been closed")
+        temp_filename = '%s_temp.txt' % os.path.splitext(os.path.basename(filename))[0]
+        os.remove(temp_filename)
+        print("Temporaryly created file has been removed.")

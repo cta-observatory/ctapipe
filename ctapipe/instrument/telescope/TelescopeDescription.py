@@ -53,7 +53,7 @@ class Initialize:
         tel_posY = [-1*u.m]
         tel_posZ = [-1*u.m]
         
-        return tel_id,tel_num,tel_posX,tel_posY,tel_posZ
+        return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
     
     def _initialize_fits(filename,item):
         """
@@ -76,4 +76,14 @@ class Initialize:
         tel_posY = teles["TelY"]*u.m
         tel_posZ = teles["TelZ"]*u.m
         
-        return tel_id,tel_num,tel_posX,tel_posY,tel_posZ
+        return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
+    
+    def _initialize_ascii(filename,item):
+        
+        tel_id = [-1]
+        tel_num = -1
+        tel_posX = [-1]
+        tel_posY = [-1]
+        tel_posZ = [-1]
+        
+        return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
