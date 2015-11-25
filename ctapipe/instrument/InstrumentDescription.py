@@ -11,7 +11,10 @@ class Optics:
     """`Optics` is a class that provides and gets all the information about
     the optics of a specific telescope."""
 
-    def __init__(self,mir_area,mir_number,opt_foclen):
+    def __init__(self,mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,
+                 prim_diameter,prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,
+                 sec_hole_diam,mir_reflection,opt_foclen,foc_surfparam,
+                 foc_surf_refrad,tel_trans):
         """
         Parameters
         ----------
@@ -24,9 +27,22 @@ class Optics:
         opt_foclen: float with unit
             optical focus length of the optical system of the telescope
         """
+        self.mir_class = mir_class
         self.mir_area = mir_area
         self.mir_number = mir_number
+        self.prim_mirpar = prim_mirpar
+        self.prim_refrad = prim_refrad
+        self.prim_diameter = prim_diameter
+        self.prim_hole_diam = prim_hole_diam
+        self.sec_mirpar = sec_mirpar
+        self.sec_refrad = sec_refrad
+        self.sec_diameter = sec_diameter
+        self.sec_hole_diam = sec_hole_diam
+        self.mir_reflection = mir_reflection
         self.opt_foclen = opt_foclen
+        self.foc_surfparam = foc_surfparam
+        self.foc_surf_refrad = foc_surf_refrad
+        self.tel_trans = tel_trans
 
     @classmethod
     def initialize(cls,filename,tel_id,item):
@@ -43,8 +59,14 @@ class Optics:
         item: of various type depending on the file extension
             return value of the opening/loading process of the file
         """
-        mir_area, mir_number,opt_foclen = OD.initialize(filename,tel_id,item)
-        opt = cls(mir_area,mir_number,opt_foclen)
+        (mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,prim_diameter,
+         prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,sec_hole_diam,
+         mir_reflection,opt_foclen,foc_surfparam,foc_surf_refrad,
+         tel_trans) = OD.initialize(filename,tel_id,item)
+        opt = cls(mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,
+               prim_diameter,prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,
+               sec_hole_diam,mir_reflection,opt_foclen,foc_surfparam,
+               foc_surf_refrad,tel_trans)
         return opt
 
 
@@ -54,7 +76,7 @@ class Camera:
     the camera of a specific telescope."""
 
     def __init__(self,cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,
-                 pix_area,pix_type,pix_neighbors):
+                 pix_area,pix_type,pix_neighbors,fadc_pulsshape):
         """
         Parameters
         ----------
@@ -89,6 +111,7 @@ class Camera:
         self.pix_area = pix_area
         self.pix_type = pix_type
         self.pix_neighbors = pix_neighbors
+        self.fadc_pulsshape = fadc_pulsshape
 
     @classmethod
     def initialize(cls,filename,tel_id,item):
@@ -106,9 +129,9 @@ class Camera:
             return value of the opening/loading process of the file
         """
         (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,pix_type,
-         pix_neighbors) = CD.initialize(filename,tel_id,item)
+         pix_neighbors,fadc_pulsshape) = CD.initialize(filename,tel_id,item)
         cam = cls(cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
-                pix_type,pix_neighbors)
+                pix_type,pix_neighbors,fadc_pulsshape)
         return cam
 
 

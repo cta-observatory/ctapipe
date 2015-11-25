@@ -1,6 +1,8 @@
 import hessio as h
 from astropy import units as u
 import numpy as np
+import os
+import textwrap
 from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.instrument.util_functions import get_file_type
@@ -58,7 +60,7 @@ class Initialize:
         cam_class,pix_area,pix_type,dx = _guess_camera_geometry(pix_posX,pix_posY)
         pix_neighbors = _find_neighbor_pixels(pix_posX.value,pix_posY.value,
                                               dx.value + 0.01)
-        
+        fadc_pulsshape = [[-1],[-1]]
         #to use this, one has to go through every event of the run...
         #n_channel = h.get_num_channel(tel_id)
         #ld.channel_num = n_channel
@@ -66,7 +68,7 @@ class Initialize:
         #    ld.adc_samples.append(h.get_adc_sample(tel_id,chan).tolist())
     
         return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
-                pix_type,pix_neighbors)
+                pix_type,pix_neighbors,fadc_pulsshape)
             
     def _initialize_fits(filename,tel_id,item):
         """
@@ -102,10 +104,61 @@ class Initialize:
         pix_area = [-1*u.m**2]
         pix_type = -1
         pix_neighbors = [-1]
+        fadc_pulsshape = [[-1],[-1]]
     
         return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
-                pix_type,pix_neighbors)
+                pix_type,pix_neighbors,fadc_pulsshape)
     
+    def _initialize_ascii(filename,tel_id,item):
+        """
+        reads the Camera data out of the open fits file
+        
+        Parameters
+        ----------
+        filename: string
+            name of the hessio file (must be a fits file!)
+        tel_id: int
+            ID of the telescope whose optics information should be loaded
+        """
+        dirname = os.path.dirname(filename)        
+        
+        try: cam_class = item.cam_class[0]
+        except: cam_class = -1
+        
+        try: cam_fov = item.cam_fov[0]*u.degree
+        except: cam_fov = -1*u.degree
+        
+        try: pix_id = item.pix_id
+        except: pix_id = [-1]
+        
+        try: pix_posX = item.pix_posX*u.m
+        except: pix_posX = [-1*u.m]
+        
+        try: pix_posY = item.pix_posY*u.m
+        except: pix_posY = [-1*u.m]
+        
+        try: pix_posZ = item.pix_posZ*u.m
+        except: pix_posZ = [-1*u.m]
+                
+        try: pix_area = item.pix_area*u.m**2
+        except: pix_area = [-1*u.m**2]
+        
+        try: pix_type = item.pix_type[0]
+        except: pix_type = [-1]
+        
+        try: pix_neighbors = item.pix_neighbors
+        except: pix_neighbors = [-1]
+        
+        try:
+            time, pulse_shape = np.loadtxt(dirname+'/'+textwrap.dedent(item.fadc_pulse_shape[0]),
+                                           unpack=True)
+            fadc_pulsshape = [time,pulse_shape]
+        except: fadc_pulsshape = [[-1],[-1]]
+        
+        
+        return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
+                pix_type,pix_neighbors,fadc_pulsshape)
+        
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry
 _npix_to_type = {2048: ('SST', 'rectangular'),
