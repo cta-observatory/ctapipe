@@ -32,20 +32,20 @@ clean:
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py test -V
+	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python3 setup.py test -V
 
 doc:
-	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py build_sphinx
+	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python3 setup.py build_sphinx
 
 doc-show:
-	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python setup.py \
+	CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python3 setup.py \
 		build_sphinx --open-docs-in-browser
 
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
 
 conda:
-	python setup.py bdist_conda
+	python3 setup.py bdist_conda
 
 analyze:
 	@pyflakes ctapipe examples
@@ -59,5 +59,5 @@ trailing-spaces:
 
 # any other command can be passed to setup.py
 %:
-	python setup.py $@
+	python3 setup.py $@
 
