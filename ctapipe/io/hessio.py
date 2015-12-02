@@ -6,9 +6,13 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import RawData, RawCameraData
+from .containers import RawData
+from .containers import  RawCameraData, MCShowerData, CentralTriggerData
 from ctapipe.core import Container
 
+from astropy import units as u
+from astropy.coordinates import Angle
+from astropy.time import Time
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +59,8 @@ def hessio_event_source(url, max_events=None, single_tel=None):
     container.meta.add_item('hessio__max_events', max_events)
     container.meta.add_item('pixel_pos', dict())
     container.add_item("dl0", RawData())
+    container.add_item("mc", MCShowerData())
+    container.add_item("trig", CentralTriggerData())
     container.add_item("count")
 
     for run_id, event_id in eventstream:
@@ -62,6 +68,16 @@ def hessio_event_source(url, max_events=None, single_tel=None):
         container.dl0.run_id = run_id
         container.dl0.event_id = event_id
         container.dl0.tels_with_data = pyhessio.get_teldata_list()
+        container.trig.tels_with_trigger = pyhessio.get_central_event_teltrg_list()
+        time_s,time_ns = pyhessio.get_central_event_gps_time()
+        container.trig.gps_time = Time(time_s*u.s, time_ns*u.ns,
+                                       format='gps', scale='utc')  
+        container.mc.energy = pyhessio.get_mc_shower_energy()*u.TeV
+        container.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
+        container.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
+        container.mc.core_x = pyhessio.get_mc_event_xcore() * u.m
+        container.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
+                
         container.count = counter
         
         # handle single-telescope case (ignore others:
@@ -70,6 +86,7 @@ def hessio_event_source(url, max_events=None, single_tel=None):
                 continue
             container.dl0.tels_with_data = [single_tel, ]
 
+            
         # this should be done in a nicer way to not re-allocate the
         # data each time (right now it's just deleted and garbage
         # collected)
