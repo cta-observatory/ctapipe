@@ -34,7 +34,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
-                                 single_tel=args.tel,
+                                 allowed_tels=[args.tel,],
                                  max_events=args.max_events)
     disp = None
 
