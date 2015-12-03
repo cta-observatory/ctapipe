@@ -1,8 +1,7 @@
-import hessio as h
+import pyhessio as h
 import imp
 import os
 from astropy.io import fits
-import re
 import textwrap
 
 __all__ = ['get_file_type','load','close','LoadClose']
@@ -126,6 +125,15 @@ class LoadClose:
         hdulist.close()
     
     def getVarFromFile(filename):
+        """
+        Function to load and initialize a module implemented as a Python source
+        file called `filename` and to return its module objects.
+        
+        Parameter
+        ---------
+        filename: ASCII file
+            file in which the module objects are defined
+        """
         f = open(filename)
         global data
         data = imp.load_source('data', '', f)
