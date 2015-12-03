@@ -34,7 +34,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
-                                 single_tel=args.tel,
+                                 allowed_tels=[args.tel,],
                                  max_events=args.max_events)
     disp = None
 
@@ -44,6 +44,8 @@ if __name__ == '__main__':
     for event in source:
 
         print('Scanning input file... count = {}'.format(event.count))
+        print(event.trig)
+        print(event.mc)
         print(event.dl0)
 
         if disp is None:

@@ -19,10 +19,10 @@ __all__ = ['CameraGeometry',
 
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry
-_npix_to_type = {2048: ('SST', 'rectangular'),
-                 1141: ('MST', 'hexagonal'),
-                 1855: ('LST', 'hexagonal'),
-                 11328: ('SST', 'rectangular')}
+_npix_to_type = {2048: ('SST', 'GATE', 'rectangular'),
+                 1141: ('MST', 'NectarCam','hexagonal'),
+                 1855: ('LST', 'LSTCam', 'hexagonal'),
+                 11328: ('SCT', 'SCTCam', 'rectangular')}
 
 
 class CameraGeometry:
@@ -93,6 +93,16 @@ class CameraGeometry:
         else:
             raise TypeError("File type {} not supported".format(filetype))
 
+    def to_table(self):
+        """ convert this to an `astropy.table.Table` """
+        # currently the neighbor list is not supported, since
+        # var-length arrays are not supported by astropy.table.Table
+        return Table([self.pix_id, self.pix_x, self.pix_y, self.pix_area],
+                     names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
+                     meta=dict(pix_type=self.pix_type,
+                               TYPE='CameraGeometry',
+                               CAM_ID=self.cam_id ))
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
@@ -157,7 +167,7 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
 
 def _guess_camera_type(npix):
     global _npix_to_type
-    return _npix_to_type.get(npix, ('unknown', 'hexagonal'))
+    return _npix_to_type.get(npix, ('unknown', 'unknown','hexagonal'))
 
 
 @u.quantity_input
@@ -170,7 +180,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     - the first two pixels are adjacent
     """
 
-    cam_id, pix_type = _guess_camera_type(len(pix_x))
+    tel_type, cam_id, pix_type = _guess_camera_type(len(pix_x))
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
