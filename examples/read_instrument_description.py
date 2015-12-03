@@ -9,7 +9,9 @@ fits, and a sim_telarray-config file.
 """
 
 from ctapipe.instrument import InstrumentDescription as ID,util_functions as uf
+from ctapipe.instrument.telescope.camera import CameraDescription as CD
 from ctapipe.utils.datasets import get_path
+from astropy import units as u
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
@@ -85,10 +87,23 @@ if __name__ == '__main__':
           'Returned, when only the camera data is read from the file:')
     print('{0:.2f}'.format(cam1.cam_fov))
     print('{0:.2f}'.format(cam2.cam_fov))
+    print('Rotate the Camera by 180 degree, i.e. the x- & y-positions will be',
+          'rotated by 190 degree:')
+    print('x-position of the camera before using the rotate method:')
+    print(cam1.pix_posX)
+    print('x-position of the camera after using the rotate method:')
+    cam1.rotate(cam1,180*u.degree)
+    print(cam1.pix_posX)
     print('FADC pulse shape over time of ASCII file')
     plt.plot(cam3.fadc_pulsshape[0],cam3.fadc_pulsshape[1],'+')
     plt.show()    
     print('----------------------------')
+    
+    print('Print imported camera data as a table:')
+    table = CD.write_table(1,cam1.cam_class,cam1.pix_id[:1],cam1.pix_posX,
+                           cam1.pix_posY,cam1.pix_area,cam1.pix_type)
+    print(table)
+    print('---------------------------')
     
     opt1 = ID.Optics.initialize(filename1,1,item1)
     opt2 = ID.Optics.initialize(filename2,18,item2)

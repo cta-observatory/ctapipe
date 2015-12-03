@@ -133,6 +133,30 @@ class Camera:
         cam = cls(cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
                 pix_type,pix_neighbors,fadc_pulsshape)
         return cam
+    
+    @staticmethod
+    def rotate(cls,angle):
+        """
+        rotates the camera coordinates about the center of the camera by
+        specified angle. Modifies the CameraGeometry in-place (so
+        after this is called, the pix_x and pix_y arrays are
+        rotated).
+        
+        Note:
+        -----
+        This is intended only to correct simulated data that are
+        rotated by a fixed angle.  For the more general case of
+        correction for camera pointing errors (rotations,
+        translations, skews, etc), you should use a true coordinate
+        transformation defined in `ctapipe.coordinates`.      
+        
+        Parameters
+        ----------
+        cls: give the name of the class whose pixel positions should be rotated
+        angle: value convertable to an `astropy.coordinates.Angle`
+            rotation angle with unit (e.g. 12 * u.deg), or "12d" 
+        """
+        cls.pix_posX, cls.pix_posY = CD.rotate(cls.pix_posX,cls.pix_posY,angle)
 
 
 class Pixel:

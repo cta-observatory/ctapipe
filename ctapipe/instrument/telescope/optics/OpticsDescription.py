@@ -61,7 +61,7 @@ class Initialize:
         sec_refrad = -1*u.cm
         sec_diameter = -1*u.cm
         sec_hole_diam = -1*u.cm
-        mir_reflection = [[-1*u.nm],[-1]]
+        mir_reflection = [[-1]*u.nm,[-1]]
         opt_foclen = h.get_optical_foclen(tel_id)*u.m
         foc_surfparam = -1
         foc_surf_refrad = -1*u.cm
@@ -100,7 +100,7 @@ class Initialize:
         sec_refrad = -1*u.cm
         sec_diameter = -1*u.cm
         sec_hole_diam = -1*u.cm
-        mir_reflection = [[-1*u.nm],[-1]]
+        mir_reflection = [[-1]*u.nm,[-1]]
         opt_foclen = hdulist[1].data[index]["FL"]*u.m
         foc_surfparam = -1
         foc_surf_refrad = -1*u.cm
@@ -130,7 +130,7 @@ class Initialize:
         try: mir_class = item.mirror_class[0]
         except: mir_class = -1
                 
-        try: mir_area = item.mirror_area[0].cm**2
+        try: mir_area = item.mirror_area[0]*u.cm**2
         except: mir_area = -1*u.m**2
         
         try: mir_number = item.mirror_number[0]
@@ -164,7 +164,7 @@ class Initialize:
             wavel,reflect = np.loadtxt(dirname+'/'+textwrap.dedent(item.mirror_reflectivity[0]),
                                            unpack=True)
             mir_reflection = [wavel*u.nm,reflect]
-        except: mir_reflection = [[-1*u.nm],[-1]]
+        except: mir_reflection = [[-1]*u.nm,[-1]]
         
         try: opt_foclen = item.focal_length[0]*u.cm
         except: opt_foclen = -1*u.m
