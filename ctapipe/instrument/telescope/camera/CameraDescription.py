@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree as KDTree
 from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.instrument.util_functions import get_file_type
 
-__all__ = ['initialize','rotate']
+__all__ = ['initialize','rotate','write_table']
 
 class Initialize:
 
@@ -31,7 +31,7 @@ class Initialize:
         cam_fov = -1*u.degree
         pix_posX = h.get_pixel_position(tel_id)[0]*u.m
         pix_posY = h.get_pixel_position(tel_id)[1]*u.m
-        pix_posZ = [-1*u.m]
+        pix_posZ = [-1]*u.m
         pix_id = np.arange(len(pix_posX))
         
         cam_class,pix_area,pix_type,dx = _guess_camera_geometry(pix_posX,
@@ -81,10 +81,10 @@ class Initialize:
         cam_class = -1
         cam_fov = -1*u.degree
         lid = -1
-        pix_posX = [-1*u.m]
-        pix_posY = [-1*u.m]
-        pix_posZ = [-1*u.m]
-        pix_area = [-1*u.m**2]
+        pix_posX = [-1]*u.m
+        pix_posY = [-1]*u.m
+        pix_posZ = [-1]*u.m
+        pix_area = [-1]*u.m**2
         pix_type = -1
         pix_neighbors = [-1]
         fadc_pulsshape = [[-1],[-1]]
@@ -155,16 +155,16 @@ class Initialize:
         except: pix_id = [-1]
         
         try: pix_posX = item.pix_posX*u.m
-        except: pix_posX = [-1*u.m]
+        except: pix_posX = [-1]*u.m
         
         try: pix_posY = item.pix_posY*u.m
-        except: pix_posY = [-1*u.m]
+        except: pix_posY = [-1]*u.m
         
         try: pix_posZ = item.pix_posZ*u.m
-        except: pix_posZ = [-1*u.m]
+        except: pix_posZ = [-1]*u.m
                 
         try: pix_area = item.pix_area*u.m**2
-        except: pix_area = [-1*u.m**2]
+        except: pix_area = [-1]*u.m**2
         
         try: pix_type = item.pix_type[0]
         except: pix_type = [-1]
@@ -182,60 +182,6 @@ class Initialize:
         return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
                 pix_type,pix_neighbors,fadc_pulsshape)
 
-def initialize(filename,tel_id,item):
-    """
-    calls the specific initialize function depending on the file
-    extension of the given file. The file must already be open/have
-    been loaded. The return value of the opening/loading process
-    must be given as an argument (item).
-    
-    Parameters
-    ----------
-    filename: string
-        name of the file
-    tel_id: int
-        ID of the telescope whose optics information should be loaded
-    item: of various type depending on the file extension
-        return value of the opening/loading process of the file
-    """
-    ext = get_file_type(filename)
-
-    function = getattr(Initialize,"_initialize_%s" % ext)
-    return function(filename,tel_id,item)       
-    
-    #if 'simtel.gz' in filename:
-    #    return _initialize_hessio(filename,tel_id)
-    #elif 'fits' in filename:
-    #    return _initialize_fits(filename,tel_id,item)
-    
-def write_table(tel_id,cam_class,pix_id,pix_x,pix_y,pix_area,pix_type):
-    """
-    writes values into an `astropy.table.Table`
-    
-    Parameters
-    ----------
-    tel_id: int
-        ID of the telescope
-    cam_class: string
-        camera class
-    pix_id: int array
-        IDs of pixels of a given telescope
-    pix_x:astropy.units array
-        x-positions of the pixels
-    pix_y:astropy.units array
-        y-positions of the pixel
-    pix_area: astropy.units array
-        areas of the pixe
-    """
-    # currently the neighbor list is not supported, since
-    # var-length arrays are not supported by astropy.table.Table
-    return Table([pix_id,pix_xpix_y,pix_area],
-                 names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
-                 meta=dict(pix_type=pix_type,
-                           TYPE='CameraGeometry',
-                           TEL_ID=tel_id,
-                           CAM_CLASS=cam_class))
-        
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry
 _npix_to_type = {2048: ('SST', 'rectangular'),
@@ -293,7 +239,7 @@ def _guess_camera_geometry(pix_x: u.m, pix_y: u.m):
         area = dist ** 2
     else:
         area = -1 #unsupported pixel type
-        pix_area = [-1*u.m**2]
+        pix_area = [-1]*u.m**2
     
     if area != -1:
         pix_area = np.ones(pix_x.shape) * area
@@ -328,17 +274,64 @@ def _find_neighbor_pixels(pix_x, pix_y, rad):
         nn.remove(ii)  # get rid of the pixel itself
     return neighbors
 
+
+def initialize(filename,tel_id,item):
+    """
+    calls the specific initialize function depending on the file
+    extension of the given file. The file must already be open/have
+    been loaded. The return value of the opening/loading process
+    must be given as an argument (item).
+    
+    Parameters
+    ----------
+    filename: string
+        name of the file
+    tel_id: int
+        ID of the telescope whose optics information should be loaded
+    item: of various type depending on the file extension
+        return value of the opening/loading process of the file
+    """
+    ext = get_file_type(filename)
+
+    function = getattr(Initialize,"_initialize_%s" % ext)
+    return function(filename,tel_id,item)       
+    
+    #if 'simtel.gz' in filename:
+    #    return _initialize_hessio(filename,tel_id)
+    #elif 'fits' in filename:
+    #    return _initialize_fits(filename,tel_id,item)
+    
+def write_table(tel_id,cam_class,pix_id,pix_x,pix_y,pix_area,pix_type):
+    """
+    writes values into an `astropy.table.Table`
+    
+    Parameters
+    ----------
+    tel_id: int
+        ID of the telescope
+    cam_class: string
+        camera class
+    pix_id: int array
+        IDs of pixels of a given telescope
+    pix_x:astropy.units array
+        x-positions of the pixels
+    pix_y:astropy.units array
+        y-positions of the pixel
+    pix_area: astropy.units array
+        areas of the pixe
+    """
+    # currently the neighbor list is not supported, since
+    # var-length arrays are not supported by astropy.table.Table
+    return Table([pix_id,pix_x,pix_y,pix_area],
+                 names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
+                 meta=dict(pix_type=pix_type,
+                           TYPE='CameraGeometry',
+                           TEL_ID=tel_id,
+                           CAM_CLASS=cam_class))
+
 def rotate(pix_x,pix_y,angle):
     """rotate the camera coordinates about the center of the camera by
     specified angle.
-    
-    Note:
-    -----
-    This is intended only to correct simulated data that are
-    rotated by a fixed angle.  For the more general case of
-    correction for camera pointing errors (rotations,
-    translations, skews, etc), you should use a true coordinate
-    transformation defined in `ctapipe.coordinates`.
     
     Parameters
     ----------
@@ -357,6 +350,39 @@ def rotate(pix_x,pix_y,angle):
     pix_y = rotated[1] * pix_x.unit
     
     return pix_x,pix_y
+    
+def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
+                                     range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
+    """Generate a simple camera with 2D rectangular geometry.
+    Used for testing.
+    Parameters
+    ----------
+    npix_x : int
+        number of pixels in X-dimension
+    npix_y : int
+        number of pixels in Y-dimension
+    range_x : (float,float)
+        min and max of x pixel coordinates in meters
+    range_y : (float,float)
+        min and max of y pixel coordinates in meters
+    Returns
+    -------
+    CameraGeometry object
+    """
+    bx = np.linspace(range_x[0], range_x[1], npix_x)
+    by = np.linspace(range_y[0], range_y[1], npix_y)
+    xx, yy = np.meshgrid(bx, by)
+    pix_x = xx.ravel() * u.m
+    pix_y = yy.ravel() * u.m
+
+    pix_id = np.arange(npix_x * npix_y)
+    rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
+    pix_area = (2 * rr) ** 2
+    neighbors = _find_neighbor_pixels(xx.value, yy.value,
+                              rad=(rr.mean() * 2.001).value)
+    pix_type = 'rectangular'
+    cam_id = -1
+    return (cam_id,pix_id,pix_x*u.m,pix_y*u.m,pix_area,neighbors,pix_type)
 
 
 

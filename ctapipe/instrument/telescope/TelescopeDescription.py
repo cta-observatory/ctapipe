@@ -49,9 +49,9 @@ class Initialize:
         
         tel_id = h.get_teldata_list()
         tel_num = h.get_num_telescope()
-        tel_posX = [-1*u.m]
-        tel_posY = [-1*u.m]
-        tel_posZ = [-1*u.m]
+        tel_posX = [-1]*u.m
+        tel_posY = [-1]*u.m
+        tel_posZ = [-1]*u.m
         
         return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
     
@@ -94,8 +94,8 @@ class Initialize:
         """
         tel_id = [-1]
         tel_num = -1
-        tel_posX = [-1]
-        tel_posY = [-1]
-        tel_posZ = [-1]
+        tel_posX = [-1]*u.m
+        tel_posY = [-1]*u.m
+        tel_posZ = [-1]*u.m
         
         return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
