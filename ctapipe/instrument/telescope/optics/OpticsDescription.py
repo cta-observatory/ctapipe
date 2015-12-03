@@ -1,4 +1,4 @@
-import hessio as h
+import pyhessio as h
 from astropy import units as u
 import numpy as np
 import textwrap
@@ -79,7 +79,7 @@ class Initialize:
         Parameters
         ----------
         filename: string
-            name of the hessio file (must be a fits file!)
+            name of the fits file (must be a fits file!)
         tel_id: int
             ID of the telescope whose optics information should be loaded
         item: HDUList
@@ -105,15 +105,26 @@ class Initialize:
         foc_surfparam = -1
         foc_surf_refrad = -1*u.cm
         tel_trans = -1
-        
-        
+                
         return(mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,
                prim_diameter,prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,
                sec_hole_diam,mir_reflection,opt_foclen,foc_surfparam,
                foc_surf_refrad,tel_trans)
         
     def _initialize_ascii(filename,tel_id,item):
+        """
+        reads the Optics data out of the ASCII file
         
+        Parameters
+        ----------
+        filename: string
+            name of the ASCII file (must be an ASCII config file!)
+        tel_id: int
+            ID of the telescope whose optics information should be loaded (must
+            not be given)
+        item: python module
+            python module created from an ASCII file using imp.load_source
+        """
         dirname = os.path.dirname(filename)
         
         try: mir_class = item.mirror_class[0]

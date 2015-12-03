@@ -1,39 +1,15 @@
-import hessio as h
+import pyhessio as h
 from astropy import units as u
+from astropy.table import Table
 import numpy as np
 import os
 import textwrap
 from scipy.spatial import cKDTree as KDTree
 
+from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.instrument.util_functions import get_file_type
 
-__all__ = ['initialize']
-
-def initialize(filename,tel_id,item):
-    """
-    calls the specific initialize function depending on the file
-    extension of the given file. The file must already be open/have
-    been loaded. The return value of the opening/loading process
-    must be given as an argument (item).
-    
-    Parameters
-    ----------
-    filename: string
-        name of the file
-    tel_id: int
-        ID of the telescope whose optics information should be loaded
-    item: of various type depending on the file extension
-        return value of the opening/loading process of the file
-    """
-    ext = get_file_type(filename)
-
-    function = getattr(Initialize,"_initialize_%s" % ext)
-    return function(filename,tel_id,item)       
-    
-    #if 'simtel.gz' in filename:
-    #    return _initialize_hessio(filename,tel_id)
-    #elif 'fits' in filename:
-    #    return _initialize_fits(filename,tel_id,item)
+__all__ = ['initialize','rotate']
 
 class Initialize:
 
@@ -57,9 +33,24 @@ class Initialize:
         pix_posY = h.get_pixel_position(tel_id)[1]*u.m
         pix_posZ = [-1*u.m]
         pix_id = np.arange(len(pix_posX))
-        cam_class,pix_area,pix_type,dx = _guess_camera_geometry(pix_posX,pix_posY)
-        pix_neighbors = _find_neighbor_pixels(pix_posX.value,pix_posY.value,
-                                              dx.value + 0.01)
+        
+        cam_class,pix_area,pix_type,dx = _guess_camera_geometry(pix_posX,
+                                                                pix_posY)
+        
+        try: cam_class = h.get_camera_class(tel_id)
+        except: pass
+        
+        try: pix_area = h.get_pixel_area(tel_id)
+        except: pass
+        
+        try: pix_type = h.get_pixel_type(tel_id)
+        except: pass
+        
+        try: pix_neighbors = h.get_pix_neighbors(tel_id)
+        except:
+            pix_neighbors = _find_neighbor_pixels(pix_posX.value,
+                                                  pix_posY.value,
+                                                  dx.value + 0.01)
         fadc_pulsshape = [[-1],[-1]]
         #to use this, one has to go through every event of the run...
         #n_channel = h.get_num_channel(tel_id)
@@ -77,27 +68,19 @@ class Initialize:
         Parameters
         ----------
         filename: string
-            name of the hessio file (must be a fits file!)
+            name of the fits file (must be a fits file!)
         tel_id: int
-            ID of the telescope whose optics information should be loaded
+            ID of the telescope or of the camera whose optics information
+            should be loaded
+            
         item: HDUList
             HDUList of the fits file
         """
         hdulist = item
-        teles = hdulist[1].data
-        telescope_id = teles["TelID"].tolist()
         
         cam_class = -1
-    
-        index = telescope_id.index(tel_id)
-        cam_fov = hdulist[1].data[index]["FOV"]*u.degree
-    
-        pix_id = []
-        index2 = np.where(hdulist[2].data['L0ID'] == index)[0]
-        for i in index2:
-            pix_id.append(hdulist[2].data[i]['PixelID'])
-    
-    
+        cam_fov = -1*u.degree
+        lid = -1
         pix_posX = [-1*u.m]
         pix_posY = [-1*u.m]
         pix_posZ = [-1*u.m]
@@ -105,20 +88,60 @@ class Initialize:
         pix_type = -1
         pix_neighbors = [-1]
         fadc_pulsshape = [[-1],[-1]]
+        
+        
+        for i in range(len(hdulist)):
+            teles = hdulist[i].data
+            
+            try: cam_class = teles['CamClass'][teles['TelID']==tel_id][0]
+            except: pass
+        
+            try: cam_fov = teles['FOV'][teles['TelID']==tel_id][0]*u.degree
+            except: pass
+        
+            try: lid = teles['L0ID'][teles['TelID']==tel_id][0]
+            except: pass
+        
+            try: pix_id = teles['PixelID'][teles['L0ID']==lid]
+            except: pass
+        
+            try: pix_posX = teles['Pix_PosX'][teles['L0ID']==lid]*u.m
+            except: pass
+        
+            try: pix_posY = teles['Pix_PosY'][teles['L0ID']==lid]*u.m
+            except: pass
+        
+            try: pix_posZ = teles['Pix_PosZ'][teles['L0ID']==lid]*u.m
+            except: pass
+    
+            try: pix_area = teles['Pix_Area'][teles['L0ID']==lid]*u.m
+            except: pass
+        
+            try: pix_type = teles['Pix_Type'][teles['L0ID']==lid]*u.m**2
+            except: pass
+        
+            try: pix_neighbors = teles['Pix_Neighbors'][teles['L0ID']==lid]
+            except: pass
+        
+            try: fadc_pulsshape = teles['FADC_PulseShape'][teles['L0ID']==lid]
+            except: pass
     
         return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
                 pix_type,pix_neighbors,fadc_pulsshape)
     
     def _initialize_ascii(filename,tel_id,item):
         """
-        reads the Camera data out of the open fits file
+        reads the Camera data out of the ASCII file
         
         Parameters
         ----------
         filename: string
-            name of the hessio file (must be a fits file!)
+            name of the ASCII file (must be an ASCII config file!)
         tel_id: int
-            ID of the telescope whose optics information should be loaded
+            ID of the telescope whose optics information should be loaded (must
+            not be given)
+        item: python module
+            python module created from an ASCII file using imp.load_source
         """
         dirname = os.path.dirname(filename)        
         
@@ -158,6 +181,60 @@ class Initialize:
         
         return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
                 pix_type,pix_neighbors,fadc_pulsshape)
+
+def initialize(filename,tel_id,item):
+    """
+    calls the specific initialize function depending on the file
+    extension of the given file. The file must already be open/have
+    been loaded. The return value of the opening/loading process
+    must be given as an argument (item).
+    
+    Parameters
+    ----------
+    filename: string
+        name of the file
+    tel_id: int
+        ID of the telescope whose optics information should be loaded
+    item: of various type depending on the file extension
+        return value of the opening/loading process of the file
+    """
+    ext = get_file_type(filename)
+
+    function = getattr(Initialize,"_initialize_%s" % ext)
+    return function(filename,tel_id,item)       
+    
+    #if 'simtel.gz' in filename:
+    #    return _initialize_hessio(filename,tel_id)
+    #elif 'fits' in filename:
+    #    return _initialize_fits(filename,tel_id,item)
+    
+def write_table(tel_id,cam_class,pix_id,pix_x,pix_y,pix_area,pix_type):
+    """
+    writes values into an `astropy.table.Table`
+    
+    Parameters
+    ----------
+    tel_id: int
+        ID of the telescope
+    cam_class: string
+        camera class
+    pix_id: int array
+        IDs of pixels of a given telescope
+    pix_x:astropy.units array
+        x-positions of the pixels
+    pix_y:astropy.units array
+        y-positions of the pixel
+    pix_area: astropy.units array
+        areas of the pixe
+    """
+    # currently the neighbor list is not supported, since
+    # var-length arrays are not supported by astropy.table.Table
+    return Table([pix_id,pix_xpix_y,pix_area],
+                 names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
+                 meta=dict(pix_type=pix_type,
+                           TYPE='CameraGeometry',
+                           TEL_ID=tel_id,
+                           CAM_CLASS=cam_class))
         
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry
@@ -193,9 +270,18 @@ def _guess_camera_geometry(pix_x: u.m, pix_y: u.m):
         positions of pixels (x-coordinate)
     pix_y: array with units
         positions of pixels (y-coordinate
+    
+    Returns
+    -------
+    camera class, pixel area, pixel type, and distance between 2 pixels
+    projected on the x-axis
     """
 
-    cam_class,pix_type = _guess_camera_type(len(pix_x))
+    try: cam_class,pix_type = _guess_camera_type(len(pix_x))
+    except:
+        cam_class = -1
+        pix_type = -1
+        
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
@@ -206,8 +292,11 @@ def _guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     elif pix_type.startswith('rect'):
         area = dist ** 2
     else:
-        raise KeyError("unsupported pixel type")
-    pix_area = (np.ones(pix_x.shape) * area)
+        area = -1 #unsupported pixel type
+        pix_area = [-1*u.m**2]
+    
+    if area != -1:
+        pix_area = np.ones(pix_x.shape) * area
 
     return cam_class,pix_area,pix_type,dx
 
@@ -238,4 +327,38 @@ def _find_neighbor_pixels(pix_x, pix_y, rad):
     for nn, ii in zip(neighbors, indices):
         nn.remove(ii)  # get rid of the pixel itself
     return neighbors
+
+def rotate(pix_x,pix_y,angle):
+    """rotate the camera coordinates about the center of the camera by
+    specified angle.
+    
+    Note:
+    -----
+    This is intended only to correct simulated data that are
+    rotated by a fixed angle.  For the more general case of
+    correction for camera pointing errors (rotations,
+    translations, skews, etc), you should use a true coordinate
+    transformation defined in `ctapipe.coordinates`.
+    
+    Parameters
+    ----------
+    pix_x: x-position of pixel with unit
+    pix_y: y-position of pixel with unit
+    angle: value convertable to an `astropy.coordinates.Angle`
+        rotation angle with unit (e.g. 12 * u.deg), or "12d"
+        
+    Returns
+    -------
+    roated x- and y-positions
+    """
+    rotmat = rotation_matrix_2d(angle)
+    rotated = np.dot(rotmat.T, [pix_x.value,pix_y.value])
+    pix_x = rotated[0] * pix_x.unit
+    pix_y = rotated[1] * pix_x.unit
+    
+    return pix_x,pix_y
+
+
+
+
 

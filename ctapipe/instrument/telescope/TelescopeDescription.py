@@ -1,4 +1,4 @@
-import hessio as h
+import pyhessio as h
 from astropy import units as u
 
 from ctapipe.instrument.util_functions import get_file_type
@@ -57,12 +57,12 @@ class Initialize:
     
     def _initialize_fits(filename,item):
         """
-        reads the Camera data out of the open fits file
+        reads the Telescope data out of the open fits file
         
         Parameters
         ----------
         filename: string
-            name of the hessio file (must be a fits file!)
+            name of the fits file (must be a fits file!)
         tel_id: int
             ID of the telescope whose optics information should be loaded
         item: HDUList
@@ -79,7 +79,19 @@ class Initialize:
         return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
     
     def _initialize_ascii(filename,item):
+        """
+        reads the Telescope data out of the ASCII file
         
+        Parameters
+        ----------
+        filename: string
+            name of the ASCII file (must be an ASCII config file!)
+        tel_id: int
+            ID of the telescope whose optics information should be loaded (must
+            not be given)
+        item: python module
+            python module created from an ASCII file using imp.load_source
+        """
         tel_id = [-1]
         tel_num = -1
         tel_posX = [-1]
