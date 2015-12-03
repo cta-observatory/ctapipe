@@ -58,4 +58,5 @@ trailing-spaces:
 
 # any other command can be passed to setup.py
 %:
-	$(PYTHON) setup.py $@ 
+	$(PYTHON) setup.py $@
+ 
