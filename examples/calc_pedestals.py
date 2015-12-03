@@ -63,7 +63,3 @@ if __name__ == '__main__':
     # number of bytes were read", but that's because the example
     # simtel file is truncated to a small filesize, so the final event
     # is corrupt
-
-    Status API Training Shop Blog About Pricing 
-
-    © 2015 GitHub, Inc. Terms Privacy Security Contact Help 

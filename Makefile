@@ -58,8 +58,4 @@ trailing-spaces:
 
 # any other command can be passed to setup.py
 %:
-	$(PYTHON) setup.py $@
-
-    Status API Training Shop Blog About Pricing 
-
-    © 2015 GitHub, Inc. Terms Privacy Security Contact Help 
+	$(PYTHON) setup.py $@ 
