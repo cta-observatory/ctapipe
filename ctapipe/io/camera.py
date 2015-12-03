@@ -4,14 +4,12 @@ Utilities for reading or working with Camera geometry files
 """
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
 from astropy.table import Table
 from scipy.spatial import cKDTree as KDTree
-from numpy import deprecate
 
 from .files import get_file_type
-from ctapipe.utils.datasets import get_path
-from ctapipe.utils.linalg import rotation_matrix_2d
+from ..utils.datasets import get_path
+from ..utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
@@ -20,7 +18,7 @@ __all__ = ['CameraGeometry',
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry
 _npix_to_type = {2048: ('SST', 'GATE', 'rectangular'),
-                 1141: ('MST', 'NectarCam','hexagonal'),
+                 1141: ('MST', 'NectarCam', 'hexagonal'),
                  1855: ('LST', 'LSTCam', 'hexagonal'),
                  11328: ('SCT', 'SCTCam', 'rectangular')}
 
@@ -101,7 +99,7 @@ class CameraGeometry:
                      names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
                      meta=dict(pix_type=self.pix_type,
                                TYPE='CameraGeometry',
-                               CAM_ID=self.cam_id ))
+                               CAM_ID=self.cam_id))
 
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
@@ -167,7 +165,7 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
 
 def _guess_camera_type(npix):
     global _npix_to_type
-    return _npix_to_type.get(npix, ('unknown', 'unknown','hexagonal'))
+    return _npix_to_type.get(npix, ('unknown', 'unknown', 'hexagonal'))
 
 
 @u.quantity_input

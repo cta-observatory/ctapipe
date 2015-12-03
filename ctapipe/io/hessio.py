@@ -102,8 +102,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
 
             # fill pixel position dictionary, if not already done:
             if tel_id not in container.meta.pixel_pos:
-                container.meta.pixel_pos[
-                    tel_id] = pyhessio.get_pixel_position(tel_id)
+                container.meta.pixel_pos[tel_id] \
+                    = pyhessio.get_pixel_position(tel_id) * u.m
 
             nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)
