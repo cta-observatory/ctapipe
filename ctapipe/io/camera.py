@@ -171,7 +171,9 @@ def _guess_camera_type(npix, pix_sep):
     try:
         return _npix_to_type[(npix, None)]
     except KeyError:
-        return _npix_to_type.get((npix,np.round(pix_sep,3)), ('unknown', 'unknown', 'hexagonal'))
+        return _npix_to_type.get((npix, np.round(pix_sep, 3)),
+                                 ('unknown', 'unknown', 'hexagonal'))
+
 
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
@@ -186,8 +188,9 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
-    tel_type, cam_id, pix_type = _guess_camera_type(len(pix_x), u.Quantity(dist,"m").value)
-    
+    tel_type, cam_id, pix_type = _guess_camera_type(
+        len(pix_x), u.Quantity(dist, "m").value)
+
     if pix_type.startswith('hex'):
         rad = dist / np.sqrt(3)  # radius to vertex of hexagon
         area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
@@ -203,7 +206,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
                           pix_area=np.ones(pix_x.shape) * area,
                           neighbors=find_neighbor_pixels(pix_x.value,
                                                          pix_y.value,
-                                                         1.4*dist.value),
+                                                         1.4 * dist.value),
                           pix_type=pix_type)
 
 
