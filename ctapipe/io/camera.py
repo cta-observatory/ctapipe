@@ -16,11 +16,14 @@ __all__ = ['CameraGeometry',
 
 
 # dictionary to convert number of pixels to camera type for use in
-# guess_camera_geometry
-_npix_to_type = {2048: ('SST', 'GATE', 'rectangular'),
-                 1141: ('MST', 'NectarCam', 'hexagonal'),
-                 1855: ('LST', 'LSTCam', 'hexagonal'),
-                 11328: ('SCT', 'SCTCam', 'rectangular')}
+# guess_camera_geometry.
+# Key = (npix, pix_seperation_m)
+# Value = (type, subtype, pixtype)
+_npix_to_type = {(2048, 0.006): ('SST', 'GATE', 'rectangular'),
+                 (2048, 0.042): ('LST', 'HESSII', 'hexagonal'),
+                 (1141, None): ('MST', 'NectarCam', 'hexagonal'),
+                 (1855, None): ('LST', 'LSTCam', 'hexagonal'),
+                 (11328, None): ('SCT', 'SCTCam', 'rectangular')}
 
 
 class CameraGeometry:
@@ -163,10 +166,12 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def _guess_camera_type(npix):
+def _guess_camera_type(npix, pix_sep):
     global _npix_to_type
-    return _npix_to_type.get(npix, ('unknown', 'unknown', 'hexagonal'))
-
+    try:
+        return _npix_to_type[(npix, None)]
+    except KeyError:
+        return _npix_to_type.get((npix,np.round(pix_sep,3)), ('unknown', 'unknown', 'hexagonal'))
 
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
@@ -178,11 +183,11 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     - the first two pixels are adjacent
     """
 
-    tel_type, cam_id, pix_type = _guess_camera_type(len(pix_x))
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
-
+    tel_type, cam_id, pix_type = _guess_camera_type(len(pix_x), u.Quantity(dist,"m").value)
+    
     if pix_type.startswith('hex'):
         rad = dist / np.sqrt(3)  # radius to vertex of hexagon
         area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
