@@ -6,7 +6,7 @@
 # containing ~10 events
 #
 
-from ctapipe.utils.datasets import get_example_hessio_file()
+from ctapipe.utils.datasets import get_example_hessio_file
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
