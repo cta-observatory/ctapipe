@@ -203,7 +203,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
                           pix_area=np.ones(pix_x.shape) * area,
                           neighbors=find_neighbor_pixels(pix_x.value,
                                                          pix_y.value,
-                                                         dx.value + 0.01),
+                                                         1.4*dist.value),
                           pix_type=pix_type)
 
 
