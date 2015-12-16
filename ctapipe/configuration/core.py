@@ -396,7 +396,6 @@ class Configuration(ArgumentParser):
 		for section in config_parser.sections():
 			for key, value_comment in config_parser.items(section):
 				foo = value_comment.split(" ;")
-				print('foo',foo)
 				value = foo[self.VALUE_INDEX]
 				try:
 					comment = foo[self.COMMENT_INDEX]

@@ -13,7 +13,6 @@ class PRawData2Pdst():
 		self.source_dir = None
 		
 	def init(self):
-		print("----------------------------------- PRawData2Pdst init ---")
 		self.exe = self.configuration.get('executable', section=SECTION_NAME)
 		self.source_dir = self.configuration.get('source_dir', section=SECTION_NAME)
 		return True
@@ -23,16 +22,10 @@ class PRawData2Pdst():
 			sleep(2)
 			if input_file.find('prun') != -1: 
 				output = self.source_dir+"/"+input_file.split('.')[0]+'.ptabhillas'
-				print("--- PRawData2Pdst start for file", input_file, "---")
 				cmd = [self.exe,'-i',self.source_dir+"/"+input_file,'-o',output]
-				print('PRawData2Pdst cmd', cmd)
 				proc = subprocess.Popen(cmd)
 				proc.wait()
-				print('PRawData2Pdst yield',  output)
 				yield output
-
-
-
 
 	def finish(self):
 		print("--- PRawData2Pdst finish ---")

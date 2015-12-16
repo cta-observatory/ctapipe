@@ -13,17 +13,14 @@ class PTableHillas2PTimeHillas:
 	
 	def init(self):
 		self.exe = self.configuration.get('executable', section=SECTION_NAME)
-		print('-----------------------------------PTableHillas2PTimeHillas init')
 		return True
 
 	
 	def run(self,input_file):
-		print("--- PTableHillas2PTimeHillas start for file", input_file, "---")
 		output = input_file.split('.')[0]+'.ptimehillas'
 		cmd = [self.exe,'-i',input_file,'-o',output]  
 		proc = subprocess.Popen(cmd)
 		proc.wait()
-		print("--- PTableHillas2PTimeHillas res ---" , proc.returncode)
 		return output 
 
 	def finish(self):
