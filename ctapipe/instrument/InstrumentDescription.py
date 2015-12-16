@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 
-from ctapipe.instrument.telescope import TelescopeDescription as TD
-from ctapipe.instrument.telescope.camera import CameraDescription as CD
-from ctapipe.instrument.telescope.optics import OpticsDescription as OD
+from ctapipe.instrument import TelescopeDescription as TD
+from ctapipe.instrument import CameraDescription as CD
+from ctapipe.instrument import OpticsDescription as OD
+from ctapipe.instrument import util_functions as uf
 
 __all__ = ['Optics','Camera','Telescope']
 
@@ -45,7 +46,7 @@ class Optics:
         self.tel_trans = tel_trans
 
     @classmethod
-    def initialize(cls,filename,tel_id,item):
+    def from_file(cls,filename,tel_id,attribute='closed'):
         """
         Load all the information about the optics of a given telescope with
         ID `tel_id` from an open file with name `filename`.
@@ -59,14 +60,29 @@ class Optics:
         item: of various type depending on the file extension
             return value of the opening/loading process of the file
         """
+        ext = uf.get_file_type(filename)
+
+        if attribute == 'closed':
+            load = getattr(uf,"load_%s" % ext)
+            item = load(filename)
+        else:
+            item = attribute
+        
+        function = getattr(OD,"from_file_%s" % ext)
+    
         (mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,prim_diameter,
          prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,sec_hole_diam,
          mir_reflection,opt_foclen,foc_surfparam,foc_surf_refrad,
-         tel_trans) = OD.initialize(filename,tel_id,item)
+         tel_trans) = function(filename,tel_id,item)
         opt = cls(mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,
                prim_diameter,prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,
                sec_hole_diam,mir_reflection,opt_foclen,foc_surfparam,
                foc_surf_refrad,tel_trans)
+        
+        if attribute == 'closed':
+            close = getattr(uf,"close_%s" % ext)
+            close(item)
+            
         return opt
 
 
@@ -114,7 +130,7 @@ class Camera:
         self.fadc_pulsshape = fadc_pulsshape
 
     @classmethod
-    def initialize(cls,filename,tel_id,item):
+    def from_file(cls,filename,tel_id,attribute='closed'):
         """
         Load all the information about the camera of a given telescope with
         ID `tel_id` from an open file with name `filename`.
@@ -128,10 +144,25 @@ class Camera:
         item: of various type depending on the file extension
             return value of the opening/loading process of the file
         """
+        ext = uf.get_file_type(filename)
+
+        if attribute == 'closed':
+            load = getattr(uf,"load_%s" % ext)
+            item = load(filename)
+        else:
+            item = attribute
+        
+        function = getattr(CD,"from_file_%s" % ext)
+        
         (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,pix_type,
-         pix_neighbors,fadc_pulsshape) = CD.initialize(filename,tel_id,item)
+         pix_neighbors,fadc_pulsshape) = function(filename,tel_id,item)
         cam = cls(cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
                 pix_type,pix_neighbors,fadc_pulsshape)
+        
+        if attribute == 'closed':
+            close = getattr(uf,"close_%s" % ext)
+            close(item)
+        
         return cam
     
     @staticmethod
@@ -196,7 +227,7 @@ class Telescope(Optics,Camera):
         self.tel_posZ = tel_posZ
 
     @classmethod
-    def initialize(cls,filename,item):
+    def from_file(cls,filename,attribute='closed'):
         """
         Load all the information about the telescope and its components
         (= parameters of the inherited classes) from an open file with
@@ -209,15 +240,30 @@ class Telescope(Optics,Camera):
         item: of various type depending on the file extension
             return value of the opening/loading process of the file
         """
-        tel_id, tel_num,tel_posX,tel_posY,tel_posZ = TD.initialize(filename,
+        
+        ext = uf.get_file_type(filename)
+
+        if attribute == 'closed':
+            load = getattr(uf,"load_%s" % ext)
+            item = load(filename)
+        else:
+            item = attribute
+        
+        function = getattr(TD,"from_file_%s" % ext)
+        
+        tel_id, tel_num,tel_posX,tel_posY,tel_posZ = function(filename,
                                                                    item)
         tel = cls(tel_num,tel_id,tel_posX,tel_posY,tel_posZ)
 
         opt = []
         cam = []
         for i in range(len(tel_id)):
-            opt.append(Optics.initialize(filename,tel_id[i],item))
-            cam.append(Camera.initialize(filename,tel_id[i],item))
+            opt.append(Optics.from_file(filename,tel_id[i],item))
+            cam.append(Camera.from_file(filename,tel_id[i],item))
+        
+        if attribute == 'closed':
+            close = getattr(uf,"close_%s" % ext)
+            close(item)
         
         return tel,opt,cam
 
