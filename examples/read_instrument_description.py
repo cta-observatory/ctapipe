@@ -8,11 +8,11 @@ Example of using the instrument module and reading data from a hessio, a
 fits, and a sim_telarray-config file.
 """
 
-from ctapipe.instrument import InstrumentDescription as ID,util_functions as uf
-from ctapipe.instrument.telescope.camera import CameraDescription as CD
+from ctapipe.instrument import InstrumentDescription as ID, CameraDescription as CD
 from ctapipe.utils.datasets import get_path
 from astropy import units as u
 import matplotlib.pyplot as plt
+import time
 
 if __name__ == '__main__':
     
@@ -20,16 +20,9 @@ if __name__ == '__main__':
     filename2 = get_path('gamma_test.simtel.gz')
     filename3 ='/afs/ifh.de/group/cta/MC_Production/d20150828_GM/mrg/sim_telarray/cfg/CTA/CTA-ULTRA6-SCT.cfg'
     
-    #open both files:
-    item1 = uf.load(filename1)
-    item2 = uf.load(filename2)
-    item3 = uf.load(filename3)
-    
-    #initialize the whole telescope, i.e. read all data from the files which
-    #concerns the whole telescope (including camera and optics)
-    instr1 = ID.Telescope.initialize(filename1,item1)
-    instr2 = ID.Telescope.initialize(filename2,item2)
-    instr3 = ID.Telescope.initialize(filename3,item3)
+    instr1 = ID.Telescope.from_file(filename1)
+    instr2 = ID.Telescope.from_file(filename2)
+    instr3 = ID.Telescope.from_file(filename3)
 
     #The ID.telescope.initializ-function returns 3 objects as a list. The
     #first entry of the list is the object containing the telescope
@@ -80,9 +73,9 @@ if __name__ == '__main__':
     #specific telescope must be stored in the file) without loading all the
     #telescope configurations, e.g. load camera and optics configurations of
     #camera with ID 1 and ID 18:
-    cam1 = ID.Camera.initialize(filename1,1,item1)
-    cam2 = ID.Camera.initialize(filename2,18,item2)
-    cam3 = ID.Camera.initialize(filename3,1,item3)
+    cam1 = ID.Camera.from_file(filename1,1)
+    cam2 = ID.Camera.from_file(filename2,18)
+    cam3 = ID.Camera.from_file(filename3,1)
     print('Camera FOV of the first (18th) telescope of fits (hessio) file.',
           'Returned, when only the camera data is read from the file:')
     print('{0:.2f}'.format(cam1.cam_fov))
@@ -105,19 +98,14 @@ if __name__ == '__main__':
     print(table)
     print('---------------------------')
     
-    opt1 = ID.Optics.initialize(filename1,1,item1)
-    opt2 = ID.Optics.initialize(filename2,18,item2)
-    opt3 = ID.Optics.initialize(filename3,1,item3)
+    opt1 = ID.Optics.from_file(filename1,1)
+    opt2 = ID.Optics.from_file(filename2,18)
+    opt3 = ID.Optics.from_file(filename3,1)
     print('Mirror Area of the first (18th) telescope of fits (hessio) file.',
           'Returned, when only the optics data is read from the file:')
     print('{0:.2f}'.format(opt1.mir_area))
     print('{0:.2f}'.format(opt2.mir_area))
     print('Mirror reflection over wavelength [nm]')
-    plt.plot(opt3.mir_reflection[0],opt3.mir_reflection[1],'+')
+    plt.plot(opt3.mir_reflection[0].value,opt3.mir_reflection[1],'+')
     plt.show()
     print('----------------------------')
-    
-    #At the end, the files should be closed:
-    uf.close(filename1,item1)
-    uf.close(filename2,item2)
-    uf.close(filename3,filename3)
