@@ -7,12 +7,13 @@ functions.
 WE ENCOURAGE to follow the current template together with the
 coding guidelines document:
 
-
 FUNCTIONS: There will be two types of functions:
 - <calibration_constant_name>_calculation(): functions that calculates
 calibration constants.
 - <calibration_constant_name>_application(): functions that applies
 the calculated calibration constant to the raw data for its calibration.
+- <main function>: a detailed scheme of how and the order of
+how the different calibration functions should be called.
 
 IMPORTANT: if the current scheme, for any reason does not fit into
 your camera calibration, please contact DATA experts to search for
