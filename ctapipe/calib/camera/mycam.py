@@ -8,11 +8,11 @@ WE ENCOURAGE to follow the current template together with the
 coding guidelines document:
 
 
-FUNCTIONS: There will be two tests of fucntions:
-- <calibration_constant_name>_calculation(): those that calculates
+FUNCTIONS: There will be two types of functions:
+- <calibration_constant_name>_calculation(): functions that calculates
 calibration constants.
-- <calibration_constant_name>_application(): applies the calculated
-calibration constant to the raw data for its calibration.
+- <calibration_constant_name>_application(): functions that applies
+the calculated calibration constant to the raw data for its calibration.
 
 IMPORTANT: if the current scheme, for any reason does not fit into
 your camera calibration, please contact DATA experts to search for
