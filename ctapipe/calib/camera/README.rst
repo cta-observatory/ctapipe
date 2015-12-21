@@ -20,3 +20,8 @@ TO CAMERA PROTOTYPES DEVELOPERS: please, include all the functions used to calib
 In order to easy track the different calibration function we recomend to follow the template 'mycam.py'
 
 * Camera calibration (camera_calibration.py): contains all the final camera calibration algorithms for the CTA cameras.
+
+Test of Calibration modules
+===========================
+
+Each function inside each module should have a test function inside the tests directory. See test_mycam.py inside tests/ directory as an example.
