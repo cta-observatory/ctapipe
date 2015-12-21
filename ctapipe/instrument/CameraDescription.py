@@ -99,13 +99,13 @@ def from_file_fits(filename,tel_id,item):
         try: pix_id = teles['PixelID'][teles['L0ID']==lid]
         except: pass
     
-        try: pix_posX = teles['Pix_PosX'][teles['L0ID']==lid]*u.m
+        try: pix_posX = teles['XTubeMM'][teles['L0ID']==lid]*u.mm
         except: pass
     
-        try: pix_posY = teles['Pix_PosY'][teles['L0ID']==lid]*u.m
+        try: pix_posY = teles['YTubeMM'][teles['L0ID']==lid]*u.mm
         except: pass
     
-        try: pix_posZ = teles['Pix_PosZ'][teles['L0ID']==lid]*u.m
+        try: pix_posZ = teles['ZTubeMM'][teles['L0ID']==lid]*u.m
         except: pass
 
         try: pix_area = teles['Pix_Area'][teles['L0ID']==lid]*u.m

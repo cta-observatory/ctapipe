@@ -1,7 +1,9 @@
 import pyhessio as h
+import numpy as np
 import imp
 import os
 from astropy.io import fits
+import random
 import textwrap
 
 __all__ = ['get_file_type','load_hessio','nextevent_hessio','close_hessio',
@@ -19,13 +21,12 @@ def get_file_type(filename):
     'fits'
 
     """
-    if  ('fit' or 'FITS' or 'FIT') in filename:
+    if  ('fit' or 'FITS' or 'FIT') in filename or filename == 'fake_data':
         return 'fits'
     elif 'cfg' in filename:
         return 'ascii'
     else:
-        return 'hessio'        
-         
+        return 'hessio'
     
 def load_hessio(filename):
     """
@@ -61,7 +62,10 @@ def load_fits(filename):
     filename: string
         name of the file
     """
-    hdulist = fits.open(filename)
+    if 'fake_data' in filename:
+        hdulist = load_fakedata()
+    else:
+        hdulist = fits.open(filename)
     print("Fits file %s has been opened" % filename)
     return hdulist
 
@@ -74,9 +78,8 @@ def close_fits(hdulist):
     hdulist: HDUList
         HDUList object of the fits file
     """    
-    a = hdulist.close()
+    hdulist.close()
     print("Fits file has been closed.")
-    print(a)
 
 def get_var_from_file(filename):
     """
@@ -139,3 +142,52 @@ def load_ascii(filename):
 def close_ascii(filename):
     """Function to close an ASCII file"""
     print("ASCII file has been closed.")
+    
+
+def load_fakedata():
+    """
+    Function writing faked date into an astropy.io.fits.hdu.table.BinTableHDU
+    """
+    tel_num = 10
+    tel_id = [random.randrange(1,124,1) for x in range(0,tel_num)]
+    tel_posX = [random.uniform(1,100) for x in range(0,tel_num)]
+    tel_posY = [random.uniform(1,100) for x in range(0,tel_num)]
+    tel_posZ = [random.uniform(1,100) for x in range(0,tel_num)]
+    l0id = [i for i in range(0,tel_num)]
+    
+    mirror_area = [random.uniform(1,100) for x in range(0,5)]
+    mirror_number = [random.randrange(1,124,1) for x in range(0,tel_num)]
+    
+    col0 = fits.Column(name='L0ID',format='I',array=l0id)
+    col1 = fits.Column(name='TelID',format='I',array=tel_id)
+    col2 = fits.Column(name='TelX',format='D',array=tel_posX)
+    col3 = fits.Column(name='TelY',format='D',array=tel_posY)
+    col4 = fits.Column(name='TelZ',format='D',array=tel_posZ)
+    col5 = fits.Column(name='NMirrors',format='I',array=mirror_number)
+    col6 = fits.Column(name='MirrorArea',format='D',array=mirror_area)
+    
+    cols1 = fits.ColDefs([col0,col1,col2,col3,col4,col5,col6])
+    tbhdu1 = fits.BinTableHDU.from_columns(cols1)
+    
+    pixel_num = 1140    
+    l1id = [i for i in range(0,tel_num*pixel_num)]    
+    pixel_posX = [random.uniform(1,100) for x in range(0,tel_num*pixel_num)]
+    pixel_posY = [random.uniform(1,100) for x in range(0,tel_num*pixel_num)]
+    l0id_prime = np.array([[l0id[i] for k in range(0,pixel_num)] for i in range(0,tel_num)])
+    l0id_prime = l0id_prime.flatten()
+    pixel_id = np.array([[i for i in range(1,pixel_num+1)] for j in range(0,tel_num)])
+    pixel_id = pixel_id.flatten()
+    
+    col01 = fits.Column(name='L1ID',format='I',array=l1id)
+    col11 = fits.Column(name='L0ID',format='I',array=l0id_prime)
+    col21 = fits.Column(name='PixelID',format='I',array=pixel_id)
+    col31 = fits.Column(name='XTubeMM',format='D',array=pixel_posX)
+    col41 = fits.Column(name='YTubeMM',format='D',array=pixel_posY)
+    
+    cols2 = fits.ColDefs([col01,col11,col21,col31,col41])
+    tbhdu2 = fits.BinTableHDU.from_columns(cols2)
+    
+    hdulist = fits.HDUList([tbhdu1,tbhdu2])
+    
+    return hdulist
+    

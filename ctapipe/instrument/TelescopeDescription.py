@@ -33,13 +33,31 @@ def from_file_fits(filename,item):
     item: HDUList
         HDUList of the fits file
     """
+    
+    tel_id = [-1]
+    tel_num = -1
+    tel_posX = [-1]*u.m
+    tel_posY = [-1]*u.m
+    tel_posZ = [-1]*u.m
+    
     hdulist = item
-    teles = hdulist[1].data
-    tel_id = teles["TelID"]
-    tel_num = len(tel_id)
-    tel_posX = teles["TelX"]*u.m
-    tel_posY = teles["TelY"]*u.m
-    tel_posZ = teles["TelZ"]*u.m
+    for i in range(len(hdulist)):
+        teles = hdulist[i].data
+        
+        try: tel_id = teles["TelID"]
+        except: pass
+    
+        try: tel_num = len(tel_id)
+        except: pass
+    
+        try: tel_posX = teles["TelX"]*u.m
+        except: pass
+    
+        try: tel_posY = teles["TelY"]*u.m
+        except: pass
+    
+        try: tel_posZ = teles["TelZ"]*u.m
+        except: pass
     
     return(tel_id,tel_num,tel_posX,tel_posY,tel_posZ)
 

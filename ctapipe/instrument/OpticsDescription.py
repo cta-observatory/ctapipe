@@ -52,13 +52,9 @@ def from_file_fits(filename,tel_id,item):
     item: HDUList
         HDUList of the fits file
     """
-    hdulist = item
-    teles = hdulist[1].data
-    telescope_id = teles["TelID"].tolist()
-    index = telescope_id.index(tel_id)
     mir_class = -1
-    mir_area = hdulist[1].data[index]["MirrorArea"]*u.m**2
-    mir_number = hdulist[1].data[index]["NMirrors"]
+    mir_area = -1*u.m**2
+    mir_number = -1
     prim_mirpar = [-1]
     prim_refrad = -1*u.cm
     prim_diameter = -1*u.cm
@@ -68,11 +64,24 @@ def from_file_fits(filename,tel_id,item):
     sec_diameter = -1*u.cm
     sec_hole_diam = -1*u.cm
     mir_reflection = [[-1]*u.nm,[-1]]
-    opt_foclen = hdulist[1].data[index]["FL"]*u.m
+    opt_foclen = -1*u.m
     foc_surfparam = -1
     foc_surf_refrad = -1*u.cm
-    tel_trans = -1
-            
+    tel_trans = -1  
+    
+    hdulist = item
+    for i in range(len(hdulist)):
+        teles = hdulist[i].data
+        
+        try: mir_area = teles["MirrorArea"][teles["TelID"]==tel_id][0]*u.m**2
+        except: pass
+        
+        try: mir_number = teles["NMirrors"][teles["TelID"]==tel_id][0]
+        except: pass
+
+        try: opt_foclen = teles["FL"][teles["TelID"]==tel_id][0]*u.m
+        except: pass        
+        
     return(mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,
            prim_diameter,prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,
            sec_hole_diam,mir_reflection,opt_foclen,foc_surfparam,

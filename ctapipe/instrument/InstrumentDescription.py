@@ -1,9 +1,10 @@
-import matplotlib.pyplot as plt
+import numpy as np
 
 from ctapipe.instrument import TelescopeDescription as TD
 from ctapipe.instrument import CameraDescription as CD
 from ctapipe.instrument import OpticsDescription as OD
 from ctapipe.instrument import util_functions as uf
+from astropy import units as u
 
 __all__ = ['Optics','Camera','Telescope']
 
@@ -46,7 +47,7 @@ class Optics:
         self.tel_trans = tel_trans
 
     @classmethod
-    def from_file(cls,filename,tel_id,attribute='closed'):
+    def from_file(cls,filename='fake_data',tel_id=1,attribute='closed'):
         """
         Load all the information about the optics of a given telescope with
         ID `tel_id` from an open file with name `filename`.
@@ -54,7 +55,7 @@ class Optics:
         Parameters
         ----------
         filename: string
-            name of the file
+            name of the file, if no file name is given, faked data is produced
         tel_id: int
             ID of the telescope whose optics information should be loaded
         item: of various type depending on the file extension
@@ -130,7 +131,7 @@ class Camera:
         self.fadc_pulsshape = fadc_pulsshape
 
     @classmethod
-    def from_file(cls,filename,tel_id,attribute='closed'):
+    def from_file(cls,filename='fake_data',tel_id=1,attribute='closed'):
         """
         Load all the information about the camera of a given telescope with
         ID `tel_id` from an open file with name `filename`.
@@ -138,7 +139,7 @@ class Camera:
         Parameters
         ----------
         filename: string
-            name of the file
+            name of the file, if no file name is given, faked data is produced
         tel_id: int
             ID of the telescope whose optics information should be loaded
         item: of various type depending on the file extension
@@ -189,13 +190,6 @@ class Camera:
         """
         cls.pix_posX, cls.pix_posY = CD.rotate(cls.pix_posX,cls.pix_posY,angle)
 
-
-class Pixel:
-    
-     """`Pixel` is a class that provides and gets all the information about
-    a specific pixel of a specific camera."""
-
-     
     
 class Telescope(Optics,Camera):
     
@@ -227,7 +221,7 @@ class Telescope(Optics,Camera):
         self.tel_posZ = tel_posZ
 
     @classmethod
-    def from_file(cls,filename,attribute='closed'):
+    def from_file(cls,filename='fake_data',attribute='closed'):
         """
         Load all the information about the telescope and its components
         (= parameters of the inherited classes) from an open file with
@@ -236,10 +230,12 @@ class Telescope(Optics,Camera):
         Parameters
         ----------
         filename: string
-            name of the file
+            name of the file, if no file name is given, faked data is produced
         item: of various type depending on the file extension
             return value of the opening/loading process of the file
         """
+        
+        print(filename)
         
         ext = uf.get_file_type(filename)
 
@@ -267,6 +263,44 @@ class Telescope(Optics,Camera):
         
         return tel,opt,cam
 
+class Atmosphere:
+    """Atmosphere is a class that provides data about the atmosphere. This
+    data is stored in different files which are read by member functions"""
+    def __init__(self,rho,thickness,ext_coeff):
+        self.rho = rho
+        self.thickness = thickness
+        self.ext_coeff = ext_coeff
+    
+    def load_profile(filename):
+        """
+        Load atmosphere profile from file
+        
+        Parameter
+        ---------
+        filename: string
+            name of file
+        --------
+        """
+        altitude,rho,thickness,n_minus_1 = np.loadtxt(filename,unpack=True,
+                                                      delimeter=' ')
+        altitude = altitude*u.km
+        rho = rho*u.g*u.cm**-3
+        thickness = thickness*u.g*u.cm**-2
+        return altitude,rho,thickness
+    
+    def load_extinction_coeff(filename):
+        """
+        Load atmosphere extinction profile from file
+        
+        Parameter
+        ---------
+        filename: string
+            name of file
+        --------
+        """
+        
+        # still work to do
+        
 '''
 class Subarray:
     #What should be in here?
