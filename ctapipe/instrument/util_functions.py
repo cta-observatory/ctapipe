@@ -1,14 +1,12 @@
 import pyhessio as h
 import numpy as np
-import imp
-import os
 from astropy.io import fits
+from astropy.table import Table,join
 import random
-import textwrap
+import astropy.units as u
 
-__all__ = ['get_file_type','load_hessio','nextevent_hessio','close_hessio',
-           'load_fits','close_fits','get_var_from_file','load_ascii',
-           'close_ascii']
+__all__ = ['get_file_type','load_hessio','load_fits','close_fits',
+           'load_fakedata']
            
 
 def get_file_type(filename):
@@ -37,21 +35,72 @@ def load_hessio(filename):
     filename: string
         name of the file
     """
-    event = h.file_open(filename)
-    nextevent_hessio()
+    h.file_open(filename)
     print("Hessio file %s has been opened" % filename)
-    return event
-    
-def nextevent_hessio():
-    """
-    Function to switch to the next event within the open hessio file
-    """
     next(h.move_to_next_event())
+    tel_id = h.get_telescope_ids()
     
-def close_hessio(item):
-    """Function to close a hessio file"""
+    tel_table = Table()
+    
+    tel_table['TelID']= tel_id
+    
+    tel_posX = [h.get_telescope_position(i)[0] for i in tel_id]
+    tel_posY = [h.get_telescope_position(i)[1] for i in tel_id]
+    tel_posZ = [h.get_telescope_position(i)[2] for i in tel_id]
+    tel_table['TelX'] = tel_posX
+    tel_table['TelX'].unit = u.m
+    tel_table['TelY'] = tel_posY
+    tel_table['TelY'].unit = u.m
+    tel_table['TelZ'] = tel_posZ
+    tel_table['TelZ'].unit = u.m
+    #tel_table['CameraClass'] = [h.get_camera_class(i) for i in tel_id]
+    tel_table['MirrorArea'] = [h.get_mirror_area(i) for i in tel_id]
+    tel_table['MirrorArea'].unit = u.m**2
+    tel_table['NMirrors'] = [h.get_mirror_number(i) for i in tel_id]
+    tel_table['FL'] = [h.get_optical_foclen(i) for i in tel_id]
+    tel_table['FL'].unit = u.m
+    
+    
+    for t in range(len(tel_id)):       
+        
+        table = Table()
+        pix_posX = h.get_pixel_position(tel_id[t])[0]
+        pix_posY = h.get_pixel_position(tel_id[t])[1]       
+        pix_id = np.arange(len(pix_posX))
+        pix_area = h.get_pixel_area(tel_id[t])
+         
+        table['TelID'] = [tel_id[t] for i in range(len(pix_posX))]
+        table['PixelID'] = pix_id
+        table['PixX'] = pix_posX
+        table['PixX'].unit = u.m
+        table['PixY'] = pix_posY
+        table['PixY'].unit = u.m
+        table['PixArea'] = pix_area
+        table['PixArea'].unit = u.mm**2
+        
+        if t == 0:
+            cam_table = table
+        else:
+            cam_table = join(cam_table,table,join_type='outer')  
+    
+    #for t in range(len(tel_id)):
+    #    table = Table()
+    #    if t == 0:
+    #        opt_table = table
+    #    else:
+    #        opt_table = join(opt_table,table,join_type='outer')
+    opt_table = Table()
+    print('Astropy tables have been created.')
+    
+    #to use this, one has to go through every event of the run...
+    #n_channel = h.get_num_channel(tel_id)
+    #ld.channel_num = n_channel
+    #for chan in range(n_channel):
+    #    ld.adc_samples.append(h.get_adc_sample(tel_id,chan).tolist())
+    
     h.close_file()
     print("Hessio file has been closed.")
+    return [tel_table,cam_table,opt_table]
 
 def load_fits(filename):
     """
@@ -62,13 +111,24 @@ def load_fits(filename):
     filename: string
         name of the file
     """
+    table = []
     if 'fake_data' in filename:
         hdulist = load_fakedata()
+        filename = hdulist
     else:
         hdulist = fits.open(filename)
+        
     print("Fits file %s has been opened" % filename)
-    return hdulist
-
+    
+    table = []
+    for i in range(len(hdulist)):
+        try:
+            table.append(Table.read(filename,hdu=i))
+        except:
+            pass
+        
+    return table
+    
 def close_fits(hdulist):
     """
     Function to close a fits file
@@ -79,70 +139,7 @@ def close_fits(hdulist):
         HDUList object of the fits file
     """    
     hdulist.close()
-    print("Fits file has been closed.")
-
-def get_var_from_file(filename):
-    """
-    Function to load and initialize a module implemented as a Python source
-    file called `filename` and to return its module objects.
-    
-    Parameter
-    ---------
-    filename: ASCII file
-        file in which the module objects are defined
-    """
-    f = open(filename)
-    global data
-    data = imp.load_source('data', '', f)
-    f.close()
-    
-def load_ascii(filename):
-    """Function to open and load an ASCII file"""
-    file = open(filename,'r')
-    print("ASCI file %s has been opened." % filename)
-    temp_filename = '%s_temp.txt' % os.path.splitext(os.path.basename(filename))[0]
-    print("Temporary file ",temp_filename," created.")
-    temp_file = open(temp_filename, 'w')    
-    for line in file:
-        if 'echo' in line:
-            line = line.replace('echo','#')
-        if "%" in line:
-            line = line.replace('%','#')
-        if line.startswith('#'):
-            pass
-        else:
-            if '=' in line:
-                index1 = line.index('=')
-                if '#' in line:
-                    index2 = line.index('#')-1
-                else:
-                    index2 = len(line)-1
-                line = line[:index1+1]+'['+line[index1+1:index2]+']'+'\n'
-                for i in range(4):
-                    try: float(line[index1+2+i])
-                    except: x = False
-                    else:
-                        x = True
-                        break
-                if x==False: line = line[:index1+2]+'"'+line[index1+2:index2+1]+'"'+']'+'\n'
-            else:
-                line = '\n'
-        line = textwrap.dedent(line)
-        temp_file.write(line) 
-    file.close()
-    print("ASCII file has been closed.")
-    temp_file.close()
-    print("Temporaryly created file has been closed.")
-    get_var_from_file(temp_filename)
-    os.remove(temp_filename)
-    print("Temporaryly created file has been removed.")
-    return data
-    
-    
-def close_ascii(filename):
-    """Function to close an ASCII file"""
-    print("ASCII file has been closed.")
-    
+    print("Fits file has been closed.")   
 
 def load_fakedata():
     """

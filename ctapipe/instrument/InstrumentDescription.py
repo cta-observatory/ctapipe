@@ -28,6 +28,7 @@ class Optics:
             number of mirrors of the telescope
         opt_foclen: float with unit
             optical focus length of the optical system of the telescope
+        ...
         """
         self.mir_class = mir_class
         self.mir_area = mir_area
@@ -47,7 +48,7 @@ class Optics:
         self.tel_trans = tel_trans
 
     @classmethod
-    def from_file(cls,filename='fake_data',tel_id=1,attribute='closed'):
+    def read_file(cls,filename='fake_data',tel_id=1,attribute='closed'):
         """
         Load all the information about the optics of a given telescope with
         ID `tel_id` from an open file with name `filename`.
@@ -58,33 +59,27 @@ class Optics:
             name of the file, if no file name is given, faked data is produced
         tel_id: int
             ID of the telescope whose optics information should be loaded
-        item: of various type depending on the file extension
-            return value of the opening/loading process of the file
+        attribute: if file is closed, the attribute 'close' is given, else
+            the astropy table with the whole data read from the file is given
         """
         ext = uf.get_file_type(filename)
 
         if attribute == 'closed':
             load = getattr(uf,"load_%s" % ext)
-            item = load(filename)
+            instr_table = load(filename)
         else:
-            item = attribute
-        
-        function = getattr(OD,"from_file_%s" % ext)
+            instr_table = attribute
     
         (mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,prim_diameter,
          prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,sec_hole_diam,
          mir_reflection,opt_foclen,foc_surfparam,foc_surf_refrad,
-         tel_trans) = function(filename,tel_id,item)
+         tel_trans) = OD.get_data(instr_table,tel_id)
         opt = cls(mir_class,mir_area,mir_number,prim_mirpar,prim_refrad,
                prim_diameter,prim_hole_diam,sec_mirpar,sec_refrad,sec_diameter,
                sec_hole_diam,mir_reflection,opt_foclen,foc_surfparam,
                foc_surf_refrad,tel_trans)
         
-        if attribute == 'closed':
-            close = getattr(uf,"close_%s" % ext)
-            close(item)
-            
-        return opt
+        return opt,instr_table
 
 
 class Camera:
@@ -92,7 +87,7 @@ class Camera:
     """`Camera` is a class that provides and gets all the information about
     the camera of a specific telescope."""
 
-    def __init__(self,cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,
+    def __init__(self,cam_class,cam_fov,pix_id,pix_posX,pix_posY,
                  pix_area,pix_type,pix_neighbors,fadc_pulsshape):
         """
         Parameters
@@ -109,8 +104,6 @@ class Camera:
             position of each pixel (x-coordinate)
         pix_posY: array with units
             position of each pixel (y-coordinate)
-        pix_posZ: array with units
-            position of each pixel (z-coordinate)
         pix_area: array with units
             area of each pixel
         pix_type: string
@@ -124,14 +117,13 @@ class Camera:
         self.pix_id = pix_id
         self.pix_posX = pix_posX
         self.pix_posY = pix_posY
-        self.pix_posZ = pix_posZ
         self.pix_area = pix_area
         self.pix_type = pix_type
         self.pix_neighbors = pix_neighbors
         self.fadc_pulsshape = fadc_pulsshape
 
     @classmethod
-    def from_file(cls,filename='fake_data',tel_id=1,attribute='closed'):
+    def read_file(cls,filename='fake_data',tel_id=1,attribute='closed'):
         """
         Load all the information about the camera of a given telescope with
         ID `tel_id` from an open file with name `filename`.
@@ -142,29 +134,23 @@ class Camera:
             name of the file, if no file name is given, faked data is produced
         tel_id: int
             ID of the telescope whose optics information should be loaded
-        item: of various type depending on the file extension
-            return value of the opening/loading process of the file
+        attribute: if file is closed, the attribute 'close' is given, else
+            the astropy table with the whole data read from the file is given
         """
         ext = uf.get_file_type(filename)
 
         if attribute == 'closed':
             load = getattr(uf,"load_%s" % ext)
-            item = load(filename)
+            instr_table = load(filename)
         else:
-            item = attribute
+            instr_table = attribute
         
-        function = getattr(CD,"from_file_%s" % ext)
-        
-        (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,pix_type,
-         pix_neighbors,fadc_pulsshape) = function(filename,tel_id,item)
-        cam = cls(cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
+        (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_area,pix_type,
+         pix_neighbors,fadc_pulsshape) = CD.get_data(instr_table,tel_id)
+        cam = cls(cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_area,
                 pix_type,pix_neighbors,fadc_pulsshape)
         
-        if attribute == 'closed':
-            close = getattr(uf,"close_%s" % ext)
-            close(item)
-        
-        return cam
+        return cam,instr_table
     
     @staticmethod
     def rotate(cls,angle):
@@ -221,7 +207,7 @@ class Telescope(Optics,Camera):
         self.tel_posZ = tel_posZ
 
     @classmethod
-    def from_file(cls,filename='fake_data',attribute='closed'):
+    def read_file(cls,filename='fake_data',attribute='closed'):
         """
         Load all the information about the telescope and its components
         (= parameters of the inherited classes) from an open file with
@@ -231,37 +217,28 @@ class Telescope(Optics,Camera):
         ----------
         filename: string
             name of the file, if no file name is given, faked data is produced
-        item: of various type depending on the file extension
-            return value of the opening/loading process of the file
+        attribute: if file is closed, the attribute 'close' is given, else
+            the astropy table with the whole data read from the file is given
         """
-        
-        print(filename)
         
         ext = uf.get_file_type(filename)
 
         if attribute == 'closed':
             load = getattr(uf,"load_%s" % ext)
-            item = load(filename)
+            instr_table = load(filename)
         else:
-            item = attribute
+            instr_table = attribute
         
-        function = getattr(TD,"from_file_%s" % ext)
-        
-        tel_id, tel_num,tel_posX,tel_posY,tel_posZ = function(filename,
-                                                                   item)
+        tel_id, tel_num,tel_posX,tel_posY,tel_posZ = TD.get_data(instr_table)
         tel = cls(tel_num,tel_id,tel_posX,tel_posY,tel_posZ)
 
         opt = []
         cam = []
         for i in range(len(tel_id)):
-            opt.append(Optics.from_file(filename,tel_id[i],item))
-            cam.append(Camera.from_file(filename,tel_id[i],item))
+            opt.append(Optics.read_file(filename,tel_id[i],instr_table)[0])
+            cam.append(Camera.read_file(filename,tel_id[i],instr_table)[0])
         
-        if attribute == 'closed':
-            close = getattr(uf,"close_%s" % ext)
-            close(item)
-        
-        return tel,opt,cam
+        return tel,opt,cam,instr_table
 
 class Atmosphere:
     """Atmosphere is a class that provides data about the atmosphere. This
@@ -300,20 +277,4 @@ class Atmosphere:
         """
         
         # still work to do
-        
-'''
-class Subarray:
-    #What should be in here?
 
-    def __init__(self):
-        self.telescope = Telescope()
-    
-    def plotSubArray(self):
-        ad = ArrayDisplay(ld.telescope_posX, ld.telescope_posY, ld.mirror_area)
-        for i in range(len(ld.telescope_id)):
-            name = "CT%i" % ld.telescope_id[i]
-            plt.text(ld.telescope_posX[i],ld.telescope_posY[i],name,fontsize=8)
-        ad.axes.set_xlim(-1000, 1000)
-        ad.axes.set_ylim(-1000, 1000)
-        plt.show()
-'''

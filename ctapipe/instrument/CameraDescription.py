@@ -1,179 +1,102 @@
-import pyhessio as h
 from astropy import units as u
 from astropy.table import Table
 import numpy as np
-import os
-import textwrap
 from scipy.spatial import cKDTree as KDTree
-
 from ctapipe.utils.linalg import rotation_matrix_2d
 
-__all__ = ['from_file_hessio','from_file_fits','from_file_ascii','rotate','write_table']
+__all__ = ['get_data','rotate','write_table']
     
 @u.quantity_input
-def from_file_hessio(filename,tel_id,item):
+def get_data(instr_table,tel_id):
     """
-    reads the Camera data out of the open hessio file
+    reads the Camera data out of the instrument table
     
     Parameters
     ----------
-    filename: string
-        name of the hessio file (must be a hessio file!)
+    instr_table: astropy table
+        name of the astropy table where the whole instrument data read from
+        the file is stored
     tel_id: int
         ID of the telescope whose optics information should be loaded
     """
-    cam_fov = -1*u.degree
-    pix_posX = h.get_pixel_position(tel_id)[0]*u.m
-    pix_posY = h.get_pixel_position(tel_id)[1]*u.m
-    pix_posZ = [-1]*u.m
-    pix_id = np.arange(len(pix_posX))
-    
-    cam_class,pix_area,pix_type,dx = _guess_camera_geometry(pix_posX,
-                                                            pix_posY)
-    
-    try: cam_class = h.get_camera_class(tel_id)
-    except: pass
-    
-    try: pix_area = h.get_pixel_area(tel_id)
-    except: pass
-    
-    try: pix_type = h.get_pixel_type(tel_id)
-    except: pass
-    
-    try: pix_neighbors = h.get_pix_neighbors(tel_id)
-    except:
-        pix_neighbors = _find_neighbor_pixels(pix_posX.value,
-                                              pix_posY.value,
-                                              dx.value + 0.01)
-    fadc_pulsshape = [[-1],[-1]]
-    #to use this, one has to go through every event of the run...
-    #n_channel = h.get_num_channel(tel_id)
-    #ld.channel_num = n_channel
-    #for chan in range(n_channel):
-    #    ld.adc_samples.append(h.get_adc_sample(tel_id,chan).tolist())
-
-    return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
-            pix_type,pix_neighbors,fadc_pulsshape)
-        
-def from_file_fits(filename,tel_id,item):
-    """
-    reads the Camera data out of the open fits file
-    
-    Parameters
-    ----------
-    filename: string
-        name of the fits file (must be a fits file!)
-    tel_id: int
-        ID of the telescope or of the camera whose optics information
-        should be loaded
-        
-    item: HDUList
-        HDUList of the fits file
-    """
-    hdulist = item
-    
     cam_class = -1
     cam_fov = -1*u.degree
-    lid = -1
+    pix_id = [-1]
     pix_posX = [-1]*u.m
     pix_posY = [-1]*u.m
-    pix_posZ = [-1]*u.m
     pix_area = [-1]*u.m**2
     pix_type = -1
-    pix_neighbors = [-1]
+    pix_neighbors =[-1]
     fadc_pulsshape = [[-1],[-1]]
-    
-    
-    for i in range(len(hdulist)):
-        teles = hdulist[i].data
         
-        try: cam_class = teles['CamClass'][teles['TelID']==tel_id][0]
+    
+    #tel_table,cam_table,opt_table = instr_table    
+    
+    for i in range(len(instr_table)):
+        try: tel_id_bool = instr_table[i]['TelID']==tel_id
         except: pass
     
-        try: cam_fov = teles['FOV'][teles['TelID']==tel_id][0]*u.degree
+    for i in range(len(instr_table)):
+        try:
+            cam_group = instr_table[i].group_by('TelID')
+            mask = (cam_group.groups.keys['TelID'] == tel_id)
         except: pass
     
-        try: lid = teles['L0ID'][teles['TelID']==tel_id][0]
+        try:
+            pix_posX = cam_group.groups[mask]['PixX']
+            if pix_posX.unit == None:
+                pix_posX.unit = u.mm
         except: pass
-    
-        try: pix_id = teles['PixelID'][teles['L0ID']==lid]
+        
+        try:
+            pix_posY = cam_group.groups[mask]['PixY']
+            if pix_posY.unit == None:
+                pix_posY.unit = u.mm
         except: pass
-    
-        try: pix_posX = teles['XTubeMM'][teles['L0ID']==lid]*u.mm
+        
+        try: pix_id = cam_group.groups[mask]['PixelID']
         except: pass
-    
-        try: pix_posY = teles['YTubeMM'][teles['L0ID']==lid]*u.mm
+        
+        try: cam_fov = instr_table[i][tel_id_bool]['FOV']
+        except TypeError:
+            cam_fov = instr_table[i][tel_id_bool]['FOV']*u.degree
         except: pass
-    
-        try: pix_posZ = teles['ZTubeMM'][teles['L0ID']==lid]*u.m
-        except: pass
-
-        try: pix_area = teles['Pix_Area'][teles['L0ID']==lid]*u.m
-        except: pass
-    
-        try: pix_type = teles['Pix_Type'][teles['L0ID']==lid]*u.m**2
-        except: pass
-    
-        try: pix_neighbors = teles['Pix_Neighbors'][teles['L0ID']==lid]
-        except: pass
-    
-        try: fadc_pulsshape = teles['FADC_PulseShape'][teles['L0ID']==lid]
-        except: pass
-
-    return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
-            pix_type,pix_neighbors,fadc_pulsshape)
-
-def from_file_ascii(filename,tel_id,item):
-    """
-    reads the Camera data out of the ASCII file
-    
-    Parameters
-    ----------
-    filename: string
-        name of the ASCII file (must be an ASCII config file!)
-    tel_id: int
-        ID of the telescope whose optics information should be loaded (must
-        not be given)
-    item: python module
-        python module created from an ASCII file using imp.load_source
-    """
-    dirname = os.path.dirname(filename)        
-    
-    try: cam_class = item.cam_class[0]
-    except: cam_class = -1
-    
-    try: cam_fov = item.cam_fov[0]*u.degree
-    except: cam_fov = -1*u.degree
-    
-    try: pix_id = item.pix_id
-    except: pix_id = [-1]
-    
-    try: pix_posX = item.pix_posX*u.m
-    except: pix_posX = [-1]*u.m
-    
-    try: pix_posY = item.pix_posY*u.m
-    except: pix_posY = [-1]*u.m
-    
-    try: pix_posZ = item.pix_posZ*u.m
-    except: pix_posZ = [-1]*u.m
-            
-    try: pix_area = item.pix_area*u.m**2
-    except: pix_area = [-1]*u.m**2
-    
-    try: pix_type = item.pix_type[0]
-    except: pix_type = [-1]
-    
-    try: pix_neighbors = item.pix_neighbors
-    except: pix_neighbors = [-1]
     
     try:
-        time, pulse_shape = np.loadtxt(dirname+'/'+textwrap.dedent(item.fadc_pulse_shape[0]),
-                                       unpack=True)
-        fadc_pulsshape = [time,pulse_shape]
-    except: fadc_pulsshape = [[-1],[-1]]
+        cam_class_prime,pix_area_prime,pix_type_prime,dx = _guess_camera_geometry(pix_posX,
+                                                            pix_posY)
+        pix_area = pix_area*(pix_posX.unit)**2
+        dx = dx*pix_posX.unit
+    except: pass
     
+    for i in range(len(instr_table)):
     
-    return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_posZ,pix_area,
+        try: cam_class = instr_table[i][tel_id_bool]['CameraClass']
+        except:
+            try: cam_class = cam_class_prime
+            except: pass
+        
+        try:
+            pix_area = cam_group.groups[mask]['PixArea']
+            if pix_area.unit == None:
+                pix_area.unit = u.mm**2
+        except:
+            try: pix_area = pix_area_prime
+            except: pass
+        
+        try: pix_type = instr_table[i][tel_id_bool]['PixType']
+        except:
+            try: pix_type = pix_type_prime
+            except: pass
+        
+        try: pix_neighbors = cam_group.groups[mask]['PixNeighbors']
+        except:
+            try:
+                pix_neighbors = _find_neighbor_pixels(pix_posX,pix_posY,
+                                                  dx.value + 0.01)
+            except: pass
+
+    return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_area,
             pix_type,pix_neighbors,fadc_pulsshape)
 
 # dictionary to convert number of pixels to camera type for use in
