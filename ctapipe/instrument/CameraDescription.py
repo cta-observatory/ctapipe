@@ -1,169 +1,77 @@
+import astropy
 from astropy import units as u
 from astropy.table import Table
 import numpy as np
 from scipy.spatial import cKDTree as KDTree
 from ctapipe.utils.linalg import rotation_matrix_2d
 
-__all__ = ['get_data','rotate','write_table']
+__all__ = ['Camera','npix_to_type','find_neighbor_pixels',
+           'guess_camera_geometry','guess_camera_type',
+           'make_rectangular_camera_geometry','rotate_camera']
     
-@u.quantity_input
-def get_data(instr_table,tel_id):
-    """
-    reads the Camera data out of the instrument table
+class Camera:
     
-    Parameters
-    ----------
-    instr_table: astropy table
-        name of the astropy table where the whole instrument data read from
-        the file is stored
-    tel_id: int
-        ID of the telescope whose optics information should be loaded
-    """
-    cam_class = -1
-    cam_fov = -1*u.degree
-    pix_id = [-1]
-    pix_posX = [-1]*u.m
-    pix_posY = [-1]*u.m
-    pix_area = [-1]*u.m**2
-    pix_type = -1
-    pix_neighbors =[-1]
-    fadc_pulsshape = [[-1],[-1]]
-        
+    """`Camera` is a class that provides and gets all the information about
+    the camera of a specific telescope."""
     
-    #tel_table,cam_table,opt_table = instr_table    
+    def __init__(self,pix_id,pix_X,pix_Y,
+                 pix_area,pix_type,pix_neighbors):
+        """
+        Parameters
+        ----------
+        self: type
+            description
+        pix_id: array (int)
+            pixel ids of the camera of the telescope
+        pix_posX: array with units
+            position of each pixel (x-coordinate)
+        pix_posY: array with units
+            position of each pixel (y-coordinate)
+        pix_area: array with units
+            area of each pixel
+        pix_type: string
+            name of the pixel type (e.g. hexagonal)
+        pix_neighbors: ndarray (int)
+            nD-array with pixel IDs of neighboring
+            pixels of the pixels (n=number of pixels)
+        """
+        self.pix_id = pix_id
+        self.pix_X = pix_X
+        self.pix_Y = pix_Y
+        self.pix_area = pix_area
+        self.pix_type = pix_type
+        self.pix_neighbors = pix_neighbors
     
-    for i in range(len(instr_table)):
-        try: tel_id_bool = instr_table[i]['TelID']==tel_id
-        except: pass
+    @staticmethod
+    def guess(cls):
+        """
+        Construct a `CameraGeometry` by guessing the appropriate quantities
+        from a list of pixel positions.
+        """
+        return guess_camera_geometry(cls.pix_x, cls.pix_y)
     
-    for i in range(len(instr_table)):
-        try:
-            cam_group = instr_table[i].group_by('TelID')
-            mask = (cam_group.groups.keys['TelID'] == tel_id)
-        except: pass
+    @staticmethod
+    def rotate(cls,angle):
+        return rotate_camera(angle,cls.pix_X,cls.pix_Y)
     
-        try:
-            pix_posX = cam_group.groups[mask]['PixX']
-            if pix_posX.unit == None:
-                pix_posX.unit = u.mm
-        except: pass
-        
-        try:
-            pix_posY = cam_group.groups[mask]['PixY']
-            if pix_posY.unit == None:
-                pix_posY.unit = u.mm
-        except: pass
-        
-        try: pix_id = cam_group.groups[mask]['PixelID']
-        except: pass
-        
-        try: cam_fov = instr_table[i][tel_id_bool]['FOV']
-        except TypeError:
-            cam_fov = instr_table[i][tel_id_bool]['FOV']*u.degree
-        except: pass
-    
-    try:
-        cam_class_prime,pix_area_prime,pix_type_prime,dx = _guess_camera_geometry(pix_posX,
-                                                            pix_posY)
-        pix_area = pix_area*(pix_posX.unit)**2
-        dx = dx*pix_posX.unit
-    except: pass
-    
-    for i in range(len(instr_table)):
-    
-        try: cam_class = instr_table[i][tel_id_bool]['CameraClass']
-        except:
-            try: cam_class = cam_class_prime
-            except: pass
-        
-        try:
-            pix_area = cam_group.groups[mask]['PixArea']
-            if pix_area.unit == None:
-                pix_area.unit = u.mm**2
-        except:
-            try: pix_area = pix_area_prime
-            except: pass
-        
-        try: pix_type = instr_table[i][tel_id_bool]['PixType']
-        except:
-            try: pix_type = pix_type_prime
-            except: pass
-        
-        try: pix_neighbors = cam_group.groups[mask]['PixNeighbors']
-        except:
-            try:
-                pix_neighbors = _find_neighbor_pixels(pix_posX,pix_posY,
-                                                  dx.value + 0.01)
-            except: pass
+    @staticmethod
+    def to_table(cls,version = 'test'):
+        """ convert this to an `astropy.table.Table` """
+        # currently the neighbor list is not supported, since
+        # var-length arrays are not supported by astropy.table.Table
+        return Table([cls.pix_id, cls.pix_X, cls.pix_Y, cls.pix_area,
+                      cls.pix_neighbors],
+                      names=['PixID', 'PixX', 'PixY', 'PixA', 'PixNeig'],
+                      meta=dict(VERSION=version))
 
-    return (cam_class,cam_fov,pix_id,pix_posX,pix_posY,pix_area,
-            pix_type,pix_neighbors,fadc_pulsshape)
-
-# dictionary to convert number of pixels to camera type for use in
-# guess_camera_geometry
-_npix_to_type = {2048: ('SST', 'rectangular'),
-                 1141: ('MST', 'hexagonal'),
-                 1855: ('LST', 'hexagonal'),
-                 11328: ('SST', 'rectangular')}
-
-def _guess_camera_type(npix):
-    """
-    guesses and returns the camera type using the number of pixels
-
-    Parameters
-    ----------
-    npix: int
-        number of pixels of the camera
-    """
-    global _npix_to_type
-    return _npix_to_type.get(npix)
-
-@u.quantity_input
-def _guess_camera_geometry(pix_x: u.m, pix_y: u.m):
-    """ returns a CameraGeometry filled in from just the x,y positions
-    
-    Assumes:
-    --------
-    - the pixels are square or hexagonal
-    - the first two pixels are adjacent
-    
-    Parameters
-    ----------
-    pix_x: array with units
-        positions of pixels (x-coordinate)
-    pix_y: array with units
-        positions of pixels (y-coordinate
-    
-    Returns
-    -------
-    camera class, pixel area, pixel type, and distance between 2 pixels
-    projected on the x-axis
-    """
-
-    try: cam_class,pix_type = _guess_camera_type(len(pix_x))
-    except:
-        cam_class = -1
-        pix_type = -1
-        
-    dx = pix_x[1] - pix_x[0]
-    dy = pix_y[1] - pix_y[0]
-    dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
-
-    if pix_type.startswith('hex'):
-        rad = dist / np.sqrt(3)  # radius to vertex of hexagon
-        area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
-    elif pix_type.startswith('rect'):
-        area = dist ** 2
-    else:
-        area = -1 #unsupported pixel type
-        pix_area = [-1]*u.m**2
-    
-    if area != -1:
-        pix_area = np.ones(pix_x.shape) * area
-
-    return cam_class,pix_area,pix_type,dx
-
-def _find_neighbor_pixels(pix_x, pix_y, rad):
+                    
+npix_to_type = {(2048, 0.006): ('SST', 'GATE', 'rectangular'),
+                 (2048, 0.042): ('LST', 'HESSII', 'hexagonal'),
+                 (1141, None): ('MST', 'NectarCam', 'hexagonal'),
+                 (1855, None): ('LST', 'LSTCam', 'hexagonal'),
+                 (11328, None): ('SCT', 'SCTCam', 'rectangular')}
+                 
+def find_neighbor_pixels(pix_x, pix_y, rad):
     """uses a KD-Tree to quickly find nearest neighbors of the pixels in a
     camera. This function can be used to find the neighbor pixels if
     such a list is not already present in the file.
@@ -190,58 +98,77 @@ def _find_neighbor_pixels(pix_x, pix_y, rad):
     for nn, ii in zip(neighbors, indices):
         nn.remove(ii)  # get rid of the pixel itself
     return neighbors
-
-    
-def write_table(tel_id,cam_class,pix_id,pix_x,pix_y,pix_area,pix_type):
+                      
+@u.quantity_input
+def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     """
-    writes values into an `astropy.table.Table`
+    returns a the camera class, the pixel area, the pixel type and the
+    distance between two pixels just from the pixel positions        
+    
+    Assumes:
+    --------
+    - the pixels are square or hexagonal
+    - the first two pixels are adjacent
     
     Parameters
     ----------
-    tel_id: int
-        ID of the telescope
-    cam_class: string
-        camera class
-    pix_id: int array
-        IDs of pixels of a given telescope
-    pix_x:astropy.units array
-        x-positions of the pixels
-    pix_y:astropy.units array
-        y-positions of the pixel
-    pix_area: astropy.units array
-        areas of the pixe
-    """
-    # currently the neighbor list is not supported, since
-    # var-length arrays are not supported by astropy.table.Table
-    return Table([pix_id,pix_x,pix_y,pix_area],
-                 names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
-                 meta=dict(pix_type=pix_type,
-                           TYPE='CameraGeometry',
-                           TEL_ID=tel_id,
-                           CAM_CLASS=cam_class))
-
-def rotate(pix_x,pix_y,angle):
-    """rotate the camera coordinates about the center of the camera by
-    specified angle.
+    pix_x: array with units
+        positions of pixels (x-coordinate)
+    pix_y: array with units
+        positions of pixels (y-coordinate
     
-    Parameters
-    ----------
-    pix_x: x-position of pixel with unit
-    pix_y: y-position of pixel with unit
-    angle: value convertable to an `astropy.coordinates.Angle`
-        rotation angle with unit (e.g. 12 * u.deg), or "12d"
-        
     Returns
     -------
-    roated x- and y-positions
+    camera class, pixel area, pixel type, and distance between 2 pixels
+    projected on the x-axis
     """
-    rotmat = rotation_matrix_2d(angle)
-    rotated = np.dot(rotmat.T, [pix_x.value,pix_y.value])
-    pix_x = rotated[0] * pix_x.unit
-    pix_y = rotated[1] * pix_x.unit
-    
-    return pix_x,pix_y
-    
+
+    try: cam_class,pix_type = guess_camera_type(len(pix_x))
+    except:
+        pix_type = -1
+        
+    dx = pix_x[1] - pix_x[0]
+    dy = pix_y[1] - pix_y[0]
+    dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
+    tel_type, cam_id, pix_type = guess_camera_type(len(pix_x), \
+    u.Quantity(dist,"m").value)
+
+    if pix_type.startswith('hex'):
+        rad = dist / np.sqrt(3)  # radius to vertex of hexagon
+        area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
+    elif pix_type.startswith('rect'):
+        area = dist ** 2
+    else: pass
+
+    pix_area=np.ones(pix_x.shape) * area
+
+    return Camera(pix_id=np.arange(len(pix_x)),pix_X=pix_x,pix_Y=pix_y,
+                          pix_area=np.ones(pix_x.shape) * pix_area,
+                          pix_neighbors=find_neighbor_pixels(pix_x.value,
+                                                         pix_y.value,
+                                                         dx.value + 0.01),
+                          pix_type=pix_type)
+
+def guess_camera_type(npix,pix_sep):
+    # dictionary to convert number of pixels to camera type for use in
+    # guess_camera_geometry.
+    # Key = (npix, pix_seperation_m)
+    # Value = (type, subtype, pixtype)
+    """
+    guesses and returns the camera type using the number of pixels
+
+    Parameters
+    ----------
+    npix: int
+        number of pixels of the camera
+    """
+    global npix_to_type
+    try:
+        return npix_to_type[(npix, None)]
+    except KeyError:
+        return npix_to_type.get((npix,np.round(pix_sep,3)), \
+        ('unknown', 'unknown', 'hexagonal'))
+
 def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
                                      range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
     """Generate a simple camera with 2D rectangular geometry.
@@ -258,7 +185,13 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         min and max of y pixel coordinates in meters
     Returns
     -------
-    CameraGeometry object
+    pix_id: int array
+        Pixel IDs
+    pix_x,pix_y: float arrays
+        x and y positions of the pixels in the camera
+    pix_area: float array
+        pixel areas
+    neighbors: list with next neighbors
     """
     bx = np.linspace(range_x[0], range_x[1], npix_x)
     by = np.linspace(range_y[0], range_y[1], npix_y)
@@ -266,16 +199,41 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
     pix_x = xx.ravel() * u.m
     pix_y = yy.ravel() * u.m
 
-    pix_id = np.arange(npix_x * npix_y)
-    rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
+    pix_ids = np.arange(npix_x * npix_y)
+    rr = np.ones_like(pix_x).value * (pix_x[1] - pix_x[0]) / 2.0
     pix_area = (2 * rr) ** 2
-    neighbors = _find_neighbor_pixels(xx.value, yy.value,
-                              rad=(rr.mean() * 2.001).value)
-    pix_type = 'rectangular'
-    cam_id = -1
-    return (cam_id,pix_id,pix_x*u.m,pix_y*u.m,pix_area,neighbors,pix_type)
-
-
-
-
-
+    neighbors = find_neighbor_pixels(pix_x.value, pix_y.value,
+                                     rad=(rr.mean() * 2.001).value)
+                              
+    return Camera(pix_id = pix_ids,pix_X = pix_x, pix_Y = pix_y,
+                  pix_area = pix_area,pix_neighbors = neighbors,
+                  pix_type = 'rectangular')
+                      
+def rotate_camera(angle,pix_x: u.m,pix_y:u.m):
+    """rotate the camera coordinates about the center of the camera by
+    specified angle. Modifies the CameraGeometry in-place (so
+    after this is called, the pix_x and pix_y arrays are
+    rotated.
+    Note:
+    -----
+    This is intended only to correct simulated data that are
+    rotated by a fixed angle.  For the more general case of
+    correction for camera pointing errors (rotations,
+    translations, skews, etc), you should use a true coordinate
+    transformation defined in `ctapipe.coordinates`.
+    Parameters
+    ----------
+    angle: value convertable to an `astropy.coordinates.Angle`
+        rotation angle with unit (e.g. 12 * u.deg), or "12d"
+    pix_x: array with x-positions of the camera pixels
+    pix_y: array with y-positions of the camera pixels
+    """
+    if type(pix_x) == astropy.table.column.Column:
+        pix_x = pix_x*pix_x.unit
+        pix_y = pix_y*pix_y.unit
+    rotmat = rotation_matrix_2d(angle)
+    rotated = np.dot(rotmat.T, [pix_x.value, pix_y.value])
+    pix_x = rotated[0] * pix_x.unit
+    pix_y = rotated[1] * pix_x.unit
+    
+    return pix_x, pix_y
