@@ -10,6 +10,7 @@ class StagerZmq(Thread):
 		self.sender = None
 		self.context = None
 		self.coroutine = coroutine
+		print( "--------- DEBUG self.coroutine.section_name",  self.coroutine.section_name)
 		self.port_in = "tcp://localhost:" + str(port_in)
 		self.port_out ="tcp://*:" + str(port_out)
 		

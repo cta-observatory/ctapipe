@@ -11,7 +11,6 @@ shutdown when the processing is complete and when a stage raises an
 exception.
 """
 from ctapipe.utils.datasets import get_path
-from ctapipe.io.hessio import hessio_event_source
 from ctapipe.configuration.core import Configuration, ConfigurationException
 from .producer_zmq import ProducerZmq
 from .stager_zmq import StagerZmq
@@ -185,6 +184,7 @@ class Pipeline():
 		if section_name == None : raise PipelineError("Cannot create instance of "+ section_name)
 
 		obj = self.conf.dynamic_class_from_module(section_name,pass_configuration=True)
+		obj.section_name = section_name
 		if obj  == None: raise PipelineError("Cannot create instance of "+section_name)
 
 		if stage_type == self.STAGER:
@@ -197,8 +197,7 @@ class Pipeline():
 		else: raise PipelineError("Cannot create instance of",section_name,". Type",stage_type, "does not exist." )
 		
 		return thread
-			
-			
+
 	def get_pipe_steps(self,role):
 		"""
 		Returns:
