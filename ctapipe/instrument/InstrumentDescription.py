@@ -369,6 +369,48 @@ def load_config(filename):
     camera = {}
     optics = {} 
     
+    tel_table_prime = Table()
+    tel_table_prime.meta = {'VERSION': version}
+    try: tel_table_prime['TriggerDelayComp'] = [data.trigger_delay_compensation]
+    except: pass
+    try: tel_table_prime['DefaultTrigger'] = data.default_trigger[0]
+    except: pass
+    try: tel_table_prime['TriggerDiscBins'] = data.disc_bins[0]
+    except: pass
+    try: tel_table_prime['TriggerDiscStart'] = data.disc_start[0]
+    except: pass
+    try:
+        tel_table_prime['DiscriminatorPulseShape'] = \
+        data.discriminator_pulse_shape[0]
+    except: pass
+    pulseshape_table = Table()
+    try:
+        pulseshape_filename = \
+        dirname+'/'+textwrap.dedent(data.discriminator_pulse_shape[0]).strip()
+        pulseshape_version = \
+        os.path.splitext(os.path.basename(pulseshape_filename))[0]
+        time,amplitude = \
+        np.loadtxt(pulseshape_filename,unpack=True)
+        pulseshape_table.meta = {'NAME': 'Discriminator pulse shape',
+                           'VERSION': pulseshape_version }
+        pulseshape_table['Time'] = time   
+        pulseshape_table['Amplitude'] = amplitude
+    except: pass
+    try:
+        tel_table_prime['DiscriminatorAmplitude'] = \
+        data.discriminator_amplitude[0]
+        tel_table_prime['DiscriminatorAmplitude'].unit = u.mV
+    except:pass
+    try: tel_table_prime['NumTriggerPixels'] = trigger_pixels[0]
+    except: pass
+    try: tel_table_prime['DiscriminatorThreshold'] = discriminator_threshold[0]
+    except: pass
+    try:
+        tel_table_prime['DiscriminatorVarThreshold'] = \
+        discriminator_var_threshold[0]
+    except: pass
+    
+    
     opt_table_prime = Table()
     opt_table_prime.meta = {'VERSION': version}
     try: opt_table_prime['MirClass'] =  data.mirror_class[0]
@@ -428,12 +470,11 @@ def load_config(filename):
     refl_table = Table()
     try:
         mir_refl_filename = \
-        dirname+'/'+textwrap.dedent(data.mirror_reflectivity[0])
+        dirname+'/'+textwrap.dedent(data.mirror_reflectivity[0]).strip()
         mir_refl_version = \
         os.path.splitext(os.path.basename(mir_refl_filename))[0]
         wavel,reflect = \
-        np.loadtxt(dirname+'/'+textwrap.dedent(data.mirror_reflectivity[0]),
-                                       unpack=True)
+        np.loadtxt(mir_refl_filename,unpack=True)
         refl_table.meta = {'NAME': 'Mirror reflectivity',
                            'VERSION': mir_refl_version }
         refl_table['Wavelength'] = wavel
@@ -453,9 +494,138 @@ def load_config(filename):
     try: opt_table_prime['TelRndmErr'] = data.telescope_random_error[0]
     except: pass
     
+    
+    cam_table_prime = Table()
+    cam_table_prime.meta = {'VERSION': version}
+    try: cam_table_prime.meta['CAMBDIAM'] = data.camera_body_diameter[0]*u.cm
+    except: pass
+    try: cam_table_prime.meta['CAMDEP'] = data.camera_depth[0]*u.cm
+    except:pass
+    try: cam_table_prime.meta['CAMCONF'] = data.camera_config_file[0]
+    except:pass
+    try:
+        cam_config_filename = \
+        dirname+'/'+textwrap.dedent(data.camera_config_file[0]).strip()
+        try:
+            pix_type,pmt_type,cathode_shape_type,visible_cathode_diameter,\
+            funnel_shape_type,funnel_diameter,funnel_depth =\
+            np.genfromtxt(cam_config_filename,usecols=(1,2,3,4,5,6,7),\
+            unpack=True,max_rows=1)
+            funnel_efficiency,funnel_wall_reflectivity =\
+            np.genfromtxt(cam_config_filename,usecols=(8,9),unpack=True,\
+            max_rows=1,dtype=None)
+        except:
+            pix_type,pmt_type,cathode_shape_type,visible_cathode_diameter,\
+            funnel_shape_type,funnel_diameter,funnel_depth=\
+            np.genfromtxt(cam_config_filename,usecols=(1,2,3,4,5,6,7),\
+            unpack=True,max_rows=1)
+            funnel_efficiency =\
+            np.genfromtxt(cam_config_filename,usecols=(8,),\
+            unpack=True,max_rows=1,dtype=str)
+            funnel_wall_reflectivity = [-1]
+        cam_table_prime.meta['PIXTYPE'] = pix_type
+        cam_table_prime.meta['PMTTYPE'] = pmt_type
+        cam_table_prime.meta['CATTYPE'] = cathode_shape_type
+        cam_table_prime.meta['CATDIAM'] = visible_cathode_diameter*u.cm
+        cam_table_prime.meta['FUNTYPE'] = funnel_shape_type
+        cam_table_prime.meta['FUNDIAM'] = funnel_diameter*u.cm
+        cam_table_prime.meta['FUNDEPT'] = funnel_depth*u.cm
+        cam_table_prime.meta['FUNEFF'] = funnel_efficiency.reshape(1)[0]
+        if funnel_wall_reflectivity[0] != -1:
+            cam_table_prime.meta['FUNREFL'] = funnel_wall_reflectivity
+    except: pass
+    try:
+        cam_config_filename = \
+        dirname+'/'+textwrap.dedent(data.camera_config_file[0]).strip()
+        pix_posX,pix_posY =\
+        np.loadtxt(cam_config_filename, comments = ('#','M','PixType'),
+                   usecols=(3,4),unpack=True)
+        board_ID = np.loadtxt(cam_config_filename,
+                                comments = ('#','M','PixType'),usecols=(7,),
+                                unpack=True,dtype=str)
+        try:            
+            pix_ID,module_number,board_number,channel_number,pixel_on = \
+            np.loadtxt(cam_config_filename, comments = ('#','M','PixType'),
+                       usecols=(1,2,5,6,8),unpack=True,dtype=int)
+            
+        except:
+            pix_ID,module_number,board_number,channel_number = \
+            np.loadtxt(cam_config_filename, comments = ('#','M','PixType'),
+                       usecols=(1,2,5,6),unpack=True,dtype=int)
+            pixel_on = [-1]
+        cam_table_prime['PixID'] = pix_ID
+        cam_table_prime['PixX'] = pix_posX
+        cam_table_prime['PixX'].unit = u.cm
+        cam_table_prime['PixY'] = pix_posY
+        cam_table_prime['PixY'].unit = u.cm
+        cam_table_prime['ModuleNum'] = module_number
+        cam_table_prime['BoardNume'] = board_number
+        cam_table_prime['ChannelNum'] = channel_number
+        cam_table_prime['BoardID'] = board_ID
+        if pixel_on[0] != -1:
+            cam_table_prime['PixelON'] = pixel_on
+    except: pass    
+    try: cam_table_prime['PIXNUM'] = data.camera_pixels[0]
+    except: pass
+    try: cam_table_prime.meta['PHDETEFF'] = data.quantum_efficiency[0]
+    except:pass
+    quantumeff_table = Table()
+    try:
+        cam_quantumeff_filename =\
+        dirname+'/'+textwrap.dedent(data.quantum_efficiency[0]).strip()
+        cam_quantumeff_version = \
+        os.path.splitext(os.path.basename(cam_quantumeff_filename))[0]
+        wavel,ph_detection_eff = \
+        np.loadtxt(cam_quantumeff_filename,unpack=True)
+        quantumeff_table.meta = {'NAME': 'Quantum efficiency',
+                           'VERSION': cam_quantumeff_version}
+        quantumeff_table['Wavelength'] = wavel
+        quantumeff_table['Wavelength'].unit = u.nm
+        quantumeff_table['DetEfficiency'] = ph_detection_eff
+    except: pass
+    try: cam_table_prime.meta['PESPEC'] = data.pm_photoelectron_spectrum[0]
+    except: pass
+    pespectrum_table = Table()
+    try:
+        pespectrum_filename =\
+        dirname+'/'+textwrap.dedent(data.pm_photoelectron_spectrum[0]).strip()
+        pespectrum_version = \
+        os.path.splitext(os.path.basename(pespectrum_filename))[0]
+        amplitude,probability = \
+        np.loadtxt(pespectrum_filename,unpack=True,usecols=(0,1))
+        pespectrum_table.meta = {'NAME': 'Photoelectron spectrum',
+                           'VERSION': pespectrum_version}
+        pespectrum_table['Amplitude [PE]'] = amplitude
+        pespectrum_table['Probability'] = probability
+    except: pass
+    try: cam_table_prime.meta['TRTIMEJI'] = data.transit_time_jitter[0]
+    except: pass
+    try: cam_table_prime.meta['GAINVAR'] = data.gain_variation[0]
+    except: pass
+    try: cam_table_prime.meta['QEVAR'] = data.qe_variation[0]
+    except: pass
+    try: cam_table_prime.meta['MINPH'] = data.min_photons[0]
+    except: pass
+    try: cam_table_prime.meta['MIPE'] = data.min_photoelectrons[0]
+    except: pass
+    try: cam_table_prime.meta['STOREPE'] = data.store_photoelectrons[0]
+    except: pass
+    try: cam_table_prime.meta['NSB'] = data.nightsky_background[0]
+    except: pass
+    
+    telescope['TelescopeTable_%s' % version] = tel_table_prime
+    telescope['DiscriminatorPulseShape_%s' % pulseshape_version] = \
+    pulseshape_table
+
+    camera['CameraTable_%s' % version] = cam_table_prime
+    camera['PhotonDetectionEfficiency_%s' % cam_quantumeff_version] = \
+    quantumeff_table
+    camera['PhotoelectronSpectrum_%s' % pespectrum_version] = pespectrum_table
+    
     optics['OpticsTable_%s' % version] = opt_table_prime
     optics['MirrorRefelctivity_%s' % mir_refl_version] = refl_table
-
+    
+    
     return(telescope,camera,optics)
 
 def get_var_from_file(filename):

@@ -10,6 +10,7 @@ fits, and a sim_telarray-config file.
 
 from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.utils.datasets import get_path
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     
@@ -25,8 +26,53 @@ if __name__ == '__main__':
     #Now we can print some telescope, optics and camera configurations, e.g.
     #the telescoppe IDs of all telescopes whose data is stored in the files
     print('Some of the tables which were read from the files:')
-    print(tel1['1'])
-    print(tel2['TelescopeTableVersionFeb2016'])
+    print(tel1['1']['TelID'])
+    print(tel2['TelescopeTableVersionFeb2016']['TelID'])
+    print(tel3['TelescopeTable_CTA-ULTRA6-SCT'])
+    print(tel4['TelescopeTableVersionFeb2016']['TelID'])
+    print('----------------------------')
+    
+    #or print all the information stored for a given telescope in a table:
+    print('available information about telescope with ID = 1:')
+    print(tel1['1'][tel1['1']['TelID']==1])
+    print('----------------------------')
+    
+    #or print a specific information stored for a given telescope in a table:
+    print('focal length of telescope with ID = 1:')
+    print(tel1['1'][tel1['1']['TelID']==1]['FL'])
+    print('----------------------------')
+
+
+    print('Data from the cfg file stored in the Telescope table:')
+    print(tel3['TelescopeTable_CTA-ULTRA6-SCT'])
+    print('----------------------------')
+    
+    #or plot the discriminator pulse shape
+    title = 'Discriminator Pulse Shape'
+    plt.figure()
+    plt.plot(tel3['DiscriminatorPulseShape_PulseShape_MPPC_S10943_Shaped_CutOff350MHz_Prod3']['Time'],\
+    tel3['DiscriminatorPulseShape_PulseShape_MPPC_S10943_Shaped_CutOff350MHz_Prod3']['Amplitude'],'+')
+    plt.title(title)
+    plt.xlabel('Time')
+    plt.ylabel('Amplitude')
+    plt.show()
+    
+    print('Data from the cfg file stored in the Optics table:')
     print(opt3['OpticsTable_CTA-ULTRA6-SCT'])
-    print(tel4['TelescopeTableVersionFeb2016'])
+    print('----------------------------')
+    
+    #or plot the mirror reflectivity vs. wavelength stored in a
+    #config file
+    title = 'Mirror reflectivity versus wavelength'
+    plt.figure()
+    plt.plot(opt3['MirrorRefelctivity_Reflectance_SC-MST_Prod3']['Wavelength'],
+             opt3['MirrorRefelctivity_Reflectance_SC-MST_Prod3']['Reflectivity'],
+             '+')
+    plt.title(title)
+    plt.xlabel('Wavelength [%s]' % \
+    opt3['MirrorRefelctivity_Reflectance_SC-MST_Prod3']['Wavelength'].unit)
+    plt.show()
+    
+    print('Data from the cfg file stored in the Camera table:')
+    print(cam3['CameraTable_CTA-ULTRA6-SCT'])
     print('----------------------------')
