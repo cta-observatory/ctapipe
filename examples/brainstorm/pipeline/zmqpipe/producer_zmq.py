@@ -1,5 +1,3 @@
-from ctapipe.utils.datasets import get_path
-from ctapipe.io.hessio import hessio_event_source
 from copy import deepcopy
 from threading import Thread, Lock
 import zmq
