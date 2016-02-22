@@ -32,15 +32,21 @@ class CameraDisplay:
         A matplotlib axes object to plot on, or None to create a new one
     title : str (default "Camera")
         Title to put on camera plot
-    norm : str or matplotlib.color.Normalize instance (default 'lin')
+    norm : str or `matplotlib.color.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
            'lin': linear scale
            'log': logarithmic scale (base 10)
+    cmap : str or `matplotlib.colors.Colormap` (default 'hot')
+        Color map to use (see `matplotlib.cm`)
     allow_pick : bool (default False)
         if True, allow user to click and select a pixel
     autoupdate : bool (default True)
         redraw automatically (otherwise need to call plt.draw())
+    autoscale : bool (default True)
+        rescale the vmin/vmax values when the image changes.
+        This is set to False if `set_limits_*` is called to explicity
+        set data limits.
     antialiased : bool  (default True)
         whether to draw in antialiased mode or not.
 
@@ -78,8 +84,10 @@ class CameraDisplay:
             ax=None,
             title="Camera",
             norm="lin",
+            cmap="hot",
             allow_pick=False,
             autoupdate=True,
+            autoscale=True,
             antialiased=True,
             ):
         self.axes = ax if ax is not None else plt.gca()
@@ -87,6 +95,7 @@ class CameraDisplay:
         self.pixels = None
         self.colorbar = None
         self.autoupdate = autoupdate
+        self.autoscale = autoscale
         self._active_pixel = None
         self._active_pixel_label = None
 
@@ -111,7 +120,7 @@ class CameraDisplay:
 
             patches.append(poly)
 
-        self.pixels = PatchCollection(patches, cmap='hot', linewidth=0)
+        self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
 
         # Set up some nice plot defaults
@@ -163,6 +172,7 @@ class CameraDisplay:
     def set_limits_minmax(self, zmin, zmax):
         """ set the color scale limits from min to max """
         self.pixels.set_clim(zmin, zmax)
+        self.autoscale = False
         self.update()
 
     def set_limits_percent(self, percent=95):
@@ -171,6 +181,7 @@ class CameraDisplay:
         zmax = self.pixels.get_array().max()
         dz = zmax - zmin
         frac = percent / 100.0
+        self.autoscale = False
         self.set_limits_minmax(zmin, zmax - (1.0 - frac) * dz)
 
     @property
@@ -240,13 +251,9 @@ class CameraDisplay:
 
         self.pixels.set_array(image)
         self.pixels.changed()
-        self.pixels.autoscale()
+        if self.autoscale:
+            self.pixels.autoscale()
         self.update()
-
-    def set_image(self, image):
-        logger.warn("set_image(x) is deprecated:"
-                    " use CameraDisplay.image = x instead")
-        self.image = image
 
     def update(self):
         """ signal a redraw if necessary """

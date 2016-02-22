@@ -6,7 +6,7 @@
 # containing ~10 events
 #
 
-from ctapipe.utils.datasets import get_datasets_path
+from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
@@ -44,7 +44,7 @@ def display_event(event):
         ax = plt.subplot(nn, nn, ii + 1)
 
         x, y = event.meta.pixel_pos[tel_id]
-        geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+        geom = io.CameraGeometry.guess(x, y)
         disp = visualization.CameraDisplay(geom, ax=ax,
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_datasets_path("gamma_test.simtel.gz")
+        filename = get_example_simtelarray_file()
 
     plt.style.use("ggplot")
     plt.show(block=False)

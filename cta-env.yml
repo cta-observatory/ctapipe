@@ -1,49 +1,20 @@
-name: ctatest
+name: cta
 dependencies:
-- appnope=0.1.0=py34_0
-- astropy=1.0.5=np110py34_1
-- decorator=4.0.4=py34_0
-- freetype=2.5.5=0
-- graphviz=2.38.0=0
-- ipython=4.0.0=py34_1
-- ipython_genutils=0.1.0=py34_0
-- libpng=1.6.17=0
-- matplotlib=1.4.3=np110py34_3
-- nose=1.3.7=py34_0
-- numpy=1.10.1=py34_0
-- openssl=1.0.2d=0
-- path.py=8.1.2=py34_0
-- pexpect=3.3=py34_0
-- pickleshare=0.5=py34_0
-- pip=7.1.2=py34_0
-- pyparsing=2.0.3=py34_0
-- pyqt=4.11.4=py34_0
+- astropy
+- graphviz
+- matplotlib
+- numpy
+- pyqt
 - python=3.4.3=2
-- python-dateutil=2.4.2=py34_0
-- python.app=1.2=py34_4
-- pytz=2015.6=py34_0
-- qt=4.8.7=1
-- readline=6.2=2
-- scikit-learn=0.16.1=np110py34_0
-- scipy=0.16.0=np110py34_1
-- setuptools=18.4=py34_0
-- simplegeneric=0.8.1=py34_0
-- sip=4.16.9=py34_0
-- six=1.10.0=py34_0
-- sqlite=3.8.4.1=1
-- tk=8.5.18=0
-- traitlets=4.0.0=py34_0
-- wheel=0.26.0=py34_1
-- xz=5.0.5=0
-- zlib=1.2.8=0
+- python-dateutil
+- readline
+- scikit-learn
+- scipy
+- setuptools
+- traitlets
+- wheel
+- xz
+- zlib
 - pip:
-  - fitsio==0.9.7
-  - ghp-import==0.4.1
-  - gwcs==0.1.dev44
-  - importmagic==0.1.3
-  - ipython-genutils==0.1.0
-  - pipe==1.4.1
-  - pycallgraph==1.0.1
-  - pymacs==0.25
-  - ropemacs==0.8
+  - fitsio
 

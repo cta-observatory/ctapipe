@@ -4,7 +4,7 @@
 from ctapipe.core import Container
 
 
-__all__ = ['RawData', 'RawCameraData']
+__all__ = ['RawData', 'RawCameraData', 'MCShowerData']
 
 
 class RawData(Container):
@@ -33,7 +33,23 @@ class RawData(Container):
         self.add_item('tels_with_data')
         self.add_item('tel', dict())
 
+class MCShowerData(Container):
+    def __init__(self, name='MCShowerData'):
+        super(MCShowerData, self).__init__(name)
+        self.add_item('energy')
+        self.add_item('alt')
+        self.add_item('az')
+        self.add_item('core_x')
+        self.add_item('core_y')
 
+class CentralTriggerData(Container):
+    def __init__(self, name='CentralTriggerData'):
+        super(CentralTriggerData, self).__init__(name)
+        self.add_item('gps_time')
+        self.add_item('tels_with_trigger')
+
+
+        
 class RawCameraData(Container):
     """ 
     Storage of raw data from a single telescope 

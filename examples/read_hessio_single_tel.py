@@ -8,7 +8,7 @@ sequence to find ones with the appropriate telescope, therefore this
 is not a fast operation)
 
 """
-from ctapipe.utils.datasets import get_datasets_path
+from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='show single telescope')
     parser.add_argument('tel', metavar='TEL_ID', type=int)
     parser.add_argument('filename', metavar='EVENTIO_FILE', nargs='?',
-                        default=get_datasets_path('gamma_test.simtel.gz'))
+                        default=get_example_simtelarray_file())
     parser.add_argument('-m', '--max-events', type=int, default=10)
     parser.add_argument('-c', '--channel', type=int, default=0)
     parser.add_argument('-w', '--write', action='store_true',
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
-                                 single_tel=args.tel,
+                                 allowed_tels=[args.tel,],
                                  max_events=args.max_events)
     disp = None
 
@@ -44,11 +44,13 @@ if __name__ == '__main__':
     for event in source:
 
         print('Scanning input file... count = {}'.format(event.count))
+        print(event.trig)
+        print(event.mc)
         print(event.dl0)
 
         if disp is None:
             x, y = event.meta.pixel_pos[args.tel]
-            geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+            geom = io.CameraGeometry.guess(x, y)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             disp.enable_pixel_picker()
             disp.add_colorbar()

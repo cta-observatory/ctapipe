@@ -4,25 +4,26 @@ Utilities for reading or working with Camera geometry files
 """
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
 from astropy.table import Table
 from scipy.spatial import cKDTree as KDTree
-from numpy import deprecate
 
 from .files import get_file_type
-from ctapipe.utils.datasets import get_path
-from ctapipe.utils.linalg import rotation_matrix_2d
+from ..utils.datasets import get_path
+from ..utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
 
 
 # dictionary to convert number of pixels to camera type for use in
-# guess_camera_geometry
-_npix_to_type = {2048: ('SST', 'rectangular'),
-                 1141: ('MST', 'hexagonal'),
-                 1855: ('LST', 'hexagonal'),
-                 11328: ('SST', 'rectangular')}
+# guess_camera_geometry.
+# Key = (npix, pix_seperation_m)
+# Value = (type, subtype, pixtype)
+_npix_to_type = {(2048, 0.006): ('SST', 'GATE', 'rectangular'),
+                 (2048, 0.042): ('LST', 'HESSII', 'hexagonal'),
+                 (1141, None): ('MST', 'NectarCam', 'hexagonal'),
+                 (1855, None): ('LST', 'LSTCam', 'hexagonal'),
+                 (11328, None): ('SCT', 'SCTCam', 'rectangular')}
 
 
 class CameraGeometry:
@@ -93,6 +94,16 @@ class CameraGeometry:
         else:
             raise TypeError("File type {} not supported".format(filetype))
 
+    def to_table(self):
+        """ convert this to an `astropy.table.Table` """
+        # currently the neighbor list is not supported, since
+        # var-length arrays are not supported by astropy.table.Table
+        return Table([self.pix_id, self.pix_x, self.pix_y, self.pix_area],
+                     names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
+                     meta=dict(pix_type=self.pix_type,
+                               TYPE='CameraGeometry',
+                               CAM_ID=self.cam_id))
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
@@ -155,10 +166,12 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def _guess_camera_type(npix):
+def _guess_camera_type(npix, pix_sep):
     global _npix_to_type
-    return _npix_to_type.get(npix, ('unknown', 'hexagonal'))
-
+    try:
+        return _npix_to_type[(npix, None)]
+    except KeyError:
+        return _npix_to_type.get((npix,np.round(pix_sep,3)), ('unknown', 'unknown', 'hexagonal'))
 
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
@@ -170,11 +183,11 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     - the first two pixels are adjacent
     """
 
-    cam_id, pix_type = _guess_camera_type(len(pix_x))
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
-
+    tel_type, cam_id, pix_type = _guess_camera_type(len(pix_x), u.Quantity(dist,"m").value)
+    
     if pix_type.startswith('hex'):
         rad = dist / np.sqrt(3)  # radius to vertex of hexagon
         area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon

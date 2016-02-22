@@ -42,3 +42,7 @@ def get_datasets_path(file_path):
 
 def get_path(file_path):
     return get_datasets_path(file_path)
+
+
+def get_example_simtelarray_file():
+    return get_datasets_path("gamma_test.simtel.gz")
