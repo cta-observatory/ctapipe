@@ -23,56 +23,63 @@ if __name__ == '__main__':
     tel3,cam3,opt3 = ID.load(filename3)
     tel4,cam4,opt4 = ID.load()
     
-    #Now we can print some telescope, optics and camera configurations, e.g.
-    #the telescoppe IDs of all telescopes whose data is stored in the files
-    print('Some of the tables which were read from the files:')
-    print(tel1['1']['TelID'])
-    print(tel2['TelescopeTableVersionFeb2016']['TelID'])
-    print(tel3['TelescopeTable_CTA-ULTRA6-SCT'])
-    print(tel4['TelescopeTableVersionFeb2016']['TelID'])
-    print('----------------------------')
+    #To check which tables are in the dictionaries, do:
+    print('Print the name of the tables present in the dictionaries taken',\
+    'from the fits file:')
+    print(tel1.keys(),cam1.keys(),opt1.keys())
+    print('As you can see, in the fits file, only the first dictionary is',\
+    'filled with tables.')
+    print('------------------------------------------------------------------')
+    print('Print the name of the tables present in the dictionaries taken',\
+    'from the hessio file:')
+    print(tel2.keys(),cam2.keys(),opt2.keys())
+    print('------------------------------------------------------------------')
+    print('Print the name of the tables present in the dictionaries taken',\
+    'from the simtelarray-config file:')
+    print(tel3.keys(),cam3.keys(),opt3.keys())
+    print('------------------------------------------------------------------')
+    print('Print the name of the tables present in the dictionaries taken',\
+    'from the faked data:')
+    print(tel4.keys(),cam4.keys(),opt4.keys())
+    print('------------------------------------------------------------------')
     
-    #or print all the information stored for a given telescope in a table:
+    print('Print the table from the telscope dictionary containing the',\
+    'overview of the telescope configuration')
+    print(tel1['1'])
+    print(tel2['TelescopeTableVersionFeb2016'])
+    print(tel3['TelescopeTable_CTA-ULTRA6-SCT'])
+    print(tel4['TelescopeTableVersionFeb2016'])
+    print('------------------------------------------------------------------')
+    
+    print('Print all the information stored for a given telescope in a table')
     print('available information about telescope with ID = 1:')
-    print(tel1['1'][tel1['1']['TelID']==1])
-    print('----------------------------')
+    print(tel2['TelescopeTableVersionFeb2016'][tel2['TelescopeTableVersionFeb2016']['TelID']==1])
+    print('------------------------------------------------------------------')
     
-    #or print a specific information stored for a given telescope in a table:
-    print('focal length of telescope with ID = 1:')
-    print(tel1['1'][tel1['1']['TelID']==1]['FL'])
-    print('----------------------------')
-
-
-    print('Data from the cfg file stored in the Telescope table:')
-    print(tel3['TelescopeTable_CTA-ULTRA6-SCT'])
-    print('----------------------------')
+    print('Print a specific information stored for a given telescope in a',\
+    'table, e.g. the x position of the pixels')
+    print(cam3['CameraTable_CTA-ULTRA6-SCT']['PixX'])
+    print('------------------------------------------------------------------')
     
-    #or plot the discriminator pulse shape
+    print('Plot the discriminator pulse shape')
     title = 'Discriminator Pulse Shape'
     plt.figure()
-    plt.plot(tel3['DiscriminatorPulseShape_PulseShape_MPPC_S10943_Shaped_CutOff350MHz_Prod3']['Time'],\
-    tel3['DiscriminatorPulseShape_PulseShape_MPPC_S10943_Shaped_CutOff350MHz_Prod3']['Amplitude'],'+')
+    plt.plot(tel3['Tel_DiscriminatorPulseShape']['Time'],\
+    tel3['Tel_DiscriminatorPulseShape']['Amplitude'],'+')
     plt.title(title)
-    plt.xlabel('Time')
+    plt.xlabel('Time (%s)'% \
+    tel3['Tel_DiscriminatorPulseShape']['Time'].unit)
     plt.ylabel('Amplitude')
     plt.show()
+    print('------------------------------------------------------------------')
     
-    print('Data from the cfg file stored in the Optics table:')
-    print(opt3['OpticsTable_CTA-ULTRA6-SCT'])
-    print('----------------------------')
-    
-    #or plot the mirror reflectivity vs. wavelength stored in a
-    #config file
+    print('Plot the mirror reflectivity vs wavelength stored in a config file')
     title = 'Mirror reflectivity versus wavelength'
     plt.figure()
-    plt.plot(opt3['MirrorRefelctivity_Reflectance_SC-MST_Prod3']['Wavelength'],
-             opt3['MirrorRefelctivity_Reflectance_SC-MST_Prod3']['Reflectivity'],
+    plt.plot(opt3['Opt_MirrorRefelctivity']['Wavelength'],
+             opt3['Opt_MirrorRefelctivity']['Reflectivity'],
              '+')
     plt.title(title)
-    plt.xlabel('Wavelength [%s]' % \
-    opt3['MirrorRefelctivity_Reflectance_SC-MST_Prod3']['Wavelength'].unit)
+    plt.xlabel('Wavelength (%s)' % \
+    opt3['Opt_MirrorRefelctivity']['Wavelength'].unit)
     plt.show()
-    
-    print('Data from the cfg file stored in the Camera table:')
-    print(cam3['CameraTable_CTA-ULTRA6-SCT'])
-    print('----------------------------')
