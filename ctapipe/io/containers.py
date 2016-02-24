@@ -57,6 +57,10 @@ class RawCameraData(Container):
     Parameters
     ----------
 
+    pixel_sums : dict by channel
+        arrays of all integrated ADC pixels (n_pixels)
+    pixel_samples : dict by channel
+        arrays of non-integrated ADC sample pixels (n_pixels)
     adc_sums : dict by channel
         arrays of all integrated ADC data (n_pixels)
     adc_samples : dict by channel
@@ -67,6 +71,8 @@ class RawCameraData(Container):
     """
     def __init__(self, tel_id):
         super(RawCameraData, self).__init__("CT{:03d}".format(tel_id))
+        self.add_item('pixel_sums', dict()) ### To be determined. Maybe not necessary.
+        self.add_item('pixel_samples', dict())
         self.add_item('adc_sums', dict())
         self.add_item('adc_samples', dict())
         self.add_item('num_channels')
