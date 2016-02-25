@@ -85,6 +85,11 @@ install:
     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION scipy pytest pip Cython jinja2; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
 
+    # PYHESSIO DEPENDENCY
+    - git clone https://github.com/cta-observatory/pyhessio
+    - cd pyhessio
+    - python setup.py install
+
     # ASTROPY
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL astropy; fi
@@ -98,10 +103,6 @@ install:
     # COVERAGE DEPENDENCIES
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
 
-    # PYHESSIO DEPENDENCY
-    - git clone https://github.com/cta-observatory/pyhessio
-    - cd pyhessio
-    - python setup.py install
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
