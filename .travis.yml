@@ -105,6 +105,7 @@ install:
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
+   - echo "SETUP_CMD[$SETUP_CMD]"
    - python setup.py $SETUP_CMD
 
 after_success:
