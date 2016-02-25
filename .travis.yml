@@ -86,9 +86,9 @@ install:
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
 
     # PYHESSIO DEPENDENCY
-    - git clone https://github.com/cta-observatory/pyhessio
-    - cd pyhessio
-    - python setup.py install
+    #- git clone https://github.com/cta-observatory/pyhessio
+    #- cd pyhessio
+    #- python setup.py install
 
     # ASTROPY
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
@@ -106,7 +106,6 @@ install:
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
-   - echo "SETUP_CMD[$SETUP_CMD]"
    - python setup.py $SETUP_CMD
 
 after_success:
