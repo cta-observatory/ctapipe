@@ -98,6 +98,11 @@ install:
     # COVERAGE DEPENDENCIES
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
 
+    # PYHESSIO DEPENDENCY
+    - git clone https://github.com/cta-observatory/pyhessio
+    - cd pyhessio
+    - python setup.py install
+
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
    - python setup.py $SETUP_CMD
