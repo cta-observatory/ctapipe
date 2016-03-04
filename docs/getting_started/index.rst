@@ -10,7 +10,7 @@ If you want to access SimTelArrray data files (recommended), you must first inst
 
 		git clone https://github.com/cta-observatory/pyhessio
 		conda build pyhessio
-		conda install pyhessio
+		conda install --use-local pyhessio
 
 Next, check out the `ctapipe <https://github.com/cta-observatory/ctapipe>`__ repo:
 
