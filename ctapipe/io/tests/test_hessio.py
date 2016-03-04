@@ -9,6 +9,3 @@ def test_get_run_id():
 	tels = event.dl0.tels_with_data
 	print(tels)
 	assert tels == {38, 47}
-
-if __name__ == '__main__':
-	test_get_run_id()
