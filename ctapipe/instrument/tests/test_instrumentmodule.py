@@ -15,11 +15,11 @@ filename3 = get_path('CTA-ULTRA6-SCT.cfg')
 
 def test_load_and_write_telescope_data():
     tel1,cam1,opt1 = ID.load(filename1)
-    tel2,cam2,opt2 = ID.load(filename2)
+    #tel2,cam2,opt2 = ID.load(filename2)
     tel3,cam3,opt3 = ID.load(filename3)
     tel4,cam4,opt4 = ID.load()
     assert(len(tel1)>0)
-    assert(len(tel2)>0)
+    #assert(len(tel2)>0)
     assert(len(opt3)>0)
     assert(len(tel4)>0)
     
