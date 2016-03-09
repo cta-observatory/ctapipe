@@ -32,7 +32,7 @@ clean:
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	$(PYTHON) setup.py test -V  $<
+	$(PYTHON) setup.py test -V $<
 
 doc:
 	$(PYTHON) setup.py build_sphinx
