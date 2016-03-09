@@ -10,14 +10,16 @@ First you should create a virtual environment in which to do your developement (
 
 .. code-block:: bash
 
-	conda create -n cta python=3.5 astropy matplotlib scipy scikit-learn
+	conda create -n cta python=3.5 astropy matplotlib scipy scikit-learn numba cython 
 
-
-Next, switch to this new virtual environment
+Next, switch to this new virtual environment and install some other useful tools for development:
 	
 .. code-block:: bash
 
 	source activate cta
+	
+	conda install ipython ipython-notebook ipython-qtconsole spyder pyflakes
+	pip install autopep8
 
 Next, you should create a directory where you can store the software you check out. For example:
 
