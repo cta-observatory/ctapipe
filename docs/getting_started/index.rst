@@ -10,7 +10,7 @@ First you should create a virtual environment in which to do your developement (
 
 .. code-block:: bash
 
-	conda env create -n cta python=3.5 astropy matplotlib scipy scikit-learn
+	conda create -n cta python=3.5 astropy matplotlib scipy scikit-learn
 
 
 Next, switch to this new virtual environment
