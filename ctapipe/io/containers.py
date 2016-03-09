@@ -27,7 +27,7 @@ class RawData(Container):
     """
     
     def __init__(self, name="RawData"):
-        super(RawData, self).__init__(name)
+        super().__init__(name)
         self.add_item('run_id')
         self.add_item('event_id')
         self.add_item('tels_with_data')
@@ -35,7 +35,7 @@ class RawData(Container):
 
 class MCShowerData(Container):
     def __init__(self, name='MCShowerData'):
-        super(MCShowerData, self).__init__(name)
+        super().__init__(name)
         self.add_item('energy')
         self.add_item('alt')
         self.add_item('az')
@@ -44,7 +44,7 @@ class MCShowerData(Container):
 
 class CentralTriggerData(Container):
     def __init__(self, name='CentralTriggerData'):
-        super(CentralTriggerData, self).__init__(name)
+        super().__init__(name)
         self.add_item('gps_time')
         self.add_item('tels_with_trigger')
 
@@ -66,7 +66,7 @@ class RawCameraData(Container):
 
     """
     def __init__(self, tel_id):
-        super(RawCameraData, self).__init__("CT{:03d}".format(tel_id))
+        super().__init__("CT{:03d}".format(tel_id))
         self.add_item('adc_sums', dict())
         self.add_item('adc_samples', dict())
         self.add_item('num_channels')
