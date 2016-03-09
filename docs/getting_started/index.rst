@@ -8,6 +8,10 @@ This guide assumes you are using the *Anaconda* python distribution, installed l
 
 First you should create a virtual environment in which to do your developement (this will allow you to control the dependency libraries independently of other projects). You can use either python 3.4 or python 3.5. Here we will create a virtualenv called "cta" (but you can choose another name if you like)
 
+-----------------------
+Set up your environment
+-----------------------
+
 .. code-block:: bash
 
 	conda create -n cta python=3.5 astropy matplotlib scipy scikit-learn numba cython 
@@ -35,6 +39,10 @@ If you want to access SimTelArrray data files (recommended), you must first inst
 	git clone https://github.com/cta-observatory/pyhessio
 	conda build pyhessio
 	conda install --use-local pyhessio
+
+------------------------
+Get the ctapipe software
+------------------------
 
 Next, check out the `ctapipe <https://github.com/cta-observatory/ctapipe>`__ repo:
 
@@ -78,24 +86,18 @@ Run the command line tools:
     python setup.py install
     ctapipe-info --tools
 
-**Start hacking and contributing:**  The following command will put
-the package in "developer mode", meaning that it will make a symlink
-of your checked-out working directory in your local (user) python
-package library directory (which is usually something like
-`$HOME/.local/lib/python/site-packages/`. Then you can access the development
-`ctapipe` from anywhere on your system.
-
-.. code-block:: bash
-
-    make develop
-    edit .
-
 To update to the latest development version (merging in remote changes
 to your local working copy):
 
 .. code-block:: bash
 
    git pull               
-               
-For further information, see http://astropy.readthedocs.org/en/latest/
-... most things in ctapipe work the same.
+            
+---------------
+Developing Code
+---------------
+ 
+Checking out ctapipe in the manner described above is read-only, meaning that if you want to commit a change, you cannot (the master repo is locked to only the managers). Therefore, in order to develop, you need to make a personal fork on GitHub. 
+This is described in the AstroPy documentation http://astropy.readthedocs.org/en/latest/development/workflow/get_devel_version.html#get-devel .  You would need to of course change any reference to "astropy" the package to "ctapipe" and "astropy" the organization to "cta-observatory", but the instructions should work.
+
+Even easier (if you are on a Mac computer) is to use the `github-desktop GUI <https://desktop.github.com/>`_, which can do all of it for you automatically. It will handle the forking, syncing, and even allow you to issue pull-requests. 
