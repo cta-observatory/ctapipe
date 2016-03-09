@@ -4,19 +4,43 @@
 Getting Started
 ***************
 
+This guide assumes you are using the *Anaconda* python distribution, installed locally (*miniconda* should also work).
+
+First you should create a virtual environment in which to do your developement (this will allow you to control the dependency libraries independently of other projects). You can use either python 3.4 or python 3.5. Here we will create a virtualenv called "cta" (but you can choose another name if you like)
+
+.. code-block:: bash
+
+	conda env create -n cta python=3.5 astropy matplotlib scipy scikit-learn
+
+
+Next, switch to this new virtual environment
+	
+.. code-block:: bash
+
+	source activate cta
+
+Next, you should create a directory where you can store the software you check out. For example:
+
+.. code-block:: bash
+    
+    mkdir ctasoft
+    cd ctasoft
+
 If you want to access SimTelArrray data files (recommended), you must first install the `pyhessio` package.  This can be done by:
 
 .. code-block:: bash
 
-		git clone https://github.com/cta-observatory/pyhessio
-		conda build pyhessio
-		conda install --use-local pyhessio
+	git clone https://github.com/cta-observatory/pyhessio
+	conda build pyhessio
+	conda install --use-local pyhessio
 
 Next, check out the `ctapipe <https://github.com/cta-observatory/ctapipe>`__ repo:
 
 .. code-block:: bash
 
     git clone https://github.com/cta-observatory/ctapipe.git   # if you like HTTPS
+    
+Now setup this checked out version for development:
  
 .. code-block:: bash
 
