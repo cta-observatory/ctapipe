@@ -17,4 +17,4 @@ Parallelization
 * more complex systems like `Celery <http://celeryproject.org>`_ may
   be explored for use with map-reduce style parallelization.
 
-
+* Fast distributed file access with the `HDFS3 <http://hdfs3.readthedocs.org/en/latest>`_ library
