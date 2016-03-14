@@ -74,17 +74,12 @@ before_install:
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
 
-    #PYHESSIO DEPENDENCY
-    - git clone https://github.com/cta-observatory/pyhessio
-    - cd pyhessio
-    - python setup.py install
-    - cd ..
-
 install:
 
     # CONDA
     - conda create --yes -n test -c astropy-ci-extras python=$TRAVIS_PYTHON_VERSION
     - source activate test
+    - conda config --add channels http://conda.anaconda.org/jacquemier
 
     # CORE DEPENDENCIES
     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION scipy pytest pip Cython jinja2; fi
@@ -99,10 +94,13 @@ install:
     - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib; fi
+    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib pyhessio; fi
 
     # COVERAGE DEPENDENCIES
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; fi
+    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; $CONDA_INSTALL pyhessio; fi
+
+    # UNIT TESTS DEPENDENCIES
+    - if [[ $SETUP_CMD == test* ]]; then $CONDA_INSTALL pyhessio; fi
 
 
 script:

@@ -13,10 +13,34 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
 from astropy import units as u
+import pyhessio
 
 import logging
 import argparse
 logging.basicConfig(level=logging.DEBUG)
+
+
+def get_mc_calibration_coeffs(tel_id):
+    """
+    Get the calibration coefficients from the MC data file to the
+    data.  This is ahack (until we have a real data structure for the
+    calibrated data), it should move into `ctapipe.io.hessio_event_source`.
+
+    returns
+    -------
+    (peds,gains) : arrays of the pedestal and pe/dc ratios.
+    """
+    peds = pyhessio.get_pedestal(tel_id)[0]
+    gains = pyhessio.get_calibration(tel_id)[0]
+    return peds, gains
+
+
+def apply_mc_calibration(adcs, tel_id):
+    """
+    apply basic calibration
+    """
+    peds, gains = get_mc_calibration_coeffs(tel_id)
+    return (adcs - peds) * gains
 
 
 if __name__ == '__main__':
@@ -34,7 +58,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
-                                 allowed_tels=[args.tel,],
+                                 allowed_tels=[args.tel, ],
                                  max_events=args.max_events)
     disp = None
 
@@ -63,7 +87,7 @@ if __name__ == '__main__':
             # display time-varying event
             data = event.dl0.tel[args.tel].adc_samples[args.channel]
             for ii in range(data.shape[1]):
-                disp.image = data[:, ii]
+                disp.image = apply_mc_calib(data[:, ii], args.tel)
                 disp.set_limits_percent(70)
                 plt.pause(0.01)
                 if args.write:
@@ -71,7 +95,8 @@ if __name__ == '__main__':
                                 .format(args.tel, event.dl0.event_id, ii))
         else:
             # display integrated event:
-            disp.image = event.dl0.tel[args.tel].adc_sums[args.channel]
+            disp.image = apply_mc_calibration(
+                event.dl0.tel[args.tel].adc_sums[args.channel], args.tel)
             disp.set_limits_percent(70)
             plt.pause(0.1)
             if args.write:

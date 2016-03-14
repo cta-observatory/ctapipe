@@ -16,7 +16,7 @@ from astropy.time import Time
 logger = logging.getLogger(__name__)
 
 try:
-    import protozfitsreader_object as protozfitsreader
+    import protozfitsreader
 except ImportError as err:
     logger.fatal("the `protozfitsreader` python module is required to access MC data: {}"
                  .format(err))
@@ -63,8 +63,6 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
     container.add_item("count")
 
     for run_id, event_id in eventstream:
-    for event_id in range(events):
-        
         container.dl0.run_id    = run_id
         container.dl0.event_id  = event_id
         #container.dl0.event_num = zfits.get_event_number()
@@ -85,7 +83,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         # Depecrated loop, we keep it for clarity (similar structure than hessio and mock modules)
         for tel_id in container.dl0.tels_with_data:
             # fill pixel position dictionary, if not already done:
-            #NOTE: tel_id here is a dummy parameter, we are dealing with single-telescope data!. TBR.
+            #TODO: tel_id here is a dummy parameter, we are dealing with single-telescope data!. TBR.
             if tel_id not in container.meta.pixel_pos:
                 container.meta.pixel_pos[tel_id] = \
                     zfits.get_pixel_position(tel_id) * u.m
