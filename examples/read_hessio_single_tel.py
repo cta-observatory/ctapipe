@@ -87,7 +87,7 @@ if __name__ == '__main__':
             # display time-varying event
             data = event.dl0.tel[args.tel].adc_samples[args.channel]
             for ii in range(data.shape[1]):
-                disp.image = apply_mc_calib(data[:, ii], args.tel)
+                disp.image = apply_mc_calibration(data[:, ii], args.tel)
                 disp.set_limits_percent(70)
                 plt.pause(0.01)
                 if args.write:
