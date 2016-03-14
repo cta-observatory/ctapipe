@@ -6,6 +6,9 @@ This requires the protozfitsreader python library to be installed
 """
 import logging
 
+import numpy as np
+import numpy.ma as ma
+
 from .containers import RawData, RawCameraData
 from ctapipe.core import Container
 
@@ -97,10 +100,16 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
                 integrated = zfits.get_adc_sum(channel=chan, telescope_id=tel_id)
                 
                 container.dl0.tel[tel_id].pixel_samples[chan] = samples.keys()
-                container.dl0.tel[tel_id].adc_samples[chan] = samples.values()
+
+                mask = np.zeros(zfits.get_number_of_pixels(),dtype=bool)
+                mask[np.array(samples.keys())]=True
+                container.dl0.tel[tel_id].adc_samples[chan] = \
+                    ma.array(np.array(samples.values()),mask=mask)
                 
-                container.dl0.tel[tel_id].pixel_sums[chan] = integrated.keys()
-                container.dl0.tel[tel_id].adc_sums[chan] = integrated.values()
+                mask = np.zeros(zfits.get_number_of_pixels(),dtype=bool)
+                mask[np.array(integrated.keys())]=True
+                container.dl0.tel[tel_id].adc_integrated[chan] = \
+                    ma.array(np.array(integrated.values()),mask=mask)
 
         yield container
         counter +=1
