@@ -3,14 +3,13 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.core import Container
 
 from ctapipe.io.containers import RawData
-from ctapipe.io.containers import RawCameraData, MCShowerData, CentralTriggerData
+from ctapipe.io.containers import MCShowerData, CentralTriggerData
 from ctapipe.reco.hillas import hillas_parameters
 from ctapipe.reco.cleaning import tailcuts_clean
-from ctapipe import visualization, io
+from ctapipe import io
 from astropy.coordinates import Angle
 from astropy.time import Time
 
-from matplotlib import pyplot as plt
 from astropy import units as u
 import pyhessio
 
