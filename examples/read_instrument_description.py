@@ -11,6 +11,7 @@ fits, and a sim_telarray-config file.
 from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.utils.datasets import get_path
 import matplotlib.pyplot as plt
+import os
 
 if __name__ == '__main__':
     
@@ -92,6 +93,9 @@ if __name__ == '__main__':
     print(tel11['1'])
     tel12,cam12,opt12 = ID.load('2.fits')
     print(tel12['1'])
+    
+    os.remove('1.fits')
+    os.remove('2.fits')
     
     
     
