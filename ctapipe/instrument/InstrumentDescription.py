@@ -138,7 +138,7 @@ def load_fakedata():
     tel_table_prime['FL'] = foclen
     tel_table_prime['FL'].unit = u.m
     
-    telescope['TelescopeTableVersion%s' % version] = tel_table_prime    
+    telescope['TelescopeTable_Version%s' % version] = tel_table_prime    
     
     for t in range(len(tel_id)):       
         
@@ -243,7 +243,7 @@ def load_hessio(filename):
     
     #Beside other tables containimng telescope configuration data, the main
     #telescope table is written into the telescope dictionary.
-    telescope['TelescopeTableVersion%s' % version] = tel_table_prime
+    telescope['TelescopeTable_Version%s' % version] = tel_table_prime
     
     #--------------------------------------------------------------------------
     #Camera and Optics configuration
@@ -380,11 +380,26 @@ def load_fits(filename = '',path = None,version = '',instr_item = ''):
         else:
             #If in the fits file not the same nomenclature is used as in the
             #'write_fits' function or if it contains more than one HDU object,
-            #just iterate over all HDUs and write them into one dictionary
+            #just suppose that the HDUs are in the order of:
+            #first HDU: telescope data,
+            #second HDU: camera data,
+            #third HDU: optics data
+            #all other HDUs are written to the telescope data with numbers as
+            #names
             h = 1
             while True:
-                try: telescope['%i' % h] = Table.read(item,hdu=h)
-                except: break
+                if h == 1:
+                    try: telescope['TelescopeTable'] = Table.read(item,hdu=h)
+                    except: break
+                elif h == 2:
+                    try: camera['CameraTable'] = Table.read(item,hdu=h)
+                    except: break
+                elif h == 3:
+                    try: optics['OpticsTable'] = Table.read(item,hdu=h)
+                    except: break
+                else:
+                    try: telescope['%i' % h] = Table.read(item,hdu=h)
+                    except: break
                 h+=1
                 if h>100:
                     break
@@ -989,15 +1004,19 @@ def write_fits(filename = '', path = '',instr_dict = '',table_name = '',\
             if filename == '':
                 write_name = '%s%s.fits' % (path,key)
                 instr_dict[key].write(write_name,overwrite)
+                print('%s has been created' % write_name)
             else:
                 write_name = filename
                 instr_dict[key].write(filename,overwrite)
+                print('%s has been created' % write_name)
     else:
         if filename == '':
             write_name = '%s%s.fits' % (path,table_name)
             instr_dict[table_name].write(write_name,overwrite)
+            print('%s has been created' % write_name)
         else:
             write_name = filename
             instr_dict[table_name].write(filename,overwrite)
+            print('%s has been created' % write_name)
     
-    return(print('%s has been created' % write_name))
+    return(print('Writing process finished.'))

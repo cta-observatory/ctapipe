@@ -42,13 +42,13 @@ class Camera:
         self.pix_type = pix_type
         self.pix_neighbors = pix_neighbors
     
-    @staticmethod
-    def guess(cls):
+    @classmethod
+    def guess(cls, pix_x, pix_y):
         """
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions.
         """
-        return guess_camera_geometry(cls.pix_x, cls.pix_y)
+        return guess_camera_geometry(pix_x, pix_y)
     
     @staticmethod
     def rotate(cls,angle):
