@@ -5,10 +5,12 @@ from ctapipe.core import Container
 from ctapipe.io.containers import RawData
 from ctapipe.io.containers import MCShowerData, CentralTriggerData
 from ctapipe.reco.hillas import hillas_parameters
+import ctapipe.reco.hillas_intersection as hill_int
 from ctapipe.reco.cleaning import tailcuts_clean
 from ctapipe import io
 from astropy.coordinates import Angle
 from astropy.time import Time
+from ctapipe.instrument import InstrumentDescription as ID
 
 from astropy import units as u
 import pyhessio
@@ -51,13 +53,15 @@ if __name__ == '__main__':
 
     source = hessio_event_source(args.filename)
 
-
     container = Container("hessio_container")
     container.meta.add_item('pixel_pos', dict())
     container.add_item("dl0", RawData())
     container.add_item("mc", MCShowerData())
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
+    tel,cam,opt = ID.load(filename=args.filename)
+
+    print (cam)
 
     for event in source:
 
@@ -87,6 +91,7 @@ if __name__ == '__main__':
         print(event.dl0)
 
         hillas_parameter_list = list()
+        tel_config_list = list()
 
         for tel_id in container.dl0.tels_with_data:
             x, y = event.meta.pixel_pos[tel_id]
@@ -95,9 +100,10 @@ if __name__ == '__main__':
 
             clean_mask = tailcuts_clean(geom,image,1,picture_thresh=10,boundary_thresh=5)
             hill = hillas_parameters(x,y,image*clean_mask)
-
+            print (tel[0])
             if hill.size > 100:
                 hillas_parameter_list.append(hill)
+                tel_config_list.append(tel[tel_id])
 
         print (len(hillas_parameter_list))
-
+        hill_int.reconstruct_nominal(hillas_parameter_list,tel_config_list,tel)
