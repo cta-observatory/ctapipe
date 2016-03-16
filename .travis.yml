@@ -80,6 +80,7 @@ install:
     # CORE DEPENDENCIES
     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
+    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v0.5.0.tar.gz; fi
 
 
     # ASTROPY
@@ -90,13 +91,13 @@ install:
     - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib pyhessio; fi
+    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib ; fi
 
     # COVERAGE DEPENDENCIES
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; $CONDA_INSTALL pyhessio; fi
+    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; $CONDA_INSTALL; fi
 
     # UNIT TESTS DEPENDENCIES
-    - if [[ $SETUP_CMD == test* ]]; then $CONDA_INSTALL pyhessio; fi
+    - if [[ $SETUP_CMD == test* ]]; then $CONDA_INSTALL; fi
 
 
 script:
