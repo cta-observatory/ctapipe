@@ -94,10 +94,7 @@ install:
     - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib ; fi
 
     # COVERAGE DEPENDENCIES
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; $CONDA_INSTALL; fi
-
-    # UNIT TESTS DEPENDENCIES
-    - if [[ $SETUP_CMD == test* ]]; then $CONDA_INSTALL; fi
+    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls;  fi
 
 
 script:
