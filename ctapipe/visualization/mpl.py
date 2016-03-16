@@ -197,17 +197,19 @@ class CameraDisplay:
 
     @norm.setter
     def norm(self, norm):
+
         if norm == 'lin':
             self.pixels.norm = Normalize()
         elif norm == 'log':
             self.pixels.norm = LogNorm()
+            self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
         else:
             raise ValueError('Unsupported norm: {}'.format(norm))
 
-        self.pixels.changed()
-        self.update()
+        self.update(force=True)
+        self.pixels.autoscale()
 
     @property
     def cmap(self):
@@ -255,11 +257,14 @@ class CameraDisplay:
             self.pixels.autoscale()
         self.update()
 
-    def update(self):
+    def update(self, force=False):
         """ signal a redraw if necessary """
         if self.autoupdate:
             if self.colorbar is not None:
-                self.colorbar.update_normal(self.pixels)
+                if force is True:
+                    self.colorbar.update_bruteforce(self.pixels)
+                else:
+                    self.colorbar.update_normal(self.pixels)
                 self.colorbar.draw_all()
             self.axes.figure.canvas.draw()
 
