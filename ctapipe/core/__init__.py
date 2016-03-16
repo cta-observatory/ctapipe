@@ -58,7 +58,7 @@ class Container:
         self.add_item("_name", name)
         for key, val in kwargs.items():
             self.__dict__[key] = val
-                    
+
     @property
     def meta(self):
         """metadata associated with this container"""
@@ -75,7 +75,7 @@ class Container:
             raise AttributeError("item '{}' is already in Container"
                                  .format(name))
         self.__dict__[name] = value
-        
+
     def __setattr__(self, name, value):
         # prevent setting od values that are not yet registered
         if name not in self.__dict__:
@@ -101,3 +101,9 @@ class Container:
     def __iter__(self):
         # allow iterating over item names
         return (k for k in self.__dict__.keys() if not k.startswith("_"))
+
+    def items(self):
+        '''Iterate over pairs of key, value. Just like the dictionary method'''
+        # allow iterating over item names
+        return ((k, v) for k, v in self.__dict__.items()
+                if not k.startswith('_'))
