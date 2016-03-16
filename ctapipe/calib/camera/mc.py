@@ -6,9 +6,12 @@ Convert the integral pixel ADC count to photo-electrons
 
 import sys
 import numpy as np
+from numpy import round
 from pyhessio import *
 from ctapipe import io
 from astropy import units as u
+import logging
+logger = logging.getLogger("calib_mc")
 
 __all__ = [
     'set_integration_correction',
@@ -52,7 +55,6 @@ def qpol(x, np, yval):
 
 
 def set_integration_correction(telid, params):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Parameters
     ----------
@@ -97,7 +99,6 @@ def set_integration_correction(telid, params):
 
 
 def pixel_integration_mc(event, ped, telid, parameters):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Parameters
     ----------
@@ -119,7 +120,7 @@ def pixel_integration_mc(event, ped, telid, parameters):
     Returns None if event is None
     """
     if __debug__:
-        print(TAG, parameters['integrator'], end="\n")
+        logger.info("%s> %s"%(sys._getframe().f_code.co_name,parameters['integrator']))
     if event is None:
         return None
 
@@ -143,7 +144,6 @@ def pixel_integration_mc(event, ped, telid, parameters):
 
 
 def full_integration_mc(event, ped, telid):
-    TAG = sys._getframe().f_code.co_name+">"
 
     """
     Use full digitized range for the integration amplitude
@@ -172,15 +172,14 @@ def full_integration_mc(event, ped, telid):
     for igain in range(0, get_num_channel(telid)):
         sum_pix = []
         for ipix in range(0, get_num_pixels(telid)):
-            samples_pix = get_adc_sample(telid, igain)[ipix]
+            samples_pix = np.asarray(get_adc_sample(telid, igain)[ipix])
             sum_pix.append(sum(samples_pix[:])-ped[igain][ipix])
         sum_pix_tel.append(sum_pix)
 
-    return sum_pix_tel, None
+    return np.asarray(sum_pix_tel), None
 
 
 def simple_integration_mc(event, ped, telid, parameters):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Integrate sample-mode data (traces) over a common and fixed interval.
 
@@ -228,22 +227,21 @@ def simple_integration_mc(event, ped, telid, parameters):
             nskip = get_num_samples(telid)-nsum
 
     sum_pix_tel = []
-    int_corr = 1.
+    int_corr = np.array([1.]*get_num_channel(telid))
     for igain in range(0, get_num_channel(telid)):
         sum_pix = []
         for ipix in range(0, get_num_pixels(telid)):
             samples_pix_win = (get_adc_sample(telid, igain)[ipix]
             [nskip:(nsum+nskip)])
             ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
-            sum_pix.append(int(int_corr[igain]*(sum(samples_pix_win) -
+            sum_pix.append(int(int_corr[igain]*(sum(samples_pix_win) - 
                                                 ped_per_trace*nsum)+0.5))
         sum_pix_tel.append(sum_pix)
 
-    return sum_pix_tel, None
+    return np.asarray(sum_pix_tel), None
 
 
 def global_peak_integration_mc(event, ped, telid, parameters):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Integrate sample-mode data (traces) over a common interval around a
     global signal peak.
@@ -289,8 +287,8 @@ def global_peak_integration_mc(event, ped, telid, parameters):
         peak_pix = []
         for ipix in range(0, get_num_pixels(telid)):
             ped_per_trace = int(ped[igain][ipix]/get_num_samples(telid)+0.5)
-            samples_pix_clean = get_adc_sample(telid, igain)
-            [ipix].astype(np.int16) - ped_per_trace
+            samples_pix_clean = np.asarray(get_adc_sample(telid, igain)
+            [ipix]).astype(np.int16) - ped_per_trace
             significant = 0
             ipeak = -1
             for isamp in range(0, get_num_samples(telid)):
@@ -324,19 +322,18 @@ def global_peak_integration_mc(event, ped, telid, parameters):
         # Integrate pixel
         sum_pix = []
         for ipix in range(0, get_num_pixels(telid)):
-            samples_pix_win = get_adc_sample(telid, igain)
-            [ipix][start:(nsum+start)]
+            samples_pix_win = np.asarray(get_adc_sample(telid, igain)
+            [ipix])[start:(nsum+start)]
             ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
             sum_pix.append(round(int_corr[igain] *
                                  (sum(samples_pix_win) - ped_per_trace*nsum)))
 
         sum_pix_tel.append(sum_pix)
         time_pix_tel.append(peak_pix)
-    return sum_pix_tel, time_pix_tel
+    return np.asarray(sum_pix_tel), np.asarray(time_pix_tel)
 
 
 def local_peak_integration_mc(event, ped, telid, parameters):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Integrate sample-mode data (traces) around a pixel-local signal peak.
 
@@ -382,8 +379,8 @@ def local_peak_integration_mc(event, ped, telid, parameters):
         for ipix in range(0, get_num_pixels(telid)):
             # Find the peak (peakpos)
             ped_per_trace = int(ped[igain][ipix]/get_num_samples(telid)+0.5)
-            samples_pix_clean = get_adc_sample(telid, igain)
-            [ipix].astype(np.int16) - ped_per_trace
+            samples_pix_clean = np.asarray(get_adc_sample(telid, igain)
+            [ipix]).astype(np.int16) - ped_per_trace
             significant = 0
             ipeak = -1
             for isamp in range(0, get_num_samples(telid)):
@@ -414,8 +411,8 @@ def local_peak_integration_mc(event, ped, telid, parameters):
 
             int_corr = set_integration_correction(telid, parameters)
             # Integrate pixel
-            samples_pix_win = get_adc_sample(telid, igain)
-            [ipix][start:(nsum+start)]
+            samples_pix_win = np.asarray(get_adc_sample(telid, igain)
+            [ipix])[start:(nsum+start)]
             ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
             if jpeak[ipix] > 0:
                 sum_pix.append(round(int_corr[igain] *
@@ -429,11 +426,10 @@ def local_peak_integration_mc(event, ped, telid, parameters):
 
         sum_pix_tel.append(sum_pix)
         time_pix_tel.append(peak_pix)
-    return sum_pix_tel, time_pix_tel
+    return np.asarray(sum_pix_tel), np.asarray(time_pix_tel)
 
 
 def nb_peak_integration_mc(event, ped, telid, parameters):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Integrate sample-mode data (traces) around a peak in the signal sum of
     neighbouring pixels.
@@ -475,7 +471,7 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
 
     #  For this integration scheme we need the list of neighbours early on
     pix_x, pix_y = event.meta.pixel_pos[telid]
-    geom = io.CameraGeometry.guess(pix_x*u.m, pix_y*u.m)
+    geom = io.CameraGeometry.guess(pix_x, pix_y)
 
     sum_pix_tel = []
     time_pix_tel = []
@@ -517,8 +513,8 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
 
             int_corr = set_integration_correction(telid, parameters)
             # Integrate pixel
-            samples_pix_win = get_adc_sample(telid, igain)
-            [ipix][start:(nsum+start)]
+            samples_pix_win = np.asarray(get_adc_sample(telid, igain)
+            [ipix])[start:(nsum+start)]
             ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
             sum_pix.append(round(int_corr[igain]*(sum(samples_pix_win) -
                                                   ped_per_trace*nsum)))
@@ -527,11 +523,10 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
         sum_pix_tel.append(sum_pix)
         time_pix_tel.append(peak_pix)
 
-    return sum_pix_tel, time_pix_tel
+    return np.asarray(sum_pix_tel), np.asarray(time_pix_tel)
 
 
 def calibrate_amplitude_mc(integrated_charge, calib, telid, params):
-    TAG = sys._getframe().f_code.co_name+">"
     """
     Parameters
     ----------
@@ -549,11 +544,12 @@ def calibrate_amplitude_mc(integrated_charge, calib, telid, params):
 
     if integrated_charge is None:
         return None
+
     pe_pix_tel = []
     for ipix in range(0, get_num_pixels(telid)):
         pe_pix = 0
         int_pix_hg = integrated_charge[get_num_channel(telid)-1][ipix]
-        # If the integral charge is between -300,2000 ADC ts, we choose the HG
+        # If the integral charge is between -300,2000 ADC cts, we choose the HG
         # Otherwise the LG channel
         # If there is only one gain, it is the HG (default)
         if (int_pix_hg > -1000 and int_pix_hg < 10000 or
@@ -575,4 +571,4 @@ def calibrate_amplitude_mc(integrated_charge, calib, telid, params):
         # Keep in mind: peak(10 p.e.) != 10*peak(1 p.e.)
         pe_pix_tel.append(pe_pix*CALIB_SCALE)
 
-    return pe_pix_tel
+    return np.asarray(pe_pix_tel)

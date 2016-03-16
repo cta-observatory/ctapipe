@@ -9,11 +9,31 @@ from ctapipe.io.containers import RawData, CalibratedCameraData
 from ctapipe import visualization, io
 from astropy import units as u
 from ctapipe.calib.camera.mc import *
+import logging
+logger = logging.getLogger("calibration_pipeline")
+logging.basicConfig(stream=sys.stdout,level=logging.INFO)
 
 fig = plt.figure(figsize=(16, 7))
 cmaps = [plt.cm.jet, plt.cm.winter,
          plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
          plt.cm.cool, plt.cm.coolwarm]
+
+
+def init_dl1(event):
+    # Load dl1 container
+    container = Container("calibrated_hessio_container")
+    container.add_item("dl1", RawData())
+    container.meta.add_item('pixel_pos', dict())
+    container.meta.pixel_pos = event.meta.pixel_pos
+
+    return container
+
+def load_dl1_eventheader(dl0,dl1):
+    dl1.run_id = dl0.run_id
+    dl1.event_id = dl0.event_id
+    dl1.tel = dict()  # clear the previous telescopes
+    dl1.tels_with_data = dl0.tels_with_data
+    return
 
 
 def display_telescope(event, tel_id):
@@ -28,7 +48,8 @@ def display_telescope(event, tel_id):
                     pow(get_mc_event_ycore(), 2))))
     print("\t draw cam {}...".format(tel_id))
     x, y = event.meta.pixel_pos[tel_id]
-    geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+    #geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+    geom = io.CameraGeometry.guess(x, y)
     npads = 1
     # Only create two pads if there is timing information extracted
     # from the calibration
@@ -77,38 +98,47 @@ def camera_calibration(filename, parameters, disp_args, level):
     A display (see function display_telescope)
 
     """
-    TAG = sys._getframe().f_code.co_name+">"
 
-    # Load dl1 container
-    container = Container("calibrated_hessio_container")
-    container.add_item("dl1", RawData())
-    container.meta.add_item('pixel_pos', dict())
+    ## Load dl1 container
+    #container = Container("calibrated_hessio_container")
+    #container.add_item("dl1", RawData())
+    #container.meta.add_item('pixel_pos', dict())
 
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
     nt = 0
     for event in hessio_event_source(filename):
+        if nt==0: 
+            container = init_dl1(event)
+    
         nt = nt+1
         # Fill DL1 container headers information. Clear also telescope info.
-        container.dl1.run_id = event.dl0.run_id
-        container.dl1.event_id = event.dl0.event_id
-        container.dl1.tel = dict()  # clear the previous telescopes
-        container.dl1.tels_with_data = event.dl0.tels_with_data
+        load_dl1_eventheader(event.dl0,container.dl1)
+        #container.dl1.run_id = event.dl0.run_id
+        #container.dl1.event_id = event.dl0.event_id
+        #container.dl1.tel = dict()  # clear the previous telescopes
+        #container.dl1.tels_with_data = event.dl0.tels_with_data
         if __debug__:
-            print(TAG, container.dl1.run_id, "#%d" % nt,
-                  container.dl1.event_id,
-                  container.dl1.tels_with_data,
-                  "%.3e TeV @ (%.0f,%.0f)deg @ %.3f m" %
-                  (get_mc_shower_energy(), get_mc_shower_altitude(),
-                   get_mc_shower_azimuth(),
-                   np.sqrt(pow(get_mc_event_xcore(), 2) +
-                           pow(get_mc_event_ycore(), 2))))
+            logger.info("%s> %d #%d %d"%
+                        (sys._getframe().f_code.co_name,
+                         container.dl1.run_id, nt,
+                         container.dl1.event_id),
+                         container.dl1.tels_with_data,
+                        "%.3e TeV @ (%.0f,%.0f)deg @ %.3f m"%
+                        (get_mc_shower_energy(), get_mc_shower_altitude(),
+                         get_mc_shower_azimuth(),
+                         np.sqrt(pow(get_mc_event_xcore(), 2) +
+                                 pow(get_mc_event_ycore(), 2)))
+                        )
+
         for telid in event.dl0.tels_with_data:
-            print(TAG, "Calibrating.. CT%d\n" % telid)
+            logger.info("%s> Calibrating.. CT%d\n"
+                        %(sys._getframe().f_code.co_name,  telid))
 
             # Get per telescope the camera geometry
             x, y = event.meta.pixel_pos[telid]
-            geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+            #geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+            geom = io.CameraGeometry.guess(x,y)
 
             # Get the calibration data sets (pedestals and single-pe)
             ped = get_pedestal(telid)
@@ -117,16 +147,18 @@ def camera_calibration(filename, parameters, disp_args, level):
             # Integrate pixels traces and substract pedestal
             # See pixel_integration_mc function documentation in mc.py
             # for the different algorithms options
-            int_adc_pix, peak_adc_pix = pixel_integration_mc(event,
-                                                             ped, telid,
+            int_adc_pix, peak_adc_pix = pixel_integration_mc(event, 
+                                                             ped, telid, 
                                                              parameters)
+
             # Convert integrated ADC counts into p.e.
             # selecting also the HG/LG channel (currently hard-coded)
             pe_pix = calibrate_amplitude_mc(int_adc_pix, calib,
                                             telid, parameters)
             # Including per telescope metadata in the DL1 container
-            if telid not in container.meta.pixel_pos:
-                container.meta.pixel_pos[telid] = event.meta.pixel_pos[telid]
+            #load_dl1_results(event.dl0,container.dl1)
+            #if telid not in container.meta.pixel_pos:
+            #    container.meta.pixel_pos[telid] = event.meta.pixel_pos[telid]
             container.dl1.tels_with_data = event.dl0.tels_with_data
             container.dl1.tel[telid] = CalibratedCameraData(telid)
             container.dl1.tel[telid].pe_charge = np.array(pe_pix)
@@ -177,7 +209,6 @@ def camera_calibration(filename, parameters, disp_args, level):
 
 
 if __name__ == '__main__':
-    TAG = sys._getframe().f_code.co_name+">"
 
     # Declare and parse command line option
     parser = argparse.ArgumentParser(
@@ -234,5 +265,5 @@ if __name__ == '__main__':
 
     sys.stdout.flush()
 
-    print(TAG, "Closing file...")
+    logger.info("%s> Closing file..."%sys._getframe().f_code.co_name)
     close_file()
