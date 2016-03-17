@@ -1,29 +1,29 @@
 class CameraData():
     """
-    Storage of data (as in adc_samples, adc_sums, eventnumber, trigger_type, )
+    A class containing CTA telescope data. The underlying datastructure is an astropy.table
+    This table holds a chunk of events from ONE telescope. The exact contents of the
+    events depends on the data model.
 
     """
     def __init__(self, table):
         self.table = table
 
-    @property
-    def adc_samples(self):
-        return self.table['adc_samples']
+    #overwrite the attribute access and just return the attribute of the underlying table
+    #this way we can add more columns to the astropy.table without changing stuff in here
+    def __getattr__(self, key):
+        return self.table[key]
 
-    @property
-    def adc_sums(self):
-        return self.table['adc_sums']
-
-    @property
-    def trigger_type(self):
-        return self.table['trigger_type']
-
-    @property
-    def timestamp(self):
-        return self.table['timestamp']
+    def __len__(self):
+        '''
+        returns the number of events contained in this chunk.
+        '''
+        return len(self.table)
 
     @property
     def telescope_id(self):
+        '''
+
+        '''
         return self.table.meta['telescope_id']
 
     @property
@@ -33,6 +33,7 @@ class CameraData():
     @property
     def telescope_geometry(self):
         return self.table.meta['geometry']
+
 
     def __iter__(self):
         for row in self.table:

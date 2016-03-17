@@ -1,11 +1,34 @@
 from astropy.table import Table
 from astropy.time import Time
-from IPython import embed
-from ctapipe.io.camera import make_rectangular_camera_geometry
-from ctapipe.io.data_container import CameraData
+from ..camera import make_rectangular_camera_geometry
+from ..data_container import CameraData
 
 import numpy as np
 from numpy import ma
+
+
+def test_iteration():
+    #create 1 chunk and iterate over events
+    for event in create_dummy_chunk():
+        print(event)
+
+def test_length():
+    #test whether the CameraData class overwrites __len__ correctly
+    chunk = create_dummy_chunk(N=128)
+    assert len(chunk) == 128
+
+
+
+def test_dimensions():
+    N =10
+    pixels = 40*40
+    samples = 50
+    chunk = create_dummy_chunk(N=N, pixels=pixels, samples=samples)
+    chunk.table.pprint(max_width=-1)
+
+    assert chunk.adc_sums.shape == (N, pixels), 'adc_sums does not have the correct dimensions.'
+
+    assert chunk.adc_samples.shape == (N, pixels, samples), 'adc_samples does not have the correct dimensions.'
 
 def create_dummy_chunk(N=10, pixels=1440, samples=50):
     data = []
@@ -28,14 +51,3 @@ def create_dummy_chunk(N=10, pixels=1440, samples=50):
                 'geometry':geometry}
 
     return CameraData(Table(data, meta=meta_dict))
-
-
-if __name__ == '__main__':
-    #create 5 chunks
-    for i in range(5):
-        chunk = create_dummy_chunk()
-        chunk.table.pprint(max_width=-1)
-
-    #create 1 chunk and iterate over events
-    for event in create_dummy_chunk():
-        print(event)
