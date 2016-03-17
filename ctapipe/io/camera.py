@@ -5,6 +5,7 @@ Utilities for reading or working with Camera geometry files
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
+from astropy.coordinates import Angle
 from scipy.spatial import cKDTree as KDTree
 
 from .files import get_file_type
@@ -19,11 +20,16 @@ __all__ = ['CameraGeometry',
 # guess_camera_geometry.
 # Key = (npix, pix_seperation_m)
 # Value = (type, subtype, pixtype)
-_npix_to_type = {(2048, 0.006): ('SST', 'GATE', 'rectangular'),
-                 (2048, 0.042): ('LST', 'HESSII', 'hexagonal'),
-                 (1141, None): ('MST', 'NectarCam', 'hexagonal'),
-                 (1855, None): ('LST', 'LSTCam', 'hexagonal'),
-                 (11328, None): ('SCT', 'SCTCam', 'rectangular')}
+_npix_to_type = {
+    (2048, 0.006): ('SST', 'GATE', 'rectangular', 0 * u.degree),
+    (2048, 0.042): ('LST', 'HESSII', 'hexagonal', 0 * u.degree),
+    (1141, None):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree),
+    (1855, None):  ('LST', 'LSTCam', 'hexagonal', 0 * u.degree),
+    (1296, 0.041): ('SST', 'SST-1m', 'hexagonal', 30 * u.degree),
+    (1764, 0.050): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree),
+    (2368, 0.007): ('SST', 'ASTRI', 'rectangular', 0 * u.degree),
+    (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree),
+}
 
 
 class CameraGeometry:
@@ -38,7 +44,7 @@ class CameraGeometry:
     """
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y,
-                 pix_area, neighbors, pix_type):
+                 pix_area, neighbors, pix_type, pix_rotation=0 * u.degree):
         """
         Parameters
         ----------
@@ -58,6 +64,8 @@ class CameraGeometry:
             adjacency list for each pixel
         pix_type: string
             either 'rectangular' or 'hexagonal'
+        pix_rotation: value convertable to an `astropy.coordinates.Angle`
+            rotation angle with unit (e.g. 12 * u.deg), or "12d"
         """
         self.cam_id = cam_id
         self.pix_id = pix_id
@@ -66,6 +74,7 @@ class CameraGeometry:
         self.pix_area = pix_area
         self.neighbors = neighbors
         self.pix_type = pix_type
+        self.pix_rotation = Angle(pix_rotation)
 
     @classmethod
     def guess(cls, pix_x, pix_y):
@@ -130,6 +139,7 @@ class CameraGeometry:
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
+        self.pix_rotation += angle
 
 # ======================================================================
 # utility functions:
@@ -188,8 +198,9 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
-    tel_type, cam_id, pix_type = _guess_camera_type(
-        len(pix_x), u.Quantity(dist, "m").value)
+    tel_type, cam_id, pix_type, pix_rotation = _guess_camera_type(
+        len(pix_x), u.Quantity(dist, "m").value
+    )
 
     if pix_type.startswith('hex'):
         rad = dist / np.sqrt(3)  # radius to vertex of hexagon
@@ -199,15 +210,20 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     else:
         raise KeyError("unsupported pixel type")
 
-    return CameraGeometry(cam_id=cam_id,
-                          pix_id=np.arange(len(pix_x)),
-                          pix_x=pix_x,
-                          pix_y=pix_y,
-                          pix_area=np.ones(pix_x.shape) * area,
-                          neighbors=find_neighbor_pixels(pix_x.value,
-                                                         pix_y.value,
-                                                         1.4 * dist.value),
-                          pix_type=pix_type)
+    return CameraGeometry(
+        cam_id=cam_id,
+        pix_id=np.arange(len(pix_x)),
+        pix_x=pix_x,
+        pix_y=pix_y,
+        pix_area=np.ones(pix_x.shape) * area,
+        neighbors=find_neighbor_pixels(
+            pix_x.value,
+            pix_y.value,
+            1.4 * dist.value,
+        ),
+        pix_type=pix_type,
+        pix_rotation=pix_rotation,
+    )
 
 
 def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
