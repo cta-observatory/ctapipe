@@ -11,7 +11,7 @@ from pyhessio import *
 from ctapipe import io
 from astropy import units as u
 import logging
-logger = logging.getLogger("calib_mc")
+logger = logging.getLogger(__name__)
 
 __all__ = [
     'set_integration_correction',
@@ -120,7 +120,7 @@ def pixel_integration_mc(event, ped, telid, parameters):
     Returns None if event is None
     """
     if __debug__:
-        logger.info("%s> %s"%(sys._getframe().f_code.co_name,parameters['integrator']))
+        logger.debug("> %s"%(parameters['integrator']))
     if event is None:
         return None
 

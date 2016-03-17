@@ -10,7 +10,7 @@ from ctapipe import visualization, io
 from astropy import units as u
 from ctapipe.calib.camera.mc import *
 import logging
-logger = logging.getLogger("calibration_pipeline")
+logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout,level=logging.INFO)
 
 fig = plt.figure(figsize=(16, 7))
@@ -119,7 +119,7 @@ def camera_calibration(filename, parameters, disp_args, level):
         #container.dl1.tel = dict()  # clear the previous telescopes
         #container.dl1.tels_with_data = event.dl0.tels_with_data
         if __debug__:
-            logger.info("%s> %d #%d %d"%
+            logger.debug("%s> %d #%d %d"%
                         (sys._getframe().f_code.co_name,
                          container.dl1.run_id, nt,
                          container.dl1.event_id),
