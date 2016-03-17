@@ -1,7 +1,7 @@
 from astropy.table import Table
 from astropy.time import Time
-from ..camera import make_rectangular_camera_geometry
-from ..data_container import CameraData
+from ctapipe.instrument.CameraDescription import make_rectangular_camera_geometry
+from ctapipe.io.data_container import CameraData
 
 import numpy as np
 from numpy import ma
@@ -16,7 +16,6 @@ def test_length():
     #test whether the CameraData class overwrites __len__ correctly
     chunk = create_dummy_chunk(N=128)
     assert len(chunk) == 128
-
 
 
 def test_dimensions():
