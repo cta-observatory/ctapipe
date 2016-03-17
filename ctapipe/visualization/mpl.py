@@ -109,14 +109,20 @@ class CameraDisplay:
                               u.Quantity(np.array(self.geom.pix_area))):
             if self.geom.pix_type.startswith("hex"):
                 rr = sqrt(aa * 2 / 3 / sqrt(3))
-                poly = RegularPolygon((xx, yy), 6, radius=rr,
-                                      orientation=np.radians(0),
-                                      fill=True)
+                poly = RegularPolygon(
+                    (xx, yy), 6, radius=rr,
+                    orientation=self.geom.pix_rotation.rad,
+                    fill=True,
+                )
             else:
                 rr = sqrt(aa)
-                poly = Rectangle((xx, yy), width=rr, height=rr,
-                                 angle=np.radians(0),
-                                 fill=True)
+                poly = Rectangle(
+                    (xx, yy),
+                    width=rr,
+                    height=rr,
+                    angle=self.geom.pix_rotation.deg,
+                    fill=True,
+                )
 
             patches.append(poly)
 
