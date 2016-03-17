@@ -59,9 +59,9 @@ class RawCameraData(Container):
     ----------
 
     adc_sums : dict by channel
-        arrays of all integrated ADC data (n_pixels)
+        (masked) arrays of all integrated ADC data (n_pixels)
     adc_samples : dict by channel
-        arrays of non-integrated ADC sample data (n_pixels, n_samples)
+        (masked) arrays of non-integrated ADC sample data (n_pixels, n_samples)
     num_channels : int
         number of gain channels in camera
 
