@@ -11,7 +11,6 @@ def test_length():
     assert len(chunk) == 128
 
 def test_camera_description_contents():
-    #test whether the CameraData class overwrites __len__ correctly
     chunk = create_dummy_chunk(N=10)
     desc = chunk.camera_description
     assert desc != None
