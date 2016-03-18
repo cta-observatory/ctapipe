@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
         if disp is None:
             x, y = event.meta.pixel_pos[args.tel]
-            geom = io.CameraGeometry.guess(x, y)
+            geom = io.CameraGeometry.guess(x, y, event.meta.optical_foclen[args.tel])
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             disp.enable_pixel_picker()
             disp.add_colorbar()
