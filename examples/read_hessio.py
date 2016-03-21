@@ -44,7 +44,7 @@ def display_event(event):
         ax = plt.subplot(nn, nn, ii + 1)
 
         x, y = event.meta.pixel_pos[tel_id]
-        geom = io.CameraGeometry.guess(x, y)
+        geom = io.CameraGeometry.guess(x, y, event.meta.optical_foclen[tel_id])
         disp = visualization.CameraDisplay(geom, ax=ax,
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
