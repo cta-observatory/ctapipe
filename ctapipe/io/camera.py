@@ -23,9 +23,9 @@ __all__ = ['CameraGeometry',
 _npix_to_type = {
     (2048, 2.3):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 36.0):  ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
-    (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, 169.1 * u.degree),
-    (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, 79.1 * u.degree),
-    (1296, None):   ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
+    (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
+    (1296, None):  ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None):  ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
@@ -79,6 +79,7 @@ class CameraGeometry:
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
         self.rotate(cam_rotation)
+
 
     @classmethod
     def guess(cls, pix_x, pix_y, optical_foclen):
@@ -333,6 +334,7 @@ def _load_camera_geometry_from_hessio_file(tel_id, filename):
     next(events)  # load at least one event to get all the headers
     pix_x, pix_y = hessio.get_pixel_position(tel_id)
     optical_foclen = hessio.get_optical_foclen(tel_id)
+
     hessio.close_file()
     return CameraGeometry.guess(pix_x * u.m, pix_y * u.m, optical_foclen)
 
