@@ -40,7 +40,8 @@ def apply_mc_calibration(adcs, tel_id):
     apply basic calibration
     """
     peds, gains = get_mc_calibration_coeffs(tel_id)
-    return (adcs - peds) * gains
+    return adcs
+#    return (adcs - peds) * gains     => DISABLED!! DOES NOT WORK
 
 
 if __name__ == '__main__':
