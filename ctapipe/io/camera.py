@@ -77,7 +77,6 @@ class CameraGeometry:
         self.neighbors = neighbors
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
-        self.cam_rotation = Angle(cam_rotation)
         self.rotate(cam_rotation)
 
 
