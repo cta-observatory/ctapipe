@@ -18,17 +18,17 @@ __all__ = ['CameraGeometry',
 
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry.
-# Key = (npix, pix_seperation_m)
-# Value = (type, subtype, pixtype)
+# Key = (npix, pix_separation_m)
+# Value = (type, subtype, pixtype, pixrotation, camrotation)
 _npix_to_type = {
-    (2048, 0.006): ('SST', 'GATE', 'rectangular', 0 * u.degree),
-    (2048, 0.042): ('LST', 'HESSII', 'hexagonal', 0 * u.degree),
-    (1141, None):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree),
-    (1855, None):  ('LST', 'LSTCam', 'hexagonal', 0 * u.degree),
-    (1296, 0.041): ('SST', 'SST-1m', 'hexagonal', 30 * u.degree),
-    (1764, 0.050): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree),
-    (2368, 0.007): ('SST', 'ASTRI', 'rectangular', 0 * u.degree),
-    (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree),
+    (2048, 2.3):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 36.0):  ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
+    (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
+    (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
+    (1296, None):  ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (1764, None):  ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
 
@@ -44,7 +44,7 @@ class CameraGeometry:
     """
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y,
-                 pix_area, neighbors, pix_type, pix_rotation=0 * u.degree):
+                 pix_area, neighbors, pix_type, pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
         """
         Parameters
         ----------
@@ -66,6 +66,8 @@ class CameraGeometry:
             either 'rectangular' or 'hexagonal'
         pix_rotation: value convertable to an `astropy.coordinates.Angle`
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
+        cam_rotation: overall camera rotation with units
+
         """
         self.cam_id = cam_id
         self.pix_id = pix_id
@@ -75,14 +77,16 @@ class CameraGeometry:
         self.neighbors = neighbors
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
+        self.rotate(cam_rotation)
+
 
     @classmethod
-    def guess(cls, pix_x, pix_y):
+    def guess(cls, pix_x, pix_y, optical_foclen):
         """
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions.
         """
-        return guess_camera_geometry(pix_x, pix_y)
+        return guess_camera_geometry(pix_x, pix_y, optical_foclen)
 
     @classmethod
     def from_name(cls, name, tel_id):
@@ -139,7 +143,8 @@ class CameraGeometry:
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation += angle
+        self.pix_rotation -= angle
+
 
 # ======================================================================
 # utility functions:
@@ -176,30 +181,38 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def _guess_camera_type(npix, pix_sep):
+def _guess_camera_type(npix, optical_foclen):
     global _npix_to_type
+
     try:
         return _npix_to_type[(npix, None)]
     except KeyError:
-        return _npix_to_type.get((npix, np.round(pix_sep, 3)),
-                                 ('unknown', 'unknown', 'hexagonal'))
+        return _npix_to_type.get((npix, round(optical_foclen.value, 1)),
+                                 ('unknown', 'unknown', 'hexagonal', 0 * u.degree, 0 * u.degree))
 
 
 @u.quantity_input
-def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
+def guess_camera_geometry(pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
     """ returns a CameraGeometry filled in from just the x,y positions
 
     Assumes:
     --------
     - the pixels are square or hexagonal
-    - the first two pixels are adjacent
     """
 
-    dx = pix_x[1] - pix_x[0]
-    dy = pix_y[1] - pix_y[0]
-    dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
-    tel_type, cam_id, pix_type, pix_rotation = _guess_camera_type(
-        len(pix_x), u.Quantity(dist, "m").value
+#    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
+#    dy = pix_y[1] - pix_y[0]
+
+    pixsep = []
+    for ipix in range(1, len(pix_x)):
+        dx = pix_x[ipix] - pix_x[0]
+        dy = pix_y[ipix] - pix_y[0]        
+        pixsep.append (np.sqrt(dx ** 2 + dy ** 2))  # dist between pixels 0 and ipix
+        
+    dist = min(pixsep)
+        
+    tel_type, cam_id, pix_type, pix_rotation, cam_rotation = _guess_camera_type(
+        len(pix_x), optical_foclen
     )
 
     if pix_type.startswith('hex'):
@@ -223,6 +236,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
         ),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
+        cam_rotation=cam_rotation,
     )
 
 
@@ -318,8 +332,10 @@ def _load_camera_geometry_from_hessio_file(tel_id, filename):
     events = hessio.move_to_next_event()
     next(events)  # load at least one event to get all the headers
     pix_x, pix_y = hessio.get_pixel_position(tel_id)
+    optical_foclen = hessio.get_optical_foclen(tel_id)
+
     hessio.close_file()
-    return CameraGeometry.guess(pix_x * u.m, pix_y * u.m)
+    return CameraGeometry.guess(pix_x * u.m, pix_y * u.m, optical_foclen)
 
 
 def make_rectangular_camera_geometry(npix_x=40, npix_y=40,

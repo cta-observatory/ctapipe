@@ -60,6 +60,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     container.meta.add_item('hessio__input', url)
     container.meta.add_item('hessio__max_events', max_events)
     container.meta.add_item('pixel_pos', dict())
+    container.meta.add_item('optical_foclen', dict())
     container.add_item("dl0", RawData())
     container.add_item("mc", MCShowerData())
     container.add_item("trig", CentralTriggerData())
@@ -104,6 +105,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             if tel_id not in container.meta.pixel_pos:
                 container.meta.pixel_pos[tel_id] \
                     = pyhessio.get_pixel_position(tel_id) * u.m
+                container.meta.optical_foclen[tel_id] = pyhessio.get_optical_foclen(tel_id) * u.m;
 
             nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)
