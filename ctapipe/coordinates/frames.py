@@ -1,12 +1,24 @@
+"""
+This module defines the important coordinate systems to be used in reconstruction with the CTA pipeline
+and the transformations between this different systems. Frames and transformations are defined using the
+astropy.coordinates framework.
+
+For examples on usage see examples/coordinate_transformations.py
+
+TODO:
+- Tests Tests Tests!
+- Check cartesian system is still accurate for the nominal and telescope systems (may need a spherical system)
+- Benchmark transformation times
+
+"""
+
 import numpy as np
 import astropy.units as u
 from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute, SphericalRepresentation,
                                  CartesianRepresentation, RepresentationMapping, FunctionTransform,SkyCoord)
 from astropy.coordinates.builtin_frames.altaz import AltAz
 from astropy.coordinates import frame_transform_graph
-from astropy.coordinates.angles import rotation_matrix
 from numpy import cos,sin,arctan,arctan2,arcsin,sqrt,arccos,tan
-from math import pi
 
 __all__ = [
     'CameraFrame',
@@ -16,19 +28,32 @@ __all__ = [
     'NominalFrame'
 ]
 
-
 class CameraFrame(BaseCoordinateFrame):
     """Camera coordinate frame.
+    The camera frame is a simple physical cartesian frame, describing the 2 dimensional
+    position of objects in the focal plane of the telescope
+    Most Typically this will be used to describe the positions of the pixels in the focal
+    plane
+
+    Frame attributes:
+
+    - None
     """
     default_representation = CartesianRepresentation
 
 
 class TelescopeFrame(BaseCoordinateFrame):
     """Telescope coordinate frame.
+    Cartesian system to describe the angular offset of a given position in reference to
+    pointing direction of a given telescope
+    When pointing corrections become available they should be applied to the transformation
+    between this frame and the camera frame
 
     Frame attributes:
 
-    - Focal length
+    - Focal length: Focal length of the telescope [m]
+    - Rotation: Rotation angle of the camera (should be 0 in most cases) [deg]
+    - Pointing Direction: Alt,Az direction of the telescope pointing
     """
     default_representation = CartesianRepresentation
 
@@ -38,12 +63,48 @@ class TelescopeFrame(BaseCoordinateFrame):
     pointing_direction = FrameAttribute(default=None)
 
 class NominalFrame(BaseCoordinateFrame):
+    """Nominal coordinate frame.
+    Cartesian system to describe the angular offset of a given position in reference to
+    pointing direction of a nominal array pointing position. In most cases this frame is the
+    same as the telescope frame, however in the case of divergent pointing they will differ.
+    Event reconstruction should be performed in this system
 
+    Frame attributes:
+    - Pointing Direction: Alt,Az direction of the array pointing
+
+    The Following attributes are carried over from the telescope frame to allow a direct
+    transformation from the camera frame
+
+    - Focal length: Focal length of the telescope [m]
+    - Rotation: Rotation angle of the camera (should be 0 in most cases) [deg]
+    - Pointing Direction: Alt,Az direction of the telescope pointing
+
+    """
     default_representation = CartesianRepresentation
+    array_direction = FrameAttribute(default=None)
     pointing_direction = FrameAttribute(default=None)
 
+    rotation = FrameAttribute(default=0*u.deg)
+    focal_length = FrameAttribute(default=None)
 
-def altaz_to_offset (obj_azimuth,obj_altitude,azimuth,altitude):
+
+def altaz_to_offset(obj_azimuth,obj_altitude,azimuth,altitude):
+    """
+    Function to convert a given altitude and azimuth to a cartesian angular
+    angular offset with regard to a give reference system
+    (This function is directly lifted from read_hess)
+
+    Parameters
+    ----------
+    obj_azimuth: Event azimuth (radians)
+    obj_altitude: Event altitude (radians)
+    azimuth: Reference system azimuth (radians)
+    altitude: Reference system altitude (radians)
+
+    Returns
+    -------
+    xoff,yoff: Offset of the event in the reference system (in radians)
+    """
 
     daz = obj_azimuth - azimuth
     coa = cos(obj_altitude)
@@ -59,9 +120,6 @@ def altaz_to_offset (obj_azimuth,obj_altitude,azimuth,altitude):
     yp1 = yp0
     zp1 = -sx*xp0 + cx*zp0
 
-    if ( xp1 == 0 and yp1 == 0 ): # /* On-axis ? */
-        return 0,0
-
     q = arccos(zp1)
     d = tan(q)
     alpha = arctan2(yp1,xp1)
@@ -72,38 +130,49 @@ def altaz_to_offset (obj_azimuth,obj_altitude,azimuth,altitude):
     return xoff,yoff
 
 
+def offset_to_altaz(xoff, yoff, azimuth, altitude):
+    """
+    Function to convert an angular offset with regard to a give reference system to an
+    an absolute altitude and azimuth
+    (This function is directly lifted from read_hess)
 
-def offset_to_altaz(xoff,yoff,azimuth,altitude):
+    Parameters
+    ----------
+    xoff: X offset of the event in the reference system
+    yoff: Y offset of the event in the reference system
+    azimuth: Reference system azimuth (radians)
+    altitude: Reference system altitude (radians)
 
-    if  xoff == 0. and yoff == 0. : #/* Avoid division by zero */
-        return altitude,azimuth
-    else:
-        d = sqrt(xoff*xoff+yoff*yoff)
-        q = arctan(d.to(u.rad).value)
+    Returns
+    -------
+    obj_altitude,obj_azimuth: Absolute altitude and azimuth of the event
+    """
+    #Deal with situations where offset = 0?
+    d = sqrt(xoff*xoff+yoff*yoff)
+    q = arctan(d.to(u.rad).value)
 
-        sq = sin(q)
-        xp1 = xoff * (sq/d)
-        yp1 = yoff * (sq/d)
-        zp1 = cos(q)
+    sq = sin(q)
+    xp1 = xoff * (sq/d)
+    yp1 = yoff * (sq/d)
+    zp1 = cos(q)
 
-        cx = sin(altitude)
-        sx = cos(altitude)
+    cx = sin(altitude)
+    sx = cos(altitude)
 
-        xp0 = cx*xp1 - sx*zp1
-        yp0 = yp1
-        zp0 = sx*xp1 + cx*zp1
+    xp0 = cx*xp1 - sx*zp1
+    yp0 = yp1
+    zp0 = sx*xp1 + cx*zp1
 
-        obj_altitude = arcsin(zp0)
-        obj_azimuth  = arctan2(yp0,-xp0) + azimuth
-        if obj_azimuth.value < 0.:
-            obj_azimuth += 2.*pi
-        elif obj_azimuth.value >= (2.*pi ):
-            obj_azimuth -= 2.*pi
-        print (obj_altitude,obj_azimuth)
+    obj_altitude = arcsin(zp0)
+    obj_azimuth  = arctan2(yp0,-xp0) + azimuth
+    #if obj_azimuth.value < 0.:
+    #    obj_azimuth += 2.*pi
+    #elif obj_azimuth.value >= (2.*pi ):
+    #    obj_azimuth -= 2.*pi
 
-        return obj_altitude,obj_azimuth
+    return obj_altitude,obj_azimuth
 
-
+# Transformation between nominal and AltAz system
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, AltAz)
 def nominal_to_altaz(norm_coord,altaz_coord):
@@ -114,17 +183,27 @@ def nominal_to_altaz(norm_coord,altaz_coord):
     print(alt.to(u.deg),az.to(u.deg))
 
     representation = SkyCoord(az.to(u.deg),alt.to(u.deg),frame='altaz')
-    print("here")
 
     return altaz_coord.realize_frame(representation)
 
-#############################################################
+# Transformation between telescope and nominal frames
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, NominalFrame)
-def telescope_to_nominal(tel_coord,norm_coord):
+def telescope_to_nominal(tel_coord,norm_frame):
+    """
+    Coordinate transformation from telescope frame to nominal frame
 
+    Parameters
+    ----------
+    tel_coord: TelescopeFrame system
+    norm_frame: NominalFrame system
+
+    Returns
+    -------
+    NominalFrame coordinates
+    """
     alt_tel,az_tel = tel_coord.pointing_direction
-    alt_norm,az_norm = norm_coord.pointing_direction
+    alt_norm,az_norm = norm_frame.array_direction
 
     alt_trans,az_trans = offset_to_altaz(tel_coord.x,tel_coord.y,az_tel,alt_tel)
     x,y = altaz_to_offset(az_trans,alt_trans,az_norm,alt_norm)
@@ -133,13 +212,25 @@ def telescope_to_nominal(tel_coord,norm_coord):
 
     representation = CartesianRepresentation(x.to(tel_coord.x.unit),y.to(tel_coord.x.unit),0*tel_coord.x.unit)
 
-    return norm_coord.realize_frame(representation)
+    return norm_frame.realize_frame(representation)
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, TelescopeFrame)
-def nominal_to_telescope(norm_coord,tel_coord):
+def nominal_to_telescope(norm_coord,tel_frame):
+    """
+    Coordinate transformation from nominal to telescope system
 
-    alt_tel,az_tel = tel_coord.pointing_direction
-    alt_norm,az_norm = norm_coord.pointing_direction
+    Parameters
+    ----------
+    norm_coord: NominalFrame system
+    tel_frame: TelescopeFrame system
+
+    Returns
+    -------
+    TelescopeFrame coordinates
+
+    """
+    alt_tel,az_tel = tel_frame.pointing_direction
+    alt_norm,az_norm = norm_coord.array_direction
 
     alt_trans,az_trans = offset_to_altaz(norm_coord.x,norm_coord.y,az_norm,alt_norm)
     x,y = altaz_to_offset(az_trans,alt_trans,az_tel,alt_tel)
@@ -148,15 +239,25 @@ def nominal_to_telescope(norm_coord,tel_coord):
 
     representation = CartesianRepresentation(x.to(norm_coord.x.unit),y.to(norm_coord.x.unit),0*norm_coord.x.unit)
 
-    return tel_coord.realize_frame(representation)
+    return tel_frame.realize_frame(representation)
 
 
-##############################################################
-
+# Transformations between camera fram and telescope frame
 
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
 def camera_to_telescope(camera_coord, telescope_frame):
+    """
+    Transformation between CameraFrame and TelescopeFrame
 
+    Parameters
+    ----------
+    camera_coord: CameraFrame system
+    telescope_frame: TelescopeFrame system
+
+    Returns
+    -------
+    TelescopeFrame coordinate
+    """
     x_pos = camera_coord.cartesian.x
     y_pos = camera_coord.cartesian.y
 
@@ -179,15 +280,26 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, CameraFrame)
 def telescope_to_camera(telescope_coord, camera_frame):
+    """
+    Transformation between TelescopeFrame and CameraFrame
 
+    Parameters
+    ----------
+    telescope_coord: TelescopeFrame system
+    camera_frame: CameraFrame system
+
+    Returns
+    -------
+    CameraFrame Coordinates
+    """
     x_pos = telescope_coord.cartesian.x
     y_pos = telescope_coord.cartesian.y
-    rot = telescope_coord.rotation * -1
+    rot = telescope_coord.rotation * -1 # reverse the rotation applied to get to this system
 
-    if rot ==0:
+    if rot ==0: #if no rotation applied save a few cycles
         x=x_pos
         y=y_pos
-    else:
+    else: # or else rotate all positions around the camera centre
         x = x_pos*cos(rot) - y_pos*sin(rot)
         y = y_pos*sin(rot) + y_pos*cos(rot)
 
@@ -203,22 +315,54 @@ def telescope_to_camera(telescope_coord, camera_frame):
 
 ############### Ground and Tilted system #####################
 
-class TiltedGroundFrame(BaseCoordinateFrame):
-    """Tilted telescope coordinate frame.
-    """
-    default_representation = CartesianRepresentation
-    pointing_direction = FrameAttribute(default=None)
-    # time?
-
-
 class GroundFrame(BaseCoordinateFrame):
     """Ground coordinate frame.
+    The ground coordinate frame is a simple cartesian frame describing
+    the 3 dimensional position of objects compared to the array ground level
+    in relation to the nomial centre of the array.
+    Typically this frame will be used for describing the position on telescopes
+    and equipment
+
+    Frame attributes: None
+
     """
     default_representation = CartesianRepresentation
+
+class TiltedGroundFrame(BaseCoordinateFrame):
+    """Tilted ground coordinate frame.
+    The tilted ground coordinate frame is a cartesian system describing the
+    2 dimensional projected positions of objects in a tilted plane described
+    by pointing_direction
+    Typically this frame will be used for the reconstruction of the shower core
+    position
+
+    Frame attributes:
+    pointing_direction - Alt,Az direction of the tilted reference plane
+
+    """
+    default_representation = CartesianRepresentation
+    # Pointing direction of the tilted system (alt,az),
+    # could be the telescope pointing direction or the reconstructed shower direction
+    pointing_direction = FrameAttribute(default=None)
 
 
 def get_shower_trans_matrix (azimuth,altitude):
-    print(altitude)
+    """
+    Get Transformation matrix for conversion from the ground system to the
+    Tilted system and back again
+    (This function is directly lifted from read_hess, probably could be streamlined
+    using python functionality)
+
+    Parameters
+    ----------
+    azimuth: Azimuth angle of the tilted system used
+    altitude: Altitude angle of the tilted system used
+
+    Returns
+    -------
+    trans: 3x3 ndarray transformation matrix
+    """
+
     cos_z = sin(altitude)
     sin_z = cos(altitude)
     cos_az = cos(azimuth)
@@ -242,7 +386,18 @@ def get_shower_trans_matrix (azimuth,altitude):
 
 @frame_transform_graph.transform(FunctionTransform, GroundFrame, TiltedGroundFrame)
 def ground_to_tilted(ground_coord, tilted_coord):
+    """
+    Transformation from ground system to tilted ground system
 
+    Parameters
+    ----------
+    ground_coord: GroundFrame system
+    tilted_coord TiltedGroundFrame system
+
+    Returns
+    -------
+    TiltedGroundFrame coordinates
+    """
     x_grd = ground_coord.cartesian.x
     y_grd = ground_coord.cartesian.y
     z_grd = ground_coord.cartesian.z
@@ -260,9 +415,21 @@ def ground_to_tilted(ground_coord, tilted_coord):
 
     return tilted_coord.realize_frame(representation)
 
+
 @frame_transform_graph.transform(FunctionTransform, TiltedGroundFrame, GroundFrame)
 def tilted_to_ground(tilted_coord,ground_coord):
+    """
+    Transformation from tilted ground system to  ground system
 
+    Parameters
+    ----------
+    tilted_coord TiltedGroundFrame system
+    ground_coord: GroundFrame system
+
+    Returns
+    -------
+    GroundFrame coordinates
+    """
     x_tilt = tilted_coord.cartesian.x
     y_tilt = tilted_coord.cartesian.y
 
