@@ -180,11 +180,20 @@ def nominal_to_altaz(norm_coord,altaz_coord):
     alt_norm,az_norm = norm_coord.pointing_direction
 
     alt,az = offset_to_altaz(norm_coord.x,norm_coord.y,az_norm,alt_norm)
-    print(alt.to(u.deg),az.to(u.deg))
+    altaz_coord = AltAz(az=az.to(u.deg),alt = alt.to(u.deg))
 
-    representation = SkyCoord(az.to(u.deg),alt.to(u.deg),frame='altaz')
+    return altaz_coord
 
-    return altaz_coord.realize_frame(representation)
+@frame_transform_graph.transform(FunctionTransform, AltAz, NominalFrame)
+def nominal_to_altaz(altaz_coord,norm_coord):
+
+    alt_norm,az_norm = norm_coord.pointing_direction
+    az = altaz_coord.az
+    alt = altaz_coord.alt
+    x,y = altaz_to_offset(az,alt,az_norm,alt_norm)
+    representation = CartesianRepresentation(x*u.deg,y*u.deg,0*u.deg)
+
+    return norm_coord.realize_frame(representation)
 
 # Transformation between telescope and nominal frames
 
