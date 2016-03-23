@@ -360,11 +360,10 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y = y_pos*sin(rot) + y_pos*cos(rot)
 
     f = telescope_coord.focal_length
-
     x = x*(f/u.m)  # Remove distance units here as we are using small angle approx
     y = y*(f/u.m)
 
-    representation = CartesianRepresentation(x,y,0*u.deg)
+    representation = CartesianRepresentation(x.value*u.m ,y.value*u.m,0*u.m)
 
     return camera_frame.realize_frame(representation)
 
