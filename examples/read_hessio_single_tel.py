@@ -56,6 +56,8 @@ if __name__ == '__main__':
                         help='write images to files')
     parser.add_argument('-s', '--show-samples', action='store_true',
                         help='show time-variablity, one frame at a time')
+    parser.add_argument('', '--calibrate', action='store_true',
+                        help='apply calibration coeffs from MC')
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
@@ -75,7 +77,8 @@ if __name__ == '__main__':
 
         if disp is None:
             x, y = event.meta.pixel_pos[args.tel]
-            geom = io.CameraGeometry.guess(x, y, event.meta.optical_foclen[args.tel])
+            geom = io.CameraGeometry.guess(x, y,
+                                           event.meta.optical_foclen[args.tel])
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             disp.enable_pixel_picker()
             disp.add_colorbar()
@@ -88,7 +91,10 @@ if __name__ == '__main__':
             # display time-varying event
             data = event.dl0.tel[args.tel].adc_samples[args.channel]
             for ii in range(data.shape[1]):
-                disp.image = apply_mc_calibration(data[:, ii], args.tel)
+                im = data[:, ii]
+                if args.calibrate:
+                    im = apply_mc_calibration(im, args.tel)
+                disp.image = im
                 disp.set_limits_percent(70)
                 plt.pause(0.01)
                 if args.write:
@@ -96,8 +102,10 @@ if __name__ == '__main__':
                                 .format(args.tel, event.dl0.event_id, ii))
         else:
             # display integrated event:
-            disp.image = apply_mc_calibration(
-                event.dl0.tel[args.tel].adc_sums[args.channel], args.tel)
+            im = event.dl0.tel[args.tel].adc_sums[args.channel]
+            if args.calibrate:
+                im = apply_mc_calibration(im, args.tel)
+            disp.image = im
             disp.set_limits_percent(70)
             plt.pause(0.1)
             if args.write:
