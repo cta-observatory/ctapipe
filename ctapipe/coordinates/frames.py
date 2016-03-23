@@ -176,7 +176,18 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, AltAz)
 def nominal_to_altaz(norm_coord,altaz_coord):
+    """
+    Transformation from nominal system to astropy AltAz system
 
+    Parameters
+    ----------
+    norm_coord: nominal system
+    altaz_coord: AltAz system
+
+    Returns
+    -------
+    AltAz Coordinates
+    """
     alt_norm,az_norm = norm_coord.pointing_direction
 
     alt,az = offset_to_altaz(norm_coord.x,norm_coord.y,az_norm,alt_norm)
@@ -186,12 +197,25 @@ def nominal_to_altaz(norm_coord,altaz_coord):
 
 @frame_transform_graph.transform(FunctionTransform, AltAz, NominalFrame)
 def nominal_to_altaz(altaz_coord,norm_coord):
+    """
+    Transformation from astropy AltAz system to nominal system
 
-    alt_norm,az_norm = norm_coord.pointing_direction
+    Parameters
+    ----------
+    altaz_coord: AltAz system
+    norm_coord: nominal system
+
+    Returns
+    -------
+    nominal Coordinates
+    """
+    alt_norm,az_norm = norm_coord.array_direction
     az = altaz_coord.az
     alt = altaz_coord.alt
     x,y = altaz_to_offset(az,alt,az_norm,alt_norm)
-    representation = CartesianRepresentation(x*u.deg,y*u.deg,0*u.deg)
+    x=x*u.rad
+    y=y*u.rad
+    representation = CartesianRepresentation(x.to(u.deg),y.to(u.deg),0*u.deg)
 
     return norm_coord.realize_frame(representation)
 
