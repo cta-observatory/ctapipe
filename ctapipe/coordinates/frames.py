@@ -148,7 +148,11 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
     obj_altitude,obj_azimuth: Absolute altitude and azimuth of the event
     """
     #Deal with situations where offset = 0?
+
     d = sqrt(xoff*xoff+yoff*yoff)
+    pos = np.where(d==0)
+    d=1e-12 * u.deg # add a very small offset to prevent math errors
+
     q = arctan(d.to(u.rad).value)
 
     sq = sin(q)
@@ -164,7 +168,10 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
     zp0 = sx*xp1 + cx*zp1
 
     obj_altitude = arcsin(zp0)
+    obj_altitude[pos]=altitude
     obj_azimuth  = arctan2(yp0,-xp0) + azimuth
+    obj_azimuth[pos] = azimuth
+
     #if obj_azimuth.value < 0.:
     #    obj_azimuth += 2.*pi
     #elif obj_azimuth.value >= (2.*pi ):
@@ -173,6 +180,7 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
     return obj_altitude,obj_azimuth
 
 # Transformation between nominal and AltAz system
+
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, AltAz)
 def nominal_to_altaz(norm_coord,altaz_coord):
@@ -188,12 +196,25 @@ def nominal_to_altaz(norm_coord,altaz_coord):
     -------
     AltAz Coordinates
     """
-    alt_norm,az_norm = norm_coord.pointing_direction
+    alt_norm,az_norm = norm_coord.array_direction
 
-    alt,az = offset_to_altaz(norm_coord.x,norm_coord.y,az_norm,alt_norm)
+    if type(norm_coord.x.value).__module__ != np.__name__:
+        x = np.zeros(1)
+        x[0] = norm_coord.x.value
+        x = x*norm_coord.x.unit
+        y = np.zeros(1)
+        y[0] = norm_coord.y.value
+        y = y*norm_coord.y.unit
+    else:
+        x = norm_coord.x
+        y = norm_coord.y
+    print(type(norm_coord.x),x)
+
+    alt,az = offset_to_altaz(x,y,az_norm,alt_norm)
     altaz_coord = AltAz(az=az.to(u.deg),alt = alt.to(u.deg))
 
     return altaz_coord
+
 
 @frame_transform_graph.transform(FunctionTransform, AltAz, NominalFrame)
 def nominal_to_altaz(altaz_coord,norm_coord):
@@ -221,6 +242,7 @@ def nominal_to_altaz(altaz_coord,norm_coord):
 
 # Transformation between telescope and nominal frames
 
+
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, NominalFrame)
 def telescope_to_nominal(tel_coord,norm_frame):
     """
@@ -246,6 +268,7 @@ def telescope_to_nominal(tel_coord,norm_frame):
     representation = CartesianRepresentation(x.to(tel_coord.x.unit),y.to(tel_coord.x.unit),0*tel_coord.x.unit)
 
     return norm_frame.realize_frame(representation)
+
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, TelescopeFrame)
 def nominal_to_telescope(norm_coord,tel_frame):
