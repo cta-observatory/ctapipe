@@ -4,13 +4,10 @@ defined in `ctapipe.coordinates`
 
 """
 import astropy.units as u
-from astropy.time import Time
-from astropy.coordinates import SkyCoord, Angle, AltAz
+from astropy.coordinates import AltAz
 import timeit
 
 from ctapipe.coordinates import CameraFrame, TelescopeFrame, GroundFrame, TiltedGroundFrame, NominalFrame
-from ctapipe.coordinates.frames import altaz_to_offset
-from astropy import coordinates as c
 
 import numpy as np
 
