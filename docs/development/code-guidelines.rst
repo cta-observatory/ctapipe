@@ -7,7 +7,11 @@ are defined in a separate document form the SYS group)
 Here, we list useful guidelines for the logical structure of code (see
 also the style-guide for code style)
 
-see also: http://swcarpentry.github.io/slideshows/best-practices/index.html
+Useful references for good coding practices:
+--------------------------------------------
+
+* http://swcarpentry.github.io/slideshows/best-practices/index.html
+* http://arxiv.org/abs/1210.0530
 
 Data Structures
 ---------------
