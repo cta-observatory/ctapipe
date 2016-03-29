@@ -55,7 +55,7 @@ if __name__ == '__main__':
                         help='write images to files')
     parser.add_argument('-s', '--show-samples', action='store_true',
                         help='show time-variablity, one frame at a time')
-    parser.add_argument('', '--calibrate', action='store_true',
+    parser.add_argument('--calibrate', action='store_true',
                         help='apply calibration coeffs from MC')
     args = parser.parse_args()
 
