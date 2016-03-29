@@ -1,6 +1,9 @@
 Code Guidelines
 ===============
 
+Coding should follow the CTA coding guidelines when possible (those
+are defined in a separate document form the SYS group)
+
 Here, we list useful guidelines for the logical structure of code (see
 also the style-guide for code style)
 
