@@ -22,6 +22,7 @@ __all__ = [
     'local_peak_integration_mc',
     'nb_peak_integration_mc',
     'calibrate_amplitude_mc',
+    'otra_mc'
 ]
 
 CALIB_SCALE = 0.92
@@ -168,16 +169,13 @@ def full_integration_mc(event, ped, telid):
     if event is None or telid < 0:
         return None
 
-    sum_pix_tel = []
+    samples_pix_tel_list=[]
     for igain in range(0, get_num_channel(telid)):
-        sum_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            samples_pix = np.asarray(get_adc_sample(telid, igain)[ipix])
-            sum_pix.append(sum(samples_pix[:])-ped[igain][ipix])
-        sum_pix_tel.append(sum_pix)
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+    samples_pix_tel = np.asarray(samples_pix_tel_list,np.int16)
+    sum_pix_tel = sample_pix_tel.sum(2)-ped
 
-    return np.asarray(sum_pix_tel), None
-
+    return sum_pix_tel, None
 
 def simple_integration_mc(event, ped, telid, parameters):
     """
@@ -226,20 +224,16 @@ def simple_integration_mc(event, ped, telid, parameters):
         else:
             nskip = get_num_samples(telid)-nsum
 
-    sum_pix_tel = []
-    int_corr = np.array([1.]*get_num_channel(telid))
+    int_corr = np.ones((get_num_channel(telid),get_num_pixels(telid)),dtype=np.int16)
+    samples_pix_tel_list=[]
     for igain in range(0, get_num_channel(telid)):
-        sum_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            samples_pix_win = (get_adc_sample(telid, igain)[ipix]
-            [nskip:(nsum+nskip)])
-            ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
-            sum_pix.append(int(int_corr[igain]*(sum(samples_pix_win) - 
-                                                ped_per_trace*nsum)+0.5))
-        sum_pix_tel.append(sum_pix)
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+    samples_pix_tel = np.asarray(samples_pix_tel_list,np.int16)
+    samples_pix_win = samples_pix_tel[:,:,nskip:nsum+nskip]
+    ped_pix_win = ped/get_num_samples(telid)
+    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2) - ped_pix_win*nsum), dtype=np.int16)
 
-    return np.asarray(sum_pix_tel), None
-
+    return sum_pix_tel, None
 
 def global_peak_integration_mc(event, ped, telid, parameters):
     """
