@@ -40,8 +40,12 @@ def apply_mc_calibration(adcs, tel_id):
     apply basic calibration
     """
     peds, gains = get_mc_calibration_coeffs(tel_id)
-    return (adcs - peds) * gains 
 
+    if adcs.ndim > 1:  # if it's per-sample need to correct the peds
+        return ((adcs - peds[:, np.newaxis] / adcs.shape[1]) *
+                gains[:, np.newaxis])
+
+    return (adcs - peds) * gains
 
 if __name__ == '__main__':
 
@@ -89,12 +93,12 @@ if __name__ == '__main__':
         if args.show_samples:
             # display time-varying event
             data = event.dl0.tel[args.tel].adc_samples[args.channel]
+            if args.calibrate:
+                data = apply_mc_calibration(data, args.tel)
             for ii in range(data.shape[1]):
-                im = data[:, ii]
-                if args.calibrate:
-                    im = apply_mc_calibration(im, args.tel)
-                disp.image = im
+                disp.image = data[:, ii]
                 disp.set_limits_percent(70)
+                plt.suptitle("Sample {:03d}".format(ii))
                 plt.pause(0.01)
                 if args.write:
                     plt.savefig('CT{:03d}_EV{:010d}_S{:02d}.png'
