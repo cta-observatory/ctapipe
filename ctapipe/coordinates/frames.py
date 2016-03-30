@@ -161,6 +161,7 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
         d[pos]=1e-12  # add a very small offset to prevent math errors
 
     q = arctan(d)
+
     sq = sin(q)
     xp1 = xoff * (sq/d)
     yp1 = yoff * (sq/d)
@@ -181,6 +182,7 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
 
     obj_altitude=obj_altitude*u.rad
     obj_azimuth=obj_azimuth*u.rad
+
 
     #if obj_azimuth.value < 0.:
     #    obj_azimuth += 2.*pi
@@ -308,7 +310,6 @@ def nominal_to_telescope(norm_coord,tel_frame):
 
 
 # Transformations between camera frame and telescope frame
-
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
 def camera_to_telescope(camera_coord, telescope_frame):
     """
@@ -318,7 +319,6 @@ def camera_to_telescope(camera_coord, telescope_frame):
     ----------
     camera_coord: CameraFrame system
     telescope_frame: TelescopeFrame system
-
     Returns
     -------
     TelescopeFrame coordinate
