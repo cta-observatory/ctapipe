@@ -15,6 +15,8 @@ TODO:
 import numpy as np
 from astropy.units import Quantity
 from collections import namedtuple
+from ctapipe.coordinates import CameraFrame, NominalFrame, TelescopeFrame
+import astropy.units as u
 
 __all__ = [
     'MomentParameters',
@@ -25,7 +27,7 @@ __all__ = [
 
 MomentParameters = namedtuple(
     "MomentParameters",
-    "size,cen_x,cen_y,length,width,r,phi,psi,miss"
+    "size,cen_x,cen_y,length,width,r,phi,psi,miss,coord"
 )
 """Shower moment parameters up to second order.
 
@@ -107,11 +109,14 @@ def hillas_parameters_1(pix_x, pix_y, image):
     azwidth_2 = m_qq - m_q * m_q
     azwidth = np.sqrt(azwidth_2)
 
+    pos = NominalFrame(x=m_x*u.deg,y=m_y*u.deg,z=0*u.deg,array_direction=[70*u.deg,0*u.deg],
+                       pointing_direction=[70*u.deg,0*u.deg],focal_length=28*u.m)
+
     return MomentParameters(size=_s, cen_x=m_x, cen_y=m_y, length=length,
-                            width=width, r=r, phi=phi, psi=None, miss=miss)
+                            width=width, r=r, phi=phi, psi=None, miss=miss, coord=pos)
 
 
-def hillas_parameters_2(pix_x, pix_y, image):
+def hillas_parameters_2(pix_x, pix_y, image,telescope):
     """Compute Hillas parameters for a given shower image.
 
     Alternate implementation of `hillas_parameters` ...
@@ -133,7 +138,21 @@ def hillas_parameters_2(pix_x, pix_y, image):
     """
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+    pix = [pix_x,pix_y,np.zeros(pix_x.shape)] * u.m
+
+    camera_coord = CameraFrame(x=pix_x*u.m,y=pix_y*u.m,z=np.zeros(pix_x.shape)*u.m)
+    nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
+                                                       pointing_direction=[70*u.deg,0*u.deg],
+                                                       focal_length=telescope['FL'][0]*u.m))
+
     image = np.asanyarray(image, dtype=np.float64)
+
+    pix_x = nom_coord.x
+    pix_y = nom_coord.y
+
+    pix_x = pix_x.to(u.deg)
+    pix_y = pix_y.to(u.deg)
+
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
 
@@ -167,28 +186,31 @@ def hillas_parameters_2(pix_x, pix_y, image):
     uu = 1.0 + dd / zz
     vv = 2.0 - uu
     miss = np.sqrt((uu * moms[0] ** 2 + vv * moms[1] ** 2) / 2.0
-                   - moms[0] * moms[1] * 2.0 * vxy / zz)
+                   - moms[0] * moms[1] * 2.0 * vxy / zz) * u.deg
 
     # shower shape parameters
 
-    width = np.sqrt(vx2 + vy2 - zz)
-    length = np.sqrt(vx2 + vy2 + zz)
+    width = np.sqrt(vx2 + vy2 - zz) * u.deg
+    length = np.sqrt(vx2 + vy2 + zz) * u.deg
     azwidth = np.sqrt(moms[2] + moms[3] - zz)
 
     # rotation angle of ellipse relative to centroid
 
     tanpsi_numer = (dd + zz) * moms[1] + 2.0 * vxy * moms[0]
     tanpsi_denom = (2 * vxy * moms[1]) - (dd - zz) * moms[0]
-    psi = np.pi / 2.0 + np.arctan2(tanpsi_numer, tanpsi_denom)
+    psi = (np.pi / 2.0) * u.rad + np.arctan2(tanpsi_numer, tanpsi_denom)
 
     # polar coordinates of centroid
 
     rr = np.hypot(moms[0], moms[1])
     phi = np.arctan2(moms[1], moms[0])
 
+    pos = NominalFrame(x=moms[0]*u.deg,y=moms[1]*u.deg,z=0*u.deg,array_direction=[70*u.deg,0*u.deg],
+                       pointing_direction=[70*u.deg,0*u.deg],focal_length=telescope['FL'][0]*u.m)
+
     return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1],
                             length=length, width=width, r=rr, phi=phi,
-                            psi=psi, miss=miss)
+                            psi=psi, miss=miss,coord=pos)
 
 
 # use the 2 version by default
