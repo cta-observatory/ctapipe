@@ -147,14 +147,20 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
     -------
     obj_altitude,obj_azimuth: Absolute altitude and azimuth of the event
     """
-    #Deal with situations where offset = 0?
+
+    unit = azimuth.unit
+
+    xoff = xoff.to(u.rad).value
+    yoff = yoff.to(u.rad).value
+    azimuth = azimuth.to(u.rad).value
+    altitude = altitude.to(u.rad).value
 
     d = sqrt(xoff*xoff+yoff*yoff)
-    pos = np.where(d==0)
-    d=1e-12 * u.deg # add a very small offset to prevent math errors
+    pos = np.where(d==0) # find offset 0 positions
+    if len(pos[0])>0:
+        d[pos]=1e-12  # add a very small offset to prevent math errors
 
-    q = arctan(d.to(u.rad).value)
-
+    q = arctan(d)
     sq = sin(q)
     xp1 = xoff * (sq/d)
     yp1 = yoff * (sq/d)
@@ -166,18 +172,22 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
     xp0 = cx*xp1 - sx*zp1
     yp0 = yp1
     zp0 = sx*xp1 + cx*zp1
-
     obj_altitude = arcsin(zp0)
-    obj_altitude[pos]=altitude
     obj_azimuth  = arctan2(yp0,-xp0) + azimuth
-    obj_azimuth[pos] = azimuth
+
+    if len(pos[0])>0:
+        obj_altitude[pos]= altitude
+        obj_azimuth[pos] = azimuth
+
+    obj_altitude=obj_altitude*u.rad
+    obj_azimuth=obj_azimuth*u.rad
 
     #if obj_azimuth.value < 0.:
     #    obj_azimuth += 2.*pi
     #elif obj_azimuth.value >= (2.*pi ):
     #    obj_azimuth -= 2.*pi
 
-    return obj_altitude,obj_azimuth
+    return obj_altitude.to(unit),obj_azimuth.to(unit)
 
 # Transformation between nominal and AltAz system
 
@@ -208,7 +218,6 @@ def nominal_to_altaz(norm_coord,altaz_coord):
     else:
         x = norm_coord.x
         y = norm_coord.y
-    print(type(norm_coord.x),x)
 
     alt,az = offset_to_altaz(x,y,az_norm,alt_norm)
     altaz_coord = AltAz(az=az.to(u.deg),alt = alt.to(u.deg))
@@ -259,8 +268,8 @@ def telescope_to_nominal(tel_coord,norm_frame):
     """
     alt_tel,az_tel = tel_coord.pointing_direction
     alt_norm,az_norm = norm_frame.array_direction
-
     alt_trans,az_trans = offset_to_altaz(tel_coord.x,tel_coord.y,az_tel,alt_tel)
+
     x,y = altaz_to_offset(az_trans,alt_trans,az_norm,alt_norm)
     x = x*u.rad
     y = y*u.rad
@@ -298,7 +307,7 @@ def nominal_to_telescope(norm_coord,tel_frame):
     return tel_frame.realize_frame(representation)
 
 
-# Transformations between camera fram and telescope frame
+# Transformations between camera frame and telescope frame
 
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
 def camera_to_telescope(camera_coord, telescope_frame):
@@ -327,9 +336,9 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
     f = telescope_frame.focal_length
 
-    x = (x/f) * u.deg
-    y = (y/f) * u.deg
-    representation = CartesianRepresentation(x,y,0*u.deg)
+    x = (x/f) * u.rad
+    y = (y/f) * u.rad
+    representation = CartesianRepresentation(x,y,0*u.rad)
 
     return telescope_frame.realize_frame(representation)
 
@@ -360,8 +369,8 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y = y_pos*sin(rot) + y_pos*cos(rot)
 
     f = telescope_coord.focal_length
-    x = x*(f/u.m)  # Remove distance units here as we are using small angle approx
-    y = y*(f/u.m)
+    x = x.to(u.rad)*(f/u.m)  # Remove distance units here as we are using small angle approx
+    y = y.to(u.rad)*(f/u.m)
 
     representation = CartesianRepresentation(x.value*u.m ,y.value*u.m,0*u.m)
 
