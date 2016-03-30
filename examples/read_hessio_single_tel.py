@@ -10,10 +10,12 @@ is not a fast operation)
 """
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe import visualization, io
+from ctapipe import visualization, io, reco
 from matplotlib import pyplot as plt
+import numpy as np
 from astropy import units as u
 import pyhessio
+from ctapipe.instrument import InstrumentDescription as ID
 
 import logging
 import argparse
@@ -67,6 +69,8 @@ if __name__ == '__main__':
                                  allowed_tels=[args.tel, ],
                                  max_events=args.max_events)
     disp = None
+    tel,cam,opt = ID.load(args.filename)
+    print(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel])
 
     print('SELECTING EVENTS FROM TELESCOPE {}'.format(args.tel))
     print('=' * 70)
@@ -109,8 +113,14 @@ if __name__ == '__main__':
             if args.calibrate:
                 im = apply_mc_calibration(im, args.tel)
             disp.image = im
+
+            clean_mask = reco.cleaning.tailcuts_clean(geom,im,1,picture_thresh=10,boundary_thresh=5)
+            hillas = reco.hillas_parameters(x,y,im * clean_mask,tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel])
+
+            disp.image = im * clean_mask
+            disp.overlay_moments(hillas, color='seagreen', linewidth=3)
             disp.set_limits_percent(70)
-            plt.pause(0.1)
+            plt.pause(1.0)
             if args.write:
                 plt.savefig('CT{:03d}_EV{:010d}.png'
                             .format(args.tel, event.dl0.event_id))
