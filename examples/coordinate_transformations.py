@@ -7,7 +7,7 @@ import astropy.units as u
 from astropy.coordinates import AltAz
 import timeit
 
-from ctapipe.coordinates import CameraFrame, TelescopeFrame, GroundFrame, TiltedGroundFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, TelescopeFrame, GroundFrame, TiltedGroundFrame, NominalFrame, project_to_ground
 
 
 import numpy as np
@@ -58,6 +58,7 @@ def nominal_to_altaz():
 def grd_to_tilt():
     grd_coord = GroundFrame(x=1*u.m, y=2*u.m, z=0*u.m)
     tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction = [90*u.deg,180*u.deg]))
+    print(project_to_ground(tilt_coord))
     print("Tilted Coordinate",tilt_coord)
 
 if __name__ == '__main__':
