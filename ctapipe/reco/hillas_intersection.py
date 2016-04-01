@@ -6,6 +6,8 @@
 """
 import numpy as np
 import itertools
+import astropy.units as u
+from ctapipe.coordinates.frames import NominalFrame,TiltedGroundFrame,GroundFrame
 
 __all__ = [
     'reconstruct_nominal',
@@ -13,27 +15,39 @@ __all__ = [
 ]
 
 
-def reconstruct_nominal(hillas_parameters,tel_config,weighting="Konrad"):
+def reconstruct_nominal(hillas_parameters,weighting="Konrad"):
+    """
+    Perform event reconstruction by simple Hillas parameter intersection
+    in the nominal system
+
+    Parameters
+    ----------
+    hillas_parameters: Llist
+        Hillas parameter objects
+    weighting: string
+        Specify image weighting scheme used (HESS or Konrad style)
+
+    Returns
+    -------
+    Reconstructed event position in the nominal system
+
+    """
     if len(hillas_parameters)<2:
-        return None
+        return None # Throw away events with < 2 images
 
+    # Find all pairs of Hillas parameters
     hillas_pairs = list(itertools.combinations(hillas_parameters, 2))
-    tel_config_pairs = list(itertools.combinations(tel_config, 2))
-    print (tel_config_pairs)
 
-    t1 = list(map(lambda t:[t[0]],[tel_config_pairs]))
-    t1 = np.array(t1)
-    t1 = np.transpose(t1)
-    print (t1)
-
-    h1 = list(map(lambda h:[h[0].psi,h[0].cen_x,h[0].cen_y,h[0].size],[hillas_pairs]))
+    # Copy parameters we need to a numpy array to speed things up
+    h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].cen_x,h[0].cen_y,h[0].size],hillas_pairs))
     h1 = np.array(h1)
     h1 = np.transpose(h1)
 
-    h2 = np.array(list(map(lambda h:[h[1].psi,h[1].cen_x,h[1].cen_y,h[1].size],hillas_pairs)))
+    h2 = np.array(list(map(lambda h:[h[1].psi.to(u.rad).value,h[1].cen_x,h[1].cen_y,h[1].size],hillas_pairs)))
     h2 = np.array(h2)
     h2 = np.transpose(h2)
 
+    # Perform intersection
     sx,sy = intersect_lines(h1[1],h1[2],h1[0],
                             h2[1],h2[2],h2[0])
     if weighting == "Konrad":
@@ -44,19 +58,79 @@ def reconstruct_nominal(hillas_parameters,tel_config,weighting="Konrad"):
     weight = weight_fn(h1[3],h2[3])
     weight *= weight_sin(h1[0],h2[0])
 
+    # Make weighted average of all possible pairs
     sum_x = np.sum(sx*weight)
     sum_y = np.sum(sy*weight)
     sum_w = np.sum(weight)
 
-    print (sum_x/sum_w,sum_y/sum_w)
-    return sum_x/sum_w,sum_y/sum_w
+    # Copy into nominal coordinate
+    c_nom = hillas_parameters[0].coord
+    nominal = NominalFrame(x=(sum_x/sum_w)*u.deg,y=(sum_y/sum_w)*u.deg,z=0*u.deg,array_direction=c_nom.array_direction)
+    return nominal
 
-def recontruct_tilted(hillas_parameters,weighting="Konrad"):
 
-    return 0,0
+def reconstruct_tilted(hillas_parameters,tel_x,tel_y,weighting="Konrad"):
+
+    if len(hillas_parameters)<2:
+        return None # Throw away events with < 2 images
+
+    # Find all pairs of Hillas parameters
+    hillas_pairs = list(itertools.combinations(hillas_parameters, 2))
+    tel_x = np.array(list(itertools.combinations(tel_x, 2)))
+    tel_y= np.array(list(itertools.combinations(tel_y, 2)))
+
+     # Copy parameters we need to a numpy array to speed things up
+    h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].size],hillas_pairs))
+    h1 = np.array(h1)
+    h1 = np.transpose(h1)
+
+    h2 = np.array(list(map(lambda h:[h[1].psi.to(u.rad).value,h[1].size],hillas_pairs)))
+    h2 = np.array(h2)
+    h2 = np.transpose(h2)
+    # Perform intersection
+    cx,cy = intersect_lines(tel_x[:,0],tel_y[:,0],h1[0],
+                            tel_x[:,1],tel_y[:,1],h2[0])
+
+    if weighting == "Konrad":
+        weight_fn = weight_konrad
+    elif weighting == "HESS":
+        weight_fn = weight_HESS
+
+    weight = weight_fn(h1[1],h2[1])
+    weight *= weight_sin(h1[0],h2[0])
+
+    # Make weighted average of all possible pairs
+    sum_x = np.sum(cx*weight)
+    sum_y = np.sum(cy*weight)
+    sum_w = np.sum(weight)
+
+    tilt = TiltedGroundFrame(x=(sum_x/sum_w)*u.m,y=(sum_y/sum_w)*u.m,z=0*u.m,pointing_direction=[70*u.deg,0*u.deg])
+    tilt.transform_to(GroundFrame)
+
+    return tilt
 
 def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
+    """
 
+    Parameters
+    ----------
+    xp1: ndarray
+        X position of first image
+    yp1: ndarray
+        Y position of first image
+    phi1: ndarray
+        Rotation angle of first image
+    xp2: ndarray
+        X position of second image
+    yp2: ndarray
+        Y position of second image
+    phi2: ndarray
+        Rotation angle of second image
+
+    Returns
+    -------
+    ndarray of x and y crossing points for all pairs
+    """
     s1 = np.sin(phi1)
     c1 = np.cos(phi1)
     A1 = s1
@@ -85,8 +159,10 @@ def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
 def weight_konrad(p1,p2):
     return (p1*p2)/(p1+p2)
 
+
 def weight_HESS(p1,p2):
     return 1/((1/p1)+(1/p2))
 
+
 def weight_sin(phi1,phi2):
-    return np.sin(np.fabs(phi1-phi2))
+    return np.abs(np.sin(np.fabs(phi1-phi2)))
