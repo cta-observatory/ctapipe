@@ -278,31 +278,47 @@ def global_peak_integration_mc(event, ped, telid, parameters):
         sigamp_cut[igain] = parameters['sigamp'][igain]
     samples_pix_tel = np.asarray(samples_pix_tel_list,np.int16)
     ped_per_trace = ped/get_num_samples(telid)
-    samples_pix_clean = samples_pix_tel-np.atleast_3d(ped_per_trace)
+    samples_pix_clean = (samples_pix_tel-np.atleast_3d(ped_per_trace)).astype(np.int16)
+    if __debug__:
+        print("raw",samples_pix_tel[0][0])
+        print("ped",ped_per_trace[0][0])
+        print("clean",samples_pix_clean[0][0])
     # Find the peak (peakpos)
     sigamp_mask = (samples_pix_clean[:]>sigamp_cut)
-    # Sample with amplitude larger than 'sigamp'
+    # Sample with amplitude larger than 'sigamp' (smaller set to '0')
     samples_pix_filtered = samples_pix_clean*sigamp_mask
-
+    if __debug__:
+        print("cut",sigamp_cut)
+        print("mask",sigamp_mask[0][0])
+        print("filt",samples_pix_filtered[0][0])
     time_pix_tel = samples_pix_filtered.argmax(axis=2)
     max_sample_tel = samples_pix_filtered.max(axis=2)
     significant_pix = significant_pix*(np.any(sigamp_mask,axis=2)==True)
+    if __debug__:
+        print("sample",time_pix_tel[0][0])
+        print("max_val",max_sample_tel[0][0])
+        print("sig",significant_pix[0][0])
     peakpos = np.zeros((get_num_channel(telid)))
     if np.count_nonzero(significant_pix)>0 and time_pix_tel.sum(1)>0:
-        peakpos = (time_pix_tel*max_sample_tel).sum(1)/max_sample_tel.sum(axis=1)
+        peakpos = ((time_pix_tel*max_sample_tel).sum(1)/max_sample_tel.sum(axis=1)).astype(np.int8)
     # Sanitity check
-    start = round(peakpos) - parameters['nskip']
+    start = peakpos - parameters['nskip']
     if start < 0:
         start = 0
     if start + nsum > get_num_samples(telid):
         start = get_num_samples(telid) - nsum
 
+    if __debug__:
+        print(peakpos,parameters['nskip'],start)
 
     int_corr = set_integration_correction(telid,parameters)
     # Extract the pulse (pedestal substracted) in the found window
     samples_pix_win = samples_pix_clean[:,:,start:nsum+start]
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
-
+    if __debug__:
+        print("int_corr",int_corr)
+        print("win",samples_pix_win[0][0])
+        print("total",sum_pix_tel[0][0])
     return sum_pix_tel,time_pix_tel
 
 
@@ -350,23 +366,39 @@ def local_peak_integration_mc(event, ped, telid, parameters):
         sigamp_cut[igain] = parameters['sigamp'][igain]
     samples_pix_tel = np.asarray(samples_pix_tel_list,np.int16)
     ped_per_trace = ped/get_num_samples(telid)
-    samples_pix_clean = samples_pix_tel-np.atleast_3d(ped_per_trace)
+    samples_pix_clean = (samples_pix_tel-np.atleast_3d(ped_per_trace)).astype(np.int16)
+    if __debug__:
+        print("raw",samples_pix_tel[0][0])
+        print("ped",ped_per_trace[0][0])
+        print("clean",samples_pix_clean[0][0])
     # Find the peak (peakpos)
     sigamp_mask = (samples_pix_clean[:]>sigamp_cut)
     # Sample with amplitude larger than 'sigamp'
     samples_pix_filtered = samples_pix_clean*sigamp_mask
+    if __debug__:
+        print("mask",sigamp_mask[0][0])
+        print("filt",samples_pix_filtered[0][0])
     time_pix_tel = samples_pix_filtered.argmax(axis=2)
     max_sample_tel = samples_pix_filtered.max(axis=2)
     significant_pix = significant_pix*(np.any(sigamp_mask,axis=2)==True)
-
+    if __debug__:
+        print("sample",np.shape(time_pix_tel),time_pix_tel[0][0])
+        print("max_val",max_sample_tel[0][0])
+        print("sig",np.shape(significant_pix),significant_pix[0][0])
     # If the LG is not significant, takes the HG peakpos
+    #lg_nosignificant = (significant_pix[0]<significant_pix[1]).astype(np.int8)
     peakpos = time_pix_tel*significant_pix
+    if get_num_channel(telid) > 1:
+        peakpos[0] = np.where(significant_pix[0]<significant_pix[1],time_pix_tel[1],time_pix_tel[0]).astype(np.int8)
+
 
     # Sanitity check
-    start = round(peakpos) - parameters['nskip']
+    start = peakpos - parameters['nskip']
     start[start<0] = 0
     start[start + nsum > get_num_samples(telid)] = get_num_samples(telid) - nsum
 
+    if __debug__:
+        print(peakpos,parameters['nskip'],start)
     int_corr = set_integration_correction(telid,parameters)
     # Create a mask with the integration windows per pixel
     m = np.zeros_like(samples_pix_clean)
@@ -376,7 +408,10 @@ def local_peak_integration_mc(event, ped, telid, parameters):
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
-
+    if __debug__:
+        print("int_corr",int_corr)
+        print("win",samples_pix_win[0][0])
+        print("total",sum_pix_tel[0][0])
     return sum_pix_tel,time_pix_tel
 
 
@@ -420,6 +455,7 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
     nsum = parameters['nsum']
     if nsum >= get_num_samples(telid):
         nsum = get_num_samples(telid)
+    lwt = parameters['lwt']
 
     #  For this integration scheme we need the list of neighbours early on
     pix_x, pix_y = event.meta.pixel_pos[telid]
@@ -434,23 +470,43 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
         sigamp_cut[igain] = parameters['sigamp'][igain]
     samples_pix_tel = np.asarray(samples_pix_tel_list,np.int16)
     ped_per_trace = ped/get_num_samples(telid)
-    samples_pix_clean = samples_pix_tel-np.atleast_3d(ped_per_trace)
-
+    samples_pix_clean = (samples_pix_tel-np.atleast_3d(ped_per_trace)).astype(np.int16)
+    if __debug__:
+        print("raw",samples_pix_tel[0][0])
+        print("ped",ped_per_trace[0][0])
+        print("clean",samples_pix_clean[0][0])
     int_corr = set_integration_correction(telid,parameters)
     # Create a mask with the integration windows per pixel and per gain
     m = np.zeros_like(samples_pix_clean)
     #print("xxx",np.shape(samples_pix_clean)[0],np.shape(samples_pix_clean)[1])
     for i in range(0,np.shape(samples_pix_clean)[0]):
         for j in range(0,np.shape(samples_pix_clean)[1]):
-            peakpos = np.mean(samples_pix_clean[i,geom.neighbors[j],:].argmax(1)).astype(np.int8)
+            nb_samples = samples_pix_clean[i,geom.neighbors[j],:]
+            all_samples = np.vstack([nb_samples,lwt*samples_pix_clean[i,j,:]])
+            sum_samples = all_samples.sum(0)
+            peakpos = np.mean(sum_samples.argmax(0)).astype(np.int8)
             time_pix_tel[i,j]=peakpos
             start = peakpos - parameters['nskip']
             m[i,j,start:start+nsum]=1
+            if __debug__ and j==0:
+                print("nb",geom.neighbors[j])
+                print("nb_samples",np.shape(nb_samples),nb_samples)
+                print("pix_samples",samples_pix_clean[i,j,:])
+                print("sum_samples",sum_samples)
+                print("mean_peakpos",peakpos)
+    if __debug__:
+        print("sample",np.shape(time_pix_tel),time_pix_tel[0][0])
+        print("m",m[0][0])
+        #print("max_val",max_sample_tel[0][0])
+        #print("sig",np.shape(significant_pix),significant_pix[0][0])
 
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
-
+    if __debug__:
+        print("int_corr",int_corr)
+        print("win",samples_pix_win[0][0])
+        print("total",sum_pix_tel[0][0])
     return sum_pix_tel,time_pix_tel
 
 
