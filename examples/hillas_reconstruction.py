@@ -1,6 +1,7 @@
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.core import Container
+from ctapipe.coordinates.frames import GroundFrame, TiltedGroundFrame
 
 from ctapipe.io.containers import RawData
 from ctapipe.io.containers import MCShowerData, CentralTriggerData
@@ -8,12 +9,15 @@ from ctapipe.reco.hillas import hillas_parameters
 import ctapipe.reco.hillas_intersection as hill_int
 from ctapipe.reco.cleaning import tailcuts_clean
 from ctapipe import io
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, AltAz
 from astropy.time import Time
 from ctapipe.instrument import InstrumentDescription as ID
 
 from astropy import units as u
+
+import numpy as np
 import pyhessio
+import time
 
 import logging
 import argparse
@@ -61,9 +65,8 @@ if __name__ == '__main__':
     container.add_item("count")
     tel,cam,opt = ID.load(filename=args.filename)
 
-    print (cam)
-
     for event in source:
+        start_t = time.time()
 
         container.dl0.tels_with_data = set(pyhessio.get_teldata_list())
 
@@ -86,24 +89,46 @@ if __name__ == '__main__':
         container.dl0.tel = dict()  # clear the previous telescopes
 
         print('Scanning input file... count = {}'.format(event.count))
-        print(event.trig)
-        print(event.mc)
-        print(event.dl0)
+        #print(event.trig)
+        #print(event.mc)
+        #print(event.dl0)
 
         hillas_parameter_list = list()
-        tel_config_list = list()
+        tel_x = list()
+        tel_y = list()
+        tel_z = list()
 
+        table = "CameraTable_VersionFeb2016_TelID"
         for tel_id in container.dl0.tels_with_data:
-            x, y = event.meta.pixel_pos[tel_id]
-            geom = io.CameraGeometry.guess(x, y)
+
+            x, y = cam[table+str(tel_id)]['PixX'][:],cam[table+str(tel_id)]['PixY'][:]
+            start_t = time.time()
+            geom = cam[table+str(tel_id)]['PixNeig'][:]
             image = apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0], tel_id)
 
-            clean_mask = tailcuts_clean(geom,image,1,picture_thresh=10,boundary_thresh=5)
-            hill = hillas_parameters(x,y,image*clean_mask)
-            print (tel[0])
+            clean_mask = tailcuts_clean(cam[table+str(tel_id)],image,1,picture_thresh=12,boundary_thresh=6)
+            hill = hillas_parameters(x,y,image*clean_mask,tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id])
+
             if hill.size > 100:
                 hillas_parameter_list.append(hill)
-                tel_config_list.append(tel[tel_id])
+                tel_x.append(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id]['TelX'][0])
+                tel_y.append(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id]['TelY'][0])
+                tel_z.append(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id]['TelZ'][0])
 
-        print (len(hillas_parameter_list))
-        hill_int.reconstruct_nominal(hillas_parameter_list,tel_config_list,tel)
+                #tel_config_list.append(tel[tel_id])
+        print("Hillas time",time.time()-start_t)
+        if len(hillas_parameter_list)>1:
+            print (len(hillas_parameter_list))
+            #start_t = time.time()
+            grd = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
+            tilt = grd.transform_to(TiltedGroundFrame(pointing_direction=[70*u.deg,0*u.deg]))
+            print(tilt.x.value)
+
+            shower_direction = hill_int.reconstruct_nominal(hillas_parameter_list)
+            core_position = hill_int.reconstruct_tilted(hillas_parameter_list,tilt.x.value.tolist(),tilt.y.value.tolist())
+            print(core_position.transform_to(GroundFrame))
+
+            print(shower_direction)
+            print(container.mc.alt*57.3,container.mc.az*57.3)
+            print(container.mc.core_x,container.mc.core_y)
+        print("reconstruction time",time.time()-start_t)
