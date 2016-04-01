@@ -25,7 +25,8 @@ __all__ = [
     'TelescopeFrame',
     'GroundFrame',
     'TiltedGroundFrame',
-    'NominalFrame'
+    'NominalFrame',
+    'project_to_ground'
 ]
 
 class CameraFrame(BaseCoordinateFrame):
@@ -391,6 +392,9 @@ class GroundFrame(BaseCoordinateFrame):
 
     """
     default_representation = CartesianRepresentation
+    # Pointing direction of the tilted system (alt,az),
+    # could be the telescope pointing direction or the reconstructed shower direction
+    pointing_direction = FrameAttribute(default=None)
 
 class TiltedGroundFrame(BaseCoordinateFrame):
     """Tilted ground coordinate frame.
@@ -509,4 +513,34 @@ def tilted_to_ground(tilted_coord,ground_coord):
 
     representation = CartesianRepresentation(x_grd,y_grd,z_grd)
 
-    return ground_coord.realize_frame(representation)
+    grd = ground_coord.realize_frame(representation)
+    return grd
+
+
+def project_to_ground(tilt_system):
+    """
+    Project position in the tilted system onto the ground. This is needed as the standard transformation
+    will return the 3d position of the tilted frame. This projection may untimately be the standard use
+    case so may be implemented in the tilted to ground transformation
+
+    Parameters
+    ----------
+    tilt_system: TiltedGroundFrame
+        Coordinates in the tilted ground system
+    Returns
+    -------
+    Projection of tilted system onto the ground (GroundSystem)
+    """
+    ground_system = tilt_system.transform_to(GroundFrame)
+
+    unit = ground_system.x.unit
+    xh = ground_system.x.value
+    yh = ground_system.y.value
+    zh = ground_system.z.value
+
+    trans = get_shower_trans_matrix(tilt_system.pointing_direction[1],tilt_system.pointing_direction[0])
+
+    xc = xh - trans[2][0]*zh/trans[2][2];
+    yc = yh - trans[2][1]*zh/trans[2][2];
+
+    return GroundFrame(x=xc*unit,y=yc*unit,z=0*unit)
