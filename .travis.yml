@@ -19,19 +19,19 @@ matrix:
     include:
 
         # Try with optional dependencies disabled
-        - python: 3.4
+        - python: 3.5
           env: SETUP_CMD='test' INSTALL_OPTIONAL=false
                   #
         # Normal tests
-        - python: 3.4
+        - python: 3.5
           env: SETUP_CMD='test'
 
         # Do a coverage test in Python 3.
-        - python: 3.4
+        - python: 3.5
           env: SETUP_CMD='test --coverage'
 
         # Check for sphinx doc build warnings
-        - python: 3.4
+        - python: 3.5
           env: SETUP_CMD='build_sphinx -w'
 
 
