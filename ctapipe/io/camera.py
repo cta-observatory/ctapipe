@@ -139,11 +139,12 @@ class CameraGeometry:
             rotation angle with unit (e.g. 12 * u.deg), or "12d"
 
         """
+        angle = Angle(angle)
         rotmat = rotation_matrix_2d(angle)
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation -= angle
+        self.pix_rotation = self.pix_rotation - angle
 
 
 # ======================================================================
@@ -206,11 +207,11 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
     pixsep = []
     for ipix in range(1, len(pix_x)):
         dx = pix_x[ipix] - pix_x[0]
-        dy = pix_y[ipix] - pix_y[0]        
+        dy = pix_y[ipix] - pix_y[0]
         pixsep.append (np.sqrt(dx ** 2 + dy ** 2))  # dist between pixels 0 and ipix
-        
+
     dist = min(pixsep)
-        
+
     tel_type, cam_id, pix_type, pix_rotation, cam_rotation = _guess_camera_type(
         len(pix_x), optical_foclen
     )
