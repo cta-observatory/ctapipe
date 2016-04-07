@@ -9,9 +9,14 @@ from ctapipe.io.containers import RawData, CalibratedCameraData
 from ctapipe import visualization, io
 from astropy import units as u
 from ctapipe.calib.camera.mc import *
+import time
 import logging
+from ctapipe.utils.datasets import get_path
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout,level=logging.INFO)
+if __debug__:
+    logger.setLevel(logging.DEBUG)
 
 fig = plt.figure(figsize=(16, 7))
 cmaps = [plt.cm.jet, plt.cm.winter,
@@ -62,10 +67,17 @@ def display_telescope(event, tel_id):
 
     disp.pixels.set_antialiaseds(False)
     disp.autoupdate = False
-    disp.pixels.set_cmap('seismic')
     chan = 0
     signals = event.dl1.tel[tel_id].pe_charge
     disp.image = signals
+    cmaxmin = (max(signals)-min(signals))
+    cmap_charge = colors.LinearSegmentedColormap.from_list('cmap_c',[(0/cmaxmin, 'darkblue'),
+                                                           (np.abs(min(signals))/cmaxmin, 'black'),
+                                                           (2.0*np.abs(min(signals))/cmaxmin, 'blue'),
+                                                           (2.5*np.abs(min(signals))/cmaxmin, 'red'),
+                                                           (1, 'yellow')])
+    disp.pixels.set_cmap(cmap_charge)
+    #disp.pixels.set_cmap('seismic')
     disp.add_colorbar()
     if npads == 2:
         ax = plt.subplot(1, npads, npads)
@@ -74,13 +86,20 @@ def display_telescope(event, tel_id):
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
-        disp.pixels.set_cmap('gnuplot')
+        times = event.dl1.tel[tel_id].tom
+        disp.image = times
+        tmaxmin = get_num_samples(tel_id)
+        t_chargemax = times[signals.argmax()]
+        if t_chargemax>15: t_chargemax=7
+        cmap_time = colors.LinearSegmentedColormap.from_list('cmap_t',[(0/tmaxmin, 'black'),
+                                                                         (0.6*t_chargemax/tmaxmin, 'red'),
+                                                                         (t_chargemax/tmaxmin, 'yellow'),
+                                                                         (1.4*t_chargemax/tmaxmin, 'blue'),
+                                                                         (1, 'black')])
+        #disp.pixels.set_cmap('gnuplot')
+        disp.pixels.set_cmap(cmap_time)
         chan = 0
-        disp.image = event.dl1.tel[tel_id].tom
         disp.add_colorbar()
-
-    if __debug__:
-        print("All sum = %.3f\n" % sum(event.dl1.tel[tel_id].pe_charge))
 
 
 def camera_calibration(filename, parameters, disp_args, level):
@@ -98,6 +117,11 @@ def camera_calibration(filename, parameters, disp_args, level):
     A display (see function display_telescope)
 
     """
+    # Number of llops for each calibration function (in debug mode
+    # will measure the calibration time)
+    nlooptime = 1
+    if __debug__: 
+        nlooptime = 100
 
     ## Load dl1 container
     #container = Container("calibrated_hessio_container")
@@ -114,18 +138,13 @@ def camera_calibration(filename, parameters, disp_args, level):
         nt = nt+1
         # Fill DL1 container headers information. Clear also telescope info.
         load_dl1_eventheader(event.dl0,container.dl1)
-        #container.dl1.run_id = event.dl0.run_id
-        #container.dl1.event_id = event.dl0.event_id
-        #container.dl1.tel = dict()  # clear the previous telescopes
-        #container.dl1.tels_with_data = event.dl0.tels_with_data
         if __debug__:
-            logger.debug("%s> %d #%d %d"%
+            logger.debug("%s> %d #%d %d %s %.3e TeV @ (%.0f,%.0f)deg @ %.3f m"%
                         (sys._getframe().f_code.co_name,
                          container.dl1.run_id, nt,
-                         container.dl1.event_id),
-                         container.dl1.tels_with_data,
-                        "%.3e TeV @ (%.0f,%.0f)deg @ %.3f m"%
-                        (get_mc_shower_energy(), get_mc_shower_altitude(),
+                         container.dl1.event_id,
+                         str(container.dl1.tels_with_data),
+                        get_mc_shower_energy(), get_mc_shower_altitude(),
                          get_mc_shower_azimuth(),
                          np.sqrt(pow(get_mc_event_xcore(), 2) +
                                  pow(get_mc_event_ycore(), 2)))
@@ -137,7 +156,6 @@ def camera_calibration(filename, parameters, disp_args, level):
 
             # Get per telescope the camera geometry
             x, y = event.meta.pixel_pos[telid]
-            #geom = io.CameraGeometry.guess(x * u.m, y * u.m)
             geom = io.CameraGeometry.guess(x,y)
 
             # Get the calibration data sets (pedestals and single-pe)
@@ -147,22 +165,30 @@ def camera_calibration(filename, parameters, disp_args, level):
             # Integrate pixels traces and substract pedestal
             # See pixel_integration_mc function documentation in mc.py
             # for the different algorithms options
-            int_adc_pix, peak_adc_pix = pixel_integration_mc(event, 
-                                                             ped, telid, 
-                                                             parameters)
+            start = time.process_time()
+            for i in range(nlooptime):
+                int_adc_pix, peak_adc_pix = pixel_integration_mc(event, 
+                                                                 ped, telid, 
+                                                                 parameters)
+            end = time.process_time()
+
+            logger.debug(" Time pixel integration %.3e sec",(end-start)/nlooptime)
 
             # Convert integrated ADC counts into p.e.
             # selecting also the HG/LG channel (currently hard-coded)
-            pe_pix = calibrate_amplitude_mc(int_adc_pix, calib,
-                                            telid, parameters)
+            start = time.process_time()
+            for i in range(nlooptime):
+                pe_pix = calibrate_amplitude_mc(int_adc_pix, calib,
+                                                telid, parameters)
+            end = time.process_time()
+            logger.debug(" pixel amplitude calibration %.3e sec",(end-start)/nlooptime)
             # Including per telescope metadata in the DL1 container
             #load_dl1_results(event.dl0,container.dl1)
             #if telid not in container.meta.pixel_pos:
             #    container.meta.pixel_pos[telid] = event.meta.pixel_pos[telid]
-            container.dl1.tels_with_data = event.dl0.tels_with_data
             container.dl1.tel[telid] = CalibratedCameraData(telid)
-            container.dl1.tel[telid].pe_charge = np.array(pe_pix)
-            container.dl1.tel[telid].tom = np.array(peak_adc_pix[0])
+            container.dl1.tel[telid].pe_charge = pe_pix
+            container.dl1.tel[telid].tom = peak_adc_pix
 
             # FOR THE CTA USERS:
             # From here you can include your code.
@@ -183,6 +209,8 @@ def camera_calibration(filename, parameters, disp_args, level):
             #
 
         sys.stdout.flush()
+        if disp_args is None:
+            continue
         # Display
         if 'event' in disp_args:
             ello = input("See evt. %d?<[n]/y/q> " % container.dl1.event_id)
@@ -207,17 +235,22 @@ def camera_calibration(filename, parameters, disp_args, level):
             elif ello == 'q':
                 return None
 
+    print("Total NEVT",nt)
 
 if __name__ == '__main__':
 
     # Declare and parse command line option
     parser = argparse.ArgumentParser(
         description='Tel_id, pixel id and number of event to compute.')
-    parser.add_argument('--f', dest='filename',
-                        required=True, help='filename MC file name')
+    parser.add_argument('--f', dest='filename', 
+                        default=get_path('gamma_test.simtel.gz'),
+                        required=False, help='filename <MC file name>')
+    parser.add_argument('--d', dest='display', action='store_true',
+                        required=False, help='display the camera events')
     args = parser.parse_args()
 
-    plt.show(block=False)
+    if args.display:
+        plt.show(block=False)
 
     # Function description of camera_calibration options, given here
     # Integrator: samples integration algorithm (equivalent to hessioxxx
@@ -253,17 +286,22 @@ if __name__ == '__main__':
     # --integration-window 7, 3 --integration-threshold 2, 4
     # --dst-level 0 <MC_prod2_filename>
 
-    calibrated_camera = camera_calibration(
-        args.filename,
-        parameters={"integrator": "nb_peak_integration",
-                    "nsum": 7,
-                    "nskip": 3,
-                    "sigamp": [2, 4],
-                    "clip_amp": 0,
-                    "lwt": 0},
-        disp_args={'event', 'telescope'}, level=1)
+    parameters={"integrator": "nb_peak_integration",
+                "nsum": 7,
+                "nskip": 3,
+                "sigamp": [2, 4],
+                "clip_amp": 0,
+                "lwt": 0}
+    if args.display: 
+        disp_args={'event', 'telescope'}
+    else:
+        disp_args=None
 
+    calibrated_camera = camera_calibration(args.filename,
+                                           parameters,
+                                           disp_args, level=1)
+    
     sys.stdout.flush()
-
+    
     logger.info("%s> Closing file..."%sys._getframe().f_code.co_name)
     close_file()
