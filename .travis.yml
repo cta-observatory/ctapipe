@@ -18,31 +18,22 @@ env:
 matrix:
     include:
 
+        # Try with optional dependencies disabled
+        - python: 3.4
+          env: SETUP_CMD='test' INSTALL_OPTIONAL=false
+                  #
+        # Normal tests
+        - python: 3.4
+          env: SETUP_CMD='test'
+
         # Do a coverage test in Python 3.
         - python: 3.4
           env: SETUP_CMD='test --coverage'
 
-        # Check for sphinx doc build warnings - we do this first because it
-        # may run for a long time
+        # Check for sphinx doc build warnings
         - python: 3.4
           env: SETUP_CMD='build_sphinx -w'
 
-        # Try with optional dependencies disabled
-        - python: 3.4
-          env: SETUP_CMD='test' INSTALL_OPTIONAL=false
-
-        # Try Astropy development version
-        - python: 3.4
-          env: ASTROPY_VERSION=development SETUP_CMD='test'
-
-        # Try all python versions with the latest numpy
-        - python: 3.4
-          env: SETUP_CMD='test'
-
-        # Currently broken: https://github.com/cta-observatory/ctapipe/pull/33#issuecomment-153979923
-        # Try older numpy versions
-#        - python: 3.4
-#          env: NUMPY_VERSION=1.8 SETUP_CMD='test'
 
 before_install:
 
