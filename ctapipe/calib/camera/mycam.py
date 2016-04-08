@@ -21,23 +21,32 @@ common alternatives.
 
 """
 
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-def calibration_constant_calculation():
+
+def calibration_constant_calculation(raw_dataset, parameters):
     """
+
     Here would go the function that calculates your pedestal during
     the observations
+
     """
     return nsb_pedestals
 
 
-def pedestal_substraction():
-    return
+def pedestal_substraction(raw_dataset, calibration_dataset, parameters):
+    """
+    Here would go the function that substracts the pedestal to your raw data
+    """
+    return net_raw_pixel_amplitude
 
 
 if __name__ == "__main__":
 
     if (len(sys.argv) < 1):
-        print TAG, "Usage %s " % sys.argv[0]
+        logger.info("Not enough arguments. Usage %s " % sys.argv[0])
         sys.exit(0)
 
     calibration_dataset = calibration_constant_calculation(
@@ -45,4 +54,5 @@ if __name__ == "__main__":
     calibrated_dataset = calibration_constant_application(
         raw_dataset, calibration_dataset, parameters)
 
+    logger.info("%s> Closing file...")
     sys.exit(0)

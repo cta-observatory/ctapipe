@@ -3,6 +3,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 from ctapipe.calib.camera.mc import *
 
+
 def get_test_parameters():
     parameters = {"integrator": "nb_peak_integration",
                   "nsum": 7,
@@ -12,12 +13,14 @@ def get_test_parameters():
                   "lwt": 0}
     return parameters
 
+
 def get_test_event():
     filename = get_path(
         'gamma_test.simtel.gz')
     for event in hessio_event_source(filename):
         if event.dl0.event_id == 409:
             return event
+
 
 def test_set_integration_correction():
     telid = 11
@@ -26,36 +29,46 @@ def test_set_integration_correction():
     assert set_integration_correction(
         telid, get_test_parameters()) == float(1.0497408130033212)
 
+
 def test_full_integration_mc():
     telid = 11
-    int_adc_pix, peak_adc_pix = full_integration_mc(get_test_event(),get_pedestal(telid),telid)
+    int_adc_pix, peak_adc_pix = full_integration_mc(
+        get_test_event(), get_pedestal(telid), telid)
     assert int_adc_pix[0][0] == 148
-    assert peak_adc_pix == None
+    assert peak_adc_pix is None
+
 
 def test_simple_integration_mc():
     telid = 11
-    int_adc_pix, peak_adc_pix = simple_integration_mc(get_test_event(),get_pedestal(telid),telid, get_test_parameters())
+    int_adc_pix, peak_adc_pix = simple_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
     assert int_adc_pix[0][0] == 70
-    assert peak_adc_pix == None
+    assert peak_adc_pix is None
+
 
 def test_global_peak_integration_mc():
     telid = 11
-    int_adc_pix, peak_adc_pix = global_peak_integration_mc(get_test_event(),get_pedestal(telid),telid, get_test_parameters())
+    int_adc_pix, peak_adc_pix = global_peak_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
     assert int_adc_pix[0][0] == 79
     assert peak_adc_pix[0] == 13
 
 
 def test_local_peak_integration_mc():
     telid = 11
-    int_adc_pix, peak_adc_pix = local_peak_integration_mc(get_test_event(),get_pedestal(telid),telid, get_test_parameters())
+    int_adc_pix, peak_adc_pix = local_peak_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
     assert int_adc_pix[0][0] == 79
     assert peak_adc_pix[0] == 13
 
+
 def test_nb_peak_integration_mc():
     telid = 11
-    int_adc_pix, peak_adc_pix = nb_peak_integration_mc(get_test_event(),get_pedestal(telid),telid, get_test_parameters())
+    int_adc_pix, peak_adc_pix = nb_peak_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
     assert int_adc_pix[0][0] == -61
     assert peak_adc_pix[0] == 20
+
 
 def test_pixel_integration_mc():
     telid = 11
