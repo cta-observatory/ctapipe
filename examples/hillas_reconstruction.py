@@ -1,7 +1,7 @@
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.core import Container
-from ctapipe.coordinates.frames import GroundFrame, TiltedGroundFrame
+from ctapipe.coordinates.frames import GroundFrame, TiltedGroundFrame, project_to_ground
 
 from ctapipe.io.containers import RawData
 from ctapipe.io.containers import MCShowerData, CentralTriggerData
@@ -126,7 +126,7 @@ if __name__ == '__main__':
 
             shower_direction = hill_int.reconstruct_nominal(hillas_parameter_list)
             core_position = hill_int.reconstruct_tilted(hillas_parameter_list,tilt.x.value.tolist(),tilt.y.value.tolist())
-            print(core_position.transform_to(GroundFrame))
+            print(project_to_ground(core_position))
 
             print(shower_direction)
             print(container.mc.alt*57.3,container.mc.az*57.3)
