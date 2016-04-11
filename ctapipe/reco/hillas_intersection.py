@@ -109,6 +109,7 @@ def reconstruct_tilted(hillas_parameters,tel_x,tel_y,weighting="Konrad"):
 
     return tilt
 
+
 def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
     """
 
@@ -139,6 +140,7 @@ def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
 
     s2 = np.sin(phi2)
     c2 = np.cos(phi2)
+
     A2 = s2
     B2 = -1*c2
     C2 = yp2*c2 - xp2*s2
@@ -149,7 +151,6 @@ def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
 
     #if  math.fabs(detAB) < 1e-14 : # /* parallel */
     #    return 0,0
-
     xs = detBC / detAB
     ys = detCA / detAB
 
