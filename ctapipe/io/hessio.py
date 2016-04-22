@@ -107,8 +107,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
                     = pyhessio.get_pixel_position(tel_id) * u.m
                 container.meta.optical_foclen[tel_id] = pyhessio.get_optical_foclen(tel_id) * u.m;
 
-        # fill the photo electrons list
-        for tel_id in pyhessio.get_telescope_with_data_list():
+            # fill the photo electrons list
             if tel_id not in container.mc.photo_electrons:
                 container.mc.photo_electrons[tel_id] = dict()
             for pix_id in range(pyhessio.get_num_pixels(tel_id)):
