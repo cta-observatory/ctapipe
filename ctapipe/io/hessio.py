@@ -65,7 +65,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     container.add_item("mc", MCEvent())
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
-
+    container.add_item("tel_pos", dict())
+    
     for run_id, event_id in eventstream:
 
         container.dl0.run_id = run_id
@@ -113,6 +114,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             for pix_id in range(pyhessio.get_num_pixels(tel_id)):
                 container.mc.photo_electrons[tel_id][pix_id] = pyhessio.get_mc_number_photon_electron(tel_id, pix_id)[0]
 
+            # fill telescope position dictionary, if not already done:
+            if tel_id not in container.tel_pos:
+                container.tel_pos[tel_id] = pyhessio.get_telescope_position(tel_id) * u.m
 
             nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)
