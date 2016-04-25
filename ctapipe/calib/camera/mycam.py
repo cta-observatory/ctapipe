@@ -37,7 +37,7 @@ def pedestal_substraction():
 if __name__ == "__main__":
 
     if (len(sys.argv) < 1):
-        print TAG, "Usage %s " % sys.argv[0]
+        print( TAG, "Usage %s " % sys.argv[0])
         sys.exit(0)
 
     calibration_dataset = calibration_constant_calculation(
