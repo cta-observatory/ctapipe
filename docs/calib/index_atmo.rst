@@ -1,10 +1,11 @@
 .. _calib_atmo:
 
-============
+=======================
  Atmosphere calibration
-============
+=======================
 
 .. currentmodule:: ctapipe.calib.atmo
+
 
 This module contains the functions to calibrate the atmosphere above CTA arrays.
 
@@ -23,4 +24,9 @@ These functions are divided into the different python modules, corresponding to 
     * Data selection (`data_selection.py`)
     * Data correction (`data_correction.py`)
 
- 
+
+Reference/API
+=============
+
+.. automodapi:: ctapipe.calib.atmo
+    :no-inheritance-diagram:

@@ -1,8 +1,8 @@
 .. _calib_array:
 
-============
+==================
  Array calibration
-============
+==================
 
 .. currentmodule:: ctapipe.calib.array
 
@@ -21,3 +21,10 @@ These functions are divided into the different python modules, corresponding to 
 
     * Space detectors in operation (`space_detectors_calib.py`)
     * Archival data (`archival_data_calib.py`)
+
+
+Reference/API
+=============
+
+.. automodapi:: ctapipe.calib.array
+    :no-inheritance-diagram:
