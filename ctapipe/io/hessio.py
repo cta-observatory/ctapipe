@@ -7,7 +7,7 @@ This requires the hessio python library to be installed
 import logging
 
 from .containers import RawData
-from .containers import RawCameraData, MCShowerData, CentralTriggerData
+from .containers import RawCameraData, MCEvent, CentralTriggerData
 from ctapipe.core import Container
 
 from astropy import units as u
@@ -62,7 +62,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     container.meta.add_item('pixel_pos', dict())
     container.meta.add_item('optical_foclen', dict())
     container.add_item("dl0", RawData())
-    container.add_item("mc", MCShowerData())
+    container.add_item("mc", MCEvent())
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
     container.add_item("tel_pos", dict())
@@ -111,6 +111,13 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             # fill telescope position dictionary, if not already done:
             if tel_id not in container.tel_pos:
                 container.tel_pos[tel_id] = pyhessio.get_telescope_position(tel_id) * u.m
+            # fill the photo electrons list
+
+            if tel_id not in container.mc.photo_electrons:
+                container.mc.photo_electrons[tel_id] = dict()
+            for pix_id in range(pyhessio.get_num_pixels(tel_id)):
+                container.mc.photo_electrons[tel_id][pix_id] = pyhessio.get_mc_number_photon_electron(tel_id, pix_id)[0]
+
 
             nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)

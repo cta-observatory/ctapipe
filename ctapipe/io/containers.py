@@ -4,7 +4,7 @@
 from ctapipe.core import Container
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'CalibratedCameraData']
+__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'CalibratedCameraData']
 
 
 class RawData(Container):
@@ -42,6 +42,28 @@ class MCShowerData(Container):
         self.add_item('az')
         self.add_item('core_x')
         self.add_item('core_y')
+    def __str__(self):
+        return_string  = self._name+":\n"
+        return_string += "energy:   {0:.2}\n".format(self.energy)
+        return_string += "altitude: {0:.2}\n".format(self.alt)
+        return_string += "azimuth:  {0:.2}\n".format(self.az)
+        return_string += "core x:   {0:.4}\n".format(self.core_x)
+        return_string += "core y:   {0:.4}"  .format(self.core_y)
+        return return_string
+
+class MCEvent(MCShowerData):
+    def __init__(self, name='MCEvent'):
+        super().__init__(name)
+        self.add_item('photo_electrons',dict())
+    def __str__(self):
+        return_string = super().__str__()+"\n"
+        NPix=0
+        for tel in self.photo_electrons.values():
+            for pix in tel.values():
+                if pix > 0:
+                    NPix += 1
+        return_string += "hit pixels: {}".format( NPix )
+        return return_string
 
 
 class CentralTriggerData(Container):
