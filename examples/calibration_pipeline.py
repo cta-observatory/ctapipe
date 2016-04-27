@@ -6,6 +6,7 @@ from ctapipe.io.hessio import hessio_event_source
 from pyhessio import *
 from ctapipe.core import Container
 from ctapipe.io.containers import RawData, CalibratedCameraData
+from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe import visualization, io
 from astropy import units as u
 from ctapipe.calib.camera.mc import *
@@ -29,7 +30,8 @@ def init_dl1(event):
     container = Container("calibrated_hessio_container")
     container.add_item("dl1", RawData())
     container.meta.add_item('pixel_pos', dict())
-    container.meta.pixel_pos = event.meta.pixel_pos
+    #container.meta.pixel_pos = event.meta.pixel_pos
+    container.meta.add_item('optical_foclen', dict())
 
     return container
 
@@ -55,8 +57,9 @@ def display_telescope(event, tel_id):
                     pow(get_mc_event_ycore(), 2))))
     print("\t draw cam {}...".format(tel_id))
     x, y = event.meta.pixel_pos[tel_id]
+    foclen = event.meta.optical_foclen[tel_id]
     # geom = io.CameraGeometry.guess(x * u.m, y * u.m)
-    geom = io.CameraGeometry.guess(x, y)
+    geom = io.CameraGeometry.guess(x, y, foclen)
     npads = 1
     # Only create two pads if there is timing information extracted
     # from the calibration
@@ -126,13 +129,14 @@ def camera_calibration(filename, parameters, disp_args, level):
     # will measure the calibration time)
     nlooptime = 1
     if __debug__:
-        nlooptime = 100
+        nlooptime = 10
 
     # Load dl1 container
     # container = Container("calibrated_hessio_container")
     # container.add_item("dl1", RawData())
     # container.meta.add_item('pixel_pos', dict())
 
+    tel, cam, opt = ID.load(filename)
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
     nt = 0
@@ -161,7 +165,11 @@ def camera_calibration(filename, parameters, disp_args, level):
 
             # Get per telescope the camera geometry
             x, y = event.meta.pixel_pos[telid]
-            geom = io.CameraGeometry.guess(x, y)
+            foclen = event.meta.optical_foclen[telid]
+            container.meta.pixel_pos[telid] = x, y
+            container.meta.optical_foclen[telid] = foclen
+            #geom = io.CameraGeometry.guess(x, y, foclen)
+            
 
             # Get the calibration data sets (pedestals and single-pe)
             ped = get_pedestal(telid)
@@ -172,7 +180,7 @@ def camera_calibration(filename, parameters, disp_args, level):
             # for the different algorithms options
             start = time.process_time()
             for i in range(nlooptime):
-                int_adc_pix, peak_adc_pix = pixel_integration_mc(event,
+                int_adc_pix, peak_adc_pix = pixel_integration_mc(event, cam,
                                                                  ped, telid,
                                                                  parameters)
             end = time.process_time()

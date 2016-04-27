@@ -14,6 +14,7 @@ import logging
 from scipy import interp, integrate, interpolate
 import matplotlib
 from pylab import *
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ def set_integration_correction(telid, params):
     return (int1.sum()*refstep)/(int2.sum()*time_slice)
 
 
-def pixel_integration_mc(event, ped, telid, parameters):
+def pixel_integration_mc(event, cam, ped, telid, parameters):
     """
     Parameters
     ----------
@@ -137,7 +138,7 @@ def pixel_integration_mc(event, ped, telid, parameters):
         'local_peak_integration': lambda: local_peak_integration_mc(
             event, ped, telid, parameters),
         'nb_peak_integration': lambda: nb_peak_integration_mc(
-            event, ped, telid, parameters),
+            event, cam, ped, telid, parameters),
         }
     try:
         result = switch[parameters['integrator']]()
@@ -398,7 +399,7 @@ def local_peak_integration_mc(event, ped, telid, parameters):
     return sum_pix_tel, time_pix_tel[0]
 
 
-def nb_peak_integration_mc(event, ped, telid, parameters):
+def nb_peak_integration_mc(event, cam, ped, telid, parameters):
 
     """
     Integrate sample-mode data (traces) around a peak in the signal sum of
@@ -433,6 +434,7 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
     substracted per gain and peak slide
     """
 
+    istart = time.process_time()
     # The number of samples to sum up can not be larger than
     # the number of samples
     nsum = parameters['nsum']
@@ -441,8 +443,12 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
     lwt = parameters['lwt']
 
     #  For this integration scheme we need the list of neighbours early on
-    pix_x, pix_y = event.meta.pixel_pos[telid]
-    geom = io.CameraGeometry.guess(pix_x, pix_y)
+    #pix_x, pix_y = event.meta.pixel_pos[telid]
+    #foclen = event.meta.optical_foclen[telid]
+    #geom = io.CameraGeometry.guess(pix_x, pix_y, foclen)
+    geom = cam['CameraTable_VersionFeb2016_TelID%s'%telid]
+
+    iend = time.process_time()
 
     samples_pix_tel_list = []
     sigamp_cut = np.ones((get_num_channel(telid)))
@@ -461,7 +467,8 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
     m = np.zeros_like(samples_pix_clean)
     for i in range(0, np.shape(samples_pix_clean)[0]):
         for j in range(0, np.shape(samples_pix_clean)[1]):
-            nb_samples = samples_pix_clean[i, geom.neighbors[j], :]
+            #nb_samples = samples_pix_clean[i, geom.neighbors[j], :]
+            nb_samples = samples_pix_clean[i, geom['PixNeig'][j], :]
             all_samples = np.vstack([nb_samples,
                                      lwt*samples_pix_clean[i, j, :]])
             sum_samples = all_samples.sum(0)
@@ -473,6 +480,8 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
+
+    if __debug__: print(" inter-integration %.3e sec"%(iend-istart))
 
     return sum_pix_tel, time_pix_tel[0]
 

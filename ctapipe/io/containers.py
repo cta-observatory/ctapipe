@@ -95,7 +95,7 @@ class RawCameraData(Container):
         self.add_item('num_channels')
 
 
-class CalibratedCameraData(Container):
+class CalibratedCameraData(RawData):
     """
     Storage of calibrated (p.e.) data from a single telescope
 
@@ -109,8 +109,9 @@ class CalibratedCameraData(Container):
     """
     def __init__(self, tel_id):
         super(CalibratedCameraData, self).__init__("CT{:03d}".format(tel_id))
-        self.add_item('run_id')
-        self.add_item('event_id')
-        self.add_item('tels_with_data')
+        #super().__init__("CT{:03d}".format(tel_id))
+        #self.add_item('run_id')
+        #self.add_item('event_id')
+        #self.add_item('tels_with_data')
         self.add_item('pe_charge', dict())
         self.add_item('tom', dict())
