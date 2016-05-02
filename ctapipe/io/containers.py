@@ -2,6 +2,7 @@
 """
 
 from ctapipe.core import Container
+import numpy as np
 
 
 __all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
@@ -67,12 +68,8 @@ class MCEvent(MCShowerData):
         self.add_item('tel',dict())
     def __str__(self):
         return_string = super().__str__()+"\n"
-        NPix=0
-        for t in self.tel.values():
-            for pix in t.photo_electrons:
-                if pix > 0:
-                    NPix += 1
-        return_string += "hit pixels: {}".format( NPix )
+        npix = np.sum([np.sum(t.photo_electrons > 0) for t in self.tel.values()])
+        return_string += "hit pixels: {}".format( npix )
         return return_string
 
 
