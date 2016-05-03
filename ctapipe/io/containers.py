@@ -69,7 +69,7 @@ class MCEvent(MCShowerData):
     def __str__(self):
         return_string = super().__str__()+"\n"
         npix = np.sum([np.sum(t.photo_electrons > 0) for t in self.tel.values()])
-        return_string += "hit pixels: {}".format( npix )
+        return_string += "total photo_electrons: {}".format( npix )
         return return_string
 
 
