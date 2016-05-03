@@ -106,7 +106,7 @@ class Configuration(ArgumentParser):
 
 		Returns
 		--------
-		True is option is added, 
+		True is option is added,
 		False is option already exist
 		"""
 		if section not in self._entries:
@@ -403,7 +403,7 @@ class Configuration(ArgumentParser):
 					self.add(key, value, comment=comment, section=section)
 				except IndexError:
 					self.add(key, value,  section=section)
-				
+
 
 		for key, value_comment in config_parser.defaults().items():
 			foo = value_comment.split(" ;")
@@ -413,8 +413,8 @@ class Configuration(ArgumentParser):
 			self.add(key, value, comment=comment, section=self.DEFAULT)
 		# add default section
 		return True
-	
-	
+
+
 	def get_list(self, key,section=DEFAULT):
 		"""
 		Get a configuration entry value in python list format
@@ -422,7 +422,7 @@ class Configuration(ArgumentParser):
 		Parameters:
 		-----------
 		key: str
-			key to search in section 
+			key to search in section
 		section: str , optional
 			section to search key ('DEFAULT' section is used by default)
 
@@ -434,7 +434,7 @@ class Configuration(ArgumentParser):
 		chaine = str(self.get(key,section))
 		l = chaine[1:-1].split(',')
 		return  l
-	
+
 	def get_section_list(self):
 		"""
 		Get list of sections name
@@ -448,7 +448,7 @@ class Configuration(ArgumentParser):
 	def dynamic_class_from_module(self,section_name,pass_configuration=False):
 		"""
 		Create an instance of a class from a configuration service section name
-		
+
 		Parameters:
 		-----------
 		section_name : str
@@ -456,7 +456,7 @@ class Configuration(ArgumentParser):
 				Corresponding section must at least contains the following 3 entries:
 				module: python module name
 				class:  python class name within the module
-				filename: python modul full path filename 
+				filename: python modul full path filename
 		Returns:
 		--------
 		A python instance of a class
@@ -476,11 +476,6 @@ class Configuration(ArgumentParser):
 			return instance
 		except(AttributeError):
 			print("Could not create an instance of",section_name,":", module, ":", class_name , file=sys.stderr)
-		
+
 		#except(ImportError):
 		#	print("Could import module ",module, file=sys.stderr)
-
-
-
-
-
