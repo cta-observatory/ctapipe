@@ -2,9 +2,10 @@
 """
 
 from ctapipe.core import Container
+import numpy as np
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'CalibratedCameraData']
+__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
 
 
 class RawData(Container):
@@ -52,17 +53,23 @@ class MCShowerData(Container):
         return return_string
 
 class MCEvent(MCShowerData):
+    """
+    Storage of MC event data
+
+    Parameters
+    ----------
+
+    tel : dict of `RawCameraData` by tel_id
+        dictionary of the data for each telescope
+
+    """
     def __init__(self, name='MCEvent'):
         super().__init__(name)
-        self.add_item('photo_electrons',dict())
+        self.add_item('tel',dict())
     def __str__(self):
         return_string = super().__str__()+"\n"
-        NPix=0
-        for tel in self.photo_electrons.values():
-            for pix in tel.values():
-                if pix > 0:
-                    NPix += 1
-        return_string += "hit pixels: {}".format( NPix )
+        npix = np.sum([np.sum(t.photo_electrons > 0) for t in self.tel.values()])
+        return_string += "total photo_electrons: {}".format( npix )
         return return_string
 
 
@@ -71,6 +78,22 @@ class CentralTriggerData(Container):
         super().__init__(name)
         self.add_item('gps_time')
         self.add_item('tels_with_trigger')
+
+
+class MCCamera(Container):
+    """
+    Storage of mc data used for a single telescope
+
+    Parameters
+    ----------
+
+    pe_count : dict by channel
+        (masked) arrays of true (mc) pe count in each pixel (n_pixels)
+
+    """
+    def __init__(self, tel_id):
+        super().__init__("CT{:03d}".format(tel_id))
+        self.add_item('photo_electrons', dict())
 
 
 class RawCameraData(Container):
