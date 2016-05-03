@@ -48,7 +48,11 @@ import os
 import six
 import json
 import pytest
+import logging
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(name)s - %(levelname)s - %(message)s')
 
 class Foo(Configurable):
     """A class that has configurable, typed attributes.
@@ -113,16 +117,15 @@ class MyApp(Application):
                 f.write(str(json.dumps(self.config)))
 
     def traitletsConfigToFits(self):
-        return traitletsConfigToFits( self.config,'test.fits')
+        return traitletsConfigToFits( self.config,'config_to_fits.fits',clobber=True)
 
     def jsonToFits(self):
-        return jsonToFits(self.full_path_configfile,'json_to_fits.fits')
+        return jsonToFits(self.full_path_configfile,'json_to_fits.fits',clobber=True)
 
 def test_traitletsConfigToFits():
     backup = sys.argv
-    print('backup:{',backup,'}')
-    sys.argv = ['test_json_2_fits.py', '--config_file=config.json']
-    print('sys.argv:{',sys.argv,'}')
+    full_config_name = get_path('config.json')
+    sys.argv = ['test_json_2_fits.py', '--config_file='+full_config_name]
     app = MyApp()
     app.initialize()
     app.start()
@@ -131,10 +134,8 @@ def test_traitletsConfigToFits():
 
 def test_jsonToFits():
     backup = sys.argv
-    print('backup:{',backup,'}')
     full_config_name = get_path('config.json')
     sys.argv = ['test_json_2_fits.py', '--config_file='+full_config_name]
-    print('sys.argv:{',sys.argv,'}')
     app = MyApp()
     app.initialize()
     app.start()
@@ -145,7 +146,8 @@ def test_jsonToFits():
 def main():
     test_traitletsConfigToFits()
     test_jsonToFits()
-    print("Pass")
+    logger.info("Pass")
+
 
 if __name__ == "__main__":
     main()

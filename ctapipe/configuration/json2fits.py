@@ -3,10 +3,14 @@ from traitlets.config.loader import Config
 from json import load
 import logging
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(name)s - %(levelname)s - %(message)s')
+
 
 __all__ = ['traitletsConfigToFits','jsonToFits']
 
-def traitletsConfigToFits( config, fits_filename):
+def traitletsConfigToFits( config, fits_filename,clobber=True):
     """Write a FITS file that represents configuration.
     Parameters
     ----------
@@ -14,6 +18,8 @@ def traitletsConfigToFits( config, fits_filename):
         a traitlets.config.loader.Config to write in FITS format
     fits_filename : str
         FITS file name to write
+    clobber : bool
+        When True, overwrite the output file if exists.
     Returns
     -------
     True is FITS file containing the traitlets config is written
@@ -21,25 +27,29 @@ def traitletsConfigToFits( config, fits_filename):
     """
 
     if not isinstance(config,Config):
-        logging.error("traitletsConfigToFits: config must be an instance of traitlets.config.loader.Config")
+        logger.error("traitletsConfigToFits: config must be an instance of traitlets.config.loader.Config")
         return False
     # hduList will contain one TableHDU per section
     hduList = fits.HDUList()
     # get all Configuration entries
     # loop over section
-    print('---------------------------DEBUG')
     for section,entry in config.items():
         header = fits.Header()
         for key,value in entry.items():
             header[key] = value
         table_0 = fits.TableHDU(data=None, header=header, name=section)
         hduList.append(table_0)
-    hduList.writeto(fits_filename, clobber=True)
+    try:
+        hduList.writeto(fits_filename, clobber=clobber)
+    except OSError as e:
+        logger.error(str(e))
+        return False
     return True
 
 
 
-def jsonToFits( json_filename, fits_filename):
+
+def jsonToFits( json_filename, fits_filename,clobber=True):
     """Write a FITS file that represents json file for traitlets configuration.
     Parameters
     ----------
@@ -48,6 +58,8 @@ def jsonToFits( json_filename, fits_filename):
         Only one level of section is allowed.
     fits_filename : str
         FITS file name to write
+    clobber : bool
+        When True, overwrite the output file if exists.
     Returns
     -------
     True is FITS file containing a copy of json content is written
@@ -68,8 +80,8 @@ def jsonToFits( json_filename, fits_filename):
                 #loop over key/value entries
                 for k, v in entry.items():
                     if isinstance(v, dict):
-                        print("Error. Fits Header cannot contains subheaders.")
-                        print("Error. Please correct your json file to follow requirements.")
+                        logger.error('Fits Header cannot contains subheaders.')
+                        logger.error('Please correct your json file to follow requirements.')
                         return False
                     header[k] = v
                 # create a new TableHDU with current header and append it to hduList
@@ -84,8 +96,12 @@ def jsonToFits( json_filename, fits_filename):
         table_0 = fits.TableHDU(data=None, header=global_header, name="GLOBAL")
         hduList.append(table_0)
         # write hduList to FITS file
-        hduList.writeto(fits_filename, clobber=True)
+        try:
+            hduList.writeto(fits_filename, clobber=clobber)
+        except OSError as e:
+            logger.error(str(e))
+            return False
         return True
     except FileNotFoundError:
-        logging.error('No such file or directory:\''+json_filename+'\'')
+        logger.error('No such file or directory:\''+json_filename+'\'')
         return False
