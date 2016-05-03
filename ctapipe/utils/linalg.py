@@ -14,9 +14,9 @@ def rotation_matrix_2d(angle):
 
 
 def rotate_around_axis(vec, axis, angle):
-    """ rotates @vec aroun @axis with @angle in radians
-        creates a rotation matrix and calls the matrix 
-        multiplication method
+    """ rotates a vector around an axis by an angle
+        creates a rotation matrix and multiplies 
+        the initial vector with it
     
     Parameters
     ---------
@@ -44,7 +44,8 @@ def rotate_around_axis(vec, axis, angle):
     return vec.dot(rot_matrix)
 
 def length(vec):
-    """ returns the length / norm of a numpy array
+    """ returns the length/norm of a numpy array
+        as the square root of the inner product with itself
     """
     return vec.dot(vec)**.5
     
