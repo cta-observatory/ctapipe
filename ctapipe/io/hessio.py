@@ -129,7 +129,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
 
             # load the data per telescope/pixel
             container.mc.tel[tel_id].photo_electrons \
-                = pyhessio.get_mc_number_photon_electron(telescope_id=tel_id,pixel_id=0)
+                = pyhessio.get_mc_number_photon_electron(telescope_id=tel_id)
+
         yield container
         counter += 1
 
