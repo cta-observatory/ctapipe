@@ -5,6 +5,8 @@ astropy.coordinates framework.
 
 For examples on usage see examples/coordinate_transformations.py
 
+This code is based on the coordinate transformations performed in the read_hess code
+
 TODO:
 - Tests Tests Tests!
 - Check cartesian system is still accurate for the nominal and telescope systems (may need a spherical system)
