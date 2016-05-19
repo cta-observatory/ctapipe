@@ -7,7 +7,7 @@ This requires the hessio python library to be installed
 import logging
 
 from .containers import RawData
-from .containers import RawCameraData, MCShowerData, CentralTriggerData
+from .containers import RawCameraData, MCEvent, MCCamera, CentralTriggerData
 from ctapipe.core import Container
 
 from astropy import units as u
@@ -60,11 +60,13 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     container.meta.add_item('hessio__input', url)
     container.meta.add_item('hessio__max_events', max_events)
     container.meta.add_item('pixel_pos', dict())
+    container.meta.add_item('optical_foclen', dict())
     container.add_item("dl0", RawData())
-    container.add_item("mc", MCShowerData())
+    container.add_item("mc", MCEvent())
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
-
+    container.add_item("tel_pos", dict())
+    
     for run_id, event_id in eventstream:
 
         container.dl0.run_id = run_id
@@ -97,6 +99,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         # collected)
 
         container.dl0.tel = dict()  # clear the previous telescopes
+        container.mc.tel = dict()  # clear the previous telescopes
 
         for tel_id in container.dl0.tels_with_data:
 
@@ -104,10 +107,16 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             if tel_id not in container.meta.pixel_pos:
                 container.meta.pixel_pos[tel_id] \
                     = pyhessio.get_pixel_position(tel_id) * u.m
+                container.meta.optical_foclen[tel_id] = pyhessio.get_optical_foclen(tel_id) * u.m;
 
+            # fill telescope position dictionary, if not already done:
+            if tel_id not in container.tel_pos:
+                container.tel_pos[tel_id] = pyhessio.get_telescope_position(tel_id) * u.m
+            
             nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)
             container.dl0.tel[tel_id].num_channels = nchans
+            container.mc.tel[tel_id] = MCCamera(tel_id)
 
             # load the data per telescope/chan
             for chan in range(nchans):
@@ -117,6 +126,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
                 container.dl0.tel[tel_id].adc_sums[chan] \
                     = pyhessio.get_adc_sum(channel=chan,
                                            telescope_id=tel_id)
+
+            # load the data per telescope/pixel
+            container.mc.tel[tel_id].photo_electrons \
+                = pyhessio.get_mc_number_photon_electron(telescope_id=tel_id)
         yield container
         counter += 1
 

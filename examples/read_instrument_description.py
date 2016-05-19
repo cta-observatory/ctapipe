@@ -11,6 +11,7 @@ fits, and a sim_telarray-config file.
 from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.utils.datasets import get_path
 import matplotlib.pyplot as plt
+import os
 
 if __name__ == '__main__':
     
@@ -46,14 +47,14 @@ if __name__ == '__main__':
     print('Print the table from the telscope dictionary containing the',\
     'overview of the telescope configuration')
     print(tel1['1'])
-    print(tel2['TelescopeTableVersionFeb2016'])
+    print(tel2['TelescopeTable_VersionFeb2016'])
     print(tel3['TelescopeTable_CTA-ULTRA6-SCT'])
-    print(tel4['TelescopeTableVersionFeb2016'])
+    print(tel4['TelescopeTable_VersionFeb2016'])
     print('------------------------------------------------------------------')
     
     print('Print all the information stored for a given telescope in a table')
     print('available information about telescope with ID = 1:')
-    print(tel2['TelescopeTableVersionFeb2016'][tel2['TelescopeTableVersionFeb2016']['TelID']==1])
+    print(tel2['TelescopeTable_VersionFeb2016'][tel2['TelescopeTable_VersionFeb2016']['TelID']==1])
     print('------------------------------------------------------------------')
     
     print('Print a specific information stored for a given telescope in a',\
@@ -62,6 +63,7 @@ if __name__ == '__main__':
     print('------------------------------------------------------------------')
     
     print('Plot the discriminator pulse shape')
+    print(tel3['Tel_DiscriminatorPulseShape'])
     title = 'Discriminator Pulse Shape'
     plt.figure()
     plt.plot(tel3['Tel_DiscriminatorPulseShape']['Time'],\
@@ -74,6 +76,7 @@ if __name__ == '__main__':
     print('------------------------------------------------------------------')
     
     print('Plot the mirror reflectivity vs wavelength stored in a config file')
+    print(opt3['Opt_MirrorRefelctivity'])
     title = 'Mirror reflectivity versus wavelength'
     plt.figure()
     plt.plot(opt3['Opt_MirrorRefelctivity']['Wavelength'],
@@ -83,3 +86,16 @@ if __name__ == '__main__':
     plt.xlabel('Wavelength (%s)' % \
     opt3['Opt_MirrorRefelctivity']['Wavelength'].unit)
     plt.show()
+    
+    #writing to files
+    ID.write_fits(instr_dict=tel1,overwrite=True)
+    tel11,cam11,opt11 = ID.load('1.fits')
+    print(tel11['1'])
+    tel12,cam12,opt12 = ID.load('2.fits')
+    print(tel12['1'])
+    
+    os.remove('1.fits')
+    os.remove('2.fits')
+    
+    
+    

@@ -12,6 +12,7 @@ import numpy as np
 import logging
 import copy
 from astropy import units as u
+from ctapipe.coordinates import CameraFrame, NominalFrame
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -109,14 +110,20 @@ class CameraDisplay:
                               u.Quantity(np.array(self.geom.pix_area))):
             if self.geom.pix_type.startswith("hex"):
                 rr = sqrt(aa * 2 / 3 / sqrt(3))
-                poly = RegularPolygon((xx, yy), 6, radius=rr,
-                                      orientation=np.radians(0),
-                                      fill=True)
+                poly = RegularPolygon(
+                    (xx, yy), 6, radius=rr,
+                    orientation=self.geom.pix_rotation.rad,
+                    fill=True,
+                )
             else:
                 rr = sqrt(aa)
-                poly = Rectangle((xx, yy), width=rr, height=rr,
-                                 angle=np.radians(0),
-                                 fill=True)
+                poly = Rectangle(
+                    (xx, yy),
+                    width=rr,
+                    height=rr,
+                    angle=self.geom.pix_rotation.deg,
+                    fill=True,
+                )
 
             patches.append(poly)
 
@@ -197,17 +204,19 @@ class CameraDisplay:
 
     @norm.setter
     def norm(self, norm):
+
         if norm == 'lin':
             self.pixels.norm = Normalize()
         elif norm == 'log':
             self.pixels.norm = LogNorm()
+            self.pixels.autoscale()  # this is to handle matplotlib bug #5424
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
         else:
             raise ValueError('Unsupported norm: {}'.format(norm))
 
-        self.pixels.changed()
-        self.update()
+        self.update(force=True)
+        self.pixels.autoscale()
 
     @property
     def cmap(self):
@@ -255,11 +264,14 @@ class CameraDisplay:
             self.pixels.autoscale()
         self.update()
 
-    def update(self):
+    def update(self, force=False):
         """ signal a redraw if necessary """
         if self.autoupdate:
             if self.colorbar is not None:
-                self.colorbar.update_normal(self.pixels)
+                if force is True:
+                    self.colorbar.update_bruteforce(self.pixels)
+                else:
+                    self.colorbar.update_normal(self.pixels)
                 self.colorbar.draw_all()
             self.axes.figure.canvas.draw()
 
@@ -316,12 +328,11 @@ class CameraDisplay:
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
-
-        el = self.add_ellipse(centroid=(momparams.cen_x, momparams.cen_y),
-                              length=momparams.length,
-                              width=momparams.width, angle=momparams.psi,
+        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_x.value),
+                              length=momparams.length.value,
+                              width=momparams.width.value, angle=momparams.psi.to(u.rad).value,
                               **kwargs)
-        self.axes.text(momparams.cen_x, momparams.cen_y,
+        self.axes.text(momparams.cen_x.value, momparams.cen_y.value,
                        ("({:.02f},{:.02f})\n"
                         "[w={:.02f},l={:.02f}]")
                        .format(momparams.cen_x,
