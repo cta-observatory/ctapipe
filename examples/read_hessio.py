@@ -67,6 +67,7 @@ def get_input():
     print("d               - Display the event")
     print("p               - Print all event data")
     print("i               - event Info")
+    print("s               - save event image")
     print("q               - Quit")
     return input("Choice: ")
 
@@ -86,7 +87,8 @@ if __name__ == '__main__':
     for event in source:
 
         print("EVENT_ID: ", event.dl0.event_id, "TELS: ",
-              event.dl0.tels_with_data)
+              event.dl0.tels_with_data,
+              "MC Energy:", event.mc.energy )
 
         while True:
             response = get_input()
@@ -98,6 +100,8 @@ if __name__ == '__main__':
                 print(event)
                 print("--event.dl0---------------")
                 print(event.dl0)
+                print("--event.mc----------------")
+                print(event.mc)
                 print("--event.dl0.tel-----------")
                 for teldata in event.dl0.tel.values():
                     print(teldata)
@@ -111,6 +115,10 @@ if __name__ == '__main__':
                               .format(tel_id, chan, npix,
                                       event.dl0.tel[tel_id].
                                       adc_samples[chan].shape[1]))
+            elif response.startswith('s'):
+                filename = "event_{0:010d}.png".format(event.dl0.event_id)
+                print("Saving to", filename)
+                plt.savefig(filename)
 
             elif response.startswith('q'):
                 break
