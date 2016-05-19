@@ -11,6 +11,11 @@ from pyhessio import *
 from ctapipe import io
 from astropy import units as u
 import logging
+from scipy import interp, integrate, interpolate
+import matplotlib
+from pylab import *
+import time
+
 logger = logging.getLogger(__name__)
 
 __all__ = [
@@ -21,7 +26,7 @@ __all__ = [
     'global_peak_integration_mc',
     'local_peak_integration_mc',
     'nb_peak_integration_mc',
-    'calibrate_amplitude_mc',
+    'calibrate_amplitude_mc'
 ]
 
 CALIB_SCALE = 0.92
@@ -45,15 +50,6 @@ The same the interpolation of the pulse shape and the adc2pe conversion.
 """
 
 
-def qpol(x, np, yval):
-    ix = round(x)
-    if x < 0 or x >= float(np):
-        return 0.
-    if ix+1 >= np:
-        return 0.
-    return yval[ix]*(ix+1-x) + yval[ix-1]*(x-ix)
-
-
 def set_integration_correction(telid, params):
     """
     Parameters
@@ -71,34 +67,43 @@ def set_integration_correction(telid, params):
     if 'nskip' not in params or 'nsum' not in params:
         return None
 
-    integration_correction = []
+    start = params['nskip']
+    nsum = params['nsum']
+
+    # Reference pulse parameters
+    refshape_list = []
     for igain in range(0, get_num_channel(telid)):
-        refshape = get_ref_shapes(telid, igain)
-        int_corr = 1.0
-        # Sum over all the pulse we have and rescale to original time step
-        asum = sum(refshape)*get_ref_step(telid)/get_time_slice(telid)
-        # Find the pulse shape peak (bin and value)
-        speak = max(refshape)
-        ipeak = refshape.argmax(axis=0)
-        # Sum up given interval starting from peak, averaging over phase
-        around_peak_sum = 0
-        for iphase in range(0, 5):
-            ti = (((iphase*0.2-0.4) - params['nskip']) *
-            get_time_slice(telid)/get_ref_step(telid) + ipeak)
-            for ibin in range(0, params['nsum']):
-                around_peak_sum += qpol(
-                    ibin*get_time_slice(telid)/get_ref_step(telid) +
-                    ti, get_lrefshape(telid), refshape)
-        around_peak_sum *= 0.2
-        if around_peak_sum > 0. and asum > 0.:
-            int_corr = asum/around_peak_sum
+        refshape_list.append(get_ref_shapes(telid, igain))
+    refshape = np.asarray(refshape_list)
+    refstep = get_ref_step(telid)
+    nrefstep = get_lrefshape(telid)
+    x = np.arange(0, refstep*nrefstep, refstep)
+    y = refshape[0]
+    refipeak = np.argmax(y)
+    refpeak = x[refipeak]
 
-        integration_correction.append(int_corr)
+    # Sampling pulse parameters
+    time_slice = get_time_slice(telid)
+    ratio = time_slice/refstep
+    x1 = np.arange(0, refstep*nrefstep, time_slice)
+    y1 = interp(x1, x, y)
+    ipeak = np.argmin(np.abs(x1-x[refipeak]))
 
-    return integration_correction
+    # Sanitity check
+    start = ipeak - params['nskip']
+    if start < 0:
+        start = 0
+    if start + nsum > get_num_samples(telid):
+        start = get_num_samples(telid) - nsum
+
+    int1 = np.histogram(x-refstep/2, bins=nrefstep-refstep/2, weights=y)[0]
+    int2 = np.histogram(x1-time_slice/2,
+                        bins=x1-time_slice/2, weights=y1)[0][start:start+nsum]
+
+    return (int1.sum()*refstep)/(int2.sum()*time_slice)
 
 
-def pixel_integration_mc(event, ped, telid, parameters):
+def pixel_integration_mc(event, cam, ped, telid, parameters):
     """
     Parameters
     ----------
@@ -120,7 +125,7 @@ def pixel_integration_mc(event, ped, telid, parameters):
     Returns None if event is None
     """
     if __debug__:
-        logger.debug("> %s"%(parameters['integrator']))
+        logger.debug("> %s" % (parameters['integrator']))
     if event is None:
         return None
 
@@ -133,7 +138,7 @@ def pixel_integration_mc(event, ped, telid, parameters):
         'local_peak_integration': lambda: local_peak_integration_mc(
             event, ped, telid, parameters),
         'nb_peak_integration': lambda: nb_peak_integration_mc(
-            event, ped, telid, parameters),
+            event, cam, ped, telid, parameters),
         }
     try:
         result = switch[parameters['integrator']]()
@@ -168,15 +173,13 @@ def full_integration_mc(event, ped, telid):
     if event is None or telid < 0:
         return None
 
-    sum_pix_tel = []
+    samples_pix_tel_list = []
     for igain in range(0, get_num_channel(telid)):
-        sum_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            samples_pix = np.asarray(get_adc_sample(telid, igain)[ipix])
-            sum_pix.append(sum(samples_pix[:])-ped[igain][ipix])
-        sum_pix_tel.append(sum_pix)
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    sum_pix_tel = np.asarray(samples_pix_tel.sum(2)-ped, dtype=np.int16)
 
-    return np.asarray(sum_pix_tel), None
+    return sum_pix_tel, None
 
 
 def simple_integration_mc(event, ped, telid, parameters):
@@ -226,19 +229,18 @@ def simple_integration_mc(event, ped, telid, parameters):
         else:
             nskip = get_num_samples(telid)-nsum
 
-    sum_pix_tel = []
-    int_corr = np.array([1.]*get_num_channel(telid))
+    int_corr = np.ones((get_num_channel(telid),
+                        get_num_pixels(telid)), dtype=np.int16)
+    samples_pix_tel_list = []
     for igain in range(0, get_num_channel(telid)):
-        sum_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            samples_pix_win = (get_adc_sample(telid, igain)[ipix]
-            [nskip:(nsum+nskip)])
-            ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
-            sum_pix.append(int(int_corr[igain]*(sum(samples_pix_win) - 
-                                                ped_per_trace*nsum)+0.5))
-        sum_pix_tel.append(sum_pix)
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    samples_pix_win = samples_pix_tel[:, :, nskip:nsum+nskip]
+    ped_pix_win = ped/get_num_samples(telid)
+    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2) -
+                                       ped_pix_win*nsum), dtype=np.int16)
 
-    return np.asarray(sum_pix_tel), None
+    return sum_pix_tel, None
 
 
 def global_peak_integration_mc(event, ped, telid, parameters):
@@ -276,61 +278,44 @@ def global_peak_integration_mc(event, ped, telid, parameters):
     if nsum >= get_num_samples(telid):
         nsum = get_num_samples(telid)
 
-    sum_pix_tel = []
-    time_pix_tel = []
-    jpeak = []
-    ppeak = []
+    samples_pix_tel_list = []
+    sigamp_cut = np.ones((get_num_channel(telid)))
+    significant_pix = np.ones((get_num_channel(telid),
+                               get_num_pixels(telid)), dtype=np.int8)
     for igain in range(0, get_num_channel(telid)):
-        peakpos = 0
-        npeaks = 0
-        # Find the peak (peakpos)
-        peak_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            ped_per_trace = int(ped[igain][ipix]/get_num_samples(telid)+0.5)
-            samples_pix_clean = np.asarray(get_adc_sample(telid, igain)
-            [ipix]).astype(np.int16) - ped_per_trace
-            significant = 0
-            ipeak = -1
-            for isamp in range(0, get_num_samples(telid)):
-                if samples_pix_clean[isamp] >= parameters['sigamp'][igain]:
-                    significant = 1
-                    ipeak = isamp
-                    for isamp2 in range(isamp+1, get_num_samples(telid)):
-                        if (samples_pix_clean[isamp2] >
-                        samples_pix_clean[ipeak]):
-                            ipeak = isamp2
-                    break
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+        sigamp_cut[igain] = parameters['sigamp'][igain]
+    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    ped_per_trace = ped/get_num_samples(telid)
+    samples_pix_clean = (samples_pix_tel -
+                         np.atleast_3d(ped_per_trace)).astype(np.int16)
 
-            if significant == 1:
-                jpeak.append(ipeak)
-                ppeak.append(samples_pix_clean[ipeak])
-                npeaks += 1
-                peak_pix.append(ipeak)
+    # Find the peak (peakpos)
+    sigamp_mask = (samples_pix_clean[:] > sigamp_cut)
+    # Sample with amplitude larger than 'sigamp' (smaller set to '0')
+    samples_pix_filtered = samples_pix_clean*sigamp_mask
 
-        peakpos = 0
-        if npeaks > 0 and sum(jpeak) > 0.:
-            peakpos = sum(np.array(jpeak)*np.array(ppeak))/sum(np.array(ppeak))
+    time_pix_tel = samples_pix_filtered.argmax(axis=2)
+    max_sample_tel = samples_pix_filtered.max(axis=2)
+    significant_pix = significant_pix*(np.any(sigamp_mask, axis=2) == True)
 
-        # Sanitity check
-        start = round(peakpos) - parameters['nskip']
-        if start < 0:
-            start = 0
-        if start + nsum > get_num_samples(telid):
-            start = get_num_samples(telid) - nsum
+    peakpos = np.zeros((get_num_channel(telid)))
+    if np.count_nonzero(significant_pix) > 0 and time_pix_tel.sum(1) > 0:
+        peakpos = ((time_pix_tel*max_sample_tel).sum(1) /
+                   max_sample_tel.sum(axis=1)).astype(np.int8)
+    # Sanitity check
+    start = peakpos - parameters['nskip']
+    if start < 0:
+        start = 0
+    if start + nsum > get_num_samples(telid):
+        start = get_num_samples(telid) - nsum
 
-        int_corr = set_integration_correction(telid, parameters)
-        # Integrate pixel
-        sum_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            samples_pix_win = np.asarray(get_adc_sample(telid, igain)
-            [ipix])[start:(nsum+start)]
-            ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
-            sum_pix.append(round(int_corr[igain] *
-                                 (sum(samples_pix_win) - ped_per_trace*nsum)))
+    int_corr = set_integration_correction(telid, parameters)
+    # Extract the pulse (pedestal substracted) in the found window
+    samples_pix_win = samples_pix_clean[:, :, start:nsum+start]
+    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
-        sum_pix_tel.append(sum_pix)
-        time_pix_tel.append(peak_pix)
-    return np.asarray(sum_pix_tel), np.asarray(time_pix_tel)
+    return sum_pix_tel, time_pix_tel[0]
 
 
 def local_peak_integration_mc(event, ped, telid, parameters):
@@ -363,73 +348,59 @@ def local_peak_integration_mc(event, ped, telid, parameters):
     substracted per gain and peak slide
     """
 
-    # The number of samples to sum up can not be larger than
-    # the number of samples
+    # The number of samples to sum up can not be larger than the
+    # number of samples
     nsum = parameters['nsum']
     if nsum >= get_num_samples(telid):
         nsum = get_num_samples(telid)
 
-    sum_pix_tel = []
-    time_pix_tel = []
-    peakpos = []  # [igain][ipix] (def. io_hess.h: 0=HI_GAIN,1=LO_GAIN)
+    samples_pix_tel_list = []
+    sigamp_cut = np.ones((get_num_channel(telid)))
+    significant_pix = np.ones((get_num_channel(telid),
+                               get_num_pixels(telid)), dtype=np.int8)
     for igain in range(0, get_num_channel(telid)):
-        jpeak = []  # [ipix] local peak for each pixel
-        sum_pix = []
-        peak_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            # Find the peak (peakpos)
-            ped_per_trace = int(ped[igain][ipix]/get_num_samples(telid)+0.5)
-            samples_pix_clean = np.asarray(get_adc_sample(telid, igain)
-            [ipix]).astype(np.int16) - ped_per_trace
-            significant = 0
-            ipeak = -1
-            for isamp in range(0, get_num_samples(telid)):
-                if samples_pix_clean[isamp] >= parameters['sigamp'][igain]:
-                    significant = 1
-                    ipeak = isamp
-                    for isamp2 in range(isamp+1, get_num_samples(telid)):
-                        if (samples_pix_clean[isamp2] >
-                        samples_pix_clean[ipeak]):
-                            ipeak = isamp2
-                    break
-            peak_pix.append(ipeak)
-            if igain == 0:
-                jpeak.append(ipeak)
-            else:
-                # If the LG is not significant, takes the HG peakpos
-                if significant and ipeak >= 0:
-                    jpeak.append(ipeak)
-                else:
-                    jpeak.append(peakpos[0][ipix])
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+        sigamp_cut[igain] = parameters['sigamp'][igain]
+    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    ped_per_trace = ped/get_num_samples(telid)
+    samples_pix_clean = (samples_pix_tel -
+                         np.atleast_3d(ped_per_trace)).astype(np.int16)
 
-            # Sanitity check
-            start = round(jpeak[ipix]) - parameters['nskip']
-            if start < 0:
-                start = 0
-            if start + nsum > get_num_samples(telid):
-                start = get_num_samples(telid) - nsum
+    # Find the peak (peakpos)
+    sigamp_mask = (samples_pix_clean[:] > sigamp_cut)
+    # Sample with amplitude larger than 'sigamp'
+    samples_pix_filtered = samples_pix_clean*sigamp_mask
+    time_pix_tel = samples_pix_filtered.argmax(axis=2)
+    max_sample_tel = samples_pix_filtered.max(axis=2)
+    significant_pix = significant_pix*(np.any(sigamp_mask, axis=2) == True)
 
-            int_corr = set_integration_correction(telid, parameters)
-            # Integrate pixel
-            samples_pix_win = np.asarray(get_adc_sample(telid, igain)
-            [ipix])[start:(nsum+start)]
-            ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
-            if jpeak[ipix] > 0:
-                sum_pix.append(round(int_corr[igain] *
-                                     (sum(samples_pix_win) -
-                                      ped_per_trace*nsum)))
-            else:
-                sum_pix.append(0.)
+    # If the LG is not significant, takes the HG peakpos
+    peakpos = time_pix_tel*significant_pix
+    if get_num_channel(telid) > 1:
+        peakpos[0] = np.where(significant_pix[0] < significant_pix[1],
+                              time_pix_tel[1], time_pix_tel[0]).astype(np.int8)
 
-        # Save the peak positions for LG check
-        peakpos.append(jpeak)
+    # Sanitity check
+    start = peakpos - parameters['nskip']
+    start[start < 0] = 0
+    start[start + nsum > get_num_samples(telid)] = get_num_samples(telid)
+    - nsum
 
-        sum_pix_tel.append(sum_pix)
-        time_pix_tel.append(peak_pix)
-    return np.asarray(sum_pix_tel), np.asarray(time_pix_tel)
+    int_corr = set_integration_correction(telid, parameters)
+    # Create a mask with the integration windows per pixel
+    m = np.zeros_like(samples_pix_clean)
+    for i in range(0, np.shape(samples_pix_clean)[0]):
+        for j in range(0, np.shape(samples_pix_clean)[1]):
+            m[i, j, start[i, j]:start[i, j]+nsum] = 1
+    samples_pix_win = samples_pix_clean*m
+    # Extract the pulse (pedestal substracted) in the found window
+    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
+
+    return sum_pix_tel, time_pix_tel[0]
 
 
-def nb_peak_integration_mc(event, ped, telid, parameters):
+def nb_peak_integration_mc(event, cam, ped, telid, parameters):
+
     """
     Integrate sample-mode data (traces) around a peak in the signal sum of
     neighbouring pixels.
@@ -463,67 +434,56 @@ def nb_peak_integration_mc(event, ped, telid, parameters):
     substracted per gain and peak slide
     """
 
+    istart = time.process_time()
     # The number of samples to sum up can not be larger than
     # the number of samples
     nsum = parameters['nsum']
     if nsum >= get_num_samples(telid):
         nsum = get_num_samples(telid)
+    lwt = parameters['lwt']
 
     #  For this integration scheme we need the list of neighbours early on
-    pix_x, pix_y = event.meta.pixel_pos[telid]
-    geom = io.CameraGeometry.guess(pix_x, pix_y)
+    #pix_x, pix_y = event.meta.pixel_pos[telid]
+    #foclen = event.meta.optical_foclen[telid]
+    #geom = io.CameraGeometry.guess(pix_x, pix_y, foclen)
+    geom = cam['CameraTable_VersionFeb2016_TelID%s'%telid]
 
-    sum_pix_tel = []
-    time_pix_tel = []
+    iend = time.process_time()
+
+    samples_pix_tel_list = []
+    sigamp_cut = np.ones((get_num_channel(telid)))
+    time_pix_tel = np.ones((get_num_channel(telid),
+                            get_num_pixels(telid)), dtype=np.int8)
     for igain in range(0, get_num_channel(telid)):
-        sum_pix = []
-        peak_pix = []
-        for ipix in range(0, get_num_pixels(telid)):
-            i = 0
-            knb = 0
-            # Loop over the neighbors of ipix
-            ipix_nb = geom.neighbors[ipix]
-            nb_samples = [0 for ii in range(get_num_samples(telid))]
-            for inb in range(len(ipix_nb)):
-                nb_samples += np.array(get_adc_sample(telid, igain)
-                                       [ipix_nb[inb]])
-                knb += 1
-            if parameters['lwt'] > 0:
-                for isamp in range(1, get_num_samples(telid)):
-                    nb_samples += np.array(get_adc_sample(telid, igain)
-                                           [ipix])*lwt
-                knb += 1
+        samples_pix_tel_list.append(get_adc_sample(telid, igain))
+        sigamp_cut[igain] = parameters['sigamp'][igain]
+    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    ped_per_trace = ped/get_num_samples(telid)
+    samples_pix_clean = (samples_pix_tel-np.atleast_3d(ped_per_trace)
+                         ).astype(np.int16)
 
-            if knb == 0:
-                continue
-            ipeak = 0
-            p = nb_samples[0]
-            for isamp in range(1, get_num_samples(telid)):
-                if nb_samples[isamp] > p:
-                    p = nb_samples[isamp]
-                    ipeak = isamp
-            peakpos = peakpos_hg = ipeak
+    int_corr = set_integration_correction(telid, parameters)
+    # Create a mask with the integration windows per pixel and per gain
+    m = np.zeros_like(samples_pix_clean)
+    for i in range(0, np.shape(samples_pix_clean)[0]):
+        for j in range(0, np.shape(samples_pix_clean)[1]):
+            #nb_samples = samples_pix_clean[i, geom.neighbors[j], :]
+            nb_samples = samples_pix_clean[i, geom['PixNeig'][j], :]
+            all_samples = np.vstack([nb_samples,
+                                     lwt*samples_pix_clean[i, j, :]])
+            sum_samples = all_samples.sum(0)
+            peakpos = np.mean(sum_samples.argmax(0)).astype(np.int8)
+            time_pix_tel[i, j] = peakpos
             start = peakpos - parameters['nskip']
+            m[i, j, start:start+nsum] = 1
 
-            # Sanitity check?
-            if start < 0:
-                start = 0
-            if start + nsum > get_num_samples(telid):
-                start = get_num_samples(telid) - nsum
+    samples_pix_win = samples_pix_clean*m
+    # Extract the pulse (pedestal substracted) in the found window
+    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
-            int_corr = set_integration_correction(telid, parameters)
-            # Integrate pixel
-            samples_pix_win = np.asarray(get_adc_sample(telid, igain)
-            [ipix])[start:(nsum+start)]
-            ped_per_trace = ped[igain][ipix]/get_num_samples(telid)
-            sum_pix.append(round(int_corr[igain]*(sum(samples_pix_win) -
-                                                  ped_per_trace*nsum)))
-            peak_pix.append(peakpos)
+    if __debug__: print(" inter-integration %.3e sec"%(iend-istart))
 
-        sum_pix_tel.append(sum_pix)
-        time_pix_tel.append(peak_pix)
-
-    return np.asarray(sum_pix_tel), np.asarray(time_pix_tel)
+    return sum_pix_tel, time_pix_tel[0]
 
 
 def calibrate_amplitude_mc(integrated_charge, calib, telid, params):
@@ -552,13 +512,14 @@ def calibrate_amplitude_mc(integrated_charge, calib, telid, params):
         # If the integral charge is between -300,2000 ADC cts, we choose the HG
         # Otherwise the LG channel
         # If there is only one gain, it is the HG (default)
-        if (int_pix_hg > -1000 and int_pix_hg < 10000 or
-        get_num_channel(telid) < 2):
+        if ((int_pix_hg > -1000) and
+            (int_pix_hg < 10000) or
+            (get_num_channel(telid) < 2)):
             pe_pix = (integrated_charge[get_num_channel(telid)-1][ipix] *
-            calib[get_num_channel(telid)-1][ipix])
+                      calib[get_num_channel(telid)-1][ipix])
         else:
             pe_pix = (integrated_charge[get_num_channel(telid)][ipix] *
-            calib[get_num_channel(telid)][ipix])
+                      calib[get_num_channel(telid)][ipix])
 
         if "climp_amp" in params and params["clip_amp"] > 0:
             if pe_pix > params["clip_amp"]:

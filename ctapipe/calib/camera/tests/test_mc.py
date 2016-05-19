@@ -16,7 +16,7 @@ def get_test_parameters():
 
 def get_test_event():
     filename = get_path(
-        'gamma_20deg_0deg_run31964___cta-prod2_desert-1640m-Aar.simtel.gz')
+        'gamma_test.simtel.gz')
     for event in hessio_event_source(filename):
         if event.dl0.event_id == 409:
             return event
@@ -27,7 +27,47 @@ def test_set_integration_correction():
     event = get_test_event()
 
     assert set_integration_correction(
-        telid, get_test_parameters()) == 1.059373
+        telid, get_test_parameters()) == float(1.0497408130033212)
+
+
+def test_full_integration_mc():
+    telid = 11
+    int_adc_pix, peak_adc_pix = full_integration_mc(
+        get_test_event(), get_pedestal(telid), telid)
+    assert int_adc_pix[0][0] == 148
+    assert peak_adc_pix is None
+
+
+def test_simple_integration_mc():
+    telid = 11
+    int_adc_pix, peak_adc_pix = simple_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
+    assert int_adc_pix[0][0] == 70
+    assert peak_adc_pix is None
+
+
+def test_global_peak_integration_mc():
+    telid = 11
+    int_adc_pix, peak_adc_pix = global_peak_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
+    assert int_adc_pix[0][0] == 79
+    assert peak_adc_pix[0] == 13
+
+
+def test_local_peak_integration_mc():
+    telid = 11
+    int_adc_pix, peak_adc_pix = local_peak_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
+    assert int_adc_pix[0][0] == 79
+    assert peak_adc_pix[0] == 13
+
+
+def test_nb_peak_integration_mc():
+    telid = 11
+    int_adc_pix, peak_adc_pix = nb_peak_integration_mc(
+        get_test_event(), get_pedestal(telid), telid, get_test_parameters())
+    assert int_adc_pix[0][0] == -61
+    assert peak_adc_pix[0] == 20
 
 
 def test_pixel_integration_mc():
@@ -37,8 +77,8 @@ def test_pixel_integration_mc():
     int_adc_pix, peak_adc_pix = pixel_integration_mc(
         event, ped, telid, get_test_parameters())
 
-    assert int_adc_pix[0][0] == -68.0
-    assert peak_adc_pix[0][0] == 20
+    assert int_adc_pix[0][0] == -61
+    assert peak_adc_pix[0] == 20
 
 
 def test_calibrate_amplitude_mc():
@@ -51,4 +91,4 @@ def test_calibrate_amplitude_mc():
     pe_pix = calibrate_amplitude_mc(
         int_adc_pix, calib, telid, get_test_parameters())
 
-    assert pe_pix[0] == -1.92
+    assert pe_pix[0] == float(-1.7223353135585786)
