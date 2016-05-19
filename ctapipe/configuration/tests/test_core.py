@@ -1,7 +1,7 @@
 import pytest
 import sys
 
-from ..core import Configuration, ConfigurationException
+from ctapipe.configuration import Configuration, ConfigurationException
 
 
 class C():
