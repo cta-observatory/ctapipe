@@ -15,6 +15,8 @@ TODO:
 import numpy as np
 from astropy.units import Quantity
 from collections import namedtuple
+import astropy.units as u
+
 
 __all__ = [
     'MomentParameters',
@@ -131,9 +133,11 @@ def hillas_parameters_2(pix_x, pix_y, image):
     -------
     hillas_parameters : `MomentParameters`
     """
+    unit = pix_x.unit
+
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
-    image = np.asanyarray(image, dtype=np.float64)
+
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
 
@@ -179,16 +183,16 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     tanpsi_numer = (dd + zz) * moms[1] + 2.0 * vxy * moms[0]
     tanpsi_denom = (2 * vxy * moms[1]) - (dd - zz) * moms[0]
-    psi = np.pi / 2.0 + np.arctan2(tanpsi_numer, tanpsi_denom)
+    psi = ((np.pi / 2.0) + np.arctan2(tanpsi_numer, tanpsi_denom))* u.rad
 
     # polar coordinates of centroid
 
     rr = np.hypot(moms[0], moms[1])
     phi = np.arctan2(moms[1], moms[0])
 
-    return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1],
-                            length=length, width=width, r=rr, phi=phi,
-                            psi=psi, miss=miss)
+    return MomentParameters(size=size, cen_x=moms[0]*unit, cen_y=moms[1]*unit,
+                            length=length*unit, width=width*unit, r=rr, phi=phi,
+                            psi=psi.to(u.deg) , miss=miss*unit)
 
 
 # use the 2 version by default

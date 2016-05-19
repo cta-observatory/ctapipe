@@ -12,6 +12,7 @@ import numpy as np
 import logging
 import copy
 from astropy import units as u
+from ctapipe.coordinates import CameraFrame, NominalFrame
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -327,12 +328,11 @@ class CameraDisplay:
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
-
-        el = self.add_ellipse(centroid=(momparams.cen_x, momparams.cen_y),
-                              length=momparams.length,
-                              width=momparams.width, angle=momparams.psi,
+        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_x.value),
+                              length=momparams.length.value,
+                              width=momparams.width.value, angle=momparams.psi.to(u.rad).value,
                               **kwargs)
-        self.axes.text(momparams.cen_x, momparams.cen_y,
+        self.axes.text(momparams.cen_x.value, momparams.cen_y.value,
                        ("({:.02f},{:.02f})\n"
                         "[w={:.02f},l={:.02f}]")
                        .format(momparams.cen_x,
