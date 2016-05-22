@@ -112,7 +112,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             # fill telescope position dictionary, if not already done:
             if tel_id not in container.tel_pos:
                 container.tel_pos[tel_id] = pyhessio.get_telescope_position(tel_id) * u.m
-            
+
             nchans = pyhessio.get_num_channel(tel_id)
             container.dl0.tel[tel_id] = RawCameraData(tel_id)
             container.dl0.tel[tel_id].num_channels = nchans
@@ -133,5 +133,5 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         yield container
         counter += 1
 
-        if max_events is not None and counter > max_events:
+        if max_events is not None and counter >= max_events:
             return
