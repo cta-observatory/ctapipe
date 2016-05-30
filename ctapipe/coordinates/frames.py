@@ -14,6 +14,7 @@ TODO:
 - Check cartesian system is still accurate for the nominal and
   telescope systems (may need a spherical system)
 - Benchmark transformation times
+- should use `astropy.coordinates.Angle` for all angles here 
 
 """
 
@@ -44,9 +45,7 @@ class CameraFrame(BaseCoordinateFrame):
     in the focal plane of the telescope Most Typically this will be
     used to describe the positions of the pixels in the focal plane
 
-    Frame attributes:
-
-    - None
+    Frame attributes:  None
 
     """
     default_representation = CartesianRepresentation
@@ -61,9 +60,12 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     Frame attributes:
 
-    - `focal_length`: Focal length of the telescope [m]
-    - `rotation`: Rotation angle of the camera (0 in most cases) [deg]
-    - `pointing_direction`: Alt,Az direction of the telescope pointing
+    * ``focal_length``
+        Focal length of the telescope as a unit quantity (usually meters)
+    * ``rotation``
+        Rotation angle of the camera (0 deg in most cases) 
+    * ``pointing_direction``
+        Alt,Az direction of the telescope pointing
 
     """
     default_representation = CartesianRepresentation
@@ -82,14 +84,19 @@ class NominalFrame(BaseCoordinateFrame):
     performed in this system
 
     Frame attributes:
-    - `pointing_direction`: Alt,Az direction of the array pointing
+
+    * ``pointing_direction``
+      Alt,Az direction of the array pointing
 
     The Following attributes are carried over from the telescope frame
     to allow a direct transformation from the camera frame
 
-    - `focal_length`: Focal length of the telescope [m]
-    - `rotation`: Rotation angle of the camera (0 in most cases) [deg]
-    - `pointing_direction`: Alt,Az direction of the telescope pointing
+    * ``focal_length``
+      Focal length of the telescope 
+    * ``rotation``
+      Rotation angle of the camera (0 in most cases) [deg]
+    * ``pointing_direction``
+      Alt,Az direction of the telescope pointing
 
     """
     default_representation = CartesianRepresentation
@@ -445,7 +452,9 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     reconstruction of the shower core position
 
     Frame attributes:
-    - `pointing_direction` - Alt,Az direction of the tilted reference plane
+    
+    * ``pointing_direction`` 
+      Alt,Az direction of the tilted reference plane
 
     """
     default_representation = CartesianRepresentation
