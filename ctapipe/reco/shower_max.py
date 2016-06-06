@@ -26,8 +26,8 @@ class ShowerMaxEstimator:
         atm_file = open(filename, "r")
         for line in atm_file:
             if line.startswith("#"): continue
-            altitude .append(float(line.split()[0]))
-            thickness.append(float(line.split()[2]))
+            altitude .append(float(line.split()[col_altitude]))
+            thickness.append(float(line.split()[col_thickness]))
         
         self.atmosphere = Histogram(axisNames=["altitude"])
         self.atmosphere.hist = thickness*u.g * u.cm**-2
