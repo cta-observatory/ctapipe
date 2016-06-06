@@ -43,6 +43,7 @@ class MCShowerData(Container):
         self.add_item('az')
         self.add_item('core_x')
         self.add_item('core_y')
+        self.add_item('h_first_int')
     def __str__(self):
         return_string  = self._name+":\n"
         return_string += "energy:   {0:.2}\n".format(self.energy)
