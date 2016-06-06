@@ -29,13 +29,13 @@ class ShowerMaxEstimator:
             altitude .append(float(line.split()[0]))
             thickness.append(float(line.split()[2]))
         
-        self.atmosphere_2 = Histogram(axisNames=["altitude"])
-        self.atmosphere_2.hist = thickness*u.g * u.cm**-2
-        self.atmosphere_2._binLowerEdges = [np.array(altitude)*u.km]
+        self.atmosphere = Histogram(axisNames=["altitude"])
+        self.atmosphere.hist = thickness*u.g * u.cm**-2
+        self.atmosphere._binLowerEdges = [np.array(altitude)*u.km]
 
     def interpolate(self, arg, outlierValue=0.,order=3):
         
-        axis = self.atmosphere_2._binLowerEdges[0]
+        axis = self.atmosphere._binLowerEdges[0]
         bin_u = np.digitize(arg.to(axis.unit), axis)
         bin_l = bin_u - 1
         
@@ -46,7 +46,7 @@ class ShowerMaxEstimator:
         bin_l_edge = axis[ bin_l ].to(unit).value
         coordinate =  (argv-bin_u_edge) / (bin_u_edge-bin_l_edge) * (bin_u - bin_l) + bin_u
 
-        return ndimage.map_coordinates(self.atmosphere_2.hist, [[coordinate]],order=order,cval=outlierValue)[0] * self.atmosphere_2.hist.unit
+        return ndimage.map_coordinates(self.atmosphere.hist, [[coordinate]],order=order,cval=outlierValue)[0] * self.atmosphere.hist.unit
 
         
     def find_shower_max_height(self,energy,h_first_int,gamma_alt):
@@ -83,10 +83,10 @@ class ShowerMaxEstimator:
         t_shower_max = t_first_int + c
         
         # now find the height with the wanted thickness
-        for ii, thick1 in enumerate(self.atmosphere_2.hist):
+        for ii, thick1 in enumerate(self.atmosphere.hist):
             if t_shower_max > thick1:
-                height1 = self.atmosphere_2._binLowerEdges[0][ii]
-                height2 = self.atmosphere_2._binLowerEdges[0][ii-1]
-                thick2  = self.atmosphere_2.getValue([height2.to(self.atmosphere_2._binLowerEdges[0].unit).value])[0]
+                height1 = self.atmosphere._binLowerEdges[0][ii]
+                height2 = self.atmosphere._binLowerEdges[0][ii-1]
+                thick2  = self.atmosphere.getValue([height2.to(self.atmosphere._binLowerEdges[0].unit).value])[0]
                 
                 return (height2-height1) / (thick2-thick1) * (t_shower_max-thick1) + height1
