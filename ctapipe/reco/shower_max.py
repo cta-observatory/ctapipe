@@ -1,8 +1,9 @@
 from math import log
 import numpy as np
 from astropy import units as u
+from scipy import ndimage
 
-from ctapipe.utils.histogram import nDHistogram
+from ctapipe.utils.fitshistogram import Histogram 
 
 class ShowerMaxEstimator:
     def __init__(self, filename, col_altitude=0, col_thickness=2):
@@ -28,8 +29,24 @@ class ShowerMaxEstimator:
             altitude .append(float(line.split()[0]))
             thickness.append(float(line.split()[2]))
         
-        self.atmosphere = nDHistogram( [np.array(altitude)*u.km], ["altitude"] )
-        self.atmosphere.data = (thickness[0:1]+thickness)*u.g * u.cm**-2
+        self.atmosphere_2 = Histogram(axisNames=["altitude"])
+        self.atmosphere_2.hist = thickness*u.g * u.cm**-2
+        self.atmosphere_2._binLowerEdges = [np.array(altitude)*u.km]
+
+    def interpolate(self, arg, outlierValue=0.,order=3):
+        
+        axis = self.atmosphere_2._binLowerEdges[0]
+        bin_u = np.digitize(arg.to(axis.unit), axis)
+        bin_l = bin_u - 1
+        
+        unit = arg.unit
+        argv = arg.value
+
+        bin_u_edge = axis[ bin_u ].to(unit).value
+        bin_l_edge = axis[ bin_l ].to(unit).value
+        coordinate =  (argv-bin_u_edge) / (bin_u_edge-bin_l_edge) * (bin_u - bin_l) + bin_u
+
+        return ndimage.map_coordinates(self.atmosphere_2.hist, [[coordinate]],order=order,cval=outlierValue)[0] * self.atmosphere_2.hist.unit
 
         
     def find_shower_max_height(self,energy,h_first_int,gamma_alt):
@@ -60,16 +77,16 @@ class ShowerMaxEstimator:
         c *= np.sin(gamma_alt)
         
         # find the thickness at the height of the first interaction
-        t_first_int = self.atmosphere.interpolate([h_first_int])
-
+        t_first_int = self.interpolate(h_first_int)
+        
         # total thickness at shower maximum = thickness at first interaction + thickness traversed to shower maximum
         t_shower_max = t_first_int + c
         
         # now find the height with the wanted thickness
-        for ii, thick1 in enumerate(self.atmosphere.data):
+        for ii, thick1 in enumerate(self.atmosphere_2.hist):
             if t_shower_max > thick1:
-                height1 = self.atmosphere.bin_edges[0][ii-1]
-                height2 = self.atmosphere.bin_edges[0][ii-2]
-                thick2  = self.atmosphere.evaluate([height2])
+                height1 = self.atmosphere_2._binLowerEdges[0][ii]
+                height2 = self.atmosphere_2._binLowerEdges[0][ii-1]
+                thick2  = self.atmosphere_2.getValue([height2.to(self.atmosphere_2._binLowerEdges[0].unit).value])[0]
                 
                 return (height2-height1) / (thick2-thick1) * (t_shower_max-thick1) + height1
