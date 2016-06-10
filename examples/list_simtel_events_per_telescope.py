@@ -40,7 +40,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     simtel_file_path = args.fileargs[0]
 
-    # DISPLAY IMAGES ##########################################################
+    # PRINT THE LIST ##########################################################
 
     events_per_tel_dict = list_simtel_events_per_telescope(simtel_file_path)
 
