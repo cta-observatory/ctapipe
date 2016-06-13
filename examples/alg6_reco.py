@@ -133,7 +133,7 @@ if __name__ == '__main__':
                 tel_z.append(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id]['TelZ'][0])
                 pix_x.append(nom_x.to(u.deg).value)
                 pix_y.append(nom_y.to(u.deg).value)
-                pix_weight.append(image*clean_mask)
+                pix_weight.append(image)
 
         grd_core_true = GroundFrame(x=np.asarray(container.mc.core_x)*u.m, y=np.asarray(container.mc.core_y)*u.m, z=np.asarray(0)*u.m)
         tilt_core_true = grd_core_true.transform_to(TiltedGroundFrame(pointing_direction=[container.mc.alt,container.mc.az]))
