@@ -12,6 +12,9 @@ as an example for more complex and powerful minimisation based methods.
 In this case this must be implemented as a class to work properly with the
 iMinuit implementation
 
+ToDo:
+    - Standardise inputs and outputs
+
 """
 import numpy as np
 import astropy.units as u
