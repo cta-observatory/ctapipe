@@ -55,11 +55,11 @@ class weighted_axis_minimisation:
         self.tel_pos_x = telescope_pos_x
         self.tel_pos_y = telescope_pos_y
 
-        if shower_seed is None:
-            x_src=0
-            y_src=0
-            x_grd=0
-            y_grd=0
+
+        x_src=0.
+        y_src=0.
+        x_grd=shower_seed[0]
+        y_grd=shower_seed[1]
 
         m = Minuit(self.weighted_dist,x_src=x_src,error_x_src=1,y_src=y_src,error_y_src=1,
                    x_grd=x_grd,error_x_grd=1,y_grd=y_grd,error_y_grd=1,errordef=1)
@@ -147,6 +147,7 @@ class weighted_axis_minimisation:
         for pos_x,pos_y,tel_x,tel_y,weight in zip(self.pixel_pos_x,self.pixel_pos_y,self.tel_pos_x,self.tel_pos_y,self.pixel_weight):
             phi = np.arctan2((tel_y-y_grd),(tel_x-x_grd)) * u.rad
             sum += self.get_dist_from_axis(pos_x,pos_y,x_src,y_src,phi,weight)
+
         return sum
 
 
