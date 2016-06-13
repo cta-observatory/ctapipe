@@ -2,16 +2,27 @@
 # -*- coding: utf-8 -*-
 
 """
-List registered events for each telescope in a given simtel file.
+Print the list of triggered events per telescope of the given simtel file.
 """
 
 import argparse
-
-import ctapipe
 from ctapipe.io.hessio import hessio_event_source
 
 
 def list_simtel_events_per_telescope(simtel_file_path):
+    """Make a dictionary of triggered events per telescope of the
+    'simtel_file_path' file.
+
+    Parameters
+    ----------
+    simtel_file_path : str
+        The path of the simtel file to process.
+
+    Returns
+    -------
+    Dictionary of triggered events per telescope of the 'simtel_file_path'
+    file (for each item: key=telescope id, value=the list of triggered events).
+    """
 
     source = hessio_event_source(simtel_file_path, allowed_tels=None, max_events=None)
 
@@ -27,11 +38,13 @@ def list_simtel_events_per_telescope(simtel_file_path):
     return events_per_tel_dict
 
 
-if __name__ == '__main__':
+def main():
+    """Parse command options (sys.argv) and print the dictionary of triggered
+    events returned by the 'list_simtel_events_per_telescope' function."""
 
     # PARSE OPTIONS ###########################################################
 
-    desc = "List registered events for each telescope in a given simtel file"
+    desc = "Print the list of triggered events per telescope of the given simtel file."
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument("fileargs", nargs=1, metavar="FILE",
@@ -44,7 +57,10 @@ if __name__ == '__main__':
 
     events_per_tel_dict = list_simtel_events_per_telescope(simtel_file_path)
 
-    print("Events per telescope:")
+    print("Triggered events per telescope:")
     for telescope_id, events_id_list in events_per_tel_dict.items():
         print("- Telescope {:03}: {}".format(telescope_id, events_id_list))
 
+
+if __name__ == '__main__':
+    main()
