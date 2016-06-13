@@ -2,7 +2,26 @@
 # -*- coding: utf-8 -*-
 
 """
-Display triggered telescopes ID and geometry from a given simtel file
+Print the list of triggered telescopes ID and geometry of the given simtel
+file.
+
+Example of output:
+
+    Telescope 001: LSTCam (hexagonal pixels)
+    Telescope 002: LSTCam (hexagonal pixels)
+    Telescope 003: LSTCam (hexagonal pixels)
+    Telescope 004: LSTCam (hexagonal pixels)
+    Telescope 005: NectarCam (hexagonal pixels)
+    Telescope 006: NectarCam (hexagonal pixels)
+    ...
+    Telescope 017: FlashCam (hexagonal pixels)
+    Telescope 018: FlashCam (hexagonal pixels)
+    ...
+    Telescope 029: ASTRI (rectangular pixels)
+    ...
+    Telescope 053: GATE (rectangular pixels)
+    ...
+
 """
 
 import argparse
@@ -12,6 +31,14 @@ from ctapipe.io.hessio import hessio_event_source
 
 
 def list_telescopes_geometry(simtel_file_path):
+    """Print the list of triggered telescopes ID and geometry of the
+    'simtel_file_path' file.
+
+    Parameters
+    ----------
+    simtel_file_path : str
+        The path of the simtel file to process.
+    """
 
     source = hessio_event_source(simtel_file_path)
 
@@ -28,11 +55,12 @@ def list_telescopes_geometry(simtel_file_path):
         print("Telescope {:03d}: {} ({} pixels)".format(tel_id, geom.cam_id, geom.pix_type))
 
 
-if __name__ == '__main__':
+def main():
+    """Parse command options (sys.argv)."""
 
     # PARSE OPTIONS ###########################################################
 
-    desc = "Display triggered telescopes ID and geometry from a given simtel file."
+    desc = "Print the list of triggered telescopes ID and geometry of the given simtel file."
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument("fileargs", nargs=1, metavar="FILE",
@@ -46,3 +74,6 @@ if __name__ == '__main__':
 
     list_telescopes_geometry(simtel_file_path)
 
+
+if __name__ == '__main__':
+    main()
