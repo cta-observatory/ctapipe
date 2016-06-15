@@ -91,7 +91,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         container.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
         container.mc.core_x = pyhessio.get_mc_event_xcore() * u.m
         container.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
-
+        container.mc.h_first_int = pyhessio.get_mc_shower_h_first_int() * u.m
+        
         container.count = counter
 
         # this should be done in a nicer way to not re-allocate the

@@ -45,14 +45,8 @@ from ctapipe.utils.datasets import get_path
 import io
 import sys
 import os
-import six
 import json
 import pytest
-import logging
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(name)s - %(levelname)s - %(message)s')
 
 class Foo(Configurable):
     """A class that has configurable, typed attributes.
@@ -146,7 +140,6 @@ def test_jsonToFits():
 def main():
     test_traitletsConfigToFits()
     test_jsonToFits()
-    logger.info("Pass")
 
 
 if __name__ == "__main__":
