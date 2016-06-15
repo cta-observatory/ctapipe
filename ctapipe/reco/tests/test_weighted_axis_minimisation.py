@@ -2,7 +2,7 @@ from __future__ import print_function, division
 from numpy.testing import assert_allclose
 from iminuit import Minuit
 import numpy as np
-from ctapipe.reco.weighted_axis_minimisation import weighted_axis_minimisation
+from ctapipe.reco.weighted_axis_minimisation import WeightedAxisMinimisation
 
 import astropy.units as u
 
@@ -45,7 +45,7 @@ def test_minimisation():
     and checks the reconstructed source and ground positions are [0,0]
 
     """
-    reco = weighted_axis_minimisation()
+    reco = WeightedAxisMinimisation()
 
     x_pix_1 = np.arange(4)
     y_pix_1 = np.zeros(4)

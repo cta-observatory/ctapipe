@@ -20,11 +20,11 @@ import numpy as np
 import astropy.units as u
 from iminuit import Minuit
 __all__ = [
-    'weighted_axis_minimisation'
+    'WeightedAxisMinimisation'
 ]
 
 
-class weighted_axis_minimisation:
+class WeightedAxisMinimisation:
     def __init__(self):
         return None
 
@@ -149,6 +149,5 @@ class weighted_axis_minimisation:
             sum += self.get_dist_from_axis(pos_x,pos_y,x_src,y_src,phi,weight)
 
         return sum
-
 
 

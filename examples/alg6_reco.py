@@ -6,7 +6,7 @@ from ctapipe.coordinates.frames import GroundFrame, TiltedGroundFrame, project_t
 from ctapipe.io.containers import RawData
 from ctapipe.io.containers import MCShowerData, CentralTriggerData
 from ctapipe.reco.hillas import hillas_parameters
-from ctapipe.reco.weighted_axis_minimisation import weighted_axis_minimisation
+from ctapipe.reco.weighted_axis_minimisation import WeightedAxisMinimisation
 from ctapipe.reco.cleaning import tailcuts_clean
 from ctapipe import io
 from astropy.coordinates import Angle, AltAz
@@ -146,7 +146,7 @@ if __name__ == '__main__':
             tilt = grd.transform_to(TiltedGroundFrame(pointing_direction=[container.mc.alt,container.mc.az]))
             print(tilt.x)
 
-            reco = weighted_axis_minimisation()
+            reco = WeightedAxisMinimisation()
             shower_direction = reco.reconstruct_event(hillas_parameter_list,tilt.x.value.tolist(),tilt.y.value.tolist(),
                                                       pix_x,pix_y,pixel_weight=pix_weight,
                                                       shower_seed=[tilt_core_true.x.value,tilt_core_true.y.value])
