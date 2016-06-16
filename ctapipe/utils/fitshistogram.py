@@ -147,7 +147,7 @@ class Histogram:
 
         to write it, just do 
 
-        myhist.asFITS().writeto("outputfile.fits")
+        myhist.to_fits().writeto("outputfile.fits")
 
         """
         ohdu = fits.ImageHDU(data=self.hist.transpose())
