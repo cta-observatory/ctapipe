@@ -145,6 +145,7 @@ if __name__ == '__main__':
             grd = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
             tilt = grd.transform_to(TiltedGroundFrame(pointing_direction=[container.mc.alt,container.mc.az]))
             print(tilt.x)
+            print(tilt_core_true.x,tilt_core_true.y,grd_core_true.x,grd_core_true.y)
 
             reco = WeightedAxisMinimisation()
             shower_direction = reco.reconstruct_event(hillas_parameter_list,tilt.x.value.tolist(),tilt.y.value.tolist(),
@@ -154,5 +155,4 @@ if __name__ == '__main__':
             print(shower_direction)
 
             print(container.mc.alt*57.3,container.mc.az*57.3)
-            print(tilt_core_true.x,tilt_core_true.y)
         print("reconstruction time",time.time()-start_t)

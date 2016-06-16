@@ -19,6 +19,9 @@ ToDo:
 import numpy as np
 import astropy.units as u
 from iminuit import Minuit
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
 __all__ = [
     'WeightedAxisMinimisation'
 ]
@@ -28,7 +31,8 @@ class WeightedAxisMinimisation:
     def __init__(self):
         return None
 
-    def reconstruct_event(self,hillas_parameters,telescope_pos_x,telescope_pos_y,pixel_pos_x,pixel_pos_y,pixel_weight=1,shower_seed=None):
+    def reconstruct_event(self,hillas_parameters,telescope_pos_x,telescope_pos_y,pixel_pos_x,pixel_pos_y,pixel_weight=1,
+                          shower_seed=None,draw=False):
         """
         Perform event reconstruction
 
@@ -36,10 +40,20 @@ class WeightedAxisMinimisation:
         ----------
         hillas_parameters: list
             Hillas parameter objects
-        telescope_positions: list
-            XY positions of telescopes (tilted system)
+        telescope_pos_x: list
+            X position of telescopes (tilted system)
+        telescope_pos_y: list
+            Y position of telescopes (tilted system)
+        pixel_pos_x: list
+            X position of image pixels (nominal system)
+        pixel_pos_y: list
+            Y position of image pixels (nominal system)
+        pixel_weight: list
+            Weighting of each pixel in fit (usually amplitude)
         shower_seed: shower object?
             Seed position to begin shower minimisation
+        draw: boolean
+            Control drawing of likelihood surface
 
         Returns
         -------
@@ -61,9 +75,15 @@ class WeightedAxisMinimisation:
         x_grd=shower_seed[0]
         y_grd=shower_seed[1]
 
-        m = Minuit(self.weighted_dist,x_src=x_src,error_x_src=1,y_src=y_src,error_y_src=1,
-                   x_grd=x_grd,error_x_grd=1,y_grd=y_grd,error_y_grd=1,errordef=1)
+        m = Minuit(self.weighted_dist,x_src=x_src,error_x_src=0.1,y_src=y_src,error_y_src=0.1,
+                   x_grd=x_grd,error_x_grd=10,y_grd=y_grd,error_y_grd=10,errordef=1)
         m.migrad()
+
+        if draw:
+            self.draw_surfaces(m.values['x_src'],m.values['y_src'],
+                                m.values['x_grd'],m.values['y_grd'])
+
+        plt.show()
 
         return m.values
 
@@ -150,4 +170,127 @@ class WeightedAxisMinimisation:
 
         return sum
 
+    def draw_surfaces(self,x_src,y_src,x_grd,y_grd):
+        """
+        Simple function to draw the surface of the test statistic in both the nominal
+        and tilted planes while keeping the values in the other plane fixed at the best fit
+        value.
 
+        Parameters
+        ----------
+        x_src: float
+            Source position in nominal coordinates (centre of map)
+        y_src: float
+            Source position in nominal coordinates (centre of map)
+        x_grd: float
+            Ground position in tilted coordinates (centre of map)
+        y_grd: float
+            Ground position in tilted coordinates (centre of map)
+
+        Returns
+        -------
+
+        """
+        fig = plt.figure(figsize=(12, 12))
+        nom1 = fig.add_subplot(221)
+        self.draw_nominal_surface(x_src,y_src,x_grd,y_grd,nom1,bins=25,range=0.2)
+        nom1.plot(x_src,y_src,"wo")
+
+        nom2 = fig.add_subplot(222)
+        self.draw_nominal_surface(x_src,y_src,x_grd,y_grd,nom2,bins=25,range=5)
+        nom2.plot(x_src,y_src,"wo")
+
+        tilt1 = fig.add_subplot(223)
+        self.draw_tilted_surface(x_src,y_src,x_grd,y_grd,tilt1,bins=25,range=100)
+        tilt1.plot(self.tel_pos_x,self.tel_pos_y,"ro")
+        tilt1.plot(x_grd,y_grd,"wo")
+
+        tilt2 = fig.add_subplot(224)
+        self.draw_tilted_surface(x_src,y_src,x_grd,y_grd,tilt2,bins=25,range=500)
+        tilt2.plot(self.tel_pos_x,self.tel_pos_y,"ro")
+        tilt2.plot(x_grd,y_grd,"wo")
+
+        plt.show()
+
+        return
+
+    def draw_nominal_surface(self,x_src,y_src,x_grd,y_grd,plot_name,bins=100,range=1):
+        """
+        Function for creating test statistic surface in nominal plane
+
+        Parameters
+        ----------
+        x_src: float
+            Source position in nominal coordinates (centre of map)
+        y_src: float
+            Source position in nominal coordinates (centre of map)
+        x_grd: float
+            Ground position in tilted coordinates (centre of map)
+        y_grd: float
+            Ground position in tilted coordinates (centre of map)
+        plot_name: matplotlib axis
+            Subplot in which to include this plot
+        bins: int
+            Number of bins in each axis
+        range: float
+            Size of map
+
+        Returns
+        -------
+            None
+        """
+        x_dir = np.linspace(x_src-range,x_src+range,num=bins)
+        y_dir = np.linspace(y_src-range,y_src+range,num=bins)
+        xd = list()
+        yd = list()
+        w = list()
+
+        for xb in x_dir:
+            for yb in y_dir:
+                xd.append(xb)
+                yd.append(yb)
+                w.append(self.weighted_dist(xb,yb,x_grd,y_grd))
+        h, x, y, p = plt.hist2d(xd, yd, bins=bins, weights=w)
+        return plot_name.imshow(h, interpolation = "bilinear", cmap=plt.cm.viridis_r,vmin=np.min(h),vmax=np.max(h),
+                                extent=(x_src-range,x_src+range,y_src-range,y_src+range))
+
+    def draw_tilted_surface(self,x_src,y_src,x_grd,y_grd,plot_name,bins=100,range=100):
+        """
+        Function for creating test statistic surface in tilted plane
+
+        Parameters
+        ----------
+        x_src: float
+            Source position in nominal coordinates (centre of map)
+        y_src: float
+            Source position in nominal coordinates (centre of map)
+        x_grd: float
+            Ground position in tilted coordinates (centre of map)
+        y_grd: float
+            Ground position in tilted coordinates (centre of map)
+        plot_name: matplotlib axis
+            Subplot in which to include this plot
+        bins: int
+            Number of bins in each axis
+        range: float
+            Size of map
+
+        Returns
+        -------
+            None
+        """
+        x_ground_list = np.linspace(x_grd-range,x_grd+range,num=bins)
+        y_ground_list = np.linspace(y_grd-range,y_grd+range,num=bins)
+        xd = list()
+        yd = list()
+        w = list()
+
+        for xb in x_ground_list:
+            for yb in y_ground_list:
+                xd.append(xb)
+                yd.append(yb)
+                w.append(self.weighted_dist(x_src,y_src,xb,yb))
+
+        h, x, y, p = plt.hist2d(xd, yd, bins=bins, weights=w)
+        return plot_name.imshow(h, interpolation = "bilinear", cmap=plt.cm.viridis_r,vmin=np.min(h),vmax=np.max(h),
+                                extent=(x_grd-range,x_grd+range,y_grd-range,y_grd+range))
