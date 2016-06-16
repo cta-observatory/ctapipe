@@ -31,7 +31,7 @@ class ShowerMaxEstimator:
         
         self.atmosphere = Histogram(axisNames=["altitude"])
         self.atmosphere.hist = thickness*u.g * u.cm**-2
-        self.atmosphere._binLowerEdges = [np.array(altitude)*u.km]
+        self.atmosphere.bin_lower_edges = [np.array(altitude)*u.km]
 
     def interpolate(self, arg, outlierValue=0.,order=3):
         
@@ -85,8 +85,8 @@ class ShowerMaxEstimator:
         # now find the height with the wanted thickness
         for ii, thick1 in enumerate(self.atmosphere.hist):
             if t_shower_max > thick1:
-                height1 = self.atmosphere._binLowerEdges[0][ii]
-                height2 = self.atmosphere._binLowerEdges[0][ii-1]
-                thick2  = self.atmosphere.getValue([height2.to(self.atmosphere._binLowerEdges[0].unit).value])[0]
+                height1 = self.atmosphere.bin_lower_edges[0][ii]
+                height2 = self.atmosphere.bin_lower_edges[0][ii-1]
+                thick2  = self.atmosphere.get_value([height2.to(self.atmosphere._binLowerEdges[0].unit).value])[0]
                 
                 return (height2-height1) / (thick2-thick1) * (t_shower_max-thick1) + height1
