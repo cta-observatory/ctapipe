@@ -24,8 +24,8 @@ def test_histogram_fill_and_read():
     hist.fill(a)
     hist.fill(b)
 
-    va = hist.getValue(pa)[0]
-    vb = hist.getValue(pb)[0]
+    va = hist.get_value(pa)[0]
+    vb = hist.get_value(pb)[0]
 
     assert va == 100
     assert vb == 10
@@ -46,7 +46,7 @@ def test_histogram_range_fill_and_read():
             hist = Histogram(nbins=[nxbins, 10],
                              ranges=[[-2.5, 2.5], [-1, 1]])
             hist.fill(coords)
-            val = hist.getValue(pp)[0]
+            val = hist.get_value(pp)[0]
             assert val == N
             del hist
 
@@ -57,8 +57,8 @@ def test_outliers():
     """
     H = Histogram(nbins=[5, 10], ranges=[[-2.5, 2.5], [-1, 1]])
     H.fill(np.array([[1, 1], ]))
-    val1 = H.getValue((100, 100), outlierValue=-10000)
-    val2 = H.getValue((-100, 0), outlierValue=None)
+    val1 = H.get_value((100, 100), outlierValue=-10000)
+    val2 = H.get_value((-100, 0), outlierValue=None)
     assert val1 == -10000
     assert val2 == 0
 
