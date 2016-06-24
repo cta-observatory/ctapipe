@@ -50,6 +50,7 @@ class Component(Configurable):
 
         # set up logging
         if self.parent:
-            self.log = self.parent.log.getChild(self.name)
+            self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
-            self.log = getLogger(self.name)
+            self.log = getLogger(self.__class__.__name__)
+
