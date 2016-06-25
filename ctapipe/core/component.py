@@ -19,22 +19,24 @@ class Component(Configurable):
     warnings, etc (do not use `print()` statements, instead use
     `self.log.info()`, `self.log.warn()`, `self.log.debug()`, etc).
 
+    Components are generally used within `ctapipe.core.Tool`
+    subclasses, which provide configuration handling and command-line
+    tool generation.
 
-    ```
-    from ctapipe.core import Component
-    from traitlets import (Integer, Float)
+    .. code:: python
 
-    class MyComponent(Component):
-        description = "Does something"
-        some_option = Integer(default_value=6,
-                              help='a value to set').tag(config=True)
+        from ctapipe.core import Component
+        from traitlets import (Integer, Float)
+
+        class MyComponent(Component):
+            description = "Does something"
+            some_option = Integer(default_value=6,
+                                  help='a value to set').tag(config=True)
 
 
-    comp = MyComponent(None)
-    comp.some_option = 6      # ok
-    comp.some_option = 'test' # will fail validation
-
-    ```
+        comp = MyComponent(None)
+        comp.some_option = 6      # ok
+        comp.some_option = 'test' # will fail validation
 
     """
 
