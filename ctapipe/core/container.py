@@ -27,8 +27,6 @@ class Container:
 
     Parameters
     ----------
-    self: type
-        description
     name: str
         name of container instance
     kwargs: key=value
