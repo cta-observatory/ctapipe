@@ -1,5 +1,5 @@
 """
-dump a FITS table of the event times and trigger patterns from a
+dump a table of the event times and trigger patterns from a
 simtelarray input file.
 """
 
@@ -18,18 +18,24 @@ MAX_TELS = 1000
 class DumpTriggersTool(Tool):
     description = Unicode(__doc__)
 
+    # =============================================
     # configuration parameters:
+    # =============================================
+
     infile = Unicode(help='input simtelarray file').tag(config=True, allow_none=False)
 
     outfile = Unicode('triggers.fits',
-        help='output filename, Can be any file type supported by astropy.table'
-    ).tag(config=True)
+                      help='output filename, Can be any file type supported by astropy.table'
+                      ).tag(config=True)
 
     overwrite = Bool(False,
-        help="overwrite existing output file"
-    ).tag(config=True)
+                     help="overwrite existing output file"
+                     ).tag(config=True)
 
+    # =============================================
     # map low-level options to high-level command-line options
+    # =============================================
+
     aliases = Dict({'infile': 'DumpTriggersTool.infile',
                     'outfile': 'DumpTriggersTool.outfile'})
 
@@ -41,23 +47,9 @@ class DumpTriggersTool(Tool):
                 '\n\n'
                 'If you want to see more output, use --log_level=DEBUG')
 
-    def initialize(self, argv=None):
-        self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
-                                   'N_TRIG','TRIGGERED_TELS'],
-                            dtype=[np.int64, np.float64, np.float64,
-                                   np.int32, np.uint8])
-
-        self.events['TRIGGERED_TELS'].shape = (0, MAX_TELS)
-        self.events['T_REL'].unit = u.s
-        self.events['T_REL'].description = 'Time relative to first event'
-        self.events['DELTA_T'].unit = u.s
-        self.events.meta['INPUT'] = self.infile
-
-        self._current_trigpattern = np.zeros(MAX_TELS)
-        self._current_starttime = None
-        self._prev_gpstime = None
-
-        pyhessio.file_open(self.infile)
+    # =============================================
+    # The methods of the Tool (initialize, start, finish):
+    # =============================================
 
     def add_event_to_table(self, event_id):
         """
@@ -86,19 +78,41 @@ class DumpTriggersTool(Tool):
         self.events.add_row((event_id, relative_time.sec, delta_t.sec, len(trigtels),
                              self._current_trigpattern))
 
+    def initialize(self, argv=None):
+        self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
+                                   'N_TRIG', 'TRIGGERED_TELS'],
+                            dtype=[np.int64, np.float64, np.float64,
+                                   np.int32, np.uint8])
+
+        self.events['TRIGGERED_TELS'].shape = (0, MAX_TELS)
+        self.events['T_REL'].unit = u.s
+        self.events['T_REL'].description = 'Time relative to first event'
+        self.events['DELTA_T'].unit = u.s
+        self.events.meta['INPUT'] = self.infile
+
+        self._current_trigpattern = np.zeros(MAX_TELS)
+        self._current_starttime = None
+        self._prev_gpstime = None
+
+        pyhessio.file_open(self.infile)
+
     def start(self):
         """ main event loop """
 
-        # build the table by looping over all events
         for run_id, event_id in pyhessio.move_to_next_event():
             self.add_event_to_table(event_id)
-
 
     def finish(self):
         pyhessio.close_file()
 
         # write out the final table
-        self.events.write(self.outfile, overwrite=self.overwrite)
+        if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
+            self.events.write(self.outfile, overwrite=self.overwrite)
+        elif self.outfile.endswith('h5'):
+            self.events.write(self.outfile, path='/events', overwrite=self.overwrite)
+        else:
+            self.events.write(self.outfile)
+
         self.log.info("Table written to '{}'".format(self.outfile))
         self.log.info('\n %s', self.events)
 

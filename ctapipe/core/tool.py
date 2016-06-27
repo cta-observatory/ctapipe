@@ -93,6 +93,7 @@ class Tool(Application):
 
         super().__init__(**kwargs)
         self.log_format = '%(levelname)8s [%(name)s]: %(highlevel)s %(message)s'
+        self.is_initialized = False
 
     def _setup(self, argv=None):
         """ handle config and any other low-level setup """
@@ -101,6 +102,7 @@ class Tool(Application):
             self.load_config_file(self.config_file)
         self.log.info("version {}".format(self.version_string))
         self.initialize()
+        self.is_initialized = True
 
     def initialize(self):
         """set up the tool (override in subclass). Here the user should
