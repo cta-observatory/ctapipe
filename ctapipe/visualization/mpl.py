@@ -118,7 +118,7 @@ class CameraDisplay:
             else:
                 rr = sqrt(aa)
                 poly = Rectangle(
-                    (xx, yy),
+                    (xx-rr/2., yy-rr/2.),
                     width=rr,
                     height=rr,
                     angle=self.geom.pix_rotation.deg,
