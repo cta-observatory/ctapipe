@@ -1,4 +1,4 @@
-from traitlets.config import Application
+from traitlets.config import Application, boolean_flag
 from traitlets import Unicode
 
 
@@ -83,6 +83,11 @@ class Tool(Application):
 
     """
 
+    def __init__(self, **kwargs):
+        # make sure there are some default aliases in all Tools:
+        if self.aliases:
+            self.aliases['log_level'] = 'Application.log_level'
+        super().__init__(**kwargs)
 
     config_file = Unicode( help="name of configuration file with parameters")\
         .tag(config=True)
@@ -97,7 +102,7 @@ class Tool(Application):
     def initialize(self):
         """set up the tool (override in subclass). Here the user should
         construct all `Components` and open files, etc."""
-        super().initialize()
+        super().initialize(argv=None)
 
     def start(self):
         """main body of tool (override in subclass). This is automatially
@@ -114,8 +119,11 @@ class Tool(Application):
         """Run the tool. This automatically calls `initialize()`,
         `start()` and `finish()`
         """
-        self._setup(argv)
-        self.log.info("Starting: {}".format(self.name))
-        self.log.debug("CONFIG: {}".format(self.config))
-        self.start()
-        self.finish()
+        try:
+            self._setup(argv)
+            self.log.info("Starting: {}".format(self.name))
+            self.log.debug("CONFIG: {}".format(self.config))
+            self.start()
+            self.finish()
+        except Exception as err:
+            self.log.error('Caught unexpected exception: {}'.format(err))

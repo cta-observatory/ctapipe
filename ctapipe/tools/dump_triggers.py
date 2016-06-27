@@ -11,43 +11,51 @@ from astropy.table import Table
 from astropy.time import Time
 from astropy import units as u
 from ctapipe.core import Tool
-from traitlets import Unicode, Dict, Bool
+from traitlets import (Unicode, Dict, Bool)
 
 MAX_TELS = 1000
-
 
 class DumpTriggersTool(Tool):
     description = __doc__
 
     # configuration parameters:
-    infile = Unicode('', help='input simtelarray file').tag(config=True)
+    infile = Unicode(help='input simtelarray file').tag(config=True, allow_none=False)
+
     outfile = Unicode('triggers.fits',
-                     help=('output filename, '
-                           'Can be any file type supported'
-                           'by astropy.table')).tag(config=True)
+                      help=('output filename, '
+                            'Can be any file type supported'
+                            'by astropy.table')
+                      ).tag(config=True)
+
     overwrite = Bool(False,
-                     help="overwrite existing output file").tag(config=True)
+                     help="overwrite existing output file"
+                     ).tag(config=True)
 
     # set which ones are high-level command-line options
-    aliases = Dict(dict(log_level='DumpTriggersTool.log_level',
-                        infile='DumpTriggersTool.infile',
+    aliases = Dict(dict(infile='DumpTriggersTool.infile',
                         outfile='DumpTriggersTool.outfile'))
 
-    flags = dict(overwrite=({'DumpTriggersTool': {'overwrite': True}},
-                            'Enable overwriting of output file'))
+    flags = Dict(dict(overwrite=({'DumpTriggersTool': {'overwrite': True}},
+                            'Enable overwriting of output file')))
 
     examples = ('ctapipe-dump-triggers --infile gamma.simtel.gz '
-                '--outfile trig.fits --overwrite')
+                '--outfile trig.fits --overwrite'
+                '\n\n'
+                'If you want to see more output, use --log_level=DEBUG')
+
+
+    def initialize(self, argv=None):
+        self.events = Table(names=['EVENT_ID', 'T_REL', 'N_TRIG', 'TRIGGERED_TELS'],
+                            dtype=[np.int64, np.float64, np.int32, np.uint8])
+
+        self.events['TRIGGERED_TELS'].shape = (0, MAX_TELS)
+        self.events['T_REL'].unit = u.s
+        self.events['T_REL'].description = 'Time relative to first event'
+        self.events.meta['INPUT'] = self.infile
+
+
 
     def start(self):
-
-        events = Table(names=['EVENT_ID', 'T_REL', 'N_TRIG', 'TRIGGERED_TELS'],
-                       dtype=[np.int64, np.float64, np.int32, np.uint8])
-
-        events['TRIGGERED_TELS'].shape = (0, MAX_TELS)
-        events['T_REL'].unit = u.s
-        events['T_REL'].description = 'Time relative to first event'
-        events.meta['INPUT'] = self.infile
 
         trigpattern = np.zeros(MAX_TELS)
         starttime = None
@@ -70,14 +78,14 @@ class DumpTriggersTool(Tool):
                 trigpattern[:] = 0        # zero the trigger pattern
                 trigpattern[trigtels] = 1  # set the triggered telescopes to 1
 
-                events.add_row((event_id, reltime, len(trigtels), trigpattern))
+                self.events.add_row((event_id, reltime, len(trigtels), trigpattern))
 
-            events.write(self.outfile, overwrite=self.overwrite)
+            self.events.write(self.outfile, overwrite=self.overwrite)
             self.log.info("Table written to '{}'".format(self.outfile))
-            self.log.info(events)
+            self.log.info(self.events)
 
-        except Exception as err:
-            self.log.error("ERROR: {}, stopping".format(err))
+        except pyhessio.HessioError as err:
+            self.log.critical("I/O error: '{}', stopping".format(err))
 
         finally:
             pyhessio.close_file()
