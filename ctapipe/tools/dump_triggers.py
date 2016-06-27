@@ -17,7 +17,6 @@ MAX_TELS = 1000
 
 
 class DumpTriggersTool(Tool):
-    name = "dump_triggers"
     description = __doc__
 
     # configuration parameters:
@@ -74,11 +73,11 @@ class DumpTriggersTool(Tool):
                 events.add_row((event_id, reltime, len(trigtels), trigpattern))
 
             events.write(self.outfile, overwrite=self.overwrite)
-            print("Table written to '{}'".format(self.outfile))
-            print(events)
+            self.log.info("Table written to '{}'".format(self.outfile))
+            self.log.info(events)
 
         except Exception as err:
-            print("ERROR: {}, stopping".format(err))
+            self.log.error("ERROR: {}, stopping".format(err))
 
         finally:
             pyhessio.close_file()
