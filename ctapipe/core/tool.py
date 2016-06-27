@@ -1,6 +1,6 @@
 from traitlets.config import Application, boolean_flag
 from traitlets import Unicode
-
+from ctapipe import version
 
 class Tool(Application):
     """A base class for all executable tools (applications) that handles
@@ -36,9 +36,8 @@ class Tool(Application):
         class MyTool(Tool):
             name = "mytool"
             description = "do some things and stuff"
-            aliases = Dict(dict(infile='AdvancedComponent.infile',
-                                log_level='MyTool.log_level',
-                                iterations='MyTool.iterations'))
+            aliases = Dict({'infile': 'AdvancedComponent.infile',
+                            'iterations': 'MyTool.iterations'})
 
             # Which classes are registered for configuration
             classes = List([MyComponent, AdvancedComponent, SecondaryMyComponent])
@@ -83,20 +82,24 @@ class Tool(Application):
 
     """
 
+    config_file = Unicode(help=("name of a configuration file with parameters to load "
+                                "in addition to command-line parameters")).tag(config=True)
+
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
         if self.aliases:
             self.aliases['log_level'] = 'Application.log_level'
-        super().__init__(**kwargs)
+            self.aliases['config'] = 'Tool.config_file'
 
-    config_file = Unicode( help="name of configuration file with parameters")\
-        .tag(config=True)
+        super().__init__(**kwargs)
+        self.log_format = '%(levelname)8s [%(name)s]: %(highlevel)s %(message)s'
 
     def _setup(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
         if self.config_file:
             self.load_config_file(self.config_file)
+        self.log.info("version {}".format(self.version_string))
         self.initialize()
 
     def initialize(self):
@@ -125,5 +128,11 @@ class Tool(Application):
             self.log.debug("CONFIG: {}".format(self.config))
             self.start()
             self.finish()
-        except Exception as err:
+        except RuntimeError as err:
             self.log.error('Caught unexpected exception: {}'.format(err))
+
+    @property
+    def version_string(self):
+        return "{} [release={}] [githash={}]".format(version.version,
+                                                     version.release,
+                                                     version.githash)
