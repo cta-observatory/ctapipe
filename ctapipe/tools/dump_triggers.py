@@ -79,6 +79,7 @@ class DumpTriggersTool(Tool):
                              self._current_trigpattern))
 
     def initialize(self, argv=None):
+        """ setup function, called before `start()` """
         self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
                                    'N_TRIG', 'TRIGGERED_TELS'],
                             dtype=[np.int64, np.float64, np.float64,
@@ -103,6 +104,7 @@ class DumpTriggersTool(Tool):
             self.add_event_to_table(event_id)
 
     def finish(self):
+        """ finish up and write out results (called automatically after `start()`)"""
         pyhessio.close_file()
 
         # write out the final table

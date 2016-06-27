@@ -1,9 +1,9 @@
 from pprint import pformat
+
 from astropy.table import Table
 from astropy.units import Quantity
+
 from ctapipe.io.files import get_file_type
-import numpy as np
-import logging
 
 
 class Container:
@@ -121,8 +121,9 @@ class Container:
         names = [i.upper() for i in self]
         dtype = [v.dtype for _, v in self.items()]
         data = [v for _, v in self.items()]
-        # data = [v for _, v.chunk in self.items()] # It depends on
-                                                    # chunking syntax
+
+        # It depends on chunking syntax:
+        # data = [v for _, v.chunk in self.items()]
 
         return Table(data=data,
                      names=names,

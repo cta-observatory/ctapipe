@@ -1,6 +1,8 @@
-from traitlets.config import Application, boolean_flag
 from traitlets import Unicode
+from traitlets.config import Application
+
 from ctapipe import version
+
 
 class Tool(Application):
     """A base class for all executable tools (applications) that handles
@@ -40,10 +42,11 @@ class Tool(Application):
                             'iterations': 'MyTool.iterations'})
 
             # Which classes are registered for configuration
-            classes = List([MyComponent, AdvancedComponent, SecondaryMyComponent])
+            classes = List([MyComponent, AdvancedComponent,
+                            SecondaryMyComponent])
 
             # local configuration parameters
-            iterations = Integer(5,help="Number of times to run", 
+            iterations = Integer(5,help="Number of times to run",
                                  allow_none=False).tag(config=True)
 
             def init_comp(self):
@@ -58,7 +61,8 @@ class Tool(Application):
                 self.init_advanced()
 
             def start(self):
-                self.log.info("Performing {} iterations...".format(self.iterations))
+                self.log.info("Performing {} iterations..."\
+                              .format(self.iterations))
                 for ii in range(self.iterations):
                     self.log.info("ITERATION {}".format(ii))
                     self.comp.do_thing()
@@ -82,8 +86,9 @@ class Tool(Application):
 
     """
 
-    config_file = Unicode(help=("name of a configuration file with parameters to load "
-                                "in addition to command-line parameters")).tag(config=True)
+    config_file = Unicode(help=("name of a configuration file with "
+                                "parameters to load in addition to "
+                                "command-line parameters")).tag(config=True)
 
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
@@ -92,7 +97,7 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = '%(levelname)8s [%(name)s]: %(highlevel)s %(message)s'
+        self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
         self.is_initialized = False
 
     def _setup(self, argv=None):
