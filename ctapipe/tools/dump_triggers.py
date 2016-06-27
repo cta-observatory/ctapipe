@@ -21,8 +21,8 @@ class DumpTriggersTool(Tool):
     description = __doc__
 
     # configuration parameters:
-    filename = Unicode('', help='input simtelarray file').tag(config=True)
-    output = Unicode('triggers.fits',
+    infile = Unicode('', help='input simtelarray file').tag(config=True)
+    outfile = Unicode('triggers.fits',
                      help=('output filename, '
                            'Can be any file type supported'
                            'by astropy.table')).tag(config=True)
@@ -31,30 +31,30 @@ class DumpTriggersTool(Tool):
 
     # set which ones are high-level command-line options
     aliases = Dict(dict(log_level='DumpTriggersTool.log_level',
-                        filename='DumpTriggersTool.filename',
-                        output='DumpTriggersTool.output'))
+                        infile='DumpTriggersTool.infile',
+                        outfile='DumpTriggersTool.outfile'))
 
     flags = dict(overwrite=({'DumpTriggersTool': {'overwrite': True}},
                             'Enable overwriting of output file'))
 
-    examples = ('ctapipe-dump-triggers --filename gamma.simtel.gz '
-                '--output trig.fits --overwrite')
+    examples = ('ctapipe-dump-triggers --infile gamma.simtel.gz '
+                '--outfile trig.fits --overwrite')
 
     def start(self):
-        # setup output table
-        events = Table(names=['EVENT_ID', 'T_REL', 'TRIGGERED_TELS'],
-                       dtype=[np.int64, np.float64, np.uint8])
+
+        events = Table(names=['EVENT_ID', 'T_REL', 'N_TRIG', 'TRIGGERED_TELS'],
+                       dtype=[np.int64, np.float64, np.int32, np.uint8])
 
         events['TRIGGERED_TELS'].shape = (0, MAX_TELS)
         events['T_REL'].unit = u.s
         events['T_REL'].description = 'Time relative to first event'
-        events.meta['INPUT'] = self.filename
+        events.meta['INPUT'] = self.infile
 
         trigpattern = np.zeros(MAX_TELS)
         starttime = None
 
         try:
-            pyhessio.file_open(self.filename)
+            pyhessio.file_open(self.infile)
 
             for run_id, event_id in pyhessio.move_to_next_event():
 
@@ -71,10 +71,10 @@ class DumpTriggersTool(Tool):
                 trigpattern[:] = 0        # zero the trigger pattern
                 trigpattern[trigtels] = 1  # set the triggered telescopes to 1
 
-                events.add_row((event_id, reltime, trigpattern))
+                events.add_row((event_id, reltime, len(trigtels), trigpattern))
 
-            events.write(self.output, overwrite=self.overwrite)
-            print("Table written to '{}'".format(self.output))
+            events.write(self.outfile, overwrite=self.overwrite)
+            print("Table written to '{}'".format(self.outfile))
             print(events)
 
         except Exception as err:
