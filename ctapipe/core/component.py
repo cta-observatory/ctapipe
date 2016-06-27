@@ -3,9 +3,10 @@ from logging import getLogger
 
 
 class Component(Configurable):
-    """This should be the base class of all Components (sometimes called
-    workers, makers, etc). Before adding any class methods, you should
-    define any user-configurable *parameters* as `traitlets`.
+    """Base class of all Components (sometimes called
+    workers, makers, etc).  Components are are classes that do some sort
+    of processing and contain user-configurable parameters, which are
+    implemented using `traitlets`.
 
     `traitlets` can validate values and provide defaults and
     descriptions. These will be automatically translated into
