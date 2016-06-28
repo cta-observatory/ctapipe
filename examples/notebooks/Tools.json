@@ -1,0 +1,4 @@
+{
+    "MyTool": {"log_level":"DEBUG"},
+    "AdvancedComponent": {"infile": "something.txt"}
+}
