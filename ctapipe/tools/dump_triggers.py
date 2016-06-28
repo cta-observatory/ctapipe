@@ -25,8 +25,7 @@ class DumpTriggersTool(Tool):
     infile = Unicode(help='input simtelarray file').tag(config=True, allow_none=False)
 
     outfile = Unicode('triggers.fits',
-                      help='output filename, Can be any file type supported by astropy.table'
-                      ).tag(config=True)
+                      help='output filename (*.fits, *.h5)').tag(config=True)
 
     overwrite = Bool(False,
                      help="overwrite existing output file"
@@ -46,6 +45,8 @@ class DumpTriggersTool(Tool):
                 '--outfile trig.fits --overwrite'
                 '\n\n'
                 'If you want to see more output, use --log_level=DEBUG')
+
+
 
     # =============================================
     # The methods of the Tool (initialize, start, finish):
@@ -78,8 +79,12 @@ class DumpTriggersTool(Tool):
         self.events.add_row((event_id, relative_time.sec, delta_t.sec, len(trigtels),
                              self._current_trigpattern))
 
-    def initialize(self, argv=None):
+    def setup(self):
         """ setup function, called before `start()` """
+
+        if self.infile == '':
+            raise ValueError("No 'infile' parameter was specified. Use --help for info")
+
         self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
                                    'N_TRIG', 'TRIGGERED_TELS'],
                             dtype=[np.int64, np.float64, np.float64,

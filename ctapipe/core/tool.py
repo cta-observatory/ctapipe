@@ -1,5 +1,6 @@
 from traitlets import Unicode
 from traitlets.config import Application
+from abc import abstractmethod
 
 from ctapipe import version
 
@@ -18,7 +19,7 @@ class Tool(Application):
     `name`, `description` and `examples` class attributes as
     strings. The `aliases` attribute can be set to cause a lower-level
     `Component` parameter to become a high-plevel command-line
-    parameter (See example below). The `initialize()`, `start()`, and
+    parameter (See example below). The `setup()`, `start()`, and
     `finish()` methods should be defined in the sub-class.
 
     Additionally, any `ctapipe.core.Component` used within the `Tool`
@@ -27,7 +28,7 @@ class Tool(Application):
     tool.
 
     Once a tool is constructed and the virtual methods defined, the
-    user can call the `run()` method to initialize and start it.
+    user can call the `run()` method to setup and start it.
 
 
     .. code:: python
@@ -86,7 +87,7 @@ class Tool(Application):
 
     """
 
-    config_file = Unicode(help=("name of a configuration file with "
+    config_file = Unicode(u'', help=("name of a configuration file with "
                                 "parameters to load in addition to "
                                 "command-line parameters")).tag(config=True)
 
@@ -98,28 +99,32 @@ class Tool(Application):
 
         super().__init__(**kwargs)
         self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
-        self.is_initialized = False
+        self.is_setup = False
 
-    def _setup(self, argv=None):
+    def initialize(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
-        if self.config_file:
+        if self.config_file != '':
+            self.log.debug("Loading config from '{}'".format(self.config_file))
             self.load_config_file(self.config_file)
         self.log.info("version {}".format(self.version_string))
-        self.initialize()
-        self.is_initialized = True
+        self.setup()
+        self.is_setup= True
 
-    def initialize(self):
+    @abstractmethod
+    def setup(self):
         """set up the tool (override in subclass). Here the user should
         construct all `Components` and open files, etc."""
-        super().initialize(argv=None)
+        pass
 
+    @abstractmethod
     def start(self):
         """main body of tool (override in subclass). This is automatially
         called after `initialize()` when the `run()` is called.
         """
         pass
 
+    @abstractmethod
     def finish(self):
         """finish up (override in subclass). This is called automatially
         after `start()` when `run()` is called."""
@@ -130,16 +135,19 @@ class Tool(Application):
         `start()` and `finish()`
         """
         try:
-            self._setup(argv)
+            self.initialize(argv)
             self.log.info("Starting: {}".format(self.name))
             self.log.debug("CONFIG: {}".format(self.config))
             self.start()
             self.finish()
+        except ValueError as err:
+            self.log.error('{}'.format(err))
         except RuntimeError as err:
             self.log.error('Caught unexpected exception: {}'.format(err))
 
     @property
     def version_string(self):
+        """ a formatted version string with version, release, and git hash"""
         return "{} [release={}] [githash={}]".format(version.version,
                                                      version.release,
                                                      version.githash)
