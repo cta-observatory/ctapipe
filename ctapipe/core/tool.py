@@ -50,16 +50,16 @@ class Tool(Application):
             iterations = Integer(5,help="Number of times to run",
                                  allow_none=False).tag(config=True)
 
-            def init_comp(self):
+            def setup_comp(self):
                 self.comp = MyComponent(self, config=self.config)
                 self.comp2 = SecondaryMyComponent(self, config=self.config)
 
-            def init_advanced(self):
+            def setup_advanced(self):
                 self.advanced = AdvancedComponent(self, config=self.config)
 
-            def initialize(self):
-                self.init_comp()
-                self.init_advanced()
+            def setup(self):
+                self.setup_comp()
+                self.setup_advanced()
 
             def start(self):
                 self.log.info("Performing {} iterations..."\
