@@ -55,7 +55,7 @@ To create a new command-line Tool, follow the following procedure:
 1. make a subclass of `ctapipe.core.Tool`
 2. define any user-configurable parameters of the tool
 3. register any configurable `ctapipe.core.Component` classes
-   (workers) with the Tool via its `classes` attribute
+   that you will use with the Tool via its `classes` attribute
 4. use the `aliases` attribute to promote any parameters from one of
    the sub-Components to a high-level a command-line parameter (they
    can still be specified using the advanced command-line command
@@ -65,7 +65,8 @@ To create a new command-line Tool, follow the following procedure:
 5. overload the `setup(self)`, `start(self)`, and `finish(self)`
    methods to implement the functinatlity of the tool (these will be
    called in order when you call the `run()` method.
-6. make sure you have a function called `main()` that creates and runs your tool in the source file.
+6. make sure you have a function called `main()` that creates and runs
+   your tool in the source file.
 7. add the file and `main()` function you made in step 6 to the
    top-level `setup.py` file under the section called
    `entry_points['console_scripts']`.  This will automatically create
