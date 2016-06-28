@@ -109,7 +109,7 @@ class Tool(Application):
             self.load_config_file(self.config_file)
         self.log.info("version {}".format(self.version_string))
         self.setup()
-        self.is_setup= True
+        self.is_setup = True
 
     @abstractmethod
     def setup(self):

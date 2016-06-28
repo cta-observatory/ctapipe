@@ -9,8 +9,9 @@ Core Data Structures and Base Classes
 Introduction
 ============
                    
-The `ctapipe.core` module contains base classes the provide developers with the core
-functionality to implement an application that processes data.
+The `ctapipe.core` module contains base classes the provide developers
+with the core functionality to implement an application that processes
+data.
 
 `~ctapipe.core.Container` provides a common data class,
 `~ctapipe.core.Component` lets one define a modules (worker, maker,
@@ -23,7 +24,7 @@ this will also handle provenance metadata.
 All *ctapipe* applications should derive from these classes in order
 to provide a common interface.
 
-For details about creating command-line tools, see `tools`
+For details about creating command-line tools, see :ref:`tools`
 
 .. graphviz:: corediagram.dot
 
