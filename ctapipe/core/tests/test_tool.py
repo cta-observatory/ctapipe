@@ -16,3 +16,8 @@ def test_tool_simple():
     tool.log_level = 'DEBUG'
     tool.log.info("test")
     tool.run([])
+
+    # test parameters changes:
+    tool.userparam = 4.0
+    with pytest.raises(TraitError):
+        tool.userparam = "badvalue"

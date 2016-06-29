@@ -4,7 +4,11 @@ from traitlets import Float, TraitError
 from .. import Component
 
 
-def test_component():
+def test_component_simple():
+    """
+    very basic test to construct a component and check
+    that it's traits work correctly
+    """
 
     class ExampleComponent(Component):
         description = "this is a test"
