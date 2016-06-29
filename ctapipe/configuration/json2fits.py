@@ -4,9 +4,6 @@ from json import load
 import logging
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(name)s - %(levelname)s - %(message)s')
-
 
 __all__ = ['traitletsConfigToFits','jsonToFits']
 
