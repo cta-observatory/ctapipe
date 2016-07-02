@@ -78,7 +78,8 @@ def set_integration_correction(telid, params):
     refstep = get_ref_step(telid)
     nrefstep = get_lrefshape(telid)
     x = np.arange(0, refstep*nrefstep, refstep)
-    y = refshape[0]
+    y = refshape[get_num_channel(telid)-1]
+    #print(y)
     refipeak = np.argmax(y)
     refpeak = x[refipeak]
 
@@ -96,11 +97,8 @@ def set_integration_correction(telid, params):
     if start + nsum > get_num_samples(telid):
         start = get_num_samples(telid) - nsum
 
-    int1 = np.histogram(x-refstep/2, bins=nrefstep-refstep/2, weights=y)[0]
-    int2 = np.histogram(x1-time_slice/2,
-                        bins=x1-time_slice/2, weights=y1)[0][start:start+nsum]
-
-    return (int1.sum()*refstep)/(int2.sum()*time_slice)
+    correction = round((sum(y)*refstep)/(sum(y1[start:start+nsum])*time_slice),7)
+    return correction
 
 
 def pixel_integration_mc(event, cam, ped, telid, parameters):
@@ -413,6 +411,7 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     ----------
 
     event                 Data set container to the hess_io event ()
+    cam                   Data set container with the camera information
     ped                   Array of double containing the pedestal
     telid                 Telescope_id
     parameters['nsum']    Number of samples to sum up
@@ -483,6 +482,7 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
 
     if __debug__: print(" inter-integration %.3e sec"%(iend-istart))
 
+    print(sum_pix_tel[0][0],time_pix_tel[0][0])
     return sum_pix_tel, time_pix_tel[0]
 
 
