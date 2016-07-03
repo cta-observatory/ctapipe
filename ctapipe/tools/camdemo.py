@@ -13,10 +13,10 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 from astropy import units as u
 
-from traitlets.config.application import Application
+from ctapipe.core import Tool
 
 
-class CameraDemo(Application):
+class CameraDemo(Tool):
 
     name = u"ctapipe-cam-demo"
     description = "Display fake events in a demo camera"
@@ -77,8 +77,7 @@ class CameraDemo(Application):
 def main(args=None):
 
     app = CameraDemo()
-    app.initialize()
-    app.start()
+    app.run()
 
 
 if __name__ == '__main__':

@@ -4,13 +4,10 @@ from json import load
 import logging
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(name)s - %(levelname)s - %(message)s')
 
+__all__ = ['traitlets_config_to_fits', 'json_to_fits']
 
-__all__ = ['traitletsConfigToFits','jsonToFits']
-
-def traitletsConfigToFits( config, fits_filename,clobber=True):
+def traitlets_config_to_fits(config, fits_filename, clobber=True):
     """Write a FITS file that represents configuration.
     Parameters
     ----------
@@ -27,7 +24,7 @@ def traitletsConfigToFits( config, fits_filename,clobber=True):
     """
 
     if not isinstance(config,Config):
-        logger.error("traitletsConfigToFits: config must be an instance of traitlets.config.loader.Config")
+        logger.error("traitlets_config_to_fits: config must be an instance of traitlets.config.loader.Config")
         return False
     # hduList will contain one TableHDU per section
     hduList = fits.HDUList()
@@ -49,7 +46,7 @@ def traitletsConfigToFits( config, fits_filename,clobber=True):
 
 
 
-def jsonToFits( json_filename, fits_filename,clobber=True):
+def json_to_fits(json_filename, fits_filename, clobber=True):
     """Write a FITS file that represents json file for traitlets configuration.
     Parameters
     ----------

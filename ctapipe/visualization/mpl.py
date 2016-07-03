@@ -21,7 +21,8 @@ logger = logging.getLogger(__name__)
 
 class CameraDisplay:
 
-    """Camera Display using matplotlib.
+    """
+    Camera Display using matplotlib.
 
     Parameters
     ----------
@@ -36,8 +37,8 @@ class CameraDisplay:
     norm : str or `matplotlib.color.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
-           'lin': linear scale
-           'log': logarithmic scale (base 10)
+        - 'lin': linear scale
+        - 'log': logarithmic scale (base 10)
     cmap : str or `matplotlib.colors.Colormap` (default 'hot')
         Color map to use (see `matplotlib.cm`)
     allow_pick : bool (default False)
@@ -195,10 +196,12 @@ class CameraDisplay:
     def norm(self):
         '''
         The norm instance of the Display
+
         Possible values:
-            "lin": linear scale
-            "log": log scale
-            any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
+
+        - "lin": linear scale
+        - "log": log scale
+        -  any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
         '''
         return self.pixels.norm
 
@@ -220,24 +223,20 @@ class CameraDisplay:
 
     @property
     def cmap(self):
+        """
+        Color map to use. Either a name or  `matplotlib.colors.ColorMap`
+        instance, e.g. from `matplotlib.pyplot.cm`
+        """
         return self.pixels.get_cmap()
 
     @cmap.setter
     def cmap(self, cmap):
-        """ Change the color map
-
-        Parameters
-        ----------
-        self: type
-            description
-        cmap: `matplotlib.colors.ColorMap`
-            a color map, e.g. from `matplotlib.pyplot.cm.*`
-        """
         self.pixels.set_cmap(cmap)
         self.update()
 
     @property
     def image(self):
+        """The image displayed on the camera (1D array of pixel values)"""
         return self.pixels.get_array()
 
     @image.setter
@@ -395,6 +394,7 @@ class ArrayDisplay:
 
     @property
     def values(self):
+        """An array containing a value per telescope"""
         return self.telescopes.get_array()
 
     @values.setter

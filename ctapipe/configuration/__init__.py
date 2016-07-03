@@ -5,4 +5,3 @@ ctapipe project.
 """
 
 from .core import *
-from .json2fits import *
