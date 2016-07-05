@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "Pipeline": {
+      "producer_conf": { "name" : "EVENT_READER", "module": "ctapipe.pipeline.algorithms.fake_producer",
+           "class": "FakeProducer"},
+      "consumer_conf": { "name" : "SAVER", "module": "ctapipe.pipeline.algorithms.fake_process2",
+                "class": "FakeProcess2"},
+      "stagers_conf" : [{"name": "CLEANING", "class": "FakeProcess", "module": "ctapipe.pipeline.algorithms.fake_process", "nb_thread" : 2},
+	  {"name": "HILLAS", "class": "FakeProcess", "module": "ctapipe.pipeline.algorithms.fake_process", "nb_thread" : 2}]
+
+  }
+}

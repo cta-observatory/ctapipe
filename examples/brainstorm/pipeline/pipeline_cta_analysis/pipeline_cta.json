@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "Pipeline": {
+      "producer_conf": { "name" : "PRODUCER_LISTFILE", "module": "ctapipe.pipeline.algorithms.list_producer_process",
+           "class": "ListProducerProcess", "source_dir" : "/home/jacquem/workspace/demo/0-PRUN.small","executable" :  "ls"},
+
+      "consumer_conf": { "name" : "CONSUMER_MAP", "module": "ctapipe.pipeline.algorithms.stager_process",
+                		"class": "StagerProcess", "executable" :  "precoevent2map", "output_dir" : "/tmp/analysis/4-PMAP",
+						"out_extension" : "png"},
+
+      "stagers_conf" : [
+		  				{"name": "STAGER_PRUN2PTABHILLAS", "class": "StagerProcess",
+		   				"module": "ctapipe.pipeline.algorithms.stager_process", "nb_thread" : 2,
+						"executable" :  "prun2ptablehillas", "output_dir" : "/tmp/analysis/1-PTABHILLAS",
+						"out_extension" : "ptabhillas"},
+
+						{"name": "STAGER_TIMEHILLAS", "class": "StagerProcess",
+						"module": "ctapipe.pipeline.algorithms.stager_process", "nb_thread" : 2,
+						"executable" :  "ptablehillas2ptimehillas", "output_dir" : "/tmp/analysis/2-PTIMEHILLAS",
+						"out_extension" : "ptimehillas"},
+
+						{"name": "STAGER_RECO", "class": "StagerProcess",
+						"module": "ctapipe.pipeline.algorithms.stager_process", "nb_thread" : 2,
+						"executable" :  "ptimehillas2precoevent", "output_dir" : "/tmp/analysis/3-PRECOEVENT",
+						"out_extension" : "recoevent"}  ]
+
+  }
+  }

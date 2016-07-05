@@ -12,10 +12,11 @@ class ProducerProcess(BaseProcess):
 	def run(self):
 		for input_file in os.listdir(self.source_dir):
 			cmd,output_file = super().build_command(input_file)
+			sleep(5)
 			proc = subprocess.Popen(cmd)
 			proc.wait()
 			yield output_file
+		self.finish()
 
 	def finish(self):
 		print('---', self.section_name, 'finish ---')
-		
