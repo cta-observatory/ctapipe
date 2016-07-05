@@ -327,7 +327,7 @@ class CameraDisplay:
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
-        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_x.value),
+        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_y.value),
                               length=momparams.length.value,
                               width=momparams.width.value, angle=momparams.psi.to(u.rad).value,
                               **kwargs)
