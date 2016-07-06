@@ -10,9 +10,9 @@ Introduction
 ============
 
 `ctapipe.pipeline`
-is a module for distributing computations (ctapipe Tools) for parallel execution in a multithread environment.
+it is a parallelization system. It executes ctapipe algorithms in a multithread environment.
 
-It is based on ZeroMQ library (http://zeromq.org) for message passing between threads.
+It is based on ZeroMQ library (http://zeromq.org) to pass messages between threads.
 ZMQ library allows to stay away from class concurrency mechanisms like mutexes,
 critical sections semaphores, while being thread safe.
 
@@ -30,6 +30,10 @@ choose the step that will receive next data. The router also manage Queue for ea
 
 Getting Started
 ===============
+ZMQ library installation
+------------------------
+   *%prompt> conda install pyzmq*
+
 Pipeline configuration
 ----------------------
 Pipeline configuration is read from a json configuration file, or command line arguments, thanks to traitlets config.
@@ -57,7 +61,7 @@ Optional entry per step
 
 User option for step
 ^^^^^^^^^^^^^^^^^^^^
-You can add all needed parameters for the stage, and get them at executation time.
+You can add all required parameters for the stage, and get them at execution time.
 
 configuration example
 ^^^^^^^^^^^^^^^^^^^^^
@@ -90,7 +94,7 @@ Producer class run method does not have any input parameter and must yield a res
 
 Stager run method
 ^^^^^^^^^^^^^^^^^
-Stager class run method takes one parameter (sending by previous step).
+Stager class run method takes one parameter (sent by the previous step).
 It can return nothing or one value per input or yield several values per input.
 
 
@@ -99,7 +103,8 @@ It can return nothing or one value per input or yield several values per input.
     >>> def run(self,event):
     >>>     if event != None:
     >>>         return event.dl0.tels_with_data
-or if step have to send several output to its next step for one input.
+
+In case a step has to send several output to the next step :
 
 .. code-block:: python
 
@@ -115,19 +120,25 @@ Consumer class run method takes one parameter and does not return anything
 
 Running the pipeline
 --------------------
-   %prompt> ctapipe-pipeline --config=mypipeconfig.json
-By defalut pipeline send is activity to a GUI on tcp://localhost:5565.
-But if GUI is running on another system, you can used --Pipeline.gui_address option
-to defined another address
+   *%prompt> ctapipe-pipeline --config=mypipeconfig.json*
+By default pipeline send its activity to a GUI  on tcp://localhost:5565.
+But if the GUI is running on another system, you can use --Pipeline.gui_address
+option to define another address
 
+Execution examples
+^^^^^^^^^^^^^^^^^^
+    *protm%> ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json*
 
 Pipeline Graphical representation
 =================================
-A GUI can be launch to keep a close watch on pipeline executation.
+A GUI can be launch to keep a close watch on pipeline execution.
 This GUI can be launch on the same system than the pipeline or on a different one.
 By default GUI is binded to port 5565. You can change it with --PipeGui.port option
-    %prompt> ctapipe-guipipe 
+    *%prompt> ctapipe-guipipe*
 
+pyside library is required
+--------------------------
+   *%prompt> conda install pyside*
 
 Foressen improvement:
 =====================
@@ -244,7 +255,3 @@ Consumer example
         def finish(self):
             print("--- StringWriter finish ---")
             self.file.close()
-
-Execution examples
-^^^^^^^^^^^^^^^^^^
-    ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json

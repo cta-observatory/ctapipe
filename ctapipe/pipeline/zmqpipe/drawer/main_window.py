@@ -56,17 +56,14 @@ class MainWindow(QMainWindow,object):
         self.menuFile.addAction(self.actionQuit)
         self.menubar.addAction(self.menuFile.menuAction())
         # add other GUI objects
+
         self.pipeline_drawer = PipelineDrawer(self.statusbar)
-        #self.gridLayout.addWidget(self.pipeline_drawer, 0, 1, 20,20)
         self.gridLayout.addWidget(self.pipeline_drawer, 0,1 , 20,9)
-        self.label = QtGui.QLabel()#self.centralwidget)
-        #self.label.setGeometry(QtCore.QRect(10, 10, 151, 91))
-        self.label.setGeometry(QtCore.QRect(10, 10, 10, 10))
-        self.label.setText("")
-        self.label.setPixmap(QtGui.QPixmap("cta-logo-mini.png"))
-        self.label.setScaledContents(False);
-        self.label.setObjectName("label")
-        self.gridLayout.addWidget(self.label, 0, 0, 1,1)
+
+        pixmap = QtGui.QPixmap("cta-logo-mini.png")
+        lbl = QtGui.QLabel()
+        lbl.setPixmap(pixmap)
+        self.gridLayout.addWidget(lbl, 0, 0, 1,1)
 
         p = self.pipeline_drawer.palette()
         self.pipeline_drawer.setAutoFillBackground(True)
@@ -77,6 +74,8 @@ class MainWindow(QMainWindow,object):
         self.quitButton.setText(QtGui.QApplication.translate
         ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 19, 0, 1,1);
+
+
         QtCore.QObject.connect(self.quitButton, QtCore.SIGNAL("clicked()"), self.stop)
         QtCore.QObject.connect(self.actionQuit, QtCore.SIGNAL("triggered()"), self.stop)
         QtCore.QMetaObject.connectSlotsByName(self)
@@ -127,12 +126,3 @@ class ModuleApplication(QApplication):
         self.main_windows = MainWindow(port)
         self.main_windows.show()
         self.exec_()
-        """
-        if len(argv) == 2:
-            zmq_port = argv[1]
-            self.main_windows = MainWindow(zmq_port)
-            self.main_windows.show()
-            self.exec_()
-        else:
-            print("usage: python pipegui.py zmq_port")
-        """
