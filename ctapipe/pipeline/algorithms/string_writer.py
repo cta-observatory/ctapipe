@@ -1,5 +1,4 @@
 from ctapipe.configuration.core import Configuration, ConfigurationException
-from time import sleep
 
 class StringWriter:
         def __init__(self,configuration=None):

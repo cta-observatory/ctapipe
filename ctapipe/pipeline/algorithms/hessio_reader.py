@@ -2,7 +2,6 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.configuration.core import Configuration, ConfigurationException
 import threading
-from copy import deepcopy
 from sys import stderr
 
 class HessioReader():

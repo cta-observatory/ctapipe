@@ -181,8 +181,6 @@ class Pipeline(Tool):
 			return False
 
 		# Get port for GUI
-
-		print ( "Get add GUI address:",self.gui_address)
 		if self.gui_address!=None :
 			try:
 				self.socket_pub.connect("tcp://"+ self.gui_address)#"tcp://localhost:5566")

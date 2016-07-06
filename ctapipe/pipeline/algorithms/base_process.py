@@ -13,7 +13,6 @@ Other options can be add with options keyword in configuration file
 class BaseProcess():
 	def __init__(self,configuration):
 		self.configuration = configuration
-		print("DEBUG ", configuration)
 		self.section_name = None
 		self.source_dir = None
 		self.output_dir = None
@@ -37,7 +36,7 @@ class BaseProcess():
 		try:
 			self.source_dir = self.configuration['source_dir']
 		except KeyError as e:
-			print("KeyError",e)
+			pass
 		try:
 			self.output_dir = self.configuration['output_dir']
 			if self.output_dir != None :
@@ -48,7 +47,7 @@ class BaseProcess():
 						print(self.section_name, ": could not create output directory", self.output_dir)
 						return False
 		except KeyError as e:
-			print("KeyError",e)
+			pass
 		try:
 			self.executable =  self.configuration['executable']
 			if self.executable  == None:
@@ -59,10 +58,9 @@ class BaseProcess():
 			self.executable = None
 			return False
 		try:
-			print("DEBUG 5")
 			self.out_extension =self.configuration['out_extension']
 		except KeyError as e:
-			print("KeyError",e)
+			pass
 		return True
 
 	"""
