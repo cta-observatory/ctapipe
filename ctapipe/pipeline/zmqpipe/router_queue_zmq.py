@@ -126,7 +126,6 @@ class RouterQueue(threading.Thread):
             # Test if message arrived from prev_stage (stage or producer)
             for n,socket_router in self.router_sockets.items():
                 if socket_router in sockets and sockets[socket_router] == zmq.POLLIN:
-
                     # Get next prev_stage request
                     address, empty, request = socket_router.recv_multipart()
                     # store it to job queue

@@ -4,11 +4,10 @@ from ctapipe.configuration.core import Configuration, ConfigurationException
 import threading
 from copy import deepcopy
 from sys import stderr
-from ctapipe.pipeline import Coroutine
 import pickle
 from ctapipe.core import Container
 
-class EventReader(Coroutine):
+class EventReader():
 
     def __init__(self,configuration=None):
         self.configuration = configuration
@@ -29,7 +28,7 @@ class EventReader(Coroutine):
                 event.dl0.event_id = counter
                 counter+=1
                 # send new job to next router/queue
-                self.send_to_next_stage(event)
+                yield event
         print("\n--- HessioReader Done ---")
         return
 
