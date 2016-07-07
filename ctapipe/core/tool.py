@@ -99,7 +99,9 @@ class Tool(Application):
 
         super().__init__(**kwargs)
         self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
+        self.log_level = 20  # default to INFO and above
         self.is_setup = False
+
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
