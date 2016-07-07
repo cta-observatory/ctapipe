@@ -10,13 +10,13 @@ Introduction
 ============
 
 `ctapipe.pipeline`
-it is a parallelization system. It executes ctapipe algorithms in a multithread environment.
+it is a parallelization system. It executes ctapipe processing modules in a multithread environment.
 
-It is based on ZeroMQ library (http://zeromq.org) to pass messages between threads.
+It is based on ZeroMQ library (http://zeromq.org) for messages passing between threads.
 ZMQ library allows to stay away from class concurrency mechanisms like mutexes,
 critical sections semaphores, while being thread safe.
 
-User defined steps thanks to Python classes. Passing data between steps is managed by the router.
+User implements steps in Python class. Passing data between steps is managed by the router.
 If a step is executed by several threads, the router uses LRU pattern (least recently used ) to
 choose the step that will receive next data. The router also manage Queue for each step.
 
@@ -32,7 +32,7 @@ Getting Started
 ===============
 ZMQ library installation
 ------------------------
-   *%prompt> conda install pyzmq*
+   *prompt$> conda install pyzmq*
 
 Pipeline configuration
 ----------------------
@@ -120,30 +120,31 @@ Consumer class run method takes one parameter and does not return anything
 
 Running the pipeline
 --------------------
-   *%prompt> ctapipe-pipeline --config=mypipeconfig.json*
+   *prompt$> ctapipe-pipeline --config=mypipeconfig.json*
 By default pipeline send its activity to a GUI  on tcp://localhost:5565.
 But if the GUI is running on another system, you can use --Pipeline.gui_address
-option to define another address
+option to define another address.
+Configure the firewall to allow access to that port for authorized computers.
 
 Execution examples
 ^^^^^^^^^^^^^^^^^^
-    *protm%> ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json*
+    *prompt$> ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json*
 
 Pipeline Graphical representation
 =================================
 A GUI can be launch to keep a close watch on pipeline execution.
 This GUI can be launch on the same system than the pipeline or on a different one.
 By default GUI is binded to port 5565. You can change it with --PipeGui.port option
-    *%prompt> ctapipe-guipipe*
+    *prompt$> ctapipe-guipipe*
 
 pyside library is required
 --------------------------
-   *%prompt> conda install pyside*
+   *prompt$> conda install pyside*
 
 Foressen improvement:
 =====================
 - limit router queue if request by user.
-- passing message to any pipeline step (not only the next one).
+- message passing to any pipeline step (not only the next one).
 
 Pipeline example
 ^^^^^^^^^^^^^^^^
