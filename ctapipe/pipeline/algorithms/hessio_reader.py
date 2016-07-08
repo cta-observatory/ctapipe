@@ -13,7 +13,6 @@ class HessioReader(Component):
 
     def init(self):
         self.log.info("--- HessioReader init ---")
-        print("DEBUG filename",self.filename)
         return True
 
     def run(self):
