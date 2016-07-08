@@ -55,6 +55,8 @@ Note: The firewall must be configure to accept input/output on theses port
         self.nb_thread = nb_thread
 
     def __repr__(self):
+        '''standard representation
+        '''
         if self.prev_step != None:
             return ('Name[ ' + str(self.section_name) + ' ], previous step[ ' +
             str(self.prev_step.section_name) + ' ], port in[ ' +
@@ -114,9 +116,10 @@ class StepInfo():
         self.queue_size = 0
 
     def __repr__(self):
+        '''standard representation
+        '''
         return (self.name + ', ' + self.type + ', ' + str(self.running) +
          ', ' + str(self.queue_size))
-
 
 class Pipeline(Tool):
 
@@ -128,8 +131,6 @@ class Pipeline(Tool):
     description = 'run stages in multithread pipeline'
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
         config=True, allow_none=True)
-    # producer_conf = Dict(default_value={'name': 'PRODUCER', 'class':
-    # 'Producer', 'module': 'producer'},
     producer_conf = Dict(
         help='producer description: name , module, class',
                                             allow_none=False).tag(config=True)
@@ -604,7 +605,6 @@ class Pipeline(Tool):
             if step['name'] == name:
                 return index
         return -1
-
 
 def main():
     tool = Pipeline()
