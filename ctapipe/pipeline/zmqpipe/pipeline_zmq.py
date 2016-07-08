@@ -1,9 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-'''Implementation of generator/coroutine-based
-pipelines in Python. The pipeline is ran in parallel.
-One or several threads per pipeline stage. Router manage jobs distribution and
-jobs queue
-
+'''a parallelization system. It executes ctapipe algorithms in a multithread
+environment.
+It is based on ZeroMQ library (http://zeromq.org) to pass messages between
+threads. ZMQ library allows to stay away from class concurrency mechanisms
+like mutexes, critical sections semaphores, while being thread safe.
+User defined steps thanks to Python classes.
+Passing data between steps is managed by the router.
+If a step is executed by several threads, the router uses LRU pattern
+(least recently used ) to choose the step that will receive next data.
+The router also manage Queue for each step.
 '''
 from ctapipe.utils import dynamic_class_from_module
 from ctapipe.core import Tool
@@ -11,21 +16,17 @@ from threading import Thread
 from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
 from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZmq
-from ctapipe.pipeline.zmqpipe.coroutine import Coroutine
 from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
-from sys import exit, stderr
+import sys
 import zmq
 import time
 import pickle
 from ctapipe.core import Tool
 from traitlets import (Integer, Float, List, Dict, Unicode)
 
-
 __all__ = ['Pipeline', 'PipelineError']
 
-
 class PipeStep():
-
     '''
 PipeStep reprensents a Pipeline step. One or several threads can be attach
     to this step.
@@ -178,8 +179,8 @@ class Pipeline(Tool):
         '''
         # Verify configuration instance
         if self.config == None:
-            self.log.info( 'Could not initialise a pipeline without configuration',
-                 file=stderr)
+            self.log.error('Could not initialise a pipeline without \
+             configuration')
             return False
 
         # Get port for GUI
@@ -207,7 +208,7 @@ class Pipeline(Tool):
                 producer_step.section_name, self.PRODUCER,
                  port_out=producer_step.port_out, config=conf)
             if producer_zmq.init() == False:
-                self.log.info('producer_zmq init failed', file=stderr)
+                self.log.error('producer_zmq init failed')
                 return False
             self.producer = producer_zmq
 
@@ -230,7 +231,7 @@ class Pipeline(Tool):
                                               port_in=router_port_out,
                                               config=conf)
             if consumer_zmq.init() == False:
-                self.log.info('consumer_zmq init failed', file=stderr)
+                self.log.error('consumer_zmq init failed')
                 return False
             self.consumer = consumer_zmq
 
@@ -251,7 +252,7 @@ class Pipeline(Tool):
                     name=stager_step.section_name +'$$thread_number$$' + str(i),
                     config=conf)
                 if stager_zmq.init() == False:
-                    self.log.info('stager_zmq init failed', file=stderr)
+                    self.log.error('stager_zmq init failed')
                     return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
@@ -347,13 +348,9 @@ class Pipeline(Tool):
         if stage_type == self.STAGER:
             thread = StagerZmq(
                 obj, port_in, port_out, name=name, gui_address=self.gui_address)
-            if isinstance(obj, Coroutine):
-                obj.set_socket(thread.get_output_socket())
         elif stage_type == self.PRODUCER:
             thread = ProducerZmq(
                 obj, port_out, 'producer', gui_address=self.gui_address)
-            if isinstance(obj, Coroutine):
-                obj.set_socket(thread.get_output_socket())
         elif stage_type == self.CONSUMER:
             thread = ConsumerZmq(
                 obj, port_in, 'consumer', parent=self, gui_address=self.gui_address)
