@@ -180,33 +180,36 @@ Producer example
     from ctapipe.io.hessio import hessio_event_source
     from ctapipe.configuration.core import Configuration, ConfigurationException
     import threading
-    from sys import stderr
+    from ctapipe.core import Component
+    from traitlets import Unicode
 
-    class HessioReader():
 
-        def __init__(self,configuration=None):
-            self.configuration = configuration
+    class HessioReader(Component):
+
+        filename = Unicode('gamma_test.simtel.gz', help='simtel MC input file').tag(
+            config=True, allow_none=True)
 
         def init(self):
-            print("--- HessioReader init ---")
+            self.log.info("--- HessioReader init ---")
             return True
-
 
         def run(self):
             try:
-                filename = get_path('gamma_test.simtel.gz')
-                source = hessio_event_source(filename,max_events=10)
+                in_file = get_path(self.filename)
+                source = hessio_event_source(in_file, max_events=10)
             except(RuntimeError):
-                print("could not open gamma_test.simtel.gz", file=stderr)
+                self.log.error('could not open ' + in_file)
                 return False
+            counter = 0
             for event in source:
+                event.dl0.event_id = counter
+                counter += 1
                 # send new job to next step thanks to router
                 yield event
-            print("\n--- HessioReader Done ---")
-
+            self.log.info("\n--- HessioReader Done ---")
 
         def finish(self):
-            print ( "--- HessReader finish ---")
+            self.log.info ("--- HessReader finish ---")
             pass
 
 
@@ -216,48 +219,41 @@ Stager example
 
     from time import sleep
     import threading
+    from ctapipe.core import Component
 
-    class ListTelda():
-        def __init__(self,configuration=None):
-            self.configuration = configuration
 
+    class ListTelda(Component):
 
         def init(self):
-            print("--- ListTelda init ---")
+            self.log.info("--- ListTelda init ---")
 
-        def run(self,event):
+        def run(self, event):
             if event != None:
-           	    res = list(event.dl0.tels_with_data)
+                res = list(event.dl0.tels_with_data)
                 return res
 
-
         def finish(self):
-            print("--- ListTelda finish ---")
+            self.log.info("--- ListTelda finish ---")
 
 Consumer example
 ^^^^^^^^^^^^^^^^
 .. code-block:: python
 
     from ctapipe.configuration.core import Configuration, ConfigurationException
+    from ctapipe.core import Component
 
-    class StringWriter:
-            def __init__(self,configuration=None):
-                self.conf = configuration
-
+    class StringWriter(Component):
 
             def init(self):
                 filename = '/tmp/test.txt'
                 self.file = open(filename, 'w')
-                print("--- StringWriter init ---")
+                self.log.info("--- StringWriter init ---")
                 return True
 
+            def run(self, object):
+                if (object != None):
+                    self.file.write(str(object) + "\n")
 
-        def run(self,object):
-            if ( object != None):
-                #print("--- Writer object ---")
-                self.file.write(str(object)+"\n")
-
-
-        def finish(self):
-            print("--- StringWriter finish ---")
-            self.file.close()
+            def finish(self):
+                self.log.info("--- StringWriter finish ---")
+                self.file.close()
