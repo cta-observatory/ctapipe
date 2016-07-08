@@ -10,12 +10,11 @@ import random
 
 
 class DisplayEvent():
-    def __init__(self,configuration=None):
+
+    def __init__(self, configuration=None):
         self.configuration = configuration
 
-
-
-    def init(self,stager=None):
+    def init(self, stager=None):
         print("--- ListTelda init ---")
         self.init_plt = False
         return True
@@ -23,19 +22,19 @@ class DisplayEvent():
     def init_matplotlib(self):
         self.fig = plt.figure()
         self.cmaps = [plt.cm.jet, plt.cm.winter,
-                 plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
-                 plt.cm.cool, plt.cm.coolwarm]
+                      plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
+                      plt.cm.cool, plt.cm.coolwarm]
         plt.style.use("ggplot")
         plt.show(block=False)
 
-
-    def run(self,event):
+    def run(self, event):
         """an extremely inefficient display. It creates new instances of
         CameraDisplay for every event and every camera, and also new axes
         for each event. It's hacked, but it works
         """
-        if not isinstance(event,Container):
-            print("Warning event is not instance of ctapipe.core.Container", event)
+        if not isinstance(event, Container):
+            print(
+                "Warning event is not instance of ctapipe.core.Container", event)
             return
         """
         if self.init_plt == False:
@@ -70,7 +69,6 @@ class DisplayEvent():
             self.fig.canvas.draw()
             plt.pause(1)
         """
-
 
     def finish(self):
         print("--- ListTelda finish ---")

@@ -3,14 +3,17 @@ import zmq
 from threading import Thread
 import pickle
 
-import os,sys,inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+import os
+import sys
+import inspect
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
 pipedrawerdir = os.path.dirname(currentdir)
-sys.path.insert(0,pipedrawerdir)
-
+sys.path.insert(0, pipedrawerdir)
 
 
 class ZmqSub(Thread):
+
     """
     Manages communication with pipeline thanks to ZMQ SUB message
     Transmit information to GUI when pipeline change
@@ -23,7 +26,8 @@ class ZmqSub(Thread):
     statusBar :  QtGui.QStatusBar
         MainWindow status bar to display information
     """
-    def __init__(self, pipedrawer=None,gui_port=None,statusBar=None):
+
+    def __init__(self, pipedrawer=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
         if gui_port != None:
             self.statusBar = statusBar
@@ -36,29 +40,30 @@ class ZmqSub(Thread):
             except zmq.error.ZMQError as e:
                 print(str(e) + gui_adress)
             # Inform about connection in statusBar
-            if statusBar != None : self.statusBar.showMessage("binded to "+gui_adress)
+            if statusBar != None:
+                self.statusBar.showMessage("binded to " + gui_adress)
             # Register socket in a poll and register topics
             self.poll = zmq.Poller()
             self.poll.register(self.socket, zmq.POLLIN)
-            self.socket.setsockopt_string(zmq.SUBSCRIBE,'GUI_GRAPH')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE,'GUI_STAGER_CHANGE')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE,'GUI_CONSUMER_CHANGE')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE,'GUI_PRODUCER_CHANGE')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE,'GUI_ROUTER_CHANGE')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_GRAPH')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_STAGER_CHANGE')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_CONSUMER_CHANGE')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_PRODUCER_CHANGE')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_ROUTER_CHANGE')
             # self,stop flag is set by ficnish method to stop this thread
-            #properly when GUI is closed
-            self.stop=False
+            # properly when GUI is closed
+            self.stop = False
             # self.pipedrawer will receive new pipeline information
             self.pipedrawer = pipedrawer
         else:
-            self.stop=False
+            self.stop = False
 
     def run(self):
         """
         Method representing the thread’s activity.
         """
         while not self.stop:
-            sockets = dict(self.poll.poll(1000)) # Poll or time out (1000ms)
+            sockets = dict(self.poll.poll(1000))  # Poll or time out (1000ms)
             if self.socket in sockets and sockets[self.socket] == zmq.POLLIN:
                 # receive a new message form pipeline
                 receive = self.socket.recv_multipart()
@@ -66,7 +71,7 @@ class ZmqSub(Thread):
                 topic = receive[0]
                 msg = pickle.loads(receive[1])
                 # inform pipedrawer
-                self.pipedrawer.pipechange(topic,msg)
+                self.pipedrawer.pipechange(topic, msg)
 
     def finish(self):
-        self.stop=True
+        self.stop = True

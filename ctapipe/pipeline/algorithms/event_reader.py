@@ -7,9 +7,10 @@ from sys import stderr
 import pickle
 from ctapipe.core import Container
 
+
 class EventReader():
 
-    def __init__(self,configuration=None):
+    def __init__(self, configuration=None):
         self.configuration = configuration
         self.raw_data = None
 
@@ -17,21 +18,20 @@ class EventReader():
         print("--- EventReader init ---")
         return True
 
-
-    def run(self,input_file):
+    def run(self, input_file):
         return len(input_file)
         counter = 0
-        infile=open(input_file, "rb")
+        infile = open(input_file, "rb")
         events = pickle.load(infile)
         for event in events:
-            if isinstance(event,Container):
+            if isinstance(event, Container):
                 event.dl0.event_id = counter
-                counter+=1
+                counter += 1
                 # send new job to next router/queue
                 yield event
         print("\n--- HessioReader Done ---")
         return
 
     def finish(self):
-        print ( "--- HessReader finish ---")
+        print ("--- HessReader finish ---")
         pass

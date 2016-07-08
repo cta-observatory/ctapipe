@@ -6,17 +6,18 @@ from base_process import BaseProcess
 
 
 class ProducerProcess(BaseProcess):
-	def __init__(self,configuration=None):
-		BaseProcess.__init__(self,configuration)
 
-	def run(self):
-		for input_file in os.listdir(self.source_dir):
-			cmd,output_file = super().build_command(input_file)
-			sleep(5)
-			proc = subprocess.Popen(cmd)
-			proc.wait()
-			yield output_file
-		self.finish()
+    def __init__(self, configuration=None):
+        BaseProcess.__init__(self, configuration)
 
-	def finish(self):
-		print('---', self.section_name, 'finish ---')
+    def run(self):
+        for input_file in os.listdir(self.source_dir):
+            cmd, output_file = super().build_command(input_file)
+            sleep(5)
+            proc = subprocess.Popen(cmd)
+            proc.wait()
+            yield output_file
+        self.finish()
+
+    def finish(self):
+        print('---', self.section_name, 'finish ---')

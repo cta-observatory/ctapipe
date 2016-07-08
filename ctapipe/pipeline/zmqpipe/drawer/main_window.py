@@ -6,12 +6,14 @@ This requires the pyside python library to be installed
 
 import sys
 from drawer import PipelineDrawer
-from PySide.QtGui import QMainWindow, QPushButton, QApplication,QPalette
-from PySide import QtCore,QtGui
+from PySide.QtGui import QMainWindow, QPushButton, QApplication, QPalette
+from PySide import QtCore, QtGui
 from PySide.QtGui import QColor
-from drawer import  ZmqSub
+from drawer import ZmqSub
 
-class MainWindow(QMainWindow,object):
+
+class MainWindow(QMainWindow, object):
+
     """
     QMainWindow displays pipeline
     Parameters
@@ -20,7 +22,8 @@ class MainWindow(QMainWindow,object):
         used port to communicate with pipeline
         Note: The firewall must be configure to accept input/output on this port
     """
-    def __init__(self,port):
+
+    def __init__(self, port):
         super(MainWindow, self).__init__()
         self.setupUi(port)
         # Create QtGui.QWidget that displays pipeline workload
@@ -31,7 +34,7 @@ class MainWindow(QMainWindow,object):
         self.centralwidget = QtGui.QWidget(self)
         p = self.centralwidget.palette()
         self.centralwidget.setAutoFillBackground(True)
-        p.setColor(self.centralwidget.backgroundRole(), QColor(126,135,152))
+        p.setColor(self.centralwidget.backgroundRole(), QColor(126, 135, 152))
         self.centralwidget.setPalette(p)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtGui.QGridLayout(self.centralwidget)
@@ -49,7 +52,6 @@ class MainWindow(QMainWindow,object):
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
 
-
         self.actionQuit = QtGui.QAction(self)
         self.actionQuit.setObjectName("actionQuit")
         self.menuFile.addSeparator()
@@ -58,45 +60,48 @@ class MainWindow(QMainWindow,object):
         # add other GUI objects
 
         self.pipeline_drawer = PipelineDrawer(self.statusbar)
-        self.gridLayout.addWidget(self.pipeline_drawer, 0,1 , 20,9)
+        self.gridLayout.addWidget(self.pipeline_drawer, 0, 1, 20, 9)
 
         pixmap = QtGui.QPixmap("cta-logo-mini.png")
         lbl = QtGui.QLabel()
         lbl.setPixmap(pixmap)
-        self.gridLayout.addWidget(lbl, 0, 0, 1,1)
+        self.gridLayout.addWidget(lbl, 0, 0, 1, 1)
 
         p = self.pipeline_drawer.palette()
         self.pipeline_drawer.setAutoFillBackground(True)
-        p.setColor(self.pipeline_drawer.backgroundRole(), QColor(226,235,252))
+        p.setColor(
+            self.pipeline_drawer.backgroundRole(), QColor(226, 235, 252))
         self.pipeline_drawer.setPalette(p)
-        self.quitButton = QtGui.QPushButton()#self.centralwidget)
+        self.quitButton = QtGui.QPushButton()  # self.centralwidget)
         self.quitButton.setObjectName("quitButton")
         self.quitButton.setText(QtGui.QApplication.translate
-        ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
-        self.gridLayout.addWidget(self.quitButton, 19, 0, 1,1);
+                                ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
+        self.gridLayout.addWidget(self.quitButton, 19, 0, 1, 1)
 
-
-        QtCore.QObject.connect(self.quitButton, QtCore.SIGNAL("clicked()"), self.stop)
-        QtCore.QObject.connect(self.actionQuit, QtCore.SIGNAL("triggered()"), self.stop)
+        QtCore.QObject.connect(
+            self.quitButton, QtCore.SIGNAL("clicked()"), self.stop)
+        QtCore.QObject.connect(
+            self.actionQuit, QtCore.SIGNAL("triggered()"), self.stop)
         QtCore.QMetaObject.connectSlotsByName(self)
 
         self.retranslateUi()
-        QtCore.QObject.connect(self.actionQuit, QtCore.SIGNAL("triggered()"), self.close)
+        QtCore.QObject.connect(
+            self.actionQuit, QtCore.SIGNAL("triggered()"), self.close)
         QtCore.QMetaObject.connectSlotsByName(self)
 
-
         # Create ZmqSub for ZMQ comminucation with pipeline
-        self.subscribe = ZmqSub(self.pipeline_drawer,gui_port=port,statusBar=self.statusbar)
+        self.subscribe = ZmqSub(
+            self.pipeline_drawer, gui_port=port, statusBar=self.statusbar)
         # start the thread
         self.subscribe.start()
 
-
     def retranslateUi(self):
-        self.setWindowTitle(QtGui.QApplication.translate("ctapipe", "ctapipe", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuFile.setTitle(QtGui.QApplication.translate("MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionQuit.setText(QtGui.QApplication.translate("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
-
-
+        self.setWindowTitle(QtGui.QApplication.translate(
+            "ctapipe", "ctapipe", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuFile.setTitle(QtGui.QApplication.translate(
+            "MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionQuit.setText(QtGui.QApplication.translate(
+            "MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
 
     def stop(self):
         """Method connect (via Qt slot) to exit button
@@ -110,10 +115,11 @@ class MainWindow(QMainWindow,object):
     def closeEvent(self, event):
             self.subscribe.finish()
             self.subscribe.join()
-            event.accept() # let the window close
+            event.accept()  # let the window close
 
 
 class ModuleApplication(QApplication):
+
     """
     QApplication
 
@@ -121,7 +127,8 @@ class ModuleApplication(QApplication):
     ----------
     QApplication : QApplication
     """
-    def __init__(self,  argv,port):
+
+    def __init__(self,  argv, port):
         super(ModuleApplication, self).__init__(argv)
         self.main_windows = MainWindow(port)
         self.main_windows.show()

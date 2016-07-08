@@ -12,24 +12,29 @@ Every second, pipeline send its full configuration:
  to this GUI
 """
 
-import os,sys,inspect
+import os
+import sys
+import inspect
 from ctapipe.core import Tool
 from traitlets import (Integer, Float, List, Dict, Unicode)
 
 
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
+sys.path.insert(0, parentdir)
 
 from ctapipe.pipeline.zmqpipe.drawer import ModuleApplication
+
 
 class PipeGui(Tool):
     description = "run stages in multithread pipeline"
 
-    port = Integer(5565, help='GUI port for pipelien connexion').tag(config=True, allow_none=True)
+    port = Integer(5565, help='GUI port for pipelien connexion').tag(
+        config=True, allow_none=True)
 
     def start(self):
-        app = ModuleApplication(sys.argv,self.port)
+        app = ModuleApplication(sys.argv, self.port)
 
     def setup(self):
         pass
@@ -39,8 +44,8 @@ class PipeGui(Tool):
 
 
 def main():
-	gui = PipeGui()
-	gui.run()
+    gui = PipeGui()
+    gui.run()
 
 if __name__ == "main":
-	main()
+    main()

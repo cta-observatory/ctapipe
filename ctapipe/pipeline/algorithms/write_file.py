@@ -11,23 +11,22 @@ import random
 
 
 class WriteFile():
-    def __init__(self,configuration=None):
+
+    def __init__(self, configuration=None):
         self.configuration = configuration
-        self.events=list()
+        self.events = list()
 
-
-    def init(self,stager=None):
+    def init(self, stager=None):
         return True
 
-    def run(self,_input):
-        if isinstance(_input,Container):
+    def run(self, _input):
+        if isinstance(_input, Container):
             self.events.append(_input)
         else:
-            outfile=open( _input, "wb" )
-            objects=self.events
+            outfile = open(_input, "wb")
+            objects = self.events
             pickle.dump(objects, outfile)
             outfile.close()
-
 
     def finish(self):
 

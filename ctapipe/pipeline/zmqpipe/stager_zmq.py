@@ -6,7 +6,9 @@ from threading import Thread
 import threading
 import pickle
 
+
 class StagerZmq(threading.Thread):
+
     """`StagerZmq` class represents a Stager pipeline Step.
     It is derived from Thread class.
     It receives new input from its prev stage, thanks to its ZMQ REQ socket,
@@ -17,7 +19,8 @@ class StagerZmq(threading.Thread):
     has been called and has returned True.
     The thread is stoped by executing finish method.
     """
-    def __init__(self,coroutine,sock_job_for_me_port,sock_job_for_you_port,name=None,gui_address=None):
+
+    def __init__(self, coroutine, sock_job_for_me_port, sock_job_for_you_port, name=None, gui_address=None):
         """
         Parameters
         ----------
@@ -26,21 +29,21 @@ class StagerZmq(threading.Thread):
             Port number for input socket url
         sock_job_for_you_port: str
             Port number for output socket url
-    	"""
+        """
         # Call mother class (threading.Thread) __init__ method
         Thread.__init__(self)
         # Set coroutine
         self.coroutine = coroutine
         # set sockets url
-        #self.sock_job_for_you_url = "tcp://localhost:"+ sock_job_for_you_port
-        #self.sock_job_for_me_url = "tcp://localhost:"+ sock_job_for_me_port
+        # self.sock_job_for_you_url = "tcp://localhost:"+ sock_job_for_you_port
+        # self.sock_job_for_me_url = "tcp://localhost:"+ sock_job_for_me_port
         self.sock_job_for_you_url = 'inproc://' + sock_job_for_you_port
-        self.sock_job_for_me_url =  'inproc://' + sock_job_for_me_port
+        self.sock_job_for_me_url = 'inproc://' + sock_job_for_me_port
                 # define self,name for logging/debuging
         self.name = name
         self.running = False
         self.nb_job_done = 0
-        self.gui_address =  gui_address
+        self.gui_address = gui_address
 
         # Prepare our context and sockets
         context = zmq.Context.instance()
@@ -57,15 +60,18 @@ class StagerZmq(threading.Thread):
         -------
         True if coroutine init method returns True, otherwise False
         """
-        if self.name == None: self.name = "STAGER"
-        if self.coroutine  == None: return False
-        if self.coroutine.init() == False: return False
-
+        if self.name == None:
+            self.name = "STAGER"
+        if self.coroutine == None:
+            return False
+        if self.coroutine.init() == False:
+            return False
 
         # Connect to GUI
         context = zmq.Context.instance()
         self.socket_pub = context.socket(zmq.PUB)
-        if self.gui_address != None : self.socket_pub.connect("tcp://"+ self.gui_address)
+        if self.gui_address != None:
+            self.socket_pub.connect("tcp://" + self.gui_address)
         # Socket to talk to next_router
         self.sock_for_you.connect(self.sock_job_for_you_url)
 
@@ -77,7 +83,8 @@ class StagerZmq(threading.Thread):
         self.poll = zmq.Poller()
         # Register sockets
         self.poll.register(self.sock_for_me, zmq.POLLIN)
-        #Send READY to next_router to inform about my capacity to compute new job
+        # Send READY to next_router to inform about my capacity to compute new
+        # job
         self.sock_for_me.send_pyobj("READY")
         # Stop flag
         self.stop = False
@@ -94,7 +101,7 @@ class StagerZmq(threading.Thread):
         has been set to False by finish method.
         """
         while not self.stop:
-            sockets = dict(self.poll.poll(100)) # Poll or time out (100ms)
+            sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
             if self.sock_for_me in sockets and sockets[self.sock_for_me] == zmq.POLLIN:
                 #  Get the input from prev_stage
                 self.running = True
@@ -103,13 +110,14 @@ class StagerZmq(threading.Thread):
                 receiv_input = pickle.loads(request[0])
                 # do the job
                 send_output = self.coroutine.run(receiv_input)
-                # send acknoledgement to prev router/queue to inform it that I am available
+                # send acknoledgement to prev router/queue to inform it that I
+                # am available
                 self.sock_for_me.send_multipart(request)
                 # send new job to next router/queue
                 self.sock_for_you.send_pyobj(send_output)
                 # wait for acknoledgement form next router
                 self.sock_for_you.recv()
-                self.nb_job_done+=1
+                self.nb_job_done += 1
                 self.running = False
                 self.update_gui()
         self.sock_for_me.close()
@@ -121,9 +129,9 @@ class StagerZmq(threading.Thread):
         Executes coroutine method and set stop flag to True to stop Thread activity
         """
         self.coroutine.finish()
-        self.stop=True
-
+        self.stop = True
 
     def update_gui(self):
-        msg = [self.name,self.running,self.nb_job_done]
-        self.socket_pub.send_multipart([b'GUI_STAGER_CHANGE',pickle.dumps(msg)])
+        msg = [self.name, self.running, self.nb_job_done]
+        self.socket_pub.send_multipart(
+            [b'GUI_STAGER_CHANGE', pickle.dumps(msg)])
