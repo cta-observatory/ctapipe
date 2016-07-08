@@ -1,14 +1,16 @@
 from time import sleep
 import threading
+from ctapipe.core import Component
 
 
-class ListTelda():
+class ListTelda(Component):
 
     def __init__(self, configuration=None):
+        super().__init__(parent=None)
         self.configuration = configuration
 
     def init(self):
-        print("--- ListTelda init ---")
+        self.log.info("--- ListTelda init ---")
 
     def run(self, event):
         if event != None:
@@ -16,4 +18,4 @@ class ListTelda():
             return res
 
     def finish(self):
-        print("--- ListTelda finish ---")
+        self.log.info("--- ListTelda finish ---")
