@@ -61,7 +61,10 @@ Optional entry per step
 
 User option for step
 ^^^^^^^^^^^^^^^^^^^^
-You can add all required parameters for the stage, and get them at execution time.
+If step class derived form Component, you can add all required parameters for the step, and get them at execution time.
+You have to add a new entry with step's class name.
+! Do not use entries in stagers_conf, producer_conf or consumer_conf
+
 
 configuration example
 ^^^^^^^^^^^^^^^^^^^^^
@@ -74,7 +77,8 @@ configuration example
           "consumer_conf": { "name" : "SAVER", "module": "ctapipe.pipeline.algorithms.fake_process2", "class": "FakeProcess2"},
           "stagers_conf" : [{"name" : "CLEANING", "class": "FakeProcess", "module": "ctapipe.pipeline.algorithms.fake_process", "nb_thread" : 2},
                             {"name" : "HILLAS", "class": "FakeProcess", "module": "ctapipe.pipeline.algorithms.fake_process", "nb_thread" : 2}]
-       }
+       },
+        "FakeProducer": { "filename": "gamma_test.simtel.gz" }
      }
 
 Steps implementation
@@ -161,7 +165,8 @@ json configuration example
                     "class": "StringWriter"},
           "stagers_conf" : [{"name": "LIST_TEL", "class": "ListTelda", "module": "ctapipe.pipeline.algorithms.list_teldata", "nb_thread" : 2}]
 
-      }
+      },
+       "HessioReader": { "filename": "gamma_test.simtel.gz" }
     }
 
 
