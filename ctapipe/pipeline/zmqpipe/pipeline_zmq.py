@@ -562,7 +562,6 @@ class Pipeline(Tool):
 				while not self.router_thread.isQueueEmpty(worker.name):
 					self.socket_pub.send_multipart([b'GUI_GRAPH',pickle.dumps([conf_time,self.levels_for_gui])])
 					time.sleep(1)
-					print("Wait to emppy queues")
 				self.wait_and_send_levels(worker,conf_time)
 		self.wait_and_send_levels(self.router_thread,conf_time)
 		self.wait_and_send_levels(self.consumer,conf_time)
