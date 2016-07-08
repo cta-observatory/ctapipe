@@ -6,6 +6,8 @@
       "consumer_conf": { "name" : "WRITER", "module": "ctapipe.pipeline.algorithms.string_writer",
                 "class": "StringWriter"},
       "stagers_conf" : [{"name": "LIST_TEL", "class": "ListTelda", "module": "ctapipe.pipeline.algorithms.list_teldata", "nb_thread" : 2}]
+  },
 
-  }
+  "HessioReader": { "filename": "gamma_test.simtel.gz" }
+
 }

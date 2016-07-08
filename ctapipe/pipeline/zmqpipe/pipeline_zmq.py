@@ -146,7 +146,8 @@ class Pipeline(Tool):
     examples = ('protm%> ctapipe-pipeline \
     --config=examples/brainstorm/pipeline/pipeline_py/example.json')
     # TO DO: register steps class for configuration
-    # classes = List([])
+    #classes = List()
+
     PRODUCER = 'PRODUCER'
     STAGER = 'STAGER'
     CONSUMER = 'CONSUMER'
@@ -341,8 +342,8 @@ class Pipeline(Tool):
         stage = self.get_step_conf(section_name)
         module = stage['module']
         class_name = stage['class']
-        obj = dynamic_class_from_module(
-            class_name, module, configuration=config)
+        obj = dynamic_class_from_module(class_name, module, self)
+
         if obj == None:
             raise PipelineError('Cannot create instance of ' + section_name)
         obj.section_name = section_name

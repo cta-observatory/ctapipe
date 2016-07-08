@@ -2,13 +2,15 @@
 import os
 import sys
 from importlib import import_module
+from ctapipe.core.tool import Tool
 
 
 __all__ = ['dynamic_class_from_module', ]
 
 
 
-def dynamic_class_from_module(class_name, module, configuration=None):
+#def dynamic_class_from_module(class_name, module,  configuration=None):
+def dynamic_class_from_module(class_name, module,  tool=None):
 	"""
 	Create an instance of a class from a configuration service section name
 
@@ -23,14 +25,12 @@ def dynamic_class_from_module(class_name, module, configuration=None):
 	--------
 	A python object instance of a class_name
 	"""
-
 	if  module == None :
 		return None
 	try:
 		_class = getattr(import_module(module), class_name)
-
-		if configuration != None:
-			instance = _class(configuration)
+		if isinstance(tool,Tool):
+			instance = _class(tool,config=tool.config)
 		else:
 			instance = _class()
 		return instance

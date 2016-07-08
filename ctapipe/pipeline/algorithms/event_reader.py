@@ -3,7 +3,6 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.configuration.core import Configuration, ConfigurationException
 import threading
 from copy import deepcopy
-from sys import stderr
 import pickle
 from ctapipe.core import Container
 

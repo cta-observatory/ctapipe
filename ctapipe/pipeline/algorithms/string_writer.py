@@ -3,10 +3,6 @@ from ctapipe.core import Component
 
 class StringWriter(Component):
 
-        def __init__(self, configuration=None):
-            super().__init__(parent=None)
-            self.conf = configuration
-
         def init(self):
             filename = '/tmp/test.txt'
             self.file = open(filename, 'w')

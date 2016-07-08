@@ -3,7 +3,6 @@
 
 
 import zmq
-from sys import stderr
 from threading import Thread, Lock
 import pickle
 

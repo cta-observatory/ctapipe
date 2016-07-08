@@ -5,10 +5,6 @@ from ctapipe.core import Component
 
 class ListTelda(Component):
 
-    def __init__(self, configuration=None):
-        super().__init__(parent=None)
-        self.configuration = configuration
-
     def init(self):
         self.log.info("--- ListTelda init ---")
 
