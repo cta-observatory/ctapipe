@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Example of drawing a Camera using a mock shower image
 """

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Demo to show multiple shower images on a single figure using
 `CameraDisplay` and really simple mock shower images (not
