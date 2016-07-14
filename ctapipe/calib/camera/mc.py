@@ -4,17 +4,14 @@ and
 Convert the integral pixel ADC count to photo-electrons
 """
 
-import sys
 import numpy as np
-from numpy import round
-from pyhessio import *
+from pyhessio import get_num_channel, get_ref_shapes, get_ref_step, \
+    get_ref_shape, get_lrefshape, get_time_slice, get_num_samples, \
+    get_adc_sample, get_num_pixels
 from ctapipe import io
-from astropy import units as u
 import logging
-from scipy import interp, integrate, interpolate
-import matplotlib
-from pylab import *
 import time
+from scipy import interp
 
 logger = logging.getLogger(__name__)
 
