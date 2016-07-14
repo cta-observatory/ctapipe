@@ -75,7 +75,7 @@ def set_integration_correction(telid, params):
     refshape_list = []
     for igain in range(0, get_num_channel(telid)):
         refshape_list.append(get_ref_shapes(telid, igain))
-    refshape = np.asarray(refshape_list)
+    refshape = np.array(refshape_list)
     refstep = get_ref_step(telid)
     nrefstep = get_lrefshape(telid)
     x = np.arange(0, refstep*nrefstep, refstep)
@@ -175,8 +175,8 @@ def full_integration_mc(event, ped, telid):
     samples_pix_tel_list = []
     for igain in range(0, get_num_channel(telid)):
         samples_pix_tel_list.append(get_adc_sample(telid, igain))
-    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
-    sum_pix_tel = np.asarray(samples_pix_tel.sum(2)-ped, dtype=np.int16)
+    samples_pix_tel = np.array(samples_pix_tel_list, np.int16)
+    sum_pix_tel = np.array(samples_pix_tel.sum(2)-ped, dtype=np.int16)
 
     return sum_pix_tel, None
 
@@ -233,10 +233,10 @@ def simple_integration_mc(event, ped, telid, parameters):
     samples_pix_tel_list = []
     for igain in range(0, get_num_channel(telid)):
         samples_pix_tel_list.append(get_adc_sample(telid, igain))
-    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    samples_pix_tel = np.array(samples_pix_tel_list, np.int16)
     samples_pix_win = samples_pix_tel[:, :, shift:window+shift]
     ped_pix_win = ped/get_num_samples(telid)
-    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2) -
+    sum_pix_tel = np.array(int_corr*(samples_pix_win.sum(2) -
                                        ped_pix_win*window), dtype=np.int16)
 
     return sum_pix_tel, None
@@ -284,7 +284,7 @@ def global_peak_integration_mc(event, ped, telid, parameters):
     for igain in range(0, get_num_channel(telid)):
         samples_pix_tel_list.append(get_adc_sample(telid, igain))
         sigamp_cut[igain] = parameters['sigamp'][igain]
-    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    samples_pix_tel = np.array(samples_pix_tel_list, np.int16)
     ped_per_trace = ped/get_num_samples(telid)
     samples_pix_clean = (samples_pix_tel -
                          np.atleast_3d(ped_per_trace)).astype(np.int16)
@@ -312,7 +312,7 @@ def global_peak_integration_mc(event, ped, telid, parameters):
     int_corr = set_integration_correction(telid, parameters)
     # Extract the pulse (pedestal substracted) in the found window
     samples_pix_win = samples_pix_clean[:, :, start:window+start]
-    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
+    sum_pix_tel = np.array(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
     return sum_pix_tel, time_pix_tel[0]
 
@@ -360,7 +360,7 @@ def local_peak_integration_mc(event, ped, telid, parameters):
     for igain in range(0, get_num_channel(telid)):
         samples_pix_tel_list.append(get_adc_sample(telid, igain))
         sigamp_cut[igain] = parameters['sigamp'][igain]
-    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    samples_pix_tel = np.array(samples_pix_tel_list, np.int16)
     ped_per_trace = ped/get_num_samples(telid)
     samples_pix_clean = (samples_pix_tel -
                          np.atleast_3d(ped_per_trace)).astype(np.int16)
@@ -393,7 +393,7 @@ def local_peak_integration_mc(event, ped, telid, parameters):
             m[i, j, start[i, j]:start[i, j]+window] = 1
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
-    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
+    sum_pix_tel = np.array(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
     return sum_pix_tel, time_pix_tel[0]
 
@@ -457,7 +457,7 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     for igain in range(0, get_num_channel(telid)):
         samples_pix_tel_list.append(get_adc_sample(telid, igain))
         sigamp_cut[igain] = parameters['sigamp'][igain]
-    samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
+    samples_pix_tel = np.array(samples_pix_tel_list, np.int16)
     ped_per_trace = ped/get_num_samples(telid)
     samples_pix_clean = (samples_pix_tel-np.atleast_3d(ped_per_trace)
                          ).astype(np.int16)
@@ -479,7 +479,7 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
 
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
-    sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
+    sum_pix_tel = np.array(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
     if __debug__: print(" inter-integration %.3e sec"%(iend-istart))
 
@@ -533,4 +533,4 @@ def calibrate_amplitude_mc(integrated_charge, calib, telid, params):
         # Keep in mind: peak(10 p.e.) != 10*peak(1 p.e.)
         pe_pix_tel.append(pe_pix*CALIB_SCALE)
 
-    return np.asarray(pe_pix_tel)
+    return np.array(pe_pix_tel)
