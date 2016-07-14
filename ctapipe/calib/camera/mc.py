@@ -79,7 +79,6 @@ def set_integration_correction(telid, params):
     nrefstep = get_lrefshape(telid)
     x = np.arange(0, refstep*nrefstep, refstep)
     y = refshape[get_num_channel(telid)-1]
-    #print(y)
     refipeak = np.argmax(y)
     refpeak = x[refipeak]
 
@@ -97,7 +96,8 @@ def set_integration_correction(telid, params):
     if start + nsum > get_num_samples(telid):
         start = get_num_samples(telid) - nsum
 
-    correction = round((sum(y)*refstep)/(sum(y1[start:start+nsum])*time_slice),7)
+    correction = round((sum(y)*refstep) /
+                       (sum(y1[start:start+nsum])*time_slice), 7)
     return correction
 
 
@@ -295,7 +295,7 @@ def global_peak_integration_mc(event, ped, telid, parameters):
 
     time_pix_tel = samples_pix_filtered.argmax(axis=2)
     max_sample_tel = samples_pix_filtered.max(axis=2)
-    significant_pix = significant_pix*(np.any(sigamp_mask, axis=2) == True)
+    significant_pix = significant_pix*(np.any(sigamp_mask, axis=2) is True)
 
     peakpos = np.zeros((get_num_channel(telid)))
     if np.count_nonzero(significant_pix) > 0 and time_pix_tel.sum(1) > 0:
@@ -370,7 +370,7 @@ def local_peak_integration_mc(event, ped, telid, parameters):
     samples_pix_filtered = samples_pix_clean*sigamp_mask
     time_pix_tel = samples_pix_filtered.argmax(axis=2)
     max_sample_tel = samples_pix_filtered.max(axis=2)
-    significant_pix = significant_pix*(np.any(sigamp_mask, axis=2) == True)
+    significant_pix = significant_pix*(np.any(sigamp_mask, axis=2) is True)
 
     # If the LG is not significant, takes the HG peakpos
     peakpos = time_pix_tel*significant_pix
@@ -442,10 +442,10 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     lwt = parameters['lwt']
 
     #  For this integration scheme we need the list of neighbours early on
-    #pix_x, pix_y = event.meta.pixel_pos[telid]
-    #foclen = event.meta.optical_foclen[telid]
-    #geom = io.CameraGeometry.guess(pix_x, pix_y, foclen)
-    geom = cam['CameraTable_VersionFeb2016_TelID%s'%telid]
+    # pix_x, pix_y = event.meta.pixel_pos[telid]
+    # foclen = event.meta.optical_foclen[telid]
+    # geom = io.CameraGeometry.guess(pix_x, pix_y, foclen)
+    geom = cam['CameraTable_VersionFeb2016_TelID%s' % telid]
 
     iend = time.process_time()
 
@@ -466,7 +466,7 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     m = np.zeros_like(samples_pix_clean)
     for i in range(0, np.shape(samples_pix_clean)[0]):
         for j in range(0, np.shape(samples_pix_clean)[1]):
-            #nb_samples = samples_pix_clean[i, geom.neighbors[j], :]
+            # nb_samples = samples_pix_clean[i, geom.neighbors[j], :]
             nb_samples = samples_pix_clean[i, geom['PixNeig'][j], :]
             all_samples = np.vstack([nb_samples,
                                      lwt*samples_pix_clean[i, j, :]])
@@ -480,9 +480,10 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     # Extract the pulse (pedestal substracted) in the found window
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
-    if __debug__: print(" inter-integration %.3e sec"%(iend-istart))
+    if __debug__:
+        print(" inter-integration %.3e sec" % (iend-istart))
 
-    print(sum_pix_tel[0][0],time_pix_tel[0][0])
+    # print(sum_pix_tel[0][0], time_pix_tel[0][0])
     return sum_pix_tel, time_pix_tel[0]
 
 
