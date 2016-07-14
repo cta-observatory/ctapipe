@@ -21,11 +21,11 @@ def get_test_event():
         if event.dl0.event_id == 409:
             return event
 
-def get_camera_info():
-    filename = get_path(
-        'gamma_test.simtel.gz')
-    tel, cam, opt = ID.load(filename)
-    return cam
+# def get_camera_info():
+#     filename = get_path(
+#         'gamma_test.simtel.gz')
+#     tel, cam, opt = ID.load(filename)
+#     return cam
 
 
 def test_set_integration_correction():
@@ -71,10 +71,10 @@ def test_local_peak_integration_mc():
 def test_nb_peak_integration_mc():
     telid = 11
     int_adc_pix, peak_adc_pix = nb_peak_integration_mc(
-        get_test_event(), get_camera_info(), get_pedestal(telid),
+        get_test_event(), 0, get_pedestal(telid),
         telid, get_test_parameters())
     assert int_adc_pix[0][0] == int(-61)
-    assert peak_adc_pix[0][0] == int(20)
+    assert peak_adc_pix[0] == int(20)
 
 
 def test_pixel_integration_mc():
@@ -82,7 +82,7 @@ def test_pixel_integration_mc():
     event = get_test_event()
     ped = get_pedestal(telid)
     int_adc_pix, peak_adc_pix = pixel_integration_mc(
-        event, get_camera_info(), ped, telid, get_test_parameters())
+        event, 0, ped, telid, get_test_parameters())
 
     assert int_adc_pix[0][0] == -61
     assert peak_adc_pix[0] == 20
@@ -93,9 +93,8 @@ def test_calibrate_amplitude_mc():
     event = get_test_event()
     ped = get_pedestal(telid)
     int_adc_pix, peak_adc_pix = pixel_integration_mc(
-        event, ped, telid, get_test_parameters())
+        event, 0, ped, telid, get_test_parameters())
     calib = get_calibration(telid)
     pe_pix = calibrate_amplitude_mc(
         int_adc_pix, calib, telid, get_test_parameters())
-
-    assert pe_pix[0] == float(-1.7223353135585786)
+    assert pe_pix[0] == -1.9657087817788126
