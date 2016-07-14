@@ -6,8 +6,8 @@ from ctapipe.instrument import InstrumentDescription as ID
 
 def get_test_parameters():
     parameters = {"integrator": "nb_peak_integration",
-                  "nsum": 7,
-                  "nskip": 3,
+                  "window": 7,
+                  "shift": 3,
                   "sigamp": [2, 4],
                   "clip_amp": 0,
                   "lwt": 0}

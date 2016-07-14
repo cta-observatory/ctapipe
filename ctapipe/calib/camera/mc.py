@@ -54,23 +54,25 @@ The same the interpolation of the pulse shape and the adc2pe conversion.
 
 def set_integration_correction(telid, params):
     """
+    Obtain the integration correction for the window specified
+
     Parameters
     ----------
-    event  Data set container to the hess_io event ()
-    telid  Telescope_id
-    nbins
-    parameters['nskip']  Number of initial samples skipped
-    (adapted such that interval fits into what is available).
+    telid : int
+        telescope id
+    params : dict
+        parameters['shift']  Shift before the peak for window start
+        parameters['window']  Integration window size
+        (adapted such that window fits into readout).
+
     Returns
     -------
-    Array of gains with the integration correction [ADC cts]
-    Returns None if parameters do not include 'nskip'
+    correction : float
+        Value of the integration correction for this instrument
+        Returns None if params dict does not include all required parameters
     """
-    if 'nskip' not in params or 'nsum' not in params:
+    if 'shift' not in params or 'window' not in params:
         return None
-
-    start = params['nskip']
-    nsum = params['nsum']
 
     # Reference pulse parameters
     refshape_list = []
@@ -81,7 +83,6 @@ def set_integration_correction(telid, params):
     nrefstep = get_lrefshape(telid)
     x = np.arange(0, refstep*nrefstep, refstep)
     y = refshape[get_num_channel(telid)-1]
-    #print(y)
     refipeak = np.argmax(y)
     refpeak = x[refipeak]
 
@@ -92,14 +93,15 @@ def set_integration_correction(telid, params):
     y1 = interp(x1, x, y)
     ipeak = np.argmin(np.abs(x1-x[refipeak]))
 
-    # Sanitity check
-    start = ipeak - params['nskip']
+    # Check window is within readout
+    start = ipeak - params['shift']
+    window = params['window']
     if start < 0:
         start = 0
-    if start + nsum > get_num_samples(telid):
-        start = get_num_samples(telid) - nsum
+    if start + window > get_num_samples(telid):
+        start = get_num_samples(telid) - window
 
-    correction = round((sum(y)*refstep)/(sum(y1[start:start+nsum])*time_slice),7)
+    correction = round((sum(y)*refstep)/(sum(y1[start:start+window])*time_slice),7)
     return correction
 
 
@@ -199,9 +201,9 @@ def simple_integration_mc(event, ped, telid, parameters):
     event  Data set container to the hess_io event ()
     ped    Array of double containing the pedestal
     telid  Telescope_id
-    parameters['nsum']   Number of samples to sum up (is reduced if
+    parameters['window']   Number of samples to sum up (is reduced if
                          exceeding available length).
-    parameters['nskip']  Number of initial samples skipped (adapted such that
+    parameters['shift']  Number of initial samples skipped (adapted such that
                          interval fits into what is available).
     Note: for multiple gains, this results in identical integration regions.
 
@@ -213,21 +215,21 @@ def simple_integration_mc(event, ped, telid, parameters):
 
     if event is None or telid < 0:
         return None
-    nsum = parameters['nsum']
-    nskip = parameters['nskip']
+    window = parameters['window']
+    shift = parameters['shift']
 
-    # Sanity check on the 'nsum' and 'nskip' parameters given by the "user"
-    if (nsum + nskip) > get_num_samples(telid):
+    # Sanity check on the 'window' and 'shift' parameters given by the "user"
+    if (window + shift) > get_num_samples(telid):
         # the number of sample to sum up can not be larger than the actual
         # number of samples of the pixel.
         # If so, the number to sum up is the actual number of samples.
         # the number of samples to skip is calculated again depending on
         # the actual number of samples of the pixel
-        if nsum >= get_num_samples(telid):
-            nsum = get_num_samples(telid)
-            nskip = 0
+        if window >= get_num_samples(telid):
+            window = get_num_samples(telid)
+            shift = 0
         else:
-            nskip = get_num_samples(telid)-nsum
+            shift = get_num_samples(telid)-window
 
     int_corr = np.ones((get_num_channel(telid),
                         get_num_pixels(telid)), dtype=np.int16)
@@ -235,10 +237,10 @@ def simple_integration_mc(event, ped, telid, parameters):
     for igain in range(0, get_num_channel(telid)):
         samples_pix_tel_list.append(get_adc_sample(telid, igain))
     samples_pix_tel = np.asarray(samples_pix_tel_list, np.int16)
-    samples_pix_win = samples_pix_tel[:, :, nskip:nsum+nskip]
+    samples_pix_win = samples_pix_tel[:, :, shift:window+shift]
     ped_pix_win = ped/get_num_samples(telid)
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2) -
-                                       ped_pix_win*nsum), dtype=np.int16)
+                                       ped_pix_win*window), dtype=np.int16)
 
     return sum_pix_tel, None
 
@@ -258,9 +260,9 @@ def global_peak_integration_mc(event, ped, telid, parameters):
     event  Data set container to the hess_io event ()
     ped    Array of double containing the pedestal
     telid  Telescope_id
-    parameters['nsum']    Number of samples to sum up (is reduced if
+    parameters['window']    Number of samples to sum up (is reduced if
     exceeding available length).
-    parameters['nskip'] Start the integration a number of samples before
+    parameters['shift'] Start the integration a number of samples before
     the peak, as long as it fits into the available data range.
     Note: for multiple gains, this results in identical integration regions.
     parameters['sigamp']  Amplitude in ADC counts above pedestal at which a
@@ -274,9 +276,9 @@ def global_peak_integration_mc(event, ped, telid, parameters):
 
     # The number of samples to sum up can not be larger than the
     # number of samples
-    nsum = parameters['nsum']
-    if nsum >= get_num_samples(telid):
-        nsum = get_num_samples(telid)
+    window = parameters['window']
+    if window >= get_num_samples(telid):
+        window = get_num_samples(telid)
 
     samples_pix_tel_list = []
     sigamp_cut = np.ones((get_num_channel(telid)))
@@ -304,15 +306,15 @@ def global_peak_integration_mc(event, ped, telid, parameters):
         peakpos = ((time_pix_tel*max_sample_tel).sum(1) /
                    max_sample_tel.sum(axis=1)).astype(np.int8)
     # Sanitity check
-    start = peakpos - parameters['nskip']
+    start = peakpos - parameters['shift']
     if start < 0:
         start = 0
-    if start + nsum > get_num_samples(telid):
-        start = get_num_samples(telid) - nsum
+    if start + window > get_num_samples(telid):
+        start = get_num_samples(telid) - window
 
     int_corr = set_integration_correction(telid, parameters)
     # Extract the pulse (pedestal substracted) in the found window
-    samples_pix_win = samples_pix_clean[:, :, start:nsum+start]
+    samples_pix_win = samples_pix_clean[:, :, start:window+start]
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
 
     return sum_pix_tel, time_pix_tel[0]
@@ -332,9 +334,9 @@ def local_peak_integration_mc(event, ped, telid, parameters):
     event  Data set container to the hess_io event ()
     ped    Array of double containing the pedestal
     telid  Telescope_id
-    parameters['nsum']    Number of samples to sum up (is reduced if
+    parameters['window']    Number of samples to sum up (is reduced if
                           exceeding available length).
-    parameters['nskip'] Start the integration a number of samples before
+    parameters['shift'] Start the integration a number of samples before
                         the peak, as long as it fits into the available
                         data range.
     Note: for multiple gains, this results in identical integration regions.
@@ -350,9 +352,9 @@ def local_peak_integration_mc(event, ped, telid, parameters):
 
     # The number of samples to sum up can not be larger than the
     # number of samples
-    nsum = parameters['nsum']
-    if nsum >= get_num_samples(telid):
-        nsum = get_num_samples(telid)
+    window = parameters['window']
+    if window >= get_num_samples(telid):
+        window = get_num_samples(telid)
 
     samples_pix_tel_list = []
     sigamp_cut = np.ones((get_num_channel(telid)))
@@ -381,17 +383,17 @@ def local_peak_integration_mc(event, ped, telid, parameters):
                               time_pix_tel[1], time_pix_tel[0]).astype(np.int8)
 
     # Sanitity check
-    start = peakpos - parameters['nskip']
+    start = peakpos - parameters['shift']
     start[start < 0] = 0
-    start[start + nsum > get_num_samples(telid)] = get_num_samples(telid)
-    - nsum
+    start[start + window > get_num_samples(telid)] = get_num_samples(telid)
+    - window
 
     int_corr = set_integration_correction(telid, parameters)
     # Create a mask with the integration windows per pixel
     m = np.zeros_like(samples_pix_clean)
     for i in range(0, np.shape(samples_pix_clean)[0]):
         for j in range(0, np.shape(samples_pix_clean)[1]):
-            m[i, j, start[i, j]:start[i, j]+nsum] = 1
+            m[i, j, start[i, j]:start[i, j]+window] = 1
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
     sum_pix_tel = np.asarray(int_corr*(samples_pix_win.sum(2)), dtype=np.int16)
@@ -416,9 +418,9 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     cam                   Data set container with the camera information
     ped                   Array of double containing the pedestal
     telid                 Telescope_id
-    parameters['nsum']    Number of samples to sum up
+    parameters['window']    Number of samples to sum up
                           (is reduced if exceeding available length).
-    parameters['nskip'] Start the integration a number of samples before
+    parameters['shift'] Start the integration a number of samples before
                           the peak, as long as it fits into the available data
                           range.
                           Note: for multiple gains, this results in identical
@@ -438,9 +440,9 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
     istart = time.process_time()
     # The number of samples to sum up can not be larger than
     # the number of samples
-    nsum = parameters['nsum']
-    if nsum >= get_num_samples(telid):
-        nsum = get_num_samples(telid)
+    window = parameters['window']
+    if window >= get_num_samples(telid):
+        window = get_num_samples(telid)
     lwt = parameters['lwt']
 
     #  For this integration scheme we need the list of neighbours early on
@@ -475,8 +477,8 @@ def nb_peak_integration_mc(event, cam, ped, telid, parameters):
             sum_samples = all_samples.sum(0)
             peakpos = np.mean(sum_samples.argmax(0)).astype(np.int8)
             time_pix_tel[i, j] = peakpos
-            start = peakpos - parameters['nskip']
-            m[i, j, start:start+nsum] = 1
+            start = peakpos - parameters['shift']
+            m[i, j, start:start+window] = 1
 
     samples_pix_win = samples_pix_clean*m
     # Extract the pulse (pedestal substracted) in the found window
