@@ -72,7 +72,6 @@ def test_local_peak_integration_mc():
 
 def test_nb_peak_integration_mc():
     telid = 11
-    event = get_test_event()
     cam = get_camera_info()
     int_adc_pix, peak_adc_pix = nb_peak_integration_mc(
         get_test_event(), cam, get_pedestal(telid),
