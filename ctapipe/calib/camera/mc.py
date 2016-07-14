@@ -29,7 +29,9 @@ __all__ = [
     'calibrate_amplitude_mc'
 ]
 
-CALIB_SCALE = 0.92
+# CALIB_SCALE = 0.92 # HESS Value
+CALIB_SCALE = 1.05 # GCT Value
+# TODO: create dict of CALIB_SCALE for every instrument
 
 """
 
