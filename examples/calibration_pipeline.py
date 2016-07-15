@@ -236,7 +236,10 @@ def camera_calibration(filename, parameters, disp_args, level):
                             "See telescope/evt. %d?[CT%d]<[n]/y/q/e> " %
                             (container.dl1.event_id, telid))
                         if ello == 'y':
-                            display_telescope(container, cam['CameraTable_VersionFeb2016_TelID%s' % telid], telid)
+                            display_telescope(
+                                container,
+                                cam['CameraTable_VersionFeb2016_TelID%s' %
+                                    telid], telid)
                             plt.pause(0.1)
                         elif ello == 'q':
                             break

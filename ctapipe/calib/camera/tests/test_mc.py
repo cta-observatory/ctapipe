@@ -58,7 +58,7 @@ def test_global_peak_integration_mc():
     telid = 11
     int_adc_pix, peak_adc_pix = global_peak_integration_mc(
         get_test_event(), get_pedestal(telid), telid, get_test_parameters())
-    assert int_adc_pix[0][0] == int(77) 
+    assert int_adc_pix[0][0] == int(77)
     assert peak_adc_pix[0] == int(13)
 
 
