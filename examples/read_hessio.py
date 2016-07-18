@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
+
 # run this example with:
 #
 # python read_hessio.py <filename>
 #
 # if no filename is given, a default example file will be used
 # containing ~10 events
-#
 
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source

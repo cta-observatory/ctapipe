@@ -8,7 +8,7 @@ import pyhessio
 from astropy import units as u
 from astropy.table import Table
 from astropy.time import Time
-from traitlets import (Unicode, Dict, Bool)
+from ctapipe.core.traits import (Unicode, Dict, Bool)
 
 from ..core import Tool
 
@@ -22,7 +22,8 @@ class DumpTriggersTool(Tool):
     # configuration parameters:
     # =============================================
 
-    infile = Unicode(help='input simtelarray file').tag(config=True, allow_none=False)
+    infile = Unicode(help='input simtelarray file').tag(config=True,
+                                                        allow_none=False)
 
     outfile = Unicode('triggers.fits',
                       help='output filename (*.fits, *.h5)').tag(config=True)
@@ -73,17 +74,19 @@ class DumpTriggersTool(Tool):
         # (better for storage in FITS format)
         trigtels = pyhessio.get_telescope_with_data_list()
         self._current_trigpattern[:] = 0  # zero the trigger pattern
-        self._current_trigpattern[trigtels] = 1  # set the triggered telescopes to 1
+        self._current_trigpattern[trigtels] = 1  # set the triggered tels to 1
 
         # insert the row into the table
-        self.events.add_row((event_id, relative_time.sec, delta_t.sec, len(trigtels),
+        self.events.add_row((event_id, relative_time.sec, delta_t.sec,
+                             len(trigtels),
                              self._current_trigpattern))
 
     def setup(self):
         """ setup function, called before `start()` """
 
         if self.infile == '':
-            raise ValueError("No 'infile' parameter was specified. Use --help for info")
+            raise ValueError("No 'infile' parameter was specified. "
+                             "Use --help for info")
 
         self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
                                    'N_TRIG', 'TRIGGERED_TELS'],
@@ -109,14 +112,18 @@ class DumpTriggersTool(Tool):
             self.add_event_to_table(event_id)
 
     def finish(self):
-        """ finish up and write out results (called automatically after `start()`)"""
+        """
+        finish up and write out results (called automatically after
+        `start()`)
+        """
         pyhessio.close_file()
 
         # write out the final table
         if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
             self.events.write(self.outfile, overwrite=self.overwrite)
         elif self.outfile.endswith('h5'):
-            self.events.write(self.outfile, path='/events', overwrite=self.overwrite)
+            self.events.write(self.outfile, path='/events',
+                              overwrite=self.overwrite)
         else:
             self.events.write(self.outfile)
 

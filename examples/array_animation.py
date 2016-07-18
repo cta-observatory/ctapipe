@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 from astropy.table import Table
 from ctapipe.utils import datasets
@@ -14,7 +16,7 @@ if __name__ == '__main__':
     tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
 
     adisp = ArrayDisplay(tels['TelX'], tels['TelY'], tels['MirrorArea'] * 2,
-                         title='PROD2 telescopes', autoupdate=False)
+                         title='PROD2 telescopes', autoupdate=True)
     plt.tight_layout()
 
     values = np.zeros(len(tels))
