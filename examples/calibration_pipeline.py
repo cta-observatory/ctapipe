@@ -32,7 +32,7 @@ def init_dl1(event):
     container = Container("calibrated_hessio_container")
     container.add_item("dl1", RawData())
     container.meta.add_item('pixel_pos', dict())
-    #container.meta.pixel_pos = event.meta.pixel_pos
+    # container.meta.pixel_pos = event.meta.pixel_pos
     container.meta.add_item('optical_foclen', dict())
 
     return container
@@ -47,7 +47,7 @@ def load_dl1_eventheader(dl0, dl1):
     return
 
 
-def display_telescope(event, tel_id):
+def display_telescope(event, geom, tel_id):
     global fig
     ntels = len(event.dl1.tels_with_data)
     fig.clear()
@@ -170,8 +170,7 @@ def camera_calibration(filename, parameters, disp_args, level):
             foclen = event.meta.optical_foclen[telid]
             container.meta.pixel_pos[telid] = x, y
             container.meta.optical_foclen[telid] = foclen
-            #geom = io.CameraGeometry.guess(x, y, foclen)
-            
+            # geom = io.CameraGeometry.guess(x, y, foclen)
 
             # Get the calibration data sets (pedestals and single-pe)
             ped = get_pedestal(telid)
@@ -239,7 +238,10 @@ def camera_calibration(filename, parameters, disp_args, level):
                             "See telescope/evt. %d?[CT%d]<[n]/y/q/e> " %
                             (container.dl1.event_id, telid))
                         if ello == 'y':
-                            display_telescope(container, telid)
+                            display_telescope(
+                                container,
+                                cam['CameraTable_VersionFeb2016_TelID%s' %
+                                    telid], telid)
                             plt.pause(0.1)
                         elif ello == 'q':
                             break
