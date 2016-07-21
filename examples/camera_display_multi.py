@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Demo to show multiple shower images on a single figure using
 `CameraDisplay` and really simple mock shower images (not
@@ -40,7 +42,7 @@ def draw_several_cams(geom, ncams=4):
 
         clean = image.copy()
         clean[image <= 3.0 * image.mean()] = 0.0
-        hillas = hillas_parameters(geom.pix_x.value, geom.pix_y.value, clean)
+        hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
 
         disp.image = image
         disp.add_colorbar(ax=axs[ii])

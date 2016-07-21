@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Example of drawing a Camera using different norms
 """

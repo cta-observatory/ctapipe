@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Simple example to read some camera geometry info from a
 SimTelArray data file (using pyhessio) and write it to a set of FITS tables.

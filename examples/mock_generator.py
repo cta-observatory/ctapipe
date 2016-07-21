@@ -1,10 +1,11 @@
+#!/usr/bin/env python3
+
 # run this example with:
 #
 # python read_hessio.py <filename>
 #
 # if no filename is given, a default example file will be used
 # containing ~10 events
-#
 
 from ctapipe.io.mock import mock_event_source
 from ctapipe import visualization, io
