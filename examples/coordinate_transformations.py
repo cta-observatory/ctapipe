@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Some simple examples of using the frames and transformations
 defined in `ctapipe.coordinates`

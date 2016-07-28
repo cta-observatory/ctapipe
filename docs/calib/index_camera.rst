@@ -1,8 +1,8 @@
 .. _calib_camera:
 
-============
+===================
  Camera calibration
-============
+===================
 
 .. currentmodule:: ctapipe.calib.camera
 

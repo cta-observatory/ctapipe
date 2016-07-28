@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import matplotlib.pyplot as plt
 from ctapipe.io.hessio import hessio_event_source

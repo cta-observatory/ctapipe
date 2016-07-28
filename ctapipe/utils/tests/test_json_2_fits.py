@@ -38,7 +38,7 @@ from traitlets import (
 from traitlets.config.loader import JSONFileConfigLoader, ConfigFileNotFound
 from traitlets.config.loader import Config
 
-from ctapipe.configuration import traitletsConfigToFits,jsonToFits
+from ctapipe.utils.json2fits import traitlets_config_to_fits, json_to_fits
 import ctapipe.instrument.CameraDescription as CD
 from ctapipe.utils.datasets import get_path
 
@@ -110,20 +110,20 @@ class MyApp(Application):
             with open(fname, 'w') as f:
                 f.write(str(json.dumps(self.config)))
 
-    def traitletsConfigToFits(self):
-        return traitletsConfigToFits( self.config,'config_to_fits.fits',clobber=True)
+    def traitlets_config_to_fits(self):
+        return traitlets_config_to_fits( self.config,'config_to_fits.fits',clobber=True)
 
     def jsonToFits(self):
-        return jsonToFits(self.full_path_configfile,'json_to_fits.fits',clobber=True)
+        return json_to_fits(self.full_path_configfile, 'json_to_fits.fits', clobber=True)
 
-def test_traitletsConfigToFits():
+def test_traitlets_config_to_fits():
     backup = sys.argv
     full_config_name = get_path('config.json')
     sys.argv = ['test_json_2_fits.py', '--config_file='+full_config_name]
     app = MyApp()
     app.initialize()
     app.start()
-    assert(app.traitletsConfigToFits() == True)
+    assert(app.traitlets_config_to_fits() == True)
     sys.argv = backup
 
 def test_jsonToFits():
@@ -138,7 +138,7 @@ def test_jsonToFits():
 
 
 def main():
-    test_traitletsConfigToFits()
+    test_traitlets_config_to_fits()
     test_jsonToFits()
 
 
