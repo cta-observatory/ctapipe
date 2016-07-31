@@ -95,6 +95,12 @@ class MCCamera(Container):
     def __init__(self, tel_id):
         super().__init__("CT{:03d}".format(tel_id))
         self.add_item('photo_electrons', dict())
+        # Some parameters used in calibration
+        self.add_item('refshapes', dict())
+        self.add_item('refstep')
+        self.add_item('lrefshape')
+        self.add_item('time_slice')
+
 
 
 class RawCameraData(Container):
@@ -116,10 +122,14 @@ class RawCameraData(Container):
         super().__init__("CT{:03d}".format(tel_id))
         self.add_item('adc_sums', dict())
         self.add_item('adc_samples', dict())
+        self.add_item('calibration')
+        self.add_item('pedestal')
         self.add_item('num_channels')
+        self.add_item('num_pixels')
+        self.add_item('num_samples')
 
 
-class CalibratedCameraData(RawData):
+class CalibratedCameraData(Container):
     """
     Storage of calibrated (p.e.) data from a single telescope
 
@@ -132,10 +142,8 @@ class CalibratedCameraData(RawData):
 
     """
     def __init__(self, tel_id):
-        super(CalibratedCameraData, self).__init__("CT{:03d}".format(tel_id))
-        #super().__init__("CT{:03d}".format(tel_id))
-        #self.add_item('run_id')
-        #self.add_item('event_id')
-        #self.add_item('tels_with_data')
+        super().__init__("CT{:03d}".format(tel_id))
         self.add_item('pe_charge', dict())
         self.add_item('tom', dict())
+        self.add_item('num_channels')
+        self.add_item('num_pixels')
