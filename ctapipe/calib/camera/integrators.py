@@ -165,8 +165,7 @@ def simple_integration(data, params):
 
     # Select entries
     integration_window = np.zeros_like(data, dtype=bool)
-    for i in range(nchan):
-        integration_window[i, :, start[i]:start[i] + window] = True
+    integration_window[:, :, start:start + window] = True
     data = data * integration_window
 
     # Integrate

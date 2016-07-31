@@ -70,6 +70,12 @@ def test_full_integration():
     assert integration[0][0] == 3114
     assert sum(window[0][0]) == nsamples
 
+    # Test 2 channel functionality
+    data = np.array([data[0],data[0]])
+    integration, window = full_integration(data)
+    assert integration[1][0] == 3114
+    assert sum(window[1][0]) == nsamples
+
 
 def test_simple_integration():
     telid = 11
@@ -80,6 +86,12 @@ def test_simple_integration():
     integration, window = simple_integration(data, params)
     assert integration[0][0] == 762
     assert sum(window[0][0]) == params['window']
+
+    # Test 2 channel functionality
+    data = np.array([data[0],data[0]])
+    integration, window = simple_integration(data, params)
+    assert integration[1][0] == 762
+    assert sum(window[1][0]) == params['window']
 
 
 def test_global_peak_integration():
@@ -92,6 +104,12 @@ def test_global_peak_integration():
     assert integration[0][0] == 750
     assert sum(window[0][0]) == params['window']
 
+    # Test 2 channel functionality
+    data = np.array([data[0],data[0]])
+    integration, window = global_peak_integration(data, params)
+    assert integration[1][0] == 750
+    assert sum(window[1][0]) == params['window']
+
 
 def test_local_peak_integration():
     telid = 11
@@ -102,6 +120,12 @@ def test_local_peak_integration():
     integration, window = local_peak_integration(data, params)
     assert integration[0][0] == 768
     assert sum(window[0][0]) == params['window']
+
+    # Test 2 channel functionality
+    data = np.array([data[0],data[0]])
+    integration, window = local_peak_integration(data, params)
+    assert integration[1][0] == 768
+    assert sum(window[1][0]) == params['window']
 
 
 def test_nb_peak_integration():
@@ -115,3 +139,9 @@ def test_nb_peak_integration():
     integration, window = nb_peak_integration(data, geom, params)
     assert integration[0][0] == 628
     assert sum(window[0][0]) == params['window']
+
+    # Test 2 channel functionality
+    data = np.array([data[0],data[0]])
+    integration, window = nb_peak_integration(data, geom, params)
+    assert integration[1][0] == 628
+    assert sum(window[1][0]) == params['window']
