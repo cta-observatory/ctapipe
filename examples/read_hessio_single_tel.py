@@ -1,4 +1,7 @@
-"""Example of extracting a single telescope from a merged/interleaved
+#!/usr/bin/env python3
+
+"""
+Example of extracting a single telescope from a merged/interleaved
 simtelarray data file.
 
 Only events that contain the specified telescope are read and
@@ -6,8 +9,8 @@ displayed. Other telescopes and events are skipped over (EventIO data
 files have no index table in them, so the events must be read in
 sequence to find ones with the appropriate telescope, therefore this
 is not a fast operation)
-
 """
+
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe import visualization, io, reco

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 from astropy.table import Table
 from ctapipe.utils import datasets
