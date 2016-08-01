@@ -359,7 +359,7 @@ def nb_peak_integration(data, geom, params):
 
     The integration window can be anywhere in the available length
     of the traces.
-    
+
     No weighting of individual samples is applied.
 
     Parameters

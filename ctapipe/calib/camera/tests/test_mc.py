@@ -2,7 +2,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 
 from ..mc import set_integration_correction, calibrate_amplitude_mc, \
-    integration_mc
+    integration_mc, calibrate_mc
 
 
 def get_test_parameters():
@@ -34,7 +34,7 @@ def test_calibrate_amplitude_mc():
     event = get_test_event()
     charge, window = integration_mc(event, telid, get_test_parameters())
     pe = calibrate_amplitude_mc(event, charge, telid, get_test_parameters())
-    assert pe[0][0] == -2.1590571865439414
+    assert pe[0][0] == -1.891745344400406
 
 
 def test_integration_mc():
@@ -67,3 +67,10 @@ def test_integration_mc():
     charge, window = integration_mc(event, telid, params)
     assert charge[0][0] == -67
     assert sum(window[0][0]) == params['window']
+
+
+def test_calibrate_mc():
+    telid = 11
+    event = get_test_event()
+    pe, window = calibrate_mc(event, telid, get_test_parameters())
+    assert pe[0][0] == -1.891745344400406

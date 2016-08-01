@@ -192,3 +192,45 @@ def integration_mc(event, telid, params):
     charge = np.round(integration * int_corr).astype(np.int16, copy=False)
 
     return charge, integration_window
+
+
+def calibrate_mc(event, telid, params, calib_scale=0.92):
+    """
+    Generic calibrator for mc files. Calls the itegrator function to obtain
+    the ADC charge, then calibrates that into photo-electrons.
+
+    Parameters
+    ----------
+    event : container
+        A `ctapipe` event container
+    telid : int
+        telescope id
+    params : dict
+        REQUIRED:
+
+        params['window'] - Integration window size
+
+        params['shift'] - Starting sample for this integration
+
+        (adapted such that window fits into readout).
+    calib_scale : float
+        Identical to global variable CALIB_SCALE in reconstruct.c in hessioxxx
+        software package. 0.92 is the default value (corresponds to HESS). The
+        required value changes between cameras (GCT = 1.05).
+
+    Returns
+    -------
+    pe : ndarray
+        array of pixels with integrated charge [photo-electrons]
+        (pedestal substracted)
+    integration_window : ndarray
+        bool array of same shape as data. Specified which samples are included
+        in the integration window
+
+    Returns None if params dict does not include all required parameters
+    """
+
+    charge, integration_window = integration_mc(event, telid, params)
+    pe = calibrate_amplitude_mc(event, charge, telid, params, calib_scale)
+
+    return pe, integration_window
