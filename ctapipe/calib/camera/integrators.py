@@ -165,10 +165,10 @@ def simple_integration(data, params):
     # Select entries
     integration_window = np.zeros_like(data, dtype=bool)
     integration_window[:, :, start:start + window] = True
-    data = data * integration_window
+    windowed_data = data * integration_window
 
     # Integrate
-    integration = data.sum(2)
+    integration = windowed_data.sum(2)
 
     return integration, integration_window
 
@@ -258,10 +258,10 @@ def global_peak_integration(data, params):
     integration_window = np.zeros_like(data, dtype=bool)
     for i in range(nchan):
         integration_window[i, :, start[i]:start[i] + window] = True
-    data = data * integration_window
+    windowed_data = data * integration_window
 
     # Integrate
-    integration = data.sum(2)
+    integration = windowed_data.sum(2)
 
     return integration, integration_window
 
@@ -344,10 +344,10 @@ def local_peak_integration(data, params):
     for i in range(nchan):
         for j in range(npix):
             integration_window[i, j, start[i, j]:start[i, j] + window] = True
-    data = data * integration_window
+    windowed_data = data * integration_window
 
     # Integrate
-    integration = data.sum(2)
+    integration = windowed_data.sum(2)
 
     return integration, integration_window
 
@@ -444,9 +444,9 @@ def nb_peak_integration(data, geom, params):
     for i in range(nchan):
         for j in range(npix):
             integration_window[i, j, start[i, j]:start[i, j] + window] = True
-    data = data * integration_window
+    windowed_data = data * integration_window
 
     # Integrate
-    integration = data.sum(2)
+    integration = windowed_data.sum(2)
 
     return integration, integration_window

@@ -80,7 +80,7 @@ def set_integration_correction(event, telid, params):
     return correction
 
 
-def calibrate_amplitude_mc(event, charge, telid, params, calib_scale=0.92):
+def calibrate_amplitude_mc(event, charge, telid, params):
     """
     Convert charge from ADC counts to photo-electrons
 
@@ -98,10 +98,11 @@ def calibrate_amplitude_mc(event, charge, telid, params, calib_scale=0.92):
 
         params['clip_amp'] - Amplitude in p.e. above which the signal is
         clipped.
-    calib_scale : float
-        Identical to global variable CALIB_SCALE in reconstruct.c in hessioxxx
-        software package. 0.92 is the default value (corresponds to HESS). The
-        required value changes between cameras (GCT = 1.05).
+
+        params['calib_scale'] : Identical to global variable CALIB_SCALE in
+        reconstruct.c in hessioxxx software package. 0.92 is the default value
+        (corresponds to HESS). The required value changes between cameras
+        (GCT = 1.05).
 
     Returns
     -------
@@ -120,6 +121,9 @@ def calibrate_amplitude_mc(event, charge, telid, params, calib_scale=0.92):
 
     if "climp_amp" in params and params["clip_amp"] > 0:
         pe[np.where(pe > params["clip_amp"])] = params["clip_amp"]
+    calib_scale = 0.92
+    if "calib_scale" in params:
+        calib_scale = params["calib_scale"]
 
     """
     pe_pix is in units of 'mean photo-electrons'
@@ -128,10 +132,10 @@ def calibrate_amplitude_mc(event, charge, telid, params, calib_scale=0.92):
     now (unit = most probable p.e. signal after experimental resolution).
     Keep in mind: peak(10 p.e.) != 10*peak(1 p.e.)
     """
-    pe *= calib_scale
+    scaled_pe = pe * calib_scale
     # TODO: create dict of CALIB_SCALE for every instrument
 
-    return pe
+    return scaled_pe
 
 
 def integration_mc(event, telid, params):
@@ -194,7 +198,7 @@ def integration_mc(event, telid, params):
     return charge, integration_window
 
 
-def calibrate_mc(event, telid, params, calib_scale=0.92):
+def calibrate_mc(event, telid, params):
     """
     Generic calibrator for mc files. Calls the itegrator function to obtain
     the ADC charge, then calibrates that into photo-electrons.
@@ -213,10 +217,16 @@ def calibrate_mc(event, telid, params, calib_scale=0.92):
         params['shift'] - Starting sample for this integration
 
         (adapted such that window fits into readout).
-    calib_scale : float
-        Identical to global variable CALIB_SCALE in reconstruct.c in hessioxxx
-        software package. 0.92 is the default value (corresponds to HESS). The
-        required value changes between cameras (GCT = 1.05).
+        
+        OPTIONAL:
+
+        params['clip_amp'] - Amplitude in p.e. above which the signal is
+        clipped.
+
+        params['calib_scale'] : Identical to global variable CALIB_SCALE in
+        reconstruct.c in hessioxxx software package. 0.92 is the default value
+        (corresponds to HESS). The required value changes between cameras
+        (GCT = 1.05).
 
     Returns
     -------
