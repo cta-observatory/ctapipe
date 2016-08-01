@@ -2,6 +2,7 @@ from ..calibrators import calibrate_event, calibrate_source
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 
+
 def get_test_parameters():
     parameters = {"integrator": "nb_peak_integration",
                   "window": 7,

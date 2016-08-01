@@ -71,7 +71,7 @@ def test_full_integration():
     assert sum(window[0][0]) == nsamples
 
     # Test 2 channel functionality
-    data = np.array([data[0],data[0]])
+    data = np.array([data[0], data[0]])
     integration, window = full_integration(data)
     assert integration[1][0] == 3114
     assert sum(window[1][0]) == nsamples
@@ -88,7 +88,7 @@ def test_simple_integration():
     assert sum(window[0][0]) == params['window']
 
     # Test 2 channel functionality
-    data = np.array([data[0],data[0]])
+    data = np.array([data[0], data[0]])
     integration, window = simple_integration(data, params)
     assert integration[1][0] == 762
     assert sum(window[1][0]) == params['window']
@@ -105,7 +105,7 @@ def test_global_peak_integration():
     assert sum(window[0][0]) == params['window']
 
     # Test 2 channel functionality
-    data = np.array([data[0],data[0]])
+    data = np.array([data[0], data[0]])
     integration, window = global_peak_integration(data, params)
     assert integration[1][0] == 750
     assert sum(window[1][0]) == params['window']
@@ -122,7 +122,7 @@ def test_local_peak_integration():
     assert sum(window[0][0]) == params['window']
 
     # Test 2 channel functionality
-    data = np.array([data[0],data[0]])
+    data = np.array([data[0], data[0]])
     integration, window = local_peak_integration(data, params)
     assert integration[1][0] == 768
     assert sum(window[1][0]) == params['window']
@@ -141,7 +141,7 @@ def test_nb_peak_integration():
     assert sum(window[0][0]) == params['window']
 
     # Test 2 channel functionality
-    data = np.array([data[0],data[0]])
+    data = np.array([data[0], data[0]])
     integration, window = nb_peak_integration(data, geom, params)
     assert integration[1][0] == 628
     assert sum(window[1][0]) == params['window']

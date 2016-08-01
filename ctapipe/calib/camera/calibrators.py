@@ -5,7 +5,7 @@ the source/telescope, and store the calibration inside the event container.
 
 
 from copy import copy
-from .mc import calibrate_mc, set_integration_correction
+from .mc import calibrate_mc
 from functools import partial
 import logging
 from ctapipe.io.containers import RawData, CalibratedCameraData
@@ -66,7 +66,7 @@ def calibrate_event(event, params, geom_dict=None):
         }
     try:
         calibrator = switch[event.meta.source]
-    except KeyError as e:
+    except KeyError:
         logger.exception("unknown event source '{}'".format(event.meta.source))
         raise
 
@@ -158,4 +158,3 @@ def calibrate_source(source, params):
         calibrated = calibrate_event(event, params, geom_dict)
 
         yield calibrated
-

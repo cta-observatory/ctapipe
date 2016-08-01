@@ -48,7 +48,7 @@ def set_integration_correction(event, telid, params):
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
-    except KeyError as e:
+    except KeyError:
         logger.exception("[ERROR] missing required params")
 
     nchan = event.dl0.tel[telid].num_channels

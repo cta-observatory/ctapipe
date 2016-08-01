@@ -62,7 +62,7 @@ def integrator_switch(data, geom, params):
     try:
         if 'integrator' not in params:
             raise KeyError()
-    except KeyError as e:
+    except KeyError:
         logger.exception("[ERROR] missing required params")
 
     switch = {
@@ -153,7 +153,7 @@ def simple_integration(data, params):
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
-    except KeyError as e:
+    except KeyError:
         logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
@@ -223,7 +223,7 @@ def global_peak_integration(data, params):
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
-    except KeyError as e:
+    except KeyError:
         logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
@@ -314,7 +314,7 @@ def local_peak_integration(data, params):
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
-    except KeyError as e:
+    except KeyError:
         logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
@@ -406,7 +406,7 @@ def nb_peak_integration(data, geom, params):
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
-    except KeyError as e:
+    except KeyError:
         logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
