@@ -6,12 +6,78 @@ the source/telescope, and store the calibration inside the event container.
 
 from copy import copy
 from .mc import calibrate_mc
+from .integrators import integrator_dict
 from functools import partial
 import logging
 from ctapipe.io.containers import RawData, CalibratedCameraData
 from ctapipe.io import CameraGeometry
 
 logger = logging.getLogger(__name__)
+
+
+def calibration_arguments(parser):
+    """
+    Add the arguments for the calibration function to your argparser.
+
+    Parameters
+    ----------
+    parser : `astropy.utils.compat.argparse.ArgumentParser`
+    """
+    integrators = ""
+    for key, value in integrator_dict().items():
+        integrators += " - {} = {}\n".format(key, value)
+
+    parser.add_argument('--integrator', dest='integrator', action='store',
+                        required=True,
+                        help='which integration scheme should be used to '
+                             'extract the charge?\n{}'.format(integrators))
+    parser.add_argument('--integration-window', dest='integration_window',
+                        action='store', required=True, nargs=2,
+                        help='Set integration window width and offset (to '
+                             'before the peak) respectively, '
+                             'e.g. --integration-window 7 3')
+    parser.add_argument('--integration-sigamp', dest='integration_sigamp',
+                        action='store', nargs='+',
+                        help='Amplitude in ADC counts above pedestal at which '
+                             'a signal is considered as significant '
+                             '(separate for high gain/low gain), '
+                             'e.g. --integration-sigamp 2 4')
+    parser.add_argument('--integration-clip_amp', dest='integration_clip_amp',
+                        action='store',
+                        help='Amplitude in p.e. above which the signal is '
+                             'clipped.')
+    parser.add_argument('--integration-lwt', dest='integration_lwt',
+                        action='store',
+                        help='Weight of the local pixel (0: peak from '
+                             'neighbours only, 1: local pixel counts as much '
+                             'as any neighbour) default=0')
+
+
+def calibration_parameters(args):
+    """
+    Parse you argpasers arguments for calibration parameters, and store them
+    inside a dict.
+
+    Parameters
+    ----------
+    args : `astropy.utils.compat.argparse.ArgumentParser.parse_args()`
+
+    Returns
+    -------
+    parameters : dict
+        dictionary containing the formatted calibration parameters
+    """
+    parameters = {'integrator': args.integrator,
+                  'window': args.integration_window[0],
+                  'shift': args.integration_window[1]}
+    if args.integration_sigamp is not None:
+        parameters['sigamp'] = args.integration_sigamp[:2]
+    if args.integration_clip_amp is not None:
+        parameters['clip_amp'] = args.integration_clip_amp
+    if args.integration_lwt is not None:
+        parameters['lwt'] = args.integration_lwt
+
+    return parameters
 
 
 def calibrate_event(event, params, geom_dict=None):

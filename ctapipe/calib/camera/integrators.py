@@ -15,6 +15,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def integrator_dict():
+    integrators = {1: "full_integration",
+                   2: "simple_integration",
+                   3: "global_peak_integration",
+                   4: "local_peak_integration",
+                   5: "nb_peak_integration"}
+    return integrators
+
+
 def integrator_switch(data, geom, params):
     """
     Integrator switch using params['integrator'] to dictate which integration
@@ -37,16 +46,6 @@ def integrator_switch(data, geom, params):
         params['shift'] - Starting sample for this integration
 
         (adapted such that window fits into readout).
-
-        params['integrator'] - pixel integration algorithm
-            - "full_integration": full digitized range integrated
-            amplitude-pedestal
-            - "simple_integration": fixed integration region (window)
-            - "global_peak_integration": integration region by global peak of
-            significant pixels
-            - "local_peak_integration": peak in each pixel determined
-            independently
-            - "nb_peak_integration": peak postion found by summin neighbours
 
         OPTIONAL:
 
