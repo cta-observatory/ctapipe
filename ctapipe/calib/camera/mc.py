@@ -43,10 +43,13 @@ def set_integration_correction(event, telid, params):
     -------
     correction : float
         Value of the integration correction for this instrument \n
-    Returns None if params dict does not include all required parameters
     """
-    if 'window' not in params or 'shift' not in params:
-        return None
+
+    try:
+        if 'window' not in params or 'shift' not in params:
+            raise KeyError()
+    except KeyError as e:
+        logger.exception("[ERROR] missing required params")
 
     nchan = event.dl0.tel[telid].num_channels
     nsamples = event.dl0.tel[telid].num_samples
@@ -111,9 +114,6 @@ def calibrate_amplitude_mc(event, charge, telid, params):
         (pedestal substracted)
     """
 
-    if charge is None:
-        return None
-
     calib = event.dl0.tel[telid].calibration
 
     pe = charge * calib
@@ -121,7 +121,7 @@ def calibrate_amplitude_mc(event, charge, telid, params):
 
     if "climp_amp" in params and params["clip_amp"] > 0:
         pe[np.where(pe > params["clip_amp"])] = params["clip_amp"]
-    calib_scale = 0.92
+    calib_scale = 0.92  # Correct value for HESS
     if "calib_scale" in params:
         calib_scale = params["calib_scale"]
 
@@ -138,7 +138,7 @@ def calibrate_amplitude_mc(event, charge, telid, params):
     return scaled_pe
 
 
-def integration_mc(event, telid, params):
+def integration_mc(event, telid, params, geom=None):
     """
     Generic integrator for mc files. Calls the integrator_switch for actual
     integration. Subtracts the pedestal and applies the integration correction.
@@ -152,11 +152,21 @@ def integration_mc(event, telid, params):
     params : dict
         REQUIRED:
 
+        params['integrator'] - Integration scheme
+
         params['window'] - Integration window size
 
         params['shift'] - Starting sample for this integration
 
         (adapted such that window fits into readout).
+
+        OPTIONAL:
+
+        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
+        signal is considered as significant (separate for high gain/low gain).
+    geom : `ctapipe.io.CameraGeometry`
+        geometry of the camera's pixels. Leave as None for automatic
+        calculation when it is required.
 
     Returns
     -------
@@ -166,22 +176,16 @@ def integration_mc(event, telid, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
-
-    Returns None if params dict does not include all required parameters
     """
-
-    if event is None or telid < 0:
-        return None
-    if 'window' not in params or 'shift' not in params:
-        return None
 
     # Obtain the data
     nsamples = event.dl0.tel[telid].num_samples
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
+    if geom is None:
+        geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
+                                    event.meta.optical_foclen[telid])
 
     # Integrate
     integration, integration_window = integrator_switch(data_ped, geom, params)
@@ -198,7 +202,7 @@ def integration_mc(event, telid, params):
     return charge, integration_window
 
 
-def calibrate_mc(event, telid, params):
+def calibrate_mc(event, telid, params, geom=None):
     """
     Generic calibrator for mc files. Calls the itegrator function to obtain
     the ADC charge, then calibrates that into photo-electrons.
@@ -212,12 +216,14 @@ def calibrate_mc(event, telid, params):
     params : dict
         REQUIRED:
 
+        params['integrator'] - Integration scheme
+
         params['window'] - Integration window size
 
         params['shift'] - Starting sample for this integration
 
         (adapted such that window fits into readout).
-        
+
         OPTIONAL:
 
         params['clip_amp'] - Amplitude in p.e. above which the signal is
@@ -228,19 +234,23 @@ def calibrate_mc(event, telid, params):
         (corresponds to HESS). The required value changes between cameras
         (GCT = 1.05).
 
+        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
+        signal is considered as significant (separate for high gain/low gain).
+    geom : `ctapipe.io.CameraGeometry`
+        geometry of the camera's pixels. Leave as None for automatic
+        calculation when it is required.
+
     Returns
     -------
     pe : ndarray
         array of pixels with integrated charge [photo-electrons]
         (pedestal substracted)
-    integration_window : ndarray
+    window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
-
-    Returns None if params dict does not include all required parameters
     """
 
-    charge, integration_window = integration_mc(event, telid, params)
-    pe = calibrate_amplitude_mc(event, charge, telid, params, calib_scale)
+    charge, window = integration_mc(event, telid, params, geom)
+    pe = calibrate_amplitude_mc(event, charge, telid, params)
 
-    return pe, integration_window
+    return pe, window

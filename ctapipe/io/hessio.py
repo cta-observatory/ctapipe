@@ -72,6 +72,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         # Re-intialize the container, thereby wiping any extra items added
         # in the previous event (e.g. dl1)
         container = Container("hessio_container")
+        container.meta.add_item('source', "hessio")
         container.meta.add_item('hessio__input', url)
         container.meta.add_item('hessio__max_events', max_events)
         container.meta.add_item('tel_pos', dict())

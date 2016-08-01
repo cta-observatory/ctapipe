@@ -30,6 +30,8 @@ def integrator_switch(data, geom, params):
     params : dict
         REQUIRED:
 
+        params['integrator'] - Integration scheme
+
         params['window'] - Integration window size
 
         params['shift'] - Starting sample for this integration
@@ -46,17 +48,22 @@ def integrator_switch(data, geom, params):
             independently
             - "nb_peak_integration": peak postion found by summin neighbours
 
+        OPTIONAL:
+
+        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
+        signal is considered as significant (separate for high gain/low gain).
+
     Returns
     -------
     integrator : lambda
         function corresponding to the specified integrator
-    Returns None if params dict does not include all required params
     """
 
-    if data is None:
-        return None
-    if 'window' not in params or 'shift' not in params:
-        return None
+    try:
+        if 'integrator' not in params:
+            raise KeyError()
+    except KeyError as e:
+        logger.exception("[ERROR] missing required params")
 
     switch = {
         'full_integration':
@@ -73,7 +80,9 @@ def integrator_switch(data, geom, params):
     try:
         integrator = switch[params['integrator']]()
     except KeyError:
-        integrator = switch[None]()
+        logger.exception("unknown integrator '{}'"
+                         .format(params['integrator']))
+        raise
 
     return integrator
 
@@ -139,14 +148,13 @@ def simple_integration(data, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
-
-    Returns None if params dict does not include all required parameters
     """
 
-    if data is None:
-        return None
-    if 'window' not in params or 'shift' not in params:
-        return None
+    try:
+        if 'window' not in params or 'shift' not in params:
+            raise KeyError()
+    except KeyError as e:
+        logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
 
@@ -210,14 +218,13 @@ def global_peak_integration(data, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
-
-    Returns None if params dict does not include all required parameters
     """
 
-    if data is None:
-        return None
-    if 'window' not in params or 'shift' not in params:
-        return None
+    try:
+        if 'window' not in params or 'shift' not in params:
+            raise KeyError()
+    except KeyError as e:
+        logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
 
@@ -302,14 +309,13 @@ def local_peak_integration(data, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
-
-    Returns None if params dict does not include all required parameters
     """
 
-    if data is None:
-        return None
-    if 'window' not in params or 'shift' not in params:
-        return None
+    try:
+        if 'window' not in params or 'shift' not in params:
+            raise KeyError()
+    except KeyError as e:
+        logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
 
@@ -395,14 +401,13 @@ def nb_peak_integration(data, geom, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
-
-    Returns None if params dict does not include all required parameters
     """
 
-    if data is None:
-        return None
-    if 'window' not in params or 'shift' not in params:
-        return None
+    try:
+        if 'window' not in params or 'shift' not in params:
+            raise KeyError()
+    except KeyError as e:
+        logger.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
 
