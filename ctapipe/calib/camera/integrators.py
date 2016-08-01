@@ -4,6 +4,9 @@ calibrators to extract charge from a waveform.
 These methods have no prior known information other than the 3 dimensional
 pedestal-subtracted data array containing every sample, for every pixel,
 in every channel. Also may require the geometry of the camera pixels.
+
+In general the integration functions corresponds one to one in name and
+functionality with those in hessioxxx package.
 """
 
 import numpy as np
@@ -15,7 +18,7 @@ logger = logging.getLogger(__name__)
 def integrator_switch(data, geom, params):
     """
     Integrator switch using params['integrator'] to dictate which integration
-    is applied
+    is applied.
 
     Parameters
     ----------
@@ -77,8 +80,7 @@ def integrator_switch(data, geom, params):
 
 def full_integration(data):
     """
-    Use full digitized range for the integration amplitude
-    algorithm
+    Integrate full readout traces.
 
     No weighting of individual samples is applied.
 
@@ -110,9 +112,6 @@ def simple_integration(data, params):
 
     The integration window can be anywhere in the available length of
     the traces.
-    Since the calibration function subtracts a pedestal that corresponds to the
-    total length of the traces we may also have to add a pedestal contribution
-    for the samples not summed up.
 
     No weighting of individual samples is applied.
 
@@ -181,6 +180,7 @@ def global_peak_integration(data, params):
 
     The integration window can be anywhere in the available length of the
     traces.
+
     No weighting of individual samples is applied.
 
     Parameters
@@ -272,6 +272,7 @@ def local_peak_integration(data, params):
 
     The integration window can be anywhere in the available
     length of the traces.
+
     No weighting of individual samples is applied.
 
     Parameters
@@ -358,6 +359,7 @@ def nb_peak_integration(data, geom, params):
 
     The integration window can be anywhere in the available length
     of the traces.
+    
     No weighting of individual samples is applied.
 
     Parameters

@@ -1,6 +1,14 @@
 """
-Integrate sample-mode data (traces) Functions
-and convert the integral pixel ADC count to photo-electrons
+Calibration for MC (simtelarray) files.
+
+The interpolation of the pulse shape and the adc2pe conversion in this module
+are the same to their corresponding ones in
+- read_hess.c
+- reconstruct.c
+in hessioxxx software package.
+
+Note: Input MC version = prod2. For future MC versions the calibration
+function might be different for each camera type.
 """
 
 import numpy as np
@@ -10,28 +18,6 @@ from scipy import interp
 from .integrators import integrator_switch
 
 logger = logging.getLogger(__name__)
-
-# CALIB_SCALE = 0.92  # HESS Value
-CALIB_SCALE = 1.05  # GCT Value
-# TODO: create dict of CALIB_SCALE for every instrument
-
-"""
-
-The function in this module are the same to their corresponding ones in
-- read_hess.c
-- reconstruct.c
-in hessioxxx software package, just in some caes the suffix "_mc" has
-been added here to the original name function.
-
-Note: Input MC version = prod2. For future MC versions the calibration
-function might be different for each camera type.
-It has not been tested so far.
-
-In general the integration functions corresponds one to one in name and
-functionality with those in hessioxxx package.
-The same the interpolation of the pulse shape and the adc2pe conversion.
-
-"""
 
 
 def set_integration_correction(event, telid, params):
@@ -94,7 +80,7 @@ def set_integration_correction(event, telid, params):
     return correction
 
 
-def calibrate_amplitude_mc(event, charge, telid, params):
+def calibrate_amplitude_mc(event, charge, telid, params, calib_scale=0.92):
     """
     Convert charge from ADC counts to photo-electrons
 
@@ -112,6 +98,10 @@ def calibrate_amplitude_mc(event, charge, telid, params):
 
         params['clip_amp'] - Amplitude in p.e. above which the signal is
         clipped.
+    calib_scale : float
+        Identical to global variable CALIB_SCALE in reconstruct.c in hessioxxx
+        software package. 0.92 is the default value (corresponds to HESS). The
+        required value changes between cameras (GCT = 1.05).
 
     Returns
     -------
@@ -138,7 +128,8 @@ def calibrate_amplitude_mc(event, charge, telid, params):
     now (unit = most probable p.e. signal after experimental resolution).
     Keep in mind: peak(10 p.e.) != 10*peak(1 p.e.)
     """
-    pe *= CALIB_SCALE
+    pe *= calib_scale
+    # TODO: create dict of CALIB_SCALE for every instrument
 
     return pe
 
