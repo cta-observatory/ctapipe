@@ -149,3 +149,4 @@ class CalibratedCameraData(Container):
         self.add_item('integration_window', dict())
         self.add_item('num_channels')
         self.add_item('num_pixels')
+        self.add_item('calibration_parameters', dict())

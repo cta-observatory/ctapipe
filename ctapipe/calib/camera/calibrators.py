@@ -28,29 +28,37 @@ def calibration_arguments(parser):
         integrators += " - {} = {}\n".format(key, value)
 
     parser.add_argument('--integrator', dest='integrator', action='store',
-                        required=True,
+                        required=True, type=int,
                         help='which integration scheme should be used to '
                              'extract the charge?\n{}'.format(integrators))
     parser.add_argument('--integration-window', dest='integration_window',
-                        action='store', required=True, nargs=2,
+                        action='store', required=True, nargs=2,type=int,
                         help='Set integration window width and offset (to '
                              'before the peak) respectively, '
                              'e.g. --integration-window 7 3')
     parser.add_argument('--integration-sigamp', dest='integration_sigamp',
-                        action='store', nargs='+',
+                        action='store', nargs='+',type=int,
                         help='Amplitude in ADC counts above pedestal at which '
                              'a signal is considered as significant '
                              '(separate for high gain/low gain), '
                              'e.g. --integration-sigamp 2 4')
     parser.add_argument('--integration-clip_amp', dest='integration_clip_amp',
-                        action='store',
+                        action='store', type=int,
                         help='Amplitude in p.e. above which the signal is '
                              'clipped.')
     parser.add_argument('--integration-lwt', dest='integration_lwt',
-                        action='store',
+                        action='store', type=int,
                         help='Weight of the local pixel (0: peak from '
                              'neighbours only, 1: local pixel counts as much '
                              'as any neighbour) default=0')
+    parser.add_argument('--integration-calib_scale',
+                        dest='integration_calib_scale',
+                        action='store', type=float,
+                        help='Identical to global variable CALIB_SCALE in '
+                             'reconstruct.c in hessioxxx software package. '
+                             '0.92 is the default value (corresponds to HESS). '
+                             'The required value changes between cameras '
+                             '(GCT = 1.05).')
 
 
 def calibration_parameters(args):
@@ -67,7 +75,8 @@ def calibration_parameters(args):
     parameters : dict
         dictionary containing the formatted calibration parameters
     """
-    parameters = {'integrator': args.integrator,
+    t = integrator_dict()
+    parameters = {'integrator': t[args.integrator],
                   'window': args.integration_window[0],
                   'shift': args.integration_window[1]}
     if args.integration_sigamp is not None:
@@ -76,6 +85,8 @@ def calibration_parameters(args):
         parameters['clip_amp'] = args.integration_clip_amp
     if args.integration_lwt is not None:
         parameters['lwt'] = args.integration_lwt
+    if args.integration_calib_scale is not None:
+        parameters['calib_scale'] = args.calib_scale
 
     return parameters
 
@@ -144,6 +155,7 @@ def calibrate_event(event, params, geom_dict=None):
         calibrated.dl1.run_id = event.dl0.run_id
         calibrated.dl1.event_id = event.dl0.event_id
         calibrated.dl1.tels_with_data = event.dl0.tels_with_data
+        calibrated.dl1.calibration_parameters = params
     except AttributeError:
         pass
 

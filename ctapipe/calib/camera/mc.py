@@ -121,9 +121,10 @@ def calibrate_amplitude_mc(event, charge, telid, params):
 
     if "climp_amp" in params and params["clip_amp"] > 0:
         pe[np.where(pe > params["clip_amp"])] = params["clip_amp"]
-    calib_scale = 0.92  # Correct value for HESS
-    if "calib_scale" in params:
-        calib_scale = params["calib_scale"]
+    if "calib_scale" not in params:
+        # Store default value into mutable dict, so it is preserved
+        params["calib_scale"] = 0.92  # Correct value for HESS
+    calib_scale = params["calib_scale"]
 
     """
     pe_pix is in units of 'mean photo-electrons'
