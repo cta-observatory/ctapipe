@@ -206,10 +206,10 @@ class Histogram:
         """
 
         if (type(inputFITS) == str):
-            hdu = fits.open(inputFITS).pop(0)
+            hdu = fits.open(inputFITS)[1]
         else:
             hdu = inputFITS
-
+        
         self.hist = hdu.data.transpose()
         self._nbins = self.hist.shape
 
