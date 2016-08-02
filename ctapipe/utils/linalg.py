@@ -1,6 +1,9 @@
 from astropy.coordinates import Angle
+from astropy import units as u
+
 import numpy as np
 from numpy import cos, sin, arctan2 as atan2, arccos as acos
+
 
 
 def rotation_matrix_2d(angle):
