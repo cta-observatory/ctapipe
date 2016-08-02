@@ -24,6 +24,15 @@ def integrator_dict():
     return integrators
 
 
+def integrators_requiring_geom():
+    """
+    All integrators that require a camera's geometry. Therefore time is not
+    wasted obtaining it for integrators that do not use it.
+    """
+    integrators = [5]
+    return integrators
+
+
 def integrator_switch(data, geom, params):
     """
     Integrator switch using params['integrator'] to dictate which integration

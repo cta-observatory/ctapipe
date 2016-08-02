@@ -184,9 +184,6 @@ def integration_mc(event, telid, params, geom=None):
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
-    if geom is None:
-        geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                    event.meta.optical_foclen[telid])
 
     # Integrate
     integration, integration_window = integrator_switch(data_ped, geom, params)
