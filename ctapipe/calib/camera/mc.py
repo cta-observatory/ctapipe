@@ -177,6 +177,8 @@ def integration_mc(event, telid, params, geom=None):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    data_ped : ndarray
+        pedestal subtracted data
     """
 
     # Obtain the data
@@ -184,6 +186,9 @@ def integration_mc(event, telid, params, geom=None):
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
+    if geom is None:
+        geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
+                                    event.meta.optical_foclen[telid])
 
     # Integrate
     integration, integration_window = integrator_switch(data_ped, geom, params)
@@ -197,7 +202,7 @@ def integration_mc(event, telid, params, geom=None):
     # Convert integration into charge
     charge = np.round(integration * int_corr).astype(np.int16, copy=False)
 
-    return charge, integration_window
+    return charge, integration_window, data_ped
 
 
 def calibrate_mc(event, telid, params, geom=None):
@@ -246,9 +251,11 @@ def calibrate_mc(event, telid, params, geom=None):
     window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    data_ped : ndarray
+        pedestal subtracted data
     """
 
-    charge, window = integration_mc(event, telid, params, geom)
+    charge, window, data_ped = integration_mc(event, telid, params, geom)
     pe = calibrate_amplitude_mc(event, charge, telid, params)
 
-    return pe, window
+    return pe, window, data_ped

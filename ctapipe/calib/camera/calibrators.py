@@ -179,10 +179,12 @@ def calibrate_event(event, params, geom_dict=None):
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                             event.meta.optical_foclen[telid])
 
-        pe, window = calibrator(telid=telid, geom=geom)
+        pe, window, data_ped = calibrator(telid=telid, geom=geom)
         for chan in range(nchan):
             calibrated.dl1.tel[telid].pe_charge[chan] = pe[chan]
             calibrated.dl1.tel[telid].integration_window[chan] = window[chan]
+            calibrated.dl1.tel[telid].pedestal_subtracted_adc[chan] = \
+                data_ped[chan]
 
     return calibrated
 
