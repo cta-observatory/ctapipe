@@ -341,7 +341,7 @@ class CameraDisplay:
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
-        pix_id = event.ind.pop()
+        pix_id = event.ind[-1]
         xx, yy = u.Quantity(self.geom.pix_x[pix_id]).value,\
                  u.Quantity(self.geom.pix_y[pix_id]).value
         self._active_pixel.xy = (xx, yy)
