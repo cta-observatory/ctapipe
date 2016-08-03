@@ -226,7 +226,7 @@ def load_hessio(filename):
         tel_table_prime['TelZ'] = tel_posZ
         tel_table_prime['TelZ'].unit = u.m
     except: pass
-    try: tel_table['CameraClass'] = [h.get_camera_class(i) for i in tel_id]
+    try: tel_table_prime['CameraClass'] = [h.get_camera_class(i) for i in tel_id]
     except: pass
     try:
         tel_table_prime['MirA'] = [h.get_mirror_area(i) for i in tel_id]

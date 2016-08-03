@@ -206,10 +206,10 @@ class Histogram:
         """
 
         if (type(inputFITS) == str):
-            hdu = fits.open(inputFITS).pop(0)
+            hdu = fits.open(inputFITS)[1]
         else:
             hdu = inputFITS
-
+        
         self.hist = hdu.data.transpose()
         self._nbins = self.hist.shape
 
@@ -311,8 +311,8 @@ class Histogram:
         if len(dims) != 2:
             raise ValueError("dims must be a length-2 integer array")
 
-        pyplot.pcolormesh(self.binLowerEdges[dims[0]],
-                          self.binLowerEdges[dims[1]],
+        pyplot.pcolormesh(self.bin_lower_edges[dims[0]],
+                          self.bin_lower_edges[dims[1]],
                           self.hist.transpose(), **kwargs)
         pyplot.title(self.name)
         pyplot.xlabel(self.axisNames[dims[0]])

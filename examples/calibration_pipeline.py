@@ -279,10 +279,10 @@ if __name__ == '__main__':
     #             global_peak_integration,
     #             local_peak_integration,
     #             nb_peak_integration
-    # nsum: Number of samples to sum up (is reduced if exceeding available
+    # window: Number of samples to sum up (is reduced if exceeding available
     # length). (equivalent to first number in
     # hessioxxx option --integration-window)
-    # nskip: Number of initial samples skipped (adapted such that interval
+    # shift: Number of initial samples skipped (adapted such that interval
     # fits into what is available). Start the integration a number of
     # samples before the peak. (equivalent to second number in
     # hessioxxx option --integration-window)
@@ -306,8 +306,8 @@ if __name__ == '__main__':
     # --dst-level 0 <MC_prod2_filename>
 
     parameters = {"integrator": "nb_peak_integration",
-                  "nsum": 7,
-                  "nskip": 3,
+                  "window": 7,
+                  "shift": 3,
                   "sigamp": [2, 4],
                   "clip_amp": 0,
                   "lwt": 0}
