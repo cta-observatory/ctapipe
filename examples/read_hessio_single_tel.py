@@ -68,6 +68,8 @@ if __name__ == '__main__':
                         help='show time-variablity, one frame at a time')
     parser.add_argument('--calibrate', action='store_true',
                         help='apply calibration coeffs from MC')
+    parser.add_argument('--hillas', action='store_true',
+                        help='apply hillas parameterization and cleaning')
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
@@ -119,27 +121,28 @@ if __name__ == '__main__':
             im = apply_mc_calibration(im, args.tel)
             disp.image = im
 
-            clean_mask = reco.cleaning.tailcuts_clean(geom,im,1,picture_thresh=10,boundary_thresh=5)
-            camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
+            if args.hillas:
+                clean_mask = reco.cleaning.tailcuts_clean(geom,im,1,picture_thresh=10,boundary_thresh=5)
+                camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
-            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
-                                                       pointing_direction=[70*u.deg,0*u.deg],
-                                                       focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel]['FL'][0]*u.m))
+                nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
+                                                           pointing_direction=[70*u.deg,0*u.deg],
+                                                           focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel]['FL'][0]*u.m))
 
-            image = np.asanyarray(im * clean_mask, dtype=np.float64)
+                image = np.asanyarray(im * clean_mask, dtype=np.float64)
 
-            nom_x = nom_coord.x
-            nom_y = nom_coord.y
+                nom_x = nom_coord.x
+                nom_y = nom_coord.y
 
-            hillas = reco.hillas_parameters(x,y,im * clean_mask)
-            hillas_nom = reco.hillas_parameters(nom_x,nom_y,im * clean_mask)
+                hillas = reco.hillas_parameters(x,y,im * clean_mask)
+                hillas_nom = reco.hillas_parameters(nom_x,nom_y,im * clean_mask)
 
-            print (hillas)
-            print (hillas_nom)
+                print (hillas)
+                print (hillas_nom)
 
-            disp.image = im * clean_mask
-            disp.overlay_moments(hillas, color='seagreen', linewidth=3)
-            disp.set_limits_percent(70)
+                disp.image = im * clean_mask
+                disp.overlay_moments(hillas, color='seagreen', linewidth=3)
+                disp.set_limits_percent(70)
 
             plt.pause(1.0)
             if args.write:
