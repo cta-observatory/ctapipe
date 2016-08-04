@@ -35,7 +35,7 @@ def main():
                         required=True, help='origin of the file: {}'
                         .format(origin_list()))
     parser.add_argument('-o', '--output', dest='output_dir', action='store',
-                        default= None,
+                        default=None,
                         help='path of the output directory to store the '
                              'images (default = input file directory)')
     parser.add_argument('-e', '--event', dest='event_req', action='store',
