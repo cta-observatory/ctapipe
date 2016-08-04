@@ -5,7 +5,7 @@ from ctapipe.core import Component
 from traitlets import Unicode
 
 
-class HessioReader(Component):
+class SimTelArrayReader(Component):
 
     filename = Unicode('gamma_test.simtel.gz', help='simtel MC input file').tag(
         config=True, allow_none=True)
