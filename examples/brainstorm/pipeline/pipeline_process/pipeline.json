@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "Pipeline": {
+      "producer_conf": { "name" : "EXE1", "module": "ctapipe.pipeline.algorithms.mycp",
+           "class": "MyCp"},
+
+      "consumer_conf": { "name" : "EXE3", "module": "ctapipe.pipeline.algorithms.mysort",
+                		"class": "MySort"},
+
+      "stagers_conf" : [
+		  				{"name": "EXE2", "class": "UpperCase",
+		   				"module": "ctapipe.pipeline.algorithms.uppercase", "nb_thread" : 2
+                    	}
+                      ]
+
+  },
+    "MyCp": { "source_dir" : "/tmp/test/in" , "output_dir" : "/tmp/test/out1", "out_extension" : "type1"},
+
+    "UpperCase": { "output_dir" : "/tmp/test/out2",  "out_extension" : "uc"},
+
+    "MySort" : {  "output_dir" : "/tmp/test/out3"}
+  }

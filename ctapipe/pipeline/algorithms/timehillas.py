@@ -18,7 +18,7 @@ class TimeHillas(Component):
     def init(self):
         if not os.path.exists(self.output_dir):
             try:
-                os.mkdir(self.output_dir)
+                os.makedirs(self.output_dir)
             except OSError:
                 self.log.error(
                     "{} : could not create output directory {}".format(self.section_name,  self.output_dir))

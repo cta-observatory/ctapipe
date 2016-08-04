@@ -38,8 +38,11 @@ def dynamic_class_from_module(class_name, module,  tool=None):
 			instance = _class()
 		return instance
 	except AttributeError as e:
-		logger.fatal("Could not create an instance of  {} in module {}: {}"
+		logger.fatal("Could not create an instance of {} in module {}: {}"
 			.format(class_name, module, e))
 	except ImportError as e:
-		logger.fatal("Could not create an instance of  {} in module {}: {}"
+		logger.fatal("Could not create an instance of {} in module {}: {}"
+			.format(class_name, module, e))
+	except TypeError as e:
+		logger.fatal("Could not create an instance of {} in module {}: {}"
 			.format(class_name, module, e))
