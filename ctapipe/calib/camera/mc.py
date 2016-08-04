@@ -80,6 +80,7 @@ def set_integration_correction(event, telid, params):
 
     correction = round((sum(y) * refstep) / (sum(y1[start:start + window]) *
                                              time_slice), 7)
+
     return correction
 
 
@@ -135,6 +136,8 @@ def calibrate_amplitude_mc(event, charge, telid, params):
     """
     scaled_pe = pe * calib_scale
     # TODO: create dict of CALIB_SCALE for every instrument
+    print(pe[0,804], calib[0,804], scaled_pe[0, 804])
+
 
     return scaled_pe
 
@@ -200,7 +203,9 @@ def integration_mc(event, telid, params, geom=None):
         int_corr = 1
 
     # Convert integration into charge
-    charge = np.round(integration * int_corr).astype(np.int16, copy=False)
+    charge = np.round(integration * int_corr)
+
+    print(integration[0][804], int_corr, charge[0][804])
 
     return charge, integration_window, data_ped
 

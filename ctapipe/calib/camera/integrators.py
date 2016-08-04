@@ -260,7 +260,7 @@ def global_peak_integration(data, params):
         peakpos[0] = np.round(max_time_sample_sum[0] / max_sample_sum[0])
         peakpos[1] = peakpos[0]
         peakpos = peakpos
-    start = (peakpos - params['shift']).astype(np.int16, copy=False)
+    start = (peakpos - params['shift'])
     window = params['window']
 
     # Check window is within readout
@@ -344,7 +344,7 @@ def local_peak_integration(data, params):
     if nchan > 1:  # If the LG is not significant, takes the HG peakpos
         peakpos[1] = np.where(sig_pixels[1] < sig_pixels[0], peakpos[0],
                               peakpos[1])
-    start = (peakpos - params['shift']).astype(np.int16, copy=False)
+    start = (peakpos - params['shift'])
     window = params['window']
 
     # Check window is within readout
@@ -443,7 +443,7 @@ def nb_peak_integration(data, geom, params):
         all_data = np.concatenate((nb_data, pixel_expanded), axis=1)
         sum_data = all_data.sum(1)
         peakpos[:, ipix] = sum_data.argmax(1)
-    start = (peakpos - params['shift']).astype(np.int16, copy=False)
+    start = (peakpos - params['shift'])
     window = params['window']
 
     # Check window is within readout

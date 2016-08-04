@@ -172,12 +172,15 @@ def calibrate_event(event, params, geom_dict=None):
 
         # Get geometry
         geom = None
+        # Check if geom is even needed for integrator
         if params['integrator'] in integrators_requiring_geom():
             if geom_dict is not None and telid in geom_dict:
                 geom = geom_dict[telid]
             else:
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                             event.meta.optical_foclen[telid])
+                if geom_dict is not None:
+                    geom_dict[telid] = geom
 
         pe, window, data_ped = calibrator(telid=telid, geom=geom)
         for chan in range(nchan):
@@ -236,15 +239,6 @@ def calibrate_source(source, params):
     geom_dict = {}
 
     for event in source:
-        # Check if geom is even needed for integrator
-        if params['integrator'] in integrators_requiring_geom():
-            # Fill dict so geom are only calculated once per telescope
-            for telid in event.dl0.tels_with_data:
-                if telid not in geom_dict:
-                    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                                event.meta.optical_foclen[telid])
-                    geom_dict[telid] = geom
-
         calibrated = calibrate_event(event, params, geom_dict)
 
         yield calibrated
