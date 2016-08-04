@@ -7,18 +7,20 @@ from traitlets import Unicode
 
 
 class MyCp(Component):
+	"""`MyCp` class represents a Producer for pipeline.
+        It lists all files prensent in source_dir directory.
+		It add out_extention and copies each file to outdir_dir
+	"""
 	output_dir = Unicode('/tmp/test/in', help='directory receving produced data').tag(
 	config=True, allow_none=False)
-	source_dir = Unicode('/tmp/test/out', help='directory contianing data files').tag(
-			config=True, allow_none=False)
 	out_extension = Unicode('type1', help='directory receving produced data').tag(
 	config=True, allow_none=False)
 
 	def init(self):
-		if self.source_dir == None or self.output_dir == None or self.out_extension == None:
+		if self.output_dir == None or self.out_extension == None:
 			self.log.error("MyCp :configuration error ")
-			self.log.error('source_dir: {} output_dir: {} out_extension: {}'
-			.format(self.source_dir, self.output_dir,self.out_extension))
+			self.log.error('output_dir: {} out_extension: {}'
+			.format(self.output_dir,self.out_extension))
 			return False
 
 		if not os.path.exists(self.output_dir):
@@ -30,14 +32,14 @@ class MyCp(Component):
 				return False
 		return True
 
-	def run(self):
-		for input_file in os.listdir(self.source_dir):
-			self.log.info('Mycp start {}'.format(input_file))
-			output_file = self.output_dir+"/"+input_file+self.out_extension
-			cmd = ['cp',self.source_dir+"/"+input_file,output_file]
-			proc = subprocess.Popen(cmd)
-			proc.wait()
-			yield output_file
+	def run(self,input_info):
+		input_path, input_file  = input_info
+		self.log.info('Mycp start {}'.format(input_file))
+		output_file = self.output_dir+"/"+input_file+self.out_extension
+		cmd = ['cp',input_path+"/"+input_file,output_file]
+		proc = subprocess.Popen(cmd)
+		proc.wait()
+		return output_file
 
 
 
