@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import argparse
 from matplotlib import colors, pyplot as plt
@@ -30,7 +32,7 @@ def init_dl1(event):
     container = Container("calibrated_hessio_container")
     container.add_item("dl1", RawData())
     container.meta.add_item('pixel_pos', dict())
-    #container.meta.pixel_pos = event.meta.pixel_pos
+    # container.meta.pixel_pos = event.meta.pixel_pos
     container.meta.add_item('optical_foclen', dict())
 
     return container
@@ -45,7 +47,7 @@ def load_dl1_eventheader(dl0, dl1):
     return
 
 
-def display_telescope(event, tel_id):
+def display_telescope(event, geom, tel_id):
     global fig
     ntels = len(event.dl1.tels_with_data)
     fig.clear()
@@ -168,8 +170,7 @@ def camera_calibration(filename, parameters, disp_args, level):
             foclen = event.meta.optical_foclen[telid]
             container.meta.pixel_pos[telid] = x, y
             container.meta.optical_foclen[telid] = foclen
-            #geom = io.CameraGeometry.guess(x, y, foclen)
-            
+            # geom = io.CameraGeometry.guess(x, y, foclen)
 
             # Get the calibration data sets (pedestals and single-pe)
             ped = get_pedestal(telid)
@@ -237,7 +238,10 @@ def camera_calibration(filename, parameters, disp_args, level):
                             "See telescope/evt. %d?[CT%d]<[n]/y/q/e> " %
                             (container.dl1.event_id, telid))
                         if ello == 'y':
-                            display_telescope(container, telid)
+                            display_telescope(
+                                container,
+                                cam['CameraTable_VersionFeb2016_TelID%s' %
+                                    telid], telid)
                             plt.pause(0.1)
                         elif ello == 'q':
                             break
@@ -275,10 +279,10 @@ if __name__ == '__main__':
     #             global_peak_integration,
     #             local_peak_integration,
     #             nb_peak_integration
-    # nsum: Number of samples to sum up (is reduced if exceeding available
+    # window: Number of samples to sum up (is reduced if exceeding available
     # length). (equivalent to first number in
     # hessioxxx option --integration-window)
-    # nskip: Number of initial samples skipped (adapted such that interval
+    # shift: Number of initial samples skipped (adapted such that interval
     # fits into what is available). Start the integration a number of
     # samples before the peak. (equivalent to second number in
     # hessioxxx option --integration-window)
@@ -302,8 +306,8 @@ if __name__ == '__main__':
     # --dst-level 0 <MC_prod2_filename>
 
     parameters = {"integrator": "nb_peak_integration",
-                  "nsum": 7,
-                  "nskip": 3,
+                  "window": 7,
+                  "shift": 3,
                   "sigamp": [2, 4],
                   "clip_amp": 0,
                   "lwt": 0}

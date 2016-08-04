@@ -327,7 +327,7 @@ class CameraDisplay:
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
-        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_x.value),
+        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_y.value),
                               length=momparams.length.value,
                               width=momparams.width.value, angle=momparams.psi.to(u.rad).value,
                               **kwargs)
@@ -341,7 +341,7 @@ class CameraDisplay:
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
-        pix_id = event.ind.pop()
+        pix_id = event.ind[-1]
         xx, yy = u.Quantity(self.geom.pix_x[pix_id]).value,\
                  u.Quantity(self.geom.pix_y[pix_id]).value
         self._active_pixel.xy = (xx, yy)
