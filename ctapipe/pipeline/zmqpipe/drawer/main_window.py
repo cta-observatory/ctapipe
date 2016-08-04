@@ -6,9 +6,9 @@ This requires the pyside python library to be installed
 
 import sys
 from drawer import PipelineDrawer
-from PySide.QtGui import QMainWindow, QPushButton, QApplication, QPalette
-from PySide import QtCore, QtGui
-from PySide.QtGui import QColor
+from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
+from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import QColor
 from drawer import ZmqSub
 
 

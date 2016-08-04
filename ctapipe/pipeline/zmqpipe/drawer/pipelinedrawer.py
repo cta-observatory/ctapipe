@@ -2,10 +2,10 @@
 """
 classes used to display pipeline workload on a Qt.QWidget
 """
-from PySide import QtCore, QtGui
-from PySide.QtCore import Qt
-from PySide.QtCore import QPointF, QLineF
-from PySide.QtGui import QColor, QPen
+from PyQt4 import QtCore, QtGui
+from PyQt4.QtCore import Qt
+from PyQt4.QtCore import QPointF, QLineF
+from PyQt4.QtGui import QColor, QPen
 from ctapipe.pipeline.zmqpipe.pipeline_zmq import StepInfo
 
 GAP_Y = 60
