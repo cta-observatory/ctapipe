@@ -168,7 +168,7 @@ def simple_integration(data, params):
 
     # Define window
     window = params['window']
-    start = np.array([params['shift']], dtype=np.int16)
+    start = np.array([params['shift']], dtype=np.int)
 
     # Check window is within readout
     if window > nsamples:
@@ -253,14 +253,14 @@ def global_peak_integration(data, params):
     max_sample = significant_data.max(2)
     max_time_sample_sum = (max_time * max_sample).sum(1)
     max_sample_sum = max_sample.sum(1)
-    peakpos = np.zeros_like(max_sample_sum, dtype=np.int16)
+    peakpos = np.zeros_like(max_sample_sum, dtype=np.int)
     if 0 not in max_sample_sum:
         peakpos = np.round(max_time_sample_sum / max_sample_sum)
     else:  # If the LG is not significant, takes the HG peakpos
         peakpos[0] = np.round(max_time_sample_sum[0] / max_sample_sum[0])
         peakpos[1] = peakpos[0]
         peakpos = peakpos
-    start = (peakpos - params['shift'])
+    start = (peakpos - params['shift']).astype(np.int)
     window = params['window']
 
     # Check window is within readout
@@ -434,7 +434,7 @@ def nb_peak_integration(data, geom, params):
     # Define window
     lwt = 0 if 'lwt' not in params else params['lwt']
     neighbour_list = geom.neighbors
-    peakpos = np.zeros_like(sig_pixels, dtype=np.int16)
+    peakpos = np.zeros_like(sig_pixels, dtype=np.int)
     for ipix, neighbours in enumerate(neighbour_list):
         nb_data = significant_data[:, neighbours]
         weighted_pixel = significant_data[:, ipix] * lwt
