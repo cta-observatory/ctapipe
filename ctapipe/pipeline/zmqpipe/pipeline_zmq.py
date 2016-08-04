@@ -15,7 +15,7 @@ from ctapipe.core import Tool
 from threading import Thread
 from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
-from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZmq
+from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZMQ
 from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
 import sys, os
 import zmq
@@ -82,7 +82,7 @@ class StepInfo():
     containing thread.
     Parameters
     ----------
-    step_zmq : thread(ProducerZmq or StagerZmq or ConsumerZmq or RouterQueue)
+    step_zmq : thread(ProducerZmq or StagerZmq or ConsumerZMQ or RouterQueue)
             copy thread informations to this structure
     '''
     PRODUCER = 'PRODUCER'
@@ -105,7 +105,7 @@ class StepInfo():
                 self.type = self.STAGER
                 self.running = step_zmq.running
                 self.nb_job_done = step_zmq.nb_job_done
-            if isinstance(step_zmq, ConsumerZmq):
+            if isinstance(step_zmq, ConsumerZMQ):
                 self.nb_job_done = step_zmq.nb_job_done
                 self.type = self.CONSUMER
             if isinstance(step_zmq, RouterQueue):
@@ -379,7 +379,7 @@ class Pipeline(Tool):
             thread = ProducerZmq(
                 obj, port_out, 'producer', gui_address=self.gui_address)
         elif stage_type == self.CONSUMER:
-            thread = ConsumerZmq(
+            thread = ConsumerZMQ(
                 obj, port_in, 'consumer', parent=self, gui_address=self.gui_address)
         else:
             raise PipelineError(

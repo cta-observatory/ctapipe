@@ -8,9 +8,9 @@ import pickle
 from ctapipe.core import Component
 
 
-class ConsumerZmq(Thread, Component):
+class ConsumerZMQ(Thread, Component):
 
-    """`ConsumerZmq` class represents a Consumer pipeline Step.
+    """`ConsumerZMQ` class represents a Consumer pipeline Step.
     It is derived from Thread class. It receives
     new input from its prev stage, thanks to its ZMQ REQ socket,
     and executes its coroutine objet's run method by passing
