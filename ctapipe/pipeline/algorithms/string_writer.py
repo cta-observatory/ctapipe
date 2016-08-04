@@ -1,4 +1,3 @@
-from ctapipe.configuration.core import Configuration, ConfigurationException
 from ctapipe.core import Component
 
 class StringWriter(Component):

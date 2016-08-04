@@ -167,7 +167,7 @@ class Pipeline(Tool):
 
     def setup(self):
         if self.init() == False:
-            self.log.warning('Could not initialise pipeline')
+            self.log.error('Could not initialise pipeline')
             sys.exit()
 
     def init(self):
@@ -193,7 +193,9 @@ class Pipeline(Tool):
                 self.log.info(str(e) + 'tcp://' + self.gui_address)
                 return False
         # Gererate steps(producers, stagers and consumers) from configuration
-        self._generate_steps()
+        if self._generate_steps() == False:
+            self.log.error("Error during steps generation")
+            return False
         # Configure steps' port out
         if self._configure_port_out(self.producer_steps,
          self.stager_steps) == False:
@@ -206,9 +208,13 @@ class Pipeline(Tool):
         # import and init producers
         for producer_step in self.producer_steps:
             conf = self.producer_conf
-            producer_zmq = self.instantiation(
-                producer_step.section_name, self.PRODUCER,
-                 port_out=producer_step.port_out, config=conf)
+            try:
+                producer_zmq = self.instantiation(
+                    producer_step.section_name, self.PRODUCER,
+                    port_out=producer_step.port_out, config=conf)
+            except PipelineError as e:
+                self.log.error(e)
+                return False
             if producer_zmq.init() == False:
                 self.log.error('producer_zmq init failed')
                 return False
@@ -228,10 +234,14 @@ class Pipeline(Tool):
             sock_router_ports[name] = consumer_step.port_in
             socket_dealer_ports[name] = router_port_out
             conf = self.consumer_conf
-            consumer_zmq = self.instantiation(consumer_step.section_name,
-                                              self.CONSUMER,
-                                              port_in=router_port_out,
-                                              config=conf)
+            try:
+                consumer_zmq = self.instantiation(consumer_step.section_name,
+                                          self.CONSUMER,
+                                          port_in=router_port_out,
+                                          config=conf)
+            except PipelineError as e:
+                self.log.error(e)
+                return False
             if consumer_zmq.init() == False:
                 self.log.error('consumer_zmq init failed')
                 return False
@@ -248,11 +258,15 @@ class Pipeline(Tool):
 
             for i in range(stager_step.nb_thread):
                 conf = self.get_step_conf(stager_step.section_name)
-                stager_zmq = self.instantiation(
-                    stager_step.section_name, self.STAGER,
-                    port_in=router_port_out, port_out=stager_step.port_out,
-                    name=stager_step.section_name +'$$thread_number$$' + str(i),
-                    config=conf)
+                try:
+                    stager_zmq = self.instantiation(
+                        stager_step.section_name, self.STAGER,
+                        port_in=router_port_out, port_out=stager_step.port_out,
+                        name=stager_step.section_name +'$$thread_number$$' + str(i),
+                        config=conf)
+                except PipelineError as e:
+                    self.log.error(e)
+                    return False
                 if stager_zmq.init() == False:
                     self.log.error('stager_zmq init failed')
                     return False
@@ -274,6 +288,16 @@ class Pipeline(Tool):
         self.producer_steps = self.get_pipe_steps(self.PRODUCER)
         self.stager_steps = self.get_pipe_steps(self.STAGER)
         self.consumer_step = self.get_pipe_steps(self.CONSUMER)
+        if len(self.producer_steps) == 0:
+            self.log.error("No producer in configuration")
+            return False
+        if len(self.stager_steps) == 0:
+            self.log.error("No stager inb configuration")
+            return False
+        if len(self.consumer_step) == 0:
+            self.log.error("No consumer inb configuration")
+            return False
+
         # Now that all steps exists, set previous step
         for step in self.consumer_step + self.stager_steps:
             prev_section_name = self.get_prev_step_section_name(
@@ -377,23 +401,26 @@ class Pipeline(Tool):
         '''
         result = list()
         # Create producer step
-        if role == self.PRODUCER:
-            prod_step = PipeStep(self.producer_conf['name'])
-            prod_step.type = self.PRODUCER
-            result.append(prod_step)
-        elif role == self.STAGER:
-            # Create stagers steps
-            for stage_conf in self.stagers_conf:
-                nb_thread = int(stage_conf['nb_thread'])
-                stage_step = PipeStep(stage_conf['name'], nb_thread=nb_thread)
-                stage_step.type = self.STAGER
-                result.append(stage_step)
-        elif role == self.CONSUMER:
-            # Create consumer step
-            cons_step = PipeStep(self.consumer_conf['name'])
-            cons_step.type = self.CONSUMER
-            result.append(cons_step)
-        return result
+        try:
+            if role == self.PRODUCER:
+                prod_step = PipeStep(self.producer_conf['name'])
+                prod_step.type = self.PRODUCER
+                result.append(prod_step)
+            elif role == self.STAGER:
+                # Create stagers steps
+                for stage_conf in self.stagers_conf:
+                    nb_thread = int(stage_conf['nb_thread'])
+                    stage_step = PipeStep(stage_conf['name'], nb_thread=nb_thread)
+                    stage_step.type = self.STAGER
+                    result.append(stage_step)
+            elif role == self.CONSUMER:
+                # Create consumer step
+                cons_step = PipeStep(self.consumer_conf['name'])
+                cons_step.type = self.CONSUMER
+                result.append(cons_step)
+            return result
+        except KeyError as e:
+            return result
 
     def get_prev_step_section_name(self, section):
         '''

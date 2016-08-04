@@ -1,8 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
 import sys
+import logging
 from importlib import import_module
 from ctapipe.core.tool import Tool
+
 
 
 __all__ = ['dynamic_class_from_module', ]
@@ -27,6 +29,7 @@ def dynamic_class_from_module(class_name, module,  tool=None):
 	"""
 	if  module == None :
 		return None
+	logger = logging.getLogger(__name__)
 	try:
 		_class = getattr(import_module(module), class_name)
 		if isinstance(tool,Tool):
@@ -35,6 +38,8 @@ def dynamic_class_from_module(class_name, module,  tool=None):
 			instance = _class()
 		return instance
 	except AttributeError as e:
-		print("Could not create an instance of", class_name ,"in module", file=sys.stderr)
+		logger.fatal("Could not create an instance of  {} in module {}: {}"
+			.format(class_name, module, e))
 	except ImportError as e:
-		print("Could not create an instance of", class_name ,"in module", file=sys.stderr)
+		logger.fatal("Could not create an instance of  {} in module {}: {}"
+			.format(class_name, module, e))
