@@ -15,7 +15,7 @@ import numpy as np
 from ctapipe.io import CameraGeometry
 import logging
 from scipy import interp
-from .integrators import integrator_switch
+from .integrators import integrator_switch, integrators_requiring_geom
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def set_integration_correction(event, telid, params):
     """
     Obtain the integration correction for the window specified
 
-    Parameters
+        Parameters
     ----------
     event : container
         A `ctapipe` event container
@@ -187,7 +187,7 @@ def integration_mc(event, telid, params, geom=None):
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
-    if geom is None:
+    if geom is None and params['integrator'] in integrators_requiring_geom():
         geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                     event.meta.optical_foclen[telid])
 
