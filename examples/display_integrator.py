@@ -28,6 +28,9 @@ def get_source(filepath):
 
 
 def main():
+    script = os.path.splitext(os.path.basename(__file__))[0]
+    log.info("[SCRIPT] {}".format(script))
+
     parser = argparse.ArgumentParser(description='Create a gif of an event')
     parser.add_argument('-f', '--file', dest='input_path', action='store',
                         required=True, help='path to the input file')
@@ -65,8 +68,6 @@ def main():
 
     args = parser.parse_args()
 
-    params = calibration_parameters(args)
-
     if args.quiet:
         log.setLevel(40)
     if args.verbose:
@@ -77,24 +78,23 @@ def main():
     telid = args.tel
     chan = args.chan
 
-    script = os.path.splitext(os.path.basename(__file__))[0]
-    log.info("[SCRIPT] {}".format(script))
-
     log.debug("[file] Reading file")
     input_file = InputFile(args.input_path, args.origin)
     event = input_file.get_event(args.event_req, args.event_id_f)
-
-    # Create a dictionary to store any geoms in
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
-    geom_dict = {telid: geom}
-    calibrated_event = calibrate_event(event, params, geom_dict)
 
     # Print event/args values
     log.info("[event_index] {}".format(event.count))
     log.info("[event_id] {}".format(event.dl0.event_id))
     log.info("[telescope] {}".format(telid))
     log.info("[channel] {}".format(chan))
+
+    params = calibration_parameters(args)
+
+    # Create a dictionary to store any geoms in
+    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
+                                event.meta.optical_foclen[telid])
+    geom_dict = {telid: geom}
+    calibrated_event = calibrate_event(event, params, geom_dict)
 
     # Select telescope
     tels = list(calibrated_event.dl0.tels_with_data)
@@ -118,7 +118,7 @@ def main():
 
     # Get Windows
     windows = calibrated_event.dl1.tel[telid].integration_window[chan]
-    length = np.count_nonzero(windows[0])
+    length = np.sum(windows, axis=1)
     start = np.argmax(windows, axis=1)
     end = start + length - 1
 
@@ -214,10 +214,10 @@ def main():
 
     # TODO: another figure of all waveforms that have non-zero true charge
 
-    waveform_output_name = "{}_e{}_t{}_c{}_integrator_waveform.pdf"\
-        .format(input_file.filename, event.count, telid, chan)
-    camera_output_name = "{}_e{}_t{}_c{}_integrator_camera.pdf"\
-        .format(input_file.filename, event.count, telid, chan)
+    waveform_output_name = "{}_e{}_t{}_c{}_integrator{}_waveform.pdf"\
+        .format(input_file.filename, event.count, telid, chan, args.integrator)
+    camera_output_name = "{}_e{}_t{}_c{}_integrator{}_camera.pdf"\
+        .format(input_file.filename, event.count, telid, chan, args.integrator)
     output_dir = args.output_dir if args.output_dir is not None else \
         input_file.output_directory
     output_dir = os.path.join(output_dir, script)

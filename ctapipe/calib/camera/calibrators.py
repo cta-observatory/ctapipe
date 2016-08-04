@@ -8,11 +8,9 @@ from copy import copy
 from .mc import calibrate_mc
 from .integrators import integrator_dict, integrators_requiring_geom
 from functools import partial
-import logging
 from ctapipe.io.containers import RawData, CalibratedCameraData
 from ctapipe.io import CameraGeometry
-
-logger = logging.getLogger(__name__)
+from astropy import log
 
 
 def calibration_arguments(parser):
@@ -32,12 +30,12 @@ def calibration_arguments(parser):
                         help='which integration scheme should be used to '
                              'extract the charge?\n{}'.format(integrators))
     parser.add_argument('--integration-window', dest='integration_window',
-                        action='store', required=True, nargs=2,type=int,
+                        action='store', required=True, nargs=2, type=int,
                         help='Set integration window width and offset (to '
                              'before the peak) respectively, '
                              'e.g. --integration-window 7 3')
     parser.add_argument('--integration-sigamp', dest='integration_sigamp',
-                        action='store', nargs='+',type=int,
+                        action='store', nargs='+', type=int,
                         help='Amplitude in ADC counts above pedestal at which '
                              'a signal is considered as significant, and used '
                              'for peak finding. '
@@ -89,6 +87,9 @@ def calibration_parameters(args):
         parameters['lwt'] = args.integration_lwt
     if args.integration_calib_scale is not None:
         parameters['calib_scale'] = args.calib_scale
+
+    for key, value in parameters.items():
+        log.info("[{}] {}".format(key, value))
 
     return parameters
 
@@ -146,7 +147,7 @@ def calibrate_event(event, params, geom_dict=None):
     try:
         calibrator = switch[event.meta.source]
     except KeyError:
-        logger.exception("unknown event source '{}'".format(event.meta.source))
+        log.exception("unknown event source '{}'".format(event.meta.source))
         raise
 
     calibrated = copy(event)
