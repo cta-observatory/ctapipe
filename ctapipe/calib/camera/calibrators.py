@@ -22,7 +22,8 @@ def calibration_arguments(parser):
     parser : `astropy.utils.compat.argparse.ArgumentParser`
     """
     integrators = ""
-    for key, value in integrator_dict().items():
+    int_dict, inverted = integrator_dict()
+    for key, value in int_dict.items():
         integrators += " - {} = {}\n".format(key, value)
 
     parser.add_argument('--integrator', dest='integrator', action='store',
@@ -172,9 +173,10 @@ def calibrate_event(event, params, geom_dict=None):
         calibrated.dl1.tel[telid].num_pixels = npix
 
         # Get geometry
+        int_dict, inverted = integrator_dict()
         geom = None
         # Check if geom is even needed for integrator
-        if params['integrator'] in integrators_requiring_geom():
+        if inverted[params['integrator']] in integrators_requiring_geom():
             if geom_dict is not None and telid in geom_dict:
                 geom = geom_dict[telid]
             else:

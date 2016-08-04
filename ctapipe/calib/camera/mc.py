@@ -15,7 +15,8 @@ import numpy as np
 from ctapipe.io import CameraGeometry
 import logging
 from scipy import interp
-from .integrators import integrator_switch, integrators_requiring_geom
+from .integrators import integrator_switch, integrators_requiring_geom, \
+    integrator_dict
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +188,9 @@ def integration_mc(event, telid, params, geom=None):
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
-    if geom is None and params['integrator'] in integrators_requiring_geom():
+    int_dict, inverted = integrator_dict()
+    if geom is None and inverted[params['integrator']] in \
+            integrators_requiring_geom():
         geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                     event.meta.optical_foclen[telid])
 

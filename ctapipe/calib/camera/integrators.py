@@ -21,7 +21,8 @@ def integrator_dict():
                    3: "global_peak_integration",
                    4: "local_peak_integration",
                    5: "nb_peak_integration"}
-    return integrators
+    inverted = {v: k for k, v in integrators.items()}
+    return integrators, inverted
 
 
 def integrators_requiring_geom():
