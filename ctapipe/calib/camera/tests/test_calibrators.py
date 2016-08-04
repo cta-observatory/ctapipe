@@ -36,5 +36,5 @@ def test_calibrate_source():
     for event in c_source:
         if event.dl1.event_id == 408:
             pe = event.dl1.tel[telid].pe_charge
-            assert pe[0][0] == -1.891745344400406
+            assert pe[0][0] == 1.8641869091987611
             break

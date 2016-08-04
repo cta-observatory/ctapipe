@@ -47,31 +47,27 @@ def test_integration_mc():
     charge, window, data_ped = integration_mc(event, telid, params)
     assert charge[0][0] == 149
     assert sum(window[0][0]) == nsamples
-    assert data_ped[0][0][0] == 149
+    assert data_ped[0][0][0] == -2.8340006510416629
 
     params['integrator'] = 'simple_integration'
     charge, window, data_ped = integration_mc(event, telid, params)
     assert charge[0][0] == 74
     assert sum(window[0][0]) == params['window']
-    assert data_ped[0][0][0] == 149
 
     params['integrator'] = 'global_peak_integration'
     charge, window, data_ped = integration_mc(event, telid, params)
     assert charge[0][0] == 61
     assert sum(window[0][0]) == params['window']
-    assert data_ped[0][0][0] == 149
 
     params['integrator'] = 'local_peak_integration'
     charge, window, data_ped = integration_mc(event, telid, params)
     assert charge[0][0] == 80
     assert sum(window[0][0]) == params['window']
-    assert data_ped[0][0][0] == 149
 
     params['integrator'] = 'nb_peak_integration'
     charge, window, data_ped = integration_mc(event, telid, params)
     assert charge[0][0] == -67
     assert sum(window[0][0]) == params['window']
-    assert data_ped[0][0][0] == 149
 
 
 def test_calibrate_mc():
