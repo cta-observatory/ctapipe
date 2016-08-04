@@ -3,10 +3,10 @@ import threading
 from ctapipe.core import Component
 
 
-class ListTelda(Component):
+class ListTelsWithData(Component):
 
     def init(self):
-        self.log.info("--- ListTelda init ---")
+        self.log.info("--- ListTelsWithData init ---")
 
     def run(self, event):
         if event != None:
@@ -14,4 +14,4 @@ class ListTelda(Component):
             return res
 
     def finish(self):
-        self.log.info("--- ListTelda finish ---")
+        self.log.info("--- ListTelsWithData finish ---")
