@@ -1,11 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from copy import deepcopy
 from threading import Thread
+from ctapipe.core import Component
 import zmq
 import pickle
 
 
-class ProducerZmq(Thread):
+class ProducerZmq(Thread,Component):
 
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Thread class.
@@ -45,7 +46,7 @@ class ProducerZmq(Thread):
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:
-                print(str(e) + "tcp://" + self.gui_address)
+                self.log.error("{} tcp://{}".format(e, self.gui_address))
                 return False
 
     def init(self):

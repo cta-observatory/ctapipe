@@ -17,7 +17,7 @@ from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
 from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZmq
 from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
-import sys
+import sys, os
 import zmq
 import time
 import pickle
@@ -128,6 +128,7 @@ class Pipeline(Tool):
     is one or several threads containing a coroutine that receives messages
     from the previous stage and	yields messages to be sent to the next stage
     thanks to RouterQueue instances	'''
+
     description = 'run stages in multithread pipeline'
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
         config=True, allow_none=True)
@@ -180,9 +181,9 @@ class Pipeline(Tool):
          and consumer initialised Otherwise False
         '''
         # Verify configuration instance
-        if self.config == None:
-            self.log.error('Could not initialise a pipeline without \
-             configuration')
+        if not os.path.isfile(self.config_file):
+            self.log.error('Could not open pipeline config_file {}'
+            .format(self.config_file))
             return False
 
         # Get port for GUI

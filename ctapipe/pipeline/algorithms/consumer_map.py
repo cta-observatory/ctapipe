@@ -26,4 +26,4 @@ class ConsumerMap(Component):
 
 
     def finish(self):
-        print('--- ', self.section_name, ' finish ---')
+        self.log.info('--- {} finish ---'.format( self.section_name))

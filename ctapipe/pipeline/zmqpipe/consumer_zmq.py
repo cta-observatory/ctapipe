@@ -5,9 +5,10 @@
 import zmq
 from threading import Thread, Lock
 import pickle
+from ctapipe.core import Component
 
 
-class ConsumerZmq(Thread):
+class ConsumerZmq(Thread, Component):
 
     """`ConsumerZmq` class represents a Consumer pipeline Step.
     It is derived from Thread class. It receives
@@ -59,7 +60,7 @@ class ConsumerZmq(Thread):
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:
-                print(str(e) + "tcp://" + self.gui_address)
+                self.log.error("{} tcp://{}".format(str(e),  self.gui_address))
                 return False
 
         # Informs prev_stage that I am ready to work

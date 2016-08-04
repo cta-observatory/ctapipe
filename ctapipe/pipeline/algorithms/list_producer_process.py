@@ -15,9 +15,9 @@ class ListProducerProcess(Component):
         return True
 
     def run(self):
-        print('---', self.section_name, threading.get_ident(), 'start ---')
+        self.log.info('--- {} start ---'.format(self.section_name, threading.get_ident()))
         for input_file in os.listdir(self.source_dir):
             yield self.source_dir + "/" + input_file
 
     def finish(self):
-        print('---', self.section_name, threading.get_ident(), 'finish ---')
+        self.log.info('--- {} {} finish ---'.format(self.section_name, threading.get_ident()))

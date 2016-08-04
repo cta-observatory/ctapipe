@@ -2,6 +2,7 @@
 import zmq
 from threading import Thread
 import pickle
+from ctapipe.core import Component
 
 import os
 import sys
@@ -12,7 +13,7 @@ pipedrawerdir = os.path.dirname(currentdir)
 sys.path.insert(0, pipedrawerdir)
 
 
-class ZmqSub(Thread):
+class ZmqSub(Thread,Component):
 
     """
     Manages communication with pipeline thanks to ZMQ SUB message
@@ -38,7 +39,7 @@ class ZmqSub(Thread):
             try:
                 self.socket.bind(gui_adress)
             except zmq.error.ZMQError as e:
-                print(str(e) + gui_adress)
+                self.log.error("".format(str(e) , gui_adress))
             # Inform about connection in statusBar
             if statusBar != None:
                 self.statusBar.showMessage("binded to " + gui_adress)

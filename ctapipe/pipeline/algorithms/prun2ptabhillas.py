@@ -20,8 +20,9 @@ class Prun2PtabHillas(Component):
             try:
                 os.mkdir(self.output_dir)
             except OSError:
-                print(
-                    self.section_name, ": could not create output directory", self.output_dir)
+                self.log.error(
+                    "{}: could not create output directory {}"
+                    .format(self.section_name,self.output_dir ))
                 return False
         return True
 
@@ -34,4 +35,4 @@ class Prun2PtabHillas(Component):
         return output_file
 
     def finish(self):
-        print('--- ', self.section_name, ' finish ---')
+        self.log.info('--- {} finish ---'.format(self.section_name))
