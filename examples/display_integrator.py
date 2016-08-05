@@ -4,6 +4,11 @@ with the highest charge, its neighbours, and the pixel with the lowest max
 charge and its neighbours. Also shows a disgram of which pixels count as a
 neighbour, the camera image for the max charge timeslice, the true pe camera
 image, and a calibrated camera image
+
+Example Command:
+p examples/display_integrator.py -f ~/Software/outputs/sim_telarray/
+meudon_gamma/simtel_runmeudon_gamma_30tel_30deg_19.gz -O hessio -e 1 -t 8
+--integrator 5 --integration-window 7 3
 """
 
 import argparse
