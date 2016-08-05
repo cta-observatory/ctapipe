@@ -3,8 +3,6 @@ from pprint import pformat
 from astropy.table import Table
 from astropy.units import Quantity
 
-from ctapipe.io.files import get_file_type
-
 
 class Container:
 
@@ -132,15 +130,10 @@ class Container:
 
     def write(self, *args, **kwargs):
         '''Write table using astropy.table write method'''
-        # if self._meta is None:
-        #     logging.error("Metadata should be present before writing data")
-        #     return
 
         table = self.to_table()
         # Write HDU name
-        if get_file_type(args[0]) == "fits":
-            table.meta["EXTNAME"] = self._name
-
+        table.meta["EXTNAME"] = self._name
         table.write(*args, **kwargs)
 
         return table
