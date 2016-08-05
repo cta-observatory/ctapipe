@@ -48,7 +48,7 @@ class ConsumerZMQ(Thread, Component):
                 True if coroutine init method returns True, otherwise False
         """
         # Define coroutine and executes its init method
-        if self.coroutine == None:
+        if self.coroutine is None:
             return False
         if self.coroutine.init() == False:
             return False
@@ -58,7 +58,7 @@ class ConsumerZMQ(Thread, Component):
         self.sock_reply.connect(self.sock_consumer_url)
 
         self.socket_pub = context.socket(zmq.PUB)
-        if self.gui_address != None:
+        if self.gui_address is not None:
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:

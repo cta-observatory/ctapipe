@@ -57,11 +57,11 @@ Note: The firewall must be configure to accept input/output on theses port
     def __repr__(self):
         '''standard representation
         '''
-        if self.prev_step != None:
+        if self.prev_step is not None:
             return ('Name[ ' + str(self.section_name) + ' ], previous step[ ' +
             str(self.prev_step.section_name) + ' ], port in[ ' +
             str(self.port_in) + ' ], port out [ ' + str(self.port_out) + ' ]')
-        return ('WARNING prev_step==None  Name[ ' + str(self.section_name) +
+        return ('WARNING prev_step is None Name[ ' + str(self.section_name) +
         ' ], previous step[ ' + ' port in[ ' + str(self.port_in) +
         ' ], port out [ ' + str(self.port_out) + ' ]')
 
@@ -93,8 +93,8 @@ class StepInfo():
     def __init__(self, step_zmq, name=None):
         self.running = False
         self.nb_job_done = 0
-        if step_zmq != None:
-            if name == None:
+        if step_zmq is not None:
+            if name is None:
                 self.name = step_zmq.name
             else:
                 self.name = name
@@ -187,7 +187,7 @@ class Pipeline(Tool):
             return False
 
         # Get port for GUI
-        if self.gui_address != None:
+        if self.gui_address is not None:
             try:
                 self.socket_pub.connect('tcp://' + self.gui_address)
             except zmq.error.ZMQError as e:
@@ -303,7 +303,7 @@ class Pipeline(Tool):
         for step in self.consumer_step + self.stager_steps:
             prev_section_name = self.get_prev_step_section_name(
                 step.section_name)
-            if prev_section_name != None:
+            if prev_section_name is not None:
                 prev_step = self.get_step_by_section_name(prev_section_name)
                 step.prev_step = prev_step
             else:
@@ -325,11 +325,11 @@ class Pipeline(Tool):
         for producer_step in producer_steps:
             producer_step.port_out = producer_step.section_name
 
-            if producer_step.port_out == None:
+            if producer_step.port_out is None:
                 return False
         for stager_step in stager_steps:
             stager_step.port_out = stager_step.section_name
-            if stager_step.port_out == None:
+            if stager_step.port_out is None:
                 return False
         return True
 
@@ -370,7 +370,7 @@ class Pipeline(Tool):
         class_name = stage['class']
         obj = dynamic_class_from_module(class_name, module, self)
 
-        if obj == None:
+        if obj is None:
             raise PipelineError('Cannot create instance of ' + section_name)
         obj.section_name = section_name
         if stage_type == self.STAGER:
@@ -455,12 +455,12 @@ class Pipeline(Tool):
         port_out of previons step
         '''
         prev_section = self.get_prev_step_section_name(section)
-        if prev_section != None:
-            if self.producer_steps != None:
+        if prev_section is not None:
+            if self.producer_steps is not None:
                 for producer_step in self.producer_steps:
                     if producer_step.section_name == prev_section:
                         return producer_step.port_out
-            if self.stager_steps != None:
+            if self.stager_steps is not None:
                 for stager_step in self.stager_steps:
                     if stager_step.section_name == prev_section:
                         return stager_step.port_out
@@ -474,7 +474,7 @@ class Pipeline(Tool):
         for consumer in self.consumer_step:
             self.router_thread = self.router_queues[0]
             prev = consumer.prev_step
-            while prev != None:
+            while prev is not None:
                 stages = list()
                 for t in prev.threads:
                     self.step_threads.append(t)
@@ -494,14 +494,12 @@ class Pipeline(Tool):
             [StepInfo(self.router_thread, name=consumer.section_name +
              '_router')])
         prev = consumer.prev_step
-        while prev != None:
+        while prev is not None:
             stages = list()
             for t in prev.threads:
                 stages.append(StepInfo(t))
             if len(stages) > 0:
                 self.levels_for_gui.append(stages)
-            # if not prev.router_thread == None:
-                # self.levels_for_gui.append([StepInfo(prev.router_thread)])
                 self.levels_for_gui.append(
                     [StepInfo(self.router_thread, name=prev.section_name +
                      '_router')])
@@ -564,7 +562,7 @@ class Pipeline(Tool):
         # Now send stop to thread and wait they join(when their queue will be
         # empty)
         for worker in reversed(self.step_threads):
-            if worker != None:
+            if worker is not None:
                 while not self.router_thread.isQueueEmpty(worker.name):
                     self.socket_pub.send_multipart(
                         [b'GUI_GRAPH', pickle.dumps([conf_time,

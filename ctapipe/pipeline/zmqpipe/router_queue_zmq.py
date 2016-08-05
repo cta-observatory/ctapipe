@@ -81,7 +81,7 @@ class RouterQueue(threading.Thread,Component):
 
         # Register router socket to prev_stages or producer
         self.socket_pub = context.socket(zmq.PUB)
-        if self.gui_address != None:
+        if self.gui_address is not None:
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:

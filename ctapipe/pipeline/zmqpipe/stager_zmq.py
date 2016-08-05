@@ -58,9 +58,9 @@ class StagerZmq(threading.Thread):
         -------
         True if coroutine init method returns True, otherwise False
         """
-        if self.name == None:
+        if self.name is None:
             self.name = "STAGER"
-        if self.coroutine == None:
+        if self.coroutine is None:
             return False
         if self.coroutine.init() == False:
             return False
@@ -68,7 +68,7 @@ class StagerZmq(threading.Thread):
         # Connect to GUI
         context = zmq.Context.instance()
         self.socket_pub = context.socket(zmq.PUB)
-        if self.gui_address != None:
+        if self.gui_address is not None:
             self.socket_pub.connect("tcp://" + self.gui_address)
         # Socket to talk to next_router
         self.sock_for_you.connect(self.sock_job_for_you_url)

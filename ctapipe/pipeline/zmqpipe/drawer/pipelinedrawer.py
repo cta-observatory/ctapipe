@@ -218,7 +218,7 @@ class PipelineDrawer(QtGui.QWidget):
         """
         # If self.levels is empty, indeed, it does not make sense to draw
         # something.
-        if self.levels == None:
+        if self.levels is None:
             return
         # define Rep position because they change whan resising main windows
 
@@ -283,12 +283,12 @@ class PipelineDrawer(QtGui.QWidget):
             config_time, receiv_levels = msg
             self.build_full_graph(config_time, receiv_levels)
         # Stager or Producer or Consumer state changes
-        if self.levels != None and (topic == b'GUI_STAGER_CHANGE' or
+        if self.levels is not None and (topic == b'GUI_STAGER_CHANGE' or
                                     topic == b'GUI_CONSUMER_CHANGE' or
                                     topic == b'GUI_PRODUCER_CHANGE'):
             self.step_change(msg)
         # Router state changes
-        if self.levels != None and topic == b'GUI_ROUTER_CHANGE':
+        if self.levels is not None and topic == b'GUI_ROUTER_CHANGE':
             self.router_change(msg)
         # Force to update drawing
         self.update()

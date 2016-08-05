@@ -30,7 +30,7 @@ class ZmqSub(Thread,Component):
 
     def __init__(self, pipedrawer=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
-        if gui_port != None:
+        if gui_port is not None:
             self.statusBar = statusBar
             self.context = zmq.Context.instance()
             # Socket to talk to pipeline kernel and pipeline steps and router
@@ -41,7 +41,7 @@ class ZmqSub(Thread,Component):
             except zmq.error.ZMQError as e:
                 self.log.error("".format(str(e) , gui_adress))
             # Inform about connection in statusBar
-            if statusBar != None:
+            if statusBar is not None:
                 self.statusBar.showMessage("binded to " + gui_adress)
             # Register socket in a poll and register topics
             self.poll = zmq.Poller()

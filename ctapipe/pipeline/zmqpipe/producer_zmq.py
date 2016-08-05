@@ -42,7 +42,7 @@ class ProducerZmq(Thread,Component):
         self.sock_request.connect(self.port)
         self.socket_pub = self.context.socket(zmq.PUB)
 
-        if self.gui_address != None:
+        if self.gui_address is not None:
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:
@@ -57,7 +57,7 @@ class ProducerZmq(Thread,Component):
                 -------
                 True if coroutine init method returns True, otherwise False
         """
-        if self.coroutine == None:
+        if self.coroutine is None:
             return False
         if self.coroutine.init() == False:
             return False

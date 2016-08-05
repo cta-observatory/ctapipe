@@ -18,7 +18,7 @@ class SimTelArrayReader(Component):
         try:
             in_file = get_path(self.filename)
             self.source = hessio_event_source(in_file, max_events=10)
-        except():
+        except:
             self.log.error('could not open ' + in_file)
             return False
         return True
