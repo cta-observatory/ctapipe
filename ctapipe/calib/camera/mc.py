@@ -15,7 +15,8 @@ import numpy as np
 from ctapipe.io import CameraGeometry
 import logging
 from scipy import interp
-from .integrators import integrator_switch
+from .integrators import integrator_switch, integrators_requiring_geom, \
+    integrator_dict
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def set_integration_correction(event, telid, params):
     """
     Obtain the integration correction for the window specified
 
-    Parameters
+        Parameters
     ----------
     event : container
         A `ctapipe` event container
@@ -80,6 +81,7 @@ def set_integration_correction(event, telid, params):
 
     correction = round((sum(y) * refstep) / (sum(y1[start:start + window]) *
                                              time_slice), 7)
+
     return correction
 
 
@@ -177,6 +179,8 @@ def integration_mc(event, telid, params, geom=None):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    data_ped : ndarray
+        pedestal subtracted data
     """
 
     # Obtain the data
@@ -184,7 +188,9 @@ def integration_mc(event, telid, params, geom=None):
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
-    if geom is None:
+    int_dict, inverted = integrator_dict()
+    if geom is None and inverted[params['integrator']] in \
+            integrators_requiring_geom():
         geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                     event.meta.optical_foclen[telid])
 
@@ -198,9 +204,9 @@ def integration_mc(event, telid, params, geom=None):
         int_corr = 1
 
     # Convert integration into charge
-    charge = np.round(integration * int_corr).astype(np.int16, copy=False)
+    charge = np.round(integration * int_corr)
 
-    return charge, integration_window
+    return charge, integration_window, data_ped
 
 
 def calibrate_mc(event, telid, params, geom=None):
@@ -249,9 +255,11 @@ def calibrate_mc(event, telid, params, geom=None):
     window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    data_ped : ndarray
+        pedestal subtracted data
     """
 
-    charge, window = integration_mc(event, telid, params, geom)
+    charge, window, data_ped = integration_mc(event, telid, params, geom)
     pe = calibrate_amplitude_mc(event, charge, telid, params)
 
-    return pe, window
+    return pe, window, data_ped

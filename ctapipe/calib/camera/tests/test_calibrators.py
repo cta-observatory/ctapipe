@@ -29,11 +29,12 @@ def test_calibrate_event():
 
 
 def test_calibrate_source():
-    telid = 11
+    telid = 38
     filename = get_path('gamma_test.simtel.gz')
     source = hessio_event_source(filename)
     c_source = calibrate_source(source, get_test_parameters())
     for event in c_source:
-        if event.dl1.event_id == 409:
+        if event.dl1.event_id == 408:
             pe = event.dl1.tel[telid].pe_charge
-            assert pe[0][0] == -1.891745344400406
+            assert pe[0][0] == 1.8641869091987611
+            break

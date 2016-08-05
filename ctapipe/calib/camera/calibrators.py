@@ -6,13 +6,11 @@ the source/telescope, and store the calibration inside the event container.
 
 from copy import copy
 from .mc import calibrate_mc
-from .integrators import integrator_dict
+from .integrators import integrator_dict, integrators_requiring_geom
 from functools import partial
-import logging
 from ctapipe.io.containers import RawData, CalibratedCameraData
 from ctapipe.io import CameraGeometry
-
-logger = logging.getLogger(__name__)
+from astropy import log
 
 
 def calibration_arguments(parser):
@@ -24,7 +22,8 @@ def calibration_arguments(parser):
     parser : `astropy.utils.compat.argparse.ArgumentParser`
     """
     integrators = ""
-    for key, value in integrator_dict().items():
+    int_dict, inverted = integrator_dict()
+    for key, value in int_dict.items():
         integrators += " - {} = {}\n".format(key, value)
 
     parser.add_argument('--integrator', dest='integrator', action='store',
@@ -32,14 +31,15 @@ def calibration_arguments(parser):
                         help='which integration scheme should be used to '
                              'extract the charge?\n{}'.format(integrators))
     parser.add_argument('--integration-window', dest='integration_window',
-                        action='store', required=True, nargs=2,type=int,
+                        action='store', required=True, nargs=2, type=int,
                         help='Set integration window width and offset (to '
                              'before the peak) respectively, '
                              'e.g. --integration-window 7 3')
     parser.add_argument('--integration-sigamp', dest='integration_sigamp',
-                        action='store', nargs='+',type=int,
+                        action='store', nargs='+', type=int,
                         help='Amplitude in ADC counts above pedestal at which '
-                             'a signal is considered as significant '
+                             'a signal is considered as significant, and used '
+                             'for peak finding. '
                              '(separate for high gain/low gain), '
                              'e.g. --integration-sigamp 2 4')
     parser.add_argument('--integration-clip_amp', dest='integration_clip_amp',
@@ -54,11 +54,12 @@ def calibration_arguments(parser):
     parser.add_argument('--integration-calib_scale',
                         dest='integration_calib_scale',
                         action='store', type=float,
-                        help='Identical to global variable CALIB_SCALE in '
+                        help='Used for conversion from ADC to pe. Identical '
+                             'to global variable CALIB_SCALE in '
                              'reconstruct.c in hessioxxx software package. '
-                             '0.92 is the default value (corresponds to HESS). '
-                             'The required value changes between cameras '
-                             '(GCT = 1.05).')
+                             '0.92 is the default value (corresponds to '
+                             'HESS). The required value changes between '
+                             'cameras (GCT = 1.05).')
 
 
 def calibration_parameters(args):
@@ -87,6 +88,9 @@ def calibration_parameters(args):
         parameters['lwt'] = args.integration_lwt
     if args.integration_calib_scale is not None:
         parameters['calib_scale'] = args.calib_scale
+
+    for key, value in parameters.items():
+        log.info("[{}] {}".format(key, value))
 
     return parameters
 
@@ -144,7 +148,7 @@ def calibrate_event(event, params, geom_dict=None):
     try:
         calibrator = switch[event.meta.source]
     except KeyError:
-        logger.exception("unknown event source '{}'".format(event.meta.source))
+        log.exception("unknown event source '{}'".format(event.meta.source))
         raise
 
     calibrated = copy(event)
@@ -168,12 +172,25 @@ def calibrate_event(event, params, geom_dict=None):
         calibrated.dl1.tel[telid].num_channels = nchan
         calibrated.dl1.tel[telid].num_pixels = npix
 
-        geom = geom_dict[telid] if geom_dict is not None else None
+        # Get geometry
+        int_dict, inverted = integrator_dict()
+        geom = None
+        # Check if geom is even needed for integrator
+        if inverted[params['integrator']] in integrators_requiring_geom():
+            if geom_dict is not None and telid in geom_dict:
+                geom = geom_dict[telid]
+            else:
+                geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
+                                            event.meta.optical_foclen[telid])
+                if geom_dict is not None:
+                    geom_dict[telid] = geom
 
-        pe, window = calibrator(telid=telid, geom=geom)
+        pe, window, data_ped = calibrator(telid=telid, geom=geom)
         for chan in range(nchan):
             calibrated.dl1.tel[telid].pe_charge[chan] = pe[chan]
             calibrated.dl1.tel[telid].integration_window[chan] = window[chan]
+            calibrated.dl1.tel[telid].pedestal_subtracted_adc[chan] = \
+                data_ped[chan]
 
     return calibrated
 
@@ -225,14 +242,6 @@ def calibrate_source(source, params):
     geom_dict = {}
 
     for event in source:
-        # Fill dict so geom are only calculated once per telescope
-        # TODO: create check if geom is even needed for integrator
-        for telid in event.dl0.tels_with_data:
-            if telid not in geom_dict:
-                geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                            event.meta.optical_foclen[telid])
-                geom_dict[telid] = geom
-
         calibrated = calibrate_event(event, params, geom_dict)
 
         yield calibrated

@@ -147,6 +147,7 @@ class CalibratedCameraData(Container):
         super().__init__("CT{:03d}".format(tel_id))
         self.add_item('pe_charge', dict())
         self.add_item('integration_window', dict())
+        self.add_item('pedestal_subtracted_adc', dict())
         self.add_item('num_channels')
         self.add_item('num_pixels')
         self.add_item('calibration_parameters', dict())
