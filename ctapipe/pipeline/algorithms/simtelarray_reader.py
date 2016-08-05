@@ -6,7 +6,9 @@ from traitlets import Unicode
 
 
 class SimTelArrayReader(Component):
-
+    """`SimTelArrayReader` class represents a Producer for pipeline.
+        It opens simtelarray file and yiekld even in run method
+    """
     filename = Unicode('gamma_test.simtel.gz', help='simtel MC input file').tag(
         config=True, allow_none=True)
     source = None

@@ -8,6 +8,7 @@
       "stagers_conf" : [{"name": "ListTelsWithData", "class": "ListTelsWithData", "module": "ctapipe.pipeline.algorithms.list_tels_with_data", "nb_thread" : 2}]
   },
 
-  "HessioReader": { "filename": "gamma_test.simtel.gz" }
+  "HessioReader": { "filename": "gamma_test.simtel.gz" },
+  "StringWriter": { "filename": "/tmp/string_writter.txt"}
 
 }
