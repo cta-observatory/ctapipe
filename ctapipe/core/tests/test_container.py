@@ -18,7 +18,7 @@ def test_container():
 
     with pytest.raises(TypeError):
         cont['x'] = 10
-        
+
     # test adding an item
     cont.add_item('y')
     assert cont.y is None

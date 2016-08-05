@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "Pipeline": {
+      "producer_conf": { "name" : " SimTelArrayReader", "module": "ctapipe.pipeline.algorithms.simtelarray_reader",
+           "class": "SimTelArrayReader"},
+      "consumer_conf": { "name" : "WRITER", "module": "ctapipe.pipeline.algorithms.string_writer",
+                "class": "StringWriter"},
+      "stagers_conf" : [{"name": "ListTelsWithData", "class": "ListTelsWithData", "module": "ctapipe.pipeline.algorithms.list_tels_with_data", "nb_thread" : 2}]
+  },
+
+  "HessioReader": { "filename": "gamma_test.simtel.gz" },
+  "StringWriter": { "filename": "/tmp/string_writter.txt"}
+
+}

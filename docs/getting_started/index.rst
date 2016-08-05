@@ -22,7 +22,7 @@ Next, switch to this new virtual environment and install some other useful tools
 
 	source activate cta
 	
-	conda install ipython ipython-notebook ipython-qtconsole spyder pyflakes
+	conda install ipython ipython-notebook ipython-qtconsole spyder pyflakes traitlets
 	pip install autopep8
 
 Next, you should create a directory where you can store the software you check out. For example:

@@ -1,5 +1,9 @@
 from astropy.coordinates import Angle
-from numpy import cos, sin, array
+from astropy import units as u
+
+import numpy as np
+from numpy import cos, sin, arctan2 as atan2, arccos as acos
+
 
 
 def rotation_matrix_2d(angle):
@@ -8,8 +12,8 @@ def rotation_matrix_2d(angle):
     into an `astropy.coordinates.Angle`
     """
     psi = Angle(angle).rad
-    return array([[cos(psi), -sin(psi)],
-                  [sin(psi),  cos(psi)]])
+    return np.array([[cos(psi), -sin(psi)],
+                     [sin(psi),  cos(psi)]])
 
 
 
@@ -24,18 +28,17 @@ def rotate_around_axis(vec, axis, angle):
             3D vector to be rotated
     axis : length-3 numpy array
             axis around which the rotation is performed
-    angle : float
-            angle by which @vec is rotated around @axis
+    angle : astropy angle quantity or float
+            angle (in rad if float) by which vec is rotated around axis
     
     Result
     ------
     rotated numpy array
     """
 
-    theta = np.asarray(angle.to(u.rad)/u.rad)
-    axis = axis/(axis.dot(axis)**.5)
-    a = cos(theta/2.0)
-    b, c, d = -axis*sin(theta/2.0)
+    axis = normalise(axis)
+    a = cos(angle/2.0)
+    b, c, d = -axis*sin(angle/2.0)
     aa, bb, cc, dd = a*a, b*b, c*c, d*d
     bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
     rot_matrix = np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
@@ -61,7 +64,10 @@ def normalise(vec):
     -------
     numpy array with the same direction but length of 1
     """
-    return vec / length(vec)
+    try:
+        return vec / length(vec)
+    except ZeroDivisionError:
+        return vec
 
 def angle(v1, v2):
     """ computes the angle between two vectors
@@ -76,9 +82,7 @@ def angle(v1, v2):
     -------
     the angle between vec1 and vec2 as a dimensioned astropy quantity
     """
-    v1_u = normalise(v1)
-    v2_u = normalise(v2)
-    return acos(np.clip(v1_u.dot(v2_u), -1.0, 1.0))
+    return acos(np.clip(v1.dot(v2)/(length(v1)*length(v2)), -1.0, 1.0))
 
 def set_phi_theta_r(phi, theta, r=1):
     """ sets a 3D vector according to the given angles
@@ -105,21 +109,7 @@ def get_phi_theta(vec):
     """ returns a tupel of the phi and theta angles of the given vector
     """
     try:
-        return ( atan2(vec[1], vec[0]), acos( np.clip(vec[2] / Length(vec), -1, 1) ) ) * u.rad
+        return ( atan2(vec[1], vec[0]), acos( np.clip(vec[2] / length(vec), -1, 1) ) ) * u.rad
     except ValueError:
         return (0,0)
 
-def distance(vec1, vec2):
-    """ computes the distance between two vectors as the length of their difference
-    
-    Parameters:
-    ----------
-    vec1 : numpy array
-    vec2 : numpy array
-    
-    Result:
-    -------
-    distance between the two vectors
-    
-    """
-    return length(vec1 - vec2)

@@ -56,7 +56,7 @@ class Histogram:
         self._numsamples = 0
 
         if (initFromFITS):
-            self.loadFromFITS(initFromFITS)
+            self.from_fits(initFromFITS)
 
         # sanity check on inputs:
 
@@ -79,7 +79,7 @@ class Histogram:
                         nbins=self._nbins, axnames=self.axisNames))
     
     @property
-    def binLowerEdges(self):
+    def bin_lower_edges(self):
         """
         lower edges of bins. The length of the array will be nbins+1,
         since the final edge of the last bin is included for ease of
@@ -134,20 +134,20 @@ class Histogram:
         self.hist += hist
         self._numsamples += len(datapoints)
 
-    def binCenters(self, index):
+    def bin_centers(self, index):
         """ 
         returns array of bin centers for the given index
         """
-        return 0.5 * (self.binLowerEdges[index][1:] +
-                      self.binLowerEdges[index][0:-1])
+        return 0.5 * (self.bin_lower_edges[index][1:] +
+                      self.bin_lower_edges[index][0:-1])
 
-    def asFITS(self):
+    def to_fits(self):
         """ 
         return A FITS hdu, suitable for writing to disk
 
         to write it, just do 
 
-        myhist.asFITS().writeto("outputfile.fits")
+        myhist.to_fits().writeto("outputfile.fits")
 
         """
         ohdu = fits.ImageHDU(data=self.hist.transpose())
@@ -197,7 +197,7 @@ class Histogram:
 
         return ohdu
 
-    def loadFromFITS(self, inputFITS):
+    def from_fits(self, inputFITS):
         """
         load a FITS histogram file
 
@@ -206,10 +206,10 @@ class Histogram:
         """
 
         if (type(inputFITS) == str):
-            hdu = fits.open(inputFITS).pop(0)
+            hdu = fits.open(inputFITS)[1]
         else:
             hdu = inputFITS
-
+        
         self.hist = hdu.data.transpose()
         self._nbins = self.hist.shape
 
@@ -249,7 +249,7 @@ class Histogram:
         if(hdu.header.get("NSAMP")):
             self._numsamples += int(hdu.header["NSAMP"])
 
-    def getValue(self, coords, outlierValue=None):
+    def get_value(self, coords, outlierValue=None):
         """ Returns the values of the histogram at the given world
         coordinate(s) 
 
@@ -273,7 +273,7 @@ class Histogram:
         ndims = len(self._nbins)
 
         bins = np.array([np.digitize(world[:, ii],
-                                     self.binLowerEdges[ii][1:])
+                                     self.bin_lower_edges[ii][1:])
                          for ii in range(ndims)])
 
         maxbin = np.array(self.hist.shape)
@@ -290,7 +290,7 @@ class Histogram:
 
         return self.hist[tuple(bins)]
 
-    def draw2D(self, dims=[0, 1], **kwargs):
+    def draw_2d(self, dims=[0, 1], **kwargs):
         """draw the histogram using pcolormesh() (only works for 2D
         histograms currently)
 
@@ -311,18 +311,18 @@ class Histogram:
         if len(dims) != 2:
             raise ValueError("dims must be a length-2 integer array")
 
-        pyplot.pcolormesh(self.binLowerEdges[dims[0]],
-                          self.binLowerEdges[dims[1]],
+        pyplot.pcolormesh(self.bin_lower_edges[dims[0]],
+                          self.bin_lower_edges[dims[1]],
                           self.hist.transpose(), **kwargs)
         pyplot.title(self.name)
         pyplot.xlabel(self.axisNames[dims[0]])
         pyplot.ylabel(self.axisNames[dims[1]])
 
-    def draw1D(self, dim=0, **kwargs):
+    def draw_1d(self, dim=0, **kwargs):
         from matplotlib import pyplot
 
         # todo fix this to work properly with dim argument!
-        pyplot.plot(self.binCenters(dim), self.hist, drawstyle='steps-mid',
+        pyplot.plot(self.bin_centers(dim), self.hist, drawstyle='steps-mid',
                     **kwargs)
 
     def interpolate(self, nbins):
