@@ -20,7 +20,9 @@ class StagerZmq(threading.Thread):
     The thread is stoped by executing finish method.
     """
 
-    def __init__(self, coroutine, sock_job_for_me_port, sock_job_for_you_port, name=None, gui_address=None):
+    def __init__(
+            self, coroutine, sock_job_for_me_port,
+            sock_job_for_you_port, name=None, gui_address=None):
         """
         Parameters
         ----------
@@ -35,11 +37,8 @@ class StagerZmq(threading.Thread):
         # Set coroutine
         self.coroutine = coroutine
         # set sockets url
-        # self.sock_job_for_you_url = "tcp://localhost:"+ sock_job_for_you_port
-        # self.sock_job_for_me_url = "tcp://localhost:"+ sock_job_for_me_port
         self.sock_job_for_you_url = 'inproc://' + sock_job_for_you_port
         self.sock_job_for_me_url = 'inproc://' + sock_job_for_me_port
-                # define self,name for logging/debuging
         self.name = name
         self.running = False
         self.nb_job_done = 0
@@ -55,7 +54,6 @@ class StagerZmq(threading.Thread):
     def init(self):
         """
         Initialise coroutine sockets and poller
-
         Returns
         -------
         True if coroutine init method returns True, otherwise False
@@ -102,7 +100,8 @@ class StagerZmq(threading.Thread):
         """
         while not self.stop:
             sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
-            if self.sock_for_me in sockets and sockets[self.sock_for_me] == zmq.POLLIN:
+            if (self.sock_for_me in sockets and
+                    sockets[self.sock_for_me] == zmq.POLLIN):
                 #  Get the input from prev_stage
                 self.running = True
                 self.update_gui()
@@ -126,7 +125,8 @@ class StagerZmq(threading.Thread):
 
     def finish(self):
         """
-        Executes coroutine method and set stop flag to True to stop Thread activity
+        Executes coroutine method and set stop flag to True to stop
+        Thread activity
         """
         self.coroutine.finish()
         self.stop = True

@@ -194,17 +194,17 @@ class Pipeline(Tool):
                 self.log.info(str(e) + 'tcp://' + self.gui_address)
                 return False
         # Gererate steps(producers, stagers and consumers) from configuration
-        if self._generate_steps() == False:
+        if self.generate_steps() == False:
             self.log.error("Error during steps generation")
             return False
         # Configure steps' port out
-        if self._configure_port_out(self.producer_steps,
+        if self.configure_port_out(self.producer_steps,
          self.stager_steps) == False:
             self.log.info('No enough available ports for ZMQ')
             return False
 
         # Configure steps' port in
-        self._configure_port_in(self.stager_steps, self.consumer_step)
+        self.configure_port_in(self.stager_steps, self.consumer_step)
 
         # import and init producers
         for producer_step in self.producer_steps:
@@ -284,7 +284,7 @@ class Pipeline(Tool):
         self.display_conf()
         return True
 
-    def _generate_steps(self):
+    def generate_steps(self):
         ''' Generate pipeline steps from configuration'''
         self.producer_steps = self.get_pipe_steps(self.PRODUCER)
         self.stager_steps = self.get_pipe_steps(self.STAGER)
@@ -310,7 +310,7 @@ class Pipeline(Tool):
                 return False
         return True
 
-    def _configure_port_out(self, producer_steps, stager_steps):
+    def configure_port_out(self, producer_steps, stager_steps):
         '''
         Configure port_out from pipeline's ports list for producers and stagers
         returns:
@@ -333,7 +333,7 @@ class Pipeline(Tool):
                 return False
         return True
 
-    def _configure_port_in(self, stager_steps, consumer_steps):
+    def configure_port_in(self, stager_steps, consumer_steps):
         '''
         Configure port_in from pipeline's ports list for stagers and consumers
         Parameters
@@ -348,8 +348,9 @@ class Pipeline(Tool):
             consumer_step.port_in = self.get_prev_step_port_out(
                 consumer_step.section_name)
 
-    def instantiation(self, section_name, stage_type, port_in=None,
-     port_out=None, config=None, name=''):
+    def instantiation(
+            self, section_name, stage_type, port_in=None,
+            port_out=None, config=None, name=''):
         '''
         Instantiate on Pytohn object from name found in configuration
         Parameters

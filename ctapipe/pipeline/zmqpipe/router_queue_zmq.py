@@ -17,7 +17,9 @@ class RouterQueue(threading.Thread,Component):
     RouterQueue send output the next steps in LRU(last recently used) pattern.
     """
 
-    def __init__(self, sock_router_port, socket_dealer_port, step_names=dict(), gui_address=None):
+    def __init__(
+            self, sock_router_port, socket_dealer_port,
+            step_names=dict(), gui_address=None):
         """
         Parameters
         ----------
@@ -50,7 +52,8 @@ class RouterQueue(threading.Thread,Component):
             try:
                 sock_router.bind('inproc://' + self.sock_router_port[name])
             except zmq.error.ZMQError as e:
-                self.log.error('{} : inproc://{}'.format(e, self.sock_router_port[name]))
+                self.log.error('{} : inproc://{}'
+                    .format(e, self.sock_router_port[name]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
@@ -58,7 +61,8 @@ class RouterQueue(threading.Thread,Component):
             try:
                 sock_dealer.bind("inproc://" + self.socket_dealer_port[name])
             except zmq.error.ZMQError as e:
-                self.log.error('{} : inproc://{}'.format(e, self.sock_router_port[name]))
+                self.log.error('{} : inproc://{}'
+                    .format(e, self.sock_router_port[name]))
                 return False
 
             self.dealer_sockets[name] = sock_dealer
@@ -89,9 +93,10 @@ class RouterQueue(threading.Thread,Component):
     def run(self):
         """
         Method representing the thread’s activity.
-        It sends a job present in its queue (FIFO) to an available stager (if exist)
-        Then it polls its sockets (in and out).
-        When received new input from input socket, it appends contains to its queue.
+        It sends a job present in its queue (FIFO) to an available stager
+        (if exist). Then it polls its sockets (in and out).
+        When received new input from input socket, it appends contains to
+        its queue.
         When received a signal from its output socket, it append sender
         (a pipeline step) to availble stagers list
         """
@@ -120,7 +125,8 @@ class RouterQueue(threading.Thread,Component):
 
             # Test if message arrived from next_stages
             for n, socket_dealer in self.dealer_sockets.items():
-                if socket_dealer in sockets and sockets[socket_dealer] == zmq.POLLIN:
+                if (socket_dealer in sockets and
+                        sockets[socket_dealer] == zmq.POLLIN):
 
                     request = socket_dealer.recv_multipart()
                     # Get next_stage identity(to responde) and message
@@ -132,7 +138,8 @@ class RouterQueue(threading.Thread,Component):
 
             # Test if message arrived from prev_stage (stage or producer)
             for n, socket_router in self.router_sockets.items():
-                if socket_router in sockets and sockets[socket_router] == zmq.POLLIN:
+                if (socket_router in sockets and
+                        sockets[socket_router] == zmq.POLLIN):
                     # Get next prev_stage request
                     address, empty, request = socket_router.recv_multipart()
                     # store it to job queue
