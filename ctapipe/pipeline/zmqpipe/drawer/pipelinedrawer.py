@@ -284,8 +284,8 @@ class PipelineDrawer(QtGui.QWidget):
             self.build_full_graph(config_time, receiv_levels)
         # Stager or Producer or Consumer state changes
         if self.levels is not None and (topic == b'GUI_STAGER_CHANGE' or
-                                    topic == b'GUI_CONSUMER_CHANGE' or
-                                    topic == b'GUI_PRODUCER_CHANGE'):
+                                        topic == b'GUI_CONSUMER_CHANGE' or
+                                        topic == b'GUI_PRODUCER_CHANGE'):
             self.step_change(msg)
         # Router state changes
         if self.levels is not None and topic == b'GUI_ROUTER_CHANGE':

@@ -6,7 +6,7 @@ import zmq
 import pickle
 
 
-class ProducerZmq(Thread,Component):
+class ProducerZmq(Thread, Component):
 
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Thread class.

@@ -4,10 +4,12 @@ from ctapipe.core import Component
 
 
 class ListTelsWithData(Component):
+
     """`ListTelsWithData` class represents a Stage for pipeline.
         It receives  a hessio event and return a list containing
         telescope id of triggered telescopes for this event.
     """
+
     def init(self):
         self.log.info("--- ListTelsWithData init ---")
 

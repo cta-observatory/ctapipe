@@ -1,7 +1,9 @@
 from ctapipe.core import Component
 from traitlets import Unicode
 
+
 class StringWriter(Component):
+
     """`StringWriter` class represents a Stage or a Consumer for pipeline.
         It writes received objects to file
     """

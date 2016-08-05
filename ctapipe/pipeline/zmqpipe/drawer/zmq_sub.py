@@ -13,7 +13,7 @@ pipedrawerdir = os.path.dirname(currentdir)
 sys.path.insert(0, pipedrawerdir)
 
 
-class ZmqSub(Thread,Component):
+class ZmqSub(Thread, Component):
 
     """
     Manages communication with pipeline thanks to ZMQ SUB message
@@ -39,7 +39,7 @@ class ZmqSub(Thread,Component):
             try:
                 self.socket.bind(gui_adress)
             except zmq.error.ZMQError as e:
-                self.log.error("".format(str(e) , gui_adress))
+                self.log.error("".format(str(e), gui_adress))
             # Inform about connection in statusBar
             if statusBar is not None:
                 self.statusBar.showMessage("binded to " + gui_adress)

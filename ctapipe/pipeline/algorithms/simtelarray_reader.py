@@ -6,6 +6,7 @@ from traitlets import Unicode
 
 
 class SimTelArrayReader(Component):
+
     """`SimTelArrayReader` class represents a Producer for pipeline.
         It opens simtelarray file and yiekld even in run method
     """
@@ -33,5 +34,5 @@ class SimTelArrayReader(Component):
         self.log.info("\n--- HessioReader Done ---")
 
     def finish(self):
-        self.log.info ("--- HessReader finish ---")
+        self.log.info("--- HessReader finish ---")
         pass

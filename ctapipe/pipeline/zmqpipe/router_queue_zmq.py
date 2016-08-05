@@ -5,7 +5,7 @@ import pickle
 from ctapipe.core import Component
 
 
-class RouterQueue(threading.Thread,Component):
+class RouterQueue(threading.Thread, Component):
 
     """`RouterQueue` class represents a router between pipeline steps, and it
     manages queue for prev step.
@@ -53,7 +53,7 @@ class RouterQueue(threading.Thread,Component):
                 sock_router.bind('inproc://' + self.sock_router_port[name])
             except zmq.error.ZMQError as e:
                 self.log.error('{} : inproc://{}'
-                    .format(e, self.sock_router_port[name]))
+                               .format(e, self.sock_router_port[name]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
@@ -62,7 +62,7 @@ class RouterQueue(threading.Thread,Component):
                 sock_dealer.bind("inproc://" + self.socket_dealer_port[name])
             except zmq.error.ZMQError as e:
                 self.log.error('{} : inproc://{}'
-                    .format(e, self.sock_router_port[name]))
+                               .format(e, self.sock_router_port[name]))
                 return False
 
             self.dealer_sockets[name] = sock_dealer
@@ -85,7 +85,7 @@ class RouterQueue(threading.Thread,Component):
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:
-                self.log.error("".format (e, self.gui_address))
+                self.log.error("".format(e, self.gui_address))
                 return False
         # This flag stop this current thread
         return True

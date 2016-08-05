@@ -17,7 +17,8 @@ from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
 from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZMQ
 from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
-import sys, os
+import sys
+import os
 import zmq
 import time
 import pickle
@@ -26,7 +27,9 @@ from traitlets import (Integer, Float, List, Dict, Unicode)
 
 __all__ = ['Pipeline', 'PipelineError']
 
+
 class PipeStep():
+
     '''
 PipeStep reprensents a Pipeline step. One or several threads can be attach
     to this step.
@@ -46,7 +49,7 @@ Note: The firewall must be configure to accept input/output on theses port
 '''
 
     def __init__(self, section_name, prev_step=None, port_in=None,
-     port_out=None, nb_thread=1):
+                 port_out=None, nb_thread=1):
         self.section_name = section_name
         self.port_in = port_in
         self.port_out = port_out
@@ -58,12 +61,14 @@ Note: The firewall must be configure to accept input/output on theses port
         '''standard representation
         '''
         if self.prev_step is not None:
-            return ('Name[ ' + str(self.section_name) + ' ], previous step[ ' +
-            str(self.prev_step.section_name) + ' ], port in[ ' +
-            str(self.port_in) + ' ], port out [ ' + str(self.port_out) + ' ]')
-        return ('WARNING prev_step is None Name[ ' + str(self.section_name) +
-        ' ], previous step[ ' + ' port in[ ' + str(self.port_in) +
-        ' ], port out [ ' + str(self.port_out) + ' ]')
+            return ('Name[ ' + str(self.section_name) + ' ], previous step[ '
+                    + str(self.prev_step.section_name) + ' ], port in[ '
+                    + str(self.port_in) + ' ], port out [ '
+                    + str(self.port_out) + ' ]')
+        return ('WARNING prev_step is None Name[ ' + str(self.section_name)
+                + ' ], previous step[ ' + ' port in[ ' + str(self.port_in)
+                + ' ], port out [ ' + str(self.port_out) + ' ]')
+
 
 class PipelineError(Exception):
 
@@ -71,6 +76,7 @@ class PipelineError(Exception):
         '''Mentions that an exception occurred in the pipeline.
         '''
         self.msg = msg
+
 
 class StepInfo():
 
@@ -119,7 +125,8 @@ class StepInfo():
         '''standard representation
         '''
         return (self.name + ', ' + self.type + ', ' + str(self.running) +
-         ', ' + str(self.queue_size))
+                ', ' + str(self.queue_size))
+
 
 class Pipeline(Tool):
 
@@ -142,12 +149,12 @@ class Pipeline(Tool):
         default_value={'name': 'CONSUMER', 'class': 'Producer',
                        'module': 'producer',  'prev': 'STAGE1'},
         help='producer description: name , module, class',
-        	allow_none=False).tag(config=True)
+                allow_none=False).tag(config=True)
     aliases = Dict({'gui_address': 'Pipeline.gui_address'})
     examples = ('protm%> ctapipe-pipeline \
     --config=examples/brainstorm/pipeline/pipeline_py/example.json')
     # TO DO: register steps class for configuration
-    #classes = List()
+    # classes = List()
 
     PRODUCER = 'PRODUCER'
     STAGER = 'STAGER'
@@ -183,7 +190,7 @@ class Pipeline(Tool):
         # Verify configuration instance
         if not os.path.isfile(self.config_file):
             self.log.error('Could not open pipeline config_file {}'
-            .format(self.config_file))
+                           .format(self.config_file))
             return False
 
         # Get port for GUI
@@ -199,7 +206,7 @@ class Pipeline(Tool):
             return False
         # Configure steps' port out
         if self.configure_port_out(self.producer_steps,
-         self.stager_steps) == False:
+                                   self.stager_steps) == False:
             self.log.info('No enough available ports for ZMQ')
             return False
 
@@ -237,9 +244,9 @@ class Pipeline(Tool):
             conf = self.consumer_conf
             try:
                 consumer_zmq = self.instantiation(consumer_step.section_name,
-                                          self.CONSUMER,
-                                          port_in=router_port_out,
-                                          config=conf)
+                                                  self.CONSUMER,
+                                                  port_in=router_port_out,
+                                                  config=conf)
             except PipelineError as e:
                 self.log.error(e)
                 return False
@@ -263,7 +270,8 @@ class Pipeline(Tool):
                     stager_zmq = self.instantiation(
                         stager_step.section_name, self.STAGER,
                         port_in=router_port_out, port_out=stager_step.port_out,
-                        name=stager_step.section_name +'$$thread_number$$' + str(i),
+                        name=stager_step.section_name +
+                            '$$thread_number$$' + str(i),
                         config=conf)
                 except PipelineError as e:
                     self.log.error(e)
@@ -273,8 +281,10 @@ class Pipeline(Tool):
                     return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
-        router = RouterQueue(sock_router_ports, socket_dealer_ports,
-        step_names=router_names, gui_address=self.gui_address)
+        router = RouterQueue(sock_router_ports,
+                             socket_dealer_ports,
+                             step_names=router_names,
+                             gui_address=self.gui_address)
         if router.init() == False:
             return False
         self.router_queues.append(router)
@@ -381,7 +391,9 @@ class Pipeline(Tool):
                 obj, port_out, 'producer', gui_address=self.gui_address)
         elif stage_type == self.CONSUMER:
             thread = ConsumerZMQ(
-                obj, port_in, 'consumer', parent=self, gui_address=self.gui_address)
+                obj, port_in,
+                'consumer', parent=self,
+                gui_address=self.gui_address)
         else:
             raise PipelineError(
                 'Cannot create instance of', section_name, '. Type',
@@ -412,7 +424,8 @@ class Pipeline(Tool):
                 # Create stagers steps
                 for stage_conf in self.stagers_conf:
                     nb_thread = int(stage_conf['nb_thread'])
-                    stage_step = PipeStep(stage_conf['name'], nb_thread=nb_thread)
+                    stage_step = PipeStep(
+                        stage_conf['name'], nb_thread=nb_thread)
                     stage_step.type = self.STAGER
                     result.append(stage_step)
             elif role == self.CONSUMER:
@@ -498,7 +511,7 @@ class Pipeline(Tool):
             stages = list()
             for t in prev.threads:
                 stages.append(StepInfo(t))
-            if stages :
+            if stages:
                 self.levels_for_gui.append(stages)
                 self.levels_for_gui.append(
                     [StepInfo(self.router_thread, name=prev.section_name +
@@ -522,20 +535,23 @@ class Pipeline(Tool):
         self.log.info(' ------------- Pipeline configuration ----------- ')
         self.log.info(' \t\t\t\t\t\t')
         for item in chaine[:-1]:
-            self.log.info (item)
+            self.log.info(item)
             self.log.info(' \t\t\t  |')
             self.log.info(' \t\t\t  |')
             self.log.info(' \t\t\t  V')
         self.log.info(chaine[-1])
         self.log.info(' \t\t\t\t\t\t')
-        self.log.info(' ---------- End Pipeline configuration ----------- \n\n ')
+        self.log.info(
+            ' ---------- End Pipeline configuration ----------- \n\n ')
 
     def get_step_by_section_name(self, section_name):
         ''' Find a PipeStep in self.producer_steps or  self.stager_steps or
         self.consumer_step
         Return: PipeStep if found, otherwise None
         '''
-        for step in self.producer_steps + self.stager_steps + self.consumer_step:
+        for step in (self.producer_steps
+            + self.stager_steps
+            + self.consumer_step):
             if step.section_name == section_name:
                 return step
         return None
@@ -633,6 +649,7 @@ class Pipeline(Tool):
             if step['name'] == name:
                 return index
         return -1
+
 
 def main():
     tool = Pipeline()
