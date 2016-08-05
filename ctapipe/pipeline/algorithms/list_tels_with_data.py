@@ -12,7 +12,7 @@ class ListTelsWithData(Component):
         self.log.info("--- ListTelsWithData init ---")
 
     def run(self, event):
-        if event != None:
+        if event is not None:
             res = list(event.dl0.tels_with_data)
             return res
 

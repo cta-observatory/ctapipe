@@ -109,7 +109,7 @@ class RouterQueue(threading.Thread,Component):
                 # queue,next_available in
                 # zip(self.queue_jobs,self.next_available_stages):
                 next_available = self.next_available_stages[name]
-                if len(queue) > 0 and len(next_available) > 0:
+                if queue and next_available:
                     # get that oldest job and remove it form list
                     job = self.queue_jobs[name].pop(0)
                     self.update_gui(name)
@@ -175,7 +175,7 @@ class RouterQueue(threading.Thread,Component):
                 pos = name.find("_router")
                 name = name[:pos]
             if name == name_to_search:
-                if len(queue) == 0:
+                if not queue:
                     return True
         return False
 

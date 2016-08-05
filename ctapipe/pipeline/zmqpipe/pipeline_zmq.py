@@ -289,13 +289,13 @@ class Pipeline(Tool):
         self.producer_steps = self.get_pipe_steps(self.PRODUCER)
         self.stager_steps = self.get_pipe_steps(self.STAGER)
         self.consumer_step = self.get_pipe_steps(self.CONSUMER)
-        if len(self.producer_steps) == 0:
+        if not self.producer_steps:
             self.log.error("No producer in configuration")
             return False
-        if len(self.stager_steps) == 0:
+        if not self.stager_steps:
             self.log.error("No stager inb configuration")
             return False
-        if len(self.consumer_step) == 0:
+        if not self.consumer_step:
             self.log.error("No consumer inb configuration")
             return False
 
@@ -498,7 +498,7 @@ class Pipeline(Tool):
             stages = list()
             for t in prev.threads:
                 stages.append(StepInfo(t))
-            if len(stages) > 0:
+            if stages :
                 self.levels_for_gui.append(stages)
                 self.levels_for_gui.append(
                     [StepInfo(self.router_thread, name=prev.section_name +
