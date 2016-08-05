@@ -20,7 +20,9 @@ class ConsumerZMQ(Thread, Component):
     The thread is stoped by executing finish method.
     """
 
-    def __init__(self, coroutine, sock_consumer_port, _name="", parent=None, gui_address=None):
+    def __init__(
+            self, coroutine, sock_consumer_port, _name="",
+            parent=None, gui_address=None):
         """
         Parameters
         ----------
@@ -84,7 +86,8 @@ class ConsumerZMQ(Thread, Component):
         """
         while not self.stop:
             sockets = dict(self.poll.poll(100))
-            if self.sock_reply in sockets and sockets[self.sock_reply] == zmq.POLLIN:
+            if (self.sock_reply in sockets and
+                    sockets[self.sock_reply] == zmq.POLLIN):
                 request = self.sock_reply.recv_multipart()
                 # do some 'work'
                 cmd = pickle.loads(request[0])
