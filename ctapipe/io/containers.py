@@ -116,6 +116,10 @@ class RawCameraData(Container):
         (masked) arrays of non-integrated ADC sample data (n_pixels, n_samples)
     num_channels : int
         number of gain channels in camera
+    num_pixels : int
+        number of pixels in camera
+    num_samples : int
+        number of samples for camera
 
     """
     def __init__(self, tel_id):
@@ -141,13 +145,23 @@ class CalibratedCameraData(Container):
     integration_window : dict
         bool ndarrays of shape [npix][nsamples] indicating the samples used in
         the obtaining of the charge, dependant on the integration method used
-
+    pedestal_subtracted_adc : dict
+    peakpos : dict
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
+    num_channels : int
+        number of gain channels in camera
+    num_pixels : int
+        number of pixels in camera
+    calibration_parameters : dict
+        the calibration parameters used to calbrate the event
     """
     def __init__(self, tel_id):
         super().__init__("CT{:03d}".format(tel_id))
         self.add_item('pe_charge', dict())
         self.add_item('integration_window', dict())
         self.add_item('pedestal_subtracted_adc', dict())
+        self.add_item('peakpos', dict())
         self.add_item('num_channels')
         self.add_item('num_pixels')
         self.add_item('calibration_parameters', dict())

@@ -32,7 +32,8 @@ def test_set_integration_correction():
 def test_calibrate_amplitude_mc():
     telid = 11
     event = get_test_event()
-    charge, window, dped = integration_mc(event, telid, get_test_parameters())
+    params = get_test_parameters()
+    charge, window, dped, peakpos = integration_mc(event, telid, params)
     pe = calibrate_amplitude_mc(event, charge, telid, get_test_parameters())
     assert pe[0][0] == -1.891745344400406
 
@@ -44,28 +45,28 @@ def test_integration_mc():
     nsamples = event.dl0.tel[telid].num_samples
 
     params['integrator'] = 'full_integration'
-    charge, window, data_ped = integration_mc(event, telid, params)
+    charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 149
     assert sum(window[0][0]) == nsamples
     assert data_ped[0][0][0] == -2.8340006510416629
 
     params['integrator'] = 'simple_integration'
-    charge, window, data_ped = integration_mc(event, telid, params)
+    charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 74
     assert sum(window[0][0]) == params['window']
 
     params['integrator'] = 'global_peak_integration'
-    charge, window, data_ped = integration_mc(event, telid, params)
+    charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 61
     assert sum(window[0][0]) == params['window']
 
     params['integrator'] = 'local_peak_integration'
-    charge, window, data_ped = integration_mc(event, telid, params)
+    charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 80
     assert sum(window[0][0]) == params['window']
 
     params['integrator'] = 'nb_peak_integration'
-    charge, window, data_ped = integration_mc(event, telid, params)
+    charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == -67
     assert sum(window[0][0]) == params['window']
 
@@ -73,5 +74,5 @@ def test_integration_mc():
 def test_calibrate_mc():
     telid = 11
     event = get_test_event()
-    pe, window, data_ped = calibrate_mc(event, telid, get_test_parameters())
+    pe, window, data_ped, peakpos = calibrate_mc(event, telid, get_test_parameters())
     assert pe[0][0] == -1.891745344400406

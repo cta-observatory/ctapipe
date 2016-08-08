@@ -180,17 +180,20 @@ def calibrate_event(event, params, geom_dict=None):
             if geom_dict is not None and telid in geom_dict:
                 geom = geom_dict[telid]
             else:
+                log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                             event.meta.optical_foclen[telid])
+                log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[telid] = geom
 
-        pe, window, data_ped = calibrator(telid=telid, geom=geom)
+        pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
         for chan in range(nchan):
             calibrated.dl1.tel[telid].pe_charge[chan] = pe[chan]
             calibrated.dl1.tel[telid].integration_window[chan] = window[chan]
             calibrated.dl1.tel[telid].pedestal_subtracted_adc[chan] = \
                 data_ped[chan]
+            calibrated.dl1.tel[telid].peakpos[chan] = peakpos[chan]
 
     return calibrated
 

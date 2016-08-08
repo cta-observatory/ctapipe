@@ -10,9 +10,7 @@ functionality with those in hessioxxx package.
 """
 
 import numpy as np
-import logging
-
-logger = logging.getLogger(__name__)
+from astropy import log
 
 
 def integrator_dict():
@@ -72,7 +70,8 @@ def integrator_switch(data, geom, params):
         if 'integrator' not in params:
             raise KeyError()
     except KeyError:
-        logger.exception("[ERROR] missing required params")
+        log.exception("[ERROR] missing required params")
+        raise
 
     switch = {
         'full_integration':
@@ -89,8 +88,7 @@ def integrator_switch(data, geom, params):
     try:
         integrator = switch[params['integrator']]()
     except KeyError:
-        logger.exception("unknown integrator '{}'"
-                         .format(params['integrator']))
+        log.exception("unknown integrator '{}'".format(params['integrator']))
         raise
 
     return integrator
@@ -110,9 +108,15 @@ def full_integration(data):
 
     Returns
     -------
-    charge : array
+    integration : ndarray
         array of pixels with integrated charge [ADC counts]
         (pedestal substracted)
+    integration_window : ndarray
+        bool array of same shape as data. Specified which samples are included
+        in the integration window
+    peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
     """
 
     if data is None:
@@ -121,7 +125,7 @@ def full_integration(data):
     integration_window = np.ones_like(data, dtype=bool)
     integration = data.sum(2)
 
-    return integration, integration_window
+    return integration, integration_window, [None, None]
 
 
 def simple_integration(data, params):
@@ -157,19 +161,22 @@ def simple_integration(data, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
     """
 
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
     except KeyError:
-        logger.exception("[ERROR] missing required params")
+        log.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
 
     # Define window
     window = params['window']
-    start = np.array([params['shift']], dtype=np.int)
+    start = params['shift']
 
     # Check window is within readout
     if window > nsamples:
@@ -187,7 +194,7 @@ def simple_integration(data, params):
     # Integrate
     integration = windowed_data.sum(2)
 
-    return integration, integration_window
+    return integration, integration_window, [None, None]
 
 
 def global_peak_integration(data, params):
@@ -227,13 +234,16 @@ def global_peak_integration(data, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
     """
 
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
     except KeyError:
-        logger.exception("[ERROR] missing required params")
+        log.exception("[ERROR] missing required params")
 
     nchan, npix, nsamples = data.shape
 
@@ -246,7 +256,7 @@ def global_peak_integration(data, params):
     sig_pixels = np.any(sig_entries, axis=2)
     sig_channel = np.any(sig_pixels, axis=1)
     if not sig_channel[0] == True:
-        logger.error("[ERROR] sigamp value excludes all values in HG channel")
+        log.error("[ERROR] sigamp value excludes all values in HG channel")
     significant_data = data * sig_entries
 
     # Define window
@@ -254,13 +264,16 @@ def global_peak_integration(data, params):
     max_sample = significant_data.max(2)
     max_time_sample_sum = (max_time * max_sample).sum(1)
     max_sample_sum = max_sample.sum(1)
-    peakpos = np.zeros_like(max_sample_sum, dtype=np.int)
-    if 0 not in max_sample_sum:
-        peakpos = np.round(max_time_sample_sum / max_sample_sum)
-    else:  # If the LG is not significant, takes the HG peakpos
-        peakpos[0] = np.round(max_time_sample_sum[0] / max_sample_sum[0])
-        peakpos[1] = peakpos[0]
-        peakpos = peakpos
+    peakpos = np.zeros_like(max_sample, dtype=np.int)
+    peakpos[0, :] = np.round(max_time_sample_sum[0] / max_sample_sum[0]).astype(np.int)
+    if nchan > 1:
+        if not max_sample_sum[1] == 0:
+            peakpos[1, :] = np.round(
+                max_time_sample_sum[0] / max_sample_sum[0]).astype(np.int)
+        else:
+            log.info("[calib] LG not significant, using HG for peak finding "
+                     "instead")
+            peakpos[:, 1] = peakpos[0]
     start = (peakpos - params['shift']).astype(np.int)
     window = params['window']
 
@@ -273,13 +286,13 @@ def global_peak_integration(data, params):
     # Select entries
     integration_window = np.zeros_like(data, dtype=bool)
     for i in range(nchan):
-        integration_window[i, :, start[i]:start[i] + window] = True
+        integration_window[i, :, start[i][0]:start[i][0] + window] = True
     windowed_data = data * integration_window
 
     # Integrate
     integration = windowed_data.sum(2)
 
-    return integration, integration_window
+    return integration, integration_window, peakpos
 
 
 def local_peak_integration(data, params):
@@ -318,13 +331,17 @@ def local_peak_integration(data, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
     """
 
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
     except KeyError:
-        logger.exception("[ERROR] missing required params")
+        log.exception("[ERROR] missing required params")
+        raise
 
     nchan, npix, nsamples = data.shape
 
@@ -337,7 +354,7 @@ def local_peak_integration(data, params):
     sig_pixels = np.any(sig_entries, axis=2)
     sig_channel = np.any(sig_pixels, axis=1)
     if not sig_channel[0] == True:
-        logger.error("[ERROR] sigamp value excludes all values in HG channel")
+        log.error("[ERROR] sigamp value excludes all values in HG channel")
     significant_data = data * sig_entries
 
     # Define window
@@ -364,7 +381,7 @@ def local_peak_integration(data, params):
     # Integrate
     integration = windowed_data.sum(2)
 
-    return integration, integration_window
+    return integration, integration_window, peakpos
 
 
 def nb_peak_integration(data, geom, params):
@@ -410,13 +427,17 @@ def nb_peak_integration(data, geom, params):
     integration_window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
+    peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
     """
 
     try:
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
     except KeyError:
-        logger.exception("[ERROR] missing required params")
+        log.exception("[ERROR] missing required params")
+        raise
 
     nchan, npix, nsamples = data.shape
 
@@ -429,7 +450,7 @@ def nb_peak_integration(data, geom, params):
     sig_pixels = np.any(sig_entries, axis=2)
     sig_channel = np.any(sig_pixels, axis=1)
     if not sig_channel[0] == True:
-        logger.error("[ERROR] sigamp value excludes all values in HG channel")
+        log.error("[ERROR] sigamp value excludes all values in HG channel")
     significant_data = data * sig_entries
 
     # Define window
@@ -463,4 +484,4 @@ def nb_peak_integration(data, geom, params):
     # Integrate
     integration = windowed_data.sum(2)
 
-    return integration, integration_window
+    return integration, integration_window, peakpos
