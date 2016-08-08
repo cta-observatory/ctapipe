@@ -238,6 +238,7 @@ def main():
     log.info("[output] {}".format(camera_output_path))
     fig_camera.savefig(camera_output_path, format='pdf')
 
+    log.info("[COMPLETE]")
 
 if __name__ == '__main__':
     main()

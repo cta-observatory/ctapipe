@@ -76,7 +76,7 @@ def calibration_parameters(args):
     parameters : dict
         dictionary containing the formatted calibration parameters
     """
-    t = integrator_dict()
+    t, inverse = integrator_dict()
     parameters = {'integrator': t[args.integrator],
                   'window': args.integration_window[0],
                   'shift': args.integration_window[1]}
