@@ -279,7 +279,7 @@ class Pipeline(Tool):
                     return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
-        router = RouterQueue(step_names=router_names,
+        router = RouterQueue(connexions=router_names,
                              gui_address=self.gui_address)
         if router.init() == False:
             return False
