@@ -123,8 +123,7 @@ def full_integration(data):
         return None
 
     integration_window = np.ones_like(data, dtype=bool)
-    integration = data.sum(2)
-
+    integration = np.round(data.sum(2)).astype(np.int)
     return integration, integration_window, [None, None]
 
 
@@ -192,7 +191,7 @@ def simple_integration(data, params):
     windowed_data = data * integration_window
 
     # Integrate
-    integration = windowed_data.sum(2)
+    integration = np.round(windowed_data.sum(2)).astype(np.int)
 
     return integration, integration_window, [None, None]
 
@@ -289,7 +288,7 @@ def global_peak_integration(data, params):
     windowed_data = data * integration_window
 
     # Integrate
-    integration = windowed_data.sum(2)
+    integration = np.round(windowed_data.sum(2)).astype(np.int)
 
     return integration, integration_window, peakpos
 
@@ -378,7 +377,7 @@ def local_peak_integration(data, params):
     windowed_data = data * integration_window
 
     # Integrate
-    integration = windowed_data.sum(2)
+    integration = np.round(windowed_data.sum(2)).astype(np.int)
 
     return integration, integration_window, peakpos
 
@@ -481,6 +480,6 @@ def nb_peak_integration(data, geom, params):
     windowed_data = data * integration_window
 
     # Integrate
-    integration = windowed_data.sum(2)
+    integration = np.round(windowed_data.sum(2)).astype(np.int)
 
     return integration, integration_window, peakpos
