@@ -46,7 +46,7 @@ class ProducerZmq(Thread, Component):
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:
-                self.log.error("{} tcp://{}".format(e, self.gui_address))
+                print("{} tcp://{}".format(e, self.gui_address))
                 return False
 
     def init(self):

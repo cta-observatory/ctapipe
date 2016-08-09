@@ -17,9 +17,12 @@ class RouterQueue(threading.Thread, Component):
     RouterQueue send output the next steps in LRU(last recently used) pattern.
     """
 
+    #def __init__(
+    #        self, sock_router_port, socket_dealer_port,
+    #        step_names=dict(), gui_address=None):
     def __init__(
-            self, sock_router_port, socket_dealer_port,
-            step_names=dict(), gui_address=None):
+        self, step_names=dict(), gui_address=None):
+
         """
         Parameters
         ----------
@@ -40,29 +43,27 @@ class RouterQueue(threading.Thread, Component):
         self.dealer_sockets = dict()
         self.stop = False
         self.names = step_names
-        self.sock_router_port = sock_router_port
-        self.socket_dealer_port = socket_dealer_port
-
     def init(self):
         # Prepare our context and sockets
         context = zmq.Context.instance()
         # Socket to talk to prev_stages
-        for name in self.names:
+        print("DEBUG ---> RouterQueue name [{}]".format(self.names))
+        for name,connexions in self.names.items():
             sock_router = context.socket(zmq.ROUTER)
             try:
-                sock_router.bind('inproc://' + self.sock_router_port[name])
+                sock_router.bind('inproc://' + connexions[0] + '_out')
             except zmq.error.ZMQError as e:
-                self.log.error('{} : inproc://{}'
-                               .format(e, self.sock_router_port[name]))
+                print('{} : inproc://{}'
+                               .format(e,  connexions[0]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
             sock_dealer = context.socket(zmq.ROUTER)
             try:
-                sock_dealer.bind("inproc://" + self.socket_dealer_port[name])
+                sock_dealer.bind("inproc://" + connexions[1] + '_in')
             except zmq.error.ZMQError as e:
-                self.log.error('{} : inproc://{}'
-                               .format(e, self.sock_router_port[name]))
+                print('{} : inproc://{}'
+                               .format(e,  connexions[1]))
                 return False
 
             self.dealer_sockets[name] = sock_dealer
