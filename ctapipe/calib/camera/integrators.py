@@ -200,7 +200,8 @@ def simple_integration(data, params):
 def global_peak_integration(data, params):
     """
     Integrate sample-mode data (traces) over a common interval around a
-    global signal peak.
+    global signal peak, found by a weighted average of the maximum in each
+    pixel.
 
     The integration window can be anywhere in the available length of the
     traces.
@@ -262,18 +263,16 @@ def global_peak_integration(data, params):
     # Define window
     max_time = significant_data.argmax(2)
     max_sample = significant_data.max(2)
-    max_time_sample_sum = (max_time * max_sample).sum(1)
-    max_sample_sum = max_sample.sum(1)
     peakpos = np.zeros_like(max_sample, dtype=np.int)
-    peakpos[0, :] = np.round(max_time_sample_sum[0] / max_sample_sum[0]).astype(np.int)
+    peakpos[0, :] = np.round(np.average(max_time[0], weights=max_sample[0]))
     if nchan > 1:
-        if not max_sample_sum[1] == 0:
+        if sig_channel[1]:
             peakpos[1, :] = np.round(
-                max_time_sample_sum[0] / max_sample_sum[0]).astype(np.int)
+                np.average(max_time[1], weights=max_sample[1]))
         else:
             log.info("[calib] LG not significant, using HG for peak finding "
                      "instead")
-            peakpos[:, 1] = peakpos[0]
+            peakpos[1, :] = peakpos[0]
     start = (peakpos - params['shift']).astype(np.int)
     window = params['window']
 
