@@ -52,7 +52,7 @@ def test_integration_mc():
 
     params['integrator'] = 'simple_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)
-    assert charge[0][0] == 74
+    assert charge[0][0] == 70
     assert sum(window[0][0]) == params['window']
 
     params['integrator'] = 'global_peak_integration'

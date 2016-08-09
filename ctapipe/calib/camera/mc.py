@@ -206,8 +206,7 @@ def integration_mc(event, telid, params, geom=None):
 
     # Get the integration correction
     int_corr = set_integration_correction(event, telid, params)
-    window = sum(integration_window[0][0])
-    if window == nsamples:
+    if peakpos[0] is None:
         int_corr = 1
 
     # Convert integration into charge
