@@ -236,16 +236,15 @@ class Pipeline(Tool):
         # import and init consumers
         for consumer_step in self.consumer_step:
             # each consumer need a router to connect it to prev stage
-            router_port_out = consumer_step.section_name + '_router'
             name = consumer_step.section_name + '_' + 'router'
-            router_names[name] = name
-            sock_router_ports[name] = consumer_step.port_in
-            socket_dealer_ports[name] = router_port_out
+            router_names[name] = [consumer_step.port_in,consumer_step.section_name]
+            #sock_router_ports[name] = consumer_step.port_in
+            #socket_dealer_ports[name] = router_port_out
             conf = self.consumer_conf
             try:
                 consumer_zmq = self.instantiation(consumer_step.section_name,
                                                   self.CONSUMER,
-                                                  port_in=router_port_out,
+                                                  port_in=consumer_step.section_name,
                                                   config=conf)
             except PipelineError as e:
                 self.log.error(e)
@@ -258,18 +257,17 @@ class Pipeline(Tool):
         # import and init stagers
         for stager_step in self.stager_steps:
             # each stage need a router to connect it to prev stage
-            router_port_out = stager_step.section_name + '_router'
             name = stager_step.section_name + '_' + 'router'
-            router_names[name] = name
-            sock_router_ports[name] = stager_step.port_in
-            socket_dealer_ports[name] = router_port_out
+            router_names[name] = [stager_step.port_in,stager_step.section_name]
+            #sock_router_ports[name] = stager_step.port_in
+            #socket_dealer_ports[name] = router_port_out
 
             for i in range(stager_step.nb_thread):
                 conf = self.get_step_conf(stager_step.section_name)
                 try:
                     stager_zmq = self.instantiation(
                         stager_step.section_name, self.STAGER,
-                        port_in=router_port_out, port_out=stager_step.port_out,
+                        port_in=stager_step.section_name, port_out=stager_step.port_out,
                         name=stager_step.section_name +
                             '$$thread_number$$' + str(i),
                         config=conf)
@@ -281,9 +279,7 @@ class Pipeline(Tool):
                     return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
-        router = RouterQueue(sock_router_ports,
-                             socket_dealer_ports,
-                             step_names=router_names,
+        router = RouterQueue(step_names=router_names,
                              gui_address=self.gui_address)
         if router.init() == False:
             return False
@@ -385,13 +381,13 @@ class Pipeline(Tool):
         obj.section_name = section_name
         if stage_type == self.STAGER:
             thread = StagerZmq(
-                obj, port_in, port_out, name=name, gui_address=self.gui_address)
+                obj, section_name+'_in', section_name+'_out', name=name, gui_address=self.gui_address)
         elif stage_type == self.PRODUCER:
             thread = ProducerZmq(
-                obj, port_out, 'producer', gui_address=self.gui_address)
+                obj, section_name+'_out', 'producer', gui_address=self.gui_address)
         elif stage_type == self.CONSUMER:
             thread = ConsumerZMQ(
-                obj, port_in,
+                obj, section_name+'_in',
                 'consumer', parent=self,
                 gui_address=self.gui_address)
         else:
