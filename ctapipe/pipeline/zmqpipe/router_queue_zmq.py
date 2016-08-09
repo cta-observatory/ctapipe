@@ -21,7 +21,7 @@ class RouterQueue(threading.Thread, Component):
     #        self, sock_router_port, socket_dealer_port,
     #        step_names=dict(), gui_address=None):
     def __init__(
-        self, step_names=dict(), gui_address=None):
+        self, connexions=dict(), gui_address=None):
 
         """
         Parameters
@@ -42,13 +42,12 @@ class RouterQueue(threading.Thread, Component):
         self.router_sockets = dict()
         self.dealer_sockets = dict()
         self.stop = False
-        self.names = step_names
+        self.connexions = connexions
     def init(self):
         # Prepare our context and sockets
         context = zmq.Context.instance()
         # Socket to talk to prev_stages
-        print("DEBUG ---> RouterQueue name [{}]".format(self.names))
-        for name,connexions in self.names.items():
+        for name,connexions in self.connexions.items():
             sock_router = context.socket(zmq.ROUTER)
             try:
                 sock_router.bind('inproc://' + connexions[0] + '_out')
@@ -104,7 +103,7 @@ class RouterQueue(threading.Thread, Component):
         nb_job_remains = 0
 
         while not self.stop or nb_job_remains > 0:
-            for name in self.names:
+            for name in self.connexions:
                 queue = self.queue_jobs[name]
 
                 # queue,next_available in
