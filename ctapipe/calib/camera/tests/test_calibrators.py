@@ -25,7 +25,7 @@ def test_calibrate_event():
     event = get_test_event()
     calibrated = calibrate_event(event, get_test_parameters())
     pe = calibrated.dl1.tel[telid].pe_charge
-    assert pe[0][0] == -1.891745344400406
+    assert round(pe[0][0], 5) == -1.89175
 
 
 def test_calibrate_source():
@@ -36,5 +36,5 @@ def test_calibrate_source():
     for event in c_source:
         if event.dl1.event_id == 408:
             pe = event.dl1.tel[telid].pe_charge
-            assert pe[0][0] == 1.8641869091987611
+            assert round(pe[0][0], 5) == 1.86419
             break

@@ -75,4 +75,4 @@ def test_calibrate_mc():
     telid = 11
     event = get_test_event()
     pe, window, data_ped, peakpos = calibrate_mc(event, telid, get_test_parameters())
-    assert pe[0][0] == -1.891745344400406
+    assert round(pe[0][0],5) == -1.89175
