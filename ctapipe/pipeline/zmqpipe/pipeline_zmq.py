@@ -28,6 +28,18 @@ from traitlets import (Integer, Float, List, Dict, Unicode)
 __all__ = ['Pipeline', 'PipelineError']
 
 
+class StepPosInPipeline():
+    '''
+    Define a pipeline step position in pipeline
+    '''
+    def __init__(self,step_name, level,branch):
+        self.step_name = step_name
+        self.level = level
+        self.branch = branch
+    def __repr__(self):
+        return str(self.step_name) + ', level:' + str(self.level) + ', branch: ' + str(self.branch)
+
+
 class PipeStep():
 
     '''
@@ -277,6 +289,9 @@ class Pipeline(Tool):
         if router.init() == False:
             return False
         self.router=router
+        result = self.define_step_order()
+        self.log.debug("step order {}".format(result))
+        sys.exit()
         # Define order in which step have to be stop
         self.def_thread_order()
         # self.log.info pipeline configuration
@@ -337,48 +352,7 @@ class Pipeline(Tool):
             if step.name == name:
                 return step
         return None
-    """
-    def configure_port_out(self, producer_steps, stager_steps):
-        '''
-        Configure port_out from pipeline's ports list for producers and stagers
-        returns:
-        --------
-        True if every ports is configured
-        False if no more ports are available
-        Parameters
-        ----------
-        producer_steps : list of producer step
-        stager_steps   : list of stager step
-        '''
-        for producer_step in producer_steps:
-            producer_step.port_out = producer_step.name
 
-            if producer_step.port_out is None:
-                return False
-        for stager_step in stager_steps:
-            stager_step.port_out = stager_step.name
-            if stager_step.port_out is None:
-                return False
-        return True
-    """
-    """
-    def configure_port_in(self, stager_steps, consumer_steps):
-        '''
-        Configure port_in from pipeline's ports list for stagers and consumers
-        Parameters
-        ----------
-        consumer_steps : list of consumer step
-        stager_steps   : list of stager step
-        '''
-
-        for stager_step in stager_steps:
-            stager_step.port_in = self.get_prev_step_port_out(
-                stager_step.name)
-
-        for consumer_step in consumer_steps:
-            consumer_step.port_in = self.get_prev_step_port_out(
-                consumer_step.name)
-        """
 
     def instantiation(
             self, name, stage_type, thread_name=None, port_in=None,
@@ -464,65 +438,10 @@ class Pipeline(Tool):
         except KeyError as e:
             return None
 
-    """
-    def get_prev_step_name(self, section):
-        '''
-        Parameters:
-        -----------
-        name : str
-                section name of a  pipeline step
-        Returns:
-        --------
-        name of previons step
-        '''
-        # If section correspond to consumer name, returl last stage
-        if self.consumer_conf['name'] == section:
-            return self.stagers_conf[-1]['name']
-        indice = self.get_stager_indice(section)
-        if indice != -1:
-            if indice == 0:  # This is the first dtage, so prev is Producer
-                return self.producer_conf['name']
-            return self.stagers_conf[indice - 1]['name']
-        return None
-    """
-    """
-    def get_prev_step_port_out(self, section):
-        '''
-        return port out of prev stage
-        Parameters:
-        -----------
-        name : str
-                section name of a  pipeline step
-        Returns:
-        port_out of previons step
-        '''
-        prev_section = self.get_prev_step_name(section)
-        if prev_section is not None:
-            if self.producer_steps is not None:
-                for producer_step in self.producer_steps:
-                    if producer_step.name == prev_section:
-                        return producer_step.port_out
-            if self.stager_steps is not None:
-                for stager_step in self.stager_steps:
-                    if stager_step.name == prev_section:
-                        return stager_step.port_out
-        return None
-    """
     def def_thread_order(self):
         ''' Define order in which step have to be stop.
-        Fill self.step_threads
+            Fill self.step_threads
         '''
-        """
-        for consumer in self.consumer_step:
-            self.router_thread = self.router_queues[0]
-            prev = consumer.prev_step
-            while prev is not None:
-                stages = list()
-                for t in prev.threads:
-                    self.step_threads.append(t)
-                    stages.append(GUIStepInfo(t))
-                prev = prev.prev_step
-        """
         self.router_thread = self.router
 
         next_steps_name =  self.producer_step.next_steps_name
@@ -579,12 +498,29 @@ class Pipeline(Tool):
         '''
         chaine = list()
         chaine.append('    \t\t' + self.producer_step.name)
+        self.log.debug('---------------->display_conf add {}'.format(self.producer_step.name))
         next_steps_name = self.producer_step.next_steps_name
-        while next_steps_name:
-            for step_name in next_steps_name:
+        self.log.debug('---------------->display_conf next_steps_name {}'.format(next_steps_name))
+        nodes=list()
+        while next_steps_name or nodes:
+            self.log.debug('---------------->display_conf while next_steps_name {}, nodes {}'.format(next_steps_name,nodes))
+            if next_steps_name:
+                step_name = next_steps_name[0]
+            else:
+                step_name = nodes.pop(0)
+                chaine.append('\n\n\n    \t\t\t\t\t')
+            if len(next_steps_name) > 1:
+                self.log.debug('---------------->display_conf add multi{}'.format(next_steps_name))
+                chaine.append('    \t\t' + str(next_steps_name))
+                nodes = nodes + next_steps_name[1:]
+            else:
+                self.log.debug('---------------->display_conf add {}'.format(step_name))
                 chaine.append('    \t\t' + str(step_name))
-                next_step = self.get_step_by_name(step_name)
-                next_steps_name = next_step.next_steps_name
+            next_step = self.get_step_by_name(step_name)
+            self.log.debug('---------------->display_conf next_step {} for {}'.format(next_step,step_name))
+
+            next_steps_name = next_step.next_steps_name
+            self.log.debug('---------------->display_conf next_steps_name  {}'.format(next_steps_name))
 
         self.log.info(' ------------- Pipeline configuration ----------- ')
         self.log.info(' \t\t\t\t\t\t')
@@ -598,6 +534,83 @@ class Pipeline(Tool):
         self.log.info(
             ' ---------- End Pipeline configuration ----------- \n\n ')
 
+    def define_step_order(self):
+        """ Returns a list of StepPosInPipeline:
+        """
+        result = dict()
+        level  = 0
+        branch = 0
+        result[self.producer_step.name]=StepPosInPipeline(self.producer_step.name,level,branch)
+        self.log.debug('---------------->define_step_order add {}'.format(self.producer_step.name))
+        next_steps_name = self.producer_step.next_steps_name
+        self.log.debug('---------------->define_step_order next_steps_name {}'.format(next_steps_name))
+        nodes=list()
+        level+=1
+        last_level = 0
+        while next_steps_name or nodes:
+            self.log.debug('---------------->define_step_order while next_steps_name {}, nodes {}'.format(next_steps_name,nodes))
+            if next_steps_name:
+                if len(next_steps_name) > 1:
+                    branch+=1
+                    self.log.debug('branch {}'.format(branch))
+                    nodes = nodes + next_steps_name[1:]
+                    last_level = level
+                    self.log.debug('---------------->define_step_order add to node {}'.format(next_steps_name[1:]))
+                    step_name = next_steps_name[branch-1]
+                else:
+                    step_name = next_steps_name[0]
+                self.log.debug('step_name {}'.format(step_name))
+            else:
+                step_name = nodes.pop(0)
+                level = last_level
+                branch+=1
+
+            step_to_add = StepPosInPipeline(step_name,level,branch)
+            if step_name in result:
+                exiting_branch = result[step_name].branch
+                if exiting_branch > branch:
+                     result[step_name].branch = branch - 1
+                else:
+                     result[step_name].branch = exiting_branch - 1
+                result[step_name].level = level
+            else:
+                result[step_name]=step_to_add
+                self.log.debug('---------------->define_step_order add  {}'.format(step_to_add))
+            next_step = self.get_step_by_name(step_name)
+
+            next_steps_name = next_step.next_steps_name
+            self.log.debug('---------------->define_step_order next_steps_name  {}'.format(next_steps_name))
+            level+=1
+
+        """
+        # remove duplicate entry and reassign level and branch
+        #count how many times step.step_name appear
+        entries = dict()
+        for step in result:
+            try:
+                entries[step.step_name] = entries[step.step_name] + 1
+            except  KeyError: # first entry for step key
+                entries[step.step_name] = 1
+
+        # add (step.name,occurence1) to duplicated list
+        duplicated = list()
+        for entry,occurence in entries.items():
+            if value > 1:
+                duplicated.append((entry,occurence))
+
+        # now remove duplicate entries and assign higher level
+        final_result = list(result)
+        for name,occurence in duplicated:
+            higher = 0
+            for entry in result:
+                if entry.step_name == name:
+                    if entry.level > higher: higher = entry.level
+                    occurence-=1
+                    if occurence > 1 :
+                        final_result.pop(entry.step_name)
+
+        """
+        return result
 
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
