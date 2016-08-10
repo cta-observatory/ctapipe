@@ -550,23 +550,9 @@ class Pipeline(Tool):
         Returns: Actual time
         '''
         self.levels_for_gui = list()
-        self.levels_for_gui.append([GUIStepInfo(self.consumer)])
-        self.levels_for_gui.append(
-            [GUIStepInfo(self.router_thread, name=self.consumer_step.name +
-             '_router')])
-        """
-        prev = self.consumer_step.prev_step
-        while prev is not None:
-            stages = list()
-            for t in prev.threads:
-                stages.append(GUIStepInfo(t))
-            if stages:
-                self.levels_for_gui.append(stages)
-                self.levels_for_gui.append(
-                    [GUIStepInfo(self.router_thread, name=prev.name +
-                     '_router')])
-            prev = prev.prev_step
-        """
+        #PRODUCER
+        self.levels_for_gui.append([GUIStepInfo(self.producer)])
+        #STAGERS
         next_steps_name = self.producer_step.next_steps_name
         while next_steps_name:
             for next_step_name in next_steps_name:
@@ -575,14 +561,17 @@ class Pipeline(Tool):
                 for t in next_step.threads:
                     stages.append(GUIStepInfo(t))
                 if stages:
-                    self.levels_for_gui.append(stages)
                     self.levels_for_gui.append(
                         [GUIStepInfo(self.router_thread, name=next_step.name +
                          '_router')])
+                    self.levels_for_gui.append(stages)
 
             next_steps_name = next_step.next_steps_name
-        self.levels_for_gui.append([GUIStepInfo(self.producer)])
-        self.levels_for_gui = list(reversed(self.levels_for_gui))
+        #CONSUMER
+        self.levels_for_gui.append(
+        [GUIStepInfo(self.router_thread, name=self.consumer_step.name +
+        '_router')])
+        self.levels_for_gui.append([GUIStepInfo(self.consumer)])
         return time.clock()
 
     def display_conf(self):

@@ -45,7 +45,6 @@ class RouterQueue(threading.Thread, Component):
         self.connexions = connexions
     def init(self):
 
-        print('DEBUG -------> RouterQueue connexions {}'.format(self.connexions))
         # Prepare our context and sockets
         context = zmq.Context.instance()
         # Socket to talk to prev_stages
@@ -53,7 +52,6 @@ class RouterQueue(threading.Thread, Component):
             sock_router = context.socket(zmq.ROUTER)
             try:
                 sock_router.bind('inproc://' + connexions[0])
-                print('DEBUG ------> sock_router {} : bind to  inproc://{}'.format(name,connexions[0]))
             except zmq.error.ZMQError as e:
                 print('{} : inproc://{}'
                                .format(e,  connexions[0]))
@@ -63,7 +61,6 @@ class RouterQueue(threading.Thread, Component):
             sock_dealer = context.socket(zmq.ROUTER)
             try:
                 sock_dealer.bind("inproc://" + connexions[1] )
-                print('DEBUG ------> sock_dealer {} : bind to  inproc://{}'.format(name,connexions[1]))
             except zmq.error.ZMQError as e:
                 print('{} : inproc://{}'
                                .format(e,  connexions[1]))
