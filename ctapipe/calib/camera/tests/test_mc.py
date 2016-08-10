@@ -10,7 +10,6 @@ def get_test_parameters():
                   "window": 7,
                   "shift": 3,
                   "sigamp": [2, 4],
-                  "clip_amp": 0,
                   "lwt": 0}
     return parameters
 
