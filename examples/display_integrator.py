@@ -25,13 +25,6 @@ from ctapipe.io.files import InputFile, origin_list
 from ctapipe.plotting.camera import CameraPlotter
 
 
-def get_source(filepath):
-    from ctapipe.utils.datasets import get_path
-    from ctapipe.io.hessio import hessio_event_source
-    source = hessio_event_source(get_path(filepath))
-    return source
-
-
 def main():
     script = os.path.splitext(os.path.basename(__file__))[0]
     log.info("[SCRIPT] {}".format(script))
