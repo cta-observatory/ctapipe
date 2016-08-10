@@ -271,5 +271,7 @@ def calibrate_mc(event, telid, params, geom=None):
     charge, window, data_ped, peakpos = \
         integration_mc(event, telid, params, geom)
     pe = calibrate_amplitude_mc(event, charge, telid, params)
+    if 'clip_amp' in params:
+        pe[np.where(pe > params['clip_amp'])] = params['clip_amp']
 
     return pe, window, data_ped, peakpos

@@ -27,33 +27,34 @@ def calibration_arguments(parser):
         integrators += " - {} = {}\n".format(key, value)
 
     parser.add_argument('--integrator', dest='integrator', action='store',
-                        required=True, type=int,
+                        default=5, type=int,
                         help='which integration scheme should be used to '
-                             'extract the charge?\n{}'.format(integrators))
+                             'extract the charge? (default = 5)'
+                             '\n{}'.format(integrators))
     parser.add_argument('--integration-window', dest='integration_window',
-                        action='store', required=True, nargs=2, type=int,
+                        action='store', default=[7,3], nargs=2, type=int,
                         help='Set integration window width and offset (to '
                              'before the peak) respectively, '
-                             'e.g. --integration-window 7 3')
+                             'e.g. --integration-window 7 3 (default)')
     parser.add_argument('--integration-sigamp', dest='integration_sigamp',
-                        action='store', nargs='+', type=int,
+                        action='store', nargs='+', type=int, default=[2,4],
                         help='Amplitude in ADC counts above pedestal at which '
                              'a signal is considered as significant, and used '
                              'for peak finding. '
                              '(separate for high gain/low gain), '
-                             'e.g. --integration-sigamp 2 4')
+                             'e.g. --integration-sigamp 2 4 (default)')
     parser.add_argument('--integration-clip_amp', dest='integration_clip_amp',
-                        action='store', type=int,
+                        action='store', type=int, default=None,
                         help='Amplitude in p.e. above which the signal is '
                              'clipped.')
     parser.add_argument('--integration-lwt', dest='integration_lwt',
-                        action='store', type=int,
+                        action='store', type=int, default=0,
                         help='Weight of the local pixel (0: peak from '
                              'neighbours only, 1: local pixel counts as much '
                              'as any neighbour) default=0')
     parser.add_argument('--integration-calib_scale',
                         dest='integration_calib_scale',
-                        action='store', type=float,
+                        action='store', type=float, default=0.92,
                         help='Used for conversion from ADC to pe. Identical '
                              'to global variable CALIB_SCALE in '
                              'reconstruct.c in hessioxxx software package. '
@@ -76,10 +77,18 @@ def calibration_parameters(args):
     parameters : dict
         dictionary containing the formatted calibration parameters
     """
-    t, inverse = integrator_dict()
-    parameters = {'integrator': t[args.integrator],
-                  'window': args.integration_window[0],
-                  'shift': args.integration_window[1]}
+    parameters = {}
+    if args.integrator is not None:
+        integrator_names, inverse = integrator_dict()
+        try:
+            parameters['integrator'] = integrator_names[args.integrator]
+        except KeyError:
+            log.exception('[calib] Specified integrator does not exist: {}'
+                          .format(args.integrator))
+            raise
+    if args.integration_window is not None:
+        parameters['window'] = args.integration_window[0]
+        parameters['shift'] = args.integration_window[1]
     if args.integration_sigamp is not None:
         parameters['sigamp'] = args.integration_sigamp[:2]
     if args.integration_clip_amp is not None:
@@ -87,7 +96,7 @@ def calibration_parameters(args):
     if args.integration_lwt is not None:
         parameters['lwt'] = args.integration_lwt
     if args.integration_calib_scale is not None:
-        parameters['calib_scale'] = args.calib_scale
+        parameters['calib_scale'] = args.integration_calib_scale
 
     for key, value in parameters.items():
         log.info("[{}] {}".format(key, value))
