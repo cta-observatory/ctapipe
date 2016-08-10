@@ -29,7 +29,6 @@ class ProducerZmq(Thread, Component):
         Thread.__init__(self)
         self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
-        # self.port = "tcp://localhost:"+ sock_request_port
         self.port = 'inproc://' + sock_request_port
         self.name = _name
         self.running = False

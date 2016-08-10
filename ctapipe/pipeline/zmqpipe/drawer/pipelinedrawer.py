@@ -6,7 +6,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import Qt
 from PyQt4.QtCore import QPointF, QLineF
 from PyQt4.QtGui import QColor, QPen
-from ctapipe.pipeline.zmqpipe.pipeline_zmq import StepInfo
+from ctapipe.pipeline.zmqpipe.pipeline_zmq import GUIStepInfo
 
 GAP_Y = 60
 STAGE_SIZE_X = 80
@@ -33,7 +33,7 @@ class FigureRep():
         when receive new information dform pipeline
     """
 
-    def __init__(self, center=QPointF(0, 0), size_x=0, size_y=0, fig_type=StepInfo.STAGER, name=None):
+    def __init__(self, center=QPointF(0, 0), size_x=0, size_y=0, fig_type=GUIStepInfo.STAGER, name=None):
         self.center = center
         self.size_x = size_x
         self.size_y = size_y
@@ -132,7 +132,7 @@ class StagerRep(FigureRep):
     """
 
     def __init__(self, center=QPointF(0, 0), size_x=0, size_y=0,
-                 running=False, fig_type=StepInfo.STAGER, name="", nb_job_done=0):
+                 running=False, fig_type=GUIStepInfo.STAGER, name="", nb_job_done=0):
         FigureRep.__init__(self, center=center, size_x=size_x, size_y=size_y,
                            fig_type=fig_type, name=name)
         self.running = running
@@ -300,20 +300,20 @@ class PipelineDrawer(QtGui.QWidget):
         ----------
         config_time: float
             contains pipeline's config's time
-        receiv_levels: list of StepInfo describing pipeline contents
+        receiv_levels: list of GUIStepInfo describing pipeline contents
         """
         if config_time != self.config_time:
             levels = list()
             # loop overs levels and steps in level
             # Create StagerRep, ConsumerRep, ProducerRep, RouterRep according
-            # to StepInfo.fig_type
+            # to GUIStepInfo.fig_type
             for level in receiv_levels:
                 steps = list()
                 for step in level:
-                    if step.type == StepInfo.ROUTER:
+                    if step.type == GUIStepInfo.ROUTER:
                         steps.append(
                             RouterRep(name=step.name, queue=step.queue_size))
-                    elif step.type == StepInfo.STAGER:
+                    elif step.type == GUIStepInfo.STAGER:
                         steps.append(
                             StagerRep(
                                 running=False, nb_job_done=step.nb_job_done, fig_type=step.type, name=step.name,
@@ -336,7 +336,7 @@ class PipelineDrawer(QtGui.QWidget):
         ----------
         msg: list
             contains step name, step running flag and step nb_job_done
-            receiv_levels: list of StepInfo describing pipeline contents
+            receiv_levels: list of GUIStepInfo describing pipeline contents
         """
         name, running, nb_job_done = msg
         for level in self.levels:
@@ -353,7 +353,7 @@ class PipelineDrawer(QtGui.QWidget):
         ----------
         msg: list
             contains router name and router queue
-        receiv_levels: list of StepInfo describing pipeline contents
+        receiv_levels: list of GUIStepInfo describing pipeline contents
         """
         name, queue = msg
         for level in self.levels:

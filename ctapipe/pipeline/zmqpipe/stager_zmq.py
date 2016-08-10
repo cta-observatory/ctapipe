@@ -22,7 +22,7 @@ class StagerZmq(threading.Thread):
 
     def __init__(
             self, coroutine, sock_job_for_me_port,
-            sock_job_for_you_port, name=None, gui_address=None):
+            sock_job_for_you_port, name=None, thread_name=None, gui_address=None):
         """
         Parameters
         ----------
@@ -40,6 +40,7 @@ class StagerZmq(threading.Thread):
         self.sock_job_for_you_url = 'inproc://' + sock_job_for_you_port
         self.sock_job_for_me_url = 'inproc://' + sock_job_for_me_port
         self.name = name
+        self.thread_name = thread_name
         self.running = False
         self.nb_job_done = 0
         self.gui_address = gui_address
