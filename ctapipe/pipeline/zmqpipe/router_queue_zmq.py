@@ -44,13 +44,16 @@ class RouterQueue(threading.Thread, Component):
         self.stop = False
         self.connexions = connexions
     def init(self):
+
+        print('DEBUG -------> RouterQueue connexions {}'.format(self.connexions))
         # Prepare our context and sockets
         context = zmq.Context.instance()
         # Socket to talk to prev_stages
         for name,connexions in self.connexions.items():
             sock_router = context.socket(zmq.ROUTER)
             try:
-                sock_router.bind('inproc://' + connexions[0] + '_out')
+                sock_router.bind('inproc://' + connexions[0])
+                print('DEBUG ------> sock_router {} : bind to  inproc://{}'.format(name,connexions[0]))
             except zmq.error.ZMQError as e:
                 print('{} : inproc://{}'
                                .format(e,  connexions[0]))
@@ -59,7 +62,8 @@ class RouterQueue(threading.Thread, Component):
             # Socket to talk to next_stages
             sock_dealer = context.socket(zmq.ROUTER)
             try:
-                sock_dealer.bind("inproc://" + connexions[1] + '_in')
+                sock_dealer.bind("inproc://" + connexions[1] )
+                print('DEBUG ------> sock_dealer {} : bind to  inproc://{}'.format(name,connexions[1]))
             except zmq.error.ZMQError as e:
                 print('{} : inproc://{}'
                                .format(e,  connexions[1]))
@@ -122,7 +126,6 @@ class RouterQueue(threading.Thread, Component):
                 # check if new socket message arrive. Or skip after timeout
                 # (100 s)
             sockets = dict(self.poller.poll(100))
-
             # Test if message arrived from next_stages
             for n, socket_dealer in self.dealer_sockets.items():
                 if (socket_dealer in sockets and
@@ -140,6 +143,7 @@ class RouterQueue(threading.Thread, Component):
             for n, socket_router in self.router_sockets.items():
                 if (socket_router in sockets and
                         sockets[socket_router] == zmq.POLLIN):
+                    print('DEBUG ------------> RouterQueue receive from router socket {} '.format(socket_router))
                     # Get next prev_stage request
                     address, empty, request = socket_router.recv_multipart()
                     # store it to job queue
