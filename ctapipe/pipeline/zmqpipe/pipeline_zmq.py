@@ -27,18 +27,15 @@ from traitlets import (Integer, Float, List, Dict, Unicode)
 
 __all__ = ['Pipeline', 'PipelineError']
 
+class Branch():
+        '''
+        Define a branch in the pipeline
+        '''
+        def __init__(self,branch):
+            pass
 
-class StepPosInPipeline():
-    '''
-    Define a pipeline step position in pipeline
-    '''
-    def __init__(self,step_name, level,branch):
-        self.step_name = step_name
-        self.level = level
-        self.branch = branch
-    def __repr__(self):
-        return str(self.step_name) + ', level:' + str(self.level) + ', branch: ' + str(self.branch)
-
+        def __repr__(self):
+            return str()
 
 class PipeStep():
 
@@ -53,16 +50,16 @@ Parameters
             port number to connect prev Router
     port_out : str
             port number to connect next Router
-nb_thread: int
-    Number of thread to instantiate for this step
-Note: The firewall must be configure to accept input/output on theses port
+    nb_thread : int
+            mumber of thread to instantiate for this step
+    level : step level in pipeline. Producer is level 0
 '''
 
     def __init__(self, name,
                  #prev_step=None,
                  next_steps_name=list(),
                  port_in=None,
-                 port_out=None, nb_thread=1):
+                 port_out=None, nb_thread=1, level=0):
         self.name = name
         self.port_in = port_in
         self.port_out = port_out
@@ -70,6 +67,7 @@ Note: The firewall must be configure to accept input/output on theses port
         self.next_steps_name = next_steps_name
         self.threads = list()
         self.nb_thread = nb_thread
+        self.level = level
 
     def __repr__(self):
         '''standard representation
@@ -77,7 +75,9 @@ Note: The firewall must be configure to accept input/output on theses port
         return ('Name[ ' + str(self.name)
                 + '], next_steps_name[' + str(self.next_steps_name)
                 + '], port in[ ' + str(self.port_in)
-                + '], port out [ ' + str(self.port_out) + ' ]')
+                + '], port out [ ' + str(self.port_out) + ' ]'
+                + '], nb thread[ ' + str(self.nb_thread)
+                +  '], level[ ' + str(self.level))
 
 
 class PipelineError(Exception):
@@ -239,10 +239,7 @@ class Pipeline(Tool):
         # import and init consumers
         # each consumer need a router to connect it to prev stage
         name = self.consumer_step.name + '_' + 'router'
-        #router_names[name] = [self.consumer_step.port_in,self.consumer_step.name]
         router_names[name] = [self.consumer_step.name+'_in',self.consumer_step.name+'_out']
-        #sock_router_ports[name] = consumer_step.port_in
-        #socket_dealer_ports[name] = router_port_out
         conf = self.consumer_conf
         try:
             consumer_zmq = self.instantiation(self.consumer_step.name,
@@ -284,17 +281,12 @@ class Pipeline(Tool):
                     return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
-        router = RouterQueue(connexions=router_names,
+        self.router = RouterQueue(connexions=router_names,
                              gui_address=self.gui_address)
-        if router.init() == False:
+        if self.router.init() == False:
             return False
-        self.router=router
-        result = self.define_step_order()
-        self.log.debug("step order {}".format(result))
-        sys.exit()
-        # Define order in which step have to be stop
+        # Define order in which step have to be start/stop
         self.def_thread_order()
-        # self.log.info pipeline configuration
         self.display_conf()
         return True
 
@@ -439,35 +431,47 @@ class Pipeline(Tool):
             return None
 
     def def_thread_order(self):
-        ''' Define order in which step have to be stop.
+        ''' Define order in which STAGE have to be start/stop.
             Fill self.step_threads
+            Warning Producer and consumer thread  are not concerned
         '''
-        self.router_thread = self.router
-
-        next_steps_name =  self.producer_step.next_steps_name
-        for next_step in  next_steps_name:
-            for step_name in next_steps_name:
-                next_step = self.get_step_by_name(step_name)
-                for t in next_step.threads:
-                    self.step_threads.append(t)
-                    next_steps_name = next_step.next_steps_name
-                    while next_steps_name:
-                        for step_name in next_steps_name:
-                            next_step = self.get_step_by_name(step_name)
-                            for t in next_step.threads:
-                                self.step_threads.append(t)
-                        next_steps_name = next_step.next_steps_name
-
-        self.log.debug("def_thread_order-> self.step_threads {}".format(self.step_threads))
-
-
+        # Define step level witihin pipeline
+        self.define_steps_level()
+        # sort steps by level
+        all_steps =  ([self.producer_step ] + self.stager_steps
+            + [self.consumer_step])
+        level = 0
+        done = 0
+        while done != len(all_steps):
+            for step in all_steps:
+                if step.level == level:
+                    for t in step.threads:
+                        self.step_threads.append(t)
+                    done+=1
+            level+=1
 
     def def_step_for_gui(self):
         ''' Create a list (self.levels_for_gui) containing GUIStepInfo instances
          representing pipeline configuration and Threads activity
         Fill self.step_threads
-        Returns: Actual time
+        Returns: (graphviz.Digraph,Actual time)
         '''
+        try:
+            from graphviz import Digraph
+
+            g = Digraph('test', format='png')
+            for step in  ([self.producer_step ] + self.stager_steps
+                + [self.consumer_step]):
+                g.node(step.name)
+                for next_step_name in step.next_steps_name:
+                    g.edge(step.name, next_step_name)
+
+
+        except ImportError:
+            pass
+
+        return g, time.clock()
+        """
         self.levels_for_gui = list()
         #PRODUCER
         self.levels_for_gui.append([GUIStepInfo(self.producer)])
@@ -492,125 +496,55 @@ class Pipeline(Tool):
         '_router')])
         self.levels_for_gui.append([GUIStepInfo(self.consumer)])
         return time.clock()
+        """
+
 
     def display_conf(self):
         ''' self.log.info pipeline configuration
         '''
-        chaine = list()
-        chaine.append('    \t\t' + self.producer_step.name)
-        self.log.debug('---------------->display_conf add {}'.format(self.producer_step.name))
-        next_steps_name = self.producer_step.next_steps_name
-        self.log.debug('---------------->display_conf next_steps_name {}'.format(next_steps_name))
-        nodes=list()
-        while next_steps_name or nodes:
-            self.log.debug('---------------->display_conf while next_steps_name {}, nodes {}'.format(next_steps_name,nodes))
-            if next_steps_name:
-                step_name = next_steps_name[0]
-            else:
-                step_name = nodes.pop(0)
-                chaine.append('\n\n\n    \t\t\t\t\t')
-            if len(next_steps_name) > 1:
-                self.log.debug('---------------->display_conf add multi{}'.format(next_steps_name))
-                chaine.append('    \t\t' + str(next_steps_name))
-                nodes = nodes + next_steps_name[1:]
-            else:
-                self.log.debug('---------------->display_conf add {}'.format(step_name))
-                chaine.append('    \t\t' + str(step_name))
-            next_step = self.get_step_by_name(step_name)
-            self.log.debug('---------------->display_conf next_step {} for {}'.format(next_step,step_name))
+        try:
+            from graphviz import Digraph
 
-            next_steps_name = next_step.next_steps_name
-            self.log.debug('---------------->display_conf next_steps_name  {}'.format(next_steps_name))
+            g = Digraph('test', format='png')
+            for step in  ([self.producer_step ] + self.stager_steps
+                + [self.consumer_step]):
+                g.node(step.name)
+                for next_step_name in step.next_steps_name:
+                    g.edge(step.name, next_step_name)
+            g.view()
 
-        self.log.info(' ------------- Pipeline configuration ----------- ')
-        self.log.info(' \t\t\t\t\t\t')
-        for item in chaine[:-1]:
-            self.log.info(item)
-            self.log.info(' \t\t\t  |')
-            self.log.info(' \t\t\t  |')
-            self.log.info(' \t\t\t  V')
-        self.log.info(chaine[-1])
-        self.log.info(' \t\t\t\t\t\t')
-        self.log.info(
-            ' ---------- End Pipeline configuration ----------- \n\n ')
+        except ImportError:
+            for step in  ([self.producer_step ] + self.stager_steps
+                + [self.consumer_step]):
+                self.log.debug('step {} '.format(step.name))
+                for next_step_name in step.next_steps_name:
+                    self.log.debug('--> next {} '.format(next_step_name))
 
-    def define_step_order(self):
-        """ Returns a list of StepPosInPipeline:
+    def define_steps_level(self):
+        """ Set level of each pipeline step
         """
-        result = dict()
-        level  = 0
-        branch = 0
-        result[self.producer_step.name]=StepPosInPipeline(self.producer_step.name,level,branch)
-        self.log.debug('---------------->define_step_order add {}'.format(self.producer_step.name))
+        step_to_compute = list() # list contains steps + level
+        level = 1
+        current_step = None
+
+        self.producer_step.level = 0
         next_steps_name = self.producer_step.next_steps_name
-        self.log.debug('---------------->define_step_order next_steps_name {}'.format(next_steps_name))
-        nodes=list()
-        level+=1
-        last_level = 0
-        while next_steps_name or nodes:
-            self.log.debug('---------------->define_step_order while next_steps_name {}, nodes {}'.format(next_steps_name,nodes))
+
+        while next_steps_name or step_to_compute:
             if next_steps_name:
                 if len(next_steps_name) > 1:
-                    branch+=1
-                    self.log.debug('branch {}'.format(branch))
-                    nodes = nodes + next_steps_name[1:]
-                    last_level = level
-                    self.log.debug('---------------->define_step_order add to node {}'.format(next_steps_name[1:]))
-                    step_name = next_steps_name[branch-1]
-                else:
-                    step_name = next_steps_name[0]
-                self.log.debug('step_name {}'.format(step_name))
+                    # keep step to compute them later
+                    for step_name in next_steps_name[1:]:
+                        step_to_compute.append((step_name))
+                        self.get_step_by_name(step_name).level = level
+                current_step = self.get_step_by_name(next_steps_name[0])
+                current_step.level = level
             else:
-                step_name = nodes.pop(0)
-                level = last_level
-                branch+=1
+                current_step = self.get_step_by_name(step_to_compute.pop(0))
+                level = current_step.level
 
-            step_to_add = StepPosInPipeline(step_name,level,branch)
-            if step_name in result:
-                exiting_branch = result[step_name].branch
-                if exiting_branch > branch:
-                     result[step_name].branch = branch - 1
-                else:
-                     result[step_name].branch = exiting_branch - 1
-                result[step_name].level = level
-            else:
-                result[step_name]=step_to_add
-                self.log.debug('---------------->define_step_order add  {}'.format(step_to_add))
-            next_step = self.get_step_by_name(step_name)
-
-            next_steps_name = next_step.next_steps_name
-            self.log.debug('---------------->define_step_order next_steps_name  {}'.format(next_steps_name))
+            next_steps_name = current_step.next_steps_name
             level+=1
-
-        """
-        # remove duplicate entry and reassign level and branch
-        #count how many times step.step_name appear
-        entries = dict()
-        for step in result:
-            try:
-                entries[step.step_name] = entries[step.step_name] + 1
-            except  KeyError: # first entry for step key
-                entries[step.step_name] = 1
-
-        # add (step.name,occurence1) to duplicated list
-        duplicated = list()
-        for entry,occurence in entries.items():
-            if value > 1:
-                duplicated.append((entry,occurence))
-
-        # now remove duplicate entries and assign higher level
-        final_result = list(result)
-        for name,occurence in duplicated:
-            higher = 0
-            for entry in result:
-                if entry.step_name == name:
-                    if entry.level > higher: higher = entry.level
-                    occurence-=1
-                    if occurence > 1 :
-                        final_result.pop(entry.step_name)
-
-        """
-        return result
 
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
@@ -629,9 +563,11 @@ class Pipeline(Tool):
         Stop all thread in set order
         '''
         # send pipeline cofiguration to an optinal GUI instance
-        conf_time = self.def_step_for_gui()
+        diag,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
-            [b'GUI_GRAPH', pickle.dumps([conf_time, self.levels_for_gui])])
+            [b'GUI_GRAPH', pickle.dumps([conf_time,diag])])
+
+
         # Start all Threads
         self.consumer.start()
 
@@ -646,13 +582,13 @@ class Pipeline(Tool):
         #for worker in reversed(self.step_threads):
         for worker in self.step_threads:
             if worker is not None:
-                while not self.router_thread.isQueueEmpty(worker.name):
+                while not self.router.isQueueEmpty(worker.name):
                     self.socket_pub.send_multipart(
                         [b'GUI_GRAPH', pickle.dumps([conf_time,
                          self.levels_for_gui])])
                     time.sleep(1)
                 self.wait_and_send_levels(worker, conf_time)
-        self.wait_and_send_levels(self.router_thread, conf_time)
+        self.wait_and_send_levels(self.router, conf_time)
         self.wait_and_send_levels(self.consumer, conf_time)
         self.socket_pub.close()
         self.context.destroy()
@@ -672,11 +608,11 @@ class Pipeline(Tool):
                 represents time at which configuration has been built
         '''
         thread_to_wait.finish()
-        self.def_step_for_gui()
+        diagram,_ = self.def_step_for_gui()
         while True:
             thread_to_wait.join(timeout=1.0)
             self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', pickle.dumps([conf_time, self.levels_for_gui])])
+                [b'GUI_GRAPH', pickle.dumps([conf_time, diagram])])
             if not thread_to_wait.is_alive():
                 break
 

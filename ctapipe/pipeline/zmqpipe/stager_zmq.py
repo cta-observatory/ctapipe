@@ -73,11 +73,9 @@ class StagerZmq(threading.Thread):
             self.socket_pub.connect("tcp://" + self.gui_address)
         # Socket to talk to next_router
         self.sock_for_you.connect(self.sock_job_for_you_url)
-        print('DEBUG -------> StagerZmq {} self.sock_for_you.connect {}'.format(self.name, self.sock_job_for_you_url))
         # Socket to talk to prev_router
         self.sock_for_me = context.socket(zmq.REQ)
         self.sock_for_me.connect(self.sock_job_for_me_url)
-        print('DEBUG -------> StagerZmq {} self.sock_for_me.connect {}'.format(self.name, self.sock_job_for_me_url))
 
         # Use a ZMQ Pool to get multichannel message
         self.poll = zmq.Poller()
