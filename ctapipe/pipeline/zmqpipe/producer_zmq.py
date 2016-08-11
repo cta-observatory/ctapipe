@@ -39,7 +39,6 @@ class ProducerZmq(Thread, Component):
         # Socket to talk to Router
         self.sock_request = self.context.socket(zmq.REQ)
         self.sock_request.connect(self.port)
-        print('ProducerZmq DEBUG-------------> self.sock_request.connect({})'.format(self.port))
         self.socket_pub = self.context.socket(zmq.PUB)
 
         if self.gui_address is not None:

@@ -20,9 +20,12 @@
                         {"name": "FakeLST", "class": "Fake",
                                         "module": "ctapipe.pipeline.algorithms.fake",
                                         "next_steps" : "StringWriter", "nb_thread" : 1},
+                        {"name": "FakeOTHER_SUITE", "class": "Fake",
+                                        "module": "ctapipe.pipeline.algorithms.fake",
+                                        "next_steps" : "StringWriter", "nb_thread" : 1},
                         {"name": "FakeOther", "class": "Fake",
                                         "module": "ctapipe.pipeline.algorithms.fake",
-                                            "next_steps" : "StringWriter", "nb_thread" : 1}                                   
+                                            "next_steps" : "FakeOTHER_SUITE", "nb_thread" : 1}
                     ]
   },
 
