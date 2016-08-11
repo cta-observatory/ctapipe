@@ -1,5 +1,6 @@
 from ctapipe.core import Component
 from traitlets import Unicode
+from time import sleep
 
 
 class StringWriter(Component):
@@ -16,6 +17,7 @@ class StringWriter(Component):
         return True
 
     def run(self, object):
+        sleep(2)
         if (object is not None):
             self.file.write(str(object) + "\n")
 

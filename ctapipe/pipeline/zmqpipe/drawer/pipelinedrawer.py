@@ -2,10 +2,12 @@
 """
 classes used to display pipeline workload on a Qt.QWidget
 """
+from graphviz import Digraph
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import QLabel
 from PyQt4.QtCore import Qt
-from PyQt4.QtCore import QPointF, QLineF
-from PyQt4.QtGui import QColor, QPen
+from PyQt4.QtCore import QPointF, QLineF, QPoint
+from PyQt4.QtGui import QColor, QPen, QPixmap
 from ctapipe.pipeline.zmqpipe.pipeline_zmq import GUIStepInfo
 
 GAP_Y = 60
@@ -132,11 +134,13 @@ class StagerRep(FigureRep):
     """
 
     def __init__(self, center=QPointF(0, 0), size_x=0, size_y=0,
-                 running=False, fig_type=GUIStepInfo.STAGER, name="", nb_job_done=0):
+                 running=False, fig_type=GUIStepInfo.STAGER, name="",
+                 nb_job_done=0, next_steps=list()):
         FigureRep.__init__(self, center=center, size_x=size_x, size_y=size_y,
                            fig_type=fig_type, name=name)
         self.running = running
         self.nb_job_done = nb_job_done
+        self.next_steps = next_steps
 
     def draw(self, qpainter, zoom=1):
         """Draw this figure
@@ -170,6 +174,12 @@ class StagerRep(FigureRep):
         x1 = self.center.x() - (size_x / 2)
         y1 = self.center.y() - (size_y / 2)
         qpainter.drawRoundedRect(x1, y1, size_x, size_y, 12.0, 12.0)
+
+    def __repr__(self):
+        """ called by the repr() built-in function and by string conversions
+         (reverse quotes) to compute the "official" string representation of
+          an object."""
+        return self.name + " -> nexts steps: " + str(self.next_steps)
 
 
 class PipelineDrawer(QtGui.QWidget):
@@ -220,8 +230,14 @@ class PipelineDrawer(QtGui.QWidget):
         # something.
         if self.levels is None:
             return
-        # define Rep position because they change whan resising main windows
+        diagram = self.get_position_from_graphviz()
+        diagram_bytes = diagram.pipe('png')
+        pixmap = QPixmap()
+        pixmap.loadFromData(diagram_bytes)
+        qp.drawPixmap(QPoint(0,0),pixmap)
 
+        # define Rep position because they change whan resising main windows
+        """
         width = self.size().width()
         height = self.size().height()
 
@@ -262,7 +278,7 @@ class PipelineDrawer(QtGui.QWidget):
         for line in lines:
             qp.setPen(QtGui.QPen(self.blue_cta, 1, QtCore.Qt.SolidLine))
             qp.drawLine(line)
-
+        """
     def pipechange(self, topic, msg):
         """Called by ZmqSub instance when it receives zmq message from pipeline
         Update pipeline state (self.levels) and force to update drawing
@@ -283,6 +299,7 @@ class PipelineDrawer(QtGui.QWidget):
             config_time, receiv_levels = msg
             self.build_full_graph(config_time, receiv_levels)
         # Stager or Producer or Consumer state changes
+
         if self.levels is not None and (topic == b'GUI_STAGER_CHANGE' or
                                         topic == b'GUI_CONSUMER_CHANGE' or
                                         topic == b'GUI_PRODUCER_CHANGE'):
@@ -317,12 +334,12 @@ class PipelineDrawer(QtGui.QWidget):
                         steps.append(
                             StagerRep(
                                 running=False, nb_job_done=step.nb_job_done, fig_type=step.type, name=step.name,
-                                size_x=STAGE_SIZE_X, size_y=STAGE_SIZE_Y))
+                                size_x=STAGE_SIZE_X, size_y=STAGE_SIZE_Y,next_steps=step.next_steps_name))
                     else:  # PRODUCER AND CONSUMER
                         steps.append(
                             StagerRep(
                                 running=False, nb_job_done=step.nb_job_done, fig_type=step.type, name=step.name,
-                                size_x=PROD_CONS_SIZE_X, size_y=PROD_CONS_SIZE_Y))
+                                size_x=PROD_CONS_SIZE_X, size_y=PROD_CONS_SIZE_Y,next_steps=step.next_steps_name))
                 levels.append(steps)
             # Set self.levels
             self.levels = levels
@@ -341,7 +358,8 @@ class PipelineDrawer(QtGui.QWidget):
         name, running, nb_job_done = msg
         for level in self.levels:
             for step in level:
-                if step.name == name:
+                foo = name.split('$$thread')[0]
+                if step.name == foo:
                     step.running = running
                     step.nb_job_done = nb_job_done
                     break
@@ -361,3 +379,31 @@ class PipelineDrawer(QtGui.QWidget):
                 if step.name == name:
                     step.queue_size = queue
                     break
+
+    def get_position_from_graphviz(self):
+        """
+        Return a list of:
+        ['STEP NAME','x pos', 'ypos']
+        """
+
+        g = Digraph('test', format='png')
+        for level in  self.levels:
+            for step in level:
+                #print('{} running: {}'.format(step.name,step.running))
+                if step.running:
+                    g.node(step.name,color='lightblue2', style='filled')
+                else:
+                    g.node(step.name)
+                for next_step_name in step.next_steps:
+                    g.edge(step.name, next_step_name)
+        return g
+        """
+        result = list()
+        conf = g.pipe('plain').decode('utf-8')
+        conf = conf.split('node ')
+        for entry in conf:
+            section = entry.split(' ')[:3]
+            result.append(section)
+
+        return result
+        """
