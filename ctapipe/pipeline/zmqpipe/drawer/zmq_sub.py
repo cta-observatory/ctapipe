@@ -39,7 +39,7 @@ class ZmqSub(Thread, Component):
             try:
                 self.socket.bind(gui_adress)
             except zmq.error.ZMQError as e:
-                self.log.error("".format(str(e), gui_adress))
+                print("ERROR: ".format(str(e), gui_adress))
             # Inform about connection in statusBar
             if statusBar is not None:
                 self.statusBar.showMessage("binded to " + gui_adress)

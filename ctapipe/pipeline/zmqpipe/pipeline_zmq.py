@@ -27,16 +27,6 @@ from traitlets import (Integer, Float, List, Dict, Unicode)
 
 __all__ = ['Pipeline', 'PipelineError']
 
-class Branch():
-        '''
-        Define a branch in the pipeline
-        '''
-        def __init__(self,branch):
-            pass
-
-        def __repr__(self):
-            return str()
-
 class PipeStep():
 
     '''
@@ -63,7 +53,6 @@ Parameters
         self.name = name
         self.port_in = port_in
         self.port_out = port_out
-        #self.prev_step = prev_step
         self.next_steps_name = next_steps_name
         self.threads = list()
         self.nb_thread = nb_thread
@@ -106,14 +95,18 @@ class GUIStepInfo():
     CONSUMER = 'CONSUMER'
     ROUTER = 'ROUTER'
 
-    def __init__(self, step_zmq, name=None):
+    def __init__(self, step_zmq,name=None):
         self.running = False
         self.nb_job_done = 0
+        self.name = name
+        self.next_steps_name = None
+        self.type = 'ND'
+
+
         if step_zmq is not None:
-            if name is None:
+            if name == None :
                 self.name = step_zmq.name
-            else:
-                self.name = name
+            self.next_steps_name = step_zmq.next_steps_name
             if isinstance(step_zmq, ProducerZmq):
                 self.type = self.PRODUCER
                 self.nb_job_done = step_zmq.nb_job_done
@@ -126,9 +119,7 @@ class GUIStepInfo():
                 self.type = self.CONSUMER
             if isinstance(step_zmq, RouterQueue):
                 self.type = self.ROUTER
-        else:
-            self.name = 'ND'
-            self.type = 'ND'
+
         self.queue_size = 0
 
     def __repr__(self):
@@ -451,53 +442,52 @@ class Pipeline(Tool):
             level+=1
 
     def def_step_for_gui(self):
-        ''' Create a list (self.levels_for_gui) containing GUIStepInfo instances
+        ''' Create a list (levels_for_gui) containing GUIStepInfo instances
          representing pipeline configuration and Threads activity
         Fill self.step_threads
-        Returns: (graphviz.Digraph,Actual time)
+        Use graphviz to find screen position
+        Returns: levels_for_gui, Actual time
         '''
-        try:
-            from graphviz import Digraph
+        levels_for_gui = list()
+        levels_for_gui.append([GUIStepInfo(self.producer_step)])
+        level = 0
+        done = 0
+        while done != len(self.stager_steps):
+            stages = list()
+            for step in self.stager_steps:
+                if step.level == level:
+                    stages.append(GUIStepInfo(step))
+                    done+=1
+            level+=1
+            if len(stages) > 0:
+                levels_for_gui.append(stages)
 
-            g = Digraph('test', format='png')
-            for step in  ([self.producer_step ] + self.stager_steps
-                + [self.consumer_step]):
-                g.node(step.name)
-                for next_step_name in step.next_steps_name:
-                    g.edge(step.name, next_step_name)
-
-
-        except ImportError:
-            pass
-
-        return g, time.clock()
+        levels_for_gui.append([GUIStepInfo(self.consumer_step)])
+        return (levels_for_gui,time.clock())
         """
-        self.levels_for_gui = list()
-        #PRODUCER
-        self.levels_for_gui.append([GUIStepInfo(self.producer)])
-        #STAGERS
-        next_steps_name = self.producer_step.next_steps_name
-        while next_steps_name:
-            for next_step_name in next_steps_name:
-                next_step = self.get_step_by_name(next_step_name)
-                stages = list()
-                for t in next_step.threads:
-                    stages.append(GUIStepInfo(t))
-                if stages:
-                    self.levels_for_gui.append(
-                        [GUIStepInfo(self.router_thread, name=next_step.name +
-                         '_router')])
-                    self.levels_for_gui.append(stages)
+        levels_for_gui = list()
+        levels_for_gui.append([GUIStepInfo(self.consumer_step)])
+        levels_for_gui.append(
+            [GUIStepInfo(self.router_thread,
+             name=self.consumer_step.name + '_router')])
+        prev = self.consumer_step.prev_step
+        while prev != None:
+            stages = list()
+            for t in prev.threads:
+                stages.append(GUIStepInfo(t))
+            if len(stages) > 0:
+                levels_for_gui.append(stages)
+            # if not prev.router_thread == None:
+                # self.levels_for_gui.append([GUIStepInfo(prev.router_thread)])
+                levels_for_gui.append(
+                    [GUIStepInfo(self.router_thread, name=prev.section_name +
+                     '_router')])
+            prev = prev.prev_step
+        levels_for_gui.append([GUIStepInfo(self.producer)])
+        levels_for_gui = list(reversed(levels_for_gui))
 
-            next_steps_name = next_step.next_steps_name
-        #CONSUMER
-        self.levels_for_gui.append(
-        [GUIStepInfo(self.router_thread, name=self.consumer_step.name +
-        '_router')])
-        self.levels_for_gui.append([GUIStepInfo(self.consumer)])
-        return time.clock()
+        return (levels_for_gui,time.clock())
         """
-
 
     def display_conf(self):
         ''' self.log.info pipeline configuration
@@ -563,11 +553,9 @@ class Pipeline(Tool):
         Stop all thread in set order
         '''
         # send pipeline cofiguration to an optinal GUI instance
-        diag,conf_time = self.def_step_for_gui()
+        levels_gui,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
-            [b'GUI_GRAPH', pickle.dumps([conf_time,diag])])
-
-
+            [b'GUI_GRAPH', pickle.dumps([conf_time,levels_gui])])
         # Start all Threads
         self.consumer.start()
 
@@ -585,7 +573,7 @@ class Pipeline(Tool):
                 while not self.router.isQueueEmpty(worker.name):
                     self.socket_pub.send_multipart(
                         [b'GUI_GRAPH', pickle.dumps([conf_time,
-                         self.levels_for_gui])])
+                         levels_gui])])
                     time.sleep(1)
                 self.wait_and_send_levels(worker, conf_time)
         self.wait_and_send_levels(self.router, conf_time)
@@ -608,11 +596,11 @@ class Pipeline(Tool):
                 represents time at which configuration has been built
         '''
         thread_to_wait.finish()
-        diagram,_ = self.def_step_for_gui()
+        levels_gui,conf_time = self.def_step_for_gui()
         while True:
             thread_to_wait.join(timeout=1.0)
             self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', pickle.dumps([conf_time, diagram])])
+                [b'GUI_GRAPH', pickle.dumps([conf_time, levels_gui])])
             if not thread_to_wait.is_alive():
                 break
 
@@ -658,5 +646,5 @@ def main():
     tool = Pipeline()
     tool.run()
 
-if __name__ == 'main':
+if __name__ == '__main__':
     main()
