@@ -137,9 +137,10 @@ def calibrate_event(event, params, geom_dict=None):
 
         params['sigamp'] - Amplitude in ADC counts above pedestal at which a
         signal is considered as significant (separate for high gain/low gain).
-    geom_dict : dict[`ctapipe.io.CameraGeometry`]
+    geom_dict : dict
         Dict of pixel geometry for each telescope. Leave as None for automatic
         calculation when it is required.
+        dict[(num_pixels, focal_length)] = `ctapipe.io.CameraGeometry`
 
     Returns
     -------
@@ -184,17 +185,19 @@ def calibrate_event(event, params, geom_dict=None):
         # Get geometry
         int_dict, inverted = integrator_dict()
         geom = None
+        cam_dimensions = (event.dl0.tel[telid].num_pixels,
+                          event.meta.optical_foclen[telid])
         # Check if geom is even needed for integrator
         if inverted[params['integrator']] in integrators_requiring_geom():
-            if geom_dict is not None and telid in geom_dict:
-                geom = geom_dict[telid]
+            if geom_dict is not None and cam_dimensions in geom_dict:
+                geom = geom_dict[cam_dimensions]
             else:
                 log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                            event.meta.optical_foclen[telid])
+                                          event.meta.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
-                    geom_dict[telid] = geom
+                    geom_dict[cam_dimensions] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
         for chan in range(nchan):
@@ -207,7 +210,7 @@ def calibrate_event(event, params, geom_dict=None):
     return calibrated
 
 
-def calibrate_source(source, params):
+def calibrate_source(source, params, geom_dict=None):
     """
     Generator for calibrating all events in a file. Using this function is
     faster than `calibrate_event` if you require more than one event
@@ -243,6 +246,11 @@ def calibrate_source(source, params):
 
         params['sigamp'] - Amplitude in ADC counts above pedestal at which a
         signal is considered as significant (separate for high gain/low gain).
+    geom_dict : dict
+        Dict of pixel geometry for each telescope. Leave as None for automatic
+        calculation when it is required. Can be used to only calculate a geom
+        once per telescope by utilising a dicts mutability.
+        dict[(num_pixels, focal_length)] = `ctapipe.io.CameraGeometry`
 
     Returns
     -------
@@ -251,7 +259,8 @@ def calibrate_source(source, params):
         reference to all other information contained in the original event
         container.
     """
-    geom_dict = {}
+    if geom_dict is None:
+        geom_dict = {}
 
     for event in source:
         calibrated = calibrate_event(event, params, geom_dict)
