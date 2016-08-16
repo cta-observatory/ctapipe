@@ -17,7 +17,6 @@ class StringWriter(Component):
         return True
 
     def run(self, object):
-        sleep(2)
         if (object is not None):
             self.file.write(str(object) + "\n")
 
