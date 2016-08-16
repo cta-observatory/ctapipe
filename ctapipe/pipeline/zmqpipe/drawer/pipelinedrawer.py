@@ -9,6 +9,8 @@ from PyQt4.QtCore import Qt
 from PyQt4.QtCore import QPointF, QLineF, QPoint
 from PyQt4.QtGui import QColor, QPen, QPixmap
 from ctapipe.pipeline.zmqpipe.pipeline_zmq import GUIStepInfo
+import sys
+
 
 GAP_Y = 60
 STAGE_SIZE_X = 80
@@ -230,7 +232,7 @@ class PipelineDrawer(QtGui.QWidget):
         # something.
         if self.levels is None:
             return
-        diagram = self.get_position_from_graphviz()
+        diagram = self.build_graph()
         diagram_bytes = diagram.pipe('png')
         pixmap = QPixmap()
         pixmap.loadFromData(diagram_bytes)
@@ -380,30 +382,26 @@ class PipelineDrawer(QtGui.QWidget):
                     step.queue_size = queue
                     break
 
-    def get_position_from_graphviz(self):
+    def build_graph(self):
         """
-        Return a list of:
-        ['STEP NAME','x pos', 'ypos']
+        Return a graphiz.Digraph
         """
 
+        nodes_name = list()
         g = Digraph('test', format='png')
+
+
         for level in  self.levels:
             for step in level:
-                #print('{} running: {}'.format(step.name,step.running))
+
                 if step.running:
                     g.node(step.name,color='lightblue2', style='filled')
                 else:
                     g.node(step.name)
+                nodes_name.append(step.name)
+        for level in  self.levels:
+            for step in level:
                 for next_step_name in step.next_steps:
                     g.edge(step.name, next_step_name)
-        return g
-        """
-        result = list()
-        conf = g.pipe('plain').decode('utf-8')
-        conf = conf.split('node ')
-        for entry in conf:
-            section = entry.split(' ')[:3]
-            result.append(section)
 
-        return result
-        """
+        return g
