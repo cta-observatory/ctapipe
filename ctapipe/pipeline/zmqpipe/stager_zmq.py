@@ -23,7 +23,7 @@ class StagerZmq(threading.Thread, Connexions):
 
     def __init__(
             self, coroutine, sock_job_for_me_port,
-            name=None, connexions=dict(), gui_address=None):
+            name=None, connexions=dict(),main_connexion_name=None, gui_address=None):
         """
         Parameters
         ----------
@@ -36,7 +36,7 @@ class StagerZmq(threading.Thread, Connexions):
         # Call mother class (threading.Thread) __init__ method
         Thread.__init__(self)
         self.name = name
-        Connexions.__init__(self,connexions)
+        Connexions.__init__(self,main_connexion_name,connexions)
         # Set coroutine
         self.coroutine = coroutine
         # set sockets url

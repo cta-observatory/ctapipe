@@ -10,11 +10,12 @@ class Connexions():
     implements ZMQ connexions between thread for PRODUCER and STAGER and CONSUMER
     """
 
-    def __init__(self, connexions=dict()):
+    def __init__(self, main_connexion_name, connexions=dict()):
         """
         Parameters
         ----------
         connexions : dict
+        main_connexion_name : str
         """
         self.connexions = connexions
         self.sockets=dict()
@@ -25,7 +26,7 @@ class Connexions():
             self.sockets[name] = self.context.socket(zmq.REQ)
             try:
                 self.sockets[name].connect('inproc://' + connexion)
-                if not self.main_out_socket:
+                if main_connexion_name == name:
                     self.main_out_socket = self.sockets[name]
             except zmq.error.ZMQError as e:
                 print(' {} : inproc://{}'

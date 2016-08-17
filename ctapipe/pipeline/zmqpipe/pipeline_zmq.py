@@ -42,6 +42,8 @@ Parameters
             port number to connect prev Router
     connexions : dict {'str : 'str'}
             key: connexion name(step name) , value port name
+    main_connexion_name: str
+            First step in next_steps configuration
     nb_thread : int
             mumber of thread to instantiate for this step
     level : step level in pipeline. Producer is level 0
@@ -51,13 +53,12 @@ Parameters
                  source = None,
                  next_steps_name=list(),
                  port_in=None,
+                 main_connexion_name=None,
                  nb_thread=1, level=0):
         if (source):
             self.name = name
             self.port_in = source.port_in
-
-            self.connexions=dict()
-            self.next_steps_name = source.next_steps_name
+            self.main_connexion_name = main_connexion_name
             self.threads = source.threads
             self.nb_thread = source.nb_thread
             self.level = source.level
@@ -65,10 +66,12 @@ Parameters
             self.name = name
             self.port_in = port_in
             self.next_steps_name = next_steps_name
-            self.threads = list()
             self.nb_thread = nb_thread
             self.level = level
-            self.connexions = dict()
+
+        self.connexions = dict()
+        self.threads = list()
+        self.main_connexion_name = main_connexion_name
 
 
     def __repr__(self):
@@ -77,7 +80,8 @@ Parameters
         return ('Name[ ' + str(self.name)
                 + '], next_steps_name[' + str(self.next_steps_name)
                 + '], port in[ ' + str(self.port_in)
-                + '], connexions  [ ' + str(self.connexions) + ' ]'
+                + '], main connexion name  [ ' + str(self.main_connexion_name) + ' ]'
+                + '], port in[ ' + str(self.port_in)
                 + '], nb thread[ ' + str(self.nb_thread)
                 + '], level[ ' + str(self.level))
 
@@ -228,6 +232,7 @@ class Pipeline(Tool):
             producer_zmq = self.instantiation(
                 self.producer_step.name, self.PRODUCER,
                 connexions = self.producer_step.connexions,
+                main_connexion_name = self.producer_step.main_connexion_name,
                 config=conf)
         except PipelineError as e:
             self.log.error(e)
@@ -276,6 +281,7 @@ class Pipeline(Tool):
                             + str(i),
                         port_in=stager_step.port_in,
                         connexions = stager_step.connexions,
+                        main_connexion_name = stager_step.main_connexion_name,
                         config=conf)
                 except PipelineError as e:
                     self.log.error(e)
@@ -327,11 +333,15 @@ class Pipeline(Tool):
         #configure connexions (zmq port) for producer (one per next step)
         for next_step_name in self.producer_step.next_steps_name:
             self.producer_step.connexions[next_step_name]=next_step_name+'_in'
+        self.producer_step.main_connexion_name = self.producer_step.next_steps_name[0]
+
             #configure port_in and connexions (zmq port)  for all stages (one per next step)
         for stage in self.stager_steps:
             stage.port_in = stage.name+'_out'
             for next_step_name in stage.next_steps_name:
                 stage.connexions[next_step_name]=next_step_name+'_in'
+            stage.main_connexion_name = stage.next_steps_name[0]
+
         #configure port-in  (zmq port) for consumer
         self.consumer_step.port_in = self.consumer_step.name+'_out'
 
@@ -344,7 +354,7 @@ class Pipeline(Tool):
 
     def instantiation(
             self, name, stage_type, thread_name=None,
-            port_in=None, connexions=None, config=None):
+            port_in=None, connexions=None, main_connexion_name=None, config=None):
         '''
         Instantiate on Pytohn object from name found in configuration
         Parameters
@@ -370,11 +380,13 @@ class Pipeline(Tool):
             thread = StagerZmq(
                 obj, port_in, thread_name,
                 connexions=connexions,
+                main_connexion_name = main_connexion_name,
                 gui_address=self.gui_address)
 
         elif stage_type == self.PRODUCER:
             thread = ProducerZmq(
                 obj, name, connexions=connexions,
+                main_connexion_name = main_connexion_name,
                 gui_address=self.gui_address)
 
         elif stage_type == self.CONSUMER:
