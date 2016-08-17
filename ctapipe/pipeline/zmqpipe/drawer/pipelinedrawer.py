@@ -112,7 +112,7 @@ class PipelineDrawer(QWidget):
             contains informations to update
         """
         # Full pipeline config change
-        if topic == b'GUI_GRAPH':  # and not self.receive_levels == True:
+        if topic == b'GUI_GRAPH':
             config_time, receiv_levels = msg
             self.build_full_graph(config_time, receiv_levels)
         # Stager or Producer or Consumer state changes
@@ -121,8 +121,10 @@ class PipelineDrawer(QWidget):
                                         topic == b'GUI_CONSUMER_CHANGE' or
                                         topic == b'GUI_PRODUCER_CHANGE'):
             self.step_change(msg)
+
         # Force to update drawing
         self.update()
+
 
     def build_full_graph(self, config_time, receiv_levels):
         """Build pipeline representation if config_time if diferent that the
@@ -133,20 +135,12 @@ class PipelineDrawer(QWidget):
             contains pipeline's config's time
         receiv_levels: list of GUIStepInfo describing pipeline contents
         """
+
         if config_time != self.config_time:
-            levels = list()
-            # loop overs levels and steps in level
-            # Create StagerRep, ConsumerRep, ProducerRep, RouterRep according
-            # to GUIStepInfo.fig_type
-            for level in receiv_levels:
-                steps = list()
-                for step in level:
-                    #steps.append(StagerRep(step))
-                    steps.append(step)
-                levels.append(steps)
-            # Set self.levels
-            self.levels = levels
-            self.receive_levels = True
+            self.levels.clear()
+            for step in receiv_levels:
+                self.levels.append(step)
+
             self.config_time = config_time
 
     def step_change(self, msg):
@@ -159,31 +153,28 @@ class PipelineDrawer(QWidget):
             receiv_levels: list of GUIStepInfo describing pipeline contents
         """
         name, running, nb_job_done = msg
-        for level in self.levels:
-            for step in level:
-                foo = name.split('$$thread')[0]
-                if step.name == foo:
-                    step.running = running
-                    step.nb_job_done = nb_job_done
-                    break
+        for step in self.levels:
+            foo = name.split('$$thread')[0]
+            if step.name == foo:
+                step.running = running
+                step.nb_job_done = nb_job_done
+                break
 
 
     def build_graph(self):
         """
         Return a graphiz.Digraph
         """
-        nodes_name = list()
+
         g = Digraph('test', format='png')
 
-        for level in  self.levels:
-            for step in level:
-                if step.running:
-                    g.node(step.name,color='lightblue2', style='filled')
-                else:
-                    g.node(step.name)
-                nodes_name.append(step.name)
-        for level in  self.levels:
-            for step in level:
-                for next_step_name in step.next_steps:
-                    g.edge(step.name, next_step_name)
+        for step in  self.levels:
+            if step.running:
+                g.node(step.name,color='lightblue2', style='filled')
+            else:
+                g.node(step.name)
+
+        for step in self.levels:
+            for next_step_name in step.next_steps:
+                g.edge(step.name, next_step_name)
         return g

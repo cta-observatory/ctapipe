@@ -254,17 +254,6 @@ class Pipeline(Tool):
         if not self.consumer_step:
             self.log.error("No consumer inb configuration")
             return False
-
-        # Now that all steps exists, set previous step
-        """
-        for step in self.consumer_step + self.stager_steps:
-            prev_name = self.get_prev_step_name(step.name)
-            if prev_name is not None:
-                prev_step = self.get_step_by_name(prev_name)
-                step.prev_step = prev_step
-            else:
-                return False
-        """
         return True
 
     def configure_ports(self):
@@ -405,25 +394,16 @@ class Pipeline(Tool):
             level+=1
 
     def def_step_for_gui(self):
-        ''' Create a list (levels_for_gui) containing step name
-         representing pipeline configuration per level
-        Returns: levels_for_gui, Actual time
+        ''' Create a list (levels_for_gui) containing all steps
+        Returns: the created list and actual time
         '''
         levels_for_gui = list()
-        levels_for_gui.append([StagerRep(self.producer_step.name,self.producer_step.next_steps_name)])
-        level = 0
-        done = 0
-        while done != len(self.stager_steps):
-            stages = list()
-            for step in self.stager_steps:
-                if step.level == level:
-                    stages.append(StagerRep(step.name,step.next_steps_name))
-                    done+=1
-            level+=1
-            if len(stages) > 0:
-                levels_for_gui.append(stages)
-        levels_for_gui.append([StagerRep(self.consumer_step.name)])
+        levels_for_gui.append(StagerRep(self.producer_step.name,self.producer_step.next_steps_name))
+        for step in self.stager_steps:
+            levels_for_gui.append(StagerRep(step.name,step.next_steps_name))
+        levels_for_gui.append(StagerRep(self.consumer_step.name))
         return (levels_for_gui,clock())
+
 
     def display_conf(self):
         ''' self.log.info pipeline configuration
