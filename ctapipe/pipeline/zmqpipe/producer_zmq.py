@@ -81,11 +81,16 @@ class ProducerZmq(Thread, Component, Connexions):
             self.running = True
             self.update_gui()
             for result in generator:
-                self.main_out_socket.send_pyobj(result)
-                # Wait for reply
+                send = False
+                while not send:
+                    self.main_out_socket.send_pyobj(result)
+                    # Wait for reply
+                    reply = self.main_out_socket.recv()
+                    if reply == b'OK':
+                        send = True
                 self.nb_job_done += 1
                 self.update_gui()
-                self.main_out_socket.recv()
+
             self.running = False
             self.update_gui()
         self.socket_pub.close()

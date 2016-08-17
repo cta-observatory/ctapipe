@@ -112,10 +112,15 @@ class StagerZmq(threading.Thread, Connexions):
                 # send acknoledgement to prev router/queue to inform it that I
                 # am available
                 self.sock_for_me.send_multipart(request)
-                # send new job to next router/queue
-                self.main_out_socket.send_pyobj(send_output)
-                # wait for acknoledgement form next router
-                self.main_out_socket.recv()
+                send = False
+                while not send:
+                    # send new job to next router/queue
+                    self.main_out_socket.send_pyobj(send_output)
+                    # wait for acknoledgement form next router
+                    request = self.main_out_socket.recv()
+                    if request == b'OK':
+                        send = True
+
                 self.nb_job_done += 1
                 self.running = False
                 self.update_gui()

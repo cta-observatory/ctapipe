@@ -40,6 +40,10 @@ class Connexions():
             sock.close()
 
     def send_msg(self,destination_step_name, msg):
-        sock = self.sockets[destination_step_name]
-        sock.send_pyobj(msg)
-        sock.recv()
+        send=False
+        while not send:
+            sock = self.sockets[destination_step_name]
+            sock.send_pyobj(msg)
+            request = sock.recv()
+            if request == b'OK':
+                send = True

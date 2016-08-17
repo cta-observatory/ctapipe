@@ -1,4 +1,4 @@
-import time
+from time import sleep
 import threading
 import zmq
 import pickle
@@ -144,9 +144,12 @@ class RouterQueue(threading.Thread, Component):
                     address, empty, request = socket_router.recv_multipart()
                     # store it to job queue
                     queue = self.queue_jobs[n]
-                    queue.append(pickle.loads(request))
-                    self.update_gui(n)
-                    socket_router.send_multipart([address, b"", b"OK"])
+                    if len(queue) > 10:
+                        socket_router.send_multipart([address, b"", b"FULL"])
+                    else:
+                        queue.append(pickle.loads(request))
+                        self.update_gui(n)
+                        socket_router.send_multipart([address, b"", b"OK"])
             nb_job_remains = 0
             for n, queue in self.queue_jobs.items():
                 nb_job_remains += len(queue)
