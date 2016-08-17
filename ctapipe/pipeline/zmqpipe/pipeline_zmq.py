@@ -10,24 +10,25 @@ If a step is executed by several threads, the router uses LRU pattern
 (least recently used ) to choose the step that will receive next data.
 The router also manage Queue for each step.
 '''
-from ctapipe.utils import dynamic_class_from_module
-from ctapipe.core import Tool
+
 from threading import Thread
+import sys
+import os
+import zmq
+from  time import clock
+from time import sleep
+import pickle
 from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
 from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZMQ
 from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
-import sys
-import os
-import zmq
-import time
-import pickle
-from copy import deepcopy
-
+from ctapipe.pipeline.zmqpipe.drawer.pipelinedrawer import StagerRep
+from ctapipe.utils import dynamic_class_from_module
 from ctapipe.core import Tool
 from traitlets import (Integer, Float, List, Dict, Unicode)
 
 __all__ = ['Pipeline', 'PipelineError']
+
 
 class PipeStep():
 
@@ -38,6 +39,7 @@ Parameters
 ----------
     name : str
             pipeline configuration name
+    next_steps_name: list(str)
     port_in : str
             port number to connect prev Router
     connexions : dict {'str : 'str'}
@@ -46,33 +48,24 @@ Parameters
             First step in next_steps configuration
     nb_thread : int
             mumber of thread to instantiate for this step
-    level : step level in pipeline. Producer is level 0
+    level : step level in pipeline. Producer is level 0.
+            Used to start/stop thread in correct order
 '''
 
     def __init__(self, name,
-                 source = None,
                  next_steps_name=list(),
                  port_in=None,
                  main_connexion_name=None,
                  nb_thread=1, level=0):
-        if (source):
-            self.name = name
-            self.port_in = source.port_in
-            self.main_connexion_name = main_connexion_name
-            self.threads = source.threads
-            self.nb_thread = source.nb_thread
-            self.level = source.level
-        else:
-            self.name = name
-            self.port_in = port_in
-            self.next_steps_name = next_steps_name
-            self.nb_thread = nb_thread
-            self.level = level
 
+        self.name = name
+        self.port_in = port_in
+        self.next_steps_name = next_steps_name
+        self.nb_thread = nb_thread
+        self.level = level
         self.connexions = dict()
         self.threads = list()
         self.main_connexion_name = main_connexion_name
-
 
     def __repr__(self):
         '''standard representation
@@ -92,60 +85,6 @@ class PipelineError(Exception):
         '''Mentions that an exception occurred in the pipeline.
         '''
         self.msg = msg
-
-
-class GUIStepInfo():
-
-    '''
-    This class is used to send step or router information to GUI to inform
-    about changes.
-    We can not used directly thread class (i.e. ProducerZmq) nor PipeStep
-    (because it contains a thread as member) because pickle cannot dumps class
-    containing thread.
-    Parameters
-    ----------
-    step_zmq : thread(ProducerZmq or StagerZmq or ConsumerZMQ or RouterQueue)
-            copy thread informations to this structure
-    '''
-    PRODUCER = 'PRODUCER'
-    STAGER = 'STAGER'
-    CONSUMER = 'CONSUMER'
-    ROUTER = 'ROUTER'
-
-    def __init__(self, pipestep,name=None):
-        self.running = False
-        self.nb_job_done = 0
-        self.name = name
-        self.next_steps_name = None
-        self.type = 'ND'
-        self.nb_thread = 0
-
-        if pipestep is not None:
-            if name == None :
-                self.name = pipestep.name
-            self.next_steps_name = pipestep.next_steps_name
-            if isinstance(pipestep, ProducerZmq):
-                self.type = self.PRODUCER
-                self.nb_job_done = pipestep.nb_job_done
-            if isinstance(pipestep, StagerZmq):
-                self.type = self.STAGER
-                self.running = pipestep.running
-                self.nb_job_done = pipestep.nb_job_done
-                self.nb_thread = pipestep.nb_thread
-
-            if isinstance(pipestep, ConsumerZMQ):
-                self.nb_job_done = pipestep.nb_job_done
-                self.type = self.CONSUMER
-            if isinstance(pipestep, RouterQueue):
-                self.type = self.ROUTER
-
-        self.queue_size = 0
-
-    def __repr__(self):
-        '''standard representation
-        '''
-        return (self.name + ', ' + self.type + ', ' + str(self.running) +
-                ', ' + str(self.queue_size))
 
 
 class Pipeline(Tool):
@@ -466,28 +405,25 @@ class Pipeline(Tool):
             level+=1
 
     def def_step_for_gui(self):
-        ''' Create a list (levels_for_gui) containing GUIStepInfo instances
-         representing pipeline configuration and Threads activity
-        Fill self.step_threads
-        Use graphviz to find screen position
+        ''' Create a list (levels_for_gui) containing step name
+         representing pipeline configuration per level
         Returns: levels_for_gui, Actual time
         '''
         levels_for_gui = list()
-        levels_for_gui.append([GUIStepInfo(self.producer_step)])
+        levels_for_gui.append([StagerRep(self.producer_step.name,self.producer_step.next_steps_name)])
         level = 0
         done = 0
         while done != len(self.stager_steps):
             stages = list()
             for step in self.stager_steps:
                 if step.level == level:
-                    stages.append(GUIStepInfo(step))
+                    stages.append(StagerRep(step.name,step.next_steps_name))
                     done+=1
             level+=1
             if len(stages) > 0:
                 levels_for_gui.append(stages)
-
-        levels_for_gui.append([GUIStepInfo(self.consumer_step)])
-        return (levels_for_gui,time.clock())
+        levels_for_gui.append([StagerRep(self.consumer_step.name)])
+        return (levels_for_gui,clock())
 
     def display_conf(self):
         ''' self.log.info pipeline configuration
@@ -566,7 +502,7 @@ class Pipeline(Tool):
                     self.socket_pub.send_multipart(
                         [b'GUI_GRAPH', pickle.dumps([conf_time,
                          levels_gui])])
-                    time.sleep(1)
+                    sleep(1)
                 self.wait_and_send_levels(worker, conf_time)
         self.wait_and_send_levels(self.router, conf_time)
         self.wait_and_send_levels(self.consumer, conf_time)
