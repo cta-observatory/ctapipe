@@ -1,13 +1,15 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+from ctapipe.core import Component
+from ctapipe.pipeline.zmqpipe.connexions import Connexions
+
 from threading import Thread
 from time import sleep
-from ctapipe.core import Component
 import zmq
 import pickle
 
 
 
-class ProducerZmq(Thread, Component):
+class ProducerZmq(Thread, Component, Connexions):
 
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Thread class.
@@ -29,6 +31,7 @@ class ProducerZmq(Thread, Component):
         """
         # Call mother class (threading.Thread) __init__ method
         Thread.__init__(self)
+        Connexions.__init__(self,connexions)
         self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
         self.port = 'inproc://' + sock_request_port
@@ -38,7 +41,6 @@ class ProducerZmq(Thread, Component):
         self.gui_address = gui_address
         # Prepare our context and sockets
         self.context = zmq.Context.instance()
-        self.connexions = connexions
         self.foo = None
         self.other_requests=dict()
         self.done = False
@@ -57,6 +59,7 @@ class ProducerZmq(Thread, Component):
         # Socket to talk to GUI
         self.socket_pub = self.context.socket(zmq.PUB)
 
+        """
         # Socket to talk to others steps
         for name,connexion in self.connexions.items():
             self.other_requests[name] = self.context.socket(zmq.REQ)
@@ -66,7 +69,7 @@ class ProducerZmq(Thread, Component):
                 print(' {} : inproc://{}'
                                .format(e,  connexion))
                 return False
-
+        """
         if self.gui_address is not None:
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
@@ -116,13 +119,13 @@ class ProducerZmq(Thread, Component):
         for sock in self.other_requests.values():
             sock.close()
 
-
+    """
     def send_msg(self,destination_step_name, msg):
         sock = self.other_requests[destination_step_name]
         #print("DEBUG ------> 2 type(sock)",type(sock))
         sock.send_pyobj(msg)
         sock.recv()
-
+    """
     def update_gui(self):
         msg = [self.name, self.running, self.nb_job_done]
         self.socket_pub.send_multipart(
