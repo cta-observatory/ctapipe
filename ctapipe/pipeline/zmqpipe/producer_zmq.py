@@ -20,8 +20,8 @@ class ProducerZmq(Thread, Component, Connexions):
     has been called and has returned True.
     """
 
-    def __init__(self, coroutine, name, connexions=dict(),
-                gui_address=None):
+    def __init__(self, coroutine, name,main_connexion_name,
+                connexions=dict(), gui_address=None):
         """
         Parameters
         ----------
@@ -32,7 +32,7 @@ class ProducerZmq(Thread, Component, Connexions):
         # Call mother class (threading.Thread) __init__ method
         Thread.__init__(self)
         self.name = name
-        Connexions.__init__(self,connexions)
+        Connexions.__init__(self,main_connexion_name,connexions)
 
         self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
@@ -77,16 +77,17 @@ class ProducerZmq(Thread, Component, Connexions):
         thanks to its ZMQ REQ socket.
         """
         generator = self.coroutine.run()
-        self.running = True
-        self.update_gui()
-        for result in generator:
-            self.main_out_socket.send_pyobj(result)
-            # Wait for reply
-            self.nb_job_done += 1
+        if generator:
+            self.running = True
             self.update_gui()
-            self.main_out_socket.recv()
-        self.running = False
-        self.update_gui()
+            for result in generator:
+                self.main_out_socket.send_pyobj(result)
+                # Wait for reply
+                self.nb_job_done += 1
+                self.update_gui()
+                self.main_out_socket.recv()
+            self.running = False
+            self.update_gui()
         self.socket_pub.close()
         self.done = True
 
