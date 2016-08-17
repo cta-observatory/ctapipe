@@ -40,8 +40,6 @@ Parameters
             pipeline configuration name
     port_in : str
             port number to connect prev Router
-    port_out : str
-            port number to connect next Router
     connexions : dict {'str : 'str'}
             key: connexion name(step name) , value port name
     nb_thread : int
@@ -53,14 +51,12 @@ Parameters
                  source = None,
                  next_steps_name=list(),
                  port_in=None,
-                 port_out=None,
-                 connexions=dict(),
                  nb_thread=1, level=0):
         if (source):
             self.name = name
             self.port_in = source.port_in
-            self.port_out = source.port_out
-            self.connexions=connexions
+
+            self.connexions=dict()
             self.next_steps_name = source.next_steps_name
             self.threads = source.threads
             self.nb_thread = source.nb_thread
@@ -68,12 +64,12 @@ Parameters
         else:
             self.name = name
             self.port_in = port_in
-            self.port_out = port_out
             self.next_steps_name = next_steps_name
             self.threads = list()
             self.nb_thread = nb_thread
             self.level = level
-            self.connexions = connexions
+            self.connexions = dict()
+
 
     def __repr__(self):
         '''standard representation
@@ -81,7 +77,6 @@ Parameters
         return ('Name[ ' + str(self.name)
                 + '], next_steps_name[' + str(self.next_steps_name)
                 + '], port in[ ' + str(self.port_in)
-                + '], port out [ ' + str(self.port_out) + ' ]'
                 + '], connexions  [ ' + str(self.connexions) + ' ]'
                 + '], nb thread[ ' + str(self.nb_thread)
                 + '], level[ ' + str(self.level))
@@ -227,16 +222,13 @@ class Pipeline(Tool):
             return False
 
         self.configure_ports()
-        # import and init producers
 
         conf = self.producer_conf
         try:
             producer_zmq = self.instantiation(
                 self.producer_step.name, self.PRODUCER,
-                port_out=self.producer_step.port_out,
                 connexions = self.producer_step.connexions,
                 config=conf)
-
         except PipelineError as e:
             self.log.error(e)
             return False
@@ -250,8 +242,7 @@ class Pipeline(Tool):
         socket_dealer_ports = dict()
         router_names = dict()
 
-        # import and init consumers
-        # each consumer need a router to connect it to prev stage
+        # each consumer need a router to connect it to prev stages
         name = self.consumer_step.name + '_' + 'router'
         router_names[name] = [self.consumer_step.name+'_in',self.consumer_step.name+'_out']
         conf = self.consumer_conf
@@ -270,11 +261,9 @@ class Pipeline(Tool):
 
         # import and init stagers
         for stager_step in self.stager_steps:
-            # each stage need a router to connect it to prev stage
+            # each stage need a router to connect it to prev stages
             name = stager_step.name + '_' + 'router'
             router_names[name] = [stager_step.name+'_in',stager_step.name+'_out']
-            #sock_router_ports[name] = stager_step.port_in
-            #socket_dealer_ports[name] = router_port_out
 
             for i in range(stager_step.nb_thread):
                 conf = self.get_step_conf(stager_step.name)
@@ -285,7 +274,8 @@ class Pipeline(Tool):
                         thread_name = stager_step.name
                             +'$$thread_number$$'
                             + str(i),
-                        port_in=stager_step.port_in, port_out=stager_step.port_out,
+                        port_in=stager_step.port_in,
+                        connexions = stager_step.connexions,
                         config=conf)
                 except PipelineError as e:
                     self.log.error(e)
@@ -295,7 +285,7 @@ class Pipeline(Tool):
                     return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
-        print('DEBUG',router_names)
+
         self.router = RouterQueue(connexions=router_names,
                              gui_address=self.gui_address)
         if self.router.init() == False:
@@ -334,35 +324,16 @@ class Pipeline(Tool):
 
     def configure_ports(self):
 
-        """
-        self.producer_step.port_out = self.producer_step.next_steps_name[0]+'_in'
-        self.log.debug('---> configure_ports producer {}, port_out {}'
-            .format(self.producer_step.name,self.producer_step.port_out))
-        """
-        first = True
-        for next_step in self.producer_step.next_steps_name:
-            step = self.get_step_by_name(next_step)
-            if step:
-                step.port_in = step.name+'_out'
-                if first:
-                    self.producer_step.port_out = self.producer_step.next_steps_name[0]+'_in'
-                    self.log.debug('---> configure_ports producer {}, port_out {}'
-                        .format(self.producer_step.name,self.producer_step.port_out))
-                    first = False
-                else:
-                    #self.producer_step.connexions[step.name]=step.port_in
-                    self.producer_step.connexions[step.name]=step.name+'_in'
-                    self.log.debug('---> configure_ports step {}, port_in {}'.format(step.name,step.port_in))
-
+        #configure connexions (zmq port) for producer (one per next step)
+        for next_step_name in self.producer_step.next_steps_name:
+            self.producer_step.connexions[next_step_name]=next_step_name+'_in'
+            #configure port_in and connexions (zmq port)  for all stages (one per next step)
         for stage in self.stager_steps:
-            stage.port_out = stage.next_steps_name[0]+'_in'
-            self.log.debug('---> configure_ports step {}, port_out {}'.format(stage.name,stage.port_out))
-            for next_step in stage.next_steps_name:
-                step = self.get_step_by_name(next_step)
-                if step:
-                    step.port_in = stage.next_steps_name[0]+'_out'
-                    self.log.debug('---> configure_ports step {}, port_in {}'.format(step.name,step.port_in))
-
+            stage.port_in = stage.name+'_out'
+            for next_step_name in stage.next_steps_name:
+                stage.connexions[next_step_name]=next_step_name+'_in'
+        #configure port-in  (zmq port) for consumer
+        self.consumer_step.port_in = self.consumer_step.name+'_out'
 
     def get_step_by_name(self,name):
         for step in (self.stager_steps
@@ -371,11 +342,9 @@ class Pipeline(Tool):
                 return step
         return None
 
-
     def instantiation(
-            self, name, stage_type, thread_name=None, port_in=None,
-            connexions=None,
-            port_out=None, config=None):
+            self, name, stage_type, thread_name=None,
+            port_in=None, connexions=None, config=None):
         '''
         Instantiate on Pytohn object from name found in configuration
         Parameters
@@ -385,8 +354,6 @@ class Pipeline(Tool):
         stage_type	: str
         port_in : str
                 step port in
-        port_out: str
-                step port out
         connexions : dict
                 key StepName, value connexion ports
         '''
@@ -398,18 +365,24 @@ class Pipeline(Tool):
         if obj is None:
             raise PipelineError('Cannot create instance of ' + name)
         obj.name = name
+
         if stage_type == self.STAGER:
             thread = StagerZmq(
-                obj, port_in, port_out, thread_name, gui_address=self.gui_address)
+                obj, port_in, thread_name,
+                connexions=connexions,
+                gui_address=self.gui_address)
+
         elif stage_type == self.PRODUCER:
             thread = ProducerZmq(
-                obj,port_out, name, connexions=connexions,
+                obj, name, connexions=connexions,
                 gui_address=self.gui_address)
+
         elif stage_type == self.CONSUMER:
             thread = ConsumerZMQ(
                 obj,port_in,
                 name, parent=self,
                 gui_address=self.gui_address)
+
         else:
             raise PipelineError(
                 'Cannot create instance of', name, '. Type',
@@ -503,53 +476,19 @@ class Pipeline(Tool):
 
         levels_for_gui.append([GUIStepInfo(self.consumer_step)])
         return (levels_for_gui,time.clock())
-        """
-        levels_for_gui = list()
-        levels_for_gui.append([GUIStepInfo(self.consumer_step)])
-        levels_for_gui.append(
-            [GUIStepInfo(self.router_thread,
-             name=self.consumer_step.name + '_router')])
-        prev = self.consumer_step.prev_step
-        while prev != None:
-            stages = list()
-            for t in prev.threads:
-                stages.append(GUIStepInfo(t))
-            if len(stages) > 0:
-                levels_for_gui.append(stages)
-            # if not prev.router_thread == None:
-                # self.levels_for_gui.append([GUIStepInfo(prev.router_thread)])
-                levels_for_gui.append(
-                    [GUIStepInfo(self.router_thread, name=prev.section_name +
-                     '_router')])
-            prev = prev.prev_step
-        levels_for_gui.append([GUIStepInfo(self.producer)])
-        levels_for_gui = list(reversed(levels_for_gui))
-
-        return (levels_for_gui,time.clock())
-        """
 
     def display_conf(self):
         ''' self.log.info pipeline configuration
         '''
-        """
-        try:
-            from graphviz import Digraph
-
-            g = Digraph('test', format='png')
-            for step in  ([self.producer_step ] + self.stager_steps
-                + [self.consumer_step]):
-                g.node(step.name)
-                for next_step_name in step.next_steps_name:
-                    g.edge(step.name, next_step_name)
-            g.view()
-
-        except ImportError:
-        """
+        self.log.info('')
+        self.log.info('------------------ Pipeline configuration ------------------')
         for step in  ([self.producer_step ] + self.stager_steps
             + [self.consumer_step]):
-            self.log.debug('step {} '.format(step.name))
+            self.log.info('step {} '.format(step.name))
             for next_step_name in step.next_steps_name:
-                self.log.debug('--> next {} '.format(next_step_name))
+                self.log.info('--> next {} '.format(next_step_name))
+        self.log.info('------------------ End Pipeline configuration ------------------')
+        self.log.info('')
 
     def define_steps_level(self):
         """ Set level of each pipeline step
