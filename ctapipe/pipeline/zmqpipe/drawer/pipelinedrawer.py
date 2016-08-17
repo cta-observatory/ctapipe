@@ -4,187 +4,44 @@ classes used to display pipeline workload on a Qt.QWidget
 """
 from graphviz import Digraph
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import QWidget
+from PyQt4.QtGui import QPainter
 from PyQt4.QtGui import QLabel
+from PyQt4.QtGui import QColor
+from PyQt4.QtCore import QPoint
+from PyQt4.QtGui import QPixmap
 from PyQt4.QtCore import Qt
-from PyQt4.QtCore import QPointF, QLineF, QPoint
-from PyQt4.QtGui import QColor, QPen, QPixmap
-from ctapipe.pipeline.zmqpipe.pipeline_zmq import GUIStepInfo
 import sys
 
-
-GAP_Y = 60
-STAGE_SIZE_X = 80
-STAGE_SIZE_Y = 40
-PROD_CONS_SIZE_X = 100
-PROD_CONS_SIZE_Y = 40
-ROUTER_SIZE_X = 80
-ROUTER_SIZE_Y = 40
-STAGE_GAP_X = STAGE_SIZE_X + 10
-
-
-class FigureRep():
-
-    """
-    Mother class to represent a drawing figure
-    Parameters
-    ----------
-    center : PySide.QtCore.QPointF
-        figure's center
-    size : int
-        figure's size in pixel
-    name : str
-        figure's name. Used to match with pipeline producer/stager/consumer
-        when receive new information dform pipeline
-    """
-
-    def __init__(self, center=QPointF(0, 0), size_x=0, size_y=0, fig_type=GUIStepInfo.STAGER, name=None):
-        self.center = center
-        self.size_x = size_x
-        self.size_y = size_y
-        self.name = name
-        self.fig_type = fig_type
-
-    def setLength(self, size):
-        """Length setter
-        Parameters
-        ----------
-        size : list of int
-            list[0] -> figure's size x in pixel
-            list[1] -> figure's size y in pixel
-        """
-        self.size_x = size[0]
-        self.size_y = size[1]
-
-    def setCenter(self, center):
-        """Center setter
-        Parameters
-        ----------
-        center: PySide.QtCore.QPointF
-            figure's center in pixel
-        """
-        self.center = center
-
-    def __repr__(self):
-        """ called by the repr() built-in function and by string conversions
-         (reverse quotes) to compute the "official" string representation of
-          an object."""
-        return self.name + " -> Center: " + str(self.center)
-
-
-class RouterRep(FigureRep):
-
-    """
-    class to represent a RouterQueue figure
-    Parameters
-    ----------
-    center : PySide.QtCore.QPointF
-        figure's center
-    size : int
-        figure's size in pixel
-    queue_size : int
-        queue_size to display
-    name : str
-        figure's name. Used to match with pipeline producer/stager/consumer
-        when receive new information dform pipeline
-    """
-
-    def __init__(self, center=QPointF(0, 0), size_x=ROUTER_SIZE_X,
-                 size_y=ROUTER_SIZE_Y,   queue=0, name=""):
-        FigureRep.__init__(self, center=center, size_x=size_x, size_y=size_y,
-                           name=name)
-        self.queue_size = queue
-
-    def draw(self, qpainter, zoom=1):
-        """Draw this figure
-        Parameters
-        ----------
-        qpainter: PySide.QtGui.QPainter
-        """
-        size_x = self.size_x * zoom
-        size_y = self.size_y * zoom
-        pensize = 3
-        qpainter.setPen(
-            QtGui.QPen(QtCore.Qt.black, pensize, QtCore.Qt.SolidLine))
-        qpainter.drawEllipse(self.center, size_x / 2, size_y / 2)
-        text_pos = QPointF(self.center)
-        text_pos.setX(text_pos.x() - size_x / 2 + 10)
-        text_pos.setY(text_pos.y() + pensize)
-        qpainter.drawText(text_pos, str(self.queue_size))
-        qpainter.setPen(
-            QtGui.QPen(PipelineDrawer.blue_cta, 3, QtCore.Qt.SolidLine))
-
-
-class StagerRep(FigureRep):
+class StagerRep():
 
     """
     class to represent a Stager, Consumer and Producer figure
     Parameters
     ----------
-    center : PySide.QtCore.QPointF
-        figure's center
-    size_x : int
-        figure's size x in pixel
-    size_y : int
-        figure's size y in pixel
+    name  : str
+    next_steps : list(str)
     running : bool
-        flag that indicates if stager is currently running or waiting for job
-    name : str
-        figure's name. Used to match with pipeline producer/stager/consumer
-        when receive new information dform pipeline
     nb_job_done : int
-        Number of jobs already done
     """
 
-    def __init__(self, center=QPointF(0, 0), size_x=0, size_y=0,
-                 running=False, fig_type=GUIStepInfo.STAGER, name="",
-                 nb_job_done=0, next_steps=list()):
-        FigureRep.__init__(self, center=center, size_x=size_x, size_y=size_y,
-                           fig_type=fig_type, name=name)
+    def __init__(self,name,next_steps=list(),running=False,nb_job_done=0):
+        self.name = name
+        self.next_steps = next_steps
         self.running = running
         self.nb_job_done = nb_job_done
-        self.next_steps = next_steps
-
-    def draw(self, qpainter, zoom=1):
-        """Draw this figure
-        Parameters
-        ----------
-        qpainter: PySide.QtGui.QPainter
-        """
-        size_x = self.size_x * zoom
-        size_y = self.size_y * zoom
-        pensize = 3
-        qpainter.setPen(
-            QtGui.QPen(PipelineDrawer.blue_cta, pensize, QtCore.Qt.SolidLine))
-        text_pos = QPointF(self.center)
-        text_pos.setX(text_pos.x() - size_x / 2 + 2)
-        text_pos.setY(text_pos.y() + pensize)
-        qpainter.drawText(text_pos, str(self.nb_job_done))
-        pt = QPointF(self.center)
-        pt.setX(5)
-        pos = self.name.find("$$thread_number$$")
-        if pos != -1:
-            name = self.name[0:pos]
-        else:
-            name = self.name
-        qpainter.drawText(pt, name)
-        if self.running == True:
-            qpainter.setPen(
-                QtGui.QPen(PipelineDrawer.mygreen, 3, QtCore.Qt.SolidLine))
-        else:
-            qpainter.setPen(
-                QtGui.QPen(PipelineDrawer.blue_cta, 3, QtCore.Qt.SolidLine))
-        x1 = self.center.x() - (size_x / 2)
-        y1 = self.center.y() - (size_y / 2)
-        qpainter.drawRoundedRect(x1, y1, size_x, size_y, 12.0, 12.0)
 
     def __repr__(self):
-        """ called by the repr() built-in function and by string conversions
-         (reverse quotes) to compute the "official" string representation of
-          an object."""
-        return self.name + " -> nexts steps: " + str(self.next_steps)
+        """  called by the repr() built-in function and by string conversions
+        (reverse quotes) to compute the "official" string representation of
+        an object.  """
+        return (self.name + ' -> running: '+
+            str(self.running)+ '-> nb_job_done: '+
+            str(self.nb_job_done) + '-> next_steps' +
+            str(self.next_steps))
 
 
-class PipelineDrawer(QtGui.QWidget):
+class PipelineDrawer(QWidget):
 
     """
     class that displays pipeline workload
@@ -216,7 +73,7 @@ class PipelineDrawer(QtGui.QWidget):
          or part of a widget. It can happen for one of the following reasons:
          repaint() or update() was invoked,the widget was obscured and has
          now been uncovered, or many other reasons. """
-        qp = QtGui.QPainter()
+        qp = QPainter()
         qp.begin(self)
         self.drawPipeline(qp)
         qp.end()
@@ -225,7 +82,7 @@ class PipelineDrawer(QtGui.QWidget):
         """Called by paintEvent, it draws figures and link between them.
         Parameters
         ----------
-        qp : QtGui.QPainter
+        qp : QPainter
             Performs low-level painting
         """
         # If self.levels is empty, indeed, it does not make sense to draw
@@ -238,49 +95,7 @@ class PipelineDrawer(QtGui.QWidget):
         pixmap.loadFromData(diagram_bytes)
         qp.drawPixmap(QPoint(0,0),pixmap)
 
-        # define Rep position because they change whan resising main windows
-        """
-        width = self.size().width()
-        height = self.size().height()
 
-        if len(self.levels) != 0:
-            total_height = (len(self.levels) - 1) * (
-                STAGE_SIZE_Y + ROUTER_SIZE_Y)
-            self.zoom = height / total_height
-        else:
-            self.zoom = 1
-
-        #  center figures on screen
-        last_point = QPointF(width / 2, -GAP_Y / 2 * self.zoom)
-        for level in self.levels:
-            total_x = len(level) * STAGE_SIZE_X * self.zoom + (
-                len(level) - 1 * STAGE_GAP_X * self.zoom)
-            last_point.setX(width / 2 - total_x / 2)
-            last_point.setY(last_point.y() + GAP_Y * self.zoom)
-            for figure in level:
-                figure.setCenter(QPointF(last_point))
-                last_point.setX(last_point.x() + STAGE_GAP_X * self.zoom)
-        # Start to paint
-        size = self.size()
-        lines = list()
-        last_level_pt = list()
-        for level in self.levels:
-            current_level_pt = list()
-            for figure in level:
-                figure.draw(qp, zoom=self.zoom)
-                connexion_pt = QPointF(figure.center.x(), figure.center.y()
-                                       - figure.size_y / 2 * self.zoom)
-                current_level_pt.append(QPointF(connexion_pt.x(),
-                                                connexion_pt.y() + figure.size_y * self.zoom))
-                # Link to previous level connexion point(s)
-                for point in last_level_pt:
-                    lines.append(QLineF(point, connexion_pt))
-            # Keep points for next level
-            last_level_pt = list(current_level_pt)
-        for line in lines:
-            qp.setPen(QtGui.QPen(self.blue_cta, 1, QtCore.Qt.SolidLine))
-            qp.drawLine(line)
-        """
     def pipechange(self, topic, msg):
         """Called by ZmqSub instance when it receives zmq message from pipeline
         Update pipeline state (self.levels) and force to update drawing
@@ -306,9 +121,6 @@ class PipelineDrawer(QtGui.QWidget):
                                         topic == b'GUI_CONSUMER_CHANGE' or
                                         topic == b'GUI_PRODUCER_CHANGE'):
             self.step_change(msg)
-        # Router state changes
-        if self.levels is not None and topic == b'GUI_ROUTER_CHANGE':
-            self.router_change(msg)
         # Force to update drawing
         self.update()
 
@@ -329,19 +141,8 @@ class PipelineDrawer(QtGui.QWidget):
             for level in receiv_levels:
                 steps = list()
                 for step in level:
-                    if step.type == GUIStepInfo.ROUTER:
-                        steps.append(
-                            RouterRep(name=step.name, queue=step.queue_size))
-                    elif step.type == GUIStepInfo.STAGER:
-                        steps.append(
-                            StagerRep(
-                                running=False, nb_job_done=step.nb_job_done, fig_type=step.type, name=step.name,
-                                size_x=STAGE_SIZE_X, size_y=STAGE_SIZE_Y,next_steps=step.next_steps_name))
-                    else:  # PRODUCER AND CONSUMER
-                        steps.append(
-                            StagerRep(
-                                running=False, nb_job_done=step.nb_job_done, fig_type=step.type, name=step.name,
-                                size_x=PROD_CONS_SIZE_X, size_y=PROD_CONS_SIZE_Y,next_steps=step.next_steps_name))
+                    #steps.append(StagerRep(step))
+                    steps.append(step)
                 levels.append(steps)
             # Set self.levels
             self.levels = levels
@@ -366,34 +167,16 @@ class PipelineDrawer(QtGui.QWidget):
                     step.nb_job_done = nb_job_done
                     break
 
-    def router_change(self, msg):
-        """Find which pipeline router has changed, and update its corresponding
-        RouterRep
-        Parameters
-        ----------
-        msg: list
-            contains router name and router queue
-        receiv_levels: list of GUIStepInfo describing pipeline contents
-        """
-        name, queue = msg
-        for level in self.levels:
-            for step in level:
-                if step.name == name:
-                    step.queue_size = queue
-                    break
 
     def build_graph(self):
         """
         Return a graphiz.Digraph
         """
-
         nodes_name = list()
         g = Digraph('test', format='png')
 
-
         for level in  self.levels:
             for step in level:
-
                 if step.running:
                     g.node(step.name,color='lightblue2', style='filled')
                 else:
@@ -403,5 +186,4 @@ class PipelineDrawer(QtGui.QWidget):
             for step in level:
                 for next_step_name in step.next_steps:
                     g.edge(step.name, next_step_name)
-
         return g
