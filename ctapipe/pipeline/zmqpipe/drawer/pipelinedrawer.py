@@ -54,9 +54,8 @@ class PipelineDrawer(QWidget):
         super(PipelineDrawer, self).__init__()
         self.point_size = 1
         self.initUI()
-        # self.levels contains all pipeline steps (Producer, Stager, consumer)
-        # and RouterQueue in pipeline order.
-        self.levels = list()
+        # self.steps contains all pipeline steps (Producer, Stager, consumer)
+        self.steps = list()
         # self.config_time stores time when pipeline send its config
         self.config_time = 0.
         self.statusBar = statusBar
@@ -85,9 +84,9 @@ class PipelineDrawer(QWidget):
         qp : QPainter
             Performs low-level painting
         """
-        # If self.levels is empty, indeed, it does not make sense to draw
+        # If self.steps is empty, indeed, it does not make sense to draw
         # something.
-        if self.levels is None:
+        if self.steps is None:
             return
         diagram = self.build_graph()
         diagram_bytes = diagram.pipe('png')
@@ -98,7 +97,7 @@ class PipelineDrawer(QWidget):
 
     def pipechange(self, topic, msg):
         """Called by ZmqSub instance when it receives zmq message from pipeline
-        Update pipeline state (self.levels) and force to update drawing
+        Update pipeline state (self.steps) and force to update drawing
         Parameters
         ----------
         topic : str
@@ -113,35 +112,18 @@ class PipelineDrawer(QWidget):
         """
         # Full pipeline config change
         if topic == b'GUI_GRAPH':
-            config_time, receiv_levels = msg
-            self.build_full_graph(config_time, receiv_levels)
+            config_time, receiv_steps = msg
+            if config_time != self.config_time:
+                self.steps = receiv_steps
+                self.config_time = config_time
         # Stager or Producer or Consumer state changes
 
-        if self.levels is not None and (topic == b'GUI_STAGER_CHANGE' or
+        if self.steps is not None and (topic == b'GUI_STAGER_CHANGE' or
                                         topic == b'GUI_CONSUMER_CHANGE' or
                                         topic == b'GUI_PRODUCER_CHANGE'):
             self.step_change(msg)
-
         # Force to update drawing
         self.update()
-
-
-    def build_full_graph(self, config_time, receiv_levels):
-        """Build pipeline representation if config_time if diferent that the
-        last receive one
-        Parameters
-        ----------
-        config_time: float
-            contains pipeline's config's time
-        receiv_levels: list of GUIStepInfo describing pipeline contents
-        """
-
-        if config_time != self.config_time:
-            self.levels.clear()
-            for step in receiv_levels:
-                self.levels.append(step)
-
-            self.config_time = config_time
 
     def step_change(self, msg):
         """Find which pipeline step has changed, and update its corresponding
@@ -150,31 +132,28 @@ class PipelineDrawer(QWidget):
         ----------
         msg: list
             contains step name, step running flag and step nb_job_done
-            receiv_levels: list of GUIStepInfo describing pipeline contents
+            receiv_steps: list of GUIStepInfo describing pipeline contents
         """
         name, running, nb_job_done = msg
-        for step in self.levels:
+        for step in self.steps:
             foo = name.split('$$thread')[0]
             if step.name == foo:
                 step.running = running
                 step.nb_job_done = nb_job_done
                 break
 
-
     def build_graph(self):
         """
         Return a graphiz.Digraph
         """
-
         g = Digraph('test', format='png')
-
-        for step in  self.levels:
+        for step in  self.steps:
             if step.running:
                 g.node(step.name,color='lightblue2', style='filled')
             else:
                 g.node(step.name)
 
-        for step in self.levels:
+        for step in self.steps:
             for next_step_name in step.next_steps:
                 g.edge(step.name, next_step_name)
         return g
