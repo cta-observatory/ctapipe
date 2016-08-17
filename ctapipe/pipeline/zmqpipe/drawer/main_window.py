@@ -30,7 +30,7 @@ class MainWindow(QMainWindow, object):
 
     def setupUi(self, port):
         self.setObjectName("MainWindow")
-        self.resize(800, 600)
+        self.resize(600,500)
         self.centralwidget = QtGui.QWidget(self)
         p = self.centralwidget.palette()
         self.centralwidget.setAutoFillBackground(True)
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow, object):
         p = self.pipeline_drawer.palette()
         self.pipeline_drawer.setAutoFillBackground(True)
         p.setColor(
-            self.pipeline_drawer.backgroundRole(), QColor(226, 235, 252))
+            self.pipeline_drawer.backgroundRole(),QColor(255,255,255))# QColor(226, 235, 252))
         self.pipeline_drawer.setPalette(p)
         self.quitButton = QtGui.QPushButton()  # self.centralwidget)
         self.quitButton.setObjectName("quitButton")

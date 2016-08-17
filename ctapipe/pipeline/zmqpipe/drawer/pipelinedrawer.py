@@ -30,6 +30,7 @@ class StagerRep():
         self.next_steps = next_steps
         self.running = running
         self.nb_job_done = nb_job_done
+        self.queue_size = 0
 
     def __repr__(self):
         """  called by the repr() built-in function and by string conversions
@@ -40,6 +41,11 @@ class StagerRep():
             str(self.nb_job_done) + '-> next_steps' +
             str(self.next_steps))
 
+    def get_name_and_queue(self):
+        """
+        return a string containing name and queue_size
+        """
+        return str(self.name) + ' ' + str(self.queue_size)
 
 class PipelineDrawer(QWidget):
 
@@ -62,7 +68,7 @@ class PipelineDrawer(QWidget):
         self.zoom = 2
 
     def initUI(self):
-        self.setGeometry(300, 300, 280, 170)
+        #self.setGeometry(300, 300, 280, 170)
         self.setWindowTitle('PIPELINE')
         self.show()
 
@@ -72,27 +78,17 @@ class PipelineDrawer(QWidget):
          or part of a widget. It can happen for one of the following reasons:
          repaint() or update() was invoked,the widget was obscured and has
          now been uncovered, or many other reasons. """
-        qp = QPainter()
-        qp.begin(self)
-        self.drawPipeline(qp)
-        qp.end()
-
-    def drawPipeline(self, qp):
-        """Called by paintEvent, it draws figures and link between them.
-        Parameters
-        ----------
-        qp : QPainter
-            Performs low-level painting
-        """
-        # If self.steps is empty, indeed, it does not make sense to draw
-        # something.
         if self.steps is None:
             return
+        qp = QPainter()
+        qp.begin(self)
         diagram = self.build_graph()
         diagram_bytes = diagram.pipe('png')
         pixmap = QPixmap()
         pixmap.loadFromData(diagram_bytes)
-        qp.drawPixmap(QPoint(0,0),pixmap)
+        png_size = pixmap.size()
+        qp.drawPixmap(0,0,self.size().width(),self.size().height(),pixmap)
+        qp.end()
 
 
     def pipechange(self, topic, msg):
@@ -123,6 +119,9 @@ class PipelineDrawer(QWidget):
                                         topic == b'GUI_PRODUCER_CHANGE'):
             self.step_change(msg)
         # Force to update drawing
+
+        if topic == b'GUI_ROUTER_CHANGE':
+            self.router_change(msg)
         self.update()
 
     def step_change(self, msg):
@@ -142,6 +141,21 @@ class PipelineDrawer(QWidget):
                 step.nb_job_done = nb_job_done
                 break
 
+    def router_change(self, msg):
+            """Find which pipeline router has changed, and update its corresponding
+            RouterRep
+            Parameters
+            ----------
+            msg: list
+                contains router name and router queue
+            receiv_levels: list of StepInfo describing pipeline contents
+            """
+            name, queue = msg
+            for step in self.steps:
+                if step.name == name.split('_router')[0]:
+                    step.queue_size = queue
+                    break
+
     def build_graph(self):
         """
         Return a graphiz.Digraph
@@ -149,11 +163,23 @@ class PipelineDrawer(QWidget):
         g = Digraph('test', format='png')
         for step in  self.steps:
             if step.running:
-                g.node(step.name,color='lightblue2', style='filled')
+                g.node(step.get_name_and_queue(),color='lightblue2', style='filled')
             else:
-                g.node(step.name)
+                g.node(step.get_name_and_queue())
 
         for step in self.steps:
             for next_step_name in step.next_steps:
-                g.edge(step.name, next_step_name)
+                next_step = self.get_step_by_name(next_step_name)
+                g.edge(step.get_name_and_queue(), next_step.get_name_and_queue())
+        #g.edge_attr.update(arrowhead='vee', arrowsize='2')
         return g
+
+    def get_step_by_name(self, name):
+        ''' Find a PipeStep in self.producer_step or  self.stager_steps or
+        self.consumer_step
+        Return: PipeStep if found, otherwise None
+        '''
+        for step in self.steps:
+            if step.name == name:
+                return step
+        return None
