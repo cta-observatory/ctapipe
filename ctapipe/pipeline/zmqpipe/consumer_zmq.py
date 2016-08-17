@@ -37,7 +37,6 @@ class ConsumerZMQ(Thread, Component):
         # self.sock_consumer_url = "tcp://localhost:"+sock_consumer_port
         self.sock_consumer_url = 'inproc://' + sock_consumer_port
         self.name = _name
-        print("DEBUG", self.name,'sock_consumer_url', self.sock_consumer_url)
         self.nb_job_done = 0
         self.running = False
 

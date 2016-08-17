@@ -20,10 +20,13 @@ class Connexions():
         self.sockets=dict()
         # Socket to talk to others steps
         self.context = zmq.Context.instance()
+        self.main_out_socket = None
         for name,connexion in self.connexions.items():
             self.sockets[name] = self.context.socket(zmq.REQ)
             try:
                 self.sockets[name].connect('inproc://' + connexion)
+                if not self.main_out_socket:
+                    self.main_out_socket = self.sockets[name]
             except zmq.error.ZMQError as e:
                 print(' {} : inproc://{}'
                                .format(e,  connexion))

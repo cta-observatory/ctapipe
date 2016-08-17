@@ -5,9 +5,10 @@ import zmq
 from threading import Thread
 import threading
 import pickle
+from ctapipe.pipeline.zmqpipe.connexions import Connexions
 
 
-class StagerZmq(threading.Thread):
+class StagerZmq(threading.Thread, Connexions):
 
     """`StagerZmq` class represents a Stager pipeline Step.
     It is derived from Thread class.
@@ -22,7 +23,7 @@ class StagerZmq(threading.Thread):
 
     def __init__(
             self, coroutine, sock_job_for_me_port,
-            sock_job_for_you_port, name=None, thread_name=None, gui_address=None):
+            name=None, connexions=dict(), gui_address=None):
         """
         Parameters
         ----------
@@ -34,24 +35,21 @@ class StagerZmq(threading.Thread):
         """
         # Call mother class (threading.Thread) __init__ method
         Thread.__init__(self)
+        self.name = name
+        Connexions.__init__(self,connexions)
         # Set coroutine
         self.coroutine = coroutine
         # set sockets url
-        self.sock_job_for_you_url = 'inproc://' + sock_job_for_you_port
         self.sock_job_for_me_url = 'inproc://' + sock_job_for_me_port
-        self.name = name
-        self.thread_name = thread_name
+
         self.running = False
         self.nb_job_done = 0
         self.gui_address = gui_address
-        print("DEBUG", self.name,'for you', self.sock_job_for_you_url ,'for me', self.sock_job_for_me_url)
 
         # Prepare our context and sockets
-        context = zmq.Context.instance()
-        self.sock_for_you = context.socket(zmq.REQ)
+        #context = zmq.Context.instance()
+        #self.main_out_socket = context.socket(zmq.REQ)
 
-    def get_output_socket(self):
-        return self.sock_for_you
 
     def init(self):
         """
@@ -66,6 +64,7 @@ class StagerZmq(threading.Thread):
             return False
         if self.coroutine.init() == False:
             return False
+        self.coroutine.send_msg = self.send_msg
 
         # Connect to GUI
         context = zmq.Context.instance()
@@ -73,12 +72,10 @@ class StagerZmq(threading.Thread):
         if self.gui_address is not None:
             self.socket_pub.connect("tcp://" + self.gui_address)
         # Socket to talk to next_router
-        self.sock_for_you.connect(self.sock_job_for_you_url)
+        #self.main_out_socket.connect(self.sock_job_for_you_url)
         # Socket to talk to prev_router
         self.sock_for_me = context.socket(zmq.REQ)
         self.sock_for_me.connect(self.sock_job_for_me_url)
-        print('--------------> {} connect : {}'
-                       .format(self.name,   self.sock_job_for_me_url))
 
         # Use a ZMQ Pool to get multichannel message
         self.poll = zmq.Poller()
@@ -116,14 +113,13 @@ class StagerZmq(threading.Thread):
                 # am available
                 self.sock_for_me.send_multipart(request)
                 # send new job to next router/queue
-                self.sock_for_you.send_pyobj(send_output)
+                self.main_out_socket.send_pyobj(send_output)
                 # wait for acknoledgement form next router
-                self.sock_for_you.recv()
+                self.main_out_socket.recv()
                 self.nb_job_done += 1
                 self.running = False
                 self.update_gui()
         self.sock_for_me.close()
-        self.sock_for_you.close()
         self.socket_pub.close()
 
     def finish(self):
