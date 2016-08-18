@@ -122,6 +122,7 @@ class PipelineDrawer(QWidget):
 
         if topic == b'GUI_ROUTER_CHANGE':
             self.router_change(msg)
+
         self.update()
 
     def step_change(self, msg):

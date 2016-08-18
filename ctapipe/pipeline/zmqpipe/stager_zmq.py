@@ -45,6 +45,7 @@ class StagerZmq(threading.Thread, Connexions):
         self.running = False
         self.nb_job_done = 0
         self.gui_address = gui_address
+        self.done = False
 
         # Prepare our context and sockets
         #context = zmq.Context.instance()
@@ -120,12 +121,15 @@ class StagerZmq(threading.Thread, Connexions):
                     request = self.main_out_socket.recv()
                     if request == b'OK':
                         send = True
+                    else:
+                        sleep(.1)
 
                 self.nb_job_done += 1
                 self.running = False
                 self.update_gui()
         self.sock_for_me.close()
         self.socket_pub.close()
+        self.done = True
 
     def finish(self):
         """
@@ -134,6 +138,10 @@ class StagerZmq(threading.Thread, Connexions):
         """
         self.coroutine.finish()
         self.stop = True
+        if self.done:
+            return True
+        else:
+            return False
 
     def update_gui(self):
         msg = [self.name, self.running, self.nb_job_done]

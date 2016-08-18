@@ -50,13 +50,16 @@ Parameters
             mumber of thread to instantiate for this step
     level : step level in pipeline. Producer is level 0.
             Used to start/stop thread in correct order
+    queue_limit: int
+            Maximum number of element the router can queue
 '''
 
     def __init__(self, name,
                  next_steps_name=list(),
                  port_in=None,
                  main_connexion_name=None,
-                 nb_thread=1, level=0):
+                 nb_thread=1, level=0,
+                 queue_limit = 0):
 
         self.name = name
         self.port_in = port_in
@@ -66,6 +69,7 @@ Parameters
         self.connexions = dict()
         self.threads = list()
         self.main_connexion_name = main_connexion_name
+        self.queue_limit = queue_limit
 
     def __repr__(self):
         '''standard representation
@@ -76,7 +80,8 @@ Parameters
                 + '], main connexion name  [ ' + str(self.main_connexion_name) + ' ]'
                 + '], port in[ ' + str(self.port_in)
                 + '], nb thread[ ' + str(self.nb_thread)
-                + '], level[ ' + str(self.level))
+                + '], level[ ' + str(self.level)
+                + '], queue_limit[ ' + str(self.queue_limit) + ']')
 
 
 class PipelineError(Exception):
@@ -188,7 +193,9 @@ class Pipeline(Tool):
 
         # each consumer need a router to connect it to prev stages
         name = self.consumer_step.name + '_' + 'router'
-        router_names[name] = [self.consumer_step.name+'_in',self.consumer_step.name+'_out']
+        router_names[name] = [self.consumer_step.name+'_in',
+                              self.consumer_step.name+'_out',
+                              self.consumer_step.queue_limit]
         conf = self.consumer_conf
         try:
             consumer_zmq = self.instantiation(self.consumer_step.name,
@@ -207,7 +214,9 @@ class Pipeline(Tool):
         for stager_step in self.stager_steps:
             # each stage need a router to connect it to prev stages
             name = stager_step.name + '_' + 'router'
-            router_names[name] = [stager_step.name+'_in',stager_step.name+'_out']
+            router_names[name] = [stager_step.name+'_in',
+                                  stager_step.name+'_out',
+                                  stager_step.queue_limit]
 
             for i in range(stager_step.nb_thread):
                 conf = self.get_step_conf(stager_step.name)
@@ -249,10 +258,10 @@ class Pipeline(Tool):
             self.log.error("No producer in configuration")
             return False
         if not self.stager_steps:
-            self.log.error("No stager inb configuration")
+            self.log.error("No stager in configuration")
             return False
         if not self.consumer_step:
-            self.log.error("No consumer inb configuration")
+            self.log.error("No consumer in configuration")
             return False
         return True
 
@@ -356,17 +365,29 @@ class Pipeline(Tool):
                 # Create stagers steps
                 result = list()
                 for stage_conf in self.stagers_conf:
-                    nb_thread = int(stage_conf['nb_thread'])
+                    try:
+                        nb_thread = int(stage_conf['nb_thread'])
+                    except Exception :
+                        nb_thread = 1
                     next_steps_name = stage_conf['next_steps'].split(',')
+                    try:
+                        queue_limit = stage_conf['queue_limit']
+                    except Exception:
+                        queue_limit = -1
                     stage_step = PipeStep(
                         stage_conf['name'],
-                        next_steps_name=next_steps_name,nb_thread=nb_thread)
+                        next_steps_name=next_steps_name,nb_thread=nb_thread,
+                        queue_limit = queue_limit)
                     stage_step.type = self.STAGER
                     result.append(stage_step)
                 return result
             elif role == self.CONSUMER:
                 # Create consumer step
-                cons_step = PipeStep(self.consumer_conf['name'])
+                try:
+                    queue_limit = self.consumer_conf['queue_limit']
+                except:
+                    queue_limit = -1
+                cons_step = PipeStep(self.consumer_conf['name'],queue_limit = queue_limit)
                 cons_step.type = self.CONSUMER
                 return  cons_step
             return result
@@ -460,6 +481,7 @@ class Pipeline(Tool):
         instance was lunch
         Stop all thread in set order
         '''
+
         # send pipeline cofiguration to an optinal GUI instance
         levels_gui,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
@@ -472,7 +494,7 @@ class Pipeline(Tool):
             stage.start()
         self.producer.start()
         # Wait that all producers end of run method
-        self.wait_and_send_levels(self.producer, conf_time)
+        self.wait_and_send_levels(self.producer)
         # Now send stop to thread and wait they join(when their queue will be
         # empty)
         #for worker in reversed(self.step_threads):
@@ -483,9 +505,10 @@ class Pipeline(Tool):
                         [b'GUI_GRAPH', pickle.dumps([conf_time,
                          levels_gui])])
                     sleep(1)
-                self.wait_and_send_levels(worker, conf_time)
-        self.wait_and_send_levels(self.router, conf_time)
-        self.wait_and_send_levels(self.consumer, conf_time)
+                self.wait_and_send_levels(worker)
+        self.wait_and_send_levels(self.router)
+        print("-----------DEBUG -------------- router stop")
+        self.wait_and_send_levels(self.consumer)
         self.socket_pub.close()
         self.context.destroy()
         # self.context.term()
@@ -493,7 +516,7 @@ class Pipeline(Tool):
     def finish(self):
         self.log.info('===== Pipeline END ======')
 
-    def wait_and_send_levels(self, thread_to_wait, conf_time):
+    def wait_and_send_levels(self, thread_to_wait):
         '''
         Wait for a thread to join and regularly send pipeline state to GUI
         Parameters:
@@ -503,14 +526,14 @@ class Pipeline(Tool):
         conf_time : str
                 represents time at which configuration has been built
         '''
-        thread_to_wait.finish()
-        levels_gui,conf_time = self.def_step_for_gui()
-        while True:
-            thread_to_wait.join(timeout=1.0)
-            self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', pickle.dumps([conf_time, levels_gui])])
-            if not thread_to_wait.is_alive():
-                break
+        while not thread_to_wait.finish():
+            levels_gui,conf_time = self.def_step_for_gui()
+            while True:
+                thread_to_wait.join(timeout=1.0)
+                self.socket_pub.send_multipart(
+                    [b'GUI_GRAPH', pickle.dumps([conf_time, levels_gui])])
+                if not thread_to_wait.is_alive():
+                    return
 
     def get_step_conf(self, name):
         '''
