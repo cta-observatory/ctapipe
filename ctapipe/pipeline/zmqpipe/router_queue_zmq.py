@@ -42,13 +42,17 @@ class RouterQueue(threading.Thread, Component):
         self.router_sockets = dict()
         self.dealer_sockets = dict()
         self.stop = False
+        self.queue_limit = dict()
         self.connexions = connexions
-    def init(self):
+        self.done = False
 
+    def init(self):
         # Prepare our context and sockets
         context = zmq.Context.instance()
         # Socket to talk to prev_stages
         for name,connexions in self.connexions.items():
+            self.queue_limit[name] = connexions[2]
+
             sock_router = context.socket(zmq.ROUTER)
             try:
                 sock_router.bind('inproc://' + connexions[0])
@@ -144,7 +148,9 @@ class RouterQueue(threading.Thread, Component):
                     address, empty, request = socket_router.recv_multipart()
                     # store it to job queue
                     queue = self.queue_jobs[n]
-                    if len(queue) > 10:
+
+                    if (len(queue) > self.queue_limit[n]
+                    and self.queue_limit[n] != -1) :
                         socket_router.send_multipart([address, b"", b"FULL"])
                     else:
                         queue.append(pickle.loads(request))
@@ -157,6 +163,7 @@ class RouterQueue(threading.Thread, Component):
             socket.close()
         for socket in self.dealer_sockets.values():
             socket.close()
+        self.done = True
 
     def isQueueEmpty(self, stage_name):
         """
@@ -187,6 +194,10 @@ class RouterQueue(threading.Thread, Component):
         set stop flag to True to stop Thread activity
         """
         self.stop = True
+        if self.done:
+            return True
+        else:
+             return False
 
     def update_gui(self, name):
         msg = [name, str(len(self.queue_jobs[name]))]

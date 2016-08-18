@@ -47,3 +47,5 @@ class Connexions():
             request = sock.recv()
             if request == b'OK':
                 send = True
+            else:
+                sleep(0.1)

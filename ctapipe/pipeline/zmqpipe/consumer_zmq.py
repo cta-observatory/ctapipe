@@ -85,20 +85,23 @@ class ConsumerZMQ(Thread, Component):
         has been set to False by finish method.
         """
         while not self.stop:
-            sockets = dict(self.poll.poll(100))
-            if (self.sock_reply in sockets and
-                    sockets[self.sock_reply] == zmq.POLLIN):
-                request = self.sock_reply.recv_multipart()
-                # do some 'work'
-                cmd = pickle.loads(request[0])
-                self.running = True
-                self.update_gui()
-                self.coroutine.run(cmd)
-                self.nb_job_done += 1
-                self.running = False
-                self.update_gui()
-                # send reply back to router/queuer
-                self.sock_reply.send_multipart(request)
+            try:
+                sockets = dict(self.poll.poll(100))
+                if (self.sock_reply in sockets and
+                        sockets[self.sock_reply] == zmq.POLLIN):
+                    request = self.sock_reply.recv_multipart()
+                    # do some 'work'
+                    cmd = pickle.loads(request[0])
+                    self.running = True
+                    self.update_gui()
+                    self.coroutine.run(cmd)
+                    self.nb_job_done += 1
+                    self.running = False
+                    self.update_gui()
+                    # send reply back to router/queuer
+                    self.sock_reply.send_multipart(request)
+            except:
+                break
         self.sock_reply.close()
         self.socket_pub.close()
 
@@ -109,6 +112,7 @@ class ConsumerZMQ(Thread, Component):
         """
         self.coroutine.finish()
         self.stop = True
+        return True
 
     def update_gui(self):
         msg = [self.name, self.running, self.nb_job_done]

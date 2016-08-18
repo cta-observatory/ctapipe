@@ -88,6 +88,8 @@ class ProducerZmq(Thread, Component, Connexions):
                     reply = self.main_out_socket.recv()
                     if reply == b'OK':
                         send = True
+                    else:
+                        sleep(0.1)
                 self.nb_job_done += 1
                 self.update_gui()
 
@@ -101,10 +103,9 @@ class ProducerZmq(Thread, Component, Connexions):
         Executes coroutine method
         """
         while self.done != True:
-            sleep(1)
+            return False
         self.coroutine.finish()
-        for sock in self.other_requests.values():
-            sock.close()
+        return True
 
     def update_gui(self):
         msg = [self.name, self.running, self.nb_job_done]
