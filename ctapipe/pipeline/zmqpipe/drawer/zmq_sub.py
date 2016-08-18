@@ -28,7 +28,7 @@ class ZmqSub(Thread, Component):
         MainWindow status bar to display information
     """
 
-    def __init__(self, pipedrawer=None, gui_port=None, statusBar=None):
+    def __init__(self, pipedrawer=None, table_queue=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
         if gui_port is not None:
             self.statusBar = statusBar
@@ -56,6 +56,7 @@ class ZmqSub(Thread, Component):
             self.stop = False
             # self.pipedrawer will receive new pipeline information
             self.pipedrawer = pipedrawer
+            self.table_queue = table_queue
         else:
             self.stop = False
 
@@ -73,6 +74,7 @@ class ZmqSub(Thread, Component):
                 msg = pickle.loads(receive[1])
                 # inform pipedrawer
                 self.pipedrawer.pipechange(topic, msg)
+                #if self.table_queue: self.table_queue.pipechange(topic, msg)
 
     def finish(self):
         self.stop = True

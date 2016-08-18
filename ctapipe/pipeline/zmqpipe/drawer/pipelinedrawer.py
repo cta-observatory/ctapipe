@@ -10,8 +10,11 @@ from PyQt4.QtGui import QLabel
 from PyQt4.QtGui import QColor
 from PyQt4.QtCore import QPoint
 from PyQt4.QtGui import QPixmap
+from PyQt4.QtGui import QGridLayout
 from PyQt4.QtCore import Qt
+from time import sleep
 import sys
+from ctapipe.pipeline.zmqpipe.drawer.table_queue import TableQueue
 
 class StagerRep():
 
@@ -30,7 +33,7 @@ class StagerRep():
         self.next_steps = next_steps
         self.running = running
         self.nb_job_done = nb_job_done
-        self.queue_size = 0
+
 
     def __repr__(self):
         """  called by the repr() built-in function and by string conversions
@@ -66,6 +69,8 @@ class PipelineDrawer(QWidget):
         self.config_time = 0.
         self.statusBar = statusBar
         self.zoom = 2
+        self.queues=dict()
+
 
     def initUI(self):
         #self.setGeometry(300, 300, 280, 170)
@@ -87,7 +92,16 @@ class PipelineDrawer(QWidget):
         pixmap = QPixmap()
         pixmap.loadFromData(diagram_bytes)
         png_size = pixmap.size()
-        qp.drawPixmap(0,0,self.size().width(),self.size().height(),pixmap)
+        line = 20
+        qp.drawText(0,line,"QUEUES")
+        line+=20
+        qp.drawText(0,line,"_________")
+        line+=20
+        for stage,queue in self.queues.items():
+            queue_txt = '{:>} '.format(stage.split('_router')[0] + " "+ queue)
+            qp.drawText(0,line,queue_txt)
+            line+=20
+        qp.drawPixmap(150,0,self.size().width()-150,self.size().height(),pixmap)
         qp.end()
 
 
@@ -101,7 +115,8 @@ class PipelineDrawer(QWidget):
             -GUI_GRAPH -> Full pipeline config ( step, router ...) is send
             -GUI_STAGER_CHANGE   -> A pipeline stager has changed
             -GUI_CONSUMER_CHANGE -> A pipeline consumer has changed
-            -GUI_PRODUCER_CHANGE -> The pipeline producer has changed
+            -GUI_PRODUCER_CHANGE -> The pipeline producer
+             has changed
             -GUI_ROUTER_CHANGE   -> A pipeline Router has changed
         msg : list
             contains informations to update
@@ -122,6 +137,7 @@ class PipelineDrawer(QWidget):
 
         if topic == b'GUI_ROUTER_CHANGE':
             self.router_change(msg)
+
 
         self.update()
 
@@ -152,10 +168,7 @@ class PipelineDrawer(QWidget):
             receiv_levels: list of StepInfo describing pipeline contents
             """
             name, queue = msg
-            for step in self.steps:
-                if step.name == name.split('_router')[0]:
-                    step.queue_size = queue
-                    break
+            self.queues[name]=queue
 
     def build_graph(self):
         """
@@ -164,14 +177,14 @@ class PipelineDrawer(QWidget):
         g = Digraph('test', format='png')
         for step in  self.steps:
             if step.running:
-                g.node(step.get_name_and_queue(),color='lightblue2', style='filled')
+                g.node(step.name,color='lightblue2', style='filled')
             else:
-                g.node(step.get_name_and_queue())
+                g.node(step.name)
 
         for step in self.steps:
             for next_step_name in step.next_steps:
                 next_step = self.get_step_by_name(next_step_name)
-                g.edge(step.get_name_and_queue(), next_step.get_name_and_queue())
+                g.edge(step.name, next_step.name)
         #g.edge_attr.update(arrowhead='vee', arrowsize='2')
         return g
 

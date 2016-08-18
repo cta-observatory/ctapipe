@@ -6,12 +6,15 @@ This requires the pyside python library to be installed
 
 import sys
 from drawer import PipelineDrawer
+from drawer import TableQueue
+import ctapipe.pipeline.zmqpipe.drawer.images_rc
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap
+from PyQt4.QtGui import QTableWidget,QTableWidgetItem,QTextEdit
 from PyQt4.QtGui import QColor
 from drawer import ZmqSub
-import ctapipe.pipeline.zmqpipe.drawer.images_rc
+
 
 
 class MainWindow(QMainWindow, object):
@@ -62,7 +65,7 @@ class MainWindow(QMainWindow, object):
         # add other GUI objects
 
         self.pipeline_drawer = PipelineDrawer(self.statusbar)
-        self.gridLayout.addWidget(self.pipeline_drawer, 0, 1, 20, 9)
+        self.gridLayout.addWidget(self.pipeline_drawer, 0, 1, 20, 14)
 
         pixmap = QPixmap(':/images/cta-logo-mini.png')
         lbl = QtGui.QLabel()
@@ -79,6 +82,11 @@ class MainWindow(QMainWindow, object):
         self.quitButton.setText(QtGui.QApplication.translate
                                 ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 19, 0, 1, 1)
+        """
+        self.table_queue = TableQueue(0,2)
+        self.gridLayout.addWidget(self.table_queue, 0, 16, 20, 3)
+        """
+
 
         QtCore.QObject.connect(
             self.quitButton, QtCore.SIGNAL("clicked()"), self.stop)
@@ -93,7 +101,7 @@ class MainWindow(QMainWindow, object):
 
         # Create ZmqSub for ZMQ comminucation with pipeline
         self.subscribe = ZmqSub(
-            self.pipeline_drawer, gui_port=port, statusBar=self.statusbar)
+            self.pipeline_drawer,None, gui_port=port, statusBar=self.statusbar)
         # start the thread
         self.subscribe.start()
 
