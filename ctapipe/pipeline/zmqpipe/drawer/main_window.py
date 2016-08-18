@@ -8,8 +8,10 @@ import sys
 from drawer import PipelineDrawer
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
 from PyQt4 import QtCore, QtGui
+from PyQt4.QtGui import QPixmap
 from PyQt4.QtGui import QColor
 from drawer import ZmqSub
+import ctapipe.pipeline.zmqpipe.drawer.images_rc
 
 
 class MainWindow(QMainWindow, object):
@@ -62,7 +64,7 @@ class MainWindow(QMainWindow, object):
         self.pipeline_drawer = PipelineDrawer(self.statusbar)
         self.gridLayout.addWidget(self.pipeline_drawer, 0, 1, 20, 9)
 
-        pixmap = QtGui.QPixmap("cta-logo-mini.png")
+        pixmap = QPixmap(':/images/cta-logo-mini.png')
         lbl = QtGui.QLabel()
         lbl.setPixmap(pixmap)
         self.gridLayout.addWidget(lbl, 0, 0, 1, 1)
