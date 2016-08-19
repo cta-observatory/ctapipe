@@ -39,12 +39,16 @@ class Connexions():
         for sock in self.sockets.values():
             sock.close()
 
-    def send_msg(self,destination_step_name, msg):
+    def send_msg(self,msg,destination_step_name=None):
         send=False
+        if not destination_step_name :
+            socket  = self.main_out_socket
+        else:
+            socket = self.sockets[destination_step_name]
         while not send:
-            sock = self.sockets[destination_step_name]
-            sock.send_pyobj(msg)
-            request = sock.recv()
+
+            socket.send_pyobj(msg)
+            request = socket.recv()
             if request == b'OK':
                 send = True
             else:
