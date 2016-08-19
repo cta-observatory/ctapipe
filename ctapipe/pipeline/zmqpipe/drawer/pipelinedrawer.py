@@ -28,8 +28,8 @@ class StagerRep():
     nb_job_done : int
     """
 
-    def __init__(self,name,next_steps=list(),running=False,nb_job_done=0,
-                queue_length = 0):
+    def __init__(self,name,next_steps=list(),running=False,
+                nb_job_done=0, queue_length = 0):
         self.name = name
         self.next_steps = next_steps
         self.running = running

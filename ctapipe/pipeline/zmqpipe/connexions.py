@@ -32,7 +32,7 @@ class Connexions():
                 print(' {} : inproc://{}'
                                .format(e,  connexion))
                 return False
-
+        self.send_in_run = False
         return True
 
     def close_connexions(self):
@@ -49,3 +49,4 @@ class Connexions():
                 send = True
             else:
                 sleep(0.1)
+        self.send_in_run = True

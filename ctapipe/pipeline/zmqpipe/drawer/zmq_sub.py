@@ -92,7 +92,7 @@ class ZmqSub(Thread, QtCore.QObject):
                      self.last_send_config = conf_time
                 #self.pipedrawer.pipechange(topic, msg)
                 #if self.table_queue: self.table_queue.pipechange(topic, msg)
-            else:        
+            else:
                  self.message.emit(self.steps)
 
     def update_full_state(self,topic,msg):
@@ -100,6 +100,7 @@ class ZmqSub(Thread, QtCore.QObject):
             config_time, receiv_steps = msg
             if config_time != self.config_time:
                 self.steps = receiv_steps
+                print('debug receiv_steps {}'.format(receiv_steps))
                 self.config_time = config_time
         # Stager or Producer or Consumer state changes
 
@@ -128,6 +129,7 @@ class ZmqSub(Thread, QtCore.QObject):
             if step.name == name.split('$$thread')[0]:
                 step.running = running
                 step.nb_job_done = nb_job_done
+                print('DEBUG step.name:{} step.nb_job_done {}'.format(step.name,step.nb_job_done))
                 break
 
     def router_change(self, topic, msg):

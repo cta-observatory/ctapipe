@@ -96,6 +96,7 @@ class ConsumerZMQ(Thread, Component):
                     self.update_gui()
                     self.coroutine.run(cmd)
                     self.nb_job_done += 1
+                    print('DEBUG CONSUMER cmd {} self.nb_job_done += 1 -> {}'.format(cmd,self.nb_job_done))
                     self.running = False
                     self.update_gui()
                     # send reply back to router/queuer

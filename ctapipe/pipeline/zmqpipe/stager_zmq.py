@@ -114,15 +114,17 @@ class StagerZmq(threading.Thread, Connexions):
                 # am available
                 self.sock_for_me.send_multipart(request)
                 send = False
-                while not send:
-                    # send new job to next router/queue
-                    self.main_out_socket.send_pyobj(send_output)
-                    # wait for acknoledgement form next router
-                    request = self.main_out_socket.recv()
-                    if request == b'OK':
-                        send = True
-                    else:
-                        sleep(.1)
+                if not self.send_in_run:
+                    while not send:
+                        # send new job to next router/queue
+                        self.main_out_socket.send_pyobj(send_output)
+                        # wait for acknoledgement form next router
+                        request = self.main_out_socket.recv()
+                        if request == b'OK':
+                            send = True
+                        else:
+                            sleep(.1)
+                    self.send_in_run = False
 
                 self.nb_job_done += 1
                 self.running = False
