@@ -5,6 +5,7 @@ from ctapipe.pipeline.zmqpipe.connexions import Connexions
 from threading import Thread
 from time import sleep
 import zmq
+import types
 import pickle
 
 
@@ -77,24 +78,18 @@ class ProducerZmq(Thread, Component, Connexions):
         thanks to its ZMQ REQ socket.
         """
         generator = self.coroutine.run()
-        if generator:
+        if isinstance(generator,types.GeneratorType):
             self.running = True
             self.update_gui()
             for result in generator:
-                send = False
-                while not send:
-                    self.main_out_socket.send_pyobj(result)
-                    # Wait for reply
-                    reply = self.main_out_socket.recv()
-                    if reply == b'OK':
-                        send = True
-                    else:
-                        sleep(0.1)
                 self.nb_job_done += 1
                 self.update_gui()
-
             self.running = False
             self.update_gui()
+        else:
+            print("Warning: Productor run method was not a python generator.")
+            print("Warning: Pipeline worked, but number of jobs done for producer stayed at 0.")
+            print("Warning: Add yield to end of run producer method.")
         self.socket_pub.close()
         self.done = True
 

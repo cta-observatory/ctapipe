@@ -515,7 +515,6 @@ class Pipeline(Tool):
                     sleep(1)
                 self.wait_and_send_levels(worker)
         self.wait_and_send_levels(self.router)
-        print("-----------DEBUG -------------- router stop")
         self.wait_and_send_levels(self.consumer)
         self.socket_pub.close()
         self.context.destroy()

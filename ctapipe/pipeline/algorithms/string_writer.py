@@ -13,7 +13,7 @@ class StringWriter(Component):
 
     def init(self):
         self.file = open(self.filename, 'w')
-        self.log.info("--- StringWriter init ---")
+        self.log.debug("--- StringWriter init ---")
         return True
 
     def run(self, object):
