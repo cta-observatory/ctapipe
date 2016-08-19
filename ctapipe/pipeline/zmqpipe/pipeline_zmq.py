@@ -419,10 +419,18 @@ class Pipeline(Tool):
         Returns: the created list and actual time
         '''
         levels_for_gui = list()
-        levels_for_gui.append(StagerRep(self.producer_step.name,self.producer_step.next_steps_name))
+        print('DEBUG self.producer.nb_job_done {}'.format(self.producer.nb_job_done))
+        levels_for_gui.append(StagerRep(self.producer_step.name,
+                            self.producer_step.next_steps_name,
+                            nb_job_done=self.producer.nb_job_done))
         for step in self.stager_steps:
-            levels_for_gui.append(StagerRep(step.name,step.next_steps_name))
-        levels_for_gui.append(StagerRep(self.consumer_step.name))
+            nb_job_done = 0
+            for thread in step.threads:
+                nb_job_done+=thread.nb_job_done
+            levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
+                                  nb_job_done=nb_job_done))
+        levels_for_gui.append(StagerRep(self.consumer_step.name,
+                                nb_job_done=self.consumer.nb_job_done))
         return (levels_for_gui,clock())
 
 
