@@ -255,17 +255,18 @@ def calibrate_mc(event, telid, params, geom=None):
 
     Returns
     -------
-    pe : ndarray
-        array of pixels with integrated charge [photo-electrons]
+    channel_pe : ndarray
+        array of pixels with integrated charge [photo-electrons] for the
+        chosen channel
         (pedestal substracted)
     window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
     data_ped : ndarray
         pedestal subtracted data
-    peakpos : ndarray
+    channel_peakpos : ndarray
         position of the peak as determined by the peak-finding algorithm
-        for each pixel and channel
+        for each pixel, and for the channel that has been chosen to be used.
     """
 
     charge, window, data_ped, peakpos = \
@@ -274,4 +275,9 @@ def calibrate_mc(event, telid, params, geom=None):
     if 'clip_amp' in params:
         pe[np.where(pe > params['clip_amp'])] = params['clip_amp']
 
-    return pe, window, data_ped, peakpos
+    # Decide between HG and LG channel
+    # TODO: add actual logic for decision, currently uses only HG
+    channel_pe = pe[0]
+    channel_peakpos = peakpos[0]
+
+    return channel_pe, window, data_ped, channel_peakpos

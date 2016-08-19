@@ -200,12 +200,12 @@ def calibrate_event(event, params, geom_dict=None):
                     geom_dict[cam_dimensions] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
+        calibrated.dl1.tel[telid].pe_charge = pe
+        calibrated.dl1.tel[telid].peakpos = peakpos
         for chan in range(nchan):
-            calibrated.dl1.tel[telid].pe_charge[chan] = pe[chan]
             calibrated.dl1.tel[telid].integration_window[chan] = window[chan]
             calibrated.dl1.tel[telid].pedestal_subtracted_adc[chan] = \
                 data_ped[chan]
-            calibrated.dl1.tel[telid].peakpos[chan] = peakpos[chan]
 
     return calibrated
 

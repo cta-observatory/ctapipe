@@ -104,7 +104,7 @@ def main():
     # Extract required images
     data_ped = calibrated_event.dl1.tel[telid].pedestal_subtracted_adc[chan]
     true_pe = calibrated_event.mc.tel[telid].photo_electrons
-    measured_pe = calibrated_event.dl1.tel[telid].pe_charge[chan]
+    measured_pe = calibrated_event.dl1.tel[telid].pe_charge
     max_time = np.unravel_index(np.argmax(data_ped), data_ped.shape)[1]
     max_charges = np.max(data_ped, axis=1)
     max_pixel = int(np.argmax(max_charges))
