@@ -82,10 +82,10 @@ class MainWindow(QMainWindow, object):
         self.quitButton.setText(QtGui.QApplication.translate
                                 ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 19, 0, 1, 1)
-        """
-        self.table_queue = TableQueue(0,2)
+
+        self.table_queue = TableQueue(0,3)
         self.gridLayout.addWidget(self.table_queue, 0, 16, 20, 3)
-        """
+        self.pipeline_drawer.set_table_queue(self.table_queue)
 
 
         QtCore.QObject.connect(
@@ -100,8 +100,10 @@ class MainWindow(QMainWindow, object):
         QtCore.QMetaObject.connectSlotsByName(self)
 
         # Create ZmqSub for ZMQ comminucation with pipeline
-        self.subscribe = ZmqSub(
-            self.pipeline_drawer,None, gui_port=port, statusBar=self.statusbar)
+        self.subscribe = ZmqSub(gui_port=port, statusBar=None)#self.statusbar)
+        self.subscribe.message.connect(self.pipeline_drawer.pipechange)
+        self.subscribe.message.connect(self.table_queue.pipechange)
+
         # start the thread
         self.subscribe.start()
 
@@ -123,8 +125,8 @@ class MainWindow(QMainWindow, object):
         self.close()
 
     def closeEvent(self, event):
-            self.subscribe.finish()
-            self.subscribe.join()
+            #self.subscribe.finish()
+            #self.subscribe.join()
             event.accept()  # let the window close
 
 
