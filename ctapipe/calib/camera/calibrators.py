@@ -32,12 +32,12 @@ def calibration_arguments(parser):
                              'extract the charge? (default = 5)'
                              '\n{}'.format(integrators))
     parser.add_argument('--integration-window', dest='integration_window',
-                        action='store', default=[7,3], nargs=2, type=int,
+                        action='store', default=[7, 3], nargs=2, type=int,
                         help='Set integration window width and offset (to '
                              'before the peak) respectively, '
                              'e.g. --integration-window 7 3 (default)')
     parser.add_argument('--integration-sigamp', dest='integration_sigamp',
-                        action='store', nargs='+', type=int, default=[2,4],
+                        action='store', nargs='+', type=int, default=[2, 4],
                         help='Amplitude in ADC counts above pedestal at which '
                              'a signal is considered as significant, and used '
                              'for peak finding. '
@@ -194,7 +194,7 @@ def calibrate_event(event, params, geom_dict=None):
             else:
                 log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                          event.meta.optical_foclen[telid])
+                                            event.meta.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[cam_dimensions] = geom
@@ -262,6 +262,7 @@ def calibrate_source(source, params, geom_dict=None):
     if geom_dict is None:
         geom_dict = {}
 
+    log.info("[calib] Calibration generator appended to source")
     for event in source:
         calibrated = calibrate_event(event, params, geom_dict)
 
