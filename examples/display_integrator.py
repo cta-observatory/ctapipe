@@ -145,7 +145,10 @@ def main():
 
     # Draw max pixel traces
     plotter.draw_waveform(data_ped[max_pixel], ax_max_pix)
-    ax_max_pix.set_title("(Max) Pixel: {}".format(max_pixel))
+    ax_max_pix.set_title("(Max) Pixel: {}, "
+                         "True: {}, "
+                         "Measured = {}".format(max_pixel, true_pe[max_pixel],
+                                                measured_pe[max_pixel]))
     ax_max_pix.set_ylabel("Amplitude-Ped (ADC)")
     max_ylim = ax_max_pix.get_ylim()
     plotter.draw_waveform_positionline(start[max_pixel], ax_max_pix)
@@ -154,7 +157,10 @@ def main():
         if len(max_pixel_nei) > i:
             pix = max_pixel_nei[i]
             plotter.draw_waveform(data_ped[pix], ax)
-            ax.set_title("(Max Nei) Pixel: {}".format(pix))
+            ax.set_title("(Max Nei) Pixel: {}, "
+                         "True: {}, "
+                         "Measured = {}".format(pix, true_pe[pix],
+                                                measured_pe[pix]))
             ax.set_ylabel("Amplitude-Ped (ADC)")
             ax.set_ylim(max_ylim)
             plotter.draw_waveform_positionline(start[pix], ax)
@@ -162,7 +168,10 @@ def main():
 
     # Draw min pixel traces
     plotter.draw_waveform(data_ped[min_pixel], ax_min_pix)
-    ax_min_pix.set_title("(Min) Pixel: {}".format(min_pixel))
+    ax_min_pix.set_title("(Min) Pixel: {}, "
+                         "True: {}, "
+                         "Measured = {}".format(min_pixel, true_pe[min_pixel],
+                                                measured_pe[min_pixel]))
     ax_min_pix.set_ylabel("Amplitude-Ped (ADC)")
     ax_min_pix.set_ylim(max_ylim)
     plotter.draw_waveform_positionline(start[min_pixel], ax_min_pix)
@@ -171,7 +180,10 @@ def main():
         if len(min_pixel_nei) > i:
             pix = min_pixel_nei[i]
             plotter.draw_waveform(data_ped[pix], ax)
-            ax.set_title("(Min Nei) Pixel: {}".format(pix))
+            ax.set_title("(Min Nei) Pixel: {}, "
+                         "True: {}, "
+                         "Measured = {}".format(pix, true_pe[pix],
+                                                measured_pe[pix]))
             ax.set_ylabel("Amplitude-Ped (ADC)")
             ax.set_ylim(max_ylim)
             plotter.draw_waveform_positionline(start[pix], ax)
