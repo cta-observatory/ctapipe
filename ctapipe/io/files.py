@@ -35,7 +35,7 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 
 
-def oxpytools_source(filepath):
+def oxpytools_source(filepath, max_events=None):
     """
     Temporary function to return a "source" generator from a targetio file,
     only if oxpytools exists on this python interpreter.
@@ -44,6 +44,8 @@ def oxpytools_source(filepath):
     ----------
     filepath : string
         Filepath for the input targetio file
+    max_events : int
+        Maximum number of events to read
 
     Returns
     -------
@@ -59,7 +61,7 @@ def oxpytools_source(filepath):
         found = oxpytools_spec is not None
         if found:
             from oxpytools.io.targetio import targetio_event_source
-            return targetio_event_source(filepath)
+            return targetio_event_source(filepath, max_events=max_events)
         else:
             raise RuntimeError()
     except RuntimeError:
@@ -141,9 +143,14 @@ class InputFile:
         self.extension = splitext(self.__input_path)[1]
         self.output_directory = join(self.directory, self.filename)
 
-    def read(self):
+    def read(self, max_events=None):
         """
         Read the file using the appropriate method depending on the file origin
+
+        Parameters
+        ----------
+        max_events : int
+            Maximum number of events to read
 
         Returns
         -------
@@ -154,9 +161,11 @@ class InputFile:
         # Obtain relevent source
         switch = {
             'hessio':
-                lambda: hessio_event_source(get_path(self.input_path)),
+                lambda: hessio_event_source(get_path(self.input_path),
+                                            max_events=max_events),
             'targetio':
-                lambda: oxpytools_source(self.input_path),
+                lambda: oxpytools_source(self.input_path,
+                                         max_events=max_events),
         }
         try:
             source = switch[self.origin]()
