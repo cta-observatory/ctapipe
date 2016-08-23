@@ -102,6 +102,7 @@ class ConsumerZMQ(Thread, Component):
                     self.sock_reply.send_multipart(request)
             except:
                 break
+        self.update_gui()
         self.sock_reply.close()
         self.socket_pub.close()
 

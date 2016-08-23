@@ -15,7 +15,7 @@ from threading import Thread
 import sys
 import os
 import zmq
-from  time import clock
+from  time import time
 from time import sleep
 import pickle
 from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
@@ -419,7 +419,6 @@ class Pipeline(Tool):
         Returns: the created list and actual time
         '''
         levels_for_gui = list()
-        print('DEBUG self.producer.nb_job_done {}'.format(self.producer.nb_job_done))
         levels_for_gui.append(StagerRep(self.producer_step.name,
                             self.producer_step.next_steps_name,
                             nb_job_done=self.producer.nb_job_done))
@@ -428,10 +427,12 @@ class Pipeline(Tool):
             for thread in step.threads:
                 nb_job_done+=thread.nb_job_done
             levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
-                                  nb_job_done=nb_job_done))
+                                  nb_job_done=nb_job_done,
+                                  nb_threads = len(step.threads)))
+
         levels_for_gui.append(StagerRep(self.consumer_step.name,
                                 nb_job_done=self.consumer.nb_job_done))
-        return (levels_for_gui,clock())
+        return (levels_for_gui,time())
 
 
     def display_conf(self):
@@ -505,17 +506,23 @@ class Pipeline(Tool):
         self.wait_and_send_levels(self.producer)
         # Now send stop to thread and wait they join(when their queue will be
         # empty)
-        #for worker in reversed(self.step_threads):
         for worker in self.step_threads:
             if worker is not None:
                 while not self.router.isQueueEmpty(worker.name):
+                    levels_gui,conf_time = self.def_step_for_gui()
                     self.socket_pub.send_multipart(
                         [b'GUI_GRAPH', pickle.dumps([conf_time,
                          levels_gui])])
-                    sleep(1)
+                    sleep(.1)
                 self.wait_and_send_levels(worker)
         self.wait_and_send_levels(self.router)
         self.wait_and_send_levels(self.consumer)
+        levels_gui,conf_time = self.def_step_for_gui()
+
+        # Wait 1 s to be sure this message will be display
+        sleep(1)
+        self.socket_pub.send_multipart(
+            [b'GUI_GRAPH', pickle.dumps([conf_time, levels_gui])])
         self.socket_pub.close()
         self.context.destroy()
         # self.context.term()
@@ -534,13 +541,14 @@ class Pipeline(Tool):
                 represents time at which configuration has been built
         '''
         while not thread_to_wait.finish():
-            levels_gui,conf_time = self.def_step_for_gui()
             while True:
-                thread_to_wait.join(timeout=1.0)
+                levels_gui,conf_time = self.def_step_for_gui()
+                thread_to_wait.join(timeout=.1)
                 self.socket_pub.send_multipart(
                     [b'GUI_GRAPH', pickle.dumps([conf_time, levels_gui])])
                 if not thread_to_wait.is_alive():
                     return
+
 
     def get_step_conf(self, name):
         '''

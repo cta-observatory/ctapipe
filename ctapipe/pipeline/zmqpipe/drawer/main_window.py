@@ -6,7 +6,7 @@ This requires the pyside python library to be installed
 
 import sys
 from drawer import PipelineDrawer
-from drawer import TableQueue
+from drawer import LabelQueue
 import ctapipe.pipeline.zmqpipe.drawer.images_rc
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
 from PyQt4 import QtCore, QtGui
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow, object):
         # add other GUI objects
 
         self.pipeline_drawer = PipelineDrawer(self.statusbar)
-        self.gridLayout.addWidget(self.pipeline_drawer, 0, 1, 20, 14)
+        self.gridLayout.addWidget(self.pipeline_drawer, 0, 12, 20, 11 )
 
         pixmap = QPixmap(':/images/cta-logo-mini.png')
         lbl = QtGui.QLabel()
@@ -83,9 +83,9 @@ class MainWindow(QMainWindow, object):
                                 ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 19, 0, 1, 1)
 
-        self.table_queue = TableQueue(0,3)
-        self.gridLayout.addWidget(self.table_queue, 0, 16, 20, 3)
-        self.pipeline_drawer.set_table_queue(self.table_queue)
+        self.table_queue = LabelQueue(0,4)
+        self.gridLayout.addWidget(self.table_queue,5, 0, 1, 1)
+
 
 
         QtCore.QObject.connect(
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow, object):
         QtCore.QMetaObject.connectSlotsByName(self)
 
         # Create ZmqSub for ZMQ comminucation with pipeline
-        self.subscribe = ZmqSub(gui_port=port, statusBar=None)#self.statusbar)
+        self.subscribe = ZmqSub(gui_port=port, statusBar=self.statusbar)
         self.subscribe.message.connect(self.pipeline_drawer.pipechange)
         self.subscribe.message.connect(self.table_queue.pipechange)
 
@@ -125,8 +125,8 @@ class MainWindow(QMainWindow, object):
         self.close()
 
     def closeEvent(self, event):
-            #self.subscribe.finish()
-            #self.subscribe.join()
+            self.subscribe.finish()
+            self.subscribe.join()
             event.accept()  # let the window close
 
 
