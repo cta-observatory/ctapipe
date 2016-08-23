@@ -134,6 +134,6 @@ class StagerZmq(threading.Thread, Connexions):
             return False
 
     def update_gui(self):
-        msg = [self.name, self.running, self.nb_job_done]
+        msg = [self.name, self.running, None]
         self.socket_pub.send_multipart(
             [b'GUI_STAGER_CHANGE', pickle.dumps(msg)])

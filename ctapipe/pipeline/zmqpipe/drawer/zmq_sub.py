@@ -3,7 +3,7 @@ import zmq
 from threading import Thread
 import pickle
 from PyQt4 import QtCore
-from time import clock
+from time import time
 from ctapipe.core import Component
 
 
@@ -68,6 +68,7 @@ class ZmqSub(Thread, QtCore.QObject):
             self.config_time = 0
 
             self.last_send_config = 0
+            self.nb_job_done=dict()
         else:
             self.stop = True
 
@@ -75,38 +76,65 @@ class ZmqSub(Thread, QtCore.QObject):
         """
         Method representing the thread’s activity.
         """
+
         while not self.stop:
+            conf_time = time()
             sockets = dict(self.poll.poll(1000))  # Poll or time out (1000ms)
             if self.socket in sockets and sockets[self.socket] == zmq.POLLIN:
                 # receive a new message form pipeline
                 receive = self.socket.recv_multipart()
-                # decode topic and msg
                 topic = receive[0]
                 msg = pickle.loads(receive[1])
-                # inform pipedrawer
                 self.update_full_state(topic,msg)
-                conf_time = clock()
-                if conf_time - self.last_send_config > .0416: # 24 images /sec
-                     self.message.emit(self.steps)
-                     self.last_send_config = conf_time
-                #self.pipedrawer.pipechange(topic, msg)
-                #if self.table_queue: self.table_queue.pipechange(topic, msg)
+                if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
+                    # inform pipedrawer
+                    self.message.emit(self.steps)
+                    self.last_send_config = conf_time
             else:
-                 self.message.emit(self.steps)
+                self.message.emit(self.steps)
+                self.last_send_config = conf_time
 
     def update_full_state(self,topic,msg):
         if topic == b'GUI_GRAPH':
             config_time, receiv_steps = msg
             if config_time != self.config_time:
-                self.steps = receiv_steps
+                self.full_change(receiv_steps)
                 self.config_time = config_time
         # Stager or Producer or Consumer state changes
 
-        if self.steps is not None and (topic == b'GUI_STAGER_CHANGE' or
-                                        topic == b'GUI_CONSUMER_CHANGE' or
-                                        topic == b'GUI_PRODUCER_CHANGE'):
+        if self.steps and (topic == b'GUI_STAGER_CHANGE' or
+                           topic == b'GUI_CONSUMER_CHANGE' or
+                           topic == b'GUI_PRODUCER_CHANGE'):
+
             self.step_change(msg)
-        # Force to update drawing
+
+        if topic == b'GUI_ROUTER_CHANGE':
+            self.router_change(topic,msg)
+
+    def full_change(self,receiv_steps):
+        if not self.steps:
+            self.steps = receiv_steps
+        else:
+            for new_step in receiv_steps:
+                for step in self.steps:
+                    if step.name == new_step.name:
+                        step.nb_job_done = new_step.nb_job_done
+                        break
+
+
+    def update_full_state(self,topic,msg):
+        if topic == b'GUI_GRAPH':
+            config_time, receiv_steps = msg
+            if config_time != self.config_time:
+                self.full_change(receiv_steps)
+                self.config_time = config_time
+        # Stager or Producer or Consumer state changes
+
+        if self.steps and (topic == b'GUI_STAGER_CHANGE' or
+                           topic == b'GUI_CONSUMER_CHANGE' or
+                           topic == b'GUI_PRODUCER_CHANGE'):
+
+            self.step_change(msg)
 
         if topic == b'GUI_ROUTER_CHANGE':
             self.router_change(topic,msg)
@@ -122,12 +150,12 @@ class ZmqSub(Thread, QtCore.QObject):
             contains step name, step running flag and step nb_job_done
             receiv_steps: list of GUIStepInfo describing pipeline contents
         """
-        name, running, nb_job_done = msg
+        name, running , nb_job_done = msg
         for step in self.steps:
+
             if step.name == name.split('$$thread')[0]:
                 step.running = running
-                step.nb_job_done = nb_job_done
-                break
+                return
 
     def router_change(self, topic, msg):
         """Called by ZmqSub instance when it receives zmq message from pipeline
@@ -141,6 +169,7 @@ class ZmqSub(Thread, QtCore.QObject):
         step = self.get_step_by_name(name)
         if step:
             step.queue_length = queue
+
 
 
 

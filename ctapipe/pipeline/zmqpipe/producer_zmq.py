@@ -79,11 +79,15 @@ class ProducerZmq(Thread, Component, Connexions):
         """
         generator = self.coroutine.run()
         if isinstance(generator,types.GeneratorType):
-            self.running = True
+
             self.update_gui()
             for result in generator:
+                self.running = False
                 self.nb_job_done += 1
                 self.update_gui()
+                self.running = True
+                self.update_gui()
+
             self.running = False
             self.update_gui()
         else:
