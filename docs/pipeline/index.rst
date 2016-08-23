@@ -16,7 +16,7 @@ It is based on ZeroMQ library (http://zeromq.org) for messages passing between t
 ZMQ library allows to stay away from class concurrency mechanisms like mutexes,
 critical sections semaphores, while being thread safe.
 
-User implements steps in Python class. Passing data between steps is managed by the router.
+User implements steps in Python class. Passing data between steps is managed by the router thanks to Pickle serialization.
 If a step is executed by several threads, the router uses LRU pattern (least recently used ) to
 choose the step that will receive next data. The router also manage Queue for each step.
 
@@ -45,7 +45,7 @@ Mandatories configuration entries:
 
 - One consumer_conf containing 1 step.
 
-- One stagers_conf containing 1 to n step(s). Step are executed in the same order as the defined list (stagers_conf).
+- One stagers_conf containing 1 to n step(s).
 
 Mandatory configuration per step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -55,9 +55,12 @@ Mandatory configuration per step
 
 - module: python module containing class (defined above)
 
+- next_steps: list of next steps (you should use comma to separate items)
+
 Optional entry per step
 ^^^^^^^^^^^^^^^^^^^^^^^
-- nb_thread (only available for stage, not for producer or consumer). Define how many thread will execute this stage
+- nb_thread:  only available for stage, not for producer or consumer. Define how many thread will execute this stage
+- queue_limit:  Define maximum number of message a router can queue for this step. Used it to limit memery consumption.
 
 User option for step
 ^^^^^^^^^^^^^^^^^^^^
@@ -88,27 +91,34 @@ These 3 methods are executed by the pipeline.
 
 Producer run method
 ^^^^^^^^^^^^^^^^^^^
-Producer class run method does not have any input parameter and must yield a result (! not return), as a Python generator.
+Producer class run method does not have any input parameter.
+It must yield nothing if you want to get correct number of job salready done via the GUI.
+Use self.send_msg mrthod to send data to next step.
+
+
 
 .. code-block:: python
 
     >>> def run(self):
     >>>     for input_file in os.listdir(self.source_dir):
-    >>>         yield self.source_dir + "/" + input_file
+    >>>         self.send_msg(self.source_dir + "/" + input_file)
+    >>>         yield
 
 Stager run method
 ^^^^^^^^^^^^^^^^^
 Stager class run method takes one parameter (sent by the previous step).
-It can return nothing or one value per input or yield several values per input.
+Use self.send_msg mrthod to send data to next step.
+Do not return anything (or it will be lose)
 
 
 .. code-block:: python
 
     >>> def run(self,event):
     >>>     if event != None:
-    >>>         return event.dl0.tels_with_data
+    >>>         self.send_msg(event.dl0.tels_with_data)
 
-In case a step has to send several output to the next step :
+
+In case a step has to send several output for one input to the next step :
 
 .. code-block:: python
 
@@ -116,11 +126,27 @@ In case a step has to send several output to the next step :
     >>>    if event != None:
     >>>        tels = event.dl0.tels_with_data
     >>>        for tel in tels:
-    >>>            yield tel
+    >>>             self.send_msg(tel)
 
 Consumer run method
 ^^^^^^^^^^^^^^^^^^^
 Consumer class run method takes one parameter and does not return anything
+
+Send message with several next steps.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In case of producer or stage have got several next step (next_steps keyword in configuration),
+you can choose the step that will receive data by passing its name as parameter of send_msg method
+
+.. code-block:: python
+
+    >>> def run(self,event):
+    >>>    if event != None:
+    >>>        tels = event.dl0.tels_with_data
+    >>>        for tel in tels:
+    >>>             if tel in lst_list:
+    >>>                 self.send_msg(tel,'LST_CALIBRATION')
+    >>>             elif tel in mst_list
+    >>>                 self.send_msg(tel,'MST_CALIBRATION')
 
 Running the pipeline
 --------------------
