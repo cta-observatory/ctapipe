@@ -20,8 +20,8 @@ class LabelQueue(QLabel):
         topic : str
         """
         for step in steps:
-            text ='{: ^30}{: ^10}{: ^8}\n'.format('Step','Queue', 'Done')
-            text+='{:-^50}\n'.format('-')
+            text ='{: ^40}{: ^15}{: ^15}\n'.format('Step','Queue', 'Done')
+            text+='{:-^60}\n'.format('-')
             for step in steps:
                 text+=self.formatText(step)+'\n'
             self.setText(text)
@@ -29,9 +29,8 @@ class LabelQueue(QLabel):
     def formatText(self,step):
         text = str()
         #short_name = step.name.replace('$$thread_number$$','_')
-        name = '{:^20}'.format(step.name)
-        queue = '{:^5}'.format(step.queue_length)
-        done = '{:^5}'.format(step.nb_job_done)
-        run = '{:^5}'.format(step.running)
+        name = '{:^30}'.format(step.name)
+        queue = '{:^10}'.format(step.queue_length)
+        done = '{:^8}'.format(step.nb_job_done)
         text = name+ '\t:' + str(queue) + '\t:' + str(done)
         return text

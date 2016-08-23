@@ -19,7 +19,7 @@ class SimTelArrayReader(Component):
         try:
             in_file = get_path(self.filename)
             self.source = hessio_event_source(in_file)
-            self.log.info('{} successfully opened'.format(self.filename))
+            self.log.info('{} successfully opened {}'.format(self.filename,self.source))
         except:
             self.log.error('could not open ' + in_file)
             return False
@@ -31,7 +31,8 @@ class SimTelArrayReader(Component):
             event.dl0.event_id = counter
             counter += 1
             # send new job to next step thanks to router
-            yield event
+            self.send_msg(event)
+            yield
         self.log.info("\n--- SimTelArrayReader Done ---")
 
     def finish(self):
