@@ -4,6 +4,9 @@ import sys
 
 
 class LabelQueue(QLabel):
+    """
+    Displays steps name, queues size and numbers of job done
+    """
     def __init__(self, *args):
         QLabel.__init__(self)
         self.data = dict()
