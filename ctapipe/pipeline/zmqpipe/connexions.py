@@ -36,10 +36,21 @@ class Connexions():
         return True
 
     def close_connexions(self):
+        """
+        Close all zmq connexions
+        """
         for sock in self.sockets.values():
             sock.close()
 
     def send_msg(self,msg,destination_step_name=None):
+        """
+        Send a message thanks to ZMQ
+        Parameters:
+        -----------
+        msg: a Pickle.dump message
+        destination_step_name: str
+            msg will be send to corresponding step
+        """
         send=False
         if not destination_step_name :
             socket  = self.main_out_socket
