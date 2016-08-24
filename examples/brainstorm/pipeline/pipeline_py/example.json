@@ -2,22 +2,19 @@
   "version": 1,
   "Pipeline": {
       "producer_conf": { "name" : "SimTelArrayReader", "module": "ctapipe.pipeline.algorithms.simtelarray_reader",
-           "class": "SimTelArrayReader","next_steps" : "ListTelsWithData"},
+           "class": "SimTelArrayReader","next_steps" : "ShuntTelescope"},
       "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.pipeline.algorithms.string_writer",
                 "class": "StringWriter"},
-      "stagers_conf" : [{"name": "ListTelsWithData", "class": "ListTelsWithData",
-                        "module": "ctapipe.pipeline.algorithms.list_tels_with_data",
-                        "next_steps" : "ShuntTelescope", "nb_thread" : 1},
-                        {"name": "ShuntTelescope", "class": "ShuntTelescope",
+      "stagers_conf" : [ {"name": "ShuntTelescope", "class": "ShuntTelescope",
                                           "module": "ctapipe.pipeline.algorithms.shunt_telescope",
-                                          "next_steps" : "OtherDump,LSTDump", "nb_thread" : 1},
+                                          "next_steps" : "OtherDump,LSTDump" },
 
                         {"name": "OtherDump", "class": "OtherDump",
                                         "module": "ctapipe.pipeline.algorithms.other_dump",
-                                        "next_steps" : "StringWriter", "nb_thread" : 1},
+                                        "next_steps" : "StringWriter", "nb_thread" : 2},
                         {"name": "LSTDump", "class": "LSTDump",
                                         "module": "ctapipe.pipeline.algorithms.lst_dump",
-                                        "next_steps" : "StringWriter", "nb_thread" : 1}
+                                        "next_steps" : "StringWriter", "nb_thread" : 1, "queue_limit" : 100}
 
                     ]
   },
