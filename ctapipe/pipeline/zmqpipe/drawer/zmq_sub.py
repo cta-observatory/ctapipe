@@ -57,6 +57,7 @@ class ZmqSub(Thread, QtCore.QObject):
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_CONSUMER_CHANGE')
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_PRODUCER_CHANGE')
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_ROUTER_CHANGE')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'FINISH')
             # self,stop flag is set by ficnish method to stop this thread
             # properly when GUI is closed
             # self.pipedrawer will receive new pipeline information
@@ -102,14 +103,17 @@ class ZmqSub(Thread, QtCore.QObject):
                 self.config_time = config_time
         # Stager or Producer or Consumer state changes
 
-        if self.steps and (topic == b'GUI_STAGER_CHANGE' or
+        elif self.steps and (topic == b'GUI_STAGER_CHANGE' or
                            topic == b'GUI_CONSUMER_CHANGE' or
                            topic == b'GUI_PRODUCER_CHANGE'):
 
             self.step_change(msg)
 
-        if topic == b'GUI_ROUTER_CHANGE':
+        elif topic == b'GUI_ROUTER_CHANGE':
             self.router_change(topic,msg)
+
+        elif topic == b'FINISH':
+            self.steps = list()
 
     def full_change(self,receiv_steps):
         if not self.steps:

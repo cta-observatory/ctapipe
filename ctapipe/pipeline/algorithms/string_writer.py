@@ -19,6 +19,7 @@ class StringWriter(Component):
     def run(self, object):
         if (object):
             self.file.write(str(object) + "\n")
+        
 
 
     def finish(self):
