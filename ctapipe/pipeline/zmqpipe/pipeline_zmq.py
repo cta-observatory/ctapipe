@@ -69,6 +69,7 @@ Parameters
         self.threads = list()
         self.main_connexion_name = main_connexion_name
         self.queue_limit = queue_limit
+        self.order_defined = False
 
     def __repr__(self):
         '''standard representation
@@ -409,38 +410,51 @@ class Pipeline(Tool):
             Warning Producer and consumer thread  are not concerned
         '''
         # Define step level witihin pipeline. Use next step to define level
-        step_to_compute = list() # list contains steps + level
-        level = 1
-        current_step = None
-        self.producer_step.level = 0
-        next_steps_name = self.producer_step.next_steps_name
-        while next_steps_name or step_to_compute:
-            if next_steps_name:
-                if len(next_steps_name) > 1:
-                    # keep step to compute them later
-                    for step_name in next_steps_name[1:]:
-                        step_to_compute.append((step_name))
-                        self.get_step_by_name(step_name).level = level
-                current_step = self.get_step_by_name(next_steps_name[0])
-                current_step.level = level
-            else:
-                current_step = self.get_step_by_name(step_to_compute.pop(0))
-                level = current_step.level
+        try:
+            step_to_compute = list() # list contains steps + level
+            level = 1
+            current_step = None
+            self.producer_step.level = 0
+            next_steps_name = self.producer_step.next_steps_name
+            while next_steps_name or step_to_compute:
+                print("DEBUG {}".format(next_steps_name))
+                if next_steps_name:
+                    if len(next_steps_name) > 1:
+                        # keep step to compute them later
+                        for step_name in next_steps_name[1:]:
+                            step_to_compute.append((step_name))
+                            self.get_step_by_name(step_name).level = level
+                    """
+                    current_step = self.get_step_by_name(next_steps_name[0])
+                    current_step.level = level
 
-            next_steps_name = current_step.next_steps_name
-            level+=1
-        # sort steps by level
-        all_steps =  ([self.producer_step ] + self.stager_steps
-            + [self.consumer_step])
-        level = 0
-        done = 0
-        while done != len(all_steps):
-            for step in all_steps:
-                if step.level == level:
-                    for t in step.threads:
-                        self.step_threads.append(t)
-                    done+=1
-            level+=1
+                    """
+                    for next_step_name in next_steps_name:
+                        print("DEBUG current_step {} next_step_name {} order_defined {}".format(current_step,next_step_name,self.get_step_by_name(next_step_name).order_defined))
+                        if not self.get_step_by_name(next_step_name).order_defined:
+                            current_step = self.get_step_by_name(next_step_name)
+                            current_step.order_defined = True
+
+                else:
+                    current_step = self.get_step_by_name(step_to_compute.pop(0))
+                    level = current_step.level
+
+                next_steps_name = current_step.next_steps_name
+                level+=1
+            # sort steps by level
+            all_steps =  ([self.producer_step ] + self.stager_steps
+                + [self.consumer_step])
+            level = 0
+            done = 0
+            while done != len(all_steps):
+                for step in all_steps:
+                    if step.level == level:
+                        for t in step.threads:
+                            self.step_threads.append(t)
+                        done+=1
+                level+=1
+        except Exception as e:
+            self.log.error("def_thread_order error {}".format(e))
 
     def def_step_for_gui(self):
         ''' Create a list (levels_for_gui) containing all steps
@@ -534,13 +548,14 @@ class Pipeline(Tool):
         # Wait 1 s to be sure this message will be display
         sleep(1)
         self.socket_pub.send_multipart(
-            [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
+            [b'FINISH', dumps('finish')])
         self.socket_pub.close()
         self.context.destroy()
         # self.context.term()
 
     def finish(self):
         self.log.info('===== Pipeline END ======')
+
 
     def wait_and_send_levels(self, thread_to_wait):
         '''
