@@ -17,8 +17,8 @@ class OtherDump(Component):
 
     def run(self, raw_camera_data):
         if raw_camera_data != None:
-            self.log.info("OtherDump receive {}".format(raw_camera_data))
-        self.send_msg('OtherDump START-> {} <- Otherump END'.format(str(raw_camera_data)))
+            self.log.debug("OtherDump receive {}".format(raw_camera_data))
+            self.send_msg('OtherDump START-> {} <- Otherump END'.format(str(raw_camera_data)))
 
     def finish(self):
         self.log.info("--- OtherDump finish ---")

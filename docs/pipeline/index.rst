@@ -12,7 +12,7 @@ Introduction
 `ctapipe.pipeline`
 it is a parallelization system. It executes ctapipe processing modules in a multithread environment.
 
-It is based on ZeroMQ library (http://zeromq.org) for messages passing between threads.
+It is based on ZeroMQ library (http:queue//zeromq.org) for messages passing between threads.
 ZMQ library allows to stay away from class concurrency mechanisms like mutexes,
 critical sections semaphores, while being thread safe.
 
@@ -24,8 +24,13 @@ choose the step that will receive next data. The router also manage Queue for ea
     :scale: 70 %
     :alt: pipeline example
 
-    A complete pipeline instance containing:- A producer step, a calibration step running on two threads, an Hillas step running on four threads and a consumer step.
-    Oval shapes represent router elements.
+    ctapipe-guipipe application. It displays a complete pipeline instance containing:
+    A producer step (SimTelArrayReader) that reads events in a SimTelArray MC file and sends them one by one to next step.
+    A stager step (ShuntTelescope) that receives event and guides it to the next step according to it type (LST or other)
+    A stager step (LSTDump) that receives LST telescope raw data, and sends a string with LST tag and raw data string representation.
+    A stager step (OtherDump) that receives OTHER telescope raw data, and sends a string with OTHER tag and raw data string representation.
+    This step runs on 2 thread (this is represented by 2 arrows)
+    A consumer step (StringWriter) that receives strings and writes them to a file.
 
 
 Getting Started
@@ -35,11 +40,11 @@ ZMQ library installation
    *prompt$> conda install pyzmq*
 
 Pipeline configuration
-----------------------
+======================
 Pipeline configuration is read from a json configuration file, or command line arguments, thanks to traitlets config.
 
 Mandatories configuration entries:
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------
 
 - One producer_conf containing 1 step.
 
@@ -48,7 +53,7 @@ Mandatories configuration entries:
 - One stagers_conf containing 1 to n step(s).
 
 Mandatory configuration per step
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------
 - name  : step name
 
 - class : class name containing algorithm
@@ -69,28 +74,40 @@ You have to add a new entry with step's class name.
 ! Do not use entries in stagers_conf, producer_conf or consumer_conf
 
 
-configuration example
-^^^^^^^^^^^^^^^^^^^^^
+json example
+^^^^^^^^^^^^
 .. code-block:: json
 
-     {
-       "version": 1,
-       "Pipeline": {
-          "producer_conf": { "name" : "EVENT_READER", "module": "ctapipe.pipeline.algorithms.fake_producer", "class": "FakeProducer"},
-          "consumer_conf": { "name" : "SAVER", "module": "ctapipe.pipeline.algorithms.fake_process2", "class": "FakeProcess2"},
-          "stagers_conf" : [{"name" : "CLEANING", "class": "FakeProcess", "module": "ctapipe.pipeline.algorithms.fake_process", "nb_thread" : 2},
-                            {"name" : "HILLAS", "class": "FakeProcess", "module": "ctapipe.pipeline.algorithms.fake_process", "nb_thread" : 2}]
-       },
-        "FakeProducer": { "filename": "gamma_test.simtel.gz" }
-     }
+    {
+      "version": 1,
+      "Pipeline": {
+          "producer_conf": { "name" : "SimTelArrayReader", "module": "ctapipe.pipeline.algorithms.simtelarray_reader",
+               "class": "SimTelArrayReader","next_steps" : "ShuntTelescope"},
+          "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.pipeline.algorithms.string_writer",
+                    "class": "StringWriter"},
+          "stagers_conf" : [ {"name": "ShuntTelescope", "class": "ShuntTelescope",
+                                          "module": "ctapipe.pipeline.algorithms.shunt_telescope",
+                                          "next_steps" : "OtherDump,LSTDump" },
+                            {"name": "OtherDump", "class": "OtherDump",
+                                          "module": "ctapipe.pipeline.algorithms.other_dump",
+                                          "next_steps" : "StringWriter", "nb_thread" : 2},
+                            {"name": "LSTDump", "class": "LSTDump",
+                                          "module": "ctapipe.pipeline.algorithms.lst_dump",
+                                          "next_steps" : "StringWriter", "nb_thread" : 1, "queue_limit" : 10}
+                          ]
+      },
+      "SimTelArrayReader": { "filename": "gamma_test.simtel.gz"},
+      "StringWriter": { "filename": "/tmp/string_writter.txt"}
+    }
+
 
 Steps implementation
----------------------
+====================
 Step is defined in a Python class. Each class defines 3 methods: init, run and finish
 These 3 methods are executed by the pipeline.
 
 Producer run method
-^^^^^^^^^^^^^^^^^^^
+-------------------
 Producer class run method does not have any input parameter.
 It must yield nothing if you want to get correct number of job salready done via the GUI.
 Use self.send_msg mrthod to send data to next step.
@@ -105,7 +122,7 @@ Use self.send_msg mrthod to send data to next step.
     >>>         yield
 
 Stager run method
-^^^^^^^^^^^^^^^^^
+-----------------
 Stager class run method takes one parameter (sent by the previous step).
 Use self.send_msg mrthod to send data to next step.
 Do not return anything (or it will be lose)
@@ -129,11 +146,11 @@ In case a step has to send several output for one input to the next step :
     >>>             self.send_msg(tel)
 
 Consumer run method
-^^^^^^^^^^^^^^^^^^^
+-------------------
 Consumer class run method takes one parameter and does not return anything
 
 Send message with several next steps.
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------
 In case of producer or stage have got several next step (next_steps keyword in configuration),
 you can choose the step that will receive data by passing its name as parameter of send_msg method
 
@@ -149,7 +166,7 @@ you can choose the step that will receive data by passing its name as parameter 
     >>>                 self.send_msg(tel,'MST_CALIBRATION')
 
 Running the pipeline
---------------------
+====================
    *prompt$> ctapipe-pipeline --config=mypipeconfig.json*
 By default pipeline send its activity to a GUI  on tcp://localhost:5565.
 But if the GUI is running on another system, you can use --Pipeline.gui_address
@@ -157,7 +174,7 @@ option to define another address.
 Configure the firewall to allow access to that port for authorized computers.
 
 Execution examples
-^^^^^^^^^^^^^^^^^^
+------------------
     *prompt$> ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json*
 
 Pipeline Graphical representation
@@ -167,102 +184,113 @@ This GUI can be launch on the same system than the pipeline or on a different on
 By default GUI is binded to port 5565. You can change it with --PipeGui.port option
     *prompt$> ctapipe-guipipe*
 
-pyside library is required
---------------------------
-   *prompt$> conda install pyside*
+Optional packages for GUI
+-------------------------
 
-Foressen improvement:
-=====================
-- limit router queue if request by user.
-- message passing to any pipeline step (not only the next one).
+PyQt4 installation
+^^^^^^^^^^^^^^^^^^
+   *prompt$> conda install pyqt*
 
-Pipeline example
-^^^^^^^^^^^^^^^^
+graphviz installation
+^^^^^^^^^^^^^^^^^^^^^
+*prompt$> conda install graphviz*
+
+Examples
+========
+
 json configuration example
 --------------------------
-.. code-block:: json
+Refer to `json example`_.
 
-    {
-      "version": 1,
-      "Pipeline": {
-          "producer_conf": { "name" : "HESSIO_READER", "module": "ctapipe.pipeline.algorithms.hessio_reader",
-               "class": "HessioReader"},
-          "consumer_conf": { "name" : "WRITER", "module": "ctapipe.pipeline.algorithms.string_writer",
-                    "class": "StringWriter"},
-          "stagers_conf" : [{"name": "LIST_TEL", "class": "ListTelda", "module": "ctapipe.pipeline.algorithms.list_teldata", "nb_thread" : 2}]
-
-      },
-       "HessioReader": { "filename": "gamma_test.simtel.gz" }
-    }
-
-
-
+.. _example:
 
 Producer example
-^^^^^^^^^^^^^^^^
+----------------
 .. code-block:: python
 
     from ctapipe.utils.datasets import get_path
     from ctapipe.io.hessio import hessio_event_source
-    from ctapipe.configuration.core import Configuration, ConfigurationException
     import threading
     from ctapipe.core import Component
     from traitlets import Unicode
 
+    class SimTelArrayReader(Component):
 
-    class HessioReader(Component):
-
-        filename = Unicode('gamma_test.simtel.gz', help='simtel MC input file').tag(
+        """`SimTelArrayReader` class represents a Producer for pipeline.
+            It opens simtelarray file and yiekld even in run method
+        """
+        filename = Unicode('gamma', help='simtel MC input file').tag(
             config=True, allow_none=True)
+        source = None
 
         def init(self):
-            self.log.info("--- HessioReader init ---")
+            self.log.info("--- SimTelArrayReader init {}---".format(self.filename))
+            try:
+                in_file = get_path(self.filename)
+                self.source = hessio_event_source(in_file)
+                self.log.info('{} successfully opened {}'.format(self.filename,self.source))
+            except:
+                self.log.error('could not open ' + in_file)
+                return False
             return True
 
         def run(self):
-            try:
-                in_file = get_path(self.filename)
-                source = hessio_event_source(in_file, max_events=10)
-            except(RuntimeError):
-                self.log.error('could not open ' + in_file)
-                return False
             counter = 0
-            for event in source:
+            for event in self.source:
                 event.dl0.event_id = counter
                 counter += 1
                 # send new job to next step thanks to router
-                yield event
-            self.log.info("\n--- HessioReader Done ---")
+                self.send_msg(event)
+                yield
+            self.log.info("\n--- SimTelArrayReader Done ---")
 
         def finish(self):
-            self.log.info ("--- HessReader finish ---")
+            self.log.info("--- SimTelArrayReader finish ---")
             pass
 
 
+
 Stager example
-^^^^^^^^^^^^^^
+--------------
 .. code-block:: python
 
-    from time import sleep
-    import threading
+    from ctapipe.utils.datasets import get_path
+    import ctapipe.instrument.InstrumentDescription as ID
     from ctapipe.core import Component
+    from traitlets import Unicode
 
 
-    class ListTelda(Component):
+    LST=1
+    OTHER = 2
+    class ShuntTelescope(Component):
+        """ShuntTelescope class represents a Stage for pipeline.
+            It shunts event based on telescope type
+        """
 
         def init(self):
-            self.log.info("--- ListTelda init ---")
+            self.log.info("--- ShuntTelescope init ---")
+            self.telescope_types=dict()
+            for index in range(50):
+                self.telescope_types[index]=LST
+            for index in range(50,200,1):
+                self.telescope_types[index]=OTHER
+            return True
 
         def run(self, event):
-            if event != None:
-                res = list(event.dl0.tels_with_data)
-                return res
+            triggered_telescopes = event.dl0.tels_with_data
+            for telescope_id in triggered_telescopes:
+            if self.telescope_types[telescope_id] == LST:
+                self.send_msg(event.dl0.tel[telescope_id],'LSTDump')
+            if self.telescope_types[telescope_id] == OTHER:
+                self.send_msg(event.dl0.tel[telescope_id],'OtherDump')
 
         def finish(self):
-            self.log.info("--- ListTelda finish ---")
+            self.log.info("--- ShuntTelescope finish ---")
+            pass
+
 
 Consumer example
-^^^^^^^^^^^^^^^^
+----------------
 .. code-block:: python
 
     from ctapipe.configuration.core import Configuration, ConfigurationException

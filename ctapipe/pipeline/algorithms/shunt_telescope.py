@@ -7,7 +7,7 @@ from traitlets import Unicode
 LST=1
 OTHER = 2
 class ShuntTelescope(Component):
-    """ShuntTelescope` class represents a Stage for pipeline.
+    """ShuntTelescope class represents a Stage for pipeline.
         It shunts event based on telescope type
     """
 
@@ -21,11 +21,10 @@ class ShuntTelescope(Component):
                 self.telescope_types[index]=OTHER
         return True
 
-    def run(self, _inputs):
-        triggered_telescopes,event = _inputs
+    def run(self, event):
+        triggered_telescopes = event.dl0.tels_with_data
         for telescope_id in triggered_telescopes:
-
-            if self.telescope_types[telescope_id] == LST:
+        if self.telescope_types[telescope_id] == LST:
                 self.send_msg(event.dl0.tel[telescope_id],'LSTDump')
             if self.telescope_types[telescope_id] == OTHER:
                 self.send_msg(event.dl0.tel[telescope_id],'OtherDump')
