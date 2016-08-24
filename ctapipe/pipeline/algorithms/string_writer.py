@@ -20,6 +20,7 @@ class StringWriter(Component):
         if (object):
             self.file.write(str(object) + "\n")
 
+
     def finish(self):
         self.log.info("--- StringWriter finish ---")
         self.file.close()

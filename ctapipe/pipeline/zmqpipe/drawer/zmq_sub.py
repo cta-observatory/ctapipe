@@ -115,11 +115,17 @@ class ZmqSub(Thread, QtCore.QObject):
         if not self.steps:
             self.steps = receiv_steps
         else:
+            nb_corresponding_step = 0
             for new_step in receiv_steps:
                 for step in self.steps:
                     if step.name == new_step.name:
                         step.nb_job_done = new_step.nb_job_done
+                        nb_corresponding_step+=1
                         break
+            if  nb_corresponding_step != len(self.steps):
+                # in case of pipeline configuration change and GUI
+                # is not restarted
+                self.steps = receiv_steps
 
 
     def update_full_state(self,topic,msg):

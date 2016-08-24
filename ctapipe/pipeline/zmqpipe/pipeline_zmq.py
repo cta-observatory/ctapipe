@@ -116,7 +116,7 @@ class Pipeline(Tool):
     aliases = Dict({'gui_address': 'Pipeline.gui_address'})
     examples = ('protm%> ctapipe-pipeline \
     --config=examples/brainstorm/pipeline/pipeline_py/example.json')
-    
+
     PRODUCER = 'PRODUCER'
     STAGER = 'STAGER'
     CONSUMER = 'CONSUMER'
@@ -518,8 +518,17 @@ class Pipeline(Tool):
                          levels_gui])])
                     sleep(.1)
                 self.wait_and_send_levels(worker)
-        self.wait_and_send_levels(self.router)
+
+        while not self.router.isQueueEmpty(self.consumer.name):
+            levels_gui,conf_time = self.def_step_for_gui()
+            self.socket_pub.send_multipart(
+                [b'GUI_GRAPH', dumps([conf_time,
+                 levels_gui])])
+            sleep(.1)
+
         self.wait_and_send_levels(self.consumer)
+        self.wait_and_send_levels(self.router)
+
         levels_gui,conf_time = self.def_step_for_gui()
 
         # Wait 1 s to be sure this message will be display

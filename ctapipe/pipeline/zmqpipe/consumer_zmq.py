@@ -74,6 +74,7 @@ class ConsumerZMQ(Thread, Component):
         self.stop = False
         # self.total allows to print the number of times run method
         # has been called at end of job
+        self.done = False
         return True
 
     def run(self):
@@ -84,7 +85,8 @@ class ConsumerZMQ(Thread, Component):
         The poll method's timeout is 100 ms in case of self.stop flag
         has been set to False by finish method.
         """
-        while not self.stop:
+
+        while not self.stop :
             try:
                 sockets = dict(self.poll.poll(100))
                 if (self.sock_reply in sockets and
@@ -105,6 +107,7 @@ class ConsumerZMQ(Thread, Component):
         self.update_gui()
         self.sock_reply.close()
         self.socket_pub.close()
+        self.done = True
 
     def finish(self):
         """
@@ -113,7 +116,10 @@ class ConsumerZMQ(Thread, Component):
         """
         self.coroutine.finish()
         self.stop = True
-        return True
+        if self.done:
+            return True
+        else:
+            return False
 
     def update_gui(self):
         msg = [self.name, self.running, self.nb_job_done]
