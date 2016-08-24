@@ -18,13 +18,13 @@ class ShuntTelescope(Component):
         for index in range(50):
             self.telescope_types[index]=LST
         for index in range(50,200,1):
-                self.telescope_types[index]=OTHER
+            self.telescope_types[index]=OTHER
         return True
 
     def run(self, event):
         triggered_telescopes = event.dl0.tels_with_data
         for telescope_id in triggered_telescopes:
-        if self.telescope_types[telescope_id] == LST:
+            if self.telescope_types[telescope_id] == LST:
                 self.send_msg(event.dl0.tel[telescope_id],'LSTDump')
             if self.telescope_types[telescope_id] == OTHER:
                 self.send_msg(event.dl0.tel[telescope_id],'OtherDump')
