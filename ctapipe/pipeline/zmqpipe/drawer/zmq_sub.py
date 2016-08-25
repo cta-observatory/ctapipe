@@ -95,6 +95,10 @@ class ZmqSub(Thread, QtCore.QObject):
                 self.message.emit(self.steps)
                 self.last_send_config = conf_time
 
+    def reset(self):
+        self.steps.clear()
+
+
     def update_full_state(self,topic,msg):
         if topic == b'GUI_GRAPH':
             config_time, receiv_steps = msg
@@ -116,6 +120,8 @@ class ZmqSub(Thread, QtCore.QObject):
             self.steps = list()
 
     def full_change(self,receiv_steps):
+        print('')
+        print('BEBUG fullchange self.steps {}'.format(self.steps))
         if not self.steps:
             self.steps = receiv_steps
         else:
