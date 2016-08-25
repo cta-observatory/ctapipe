@@ -165,7 +165,7 @@ class RouterQueue(threading.Thread, Component):
             socket.close()
         self.done = True
 
-    def isQueueEmpty(self, stage_name):
+    def isQueueEmpty(self, stage_name=None):
         """
         Parameters
         ----------
@@ -175,19 +175,25 @@ class RouterQueue(threading.Thread, Component):
         -------
         True is corresponding queue is empty, otherwise False
         """
-        val = stage_name.find("$$thread_number$$")
-        if val != -1:
-            name_to_search = stage_name[0:val]
+        if stage_name:
+            val = stage_name.find("$$thread_number$$")
+            if val != -1:
+                name_to_search = stage_name[0:val]
+            else:
+                name_to_search = stage_name
+            for name, queue in self.queue_jobs.items():
+                if name.find("_router"):
+                    pos = name.find("_router")
+                    name = name[:pos]
+                if name == name_to_search:
+                    if not queue:
+                        return True
+            return False
         else:
-            name_to_search = stage_name
-        for name, queue in self.queue_jobs.items():
-            if name.find("_router"):
-                pos = name.find("_router")
-                name = name[:pos]
-            if name == name_to_search:
-                if not queue:
-                    return True
-        return False
+            for queue in self.queue_jobs.values():
+                if queue:
+                    return False
+            return True
 
     def finish(self):
         """

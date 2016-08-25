@@ -410,51 +410,10 @@ class Pipeline(Tool):
             Warning Producer and consumer thread  are not concerned
         '''
         # Define step level witihin pipeline. Use next step to define level
-        try:
-            step_to_compute = list() # list contains steps + level
-            level = 1
-            current_step = None
-            self.producer_step.level = 0
-            next_steps_name = self.producer_step.next_steps_name
-            while next_steps_name or step_to_compute:
-                print("DEBUG {}".format(next_steps_name))
-                if next_steps_name:
-                    if len(next_steps_name) > 1:
-                        # keep step to compute them later
-                        for step_name in next_steps_name[1:]:
-                            step_to_compute.append((step_name))
-                            self.get_step_by_name(step_name).level = level
-                    """
-                    current_step = self.get_step_by_name(next_steps_name[0])
-                    current_step.level = level
+        for step in self.stager_steps:
+            for t in step.threads:
+                self.step_threads.append(t)
 
-                    """
-                    for next_step_name in next_steps_name:
-                        print("DEBUG current_step {} next_step_name {} order_defined {}".format(current_step,next_step_name,self.get_step_by_name(next_step_name).order_defined))
-                        if not self.get_step_by_name(next_step_name).order_defined:
-                            current_step = self.get_step_by_name(next_step_name)
-                            current_step.order_defined = True
-
-                else:
-                    current_step = self.get_step_by_name(step_to_compute.pop(0))
-                    level = current_step.level
-
-                next_steps_name = current_step.next_steps_name
-                level+=1
-            # sort steps by level
-            all_steps =  ([self.producer_step ] + self.stager_steps
-                + [self.consumer_step])
-            level = 0
-            done = 0
-            while done != len(all_steps):
-                for step in all_steps:
-                    if step.level == level:
-                        for t in step.threads:
-                            self.step_threads.append(t)
-                        done+=1
-                level+=1
-        except Exception as e:
-            self.log.error("def_thread_order error {}".format(e))
 
     def def_step_for_gui(self):
         ''' Create a list (levels_for_gui) containing all steps
@@ -523,6 +482,7 @@ class Pipeline(Tool):
         self.wait_and_send_levels(self.producer)
         # Now send stop to thread and wait they join(when their queue will be
         # empty)
+        """
         for worker in self.step_threads:
             if worker is not None:
                 while not self.router.isQueueEmpty(worker.name):
@@ -532,6 +492,15 @@ class Pipeline(Tool):
                          levels_gui])])
                     sleep(.1)
                 self.wait_and_send_levels(worker)
+        """
+        while not self.wait_all_stagers():
+            levels_gui,conf_time = self.def_step_for_gui()
+            self.socket_pub.send_multipart(
+                [b'GUI_GRAPH', dumps([conf_time,
+                 levels_gui])])
+            sleep(.1)
+        for worker in self.step_threads:
+            self.wait_and_send_levels(worker)
 
         while not self.router.isQueueEmpty(self.consumer.name):
             levels_gui,conf_time = self.def_step_for_gui()
@@ -552,6 +521,15 @@ class Pipeline(Tool):
         self.socket_pub.close()
         self.context.destroy()
         # self.context.term()
+
+    def wait_all_stagers(self):
+        if self.router.isQueueEmpty():
+            for worker in self.step_threads:
+                if worker.waiting_since < 5000: # 5000ms
+                    return False
+            return True
+        return False
+
 
     def finish(self):
         self.log.info('===== Pipeline END ======')
