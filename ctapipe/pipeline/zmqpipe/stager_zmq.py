@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
 from time import sleep
+from time import time
 import zmq
 from threading import Thread
 import threading
@@ -47,6 +48,7 @@ class StagerZmq(threading.Thread, Connexions):
         self.nb_job_done = 0
         self.gui_address = gui_address
         self.done = False
+        self.waiting_since = 0
 
         # Prepare our context and sockets
         #context = zmq.Context.instance()
@@ -101,10 +103,12 @@ class StagerZmq(threading.Thread, Connexions):
         has been set to False by finish method.
         """
         while not self.stop:
+            
             sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
             if (self.sock_for_me in sockets and
                     sockets[self.sock_for_me] == zmq.POLLIN):
                 #  Get the input from prev_stage
+                self.waiting_since = 0
                 self.running = True
                 self.update_gui()
                 request = self.sock_for_me.recv_multipart()
@@ -117,6 +121,8 @@ class StagerZmq(threading.Thread, Connexions):
                 self.nb_job_done += 1
                 self.running = False
                 self.update_gui()
+            else:
+                self.waiting_since+=100 # 100 ms
         self.sock_for_me.close()
         self.socket_pub.close()
         self.done = True
