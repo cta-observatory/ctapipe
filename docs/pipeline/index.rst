@@ -109,8 +109,9 @@ These 3 methods are executed by the pipeline.
 Producer run method
 -------------------
 Producer class run method does not have any input parameter.
-It must yield nothing if you want to get correct number of job salready done via the GUI.
-Use self.send_msg mrthod to send data to next step.
+Use yeld to send data to next step. If there are several steps linked to it, yield
+the result in a tuple with the name of next step as last tuple value.
+i.e.: yield((result,'PAIR'))
 
 
 
@@ -118,24 +119,25 @@ Use self.send_msg mrthod to send data to next step.
 
     >>> def run(self):
     >>>     for input_file in os.listdir(self.source_dir):
-    >>>         self.send_msg(self.source_dir + "/" + input_file)
-    >>>         yield
+    >>>         yield (self.source_dir + "/" + input_file)
 
 Stager run method
 -----------------
 Stager class run method takes one parameter (sent by the previous step).
-Use self.send_msg mrthod to send data to next step.
-Do not return anything (or it will be lose)
+Use return or yield to send data to next step.If there are several steps linked to it, return or yield
+the result in a tuple with the name of next step as last tuple value.
+i.e.: yield((result,'StringWriter'))
+
 
 
 .. code-block:: python
 
     >>> def run(self,event):
     >>>     if event != None:
-    >>>         self.send_msg(event.dl0.tels_with_data)
+    >>>         return(event.dl0.tels_with_data)
 
 
-In case a step has to send several output for one input to the next step :
+In case of a step has to send several output for one input to the next step :
 
 .. code-block:: python
 
@@ -143,7 +145,7 @@ In case a step has to send several output for one input to the next step :
     >>>    if event != None:
     >>>        tels = event.dl0.tels_with_data
     >>>        for tel in tels:
-    >>>             self.send_msg(tel)
+    >>>             yield(tel)
 
 Consumer run method
 -------------------
@@ -152,7 +154,8 @@ Consumer class run method takes one parameter and does not return anything
 Send message with several next steps.
 -------------------------------------
 In case of producer or stage have got several next step (next_steps keyword in configuration),
-you can choose the step that will receive data by passing its name as parameter of send_msg method
+you can choose the step that will receive data by passing its name as last tuple value with the result:
+i.e return((res1,res2),'NEXT_STEP_NAME')
 
 .. code-block:: python
 
@@ -161,9 +164,9 @@ you can choose the step that will receive data by passing its name as parameter 
     >>>        tels = event.dl0.tels_with_data
     >>>        for tel in tels:
     >>>             if tel in lst_list:
-    >>>                 self.send_msg(tel,'LST_CALIBRATION')
+    >>>                 yield(tel,'LST_CALIBRATION')
     >>>             elif tel in mst_list
-    >>>                 self.send_msg(tel,'MST_CALIBRATION')
+    >>>                 yield(tel,'MST_CALIBRATION')
 
 Running the pipeline
 ====================
@@ -266,8 +269,7 @@ Producer example
                 event.dl0.event_id = counter
                 counter += 1
                 # send new job to next step thanks to router
-                self.send_msg(event)
-                yield
+                yield(event)
             self.log.info("\n--- SimTelArrayReader Done ---")
 
         def finish(self):
@@ -306,9 +308,9 @@ Stager example
             triggered_telescopes = event.dl0.tels_with_data
             for telescope_id in triggered_telescopes:
             if self.telescope_types[telescope_id] == LST:
-                self.send_msg(event.dl0.tel[telescope_id],'LSTDump')
+                return(event.dl0.tel[telescope_id],'LSTDump')
             if self.telescope_types[telescope_id] == OTHER:
-                self.send_msg(event.dl0.tel[telescope_id],'OtherDump')
+                return(event.dl0.tel[telescope_id],'OtherDump')
 
         def finish(self):
             self.log.info("--- ShuntTelescope finish ---")

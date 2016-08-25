@@ -3,6 +3,7 @@
 from time import sleep
 from time import time
 import zmq
+import types
 from threading import Thread
 import threading
 import pickle
@@ -68,16 +69,14 @@ class StagerZmq(threading.Thread, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        self.coroutine.send_msg = self.send_msg
+        #self.coroutine.send_msg = self.send_msg
 
         # Connect to GUI
         context = zmq.Context.instance()
         self.socket_pub = context.socket(zmq.PUB)
         if self.gui_address is not None:
             self.socket_pub.connect("tcp://" + self.gui_address)
-        # Socket to talk to next_router
-        #self.main_out_socket.connect(self.sock_job_for_you_url)
-        # Socket to talk to prev_router
+
         self.sock_for_me = context.socket(zmq.REQ)
         self.sock_for_me.connect(self.sock_job_for_me_url)
 
@@ -103,7 +102,7 @@ class StagerZmq(threading.Thread, Connexions):
         has been set to False by finish method.
         """
         while not self.stop:
-            
+
             sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
             if (self.sock_for_me in sockets and
                     sockets[self.sock_for_me] == zmq.POLLIN):
@@ -114,7 +113,23 @@ class StagerZmq(threading.Thread, Connexions):
                 request = self.sock_for_me.recv_multipart()
                 receiv_input = pickle.loads(request[0])
                 # do the job
-                send_output = self.coroutine.run(receiv_input)
+                results = self.coroutine.run(receiv_input)
+                destination = None
+                if isinstance(results, types.GeneratorType):
+                    for val in results:
+                        if isinstance(val,tuple) and len(val)>1:
+                            destination = val[1]
+                            msg = val[0]
+                        else:
+                            msg = val
+                        self.send_msg(msg,destination)
+                else:
+                    if isinstance(results,tuple) and len(results)>1:
+                        destination = results[1]
+                        msg = results[0]
+                    else:
+                        msg = results
+                    self.send_msg(msg,destination)
                 # send acknoledgement to prev router/queue to inform it that I
                 # am available
                 self.sock_for_me.send_multipart(request)
