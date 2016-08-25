@@ -177,6 +177,16 @@ Execution examples
 ------------------
     *prompt$> ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json*
 
+Pipeline end
+============
+The main challenge is how to stop all Threads without loosing an inputs.
+Indeed, we must ensure that all queues are empty and all threads are waiting for a new entry (not active).
+Because Python Thread can not be paused, we can not check that all the queues are empty and at the same time check that all threads are inactive
+So there is a risk that a queue is filled again when we control state of threads.
+the choosen solution is:
+1 check that all queues are empty.
+2 check that all threads are waiting for a new job since more that a definied time (5 seconds by default)
+
 Pipeline Graphical representation
 =================================
 A GUI can be launch to keep a close watch on pipeline execution.
@@ -194,6 +204,19 @@ PyQt4 installation
 graphviz installation
 ^^^^^^^^^^^^^^^^^^^^^
 *prompt$> conda install graphviz*
+
+Foreseen improvement
+====================
+
+On demand recomputing
+---------------------
+Lazy evaluation of function, by storing the results to the disk,
+and not rerunning the function twice for the same arguments.
+
+Working  data in shared memory (memmaping)
+------------------------------------------
+To avoid to serialize and deserialize data and pass data thanks to ZMQ,
+ a shared memory system can be develop between stages.
 
 Examples
 ========
