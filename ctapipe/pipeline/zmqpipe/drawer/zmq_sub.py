@@ -86,14 +86,18 @@ class ZmqSub(Thread, QtCore.QObject):
                 receive = self.socket.recv_multipart()
                 topic = receive[0]
                 msg = pickle.loads(receive[1])
-                self.update_full_state(topic,msg)
-                if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
-                    # inform pipedrawer
+                if topic == b'FINISH':
+                    self.reset()
+                else:
+                    self.update_full_state(topic,msg)
+                    if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
+                        # inform pipedrawer
+                        self.message.emit(self.steps)
+                        self.last_send_config = conf_time
+            else:
+                if self.steps:
                     self.message.emit(self.steps)
                     self.last_send_config = conf_time
-            else:
-                self.message.emit(self.steps)
-                self.last_send_config = conf_time
 
     def reset(self):
         self.steps.clear()
@@ -116,12 +120,8 @@ class ZmqSub(Thread, QtCore.QObject):
         elif topic == b'GUI_ROUTER_CHANGE':
             self.router_change(topic,msg)
 
-        elif topic == b'FINISH':
-            self.steps = list()
 
     def full_change(self,receiv_steps):
-        print('')
-        print('BEBUG fullchange self.steps {}'.format(self.steps))
         if not self.steps:
             self.steps = receiv_steps
         else:

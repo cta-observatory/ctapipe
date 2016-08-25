@@ -496,6 +496,9 @@ class Pipeline(Tool):
         self.wait_and_send_levels(self.consumer)
         self.wait_and_send_levels(self.router)
         levels_gui,conf_time = self.def_step_for_gui()
+        self.socket_pub.send_multipart(
+            [b'GUI_GRAPH', dumps([conf_time,
+             levels_gui])])
         # Wait 1 s to be sure this message will be display
         sleep(1)
         self.socket_pub.send_multipart(

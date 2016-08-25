@@ -37,6 +37,7 @@ class StagerRep():
         self.nb_threads = nb_threads
 
 
+
     def __repr__(self):
         """  called by the repr() built-in function and by string conversions
         (reverse quotes) to compute the "official" string representation of
@@ -69,6 +70,7 @@ class PipelineDrawer(QWidget):
         self.zoom = 2
         self.table_queue = None
         self.changed = True
+        self.last_diagram_bytes = None
 
     def set_table_queue(self,table_queue):
         self.table_queue = table_queue
@@ -84,13 +86,14 @@ class PipelineDrawer(QWidget):
          or part of a widget. It can happen for one of the following reasons:
          repaint() or update() was invoked,the widget was obscured and has
          now been uncovered, or many other reasons. """
-        if self.steps is None:
-            return
-
         qp = QPainter()
         qp.begin(self)
-        diagram = self.build_graph()
-        diagram_bytes = diagram.pipe('png')
+        if not self.steps and self.last_diagram_bytes:
+            diagram_bytes = self.last_diagram_bytes
+        else:
+            diagram = self.build_graph()
+            diagram_bytes = diagram.pipe('png')
+            self.last_diagram_bytes = diagram_bytes
         pixmap = QPixmap()
         pixmap.loadFromData(diagram_bytes)
         png_size = pixmap.size()
@@ -127,6 +130,7 @@ class PipelineDrawer(QWidget):
                         g.edge(step.name.split('$$thread')[0], next_step.name.split('$$thread')[0])
         #g.edge_attr.update(arrowhead='vee', arrowsize='2')
         return g
+
 
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
