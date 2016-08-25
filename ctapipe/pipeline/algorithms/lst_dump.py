@@ -18,7 +18,7 @@ class LSTDump(Component):
     def run(self, raw_camera_data):
         if raw_camera_data != None:
             self.log.debug("LSTDump receive {}".format(raw_camera_data))
-            self.send_msg('LSTDump START-> {} <- LSTDump END'.format(str(raw_camera_data)))
+            return('LSTDump START-> {} <- LSTDump END'.format(str(raw_camera_data)))
 
     def finish(self):
         self.log.info("--- LSTDump finish ---")
