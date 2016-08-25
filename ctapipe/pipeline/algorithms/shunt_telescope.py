@@ -25,9 +25,9 @@ class ShuntTelescope(Component):
         triggered_telescopes = event.dl0.tels_with_data
         for telescope_id in triggered_telescopes:
             if self.telescope_types[telescope_id] == LST:
-                self.send_msg(event.dl0.tel[telescope_id],'LSTDump')
+                yield(event.dl0.tel[telescope_id],'LSTDump')
             if self.telescope_types[telescope_id] == OTHER:
-                self.send_msg(event.dl0.tel[telescope_id],'OtherDump')
+                yield(event.dl0.tel[telescope_id],'OtherDump')
 
 
 
