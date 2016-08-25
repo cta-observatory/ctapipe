@@ -464,7 +464,7 @@ class Pipeline(Tool):
         ''' Start all pipeline threads.
         Regularly inform GUI of pipeline configuration in case of a new GUI
         instance was lunch
-        Stop all thread in set order
+        Stop all threads without loosing data
         '''
 
         # send pipeline cofiguration to an optinal GUI instance
@@ -473,59 +473,42 @@ class Pipeline(Tool):
             [b'GUI_GRAPH', dumps([conf_time,levels_gui])])
         # Start all Threads
         self.consumer.start()
-
         self.router.start()
         for stage in self.stagers:
             stage.start()
         self.producer.start()
-        # Wait that all producers end of run method
+        # Wait producer end of run method
         self.wait_and_send_levels(self.producer)
-        # Now send stop to thread and wait they join(when their queue will be
-        # empty)
-        """
-        for worker in self.step_threads:
-            if worker is not None:
-                while not self.router.isQueueEmpty(worker.name):
-                    levels_gui,conf_time = self.def_step_for_gui()
-                    self.socket_pub.send_multipart(
-                        [b'GUI_GRAPH', dumps([conf_time,
-                         levels_gui])])
-                    sleep(.1)
-                self.wait_and_send_levels(worker)
-        """
-        while not self.wait_all_stagers():
+
+        # Ensure that all queues are empty and all threads are waiting for
+        # new data since more that a specific tine
+        while not self.wait_all_stagers(5000): # 5000 ms
             levels_gui,conf_time = self.def_step_for_gui()
             self.socket_pub.send_multipart(
                 [b'GUI_GRAPH', dumps([conf_time,
                  levels_gui])])
-            sleep(.1)
+            sleep(1)
+
+        # Now send stop to stage threads and wait they join
         for worker in self.step_threads:
             self.wait_and_send_levels(worker)
-
-        while not self.router.isQueueEmpty(self.consumer.name):
-            levels_gui,conf_time = self.def_step_for_gui()
-            self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', dumps([conf_time,
-                 levels_gui])])
-            sleep(.1)
-
+        # Stop consumer and router thread
         self.wait_and_send_levels(self.consumer)
         self.wait_and_send_levels(self.router)
-
         levels_gui,conf_time = self.def_step_for_gui()
-
         # Wait 1 s to be sure this message will be display
         sleep(1)
         self.socket_pub.send_multipart(
             [b'FINISH', dumps('finish')])
         self.socket_pub.close()
         self.context.destroy()
-        # self.context.term()
+        self.context.term()
 
-    def wait_all_stagers(self):
+
+    def wait_all_stagers(self,mintime):
         if self.router.isQueueEmpty():
             for worker in self.step_threads:
-                if worker.waiting_since < 5000: # 5000ms
+                if worker.waiting_since < mintime: # 5000ms
                     return False
             return True
         return False
