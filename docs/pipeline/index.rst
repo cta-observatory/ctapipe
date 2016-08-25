@@ -218,6 +218,9 @@ Working  data in shared memory (memmaping)
 To avoid to serialize and deserialize data and pass data thanks to ZMQ,
  a shared memory system can be develop between stages.
 
+Muliple pipeline managemwent by GUI
+-----------------------------------
+When several pipelines are running, GUI should allows to choose which pipeline user want to follow.
 Examples
 ========
 

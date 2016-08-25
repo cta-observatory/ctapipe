@@ -19,12 +19,15 @@ class LabelQueue(QLabel):
         ----------
         topic : str
         """
-        for step in steps:
-            text ='{: ^40}{: ^15}{: ^15}\n'.format('Step','Queue', 'Done')
-            text+='{:-^60}\n'.format('-')
+        if not steps:
+            self.setText("")
+        else:
             for step in steps:
-                text+=self.formatText(step)+'\n'
-            self.setText(text)
+                text ='{: ^40}{: ^15}{: ^15}\n'.format('Step','Queue', 'Done')
+                text+='{:-^60}\n'.format('-')
+                for step in steps:
+                    text+=self.formatText(step)+'\n'
+                self.setText(text)
 
     def formatText(self,step):
         text = str()

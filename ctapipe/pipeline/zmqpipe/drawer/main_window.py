@@ -62,6 +62,12 @@ class MainWindow(QMainWindow, object):
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionQuit)
         self.menubar.addAction(self.menuFile.menuAction())
+
+        self.actionReset = QtGui.QAction(self)
+        self.actionReset.setObjectName("reset")
+        self.menuFile.addSeparator()
+        self.menuFile.addAction(self.actionReset)
+        self.menubar.addAction(self.menuFile.menuAction())
         # add other GUI objects
 
         self.pipeline_drawer = PipelineDrawer(self.statusbar)
@@ -83,8 +89,8 @@ class MainWindow(QMainWindow, object):
                                 ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 19, 0, 1, 1)
 
-        self.table_queue = LabelQueue(0,4)
-        self.gridLayout.addWidget(self.table_queue,5, 0, 1, 1)
+        self.label_queue = LabelQueue(0,4)
+        self.gridLayout.addWidget(self.label_queue,5, 0, 1, 1)
 
 
 
@@ -94,6 +100,7 @@ class MainWindow(QMainWindow, object):
             self.actionQuit, QtCore.SIGNAL("triggered()"), self.stop)
         QtCore.QMetaObject.connectSlotsByName(self)
 
+
         self.retranslateUi()
         QtCore.QObject.connect(
             self.actionQuit, QtCore.SIGNAL("triggered()"), self.close)
@@ -102,7 +109,11 @@ class MainWindow(QMainWindow, object):
         # Create ZmqSub for ZMQ comminucation with pipeline
         self.subscribe = ZmqSub(gui_port=port, statusBar=self.statusbar)
         self.subscribe.message.connect(self.pipeline_drawer.pipechange)
-        self.subscribe.message.connect(self.table_queue.pipechange)
+        self.subscribe.message.connect(self.label_queue.pipechange)
+
+        QtCore.QObject.connect(
+            self.actionReset, QtCore.SIGNAL("triggered()"), self.subscribe.reset)
+        QtCore.QMetaObject.connectSlotsByName(self)
 
         # start the thread
         self.subscribe.start()
@@ -114,6 +125,9 @@ class MainWindow(QMainWindow, object):
             "MainWindow", "File", None, QtGui.QApplication.UnicodeUTF8))
         self.actionQuit.setText(QtGui.QApplication.translate(
             "MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionReset.setText(QtGui.QApplication.translate(
+            "MainWindow", "Reset", None, QtGui.QApplication.UnicodeUTF8))
+
 
     def stop(self):
         """Method connect (via Qt slot) to exit button
