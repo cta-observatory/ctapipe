@@ -200,6 +200,7 @@ class Pipeline(Tool):
             class_name = conf['class']
             obj = dynamic_class_from_module(class_name, module, self)
             self.instances[step.name] = obj
+            obj.init()
         return True
 
     def configure_stagers(self,router_names):

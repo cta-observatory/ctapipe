@@ -68,7 +68,7 @@ class ProducerZmq(Thread, Component, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        self.coroutine.send_msg = self.send_msg
+
 
     def run(self):
         """
@@ -83,7 +83,14 @@ class ProducerZmq(Thread, Component, Connexions):
             for result in generator:
                 self.running = False
                 self.nb_job_done += 1
-                if result != None:
+                if isinstance(result,tuple):
+                    destination = result[-1]
+                    if len(results [:-1]) == 1:
+                        msg = results [:-1][0]
+                    else:
+                        msg = result [:-1]
+                    self.send_msg(msg,destination)
+                else:
                     self.send_msg(result)
                 self.update_gui()
                 self.running = True
