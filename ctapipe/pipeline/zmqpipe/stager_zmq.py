@@ -69,7 +69,7 @@ class StagerZmq(threading.Thread, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        self.coroutine.send_msg = self.send_msg
+
 
         # Connect to GUI
         context = zmq.Context.instance()
@@ -114,18 +114,34 @@ class StagerZmq(threading.Thread, Connexions):
                 receiv_input = pickle.loads(request[0])
                 # do the job
                 results = self.coroutine.run(receiv_input)
-                print('DEBUG {} coroutine return {} '.format(self.name,results))
-                if results != None:
-                    if isinstance(results, types.GeneratorType):
-                        for val in results:
-                            if val:
-                                print('DEBUG GeneratorType {} send {} '.format(self.name,val))
-                                self.send_msg(val)
+                if isinstance(results, types.GeneratorType):
+                    for val in results:
+                        print('DEBUG {} val {}'.format(self.name,val))
+                        if isinstance(val,tuple):
+                            destination = val[-1]
+                            if len(results [:-1]) == 1:
+                                msg = results [:-1][0]
+                            else:
+                                msg = result[:-1]
+                                print('DEBUG {} send {} to {}'.format(self.name, msg, destination))
+                            self.send_msg(msg,destination)
+                        else:
+                            print('DEBUG {} send {} to {}'.format(self.name, val,self.main_connexion_name))
+                            self.send_msg(val)
+                else:
+                    if isinstance(results,tuple):
+                        destination = results[-1]
+                        if len(results [:-1]) == 1:
+                            msg = results [:-1][0]
+                        else:
+                            msg = results[:-1]
+                            print('DEBUG {} send {} to {}'.format(self.name, msg, destination))
+                        self.send_msg(msg,destination)
                     else:
-                        print('DEBUG  {} send {} '.format(self.name,results))
+                        print('DEBUG {} send {} to {}'.format(self.name, results,self.main_connexion_name))
                         self.send_msg(results)
-                    # send acknoledgement to prev router/queue to inform it that I
-                    # am available
+                # send acknoledgement to prev router/queue to inform it that I
+                # am available
                 self.sock_for_me.send_multipart(request)
                 self.nb_job_done += 1
                 self.running = False
