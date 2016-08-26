@@ -196,7 +196,7 @@ def main():
     nei_camera[max_pixel_nei] = 3
     nei_camera[max_pixel] = 4
     camera = plotter.draw_camera(telid, nei_camera, ax_img_nei)
-    camera.cmap = plt.cm.jet
+    camera.cmap = plt.cm.viridis
     ax_img_nei.set_title("Neighbour Map")
     plotter.draw_camera_pixel_annotation(telid, max_pixel, min_pixel,
                                          ax_img_nei)

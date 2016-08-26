@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from os.path import basename, splitext, dirname, join
 from astropy import log
+import numpy as np
 
 
 def get_file_type(filename):
@@ -199,3 +200,47 @@ class InputFile:
                 log.debug("[event_id] skipping event: {}".format(event_id))
                 continue
             return event
+
+    def find_max_true_npe(self, telescopes=None, max_events=None):
+        """
+        Loop through events to find the maximum true npe
+
+        Parameters
+        ----------
+        telescopes : list
+            List of telecopes to include. If None, then all telescopes
+            are included.
+        max_events : int
+            Maximum number of events to read
+
+        Returns
+        -------
+        max_pe : int
+
+        """
+        log.info("[file] Finding maximum true npe inside file")
+        source = self.read(max_events)
+        max_pe = 0
+        for event in source:
+            tels = list(event.dl0.tels_with_data)
+            if telescopes is not None:
+                tels = []
+                for tel in telescopes:
+                    if tel in event.dl0.tels_with_data:
+                        tels.append(tel)
+            if event.count == 0:
+                # Check events have true charge included
+                try:
+                    if np.all(event.mc.tel[tels[0]].photo_electrons == 0):
+                        raise KeyError
+                except KeyError:
+                    log.exception('[chargeres] Source does not contain '
+                                  'true charge')
+                    raise
+            for telid in tels:
+                pe = event.mc.tel[telid].photo_electrons
+                this_max = np.max(pe)
+                if this_max > max_pe:
+                    max_pe = this_max
+
+        return max_pe
