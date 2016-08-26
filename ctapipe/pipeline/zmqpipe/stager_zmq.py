@@ -69,7 +69,7 @@ class StagerZmq(threading.Thread, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        #self.coroutine.send_msg = self.send_msg
+        self.coroutine.send_msg = self.send_msg
 
         # Connect to GUI
         context = zmq.Context.instance()
@@ -114,24 +114,18 @@ class StagerZmq(threading.Thread, Connexions):
                 receiv_input = pickle.loads(request[0])
                 # do the job
                 results = self.coroutine.run(receiv_input)
-                destination = None
-                if isinstance(results, types.GeneratorType):
-                    for val in results:
-                        if isinstance(val,tuple) and len(val)>1:
-                            destination = val[1]
-                            msg = val[0]
-                        else:
-                            msg = val
-                        self.send_msg(msg,destination)
-                else:
-                    if isinstance(results,tuple) and len(results)>1:
-                        destination = results[1]
-                        msg = results[0]
+                print('DEBUG {} coroutine return {} '.format(self.name,results))
+                if results != None:
+                    if isinstance(results, types.GeneratorType):
+                        for val in results:
+                            if val:
+                                print('DEBUG GeneratorType {} send {} '.format(self.name,val))
+                                self.send_msg(val)
                     else:
-                        msg = results
-                    self.send_msg(msg,destination)
-                # send acknoledgement to prev router/queue to inform it that I
-                # am available
+                        print('DEBUG  {} send {} '.format(self.name,results))
+                        self.send_msg(results)
+                    # send acknoledgement to prev router/queue to inform it that I
+                    # am available
                 self.sock_for_me.send_multipart(request)
                 self.nb_job_done += 1
                 self.running = False

@@ -79,31 +79,15 @@ class ProducerZmq(Thread, Component, Connexions):
         """
         generator = self.coroutine.run()
         if isinstance(generator,types.GeneratorType):
-
             self.update_gui()
             for result in generator:
                 self.running = False
                 self.nb_job_done += 1
-                destination = None
-                if isinstance(result, types.GeneratorType):
-                    for val in result:
-                        if isinstance(val,tuple) and len(val)>1:
-                            destination = val[1]
-                            msg = val[0]
-                        else:
-                            msg = val
-                        self.send_msg(msg,destination)
-                else:
-                    if isinstance(result,tuple) and len(result)>1:
-                        destination = result[1]
-                        msg = result[0]
-                    else:
-                        msg = result
-                    self.send_msg(msg,destination)
+                if result != None:
+                    self.send_msg(result)
                 self.update_gui()
                 self.running = True
                 self.update_gui()
-
             self.running = False
             self.update_gui()
         else:
