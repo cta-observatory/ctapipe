@@ -33,6 +33,7 @@ class Connexions():
                                .format(e,  connexion))
                 return False
         self.send_in_run = False
+        self.main_connexion_name = main_connexion_name
         return True
 
     def close_connexions(self):

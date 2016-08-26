@@ -70,6 +70,7 @@ Parameters
         self.main_connexion_name = main_connexion_name
         self.queue_limit = queue_limit
         self.order_defined = False
+        self.coroutine = None
 
     def __repr__(self):
         '''standard representation
@@ -157,7 +158,10 @@ class Pipeline(Tool):
             self.log.error('Could not open pipeline config_file {}'
                            .format(self.config_file))
             return False
-
+        # Gererate steps(producers, stagers and consumers) from configuration
+        if not self.generate_steps():
+            self.log.error("Error during steps generation")
+            return False
         if self.mode == 'sequential':
             return self.init_sequential()
         elif self.mode == 'multithread':
@@ -184,7 +188,19 @@ class Pipeline(Tool):
         return True
 
     def init_sequential(self):
-        pass
+        """
+
+        """
+        self.instances = dict()
+        # set coroutines
+        for step in (self.stager_steps
+            + [self.consumer_step,self.producer_step]):
+            conf = self.get_step_conf(step.name)
+            module = conf['module']
+            class_name = conf['class']
+            obj = dynamic_class_from_module(class_name, module, self)
+            self.instances[step.name] = obj
+        return True
 
     def configure_stagers(self,router_names):
         #STAGERS
@@ -271,10 +287,6 @@ class Pipeline(Tool):
             except zmq.error.ZMQError as e:
                 self.log.info(str(e) + 'tcp://' + self.gui_address)
                 return False
-        # Gererate steps(producers, stagers and consumers) from configuration
-        if self.generate_steps() == False:
-            self.log.error("Error during steps generation")
-            return False
         return True
 
 
@@ -477,12 +489,32 @@ class Pipeline(Tool):
         return None
 
     def start(self):
+        ''' run the pipeline steps
+        '''
+        if self.mode == 'multithread':
+            self.start_multithread()
+        elif self.mode == 'sequential':
+            self.start_sequential()
+
+    def start_sequential(self):
+        self.log.info(self.instances)
+        prod_instance = self.instances[self.producer_step.name]
+        prod_gen = prod_instance.run()
+
+        for prod_result in prod_gen:
+            #TO DO: Add code to take in account producer shunt
+            self.log.info('Producer result {}'.format(prod_result))
+            result = 0
+            while result:
+                pass
+
+
+    def start_multithread(self):
         ''' Start all pipeline threads.
         Regularly inform GUI of pipeline configuration in case of a new GUI
         instance was lunch
         Stop all threads without loosing data
         '''
-
         # send pipeline cofiguration to an optinal GUI instance
         levels_gui,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
