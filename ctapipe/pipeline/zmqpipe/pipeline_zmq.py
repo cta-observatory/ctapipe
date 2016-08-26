@@ -18,7 +18,7 @@ from os import path
 from time import time
 from time import sleep
 from pickle import dumps
-from traitlets import (Integer, Float, List, Dict, Unicode)
+from traitlets import (Bool, Integer, Float, List, Dict, Unicode)
 from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
 from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZMQ
@@ -103,6 +103,8 @@ class Pipeline(Tool):
     description = 'run stages in multithread pipeline'
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
         config=True, allow_none=True)
+    mode = Unicode('sequential', help='Pipeline mode [sequential | multithread]').tag(
+        config=True, allow_none=True)
     producer_conf = Dict(
         help='producer description: name , module, class',
                                             allow_none=False).tag(config=True)
@@ -114,8 +116,8 @@ class Pipeline(Tool):
                        'module': 'producer',  'prev': 'STAGE1'},
         help='producer description: name , module, class',
                 allow_none=False).tag(config=True)
-    aliases = Dict({'gui_address': 'Pipeline.gui_address'})
-    examples = ('protm%> ctapipe-pipeline \
+    aliases = Dict({'gui_address': 'Pipeline.gui_address', 'mode':'Pipeline.mode'})
+    examples = ('prompt%> ctapipe-pipeline \
     --config=examples/brainstorm/pipeline/pipeline_py/example.json')
 
     PRODUCER = 'PRODUCER'
@@ -155,6 +157,17 @@ class Pipeline(Tool):
             self.log.error('Could not open pipeline config_file {}'
                            .format(self.config_file))
             return False
+
+        if self.mode == 'sequential':
+            return self.init_sequential()
+        elif self.mode == 'multithread':
+            return self.init_multithread()
+        else:
+            self.log.error("{} is not a valid mode for pipeline".format(self.mode))
+
+
+
+    def init_multithread(self):
         if not self.connect_gui():  return False
         if not self.configure_ports() : return False
         if not self.configure_producer() : return False
@@ -169,6 +182,9 @@ class Pipeline(Tool):
         self.def_thread_order()
         self.display_conf()
         return True
+
+    def init_sequential(self):
+        pass
 
     def configure_stagers(self,router_names):
         #STAGERS
