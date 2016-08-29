@@ -43,6 +43,35 @@ class Connexions():
         for sock in self.sockets.values():
             sock.close()
 
+
+    def get_destination_msg_from_result(self,result):
+        """
+        If result is a tuple, check if last tuple elem is a valid next step.
+        If yes, return a destination defined to  the last tuple elem and send result without the destination
+        If no return None as destination
+        Parameter:
+        ----------
+        result : any type
+            value to send (can contain next step name)
+        Return:
+        -------
+        msg, destination
+
+        """
+        if isinstance(result,tuple):
+            # look is last tuple elem is a valid next step
+            if result[-1] in self.connexions.keys():
+                destination = result[-1]
+                if len(result [:-1]) == 1:
+                    msg = result [:-1][0]
+                else:
+                    msg = result[:-1]
+                return msg,destination
+            else:
+                return result,None
+        else:
+            return result,None
+
     def send_msg(self,msg,destination_step_name=None):
         """
         Send a message thanks to ZMQ

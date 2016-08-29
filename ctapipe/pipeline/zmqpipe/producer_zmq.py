@@ -42,9 +42,9 @@ class ProducerZmq(Thread, Component, Connexions):
         self.gui_address = gui_address
         # Prepare our context and sockets
         self.context = zmq.Context.instance()
-        self.foo = None
         self.other_requests=dict()
         self.done = False
+
 
     def init(self):
         """
@@ -84,11 +84,7 @@ class ProducerZmq(Thread, Component, Connexions):
                 self.running = False
                 self.nb_job_done += 1
                 if isinstance(result,tuple):
-                    destination = result[-1]
-                    if len(results [:-1]) == 1:
-                        msg = results [:-1][0]
-                    else:
-                        msg = result [:-1]
+                    msg,destination = self.get_destination_msg_from_result(result)
                     self.send_msg(msg,destination)
                 else:
                     self.send_msg(result)
