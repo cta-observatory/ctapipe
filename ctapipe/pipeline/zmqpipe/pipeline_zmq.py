@@ -23,6 +23,8 @@ from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
 from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
 from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZMQ
 from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
+from ctapipe.pipeline.producer_sequential import ProducerSequential
+from ctapipe.pipeline.stager_sequential import StagerSequential
 from ctapipe.pipeline.zmqpipe.drawer.pipelinedrawer import StagerRep
 from ctapipe.utils import dynamic_class_from_module
 from ctapipe.core import Tool
@@ -99,7 +101,7 @@ class Pipeline(Tool):
     Represents a staged pattern of stage. Each stage in the pipeline
     is one or several threads containing a coroutine that receives messages
     from the previous stage and	yields messages to be sent to the next stage
-    thanks to RouterQueue instances	'''
+    thanks to RouterQueue sequential_instances	'''
 
     description = 'run stages in multithread pipeline'
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
@@ -189,19 +191,42 @@ class Pipeline(Tool):
 
     def init_sequential(self):
         """
-
         """
-        self.instances = dict()
+        self.configure_ports()
+        self.sequential_instances = dict()
         # set coroutines
-        for step in (self.stager_steps
-            + [self.consumer_step,self.producer_step]):
+        #producer
+        conf = self.get_step_conf(self.producer_step.name)
+        module = conf['module']
+        class_name = conf['class']
+        obj = dynamic_class_from_module(class_name, module, self)
+
+        prod = ProducerSequential(obj, name=self.producer_step.name,
+                                  connexions=self.producer_step.connexions,
+                                  main_connexion_name = self.producer_step.main_connexion_name)
+        prod.init()
+        self.sequential_instances[self.producer_step.name] = prod
+        #stages
+        for step in (self.stager_steps ):
             conf = self.get_step_conf(step.name)
             module = conf['module']
             class_name = conf['class']
             obj = dynamic_class_from_module(class_name, module, self)
-            self.instances[step.name] = obj
-            obj.init()
+            stage = StagerSequential(obj,name = step.name, connexions=step.connexions,
+                                     main_connexion_name=step.main_connexion_name)
+            self.sequential_instances[step.name] = stage
+            stage.init()
+        #consumer
+        conf = self.get_step_conf(self.consumer_step.name)
+        module = conf['module']
+        class_name = conf['class']
+        obj = dynamic_class_from_module(class_name, module, self)
+        obj.init()
+        self.sequential_instances[self.consumer_step.name] = obj
+
         return True
+
+
 
     def configure_stagers(self,router_names):
         #STAGERS
@@ -498,16 +523,29 @@ class Pipeline(Tool):
             self.start_sequential()
 
     def start_sequential(self):
-        self.log.info(self.instances)
-        prod_instance = self.instances[self.producer_step.name]
+        self.log.info(self.sequential_instances)
+        prod_instance = self.sequential_instances[self.producer_step.name]
         prod_gen = prod_instance.run()
-
         for prod_result in prod_gen:
             #TO DO: Add code to take in account producer shunt
             self.log.info('Producer result {}'.format(prod_result))
-            result = 0
-            while result:
-                pass
+
+            msg,destination = prod_result
+
+            while msg != None:
+                print('DEBUG msg {} destination {}'.format(msg,destination))
+
+                stage = self.sequential_instances[destination]
+                result = stage.run(msg)
+
+                if result:
+                    msg,destination = result
+                else:
+                    msg = destination = None
+
+        for step in self.sequential_instances.values():
+            step.finish()
+
 
 
     def start_multithread(self):
