@@ -10,14 +10,15 @@ Introduction
 ============
 
 `ctapipe.pipeline`
-it is a parallelization system. It executes ctapipe processing modules in a multithread environment.
+is a Python implementation of the flow-based programming paradigm, which allows people to create programs as graphs.
+It executes ctapipe processing modules in a sequantial or multithread environment.
+User implements steps in Python class.
 
-It is based on ZeroMQ library (http:queue//zeromq.org) for messages passing between threads.
+The Multithreading mode is based on ZeroMQ library (http:queue//zeromq.org) for messages passing between threads.
 ZMQ library allows to stay away from class concurrency mechanisms like mutexes,
 critical sections semaphores, while being thread safe.
-
-User implements steps in Python class. Passing data between steps is managed by the router thanks to Pickle serialization.
-If a step is executed by several threads, the router uses LRU pattern (least recently used ) to
+Passing data between steps is managed by the router thanks to Pickle serialization.
+A Step can be executed by several threads, in this case the router uses LRU pattern (least recently used ) to
 choose the step that will receive next data. The router also manage Queue for each step.
 
 .. figure:: pipeline.png
@@ -155,7 +156,9 @@ Send message with several next steps.
 -------------------------------------
 In case of producer or stage have got several next step (next_steps keyword in configuration),
 you can choose the step that will receive data by passing its name as last tuple value with the result:
-i.e return((res1,res2),'NEXT_STEP_NAME')
+i.e return((res1,res2),'NEXT_STEP_NAME').
+If the last tuple value is not a available next_step (from configuration), the full tuple is send to
+the default next_step.
 
 .. code-block:: python
 
@@ -182,7 +185,7 @@ Execution examples
 
 Pipeline end
 ============
-The main challenge is how to stop all Threads without loosing an inputs.
+In multithreading mode ,the main challenge is how to stop all Threads without loosing an inputs.
 Indeed, we must ensure that all queues are empty and all threads are waiting for a new entry (not active).
 Because Python Thread can not be paused, we can not check that all the queues are empty and at the same time check that all threads are inactive
 So there is a risk that a queue is filled again when we control state of threads.
@@ -221,9 +224,10 @@ Working  data in shared memory (memmaping)
 To avoid to serialize and deserialize data and pass data thanks to ZMQ,
  a shared memory system can be develop between stages.
 
-Muliple pipeline managemwent by GUI
+Muliple pipelines management by GUI
 -----------------------------------
 When several pipelines are running, GUI should allows to choose which pipeline user want to follow.
+
 Examples
 ========
 
