@@ -119,7 +119,8 @@ class Pipeline(Tool):
                        'module': 'producer',  'prev': 'STAGE1'},
         help='producer description: name , module, class',
                 allow_none=False).tag(config=True)
-    aliases = Dict({'gui_address': 'Pipeline.gui_address', 'mode':'Pipeline.mode'})
+    aliases = Dict({'gui_address': 'Pipeline.gui_address',
+                    'mode':'Pipeline.mode'})
     examples = ('prompt%> ctapipe-pipeline \
     --config=examples/brainstorm/pipeline/pipeline_py/example.json')
 
@@ -529,23 +530,25 @@ class Pipeline(Tool):
         for prod_result in prod_gen:
             #TO DO: Add code to take in account producer shunt
             self.log.info('Producer result {}'.format(prod_result))
-
             msg,destination = prod_result
-
             while msg != None:
                 print('DEBUG msg {} destination {}'.format(msg,destination))
-
                 stage = self.sequential_instances[destination]
-                result = stage.run(msg)
-
-                if result:
-                    msg,destination = result
+                stage_gen = stage.run(msg)
+                if stage_gen:
+                    for result in stage_gen:
+                        print('DEBUG 3  result {} '.format(result))
+                        if result:
+                            msg,destination = result
+                        else:
+                            msg = destination = None
                 else:
                     msg = destination = None
 
         for step in self.sequential_instances.values():
             step.finish()
 
+        self.log.info('=== SEQUENTIAL MODE END ===')
 
 
     def start_multithread(self):
