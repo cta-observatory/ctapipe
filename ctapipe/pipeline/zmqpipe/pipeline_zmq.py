@@ -141,6 +141,10 @@ class Pipeline(Tool):
     context = zmq.Context().instance()
     socket_pub = context.socket(zmq.PUB)
     levels_for_gui = list()
+    available_ports=[5555,5556,5557,5558,5559,5560,5561,5562,5563,5564,
+            5565,5566,5567,5568,5569]
+    ports = dict()
+
 
     def setup(self):
         if self.init() == False:
@@ -234,8 +238,8 @@ class Pipeline(Tool):
         for stager_step in self.stager_steps:
             # each stage need a router to connect it to prev stages
             name = stager_step.name + '_' + 'router'
-            router_names[name] = [stager_step.name+'_in',
-                                  stager_step.name+'_out',
+            router_names[name] = [self.ports[stager_step.name+'_in'],
+                                  self.ports[stager_step.name+'_out'],
                                   stager_step.queue_limit]
 
             for i in range(stager_step.nb_thread):
@@ -282,10 +286,10 @@ class Pipeline(Tool):
         sock_router_ports = dict()
         socket_dealer_ports = dict()
         router_names = dict()
-        # each consumer need a router to connect it to prev stages
+        # each stage need a router to connect it to prev stages
         name = self.consumer_step.name + '_' + 'router'
-        router_names[name] = [self.consumer_step.name+'_in',
-                              self.consumer_step.name+'_out',
+        router_names[name] = [self.ports[self.consumer_step.name+'_in'],
+                              self.ports[self.consumer_step.name+'_out'],
                               self.consumer_step.queue_limit]
         return router_names
 
@@ -339,18 +343,26 @@ class Pipeline(Tool):
         '''
         #configure connexions (zmq port) for producer (one per next step)
         for next_step_name in self.producer_step.next_steps_name:
-            self.producer_step.connexions[next_step_name]=next_step_name+'_in'
+            if not next_step_name+'_in' in self.ports:
+                self.ports[next_step_name+'_in'] = str(self.available_ports.pop())
+            self.producer_step.connexions[next_step_name]=self.ports[next_step_name+'_in']
         self.producer_step.main_connexion_name = self.producer_step.next_steps_name[0]
 
         #configure port_in and connexions (zmq port)  for all stages (one per next step)
         for stage in self.stager_steps:
-            stage.port_in = stage.name+'_out'
+            if not stage.name+'_out' in self.ports:
+                self.ports[stage.name+'_out'] = str(self.available_ports.pop())
+            stage.port_in = self.ports[stage.name+'_out']
             for next_step_name in stage.next_steps_name:
-                stage.connexions[next_step_name]=next_step_name+'_in'
+                if not next_step_name+'_in' in self.ports:
+                    self.ports[next_step_name+'_in'] = str(self.available_ports.pop())
+                stage.connexions[next_step_name]=self.ports[next_step_name+'_in']
             stage.main_connexion_name = stage.next_steps_name[0]
 
         #configure port-in  (zmq port) for consumer
-        self.consumer_step.port_in = self.consumer_step.name+'_out'
+        if not  self.consumer_step.name+'_out' in self.ports:
+            self.ports[ self.consumer_step.name+'_out'] = str(self.available_ports.pop())
+        self.consumer_step.port_in = self.ports[ self.consumer_step.name+'_out']
         return True
 
     def get_step_by_name(self,name):

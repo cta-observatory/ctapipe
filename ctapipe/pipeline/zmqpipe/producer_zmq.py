@@ -34,7 +34,7 @@ class ProducerZmq(Thread, Component, Connexions):
         Thread.__init__(self)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
-
+        print('DEBUG ProducerZmq connexions{}'.format(connexions))
         self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
         self.running = False

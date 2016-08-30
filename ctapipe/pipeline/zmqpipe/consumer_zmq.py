@@ -39,6 +39,7 @@ class ConsumerZMQ(Thread, Component):
         self.name = _name
         self.nb_job_done = 0
         self.running = False
+        print('DEBUG CONSUMER sock_consumer_port {}'.format(sock_consumer_port) )
 
     def init(self):
         """

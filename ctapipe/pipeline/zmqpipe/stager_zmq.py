@@ -39,6 +39,7 @@ class StagerZmq(threading.Thread, Connexions):
         Thread.__init__(self)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
+        print('DEBUG StagerZmq {} connexions{} sock_job_for_me_port{}'.format(self.name, connexions,sock_job_for_me_port))
 
         # Set coroutine
         self.coroutine = coroutine

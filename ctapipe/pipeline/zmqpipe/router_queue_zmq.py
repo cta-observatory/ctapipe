@@ -45,6 +45,7 @@ class RouterQueue(threading.Thread, Component):
         self.queue_limit = dict()
         self.connexions = connexions
         self.done = False
+        print('DEBUG ROUTER connexions {}'.format(connexions))
 
     def init(self):
         # Prepare our context and sockets
