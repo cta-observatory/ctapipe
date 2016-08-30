@@ -34,7 +34,6 @@ class ProducerZmq(Thread, Component, Connexions):
         Thread.__init__(self)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
-        print('DEBUG ProducerZmq connexions{}'.format(connexions))
         self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
         self.running = False
@@ -69,6 +68,8 @@ class ProducerZmq(Thread, Component, Connexions):
         if self.coroutine.init() == False:
             return False
 
+        print('===> {} init done'.format(self.name))
+        return True
 
     def run(self):
         """

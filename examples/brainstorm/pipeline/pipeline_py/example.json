@@ -1,5 +1,6 @@
 {
   "version": 1,
+  
   "Pipeline": {
       "producer_conf": { "name" : "SimTelArrayReader", "module": "ctapipe.pipeline.algorithms.simtelarray_reader",
            "class": "SimTelArrayReader","next_steps" : "ShuntTelescope"},
