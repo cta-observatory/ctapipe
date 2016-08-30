@@ -3,6 +3,7 @@ import zmq
 from threading import Thread
 import pickle
 from PyQt4 import QtCore
+from PyQt4.QtGui import QLabel
 from time import time
 from ctapipe.core import Component
 
@@ -48,7 +49,7 @@ class ZmqSub(Thread, QtCore.QObject):
             # Inform about connection in statusBar
             if statusBar is not None:
                 self.statusBar = statusBar
-                self.statusBar.showMessage("binded to " + gui_adress)
+                self.statusBar.insertPermanentWidget(0,QLabel("binded to " + gui_adress))
             # Register socket in a poll and register topics
             self.poll = zmq.Poller()
             self.poll.register(self.socket, zmq.POLLIN)
@@ -83,9 +84,11 @@ class ZmqSub(Thread, QtCore.QObject):
             sockets = dict(self.poll.poll(1000))  # Poll or time out (1000ms)
             if self.socket in sockets and sockets[self.socket] == zmq.POLLIN:
                 # receive a new message form pipeline
+
                 receive = self.socket.recv_multipart()
                 topic = receive[0]
                 msg = pickle.loads(receive[1])
+
                 if topic == b'FINISH':
                     self.reset()
                 else:

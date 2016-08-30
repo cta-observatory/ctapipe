@@ -1,6 +1,5 @@
 from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
-import threading
 from ctapipe.core import Component
 from traitlets import Unicode
 
@@ -34,7 +33,7 @@ class SimTelArrayReader(Component):
             # send new job to next step thanks to router
 
             yield (event)
-            
+
         self.log.info("\n--- SimTelArrayReader Done ---")
 
     def finish(self):
