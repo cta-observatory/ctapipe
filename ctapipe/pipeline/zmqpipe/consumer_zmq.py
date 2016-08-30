@@ -35,11 +35,10 @@ class ConsumerZMQ(Thread, Component):
         self.coroutine = coroutine
         self.gui_address = gui_address
         # self.sock_consumer_url = "tcp://localhost:"+sock_consumer_port
-        self.sock_consumer_url = 'inproc://' + sock_consumer_port
+        self.sock_consumer_url = 'tcp://localhost:' + sock_consumer_port
         self.name = _name
         self.nb_job_done = 0
         self.running = False
-        print('DEBUG CONSUMER sock_consumer_port {}'.format(sock_consumer_port) )
 
     def init(self):
         """
@@ -56,6 +55,9 @@ class ConsumerZMQ(Thread, Component):
         # Prepare our ZMQ context socket and poller
         context = zmq.Context.instance()
         self.sock_reply = context.socket(zmq.REQ)
+        print('DEBUG {} connect to {}'.format(self.name, self.sock_consumer_url))
+        #socket.bind("tcp://*:5555")
+        #socket.connect("tcp://localhost:5556")
         self.sock_reply.connect(self.sock_consumer_url)
 
         self.socket_pub = context.socket(zmq.PUB)
@@ -76,6 +78,7 @@ class ConsumerZMQ(Thread, Component):
         # self.total allows to print the number of times run method
         # has been called at end of job
         self.done = False
+        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):

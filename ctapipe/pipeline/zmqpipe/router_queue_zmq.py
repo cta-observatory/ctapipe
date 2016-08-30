@@ -45,7 +45,6 @@ class RouterQueue(threading.Thread, Component):
         self.queue_limit = dict()
         self.connexions = connexions
         self.done = False
-        print('DEBUG ROUTER connexions {}'.format(connexions))
 
     def init(self):
         # Prepare our context and sockets
@@ -56,18 +55,18 @@ class RouterQueue(threading.Thread, Component):
 
             sock_router = context.socket(zmq.ROUTER)
             try:
-                sock_router.bind('inproc://' + connexions[0])
+                sock_router.bind('tcp://*:' + connexions[0])
             except zmq.error.ZMQError as e:
-                print('{} : inproc://{}'
+                print('{} : tcp://localhost:{}'
                                .format(e,  connexions[0]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
             sock_dealer = context.socket(zmq.ROUTER)
             try:
-                sock_dealer.bind("inproc://" + connexions[1] )
+                sock_dealer.bind("tcp://*:" + connexions[1] )
             except zmq.error.ZMQError as e:
-                print('{} : inproc://{}'
+                print('{} : tcp://localhost:{}'
                                .format(e,  connexions[1]))
                 return False
 
@@ -94,6 +93,7 @@ class RouterQueue(threading.Thread, Component):
                 self.log.error("".format(e, self.gui_address))
                 return False
         # This flag stop this current thread
+        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):

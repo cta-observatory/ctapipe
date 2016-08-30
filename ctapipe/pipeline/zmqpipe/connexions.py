@@ -25,15 +25,16 @@ class Connexions():
         for name,connexion in self.connexions.items():
             self.sockets[name] = self.context.socket(zmq.REQ)
             try:
-                self.sockets[name].connect('inproc://' + connexion)
+                self.sockets[name].connect('tcp://localhost:' + connexion)
                 if main_connexion_name == name:
                     self.main_out_socket = self.sockets[name]
             except zmq.error.ZMQError as e:
-                print(' {} : inproc://{}'
+                print(' {} : tcp://localhost:{}'
                                .format(e,  connexion))
                 return False
         self.send_in_run = False
         self.main_connexion_name = main_connexion_name
+        print('DEBUG {} {}'.format(self.name,self.connexions))
         return True
 
     def close_connexions(self):

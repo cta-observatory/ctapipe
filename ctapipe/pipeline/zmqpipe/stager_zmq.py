@@ -39,12 +39,11 @@ class StagerZmq(threading.Thread, Connexions):
         Thread.__init__(self)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
-        print('DEBUG StagerZmq {} connexions{} sock_job_for_me_port{}'.format(self.name, connexions,sock_job_for_me_port))
 
         # Set coroutine
         self.coroutine = coroutine
         # set sockets url
-        self.sock_job_for_me_url = 'inproc://' + sock_job_for_me_port
+        self.sock_job_for_me_url = 'tcp://localhost:' + sock_job_for_me_port
 
         self.running = False
         self.nb_job_done = 0
@@ -76,6 +75,7 @@ class StagerZmq(threading.Thread, Connexions):
         context = zmq.Context.instance()
         self.socket_pub = context.socket(zmq.PUB)
         if self.gui_address is not None:
+            print('DEBUG  self.gui_address {}'.format( self.gui_address))
             self.socket_pub.connect("tcp://" + self.gui_address)
 
         self.sock_for_me = context.socket(zmq.REQ)
@@ -90,6 +90,7 @@ class StagerZmq(threading.Thread, Connexions):
         self.sock_for_me.send_pyobj("READY")
         # Stop flag
         self.stop = False
+        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):

@@ -17,7 +17,6 @@ class StringWriter(Component):
         return True
 
     def run(self, object):
-        print('DEBUG stringWritter receive {}'.format(object))
         self.file.write(str(object) + "\n")
 
 
