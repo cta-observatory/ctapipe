@@ -19,21 +19,11 @@ class Connexions():
         self.connexions = connexions
         self.sockets=dict()
         # Socket to talk to others steps
-        self.context = zmq.Context.instance()
+        self.context = zmq.Context()
         self.main_out_socket = None
-        for name,connexion in self.connexions.items():
-            self.sockets[name] = self.context.socket(zmq.REQ)
-            try:
-                self.sockets[name].connect('tcp://localhost:' + connexion)
-                if main_connexion_name == name:
-                    self.main_out_socket = self.sockets[name]
-            except zmq.error.ZMQError as e:
-                print(' {} : tcp://localhost:{}'
-                               .format(e,  connexion))
-                return False
+
         self.send_in_run = False
         self.main_connexion_name = main_connexion_name
-        print('DEBUG {} {}'.format(self.name,self.connexions))
         return True
 
     def close_connexions(self):
@@ -87,7 +77,6 @@ class Connexions():
         else:
             socket = self.sockets[destination_step_name]
         while not send:
-
             socket.send_pyobj(msg)
             request = socket.recv()
             if request == b'OK':
@@ -95,3 +84,16 @@ class Connexions():
             else:
                 sleep(0.1)
         self.send_in_run = True
+
+    def init_connexions(self):
+        for name,connexion in self.connexions.items():
+            self.sockets[name] = self.context.socket(zmq.REQ)
+            try:
+                self.sockets[name].connect('tcp://localhost:' + connexion)
+                if self.main_connexion_name == name:
+                    self.main_out_socket = self.sockets[name]
+            except zmq.error.ZMQError as e:
+                print(' {} : tcp://localhost:{}'
+                               .format(e,  connexion))
+                return False
+        return True

@@ -12,7 +12,6 @@ The router also manage Queue for each step.
 '''
 
 import zmq
-from threading import Thread
 from sys import exit
 from os import path
 from time import time
@@ -142,7 +141,7 @@ class Pipeline(Tool):
     consumer_step = None
     step_threads = list()
     router_thread = None
-    context = zmq.Context().instance()
+    context = zmq.Context()
     socket_pub = context.socket(zmq.PUB)
     levels_for_gui = list()
     ports = dict()
@@ -167,7 +166,7 @@ class Pipeline(Tool):
             self.log.error('Could not open pipeline config_file {}'
                            .format(self.config_file))
             return False
-        # Gererate steps(producers, stagers and consumers) from configuration
+        # Gererate steps(producers, stagerself.log.info(s and consumers) from configuration
         if not self.generate_steps():
             self.log.error("Error during steps generation")
             return False
@@ -596,6 +595,7 @@ class Pipeline(Tool):
                  levels_gui])])
             sleep(1)
 
+
         # Now send stop to stage threads and wait they join
         for worker in self.step_threads:
             self.wait_and_send_levels(worker)
@@ -618,7 +618,8 @@ class Pipeline(Tool):
     def wait_all_stagers(self,mintime):
         if self.router.isQueueEmpty():
             for worker in self.step_threads:
-                if worker.waiting_since < mintime: # 5000ms
+                print('DEBUG {}  wait since {} '.format(worker.name,worker.wait_since))
+                if worker.wait_since < mintime: # 5000ms
                     return False
             return True
         return False
@@ -639,14 +640,16 @@ class Pipeline(Tool):
         conf_time : str
                 represents time at which configuration has been built
         '''
-        while not thread_to_wait.finish():
-            while True:
-                levels_gui,conf_time = self.def_step_for_gui()
-                thread_to_wait.join(timeout=.1)
-                self.socket_pub.send_multipart(
-                    [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
-                if not thread_to_wait.is_alive():
-                    return
+        thread_to_wait.stop = 1
+
+        while True:
+            levels_gui,conf_time = self.def_step_for_gui()
+            thread_to_wait.join(timeout=.1)
+            print('DEBUG  wait_and_send_levels {}'.format(thread_to_wait.name))
+            self.socket_pub.send_multipart(
+                [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
+            if not thread_to_wait.is_alive():
+                return
 
 
     def get_step_conf(self, name):
