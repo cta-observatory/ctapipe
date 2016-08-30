@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import zmq
-from threading import Thread
+from multiprocessing import Process
 import pickle
 from PyQt4 import QtCore
 from PyQt4.QtGui import QLabel
@@ -17,7 +17,7 @@ pipedrawerdir = os.path.dirname(currentdir)
 sys.path.insert(0, pipedrawerdir)
 
 
-class ZmqSub(Thread, QtCore.QObject):
+class ZmqSub(Process, QtCore.QObject):
 
     """
     Manages communication with pipeline thanks to ZMQ SUB message
@@ -34,11 +34,11 @@ class ZmqSub(Thread, QtCore.QObject):
     message = QtCore.pyqtSignal(list)
 
     def __init__(self, pipedrawer=None, table_queue=None, gui_port=None, statusBar=None):
-        Thread.__init__(self)
+        Process.__init__(self)
         QtCore.QObject.__init__(self)
 
         if gui_port is not None:
-            self.context = zmq.Context.instance()
+            self.context = zmq.Context()
             # Socket to talk to pipeline kernel and pipeline steps and router
             self.socket = self.context.socket(zmq.SUB)
             gui_adress = "tcp://*:" + str(gui_port)

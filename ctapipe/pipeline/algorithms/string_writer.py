@@ -17,6 +17,7 @@ class StringWriter(Component):
         return True
 
     def run(self, object):
+        self.log.info('{} receive {}'.format(self.name, object))
         self.file.write(str(object) + "\n")
 
 
