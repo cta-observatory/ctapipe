@@ -121,7 +121,7 @@ class Pipeline(Tool):
                 allow_none=False).tag(config=True)
 
     zmq_ports = List([5555,5556,5557,5558,5559,5560,5561,5562,5563,5564,
-            5565,5566,5567,5568,5569], help='ZMQ ports').tag(
+            5566,5567,5568,5569], help='ZMQ ports').tag(
         config=True, allow_none=True)
     aliases = Dict({'gui_address': 'Pipeline.gui_address',
                     'mode':'Pipeline.mode'})
@@ -316,9 +316,9 @@ class Pipeline(Tool):
         # Get port for GUI
         if self.gui_address is not None:
             try:
-                self.socket_pub.connect('tcp://localhost:' + self.gui_address)
+                self.socket_pub.connect('tcp://' + self.gui_address)
             except zmq.error.ZMQError as e:
-                self.log.info(str(e) + 'tcp://localhost:' + self.gui_address)
+                self.log.info(str(e) + 'tcp://' + self.gui_address)
                 return False
         return True
 

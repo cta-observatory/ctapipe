@@ -1,5 +1,4 @@
 from time import sleep
-import threading
 from ctapipe.core import Component
 
 

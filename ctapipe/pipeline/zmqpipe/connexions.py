@@ -1,5 +1,4 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from threading import Thread
 from time import sleep
 from ctapipe.core import Component
 import zmq
