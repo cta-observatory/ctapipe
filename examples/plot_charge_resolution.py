@@ -59,9 +59,9 @@ def argparsing():
                         default=False,
                         help='Use a normal y axis instead of the defualt log'
                              'axis')
-    parser.add_argument('-E', '--example', dest='example', action='store',
-                        default=None,
-                        help='output path for an example runcard text file')
+    parser.add_argument('-E', '--example', dest='example', action='store_true',
+                        default=False,
+                        help='print an example runcard')
     parser.add_argument('-R', '--runcard', dest='runcard', action='store',
                         default=None,
                         help='path to a runcard text file with arguments that '
@@ -92,8 +92,54 @@ def argparsing():
     if args.debug:
         log.setLevel(10)
 
-    # if args.example is not None:
-    #     example_runcard(args.example)
+    if args.example:
+        print("""
+# Each charge resolution block starts with [chargeres] and the names for
+# this charge resolution.
+# The options in each block are equivalent to the scripts help message.
+# Options that seem to apply to plotting will only have effect in a
+# plotting block.
+
+[chargeres] test_file_local
+#-f gamma_test.simtel.gz
+-f ~/Software/outputs/sim_telarray/simtel_run4_gcts_hnsb.gz
+-O hessio
+--integrator 4
+--integration-window 7 3
+--integration-sigamp 2 4
+--integration-lwt 0
+--integration-calib_scale 1.05
+--comparison ~/Downloads/test_file_local.pdf
+
+
+# A second charge resolution block to also calculate the resolution with
+# a different integrator so the two resolutions can be plotted against
+# each other.
+
+[chargeres] test_file_nei
+#-f gamma_test.simtel.gz
+-f ~/Software/outputs/sim_telarray/simtel_run4_gcts_hnsb.gz
+-O hessio
+--integrator 5
+--integration-window 7 3
+--integration-sigamp 2 4
+--integration-lwt 0
+--integration-calib_scale 1.05
+--comparison ~/Downloads/test_file_nei.pdf
+
+# A plotting block configures an output plot
+
+[plot] normal_plot
+[chargeres_names] test_file_local test_file_nei
+-o ~/Downloads/normal_plot.pdf
+--binning normal
+--normalx
+--normaly
+
+[plot] log_plot
+[chargeres_names] test_file_local test_file_nei
+-o ~/Downloads/log_plot.pdf""")
+        exit()
     if args.runcard is None:
         name = splitext(basename(args.input_paths[0]))[0]
         args.chargeres_names = [name]
@@ -182,7 +228,7 @@ def calculate_charge_resolutions(chargeres_args):
         if maxpe is None:
             maxpe = 0
             for input_file in input_file_list:
-                file_maxpe = input_file.find_max_true_npe(args.tel, 100)
+                file_maxpe = input_file.find_max_true_npe(args.tel)
                 if file_maxpe > maxpe:
                     maxpe = file_maxpe
         log.info("[maxpe] {}".format(maxpe))
@@ -192,7 +238,7 @@ def calculate_charge_resolutions(chargeres_args):
         chargeres = ChargeResolution(maxpe)
 
         for input_file in input_file_list:
-            source = input_file.read(100)
+            source = input_file.read()
             calibrated_source = calibrate_source(source, params)
             chargeres.add_source(calibrated_source, args.tel)
 
