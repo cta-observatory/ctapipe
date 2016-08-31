@@ -588,6 +588,7 @@ class Pipeline(Tool):
 
         # Ensure that all queues are empty and all threads are waiting for
         # new data since more that a specific tine
+        print('DEBUG B4 wait_all_stagers')
         while not self.wait_all_stagers(1000): # 1000 ms
             levels_gui,conf_time = self.def_step_for_gui()
             self.socket_pub.send_multipart(
@@ -595,7 +596,7 @@ class Pipeline(Tool):
                  levels_gui])])
             sleep(1)
 
-
+        print('DEBUG AFTER wait_all_stagers')
         # Now send stop to stage threads and wait they join
         for worker in self.step_threads:
             self.wait_and_send_levels(worker)
@@ -616,9 +617,8 @@ class Pipeline(Tool):
 
 
     def wait_all_stagers(self,mintime):
-        if self.router.isQueueEmpty():
+        if self.router.total_queue_size == 0 :
             for worker in self.step_threads:
-                print('DEBUG {}  wait since {} '.format(worker.name,worker.wait_since))
                 if worker.wait_since < mintime: # 5000ms
                     return False
             return True
@@ -640,12 +640,12 @@ class Pipeline(Tool):
         conf_time : str
                 represents time at which configuration has been built
         '''
+        print('DEBUG MAIN thread_to_wait.stop = 1 for {}'.format(thread_to_wait.name))
         thread_to_wait.stop = 1
 
         while True:
             levels_gui,conf_time = self.def_step_for_gui()
             thread_to_wait.join(timeout=.1)
-            print('DEBUG  wait_and_send_levels {}'.format(thread_to_wait.name))
             self.socket_pub.send_multipart(
                 [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
             if not thread_to_wait.is_alive():

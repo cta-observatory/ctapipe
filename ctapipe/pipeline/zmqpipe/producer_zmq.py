@@ -60,7 +60,6 @@ class ProducerZmq(Process, Component, Connexions):
         if self.coroutine.init() == False:
             return False
 
-        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):
