@@ -51,13 +51,10 @@ class ProducerZmq(Process, Component, Connexions):
         -------
         True if coroutine init method returns True, otherwise False
         """
-
-
         if self.coroutine is None:
             return False
         if self.coroutine.init() == False:
             return False
-
         return self.init_connexions()
 
     def run(self):

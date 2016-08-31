@@ -1,20 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import zmq
 from threading import Thread
-import pickle
+from pickle import loads
 from PyQt4 import QtCore
 from PyQt4.QtGui import QLabel
 from time import time
 from ctapipe.core import Component
-import os
-import sys
-import inspect
-"""
-currentdir = os.path.dirname(
-    os.path.abspath(inspect.getfile(inspect.currentframe())))
-pipedrawerdir = os.path.dirname(currentdir)
-sys.path.insert(0, pipedrawerdir)
-"""
 
 class ZmqSub(Thread, QtCore.QObject):
 
@@ -31,11 +22,9 @@ class ZmqSub(Thread, QtCore.QObject):
         MainWindow status bar to display information
     """
     message = QtCore.pyqtSignal(list)
-
     def __init__(self, pipedrawer=None, table_queue=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
         QtCore.QObject.__init__(self)
-
         if gui_port is not None:
             self.context = zmq.Context()
             # Socket to talk to pipeline kernel and pipeline steps and router
@@ -65,9 +54,7 @@ class ZmqSub(Thread, QtCore.QObject):
             self.pipedrawer = pipedrawer
             self.table_queue = table_queue
             self.steps = list()
-
             self.config_time = 0
-
             self.last_send_config = 0
             self.nb_job_done=dict()
         else:
@@ -77,16 +64,14 @@ class ZmqSub(Thread, QtCore.QObject):
         """
         Method representing the thread’s activity.
         """
-
         while not self.stop:
             conf_time = time()
             sockets = dict(self.poll.poll(1000))  # Poll or time out (1000ms)
             if self.socket in sockets and sockets[self.socket] == zmq.POLLIN:
                 # receive a new message form pipeline
-
                 receive = self.socket.recv_multipart()
                 topic = receive[0]
-                msg = pickle.loads(receive[1])
+                msg = loads(receive[1])
                 if topic == b'FINISH':
                     self.reset()
                 else:
@@ -102,10 +87,21 @@ class ZmqSub(Thread, QtCore.QObject):
                     self.last_send_config = conf_time
 
     def reset(self):
+        """
+        Clear the self.steps list
+        """
         self.steps.clear()
 
-
     def update_full_state(self,topic,msg):
+        """
+        Redirect topic and message depending on topic
+        Parameters:
+        -----------
+        topic : bytes
+            define why message has been send
+        msg: a Pickel dumps message
+        """
+
         if topic == b'GUI_GRAPH':
             config_time, receiv_steps = msg
             if config_time != self.config_time:
@@ -116,14 +112,20 @@ class ZmqSub(Thread, QtCore.QObject):
         elif self.steps and (topic == b'GUI_STAGER_CHANGE' or
                            topic == b'GUI_CONSUMER_CHANGE' or
                            topic == b'GUI_PRODUCER_CHANGE'):
-
             self.step_change(msg)
-
         elif topic == b'GUI_ROUTER_CHANGE':
-            self.router_change(topic,msg)
+            self.router_change(msg)
 
 
     def full_change(self,receiv_steps):
+        """
+        Update self.steps with new receiv_steps
+        Test if receiv_steps is same as self.steps.
+        If yes do nothing otherwise set self.steps to receiv_steps
+        Parameters:
+        -----------
+        receiv_steps: list of StagerRep
+        """
         if not self.steps:
             self.steps = receiv_steps
         else:
@@ -150,26 +152,22 @@ class ZmqSub(Thread, QtCore.QObject):
         """
         name, running , nb_job_done = msg
         for step in self.steps:
-            print('DEBUG {}'.format(name))
             if step.name == name.split('$$processus')[0]:
                 step.running = running
                 return
 
-    def router_change(self, topic, msg):
+    def router_change(self, msg):
         """Called by ZmqSub instance when it receives zmq message from pipeline
         Update pipeline state (self.steps) and force to update drawing
         Parameters
         ----------
-        topic : str
+        msg : a Pickle.dumps message
         """
         name, queue = msg
         name = name.split('_router')[0]
         step = self.get_step_by_name(name)
         if step:
             step.queue_length = queue
-
-
-
 
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
