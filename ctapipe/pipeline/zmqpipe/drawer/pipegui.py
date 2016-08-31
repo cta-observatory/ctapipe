@@ -28,7 +28,7 @@ from ctapipe.pipeline.zmqpipe.drawer import ModuleApplication
 
 
 class PipeGui(Tool):
-    description = "run stages in multithread pipeline"
+    description = "run stages in multiprocessus pipeline"
 
     port = Integer(5565, help='GUI port for pipelien connexion').tag(
         config=True, allow_none=True)

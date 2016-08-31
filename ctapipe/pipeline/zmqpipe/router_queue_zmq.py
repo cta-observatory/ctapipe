@@ -2,8 +2,10 @@ from time import sleep
 from multiprocessing import Process
 from multiprocessing import Value
 import zmq
-import pickle
+from pickle import dumps
+from pickle import loads
 from ctapipe.core import Component
+from os import getpid
 
 
 class RouterQueue(Process, Component):
@@ -16,18 +18,21 @@ class RouterQueue(Process, Component):
     If inputs arrive quickers than output are sent (because next stage have not
     enough time to compute) these inputs are queued in RouterQueue.
     RouterQueue send output the next steps in LRU(last recently used) pattern.
+    If a queue limit is reach for a step, RouterQueue replies "FULL"
+    without taking new job in account, so the prev step have to send it again
+    later.
     """
-
     def __init__(
         self, connexions=dict(), gui_address=None):
-
         """
         Parameters
         ----------
-        sock_router_port: str
-            Port number for input router socket url
-        socket_dealer_port: str
-            Port number for ouput router socket url
+        connexions: dict {'STEP_NANE' : (STEP port in, STEP port out,
+                                            STEP queue lengh max )}
+            Port in, port out  for socket for each next steps.
+            Max queue lengh (-1 menans no maximum)
+        gui_address : str
+            GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
         self.gui_address = gui_address
@@ -45,12 +50,9 @@ class RouterQueue(Process, Component):
         self._stop = Value('i',0)
         self._total_queue_size = Value('i',0)
 
-    def init(self):
-        return True
-
     def run(self):
         """
-        Method representing the thread’s activity.
+        Method representing the processus’s activity.
         It sends a job present in its queue (FIFO) to an available stager
         (if exist). Then it polls its sockets (in and out).
         When received new input from input socket, it appends contains to
@@ -58,16 +60,11 @@ class RouterQueue(Process, Component):
         When received a signal from its output socket, it append sender
         (a pipeline step) to availble stagers list
         """
-
         if self.init_connexions():
             nb_job_remains = 0
-
             while not self.stop or nb_job_remains > 0:
-
                 for name in self.connexions:
                     queue = self.queue_jobs[name]
-                    # queue,next_available in
-                    # zip(self.queue_jobs,self.next_available_stages):
                     next_available = self.next_available_stages[name]
                     if queue and next_available:
                         # get that oldest job and remove it form list
@@ -78,24 +75,20 @@ class RouterQueue(Process, Component):
                         next_stage = self.next_available_stages[name].pop(0)
                         # send new job
                         self.dealer_sockets[name].send_multipart(
-                            [next_stage, b"", pickle.dumps(job)])
+                            [next_stage, b"", dumps(job)])
                     # check if new socket message arrive. Or skip after timeout
                     # (100 s)
-
                 sockets = dict(self.poller.poll(100))
                 # Test if message arrived from next_stages
                 for n, socket_dealer in self.dealer_sockets.items():
                     if (socket_dealer in sockets and
                             sockets[socket_dealer] == zmq.POLLIN):
-
                         request = socket_dealer.recv_multipart()
                         # Get next_stage identity(to responde) and message
                         next_stage, _, message = request[:3]
-
-                        cmd = pickle.loads(message)
+                        cmd = loads(message)
                         # add stager to next_available_stages
                         self.next_available_stages[n].append(next_stage)
-
                 # Test if message arrived from prev_stage (stage or producer)
                 for n, socket_router in self.router_sockets.items():
                     if (socket_router in sockets and
@@ -104,12 +97,11 @@ class RouterQueue(Process, Component):
                         address, empty, request = socket_router.recv_multipart()
                         # store it to job queue
                         queue = self.queue_jobs[n]
-
                         if (len(queue) > self.queue_limit[n]
                         and self.queue_limit[n] != -1) :
                             socket_router.send_multipart([address, b"", b"FULL"])
                         else:
-                            queue.append(pickle.loads(request))
+                            queue.append(loads(request))
                             self.update_gui(n)
                             socket_router.send_multipart([address, b"", b"OK"])
                 nb_job_remains = 0
@@ -124,16 +116,19 @@ class RouterQueue(Process, Component):
 
     def isQueueEmpty(self, stage_name=None):
         """
+        Get status of steps' queue
         Parameters
         ----------
         stage_name: str
             router_name corresponding to stager name or consumer name
+            If stage_name=None, it take in account all queues
         Returns
         -------
         True is corresponding queue is empty, otherwise False
+        If stage_name = None it returns True if sum of all queues is 0
         """
         if stage_name:
-            val = stage_name.find("$$thread_number$$")
+            val = stage_name.find("$$processus_number$$")
             if val != -1:
                 name_to_search = stage_name[0:val]
             else:
@@ -152,23 +147,17 @@ class RouterQueue(Process, Component):
                     return False
             return True
 
-    def finish(self):
-        """
-        set stop flag to True to stop Thread activity
-        """
-        self.stop = True
-        if self.done:
-            return True
-        else:
-             return False
-
     def init_connexions(self):
+        """
+        Initialise zmq sockets, poller and queues.
+        Because this class is s Process, This method must be call in the run
+         method to be hold by the correct processus.
+        """
         # Prepare our context and sockets
         context = zmq.Context()
         # Socket to talk to prev_stages
         for name,connexions in self.connexions.items():
             self.queue_limit[name] = connexions[2]
-
             sock_router = context.socket(zmq.ROUTER)
             try:
                 sock_router.bind('tcp://*:' + connexions[0])
@@ -185,21 +174,16 @@ class RouterQueue(Process, Component):
                 print('{} : tcp://localhost:{}'
                                .format(e,  connexions[1]))
                 return False
-
             self.dealer_sockets[name] = sock_dealer
-
             self.next_available_stages[name] = list()
             self.queue_jobs[name] = list()
-
         # Use a ZMQ Pool to get multichannel message
         self.poller = zmq.Poller()
         # Register dealer socket to next_stage
         for n, dealer in self.dealer_sockets.items():
-
             self.poller.register(dealer, zmq.POLLIN)
         for n, router in self.router_sockets.items():
             self.poller.register(router, zmq.POLLIN)
-
         # Register router socket to prev_stages or producer
         self.socket_pub = context.socket(zmq.PUB)
         if self.gui_address is not None:
@@ -208,13 +192,16 @@ class RouterQueue(Process, Component):
             except zmq.error.ZMQError as e:
                 self.log.error("".format(e, self.gui_address))
                 return False
-        # This flag stop this current thread
+        # This flag stop this current processus
         return True
 
     def update_gui(self, name):
+        """
+        send status to GUI
+        """
         msg = [name, str(len(self.queue_jobs[name]))]
         self.socket_pub.send_multipart(
-            [b'GUI_ROUTER_CHANGE', pickle.dumps(msg)])
+            [b'GUI_ROUTER_CHANGE', dumps(msg)])
 
     @property
     def stop(self):

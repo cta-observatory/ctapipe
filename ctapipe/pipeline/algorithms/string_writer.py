@@ -22,8 +22,8 @@ class StringWriter(Component):
         self.file.write(str(object) + "\n")
         for i in range(500):
             foo = (object**i)
-            self.log.info('StringWriter write {}'.format( object))
-        #os.fsync()
+        self.log.info('StringWriter write {}'.format( object))
+    
 
     def finish(self):
         self.log.info("--- StringWriter finish START ---")

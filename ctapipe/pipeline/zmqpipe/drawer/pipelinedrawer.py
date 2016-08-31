@@ -28,13 +28,13 @@ class StagerRep():
     """
 
     def __init__(self,name,next_steps=list(),running=0,
-                nb_job_done=0, queue_length = 0, nb_threads = 1):
+                nb_job_done=0, queue_length = 0, nb_processus = 1):
         self.name = name
         self.next_steps = next_steps
         self.running = running
         self.nb_job_done = nb_job_done
         self.queue_length = queue_length
-        self.nb_threads = nb_threads
+        self.nb_processus = nb_processus
 
 
 
@@ -118,16 +118,16 @@ class PipelineDrawer(QWidget):
         g = Digraph('test', format='png')
         for step in  self.steps:
             if step.running:
-                g.node(step.name.split('$$thread')[0],color='lightblue2', style='filled')
+                g.node(step.name.split('$$processus')[0],color='lightblue2', style='filled')
             else:
-                g.node(step.name.split('$$thread')[0])
+                g.node(step.name.split('$$processus')[0])
 
         for step in self.steps:
             for next_step_name in step.next_steps:
                 next_step = self.get_step_by_name(next_step_name)
                 if next_step:
-                    for i in range(step.nb_threads):
-                        g.edge(step.name.split('$$thread')[0], next_step.name.split('$$thread')[0])
+                    for i in range(step.nb_processus):
+                        g.edge(step.name.split('$$processus')[0], next_step.name.split('$$processus')[0])
         #g.edge_attr.update(arrowhead='vee', arrowsize='2')
         return g
 
@@ -138,6 +138,6 @@ class PipelineDrawer(QWidget):
         Return: PipeStep if found, otherwise None
         '''
         for step in self.steps:
-            if step.name.split('$$thread')[0] == name:
+            if step.name.split('$$processus')[0] == name:
                 return step
         return None

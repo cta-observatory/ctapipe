@@ -1,25 +1,21 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from ctapipe.core import Component
 from ctapipe.pipeline.zmqpipe.connexions import Connexions
-
 from multiprocessing import Process
 from multiprocessing import Value
-from time import sleep
+from types import GeneratorType
+from pickle import dumps
 import zmq
-import types
-import pickle
-
-
 
 class ProducerZmq(Process, Component, Connexions):
 
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Process class.
     It gets a Python generator from its coroutine run method.
-    It loops overs its generator and sends new input to its next stage,
+    It loops overs its generator and sends input to its next stage,
     thanks to its ZMQ REQ socket,
     The processus is launched by calling run method.
-    init() method is call be run method.
+    init() method is call by run method.
     """
 
     def __init__(self, coroutine, name,main_connexion_name,
@@ -27,32 +23,33 @@ class ProducerZmq(Process, Component, Connexions):
         """
         Parameters
         ----------
-        coroutine : Class instance that contains init, run and finish methods
-        sock_consumer_port: str
-            Port number for socket url
+        coroutine : Class instance
+            It contains init, run and finish methods
+        name: str
+            Producer name
+        main_connexion_name : str
+            Default next step name. Used to send data when destination is not provided
+        connexions: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
+            Port number for socket for each next steps
+        gui_address : str
+            GUI port for ZMQ 'hostname': + 'port'
         """
-        # Call mother class (threading.Thread) __init__ method
         Process.__init__(self)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
-        self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
         self.running = False
-        self._nb_job_done = Value('i',0)
         self.gui_address = gui_address
-        # Prepare our context and sockets
-        self.context = zmq.Context()
         self.other_requests=dict()
+        self._nb_job_done = Value('i',0)
         self.done = False
-
 
     def init(self):
         """
-        Initialise coroutine and socket
-
+        Initialise coroutine
         Returns
-                -------
-                True if coroutine init method returns True, otherwise False
+        -------
+        True if coroutine init method returns True, otherwise False
         """
 
 
@@ -61,19 +58,19 @@ class ProducerZmq(Process, Component, Connexions):
         if self.coroutine.init() == False:
             return False
 
-        return True
+        return self.init_connexions()
 
     def run(self):
         """
-        Method representing the thread’s activity.
+        Method representing the processus’s activity.
         It gets a Python generator from its coroutine run method.
         It loops overs its generator and sends new input to its next stage,
         thanks to its ZMQ REQ socket.
         """
 
-        if self.init() and self.init_connexions():
+        if self.init() :
             generator = self.coroutine.run()
-            if isinstance(generator,types.GeneratorType):
+            if isinstance(generator,GeneratorType):
                 self.update_gui()
                 for result in generator:
                     self.running = False
@@ -106,6 +103,12 @@ class ProducerZmq(Process, Component, Connexions):
         return True
 
     def init_connexions(self):
+        """
+        Initialise zmq sockets.
+        Because this class is s Process, This method must be call in the run
+         method to be hold by the correct processus.
+        """
+        self.context = zmq.Context()
         Connexions.init_connexions(self)
         # Socket to talk to GUI
         self.socket_pub = self.context.socket(zmq.PUB)
@@ -120,9 +123,12 @@ class ProducerZmq(Process, Component, Connexions):
 
 
     def update_gui(self):
+        """
+        send it's status to GUI
+        """
         msg = [self.name, self.running, self.nb_job_done]
         self.socket_pub.send_multipart(
-            [b'GUI_PRODUCER_CHANGE', pickle.dumps(msg)])
+            [b'GUI_PRODUCER_CHANGE', dumps(msg)])
 
 
     @property
