@@ -49,7 +49,7 @@ class StagerRep():
             str(self.queue_length))
 
 
-class PipelineDrawer(QWidget):
+class Pipelinegui(QWidget):
 
     """
     class that displays pipeline workload
@@ -59,7 +59,7 @@ class PipelineDrawer(QWidget):
     mygreen = QColor(65, 205, 85)
 
     def __init__(self, statusBar):
-        super(PipelineDrawer, self).__init__()
+        super(Pipelinegui, self).__init__()
         self.point_size = 1
         self.initUI()
         # self.steps contains all pipeline steps (Producer, Stager, consumer)

@@ -14,7 +14,7 @@ class ZmqSub(Thread, QtCore.QObject):
     Transmit information to GUI when pipeline change
     Parameters
     ----------
-    pipedrawer : PipelineDrawer
+    pipegui : Pipelinegui
         Widget that draws pipeline by receiving information from this instance
     gui_port : str
         port to connect for ZMQ communication
@@ -22,7 +22,7 @@ class ZmqSub(Thread, QtCore.QObject):
         MainWindow status bar to display information
     """
     message = QtCore.pyqtSignal(list)
-    def __init__(self, pipedrawer=None, table_queue=None, gui_port=None, statusBar=None):
+    def __init__(self, pipegui=None, table_queue=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
         QtCore.QObject.__init__(self)
         if gui_port is not None:
@@ -49,9 +49,9 @@ class ZmqSub(Thread, QtCore.QObject):
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'FINISH')
             # self,stop flag is set by ficnish method to stop this thread
             # properly when GUI is closed
-            # self.pipedrawer will receive new pipeline information
+            # self.pipegui will receive new pipeline information
             self.stop = False
-            self.pipedrawer = pipedrawer
+            self.pipegui = pipegui
             self.table_queue = table_queue
             self.steps = list()
             self.config_time = 0
@@ -77,7 +77,7 @@ class ZmqSub(Thread, QtCore.QObject):
                 else:
                     self.update_full_state(topic,msg)
                     if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
-                        # inform pipedrawer
+                        # inform pipegui
                         self.message.emit(self.steps)
 
                         self.last_send_config = conf_time

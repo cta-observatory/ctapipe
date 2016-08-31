@@ -4,12 +4,12 @@
 Pipeline
 ================
 
-.. currentmodule:: ctapipe.pipeline
+.. currentmodule:: ctapipe.flow
 
 Introduction
 ============
 
-`ctapipe.pipeline`
+`ctapipe.flow`
 is a Python implementation of the flow-based programming paradigm, which allows people to create programs as graphs.
 It executes ctapipe processing modules in a sequantial or multithread environment.
 User implements steps in Python class.
@@ -23,9 +23,9 @@ choose the step that will receive next data. The router also manage Queue for ea
 
 .. figure:: pipeline.png
     :scale: 70 %
-    :alt: pipeline example
+    :alt: flow based framework  example
 
-    ctapipe-guipipe application. It displays a complete pipeline instance containing:
+    ctapipe-guipipe application. It displays a complete flow based framework  instance containing:
     A producer step (SimTelArrayReader) that reads events in a SimTelArray MC file and sends them one by one to next step.
     A stager step (ShuntTelescope) that receives event and guides it to the next step according to it type (LST or other)
     A stager step (LSTDump) that receives LST telescope raw data, and sends a string with LST tag and raw data string representation.
@@ -40,9 +40,9 @@ ZMQ library installation
 ------------------------
    *prompt$> conda install pyzmq*
 
-Pipeline configuration
+flow based framework configuration
 ======================
-Pipeline configuration is read from a json configuration file, or command line arguments, thanks to traitlets config.
+flow based framework configuration is read from a json configuration file, or command line arguments, thanks to traitlets config.
 
 Mandatories configuration entries:
 ----------------------------------
@@ -81,19 +81,19 @@ json example
 
     {
       "version": 1,
-      "Pipeline": {
-          "producer_conf": { "name" : "SimTelArrayReader", "module": "ctapipe.pipeline.algorithms.simtelarray_reader",
+      "Flow": {
+          "producer_conf": { "name" : "SimTelArrayReader", "module": "ctapipe.flow.algorithms.simtelarray_reader",
                "class": "SimTelArrayReader","next_steps" : "ShuntTelescope"},
-          "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.pipeline.algorithms.string_writer",
+          "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.flow.algorithms.string_writer",
                     "class": "StringWriter"},
           "stagers_conf" : [ {"name": "ShuntTelescope", "class": "ShuntTelescope",
-                                          "module": "ctapipe.pipeline.algorithms.shunt_telescope",
+                                          "module": "ctapipe.flow.algorithms.shunt_telescope",
                                           "next_steps" : "OtherDump,LSTDump" },
                             {"name": "OtherDump", "class": "OtherDump",
-                                          "module": "ctapipe.pipeline.algorithms.other_dump",
+                                          "module": "ctapipe.flow.algorithms.other_dump",
                                           "next_steps" : "StringWriter", "nb_thread" : 2},
                             {"name": "LSTDump", "class": "LSTDump",
-                                          "module": "ctapipe.pipeline.algorithms.lst_dump",
+                                          "module": "ctapipe.flow.algorithms.lst_dump",
                                           "next_steps" : "StringWriter", "nb_thread" : 1, "queue_limit" : 10}
                           ]
       },
@@ -105,7 +105,7 @@ json example
 Steps implementation
 ====================
 Step is defined in a Python class. Each class defines 3 methods: init, run and finish
-These 3 methods are executed by the pipeline.
+These 3 methods are executed by the flow based framework .
 
 Producer run method
 -------------------
@@ -173,18 +173,20 @@ the default next_step.
 
 Running the pipeline
 ====================
-   *prompt$> ctapipe-pipeline --config=mypipeconfig.json*
-By default pipeline send its activity to a GUI  on tcp://localhost:5565.
-But if the GUI is running on another system, you can use --Pipeline.gui_address
+   *prompt$> ctapipe-flow --config=mypipeconfig.json*
+By default it will run the flow based framework in sequential mode.
+Use --mode=multiprocessus to run it in a multiprocessus mode.
+flow based framework  send its activity to a GUI  on tcp://localhost:5565.
+But if the GUI is running on another system, you can use --Flow.gui_address
 option to define another address.
 Configure the firewall to allow access to that port for authorized computers.
 
 Execution examples
 ------------------
-    *prompt$> ctapipe-pipeline --config=examples/brainstorm/pipeline/pipeline_py/example.json*
+    *prompt$> ctapipe-flow --config=examples/flow/flow_py/example.json*
 
-Pipeline end
-============
+flow based framework end
+========================
 In multithreading mode ,the main challenge is how to stop all Threads without loosing an inputs.
 Indeed, we must ensure that all queues are empty and all threads are waiting for a new entry (not active).
 Because Python Thread can not be paused, we can not check that all the queues are empty and at the same time check that all threads are inactive
@@ -193,10 +195,10 @@ the choosen solution is:
 1 check that all queues are empty.
 2 check that all threads are waiting for a new job since more that a definied time (5 seconds by default)
 
-Pipeline Graphical representation
-=================================
-A GUI can be launch to keep a close watch on pipeline execution.
-This GUI can be launch on the same system than the pipeline or on a different one.
+Graphical representation
+========================
+A GUI can be launch to keep a close watch on flow based framework  execution.
+This GUI can be launch on the same system than the flow based framework  or on a different one.
 By default GUI is binded to port 5565. You can change it with --PipeGui.port option
     *prompt$> ctapipe-guipipe*
 
@@ -224,9 +226,9 @@ Working  data in shared memory (memmaping)
 To avoid to serialize and deserialize data and pass data thanks to ZMQ,
  a shared memory system can be develop between stages.
 
-Muliple pipelines management by GUI
------------------------------------
-When several pipelines are running, GUI should allows to choose which pipeline user want to follow.
+Muliple flow based framework management by GUI
+-------------------------------------------
+When several flow based framework are running, GUI should allows to choose which flow based framework user want to follow.
 
 Examples
 ========
@@ -249,7 +251,7 @@ Producer example
 
     class SimTelArrayReader(Component):
 
-        """`SimTelArrayReader` class represents a Producer for pipeline.
+        """`SimTelArrayReader` class represents a Producer for flow based framework.
             It opens simtelarray file and yiekld even in run method
         """
         filename = Unicode('gamma', help='simtel MC input file').tag(
@@ -295,7 +297,7 @@ Stager example
     LST=1
     OTHER = 2
     class ShuntTelescope(Component):
-        """ShuntTelescope class represents a Stage for pipeline.
+        """ShuntTelescope class represents a Stage for flow based framework.
             It shunts event based on telescope type
         """
 

@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from ctapipe.core import Component
-from ctapipe.pipeline.zmqpipe.connexions import Connexions
+from ctapipe.flow.multiprocessus.connexions import Connexions
 from multiprocessing import Process
 from multiprocessing import Value
 from types import GeneratorType

@@ -8,7 +8,7 @@ from multiprocessing import  Value
 from pickle import loads
 from pickle import dumps
 import zmq
-from ctapipe.pipeline.zmqpipe.connexions import Connexions
+from ctapipe.flow.multiprocessus.connexions import Connexions
 
 class StagerZmq(Process, Connexions):
 
