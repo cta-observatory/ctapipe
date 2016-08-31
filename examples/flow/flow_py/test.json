@@ -8,10 +8,10 @@
       "stagers_conf" : [ {"name": "Pair", "class": "Pair",
                                         "module": "ctapipe.flow.algorithms.pair",
                                         "next_steps" : "StringWriter",
-                                        "nb_thread" :  1},
+                                        "nb_process" :  1},
                         {"name": "Odd", "class": "Odd",
                                         "module": "ctapipe.flow.algorithms.odd",
-                                        "next_steps" : "StringWriter","nb_thread" :  1,
+                                        "next_steps" : "StringWriter","nb_process" :  1,
                                         "queue_limit" : 10000}
                         ]
   },

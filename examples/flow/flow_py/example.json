@@ -12,10 +12,10 @@
 
                         {"name": "OtherDump", "class": "OtherDump",
                                         "module": "ctapipe.flow.algorithms.other_dump",
-                                        "next_steps" : "StringWriter", "nb_thread" : 2},
+                                        "next_steps" : "StringWriter", "nb_process" : 2},
                         {"name": "LSTDump", "class": "LSTDump",
                                         "module": "ctapipe.flow.algorithms.lst_dump",
-                                        "next_steps" : "StringWriter", "nb_thread" : 1, "queue_limit" : 100}
+                                        "next_steps" : "StringWriter", "nb_process" : 1, "queue_limit" : 100}
 
                     ]
   },

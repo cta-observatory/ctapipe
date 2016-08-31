@@ -8,13 +8,13 @@
       "stagers_conf" : [ {"name": "AddInt", "class": "Add",
                                         "module": "ctapipe.flow.algorithms.add",
                                         "next_steps" : "CompareInt",
-                                        "nb_thread" :  3,"queue_limit" : 2000},
+                                        "nb_process" :  3,"queue_limit" : 2000},
                         {"name": "Populate", "class": "Populate",
                                         "module": "ctapipe.flow.algorithms.populate",
-                                        "next_steps" : "AddInt","nb_thread" : 1},
+                                        "next_steps" : "AddInt","nb_process" : 1},
                         {"name": "CompareInt", "class": "CompareInt",
                                         "module": "ctapipe.flow.algorithms.compare_int",
-                                        "next_steps" : "AddInt,CONSUMER","nb_thread" : 3  }
+                                        "next_steps" : "AddInt,CONSUMER","nb_process" : 3  }
                         ]
   },
 

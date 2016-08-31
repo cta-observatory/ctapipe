@@ -65,7 +65,7 @@ Mandatory configuration per step
 
 Optional entry per step
 ^^^^^^^^^^^^^^^^^^^^^^^
-- nb_thread:  only available for stage, not for producer or consumer. Define how many thread will execute this stage
+- nb_process:  only available for stage, not for producer or consumer. Define how many thread will execute this stage
 - queue_limit:  Define maximum number of message a router can queue for this step. Used it to limit memery consumption.
 
 User option for step
@@ -91,10 +91,10 @@ json example
                                           "next_steps" : "OtherDump,LSTDump" },
                             {"name": "OtherDump", "class": "OtherDump",
                                           "module": "ctapipe.flow.algorithms.other_dump",
-                                          "next_steps" : "StringWriter", "nb_thread" : 2},
+                                          "next_steps" : "StringWriter", "nb_process" : 2},
                             {"name": "LSTDump", "class": "LSTDump",
                                           "module": "ctapipe.flow.algorithms.lst_dump",
-                                          "next_steps" : "StringWriter", "nb_thread" : 1, "queue_limit" : 10}
+                                          "next_steps" : "StringWriter", "nb_process" : 1, "queue_limit" : 10}
                           ]
       },
       "SimTelArrayReader": { "filename": "gamma_test.simtel.gz"},

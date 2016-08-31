@@ -447,8 +447,10 @@ class Flow(Tool):
                 # Create stagers steps
                 result = list()
                 for stage_conf in self.stagers_conf:
-                    try: nb_processus = int(stage_conf['nb_processus'])
-                    except Exception : nb_processus = 1
+                    try:
+                        nb_processus = int(stage_conf['nb_process'])
+                    except Exception as e:
+                        nb_processus = 1
                     next_steps_name = stage_conf['next_steps'].split(',')
                     try: queue_limit = stage_conf['queue_limit']
                     except Exception: queue_limit = -1
