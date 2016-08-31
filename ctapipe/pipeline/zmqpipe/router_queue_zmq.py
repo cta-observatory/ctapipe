@@ -46,10 +46,9 @@ class RouterQueue(Process, Component):
         self.connexions = connexions
         self.done = False
         self._stop = Value('i',0)
-        print('DEBUG self._stop {}'.format(self._stop))
+        self._total_queue_size = Value('i',0)
 
     def init(self):
-        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):
@@ -64,15 +63,12 @@ class RouterQueue(Process, Component):
         """
 
         if self.init_connexions():
-            print('========== ROUTER init_connexions SUCCESS')
             nb_job_remains = 0
 
             while not self.stop or nb_job_remains > 0:
+
                 for name in self.connexions:
                     queue = self.queue_jobs[name]
-                    if queue:
-                        print('{} queue {}'.format(name,queue))
-
                     # queue,next_available in
                     # zip(self.queue_jobs,self.next_available_stages):
                     next_available = self.next_available_stages[name]
@@ -122,6 +118,8 @@ class RouterQueue(Process, Component):
                 nb_job_remains = 0
                 for n, queue in self.queue_jobs.items():
                     nb_job_remains += len(queue)
+                    #print('DEBUG ROUTER self.stop {} {} -> nb_job_remains {}'.format(self.stop,n,queue))
+                self._total_queue_size.value = nb_job_remains
             for socket in self.router_sockets.values():
                 socket.close()
             for socket in self.dealer_sockets.values():
@@ -229,3 +227,7 @@ class RouterQueue(Process, Component):
     @stop.setter
     def stop(self, value):
         self._stop.value = value
+
+    @property
+    def total_queue_size(self):
+        return self._total_queue_size.value

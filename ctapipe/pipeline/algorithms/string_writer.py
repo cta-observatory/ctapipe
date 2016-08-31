@@ -1,6 +1,7 @@
 from ctapipe.core import Component
 from traitlets import Unicode
 from time import sleep
+import os
 
 
 class StringWriter(Component):
@@ -17,11 +18,11 @@ class StringWriter(Component):
         return True
 
     def run(self, object):
-        self.log.info('{} receive {}'.format(self.name, object))
+        self.log.info('StringWriter receive {}'.format( object))
         self.file.write(str(object) + "\n")
-
-
+        #os.fsync() 
 
     def finish(self):
-        self.log.info("--- StringWriter finish ---")
+        self.log.info("--- StringWriter finish START ---")
         self.file.close()
+        self.log.info("--- StringWriter finish STOP file close {}---".format(self.file.closed))

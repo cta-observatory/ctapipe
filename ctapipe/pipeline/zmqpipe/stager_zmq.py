@@ -70,12 +70,8 @@ class StagerZmq(Process, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-
-
-
         # Stop flag
         self.stop = False
-        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):
@@ -117,20 +113,10 @@ class StagerZmq(Process, Connexions):
                     self.update_gui()
                 else:
                     self.waiting_since.value = self.waiting_since.value+100 # 100 ms
-                    #print('{} waiting_since {}'.format(self.name, self.waiting_since.value))
             self.sock_for_me.close()
             self.socket_pub.close()
         self.done = True
 
-
-    """
-    def finish(self):
-        self.coroutine.finish()
-        self.stop = True
-        print('DEBUG {} self.stop = True, done {}'.format(self.name,self.done))
-        if self.done:
-            self.force_finish = 2
-    """
 
     def init_connexions(self):
         # Connect to GUI
@@ -138,7 +124,6 @@ class StagerZmq(Process, Connexions):
         context = zmq.Context()
         self.socket_pub = context.socket(zmq.PUB)
         if self.gui_address is not None:
-            print('DEBUG  self.gui_address {}'.format( self.gui_address))
             self.socket_pub.connect("tcp://" + self.gui_address)
 
         self.sock_for_me = context.socket(zmq.REQ)
@@ -169,4 +154,5 @@ class StagerZmq(Process, Connexions):
 
     @stop.setter
     def stop(self, value):
+        self.coroutine.finish()
         self._stop.value = value

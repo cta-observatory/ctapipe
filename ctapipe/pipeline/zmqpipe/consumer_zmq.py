@@ -7,6 +7,7 @@ from multiprocessing import Process
 from multiprocessing import Value
 import pickle
 from ctapipe.core import Component
+from time import sleep
 
 
 class ConsumerZMQ(Process, Component):
@@ -55,11 +56,9 @@ class ConsumerZMQ(Process, Component):
         if self.coroutine.init() == False:
             return False
         # self.stop flag is used to stop this Thread
-        self.stop = False
         # self.total allows to print the number of times run method
         # has been called at end of job
         self.done = False
-        print('===> {} init done'.format(self.name))
         return True
 
     def run(self):
@@ -73,6 +72,7 @@ class ConsumerZMQ(Process, Component):
         if self.init_connexions():
             while not self.stop :
                 try:
+                    print('DEBUG CONSUMER POOL ')
                     sockets = dict(self.poll.poll(100))
                     if (self.sock_reply in sockets and
                             sockets[self.sock_reply] == zmq.POLLIN):
@@ -89,24 +89,15 @@ class ConsumerZMQ(Process, Component):
                         self.sock_reply.send_multipart(request)
                 except:
                     break
+            self.coroutine.finish()
+            print('DEBUG .coroutine.finish has finished  self._stop.value = value')
             self.update_gui()
             self.sock_reply.close()
             self.socket_pub.close()
 
-
         self.done = True
 
-    """
-    def finish(self):
-        self.coroutine.finish()
-        self.stop = True
-        if self.done:
-            return True
-        else:
-            return False
-    """
-
-    def init_connexions(self):
+        def init_connexions(self):
         context = zmq.Context()
 
         self.sock_reply = context.socket(zmq.REQ)
@@ -125,9 +116,7 @@ class ConsumerZMQ(Process, Component):
         # Create and register poller
         self.poll = zmq.Poller()
         self.poll.register(self.sock_reply, zmq.POLLIN)
-
         return True
-
 
 
     def update_gui(self):
@@ -141,4 +130,5 @@ class ConsumerZMQ(Process, Component):
 
     @stop.setter
     def stop(self, value):
+        print('DEBUG CONSUMER force stop to {}  '.format(value))
         self._stop.value = value
