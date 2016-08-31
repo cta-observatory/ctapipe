@@ -15,7 +15,7 @@ class Connexions():
         ----------
         connexions : dict
         main_connexion_name : str
-            Default step name. Used to send data when destination is not provided
+            Default next step name. Used to send data when destination is not provided
         """
         self.connexions = connexions
         self.sockets=dict()

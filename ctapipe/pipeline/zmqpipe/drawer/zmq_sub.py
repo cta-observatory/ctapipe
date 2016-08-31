@@ -150,7 +150,8 @@ class ZmqSub(Thread, QtCore.QObject):
         """
         name, running , nb_job_done = msg
         for step in self.steps:
-            if step.name == name.split('$$thread')[0]:
+            print('DEBUG {}'.format(name))
+            if step.name == name.split('$$processus')[0]:
                 step.running = running
                 return
 

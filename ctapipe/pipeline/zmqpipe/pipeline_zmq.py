@@ -1,12 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-'''a parallelization system. It executes ctapipe algorithms in a multithread
+'''a parallelization system. It executes ctapipe algorithms in a multiprocessus
 environment.
 It is based on ZeroMQ library (http://zeromq.org) to pass messages between
-threads. ZMQ library allows to stay away from class concurrency mechanisms
-like mutexes, critical sections semaphores, while being thread safe.
+processus. ZMQ library allows to stay away from class concurrency mechanisms
+like mutexes, critical sections semaphores, while being processus safe.
 User defined steps thanks to Python classes.
 Passing data between steps is managed by the router.
-If a step is executed by several threads, the router uses LRU pattern
+If a step is executed by several processus, the router uses LRU pattern
 (least recently used ) to choose the step that will receive next data.
 The router also manage Queue for each step.
 '''
@@ -33,7 +33,7 @@ __all__ = ['Pipeline', 'PipelineError']
 class PipeStep():
 
     '''
-PipeStep reprensents a Pipeline step. One or several threads can be attach
+PipeStep reprensents a Pipeline step. One or several processus can be attach
     to this step.
 Parameters
 ----------
@@ -46,10 +46,10 @@ Parameters
             key: connexion name(step name) , value port name
     main_connexion_name: str
             First step in next_steps configuration
-    nb_thread : int
-            mumber of thread to instantiate for this step
+    nb_processus : int
+            mumber of processus to instantiate for this step
     level : step level in pipeline. Producer is level 0.
-            Used to start/stop thread in correct order
+            Used to start/stop processus in correct order
     queue_limit: int
             Maximum number of element the router can queue
 '''
@@ -58,16 +58,16 @@ Parameters
                  next_steps_name=list(),
                  port_in=None,
                  main_connexion_name=None,
-                 nb_thread=1, level=0,
+                 nb_processus=1, level=0,
                  queue_limit = 0):
 
         self.name = name
         self.port_in = port_in
         self.next_steps_name = next_steps_name
-        self.nb_thread = nb_thread
+        self.nb_processus = nb_processus
         self.level = level
         self.connexions = dict()
-        self.threads = list()
+        self.processus = list()
         self.main_connexion_name = main_connexion_name
         self.queue_limit = queue_limit
         self.order_defined = False
@@ -81,7 +81,7 @@ Parameters
                 + '], port in[ ' + str(self.port_in)
                 + '], main connexion name  [ ' + str(self.main_connexion_name) + ' ]'
                 + '], port in[ ' + str(self.port_in)
-                + '], nb thread[ ' + str(self.nb_thread)
+                + '], nb processus[ ' + str(self.nb_processus)
                 + '], level[ ' + str(self.level)
                 + '], queue_limit[ ' + str(self.queue_limit) + ']')
 
@@ -98,14 +98,14 @@ class Pipeline(Tool):
 
     '''
     Represents a staged pattern of stage. Each stage in the pipeline
-    is one or several threads containing a coroutine that receives messages
+    is one or several processus containing a coroutine that receives messages
     from the previous stage and	yields messages to be sent to the next stage
     thanks to RouterQueue sequential_instances	'''
 
-    description = 'run stages in multithread pipeline'
+    description = 'run stages in multiprocessus pipeline'
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
         config=True, allow_none=True)
-    mode = Unicode('sequential', help='Pipeline mode [sequential | multithread]').tag(
+    mode = Unicode('sequential', help='Pipeline mode [sequential | multiprocessus]').tag(
         config=True, allow_none=True)
     producer_conf = Dict(
         help='producer description: name , module, class',
@@ -139,8 +139,8 @@ class Pipeline(Tool):
     producer_step = None
     stager_steps = None
     consumer_step = None
-    step_threads = list()
-    router_thread = None
+    step_processus = list()
+    router_processus = None
     context = zmq.Context()
     socket_pub = context.socket(zmq.PUB)
     levels_for_gui = list()
@@ -172,14 +172,14 @@ class Pipeline(Tool):
             return False
         if self.mode == 'sequential':
             return self.init_sequential()
-        elif self.mode == 'multithread':
-            return self.init_multithread()
+        elif self.mode == 'multiprocessus':
+            return self.init_multiprocessus()
         else:
             self.log.error("{} is not a valid mode for pipeline".format(self.mode))
 
 
 
-    def init_multithread(self):
+    def init_multiprocessus(self):
         if not self.connect_gui():  return False
         if not self.configure_ports() : return False
         if not self.configure_producer() : return False
@@ -188,10 +188,10 @@ class Pipeline(Tool):
         if not self.configure_stagers(router_names) : return False
         self.router = RouterQueue(connexions=router_names,
                              gui_address=self.gui_address)
-        if self.router.init() == False:
-            return False
-        # Define order in which step have to be start/stop
-        self.def_thread_order()
+        #self.def_processus_order()
+        for step in self.stager_steps:
+            for t in step.processus:
+                self.step_processus.append(t)
         self.display_conf()
         return True
 
@@ -243,14 +243,14 @@ class Pipeline(Tool):
                                   self.ports[stager_step.name+'_out'],
                                   stager_step.queue_limit]
 
-            for i in range(stager_step.nb_thread):
+            for i in range(stager_step.nb_processus):
                 conf = self.get_step_conf(stager_step.name)
                 try:
                     stager_zmq = self.instantiation(
                         stager_step.name ,
                         self.STAGER,
-                        thread_name = stager_step.name
-                            +'$$thread_number$$'
+                        processus_name = stager_step.name
+                            +'$$processus_number$$'
                             + str(i),
                         port_in=stager_step.port_in,
                         connexions = stager_step.connexions,
@@ -260,7 +260,7 @@ class Pipeline(Tool):
                     self.log.error(e)
                     return False
                 self.stagers.append(stager_zmq)
-                stager_step.threads.append(stager_zmq)
+                stager_step.processus.append(stager_zmq)
         return True
 
 
@@ -374,7 +374,7 @@ class Pipeline(Tool):
         return None
 
     def instantiation(
-            self, name, stage_type, thread_name=None,
+            self, name, stage_type, processus_name=None,
             port_in=None, connexions=None, main_connexion_name=None, config=None):
         '''
         Instantiate on Pytohn object from name found in configuration
@@ -398,22 +398,22 @@ class Pipeline(Tool):
         obj.name = name
 
         if stage_type == self.STAGER:
-            thread = StagerZmq(
-                obj, port_in, thread_name,
+            processus = StagerZmq(
+                obj, port_in, processus_name,
                 connexions=connexions,
                 main_connexion_name = main_connexion_name,
                 gui_address=self.gui_address)
 
         elif stage_type == self.PRODUCER:
-            thread = ProducerZmq(
+            processus = ProducerZmq(
                 obj, name, connexions=connexions,
                 main_connexion_name = main_connexion_name,
                 gui_address=self.gui_address)
 
         elif stage_type == self.CONSUMER:
-            thread = ConsumerZMQ(
+            processus = ConsumerZMQ(
                 obj,port_in,
-                name, parent=self,
+                name,
                 gui_address=self.gui_address)
 
         else:
@@ -421,7 +421,7 @@ class Pipeline(Tool):
                 'Cannot create instance of', name, '. Type',
                  stage_type, 'does not exist.')
         # set coroutine socket to it's stager or producer socket .
-        return thread
+        return processus
 
     def get_pipe_steps(self, role):
         '''
@@ -447,13 +447,13 @@ class Pipeline(Tool):
                 # Create stagers steps
                 result = list()
                 for stage_conf in self.stagers_conf:
-                    try: nb_thread = int(stage_conf['nb_thread'])
-                    except Exception : nb_thread = 1
+                    try: nb_processus = int(stage_conf['nb_processus'])
+                    except Exception : nb_processus = 1
                     next_steps_name = stage_conf['next_steps'].split(',')
                     try: queue_limit = stage_conf['queue_limit']
                     except Exception: queue_limit = -1
                     stage_step = PipeStep(  stage_conf['name'],
-                        next_steps_name=next_steps_name,nb_thread=nb_thread,
+                        next_steps_name=next_steps_name,nb_processus=nb_processus,
                         queue_limit = queue_limit)
                     stage_step.type = self.STAGER
                     result.append(stage_step)
@@ -469,17 +469,6 @@ class Pipeline(Tool):
         except KeyError as e:
             return None
 
-    def def_thread_order(self):
-        ''' Define order in which steps have to be start/stop.
-            Fill self.step_threads
-            Warning Producer and consumer thread  are not concerned
-        '''
-        # Define step level witihin pipeline. Use next step to define level
-        for step in self.stager_steps:
-            for t in step.threads:
-                self.step_threads.append(t)
-
-
     def def_step_for_gui(self):
         ''' Create a list (levels_for_gui) containing all steps
         Returns: the created list and actual time
@@ -490,11 +479,11 @@ class Pipeline(Tool):
                             nb_job_done=self.producer.nb_job_done))
         for step in self.stager_steps:
             nb_job_done = 0
-            for thread in step.threads:
-                nb_job_done+=thread.nb_job_done
+            for processus in step.processus:
+                nb_job_done+=processus.nb_job_done
             levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
                                   nb_job_done=nb_job_done,
-                                  nb_threads = len(step.threads)))
+                                  nb_processus = len(step.processus)))
 
         levels_for_gui.append(StagerRep(self.consumer_step.name,
                                 nb_job_done=self.consumer.nb_job_done))
@@ -528,8 +517,8 @@ class Pipeline(Tool):
     def start(self):
         ''' run the pipeline steps
         '''
-        if self.mode == 'multithread':
-            self.start_multithread()
+        if self.mode == 'multiprocessus':
+            self.start_multiprocessus()
         elif self.mode == 'sequential':
             self.start_sequential()
 
@@ -558,17 +547,17 @@ class Pipeline(Tool):
         self.log.info('=== SEQUENTIAL MODE END ===')
 
 
-    def start_multithread(self):
-        ''' Start all pipeline threads.
+    def start_multiprocessus(self):
+        ''' Start all pipeline processus.
         Regularly inform GUI of pipeline configuration in case of a new GUI
         instance was lunch
-        Stop all threads without loosing data
+        Stop all processus without loosing data
         '''
         # send pipeline cofiguration to an optinal GUI instance
         levels_gui,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
             [b'GUI_GRAPH', dumps([conf_time,levels_gui])])
-        # Start all Threads
+        # Start all processus
         self.consumer.start()
         self.router.start()
         for stage in self.stagers:
@@ -577,7 +566,7 @@ class Pipeline(Tool):
         # Wait producer end of run method
         self.wait_and_send_levels(self.producer)
 
-        # Ensure that all queues are empty and all threads are waiting for
+        # Ensure that all queues are empty and all processus are waiting for
         # new data since more that a specific tine
         while not self.wait_all_stagers(1000): # 1000 ms
             levels_gui,conf_time = self.def_step_for_gui()
@@ -586,10 +575,10 @@ class Pipeline(Tool):
                  levels_gui])])
             sleep(1)
 
-        # Now send stop to stage threads and wait they join
-        for worker in self.step_threads:
+        # Now send stop to stage processus and wait they join
+        for worker in self.step_processus:
             self.wait_and_send_levels(worker)
-        # Stop consumer and router thread
+        # Stop consumer and router processus
         self.wait_and_send_levels(self.consumer)
         self.wait_and_send_levels(self.router)
         levels_gui,conf_time = self.def_step_for_gui()
@@ -607,7 +596,7 @@ class Pipeline(Tool):
 
     def wait_all_stagers(self,mintime):
         if self.router.total_queue_size == 0 :
-            for worker in self.step_threads:
+            for worker in self.step_processus:
                 if worker.wait_since < mintime: # 5000ms
                     return False
             return True
@@ -618,25 +607,25 @@ class Pipeline(Tool):
         self.log.info('===== Pipeline END ======')
 
 
-    def wait_and_send_levels(self, thread_to_wait):
+    def wait_and_send_levels(self, processus_to_wait):
         '''
-        Wait for a thread to join and regularly send pipeline state to GUI
+        Wait for a processus to join and regularly send pipeline state to GUI
         in case of a GUI will connect later
         Parameters:
         -----------
-        thread_to_wait : thread
-                thread to join
+        processus_to_wait : processus
+                processus to join
         conf_time : str
                 represents time at which configuration has been built
         '''
-        thread_to_wait.stop = 1
+        processus_to_wait.stop = 1
 
         while True:
             levels_gui,conf_time = self.def_step_for_gui()
-            thread_to_wait.join(timeout=.1)
+            processus_to_wait.join(timeout=.1)
             self.socket_pub.send_multipart(
                 [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
-            if not thread_to_wait.is_alive():
+            if not processus_to_wait.is_alive():
                 return
 
 

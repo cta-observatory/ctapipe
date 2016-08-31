@@ -30,7 +30,7 @@ class LabelQueue(QLabel):
 
     def formatText(self,step):
         text = str()
-        #short_name = step.name.replace('$$thread_number$$','_')
+
         name = '{:^30}'.format(step.name)
         queue = '{:^10}'.format(step.queue_length)
         done = '{:^8}'.format(step.nb_job_done)
