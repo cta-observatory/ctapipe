@@ -259,9 +259,6 @@ class Pipeline(Tool):
                 except PipelineError as e:
                     self.log.error(e)
                     return False
-                if stager_zmq.init() == False:
-                    self.log.error('stager_zmq init failed')
-                    return False
                 self.stagers.append(stager_zmq)
                 stager_step.threads.append(stager_zmq)
         return True
@@ -275,9 +272,6 @@ class Pipeline(Tool):
                                       config=self.consumer_conf)
         except PipelineError as e:
             self.log.error(e)
-            return False
-        if consumer_zmq.init() == False:
-            self.log.error('consumer_zmq init failed')
             return False
         self.consumer = consumer_zmq
         return True
@@ -304,9 +298,6 @@ class Pipeline(Tool):
                 config= self.producer_conf)
         except PipelineError as e:
             self.log.error(e)
-            return False
-        if producer_zmq.init() == False:
-            self.log.error('producer_zmq init failed')
             return False
         self.producer = producer_zmq
         return True
@@ -588,7 +579,6 @@ class Pipeline(Tool):
 
         # Ensure that all queues are empty and all threads are waiting for
         # new data since more that a specific tine
-        print('DEBUG B4 wait_all_stagers')
         while not self.wait_all_stagers(1000): # 1000 ms
             levels_gui,conf_time = self.def_step_for_gui()
             self.socket_pub.send_multipart(
@@ -596,7 +586,6 @@ class Pipeline(Tool):
                  levels_gui])])
             sleep(1)
 
-        print('DEBUG AFTER wait_all_stagers')
         # Now send stop to stage threads and wait they join
         for worker in self.step_threads:
             self.wait_and_send_levels(worker)
@@ -640,7 +629,6 @@ class Pipeline(Tool):
         conf_time : str
                 represents time at which configuration has been built
         '''
-        print('DEBUG MAIN thread_to_wait.stop = 1 for {}'.format(thread_to_wait.name))
         thread_to_wait.stop = 1
 
         while True:

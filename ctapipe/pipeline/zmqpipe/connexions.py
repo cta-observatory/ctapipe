@@ -1,12 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
 from time import sleep
 from ctapipe.core import Component
 import zmq
-import pickle
 
 class Connexions():
     """
-    implements ZMQ connexions between thread for PRODUCER and STAGER and CONSUMER
+    implements ZMQ connexions between processus for PRODUCER and STAGER and CONSUMER
     """
 
     def __init__(self, main_connexion_name, connexions=dict()):
@@ -15,20 +15,18 @@ class Connexions():
         ----------
         connexions : dict
         main_connexion_name : str
+            Default step name. Used to send data when destination is not provided
         """
         self.connexions = connexions
         self.sockets=dict()
-        # Socket to talk to others steps
         self.context = zmq.Context()
         self.main_out_socket = None
-
-        self.send_in_run = False
         self.main_connexion_name = main_connexion_name
         return True
 
     def close_connexions(self):
         """
-        Close all zmq connexions
+        Close all zmq socket connexions
         """
         for sock in self.sockets.values():
             sock.close()
@@ -36,16 +34,17 @@ class Connexions():
 
     def get_destination_msg_from_result(self,result):
         """
-        If result is a tuple, check if last tuple elem is a valid next step.
-        If yes, return a destination defined to  the last tuple elem and send result without the destination
+        If result is a tuple, check if last tuple elem is a valid next step name.
+        If yes, return a destination defined to  the last tuple elem and send
+        result without the destination
         If no return None as destination
         Parameter:
         ----------
         result : any type
-            value to send (can contain next step name)
+            value to send. If type(result) is tuple, it can contain next step name)
         Return:
         -------
-        msg, destination
+        tulpe conaining two elements: msg and destination
 
         """
         if isinstance(result,tuple):
@@ -83,9 +82,13 @@ class Connexions():
                 send = True
             else:
                 sleep(0.1)
-        self.send_in_run = True
 
     def init_connexions(self):
+        """
+        Initialise zmq sockets.
+        Because this class is s Process, This method must be call in the run
+         method to be hold by the correct processus.
+        """
         for name,connexion in self.connexions.items():
             self.sockets[name] = self.context.socket(zmq.REQ)
             try:
