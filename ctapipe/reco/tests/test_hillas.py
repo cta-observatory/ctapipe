@@ -1,16 +1,65 @@
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
-from __future__ import print_function, division
-from numpy.testing import assert_allclose
-from astropy.table import Table
+from ctapipe import io, visualization
+from ctapipe.reco import mock
+from ctapipe.reco.cleaning import tailcuts_clean
 from ..hillas import hillas_parameters
-from ...utils.datasets import get_path
+import matplotlib.pyplot as plt
+
+"""
+Test script for hillas_parameters.
+
+DESCRIPTION:
+------------
+This is a very raw script for end to end test. It generates a 2D shower model in the camera, applies a basic two-level tailcuts cleaning and calculates hillas parameters from the image.
+
+hillas_1 and hillas_2 are just the 'MomentParameters' and 'HighOrderMomentParameters' respectively.
+
+TODO:
+-----
+Setup a format for proper pytest.
+
+"""
+
+def draw_neighbors(camgeom, pix_id, color = 'r', **kwargs):
+    x, y = camgeom.pix_x[pix_id].value, camgeom.pix_y[pix_id].value
+    neigh = camgeom.neighbors[pix_id]
+    for n in neigh:
+        nx, ny = camgeom.pix_x[n].value, camgeom.pix_y[n].value
+        plt.plot([x, nx],[y, ny])
+    
+
+if __name__ == '__main__':
+
+  # Prepare the camera geometry
+  geom = io.CameraGeometry.from_name('hess', 1)
+  disp = visualization.CameraDisplay(geom)
+  disp.set_limits_minmax(0, 350)
+  disp.add_colorbar()
+
+  # make a mock shower model
+  model = mock.generate_2d_shower_model(centroid=(0.2, 0.2), width=0.01, length=0.1, psi='45d')
+
+  # generate mock image in camera for this shower model.
+  image, signal, noise = mock.make_mock_shower_image(geom, model.pdf, intensity=50, nsb_level_pe=100)
+
+  #Image cleaning
+  clean_mask = tailcuts_clean(geom, image, 1, 10, 5)      #pedvars = 1 and core and boundary threshold in pe
+  image[~clean_mask] = 0
 
 
-def test_hillas_parameters():
-    filename = get_path('hess_camgeom.fits.gz')
-    # TODO: this test currently doesn't make sense ...
-    # it's just to show how to access test files
-    table = Table.read(filename, format='fits')
-    x = table['PIX_POSX']
-    y = table['PIX_POSY']
-    assert_allclose(x.sum(), 5.486607551574707e-05)
+  #Pixel values in the camera
+  pix_x = geom.pix_x.value
+  pix_y = geom.pix_y.value
+
+  # Hillas parameters
+  hillas1, hillas2 = hillas_parameters(pix_x, pix_y, image)
+  print(hillas1, hillas2)
+
+  #Overlay moments
+  disp.image = image
+  disp.overlay_moments(hillas1, color = 'seagreen', linewidth = 2)
+
+  #Plotting of neighbors
+  for i in geom.neighbors[100]:
+      draw_neighbors(geom, i, color = 'blue' )
+  draw_neighbors(geom, 100, color = 'cyan')   
+  plt.show()
