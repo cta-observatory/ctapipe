@@ -1,24 +1,26 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
 
-
 import zmq
 from multiprocessing import Process
 from multiprocessing import Value
-import pickle
+from threading import Thread
+from pickle import loads
+from pickle import dumps
 from ctapipe.core import Component
 from time import sleep
+from os import getpid
 
 
 class ConsumerZMQ(Process, Component):
 
     """`ConsumerZMQ` class represents a Consumer pipeline Step.
-    It is derived from Thread class. It receives
+    It is derived from Process class. It receives
     new input from its prev stage, thanks to its ZMQ REQ socket,
     and executes its coroutine objet's run method by passing
     input as parameter.
-    The Thread is launched by calling run method, after init() method
-    has been called and has returned True.
+    The processus is launched by calling run method.
+    init() method is call be run method.
     The thread is stoped by executing finish method.
     """
 
@@ -36,19 +38,18 @@ class ConsumerZMQ(Process, Component):
         Process.__init__(self)
         self.coroutine = coroutine
         self.gui_address = gui_address
-        # self.sock_consumer_url = "tcp://localhost:"+sock_consumer_port
         self.sock_consumer_url = 'tcp://localhost:' + sock_consumer_port
         self.name = _name
-        self.nb_job_done = 0
         self.running = False
+        self._nb_job_done = Value('i',0)
         self._stop = Value('i',0)
 
     def init(self):
         """
         Initialise coroutine, socket and poller
         Returns
-                -------
-                True if coroutine init method returns True, otherwise False
+        -------
+        True if coroutine init method returns True, otherwise False
         """
         # Define coroutine and executes its init method
         if self.coroutine is None:
@@ -69,16 +70,16 @@ class ConsumerZMQ(Process, Component):
         The poll method's timeout is 100 ms in case of self.stop flag
         has been set to False by finish method.
         """
-        if self.init_connexions():
-            while not self.stop :
+
+        if self.init() and self.init_connexions():
+            while not self._stop.value :
                 try:
-                    print('DEBUG CONSUMER POOL ')
                     sockets = dict(self.poll.poll(100))
                     if (self.sock_reply in sockets and
                             sockets[self.sock_reply] == zmq.POLLIN):
                         request = self.sock_reply.recv_multipart()
                         # do some 'work'
-                        cmd = pickle.loads(request[0])
+                        cmd = loads(request[0])
                         self.running = True
                         self.update_gui()
                         self.coroutine.run(cmd)
@@ -87,17 +88,17 @@ class ConsumerZMQ(Process, Component):
                         self.update_gui()
                         # send reply back to router/queuer
                         self.sock_reply.send_multipart(request)
-                except:
+                except exception as e:
+                    print('ERROR CONSUMER exception {}'.format(e))
                     break
-            self.coroutine.finish()
-            print('DEBUG .coroutine.finish has finished  self._stop.value = value')
             self.update_gui()
             self.sock_reply.close()
             self.socket_pub.close()
-
+        self.coroutine.finish()
         self.done = True
 
-        def init_connexions(self):
+
+    def init_connexions(self):
         context = zmq.Context()
 
         self.sock_reply = context.socket(zmq.REQ)
@@ -122,7 +123,7 @@ class ConsumerZMQ(Process, Component):
     def update_gui(self):
         msg = [self.name, self.running, self.nb_job_done]
         self.socket_pub.send_multipart(
-            [b'GUI_CONSUMER_CHANGE', pickle.dumps(msg)])
+            [b'GUI_CONSUMER_CHANGE', dumps(msg)])
 
     @property
     def stop(self):
@@ -130,5 +131,12 @@ class ConsumerZMQ(Process, Component):
 
     @stop.setter
     def stop(self, value):
-        print('DEBUG CONSUMER force stop to {}  '.format(value))
         self._stop.value = value
+
+    @property
+    def nb_job_done(self):
+        return self._nb_job_done.value
+
+    @nb_job_done.setter
+    def nb_job_done(self, value):
+        self._nb_job_done.value = value

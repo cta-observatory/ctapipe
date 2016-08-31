@@ -10,7 +10,7 @@ class RouterQueue(Process, Component):
 
     """`RouterQueue` class represents a router between pipeline steps, and it
     manages queue for prev step.
-    It is derived from Thread class.
+    It is derived from Process class.
     RouterQueue class is connected to one or more input steps and to one
     or more output steps thanks to zmq.ROUTER sockets.
     If inputs arrive quickers than output are sent (because next stage have not
@@ -18,9 +18,6 @@ class RouterQueue(Process, Component):
     RouterQueue send output the next steps in LRU(last recently used) pattern.
     """
 
-    #def __init__(
-    #        self, sock_router_port, socket_dealer_port,
-    #        step_names=dict(), gui_address=None):
     def __init__(
         self, connexions=dict(), gui_address=None):
 
@@ -118,7 +115,6 @@ class RouterQueue(Process, Component):
                 nb_job_remains = 0
                 for n, queue in self.queue_jobs.items():
                     nb_job_remains += len(queue)
-                    #print('DEBUG ROUTER self.stop {} {} -> nb_job_remains {}'.format(self.stop,n,queue))
                 self._total_queue_size.value = nb_job_remains
             for socket in self.router_sockets.values():
                 socket.close()

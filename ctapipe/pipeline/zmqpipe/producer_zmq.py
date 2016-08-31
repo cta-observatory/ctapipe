@@ -3,6 +3,7 @@ from ctapipe.core import Component
 from ctapipe.pipeline.zmqpipe.connexions import Connexions
 
 from multiprocessing import Process
+from multiprocessing import Value
 from time import sleep
 import zmq
 import types
@@ -13,12 +14,12 @@ import pickle
 class ProducerZmq(Process, Component, Connexions):
 
     """`ProducerZmq` class represents a Producer pipeline Step.
-    It is derived from Thread class.
+    It is derived from Process class.
     It gets a Python generator from its coroutine run method.
     It loops overs its generator and sends new input to its next stage,
     thanks to its ZMQ REQ socket,
-    The Process is launched by calling run method, after init() method
-    has been called and has returned True.
+    The processus is launched by calling run method.
+    init() method is call be run method.
     """
 
     def __init__(self, coroutine, name,main_connexion_name,
@@ -37,7 +38,7 @@ class ProducerZmq(Process, Component, Connexions):
         self.identity = '{}{}'.format('id_', "producer")
         self.coroutine = coroutine
         self.running = False
-        self.nb_job_done = 0
+        self._nb_job_done = Value('i',0)
         self.gui_address = gui_address
         # Prepare our context and sockets
         self.context = zmq.Context()
@@ -70,7 +71,7 @@ class ProducerZmq(Process, Component, Connexions):
         thanks to its ZMQ REQ socket.
         """
 
-        if self.init_connexions():
+        if self.init() and self.init_connexions():
             generator = self.coroutine.run()
             if isinstance(generator,types.GeneratorType):
                 self.update_gui()
@@ -122,3 +123,13 @@ class ProducerZmq(Process, Component, Connexions):
         msg = [self.name, self.running, self.nb_job_done]
         self.socket_pub.send_multipart(
             [b'GUI_PRODUCER_CHANGE', pickle.dumps(msg)])
+
+
+    @property
+    def nb_job_done(self):
+        return self._nb_job_done.value
+
+    @nb_job_done.setter
+    def nb_job_done(self, value):
+        self.coroutine.finish()
+        self._nb_job_done.value = value

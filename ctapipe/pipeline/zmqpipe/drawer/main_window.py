@@ -5,15 +5,15 @@ This requires the pyside python library to be installed
 """
 
 import sys
-from drawer import PipelineDrawer
-from drawer import LabelQueue
+from ctapipe.pipeline.zmqpipe.drawer import PipelineDrawer
+from ctapipe.pipeline.zmqpipe.drawer import LabelQueue
 import ctapipe.pipeline.zmqpipe.drawer.images_rc
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap
 from PyQt4.QtGui import QTableWidget,QTableWidgetItem,QTextEdit
 from PyQt4.QtGui import QColor
-from drawer import ZmqSub
+from ctapipe.pipeline.zmqpipe.drawer import ZmqSub
 
 
 

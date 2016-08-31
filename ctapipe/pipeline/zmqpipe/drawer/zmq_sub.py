@@ -1,23 +1,22 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import zmq
-from multiprocessing import Process
+from threading import Thread
 import pickle
 from PyQt4 import QtCore
 from PyQt4.QtGui import QLabel
 from time import time
 from ctapipe.core import Component
-
-
 import os
 import sys
 import inspect
+"""
 currentdir = os.path.dirname(
     os.path.abspath(inspect.getfile(inspect.currentframe())))
 pipedrawerdir = os.path.dirname(currentdir)
 sys.path.insert(0, pipedrawerdir)
+"""
 
-
-class ZmqSub(Process, QtCore.QObject):
+class ZmqSub(Thread, QtCore.QObject):
 
     """
     Manages communication with pipeline thanks to ZMQ SUB message
@@ -34,7 +33,7 @@ class ZmqSub(Process, QtCore.QObject):
     message = QtCore.pyqtSignal(list)
 
     def __init__(self, pipedrawer=None, table_queue=None, gui_port=None, statusBar=None):
-        Process.__init__(self)
+        Thread.__init__(self)
         QtCore.QObject.__init__(self)
 
         if gui_port is not None:
@@ -88,7 +87,6 @@ class ZmqSub(Process, QtCore.QObject):
                 receive = self.socket.recv_multipart()
                 topic = receive[0]
                 msg = pickle.loads(receive[1])
-
                 if topic == b'FINISH':
                     self.reset()
                 else:
@@ -96,6 +94,7 @@ class ZmqSub(Process, QtCore.QObject):
                     if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
                         # inform pipedrawer
                         self.message.emit(self.steps)
+
                         self.last_send_config = conf_time
             else:
                 if self.steps:
@@ -140,26 +139,6 @@ class ZmqSub(Process, QtCore.QObject):
                 # is not restarted
                 self.steps = receiv_steps
 
-
-    def update_full_state(self,topic,msg):
-        if topic == b'GUI_GRAPH':
-            config_time, receiv_steps = msg
-            if config_time != self.config_time:
-                self.full_change(receiv_steps)
-                self.config_time = config_time
-        # Stager or Producer or Consumer state changes
-
-        if self.steps and (topic == b'GUI_STAGER_CHANGE' or
-                           topic == b'GUI_CONSUMER_CHANGE' or
-                           topic == b'GUI_PRODUCER_CHANGE'):
-
-            self.step_change(msg)
-
-        if topic == b'GUI_ROUTER_CHANGE':
-            self.router_change(topic,msg)
-
-
-
     def step_change(self, msg):
         """Find which pipeline step has changed, and update its corresponding
         StagerRep
@@ -171,7 +150,6 @@ class ZmqSub(Process, QtCore.QObject):
         """
         name, running , nb_job_done = msg
         for step in self.steps:
-
             if step.name == name.split('$$thread')[0]:
                 step.running = running
                 return

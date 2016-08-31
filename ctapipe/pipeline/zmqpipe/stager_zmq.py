@@ -13,13 +13,13 @@ from ctapipe.pipeline.zmqpipe.connexions import Connexions
 class StagerZmq(Process, Connexions):
 
     """`StagerZmq` class represents a Stager pipeline Step.
-    It is derived from Thread class.
+    It is derived from Process class.
     It receives new input from its prev stage, thanks to its ZMQ REQ socket,
     and executes its coroutine objet's run method by passing
     input as parameter. Finaly it sends coroutine returned value to its next
     stage, thanks to its ZMQ REQ socket,
-    The Thread is launched by calling run method, after init() method
-    has been called and has returned True.
+    The processus is launched by calling run method.
+    init() method is call be run method.
     The thread is stoped by executing finish method.
     """
 
@@ -46,10 +46,10 @@ class StagerZmq(Process, Connexions):
         self.sock_job_for_me_url = 'tcp://localhost:' + sock_job_for_me_port
 
         self.running = False
-        self.nb_job_done = 0
         self.gui_address = gui_address
         self.done = False
         self.waiting_since = Value('i',0)
+        self._nb_job_done = Value('i',0)
         self._stop = Value('i',0)
 
         # Prepare our context and socketsrouter
@@ -76,16 +76,16 @@ class StagerZmq(Process, Connexions):
 
     def run(self):
         """
-        Method representing the thread’s activity.
+        Method representing the processus's activity.
         It polls its socket and when received new input from it,
         it executes coroutine run method by passing new input.
         Then it sends coroutine return value to its next stage,
         thanks to its ZMQ REQ socket.
         The poll method's timeout is 100 ms in case of self.stop flag
-        has been set to False by finish method.
+        has been set to False.
+        Atfer the mail while loop, coroutine.finish method is called
         """
-
-        if self.init_connexions():
+        if self.init() and self.init_connexions() :
             while not self.stop:
                 sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
                 if (self.sock_for_me in sockets and
@@ -108,17 +108,19 @@ class StagerZmq(Process, Connexions):
                     # send acknoledgement to prev router/queue to inform it that I
                     # am available
                     self.sock_for_me.send_multipart(request)
-                    self.nb_job_done += 1
+                    self._nb_job_done.value = self._nb_job_done.value + 1
                     self.running = False
                     self.update_gui()
                 else:
                     self.waiting_since.value = self.waiting_since.value+100 # 100 ms
             self.sock_for_me.close()
             self.socket_pub.close()
+        self.coroutine.finish()
         self.done = True
 
 
     def init_connexions(self):
+
         # Connect to GUI
         Connexions.init_connexions(self)
         context = zmq.Context()
@@ -154,5 +156,12 @@ class StagerZmq(Process, Connexions):
 
     @stop.setter
     def stop(self, value):
-        self.coroutine.finish()
         self._stop.value = value
+
+    @property
+    def nb_job_done(self):
+        return self._nb_job_done.value
+
+    @nb_job_done.setter
+    def nb_job_done(self, value):
+        self._nb_job_done.value = value
