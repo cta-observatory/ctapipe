@@ -23,6 +23,7 @@ CHANGE LOG:
 
 
 import numpy as np
+import sys
 from astropy.units import Quantity
 from collections import namedtuple
 
