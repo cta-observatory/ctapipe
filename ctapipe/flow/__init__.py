@@ -4,5 +4,5 @@ This module contains configuration and setup utilities for the
 ctapipe project.
 """
 
-from .zmqpipe import *
+from .multiprocessus import *
 from .algorithms import *

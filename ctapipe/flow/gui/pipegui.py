@@ -24,7 +24,7 @@ currentdir = os.path.dirname(
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
-from ctapipe.pipeline.zmqpipe.drawer import ModuleApplication
+from ctapipe.flow.gui import ModuleApplication
 
 
 class PipeGui(Tool):

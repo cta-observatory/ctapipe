@@ -5,15 +5,15 @@ This requires the pyside python library to be installed
 """
 
 import sys
-from ctapipe.pipeline.zmqpipe.drawer import PipelineDrawer
-from ctapipe.pipeline.zmqpipe.drawer import LabelQueue
-import ctapipe.pipeline.zmqpipe.drawer.images_rc
+from ctapipe.flow.gui import Pipelinegui
+from ctapipe.flow.gui import LabelQueue
+import ctapipe.flow.gui.images_rc
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
 from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap
 from PyQt4.QtGui import QTableWidget,QTableWidgetItem,QTextEdit
 from PyQt4.QtGui import QColor
-from ctapipe.pipeline.zmqpipe.drawer import ZmqSub
+from ctapipe.flow.gui import ZmqSub
 
 
 
@@ -70,19 +70,19 @@ class MainWindow(QMainWindow, object):
         self.menubar.addAction(self.menuFile.menuAction())
         # add other GUI objects
 
-        self.pipeline_drawer = PipelineDrawer(self.statusbar)
-        self.gridLayout.addWidget(self.pipeline_drawer, 0, 12, 20, 11 )
+        self.pipeline_gui = Pipelinegui(self.statusbar)
+        self.gridLayout.addWidget(self.pipeline_gui, 0, 12, 20, 11 )
 
         pixmap = QPixmap(':/images/cta-logo-mini.png')
         lbl = QtGui.QLabel()
         lbl.setPixmap(pixmap)
         self.gridLayout.addWidget(lbl, 0, 0, 1, 1)
 
-        p = self.pipeline_drawer.palette()
-        self.pipeline_drawer.setAutoFillBackground(True)
+        p = self.pipeline_gui.palette()
+        self.pipeline_gui.setAutoFillBackground(True)
         p.setColor(
-            self.pipeline_drawer.backgroundRole(),QColor(255,255,255))# QColor(226, 235, 252))
-        self.pipeline_drawer.setPalette(p)
+            self.pipeline_gui.backgroundRole(),QColor(255,255,255))# QColor(226, 235, 252))
+        self.pipeline_gui.setPalette(p)
         self.quitButton = QtGui.QPushButton()  # self.centralwidget)
         self.quitButton.setObjectName("quitButton")
         self.quitButton.setText(QtGui.QApplication.translate
@@ -108,7 +108,7 @@ class MainWindow(QMainWindow, object):
 
         # Create ZmqSub for ZMQ comminucation with pipeline
         self.subscribe = ZmqSub(gui_port=port, statusBar=self.statusbar)
-        self.subscribe.message.connect(self.pipeline_drawer.pipechange)
+        self.subscribe.message.connect(self.pipeline_gui.pipechange)
         self.subscribe.message.connect(self.label_queue.pipechange)
 
         QtCore.QObject.connect(

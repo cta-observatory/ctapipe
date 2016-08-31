@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "Flow": {
+      "producer_conf": { "name" : "IntGenerator", "module": "ctapipe.flow.algorithms.int_generator",
+           "class": "IntGenerator","next_steps" : "Pair,Odd"},
+      "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.flow.algorithms.string_writer",
+                         "class": "StringWriter"},
+      "stagers_conf" : [ {"name": "Pair", "class": "Pair",
+                                        "module": "ctapipe.flow.algorithms.pair",
+                                        "next_steps" : "StringWriter",
+                                        "nb_thread" :  1},
+                        {"name": "Odd", "class": "Odd",
+                                        "module": "ctapipe.flow.algorithms.odd",
+                                        "next_steps" : "StringWriter","nb_thread" :  1,
+                                        "queue_limit" : 10000}
+                        ]
+  },
+
+  "SimTelArrayReader": { "filename": "gamma_test.simtel.gz"},
+  "StringWriter": { "filename": "/tmp/string_writter.txt"}
+
+}

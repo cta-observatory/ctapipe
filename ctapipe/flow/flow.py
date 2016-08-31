@@ -18,27 +18,27 @@ from time import time
 from time import sleep
 from pickle import dumps
 from traitlets import (Bool, Integer, Float, List, Dict, Unicode)
-from ctapipe.pipeline.zmqpipe.producer_zmq import ProducerZmq
-from ctapipe.pipeline.zmqpipe.stager_zmq import StagerZmq
-from ctapipe.pipeline.zmqpipe.consumer_zmq import ConsumerZMQ
-from ctapipe.pipeline.zmqpipe.router_queue_zmq import RouterQueue
-from ctapipe.pipeline.producer_sequential import ProducerSequential
-from ctapipe.pipeline.stager_sequential import StagerSequential
-from ctapipe.pipeline.zmqpipe.drawer.pipelinedrawer import StagerRep
+from ctapipe.flow.multiprocessus.producer_zmq import ProducerZmq
+from ctapipe.flow.multiprocessus.stager_zmq import StagerZmq
+from ctapipe.flow.multiprocessus.consumer_zmq import ConsumerZMQ
+from ctapipe.flow.multiprocessus.router_queue_zmq import RouterQueue
+from ctapipe.flow.sequential.producer_sequential import ProducerSequential
+from ctapipe.flow.sequential.stager_sequential import StagerSequential
+from ctapipe.flow.gui.pipelinegui import StagerRep
 from ctapipe.utils import dynamic_class_from_module
 from ctapipe.core import Tool
 
-__all__ = ['Pipeline', 'PipelineError']
+__all__ = ['Flow', 'FlowError']
 
 class PipeStep():
 
     '''
-PipeStep reprensents a Pipeline step. One or several processus can be attach
+PipeStep reprensents a Flow step. One or several processus can be attach
     to this step.
 Parameters
 ----------
     name : str
-            pipeline configuration name
+            Flow based framework configuration name
     next_steps_name: list(str)
     port_in : str
             port number to connect prev Router
@@ -48,7 +48,7 @@ Parameters
             First step in next_steps configuration
     nb_processus : int
             mumber of processus to instantiate for this step
-    level : step level in pipeline. Producer is level 0.
+    level : step level in Flow based framework. Producer is level 0.
             Used to start/stop processus in correct order
     queue_limit: int
             Maximum number of element the router can queue
@@ -86,26 +86,26 @@ Parameters
                 + '], queue_limit[ ' + str(self.queue_limit) + ']')
 
 
-class PipelineError(Exception):
+class FlowError(Exception):
 
     def __init__(self, msg):
-        '''Mentions that an exception occurred in the pipeline.
+        '''Mentions that an exception occurred in the Flow based framework.
         '''
         self.msg = msg
 
 
-class Pipeline(Tool):
+class Flow(Tool):
 
     '''
-    Represents a staged pattern of stage. Each stage in the pipeline
+    Represents a staged pattern of stage. Each stage in the Flow based framework
     is one or several processus containing a coroutine that receives messages
     from the previous stage and	yields messages to be sent to the next stage
     thanks to RouterQueue sequential_instances	'''
 
-    description = 'run stages in multiprocessus pipeline'
+    description = 'run stages in multiprocessus Flow based framework'
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
         config=True, allow_none=True)
-    mode = Unicode('sequential', help='Pipeline mode [sequential | multiprocessus]').tag(
+    mode = Unicode('sequential', help='Flow mode [sequential | multiprocessus]').tag(
         config=True, allow_none=True)
     producer_conf = Dict(
         help='producer description: name , module, class',
@@ -122,10 +122,10 @@ class Pipeline(Tool):
     zmq_ports = List([5555,5556,5557,5558,5559,5560,5561,5562,5563,5564,
             5566,5567,5568,5569], help='ZMQ ports').tag(
         config=True, allow_none=True)
-    aliases = Dict({'gui_address': 'Pipeline.gui_address',
-                    'mode':'Pipeline.mode'})
-    examples = ('prompt%> ctapipe-pipeline \
-    --config=examples/brainstorm/pipeline/pipeline_py/example.json')
+    aliases = Dict({'gui_address': 'Flow.gui_address',
+                    'mode':'Flow.mode'})
+    examples = ('prompt%> ctapipe-flow \
+    --config=examples/brainstorm/flow/flow_py/example.json')
 
     PRODUCER = 'PRODUCER'
     STAGER = 'STAGER'
@@ -149,7 +149,7 @@ class Pipeline(Tool):
 
     def setup(self):
         if self.init() == False:
-            self.log.error('Could not initialise pipeline')
+            self.log.error('Could not initialise Flow based framework')
             exit()
 
     def init(self):
@@ -158,12 +158,12 @@ class Pipeline(Tool):
          configuration
         Returns:
         --------
-        bool : True if pipeline is correctly setup and all producer,stager
+        bool : True if Flow based framework is correctly setup and all producer,stager
          and consumer initialised Otherwise False
         '''
         # Verify configuration instance
         if not path.isfile(self.config_file):
-            self.log.error('Could not open pipeline config_file {}'
+            self.log.error('Could not open Flow based framework config_file {}'
                            .format(self.config_file))
             return False
         # Gererate steps(producers, stagerself.log.info(s and consumers) from configuration
@@ -175,7 +175,7 @@ class Pipeline(Tool):
         elif self.mode == 'multiprocessus':
             return self.init_multiprocessus()
         else:
-            self.log.error("{} is not a valid mode for pipeline".format(self.mode))
+            self.log.error("{} is not a valid mode for Flow based framework".format(self.mode))
 
 
 
@@ -256,7 +256,7 @@ class Pipeline(Tool):
                         connexions = stager_step.connexions,
                         main_connexion_name = stager_step.main_connexion_name,
                         config=conf)
-                except PipelineError as e:
+                except FlowError as e:
                     self.log.error(e)
                     return False
                 self.stagers.append(stager_zmq)
@@ -270,7 +270,7 @@ class Pipeline(Tool):
                                       self.CONSUMER,
                                       port_in=self.consumer_step.port_in,
                                       config=self.consumer_conf)
-        except PipelineError as e:
+        except FlowError as e:
             self.log.error(e)
             return False
         self.consumer = consumer_zmq
@@ -296,7 +296,7 @@ class Pipeline(Tool):
                 connexions = self.producer_step.connexions,
                 main_connexion_name = self.producer_step.main_connexion_name,
                 config= self.producer_conf)
-        except PipelineError as e:
+        except FlowError as e:
             self.log.error(e)
             return False
         self.producer = producer_zmq
@@ -314,7 +314,7 @@ class Pipeline(Tool):
 
 
     def generate_steps(self):
-        ''' Generate pipeline steps from configuration'''
+        ''' Generate Flow based framework steps from configuration'''
         self.producer_step = self.get_pipe_steps(self.PRODUCER)
         self.stager_steps = self.get_pipe_steps(self.STAGER)
         self.consumer_step = self.get_pipe_steps(self.CONSUMER)
@@ -394,7 +394,7 @@ class Pipeline(Tool):
         obj = dynamic_class_from_module(class_name, module, self)
 
         if obj is None:
-            raise PipelineError('Cannot create instance of ' + name)
+            raise FlowError('Cannot create instance of ' + name)
         obj.name = name
 
         if stage_type == self.STAGER:
@@ -417,7 +417,7 @@ class Pipeline(Tool):
                 gui_address=self.gui_address)
 
         else:
-            raise PipelineError(
+            raise FlowError(
                 'Cannot create instance of', name, '. Type',
                  stage_type, 'does not exist.')
         # set coroutine socket to it's stager or producer socket .
@@ -425,7 +425,7 @@ class Pipeline(Tool):
 
     def get_pipe_steps(self, role):
         '''
-        Create a list of pipeline steps from configuration and filter by role
+        Create a list of Flow based framework steps from configuration and filter by role
         Parameters
         ----------
         role: str
@@ -494,13 +494,13 @@ class Pipeline(Tool):
         ''' Print steps and their next_steps
         '''
         self.log.info('')
-        self.log.info('------------------ Pipeline configuration ------------------')
+        self.log.info('------------------ Flow configuration ------------------')
         for step in  ([self.producer_step ] + self.stager_steps
             + [self.consumer_step]):
             self.log.info('step {} '.format(step.name))
             for next_step_name in step.next_steps_name:
                 self.log.info('--> next {} '.format(next_step_name))
-        self.log.info('------------------ End Pipeline configuration ------------------')
+        self.log.info('------------------ End Flow configuration ------------------')
         self.log.info('')
 
 
@@ -515,7 +515,7 @@ class Pipeline(Tool):
         return None
 
     def start(self):
-        ''' run the pipeline steps
+        ''' run the Flow based framework steps
         '''
         if self.mode == 'multiprocessus':
             self.start_multiprocessus()
@@ -548,12 +548,12 @@ class Pipeline(Tool):
 
 
     def start_multiprocessus(self):
-        ''' Start all pipeline processus.
-        Regularly inform GUI of pipeline configuration in case of a new GUI
+        ''' Start all Flow based framework processus.
+        Regularly inform GUI of Flow based framework configuration in case of a new GUI
         instance was lunch
         Stop all processus without loosing data
         '''
-        # send pipeline cofiguration to an optinal GUI instance
+        # send Flow based framework cofiguration to an optinal GUI instance
         levels_gui,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
             [b'GUI_GRAPH', dumps([conf_time,levels_gui])])
@@ -604,12 +604,12 @@ class Pipeline(Tool):
 
 
     def finish(self):
-        self.log.info('===== Pipeline END ======')
+        self.log.info('===== Flow END ======')
 
 
     def wait_and_send_levels(self, processus_to_wait):
         '''
-        Wait for a processus to join and regularly send pipeline state to GUI
+        Wait for a processus to join and regularly send Flow based framework state to GUI
         in case of a GUI will connect later
         Parameters:
         -----------
@@ -668,7 +668,7 @@ class Pipeline(Tool):
 
 
 def main():
-    tool = Pipeline()
+    tool = Flow()
     tool.run()
 
 if __name__ == '__main__':

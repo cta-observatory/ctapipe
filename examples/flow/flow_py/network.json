@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "Flow": {
+      "producer_conf": { "name" : "RandIntGenerator", "module": "ctapipe.flow.algorithms.rand_int_generator",
+           "class": "RandIntGenerator","next_steps" : "Populate"},
+      "consumer_conf": { "name" : "CONSUMER", "module": "ctapipe.flow.algorithms.string_writer",
+                         "class": "StringWriter"},
+      "stagers_conf" : [ {"name": "AddInt", "class": "Add",
+                                        "module": "ctapipe.flow.algorithms.add",
+                                        "next_steps" : "CompareInt",
+                                        "nb_thread" :  3,"queue_limit" : 2000},
+                        {"name": "Populate", "class": "Populate",
+                                        "module": "ctapipe.flow.algorithms.populate",
+                                        "next_steps" : "AddInt","nb_thread" : 1},
+                        {"name": "CompareInt", "class": "CompareInt",
+                                        "module": "ctapipe.flow.algorithms.compare_int",
+                                        "next_steps" : "AddInt,CONSUMER","nb_thread" : 3  }
+                        ]
+  },
+
+  "StringWriter": { "filename": "/tmp/string_writter.txt"},
+  "CompareInt" :  {"expected" : 10}
+
+}
