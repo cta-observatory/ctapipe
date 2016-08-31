@@ -7,10 +7,10 @@
                 "class": "StringWriter"},
       "stagers_conf" : [{"name": "ListTelsWithData", "class": "ListTelsWithData",
                         "module": "ctapipe.flow.algorithms.list_tels_with_data",
-                        "next_steps" : "Fake", "nb_thread" : 1},
+                        "next_steps" : "Fake", "nb_process" : 1},
                         {"name": "Fake", "class": "Fake",
                                           "module": "ctapipe.flow.algorithms.fake",
-                                          "next_steps" : "StringWriter", "nb_thread" : 3}
+                                          "next_steps" : "StringWriter", "nb_process" : 3}
                     ]
   },
 
