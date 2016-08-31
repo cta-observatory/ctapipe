@@ -57,7 +57,8 @@ class StagerZmq(Process, Connexions):
         Initialise coroutine sockets and poller
         Returns
         -------
-        True if coroutine init method returns True, otherwise False
+        True if coroutine init and init_connexions methods returns True,
+         otherwise False
         """
         if self.name is None:
             self.name = "STAGER"
@@ -65,8 +66,6 @@ class StagerZmq(Process, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        # Stop flag
-        self.stop = False
         return self.init_connexions()
 
     def run(self):
@@ -137,10 +136,12 @@ class StagerZmq(Process, Connexions):
         return True
 
     def update_gui(self):
+        """
+        send it's status to GUI
+        """
         msg = [self.name, self.running, None]
         self.socket_pub.send_multipart(
             [b'GUI_STAGER_CHANGE', dumps(msg)])
-
 
     @property
     def wait_since(self):
