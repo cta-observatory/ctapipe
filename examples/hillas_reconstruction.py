@@ -12,8 +12,9 @@ from ctapipe import io
 from astropy.coordinates import Angle, AltAz
 from astropy.time import Time
 from ctapipe.instrument import InstrumentDescription as ID
-
+from ctapipe.coordinates import CameraFrame, NominalFrame
 from astropy import units as u
+from astropy.units import Quantity
 
 import numpy as np
 import pyhessio
@@ -89,9 +90,6 @@ if __name__ == '__main__':
         container.dl0.tel = dict()  # clear the previous telescopes
 
         print('Scanning input file... count = {}'.format(event.count))
-        #print(event.trig)
-        #print(event.mc)
-        #print(event.dl0)
 
         hillas_parameter_list = list()
         tel_x = list()
@@ -104,10 +102,23 @@ if __name__ == '__main__':
             x, y = cam[table+str(tel_id)]['PixX'][:],cam[table+str(tel_id)]['PixY'][:]
             start_t = time.time()
             geom = cam[table+str(tel_id)]['PixNeig'][:]
+            print(event.dl0.tel[tel_id].adc_sums[0],event.dl0.tel[tel_id].adc_sums[1])
             image = apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0], tel_id)
 
+            x = Quantity(np.asanyarray(x, dtype=np.float64)).value
+            y = Quantity(np.asanyarray(y, dtype=np.float64)).value
+
+            camera_coord = CameraFrame(x=x*u.m,y=y*u.m,z=np.zeros(x.shape)*u.m)
+            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[container.mc.alt,container.mc.az],
+                                                       pointing_direction=[container.mc.alt,container.mc.az],
+                                                       focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id]['FL'][0]*u.m))
+                                                               #,
+                                                       #rotation=0*u.deg))
+            nom_x = nom_coord.x
+            nom_y = nom_coord.y
+
             clean_mask = tailcuts_clean(cam[table+str(tel_id)],image,1,picture_thresh=12,boundary_thresh=6)
-            hill = hillas_parameters(x,y,image*clean_mask,tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id])
+            hill = hillas_parameters(nom_x,nom_y,image*clean_mask)
 
             if hill.size > 100:
                 hillas_parameter_list.append(hill)
@@ -118,17 +129,15 @@ if __name__ == '__main__':
                 #tel_config_list.append(tel[tel_id])
         print("Hillas time",time.time()-start_t)
         if len(hillas_parameter_list)>1:
-            print (len(hillas_parameter_list))
             #start_t = time.time()
             grd = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
             tilt = grd.transform_to(TiltedGroundFrame(pointing_direction=[70*u.deg,0*u.deg]))
-            print(tilt.x.value)
 
             shower_direction = hill_int.reconstruct_nominal(hillas_parameter_list)
             core_position = hill_int.reconstruct_tilted(hillas_parameter_list,tilt.x.value.tolist(),tilt.y.value.tolist())
-            print(project_to_ground(core_position))
+            #print(project_to_ground(core_position))
 
             print(shower_direction)
-            print(container.mc.alt*57.3,container.mc.az*57.3)
             print(container.mc.core_x,container.mc.core_y)
+            print(core_position)
         print("reconstruction time",time.time()-start_t)

@@ -39,11 +39,11 @@ def reconstruct_nominal(hillas_parameters,weighting="Konrad"):
     hillas_pairs = list(itertools.combinations(hillas_parameters, 2))
 
     # Copy parameters we need to a numpy array to speed things up
-    h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].cen_x,h[0].cen_y,h[0].size],hillas_pairs))
+    h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].cen_x.value,h[0].cen_y.value,h[0].size],hillas_pairs))
     h1 = np.array(h1)
     h1 = np.transpose(h1)
 
-    h2 = np.array(list(map(lambda h:[h[1].psi.to(u.rad).value,h[1].cen_x,h[1].cen_y,h[1].size],hillas_pairs)))
+    h2 = np.array(list(map(lambda h:[h[1].psi.to(u.rad).value,h[1].cen_x.value,h[1].cen_y.value,h[1].size],hillas_pairs)))
     h2 = np.array(h2)
     h2 = np.transpose(h2)
 
@@ -64,9 +64,8 @@ def reconstruct_nominal(hillas_parameters,weighting="Konrad"):
     sum_w = np.sum(weight)
 
     # Copy into nominal coordinate
-    c_nom = hillas_parameters[0].coord
-    nominal = NominalFrame(x=(sum_x/sum_w)*u.deg,y=(sum_y/sum_w)*u.deg,z=0*u.deg,array_direction=c_nom.array_direction)
-    return nominal
+    #nominal = NominalFrame(x=(sum_x/sum_w)*u.deg,y=(sum_y/sum_w)*u.deg,z=0*u.deg,array_direction=c_nom.array_direction)
+    return 57.3*sum_x/sum_w,57.3*sum_y/sum_w
 
 
 def reconstruct_tilted(hillas_parameters,tel_x,tel_y,weighting="Konrad"):
