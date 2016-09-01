@@ -3,7 +3,7 @@ from PyQt4.QtGui import *
 import sys
 
 
-class LabelQueue(QLabel):
+class QueueLabel(QLabel):
     """
     Displays steps name, queues size and numbers of job done
     """

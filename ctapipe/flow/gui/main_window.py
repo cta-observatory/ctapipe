@@ -6,7 +6,7 @@ This requires the pyside python library to be installed
 
 import sys
 from ctapipe.flow.gui import GraphWidget
-from ctapipe.flow.gui import LabelQueue
+from ctapipe.flow.gui import QueueLabel
 import ctapipe.flow.gui.images_rc
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
 from PyQt4 import QtCore, QtGui
@@ -89,8 +89,8 @@ class MainWindow(QMainWindow, object):
                                 ("MainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 19, 0, 1, 1)
 
-        self.label_queue = LabelQueue(0,4)
-        self.gridLayout.addWidget(self.label_queue,5, 0, 1, 1)
+        self.queuelabel = QueueLabel(0,4)
+        self.gridLayout.addWidget(self.queuelabel,5, 0, 1, 1)
 
 
 
@@ -109,7 +109,7 @@ class MainWindow(QMainWindow, object):
         # Create GuiConnexion for ZMQ comminucation with pipeline
         self.subscribe = GuiConnexion(gui_port=port, statusBar=self.statusbar)
         self.subscribe.message.connect(self.pipeline_gui.pipechange)
-        self.subscribe.message.connect(self.label_queue.pipechange)
+        self.subscribe.message.connect(self.queuelabel.pipechange)
 
         QtCore.QObject.connect(
             self.actionReset, QtCore.SIGNAL("triggered()"), self.subscribe.reset)
