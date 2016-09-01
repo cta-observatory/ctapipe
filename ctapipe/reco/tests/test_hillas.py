@@ -19,13 +19,6 @@ Setup a format for proper pytest.
 
 """
 
-def draw_neighbors(camgeom, pix_id, color = 'r', **kwargs):
-    x, y = camgeom.pix_x[pix_id].value, camgeom.pix_y[pix_id].value
-    neigh = camgeom.neighbors[pix_id]
-    for n in neigh:
-        nx, ny = camgeom.pix_x[n].value, camgeom.pix_y[n].value
-        plt.plot([x, nx],[y, ny])
-    
 
 if __name__ == '__main__':
 
@@ -57,9 +50,4 @@ if __name__ == '__main__':
   #Overlay moments
   disp.image = image
   disp.overlay_moments(hillas1, color = 'seagreen', linewidth = 2)
-
-  #Plotting of neighbors
-  for i in geom.neighbors[100]:
-      draw_neighbors(geom, i, color = 'blue' )
-  draw_neighbors(geom, 100, color = 'cyan')   
   plt.show()
