@@ -109,9 +109,11 @@ class StagerZmq(Process, Connexions):
                     self.waiting_since.value = self.waiting_since.value+100 # 100 ms
             self.sock_for_me.close()
             self.socket_pub.close()
-        self.coroutine.finish()
+        self.finish()
         self.done = True
 
+    def finish(self):
+        self.coroutine.finish()
 
     def init_connexions(self):
         """
