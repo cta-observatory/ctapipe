@@ -20,10 +20,8 @@ class StringWriter(Component):
     def run(self, object):
         self.log.info('StringWriter receive {}'.format( object))
         self.file.write(str(object) + "\n")
-        for i in range(500):
-            foo = (object**i)
         self.log.info('StringWriter write {}'.format( object))
-    
+
 
     def finish(self):
         self.log.info("--- StringWriter finish START ---")

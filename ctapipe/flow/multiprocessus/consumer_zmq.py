@@ -86,8 +86,11 @@ class ConsumerZMQ(Process, Component):
             self.update_gui()
             self.sock_reply.close()
             self.socket_pub.close()
-        self.coroutine.finish()
+        self.finish()
         self.done = True
+
+    def finish(self):
+        self.coroutine.finish()
 
     def init_connexions(self):
         """

@@ -88,14 +88,13 @@ class ProducerZmq(Process, Component, Connexions):
                 print("Warning: Add yield to end of run producer method.")
             self.socket_pub.close()
 
+        self.finish()
         self.done = True
 
     def finish(self):
         """
         Executes coroutine method
         """
-        while self.done != True:
-            return False
         self.coroutine.finish()
         return True
 
@@ -109,7 +108,6 @@ class ProducerZmq(Process, Component, Connexions):
         Connexions.init_connexions(self)
         # Socket to talk to GUI
         self.socket_pub = self.context.socket(zmq.PUB)
-
         if self.gui_address is not None:
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
@@ -117,7 +115,6 @@ class ProducerZmq(Process, Component, Connexions):
                 print("Error {} tcp://{}".format(e, self.gui_address))
                 return False
         return True
-
 
     def update_gui(self):
         """
@@ -127,12 +124,10 @@ class ProducerZmq(Process, Component, Connexions):
         self.socket_pub.send_multipart(
             [b'GUI_PRODUCER_CHANGE', dumps(msg)])
 
-
     @property
     def nb_job_done(self):
         return self._nb_job_done.value
 
     @nb_job_done.setter
     def nb_job_done(self, value):
-        self.coroutine.finish()
         self._nb_job_done.value = value

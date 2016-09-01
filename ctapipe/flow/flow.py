@@ -321,9 +321,11 @@ class Flow(Tool):
         if not self.producer_step:
             self.log.error("No producer in configuration")
             return False
+        """
         if not self.stager_steps:
             self.log.error("No stager in configuration")
             return False
+        """
         if not self.consumer_step:
             self.log.error("No consumer in configuration")
             return False
