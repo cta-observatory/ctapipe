@@ -113,7 +113,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     #If S_xy=0 (which should happen not very often, because Size>0) we cannot calculate Length and Width.
     #In reallity it is almost impossible to have a distribution of cerenkov photons in the used pixels which is exactly symmetric
-    # along one of the axis.
+    # along one of the axis
     if S_xy == 0:
        raise (HillasParameterizationError("X and Y uncorrelated. Cannot calculate lenght & width. Exiting ..."))
 
@@ -122,7 +122,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
     #temp = d * d + 4 * S_xy * S_xy
     d2 = d0 + np.sqrt(d0*d0 + d1*d1)
     a = d2 / d1
-    delta = np.pi / 2.0 + np.arctan(a)                        # Angle between ellipse major ax. and x-axis of camera. Will be used for disp
+    delta = np.pi / 2.0 + np.arctan(a)           # Angle between ellipse major ax. and x-axis of camera. Will be used for disp
     b = mean_y - a * mean_x
     cos_delta = 1 / np.sqrt(1 + a * a)           #Sin & Cos Will be used for calculating higher order image parameters
     sin_delta = a * cos_delta                       
