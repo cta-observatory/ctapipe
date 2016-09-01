@@ -24,7 +24,7 @@ from ctapipe.flow.multiprocessus.consumer_zmq import ConsumerZMQ
 from ctapipe.flow.multiprocessus.router_queue_zmq import RouterQueue
 from ctapipe.flow.sequential.producer_sequential import ProducerSequential
 from ctapipe.flow.sequential.stager_sequential import StagerSequential
-from ctapipe.flow.gui.pipelinegui import StagerRep
+from ctapipe.flow.gui.graphwidget import StagerRep
 from ctapipe.utils import dynamic_class_from_module
 from ctapipe.core import Tool
 

@@ -15,10 +15,9 @@ class RandIntGenerator(Component):
 
     def run(self):
         for i in range(100):
-            #val = randint(0,999)
-            self.log.debug("RandIntGenerator send {}".format(i))
-            val = i
-            yield 0
+            val = randint(0,99)
+            self.log.debug("RandIntGenerator send {}".format(val))
+            yield val
 
 
 

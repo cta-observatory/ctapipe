@@ -49,7 +49,7 @@ class StagerRep():
             str(self.queue_length))
 
 
-class Pipelinegui(QWidget):
+class GraphWidget(QWidget):
 
     """
     class that displays pipeline workload
@@ -59,7 +59,7 @@ class Pipelinegui(QWidget):
     mygreen = QColor(65, 205, 85)
 
     def __init__(self, statusBar):
-        super(Pipelinegui, self).__init__()
+        super(GraphWidget, self).__init__()
         self.point_size = 1
         self.initUI()
         # self.steps contains all pipeline steps (Producer, Stager, consumer)
@@ -102,7 +102,7 @@ class Pipelinegui(QWidget):
 
 
     def pipechange(self, steps):
-        """Called by ZmqSub instance when it receives zmq message from pipeline
+        """Called by GuiConnexion instance when it receives zmq message from pipeline
         Update pipeline state (self.steps) and force to update drawing
         Parameters
         ----------

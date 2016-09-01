@@ -19,6 +19,6 @@
   },
 
   "StringWriter": { "filename": "/tmp/string_writter.txt"},
-  "CompareInt" :  {"expected" : 10}
+  "CompareInt" :  {"expected" : 100}
 
 }

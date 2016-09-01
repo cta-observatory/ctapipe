@@ -7,22 +7,20 @@ from PyQt4.QtGui import QLabel
 from time import time
 from ctapipe.core import Component
 
-class ZmqSub(Thread, QtCore.QObject):
+class GuiConnexion(Thread, QtCore.QObject):
 
     """
     Manages communication with pipeline thanks to ZMQ SUB message
     Transmit information to GUI when pipeline change
     Parameters
     ----------
-    pipegui : Pipelinegui
-        Widget that draws pipeline by receiving information from this instance
     gui_port : str
         port to connect for ZMQ communication
     statusBar :  QtGui.QStatusBar
         MainWindow status bar to display information
     """
     message = QtCore.pyqtSignal(list)
-    def __init__(self, pipegui=None, table_queue=None, gui_port=None, statusBar=None):
+    def __init__(self, table_queue=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
         QtCore.QObject.__init__(self)
         if gui_port is not None:
@@ -51,7 +49,6 @@ class ZmqSub(Thread, QtCore.QObject):
             # properly when GUI is closed
             # self.pipegui will receive new pipeline information
             self.stop = False
-            self.pipegui = pipegui
             self.table_queue = table_queue
             self.steps = list()
             self.config_time = 0
@@ -157,7 +154,7 @@ class ZmqSub(Thread, QtCore.QObject):
                 return
 
     def router_change(self, msg):
-        """Called by ZmqSub instance when it receives zmq message from pipeline
+        """Called by GuiConnexion instance when it receives zmq message from pipeline
         Update pipeline state (self.steps) and force to update drawing
         Parameters
         ----------

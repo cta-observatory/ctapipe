@@ -13,7 +13,7 @@ class LabelQueue(QLabel):
 
 
     def pipechange(self, steps):
-        """Called by ZmqSub instance when it receives zmq message from pipeline
+        """Called by GuiConnexion instance when it receives zmq message from pipeline
         Update pipeline state (self.steps) and force to update drawing
         Parameters
         ----------
