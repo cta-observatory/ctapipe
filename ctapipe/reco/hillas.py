@@ -11,11 +11,11 @@ TODO:
 CHANGE LOG:
 -----------
 - Higher order moments need not be explicitly defined. Only mean and size parameters are enough to define correlations of all order. 
-  Hence only mean and size defined, avoiding calculaion of higher moments. Implemented in the same way as in MAGIC.
+  Implemented in the same way as in MAGIC.
 - Third and fourth order correlations implemented in hillas_1.
 - Sanity checks for size, x_y correlation, length, width.
 - Parameter psi introduced in hillas_parameters_1: angle between ellipse major axis and camera x-axis.
-- Correction in implementation of the miss parameter in hillas_parameters_1. Previous implementation missed a square root factor.
+- Correction in implementation of miss parameter of hillas_parameters_1. Previous implementation missed a square root factor.
 - Correction in implementation of length, width in hillas_parameters_2. Previous version missed a 2 in the denominator.
 - Implementation of Higher Order Moment Parameters in hillas_parameters_1: Skewness, Kurtosis.
 - Implementation of Asymmetry. Alternative definition of asym using highr order correlations mentioned in comments below asym .
@@ -23,7 +23,6 @@ CHANGE LOG:
 
 
 import numpy as np
-import sys
 from astropy.units import Quantity
 from collections import namedtuple
 
@@ -31,6 +30,7 @@ __all__ = [
     'MomentParameters',
     'HighOrderMomentParameters',
     'hillas_parameters',
+    'HillasParameterizationError' ,
 ]
 
 
@@ -55,6 +55,9 @@ See also
 --------
 MomentParameters, hillas_parameters
 """
+
+class HillasParameterizationError(RuntimeError):
+    pass
 
 
 def hillas_parameters_1(pix_x, pix_y, image):
@@ -112,8 +115,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
     #In reallity it is almost impossible to have a distribution of cerenkov photons in the used pixels which is exactly symmetric
     # along one of the axis.
     if S_xy == 0:
-       print("X and Y uncorrelated. Cannot calculate lenght & width. Exiting ...")
-       sys.exit(1)
+       raise (HillasParameterizationError("X and Y uncorrelated. Cannot calculate lenght & width. Exiting ..."))
 
     d0 = S_yy - S_xx
     d1 = 2 * S_xy
@@ -240,7 +242,7 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     return MomentParameters(size=size, cen_x=moms[0], cen_y=moms[1],
                             length=length, width=width, r=rr, phi=phi,
-                            delta=None, miss=miss)
+                            psi=None, miss=miss)
 
 
 # use the 1 version by default. Version 2 has apparent differences.
