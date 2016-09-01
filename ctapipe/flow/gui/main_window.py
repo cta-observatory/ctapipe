@@ -5,7 +5,7 @@ This requires the pyside python library to be installed
 """
 
 import sys
-from ctapipe.flow.gui import Pipelinegui
+from ctapipe.flow.gui import GraphWidget
 from ctapipe.flow.gui import LabelQueue
 import ctapipe.flow.gui.images_rc
 from PyQt4.QtGui import QMainWindow, QPushButton, QApplication, QPalette
@@ -13,7 +13,7 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtGui import QPixmap
 from PyQt4.QtGui import QTableWidget,QTableWidgetItem,QTextEdit
 from PyQt4.QtGui import QColor
-from ctapipe.flow.gui import ZmqSub
+from ctapipe.flow.gui import GuiConnexion
 
 
 
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow, object):
         self.menubar.addAction(self.menuFile.menuAction())
         # add other GUI objects
 
-        self.pipeline_gui = Pipelinegui(self.statusbar)
+        self.pipeline_gui = GraphWidget(self.statusbar)
         self.gridLayout.addWidget(self.pipeline_gui, 0, 12, 20, 11 )
 
         pixmap = QPixmap(':/images/cta-logo-mini.png')
@@ -106,8 +106,8 @@ class MainWindow(QMainWindow, object):
             self.actionQuit, QtCore.SIGNAL("triggered()"), self.close)
         QtCore.QMetaObject.connectSlotsByName(self)
 
-        # Create ZmqSub for ZMQ comminucation with pipeline
-        self.subscribe = ZmqSub(gui_port=port, statusBar=self.statusbar)
+        # Create GuiConnexion for ZMQ comminucation with pipeline
+        self.subscribe = GuiConnexion(gui_port=port, statusBar=self.statusbar)
         self.subscribe.message.connect(self.pipeline_gui.pipechange)
         self.subscribe.message.connect(self.label_queue.pipechange)
 
