@@ -136,7 +136,7 @@ class GraphWidget(QWidget):
         for step in  self.steps:
             str_shape = 'octagon'
             if step.type == StagerRep.CONSUMER:
-                str_shape = 'Msquare'
+                str_shape = 'doubleoctagon'
             if step.type == StagerRep.PRODUCER:
                 str_shape = 'Mdiamond'
             name = self.format_name(step.name.split('$$processus')[0])

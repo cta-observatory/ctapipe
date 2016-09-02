@@ -21,7 +21,7 @@ class InfoLabel(QLabel):
         topic : str
         """
         if steps:
-            text ='  Step                                         Process   Queue       Done    \n\n'
+            text ='  STEP                                       PROCESS   QUEUE       DONE    \n\n'
             for step in steps:
                 text+='{:-<80}\n'.format('-')
                 text+=self.formatText(step)+'\n'
@@ -29,10 +29,10 @@ class InfoLabel(QLabel):
 
     def formatText(self,step):
         text = str()
-        if len(step.name) < 20:
-            name = ' ' + step.name + ((20-len(step.name))*2)*' '
-        elif len(step.name) > 20:
-            name =  ' ' + step.name[0:18] + '...'
+        if len(step.name) < 18:
+            name = ' ' + step.name + ((18-len(step.name))*2)*' '
+        elif len(step.name) > 18:
+            name =  ' ' + step.name[0:16] + '...'
         else:
             name =  ' ' + step.name
         queue = step.queue_length
