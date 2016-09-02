@@ -14,12 +14,12 @@ class StringWriter(Component):
 
     def init(self):
         self.file = open(self.filename, 'w')
-        self.log.info("--- StringWriter init filename {}---".format(self.filename))
+        #self.log.info("--- StringWriter init filename {}---".format(self.filename))
         return True
 
     def run(self, object):
         self.file.write(str(object) + "\n")
-        self.log.info('StringWriter write {}'.format( object))
+        #self.log.info('StringWriter write {}'.format( object))
 
 
     def finish(self):

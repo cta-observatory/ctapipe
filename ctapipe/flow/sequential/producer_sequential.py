@@ -27,6 +27,8 @@ class ProducerSequential():
         self.coroutine = coroutine
         self.main_connexion_name = main_connexion_name
         self.connexions = connexions
+        self.running = False
+        self.nb_job_done = 0
 
 
     def init(self):
@@ -50,6 +52,7 @@ class ProducerSequential():
         for result in gen:
 
             msg, destination = self.get_destination_msg_from_result(result)
+            self.nb_job_done+=1
             #if self.next_step_name_to_send == None:
             #    next_to_send = self.main_connexion_name
             #else: next_to_send = self.next_step_name_to_send

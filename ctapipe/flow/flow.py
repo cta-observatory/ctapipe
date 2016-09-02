@@ -24,6 +24,7 @@ from ctapipe.flow.multiprocessus.consumer_zmq import ConsumerZMQ
 from ctapipe.flow.multiprocessus.router_queue_zmq import RouterQueue
 from ctapipe.flow.sequential.producer_sequential import ProducerSequential
 from ctapipe.flow.sequential.stager_sequential import StagerSequential
+from ctapipe.flow.sequential.consumer_sequential import ConsumerSequential
 from ctapipe.flow.gui.graphwidget import StagerRep
 from ctapipe.utils import dynamic_class_from_module
 from ctapipe.core import Tool
@@ -168,6 +169,8 @@ class Flow(Tool):
         if not self.generate_steps():
             self.log.error("Error during steps generation")
             return False
+        if self.gui :
+            if not self.connect_gui():  return False
         if self.mode == 'sequential':
             return self.init_sequential()
         elif self.mode == 'multiprocessus':
@@ -175,11 +178,7 @@ class Flow(Tool):
         else:
             self.log.error("{} is not a valid mode for Flow based framework".format(self.mode))
 
-
-
     def init_multiprocessus(self):
-        if self.gui :
-            if not self.connect_gui():  return False
         if not self.configure_ports() : return False
         if not self.configure_producer() : return False
         router_names =  self.configure_router()
@@ -209,31 +208,38 @@ class Flow(Tool):
         conf = self.get_step_conf(self.producer_step.name)
         module = conf['module']
         class_name = conf['class']
-        obj = dynamic_class_from_module(class_name, module, self)
+        coroutine = dynamic_class_from_module(class_name, module, self)
 
-        prod = ProducerSequential(obj, name=self.producer_step.name,
+        self.producer = ProducerSequential(coroutine, name=self.producer_step.name,
                                   connexions=self.producer_step.connexions,
                                   main_connexion_name = self.producer_step.main_connexion_name)
-        prod.init()
-        self.sequential_instances[self.producer_step.name] = prod
+
+        self.producer.init()
+        self.producer_step.processus.append(self.producer)
+        self.sequential_instances[self.producer_step.name] = self.producer
+
         #stages
         for step in (self.stager_steps ):
             conf = self.get_step_conf(step.name)
             module = conf['module']
             class_name = conf['class']
-            obj = dynamic_class_from_module(class_name, module, self)
-            stage = StagerSequential(obj,name = step.name, connexions=step.connexions,
+            coroutine = dynamic_class_from_module(class_name, module, self)
+            stage = StagerSequential(coroutine,name = step.name, connexions=step.connexions,
                                      main_connexion_name=step.main_connexion_name)
+            step.processus.append(stage)
             self.sequential_instances[step.name] = stage
+            self.stagers.append(stage)
             stage.init()
         #consumer
         conf = self.get_step_conf(self.consumer_step.name)
         module = conf['module']
         class_name = conf['class']
-        obj = dynamic_class_from_module(class_name, module, self)
-        obj.init()
-        self.sequential_instances[self.consumer_step.name] = obj
-
+        coroutine = dynamic_class_from_module(class_name, module, self)
+        self.consumer = ConsumerSequential(coroutine, name =  conf['name'])
+        self.consumer_step.processus.append(self.consumer)
+        self.consumer.init()
+        self.sequential_instances[self.consumer_step.name] = self.consumer
+        self.display_conf()
         return True
 
 
@@ -508,7 +514,7 @@ class Flow(Tool):
         self.log.info('------------------ Flow configuration ------------------')
         for step in  ([self.producer_step ] + self.stager_steps
             + [self.consumer_step]):
-            self.log.info('step {} '.format(step.name))
+            self.log.info('step {} (nb processus {}) '.format(step.name,str(step.nb_processus)))
             for next_step_name in step.next_steps_name:
                 self.log.info('--> next {} '.format(next_step_name))
         self.log.info('------------------ End Flow configuration ------------------')
@@ -535,14 +541,17 @@ class Flow(Tool):
 
     def start_sequential(self):
         self.log.info(self.sequential_instances)
-        prod_instance = self.sequential_instances[self.producer_step.name]
-        prod_gen = prod_instance.run()
+        self.producer = self.sequential_instances[self.producer_step.name]
+        prod_gen = self.producer.run()
+
         for prod_result in prod_gen:
+            if self.gui : self.send_status_to_gui()
             #TO DO: Add code to take in account producer shunt
             msg,destination = prod_result
             while msg != None:
                 stage = self.sequential_instances[destination]
                 stage_gen = stage.run(msg)
+                if self.gui : self.send_status_to_gui()
                 if stage_gen:
                     for result in stage_gen:
                         if result:
@@ -557,6 +566,12 @@ class Flow(Tool):
 
         self.log.info('=== SEQUENTIAL MODE END ===')
 
+
+    def send_status_to_gui(self):
+        levels_gui,conf_time = self.def_step_for_gui()
+        self.socket_pub.send_multipart(
+            [b'GUI_GRAPH', dumps([conf_time,
+            levels_gui])])
 
     def start_multiprocessus(self):
         ''' Start all Flow based framework processus.

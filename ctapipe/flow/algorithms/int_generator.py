@@ -14,7 +14,7 @@ class IntGenerator(Component):
 
     def run(self):
         for i in range(500):
-            self.log.info("IntGenerator send {}".format(i))
+            #self.log.info("IntGenerator send {}".format(i))
             yield i
             """
             if i%5 == 0 :
