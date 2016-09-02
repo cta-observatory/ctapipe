@@ -70,7 +70,7 @@ class RouterQueue(Process, Component):
                     if queue and next_available:
                         # get that oldest job and remove it form list
                         job = self.queue_jobs[name].pop(0)
-                        self.update_gui(name)
+                        if self.gui_address : self.update_gui(name)
                         # Get the next_stage for new job, and remove it from
                         # available list
                         next_stage = self.next_available_stages[name].pop(0)
@@ -103,7 +103,7 @@ class RouterQueue(Process, Component):
                             socket_router.send_multipart([address, b"", b"FULL"])
                         else:
                             queue.append(loads(request))
-                            self.update_gui(n)
+                            if self.gui_address : self.update_gui(n)
                             socket_router.send_multipart([address, b"", b"OK"])
                 nb_job_remains = 0
                 for n, queue in self.queue_jobs.items():

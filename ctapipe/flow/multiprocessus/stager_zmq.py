@@ -87,7 +87,7 @@ class StagerZmq(Process, Connexions):
                     #  Get the input from prev_stage
                     self.waiting_since.value = 0
                     self.running = True
-                    self.update_gui()
+                    if self.gui_address : self.update_gui()
                     request = self.sock_for_me.recv_multipart()
                     receiv_input = loads(request[0])
                     # do the job
@@ -104,7 +104,7 @@ class StagerZmq(Process, Connexions):
                     self.sock_for_me.send_multipart(request)
                     self._nb_job_done.value = self._nb_job_done.value + 1
                     self.running = False
-                    self.update_gui()
+                    if self.gui_address : self.update_gui()
                 else:
                     self.waiting_since.value = self.waiting_since.value+100 # 100 ms
             self.sock_for_me.close()

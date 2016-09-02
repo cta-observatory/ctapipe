@@ -68,7 +68,7 @@ class ProducerZmq(Process, Component, Connexions):
         if self.init() :
             generator = self.coroutine.run()
             if isinstance(generator,GeneratorType):
-                self.update_gui()
+                if self.gui_address : self.update_gui()
                 for result in generator:
                     self.running = False
                     self.nb_job_done += 1
@@ -77,11 +77,11 @@ class ProducerZmq(Process, Component, Connexions):
                         self.send_msg(msg,destination)
                     else:
                         self.send_msg(result)
-                    self.update_gui()
+                    if self.gui_address : self.update_gui()
                     self.running = True
-                    self.update_gui()
+                    if self.gui_address : self.update_gui()
                 self.running = False
-                self.update_gui()
+                if self.gui_address : self.update_gui()
             else:
                 print("Warning: Productor run method was not a python generator.")
                 print("Warning: Pipeline worked, but number of jobs done for producer stayed at 0.")

@@ -73,17 +73,17 @@ class ConsumerZMQ(Process, Component):
                         # do some 'work', update status and send to GUI
                         cmd = loads(request[0])
                         self.running = True
-                        self.update_gui()
+                        if self.gui_address :self.update_gui()
                         self.coroutine.run(cmd)
                         self.nb_job_done += 1
                         self.running = False
-                        self.update_gui()
+                        if self.gui_address :self.update_gui()
                         # send reply back to router/queuer
                         self.sock_reply.send_multipart(request)
                 except exception as e:
                     print('ERROR CONSUMER exception {}'.format(e))
                     break
-            self.update_gui()
+            if self.gui_address :self.update_gui()
             self.sock_reply.close()
             self.socket_pub.close()
         self.finish()
