@@ -480,7 +480,7 @@ class Flow(Tool):
         levels_for_gui = list()
         levels_for_gui.append(StagerRep(self.producer_step.name,
                             self.producer_step.next_steps_name,
-                            nb_job_done=self.producer.nb_job_done))
+                            nb_job_done=self.producer.nb_job_done,step_type=StagerRep.PRODUCER))
         for step in self.stager_steps:
             nb_job_done = 0
             for processus in step.processus:
@@ -490,7 +490,7 @@ class Flow(Tool):
                                   nb_processus = len(step.processus)))
 
         levels_for_gui.append(StagerRep(self.consumer_step.name,
-                                nb_job_done=self.consumer.nb_job_done))
+                                nb_job_done=self.consumer.nb_job_done,step_type=StagerRep.CONSUMER))
         return (levels_for_gui,time())
 
 
