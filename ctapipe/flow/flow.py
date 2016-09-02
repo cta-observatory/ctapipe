@@ -87,22 +87,22 @@ Parameters
 
 
 class FlowError(Exception):
-
     def __init__(self, msg):
         '''Mentions that an exception occurred in the Flow based framework.
         '''
         self.msg = msg
 
-
 class Flow(Tool):
-
     '''
-    Represents a staged pattern of stage. Each stage in the Flow based framework
-    is one or several processus containing a coroutine that receives messages
-    from the previous stage and	yields messages to be sent to the next stage
-    thanks to RouterQueue sequential_instances	'''
+    Main Flow-based framework implementation
+    Each stage in the Flow based framework is one or several processus
+    containing a coroutine that receives messages
+    from the previous stage and	return (or yields) messages to the next stage
+    thanks to RouterQueue '''
 
     description = 'run stages in multiprocessus Flow based framework'
+    gui = Bool(False, help='send status to GUI').tag(
+        config=True, allow_none=True)
     gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
         config=True, allow_none=True)
     mode = Unicode('sequential', help='Flow mode [sequential | multiprocessus]').tag(
@@ -118,12 +118,11 @@ class Flow(Tool):
                        'module': 'producer',  'prev': 'STAGE1'},
         help='producer description: name , module, class',
                 allow_none=False).tag(config=True)
-
-    zmq_ports = List([5555,5556,5557,5558,5559,5560,5561,5562,5563,5564,
-            5566,5567,5568,5569], help='ZMQ ports').tag(
+    ports_list = list(range(5555,5600,1))
+    zmq_ports = List(ports_list, help='ZMQ ports').tag(
         config=True, allow_none=True)
     aliases = Dict({'gui_address': 'Flow.gui_address',
-                    'mode':'Flow.mode'})
+                    'mode':'Flow.mode','gui': 'Flow.gui'})
     examples = ('prompt%> ctapipe-flow \
     --config=examples/brainstorm/flow/flow_py/example.json')
 
@@ -166,7 +165,6 @@ class Flow(Tool):
             self.log.error('Could not open Flow based framework config_file {}'
                            .format(self.config_file))
             return False
-        # Gererate steps(producers, stagerself.log.info(s and consumers) from configuration
         if not self.generate_steps():
             self.log.error("Error during steps generation")
             return False
@@ -180,14 +178,20 @@ class Flow(Tool):
 
 
     def init_multiprocessus(self):
-        if not self.connect_gui():  return False
+        if self.gui :
+            if not self.connect_gui():  return False
         if not self.configure_ports() : return False
         if not self.configure_producer() : return False
         router_names =  self.configure_router()
         if not self.configure_consumer(): return False
         if not self.configure_stagers(router_names) : return False
+        gui_address = None
+        if self.gui:
+            gui_address = self.gui_address
         self.router = RouterQueue(connexions=router_names,
-                             gui_address=self.gui_address)
+                             gui_address=gui_address)
+
+
         #self.def_processus_order()
         for step in self.stager_steps:
             for t in step.processus:
@@ -398,25 +402,28 @@ class Flow(Tool):
         if obj is None:
             raise FlowError('Cannot create instance of ' + name)
         obj.name = name
-
+        gui_address = None
+        if self.gui:
+            gui_address = self.gui_address
         if stage_type == self.STAGER:
+
             processus = StagerZmq(
                 obj, port_in, processus_name,
                 connexions=connexions,
                 main_connexion_name = main_connexion_name,
-                gui_address=self.gui_address)
+                gui_address=gui_address)
 
         elif stage_type == self.PRODUCER:
             processus = ProducerZmq(
                 obj, name, connexions=connexions,
                 main_connexion_name = main_connexion_name,
-                gui_address=self.gui_address)
+                gui_address=gui_address)
 
         elif stage_type == self.CONSUMER:
             processus = ConsumerZMQ(
                 obj,port_in,
                 name,
-                gui_address=self.gui_address)
+                gui_address=gui_address)
 
         else:
             raise FlowError(
@@ -558,9 +565,10 @@ class Flow(Tool):
         Stop all processus without loosing data
         '''
         # send Flow based framework cofiguration to an optinal GUI instance
-        levels_gui,conf_time = self.def_step_for_gui()
-        self.socket_pub.send_multipart(
-            [b'GUI_GRAPH', dumps([conf_time,levels_gui])])
+        if self.gui :
+            levels_gui,conf_time = self.def_step_for_gui()
+            self.socket_pub.send_multipart(
+                [b'GUI_GRAPH', dumps([conf_time,levels_gui])])
         # Start all processus
         self.consumer.start()
         self.router.start()
@@ -573,10 +581,11 @@ class Flow(Tool):
         # Ensure that all queues are empty and all processus are waiting for
         # new data since more that a specific tine
         while not self.wait_all_stagers(1000): # 1000 ms
-            levels_gui,conf_time = self.def_step_for_gui()
-            self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', dumps([conf_time,
-                 levels_gui])])
+            if self.gui :
+                levels_gui,conf_time = self.def_step_for_gui()
+                self.socket_pub.send_multipart(
+                    [b'GUI_GRAPH', dumps([conf_time,
+                    levels_gui])])
             sleep(1)
 
         # Now send stop to stage processus and wait they join
@@ -585,17 +594,19 @@ class Flow(Tool):
         # Stop consumer and router processus
         self.wait_and_send_levels(self.consumer)
         self.wait_and_send_levels(self.router)
-        levels_gui,conf_time = self.def_step_for_gui()
-        self.socket_pub.send_multipart(
+        if self.gui :
+            levels_gui,conf_time = self.def_step_for_gui()
+            self.socket_pub.send_multipart(
             [b'GUI_GRAPH', dumps([conf_time,
              levels_gui])])
         # Wait 1 s to be sure this message will be display
         sleep(1)
-        self.socket_pub.send_multipart(
+        if self.gui :
+            self.socket_pub.send_multipart(
             [b'FINISH', dumps('finish')])
-        self.socket_pub.close()
-        self.context.destroy()
-        self.context.term()
+            self.socket_pub.close()
+            self.context.destroy()
+            self.context.term()
 
 
     def wait_all_stagers(self,mintime):
