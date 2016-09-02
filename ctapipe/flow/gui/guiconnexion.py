@@ -20,6 +20,7 @@ class GuiConnexion(Thread, QtCore.QObject):
         MainWindow status bar to display information
     """
     message = QtCore.pyqtSignal(list)
+    reset_message = QtCore.pyqtSignal()
     def __init__(self, table_queue=None, gui_port=None, statusBar=None):
         Thread.__init__(self)
         QtCore.QObject.__init__(self)
@@ -70,13 +71,12 @@ class GuiConnexion(Thread, QtCore.QObject):
                 topic = receive[0]
                 msg = loads(receive[1])
                 if topic == b'FINISH':
-                    self.reset()
+                    self.flow_has_finish()
                 else:
                     self.update_full_state(topic,msg)
                     if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
                         # inform pipegui
                         self.message.emit(self.steps)
-
                         self.last_send_config = conf_time
             else:
                 if self.steps:
@@ -87,7 +87,9 @@ class GuiConnexion(Thread, QtCore.QObject):
         """
         Clear the self.steps list
         """
-        self.steps.clear()
+        self.steps = list()
+        self.reset_message.emit()
+
 
     def update_full_state(self,topic,msg):
         """
@@ -178,3 +180,10 @@ class GuiConnexion(Thread, QtCore.QObject):
 
     def finish(self):
         self.stop = True
+
+
+    def flow_has_finish(self):
+        for step in self.steps:
+            step.running=False
+        self.full_change(self.steps)
+        self.steps.clear()

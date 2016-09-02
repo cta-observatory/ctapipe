@@ -18,12 +18,14 @@ class CompareInt(Component):
 
     def run(self, val):
         self.log.info("CompareInt receive {}".format(val))
+        """
         for i in range(2000):
             foo = (val**i)
+        """
         if int(val) >= self.expected:
-            return (val,'CONSUMER')
+            return (val,'CONSUMERCONSUMERCONSUMERCONSUMERCONSUMER')
         else:
-            return (val,'AddInt')
+            return (val,'Add')
 
 
 

@@ -14,8 +14,10 @@ class Add(Component):
 
     def run(self, val):
         self.log.info("add receive {}".format(val))
+        """
         for i in range(2000):
             foo = (val**i)
+        """
         val+=1
         return val
 

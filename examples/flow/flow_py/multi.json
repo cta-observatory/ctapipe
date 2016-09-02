@@ -1,7 +1,7 @@
 {
   "version": 1,
   "Flow": {
-      "producer_conf": { "name" : "IntGenerator", "module": "ctapipe.flow.algorithms.int_generator",
+      "producer_conf": { "name" : "IntGenerator1234567891011121314151617", "module": "ctapipe.flow.algorithms.int_generator",
            "class": "IntGenerator","next_steps" : "Odd,Pair,Mod"},
       "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.flow.algorithms.string_writer",
                 "class": "StringWriter"},
