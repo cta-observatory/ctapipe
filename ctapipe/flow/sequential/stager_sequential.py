@@ -90,31 +90,31 @@ class StagerSequential():
         else:
             return result,destination
 
-def init_connexions(self):
-    """
-    Initialise zmq sockets.
-    Because this class is s Process, This method must be call in the run
-     method to be hold by the correct processus.
-    """
-    self.context = zmq.Context()
-    Connexions.init_connexions(self)
-    # Socket to talk to GUI
-    self.socket_pub = self.context.socket(zmq.PUB)
-    if self.gui_address is not None:
-        try:
-            self.socket_pub.connect("tcp://" + self.gui_address)
-        except zmq.error.ZMQError as e:
-            print("Error {} tcp://{}".format(e, self.gui_address))
-            return False
-    return True
+    def init_connexions(self):
+        """
+        Initialise zmq sockets.
+        Because this class is s Process, This method must be call in the run
+         method to be hold by the correct processus.
+        """
+        self.context = zmq.Context()
+        Connexions.init_connexions(self)
+        # Socket to talk to GUI
+        self.socket_pub = self.context.socket(zmq.PUB)
+        if self.gui_address is not None:
+            try:
+                self.socket_pub.connect("tcp://" + self.gui_address)
+            except zmq.error.ZMQError as e:
+                print("Error {} tcp://{}".format(e, self.gui_address))
+                return False
+        return True
 
-def update_gui(self):
-    """
-    send it's status to GUI
-    """
-    msg = [self.name, self.running, self.nb_job_done]
-    self.socket_pub.send_multipart(
-        [b'GUI_PRODUCER_CHANGE', dumps(msg)])
+    def update_gui(self):
+        """
+        send it's status to GUI
+        """
+        msg = [self.name, self.running, self.nb_job_done]
+        self.socket_pub.send_multipart(
+            [b'GUI_PRODUCER_CHANGE', dumps(msg)])
 
     def finish(self):
         """
