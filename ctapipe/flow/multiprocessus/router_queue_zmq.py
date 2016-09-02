@@ -35,6 +35,7 @@ class RouterQueue(Process, Component):
             GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
+        Component.__init__(self,None)
         self.gui_address = gui_address
         # list of available stages which receive next job
         # This list allow to use next_stage in a LRU (Last recently used)
