@@ -13,7 +13,7 @@ CHANGE LOG:
 - Higher order moments need not be explicitly defined. Only mean and size parameters are enough to define correlations of all order. 
   Implemented in the same way as in MAGIC.
 - Third and fourth order correlations implemented in hillas_1.
-- Sanity checks for size, x_y correlation, length, width.
+- Sanity checks for size, x_y correlation (HillasParameterizationError), length, width.
 - Parameter psi introduced in hillas_parameters_1: angle between ellipse major axis and camera x-axis.
 - Correction in implementation of miss parameter of hillas_parameters_1. Previous implementation missed a square root factor.
 - Correction in implementation of length, width in hillas_parameters_2. Previous version missed a 2 in the denominator.
