@@ -38,6 +38,7 @@ General documentation
 
   getting_started/index
   development/index
+  tools/index
   */index
 
   

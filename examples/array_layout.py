@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from ctapipe.visualization import ArrayDisplay
 from ctapipe.utils import datasets
 

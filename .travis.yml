@@ -8,9 +8,8 @@ env:
         # The following versions are the 'default' for tests, unless
         # overidden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
-        - NUMPY_VERSION=1.9
         - ASTROPY_VERSION=stable
-        - CONDA_INSTALL='conda install -c astropy-ci-extras --yes'
+        - CONDA_INSTALL='conda install --yes'
         - PIP_INSTALL='pip install'
         - INSTALL_OPTIONAL=true
     matrix:
@@ -19,31 +18,22 @@ env:
 matrix:
     include:
 
-        # Do a coverage test in Python 3.
-        - python: 3.4
-          env: SETUP_CMD='test --coverage'
-
-        # Check for sphinx doc build warnings - we do this first because it
-        # may run for a long time
-        - python: 3.4
-          env: SETUP_CMD='build_sphinx -w'
-
         # Try with optional dependencies disabled
-        - python: 3.4
+        - python: 3.5
           env: SETUP_CMD='test' INSTALL_OPTIONAL=false
-
-        # Try Astropy development version
-        - python: 3.4
-          env: ASTROPY_VERSION=development SETUP_CMD='test'
-
-        # Try all python versions with the latest numpy
-        - python: 3.4
+                  #
+        # Normal tests
+        - python: 3.5
           env: SETUP_CMD='test'
 
-        # Currently broken: https://github.com/cta-observatory/ctapipe/pull/33#issuecomment-153979923
-        # Try older numpy versions
-#        - python: 3.4
-#          env: NUMPY_VERSION=1.8 SETUP_CMD='test'
+        # Do a coverage test in Python 3.
+        - python: 3.5
+          env: SETUP_CMD='test --coverage'
+
+        # Check for sphinx doc build warnings
+        - python: 3.5
+          env: SETUP_CMD='build_sphinx -w'
+
 
 before_install:
 
@@ -54,11 +44,7 @@ before_install:
     - export PYTHONIOENCODING=UTF8
 
     # Install miniconda following instructions at http://conda.pydata.org/docs/travis.html
-    - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
-      else
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      fi
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
     - hash -r
@@ -77,13 +63,15 @@ before_install:
 install:
 
     # CONDA
-    - conda create --yes -n test -c astropy-ci-extras python=$TRAVIS_PYTHON_VERSION
+    - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
     - conda config --add channels http://conda.anaconda.org/jacquemier
+    - conda config --add channels astropy-ci-extras
 
     # CORE DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy=$NUMPY_VERSION scipy pytest pip Cython jinja2; fi
+    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
+    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v0.5.5.tar.gz; fi
 
 
     # ASTROPY
@@ -94,13 +82,10 @@ install:
     - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib pyhessio; fi
+    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib ; fi
 
     # COVERAGE DEPENDENCIES
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls; $CONDA_INSTALL pyhessio; fi
-
-    # UNIT TESTS DEPENDENCIES
-    - if [[ $SETUP_CMD == test* ]]; then $CONDA_INSTALL pyhessio; fi
+    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls;  fi
 
 
 script:

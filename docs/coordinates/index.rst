@@ -9,11 +9,12 @@ Coordinates
 Introduction
 ============
 
-`ctapipe.coordinates` contains coordinate frame definitions and coordinate
-transformation routines.
-It is built on `astropy.coordinates`, which internally use the ERFA
-coordinate transformation library, the open-source-licensed fork of the IAU
-SOFA system. 
+`ctapipe.coordinates` contains coordinate frame definitions and
+coordinate transformation routines that are associated with the
+reconstruction of Cherenkov telescope events.  It is built on
+`astropy.coordinates`, which internally use the ERFA coordinate
+transformation library, the open-source-licensed fork of the IAU SOFA
+system.
 
 Maybe we'll use the `gwcs <http://gwcs.readthedocs.org/en/latest/>`__ package
 for generalised world coordinate transformations to implement some coordinate
@@ -30,9 +31,16 @@ TODO:
 Getting Started
 ===============
 
-Coordinate frames and transformations aren't implemented yet.
+Coordinate frames and transformations are implemented using the
+`astropy.coordinates` framework, which uses the ERFA (open-license form
+of the IAU SOFA library) internalyl for astronomical math.
 
-Except for this super-simple example of dividing by the focal length ...
+The coordinate library defines a set of *frames*, which represent
+different coordinate reprentations. Coordiantes sohuld be described
+using an `astropy.coordinates.SkyCoord` in the appropriate frame.
+
+Example
+-------
 
 .. code-block:: python
 
