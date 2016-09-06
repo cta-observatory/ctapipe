@@ -13,12 +13,10 @@ function might be different for each camera type.
 
 import numpy as np
 from ctapipe.io import CameraGeometry
-import logging
+from astropy import log
 from scipy import interp
 from .integrators import integrator_switch, integrators_requiring_geom, \
     integrator_dict
-
-logger = logging.getLogger(__name__)
 
 
 def set_integration_correction(event, telid, params):
@@ -50,7 +48,8 @@ def set_integration_correction(event, telid, params):
         if 'window' not in params or 'shift' not in params:
             raise KeyError()
     except KeyError:
-        logger.exception("[ERROR] missing required params")
+        log.exception("[ERROR] missing required params")
+        raise
 
     nchan = event.dl0.tel[telid].num_channels
     nsamples = event.dl0.tel[telid].num_samples
@@ -126,6 +125,8 @@ def calibrate_amplitude_mc(event, charge, telid, params):
     if "calib_scale" not in params:
         # Store default value into mutable dict, so it is preserved
         params["calib_scale"] = 0.92  # Correct value for HESS
+        log.info("[calib] Default calib_scale set: {}"
+                 .format(params["calib_scale"]))
     calib_scale = params["calib_scale"]
 
     """
@@ -181,6 +182,9 @@ def integration_mc(event, telid, params, geom=None):
         in the integration window
     data_ped : ndarray
         pedestal subtracted data
+    peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel and channel
     """
 
     # Obtain the data
@@ -191,22 +195,24 @@ def integration_mc(event, telid, params, geom=None):
     int_dict, inverted = integrator_dict()
     if geom is None and inverted[params['integrator']] in \
             integrators_requiring_geom():
+        log.debug("[calib] Guessing camera geometry")
         geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                     event.meta.optical_foclen[telid])
+        log.debug("[calib] Camera geometry found")
 
     # Integrate
-    integration, integration_window = integrator_switch(data_ped, geom, params)
+    integration, integration_window, peakpos = \
+        integrator_switch(data_ped, geom, params)
 
     # Get the integration correction
     int_corr = set_integration_correction(event, telid, params)
-    window = sum(integration_window[0][0])
-    if window == nsamples:
+    if peakpos[0] is None:
         int_corr = 1
 
     # Convert integration into charge
     charge = np.round(integration * int_corr)
 
-    return charge, integration_window, data_ped
+    return charge, integration_window, data_ped, peakpos
 
 
 def calibrate_mc(event, telid, params, geom=None):
@@ -249,17 +255,29 @@ def calibrate_mc(event, telid, params, geom=None):
 
     Returns
     -------
-    pe : ndarray
-        array of pixels with integrated charge [photo-electrons]
+    channel_pe : ndarray
+        array of pixels with integrated charge [photo-electrons] for the
+        chosen channel
         (pedestal substracted)
     window : ndarray
         bool array of same shape as data. Specified which samples are included
         in the integration window
     data_ped : ndarray
         pedestal subtracted data
+    channel_peakpos : ndarray
+        position of the peak as determined by the peak-finding algorithm
+        for each pixel, and for the channel that has been chosen to be used.
     """
 
-    charge, window, data_ped = integration_mc(event, telid, params, geom)
+    charge, window, data_ped, peakpos = \
+        integration_mc(event, telid, params, geom)
     pe = calibrate_amplitude_mc(event, charge, telid, params)
+    if 'clip_amp' in params:
+        pe[np.where(pe > params['clip_amp'])] = params['clip_amp']
 
-    return pe, window, data_ped
+    # Decide between HG and LG channel
+    # TODO: add actual logic for decision, currently uses only HG
+    channel_pe = pe[0]
+    channel_peakpos = peakpos[0]
+
+    return channel_pe, window, data_ped, channel_peakpos

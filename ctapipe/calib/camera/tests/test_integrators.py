@@ -13,7 +13,6 @@ def get_test_parameters():
                   "window": 7,
                   "shift": 3,
                   "sigamp": [2, 4],
-                  "clip_amp": 0,
                   "lwt": 0}
     return parameters
 
@@ -31,33 +30,40 @@ def test_integrator_switch():
     params = get_test_parameters()
     nsamples = event.dl0.tel[telid].num_samples
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    ped = event.dl0.tel[telid].pedestal
+    data_ped = data - np.atleast_3d(ped/nsamples)
     geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                 event.meta.optical_foclen[telid])
 
     params['integrator'] = 'full_integration'
-    integration, window = integrator_switch(data, geom, params)
-    assert integration[0][0] == 3114
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
+    assert integration[0][0] == 149
     assert sum(window[0][0]) == nsamples
+    assert peakpos[0] is None
 
     params['integrator'] = 'simple_integration'
-    integration, window = integrator_switch(data, geom, params)
-    assert integration[0][0] == 762
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
+    assert integration[0][0] == 70
     assert sum(window[0][0]) == params['window']
+    assert peakpos[0] is None
 
     params['integrator'] = 'global_peak_integration'
-    integration, window = integrator_switch(data, geom, params)
-    assert integration[0][0] == 750
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
+    assert integration[0][0] == 58
     assert sum(window[0][0]) == params['window']
+    assert peakpos[0][0] == 14
 
     params['integrator'] = 'local_peak_integration'
-    integration, window = integrator_switch(data, geom, params)
-    assert integration[0][0] == 768
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
+    assert integration[0][0] == 76
     assert sum(window[0][0]) == params['window']
+    assert peakpos[0][0] == 13
 
     params['integrator'] = 'nb_peak_integration'
-    integration, window = integrator_switch(data, geom, params)
-    assert integration[0][0] == 628
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
+    assert integration[0][0] == -64
     assert sum(window[0][0]) == params['window']
+    assert peakpos[0][0] == 20
 
 
 def test_full_integration():
@@ -65,16 +71,17 @@ def test_full_integration():
     event = get_test_event()
     nsamples = event.dl0.tel[telid].num_samples
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    ped = event.dl0.tel[telid].pedestal
+    data_ped = data - np.atleast_3d(ped/nsamples)
 
-    integration, window = full_integration(data)
-    assert integration[0][0] == 3114
+    data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
+    integration, window, peakpos = full_integration(data_ped)
+    assert integration[0][0] == 149
+    assert integration[1][0] == 149
     assert sum(window[0][0]) == nsamples
-
-    # Test 2 channel functionality
-    data = np.array([data[0], data[0]])
-    integration, window = full_integration(data)
-    assert integration[1][0] == 3114
     assert sum(window[1][0]) == nsamples
+    assert peakpos[0] is None
+    assert peakpos[1] is None
 
 
 def test_simple_integration():
@@ -82,16 +89,18 @@ def test_simple_integration():
     event = get_test_event()
     params = get_test_parameters()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    ped = event.dl0.tel[telid].pedestal
+    nsamples = event.dl0.tel[telid].num_samples
+    data_ped = data - np.atleast_3d(ped/nsamples)
 
-    integration, window = simple_integration(data, params)
-    assert integration[0][0] == 762
+    data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
+    integration, window, peakpos = simple_integration(data_ped, params)
+    assert integration[0][0] == 70
+    assert integration[1][0] == 70
     assert sum(window[0][0]) == params['window']
-
-    # Test 2 channel functionality
-    data = np.array([data[0], data[0]])
-    integration, window = simple_integration(data, params)
-    assert integration[1][0] == 762
     assert sum(window[1][0]) == params['window']
+    assert peakpos[0] is None
+    assert peakpos[1] is None
 
 
 def test_global_peak_integration():
@@ -99,16 +108,18 @@ def test_global_peak_integration():
     event = get_test_event()
     params = get_test_parameters()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    ped = event.dl0.tel[telid].pedestal
+    nsamples = event.dl0.tel[telid].num_samples
+    data_ped = data - np.atleast_3d(ped/nsamples)
 
-    integration, window = global_peak_integration(data, params)
-    assert integration[0][0] == 750
+    data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
+    integration, window, peakpos = global_peak_integration(data_ped, params)
+    assert integration[0][0] == 58
+    assert integration[1][0] == 58
     assert sum(window[0][0]) == params['window']
-
-    # Test 2 channel functionality
-    data = np.array([data[0], data[0]])
-    integration, window = global_peak_integration(data, params)
-    assert integration[1][0] == 750
     assert sum(window[1][0]) == params['window']
+    assert peakpos[0][0] == 14
+    assert peakpos[1][0] == 14
 
 
 def test_local_peak_integration():
@@ -116,16 +127,18 @@ def test_local_peak_integration():
     event = get_test_event()
     params = get_test_parameters()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    ped = event.dl0.tel[telid].pedestal
+    nsamples = event.dl0.tel[telid].num_samples
+    data_ped = data - np.atleast_3d(ped/nsamples)
 
-    integration, window = local_peak_integration(data, params)
-    assert integration[0][0] == 768
+    data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
+    integration, window, peakpos = local_peak_integration(data_ped, params)
+    assert integration[0][0] == 76
+    assert integration[1][0] == 76
     assert sum(window[0][0]) == params['window']
-
-    # Test 2 channel functionality
-    data = np.array([data[0], data[0]])
-    integration, window = local_peak_integration(data, params)
-    assert integration[1][0] == 768
     assert sum(window[1][0]) == params['window']
+    assert peakpos[0][0] == 13
+    assert peakpos[1][0] == 13
 
 
 def test_nb_peak_integration():
@@ -133,15 +146,17 @@ def test_nb_peak_integration():
     event = get_test_event()
     params = get_test_parameters()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    ped = event.dl0.tel[telid].pedestal
+    nsamples = event.dl0.tel[telid].num_samples
+    data_ped = data - np.atleast_3d(ped/nsamples)
     geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                 event.meta.optical_foclen[telid])
 
-    integration, window = nb_peak_integration(data, geom, params)
-    assert integration[0][0] == 628
+    data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
+    integration, window, peakpos = nb_peak_integration(data_ped, geom, params)
+    assert integration[0][0] == -64
+    assert integration[1][0] == -64
     assert sum(window[0][0]) == params['window']
-
-    # Test 2 channel functionality
-    data = np.array([data[0], data[0]])
-    integration, window = nb_peak_integration(data, geom, params)
-    assert integration[1][0] == 628
     assert sum(window[1][0]) == params['window']
+    assert peakpos[0][0] == 20
+    assert peakpos[1][0] == 20
