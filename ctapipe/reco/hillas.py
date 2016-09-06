@@ -93,8 +93,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     #Sanity check1:
     if size == 0:
-       print ("Empty pixels!")
-       sys.exit(1)
+        raise(HillasParameterizationError("Empty pixels! Cannot calculate image parameters. Exiting..."))
 
     mean_x = np.sum(image * pix_x) / size
     mean_y = np.sum(image * pix_y) / size
