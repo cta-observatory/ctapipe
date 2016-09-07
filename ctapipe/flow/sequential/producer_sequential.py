@@ -1,12 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-from time import sleep
-from time import time
-import zmq
-import types
-import pickle
-from ctapipe.flow.multiprocessus.connexions import Connexions
-
 
 class ProducerSequential():
 
@@ -23,7 +16,6 @@ class ProducerSequential():
             define next available steps
         """
         self.name = name
-        # Set coroutine
         self.coroutine = coroutine
         self.main_connexion_name = main_connexion_name
         self.connexions = connexions
@@ -44,19 +36,13 @@ class ProducerSequential():
             return False
         if self.coroutine.init() == False:
             return False
-
         return True
 
     def run(self):
         gen = self.coroutine.run()
         for result in gen:
-
             msg, destination = self.get_destination_msg_from_result(result)
             self.nb_job_done+=1
-            #if self.next_step_name_to_send == None:
-            #    next_to_send = self.main_connexion_name
-            #else: next_to_send = self.next_step_name_to_send
-            #self.next_step_name_to_send = self.main_connexion_name
             yield (msg,destination)
 
     def finish(self):
@@ -65,11 +51,10 @@ class ProducerSequential():
         self.coroutine.finish()
         return True
 
-
     def get_destination_msg_from_result(self,result):
         """
-        If result is a tuple, check if last tuple elem is a valid next step.
-        If yes, return a destination defined to  the last tuple elem and send result without the destination
+        If type(result) is tuple, check if last tuple elem is a valid next step.
+        If yes, return a destination defined to the last tuple elem and send result without the destination
         If no return None as destination
         Parameter:
         ----------

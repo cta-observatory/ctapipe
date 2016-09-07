@@ -15,10 +15,12 @@ class OtherDump(Component):
         self.log.info("--- OtherDump init ---")
         return True
 
-    def run(self, raw_camera_data):
-        if raw_camera_data != None:
-            self.log.debug("OtherDump receive {}".format(raw_camera_data))
-            return('OtherDump START-> {} <- Otherump END'.format(str(raw_camera_data)))
+    def run(self, event):
+        self.log.debug("OtherDump receive {}".format(event))
+        if event != None:
+            return('OtherDump START-> {} <- Otherump END'.format(str(event)))
+
+
 
     def finish(self):
         self.log.info("--- OtherDump finish ---")

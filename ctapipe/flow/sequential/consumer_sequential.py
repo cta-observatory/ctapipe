@@ -1,13 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-from time import sleep
-from time import time
-import zmq
-import types
-
-import pickle
-from ctapipe.flow.multiprocessus.connexions import Connexions
-
 
 class ConsumerSequential():
 
@@ -22,7 +14,6 @@ class ConsumerSequential():
         coroutine : Class instance that contains init, run and finish methods
         """
         self.name = name
-        # Set coroutine
         self.coroutine = coroutine
         self.running = False
         self.nb_job_done = 0
