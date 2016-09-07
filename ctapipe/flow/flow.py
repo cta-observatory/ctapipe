@@ -27,6 +27,7 @@ from ctapipe.flow.sequential.stager_sequential import StagerSequential
 from ctapipe.flow.sequential.consumer_sequential import ConsumerSequential
 from ctapipe.flow.gui.graphwidget import StagerRep
 from ctapipe.utils import dynamic_class_from_module
+from ctapipe.utils.dynamic_class import DynamicClassError
 from ctapipe.core import Tool
 
 __all__ = ['Flow', 'FlowError']
@@ -208,22 +209,29 @@ class Flow(Tool):
         conf = self.get_step_conf(self.producer_step.name)
         module = conf['module']
         class_name = conf['class']
-        coroutine = dynamic_class_from_module(class_name, module, self)
+        try:
+            coroutine = dynamic_class_from_module(class_name, module, self)
+        except DynamicClassError as e:
+            self.log.error('{}'.format(e))
+            return False
 
         self.producer = ProducerSequential(coroutine, name=self.producer_step.name,
                                   connexions=self.producer_step.connexions,
                                   main_connexion_name = self.producer_step.main_connexion_name)
-
         self.producer.init()
         self.producer_step.processus.append(self.producer)
         self.sequential_instances[self.producer_step.name] = self.producer
-
         #stages
         for step in (self.stager_steps ):
             conf = self.get_step_conf(step.name)
             module = conf['module']
             class_name = conf['class']
-            coroutine = dynamic_class_from_module(class_name, module, self)
+            try:
+                coroutine = dynamic_class_from_module(class_name, module, self)
+            except DynamicClassError as e:
+                self.log.error('{}'.format(e))
+                return False
+
             stage = StagerSequential(coroutine,name = step.name, connexions=step.connexions,
                                      main_connexion_name=step.main_connexion_name)
             step.processus.append(stage)
@@ -234,7 +242,11 @@ class Flow(Tool):
         conf = self.get_step_conf(self.consumer_step.name)
         module = conf['module']
         class_name = conf['class']
-        coroutine = dynamic_class_from_module(class_name, module, self)
+        try:
+            coroutine = dynamic_class_from_module(class_name, module, self)
+        except DynamicClassError as e:
+            self.log.error('{}'.format(e))
+            return False
         self.consumer = ConsumerSequential(coroutine, name =  conf['name'])
         self.consumer_step.processus.append(self.consumer)
         self.consumer.init()

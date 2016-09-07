@@ -29,7 +29,7 @@ class ShuntTelescope(Component):
                 self.geom_dict[cam_dimensions] = geom
             camera_id = self.geom_dict[cam_dimensions].cam_id
             if camera_id == 'LSTCam':
-                return (event,'LSTDump')
+                return (event,'LSTCalibration')
 
 
     def finish(self):
