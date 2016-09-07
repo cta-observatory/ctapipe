@@ -12,15 +12,15 @@
 
                         {"name": "OtherDump", "class": "OtherDump",
                                         "module": "ctapipe.flow.algorithms.other_dump",
-                                        "next_steps" : "StringWriter", "nb_process" : 2},
+                                        "next_steps" : "StringWriter", "nb_process" : 1},
                         {"name": "LSTDump", "class": "LSTDump",
                                         "module": "ctapipe.flow.algorithms.lst_dump",
-                                        "next_steps" : "StringWriter", "nb_process" : 1, "queue_limit" : 100}
+                                        "next_steps" : "StringWriter", "nb_process" : 2}
 
                     ]
   },
 
-  "SimTelArrayReader": { "filename": "gamma_test.simtel.gz"},
+  "SimTelArrayReader": { "filename": "/home/jacquem/workspace/data/PROD2/gamma_20deg_0deg_run31951___cta-prod2_desert-1640m-Aar.simtel.gz"},
   "StringWriter": { "filename": "/tmp/string_writter.txt"}
 
 }

@@ -141,8 +141,6 @@ class Flow(Tool):
     consumer_step = None
     step_processus = list()
     router_processus = None
-    context = zmq.Context()
-    socket_pub = context.socket(zmq.PUB)
     levels_for_gui = list()
     ports = dict()
 
@@ -170,6 +168,8 @@ class Flow(Tool):
             self.log.error("Error during steps generation")
             return False
         if self.gui :
+            self.context = zmq.Context()
+            self.socket_pub = self.context.socket(zmq.PUB)
             if not self.connect_gui():  return False
         if self.mode == 'sequential':
             return self.init_sequential()
@@ -514,7 +514,10 @@ class Flow(Tool):
         self.log.info('------------------ Flow configuration ------------------')
         for step in  ([self.producer_step ] + self.stager_steps
             + [self.consumer_step]):
-            self.log.info('step {} (nb processus {}) '.format(step.name,str(step.nb_processus)))
+            if self.mode == 'multiprocessus':
+                self.log.info('step {} (nb processus {}) '.format(step.name,str(step.nb_processus)))
+            else:
+                self.log.info('step {}'.format(step.name))
             for next_step_name in step.next_steps_name:
                 self.log.info('--> next {} '.format(next_step_name))
         self.log.info('------------------ End Flow configuration ------------------')
@@ -540,7 +543,6 @@ class Flow(Tool):
             self.start_sequential()
 
     def start_sequential(self):
-        self.log.info(self.sequential_instances)
         self.producer = self.sequential_instances[self.producer_step.name]
         prod_gen = self.producer.run()
 
@@ -563,6 +565,14 @@ class Flow(Tool):
 
         for step in self.sequential_instances.values():
             step.finish()
+
+
+        if self.gui :
+            self.socket_pub.send_multipart(
+            [b'FINISH', dumps('finish')])
+            self.socket_pub.close()
+            self.context.destroy()
+            self.context.term()
 
         self.log.info('=== SEQUENTIAL MODE END ===')
 
@@ -653,8 +663,9 @@ class Flow(Tool):
         while True:
             levels_gui,conf_time = self.def_step_for_gui()
             processus_to_wait.join(timeout=.1)
-            self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
+            if self.gui :
+                self.socket_pub.send_multipart(
+                    [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
             if not processus_to_wait.is_alive():
                 return
 

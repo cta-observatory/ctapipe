@@ -1,13 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-from time import sleep
-from time import time
-import zmq
-import types
-
-import pickle
-from ctapipe.flow.multiprocessus.connexions import Connexions
-
+from types import GeneratorType
 
 class StagerSequential():
 
@@ -24,13 +17,11 @@ class StagerSequential():
             define next available steps
         """
         self.name = name
-        # Set coroutine
         self.coroutine = coroutine
         self.main_connexion_name = main_connexion_name
         self.connexions = connexions
         self.running = False
         self.nb_job_done = 0
-
 
     def init(self):
         """
@@ -45,13 +36,11 @@ class StagerSequential():
             return False
         if self.coroutine.init() == False:
             return False
-
-
         return True
 
     def run(self,inputs=None):
         result = self.coroutine.run(inputs)
-        if isinstance(result, types.GeneratorType):
+        if isinstance(result, GeneratorType):
             for val in result:
                 msg, destination = self.get_destination_msg_from_result(val)
                 yield (msg,destination)
@@ -59,7 +48,6 @@ class StagerSequential():
             msg, destination = self.get_destination_msg_from_result(result)
             yield (msg,destination)
         self.nb_job_done+=1
-
 
     def get_destination_msg_from_result(self,result):
         """
@@ -73,7 +61,6 @@ class StagerSequential():
         Return:
         -------
         msg, destination
-
         """
         destination = self.main_connexion_name
         if isinstance(result,tuple):
@@ -89,32 +76,6 @@ class StagerSequential():
                 return result,destination
         else:
             return result,destination
-
-    def init_connexions(self):
-        """
-        Initialise zmq sockets.
-        Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
-        """
-        self.context = zmq.Context()
-        Connexions.init_connexions(self)
-        # Socket to talk to GUI
-        self.socket_pub = self.context.socket(zmq.PUB)
-        if self.gui_address is not None:
-            try:
-                self.socket_pub.connect("tcp://" + self.gui_address)
-            except zmq.error.ZMQError as e:
-                print("Error {} tcp://{}".format(e, self.gui_address))
-                return False
-        return True
-
-    def update_gui(self):
-        """
-        send it's status to GUI
-        """
-        msg = [self.name, self.running, self.nb_job_done]
-        self.socket_pub.send_multipart(
-            [b'GUI_PRODUCER_CHANGE', dumps(msg)])
 
     def finish(self):
         """

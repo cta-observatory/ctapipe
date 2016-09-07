@@ -119,6 +119,8 @@ def main():
                                help='Debug mode')
 
     args = parser.parse_args()
+    print('DEBUG type(args) {}'.format(type(args)))
+    print('DEBUG args {}'.format(args))
     params = calibration_parameters(args)
 
     if args.quiet:
@@ -145,6 +147,7 @@ def main():
     geom_dict = {}
 
     # Calibrate events and fill geom_dict
+
     calibrated_source = calibrate_source(source, params, geom_dict)
 
     fig = plt.figure(figsize=(16, 7))
