@@ -8,14 +8,14 @@
                 "class": "StringWriter"},
       "stagers_conf" : [ {"name": "ShuntTelescope", "class": "ShuntTelescope",
                                           "module": "ctapipe.flow.algorithms.shunt_telescope",
-                                          "next_steps" : "OtherDump,LSTDump" },
+                                          "next_steps" : "OtherDump,LSTCalibration" },
 
                         {"name": "OtherDump", "class": "OtherDump",
                                         "module": "ctapipe.flow.algorithms.other_dump",
                                         "next_steps" : "StringWriter", "nb_process" : 1},
-                        {"name": "LSTDump", "class": "LSTDump",
-                                        "module": "ctapipe.flow.algorithms.lst_dump",
-                                        "next_steps" : "StringWriter", "nb_process" : 2}
+                        {"name": "LSTCalibration", "class": "LSTCalibration",
+                                        "module": "ctapipe.flow.algorithms.lst_calib",
+                                        "next_steps" : "StringWriter", "nb_process" : 1}
 
                     ]
   },
