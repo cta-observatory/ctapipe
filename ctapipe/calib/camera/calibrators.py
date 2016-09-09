@@ -165,7 +165,7 @@ def calibrate_event(event, params, geom_dict=None):
 
     # Add dl1 to the event container (if it hasn't already been added)
     try:
-        calibrated.add_item("dl1", RawData)
+        calibrated.add_item("dl1", RawData())
         calibrated.dl1.run_id = event.dl0.run_id
         calibrated.dl1.event_id = event.dl0.event_id
         calibrated.dl1.tels_with_data = event.dl0.tels_with_data

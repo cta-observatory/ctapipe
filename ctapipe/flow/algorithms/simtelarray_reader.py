@@ -17,7 +17,7 @@ class SimTelArrayReader(Component):
         self.log.info("--- SimTelArrayReader init {}---".format(self.filename))
         try:
             in_file = get_path(self.filename)
-            self.source = hessio_event_source(in_file,max_events=10)
+            self.source = hessio_event_source(in_file,max_events=2)
             self.log.info('{} successfully opened {}'.format(self.filename,self.source))
         except:
             self.log.error('could not open ' + in_file)

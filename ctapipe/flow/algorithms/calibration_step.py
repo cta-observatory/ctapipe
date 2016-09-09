@@ -9,6 +9,7 @@ from traitlets import Float
 from traitlets import List
 import numpy as np
 
+
 class CalibrationStep(Component):
     """CalibrationStep` class represents a Stage for pipeline.
         it dumps RawCameraData contents to a string
@@ -32,6 +33,7 @@ class CalibrationStep(Component):
         pe. Identical to global variable CALIB_SCALE in reconstruct.c in \
         hessioxxx software package.').tag(config=True)
 
+
     def init(self):
         self.log.info("--- CalibrationStep init ---")
         self.parameters = dict()
@@ -44,6 +46,7 @@ class CalibrationStep(Component):
 
         if self.integration_clip_amp != None:
                 self.parameters['clip_amp'] = self.integration_clip_amp
+
         for key, value in sorted(self.parameters.items()):
             self.log.info("[{}] {}".format(key, value))
         return True
@@ -55,8 +58,7 @@ class CalibrationStep(Component):
             for tel_id in calibrated_event.dl0.tels_with_data:
                 signals = calibrated_event.dl1.tel[tel_id].pe_charge
                 cmaxmin = (max(signals) - min(signals))
-            pp = None
-            return ([calibrated_event,geom_dict,pp])
+            return ([calibrated_event,geom_dict])
 
     def finish(self):
         self.log.info("--- CalibrationStep finish ---")
