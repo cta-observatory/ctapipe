@@ -3,6 +3,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import correlate1d
+from astropy import units as u
 
 __all__ = ['MuonLineIntegrate']
 
@@ -49,8 +50,8 @@ class MuonLineIntegrate(object):
         """
 
         #First convert vector on mirror to a line
-        x1,y1 = self.dir_to_line(impact_x,impact_y, angle,length=100)
-        line = [(impact_x, impact_y), (x1,y1)]
+        x1,y1 = self.dir_to_line(impact_x,impact_y, angle,length=100*u.m)
+        line = [(impact_x.value, impact_y.value), (x1.value,y1.value)]
 
         #Create shapely line
         shapely_line = LineString(line)
@@ -73,7 +74,7 @@ class MuonLineIntegrate(object):
         #line integral is the difference of these two
         return line_intersect.length - length_hole
 
-    def dir_to_line(self,centre_x,centre_y,angle, length=500):
+    def dir_to_line(self,centre_x,centre_y,angle, length=500*u.m):
         """
         Convert vector style definition of line (point + angle) to two points needed
         for shapely lines
@@ -90,7 +91,6 @@ class MuonLineIntegrate(object):
         """
         del_x = length * np.sin(angle)
         del_y = length * np.cos(angle)
-
         x1 = centre_x + del_x
         y1 = centre_y + del_y
 
@@ -111,8 +111,8 @@ class MuonLineIntegrate(object):
 
         #Currently this is don't with a loop, should be made more pythonic later!
         bins = int((2 * math.pi * radius)/self.pixel_width) * self.oversample_bins
-        ang = np.linspace(0, 2*math.pi,bins)
-        l = np.zeros(bins)
+        ang = np.linspace(-2*math.pi, 2*math.pi,bins*2)
+        l = np.zeros(bins*2)
 
         i=0
         for a in ang:
@@ -152,16 +152,15 @@ class MuonLineIntegrate(object):
         :return:
         """
         ang = self.pos_to_angle(centre_x,centre_y,pixel_x,pixel_y)
-        ang = ang + math.pi
+
         #creat
         #pred = np.zeros(pixel_x.shape)
         ang_prof,profile = self.plot_pos(impact_x,impact_y,radius)
-
         pred = np.interp(ang,ang_prof,profile)
 
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
 
-        pred = pred * np.exp(-np.power(ring_dist/width,2))/(np.sqrt(math.pi*2*np.power(width,2)))
+        pred = pred * np.exp(-np.power(ring_dist,2)/(2*np.power(width,2))) * (1./(2 * np.power(width.value,2) * math.pi))
 
         return pred
