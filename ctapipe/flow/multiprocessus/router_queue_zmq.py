@@ -35,7 +35,7 @@ class RouterQueue(Process, Component):
             GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
-        Component.__init__(self,None)
+        Component.__init__(self,parent=None)
         self.gui_address = gui_address
         # list of available stages which receive next job
         # This list allow to use next_stage in a LRU (Last recently used)
@@ -163,7 +163,7 @@ class RouterQueue(Process, Component):
             try:
                 sock_router.bind('tcp://*:' + connexions[0])
             except zmq.error.ZMQError as e:
-                print('{} : tcp://localhost:{}'
+                self.log.error('{} : tcp://localhost:{}'
                                .format(e,  connexions[0]))
                 return False
             self.router_sockets[name] = sock_router
@@ -172,7 +172,7 @@ class RouterQueue(Process, Component):
             try:
                 sock_dealer.bind("tcp://*:" + connexions[1] )
             except zmq.error.ZMQError as e:
-                print('{} : tcp://localhost:{}'
+                self.log.error('{} : tcp://localhost:{}'
                                .format(e,  connexions[1]))
                 return False
             self.dealer_sockets[name] = sock_dealer

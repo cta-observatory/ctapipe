@@ -9,8 +9,9 @@ from pickle import loads
 from pickle import dumps
 import zmq
 from ctapipe.flow.multiprocessus.connexions import Connexions
+from ctapipe.core import Component
 
-class StagerZmq(Process, Connexions):
+class StagerZmq(Component, Process, Connexions):
 
     """`StagerZmq` class represents a Stager pipeline Step.
     It is derived from Process class.
@@ -41,6 +42,7 @@ class StagerZmq(Process, Connexions):
             GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
+        Component.__init__(self,parent=None)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
         self.coroutine = coroutine

@@ -31,6 +31,7 @@ class ConsumerZMQ(Process, Component):
         gui_address : str
             GUI port for ZMQ 'hostname': + 'port'
         """
+        Component.__init__(self,parent=None)
         Process.__init__(self)
         self.coroutine = coroutine
         self.gui_address = gui_address
@@ -80,8 +81,8 @@ class ConsumerZMQ(Process, Component):
                         if self.gui_address :self.update_gui()
                         # send reply back to router/queuer
                         self.sock_reply.send_multipart(request)
-                except exception as e:
-                    print('ERROR CONSUMER exception {}'.format(e))
+                except Exception as e:
+                    self.log.error('CONSUMER exception {}'.format(e))
                     break
             if self.gui_address :self.update_gui()
             self.sock_reply.close()

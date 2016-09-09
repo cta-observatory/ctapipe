@@ -161,6 +161,7 @@ class Flow(Tool):
          and consumer initialised Otherwise False
         '''
         # Verify configuration instance
+
         if not path.isfile(self.config_file):
             self.log.error('Could not open Flow based framework config_file {}'
                            .format(self.config_file))
@@ -513,7 +514,7 @@ class Flow(Tool):
             levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
                                   nb_job_done=nb_job_done,
                                   nb_processus = len(step.processus)))
-
+    
         levels_for_gui.append(StagerRep(self.consumer_step.name,
                                 nb_job_done=self.consumer.nb_job_done,step_type=StagerRep.CONSUMER))
         return (levels_for_gui,time())
@@ -723,6 +724,8 @@ class Flow(Tool):
 def main():
     tool = Flow()
     tool.run()
+
+
 
 if __name__ == '__main__':
     main()

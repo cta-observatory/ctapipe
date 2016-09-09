@@ -26,12 +26,9 @@ class SimTelArrayReader(Component):
 
     def run(self):
         counter = 0
-
         for event in self.source:
-            event.dl0.event_id = counter
             counter += 1
             # send new job to next step thanks to router
-
             yield (event)
 
         self.log.info("\n--- SimTelArrayReader Done ---")

@@ -35,6 +35,7 @@ class ProducerZmq(Process, Component, Connexions):
             GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
+        Component.__init__(self,parent=None)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
         self.coroutine = coroutine
@@ -83,9 +84,7 @@ class ProducerZmq(Process, Component, Connexions):
                 self.running = False
                 if self.gui_address : self.update_gui()
             else:
-                print("Warning: Productor run method was not a python generator.")
-                print("Warning: Pipeline worked, but number of jobs done for producer stayed at 0.")
-                print("Warning: Add yield to end of run producer method.")
+                self.log.warning("Warning: Productor run method was not a python generator.")
             self.socket_pub.close()
 
         self.finish()
@@ -112,7 +111,7 @@ class ProducerZmq(Process, Component, Connexions):
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
             except zmq.error.ZMQError as e:
-                print("Error {} tcp://{}".format(e, self.gui_address))
+                self.log.error("Error {} tcp://{}".format(e, self.gui_address))
                 return False
         return True
 
