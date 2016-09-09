@@ -1,8 +1,8 @@
 {
   "version": 1,
   "Flow": {
-      "producer_conf": { "name" : "IntGenerator1234567891011121314151617", "module": "ctapipe.flow.algorithms.int_generator",
-           "class": "IntGenerator","next_steps" : "Odd,Pair,Mod"},
+      "producer_conf": { "name" : "IntGenerator", "module": "ctapipe.flow.algorithms.int_generator",
+           "class": "IntGenerator","next_steps" : "Odd,Pair"},
       "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.flow.algorithms.string_writer",
                 "class": "StringWriter"},
       "stagers_conf" : [ {"name": "Pair", "class": "Pair",
@@ -14,9 +14,6 @@
                         {"name": "Inverse", "class": "Inverse",
                                         "module": "ctapipe.flow.algorithms.inverse",
                                         "next_steps" : "StringWriter", "nb_process" : 6},
-                        {"name": "Mod", "class": "Mod",
-                                        "module": "ctapipe.flow.algorithms.mod",
-                                        "next_steps" : "StringWriter", "nb_process" : 1},
                         {"name": "Add", "class": "Add",
                                         "module": "ctapipe.flow.algorithms.add",
                                         "next_steps" : "StringWriter,Inverse", "nb_process" : 1}
