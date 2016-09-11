@@ -132,7 +132,7 @@ if __name__ == '__main__':
   #              cy.append(centre_y)
                 polygon = [(-15,-4),(-15,4),(-10,12),(9,12),(13,9.5),(16,4),(16,-4),(13.,-9.5),(9,-12),(-10,-12)]
                 hole = [(2.48636, 2.376),(2.48636, -2.376),(-2.48636, -2.376),(-2.48636, 2.376)]
-                hess = MuonLineIntegrate(polygon,hole)
+                hess = MuonLineIntegrate(polygon,hole,pixel_width=0.06*u.m)
 
                 disp = visualization.CameraDisplay(geom)
                 disp.image = image
@@ -140,5 +140,7 @@ if __name__ == '__main__':
                 disp.cmap = "viridis"
                 disp.add_colorbar()
 
+                #hess.image_prediction(mc_x,mc_y,centre_x,centre_y,radius,0.1*u.m,x,y)
+                hess.fit_muon(centre_x,centre_y,radius,x,y,image)
 
-                #plt.show()
+                plt.show()

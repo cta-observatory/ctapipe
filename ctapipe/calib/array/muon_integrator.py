@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.ndimage.filters import correlate1d
 from astropy import units as u
-
+from iminuit import Minuit
 __all__ = ['MuonLineIntegrate']
 
 
@@ -34,6 +34,9 @@ class MuonLineIntegrate(object):
         self.hole = Polygon(hole_points)
         self.pixel_width = pixel_width
         self.oversample_bins = oversample_bins
+        self.pixel_x = 0
+        self.pixel_y = 0
+        self.image = 0
 
     def intersect_polygon(self,impact_x,impact_y, angle):
         """
@@ -157,10 +160,44 @@ class MuonLineIntegrate(object):
         #pred = np.zeros(pixel_x.shape)
         ang_prof,profile = self.plot_pos(impact_x,impact_y,radius)
         pred = np.interp(ang,ang_prof,profile)
+        print("here")
 
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
+        print("here2")
 
         pred = pred * np.exp(-np.power(ring_dist,2)/(2*np.power(width,2))) * (1./(2 * np.power(width.value,2) * math.pi))
+        print("here3")
 
         return pred
+
+    def likelihood(self,impact_x,impact_y,centre_x,centre_y,radius,width):
+        """
+
+        Parameters
+        ----------
+        impact_x
+        impact_y
+        centre_x
+        centre_y
+        radius
+        width
+
+        Returns
+        -------
+
+        """
+        prediction = self.image_prediction(impact_x,impact_y,centre_x,centre_y,radius,width,self.pixel_x,self.pixel_y)
+        return np.sum(np.abs(prediction-self.image))
+
+    def fit_muon(self,centre_x,centre_y,radius,pixel_x,pixel_y,image):
+        self.image = image
+        self.pixel_x = pixel_x
+        self.pixel_y = pixel_y
+
+        min = Minuit(self.likelihood,impact_x=0*u.m,error_impact_x=1*u.m,impact_y=0*u.m,error_impact_y=1*u.m,
+                     radius=radius,error_radius=radius*0.1,centre_x=centre_x,error_centre_x=centre_x*0.1,
+                     centre_y=centre_y,error_centre_y=0.1*centre_y,
+                     width=0.01*radius,error_width = 0.001*radius,errordef=1)
+
+        min.migrad()
