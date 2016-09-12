@@ -53,9 +53,8 @@ class MuonLineIntegrate(object):
         """
 
         #First convert vector on mirror to a line
-        x1,y1 = self.dir_to_line(impact_x,impact_y, angle,length=100*u.m)
-        line = [(impact_x.value, impact_y.value), (x1.value,y1.value)]
-
+        x1,y1 = self.dir_to_line(impact_x,impact_y, angle,length=100)
+        line = [(impact_x, impact_y), (x1,y1)]
         #Create shapely line
         shapely_line = LineString(line)
         try:
@@ -94,6 +93,7 @@ class MuonLineIntegrate(object):
         """
         del_x = length * np.sin(angle)
         del_y = length * np.cos(angle)
+
         x1 = centre_x + del_x
         y1 = centre_y + del_y
 
@@ -113,7 +113,7 @@ class MuonLineIntegrate(object):
         """
 
         #Currently this is don't with a loop, should be made more pythonic later!
-        bins = int((2 * math.pi * radius)/self.pixel_width) * self.oversample_bins
+        bins = int((2 * math.pi * radius)/self.pixel_width.value) * self.oversample_bins
         ang = np.linspace(-2*math.pi, 2*math.pi,bins*2)
         l = np.zeros(bins*2)
 
@@ -156,22 +156,17 @@ class MuonLineIntegrate(object):
         """
         ang = self.pos_to_angle(centre_x,centre_y,pixel_x,pixel_y)
 
-        #creat
-        #pred = np.zeros(pixel_x.shape)
         ang_prof,profile = self.plot_pos(impact_x,impact_y,radius)
         pred = np.interp(ang,ang_prof,profile)
-        print("here")
 
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
-        print("here2")
 
-        pred = pred * np.exp(-np.power(ring_dist,2)/(2*np.power(width,2))) * (1./(2 * np.power(width.value,2) * math.pi))
-        print("here3")
+        pred = pred * np.exp(-np.power(ring_dist,2)/(2*np.power(width,2))) * (1./(2 * np.power(width,2) * math.pi))
 
         return pred
 
-    def likelihood(self,impact_x,impact_y,centre_x,centre_y,radius,width):
+    def likelihood(self,impact_x,impact_y,centre_x,centre_y,radius,width,eff):
         """
 
         Parameters
@@ -188,16 +183,21 @@ class MuonLineIntegrate(object):
 
         """
         prediction = self.image_prediction(impact_x,impact_y,centre_x,centre_y,radius,width,self.pixel_x,self.pixel_y)
+        prediction *= eff
+        print(impact_x,impact_y,width,eff,np.sum(np.abs(prediction-self.image)),np.sum(prediction),np.sum(self.image))
+        print(centre_x,centre_y,radius)
         return np.sum(np.abs(prediction-self.image))
 
-    def fit_muon(self,centre_x,centre_y,radius,pixel_x,pixel_y,image):
+    def fit_muon(self,centre_x,centre_y,radius,pixel_x,pixel_y,image,x_guess,y_guess):
         self.image = image
-        self.pixel_x = pixel_x
-        self.pixel_y = pixel_y
+        self.pixel_x = pixel_x.value
+        self.pixel_y = pixel_y.value
 
-        min = Minuit(self.likelihood,impact_x=0*u.m,error_impact_x=1*u.m,impact_y=0*u.m,error_impact_y=1*u.m,
-                     radius=radius,error_radius=radius*0.1,centre_x=centre_x,error_centre_x=centre_x*0.1,
-                     centre_y=centre_y,error_centre_y=0.1*centre_y,
-                     width=0.01*radius,error_width = 0.001*radius,errordef=1)
+        min = Minuit(self.likelihood,impact_x=x_guess,error_impact_x=5,impact_y=y_guess,error_impact_y=5,
+                     radius=radius.value,error_radius=-1,centre_x=centre_x.value,error_centre_x=0,
+                     centre_y=centre_y.value,error_centre_y=0,
+                     width=0.01*radius.value,error_width = 0.001*radius.value,
+                     eff=5e-5,error_eff=1e-7,
+                     errordef=1)
 
         min.migrad()

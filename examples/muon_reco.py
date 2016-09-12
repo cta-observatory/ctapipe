@@ -111,7 +111,7 @@ if __name__ == '__main__':
             img = image*clean_mask
             noise = 5
             weight = img / (img+noise)
-            #centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(nom_coord.x,nom_coord.y,image*clean_mask)
+
             centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask)
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
             centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask*(dist<radius*1.5))
@@ -127,9 +127,7 @@ if __name__ == '__main__':
             mc_y = container.mc.core_y
 
             if(np.sum(clean_mask*(dist<radius*1.2))>15):
-#                rad.append(radius)
- #               cx.append(centre_x)
-  #              cy.append(centre_y)
+
                 polygon = [(-15,-4),(-15,4),(-10,12),(9,12),(13,9.5),(16,4),(16,-4),(13.,-9.5),(9,-12),(-10,-12)]
                 hole = [(2.48636, 2.376),(2.48636, -2.376),(-2.48636, -2.376),(-2.48636, 2.376)]
                 hess = MuonLineIntegrate(polygon,hole,pixel_width=0.06*u.m)
@@ -141,6 +139,7 @@ if __name__ == '__main__':
                 disp.add_colorbar()
 
                 #hess.image_prediction(mc_x,mc_y,centre_x,centre_y,radius,0.1*u.m,x,y)
-                hess.fit_muon(centre_x,centre_y,radius,x,y,image)
+                if (image.shape[0]<2000):
+                    hess.fit_muon(centre_x,centre_y,radius,x,y,image,mc_x.value,mc_y.value)
 
                 plt.show()
