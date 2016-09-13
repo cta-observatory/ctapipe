@@ -13,6 +13,7 @@ class Add(Component):
         return True
 
     def run(self, val):
+        sleep(1)
         #self.log.info("add receive {}".format(val))
         """
         for i in range(2000):
