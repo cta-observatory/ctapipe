@@ -20,7 +20,7 @@ class StagerSequential():
         self.coroutine = coroutine
         self.main_connexion_name = main_connexion_name
         self.connexions = connexions
-        self.running = False
+        self.running = 0
         self.nb_job_done = 0
 
     def init(self):

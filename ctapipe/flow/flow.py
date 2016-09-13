@@ -507,10 +507,13 @@ class Flow(Tool):
                             step_type=StagerRep.PRODUCER))
         for step in self.stager_steps:
             nb_job_done = 0
-            running = 0
-            for processus in step.processus:
-                nb_job_done+=processus.nb_job_done
-                running += processus.running
+            if self.mode == 'sequential':
+                running = step.processus[0].running
+            elif self.mode == 'multiprocessus':
+                running = 0
+                for processus in step.processus:
+                    nb_job_done+=processus.nb_job_done
+                    running += processus.running
             # We only send one processus/step
 
             levels_for_gui.append(StagerRep(processus.name,step.next_steps_name,
@@ -568,15 +571,18 @@ class Flow(Tool):
         start_time = time()
         self.producer = self.sequential_instances[self.producer_step.name]
         prod_gen = self.producer.run()
-
         for prod_result in prod_gen:
+            self.producer.running = 1
             if self.gui : self.send_status_to_gui()
             #TO DO: Add code to take in account producer shunt
             msg,destination = prod_result
             while msg != None:
                 stage = self.sequential_instances[destination]
+                self.producer.running = 0
+                stage.running = 1
                 if self.gui : self.send_status_to_gui()
                 stage_gen = stage.run(msg)
+                stage.running = 0
                 if self.gui : self.send_status_to_gui()
                 if stage_gen:
                     for result in stage_gen:
@@ -586,7 +592,6 @@ class Flow(Tool):
                             msg = destination = None
                 else:
                     msg = destination = None
-
         for step in self.sequential_instances.values():
             step.finish()
 
@@ -618,6 +623,7 @@ class Flow(Tool):
         # send Flow based framework cofiguration to an optinal GUI instance
         if self.gui :
             self.send_status_to_gui()
+        start_time = time()
         # Start all processus
         self.consumer.start()
         self.router.start()
@@ -643,6 +649,10 @@ class Flow(Tool):
         if self.gui :
             self.send_status_to_gui()
         # Wait 1 s to be sure this message will be display
+        end_time = time()
+        self.log.info('=== MULTUPROCESSUS MODE END ===')
+        self.log.info('Compute time {} sec'.format(end_time - start_time))
+
         sleep(1)
         if self.gui :
             self.socket_pub.send_multipart(
