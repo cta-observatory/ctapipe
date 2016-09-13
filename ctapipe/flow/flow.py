@@ -560,6 +560,11 @@ class Flow(Tool):
                 return step
         return None
 
+    def display_statistics(self):
+        steps,_ = self.def_step_for_gui()
+        for step in steps:
+            print(step.get_statistics())
+
     def start(self):
         ''' run the Flow based framework steps
         '''
@@ -581,34 +586,40 @@ class Flow(Tool):
             #TO DO: Add code to take in account producer shunt
             msg,destination = prod_result
             while msg != None:
-                stage = self.sequential_instances[destination]
-                self.producer.running = 0
-                stage.running = 1
-                if self.gui : self.send_status_to_gui()
-                stage_gen = stage.run(msg)
-                stage.running = 0
-                if stage_gen:
-                    for result in stage_gen:
-                        if result:
-                            msg,destination = result
-                        else:
-                            msg = destination = None
-                else:
-                    msg = destination = None
+                destinatoin, msg=self.run_generator(destination,msg)
+
         for step in self.sequential_instances.values():
             step.finish()
-
-
         if self.gui :
             self.socket_pub.send_multipart(
             [b'FINISH', dumps('finish')])
             self.socket_pub.close()
             self.context.destroy()
             self.context.term()
-
         end_time = time()
         self.log.info('=== SEQUENTIAL MODE END ===')
         self.log.info('Compute time {} sec'.format(end_time - start_time))
+        self.display_statistics()
+
+    def run_generator(self, destination ,msg):
+        stage = self.sequential_instances[destination]
+        self.producer.running = 0
+        stage.running = 1
+        if self.gui : self.send_status_to_gui()
+        stage_gen = stage.run(msg)
+        stage.running = 0
+        if stage_gen:
+            for result in stage_gen:
+                if result:
+                    msg,destination = result
+                    destination, msg=self.run_generator(destination,msg)
+                else:
+                    msg = destination = None
+        else:
+            msg = destination = None
+
+        return  (msg,destination)
+
 
     def send_status_to_gui(self):
         self.socket_pub.send_multipart([b'MODE', dumps(self.mode)])
@@ -655,6 +666,7 @@ class Flow(Tool):
         end_time = time()
         self.log.info('=== MULTUPROCESSUS MODE END ===')
         self.log.info('Compute time {} sec'.format(end_time - start_time))
+        self.display_statistics()
 
         sleep(1)
         if self.gui :

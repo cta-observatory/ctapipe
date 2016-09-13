@@ -58,7 +58,11 @@ class StagerRep():
             str(self.running)+ '-> nb_job_done: '+
             str(self.nb_job_done) + '-> next_steps:' +
             str(self.next_steps)+ '-> queue_length:' +
-            str(self.queue_length))
+            str(self.queue_length)+ '-> nb_processus:' +
+            str(self.nb_processus))
+
+    def get_statistics(self):
+        return (self.name.split('$$processus')[0] + ' number of jobs done: '+ str(self.nb_job_done))
 
 
 class GraphWidget(QWidget):
