@@ -13,22 +13,11 @@ class IntGenerator(Component):
         return True
 
     def run(self):
-        for i in range(500):
-            #self.log.info("IntGenerator send {}".format(i))
-            yield i
-            """
-            if i%5 == 0 :
-                yield(i,'Mod')
-            elif i%2 == 0 :
-                yield(i,'Pair')
-            else :
-                #self.send_msg(i,'Odd')
-                yield(i,'Odd')
-            """
-
-
-
-
+        for i in range(50000):
+            self.log.debug("IntGenerator send {}".format(i))
+            if i % 2 == 0:
+                yield (i,'Pair')
+            else: yield(i,'Odd')
 
         self.log.debug("\n--- IntGenerator Done ---")
 

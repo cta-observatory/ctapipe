@@ -19,6 +19,7 @@ class StringWriter(Component):
 
     def run(self, object):
         self.file.write(str(object) + "\n")
+        sleep(1)
         #self.log.info('StringWriter write {}'.format( object))
 
 

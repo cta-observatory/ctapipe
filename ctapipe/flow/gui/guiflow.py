@@ -27,13 +27,10 @@ class PipeGui(Tool):
 
     port = Integer(5565, help='GUI port for pipelien connexion').tag(
         config=True, allow_none=True)
-
     def start(self):
         app = ModuleApplication(sys.argv, self.port)
-
     def setup(self):
         pass
-
     def finish(self):
         pass
 

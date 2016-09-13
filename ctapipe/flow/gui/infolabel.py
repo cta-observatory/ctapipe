@@ -10,8 +10,7 @@ class InfoLabel(QLabel):
     def __init__(self, *args):
         QLabel.__init__(self)
         self.data = dict()
-
-
+        self.mode = 'sequential'
 
     def pipechange(self, steps):
         """Called by GuiConnexion instance when it receives zmq message from pipeline
@@ -21,7 +20,10 @@ class InfoLabel(QLabel):
         topic : str
         """
         if steps:
-            text ='  STEP                                       PROCESS   QUEUE       DONE    \n\n'
+            if self.mode == 'sequential':
+                text ='  STEP                                       DONE    \n\n'
+            else:
+                text ='  STEP                                       RUNNING   QUEUE       DONE    \n\n'
             for step in steps:
                 text+='{:-<80}\n'.format('-')
                 text+=self.formatText(step)+'\n'
@@ -29,18 +31,26 @@ class InfoLabel(QLabel):
 
     def formatText(self,step):
         text = str()
-        if len(step.name) < 18:
-            name = ' ' + step.name + ((18-len(step.name))*2)*' '
-        elif len(step.name) > 18:
-            name =  ' ' + step.name[0:16] + '...'
+        step_name = step.name.split('$$processus')[0]
+        if len(step_name) < 18:
+            name = ' ' + step_name + ((18-len(step_name))*2)*' '
+        elif len(step_name) > 18:
+            name =  ' ' +step_name[0:16] + '...'
         else:
-            name =  ' ' + step.name
+            name =  ' ' + step_name
         queue = step.queue_length
         done = step.nb_job_done
         nb_proc = step.nb_processus
-        text = name+ '\t' + str(nb_proc) + '\t' + str(queue) + '\t' + str(done)
+        running = step.running
+        if self.mode == 'sequential':
+            text = name+ '\t' + str(done)
+        else:
+            text = name+ '\t' + str(running) + '\\' + str(nb_proc) + '\t' + str(queue) + '\t' + str(done)
         return text
 
 
     def reset(self):
         self.setText("")
+
+    def mode_receive(self,mode):
+        self.mode = mode

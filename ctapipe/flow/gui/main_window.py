@@ -104,13 +104,13 @@ class MainWindow(QMainWindow, object):
                                 ("MainWindow", "Quit", None, QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 12, 0, 1, 1)
 
-        self.queue_label = InfoLabel(0,4)
-        self.queue_label.setAutoFillBackground(True)
-        self.gridLayout.addWidget(self.queue_label,1, 0, 1, 5)
-        #self.queue_label.setAlignment(PyQt4.Qt.AlignCenter);
+        self.info_label = InfoLabel(0,4)
+        self.info_label.setAutoFillBackground(True)
+        self.gridLayout.addWidget(self.info_label,1, 0, 1, 5)
+        #self.info_label.setAlignment(PyQt4.Qt.AlignCenter);
         palette = QPalette()
-        palette.setColor(self.queue_label.backgroundRole(),Qt.lightGray)
-        self.queue_label.setPalette(palette)
+        palette.setColor(self.info_label.backgroundRole(),Qt.lightGray)
+        self.info_label.setPalette(palette)
 
 
 
@@ -129,9 +129,11 @@ class MainWindow(QMainWindow, object):
         # Create GuiConnexion for ZMQ comminucation with pipeline
         self.guiconnexion = GuiConnexion(gui_port=port, statusBar=self.statusbar)
         self.guiconnexion.message.connect(self.graph_widget.pipechange)
-        self.guiconnexion.message.connect(self.queue_label.pipechange)
+        self.guiconnexion.message.connect(self.info_label.pipechange)
         self.guiconnexion.reset_message.connect(self.graph_widget.reset)
-        self.guiconnexion.reset_message.connect(self.queue_label.reset)
+        self.guiconnexion.reset_message.connect(self.info_label.reset)
+        self.guiconnexion.mode_message.connect(self.info_label.mode_receive)
+
 
         QObject.connect(
             self.actionReset, SIGNAL("triggered()"), self.guiconnexion.reset)

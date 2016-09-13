@@ -10,7 +10,6 @@ If a step is executed by several processus, the router uses LRU pattern
 (least recently used ) to choose the step that will receive next data.
 The router also manage Queue for each step.
 '''
-
 import zmq
 from sys import exit
 from os import path
@@ -142,7 +141,6 @@ class Flow(Tool):
     consumer_step = None
     step_processus = list()
     router_processus = None
-    levels_for_gui = list()
     ports = dict()
 
 
@@ -429,20 +427,17 @@ class Flow(Tool):
             processus = StagerZmq(
                 obj, port_in, processus_name,
                 connexions=connexions,
-                main_connexion_name = main_connexion_name,
-                gui_address=gui_address)
+                main_connexion_name = main_connexion_name)
 
         elif stage_type == self.PRODUCER:
             processus = ProducerZmq(
                 obj, name, connexions=connexions,
-                main_connexion_name = main_connexion_name,
-                gui_address=gui_address)
+                main_connexion_name = main_connexion_name)
 
         elif stage_type == self.CONSUMER:
             processus = ConsumerZMQ(
                 obj,port_in,
-                name,
-                gui_address=gui_address)
+                name)
 
         else:
             raise FlowError(
@@ -504,19 +499,30 @@ class Flow(Tool):
         Returns: the created list and actual time
         '''
         levels_for_gui = list()
+
         levels_for_gui.append(StagerRep(self.producer_step.name,
                             self.producer_step.next_steps_name,
-                            nb_job_done=self.producer.nb_job_done,step_type=StagerRep.PRODUCER))
+                            nb_job_done=self.producer.nb_job_done,
+                            running=self.producer.running,
+                            step_type=StagerRep.PRODUCER))
         for step in self.stager_steps:
             nb_job_done = 0
+            running = 0
             for processus in step.processus:
                 nb_job_done+=processus.nb_job_done
-            levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
+                running += processus.running
+            # We only send one processus/step
+
+            levels_for_gui.append(StagerRep(processus.name,step.next_steps_name,
                                   nb_job_done=nb_job_done,
+                                  running=running,
                                   nb_processus = len(step.processus)))
-    
+
         levels_for_gui.append(StagerRep(self.consumer_step.name,
-                                nb_job_done=self.consumer.nb_job_done,step_type=StagerRep.CONSUMER))
+                                nb_job_done=self.consumer.nb_job_done,
+                                running=self.consumer.running,
+                                step_type=StagerRep.CONSUMER))
+
         return (levels_for_gui,time())
 
 
@@ -556,6 +562,10 @@ class Flow(Tool):
             self.start_sequential()
 
     def start_sequential(self):
+        if self.gui :
+            self.socket_pub.send_multipart(
+            [b'MODE', dumps('sequential')])
+        start_time = time()
         self.producer = self.sequential_instances[self.producer_step.name]
         prod_gen = self.producer.run()
 
@@ -565,6 +575,7 @@ class Flow(Tool):
             msg,destination = prod_result
             while msg != None:
                 stage = self.sequential_instances[destination]
+                if self.gui : self.send_status_to_gui()
                 stage_gen = stage.run(msg)
                 if self.gui : self.send_status_to_gui()
                 if stage_gen:
@@ -587,10 +598,12 @@ class Flow(Tool):
             self.context.destroy()
             self.context.term()
 
+        end_time = time()
         self.log.info('=== SEQUENTIAL MODE END ===')
-
+        self.log.info('Compute time {} sec'.format(end_time - start_time))
 
     def send_status_to_gui(self):
+        self.socket_pub.send_multipart([b'MODE', dumps(self.mode)])
         levels_gui,conf_time = self.def_step_for_gui()
         self.socket_pub.send_multipart(
             [b'GUI_GRAPH', dumps([conf_time,
@@ -604,9 +617,7 @@ class Flow(Tool):
         '''
         # send Flow based framework cofiguration to an optinal GUI instance
         if self.gui :
-            levels_gui,conf_time = self.def_step_for_gui()
-            self.socket_pub.send_multipart(
-                [b'GUI_GRAPH', dumps([conf_time,levels_gui])])
+            self.send_status_to_gui()
         # Start all processus
         self.consumer.start()
         self.router.start()
@@ -620,10 +631,7 @@ class Flow(Tool):
         # new data since more that a specific tine
         while not self.wait_all_stagers(1000): # 1000 ms
             if self.gui :
-                levels_gui,conf_time = self.def_step_for_gui()
-                self.socket_pub.send_multipart(
-                    [b'GUI_GRAPH', dumps([conf_time,
-                    levels_gui])])
+                self.send_status_to_gui()
             sleep(1)
 
         # Now send stop to stage processus and wait they join
@@ -633,10 +641,7 @@ class Flow(Tool):
         self.wait_and_send_levels(self.consumer)
         self.wait_and_send_levels(self.router)
         if self.gui :
-            levels_gui,conf_time = self.def_step_for_gui()
-            self.socket_pub.send_multipart(
-            [b'GUI_GRAPH', dumps([conf_time,
-             levels_gui])])
+            self.send_status_to_gui()
         # Wait 1 s to be sure this message will be display
         sleep(1)
         if self.gui :
@@ -674,11 +679,9 @@ class Flow(Tool):
         processus_to_wait.stop = 1
 
         while True:
-            levels_gui,conf_time = self.def_step_for_gui()
             processus_to_wait.join(timeout=.1)
             if self.gui :
-                self.socket_pub.send_multipart(
-                    [b'GUI_GRAPH', dumps([conf_time, levels_gui])])
+                self.send_status_to_gui()
             if not processus_to_wait.is_alive():
                 return
 
@@ -724,8 +727,6 @@ class Flow(Tool):
 def main():
     tool = Flow()
     tool.run()
-
-
 
 if __name__ == '__main__':
     main()

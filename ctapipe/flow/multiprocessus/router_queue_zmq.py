@@ -196,6 +196,7 @@ class RouterQueue(Process, Component):
         # This flag stop this current processus
         return True
 
+
     def update_gui(self, name):
         """
         send status to GUI
@@ -203,6 +204,7 @@ class RouterQueue(Process, Component):
         msg = [name, str(len(self.queue_jobs[name]))]
         self.socket_pub.send_multipart(
             [b'GUI_ROUTER_CHANGE', dumps(msg)])
+
 
     @property
     def stop(self):

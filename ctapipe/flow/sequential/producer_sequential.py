@@ -19,7 +19,7 @@ class ProducerSequential():
         self.coroutine = coroutine
         self.main_connexion_name = main_connexion_name
         self.connexions = connexions
-        self.running = False
+        self.running = 0
         self.nb_job_done = 0
 
 
@@ -39,11 +39,13 @@ class ProducerSequential():
         return True
 
     def run(self):
+        self.running = 1
         gen = self.coroutine.run()
         for result in gen:
             msg, destination = self.get_destination_msg_from_result(result)
             self.nb_job_done+=1
             yield (msg,destination)
+        self.running = 0
 
     def finish(self):
         """
