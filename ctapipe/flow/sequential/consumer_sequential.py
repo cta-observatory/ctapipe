@@ -35,10 +35,8 @@ class ConsumerSequential():
         return True
 
     def run(self,inputs=None):
-        self.running = 1
         self.coroutine.run(inputs)
         self.nb_job_done+=1
-        self.running = 0
 
     def finish(self):
         """

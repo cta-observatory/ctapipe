@@ -10,7 +10,7 @@ class Odd(Component):
         return True
 
     def run(self, _input):
-        sleep(.1)
+        sleep(1)
         self.log.debug("ODD receive {}".format(_input))
         if _input % 2 == 0:
             return (_input, 'Add')
