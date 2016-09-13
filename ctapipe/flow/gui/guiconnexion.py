@@ -128,6 +128,7 @@ class GuiConnexion(Thread, QtCore.QObject):
             nb_corresponding_step = 0
             for new_step in receiv_steps:
                 for step in self.steps:
+
                     if step.name == new_step.name:
                         step.nb_job_done = new_step.nb_job_done
                         step.running = new_step.running

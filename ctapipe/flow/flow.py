@@ -507,19 +507,23 @@ class Flow(Tool):
                             step_type=StagerRep.PRODUCER))
         for step in self.stager_steps:
             nb_job_done = 0
+            running = 0
             if self.mode == 'sequential':
                 running = step.processus[0].running
+                nb_job_done = step.processus[0].nb_job_done
+                levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
+                                      nb_job_done=nb_job_done,
+                                      running=running,
+                                      nb_processus = len(step.processus)))
+
             elif self.mode == 'multiprocessus':
-                running = 0
                 for processus in step.processus:
                     nb_job_done+=processus.nb_job_done
                     running += processus.running
-            # We only send one processus/step
-
-            levels_for_gui.append(StagerRep(processus.name,step.next_steps_name,
-                                  nb_job_done=nb_job_done,
-                                  running=running,
-                                  nb_processus = len(step.processus)))
+                levels_for_gui.append(StagerRep(processus.name,step.next_steps_name,
+                                      nb_job_done=nb_job_done,
+                                      running=running,
+                                      nb_processus = len(step.processus)))
 
         levels_for_gui.append(StagerRep(self.consumer_step.name,
                                 nb_job_done=self.consumer.nb_job_done,
@@ -573,7 +577,7 @@ class Flow(Tool):
         prod_gen = self.producer.run()
         for prod_result in prod_gen:
             self.producer.running = 1
-            if self.gui : self.send_status_to_gui()
+            #if self.gui : self.send_status_to_gui()
             #TO DO: Add code to take in account producer shunt
             msg,destination = prod_result
             while msg != None:
@@ -583,7 +587,6 @@ class Flow(Tool):
                 if self.gui : self.send_status_to_gui()
                 stage_gen = stage.run(msg)
                 stage.running = 0
-                if self.gui : self.send_status_to_gui()
                 if stage_gen:
                     for result in stage_gen:
                         if result:
