@@ -76,6 +76,33 @@ class MuonLineIntegrate(object):
         #line integral is the difference of these two
         return line_intersect.length - length_hole
 
+    def chord_length (self,radius,rho,phi):
+        
+        sehne = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
+        sehne = radius * (np.sqrt(sehne) + rho * np.cos(phi))
+        return(sehne)
+
+
+
+    def intersect_circle(self,r, angle):
+        """
+        Perform line integration along a given axis in the mirror frame given an impact
+        point on the mirrot
+        :param impact_x: float
+            Impact position on mirror (tilted telescope system)
+        :param impact_y: float
+            Impact position on mirror (tilted telescope system)
+        :param angle: float
+            Angle along which to integrate mirror
+        :return: float
+            length from impact point to mirror edge
+        """
+        self.chord_length(self.radius_mirror,r/self.radius_mirror)
+
+
+        return 0
+
+
     def dir_to_line(self,centre_x,centre_y,angle, length=500*u.m):
         """
         Convert vector style definition of line (point + angle) to two points needed
@@ -184,20 +211,70 @@ class MuonLineIntegrate(object):
         """
         prediction = self.image_prediction(impact_x,impact_y,centre_x,centre_y,radius,width,self.pixel_x,self.pixel_y)
         prediction *= eff
-        print(impact_x,impact_y,width,eff,np.sum(np.abs(prediction-self.image)),np.sum(prediction),np.sum(self.image))
-        print(centre_x,centre_y,radius)
-        return np.sum(np.abs(prediction-self.image))
+
+        err_im = np.copy(self.image)
+        sm = err_im<2
+        err_im[sm] = 2
+
+        return -2 * np.sum(self.calc_likelihood(self.image,prediction,0.5,1.1))
+
+    def calc_likelihood(self,image,pred,spe_width,ped):
+        """
+
+        Parameters
+        ----------
+        image
+        pred
+        spe_width
+        ped
+
+        Returns
+        -------
+
+        """
+        sq = 1./np.sqrt(2 * math.pi * (np.power(ped ,2)
+            + pred*(1+pow(spe_width,2))) )
+
+        diff = np.power(image-pred,2.)
+        denom = 2 * (np.power(ped ,2) + pred*(1+pow(spe_width,2)) )
+        expo = np.exp(-1 * diff / denom)
+        sm = expo<1e-300
+        expo[sm] = 1e-300
+        return np.log(sq*expo)
+
 
     def fit_muon(self,centre_x,centre_y,radius,pixel_x,pixel_y,image,x_guess,y_guess):
+        """
+
+        Parameters
+        ----------
+        centre_x
+        centre_y
+        radius
+        pixel_x
+        pixel_y
+        image
+        x_guess
+        y_guess
+
+        Returns
+        -------
+
+        """
         self.image = image
         self.pixel_x = pixel_x.value
         self.pixel_y = pixel_y.value
 
-        min = Minuit(self.likelihood,impact_x=x_guess,error_impact_x=5,impact_y=y_guess,error_impact_y=5,
-                     radius=radius.value,error_radius=-1,centre_x=centre_x.value,error_centre_x=0,
-                     centre_y=centre_y.value,error_centre_y=0,
-                     width=0.01*radius.value,error_width = 0.001*radius.value,
-                     eff=5e-5,error_eff=1e-7,
+        min = Minuit(self.likelihood,impact_x=x_guess,limit_impact_x=(-50,50),error_impact_x=5,
+                     impact_y=y_guess,limit_impact_y=(-50,50),error_impact_y=5,
+                     radius=radius.value,fix_radius=True,centre_x=centre_x.value,fix_centre_x=True,
+                     centre_y=centre_y.value,fix_centre_y=True,
+                     width=0.01*radius.value,error_width = 0.001*radius.value,limit_width=(0,1),
+                     eff=0.001,error_eff=1e-7,limit_eff=(0,1),
                      errordef=1)
 
         min.migrad()
+
+        fit_params = min.values
+        print(fit_params)
+        return fit_params['impact_x'],fit_params['impact_y'],fit_params['width'],fit_params['eff']

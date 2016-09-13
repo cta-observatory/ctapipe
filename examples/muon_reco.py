@@ -114,9 +114,14 @@ if __name__ == '__main__':
 
             centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask)
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
-            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask*(dist<radius*1.5))
+            ring_dist = np.abs(dist-radius)
+            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.5))
+
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
-            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask*(dist<radius*1.2))
+            ring_dist = np.abs(dist-radius)
+            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.3))
+
+            dist_mask = np.abs(dist-radius)<radius*0.3
 
             print (centre_x,centre_y,radius)
             rad = list()
@@ -126,20 +131,35 @@ if __name__ == '__main__':
             mc_x = container.mc.core_x
             mc_y = container.mc.core_y
 
-            if(np.sum(clean_mask*(dist<radius*1.2))>15):
+            if(np.sum(clean_mask*dist_mask)>15):
 
                 polygon = [(-15,-4),(-15,4),(-10,12),(9,12),(13,9.5),(16,4),(16,-4),(13.,-9.5),(9,-12),(-10,-12)]
                 hole = [(2.48636, 2.376),(2.48636, -2.376),(-2.48636, -2.376),(-2.48636, 2.376)]
                 hess = MuonLineIntegrate(polygon,hole,pixel_width=0.06*u.m)
 
-                disp = visualization.CameraDisplay(geom)
-                disp.image = image
-                disp.add_ellipse((centre_x.value,centre_y.value),radius.value*2,radius.value*2,0,color="red")
-                disp.cmap = "viridis"
-                disp.add_colorbar()
+                #disp.image = image
+                #disp.add_ellipse((centre_x.value,centre_y.value),radius.value*2,radius.value*2,0,color="red")
 
                 #hess.image_prediction(mc_x,mc_y,centre_x,centre_y,radius,0.1*u.m,x,y)
                 if (image.shape[0]<2000):
-                    hess.fit_muon(centre_x,centre_y,radius,x,y,image,mc_x.value,mc_y.value)
 
-                plt.show()
+                    fig, axs = plt.subplots(1, 2, figsize=(12, 6), sharey=True, sharex=False)
+
+                    disp = visualization.CameraDisplay(geom,ax=axs[0])
+                    disp.cmap = "viridis"
+                    disp.add_colorbar()
+                    disp.add_ellipse((centre_x.value,centre_y.value),radius.value*2,radius.value*2,0,color="red")
+                    disp.image = image
+
+                    disp_pred = visualization.CameraDisplay(geom,ax=axs[1])
+
+                    image_pred = np.zeros(image.shape)
+
+                    im_x,im_y,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask],mc_x.value,mc_y.value)
+                    image_pred = hess.image_prediction(im_x,im_y,centre_x.value,centre_y.value,radius.value,width,x.value,y.value)
+                    disp_pred.image = image_pred*eff
+                    disp_pred.cmap = "viridis"
+
+                    #disp_pred.add_colorbar()
+
+                    plt.show()
