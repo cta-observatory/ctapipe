@@ -19,9 +19,11 @@ class GuiConnexion(Thread, QtCore.QObject):
     statusBar :  QtGui.QStatusBar
         MainWindow status bar to display information
     """
+    mode_message = QtCore.pyqtSignal(str)
     message = QtCore.pyqtSignal(list)
     reset_message = QtCore.pyqtSignal()
-    def __init__(self, table_queue=None, gui_port=None, statusBar=None):
+
+    def __init__(self, gui_port=None, statusBar=None):
         Thread.__init__(self)
         QtCore.QObject.__init__(self)
         if gui_port is not None:
@@ -41,16 +43,13 @@ class GuiConnexion(Thread, QtCore.QObject):
             self.poll = zmq.Poller()
             self.poll.register(self.socket, zmq.POLLIN)
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_GRAPH')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_STAGER_CHANGE')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_CONSUMER_CHANGE')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_PRODUCER_CHANGE')
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_ROUTER_CHANGE')
             self.socket.setsockopt_string(zmq.SUBSCRIBE, 'FINISH')
+            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'MODE')
             # self,stop flag is set by ficnish method to stop this thread
             # properly when GUI is closed
             # self.pipegui will receive new pipeline information
             self.stop = False
-            self.table_queue = table_queue
             self.steps = list()
             self.config_time = 0
             self.last_send_config = 0
@@ -72,6 +71,8 @@ class GuiConnexion(Thread, QtCore.QObject):
                 msg = loads(receive[1])
                 if topic == b'FINISH':
                     self.flow_has_finish()
+                elif topic == b'MODE':
+                    self.send_mode(msg)
                 else:
                     self.update_full_state(topic,msg)
                     if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
@@ -106,12 +107,8 @@ class GuiConnexion(Thread, QtCore.QObject):
             if config_time != self.config_time:
                 self.full_change(receiv_steps)
                 self.config_time = config_time
-        # Stager or Producer or Consumer state changes
 
-        elif self.steps and (topic == b'GUI_STAGER_CHANGE' or
-                           topic == b'GUI_CONSUMER_CHANGE' or
-                           topic == b'GUI_PRODUCER_CHANGE'):
-            self.step_change(msg)
+        # Stager or Producer or Consumer state changes
         elif topic == b'GUI_ROUTER_CHANGE':
             self.router_change(msg)
 
@@ -133,12 +130,14 @@ class GuiConnexion(Thread, QtCore.QObject):
                 for step in self.steps:
                     if step.name == new_step.name:
                         step.nb_job_done = new_step.nb_job_done
+                        step.running = new_step.running
                         nb_corresponding_step+=1
                         break
             if  nb_corresponding_step != len(self.steps):
                 # in case of pipeline configuration change and GUI
                 # is not restarted
                 self.steps = receiv_steps
+
 
     def step_change(self, msg):
         """Find which pipeline step has changed, and update its corresponding
@@ -151,7 +150,7 @@ class GuiConnexion(Thread, QtCore.QObject):
         """
         name, running , nb_job_done = msg
         for step in self.steps:
-            if step.name == name.split('$$processus')[0]:
+            if step.name == name:
                 step.running = running
                 return
 
@@ -168,13 +167,15 @@ class GuiConnexion(Thread, QtCore.QObject):
         if step:
             step.queue_length = queue
 
+
+
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
         self.consumer_step
         Return: PipeStep if found, otherwise None
         '''
         for step in self.steps:
-            if step.name == name:
+            if step.name == name or step.name.split('$$processus')[0] == name:
                 return step
         return None
 
@@ -184,6 +185,9 @@ class GuiConnexion(Thread, QtCore.QObject):
 
     def flow_has_finish(self):
         for step in self.steps:
-            step.running=False
+            step.running=0
         self.full_change(self.steps)
         self.steps.clear()
+
+    def send_mode(self,msg):
+        self.mode_message.emit(msg)

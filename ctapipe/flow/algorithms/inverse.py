@@ -1,4 +1,5 @@
 from ctapipe.core import Component
+from time import sleep
 
 
 
@@ -11,6 +12,7 @@ class Inverse(Component):
         return True
 
     def run(self, inputs):
+        sleep(.1)
         if  inputs:
             self.log.debug("Inverse receive {}".format(inputs))
             return int(inputs) * -1

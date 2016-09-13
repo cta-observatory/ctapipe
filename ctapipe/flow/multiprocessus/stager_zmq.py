@@ -25,7 +25,7 @@ class StagerZmq(Component, Process, Connexions):
     """
     def __init__(
             self, coroutine, sock_job_for_me_port,
-            name=None, connexions=dict(),main_connexion_name=None, gui_address=None):
+            name=None, connexions=dict(),main_connexion_name=None):
         """
         Parameters
         ----------
@@ -38,8 +38,6 @@ class StagerZmq(Component, Process, Connexions):
             Default next step name. Used to send data when destination is not provided
         connexions: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
             Port number for socket for each next steps
-        gui_address : str
-            GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
         Component.__init__(self,parent=None)
@@ -47,12 +45,11 @@ class StagerZmq(Component, Process, Connexions):
         Connexions.__init__(self,main_connexion_name,connexions)
         self.coroutine = coroutine
         self.sock_job_for_me_url = 'tcp://localhost:' + sock_job_for_me_port
-        self.running = False
-        self.gui_address = gui_address
         self.done = False
         self.waiting_since = Value('i',0)
         self._nb_job_done = Value('i',0)
         self._stop = Value('i',0)
+        self._running = Value('i',0)
 
     def init(self):
         """
@@ -88,8 +85,7 @@ class StagerZmq(Component, Process, Connexions):
                         sockets[self.sock_for_me] == zmq.POLLIN):
                     #  Get the input from prev_stage
                     self.waiting_since.value = 0
-                    self.running = True
-                    if self.gui_address : self.update_gui()
+                    self.running = 1
                     request = self.sock_for_me.recv_multipart()
                     receiv_input = loads(request[0])
                     # do the job
@@ -105,12 +101,10 @@ class StagerZmq(Component, Process, Connexions):
                     # am available
                     self.sock_for_me.send_multipart(request)
                     self._nb_job_done.value = self._nb_job_done.value + 1
-                    self.running = False
-                    if self.gui_address : self.update_gui()
+                    self.running = 0
                 else:
                     self.waiting_since.value = self.waiting_since.value+100 # 100 ms
             self.sock_for_me.close()
-            self.socket_pub.close()
         self.finish()
         self.done = True
 
@@ -125,9 +119,6 @@ class StagerZmq(Component, Process, Connexions):
         """
         Connexions.init_connexions(self)
         context = zmq.Context()
-        self.socket_pub = context.socket(zmq.PUB)
-        if self.gui_address is not None:
-            self.socket_pub.connect("tcp://" + self.gui_address)
         self.sock_for_me = context.socket(zmq.REQ)
         self.sock_for_me.connect(self.sock_job_for_me_url)
         # Use a ZMQ Pool to get multichannel message
@@ -138,14 +129,6 @@ class StagerZmq(Component, Process, Connexions):
         # job
         self.sock_for_me.send_pyobj("READY")
         return True
-
-    def update_gui(self):
-        """
-        send it's status to GUI
-        """
-        msg = [self.name, self.running, None]
-        self.socket_pub.send_multipart(
-            [b'GUI_STAGER_CHANGE', dumps(msg)])
 
     @property
     def wait_since(self):
@@ -166,3 +149,12 @@ class StagerZmq(Component, Process, Connexions):
     @nb_job_done.setter
     def nb_job_done(self, value):
         self._nb_job_done.value = value
+
+
+    @property
+    def running(self):
+        return self._running.value
+
+    @running.setter
+    def running(self, value):
+        self._running.value = value

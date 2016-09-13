@@ -20,24 +20,20 @@ class ConsumerZMQ(Process, Component):
     The processus is stopped by setting share data stop to True
     """
     def __init__(
-            self, coroutine, sock_consumer_port, _name="",
-            gui_address=None):
+            self, coroutine, sock_consumer_port, _name=""):
         """
         Parameters
         ----------
         coroutine : Class instance that contains init, run and finish methods
         sock_consumer_port: str
             Port number for socket url
-        gui_address : str
-            GUI port for ZMQ 'hostname': + 'port'
         """
         Component.__init__(self,parent=None)
         Process.__init__(self)
         self.coroutine = coroutine
-        self.gui_address = gui_address
         self.sock_consumer_url = 'tcp://localhost:' + sock_consumer_port
         self.name = _name
-        self.running = False
+        self._running = Value('i',0)
         self._nb_job_done = Value('i',0)
         self._stop = Value('i',0)
 
@@ -71,22 +67,19 @@ class ConsumerZMQ(Process, Component):
                     if (self.sock_reply in sockets and
                             sockets[self.sock_reply] == zmq.POLLIN):
                         request = self.sock_reply.recv_multipart()
-                        # do some 'work', update status and send to GUI
+                        # do some 'work', update status
                         cmd = loads(request[0])
-                        self.running = True
-                        if self.gui_address :self.update_gui()
+                        self.running = 1
                         self.coroutine.run(cmd)
+                        self.running = 0
                         self.nb_job_done += 1
-                        self.running = False
-                        if self.gui_address :self.update_gui()
                         # send reply back to router/queuer
                         self.sock_reply.send_multipart(request)
+
                 except Exception as e:
                     self.log.error('CONSUMER exception {}'.format(e))
                     break
-            if self.gui_address :self.update_gui()
             self.sock_reply.close()
-            self.socket_pub.close()
         self.finish()
         self.done = True
 
@@ -102,13 +95,6 @@ class ConsumerZMQ(Process, Component):
         context = zmq.Context()
         self.sock_reply = context.socket(zmq.REQ)
         self.sock_reply.connect(self.sock_consumer_url)
-        self.socket_pub = context.socket(zmq.PUB)
-        if self.gui_address is not None:
-            try:
-                self.socket_pub.connect("tcp://" + self.gui_address)
-            except zmq.error.ZMQError as e:
-                self.log.error("{} tcp://{}".format(str(e),  self.gui_address))
-                return False
         # Informs prev_stage that I am ready to work
         self.sock_reply.send_pyobj("READY")
         # Create and register poller
@@ -116,13 +102,6 @@ class ConsumerZMQ(Process, Component):
         self.poll.register(self.sock_reply, zmq.POLLIN)
         return True
 
-    def update_gui(self):
-        """
-        send it's status to GUI
-        """
-        msg = [self.name, self.running, self.nb_job_done]
-        self.socket_pub.send_multipart(
-            [b'GUI_CONSUMER_CHANGE', dumps(msg)])
 
     @property
     def stop(self):
@@ -139,3 +118,11 @@ class ConsumerZMQ(Process, Component):
     @nb_job_done.setter
     def nb_job_done(self, value):
         self._nb_job_done.value = value
+
+    @property
+    def running(self):
+        return self._running.value
+
+    @running.setter
+    def running(self, value):
+        self._running.value = value

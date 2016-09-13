@@ -53,11 +53,13 @@ class CalibrationStep(Component):
 
     def run(self, event):
         if event != None:
+            self.log.info("--- CalibrationStep RUN ---")
             geom_dict = {}
             calibrated_event = calibrate_event(event,self.parameters,geom_dict)
-            for tel_id in calibrated_event.dl0.tels_with_data:
-                signals = calibrated_event.dl1.tel[tel_id].pe_charge
-                cmaxmin = (max(signals) - min(signals))
+            #for tel_id in calibrated_event.dl0.tels_with_data:
+            #    signals = calibrated_event.dl1.tel[tel_id].pe_charge
+            #    cmaxmin = (max(signals) - min(signals))
+            self.log.info("--- CalibrationStep STOP ---")
             return ([calibrated_event,geom_dict])
 
     def finish(self):

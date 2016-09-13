@@ -15,7 +15,7 @@ class ConsumerSequential():
         """
         self.name = name
         self.coroutine = coroutine
-        self.running = False
+        self.running = 0
         self.nb_job_done = 0
 
 
@@ -35,8 +35,10 @@ class ConsumerSequential():
         return True
 
     def run(self,inputs=None):
+        self.running = 1
         self.coroutine.run(inputs)
         self.nb_job_done+=1
+        self.running = 0
 
     def finish(self):
         """

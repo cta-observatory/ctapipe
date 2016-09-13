@@ -139,18 +139,24 @@ class GraphWidget(QWidget):
                 str_shape = 'doubleoctagon'
             if step.type == StagerRep.PRODUCER:
                 str_shape = 'Mdiamond'
+            name = step.name.split('$$processus')[0]
+            # in case of multiprocessus mode, we need to keep all processus
+            # running state for a special step
+            # we consider the step running if at least one processus is running
+
             name = self.format_name(step.name.split('$$processus')[0])
-            if step.running:
+            if step.running > 0:
                 g.node(name,color='lightblue', style='filled',shape=str_shape,area='0.5')
             else:
                 g.node(name,shape=str_shape,color='blue',area='0.5')
+
         for step in self.steps:
-            step_name = self.format_name(step.name)
+            step_name = self.format_name(step.name.split('$$processus')[0])
             for next_step_name in step.next_steps:
-                next_step = self.get_step_by_name(next_step_name)
+                next_step = self.get_step_by_name(next_step_name.split('$$processus')[0])
                 if next_step:
                     #for i in range(step.nb_processus):
-                    next_step_name_formated = self.format_name(next_step.name)
+                    next_step_name_formated = self.format_name(next_step.name.split('$$processus')[0])
                     g.edge(step_name, next_step_name_formated)
                     g.edge_attr.update(arrowhead='empty', arrowsize='1',color='purple')
         return g

@@ -9,9 +9,13 @@ class Odd(Component):
         self.log.debug("--- Odd init ---")
         return True
 
-    def run(self, inputs):
-        self.log.info("ODD receive {}".format(inputs))
-        return inputs
+    def run(self, _input):
+        sleep(.1)
+        self.log.debug("ODD receive {}".format(_input))
+        if _input % 2 == 0:
+            return (_input, 'Add')
+        else:
+            return (_input, 'Inverse')
 
 
     def finish(self):

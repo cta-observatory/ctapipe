@@ -7,16 +7,16 @@
                 "class": "StringWriter"},
       "stagers_conf" : [ {"name": "Pair", "class": "Pair",
                                         "module": "ctapipe.flow.algorithms.pair",
-                                        "next_steps" : "Inverse,Add", "nb_process" : 1},
+                                        "next_steps" : "Inverse,Add", "nb_process" : 2},
                         {"name": "Odd", "class": "Odd",
                                         "module": "ctapipe.flow.algorithms.odd",
-                                        "next_steps" : "Inverse,Add", "nb_process" : 1},
+                                        "next_steps" : "Inverse,Add", "nb_process" :2},
                         {"name": "Inverse", "class": "Inverse",
                                         "module": "ctapipe.flow.algorithms.inverse",
-                                        "next_steps" : "StringWriter", "nb_process" : 6},
+                                        "next_steps" : "StringWriter", "nb_process" : 5},
                         {"name": "Add", "class": "Add",
                                         "module": "ctapipe.flow.algorithms.add",
-                                        "next_steps" : "StringWriter,Inverse", "nb_process" : 1}
+                                        "next_steps" : "StringWriter,Inverse", "nb_process" : 2}
                         ]
   },
 

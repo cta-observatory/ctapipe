@@ -19,7 +19,7 @@ class ProducerZmq(Process, Component, Connexions):
     """
 
     def __init__(self, coroutine, name,main_connexion_name,
-                connexions=dict(), gui_address=None):
+                connexions=dict()):
         """
         Parameters
         ----------
@@ -31,18 +31,15 @@ class ProducerZmq(Process, Component, Connexions):
             Default next step name. Used to send data when destination is not provided
         connexions: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
             Port number for socket for each next steps
-        gui_address : str
-            GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
         Component.__init__(self,parent=None)
         self.name = name
         Connexions.__init__(self,main_connexion_name,connexions)
         self.coroutine = coroutine
-        self.running = False
-        self.gui_address = gui_address
         self.other_requests=dict()
         self._nb_job_done = Value('i',0)
+        self._running = Value('i',0)
         self.done = False
 
     def init(self):
@@ -69,24 +66,17 @@ class ProducerZmq(Process, Component, Connexions):
         if self.init() :
             generator = self.coroutine.run()
             if isinstance(generator,GeneratorType):
-                if self.gui_address : self.update_gui()
                 for result in generator:
-                    self.running = False
+                    self.running = 1
                     self.nb_job_done += 1
                     if isinstance(result,tuple):
                         msg,destination = self.get_destination_msg_from_result(result)
                         self.send_msg(msg,destination)
                     else:
                         self.send_msg(result)
-                    if self.gui_address : self.update_gui()
-                    self.running = True
-                    if self.gui_address : self.update_gui()
-                self.running = False
-                if self.gui_address : self.update_gui()
+                self.running = 0
             else:
                 self.log.warning("Warning: Productor run method was not a python generator.")
-            self.socket_pub.close()
-
         self.finish()
         self.done = True
 
@@ -105,23 +95,7 @@ class ProducerZmq(Process, Component, Connexions):
         """
         self.context = zmq.Context()
         Connexions.init_connexions(self)
-        # Socket to talk to GUI
-        self.socket_pub = self.context.socket(zmq.PUB)
-        if self.gui_address is not None:
-            try:
-                self.socket_pub.connect("tcp://" + self.gui_address)
-            except zmq.error.ZMQError as e:
-                self.log.error("Error {} tcp://{}".format(e, self.gui_address))
-                return False
         return True
-
-    def update_gui(self):
-        """
-        send it's status to GUI
-        """
-        msg = [self.name, self.running, self.nb_job_done]
-        self.socket_pub.send_multipart(
-            [b'GUI_PRODUCER_CHANGE', dumps(msg)])
 
     @property
     def nb_job_done(self):
@@ -130,3 +104,11 @@ class ProducerZmq(Process, Component, Connexions):
     @nb_job_done.setter
     def nb_job_done(self, value):
         self._nb_job_done.value = value
+
+    @property
+    def running(self):
+        return self._running.value
+
+    @running.setter
+    def running(self, value):
+        self._running.value = value
