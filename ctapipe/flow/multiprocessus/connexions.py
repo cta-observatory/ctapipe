@@ -1,15 +1,10 @@
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
-# coding: utf8
-
 from time import sleep
-from ctapipe.core import Component
 import zmq
 
 class Connexions():
     """
     implements ZMQ connexions between processus for PRODUCER and STAGER and CONSUMER
     """
-
     def __init__(self, main_connexion_name, connexions=dict()):
         """
         Parameters
@@ -31,7 +26,6 @@ class Connexions():
         """
         for sock in self.sockets.values():
             sock.close()
-
 
     def get_destination_msg_from_result(self,result):
         """

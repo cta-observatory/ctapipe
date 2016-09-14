@@ -47,6 +47,7 @@ class ProducerSequential():
 
     def finish(self):
         """
+        Call coroutine finish methd
         """
         self.coroutine.finish()
         return True

@@ -1,8 +1,5 @@
 from ctapipe.core import Component
-from random import randint
 from time import sleep
-from math import sin
-
 
 class Add(Component):
     """Add class represents a Stage for pipeline.

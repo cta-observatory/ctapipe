@@ -4,10 +4,7 @@ import zmq
 from multiprocessing import Process
 from multiprocessing import Value
 from pickle import loads
-from pickle import dumps
 from ctapipe.core import Component
-from time import sleep
-from os import getpid
 
 class ConsumerZMQ(Process, Component):
     """`ConsumerZMQ` class represents a Consumer pipeline Step.
@@ -101,7 +98,6 @@ class ConsumerZMQ(Process, Component):
         self.poll = zmq.Poller()
         self.poll.register(self.sock_reply, zmq.POLLIN)
         return True
-
 
     @property
     def stop(self):

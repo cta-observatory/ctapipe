@@ -1,13 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-from time import sleep
-from time import time
 from types import GeneratorType
 from multiprocessing import Process
 from multiprocessing import  Value
 from pickle import loads
-from pickle import dumps
-import zmq
+from zmq import POLLIN
+from zmq import REQ
+from zmq import Poller
+from zmq import Context
 from ctapipe.flow.multiprocessus.connexions import Connexions
 from ctapipe.core import Component
 
@@ -82,7 +82,7 @@ class StagerZmq(Component, Process, Connexions):
             while not self.stop:
                 sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
                 if (self.sock_for_me in sockets and
-                        sockets[self.sock_for_me] == zmq.POLLIN):
+                        sockets[self.sock_for_me] == POLLIN):
                     #  Get the input from prev_stage
                     self.waiting_since.value = 0
                     self.running = 1
@@ -118,13 +118,13 @@ class StagerZmq(Component, Process, Connexions):
          method to be hold by the correct processus.
         """
         Connexions.init_connexions(self)
-        context = zmq.Context()
-        self.sock_for_me = context.socket(zmq.REQ)
+        context = Context()
+        self.sock_for_me = context.socket(REQ)
         self.sock_for_me.connect(self.sock_job_for_me_url)
         # Use a ZMQ Pool to get multichannel message
-        self.poll = zmq.Poller()
+        self.poll = Poller()
         # Register sockets
-        self.poll.register(self.sock_for_me, zmq.POLLIN)
+        self.poll.register(self.sock_for_me, POLLIN)
         # Send READY to next_router to inform about my capacity to compute new
         # job
         self.sock_for_me.send_pyobj("READY")

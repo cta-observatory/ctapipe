@@ -3,8 +3,6 @@ from ctapipe.plotting.camera import CameraPlotter
 import numpy as np
 from matplotlib import colors
 from matplotlib import pyplot as plt
-from traitlets import Bool
-from traitlets import Unicode
 
 class PrepareDisplayStep(Component):
     """PrepareDisplayStep` class represents a Stage for pipeline.

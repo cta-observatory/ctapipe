@@ -1,7 +1,5 @@
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-import sys
-
+#from PyQt4.QtCore import *
+from PyQt4.QtGui import QLabel
 
 class InfoLabel(QLabel):
     """
@@ -30,6 +28,14 @@ class InfoLabel(QLabel):
             self.setText(text)
 
     def formatText(self,step):
+        """ Format Step state
+        Parameters:
+        ===========
+        step : StagerRep to format
+        Return:
+        =======
+        A str containg sdtep state
+        """
         text = str()
         step_name = step.name.split('$$processus')[0]
         if len(step_name) < 18:
@@ -48,9 +54,13 @@ class InfoLabel(QLabel):
             text = name+ '\t' + str(running) + '\\' + str(nb_proc) + '\t' + str(queue) + '\t' + str(done)
         return text
 
-
     def reset(self):
         self.setText("")
 
     def mode_receive(self,mode):
+        """
+        Parameter:
+        ==========
+        Flow mode (sequential or multiprocessus)
+        """
         self.mode = mode

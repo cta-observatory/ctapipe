@@ -1,7 +1,4 @@
 from ctapipe.core import Component
-from ctapipe.plotting.camera import CameraPlotter
-import numpy as np
-from matplotlib import colors
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Bool

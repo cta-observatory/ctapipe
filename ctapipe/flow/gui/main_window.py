@@ -3,19 +3,15 @@
 Qt QApplication and QMainWindow for GUI
 This requires the pyside python library to be installed
 """
-
-import sys
-from ctapipe.flow.gui import GraphWidget
-from ctapipe.flow.gui import InfoLabel
+from ctapipe.flow.gui.graphwidget import GraphWidget
+from ctapipe.flow.gui.infolabel import InfoLabel
+from ctapipe.flow.gui.guiconnexion import GuiConnexion
 import ctapipe.flow.gui.images_rc
 from PyQt4.QtGui import QMainWindow
 from PyQt4.QtGui import QPushButton
 from PyQt4.QtGui import QApplication
 from PyQt4.QtGui import QPalette
 from PyQt4.QtGui import QPixmap
-from PyQt4.QtGui import QTableWidget
-from PyQt4.QtGui import QTableWidgetItem
-from PyQt4.QtGui import QTextEdit
 from PyQt4.QtGui import QWidget
 from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QGridLayout
@@ -29,12 +25,8 @@ from PyQt4.QtCore import QRect
 from PyQt4.QtCore import QObject
 from PyQt4.QtCore import QMetaObject
 from PyQt4.QtCore import SIGNAL
-from ctapipe.flow.gui import GuiConnexion
-
-
 
 class MainWindow(QMainWindow, object):
-
     """
     QMainWindow displays pipeline
     Parameters
@@ -60,39 +52,32 @@ class MainWindow(QMainWindow, object):
         self.gridLayout = QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName("gridLayout")
         self.setCentralWidget(self.centralwidget)
-
         self.menubar = QMenuBar(self)
         self.menubar.setGeometry(QRect(0, 0, 808, 25))
         self.menubar.setObjectName("menubar")
         self.menuFile = QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
         self.setMenuBar(self.menubar)
-
         self.statusbar = QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
         self.setStatusBar(self.statusbar)
-
         self.actionQuit = QAction(self)
         self.actionQuit.setObjectName("actionQuit")
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionQuit)
         self.menubar.addAction(self.menuFile.menuAction())
-
         self.actionReset = QAction(self)
         self.actionReset.setObjectName("reset")
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionReset)
         self.menubar.addAction(self.menuFile.menuAction())
         # add other GUI objects
-
         self.graph_widget = GraphWidget(self.statusbar)
         self.gridLayout.addWidget(self.graph_widget, 1, 11, 10, 10 )
-
         pixmap = QPixmap(':/images/cta-logo-mini.png')
         lbl = QLabel()
         lbl.setPixmap(pixmap)
         self.gridLayout.addWidget(lbl, 0, 0)
-
         p = self.graph_widget.palette()
         self.graph_widget.setAutoFillBackground(True)
         p.setColor(
@@ -103,7 +88,6 @@ class MainWindow(QMainWindow, object):
         self.quitButton.setText(QApplication.translate
                                 ("MainWindow", "Quit", None, QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 12, 0, 1, 1)
-
         self.info_label = InfoLabel(0,4)
         self.info_label.setAutoFillBackground(True)
         self.gridLayout.addWidget(self.info_label,1, 0, 1, 5)
@@ -111,21 +95,15 @@ class MainWindow(QMainWindow, object):
         palette = QPalette()
         palette.setColor(self.info_label.backgroundRole(),Qt.lightGray)
         self.info_label.setPalette(palette)
-
-
-
         QObject.connect(
             self.quitButton, SIGNAL("clicked()"), self.stop)
         QObject.connect(
             self.actionQuit, SIGNAL("triggered()"), self.stop)
         QMetaObject.connectSlotsByName(self)
-
-
         self.retranslateUi()
         QObject.connect(
             self.actionQuit, SIGNAL("triggered()"), self.close)
         QMetaObject.connectSlotsByName(self)
-
         # Create GuiConnexion for ZMQ comminucation with pipeline
         self.guiconnexion = GuiConnexion(gui_port=port, statusBar=self.statusbar)
         self.guiconnexion.message.connect(self.graph_widget.pipechange)
@@ -133,25 +111,21 @@ class MainWindow(QMainWindow, object):
         self.guiconnexion.reset_message.connect(self.graph_widget.reset)
         self.guiconnexion.reset_message.connect(self.info_label.reset)
         self.guiconnexion.mode_message.connect(self.info_label.mode_receive)
-
-
         QObject.connect(
             self.actionReset, SIGNAL("triggered()"), self.guiconnexion.reset)
         QMetaObject.connectSlotsByName(self)
-
         # start the processus
         self.guiconnexion.start()
 
     def retranslateUi(self):
         self.setWindowTitle(QApplication.translate(
-            "ctapipe", "ctapipe", None, QApplication.UnicodeUTF8))
+            "ctapipe flow based GUI", "ctapipe flow based GUI", None, QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QApplication.translate(
             "MainWindow", "File", None, QApplication.UnicodeUTF8))
         self.actionQuit.setText(QApplication.translate(
             "MainWindow", "Quit", None, QApplication.UnicodeUTF8))
         self.actionReset.setText(QApplication.translate(
             "MainWindow", "Reset", None, QApplication.UnicodeUTF8))
-
 
     def stop(self):
         """Method connect (via Qt slot) to exit button
@@ -167,17 +141,13 @@ class MainWindow(QMainWindow, object):
             self.guiconnexion.join()
             event.accept()  # let the window close
 
-
 class ModuleApplication(QApplication):
-
     """
     QApplication
-
     Parameters
     ----------
     QApplication : QApplication
     """
-
     def __init__(self,  argv, port):
         super(ModuleApplication, self).__init__(argv)
         self.main_windows = MainWindow(port)
