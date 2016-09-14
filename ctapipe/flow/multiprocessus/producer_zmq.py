@@ -4,11 +4,9 @@ from ctapipe.flow.multiprocessus.connexions import Connexions
 from multiprocessing import Process
 from multiprocessing import Value
 from types import GeneratorType
-from pickle import dumps
 import zmq
 
 class ProducerZmq(Process, Component, Connexions):
-
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Process class.
     It gets a Python generator from its coroutine run method.
@@ -17,7 +15,6 @@ class ProducerZmq(Process, Component, Connexions):
     The processus is launched by calling run method.
     init() method is call by run method.
     """
-
     def __init__(self, coroutine, name,main_connexion_name,
                 connexions=dict()):
         """
@@ -62,7 +59,6 @@ class ProducerZmq(Process, Component, Connexions):
         It loops overs its generator and sends new input to its next stage,
         thanks to its ZMQ REQ socket.
         """
-
         if self.init() :
             generator = self.coroutine.run()
             if isinstance(generator,GeneratorType):

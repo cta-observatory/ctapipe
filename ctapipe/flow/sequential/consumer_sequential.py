@@ -35,11 +35,17 @@ class ConsumerSequential():
         return True
 
     def run(self,inputs=None):
+        """ Executes coroutine run method
+        Parameters:
+        ===========
+        inputs: input for coroutine.run
+        """
         self.coroutine.run(inputs)
         self.nb_job_done+=1
 
     def finish(self):
         """
+        Call coroutine finish method
         """
         self.coroutine.finish()
         return True

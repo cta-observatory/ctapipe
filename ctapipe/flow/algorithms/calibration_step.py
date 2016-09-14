@@ -1,7 +1,4 @@
-from ctapipe.utils.datasets import get_path
-import ctapipe.instrument.InstrumentDescription as ID
 from ctapipe.calib.camera.calibrators import calibrate_event
-from ctapipe.calib.camera.integrators import integrator_dict
 from ctapipe.core import Component
 from traitlets import Unicode
 from traitlets import Int

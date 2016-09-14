@@ -1,8 +1,6 @@
 from ctapipe.core import Component
 from traitlets import Unicode
 from time import sleep
-import os
-
 
 class StringWriter(Component):
 

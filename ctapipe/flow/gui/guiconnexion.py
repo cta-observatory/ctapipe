@@ -1,51 +1,56 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-import zmq
+from zmq.error import ZMQError
+from zmq import Context
+from zmq import SUB
+from zmq import Poller
+from zmq import POLLIN
+from zmq import SUBSCRIBE
 from threading import Thread
 from pickle import loads
 from PyQt4 import QtCore
 from PyQt4.QtGui import QLabel
 from time import time
-from ctapipe.core import Component
 
 class GuiConnexion(Thread, QtCore.QObject):
-
     """
     Manages communication with pipeline thanks to ZMQ SUB message
-    Transmit information to GUI when pipeline change
-    Parameters
-    ----------
-    gui_port : str
-        port to connect for ZMQ communication
-    statusBar :  QtGui.QStatusBar
-        MainWindow status bar to display information
+    Transmit information to GUI when pipeline change thank to pyqtSignal
     """
     mode_message = QtCore.pyqtSignal(str)
     message = QtCore.pyqtSignal(list)
     reset_message = QtCore.pyqtSignal()
 
     def __init__(self, gui_port=None, statusBar=None):
+        """
+        Parameters
+        ----------
+        gui_port : str
+            port to connect for ZMQ communication
+        statusBar :  QtGui.QStatusBar
+            MainWindow status bar to display information
+        """
         Thread.__init__(self)
         QtCore.QObject.__init__(self)
         if gui_port is not None:
-            self.context = zmq.Context()
+            self.context = Context()
             # Socket to talk to pipeline kernel and pipeline steps and router
-            self.socket = self.context.socket(zmq.SUB)
+            self.socket = self.context.socket(SUB)
             gui_adress = "tcp://*:" + str(gui_port)
             try:
                 self.socket.bind(gui_adress)
-            except zmq.error.ZMQError as e:
+            except ZMQError as e:
                 print("ERROR: ".format(str(e), gui_adress))
             # Inform about connection in statusBar
             if statusBar is not None:
                 self.statusBar = statusBar
                 self.statusBar.insertPermanentWidget(0,QLabel("binded to " + gui_adress))
             # Register socket in a poll and register topics
-            self.poll = zmq.Poller()
-            self.poll.register(self.socket, zmq.POLLIN)
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_GRAPH')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'GUI_ROUTER_CHANGE')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'FINISH')
-            self.socket.setsockopt_string(zmq.SUBSCRIBE, 'MODE')
+            self.poll = Poller()
+            self.poll.register(self.socket, POLLIN)
+            self.socket.setsockopt_string(SUBSCRIBE, 'GUI_GRAPH')
+            self.socket.setsockopt_string(SUBSCRIBE, 'GUI_ROUTER_CHANGE')
+            self.socket.setsockopt_string(SUBSCRIBE, 'FINISH')
+            self.socket.setsockopt_string(SUBSCRIBE, 'MODE')
             # self,stop flag is set by ficnish method to stop this thread
             # properly when GUI is closed
             # self.pipegui will receive new pipeline information
@@ -64,7 +69,7 @@ class GuiConnexion(Thread, QtCore.QObject):
         while not self.stop:
             conf_time = time()
             sockets = dict(self.poll.poll(1000))  # Poll or time out (1000ms)
-            if self.socket in sockets and sockets[self.socket] == zmq.POLLIN:
+            if self.socket in sockets and sockets[self.socket] == POLLIN:
                 # receive a new message form pipeline
                 receive = self.socket.recv_multipart()
                 topic = receive[0]
@@ -179,14 +184,23 @@ class GuiConnexion(Thread, QtCore.QObject):
         return None
 
     def finish(self):
+        """ Force to stop this thread
+        """
         self.stop = True
 
     def flow_has_finish(self):
+        """ Flow finished. Set all step.runnng to False
+        """
         for step in self.steps:
             step.running=0
         self.full_change(self.steps)
         self.message.emit(self.steps)
-        #self.steps.clear()
 
     def send_mode(self,msg):
+        """ Flow can run in sequetial or multiprocessus mode.
+        This will informs InfoLabel of Flow MODE
+        Parameters:
+        ===========
+        msg: A Picle.dumps msg containing Flow mode
+        """
         self.mode_message.emit(msg)

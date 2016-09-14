@@ -1,8 +1,5 @@
-from ctapipe.utils.datasets import get_path
-from ctapipe.io.hessio import hessio_event_source
 from ctapipe.core import Component
 from time import sleep
-from traitlets import Unicode
 
 class IntGenerator(Component):
 
@@ -13,7 +10,7 @@ class IntGenerator(Component):
         return True
 
     def run(self):
-        for i in range(20):
+        for i in range(2):
             sleep(.5)
             self.log.debug("IntGenerator send {}".format(i))
             if i % 2 == 0:

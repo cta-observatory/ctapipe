@@ -1,8 +1,3 @@
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-This module contains configuration and setup utilities for the
-ctapipe project.
+This module contains a Flow based Framework
 """
-
-from .multiprocessus import *
-from .algorithms import *

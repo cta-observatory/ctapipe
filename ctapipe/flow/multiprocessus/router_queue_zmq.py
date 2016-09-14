@@ -1,12 +1,14 @@
-from time import sleep
 from multiprocessing import Process
 from multiprocessing import Value
-import zmq
+from zmq import POLLIN
+from zmq import PUB
+from zmq import ROUTER
+from zmq import Poller
+from zmq import Context
+from zmq.error import ZMQError
 from pickle import dumps
 from pickle import loads
 from ctapipe.core import Component
-from os import getpid
-
 
 class RouterQueue(Process, Component):
 
@@ -83,17 +85,16 @@ class RouterQueue(Process, Component):
                 # Test if message arrived from next_stages
                 for n, socket_dealer in self.dealer_sockets.items():
                     if (socket_dealer in sockets and
-                            sockets[socket_dealer] == zmq.POLLIN):
+                            sockets[socket_dealer] == POLLIN):
                         request = socket_dealer.recv_multipart()
                         # Get next_stage identity(to responde) and message
-                        next_stage, _, message = request[:3]
-                        cmd = loads(message)
+                        next_stage, _, _ = request[:3]
                         # add stager to next_available_stages
                         self.next_available_stages[n].append(next_stage)
                 # Test if message arrived from prev_stage (stage or producer)
                 for n, socket_router in self.router_sockets.items():
                     if (socket_router in sockets and
-                            sockets[socket_router] == zmq.POLLIN):
+                            sockets[socket_router] == POLLIN):
                         # Get next prev_stage request
                         address, empty, request = socket_router.recv_multipart()
                         # store it to job queue
@@ -155,23 +156,23 @@ class RouterQueue(Process, Component):
          method to be hold by the correct processus.
         """
         # Prepare our context and sockets
-        context = zmq.Context()
+        context = Context()
         # Socket to talk to prev_stages
         for name,connexions in self.connexions.items():
             self.queue_limit[name] = connexions[2]
-            sock_router = context.socket(zmq.ROUTER)
+            sock_router = context.socket(ROUTER)
             try:
                 sock_router.bind('tcp://*:' + connexions[0])
-            except zmq.error.ZMQError as e:
+            except ZMQError as e:
                 self.log.error('{} : tcp://localhost:{}'
                                .format(e,  connexions[0]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
-            sock_dealer = context.socket(zmq.ROUTER)
+            sock_dealer = context.socket(ROUTER)
             try:
                 sock_dealer.bind("tcp://*:" + connexions[1] )
-            except zmq.error.ZMQError as e:
+            except ZMQError as e:
                 self.log.error('{} : tcp://localhost:{}'
                                .format(e,  connexions[1]))
                 return False
@@ -179,32 +180,32 @@ class RouterQueue(Process, Component):
             self.next_available_stages[name] = list()
             self.queue_jobs[name] = list()
         # Use a ZMQ Pool to get multichannel message
-        self.poller = zmq.Poller()
+        self.poller = Poller()
         # Register dealer socket to next_stage
         for n, dealer in self.dealer_sockets.items():
-            self.poller.register(dealer, zmq.POLLIN)
+            self.poller.register(dealer, POLLIN)
         for n, router in self.router_sockets.items():
-            self.poller.register(router, zmq.POLLIN)
+            self.poller.register(router, POLLIN)
         # Register router socket to prev_stages or producer
-        self.socket_pub = context.socket(zmq.PUB)
+        self.socket_pub = context.socket(PUB)
         if self.gui_address is not None:
             try:
                 self.socket_pub.connect("tcp://" + self.gui_address)
-            except zmq.error.ZMQError as e:
+            except ZMQError as e:
                 self.log.error("".format(e, self.gui_address))
                 return False
         # This flag stop this current processus
         return True
 
-
     def update_gui(self, name):
         """
         send status to GUI
+        name: str
+            step name
         """
         msg = [name, str(len(self.queue_jobs[name]))]
         self.socket_pub.send_multipart(
             [b'GUI_ROUTER_CHANGE', dumps(msg)])
-
 
     @property
     def stop(self):

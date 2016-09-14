@@ -6,7 +6,6 @@ class StagerSequential():
 
     """`StagerSequential` class represents a Stager pipeline Step.
     """
-
     def __init__(
             self, coroutine, name=None, connexions=list(),main_connexion_name=None):
         """
@@ -39,6 +38,11 @@ class StagerSequential():
         return True
 
     def run(self,inputs=None):
+        """ Executes coroutine run method
+        Parameters:
+        ===========
+        inputs: input for coroutine.run
+        """
         result = self.coroutine.run(inputs)
         if isinstance(result, GeneratorType):
             for val in result:
@@ -79,6 +83,7 @@ class StagerSequential():
 
     def finish(self):
         """
+        Call coroutine finish method
         """
         self.coroutine.finish()
         return True
