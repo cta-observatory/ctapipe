@@ -10,7 +10,7 @@ class IntGenerator(Component):
         return True
 
     def run(self):
-        for i in range(2):
+        for i in range(15):
             sleep(.5)
             self.log.debug("IntGenerator send {}".format(i))
             if i % 2 == 0:
