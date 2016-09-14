@@ -7,12 +7,11 @@ from traitlets import Unicode
 from traitlets import Int
 from traitlets import Float
 from traitlets import List
-import numpy as np
-
 
 class CalibrationStep(Component):
     """CalibrationStep` class represents a Stage for pipeline.
-        it dumps RawCameraData contents to a string
+        it executes ctapipe.calib.camera.calibrators.calibrate_event
+        it return calibrated_event and geom_dict
     """
     integrator = Unicode('nb_peak_integration',
      help='integration scheme to be used to extract the charge').tag(
@@ -35,7 +34,7 @@ class CalibrationStep(Component):
 
 
     def init(self):
-        self.log.info("--- CalibrationStep init ---")
+        self.log.debug("--- CalibrationStep init ---")
         self.parameters = dict()
         self.parameters['integrator'] = 'nb_peak_integration'
         self.parameters['window'] = self.integration_windows[0]
@@ -53,15 +52,15 @@ class CalibrationStep(Component):
 
     def run(self, event):
         if event != None:
-            self.log.info("--- CalibrationStep RUN ---")
+            self.log.debug("--- CalibrationStep RUN ---")
             geom_dict = {}
             calibrated_event = calibrate_event(event,self.parameters,geom_dict)
             #for tel_id in calibrated_event.dl0.tels_with_data:
             #    signals = calibrated_event.dl1.tel[tel_id].pe_charge
             #    cmaxmin = (max(signals) - min(signals))
-            self.log.info("--- CalibrationStep STOP ---")
+            self.log.debug("--- CalibrationStep STOP ---")
             return ([calibrated_event,geom_dict])
 
     def finish(self):
-        self.log.info("--- CalibrationStep finish ---")
+        self.log.debug("--- CalibrationStep finish ---")
         pass

@@ -183,6 +183,8 @@ Running the ctapipe-flow
    *prompt$> ctapipe-flow --config=mypipeconfig.json*
 By default it will run the flow based framework in sequential mode.
 Use --mode=multiprocessus to run it in a multiprocessus mode.
+By default it does not send any data to gui. To activate data transmition to gui,
+add -- gui=True option.
 flow based framework  send its activity to a GUI  on tcp://localhost:5565.
 But if the GUI is running on another system, you can use --gui_address
 option to define another address.
@@ -236,6 +238,13 @@ To avoid to serialize and deserialize data and pass data thanks to ZMQ,
 Muliple flow based framework management by GUI
 -------------------------------------------
 When several flow based framework are running, GUI should allows to choose which flow based framework user want to follow.
+
+Issues
+======
+Command ctapipe-flow --help-all, does not display traitlets parameters for classes
+derived from ctapipe.core.Component, used as Producer, Stager or Consumer.
+This is because ctapipe-flow instantiates theses classes after Flow.__init__() method.
+Anyway, theses traitlets parameters are take into account by these classes.
 
 Examples
 ========
