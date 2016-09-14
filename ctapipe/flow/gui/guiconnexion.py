@@ -101,13 +101,11 @@ class GuiConnexion(Thread, QtCore.QObject):
             define why message has been send
         msg: a Pickel dumps message
         """
-
         if topic == b'GUI_GRAPH':
             config_time, receiv_steps = msg
             if config_time != self.config_time:
                 self.full_change(receiv_steps)
                 self.config_time = config_time
-
         # Stager or Producer or Consumer state changes
         elif topic == b'GUI_ROUTER_CHANGE':
             self.router_change(msg)
@@ -183,12 +181,12 @@ class GuiConnexion(Thread, QtCore.QObject):
     def finish(self):
         self.stop = True
 
-
     def flow_has_finish(self):
         for step in self.steps:
             step.running=0
         self.full_change(self.steps)
-        self.steps.clear()
+        self.message.emit(self.steps)
+        #self.steps.clear()
 
     def send_mode(self,msg):
         self.mode_message.emit(msg)

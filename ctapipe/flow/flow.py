@@ -1,15 +1,3 @@
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
-'''a parallelization system. It executes ctapipe algorithms in a multiprocessus
-environment.
-It is based on ZeroMQ library (http://zeromq.org) to pass messages between
-processus. ZMQ library allows to stay away from class concurrency mechanisms
-like mutexes, critical sections semaphores, while being processus safe.
-User defined steps thanks to Python classes.
-Passing data between steps is managed by the router.
-If a step is executed by several processus, the router uses LRU pattern
-(least recently used ) to choose the step that will receive next data.
-The router also manage Queue for each step.
-'''
 import zmq
 from sys import exit
 from os import path
@@ -95,11 +83,17 @@ class FlowError(Exception):
 
 class Flow(Tool):
     '''
-    Main Flow-based framework implementation
-    Each stage in the Flow based framework is one or several processus
-    containing a coroutine that receives messages
-    from the previous stage and	return (or yields) messages to the next stage
-    thanks to RouterQueue '''
+    A Flow-based framework. It executes steps in a sequential or
+    multiprocessus environment.
+    User defined steps thanks to Python classes, and configuration in a json file
+    The multiprocessus mode is based on ZeroMQ library (http://zeromq.org) to
+    pass messages between processus. ZMQ library allows to stay away from class
+    concurrency mechanisms like mutexes, critical sections semaphores,
+    while being processus safe. Passing data between steps is managed by the router.
+    If a step is executed by several processus, the router uses LRU pattern
+    (least recently used ) to choose the step that will receive next data.
+    The router also manage Queue for each step.
+    '''
 
     description = 'run stages in multiprocessus Flow based framework'
     gui = Bool(False, help='send status to GUI').tag(
@@ -563,7 +557,7 @@ class Flow(Tool):
     def display_statistics(self):
         steps,_ = self.def_step_for_gui()
         for step in steps:
-            print(step.get_statistics())
+            self.log.info(step.get_statistics())
 
     def start(self):
         ''' run the Flow based framework steps
@@ -578,32 +572,48 @@ class Flow(Tool):
             self.socket_pub.send_multipart(
             [b'MODE', dumps('sequential')])
         start_time = time()
+        #self.producer.running = 0
+        # Get producer instance's generator
         self.producer = self.sequential_instances[self.producer_step.name]
+        #execute producer run coroutine
         prod_gen = self.producer.run()
-        for prod_result in prod_gen:
+        # only for gui
+        if self.gui :
             self.producer.running = 1
-            #if self.gui : self.send_status_to_gui()
-            #TO DO: Add code to take in account producer shunt
+            self.send_status_to_gui()
+        #for each producer output
+        for prod_result in prod_gen:
+            if self.gui :
+                self.producer.running = 0
+                self.send_status_to_gui()
+            # get next stage destination and input from producer output
             msg,destination = prod_result
+            # run each steps until consumer return
             while msg != None:
-                destinatoin, msg=self.run_generator(destination,msg)
-
+                destination, msg=self.run_generator(destination,msg)
+            if self.gui :
+                self.producer.running = 1
+                self.send_status_to_gui()
+        if self.gui :
+            self.consumer.running=0
+            self.send_status_to_gui()
+            # execute finish method for all steps
         for step in self.sequential_instances.values():
             step.finish()
+        end_time = time()
+        self.log.info('=== SEQUENTIAL MODE END ===')
+        self.log.info('Compute time {} sec'.format(end_time - start_time))
+        self.display_statistics()
+        # send finish to GUI and close connexions
         if self.gui :
             self.socket_pub.send_multipart(
             [b'FINISH', dumps('finish')])
             self.socket_pub.close()
             self.context.destroy()
             self.context.term()
-        end_time = time()
-        self.log.info('=== SEQUENTIAL MODE END ===')
-        self.log.info('Compute time {} sec'.format(end_time - start_time))
-        self.display_statistics()
 
     def run_generator(self, destination ,msg):
         stage = self.sequential_instances[destination]
-        self.producer.running = 0
         stage.running = 1
         if self.gui : self.send_status_to_gui()
         stage_gen = stage.run(msg)
@@ -617,7 +627,6 @@ class Flow(Tool):
                     msg = destination = None
         else:
             msg = destination = None
-
         return  (msg,destination)
 
 

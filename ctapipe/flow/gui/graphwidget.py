@@ -116,17 +116,15 @@ class GraphWidget(QWidget):
         svg.render(qp)
         qp.end()
 
-
-
-
     def pipechange(self, steps):
         """Called by GuiConnexion instance when it receives zmq message from pipeline
         Update pipeline state (self.steps) and force to update drawing
         Parameters
         ----------
         """
-        self.steps = steps
-        self.update()
+        if steps:
+            self.steps = steps
+            self.update()
 
     def reset(self):
         self.steps = list()

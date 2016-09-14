@@ -6,21 +6,19 @@ from matplotlib import pyplot as plt
 from traitlets import Bool
 from traitlets import Unicode
 
-
-
 class PrepareDisplayStep(Component):
     """PrepareDisplayStep` class represents a Stage for pipeline.
-        it prepare Display RawCameraData with matplotlib
+        it prepares Display for the next stage
+        This stage is time comsuming, so in multiprocessus mode you should
+        activate several process for it i.e.("nb_process" : 4)
     """
-
-
     def init(self):
-        self.log.info("--- PrepareDisplayStep init ---")
+        self.log.debug("--- PrepareDisplayStep init ---")
         self.fig = plt.figure(figsize=(16, 7))
         return True
 
     def run(self,parameters):
-        self.log.info("--- PrepareDisplayStep RUN ---")
+        self.log.debug("--- PrepareDisplayStep RUN ---")
         calibrated_event,  geom_dict = parameters
         for tel_id in calibrated_event.dl0.tels_with_data:
             self.fig.clear()
@@ -83,8 +81,8 @@ class PrepareDisplayStep(Component):
                 ax2.set_title("CT {} ({}) - Pixel peak position"
                               .format(tel_id, geom_dict[cam_dimensions].cam_id))
             yield self.fig
-        self.log.info("--- PrepareDisplayStep END ---")
+        self.log.debug("--- PrepareDisplayStep END ---")
 
 
     def finish(self):
-        self.log.info("--- PrepareDisplayStep finish ---")
+        self.log.debug("--- PrepareDisplayStep finish ---")

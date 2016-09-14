@@ -6,21 +6,18 @@ from math import sin
 
 class Add(Component):
     """Add class represents a Stage for pipeline.
+       It simply adds one to the received value and returned it.
 
     """
     def init(self):
-        self.log.debug("--- Inverse init ---")
+        self.log.debug("--- Add init ---")
         return True
 
-    def run(self, val):
-        sleep(1)
-        #self.log.info("add receive {}".format(val))
-        """
-        for i in range(2000):
-            foo = (val**i)
-        """
-        val+=1
-        return val
+    def run(self, value):
+        sleep(.5)
+        self.log.debug("Add receive {}".format(value))
+        value+=1
+        return value
 
     def finish(self):
         self.log.debug("--- Add finish ---")
