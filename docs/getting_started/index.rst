@@ -75,12 +75,12 @@ You now need to tell Git that this repo where the master CTA version is:
 
 .. code-block:: bash
 		
-	git remote add cta-observatory https://github.com/cta-observatory/ctapipe.git
+	git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
-If that worked, then you should see a *cta-observatory* target in
+If that worked, then you should see a *upstream* target in
 addition to *origin* when typing `git remote -v`.  Later if you want
 to pull in any changes from the master repo, you just need to type
-`git pull cta-observatory/master`.
+`git pull upstream master`.
 
 +++++++++++++
 Step 3: Setup
