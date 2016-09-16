@@ -123,7 +123,7 @@ to your local working copy):
 
 .. code-block:: bash
 
-   git pull cta-observatory/master
+   git pull upstream master
             
 ---------------------
 More Development help
