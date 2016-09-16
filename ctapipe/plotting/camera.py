@@ -34,16 +34,20 @@ class CameraPlotter:
         geom_dict : dict
             A pre-build geom_dict, or an empty dict to store any geoms
             calculated
+            dict[(num_pixels, focal_length)] = `ctapipe.io.CameraGeometry`
         """
         self.event = event
         self.geom_dict = {} if geom_dict is None else geom_dict
+        self.cameradisplay_dict = {}
 
     def get_geometry(self, tel):
-        if tel not in self.geom_dict:
-            self.geom_dict[tel] = \
+        cam_dimensions = (self.event.dl0.tel[tel].num_pixels,
+                          self.event.meta.optical_foclen[tel])
+        if cam_dimensions not in self.geom_dict:
+            self.geom_dict[cam_dimensions] = \
                 CameraGeometry.guess(*self.event.meta.pixel_pos[tel],
                                      self.event.meta.optical_foclen[tel])
-        return self.geom_dict[tel]
+        return self.geom_dict[cam_dimensions]
 
     def draw_camera(self, tel, data, axes=None):
         """
