@@ -47,8 +47,6 @@ def apply_mc_calibration(adcs, tel_id):
     apply basic calibration
     """
     peds, gains = get_mc_calibration_coeffs(tel_id)
-    #print(adcs,peds,gains)
-    #print ((adcs - peds) * gains)
     return (adcs - peds) * gains
 
 
@@ -69,7 +67,16 @@ if __name__ == '__main__':
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
     tel,cam,opt = ID.load(filename=args.filename)
+    ev = 0
+    efficiency = list()
+    efficiency.append(list())
+    efficiency.append(list())
+    efficiency.append(list())
+    efficiency.append(list())
 
+
+    impact = list()
+    geom = 0
     for event in source:
 
         container.dl0.tels_with_data = set(pyhessio.get_teldata_list())
@@ -91,22 +98,26 @@ if __name__ == '__main__':
 
         container.dl0.tel = dict()  # clear the previous telescopes
 
-        print('Scanning input file... count = {}'.format(event.count))
         table = "CameraTable_VersionFeb2016_TelID"
 
         for tel_id in container.dl0.tels_with_data:
 
             x, y = event.meta.pixel_pos[tel_id]
-
-            geom = io.CameraGeometry.guess(x, y,event.meta.optical_foclen[tel_id])
+            if geom == 0:
+                geom = io.CameraGeometry.guess(x, y,event.meta.optical_foclen[tel_id])
             image = apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0], tel_id)
-            clean_mask = tailcuts_clean(geom,image,1,picture_thresh=8,boundary_thresh=16)
+            if image.shape[0] >1000:
+                continue
+            clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)
 
             camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[container.mc.alt,container.mc.az],
                                                        pointing_direction=[container.mc.alt,container.mc.az],
                                                        focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==tel_id]['FL'][0]*u.m))
+
+            x = nom_coord.x.to(u.deg)
+            y = nom_coord.y.to(u.deg)
 
             img = image*clean_mask
             noise = 5
@@ -115,51 +126,46 @@ if __name__ == '__main__':
             centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask)
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
             ring_dist = np.abs(dist-radius)
-            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.5))
+            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.3))
 
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
             ring_dist = np.abs(dist-radius)
             centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.3))
 
-            dist_mask = np.abs(dist-radius)<radius*0.3
+            dist_mask = np.abs(dist-radius)<radius*0.4
 
-            print (centre_x,centre_y,radius)
+            #print (centre_x,centre_y,radius)
             rad = list()
             cx = list()
             cy = list()
             
             mc_x = container.mc.core_x
             mc_y = container.mc.core_y
+            pix_im = image*dist_mask
+            nom_dist = np.sqrt(np.power(centre_x,2)+np.power(centre_y,2))
+            if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist.value <1. and radius.value<1.5 and radius.value>1.):
 
-            if(np.sum(clean_mask*dist_mask)>15):
-
-                polygon = [(-15,-4),(-15,4),(-10,12),(9,12),(13,9.5),(16,4),(16,-4),(13.,-9.5),(9,-12),(-10,-12)]
-                hole = [(2.48636, 2.376),(2.48636, -2.376),(-2.48636, -2.376),(-2.48636, 2.376)]
-                hess = MuonLineIntegrate(polygon,hole,pixel_width=0.06*u.m)
-
-                #disp.image = image
-                #disp.add_ellipse((centre_x.value,centre_y.value),radius.value*2,radius.value*2,0,color="red")
-
-                #hess.image_prediction(mc_x,mc_y,centre_x,centre_y,radius,0.1*u.m,x,y)
+                hess = MuonLineIntegrate(6.50431,0.883,pixel_width=0.16*u.deg)
                 if (image.shape[0]<2000):
+                    im,phi,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask],mc_x.value,mc_y.value)
+                    if( im < 6 and im>0.9 and width<0.08 and width>0.04 ):# and radius.value>0.2 and radius.value<0.4):
+                        efficiency[tel_id-1].append(eff)
+                        impact.append(im)
 
-                    fig, axs = plt.subplots(1, 2, figsize=(12, 6), sharey=True, sharex=False)
+                    print(len(efficiency),len(impact))
+        ev +=1
 
-                    disp = visualization.CameraDisplay(geom,ax=axs[0])
-                    disp.cmap = "viridis"
-                    disp.add_colorbar()
-                    disp.add_ellipse((centre_x.value,centre_y.value),radius.value*2,radius.value*2,0,color="red")
-                    disp.image = image
+    print("Muon Efficiency of CT1",np.average(np.asarray(efficiency[0])))
+    print("Muon Efficiency of CT2",np.average(np.asarray(efficiency[1])))
+    print("Muon Efficiency of CT3",np.average(np.asarray(efficiency[2])))
+    print("Muon Efficiency of CT4",np.average(np.asarray(efficiency[3])))
 
-                    disp_pred = visualization.CameraDisplay(geom,ax=axs[1])
+    fig, axs = plt.subplots(2, 2, figsize=(15, 15), sharey=False, sharex=False)
 
-                    image_pred = np.zeros(image.shape)
+    print(axs)
+    axs[0][0].hist((efficiency[0]),bins=40,range=(0,0.1), alpha=0.5)
+    axs[0][1].hist((efficiency[1]),bins=40,range=(0,0.1), alpha=0.5)
+    axs[1][0].hist((efficiency[2]),bins=40,range=(0,0.1), alpha=0.5)
+    axs[1][1].hist((efficiency[3]),bins=40,range=(0,0.1), alpha=0.5)
 
-                    im_x,im_y,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask],mc_x.value,mc_y.value)
-                    image_pred = hess.image_prediction(im_x,im_y,centre_x.value,centre_y.value,radius.value,width,x.value,y.value)
-                    disp_pred.image = image_pred*eff
-                    disp_pred.cmap = "viridis"
-
-                    #disp_pred.add_colorbar()
-
-                    plt.show()
+    plt.show()
