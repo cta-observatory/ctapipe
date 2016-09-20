@@ -1,11 +1,17 @@
-from shapely.geometry import Polygon,LineString
+#!/usr/bin/env python3
+"""
+Class for performing a HESS style 2D fit of muon images
+
+To do:
+    - Deal with astropy untis better, currently stripped and no checks made
+    - unit tests
+    - create container class for output
+
+"""
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.ndimage.filters import correlate1d
-from astropy import units as u
 from iminuit import Minuit
-from scipy.interpolate import interp2d
 __all__ = ['MuonLineIntegrate']
 
 
@@ -126,7 +132,7 @@ class MuonLineIntegrate(object):
         :param centre_y: float
             Muon ring centre in field of view
         :param radius: float
-            Radius of muon rins
+            Radius of muon ring
         :param width: float
             Gaussian width of muon ring
         :param pixel_x: ndarray
@@ -136,69 +142,85 @@ class MuonLineIntegrate(object):
         :return: ndarray
             Predicted signal
         """
+
+        # First produce angular position of each pixel w.r.t muon centre
         ang = self.pos_to_angle(centre_x,centre_y,pixel_x,pixel_y)
+        # Add muon rotation angle
         ang +=phi
+        # Produce smoothed muon profile
         ang_prof,profile = self.plot_pos(impact_dist,radius,phi)
 
-
-        #r_bins = np.linspace(-radius*0.4,radius*0.4,radius/self.pixel_width.value)
-        #r_gauss = np.exp(-np.power(r_bins,2)/(2*np.power(width,2))) * (1./(2 * np.power(width,2) * math.pi))
-        #lookup = (profile[:,np.newaxis]*r_gauss)/np.sum(r_gauss)
-
+        # Produce gaussian weight for each pixel give ring width
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
-
-        #print(lookup[0],profile[0],r_bins,width)
-        pred = np.interp(ang,ang_prof,profile)
-        #interp_grid = interp2d(r_bins,ang_prof,lookup,kind="linear")
-        #pred2 = interp_grid(ring_dist,ang)
-
         gauss = np.exp(-np.power(ring_dist,2)/(2*np.power(width,2))) / np.sqrt(2 * math.pi * np.power(width,2))
+
+        # interpolate profile to find prediction for each pixel
+        pred = np.interp(ang,ang_prof,profile)
+
 
         # Multiply by integrated emissivity between 300 and 600 nm
         pred *= 0.5 * self.photemit300_600
 
+        # weight by pixel width
         pred *= (self.pixel_width / radius)
         pred *= np.sin(2 * radius/57.3)
+        # weight by gaussian width
         pred*=self.pixel_width*gauss
 
-        pixarea_factor = 1
-        return pred * pixarea_factor
+        return pred
 
     def likelihood(self,impact_dist,phi,centre_x,centre_y,radius,width,eff):
         """
+        Likelihood function to be called by minimiser
 
         Parameters
         ----------
-        impact_dist
-        centre_x
-        centre_y
-        radius
-        width
-        eff
+        impact_dist: float
+            Impact distance from telescope centre
+        centre_x: float
+            Centre of muon ring in FoV
+        centre_y: float
+            Centre of muon ring in FoV
+        radius: float
+            Radius of muon ring
+        width: float
+            Gaussian width of muon ring
+        eff: float
+            Efficiency of the optical system
         Returns
         -------
-
+        float: Likelihood that model matches data
         """
+
+        # Generate model prediction
         prediction = self.image_prediction(impact_dist,phi,centre_x,centre_y,radius,width,self.pixel_x,self.pixel_y)
+        # scale prediction by optical efficiency of array
         prediction *= eff
 
+        # Multiply sum of likelihoods by -2 to make them behave like chi-squared
         return -2 * np.sum(self.calc_likelihood(self.image,prediction,0.5,1.1))
 
     @staticmethod
     def calc_likelihood(image,pred,spe_width,ped):
         """
+        Calculate likelihood of prediction given the measured signal, gaussian approx from
+        de Naurois et al 2009
 
         Parameters
         ----------
-        image
-        pred
-        spe_width
-        ped
+        image: ndarray
+            Pixel amplitudes from image
+        pred: ndarray
+            Predicted pixel amplitudes from model
+        spe_width: ndarray
+            width of single p.e. distributio
+        ped: ndarray
+            width of pedestal
 
         Returns
         -------
-
+        ndarray: likelihood for each pixel
         """
         sq = 1./np.sqrt(2 * math.pi * (np.power(ped ,2)
             + pred*(1+pow(spe_width,2))) )
@@ -215,21 +237,30 @@ class MuonLineIntegrate(object):
 
         Parameters
         ----------
-        centre_x
-        centre_y
-        radius
-        pixel_x
-        pixel_y
-        image
+        centre_x: float
+            Centre of muon ring in the field of view from circle fitting
+        centre_y: float
+            Centre of muon ring in the field of view from circle fitting
+        radius: float
+            Radius of muon ring from circle fitting
+        pixel_x: ndarray
+            X position of pixels in image from circle fitting
+        pixel_y: ndarray
+            Y position of pixel in image from circle fitting
+        image: ndarray
+            Amplitude of image pixels
 
         Returns
         -------
-
+        float,float,float: Fitted ring parameters
         """
+
+        # First store these parameters in the class so we can use them in minimisation
         self.image = image
         self.pixel_x = pixel_x.value
         self.pixel_y = pixel_y.value
 
+        # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
         min = Minuit(self.likelihood,impact_dist=4,limit_impact_dist=(0,25),error_impact_dist=5,
                      phi=0,limit_phi=(-1*math.pi,1*math.pi),error_phi=0.1,
                      radius=radius.value,fix_radius=True,centre_x=centre_x.value,fix_centre_x=True,
@@ -238,8 +269,10 @@ class MuonLineIntegrate(object):
                      eff=0.1,error_eff=0.05,limit_eff=(0,1),
                      errordef=1)
 
+        # Perform minimisation
         min.migrad()
-
+        # Get fitted values
         fit_params = min.values
-        #print(fit_params)
+
+        # Return interesting stuff
         return fit_params['impact_dist'] ,fit_params['phi'],fit_params['width'],fit_params['eff']
