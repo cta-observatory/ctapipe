@@ -145,14 +145,14 @@ if __name__ == '__main__':
             nom_dist = np.sqrt(np.power(centre_x,2)+np.power(centre_y,2))
             if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist.value <1. and radius.value<1.5 and radius.value>1.):
 
-                hess = MuonLineIntegrate(6.50431,0.883,pixel_width=0.16*u.deg)
+                hess = MuonLineIntegrate(6.50431*u.m,0.883*u.m,pixel_width=0.16*u.deg)
                 if (image.shape[0]<2000):
-                    im,phi,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask],mc_x.value,mc_y.value)
+                    im,phi,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
                     if( im < 6 and im>0.9 and width<0.08 and width>0.04 ):# and radius.value>0.2 and radius.value<0.4):
                         efficiency[tel_id-1].append(eff)
                         impact.append(im)
 
-                    print(len(efficiency),len(impact))
+                    #print(len(efficiency),len(impact))
         ev +=1
 
     print("Muon Efficiency of CT1",np.average(np.asarray(efficiency[0])))
@@ -162,7 +162,6 @@ if __name__ == '__main__':
 
     fig, axs = plt.subplots(2, 2, figsize=(15, 15), sharey=False, sharex=False)
 
-    print(axs)
     axs[0][0].hist((efficiency[0]),bins=40,range=(0,0.1), alpha=0.5)
     axs[0][1].hist((efficiency[1]),bins=40,range=(0,0.1), alpha=0.5)
     axs[1][0].hist((efficiency[2]),bins=40,range=(0,0.1), alpha=0.5)

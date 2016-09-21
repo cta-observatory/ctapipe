@@ -12,6 +12,7 @@ import math
 import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
+from astropy import units as u
 __all__ = ['MuonLineIntegrate']
 
 
@@ -51,15 +52,32 @@ class MuonLineIntegrate(object):
         self.pixel_y = 0
         self.image = 0
         self.photemit300_600 = 12165.45
+        self.unit = u.deg
 
-    def chord_length (self,radius,rho,phi):
+    @staticmethod
+    def chord_length (radius,rho,phi):
+        """
+        Function for integrating the length of a chord across a circle
 
-        sehne = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
-        sehne = radius * (np.sqrt(sehne) + rho * np.cos(phi))
-        sehne[np.isnan(sehne)] = 0
-        sehne[sehne<0] = 0
+        Parameters
+        ----------
+        radius: float
+            radius of circle
+        rho: float
+            fractional distance of impact point from array centre
+        phi: ndarray
+            rotation angles to calculate length
 
-        return(sehne)
+        Returns
+        -------
+        ndarray: chord length
+        """
+        chord = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
+        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        chord[np.isnan(chord)] = 0
+        chord[chord<0] = 0
+
+        return chord
 
     def intersect_circle(self,r, angle):
         """
@@ -91,10 +109,8 @@ class MuonLineIntegrate(object):
             Chord length for each angle
         """
 
-        bins = int((2 * math.pi * radius)/self.pixel_width.value) * self.oversample_bins
-        ang = np.linspace(-1*math.pi+phi, 1*math.pi+phi,bins*1)
-
-
+        bins = int((2 * math.pi * radius)/self.pixel_width) * self.oversample_bins
+        ang = np.linspace(-1*math.pi*u.rad+phi, 1*math.pi*u.rad+phi,bins*1)
         l = self.intersect_circle(impact_dist,ang)
         l = correlate1d(l,np.ones(self.oversample_bins),mode="wrap",axis=0)
         l /= self.oversample_bins
@@ -149,7 +165,6 @@ class MuonLineIntegrate(object):
         ang +=phi
         # Produce smoothed muon profile
         ang_prof,profile = self.plot_pos(impact_dist,radius,phi)
-
         # Produce gaussian weight for each pixel give ring width
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
@@ -164,7 +179,7 @@ class MuonLineIntegrate(object):
 
         # weight by pixel width
         pred *= (self.pixel_width / radius)
-        pred *= np.sin(2 * radius/57.3)
+        pred *= np.sin(2 * radius)
         # weight by gaussian width
         pred*=self.pixel_width*gauss
 
@@ -192,6 +207,12 @@ class MuonLineIntegrate(object):
         -------
         float: Likelihood that model matches data
         """
+        centre_x *= self.unit
+        centre_y *= self.unit
+        radius *= self.unit
+        width *= self.unit
+        impact_dist *= u.m
+        phi*=u.rad
 
         # Generate model prediction
         prediction = self.image_prediction(impact_dist,phi,centre_x,centre_y,radius,width,self.pixel_x,self.pixel_y)
@@ -257,8 +278,9 @@ class MuonLineIntegrate(object):
 
         # First store these parameters in the class so we can use them in minimisation
         self.image = image
-        self.pixel_x = pixel_x.value
-        self.pixel_y = pixel_y.value
+        self.pixel_x = pixel_x
+        self.pixel_y = pixel_y
+        self.unit = pixel_x.unit
 
         # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
         min = Minuit(self.likelihood,impact_dist=4,limit_impact_dist=(0,25),error_impact_dist=5,
@@ -273,6 +295,6 @@ class MuonLineIntegrate(object):
         min.migrad()
         # Get fitted values
         fit_params = min.values
-
+        print(fit_params)
         # Return interesting stuff
-        return fit_params['impact_dist'] ,fit_params['phi'],fit_params['width'],fit_params['eff']
+        return fit_params['impact_dist']*u.m ,fit_params['phi']*u.rad,fit_params['width']*self.unit,fit_params['eff']
