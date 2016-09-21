@@ -148,7 +148,7 @@ if __name__ == '__main__':
                 hess = MuonLineIntegrate(6.50431*u.m,0.883*u.m,pixel_width=0.16*u.deg)
                 if (image.shape[0]<2000):
                     im,phi,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
-                    if( im < 6 and im>0.9 and width<0.08 and width>0.04 ):# and radius.value>0.2 and radius.value<0.4):
+                    if( im < 6*u.m and im>0.9*u.m and width<0.08*u.deg and width>0.04*u.deg ):# and radius.value>0.2 and radius.value<0.4):
                         efficiency[tel_id-1].append(eff)
                         impact.append(im)
 
