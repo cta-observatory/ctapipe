@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-
 """
 Script to demonstrate how to best obtain calibrated data.
 Displays the calibrated charge for each event in the file.
 """
-
 import argparse
 from matplotlib import colors, pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -16,7 +14,6 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.plotting.camera import CameraPlotter
 from ctapipe.io.files import InputFile, origin_list
 import os
-
 
 def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     fig.clear()
@@ -119,6 +116,8 @@ def main():
                                help='Debug mode')
 
     args = parser.parse_args()
+    print('DEBUG type(args) {}'.format(type(args)))
+    print('DEBUG args {}'.format(args))
     params = calibration_parameters(args)
 
     if args.quiet:
@@ -145,6 +144,7 @@ def main():
     geom_dict = {}
 
     # Calibrate events and fill geom_dict
+
     calibrated_source = calibrate_source(source, params, geom_dict)
 
     fig = plt.figure(figsize=(16, 7))
