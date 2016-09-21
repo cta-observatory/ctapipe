@@ -313,7 +313,7 @@ class Histogram:
 
         pyplot.pcolormesh(self.bin_lower_edges[dims[0]],
                           self.bin_lower_edges[dims[1]],
-                          self.hist.transpose(), **kwargs)
+                          self.hist, **kwargs)
         pyplot.title(self.name)
         pyplot.xlabel(self.axisNames[dims[0]])
         pyplot.ylabel(self.axisNames[dims[1]])
