@@ -26,9 +26,9 @@ if __name__ == '__main__':
     ad.values = ones_like(X) * 50
 
     # label them
-    #for tel in tels:
-        #name = "CT{tid}".format(tid=tel['TelID'])
-        #plt.text(tel['TelX'], tel['TelY'], name, fontsize=8)
+    for tel in tels:
+        name = "CT{tid}".format(tid=tel['TelID'])
+        plt.text(tel['TelX'], tel['TelY'], name, fontsize=8)
 
     ad.axes.set_xlim(-1000, 1000)
     ad.axes.set_ylim(-1000, 1000)
