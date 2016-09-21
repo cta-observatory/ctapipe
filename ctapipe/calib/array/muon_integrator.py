@@ -93,7 +93,9 @@ class MuonLineIntegrate(object):
             length from impact point to mirror edge
         """
         mirror_length = self.chord_length(self.mirror_radius,r/self.mirror_radius,angle)
-        hole_length = self.chord_length(self.hole_radius,r/self.hole_radius,angle)
+        hole_length = 0 * mirror_length.unit
+        if self.hole_radius>0:
+            hole_length = self.chord_length(self.hole_radius,r/self.hole_radius,angle)
         return mirror_length-hole_length
 
     def plot_pos(self,impact_dist,radius,phi):
