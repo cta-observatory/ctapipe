@@ -28,7 +28,7 @@ choose the step that will receive next data. The router also manage Queue for ea
     :scale: 70 %
     :alt: flow based framework  example
 
-    ctapipe-guiflow application. It displays a complete flow based framework  instance containing:
+    python ctapipe/flow/gui/guiflow.py  application. It displays a complete flow based framework  instance containing:
     A producer step (SimTelArrayReader) that reads events in a SimTelArray MC file and sends them one by one to next step.
     A stager step (ShuntTelescope) that receives event and guides it to the next step according to it type (LST or other)
     A stager step (LSTDump) that receives LST telescope raw data, and sends a string with LST tag and raw data string representation.
@@ -209,7 +209,7 @@ Graphical representation
 A GUI can be launch to keep a close watch on flow based framework  execution.
 This GUI can be launch on the same system than the flow based framework  or on a different one.
 By default GUI is binded to port 5565. You can change it with --PipeGui.port option
-    *prompt$> ctapipe-guiflow*
+    *prompt$> python ctapipe/flow/gui/guiflow.py *
 
 Optional packages for GUI
 -------------------------
@@ -220,7 +220,7 @@ PyQt4 installation
 
 graphviz installation
 ^^^^^^^^^^^^^^^^^^^^^
-*prompt$> conda install graphviz*
+*prompt$> pip install graphviz*
 
 Foreseen improvement
 ====================
