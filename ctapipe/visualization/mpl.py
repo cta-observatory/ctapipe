@@ -149,11 +149,11 @@ class CameraDisplay:
         self._active_pixel.set_visible(False)
         self.axes.add_patch(self._active_pixel)
 
-        self._active_pixel_label = plt.text(self._active_pixel.xy[0],
-                                            self._active_pixel.xy[1],
-                                            "0",
-                                            horizontalalignment='center',
-                                            verticalalignment='center')
+        self._active_pixel_label = self.axes.text(self._active_pixel.xy[0],
+                                                  self._active_pixel.xy[1],
+                                                  "0",
+                                                  horizontalalignment='center',
+                                                  verticalalignment='center')
         self._active_pixel_label.set_visible(False)
 
         # enable ability to click on pixel and do something (can be
@@ -342,9 +342,14 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind[-1]
-        xx, yy = u.Quantity(self.geom.pix_x[pix_id]).value,\
-                 u.Quantity(self.geom.pix_y[pix_id]).value
-        self._active_pixel.xy = (xx, yy)
+        xx, yy, aa = u.Quantity(self.geom.pix_x[pix_id]).value, \
+                     u.Quantity(self.geom.pix_y[pix_id]).value, \
+                     u.Quantity(np.array(self.geom.pix_area)[pix_id])
+        if self.geom.pix_type.startswith("hex"):
+            self._active_pixel.xy = (xx, yy)
+        else:
+            rr = sqrt(aa)
+            self._active_pixel.xy = (xx - rr / 2., yy - rr / 2.)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
         self._active_pixel_label.set_y(yy)
