@@ -12,7 +12,7 @@ from ctapipe.calib.camera.calibrators import calibration_parameters, \
 from astropy import log
 from ctapipe.utils.datasets import get_path
 from ctapipe.plotting.camera import CameraPlotter
-from ctapipe.io.files import InputFile, origin_list
+from ctapipe.io.files import InputFile
 import os
 
 def display_telescope(event, tel_id, display, geom_dict, pp, fig):
@@ -92,7 +92,7 @@ def main():
     parser.add_argument('-O', '--origin', dest='origin', action='store',
                         default='hessio',
                         help='origin of the file: {}. Default = hessio'
-                        .format(origin_list()))
+                        .format(InputFile.origin_list()))
     parser.add_argument('-D', dest='display', action='store_true',
                         default=False, help='display the camera events')
     parser.add_argument('--pdf', dest='output_path', action='store',

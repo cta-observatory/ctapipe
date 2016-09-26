@@ -21,7 +21,7 @@ from ctapipe.calib.camera.calibrators import calibration_arguments, \
     calibration_parameters
 from ctapipe.calib.camera.calibrators import calibrate_event
 from ctapipe.io import CameraGeometry
-from ctapipe.io.files import InputFile, origin_list
+from ctapipe.io.files import InputFile
 from ctapipe.plotting.camera import CameraPlotter
 
 
@@ -34,7 +34,7 @@ def main():
                         required=True, help='path to the input file')
     parser.add_argument('-O', '--origin', dest='origin', action='store',
                         required=True, help='origin of the file: {}'
-                        .format(origin_list()))
+                        .format(InputFile.origin_list()))
     parser.add_argument('-o', '--output', dest='output_dir', action='store',
                         default=None,
                         help='path of the output directory to store the '
