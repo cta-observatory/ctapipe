@@ -10,7 +10,7 @@ from math import log10, floor, ceil
 import warnings
 
 from ctapipe.utils.datasets import get_path
-from ctapipe.io.files import InputFile, origin_list
+from ctapipe.io.files import InputFile
 from ctapipe.calib.camera.calibrators import calibration_parameters, \
     calibrate_source, calibration_arguments
 from ctapipe.analysis.camera.chargeresolution import ChargeResolution
@@ -26,7 +26,7 @@ def argparsing():
                              'Default = gamma_test.simtel.gz')
     parser.add_argument('-O', '--origin', dest='origin', action='store',
                         default='hessio', help='origin of the file: {}'
-                        .format(origin_list()))
+                        .format(InputFile.origin_list()))
     parser.add_argument('-t', '--telescope', dest='tel', action='store',
                         type=int, default=None, nargs='*',
                         help='list of telecopes to be included. '
