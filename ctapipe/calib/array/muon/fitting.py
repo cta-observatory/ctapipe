@@ -60,12 +60,12 @@ def photon_ratio_inside_ring(pixel_x, pixel_y, weights, center_x, center_y, radi
     coordinates (center_x, center_y), radius and width.
     '''
 
-    total = np.sum(weight)
+    total = np.sum(weights)
 
     pixel_r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
     mask = np.logical_and(
-        pixel_r <= radius - width,
-        pixel_r >= radius + width
+        pixel_r >= radius - width,
+        pixel_r <= radius + width
     )
 
     inside = np.sum(weights[mask])
