@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import minimize
 
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
@@ -11,7 +12,14 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     "Optimum circular fit to weighted data in multi-dimensional space".
     In: Pattern Recognition Letters 14.1 (1993), S. 1–6
     '''
-
+    # handle astropy units
+    try:
+        unit = x.unit
+        assert x.unit == y.unit
+        x = x.value
+        y = y.value
+    except AttributeError:
+        unit = None
 
     mean_x = np.average(x, weights=weights)
     mean_y = np.average(y, weights=weights)
@@ -33,4 +41,10 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
         weights=weights,
     ))
 
+    if unit:
+        radius *= unit
+        center_x *= unit
+        center_y *= unit
+
     return radius, center_x, center_y
+
