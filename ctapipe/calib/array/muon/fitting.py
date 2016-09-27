@@ -48,3 +48,38 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
 
     return radius, center_x, center_y
 
+
+def _psf_likelihood_function(params, x, y, weights):
+
+    radius, center_x, center_y, sigma = params
+    pixel_distance = np.sqrt((center_x - x)**2 + (center_y - y)**2)
+
+    return np.sum((np.log(sigma) + 0.5 * ((pixel_distance - radius)/sigma)**2) * weights)
+
+
+def psf_likelihood_fit(x, y, weights):
+    try:
+        unit = x.unit
+        assert x.unit == y.unit
+        x = x.value
+        y = y.value
+    except AttributeError:
+        unit = None
+
+    start_r, start_x, start_y = kundu_chaudhuri_circle_fit(x, y, weights)
+
+
+    result = minimize(
+        _psf_likelihood_function,
+        x0=(start_r, start_x, start_y, 5e-3),
+        args=(x, y, weights),
+        method='Powell',
+    )
+
+    if not result.success:
+        result.x = np.full_like(result.x, np.nan)
+
+    if unit:
+        return result.x * unit
+
+    return result.x
