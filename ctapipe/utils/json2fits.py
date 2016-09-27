@@ -9,6 +9,7 @@ __all__ = ['traitlets_config_to_fits', 'json_to_fits']
 
 def traitlets_config_to_fits(config, fits_filename, clobber=True):
     """Write a FITS file that represents configuration.
+
     Parameters
     ----------
     config : traitlets.config.loader.Config
@@ -17,6 +18,7 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
         FITS file name to write
     clobber : bool
         When True, overwrite the output file if exists.
+
     Returns
     -------
     True is FITS file containing the traitlets config is written
@@ -48,6 +50,7 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
 
 def json_to_fits(json_filename, fits_filename, clobber=True):
     """Write a FITS file that represents json file for traitlets configuration.
+
     Parameters
     ----------
     json_filename : str
@@ -57,6 +60,7 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         FITS file name to write
     clobber : bool
         When True, overwrite the output file if exists.
+
     Returns
     -------
     True is FITS file containing a copy of json content is written

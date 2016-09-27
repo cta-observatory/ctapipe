@@ -8,8 +8,7 @@ __all__ = ['Histogram']
 
 
 class Histogram:
-    """A simple N-dimensional histogram class that can be written or read
-    from a FITS file. 
+    """An N-D histogram class with FITS image I/O. 
 
     The output FITS file will contain an ImageHDU datacube and
     associated WCS headers to describe the axes of the histogram.
