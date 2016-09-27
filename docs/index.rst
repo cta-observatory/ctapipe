@@ -6,6 +6,8 @@
  CTA Experimental Pipeline Framework (:mod:`ctapipe`)
 =====================================================
 
+.. currentmodule:: ctapipe
+
 **version**:  |version|
 
 .. image:: event.png
@@ -27,6 +29,8 @@ pipelines for CTA.
 * License: BSD-3
 * Python 3.4 or later (Python 2 is not supported)
 
+
+  
 .. _ctapipe_docs:
 
 General documentation
@@ -36,10 +40,36 @@ General documentation
   :maxdepth: 1
   :glob:
 
-  getting_started/index
+  getting_started/index   
   development/index
   tools/index
   */index
+
+
+Module API Status (relative to next release)
+============================================
+
+* **stable** = should not change drastically in next release
+* **caution** = mostly stable, but expect some changes
+* **unstable** = expect large changes and avoid heavy reliance
+* **experimental** = stable feature, but under evaluation
+* **deprecated** = do not use
+
+================  ===============
+ Module           Status
+================  ===============
+`analysis`        empty           
+`calib`           caution         
+`coordinates`     **stable**                     
+`core`            **stable**      
+`flow`            experimental    
+`instrument`      unstable    
+`pipeline`        deprecated      
+`plotting`        caution         
+`reco`            caution         
+`utils`           **stable**      
+`visualization`   **stable**      
+================  ===============
 
   
 Development Help
