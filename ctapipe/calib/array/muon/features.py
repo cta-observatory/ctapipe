@@ -28,4 +28,25 @@ def photon_ratio_inside_ring(
     return inside / total
 
 
+def ring_completeness(
+        pixel_x,
+        pixel_y,
+        weights,
+        center_x,
+        center_y,
+        radius,
+        threshold=30,
+        bins=30,
+        ):
+    angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+    hist, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
+
+    highest_bin = np.argmax(hist)
+    if highest_bin < threshold:
+        return 0
+
+    bins_above_threshold = hist > threshold
+
+    return np.sum(bins_above_threshold) / bins
+
 
