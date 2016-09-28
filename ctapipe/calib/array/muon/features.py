@@ -1,4 +1,7 @@
 import numpy as np
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def mean_squared_error(pixel_x, pixel_y, weights, center_x, center_y, radius):
@@ -38,15 +41,11 @@ def ring_completeness(
         threshold=30,
         bins=30,
         ):
-    angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
-    hist, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
 
-    highest_bin = np.argmax(hist)
-    if highest_bin < threshold:
-        return 0
+    angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+
+    hist, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
 
     bins_above_threshold = hist > threshold
 
     return np.sum(bins_above_threshold) / bins
-
-
