@@ -94,38 +94,50 @@ def impact_parameter_fit(
         center_x,
         center_y,
         radius,
+        telescope_radius,
         threshold=30,
         bins=30,
-        tel_radius=11.5,
         ):
     ''' Impact parameter calculation
     '''
-    def _impact_parameter_likelihood_function(params, phi, tel_radius):
+    def _intensity(phi, phi_max, impact_parameter, telescope_radius):
         ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
-        imp_par, phi_max = params
+        ratio = impact_parameter / telescope_radius
+        radicant = 1 - ratio**2 * np.sin(phi - phi_max)**2
 
-        radicant = 1 - (imp_par / tel_radius) ** 2 * np.sin(phi - phi_max) ** 2
-
-        if imp_par <= tel_radius:
-            func = - np.sum(np.log(
-                (np.sqrt(radicant) + (imp_par/tel_radius)*np.cos(phi-phi_max)))
+        if impact_parameter > telescope_radius:
+            D = np.empty_like(phi)
+            mask = np.logical_and(
+                phi < np.arcsin(1 / ratio),
+                phi > -np.arcsin(1 / ratio)
             )
+            D[np.logical_not(mask)] = 0
+            D[mask] = 2 * telescope_radius * np.sqrt(radicant[mask])
         else:
-            mask = radicant < 0
-            radicant[mask] = 1
-            func = - np.sum(np.log(radicant))
-        return func
+            D = telescope_radius * (np.sqrt(radicant) + ratio * np.cos(phi - phi_max))
 
-    angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
-    phi, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
+        return D
+
+    def _impact_parameter_chisq(params,  phi, hist, telescope_radius):
+        ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
+
+        impact_parameter, phi_max, scale = params
+        theory = _intensity(phi, phi_max, impact_parameter, telescope_radius)
+
+        return np.sum((hist - theory)**2)
+
+    phi = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+    hist, edges = np.histogram(phi, bins=bins, range=[-np.pi, np.pi], weights=weights)
+    bin_centers = 0.5 * (edges[:-1] + edges[1:])
 
     result = minimize(
-        _impact_parameter_likelihood_function,
-        x0=(tel_radius / 2., 0.),
-        args=(phi, tel_radius),
+        _impact_parameter_chisq,
+        x0=(telescope_radius / 2, 0, 100),
+        args=(bin_centers, hist, telescope_radius),
         method='Powell',
     )
 
-    imp_par, phi_max = result.x
+    imp_par, phi_max, scale = result.x
 
     return imp_par, phi_max
+
