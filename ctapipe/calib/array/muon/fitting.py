@@ -126,4 +126,6 @@ def impact_parameter_fit(
         method='Powell',
     )
 
-    return result.imp_par
+    imp_par, phi_max = result.x
+
+    return imp_par, phi_max
