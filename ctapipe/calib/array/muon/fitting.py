@@ -85,3 +85,45 @@ def psf_likelihood_fit(x, y, weights):
         return result.x * unit
 
     return result.x
+
+
+def impact_parameter_fit(
+        pixel_x,
+        pixel_y,
+        weights,
+        center_x,
+        center_y,
+        radius,
+        threshold=30,
+        bins=30,
+        tel_radius=11.5,
+        ):
+    ''' Impact parameter calculation
+    '''
+    def _impact_parameter_likelihood_function(params, phi, tel_radius):
+        ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
+        imp_par, phi_max = params
+
+        radicant = 1 - (imp_par / tel_radius) ** 2 * np.sin(phi - phi_max) ** 2
+
+        if imp_par <= tel_radius:
+            func = - np.sum(np.log(
+                (np.sqrt(radicant) + (imp_par/tel_radius)*np.cos(phi-phi_max)))
+            )
+        else:
+            mask = radicant < 0
+            radicant[mask] = 1
+            func = - np.sum(np.log(radicant))
+        return func
+
+    angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+    phi, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
+
+    result = minimize(
+        _impact_parameter_likelihood_function,
+        x0=(tel_radius / 2., 0.),
+        args=(phi, tel_radius),
+        method='Powell',
+    )
+
+    return result.imp_par
