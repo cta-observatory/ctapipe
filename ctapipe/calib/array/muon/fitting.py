@@ -10,7 +10,7 @@ __all__ = [
     'mirror_integration_distance',
     'expected_pixel_light_content',
     'radial_light_intensity',
-    'efficiency_likelihood_fit',
+    'efficiency_fit',
 ]
 
 
@@ -112,7 +112,6 @@ def impact_parameter_chisq_fit(
         center_y,
         radius,
         mirror_radius,
-        threshold=30,
         bins=30,
         ):
     ''' Impact parameter calculation
@@ -158,7 +157,6 @@ def mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius):
 def radial_light_intensity(
         phi,
         phi_max,
-        efficiency,
         cherenkov_angle,
         impact_parameter,
         pixel_fov,
@@ -172,7 +170,7 @@ def radial_light_intensity(
     '''
 
     return (
-        efficiency * const.fine_structure *
+        0.5 * const.fine_structure *
         cherenkov_integral(lambda1, lambda2) *
         pixel_fov / cherenkov_angle *
         np.sin(2 * cherenkov_angle) *
@@ -186,7 +184,6 @@ def expected_pixel_light_content(
         center_x,
         center_y,
         phi_max,
-        efficiency,
         cherenkov_angle,
         impact_parameter,
         sigma_psf,
@@ -207,7 +204,7 @@ def expected_pixel_light_content(
 
     light = radial_light_intensity(
         phi, phi_max,
-        efficiency, cherenkov_angle, impact_parameter,
+        cherenkov_angle, impact_parameter,
         pixel_fov, mirror_radius, lambda1, lambda2
     )
 
@@ -215,8 +212,7 @@ def expected_pixel_light_content(
     return result
 
 
-def _efficiency_likelihood(
-        params,
+def efficiency_fit(
         pe_charge,
         pixel_x,
         pixel_y,
@@ -228,28 +224,33 @@ def _efficiency_likelihood(
         lambda2=900e-9,
         ):
     '''
-    Negative log-likelihood for the efficiency fit. This is a poissonian likelihood
-    comparing measured photons in the pixels to the expected values.
+    A Generic Algorithm for IACT Optical Efficiency Calibration using Muons,
+    Allison Mitchell et al. arXiv: 1509.04258v1
     '''
-    (
-        center_x,
-        center_y,
-        phi_max,
-        efficiency,
-        cherenkov_angle,
-        impact_parameter,
-        sigma_psf,
-    ) = params
 
-    expected = expected_pixel_light_content(
+    radius, center_x, center_y, sigma_psf = psf_likelihood_fit(
+        pixel_x, pixel_y, pe_charge
+    )
+
+    imp_par, phi_max = impact_parameter_chisq_fit(
+        pixel_x=pixel_x,
+        pixel_y=pixel_y,
+        weights=pe_charge,
+        center_x=center_x,
+        center_y=center_y,
+        radius=radius,
+        mirror_radius=mirror_radius,
+        bins=30,
+    )
+
+    expected_light = expected_pixel_light_content(
         pixel_x=pixel_x,
         pixel_y=pixel_y,
         center_x=center_x,
         center_y=center_y,
         phi_max=phi_max,
-        efficiency=efficiency,
-        cherenkov_angle=cherenkov_angle,
-        impact_parameter=impact_parameter,
+        cherenkov_angle=radius / focal_length,
+        impact_parameter=imp_par,
         sigma_psf=sigma_psf,
         pixel_fov=pixel_fov,
         pixel_diameter=pixel_diameter,
@@ -258,62 +259,10 @@ def _efficiency_likelihood(
         lambda1=lambda1,
         lambda2=lambda2,
     )
-    mask = expected > 0
-    return np.sum(expected[mask] - pe_charge[mask] * np.log(expected[mask]))
 
+    efficiency = np.sum(pe_charge) / np.sum(expected_light)
 
-def efficiency_likelihood_fit(
-        pe_charge,
-        pixel_x,
-        pixel_y,
-        pixel_fov,
-        pixel_diameter,
-        mirror_radius,
-        focal_length,
-        lambda1=300e-9,
-        lambda2=900e-9,
-        ):
-    '''
-    Do a complete likelihood fit to the light distribution of a muon ring, according
-    to
-    A Generic Algorithm for IACT Optical Efficiency Calibration using Muons,
-    Allison Mitchell et al. arXiv: 1509.04258v1
-    '''
-
-    start_r, start_x, start_y = kundu_chaudhuri_circle_fit(pixel_x, pixel_y, pe_charge)
-
-    result = minimize(
-        _efficiency_likelihood,
-        x0=(
-            start_x,                 # center_x,
-            start_y,                 # center_y,
-            0,                       # phi_max,
-            0.2,                     # efficiency,
-            start_r / focal_length,  # cherenkov_angle,
-            mirror_radius / 2,       # impact_parameter,
-            pixel_diameter,          # sigma_psf,
-        ),
-        args=(
-            pe_charge, pixel_x, pixel_y,
-            pixel_fov, pixel_diameter,
-            mirror_radius, focal_length
-        ),
-        method='L-BFGS-B',
-        bounds=[
-            (None, None),     # center_x,
-            (None, None),     # center_y,
-            (-np.pi, np.pi),  # phi_max,
-            (0, None),        # efficiency,
-            (0, None),        # cherenkov_angle,
-            (0, None),        # impact_parameter,
-            (0, None),        # sigma_psf,
-        ],
-    )
-
-    if not result.success:
-        return np.full_like(result.x, np.nan)
-
-    return result.x
+    return radius, center_x, center_y, sigma_psf, imp_par, phi_max, efficiency
 
 
 def _impact_parameter_chisq(params,  phi, hist, mirror_radius):
