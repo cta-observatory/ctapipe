@@ -12,7 +12,6 @@ import numpy as np
 import logging
 import copy
 from astropy import units as u
-from ctapipe.coordinates import CameraFrame, NominalFrame
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
