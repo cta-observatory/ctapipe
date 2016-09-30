@@ -1,5 +1,22 @@
 import numpy as np
 from scipy.optimize import minimize
+import scipy.constants as const
+from scipy.stats import norm
+
+__all__ = [
+    'kundu_chaudhuri_circle_fit',
+    'psf_likelihood_fit',
+    'impact_parameter_chisq_fit',
+    'mirror_integration_distance',
+    'expected_pixel_light_content',
+    'radial_light_intensity',
+    'efficiency_likelihood_fit',
+]
+
+
+def cherenkov_integral(lambda1, lambda2):
+    ''' integral of int_lambda1^lambda2 lambda^-2 dlambda '''
+    return 1 / lambda1 - 1 / lambda2
 
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
@@ -87,14 +104,14 @@ def psf_likelihood_fit(x, y, weights):
     return result.x
 
 
-def impact_parameter_fit(
+def impact_parameter_chisq_fit(
         pixel_x,
         pixel_y,
         weights,
         center_x,
         center_y,
         radius,
-        telescope_radius,
+        mirror_radius,
         threshold=30,
         bins=30,
         ):
@@ -107,8 +124,8 @@ def impact_parameter_fit(
 
     result = minimize(
         _impact_parameter_chisq,
-        x0=(telescope_radius / 2, bin_centers[np.argmax(hist)], 1),
-        args=(bin_centers, hist, telescope_radius),
+        x0=(mirror_radius / 2, bin_centers[np.argmax(hist)], 1),
+        args=(bin_centers, hist, mirror_radius),
         method='L-BFGS-B',
         bounds=[(0, None), (-np.pi, np.pi), (0, None)],
     )
@@ -118,31 +135,191 @@ def impact_parameter_fit(
     return imp_par, phi_max
 
 
-def _integration_distance(phi, phi_max, impact_parameter, telescope_radius):
+def mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius):
     ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
     phi = phi - phi_max
-    ratio = impact_parameter / telescope_radius
+    ratio = impact_parameter / mirror_radius
     radicant = 1 - ratio**2 * np.sin(phi)**2
 
-    if impact_parameter > telescope_radius:
+    if impact_parameter > mirror_radius:
         D = np.empty_like(phi)
         mask = np.logical_and(
             phi < np.arcsin(1 / ratio),
             phi > -np.arcsin(1 / ratio)
         )
         D[np.logical_not(mask)] = 0
-        D[mask] = 2 * telescope_radius * np.sqrt(radicant[mask])
+        D[mask] = 2 * mirror_radius * np.sqrt(radicant[mask])
     else:
-        D = 2 * telescope_radius * (np.sqrt(radicant) + ratio * np.cos(phi))
+        D = 2 * mirror_radius * (np.sqrt(radicant) + ratio * np.cos(phi))
 
     return D
 
 
-def _impact_parameter_chisq(params,  phi, hist, telescope_radius):
+def radial_light_intensity(
+        phi,
+        phi_max,
+        efficiency,
+        cherenkov_angle,
+        impact_parameter,
+        pixel_fov,
+        mirror_radius,
+        lambda1=300e-9,
+        lambda2=900e-9,
+        ):
+    '''
+    Amount of photons per azimuthal angle phi on the muon ring as given in
+    G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11, formula (5)
+    '''
+
+    return (
+        efficiency * const.fine_structure *
+        cherenkov_integral(lambda1, lambda2) *
+        pixel_fov / cherenkov_angle *
+        np.sin(2 * cherenkov_angle) *
+        mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius)
+    )
+
+
+def expected_pixel_light_content(
+        pixel_x,
+        pixel_y,
+        center_x,
+        center_y,
+        phi_max,
+        efficiency,
+        cherenkov_angle,
+        impact_parameter,
+        sigma_psf,
+        pixel_fov,
+        pixel_diameter,
+        mirror_radius,
+        focal_length,
+        lambda1=300e-9,
+        lambda2=900e-9,
+        ):
+    '''
+    Calculate the expected light content of each pixel for a muon ring with the
+    given properties
+    '''
+    phi = np.arctan2(pixel_y - center_y, pixel_x - center_x)
+    pixel_r = np.sqrt((pixel_x - center_x)**2 + (pixel_y - center_y)**2)
+    ring_radius = cherenkov_angle * focal_length
+
+    light = radial_light_intensity(
+        phi, phi_max,
+        efficiency, cherenkov_angle, impact_parameter,
+        pixel_fov, mirror_radius, lambda1, lambda2
+    )
+
+    result = light * pixel_diameter * norm.pdf(ring_radius, pixel_r, sigma_psf)
+    return result
+
+
+def _efficiency_likelihood(
+        params,
+        pe_charge,
+        pixel_x,
+        pixel_y,
+        pixel_fov,
+        pixel_diameter,
+        mirror_radius,
+        focal_length,
+        lambda1=300e-9,
+        lambda2=900e-9,
+        ):
+    '''
+    Negative log-likelihood for the efficiency fit. This is a poissonian likelihood
+    comparing measured photons in the pixels to the expected values.
+    '''
+    (
+        center_x,
+        center_y,
+        phi_max,
+        efficiency,
+        cherenkov_angle,
+        impact_parameter,
+        sigma_psf,
+    ) = params
+
+    expected = expected_pixel_light_content(
+        pixel_x=pixel_x,
+        pixel_y=pixel_y,
+        center_x=center_x,
+        center_y=center_y,
+        phi_max=phi_max,
+        efficiency=efficiency,
+        cherenkov_angle=cherenkov_angle,
+        impact_parameter=impact_parameter,
+        sigma_psf=sigma_psf,
+        pixel_fov=pixel_fov,
+        pixel_diameter=pixel_diameter,
+        mirror_radius=mirror_radius,
+        focal_length=focal_length,
+        lambda1=lambda1,
+        lambda2=lambda2,
+    )
+    mask = expected > 0
+    return np.sum(expected[mask] - pe_charge[mask] * np.log(expected[mask]))
+
+
+def efficiency_likelihood_fit(
+        pe_charge,
+        pixel_x,
+        pixel_y,
+        pixel_fov,
+        pixel_diameter,
+        mirror_radius,
+        focal_length,
+        lambda1=300e-9,
+        lambda2=900e-9,
+        ):
+    '''
+    Do a complete likelihood fit to the light distribution of a muon ring, according
+    to
+    A Generic Algorithm for IACT Optical Efficiency Calibration using Muons,
+    Allison Mitchell et al. arXiv: 1509.04258v1
+    '''
+
+    start_r, start_x, start_y = kundu_chaudhuri_circle_fit(pixel_x, pixel_y, pe_charge)
+
+    result = minimize(
+        _efficiency_likelihood,
+        x0=(
+            start_x,                 # center_x,
+            start_y,                 # center_y,
+            0,                       # phi_max,
+            0.2,                     # efficiency,
+            start_r / focal_length,  # cherenkov_angle,
+            mirror_radius / 2,       # impact_parameter,
+            pixel_diameter,          # sigma_psf,
+        ),
+        args=(
+            pe_charge, pixel_x, pixel_y,
+            pixel_fov, pixel_diameter,
+            mirror_radius, focal_length
+        ),
+        method='L-BFGS-B',
+        bounds=[
+            (None, None),     # center_x,
+            (None, None),     # center_y,
+            (-np.pi, np.pi),  # phi_max,
+            (0, None),        # efficiency,
+            (0, None),        # cherenkov_angle,
+            (0, None),        # impact_parameter,
+            (0, None),        # sigma_psf,
+        ],
+    )
+
+    if not result.success:
+        return np.full_like(result.x, np.nan)
+
+    return result.x
+
+
+def _impact_parameter_chisq(params,  phi, hist, mirror_radius):
     ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
 
     imp_par, phi_max, scale = params
-    theory = scale * _integration_distance(phi, phi_max, imp_par, telescope_radius)
+    theory = mirror_integration_distance(phi, phi_max, imp_par, mirror_radius)
 
-    return np.sum((hist - theory)**2)
-
+    return np.sum((hist - scale * theory)**2)
