@@ -130,6 +130,11 @@ class CameraDisplay:
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
 
+        self.pixel_highlighting = copy.copy(self.pixels)
+        self.pixel_highlighting.set_facecolor('none')
+        self.pixel_highlighting.set_linewidth(0)
+        self.axes.add_collection(self.pixel_highlighting)
+
         # Set up some nice plot defaults
 
         self.axes.set_aspect('equal', 'datalim')
@@ -167,6 +172,31 @@ class CameraDisplay:
             self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
 
         self.norm = norm
+
+    def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
+        '''
+        Highlight the given pixels with a colored line around them
+
+        Parameters
+        ----------
+        pixels : index-like
+            The pixels to highlight.
+            Can either be a list or array of integers or a
+            boolean mask of length number of pixels
+        color: a matplotlib conform color
+            the color for the pixel highlighting
+        linewidth: float
+            linewidth of the highlighting in points
+        alpha: 0 <= alpha <= 1
+            The transparency
+        '''
+
+        l = np.zeros_like(self.image)
+        l[pixels] = linewidth
+        self.pixel_highlighting.set_linewidth(l)
+        self.pixel_highlighting.set_alpha(alpha)
+        self.pixel_highlighting.set_edgecolor(color)
+        self.update()
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
