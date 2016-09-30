@@ -129,6 +129,9 @@ def impact_parameter_chisq_fit(
         bounds=[(0, None), (-np.pi, np.pi), (0, None)],
     )
 
+    if not result.success:
+        result.x = np.full_like(result.x, np.nan)
+
     imp_par, phi_max, scale = result.x
 
     return imp_par, phi_max
