@@ -211,7 +211,7 @@ def expected_pixel_light_content(
         pixel_fov, mirror_radius, lambda1, lambda2
     )
 
-    result = light * pixel_diameter * norm.pdf(ring_radius, pixel_r, sigma_psf)
+    result = light * pixel_diameter * norm.pdf(pixel_r, ring_radius, sigma_psf)
     return result
 
 
