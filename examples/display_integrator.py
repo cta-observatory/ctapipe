@@ -123,9 +123,9 @@ def main():
     # Draw figures
     ax_max_nei = {}
     ax_min_nei = {}
-    fig_waveforms = plt.figure(figsize=(24, 10))
+    fig_waveforms = plt.figure(figsize=(18, 9))
     fig_waveforms.subplots_adjust(hspace=.5)
-    fig_camera = plt.figure(figsize=(30, 24))
+    fig_camera = plt.figure(figsize=(15, 12))
 
     ax_max_pix = fig_waveforms.add_subplot(4, 2, 1)
     ax_min_pix = fig_waveforms.add_subplot(4, 2, 2)
@@ -147,7 +147,7 @@ def main():
     plotter.draw_waveform(data_ped[max_pixel], ax_max_pix)
     ax_max_pix.set_title("(Max) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(max_pixel, true_pe[max_pixel],
+                         "Measured = {:.3f}".format(max_pixel, true_pe[max_pixel],
                                                 measured_pe[max_pixel]))
     ax_max_pix.set_ylabel("Amplitude-Ped (ADC)")
     max_ylim = ax_max_pix.get_ylim()
@@ -159,7 +159,7 @@ def main():
             plotter.draw_waveform(data_ped[pix], ax)
             ax.set_title("(Max Nei) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(pix, true_pe[pix],
+                         "Measured = {:.3f}".format(pix, true_pe[pix],
                                                 measured_pe[pix]))
             ax.set_ylabel("Amplitude-Ped (ADC)")
             ax.set_ylim(max_ylim)
@@ -170,7 +170,7 @@ def main():
     plotter.draw_waveform(data_ped[min_pixel], ax_min_pix)
     ax_min_pix.set_title("(Min) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(min_pixel, true_pe[min_pixel],
+                         "Measured = {:.3f}".format(min_pixel, true_pe[min_pixel],
                                                 measured_pe[min_pixel]))
     ax_min_pix.set_ylabel("Amplitude-Ped (ADC)")
     ax_min_pix.set_ylim(max_ylim)
@@ -182,7 +182,7 @@ def main():
             plotter.draw_waveform(data_ped[pix], ax)
             ax.set_title("(Min Nei) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(pix, true_pe[pix],
+                         "Measured = {:.3f}".format(pix, true_pe[pix],
                                                 measured_pe[pix]))
             ax.set_ylabel("Amplitude-Ped (ADC)")
             ax.set_ylim(max_ylim)
@@ -237,11 +237,11 @@ def main():
 
     waveform_output_path = os.path.join(output_dir, waveform_output_name)
     log.info("[output] {}".format(waveform_output_path))
-    fig_waveforms.savefig(waveform_output_path, format='pdf')
+    fig_waveforms.savefig(waveform_output_path, format='pdf', bbox_inches='tight')
 
     camera_output_path = os.path.join(output_dir, camera_output_name)
     log.info("[output] {}".format(camera_output_path))
-    fig_camera.savefig(camera_output_path, format='pdf')
+    fig_camera.savefig(camera_output_path, format='pdf', bbox_inches='tight')
 
     log.info("[COMPLETE]")
 
