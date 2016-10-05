@@ -54,7 +54,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     camera1.pixels.set_cmap(cmap_charge)
     camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
     ax1.set_title("CT {} ({}) - Mean pixel charge"
-                  .format(tel_id, geom_dict[cam_dimensions].cam_id))
+                  .format(tel_id, geom_dict[tel_id].cam_id))
     if not event.dl1.tel[tel_id].peakpos[0] is None:
         ax2 = fig.add_subplot(1, npads, npads)
         times = event.dl1.tel[tel_id].peakpos
@@ -72,7 +72,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
         camera2.pixels.set_cmap(cmap_time)
         camera2.add_colorbar(ax=ax2, label="[time slice]")
         ax2.set_title("CT {} ({}) - Pixel peak position"
-                      .format(tel_id, geom_dict[cam_dimensions].cam_id))
+                      .format(tel_id, geom_dict[tel_id].cam_id))
 
     if display:
         plt.pause(0.1)
@@ -141,9 +141,8 @@ def main():
     source = input_file.read()
 
     # geom_dict is a dictionary of CameraGeometry, with keys of
-    # (num_pixels, focal_length), the parameters that are used to guess the
-    # geometry of the telescope. By using these keys, the geometry is
-    # calculated only once per telescope type as needed, reducing computation
+    # tel_id. By using these keys, the geometry is
+    # calculated only once per telescope, reducing computation
     # time.
     # Creating a geom_dict at this point is optional, but is recommended, as
     # the same geom_dict can then be shared between the calibration and

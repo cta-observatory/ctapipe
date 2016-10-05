@@ -169,15 +169,15 @@ def calibrate_event(event, params, geom_dict=None):
                           event.meta.optical_foclen[telid])
         # Check if geom is even needed for integrator
         if inverted[params['integrator']] in integrators_requiring_geom():
-            if geom_dict is not None and cam_dimensions in geom_dict:
-                geom = geom_dict[cam_dimensions]
+            if geom_dict is not None and telid in geom_dict:
+                geom = geom_dict[telid]
             else:
                 log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                             event.meta.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
-                    geom_dict[cam_dimensions] = geom
+                    geom_dict[telid] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
         calibrated.dl1.tel[telid].pe_charge = pe

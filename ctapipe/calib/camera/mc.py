@@ -39,18 +39,18 @@ def calibration_arguments():
         integrators += " - {} = {}\n".format(key, value)
 
     class IntegratorAction(argparse.Action):
-        def __call__(self, parser, namespace, values, option_string=None):
+        def __call__(self, parser0, namespace, values, option_string=None):
             setattr(namespace, self.dest, int_dict[values])
 
-    parser = argparse.ArgumentParser(formatter_class=
-                                     argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     action = parser.add_argument('--integrator', dest='integrator',
-                        action=IntegratorAction,
-                        default=5, type=int, choices=int_dict.keys(),
-                        help='which integration scheme should be used to '
-                             'extract the charge?'
-                             '\n{}'.format(integrators))
+                                 action=IntegratorAction,
+                                 default=5, type=int, choices=int_dict.keys(),
+                                 help='which integration scheme should be '
+                                      'used to extract the '
+                                      'charge? \n{}'.format(integrators))
     # Convert default using IntegratorAction
     ns = argparse.Namespace()
     action(parser, ns, action.default)
