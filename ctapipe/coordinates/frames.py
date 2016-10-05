@@ -375,7 +375,7 @@ def camera_to_telescope(camera_coord, telescope_frame):
         y = y_pos
     else:
         x = x_pos * cos(rot) - y_pos * sin(rot)
-        y = y_pos * sin(rot) + y_pos * cos(rot)
+        y = x_pos * sin(rot) + y_pos * cos(rot)
 
     f = telescope_frame.focal_length
 
@@ -412,7 +412,7 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y = y_pos
     else:  # or else rotate all positions around the camera centre
         x = x_pos * cos(rot) - y_pos * sin(rot)
-        y = y_pos * sin(rot) + y_pos * cos(rot)
+        y = x_pos * sin(rot) + y_pos * cos(rot)
 
     f = telescope_coord.focal_length
     # Remove distance units here as we are using small angle approx
