@@ -46,7 +46,7 @@ def calibration_parser(origin):
     return parser, ns
 
 
-def calibration_parameters(excess_args, origin, help=False):
+def calibration_parameters(excess_args, origin, calib_help=False):
     """
     Obtain the calibration parameters.
 
@@ -56,7 +56,7 @@ def calibration_parameters(excess_args, origin, help=False):
         List of arguments left over after intial parsing.
     origin : str
         Origin of data file e.g. hessio.
-    help : bool
+    calib_help : bool
         Print help message for calibration arguments.
 
     Return
@@ -70,7 +70,7 @@ def calibration_parameters(excess_args, origin, help=False):
 
     parser, ns = calibration_parser(origin)
 
-    if help:
+    if calib_help:
         parser.print_help()
         parser.exit()
 
@@ -105,13 +105,13 @@ def calibrate_event(event, params, geom_dict=None):
 
         OPTIONAL:
 
-        params['integration_clip_amp'] - Amplitude in p.e. above which the signal is
-        clipped.
+        params['integration_clip_amp'] - Amplitude in p.e. above which the
+        signal is clipped.
 
-        params['integration_calib_scale'] : Identical to global variable CALIB_SCALE in
-        reconstruct.c in hessioxxx software package. 0.92 is the default value
-        (corresponds to HESS). The required value changes between cameras
-        (GCT = 1.05).
+        params['integration_calib_scale'] : Identical to global variable
+        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
+        the default value (corresponds to HESS). The required value changes
+        between cameras (GCT = 1.05).
 
         params['integration_sigamp'] - Amplitude in ADC counts above pedestal
         at which a signal is considered as significant (separate for
