@@ -197,6 +197,7 @@ def argparsing():
             except IndexError:
                 log.exception("[chargeres_names] For plot: {}, no chargeres "
                               "has the name: {}".format(plot_name, name))
+                raise 
 
     return parser, chargeres_cmdlines, plot_cmdlines
 
