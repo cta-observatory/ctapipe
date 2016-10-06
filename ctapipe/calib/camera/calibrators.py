@@ -2,106 +2,85 @@
 Module containing general functions that will calibrate any event regardless of
 the source/telescope, and store the calibration inside the event container.
 """
-
-
+import argparse
 from copy import copy
-from .mc import calibrate_mc
-from .integrators import integrator_dict, integrators_requiring_geom
+from ctapipe.calib.camera import mc
+from ctapipe.calib.camera.integrators import integrator_dict, \
+    integrators_requiring_geom
 from functools import partial
 from ctapipe.io.containers import RawData, CalibratedCameraData
 from ctapipe.io import CameraGeometry
 from astropy import log
 
 
-def calibration_arguments(parser):
+def calibration_parser(origin):
     """
-    Add the arguments for the calibration function to your argparser.
+    Obtain the correct parser for your input file.
 
     Parameters
     ----------
+    origin : str
+        Origin of data file e.g. hessio
+
+    Return
+    ------
     parser : `astropy.utils.compat.argparse.ArgumentParser`
+        Argparser for calibration arguments.
+    ns : `argparse.Namespace`
+        Namespace containing the correction for default values so they use
+        a custom Action.
     """
-    integrators = ""
-    int_dict, inverted = integrator_dict()
-    for key, value in int_dict.items():
-        integrators += " - {} = {}\n".format(key, value)
 
-    parser.add_argument('--integrator', dest='integrator', action='store',
-                        default=5, type=int,
-                        help='which integration scheme should be used to '
-                             'extract the charge? (default = 5)'
-                             '\n{}'.format(integrators))
-    parser.add_argument('--integration-window', dest='integration_window',
-                        action='store', default=[7, 3], nargs=2, type=int,
-                        help='Set integration window width and offset (to '
-                             'before the peak) respectively, '
-                             'e.g. --integration-window 7 3 (default)')
-    parser.add_argument('--integration-sigamp', dest='integration_sigamp',
-                        action='store', nargs='+', type=int, default=[2, 4],
-                        help='Amplitude in ADC counts above pedestal at which '
-                             'a signal is considered as significant, and used '
-                             'for peak finding. '
-                             '(separate for high gain/low gain), '
-                             'e.g. --integration-sigamp 2 4 (default)')
-    parser.add_argument('--integration-clip_amp', dest='integration_clip_amp',
-                        action='store', type=int, default=None,
-                        help='Amplitude in p.e. above which the signal is '
-                             'clipped.')
-    parser.add_argument('--integration-lwt', dest='integration_lwt',
-                        action='store', type=int, default=0,
-                        help='Weight of the local pixel (0: peak from '
-                             'neighbours only, 1: local pixel counts as much '
-                             'as any neighbour) default=0')
-    parser.add_argument('--integration-calib_scale',
-                        dest='integration_calib_scale',
-                        action='store', type=float, default=0.92,
-                        help='Used for conversion from ADC to pe. Identical '
-                             'to global variable CALIB_SCALE in '
-                             'reconstruct.c in hessioxxx software package. '
-                             '0.92 is the default value (corresponds to '
-                             'HESS). The required value changes between '
-                             'cameras (GCT = 1.05).')
+    # Obtain relevent calibrator arguments
+    switch = {
+        'hessio':
+            lambda: mc.calibration_arguments(),
+        }
+    try:
+        parser, ns = switch[origin]()
+    except KeyError:
+        log.exception("no calibration created for data origin: '{}'"
+                      .format(origin))
+        raise
+
+    return parser, ns
 
 
-def calibration_parameters(args):
+def calibration_parameters(excess_args, origin, calib_help=False):
     """
-    Parse you argpasers arguments for calibration parameters, and store them
-    inside a dict.
+    Obtain the calibration parameters.
 
     Parameters
     ----------
-    args : `astropy.utils.compat.argparse.ArgumentParser.parse_args()`
+    excess_args : list
+        List of arguments left over after intial parsing.
+    origin : str
+        Origin of data file e.g. hessio.
+    calib_help : bool
+        Print help message for calibration arguments.
 
-    Returns
-    -------
-    parameters : dict
-        dictionary containing the formatted calibration parameters
+    Return
+    ------
+    params : dict
+        Calibration parameter dict.
+    unknown_args : list
+        List of leftover cmdline arguments after parsing for calibration
+        arguments.
     """
-    parameters = {}
-    if args.integrator is not None:
-        integrator_names, inverse = integrator_dict()
-        try:
-            parameters['integrator'] = integrator_names[args.integrator]
-        except KeyError:
-            log.exception('[calib] Specified integrator does not exist: {}'
-                          .format(args.integrator))
-            raise
-    if args.integration_window is not None:
-        parameters['window'] = args.integration_window[0]
-        parameters['shift'] = args.integration_window[1]
-    if args.integration_sigamp is not None:
-        parameters['sigamp'] = args.integration_sigamp[:2]
-    if args.integration_clip_amp is not None:
-        parameters['clip_amp'] = args.integration_clip_amp
-    if args.integration_lwt is not None:
-        parameters['lwt'] = args.integration_lwt
-    if args.integration_calib_scale is not None:
-        parameters['calib_scale'] = args.integration_calib_scale
 
-    for key, value in parameters.items():
+    parser, ns = calibration_parser(origin)
+
+    if calib_help:
+        parser.print_help()
+        parser.exit()
+
+    args, unknown_args = parser.parse_known_args(excess_args, ns)
+
+    params = vars(args)
+    for key, value in params.items():
         log.info("[{}] {}".format(key, value))
 
-    return parameters
+    return params, unknown_args
 
 
 def calibrate_event(event, params, geom_dict=None):
@@ -119,24 +98,24 @@ def calibrate_event(event, params, geom_dict=None):
 
         params['integrator'] - Integration scheme
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['clip_amp'] - Amplitude in p.e. above which the signal is
-        clipped.
+        params['integration_clip_amp'] - Amplitude in p.e. above which the
+        signal is clipped.
 
-        params['calib_scale'] : Identical to global variable CALIB_SCALE in
-        reconstruct.c in hessioxxx software package. 0.92 is the default value
-        (corresponds to HESS). The required value changes between cameras
-        (GCT = 1.05).
+        params['integration_calib_scale'] : Identical to global variable
+        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
+        the default value (corresponds to HESS). The required value changes
+        between cameras (GCT = 1.05).
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
     geom_dict : dict
         Dict of pixel geometry for each telescope. Leave as None for automatic
         calculation when it is required.
@@ -153,12 +132,13 @@ def calibrate_event(event, params, geom_dict=None):
     # Obtain relevent calibrator
     switch = {
         'hessio':
-            partial(calibrate_mc, event=event, params=params)
+            partial(mc.calibrate_mc, event=event, params=params)
         }
     try:
         calibrator = switch[event.meta.source]
     except KeyError:
-        log.exception("unknown event source '{}'".format(event.meta.source))
+        log.exception("no calibration created for data origin: '{}'"
+                      .format(event.meta.source))
         raise
 
     calibrated = copy(event)
@@ -189,15 +169,15 @@ def calibrate_event(event, params, geom_dict=None):
                           event.meta.optical_foclen[telid])
         # Check if geom is even needed for integrator
         if inverted[params['integrator']] in integrators_requiring_geom():
-            if geom_dict is not None and cam_dimensions in geom_dict:
-                geom = geom_dict[cam_dimensions]
+            if geom_dict is not None and telid in geom_dict:
+                geom = geom_dict[telid]
             else:
                 log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                             event.meta.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
-                    geom_dict[cam_dimensions] = geom
+                    geom_dict[telid] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
         calibrated.dl1.tel[telid].pe_charge = pe
@@ -228,24 +208,24 @@ def calibrate_source(source, params, geom_dict=None):
 
         params['integrator'] - Integration scheme
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['clip_amp'] - Amplitude in p.e. above which the signal is
-        clipped.
+        params['integration_clip_amp'] - Amplitude in p.e. above which the
+        signal is clipped.
 
-        params['calib_scale'] : Identical to global variable CALIB_SCALE in
-        reconstruct.c in hessioxxx software package. 0.92 is the default value
-        (corresponds to HESS). The required value changes between cameras
-        (GCT = 1.05).
+        params['integration_calib_scale'] : Identical to global variable
+        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
+        the default value (corresponds to HESS). The required value changes
+        between cameras (GCT = 1.05).
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
     geom_dict : dict
         Dict of pixel geometry for each telescope. Leave as None for automatic
         calculation when it is required. Can be used to only calculate a geom

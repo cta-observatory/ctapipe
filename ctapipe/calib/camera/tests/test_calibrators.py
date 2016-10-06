@@ -5,10 +5,9 @@ from ctapipe.utils.datasets import get_path
 
 def get_test_parameters():
     parameters = {"integrator": "nb_peak_integration",
-                  "window": 7,
-                  "shift": 3,
-                  "sigamp": [2, 4],
-                  "lwt": 0}
+                  "integration_window": [7, 3],
+                  "integration_sigamp": [2, 4],
+                  "integration_lwt": 0}
     return parameters
 
 

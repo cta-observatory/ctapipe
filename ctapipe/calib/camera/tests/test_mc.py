@@ -7,10 +7,9 @@ from ..mc import set_integration_correction, calibrate_amplitude_mc, \
 
 def get_test_parameters():
     parameters = {"integrator": "nb_peak_integration",
-                  "window": 7,
-                  "shift": 3,
-                  "sigamp": [2, 4],
-                  "lwt": 0}
+                  "integration_window": [7, 3],
+                  "integration_sigamp": [2, 4],
+                  "integration_lwt": 0}
     return parameters
 
 
@@ -52,22 +51,22 @@ def test_integration_mc():
     params['integrator'] = 'simple_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 70
-    assert sum(window[0][0]) == params['window']
+    assert sum(window[0][0]) == params['integration_window'][0]
 
     params['integrator'] = 'global_peak_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 61
-    assert sum(window[0][0]) == params['window']
+    assert sum(window[0][0]) == params['integration_window'][0]
 
     params['integrator'] = 'local_peak_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == 80
-    assert sum(window[0][0]) == params['window']
+    assert sum(window[0][0]) == params['integration_window'][0]
 
     params['integrator'] = 'nb_peak_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)
     assert charge[0][0] == -67
-    assert sum(window[0][0]) == params['window']
+    assert sum(window[0][0]) == params['integration_window'][0]
 
 
 def test_calibrate_mc():
