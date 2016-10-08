@@ -96,12 +96,14 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
         return load_config(filename)
     elif filetype == 'simtel':
         return load_hessio(filename)
+    elif filetype == 'yaml':
+        return load_yaml(filename)
     else:
         raise TypeError("File type {} not supported".format(filetype))
 
 def load_fakedata():
     """
-    Function writing faked date into an astropy.table Table
+    Function writing faked data into an astropy.table Table
     
     Return
     ------
@@ -904,6 +906,222 @@ def load_config(filename):
     
     print('Astropy tables have been created.')
     return(telescope,camera,optics)
+
+
+def override_in_table(table,item={}):
+    # Load by default
+    try:
+        newvalue=item[newvalue]
+    except:
+        newvalue=None
+    try:
+        variable=item[variable]
+    except:
+        variable=None
+    try:
+        entry=item[entry]
+    except:
+        entry = None
+    
+
+    # Case A) no variable, no item, override the whole table
+
+    if newvalue==None:
+        return(table)
+
+    if (variable==None and item==None):
+        table['Data'] = newvalue
+    elif (variable==None and item!=None):
+        if '=' in item:
+            key,val = entry.split('=')
+            table['Data'][table['Data'][key] == val] = newvalue
+        else:
+            table['Data'][entry] = newvalue
+    elif (variable!=None and entry==None):
+        table[variable] = newvalue
+    else:
+        if '=' in entry:
+            key,val = entry.split('=')
+            table['Data'][variable][table['Data'][key] == val] = newvalue
+        else:
+            table['Data'][variable][entry] = newvalue
+
+    return(table)
+        
+
+### OrderedDict are not defined by default, so we have to register it in yaml.
+# to load it from file -> u.Quantity(value=string.split(",")[0], unit=string.split(",")[1])
+def represent_quantity(dumper, data):
+    value = []
+    for element in data:
+        item_key   = float(L.value)
+        item_value = str(L.unit)
+    
+    return dumper.represent_scalar(u'%s,%s' %(item_key,item_value)
+
+def load_yaml(filename):
+    import yaml
+    """
+    Function writing data from YAML files (fill with faked data wherever needed)
+    into an astropy.table Table
+    
+    Return
+    ------
+    telescope,camera,optics: 3 dictionaries
+        all dictionaries contain astropy.table Tables
+    """
+    print('Yaml + Faked data fill will be produced.')
+    version = 'Oct2016'
+    tel_num = 10
+    tel_id = [random.randrange(1,124,1) for x in range(0,tel_num)]
+    
+    telescope = {}
+    camera    = {}
+    optics    = {}
+    auxiliary = {}
+    
+    with open(filename, 'r') as fin:
+        yamlobject = yaml.load(fin)
+    
+    # There should be objects in the YAML of the form
+    # CamType_1, CameraType_2
+    # Cam_A (overrides CamType_2), Camera_B (overrides CamType_1), ...
+    # Optics_A, Opt_B, ...
+    # Telescope_A, Tel_B, ... (with references to their optics A/B... and cameras A/B...). 
+    # Each of these object should have a Header, identifying the columns
+    #   and a Data as items (arrays) with fields.
+
+    for item in yamlobject:
+        if '_' not in item:
+            itemname = item
+        else:
+            itemname = '_'.join(item.split("_")[1:])) # Telescope_Type_1 becomes Type_1
+    
+
+        # If organized in Header/Data ~ FITS drop-replacement.
+        if ('TelescopeType' or 'TelType') in item:
+            list_telescopetypes[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+        if ('Telescope' or 'Tel') in item:
+            list_telescopes[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+        elif ('CameraType' or 'CamType') in item:
+            list_cameratypes[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+        elif ('Camera' or 'Cam') in item:
+            list_cameras[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+        elif ('Optics' or 'Opt') in item:
+            list_opticstypes[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+        elif ('Optics' or 'Opt') in item:
+            list_optics[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+        else:
+            list_auxiliaries[itemname] = table(\
+              np.array(yamlobject[item][data],\
+              names=yamlobject[item][header]))
+
+    # Another possibility: define inside pyyaml how to handle astropy.Quantity 
+    yaml.add_representer(Quantity, represent_quantity)
+
+
+    tel_table_prime = Table()
+   
+    for tel in list_telescopes:
+        # Basic type
+        telescope = list_telescopetypes[list_telescopes[tel]['BasedOn']]
+        # Change properties that only apply to this particular telescope
+        for item in list_telescopes[tel]['Override']:
+            telescope = override_in_table(telescope,item)
+    
+    for cam in list_cameras:
+        # Basic type
+        camera = list_cameratypes[list_cameras[cam]['BasedOn']]
+        # Change properties that only apply to this particular camera
+        for item in list_cameras[cam]['Override']:
+            camera = override_in_table(camera,item)
+    
+    for cam in list_optics:
+        # Basic type
+        optics = list_opticstypes[list_optics[cam]['BasedOn']]
+        # Change properties that only apply to this particular optics
+        for item in list_optics[cam]['Override']:
+            optics = override_in_table(optics,item)
+
+
+
+    for tel_id in list_telescopes:
+    try:
+        tel_table_prime['TelID'] = telescope[tel_id
+    except:
+
+
+    tel_posX = [random.uniform(1,100) for x in range(tel_num)]
+    tel_posY = [random.uniform(1,100) for x in range(tel_num)]
+    tel_posZ = [random.uniform(1,100) for x in range(tel_num)]
+    tel_table_prime['TelX'] = tel_posX
+    tel_table_prime['TelX'].unit = u.m
+    tel_table_prime['TelY'] = tel_posY
+    tel_table_prime['TelY'].unit = u.m
+    tel_table_prime['TelZ'] = tel_posZ
+    tel_table_prime['TelZ'].unit = u.m
+    mirror_area = [random.uniform(1,100) for x in range(tel_num)]
+    tel_table_prime['MirA'] = mirror_area
+    tel_table_prime['MirA'].unit = u.m**2
+    mirror_num = [random.randrange(1,124,1) for x in range(tel_num)]
+    tel_table_prime['MirN'] = mirror_num
+    foclen = [random.uniform(1,100) for x in range(tel_num)]
+    tel_table_prime['FL'] = foclen
+    tel_table_prime['FL'].unit = u.m
+    
+    telescope['TelescopeTable_Version%s' % version] = tel_table_prime    
+    
+    for t in range(len(tel_id)):       
+        
+        cam_table_prime = Table()
+        opt_table_prime = Table()
+        pixel_num = 128
+        pix_posX = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+        pix_posY = [random.uniform(1,100) for x in range(tel_num*pixel_num)]       
+        pix_id = np.arange(len(pix_posX))
+        pix_area = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+         
+        cam_table_prime.meta = {'TELID': tel_id[t], 'VERSION': version, \
+        'PIXX_DES': 'x-position of the pixel measured by...'}
+        cam_table_prime['PixID'] = pix_id
+        cam_table_prime['PixX'] = pix_posX
+        cam_table_prime['PixX'].unit = u.m
+        cam_table_prime['PixY'] = pix_posY
+        cam_table_prime['PixY'].unit = u.m
+        cam_table_prime['PixA'] = pix_area
+        cam_table_prime['PixA'].unit = u.mm**2
+        
+        opt_table_prime.meta = {'TELID': tel_id[t], 'VERSION': version, \
+        'MIRN': mirror_num[t], 'MIRA': mirror_area[t]*u.m**2, \
+        'FL': foclen[t]*u.m, \
+        'MIRA_DES': 'Area of all mirrors'}
+        tab_mirrefl = Table()
+        tab_mirrefl['wavel'] = np.arange(100,700,10)
+        tab_mirrefl['wavel'].unit = u.nm
+        tab_mirrefl['refl'] = [random.uniform(0.01,1) \
+        for x in range(len(tab_mirrefl['wavel']))]
+        
+        opt_table_prime['MirR'] = tab_mirrefl
+        
+        camera['CameraTable_Version%s_TelID%i' % (version,tel_id[t])] \
+        = cam_table_prime
+        optics['OpticsTable_Version%s_TelID%i' % (version,tel_id[t])] \
+        = opt_table_prime
+    print('Astropy tables have been created.')
+    return telescope,camera,optics   
+
 
 def get_var_from_file(filename):
     """
