@@ -56,32 +56,18 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     eventstream = pyhessio.move_to_next_event()
     if allowed_tels is not None:
         allowed_tels = set(allowed_tels)
-    # container = Container("hessio_container")
-    # container.meta.add_item('hessio__input', url)
-    # container.meta.add_item('hessio__max_events', max_events)
-    # container.meta.add_item('tel_pos', dict())
-    # container.meta.add_item('pixel_pos', dict())
-    # container.meta.add_item('optical_foclen', dict())
-    # container.add_item("dl0", RawData())
-    # container.add_item("mc", MCEvent())
-    # container.add_item("trig", CentralTriggerData())
-    # container.add_item("count")
+    container = Container("hessio_container")
+    container.meta.add_item('hessio__input', url)
+    container.meta.add_item('hessio__max_events', max_events)
+    container.meta.add_item('tel_pos', dict())
+    container.meta.add_item('pixel_pos', dict())
+    container.meta.add_item('optical_foclen', dict())
+    container.add_item("dl0", RawData())
+    container.add_item("mc", MCEvent())
+    container.add_item("trig", CentralTriggerData())
+    container.add_item("count")
     
     for run_id, event_id in eventstream:
-
-        # Re-intialize the container, thereby wiping any extra items added
-        # in the previous event (e.g. dl1)
-        container = Container("hessio_container")
-        container.meta.add_item('source', "hessio")
-        container.meta.add_item('hessio__input', url)
-        container.meta.add_item('hessio__max_events', max_events)
-        container.meta.add_item('tel_pos', dict())
-        container.meta.add_item('pixel_pos', dict())
-        container.meta.add_item('optical_foclen', dict())
-        container.add_item("dl0", RawData())
-        container.add_item("mc", MCEvent())
-        container.add_item("trig", CentralTriggerData())
-        container.add_item("count")
 
         container.dl0.run_id = run_id
         container.dl0.event_id = event_id
