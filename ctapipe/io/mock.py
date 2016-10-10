@@ -13,14 +13,7 @@ from scipy.stats import norm
 logger = logging.getLogger(__name__)
 
 
-def mock_event_source(
-        geoms,
-        events=100,
-        single_tel=False,
-        n_channels=1,
-        n_samples=25,
-        p_trigger=0.3,
-        ):
+def mock_event_source(geoms, events=100, single_tel=False, n_channels=1, n_samples=25,  p_trigger=0.3):
     """
     An event source that produces array
     Parameters
@@ -37,11 +30,9 @@ def mock_event_source(
         mean trigger probability for the telescopes
     """
     n_telescopes = len(geoms)
-    container = Container("mock_container")
+    container = EventContainer()
     container.meta.add_item('mock__max_events', events)
-    container.meta.add_item('pixel_pos', dict())
-    container.add_item("dl0", RawData())
-    container.add_item("count")
+    container.meta.source = "mock"
     tel_ids = np.arange(n_telescopes)
 
     for event_id in range(events):
