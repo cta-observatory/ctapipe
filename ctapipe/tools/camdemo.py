@@ -6,14 +6,13 @@ running.
 """
 
 import matplotlib.pylab as plt
-from ctapipe import io, visualization
-from ctapipe.reco import mock
-from ctapipe import reco
-from matplotlib.animation import FuncAnimation
 import numpy as np
 from astropy import units as u
-
+from ctapipe import io, visualization
+from ctapipe import reco
 from ctapipe.core import Tool
+from ctapipe.reco import mock
+from matplotlib.animation import FuncAnimation
 
 
 class CameraDemo(Tool):
@@ -27,9 +26,9 @@ class CameraDemo(Tool):
 
     def start(self):
         self.log.info("Starting Camera Display")
-        self._display_cam_animation()
+        self._display_camera_animation()
 
-    def _display_cam_animation(self):
+    def _display_camera_animation(self):
         plt.style.use("ggplot")
         fig = plt.figure(num="ctapipe Camera Demo", figsize=(7, 7))
         ax = plt.subplot(111)
