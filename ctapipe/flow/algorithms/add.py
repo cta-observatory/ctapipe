@@ -10,11 +10,10 @@ class Add(Component):
         self.log.debug("--- Add init ---")
         return True
 
-    def run(self, value):
+    def run(self, x):
         sleep(.5)
-        self.log.debug("Add receive {}".format(value))
-        value+=1
-        return value
+        self.log.debug("Add receive {} ".format(x))
+        return x
 
     def finish(self):
         self.log.debug("--- Add finish ---")
