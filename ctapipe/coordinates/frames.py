@@ -13,21 +13,19 @@ TODO:
 - Tests Tests Tests!
 - Check cartesian system is still accurate for the nominal and
   telescope systems (may need a spherical system)
-- Benchmark transformation times
-- should use `astropy.coordinates.Angle` for all angles here 
-
+- Benchmark transformation time
+- should use `astropy.coordinates.Angle` for all angles here
 """
 
 import numpy as np
+from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
+
 import astropy.units as u
 from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute,
-                                 SphericalRepresentation,
                                  CartesianRepresentation,
-                                 RepresentationMapping,
-                                 FunctionTransform, SkyCoord)
+                                 FunctionTransform)
 from astropy.coordinates import AltAz
 from astropy.coordinates import frame_transform_graph
-from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
 
 __all__ = [
     'CameraFrame',
@@ -63,10 +61,9 @@ class TelescopeFrame(BaseCoordinateFrame):
     * ``focal_length``
         Focal length of the telescope as a unit quantity (usually meters)
     * ``rotation``
-        Rotation angle of the camera (0 deg in most cases) 
+        Rotation angle of the camera (0 deg in most cases)
     * ``pointing_direction``
         Alt,Az direction of the telescope pointing
-
     """
     default_representation = CartesianRepresentation
 
@@ -92,7 +89,7 @@ class NominalFrame(BaseCoordinateFrame):
     to allow a direct transformation from the camera frame
 
     * ``focal_length``
-      Focal length of the telescope 
+      Focal length of the telescope
     * ``rotation``
       Rotation angle of the camera (0 in most cases) [deg]
     * ``pointing_direction``
@@ -130,40 +127,39 @@ def altaz_to_offset(obj_azimuth, obj_altitude, azimuth, altitude):
         Offset of the event in the reference system (in radians)
     """
 
-    daz = obj_azimuth - azimuth
-    coa = cos(obj_altitude)
+    diff_az = obj_azimuth - azimuth
+    cosine_obj_alt = cos(obj_altitude)
 
-    xp0 = -cos(daz) * coa
-    yp0 = sin(daz) * coa
+    xp0 = -cos(diff_az) * cosine_obj_alt
+    yp0 = sin(diff_az) * cosine_obj_alt
     zp0 = sin(obj_altitude)
 
-    cx = sin(altitude)
-    sx = cos(altitude)
+    sin_sys_alt = sin(altitude)
+    cos_sys_alt = cos(altitude)
 
-    xp1 = cx * xp0 + sx * zp0
+    xp1 = sin_sys_alt * xp0 + cos_sys_alt * zp0
     yp1 = yp0
-    zp1 = -sx * xp0 + cx * zp0
+    zp1 = -cos_sys_alt * xp0 + sin_sys_alt * zp0
 
-    q = arccos(zp1)
-    d = tan(q)
+    disp = tan(arccos(zp1))
     alpha = arctan2(yp1, xp1)
 
-    xoff = d * cos(alpha)
-    yoff = d * sin(alpha)
+    x_off = disp * cos(alpha)
+    y_off = disp * sin(alpha)
 
-    return xoff, yoff
+    return x_off, y_off
 
 
-def offset_to_altaz(xoff, yoff, azimuth, altitude):
+def offset_to_altaz(x_off, y_off, azimuth, altitude):
     """Function to convert an angular offset with regard to a give
     reference system to an an absolute altitude and azimuth (This
     function is directly lifted from read_hess)
 
     Parameters
     ----------
-    xoff: float
+    x_off: float
         X offset of the event in the reference system
-    yoff: float
+    y_off: float
         Y offset of the event in the reference system
     azimuth: float
         Reference system azimuth (radians)
@@ -178,29 +174,30 @@ def offset_to_altaz(xoff, yoff, azimuth, altitude):
 
     unit = azimuth.unit
 
-    xoff = xoff.to(u.rad).value
-    yoff = yoff.to(u.rad).value
+    x_off = x_off.to(u.rad).value
+    y_off = y_off.to(u.rad).value
     azimuth = azimuth.to(u.rad).value
     altitude = altitude.to(u.rad).value
 
-    d = sqrt(xoff * xoff + yoff * yoff)
-    pos = np.where(d == 0)  # find offset 0 positions
+    offset = sqrt(x_off * x_off + y_off * y_off)
+    pos = np.where(offset == 0)  # find offset 0 positions
     if len(pos[0]) > 0:
-        d[pos] = 1e-12  # add a very small offset to prevent math errors
+        offset[pos] = 1e-12  # add a very small offset to prevent math errors
 
-    q = arctan(d)
+    atan_off = arctan(offset)
 
-    sq = sin(q)
-    xp1 = xoff * (sq / d)
-    yp1 = yoff * (sq / d)
-    zp1 = cos(q)
+    sin_atan_off = sin(atan_off)
+    xp1 = x_off * (sin_atan_off / offset)
+    yp1 = y_off * (sin_atan_off / offset)
+    zp1 = cos(atan_off)
 
-    cx = sin(altitude)
-    sx = cos(altitude)
+    sin_obj_alt = sin(altitude)
+    cos_obj_alt = cos(altitude)
 
-    xp0 = cx * xp1 - sx * zp1
+    xp0 = sin_obj_alt * xp1 - cos_obj_alt * zp1
     yp0 = yp1
-    zp0 = sx * xp1 + cx * zp1
+    zp0 = cos_obj_alt * xp1 + sin_obj_alt * zp1
+
     obj_altitude = arcsin(zp0)
     obj_azimuth = arctan2(yp0, -xp0) + azimuth
 
@@ -240,24 +237,24 @@ def nominal_to_altaz(norm_coord, altaz_coord):
     alt_norm, az_norm = norm_coord.array_direction
 
     if type(norm_coord.x.value).__module__ != np.__name__:
-        x = np.zeros(1)
-        x[0] = norm_coord.x.value
-        x = x * norm_coord.x.unit
-        y = np.zeros(1)
-        y[0] = norm_coord.y.value
-        y = y * norm_coord.y.unit
+        x_off = np.zeros(1)
+        x_off[0] = norm_coord.x.value
+        x_off = x_off * norm_coord.x.unit
+        y_off = np.zeros(1)
+        y_off[0] = norm_coord.y.value
+        y_off = y_off * norm_coord.y.unit
     else:
-        x = norm_coord.x
-        y = norm_coord.y
+        x_off = norm_coord.x
+        y_off = norm_coord.y
 
-    alt, az = offset_to_altaz(x, y, az_norm, alt_norm)
-    altaz_coord = AltAz(az=az.to(u.deg), alt=alt.to(u.deg))
+    altitude, azimuth = offset_to_altaz(x_off, y_off, az_norm, alt_norm)
+    altaz_coord = AltAz(az=azimuth.to(u.deg), alt=altitude.to(u.deg))
 
     return altaz_coord
 
 
 @frame_transform_graph.transform(FunctionTransform, AltAz, NominalFrame)
-def nominal_to_altaz(altaz_coord, norm_coord):
+def altaz_to_nominal(altaz_coord, norm_coord):
     """
     Transformation from astropy AltAz system to nominal system
 
@@ -273,13 +270,13 @@ def nominal_to_altaz(altaz_coord, norm_coord):
     nominal Coordinates
     """
     alt_norm, az_norm = norm_coord.array_direction
-    az = altaz_coord.az
-    alt = altaz_coord.alt
-    x, y = altaz_to_offset(az, alt, az_norm, alt_norm)
-    x = x * u.rad
-    y = y * u.rad
+    azimuth = altaz_coord.az
+    altitude = altaz_coord.alt
+    x_off, y_off = altaz_to_offset(azimuth, altitude, az_norm, alt_norm)
+    x_off = x_off * u.rad
+    y_off = y_off * u.rad
     representation = CartesianRepresentation(
-        x.to(u.deg), y.to(u.deg), 0 * u.deg)
+        x_off.to(u.deg), y_off.to(u.deg), 0 * u.deg)
 
     return norm_coord.realize_frame(representation)
 
@@ -307,12 +304,12 @@ def telescope_to_nominal(tel_coord, norm_frame):
     alt_trans, az_trans = offset_to_altaz(
         tel_coord.x, tel_coord.y, az_tel, alt_tel)
 
-    x, y = altaz_to_offset(az_trans, alt_trans, az_norm, alt_norm)
-    x = x * u.rad
-    y = y * u.rad
+    x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_norm, alt_norm)
+    x_off = x_off * u.rad
+    y_off = y_off * u.rad
 
     representation = CartesianRepresentation(
-        x.to(tel_coord.x.unit), y.to(tel_coord.x.unit), 0 * tel_coord.x.unit)
+        x_off.to(tel_coord.x.unit), y_off.to(tel_coord.x.unit), 0 * tel_coord.x.unit)
 
     return norm_frame.realize_frame(representation)
 
@@ -339,12 +336,12 @@ def nominal_to_telescope(norm_coord, tel_frame):
 
     alt_trans, az_trans = offset_to_altaz(
         norm_coord.x, norm_coord.y, az_norm, alt_norm)
-    x, y = altaz_to_offset(az_trans, alt_trans, az_tel, alt_tel)
-    x = x * u.rad
-    y = y * u.rad
+    x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_tel, alt_tel)
+    x_off = x_off * u.rad
+    y_off = y_off * u.rad
 
-    representation = CartesianRepresentation(x.to(norm_coord.x.unit),
-                                             y.to(norm_coord.x.unit),
+    representation = CartesianRepresentation(x_off.to(norm_coord.x.unit),
+                                             y_off.to(norm_coord.x.unit),
                                              0 * norm_coord.x.unit)
 
     return tel_frame.realize_frame(representation)
@@ -371,17 +368,17 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
     rot = telescope_frame.rotation
     if rot == 0:
-        x = x_pos
-        y = y_pos
+        x_rotated = x_pos
+        y_rotated = y_pos
     else:
-        x = x_pos * cos(rot) - y_pos * sin(rot)
-        y = x_pos * sin(rot) + y_pos * cos(rot)
+        x_rotated = x_pos * cos(rot) - y_pos * sin(rot)
+        y_rotated = x_pos * sin(rot) + y_pos * cos(rot)
 
-    f = telescope_frame.focal_length
+    focal_length = telescope_frame.focal_length
 
-    x = (x / f) * u.rad
-    y = (y / f) * u.rad
-    representation = CartesianRepresentation(x, y, 0 * u.rad)
+    x_rotated = (x_rotated / focal_length) * u.rad
+    y_rotated = (y_rotated / focal_length) * u.rad
+    representation = CartesianRepresentation(x_rotated, y_rotated, 0 * u.rad)
 
     return telescope_frame.realize_frame(representation)
 
@@ -408,19 +405,19 @@ def telescope_to_camera(telescope_coord, camera_frame):
     rot = telescope_coord.rotation * -1
 
     if rot == 0:  # if no rotation applied save a few cycles
-        x = x_pos
-        y = y_pos
+        x_rotated = x_pos
+        y_rotated = y_pos
     else:  # or else rotate all positions around the camera centre
-        x = x_pos * cos(rot) - y_pos * sin(rot)
-        y = x_pos * sin(rot) + y_pos * cos(rot)
+        x_rotated = x_pos * cos(rot) - y_pos * sin(rot)
+        y_rotated = x_pos * sin(rot) + y_pos * cos(rot)
 
-    f = telescope_coord.focal_length
+    focal_length = telescope_coord.focal_length
     # Remove distance units here as we are using small angle approx
-    x = x.to(u.rad) * (f / u.m)
-    y = y.to(u.rad) * (f / u.m)
+    x_rotated = x_rotated.to(u.rad) * (focal_length / u.m)
+    y_rotated = y_rotated.to(u.rad) * (focal_length / u.m)
 
     representation = CartesianRepresentation(
-        x.value * u.m, y.value * u.m, 0 * u.m)
+        x_rotated.value * u.m, y_rotated.value * u.m, 0 * u.m)
 
     return camera_frame.realize_frame(representation)
 
@@ -452,8 +449,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     reconstruction of the shower core position
 
     Frame attributes:
-    
-    * ``pointing_direction`` 
+    * ``pointing_direction``
       Alt,Az direction of the tilted reference plane
 
     """
@@ -524,10 +520,10 @@ def ground_to_tilted(ground_coord, tilted_coord):
     y_grd = ground_coord.cartesian.y
     z_grd = ground_coord.cartesian.z
 
-    alt, az = tilted_coord.pointing_direction
-    alt = alt.to(u.rad)
-    az = az.to(u.rad)
-    trans = get_shower_trans_matrix(az, alt)
+    altitude, azimuth = tilted_coord.pointing_direction
+    altitude = altitude.to(u.rad)
+    azimuth = azimuth.to(u.rad)
+    trans = get_shower_trans_matrix(azimuth, altitude)
 
     x_tilt = trans[0][0] * x_grd + trans[0][1] * y_grd + trans[0][2] * z_grd
     y_tilt = trans[1][0] * x_grd + trans[1][1] * y_grd + trans[1][2] * z_grd
@@ -558,11 +554,11 @@ def tilted_to_ground(tilted_coord, ground_coord):
     x_tilt = tilted_coord.cartesian.x
     y_tilt = tilted_coord.cartesian.y
 
-    alt, az = tilted_coord.pointing_direction
-    alt = alt.to(u.rad)
-    az = az.to(u.rad)
+    altitude, azimuth = tilted_coord.pointing_direction
+    altitude = altitude.to(u.rad)
+    azimuth = azimuth.to(u.rad)
 
-    trans = get_shower_trans_matrix(az, alt)
+    trans = get_shower_trans_matrix(azimuth, altitude)
 
     x_grd = trans[0][0] * x_tilt + trans[1][0] * y_tilt
     y_grd = trans[0][1] * x_tilt + trans[1][1] * y_tilt
@@ -594,14 +590,14 @@ def project_to_ground(tilt_system):
     ground_system = tilt_system.transform_to(GroundFrame)
 
     unit = ground_system.x.unit
-    xh = ground_system.x.value
-    yh = ground_system.y.value
-    zh = ground_system.z.value
+    x_initial = ground_system.x.value
+    y_initial = ground_system.y.value
+    z_initial = ground_system.z.value
 
-    trans = get_shower_trans_matrix(tilt_system.pointing_direction[
-                                    1], tilt_system.pointing_direction[0])
+    trans = get_shower_trans_matrix(tilt_system.pointing_direction[1],
+                                    tilt_system.pointing_direction[0])
 
-    xc = xh - trans[2][0] * zh / trans[2][2]
-    yc = yh - trans[2][1] * zh / trans[2][2]
+    x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]
+    y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]
 
-    return GroundFrame(x=xc * unit, y=yc * unit, z=0 * unit)
+    return GroundFrame(x=x_projected * unit, y=y_projected * unit, z=0 * unit)
