@@ -36,10 +36,10 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 
 
-def oxpytools_source(filepath, max_events=None):
+def targetio_source(filepath, max_events=None):
     """
     Temporary function to return a "source" generator from a targetio file,
-    only if oxpytools exists on this python interpreter.
+    only if targetpipe exists on this python interpreter.
 
     Parameters
     ----------
@@ -55,18 +55,18 @@ def oxpytools_source(filepath, max_events=None):
         a targetio file.
     """
 
-    # Check oxpytools is installed
+    # Check targetpipe is installed
     try:
         import importlib
-        oxpytools_spec = importlib.util.find_spec("oxpytools")
-        found = oxpytools_spec is not None
+        targetpipe_spec = importlib.util.find_spec("targetpipe")
+        found = targetpipe_spec is not None
         if found:
-            from oxpytools.io.targetio import targetio_event_source
+            from targetpipe.io.targetio import targetio_event_source
             return targetio_event_source(filepath, max_events=max_events)
         else:
             raise RuntimeError()
     except RuntimeError:
-        log.exception("oxpytools is not installed on this interpreter")
+        log.exception("targetpipe is not installed on this interpreter")
         raise
 
 
@@ -168,8 +168,8 @@ class InputFile:
                 lambda: hessio_event_source(get_path(self.input_path),
                                             max_events=max_events),
             'targetio':
-                lambda: oxpytools_source(self.input_path,
-                                         max_events=max_events),
+                lambda: targetio_source(self.input_path,
+                                        max_events=max_events),
         }
         try:
             source = switch[self.origin]()

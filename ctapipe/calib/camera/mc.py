@@ -10,6 +10,7 @@ in hessioxxx software package.
 Note: Input MC version = prod2. For future MC versions the calibration
 function might be different for each camera type.
 """
+import argparse
 
 import numpy as np
 from ctapipe.io import CameraGeometry
@@ -19,11 +20,79 @@ from .integrators import integrator_switch, integrators_requiring_geom, \
     integrator_dict
 
 
+def calibration_arguments():
+    """
+    Obtain an argparser with the arguments for the MC calibration.
+
+    Returns
+    -------
+    parser
+        MC calibration argparser
+    ns : `argparse.Namespace`
+        Namespace containing the correction for default values so they use
+        a custom Action
+    """
+
+    integrators = ""
+    int_dict, inverted = integrator_dict()
+    for key, value in int_dict.items():
+        integrators += " - {} = {}\n".format(key, value)
+
+    class IntegratorAction(argparse.Action):
+        def __call__(self, parser0, namespace, values, option_string=None):
+            setattr(namespace, self.dest, int_dict[values])
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    action = parser.add_argument('--integrator', dest='integrator',
+                                 action=IntegratorAction,
+                                 default=5, type=int, choices=int_dict.keys(),
+                                 help='which integration scheme should be '
+                                      'used to extract the '
+                                      'charge? \n{}'.format(integrators))
+    # Convert default using IntegratorAction
+    ns = argparse.Namespace()
+    action(parser, ns, action.default)
+
+    parser.add_argument('--integration-window', dest='integration_window',
+                        action='store', default=[7, 3], nargs=2, type=int,
+                        help='Set integration window width and offset (to '
+                             'before the peak) respectively, '
+                             'e.g. --integration-window 7 3')
+    parser.add_argument('--integration-sigamp', dest='integration_sigamp',
+                        action='store', nargs='+', type=int, default=[2, 4],
+                        help='Amplitude in ADC counts above pedestal at which '
+                             'a signal is considered as significant, and used '
+                             'for peak finding. '
+                             '(separate for high gain/low gain), '
+                             'e.g. --integration-sigamp 2 4')
+    parser.add_argument('--integration-clip_amp', dest='integration_clip_amp',
+                        action='store', type=int, default=None,
+                        help='Amplitude in p.e. above which the signal is '
+                             'clipped.')
+    parser.add_argument('--integration-lwt', dest='integration_lwt',
+                        action='store', type=int, default=0,
+                        help='Weight of the local pixel (0: peak from '
+                             'neighbours only, 1: local pixel counts as much '
+                             'as any neighbour)')
+    parser.add_argument('--integration-calib_scale',
+                        dest='integration_calib_scale',
+                        action='store', type=float, default=0.92,
+                        help='Used for conversion from ADC to pe. Identical '
+                             'to global variable CALIB_SCALE in '
+                             'reconstruct.c in hessioxxx software package. '
+                             'The required value changes between '
+                             'cameras (HESS = 0.92, GCT = 1.05).')
+
+    return parser, ns
+
+
 def set_integration_correction(event, telid, params):
     """
     Obtain the integration correction for the window specified
 
-        Parameters
+    Parameters
     ----------
     event : container
         A `ctapipe` event container
@@ -32,9 +101,8 @@ def set_integration_correction(event, telid, params):
     params : dict
         REQUIRED:
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
@@ -45,7 +113,7 @@ def set_integration_correction(event, telid, params):
     """
 
     try:
-        if 'window' not in params or 'shift' not in params:
+        if 'integration_window' not in params:
             raise KeyError()
     except KeyError:
         log.exception("[ERROR] missing required params")
@@ -69,8 +137,9 @@ def set_integration_correction(event, telid, params):
     ipeak = np.argmin(np.abs(x1-x[refipeak]))
 
     # Check window is within readout
-    start = ipeak - params['shift']
-    window = params['window']
+    window = params['integration_window'][0]
+    shift = params['integration_window'][1]
+    start = ipeak - shift
     if window > nsamples:
         window = nsamples
     if start < 0:
@@ -100,13 +169,13 @@ def calibrate_amplitude_mc(event, charge, telid, params):
     params : dict
         OPTIONAL:
 
-        params['clip_amp'] - Amplitude in p.e. above which the signal is
-        clipped.
+        params['integration_clip_amp'] - Amplitude in p.e. above which the
+        signal is clipped.
 
-        params['calib_scale'] : Identical to global variable CALIB_SCALE in
-        reconstruct.c in hessioxxx software package. 0.92 is the default value
-        (corresponds to HESS). The required value changes between cameras
-        (GCT = 1.05).
+        params['integration_calib_scale'] : Identical to global variable
+        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
+        the default value (corresponds to HESS). The required value changes
+        between cameras (GCT = 1.05).
 
     Returns
     -------
@@ -120,14 +189,15 @@ def calibrate_amplitude_mc(event, charge, telid, params):
     pe = charge * calib
     # TODO: add clever calib for prod3 and LG channel
 
-    if "climp_amp" in params and params["clip_amp"] > 0:
-        pe[np.where(pe > params["clip_amp"])] = params["clip_amp"]
-    if "calib_scale" not in params:
+    if "integration_clip_amp" in params and params["integration_clip_amp"]:
+        pe[np.where(pe > params["integration_clip_amp"])] = \
+            params["integration_clip_amp"]
+    if "integration_calib_scale" not in params:
         # Store default value into mutable dict, so it is preserved
-        params["calib_scale"] = 0.92  # Correct value for HESS
+        params["integration_calib_scale"] = 0.92  # Correct value for HESS
         log.info("[calib] Default calib_scale set: {}"
-                 .format(params["calib_scale"]))
-    calib_scale = params["calib_scale"]
+                 .format(params["integration_calib_scale"]))
+    calib_scale = params["integration_calib_scale"]
 
     """
     pe_pix is in units of 'mean photo-electrons'
@@ -158,16 +228,16 @@ def integration_mc(event, telid, params, geom=None):
 
         params['integrator'] - Integration scheme
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
     geom : `ctapipe.io.CameraGeometry`
         geometry of the camera's pixels. Leave as None for automatic
         calculation when it is required.
@@ -193,8 +263,8 @@ def integration_mc(event, telid, params, geom=None):
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
     int_dict, inverted = integrator_dict()
-    if geom is None and inverted[params['integrator']] in \
-            integrators_requiring_geom():
+    if geom is None and inverted[params['integrator']]\
+            in integrators_requiring_geom():
         log.debug("[calib] Guessing camera geometry")
         geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
                                     event.meta.optical_foclen[telid])
@@ -231,24 +301,24 @@ def calibrate_mc(event, telid, params, geom=None):
 
         params['integrator'] - Integration scheme
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['clip_amp'] - Amplitude in p.e. above which the signal is
-        clipped.
+        params['integration_clip_amp'] - Amplitude in p.e. above which the
+        signal is clipped.
 
-        params['calib_scale'] : Identical to global variable CALIB_SCALE in
-        reconstruct.c in hessioxxx software package. 0.92 is the default value
-        (corresponds to HESS). The required value changes between cameras
-        (GCT = 1.05).
+        params['integration_calib_scale'] : Identical to global variable
+        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
+        the default value (corresponds to HESS). The required value changes
+        between cameras (GCT = 1.05).
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
     geom : `ctapipe.io.CameraGeometry`
         geometry of the camera's pixels. Leave as None for automatic
         calculation when it is required.
@@ -272,8 +342,9 @@ def calibrate_mc(event, telid, params, geom=None):
     charge, window, data_ped, peakpos = \
         integration_mc(event, telid, params, geom)
     pe = calibrate_amplitude_mc(event, charge, telid, params)
-    if 'clip_amp' in params:
-        pe[np.where(pe > params['clip_amp'])] = params['clip_amp']
+    if 'integration_clip_amp' in params and params['integration_clip_amp']:
+        pe[np.where(pe > params['integration_clip_amp'])] \
+            = params['integration_clip_amp']
 
     # Decide between HG and LG channel
     # TODO: add actual logic for decision, currently uses only HG

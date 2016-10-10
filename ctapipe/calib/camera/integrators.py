@@ -49,16 +49,16 @@ def integrator_switch(data, geom, params):
 
         params['integrator'] - Integration scheme
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and starting
+        sample for this integration
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
 
     Returns
     -------
@@ -146,9 +146,8 @@ def simple_integration(data, params):
     params : dict
         REQUIRED:
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and starting
+        sample for this integration
 
         (adapted such that window fits into readout).
 
@@ -166,7 +165,7 @@ def simple_integration(data, params):
     """
 
     try:
-        if 'window' not in params or 'shift' not in params:
+        if 'integration_window' not in params:
             raise KeyError()
     except KeyError:
         log.exception("[ERROR] missing required params")
@@ -174,8 +173,8 @@ def simple_integration(data, params):
     nchan, npix, nsamples = data.shape
 
     # Define window
-    window = params['window']
-    start = params['shift']
+    window = params['integration_window'][0]
+    start = params['integration_window'][1]
 
     # Check window is within readout
     if window > nsamples:
@@ -215,16 +214,16 @@ def global_peak_integration(data, params):
     params : dict
         REQUIRED:
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
 
     Returns
     -------
@@ -240,7 +239,7 @@ def global_peak_integration(data, params):
     """
 
     try:
-        if 'window' not in params or 'shift' not in params:
+        if 'integration_window' not in params:
             raise KeyError()
     except KeyError:
         log.exception("[ERROR] missing required params")
@@ -249,8 +248,8 @@ def global_peak_integration(data, params):
 
     # Extract significant entries
     sig_entries = np.ones_like(data, dtype=bool)
-    if 'sigamp' in params:
-        sigamp_cut = params['sigamp']
+    if 'integration_sigamp' in params:
+        sigamp_cut = params['integration_sigamp']
         for i in range(len(sigamp_cut) if len(sigamp_cut) <= nchan else nchan):
             sig_entries[i] = data[i] > sigamp_cut[i]
     sig_pixels = np.any(sig_entries, axis=2)
@@ -272,8 +271,9 @@ def global_peak_integration(data, params):
             log.info("[calib] LG not significant, using HG for peak finding "
                      "instead")
             peakpos[1, :] = peakpos[0]
-    start = (peakpos - params['shift']).astype(np.int)
-    window = params['window']
+    window = params['integration_window'][0]
+    shift = params['integration_window'][1]
+    start = (peakpos - shift).astype(np.int)
 
     # Check window is within readout
     if window > nsamples:
@@ -310,16 +310,16 @@ def local_peak_integration(data, params):
     params : dict
         REQUIRED:
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
 
     Returns
     -------
@@ -335,7 +335,7 @@ def local_peak_integration(data, params):
     """
 
     try:
-        if 'window' not in params or 'shift' not in params:
+        if 'integration_window' not in params:
             raise KeyError()
     except KeyError:
         log.exception("[ERROR] missing required params")
@@ -345,8 +345,8 @@ def local_peak_integration(data, params):
 
     # Extract significant entries
     sig_entries = np.ones_like(data, dtype=bool)
-    if 'sigamp' in params:
-        sigamp_cut = params['sigamp']
+    if 'integration_sigamp' in params:
+        sigamp_cut = params['integration_sigamp']
         for i in range(len(sigamp_cut) if len(sigamp_cut) <= nchan else nchan):
             sig_entries[i] = data[i] > sigamp_cut[i]
     sig_pixels = np.any(sig_entries, axis=2)
@@ -360,8 +360,9 @@ def local_peak_integration(data, params):
     if nchan > 1:  # If the LG is not significant, takes the HG peakpos
         peakpos[1] = np.where(sig_pixels[1] < sig_pixels[0], peakpos[0],
                               peakpos[1])
-    start = (peakpos - params['shift'])
-    window = params['window']
+    window = params['integration_window'][0]
+    shift = params['integration_window'][1]
+    start = (peakpos - shift)
 
     # Check window is within readout
     if window > nsamples:
@@ -402,18 +403,18 @@ def nb_peak_integration(data, geom, params):
     params : dict
         REQUIRED:
 
-        params['window'] - Integration window size
-
-        params['shift'] - Starting sample for this integration
+        params['integration_window'] - Integration window size and shift of
+        integration window centre
 
         (adapted such that window fits into readout).
 
         OPTIONAL:
 
-        params['sigamp'] - Amplitude in ADC counts above pedestal at which a
-        signal is considered as significant (separate for high gain/low gain).
+        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
+        at which a signal is considered as significant (separate for
+        high gain/low gain).
 
-        params['lwt']
+        params['integration_lwt']
         - Weight of the local pixel (0: peak from neighbours
         only, 1: local pixel counts as much as any neighbour).
 
@@ -431,7 +432,7 @@ def nb_peak_integration(data, geom, params):
     """
 
     try:
-        if 'window' not in params or 'shift' not in params:
+        if 'integration_window' not in params:
             raise KeyError()
     except KeyError:
         log.exception("[ERROR] missing required params")
@@ -441,8 +442,8 @@ def nb_peak_integration(data, geom, params):
 
     # Extract significant entries
     sig_entries = np.ones_like(data, dtype=bool)
-    if 'sigamp' in params:
-        sigamp_cut = params['sigamp']
+    if 'integration_sigamp' in params:
+        sigamp_cut = params['integration_sigamp']
         for i in range(len(sigamp_cut) if len(sigamp_cut) <= nchan else nchan):
             sig_entries[i] = data[i] > sigamp_cut[i]
     sig_pixels = np.any(sig_entries, axis=2)
@@ -452,7 +453,7 @@ def nb_peak_integration(data, geom, params):
     significant_data = data * sig_entries
 
     # Define window
-    lwt = 0 if 'lwt' not in params else params['lwt']
+    lwt = 0 if 'integration_lwt' not in params else params['integration_lwt']
     neighbour_list = geom.neighbors
     peakpos = np.zeros_like(sig_pixels, dtype=np.int)
     for ipix, neighbours in enumerate(neighbour_list):
@@ -463,8 +464,9 @@ def nb_peak_integration(data, geom, params):
         all_data = np.concatenate((nb_data, pixel_expanded), axis=1)
         sum_data = all_data.sum(1)
         peakpos[:, ipix] = sum_data.argmax(1)
-    start = (peakpos - params['shift'])
-    window = params['window']
+    window = params['integration_window'][0]
+    shift = params['integration_window'][1]
+    start = (peakpos - shift)
 
     # Check window is within readout
     if window > nsamples:
