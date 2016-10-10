@@ -94,7 +94,7 @@ class Tool(Application):
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
         if self.aliases:
-            self.aliases['log_level'] = 'Application.log_level'
+            self.aliases['log-level'] = 'Application.log_level'
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
