@@ -8,6 +8,21 @@ import numpy as np
 __all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
 
 
+class EventContainer(Container):
+    """ Top-level container for all event information """
+    def __init__(self, name="Event"):
+        self.add_item("dl0", RawData())
+        self.add_item("mc", MCEvent())
+        self.add_item("trig", CentralTriggerData())
+        self.add_item("count")
+
+        self.meta.add_item('tel_pos', dict())
+        self.meta.add_item('pixel_pos', dict())
+        self.meta.add_item('optical_foclen', dict())
+        self.meta.add_item('source', "unknown")
+
+
+
 class RawData(Container):
     """
     Storage of a Merged Raw Data Event
@@ -33,7 +48,7 @@ class RawData(Container):
         self.add_item('event_id')
         self.add_item('tels_with_data')
         self.add_item('tel', dict())
-
+        
 
 class MCShowerData(Container):
     def __init__(self, name='MCShowerData'):
