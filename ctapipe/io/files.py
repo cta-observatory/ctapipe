@@ -36,7 +36,8 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 
 
-def targetio_source(filepath, max_events=None):
+def targetio_source(filepath, max_events=None, requested_event=None,
+                    request_event_id=False):
     """
     Temporary function to return a "source" generator from a targetio file,
     only if targetpipe exists on this python interpreter.
@@ -47,6 +48,11 @@ def targetio_source(filepath, max_events=None):
         Filepath for the input targetio file
     max_events : int
         Maximum number of events to read
+    requested_event : int
+        Seek to a paricular event index
+    request_event_id : bool
+        If True ,'requested_event' now seeks for a particular event id instead
+        of index
 
     Returns
     -------
@@ -62,7 +68,9 @@ def targetio_source(filepath, max_events=None):
         found = targetpipe_spec is not None
         if found:
             from targetpipe.io.targetio import targetio_event_source
-            return targetio_event_source(filepath, max_events=max_events)
+            return targetio_event_source(filepath, max_events=max_events,
+                                         requested_event=None,
+                                         request_event_id=False)
         else:
             raise RuntimeError()
     except RuntimeError:
@@ -144,7 +152,8 @@ class InputFile:
         origins = ['hessio', 'targetio']
         return origins
 
-    def read(self, max_events=None):
+    def read(self, max_events=None, allowed_tels=None, requested_event=None,
+             request_event_id=False):
         """
         Read the file using the appropriate method depending on the file origin
 
@@ -152,6 +161,16 @@ class InputFile:
         ----------
         max_events : int
             Maximum number of events to read
+        allowed_tels : list[int]
+            select only a subset of telescope, if None, all are read. This can
+            be used for example emulate the final CTA data format, where there
+            would be 1 telescope per file (whereas in current monte-carlo,
+            they are all interleaved into one file)
+        requested_event : int
+            Seek to a paricular event index
+        request_event_id : bool
+            If True ,'requested_event' now seeks for a particular event id instead
+            of index
 
         Returns
         -------
@@ -166,10 +185,14 @@ class InputFile:
         switch = {
             'hessio':
                 lambda: hessio_event_source(get_path(self.input_path),
-                                            max_events=max_events),
+                                            max_events=max_events,
+                                            requested_event=requested_event,
+                                            request_event_id=request_event_id),
             'targetio':
                 lambda: targetio_source(self.input_path,
-                                        max_events=max_events),
+                                        max_events=max_events,
+                                        requested_event=requested_event,
+                                        request_event_id=request_event_id),
         }
         try:
             source = switch[self.origin]()
@@ -180,12 +203,18 @@ class InputFile:
 
         return source
 
-    def get_event(self, event_req, id_flag=False):
+    def get_event(self, requested_event, request_event_id=False):
         """
         Loop through events until the requested event is found
 
         Parameters
         ----------
+        requested_event : int
+            Seek to a paricular event index
+        request_event_id : bool
+            If True ,'requested_event' now seeks for a particular event id instead
+            of index
+
         event_req : int
             Event index requested
         id_flag : bool
@@ -196,21 +225,27 @@ class InputFile:
         event : `ctapipe` event-container
 
         """
-        if not id_flag:
-            log.info("[file][read] Finding event index {}...".format(event_req))
-        else:
-            log.info("[file][read] Finding event id {}...".format(event_req))
-        source = self.read()
-        for event in source:
-            event_id = event.dl0.event_id
-            index = event.count if not id_flag else event_id
-            if not index == event_req:
-                log.debug("[event_id] skipping event: {}".format(event_id))
-                continue
-            log.info("[file] Event {} found".format(event_req))
-            return event
-        log.info("[file][read] Event does not exist!")
-        return None
+        source = self.read(requested_event=requested_event,
+                           request_event_id=request_event_id)
+        event = next(source)
+        return event
+
+
+        # if not id_flag:
+        #     log.info("[file][read] Finding event index {}...".format(event_req))
+        # else:
+        #     log.info("[file][read] Finding event id {}...".format(event_req))
+        # source = self.read()
+        # for event in source:
+        #     event_id = event.dl0.event_id
+        #     index = event.count if not id_flag else event_id
+        #     if not index == event_req:
+        #         log.debug("[event_id] skipping event: {}".format(event_id))
+        #         continue
+        #     log.info("[file] Event {} found".format(event_req))
+        #     return event
+        # log.info("[file][read] Event does not exist!")
+        # return None
 
     def get_list_of_event_ids(self, max_events=None):
         log.info("[file][read] Building list of event ids...")
