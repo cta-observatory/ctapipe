@@ -7,9 +7,23 @@ class RingFitter(Component):
 
     def fit(x,y,weight,times=None):
         """overwrite this method with your favourite ring fitting algorithm
-        inputs:
-        x      = vector of pixel x-coordinates as astropy quantities
-        y      = vector of pixel y-coordinates as astropy quantities
-        weight = vector of pixel weights 
-        times  = optional vector of pixel DAQ times as astropy quantities"""
+
+        Parameters:
+        -----------
+        x: array
+           vector of pixel x-coordinates as astropy quantities
+        y: array
+           vector of pixel y-coordinates as astropy quantities
+        weight: array
+           vector of pixel weights 
+        times: array
+           optional vector of pixel DAQ times as astropy quantities
+
+        Returns:
+        --------
+        tuple of centre_x, centre_y, radius  as astropy quantities
+
+        """
+
         return None
+
