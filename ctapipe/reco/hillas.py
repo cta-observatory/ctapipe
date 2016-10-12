@@ -82,6 +82,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
     -------
     hillas_parameters : `MomentParameters`
     """
+    unit = pix_x.unit
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
@@ -123,7 +124,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
     #temp = d * d + 4 * S_xy * S_xy
     d2 = d0 + np.sqrt(d0*d0 + d1*d1)
     a = d2 / d1
-    delta = np.pi / 2.0 + np.arctan(a)           # Angle between ellipse major ax. and x-axis of camera. Will be used for disp
+    delta = ((np.pi / 2.0) + np.arctan(a))*u.rad           # Angle between ellipse major ax. and x-axis of camera. Will be used for disp
     b = mean_y - a * mean_x
     cos_delta = 1 / np.sqrt(1 + a * a)           #Sin & Cos Will be used for calculating higher order image parameters
     sin_delta = a * cos_delta                       
@@ -163,7 +164,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
     azwidth_2 = m_qq - m_q * m_q
     azwidth = np.sqrt(azwidth_2)
 
-    return MomentParameters(size=size, cen_x=mean_x, cen_y=mean_y, length=length, width=width, r=r, phi=phi, psi=delta, miss=miss), HighOrderMomentParameters (Skewness=skewness, Kurtosis=kurtosis, Asymmetry=asym)
+    return MomentParameters(size=size, cen_x=mean_x*unit, cen_y=mean_y*unit, length=length*unit, width=width*unit, r=r, phi=phi, psi=delta.to(u.deg), miss=miss*unit), HighOrderMomentParameters (Skewness=skewness, Kurtosis=kurtosis, Asymmetry=asym)
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
