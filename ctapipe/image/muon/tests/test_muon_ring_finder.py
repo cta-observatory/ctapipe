@@ -17,4 +17,5 @@ def test_ChaudhuriKunduRingFitter():
     
     print(c_x,c_y,r)
 
-    assert(abs(c_x-50)<0.01 and abs(c_y-20)<0.01 and abs(r-15)<1)
+    assert(abs(c_x-50)<0.05 and abs(c_y-20)<0.05 and abs(r-15)<1)
+
