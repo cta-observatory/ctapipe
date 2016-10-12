@@ -1,9 +1,9 @@
 import numpy as np
-from ring_fitter import RingFitter 
+from .ring_fitter import RingFitter 
 
 class ChaudhuriKunduRingFitter(RingFitter):
     
-    def fit(x,y,weight,times=None):
+    def fit(self,x,y,weight,times=None):
         """
         Fast and reliable analytical circle fitting method previously used in the H.E.S.S.
         experiment for muon identification
