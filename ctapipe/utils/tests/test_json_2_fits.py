@@ -123,10 +123,10 @@ def test_traitlets_config_to_fits():
     app = MyApp()
     app.initialize()
     app.start()
+    
     app.traitlets_config_to_fits()
-
     sys.argv = backup
-    s
+
 def test_jsonToFits():
     backup = sys.argv
     full_config_name = get_path('config.json')
