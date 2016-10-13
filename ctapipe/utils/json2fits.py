@@ -19,10 +19,9 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
     clobber : bool
         When True, overwrite the output file if exists.
 
-    Returns
-    -------
-    True is FITS file containing the traitlets config is written
-    Otherwise False
+    Raises
+    ------
+    OSError : If FITS file containing the traitlets config is not written
     """
 
     if not isinstance(config,Config):
@@ -41,9 +40,9 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
     try:
         hduList.writeto(fits_filename, clobber=clobber)
     except OSError as e:
-        logger.error(str(e))
-        return False
-    return True
+        logging.exception('Could not do save {}'.format(fits_filename))
+        raise
+
 
 
 
@@ -61,10 +60,10 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
     clobber : bool
         When True, overwrite the output file if exists.
 
-    Returns
-    -------
-    True is FITS file containing a copy of json content is written
-    Otherwise False
+    Raises
+    ------
+    OSError : if FITS file containing a copy of json content is not written
+    FileNotFoundError : if fits_filename could not be open
     """
     try:
         f = open(json_filename, 'r')
@@ -100,9 +99,9 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         try:
             hduList.writeto(fits_filename, clobber=clobber)
         except OSError as e:
-            logger.error(str(e))
-            return False
+            logging.exception('Could not do save {}'.format(fits_filename))
+            raise
         return True
     except FileNotFoundError:
-        logger.error('No such file or directory:\''+json_filename+'\'')
-        return False
+        logging.exception('Could not open  {}'.format(fits_filename))
+        raise
