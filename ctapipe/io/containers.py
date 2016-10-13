@@ -5,9 +5,8 @@ from ctapipe.core import Container
 import numpy as np
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
-
-
+__all__ = ['EventContainer', 'RawData', 'RawCameraData', 'MCShowerData','MCEvent',
+            'MCCamera', 'CalibratedCameraData']
 class EventContainer(Container):
     """ Top-level container for all event information """
     def __init__(self, name="Event"):
