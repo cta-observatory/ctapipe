@@ -22,7 +22,6 @@ class EventContainer(Container):
         self.meta.add_item('source', "unknown")
 
 
-
 class RawData(Container):
     """
     Storage of a Merged Raw Data Event
@@ -182,7 +181,7 @@ class CalibratedCameraData(Container):
         self.add_item('calibration_parameters', dict())
 
 
-class MuonParameter(Container):
+class MuonRingParameter(Container):
     """
     Storage of a Output of muon reconstruction Event
 
@@ -199,34 +198,9 @@ class MuonParameter(Container):
         chi squared of the ring fit
     ring_cov_matrix:
         covariance matrix of ring parameters
-    impact_parameter: float
-        reconstructed impact parameter
-    impact_parameter_chi2:
-        chi squared impact parameter
-    intensity_cov_matrix:
-        Covariance matrix of impact parameters or alternatively:
-        full 5x5 covariance matrix for the complete fit (ring + impact)
-    impact_parameter_pos_x, impact_parameter_pos_y:
-        position on the mirror of the muon impact
-    ring_completeness:
-        completeness of the ring
-    ring_num_pixel: int
-        Number of pixels composing the ring
-    ring_size:
-        ring size
-    off_ring_size:
-        size outside of the ring
-    COG_x, COG_y:
-        center of gravity
-    optical_efficiency_muon:
-        optical muon efficiency from intensity fit
-    ring_width:
-        ring width
-    ring_time_width:
-        standard deviation of the photons time arrival
     """
 
-    def __init__(self, name="MuonParameter"):
+    def __init__(self, name="MuonRingParameter"):
         super().__init__(name)
         self.add_item('run_id')
         self.add_item('event_id')
@@ -235,20 +209,64 @@ class MuonParameter(Container):
         self.add_item('ring_radius')
         self.add_item('ring_chi2_fit')
         self.add_item('ring_cov_matrix')
-        self.add_item('impact_parameter')
-        self.add_item('impact_parameter_chi2')
-        self.add_item('intensity_cov_matrix')
-        self.add_item('impact_parameter_pos_x')
-        self.add_item('impact_parameter_pos_y')
-        self.add_item('ring_completeness')
-        self.add_item('ring_num_pixel')
-        self.add_item('ring_size')
-        self.add_item('off_ring_size')
-        self.add_item('COG_x')
-        self.add_item('COG_y')
-        self.add_item('optical_efficiency_muon')
-        self.add_item('ring_width')
-        self.add_item('ring_time_width')
         self.meta.add_item('ring_fit_method')
-        self.meta.add_item('intensity_fit_method')
         self.meta.add_item('inputfile')
+
+class MuonIntensityParameter(Container):
+        """
+        Storage of a Output of muon reconstruction Event
+
+        Parameters
+        ----------
+
+        run_id : int
+            run number
+        event_id : int
+            event number
+        impact_parameter: float
+            reconstructed impact parameter
+        impact_parameter_chi2:
+            chi squared impact parameter
+        intensity_cov_matrix:
+            Covariance matrix of impact parameters or alternatively:
+            full 5x5 covariance matrix for the complete fit (ring + impact)
+        impact_parameter_pos_x, impact_parameter_pos_y:
+            position on the mirror of the muon impact
+        COG_x, COG_y:
+            center of gravity
+        optical_efficiency_muon:
+            optical muon efficiency from intensity fit
+        ring_completeness:
+            completeness of the ring
+        ring_num_pixel: int
+            Number of pixels composing the ring
+        ring_size:
+            ring size
+        off_ring_size:
+            size outside of the ring
+        ring_width:
+            ring width
+        ring_time_width:
+            standard deviation of the photons time arrival
+        """
+
+        def __init__(self, name="MuonIntensityParameter"):
+            super().__init__(name)
+            self.add_item('run_id')
+            self.add_item('event_id')
+            self.add_item('ring_completeness')
+            self.add_item('ring_num_pixel')
+            self.add_item('ring_size')
+            self.add_item('off_ring_size')
+            self.add_item('ring_width')
+            self.add_item('ring_time_width')
+            self.add_item('impact_parameter')
+            self.add_item('impact_parameter_chi2')
+            self.add_item('intensity_cov_matrix')
+            self.add_item('impact_parameter_pos_x')
+            self.add_item('impact_parameter_pos_y')
+            self.add_item('COG_x')
+            self.add_item('COG_y')
+            self.add_item('optical_efficiency_muon')
+            self.meta.add_item('intensity_fit_method')
+            self.meta.add_item('inputfile')
