@@ -10,13 +10,14 @@ from astropy.coordinates import Angle, AltAz
 from astropy.time import Time
 from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.coordinates import CameraFrame, NominalFrame
-from ctapipe.calib.array.muon_ring_finder import chaudhuri_kundu_circle_fit
-from ctapipe.calib.array.muon_integrator import *
+from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
+from ctapipe.image.muon.muon_integrator import *
 
 from ctapipe import visualization
 import matplotlib.pyplot as plt
 
 from astropy import units as u
+from IPython import embed
 
 import numpy as np
 import pyhessio
@@ -67,6 +68,7 @@ if __name__ == '__main__':
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
     tel,cam,opt = ID.load(filename=args.filename)
+    #embed()
     ev = 0
     efficiency = list()
     efficiency.append(list())
@@ -123,14 +125,18 @@ if __name__ == '__main__':
             noise = 5
             weight = img / (img+noise)
 
-            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*clean_mask)
+            circlefitter = ChaudhuriKunduRingFitter()
+
+            centre_x,centre_y,radius = circlefitter.fit(x,y,image*clean_mask)
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
             ring_dist = np.abs(dist-radius)
-            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.3))
+
+            centre_x,centre_y,radius = circlefitter.fit(x,y,image*(ring_dist<radius*0.3))
 
             dist = np.sqrt(np.power(x-centre_x,2) + np.power(y-centre_y,2))
             ring_dist = np.abs(dist-radius)
-            centre_x,centre_y,radius = chaudhuri_kundu_circle_fit(x,y,image*(ring_dist<radius*0.3))
+
+            centre_x,centre_y,radius = circlefitter.fit(x,y,image*(ring_dist<radius*0.3))
 
             dist_mask = np.abs(dist-radius)<radius*0.4
 
@@ -146,8 +152,11 @@ if __name__ == '__main__':
             if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist.value <1. and radius.value<1.5 and radius.value>1.):
 
                 hess = MuonLineIntegrate(6.50431*u.m,0.883*u.m,pixel_width=0.16*u.deg)
+                #telfit = MuonLineIntegrate()
+
                 if (image.shape[0]<2000):
                     im,phi,width,eff=hess.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
+                    #im,phi,width,eff=telfit.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
                     if( im < 6*u.m and im>0.9*u.m and width<0.08*u.deg and width>0.04*u.deg ):# and radius.value>0.2 and radius.value<0.4):
                         efficiency[tel_id-1].append(eff)
                         impact.append(im)
