@@ -8,12 +8,11 @@ running.
 """
 
 import matplotlib.pylab as plt
-from ctapipe import io, visualization
-from ctapipe.reco import mock
-from matplotlib.animation import FuncAnimation
 import numpy as np
 from astropy import units as u
-
+from ctapipe import io, visualization
+from ctapipe.image import mock
+from matplotlib.animation import FuncAnimation
 
 if __name__ == '__main__':
 
