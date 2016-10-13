@@ -3,8 +3,7 @@
   "MyApp": {
   	"running": true,
   	"config_file": "config.json",
-  	"log_level": 20,
-	  "another": "{43,54,32}"
+  	"log_level": 20
   },
   "Foo": {
   	"j": 4}
