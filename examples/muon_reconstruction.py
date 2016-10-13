@@ -16,7 +16,7 @@ parameters
 """
 
 def display_muon_plot(event):
-    print("MUON:",event.run_id,event.event_id,event.impact_parameter,event.width,event.efficiency)
+    print("MUON:",event[0].run_id,event[0].event_id,event[1].impact_parameter,event[1].width,event[1].efficiency)
     pass
 
 def main():
@@ -68,10 +68,11 @@ def main():
     pp = PdfPages(args.output_path) if args.output_path is not None else None
     for muon_evt in muons:
             #display_telescope(cal_evt, tel_id, args.display, geom_dict, pp, fig)
-            #display_muon_plot(muon_evt) 
-            print("M:",muon_evt.run_id,muon_evt.event_id)
+        if muon_evt[0] is not None and muon_evt[1] is not None:
+            display_muon_plot(muon_evt) 
+            #print("M:",muon_evt[0].run_id,muon_evt[0].event_id)
             
-            print("CAL:",cal_evt.dl1.run_id,cal_evt.dl1.event_id)
+            #print("CAL:",cal_evt.dl1.run_id,cal_evt.dl1.event_id)
             
     if pp is not None:
         pp.close()

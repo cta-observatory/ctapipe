@@ -23,6 +23,9 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     muon : MuonParameter container event
 
     """
+
+    muonringparam = None
+    muonintensityparam = None
     #event.dl1.tel = dict()  # clear the previous telescopes
     for telid in event.dl0.tels_with_data:
 
@@ -46,11 +49,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
-        nom_coord = camera_coord.transform_to(
-            NominalFrame(
-                array_direction=[event.mc.alt, event.mc.az],
-                pointing_direction=[event.mc.alt, event.mc.az],
-                focal_length = event.meta.optical_foclen[telid])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+        nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[telid])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
         
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
@@ -63,18 +62,18 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         muonring = ChaudhuriKunduRingFitter()
 
         muonringparam = muonring.fit(x,y,image*clean_mask)
-        dist = np.sqrt(np.power(x-muonringparam.ring_centre_x,2) + np.power(y-muonringparam.ring_centre_y,2))
+        dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
 
-        muonringparam = muonring.fit(x,y,image*(ring_dist<radius*0.3))
+        muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
 
-        dist = np.sqrt(np.power(x-muonringparam.ring_centre_x,2) + np.power(y-muonringparam.ring_centre_y,2))
+        dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
 
-        muonringparam = circlefitter.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
+        muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
-        
-        #print (centre_x,centre_y,radius)
+
+        #print (center_x,center_y,radius)
         rad = list()
         cx = list()
         cy = list()
@@ -82,31 +81,22 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         mc_x = event.mc.core_x
         mc_y = event.mc.core_y
         pix_im = image*dist_mask
-        nom_dist = np.sqrt(np.power(muonringparam.ring_centre_x,2)+np.power(muonringparam.ring_centre_y,2))
-        if(np.sum(pix_im>5)>30 and
-           np.sum(pix_im)>80 and
-           nom_dist.value <1. and
-           muonringparam.ring_radius<1.5 and
-           muonringparam.ring_radius>1.):
+        nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,2)+np.power(muonringparam.ring_center_y,2))
+        if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
             hess = MuonLineIntegrate(6.50431*u.m,0.883*u.m,pixel_width=0.16*u.deg)
             #telfit = MuonLineIntegrate()
 
             if (image.shape[0]<2000):
-                muonintensityoutput = hess.fit_muon(
-                    muonringparam.ring_centre_x,
-                    muonringparam.ring_centre_y,
-                    muonringparam.ring_radius,
-                    x[dist_mask],y[dist_mask],image[dist_mask])
-                #im,phi,width,eff = telfit.fit_muon(centre_x,centre_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
-                if( muonintensityoutput.impact_parameter < 6*u.m and
-                    muonintensityoutput.impact_parameter>0.9*u.m and
-                    muonintensityoutput.ring_width<0.08*u.deg and
-                    muonintensityoutput.ring_width>0.04*u.deg ):# and radius.value>0.2 and radius.value<0.4):
+                muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,[dist_mask],y[dist_mask],image[dist_mask])
+                #im,phi,width,eff = telfit.fit_muon(center_x,center_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
+                if( muonintensityoutput.impact_parameter < 6*u.m and muonintensityoutput.impact_parameter>0.9*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
                     muonintensityparam = muonintensityoutput
                     #muon.efficiency = eff
                     #muon.impact_parameter = im
                     #muon.width = width
+                else:
+                    continue
 
                 #print(len(efficiency),len(impact))
 
@@ -134,9 +124,7 @@ def analyze_muon_source(source, params=None, geom_dict=None):
     if geom_dict is None:
         geom_dict={}
         
-    print("RDLR")
     for event in source:
         analyzed_muon = analyze_muon_event(event, params, geom_dict)
 
         yield analyzed_muon
-
