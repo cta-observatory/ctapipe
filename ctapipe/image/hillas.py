@@ -144,7 +144,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     skewness = (np.sum(image * np.power(sk, 3)) / size) / ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2))
     kurtosis = (np.sum(image * np.power(sk, 4)) / size) / ((np.sum(image * np.power(sk, 2)) / size) ** 2)
-    asym3 = np.power(cos_delta, 3) * S_xxx + 3.0 * np.power(cos_delta,2) * sin_delta * S_xxy + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy + np.power(sin_delta, 3) * S_yyy
+    asym3 = np.power(cos_delta, 3) * S_xxx + 3.0 * np.power(cos_delta,2) * sin_delta * S_xxy + 3.0 * cos_delta * np.power(sin_delta, 2)*S_xyy + np.power(sin_delta, 3) * S_yyy
     asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3, 1. / 3)
 
     assert np.sign(skewness) == np.sign(asym)
