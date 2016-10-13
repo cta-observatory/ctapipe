@@ -1,9 +1,12 @@
 import numpy as np
-from .ring_fitter import RingFitter 
+import astropy.units as u
+from ctapipe.image.muon.ring_fitter import RingFitter 
+from ctapipe.io.containers import MuonRingParameter
 
 class ChaudhuriKunduRingFitter(RingFitter):
     
-    def fit(self,x,y,weight,times=None):
+    @u.quantity_input
+    def fit(self,x: u.deg,y: u.deg,weight,times=None):
         """
         Fast and reliable analytical circle fitting method previously used in the H.E.S.S.
         experiment for muon identification
@@ -42,5 +45,12 @@ class ChaudhuriKunduRingFitter(RingFitter):
         centre_y = ((a_prime * c) - (a * c_prime)) / nom_1
 
         radius = np.sqrt( np.sum(weight * (np.power(x - centre_x,2) + np.power(y - centre_y,2)))/sum_weight )
-        return centre_x,centre_y,radius
+
+        output = MuonRingParameter()
+        output.ring_center_x = centre_x
+        output.ring_center_y = centre_y
+        output.ring_radius   = radius
+
+        return output
+
 
