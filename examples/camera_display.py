@@ -6,7 +6,7 @@ Example of drawing a Camera using a mock shower image.
 
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
-from ctapipe.reco import mock
+from ctapipe.image import mock
 from ctapipe.reco import hillas_parameters
 
 
