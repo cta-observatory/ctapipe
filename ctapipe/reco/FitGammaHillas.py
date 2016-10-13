@@ -68,21 +68,32 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
     def predict(self, Hillas_dict, seed_pos=[0,0] ):
         self.get_great_circles(Hillas_dict)
-        dir1 = self.fit_origin_crosses()
+        dir1 = self.fit_origin_crosses()[0]
         dir2 = self.fit_origin_minimise(dir1)
         
         pos = self.fit_core(seed_pos)
         
-        result = RecoShowerGeom()
+        result = RecoShowerGeom("FitGammaHillas")
         (phi, theta) = linalg.get_phi_theta(dir2)
         #TODO make sure az and phi turn in same direction...
         result.alt, result.az = theta-90*u.deg, phi
         result.core_x = pos[0]
         result.core_y = pos[1]
         
-        result.tel_ids = Hillas_dict.keys()
+        result.tel_ids = [h for h in Hillas_dict.keys()]
         
         result.is_valid = True
+        
+        result.average_size    = np.mean([ h.size for h in Hillas_dict.values() ])
+        
+        result.alt_uncert      = -1.
+        result.az_uncert       = -1.
+        result.core_uncert     = -1.
+        result.h_max           = -1.
+        result.h_max_uncert    = -1.
+        result.goodness_of_fit = -1.
+        
+        
         
         return result
         
@@ -239,12 +250,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         # the direction of this cross section is the cross-product of the normal vectors of the circle and the horizontal plane
         # here we only care about the direction; not the orientation...
         for circle in self.circles.values():
-            circle.trace = normalise( np.cross( circle.norm, zdir) )
+            circle.trace = linalg.normalise( np.cross( circle.norm, zdir) )
         
-        weights = [ A.weight for A in self.circles.values() ]
         
         # minimising the test function
-        self.fit_result_core = minimize( test_function, seed, weights,
+        self.fit_result_core = minimize( test_function, seed,
                                          method='BFGS', options={'disp': False}
                                        )
         return np.array(self.fit_result_core.x) * u.m

@@ -240,9 +240,9 @@ class RecoShowerGeom(Container):
         return_string += "core: ({0:.2}, {1:.2}) +- {2:.2}\n".format(self.core_x, self.core_y, self.core_uncert)
         return_string += "h_max: {0:.2} +- {1:.2}\n".format(self.h_max, self.h_max_uncert)
         return_string += "average size: {0:.2} +- {1:.2}\n".format(self.h_max, self.h_max_uncert)
-        return_string += "Used telescopes: {0}\n".format(np.array2string(self.tel_ids))
+        return_string += "Used telescopes: {}\n".format((self.tel_ids))
         return_string += "Valid reconstruction: {0}\n".format(self.is_valid)
-        return_string += "Goodness of fit: {0,.2}\n".format(self.goodness_of_fit)
+        return_string += "Goodness of fit: {0:.2}\n".format(self.goodness_of_fit)
         return return_string
 
 
