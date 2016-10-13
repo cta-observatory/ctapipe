@@ -2,6 +2,7 @@ from astropy.io import fits
 from traitlets.config.loader import Config
 from json import load
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,12 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
     # loop over section
     for section, entry in config.items():
         header = fits.Header()
-        for key,value in entry.items():
-            header[key] = value
+        for key, value in entry.items():
+            if len(key) > 8:
+                warnings.warn('Key "{}" will be truncated to {}'.format(key, key[:8]))
+
+            header[key[:8]] = value
+
         table_0 = fits.TableHDU(data=None, header=header, name=section)
         hduList.append(table_0)
     try:
@@ -74,14 +79,21 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         # loop over json entries (corresponding to Python class or general purpose)
         for section, entry in json_object.items():
             header = fits.Header()
-            if  isinstance(entry, dict):
-                #loop over key/value entries
-                for k, v in entry.items():
-                    if isinstance(v, dict):
-                        logger.error('Fits Header cannot contains subheaders.')
-                        logger.error('Please correct your json file to follow requirements.')
-                        return False
-                    header[k] = v
+
+            if isinstance(entry, dict):
+                for key, value in entry.items():
+                    if isinstance(value, dict):
+                        raise ValueError(
+                            'Malformed json file: fits header cannot contain subobjects'
+                        )
+
+                    if len(key) > 8:
+                        warnings.warn('Key "{}" will be truncated to {}'.format(
+                            key, key[:8]
+                        ))
+
+                    header[key[:8]] = value
+
                 # create a new TableHDU with current header and append it to hduList
                 table_0 = fits.TableHDU(data=None, header=header, name=section)
                 hduList.append(table_0)
