@@ -35,7 +35,7 @@ class Serializer:  # (Component)
         return self
 
     def __exit__(self, *args):
-        self..save()
+        self.save()
 
     def write(self, container):
         self._writer.write(container)
