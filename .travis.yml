@@ -69,7 +69,7 @@ install:
     - conda config --add channels astropy-ci-extras
 
     # CORE DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets; fi
+    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets matplotlib; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v0.5.5.tar.gz; fi
 
