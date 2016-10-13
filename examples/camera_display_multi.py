@@ -7,10 +7,10 @@ simulations). Also shows how to change the color palette.
 """
 
 import matplotlib.pylab as plt
-from ctapipe import io, visualization
-from ctapipe.reco import mock
-from ctapipe.reco.hillas import hillas_parameters_2 as hillas_parameters
 from astropy import units as u
+from ctapipe import io, visualization
+from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
+from ctapipe.reco import mock
 
 
 def draw_several_cams(geom, ncams=4):

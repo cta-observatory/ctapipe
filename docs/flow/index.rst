@@ -1,8 +1,8 @@
 .. _flow:
 
-====================
-Flow-based framework
-====================
+=============================
+Flow-based framework (`flow`)
+=============================
 
 .. currentmodule:: ctapipe.flow
 
