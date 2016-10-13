@@ -5,7 +5,8 @@ from ctapipe.core import Container
 import numpy as np
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
+__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera',
+           'CalibratedCameraData', 'RecoShowerGeom', 'RecoEnergy', 'GammaHadronClassification']
 
 
 class EventContainer(Container):
@@ -180,3 +181,139 @@ class CalibratedCameraData(Container):
         self.add_item('num_channels')
         self.add_item('num_pixels')
         self.add_item('calibration_parameters', dict())
+
+
+class RecoShowerGeom(Container):
+    """
+    Standard output of algorithms reconstructing shower geometry
+
+    Parameters
+    ----------
+
+    alt : float
+        reconstructed altitude
+    alt_uncert : float
+        reconstructed altitude uncertainty
+    az : float
+        reconstructed azimuth
+    az_uncert : float
+        reconstructed azimuth uncertainty
+    core_x : float
+        reconstructed x coordinate of the core position
+    core_y : float
+        reconstructed y coordinate of the core position
+    core_uncert : float
+        uncertainty of the reconstructed core position
+    h_max : float
+        reconstructed height of the shower maximum
+    h_max_uncert : float
+        uncertainty of h_max
+    is_valid : bool
+        direction validity flag. True if the shower direction
+        was properly reconstructed by the algorithm
+    tel_ids : uint array
+        array containing the telescope ids used in the reconstruction
+        of the shower
+    average_size : float
+        average size of used
+    """
+    def __init__(self, name='RecoShowerGeom'):
+        super().__init__(name)
+        self.add_item('alt')
+        self.add_item('alt_uncert')
+        self.add_item('az')
+        self.add_item('az_uncert')
+        self.add_item('core_x')
+        self.add_item('core_y')
+        self.add_item('core_uncert')
+        self.add_item('h_max')
+        self.add_item('h_max_uncert')
+        self.add_item('is_valid', bool)
+        self.add_item('tel_ids')
+        self.add_item('average_size')
+        self.add_item('goodness_of_fit')
+
+    def __str__(self):
+        return_string  = self._name+":\n"
+        return_string += "altitude: {0:.2} +- {1:.2}\n".format(self.alt, self.alt_uncert)
+        return_string += "azimuth: {0:.2} +- {1:.2}\n".format(self.az, self.az_uncert)
+        return_string += "core: ({0:.2}, {1:.2}) +- {2:.2}\n".format(self.core_x, self.core_y, self.core_uncert)
+        return_string += "h_max: {0:.2} +- {1:.2}\n".format(self.h_max, self.h_max_uncert)
+        return_string += "average size: {0:.2} +- {1:.2}\n".format(self.h_max, self.h_max_uncert)
+        return_string += "Used telescopes: {0}\n".format(np.array2string(self.tel_ids))
+        return_string += "Valid reconstruction: {0}\n".format(self.is_valid)
+        return_string += "Goodness of fit: {0,.2}\n".format(self.goodness_of_fit)
+        return return_string
+
+
+class RecoEnergy(Container):
+    """
+    Standard output of algorithms estimating energy
+
+    Parameters
+    ----------
+
+    energy : float
+        reconstructed energy
+    energy_uncert : float
+        reconstructed energy uncertainty
+    is_valid : bool
+        energy reconstruction validity flag. True if the energy
+        was properly reconstructed by the algorithm
+    tel_ids : uint array
+        array containing the telescope ids used in the reconstruction
+        of the shower
+    goodness_of_fit : float
+        goodness of the algorithm fit (TODO: agree on a common meaning?)
+    """
+    def __init__(self, name='RecoShowerGeom'):
+        super().__init__(name)
+        self.add_item('energy')
+        self.add_item('energy_uncert')
+        self.add_item('is_valid', bool)
+        self.add_item('tel_ids')
+        self.add_item('goodness_of_fit')
+
+    def __str__(self):
+        return_string  = self._name+":\n"
+        return_string += "energy: {0:.2} +- {1:.2}\n".format(self.energy, self.energy_uncert)
+        return_string += "Used telescopes: {0}\n".format(np.array2string(self.tel_ids))
+        return_string += "Valid reconstruction: {0}\n".format(self.is_valid)
+        return_string += "Goodness of fit: {0,.2}\n".format(self.goodness_of_fit)
+        return return_string
+
+
+class GammaHadronClassification(Container):
+    """
+    Standard output of gamma/hadron classification algorithms
+
+    Parameters
+    ----------
+
+    prediction : float
+        prediction of the classifier, defined between [0,1], where values
+        close to 0 are more gamma-like, and values close to 1 more
+        hadron-like (TODO: Do people agree on this? This is very MAGIC-like)
+    is_valid : bool
+        classificator validity flag. True if the predition was successful
+        within the algorithm validity range
+    tel_ids : uint array
+        array containing the telescope ids used in the reconstruction
+        of the shower
+    goodness_of_fit : float
+        goodness of the algorithm fit (TODO: agree on a common meaning?)
+    """
+    def __init__(self, name='RecoShowerGeom'):
+        super().__init__(name)
+        self.add_item('prediction')
+        self.add_item('is_valid', bool)
+        self.add_item('tel_ids')
+        self.add_item('goodness_of_fit')
+
+    def __str__(self):
+        return_string  = self._name+":\n"
+        return_string += "prediction: {0:.2}\n".format(self.prediction)
+        return_string += "Used telescopes: {0}\n".format(np.array2string(self.tel_ids))
+        return_string += "Valid classification: {0}\n".format(self.is_valid)
+        return_string += "Goodness of fit: {0,.2}\n".format(self.goodness_of_fit)
+        return return_string
