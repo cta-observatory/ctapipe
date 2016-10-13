@@ -9,7 +9,8 @@ u.dimless = u.dimensionless_unscaled
 
 from ctapipe.utils import linalg
 
-
+from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from ctapipe.io.containers import RecoShowerGeom
 
 
 
@@ -46,7 +47,7 @@ def guessPixDirection(pix_x, pix_y, tel_phi, tel_theta, tel_foclen, camera_rotat
     return pix_dirs
 
 
-class FitGammaHillas:
+class FitGammaHillas(RecoShowerGeomAlgorithm):
     
     def __init__(self):
         self.tel_geom = {}
@@ -65,6 +66,26 @@ class FitGammaHillas:
         self.tel_phi   = phi
         self.tel_theta = theta
 
+    def predict(self, Hillas_dict, seed_pos=[0,0] ):
+        self.get_great_circles(Hillas_dict)
+        dir1 = self.fit_origin_crosses()
+        dir2 = self.fit_origin_minimise(dir1)
+        
+        pos = self.fit_core(seed_pos)
+        
+        result = RecoShowerGeom()
+        (phi, theta) = linalg.get_phi_theta(dir2)
+        #TODO make sure az and phi turn in same direction...
+        result.alt, result.az = theta-90*u.deg, phi
+        result.core_x = pos[0]
+        result.core_y = pos[1]
+        
+        result.tel_ids = Hillas_dict.keys()
+        
+        result.is_valid = True
+        
+        return result
+        
     def get_great_circles(self, Hillas_dict):
         self.circles = {}
         for tel_id, moments in Hillas_dict.items():
