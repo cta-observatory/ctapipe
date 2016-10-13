@@ -5,9 +5,8 @@ from ctapipe.core import Container
 import numpy as np
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
-
-
+__all__ = ['EventContainer', 'RawData', 'RawCameraData', 'MCShowerData','MCEvent',
+            'MCCamera', 'CalibratedCameraData']
 class EventContainer(Container):
     """ Top-level container for all event information """
     def __init__(self, name="Event"):
@@ -19,6 +18,8 @@ class EventContainer(Container):
         self.meta.add_item('tel_pos', dict())
         self.meta.add_item('pixel_pos', dict())
         self.meta.add_item('optical_foclen', dict())
+        self.meta.add_item('mirror_dish_area', dict())
+        self.meta.add_item('mirror_numtiles', dict())
         self.meta.add_item('source', "unknown")
 
 
