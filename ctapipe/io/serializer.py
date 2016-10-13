@@ -3,7 +3,7 @@
 Serialize ctapipe containers to file
 """
 
-from astropy.table import Table
+from astropy.table import Table, Column
 
 from ctapipe.core import Component
 from ctapipe.core import Container
@@ -13,60 +13,68 @@ import numpy as np
 
 __all__ = ["Serializer"]
 
+not_writeable_fields = ('tel', 'tels_with_data', 'calibration_parameters',
+'pedestal_subtracted_adc', 'integration_window')
 
-not_writeable_fields = ('tel', 'tels_with_data')
 
-
-class Serializer: # (Component)
+class Serializer:  # (Component)
     ''' Context manager to save Containers to file
 
-    For now
+    # TODO make it a Component
     '''
 
     # outfile = Unicode(help="Output file name").tag(config=True, require=True)
     # writer = Unicode(help="Writer type (fits, img)").tag(config=True, require=True)
 
-    def __init__(self, outfile, format='fits', mode='a', overwrite=False):
+    def __init__(self, outfile, format='fits', overwrite=False):
         self.outfile = outfile
-        self.writer = TableWriter(outfile=outfile, format=format, overwrite=overwrite)
-        self._mode = mode
+        self._writer = TableWriter(outfile=outfile, format=format, overwrite=overwrite)
 
     def __enter__(self):
-        self.open_file = open(self.outfile, self._mode)
-        log.debug("Opened {0} in mode '{1}'".format(self.outfile, self._mode))
-        return self.open_file
+        log.debug("Serializing on {0}".format(self.outfile))
+        return self
 
     def __exit__(self, *args):
-        self.open_file.close()
+        self..save()
 
     def write(self, container):
-        self.writer.write(container)
+        self._writer.write(container)
 
     def write_source(self, source):
-        for container in source:
-            self.writer.write(container)
+        raise NotImplementedError
+        # for container in source:
+        #     self._writer.write(container)
 
-    def finish(self):
-        self.writer.save()
+    def save(self):
+        self._writer.save()
 
 
 def is_writeable(key):
-    return not(key in not_writeable_fields)
+    return not (key in not_writeable_fields)
+
 
 def writeable_items(container):
+    # Strip off what we cannot write
     d = dict(container.items())
     for k in not_writeable_fields:
+        log.debug("Cannot write column {0}".format(k))
         d.pop(k, None)
     return d
 
+
 def to_table(container):
+
     names = list()
     columns = list()
     for k, v in writeable_items(container).items():
+        v_arr = np.array(v)
+        v_arr = v_arr.reshape((1,) + v_arr.shape)
+        log.debug("Creating column for item '{0}' of shape {1}".format(k, v_arr.shape))
         names.append(k)
-        columns.append(v)
+        columns.append(Column(v_arr))
 
     return names, columns
+
 
 class TableWriter:
     def __init__(self, outfile, format, overwrite):
@@ -77,14 +85,15 @@ class TableWriter:
         self.overwrite = overwrite
 
     def _setup_table(self, container):
-        '''Create Table from Container'''
+        # Create Table from Container
 
         names, columns = to_table(container)
-        self.table = Table(rows=[columns], # I need first row to be written here so dtypes can be inferred
+        self.table = Table(data=columns,  # dtypes are inferred by columns
                            names=names,
                            meta=container.meta.as_dict())
         # Write HDU name
-        self.table.meta["EXTNAME"] = container._name
+        if self.format == "fits":
+            self.table.meta["EXTNAME"] = container._name
         self._created_table = True
 
     def write(self, container):
@@ -97,43 +106,6 @@ class TableWriter:
             self.table.add_row(writeable_items(container))
 
     def save(self, **kwargs):
-        '''Write table using astropy.table write method'''
+        # Write table using astropy.table write method
         self.table.write(output=self.outfile, format=self.format, overwrite=self.overwrite, **kwargs)
         return self.table
-
-
-def main():
-    import pickle
-    with open('calibrated.pickle', 'rb') as f:
-        data = pickle.load(f)
-
-    with Serializer("output.fits") as writer:
-        for container in data:
-            print(container)
-            writer.write(container)
-
-if __name__ == "__main__":
-    import pickle
-
-    with open('calibrated.pickle', 'rb') as f:
-        data = pickle.load(f)
-    container=data[0]
-    S = Serializer("output.fits", overwrite=True)
-
-    dl0 = container.dl0
-    dl1 = container.dl1
-    # print(dl0)
-    # print(writeable_items(dl0))
-    # names, dtypes, data = to_table(dl0)
-    S.write(data[0].dl0)
-    S.write(data[1].dl0)
-    S.write(data[2].dl0)
-
-    # S.write_source(data)
-    print(S.writer.table)
-
-    # with Serializer("output.fits") as writer:
-    # for container in data:
-    #     print(container)
-    #     S.write(container)
-    S.finish()
