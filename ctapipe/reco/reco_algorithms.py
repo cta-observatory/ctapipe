@@ -2,7 +2,7 @@ from ctapipe.core import Component
 from ctapipe.io.containers import RecoShowerGeom
 
 
-class DirectionAlgorithm(Component):
+class RecoShowerGeomAlgorithm(Component):
     """This is the base class from which all direction reconstruction algorithms should inherit from"""
 
     def __init__(self, model = None):
@@ -13,11 +13,11 @@ class DirectionAlgorithm(Component):
 
         Parameters:
         -----------
-        tels_dict
-        TODO:
+        tels_dict : dict
+            general dictionary containing all triggered telescopes data
 
         Returns:
         --------
-        TODO:
+        Standard  `RecoShowerGeom` container
         """
         return RecoShowerGeom()

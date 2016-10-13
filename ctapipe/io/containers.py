@@ -5,7 +5,7 @@ from ctapipe.core import Container
 import numpy as np
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
+__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData', 'RecoShowerGeom']
 
 
 class RawData(Container):
@@ -200,8 +200,6 @@ class RecoShowerGeom(Container):
         of the shower
     average_size : float
         average size of used
-
-
     """
     def __init__(self, name='RecoShowerGeom'):
         super().__init__(name)
