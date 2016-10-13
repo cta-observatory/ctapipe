@@ -15,18 +15,18 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
     Parameters
     ----------
-    event : ctapipe dl1 evetn container
+    event : ctapipe dl1 event container
 
 
     Returns
     -------
-    muon : MuonParameter container event
+    muonringparam, muonintensityparam : MuonRingParameter and MuonIntensityParameter container event
 
     """
 
     muonringparam = None
     muonintensityparam = None
-    #event.dl1.tel = dict()  # clear the previous telescopes
+
     for telid in event.dl0.tels_with_data:
 
         x, y = event.meta.pixel_pos[telid]
@@ -58,7 +58,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         noise = 5
         weight = img / (img+noise)
         
-        #circlefitter = ChaudhuriKunduRingFitter()
         muonring = ChaudhuriKunduRingFitter()
 
         muonringparam = muonring.fit(x,y,image*clean_mask)
@@ -73,7 +72,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
 
-        #print (center_x,center_y,radius)
         rad = list()
         cx = list()
         cy = list()
@@ -85,20 +83,14 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
             hess = MuonLineIntegrate(6.50431*u.m,0.883*u.m,pixel_width=0.16*u.deg)
-            #telfit = MuonLineIntegrate()
 
             if (image.shape[0]<2000):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,[dist_mask],y[dist_mask],image[dist_mask])
-                #im,phi,width,eff = telfit.fit_muon(center_x,center_y,radius,x[dist_mask],y[dist_mask],image[dist_mask])
                 if( muonintensityoutput.impact_parameter < 6*u.m and muonintensityoutput.impact_parameter>0.9*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
                     muonintensityparam = muonintensityoutput
-                    #muon.efficiency = eff
-                    #muon.impact_parameter = im
-                    #muon.width = width
                 else:
                     continue
 
-                #print(len(efficiency),len(impact))
 
     return muonringparam, muonintensityparam
 

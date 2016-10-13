@@ -60,7 +60,7 @@ def main():
 
     calibrated_source = calibrate_source(source, params, geom_dict)
 
-    muons = analyze_muon_source(calibrated_source, params, geom_dict) # Function that receive muons and make a look iver the muon event
+    muons = analyze_muon_source(calibrated_source, params, geom_dict) # Function that receive muons and make a look over the muon event
     
     fig = plt.figure(figsize=(16, 7))
     if args.display:
@@ -70,9 +70,6 @@ def main():
             #display_telescope(cal_evt, tel_id, args.display, geom_dict, pp, fig)
         if muon_evt[0] is not None and muon_evt[1] is not None:
             display_muon_plot(muon_evt) 
-            #print("M:",muon_evt[0].run_id,muon_evt[0].event_id)
-            
-            #print("CAL:",cal_evt.dl1.run_id,cal_evt.dl1.event_id)
             
     if pp is not None:
         pp.close()
