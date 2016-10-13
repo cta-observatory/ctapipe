@@ -8,7 +8,7 @@ env:
         # The following versions are the 'default' for tests, unless
         # overidden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
-        - ASTROPY_VERSION=stable
+        - ASTROPY_VERSION=1.2.1
         - CONDA_INSTALL='conda install --yes'
         - PIP_INSTALL='pip install'
         - INSTALL_OPTIONAL=true
