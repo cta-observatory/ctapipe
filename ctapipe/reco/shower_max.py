@@ -5,6 +5,8 @@ from scipy import ndimage
 
 from ctapipe.utils.fitshistogram import Histogram 
 
+__all__ = ["ShowerMaxEstimator"]
+
 class ShowerMaxEstimator:
     def __init__(self, filename, col_altitude=0, col_thickness=2):
         """ small class that calculates the height of the shower maximum
@@ -31,9 +33,9 @@ class ShowerMaxEstimator:
         
         self.atmosphere = Histogram(axisNames=["altitude"])
         self.atmosphere.hist = thickness*u.g * u.cm**-2
-        self.atmosphere.bin_lower_edges = [np.array(altitude)*u.km]
+        self.atmosphere._binLowerEdges = [np.array(altitude)*u.km]
 
-    def interpolate(self, arg, outlierValue=0.,order=3):
+    def _interpolate(self, arg, outlierValue=0.,order=3):
         
         axis = self.atmosphere._binLowerEdges[0]
         bin_u = np.digitize(arg.to(axis.unit), axis)
@@ -77,7 +79,7 @@ class ShowerMaxEstimator:
         c *= np.sin(gamma_alt)
         
         # find the thickness at the height of the first interaction
-        t_first_int = self.interpolate(h_first_int)
+        t_first_int = self._interpolate(h_first_int)
         
         # total thickness at shower maximum = thickness at first interaction + thickness traversed to shower maximum
         t_shower_max = t_first_int + c
@@ -85,8 +87,10 @@ class ShowerMaxEstimator:
         # now find the height with the wanted thickness
         for ii, thick1 in enumerate(self.atmosphere.hist):
             if t_shower_max > thick1:
+                
                 height1 = self.atmosphere.bin_lower_edges[0][ii]
                 height2 = self.atmosphere.bin_lower_edges[0][ii-1]
-                thick2  = self.atmosphere.get_value([height2.to(self.atmosphere._binLowerEdges[0].unit).value])[0]
+                thick2  = self.atmosphere.get_value([height2.to(self.atmosphere.bin_lower_edges[0].unit).value])[0]
                 
                 return (height2-height1) / (thick2-thick1) * (t_shower_max-thick1) + height1
+  
