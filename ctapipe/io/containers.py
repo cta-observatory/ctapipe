@@ -206,6 +206,8 @@ class MuonParameter(Container):
     Cov_intensity:
         Covariance matrix of impact parameters or alternatively:
         full 5x5 covariance matrix for the complete fit (ring + impact)
+    mirror_pos_x, mirror_pos_y:
+        position on the mirror of the muon impact
     ring_completeness:
         completeness of the ring
     num_pixel: int
@@ -234,6 +236,8 @@ class MuonParameter(Container):
         self.add_item('impact_parameter')
         self.add_item('chi2_impact_parameter')
         self.add_item('Cov_intensity')
+        self.add_item('mirror_pos_x')
+        self.add_item('mirror_pos_y')
         self.add_item('ring_completeness')
         self.add_item('num_pixel')
         self.add_item('size')
