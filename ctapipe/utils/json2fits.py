@@ -15,7 +15,7 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
     config : traitlets.config.loader.Config
         a traitlets.config.loader.Config to write in FITS format
     fits_filename : str
-        FITS file name to writ
+        FITS file name to write
     clobber : bool
         When True, overwrite the output file if exists.
 
