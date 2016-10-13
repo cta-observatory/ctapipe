@@ -6,7 +6,7 @@ from ctapipe.io.containers import MuonRingParameter
 class ChaudhuriKunduRingFitter(RingFitter):
     
     @u.quantity_input
-    def fit(self,x: u.deg,y: u.deg,weight,times=None):
+    def fit(self, x: u.deg, y: u.deg, weight, times=None):
         """
         Fast and reliable analytical circle fitting method previously used in the H.E.S.S.
         experiment for muon identification
