@@ -19,6 +19,8 @@ class EventContainer(Container):
         self.meta.add_item('tel_pos', dict())
         self.meta.add_item('pixel_pos', dict())
         self.meta.add_item('optical_foclen', dict())
+        self.meta.add_item('mirror_dish_area', dict())
+        self.meta.add_item('mirror_numtiles', dict())
         self.meta.add_item('source', "unknown")
 
 
@@ -48,7 +50,7 @@ class RawData(Container):
         self.add_item('event_id')
         self.add_item('tels_with_data')
         self.add_item('tel', dict())
-        
+
 
 class MCShowerData(Container):
     def __init__(self, name='MCShowerData'):

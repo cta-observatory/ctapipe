@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Components to read HESSIO data.  
+Components to read HESSIO data.
 
 This requires the hessio python library to be installed
 """
@@ -71,7 +71,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         event.dl0.run_id = run_id
         event.dl0.event_id = event_id
         event.dl0.tels_with_data = set(pyhessio.get_teldata_list())
-        
+
         # handle telescope filtering by taking the intersection of
         # tels_with_data and allowed_tels
         if allowed_tels is not None:
@@ -105,10 +105,16 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
 
             # fill pixel position dictionary, if not already done:
             if tel_id not in event.meta.pixel_pos:
-                event.meta.pixel_pos[tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m
-                event.meta.optical_foclen[
-                    tel_id] = pyhessio.get_optical_foclen(tel_id) * u.m
+                event.meta.pixel_pos[tel_id] = \
+                    pyhessio.get_pixel_position(tel_id) * u.m
+            # fill optical features of the telescope:
+            if tel_id not in event.meta.optical_foclen:
+                event.meta.optical_foclen[tel_id] = \
+                    pyhessio.get_optical_foclen(tel_id) * u.m
+                event.meta.mirror_dish_area[tel_id] = \
+                    pyhessio.get_mirror_area(tel_id) * u.m**2
+                event.meta.mirror_numtiles[tel_id] = \
+                    pyhessio.get_mirror_number(tel_id)
 
             # fill telescope position dictionary, if not already done:
             if tel_id not in event.meta.tel_pos:
