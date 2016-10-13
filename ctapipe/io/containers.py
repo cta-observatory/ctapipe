@@ -182,3 +182,72 @@ class CalibratedCameraData(Container):
         self.add_item('num_channels')
         self.add_item('num_pixels')
         self.add_item('calibration_parameters', dict())
+
+
+class MuonParameter(Container):
+    """
+    Storage of a Output of muon reconstruction Event
+
+    Parameters
+    ----------
+
+    run_id : int
+        run number
+    event_id : int
+        event number
+    center_x, center_y, radius: float
+        center position and radius of the fitted ring
+    chi2_ring_fit:
+        chi squared of the ring fit
+    Cov_ring:
+        covariance matrix of ring parameters
+    impact_parameter: float
+        reconstructed impact parameter
+    chi2_impact_parameter:
+        chi squared impact parameter
+    Cov_intensity:
+        Covariance matrix of impact parameters or alternatively:
+        full 5x5 covariance matrix for the complete fit (ring + impact)
+    mirror_pos_x, mirror_pos_y:
+        position on the mirror of the muon impact
+    ring_completeness:
+        completeness of the ring
+    num_pixel: int
+        Number of pixels composing the ring
+    size:
+        ring size
+    off_size:
+        size outside of the ring
+    COG:
+        center of gravity
+    width:
+        ring width
+    time_std:
+        standard deviation of the photons time arrival
+    """
+
+    def __init__(self, name="MuonParameter"):
+        super().__init__(name)
+        self.add_item('run_id')
+        self.add_item('event_id')
+        self.add_item('center_x')
+        self.add_item('center_y')
+        self.add_item('radius')
+        self.add_item('chi2_ring_fit')
+        self.add_item('Cov_ring')
+        self.add_item('impact_parameter')
+        self.add_item('chi2_impact_parameter')
+        self.add_item('Cov_intensity')
+        self.add_item('mirror_pos_x')
+        self.add_item('mirror_pos_y')
+        self.add_item('ring_completeness')
+        self.add_item('num_pixel')
+        self.add_item('size')
+        self.add_item('off_size')
+        self.add_item('COG')
+        self.add_item('efficiency')
+        self.add_item('width')
+        self.add_item('time_std')
+        self.meta.add_item('ring_fit_method')
+        self.meta.add_item('intensity_fit_method')
+        self.meta.add_item('inputfile')
