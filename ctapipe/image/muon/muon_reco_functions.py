@@ -84,9 +84,12 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         mc_y = event.mc.core_y
         pix_im = image*dist_mask
         nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,2)+np.power(muonringparam.ring_center_y,2))
+
+        mir_rad = np.sqrt(event.meta.mirror_dish_area[telid])/(u.m *np.pi)
+
         if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
-            hess = MuonLineIntegrate(6.50431*u.m,0.883*u.m,pixel_width=0.16*u.deg)
+            hess = MuonLineIntegrate(mir_rad*u.m,0.*u.m,pixel_width=0.16*u.deg)
 
             if (image.shape[0]<2000):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
