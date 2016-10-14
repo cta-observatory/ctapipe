@@ -36,10 +36,17 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
     for section, entry in config.items():
         header = fits.Header()
         for key, value in entry.items():
-            if len(key) > 8:
-                warnings.warn('Key "{}" will be truncated to {}'.format(key, key[:8]))
 
-            header[key[:8]] = value
+            # CONTINUE and HIERARCH are incompatible, so we have to decide
+            # to either truncate key or value. I went for the key. @maxnoe
+            if isinstance(value, str):
+                if len(key) > 8 and (len(key) + len(value)) > 70:
+                    warnings.warn(
+                        'Key "{}" will be truncated to {}'.format(key, key[:8])
+                    )
+                    key = key[:8]
+
+            header[key] = value
 
         table_0 = fits.TableHDU(data=None, header=header, name=section)
         hduList.append(table_0)
@@ -87,12 +94,17 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
                             'Malformed json file: fits header cannot contain subobjects'
                         )
 
-                    if len(key) > 8:
-                        warnings.warn('Key "{}" will be truncated to {}'.format(
-                            key, key[:8]
-                        ))
+                    # CONTINUE and HIERARCH are incompatible, so we have to
+                    # decide to either truncate key or value.
+                    # I went for the key. @maxnoe
+                    if isinstance(value, str):
+                        if len(key) > 8 and (len(key) + len(value)) > 70:
+                            warnings.warn(
+                                'Key "{}" will be truncated to {}'.format(key, key[:8])
+                            )
+                            key = key[:8]
 
-                    header[key[:8]] = value
+                    header[key] = value
 
                 # create a new TableHDU with current header and append it to hduList
                 table_0 = fits.TableHDU(data=None, header=header, name=section)
