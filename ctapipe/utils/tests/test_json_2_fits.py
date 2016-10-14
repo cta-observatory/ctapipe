@@ -76,8 +76,12 @@ class MyApp(Application):
     flags = Dict(dict(
         enable=({'Bar': {'enabled': True}}, 'Enable Bar'),
         disable=({'Bar': {'enabled': False}}, 'Disable Bar'),
-        debug=({'MyApp': {'log_level': 10}}, 'Set loglevel to DEBUG')
+        debug=({'MyApp': {'log_level': 10}}, 'Set loglevel to DEBUG'),
+
     ))
+    key_much_too_long_for_fits = Unicode('value short enough')
+    key_and_value_too_long = Unicode(5 * 'value to long as wellenough')
+    short = Unicode(20 * 'value to long')
     config_file = Unicode(u'', help='Load this config file').tag(config=True)
 
     def init_foo(self):
