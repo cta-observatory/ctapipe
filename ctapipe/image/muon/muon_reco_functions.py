@@ -1,6 +1,6 @@
 from ctapipe.io.containers import CalibratedCameraData, MuonRingParameter, MuonIntensityParameter
 from astropy import log
-from ctapipe.reco.cleaning import tailcuts_clean
+from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.coordinates import CameraFrame, NominalFrame
 import numpy as np
 from astropy import units as u
