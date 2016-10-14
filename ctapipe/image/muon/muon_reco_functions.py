@@ -89,11 +89,11 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
-            hess = MuonLineIntegrate(mir_rad*u.m,0.*u.m,pixel_width=0.16*u.deg)
+            hess = MuonLineIntegrate(mir_rad*u.m,0.2*u.m,pixel_width=0.16*u.deg)
 
             if (image.shape[0]<2000):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
-                if( muonintensityoutput.impact_parameter < 6*u.m and muonintensityoutput.impact_parameter>0.9*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
+                if( muonintensityoutput.impact_parameter < 0.9*mir_rad*u.m and muonintensityoutput.impact_parameter>0.2*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
                     muonintensityparam = muonintensityoutput
                 else:
                     continue
