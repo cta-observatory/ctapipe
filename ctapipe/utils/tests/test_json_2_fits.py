@@ -123,7 +123,8 @@ def test_traitlets_config_to_fits():
     app = MyApp()
     app.initialize()
     app.start()
-    assert(app.traitlets_config_to_fits() == True)
+    
+    app.traitlets_config_to_fits()
     sys.argv = backup
 
 def test_jsonToFits():
@@ -133,7 +134,7 @@ def test_jsonToFits():
     app = MyApp()
     app.initialize()
     app.start()
-    assert(app.jsonToFits() == True)
+    app.jsonToFits()
     sys.argv = backup
 
 

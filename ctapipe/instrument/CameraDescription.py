@@ -8,7 +8,8 @@ from ctapipe.utils.linalg import rotation_matrix_2d
 __all__ = ['Camera','npix_to_type','find_neighbor_pixels',
            'guess_camera_geometry','guess_camera_type',
            'make_rectangular_camera_geometry','rotate_camera']
-    
+
+
 class Camera:
     
     """`Camera` is a class that provides and gets all the information about
@@ -23,9 +24,9 @@ class Camera:
             description
         pix_id: array (int)
             pixel ids of the camera of the telescope
-        pix_posX: array with units
+        pix_X: array with units
             position of each pixel (x-coordinate)
-        pix_posY: array with units
+        pix_Y: array with units
             position of each pixel (y-coordinate)
         pix_area: array with units
             area of each pixel

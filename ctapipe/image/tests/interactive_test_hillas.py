@@ -1,8 +1,9 @@
-from ctapipe import io, visualization
-from ctapipe.reco import mock
-from ctapipe.reco.cleaning import tailcuts_clean
-from ..hillas import hillas_parameters
 import matplotlib.pyplot as plt
+from ctapipe import io, visualization
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.reco import mock
+
+from ..hillas import hillas_parameters
 
 """
 Test script for hillas_parameters.
