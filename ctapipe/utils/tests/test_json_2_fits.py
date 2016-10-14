@@ -38,6 +38,7 @@ from traitlets import (
 
 from ctapipe.utils.json2fits import traitlets_config_to_fits, json_to_fits
 from ctapipe.utils.datasets import get_path
+import tempfile
 
 import sys
 import os
@@ -107,11 +108,12 @@ class MyApp(Application):
             with open(fname, 'w') as f:
                 f.write(str(json.dumps(self.config)))
 
-    def traitlets_config_to_fits(self):
-        return traitlets_config_to_fits( self.config,'config_to_fits.fits',clobber=True)
+    def traitlets_config_to_fits(self, outputfile):
+        traitlets_config_to_fits(self.config, outputfile, clobber=True)
 
-    def jsonToFits(self):
-        return json_to_fits(self.full_path_configfile, 'json_to_fits.fits', clobber=True)
+    def jsonToFits(self, outputfile):
+        json_to_fits(self.full_path_configfile, outputfile, clobber=True)
+
 
 def test_traitlets_config_to_fits():
     backup = sys.argv
@@ -120,8 +122,9 @@ def test_traitlets_config_to_fits():
     app = MyApp()
     app.initialize()
     app.start()
-    
-    app.traitlets_config_to_fits()
+
+    tmp = tempfile.NamedTemporaryFile()
+    app.traitlets_config_to_fits(tmp.name)
     sys.argv = backup
 
 
@@ -132,7 +135,8 @@ def test_jsonToFits():
     app = MyApp()
     app.initialize()
     app.start()
-    app.jsonToFits()
+    tmp = tempfile.NamedTemporaryFile()
+    app.jsonToFits(tmp)
     sys.argv = backup
 
 
