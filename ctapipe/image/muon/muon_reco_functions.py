@@ -5,6 +5,8 @@ from ctapipe.coordinates import CameraFrame, NominalFrame
 import numpy as np
 from astropy import units as u
 
+from IPython import embed
+
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 from ctapipe.image.muon.muon_integrator import *
 
@@ -44,8 +46,9 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             log.debug("[calib] Camera geometry found")
             if geom_dict is not None:
                 geom_dict[telid] = geom
-                
-        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)
+        
+        #embed()
+        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=1.5,boundary_thresh=2.5)#was 5,7
 
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
@@ -63,7 +66,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         muonringparam = muonring.fit(x,y,image*clean_mask)
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
-
+        #embed()
+        #1/0
         muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
 
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))

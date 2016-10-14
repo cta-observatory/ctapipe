@@ -13,6 +13,7 @@ import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
+from ctapipe.io.containers import MuonIntensityParameter
 __all__ = ['MuonLineIntegrate']
 
 
@@ -98,10 +99,10 @@ class MuonLineIntegrate(object):
             hole_length = self.chord_length(self.hole_radius,r/self.hole_radius,angle)
         return mirror_length-hole_length
 
-    def plot_pos(self,impact_dist,radius,phi):
+    def plot_pos(self,impact_parameter,radius,phi):
         """
         Perform intersection over all angles and return length
-        :param impact_dist: float
+        :param impact_parameter: float
             Impact distance from mirror centre
         :param ang: ndarray
             Angles over which to integrate
@@ -113,7 +114,7 @@ class MuonLineIntegrate(object):
 
         bins = int((2 * math.pi * radius)/self.pixel_width) * self.oversample_bins
         ang = np.linspace(-1*math.pi*u.rad+phi, 1*math.pi*u.rad+phi,bins*1)
-        l = self.intersect_circle(impact_dist,ang)
+        l = self.intersect_circle(impact_parameter,ang)
         l = correlate1d(l,np.ones(self.oversample_bins),mode="wrap",axis=0)
         l /= self.oversample_bins
 
@@ -139,11 +140,11 @@ class MuonLineIntegrate(object):
         ang = np.arctan2(del_x,del_y)
         return ang
 
-    def image_prediction(self,impact_dist,phi,centre_x,centre_y,radius,width,pixel_x,pixel_y):
+    def image_prediction(self,impact_parameter,phi,centre_x,centre_y,radius,ring_width,pixel_x,pixel_y):
         """
         Function for producing the expected image for a given set of trial muon parameters
 
-        :param impact_dist: float
+        :param impact_parameter: float
             Impact distance of muon
         :param centre_x: float
             Muon ring centre in field of view
@@ -151,7 +152,7 @@ class MuonLineIntegrate(object):
             Muon ring centre in field of view
         :param radius: float
             Radius of muon ring
-        :param width: float
+        :param ring_width: float
             Gaussian width of muon ring
         :param pixel_x: ndarray
             Pixel x coordinate
@@ -166,11 +167,11 @@ class MuonLineIntegrate(object):
         # Add muon rotation angle
         ang +=phi
         # Produce smoothed muon profile
-        ang_prof,profile = self.plot_pos(impact_dist,radius,phi)
+        ang_prof,profile = self.plot_pos(impact_parameter,radius,phi)
         # Produce gaussian weight for each pixel give ring width
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
-        gauss = np.exp(-np.power(ring_dist,2)/(2*np.power(width,2))) / np.sqrt(2 * math.pi * np.power(width,2))
+        gauss = np.exp(-np.power(ring_dist,2)/(2*np.power(ring_width,2))) / np.sqrt(2 * math.pi * np.power(ring_width,2))
 
         # interpolate profile to find prediction for each pixel
         pred = np.interp(ang,ang_prof,profile)
@@ -187,13 +188,13 @@ class MuonLineIntegrate(object):
 
         return pred
 
-    def likelihood(self,impact_dist,phi,centre_x,centre_y,radius,width,eff):
+    def likelihood(self,impact_parameter,phi,centre_x,centre_y,radius,ring_width,optical_efficiency_muon):
         """
         Likelihood function to be called by minimiser
 
         Parameters
         ----------
-        impact_dist: float
+        impact_parameter: float
             Impact distance from telescope centre
         centre_x: float
             Centre of muon ring in FoV
@@ -201,9 +202,9 @@ class MuonLineIntegrate(object):
             Centre of muon ring in FoV
         radius: float
             Radius of muon ring
-        width: float
+        ring_width: float
             Gaussian width of muon ring
-        eff: float
+        optical_efficiency_muon: float
             Efficiency of the optical system
         Returns
         -------
@@ -212,14 +213,14 @@ class MuonLineIntegrate(object):
         centre_x *= self.unit
         centre_y *= self.unit
         radius *= self.unit
-        width *= self.unit
-        impact_dist *= u.m
+        ring_width *= self.unit
+        impact_parameter *= u.m
         phi*=u.rad
 
         # Generate model prediction
-        prediction = self.image_prediction(impact_dist,phi,centre_x,centre_y,radius,width,self.pixel_x,self.pixel_y)
+        prediction = self.image_prediction(impact_parameter,phi,centre_x,centre_y,radius,ring_width,self.pixel_x,self.pixel_y)
         # scale prediction by optical efficiency of array
-        prediction *= eff
+        prediction *= optical_efficiency_muon
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
         return -2 * np.sum(self.calc_likelihood(self.image,prediction,0.5,1.1))
@@ -285,12 +286,12 @@ class MuonLineIntegrate(object):
         self.unit = pixel_x.unit
 
         # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
-        min = Minuit(self.likelihood,impact_dist=4,limit_impact_dist=(0,25),error_impact_dist=5,
+        min = Minuit(self.likelihood,impact_parameter=4,limit_impact_parameter=(0,25),error_impact_parameter=5,
                      phi=0,limit_phi=(-1*math.pi,1*math.pi),error_phi=0.1,
                      radius=radius.value,fix_radius=True,centre_x=centre_x.value,fix_centre_x=True,
                      centre_y=centre_y.value,fix_centre_y=True,
-                     width=0.1,error_width = 0.001*radius.value,limit_width=(0,1),
-                     eff=0.1,error_eff=0.05,limit_eff=(0,1),
+                     ring_width=0.1,error_ring_width = 0.001*radius.value,limit_ring_width=(0,1),
+                     optical_efficiency_muon=0.1,error_optical_efficiency_muon=0.05,limit_optical_efficiency_muon=(0,1),
                      errordef=1)
 
         # Perform minimisation
@@ -299,4 +300,12 @@ class MuonLineIntegrate(object):
         fit_params = min.values
         print(fit_params)
         # Return interesting stuff
-        return fit_params['impact_dist']*u.m ,fit_params['phi']*u.rad,fit_params['width']*self.unit,fit_params['eff']
+
+        fitoutput = MuonIntensityParameter()
+        fitoutput.impact_parameter = fit_params['impact_parameter']*u.m
+        #fitoutput.phi = fit_params['phi']*u.rad
+        fitoutput.ring_width = fit_params['ring_width']*self.unit
+        fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
+
+        #return fit_params['impact_parameter']*u.m ,fit_params['phi']*u.rad,fit_params['ring_width']*self.unit,fit_params['optical_efficiency_muon']
+        return fitoutput
