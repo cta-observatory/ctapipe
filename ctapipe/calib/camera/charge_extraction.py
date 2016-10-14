@@ -268,7 +268,7 @@ class ChargeExtractorFactory(Component):
                         help='Charge extraction scheme to use: {}'
                         .format(subclass_names)).tag(config=True)
 
-    # TODO: temp extractor algorithm while factory classes are being defined
+    # TODO: temp extractor argument while factory classes are being defined
     def __init__(self, extractor=None, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
