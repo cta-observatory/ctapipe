@@ -7,7 +7,9 @@ are the same to their corresponding ones in
 - reconstruct.c
 in hessioxxx software package.
 
-Note: Input MC version = prod2. For future MC versions the calibration
+Notes
+-----
+Input MC version = prod2. For future MC versions the calibration
 function might be different for each camera type.
 """
 import argparse
