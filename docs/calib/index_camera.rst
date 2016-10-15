@@ -12,8 +12,6 @@ These functions are divided into the different python modules:
 
 * MC Camera calibration (`mc.py`)
 
-.. plot:: ../ctapipe/calib/camera/mc.py
-
 * Camera prototypes:
 
     * LST Camera (`lstcam.py`)
