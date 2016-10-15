@@ -90,6 +90,7 @@ install:
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
+   - python -c "import matplotlib.pyplot as plt"  # get rid of matplotlib warning
    - python setup.py $SETUP_CMD
 
 after_success:
