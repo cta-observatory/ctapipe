@@ -90,8 +90,7 @@ install:
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
-   - 
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then python -c "import matplotlib.pyplot as plt"; fi
+   - if [[ $SETUP_CMD == build_sphinx* ]]; then python -c 'import matplotlib.pyplot as plt'; fi
    - python setup.py $SETUP_CMD
 
 after_success:
