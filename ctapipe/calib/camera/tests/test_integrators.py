@@ -72,8 +72,6 @@ def test_integrator_switch():
     t2 = time.time()
 #   ^^ simple speed test; can't use timeit to test just the integration part
     print(params['integrator'], ": wall clock t = {:.3} seconds".format(t2-t1))
-    #
-    integration, window, peakpos = integrator_switch(data_ped, geom, params)
     assert integration[0][0] == -64
     assert sum(window[0][0]) == params['integration_window'][0]
     assert peakpos[0][0] == 20
