@@ -111,9 +111,9 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     # Sanity check1:
     if size == 0:
-        raise (HillasParameterizationError(("Empty pixels! Cannot
-        calculate " "image
-                                            parameters. Exiting..."))
+        raise HillasParameterizationError(("Empty pixels! Cannot"
+                                           " calculate image"
+                                           " parameters. Exiting..."))
 
     mean_x = np.sum(image * pix_x) / size
     mean_y = np.sum(image * pix_y) / size
@@ -136,8 +136,8 @@ def hillas_parameters_1(pix_x, pix_y, image):
     # impossible to have a distribution of cerenkov photons in the
     # used pixels which is exactly symmetric along one of the axis
     if S_xy == 0:
-        raise (HillasParameterizationError(("X and Y uncorrelated. Cannot "
-                                            "calculate length & width"))
+        raise HillasParameterizationError(("X and Y uncorrelated. Cannot "
+                                           "calculate length & width"))
 
     d0 = S_yy - S_xx
     d1 = 2 * S_xy
@@ -169,16 +169,16 @@ def hillas_parameters_1(pix_x, pix_y, image):
     # Higher order moments
     sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
 
-    skewness = (np.sum(image * np.power(sk, 3)) / size) / \
-        ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2))
-    kurtosis = (np.sum(image * np.power(sk, 4)) / size) / \
-        ((np.sum(image * np.power(sk, 2)) / size) ** 2)
-    asym3 = np.power(cos_delta, 3) * S_xxx
-               + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
-               + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
-               + np.power(sin_delta, 3) * S_yyy
+    skewness = ((np.sum(image * np.power(sk, 3)) / size) /
+                ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2)))
+    kurtosis = ((np.sum(image * np.power(sk, 4)) / size) /
+                ((np.sum(image * np.power(sk, 2)) / size) ** 2))
+    asym3 = (np.power(cos_delta, 3) * S_xxx
+             + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
+             + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
+             + np.power(sin_delta, 3) * S_yyy)
     asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) \
-               else np.power(asym3, 1. / 3)
+        else np.power(asym3, 1. / 3)
 
     assert np.sign(skewness) == np.sign(asym)
 
@@ -195,14 +195,18 @@ def hillas_parameters_1(pix_x, pix_y, image):
     azwidth_2 = m_qq - m_q * m_q
     azwidth = np.sqrt(azwidth_2)
 
-    return MomentParameters(size=size,
-                            cen_x=mean_x,
-                            cen_y=mean_y,
-                            length=length,
-                            width=width, r=r, phi=phi, psi=delta,
-                            miss=miss),
-           HighOrderMomentParameters(Skewness=skewness,
-                                     Kurtosis=kurtosis, Asymmetry=asym)
+    return (MomentParameters(size=size,
+                             cen_x=mean_x,
+                             cen_y=mean_y,
+                             length=length,
+                             width=width,
+                             r=r,
+                             phi=phi,
+                             psi=delta,
+                             miss=miss),
+            HighOrderMomentParameters(Skewness=skewness,
+                                      Kurtosis=kurtosis,
+                                      Asymmetry=asym))
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
@@ -225,10 +229,12 @@ def hillas_parameters_2(pix_x, pix_y, image):
     -------
     hillas_parameters : `MomentParameters`
     """
-    unit = pix_x.unit
+
+    unit = Quantity(pix_x).unit
 
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+    image = np.asanyarray(image)
 
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
