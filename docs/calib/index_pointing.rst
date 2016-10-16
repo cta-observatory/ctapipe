@@ -1,8 +1,8 @@
 .. _calib_pointing:
 
-============
- Pointing calibration
-============
+=====================
+Pointing calibration
+=====================
 
 .. currentmodule:: ctapipe.calib.pointing
 
