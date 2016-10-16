@@ -1,7 +1,6 @@
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 from ctapipe.io import CameraGeometry
-import time
 import numpy as np
 
 from ..integrators import integrator_switch, full_integration, \
@@ -54,23 +53,13 @@ def test_integrator_switch():
     assert peakpos[0][0] == 14
 
     params['integrator'] = 'local_peak_integration'
-    t1 = time.time()
-    for i in range(10):
-        integration, window, peakpos = integrator_switch(data_ped, geom, params)
-    t2 = time.time()
-#   ^^ simple speed test; can't use timeit to test just the integration part
-    print(params['integrator'], ": wall clock t = {:.3} seconds".format(t2-t1))
-#   run py.test -s test_integrators.py   to see the print output
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
     assert integration[0][0] == 76
     assert sum(window[0][0]) == params['integration_window'][0]
     assert peakpos[0][0] == 13
 
     params['integrator'] = 'nb_peak_integration'
-    t1 = time.time()
-    for i in range(10):
-        integration, window, peakpos = integrator_switch(data_ped, geom, params)
-    t2 = time.time()
-    print(params['integrator'], ": wall clock t = {:.3} seconds".format(t2-t1))
+    integration, window, peakpos = integrator_switch(data_ped, geom, params)
     assert integration[0][0] == -64
     assert sum(window[0][0]) == params['integration_window'][0]
     assert peakpos[0][0] == 20
