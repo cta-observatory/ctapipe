@@ -3,22 +3,42 @@
 
 TODO:
 -----
-- remove alpha calculation (which is only about (0,0), and make a get alpha function that does it from an arbitrary point given a
+
+* remove alpha calculation (which is only about (0,0), and make a get
+  alpha function that does it from an arbitrary point given a
   pre-computed list of parameters
-- psi of hillas_parameters_1 and 2 does not match. Mismatch in hillas_parameters_2 need to be resolved.
-- Implement higher order hillas parameters in hillas_parameters_2
+* psi of hillas_parameters_1 and 2 does not match. Mismatch in
+   hillas_parameters_2 need to be resolved.
+* Implement higher order hillas parameters in hillas_parameters_2
 
 CHANGE LOG:
 -----------
-- Higher order moments need not be explicitly defined. Only mean and size parameters are enough to define correlations of all order. 
+
+* Higher order moments need not be explicitly defined. Only mean and
+  size parameters are enough to define correlations of all order.
   Implemented in the same way as in MAGIC.
-- Third and fourth order correlations implemented in hillas_1.
-- Sanity checks for size, x_y correlation (HillasParameterizationError), length, width.
-- Parameter psi introduced in hillas_parameters_1: angle between ellipse major axis and camera x-axis.
-- Correction in implementation of miss parameter of hillas_parameters_1. Previous implementation missed a square root factor.
-- Correction in implementation of length, width in hillas_parameters_2. Previous version missed a 2 in the denominator.
-- Implementation of Higher Order Moment Parameters in hillas_parameters_1: Skewness, Kurtosis.
-- Implementation of Asymmetry. Alternative definition of asym using highr order correlations mentioned in comments below asym .
+
+* Third and fourth order correlations implemented in hillas_1.
+
+* Sanity checks for size, x_y correlation
+  (HillasParameterizationError), length, width.
+
+* Parameter psi introduced in hillas_parameters_1: angle between
+  ellipse major axis and camera x-axis.
+
+* Correction in implementation of miss parameter of
+  hillas_parameters_1. Previous implementation missed a square root
+  factor.
+
+* Correction in implementation of length, width in
+  hillas_parameters_2. Previous version missed a 2 in the denominator.
+
+* Implementation of Higher Order Moment Parameters in
+  hillas_parameters_1: Skewness, Kurtosis.
+
+* Implementation of Asymmetry. Alternative definition of asym using
+  highr order correlations mentioned in comments below asym .
+
 """
 
 import numpy as np
@@ -91,7 +111,9 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     # Sanity check1:
     if size == 0:
-        raise (HillasParameterizationError("Empty pixels! Cannot calculate image parameters. Exiting..."))
+        raise (HillasParameterizationError(("Empty pixels! Cannot
+        calculate " "image
+                                            parameters. Exiting..."))
 
     mean_x = np.sum(image * pix_x) / size
     mean_y = np.sum(image * pix_y) / size
@@ -109,25 +131,32 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     # Sanity check2:
 
-    # If S_xy=0 (which should happen not very often, because Size>0) we cannot calculate Length and Width.
-    # In reallity it is almost impossible to have a distribution of cerenkov photons in the used pixels which is exactly symmetric
-    # along one of the axis
+    # If S_xy=0 (which should happen not very often, because Size>0)
+    # we cannot calculate Length and Width.  In reallity it is almost
+    # impossible to have a distribution of cerenkov photons in the
+    # used pixels which is exactly symmetric along one of the axis
     if S_xy == 0:
-        raise (HillasParameterizationError("X and Y uncorrelated. Cannot calculate lenght & width. Exiting ..."))
+        raise (HillasParameterizationError(("X and Y uncorrelated. Cannot "
+                                            "calculate length & width"))
 
     d0 = S_yy - S_xx
     d1 = 2 * S_xy
     # temp = d * d + 4 * S_xy * S_xy
     d2 = d0 + np.sqrt(d0 * d0 + d1 * d1)
     a = d2 / d1
-    delta = np.pi / 2.0 + np.arctan(a)  # Angle between ellipse major ax. and x-axis of camera. Will be used for disp
+    # Angle between ellipse major ax. and x-axis of camera. Will be used for
+    # disp
+    delta = np.pi / 2.0 + np.arctan(a)
     b = mean_y - a * mean_x
-    cos_delta = 1 / np.sqrt(1 + a * a)  # Sin & Cos Will be used for calculating higher order image parameters
+    # Sin & Cos Will be used for calculating higher order image parameters
+    cos_delta = 1 / np.sqrt(1 + a * a)
     sin_delta = a * cos_delta
 
     # Compute Hillas parameters
-    width_2 = (S_yy + a * a * S_xx - 2 * a * S_xy) / (1 + a * a)  # width squared
-    length_2 = (S_xx + a * a * S_yy + 2 * a * S_xy) / (1 + a * a)  # length squared
+    width_2 = (S_yy + a * a * S_xx - 2 * a * S_xy) / \
+        (1 + a * a)  # width squared
+    length_2 = (S_xx + a * a * S_yy + 2 * a * S_xy) / \
+        (1 + a * a)  # length squared
 
     # Sanity check3:
     width = 0. if width_2 < 0. else np.sqrt(width_2)
@@ -140,17 +169,22 @@ def hillas_parameters_1(pix_x, pix_y, image):
     # Higher order moments
     sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
 
-    skewness = (np.sum(image * np.power(sk, 3)) / size) / ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2))
-    kurtosis = (np.sum(image * np.power(sk, 4)) / size) / ((np.sum(image * np.power(sk, 2)) / size) ** 2)
-    asym3 = np.power(cos_delta, 3) * S_xxx + 3.0 * np.power(cos_delta,
-                                                            2) * sin_delta * S_xxy + 3.0 * cos_delta * np.power(
-        sin_delta, 2) * S_xyy + np.power(sin_delta, 3) * S_yyy
-    asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3, 1. / 3)
+    skewness = (np.sum(image * np.power(sk, 3)) / size) / \
+        ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2))
+    kurtosis = (np.sum(image * np.power(sk, 4)) / size) / \
+        ((np.sum(image * np.power(sk, 2)) / size) ** 2)
+    asym3 = np.power(cos_delta, 3) * S_xxx
+               + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
+               + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
+               + np.power(sin_delta, 3) * S_yyy
+    asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) \
+               else np.power(asym3, 1. / 3)
 
     assert np.sign(skewness) == np.sign(asym)
 
-    # another definition of assymetry
-    # asym = (mean_x - pix_x[np.argmax(image)]) * cos_delta + (mean_y - pix_y[np.argmax(image)]) * sin_delta
+    # another definition of assymetry asym = (mean_x -
+    # pix_x[np.argmax(image)]) * cos_delta + (mean_y -
+    # pix_y[np.argmax(image)]) * sin_delta
 
     # Compute azwidth by transforming to (p, q) coordinates
     sin_theta = mean_y / r
@@ -161,8 +195,14 @@ def hillas_parameters_1(pix_x, pix_y, image):
     azwidth_2 = m_qq - m_q * m_q
     azwidth = np.sqrt(azwidth_2)
 
-    return MomentParameters(size=size, cen_x=mean_x, cen_y=mean_y, length=length, width=width, r=r, phi=phi, psi=delta,
-                            miss=miss), HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis, Asymmetry=asym)
+    return MomentParameters(size=size,
+                            cen_x=mean_x,
+                            cen_y=mean_y,
+                            length=length,
+                            width=width, r=r, phi=phi, psi=delta,
+                            miss=miss),
+           HighOrderMomentParameters(Skewness=skewness,
+                                     Kurtosis=kurtosis, Asymmetry=asym)
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
