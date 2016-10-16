@@ -41,9 +41,9 @@ CHANGE LOG:
 
 """
 
+from collections import namedtuple
 import numpy as np
 from astropy.units import Quantity
-from collections import namedtuple
 import astropy.units as u
 
 __all__ = [
