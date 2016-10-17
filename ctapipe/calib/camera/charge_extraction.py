@@ -249,14 +249,16 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
 
     def find_peak(self):
         self.peakpos = np.zeros((self.nchan, self.npix), dtype=np.int)
+        sig_wav = self.significant_waveforms
+        max_num_nei = len(max(self.nei, key=len))
+        allvals = np.zeros((self.nchan, self.npix,
+                            max_num_nei + 1, self.nsamples))
         for ipix, neighbours in enumerate(self.nei):
-            nb_data = self.significant_waveforms[:, neighbours]
-            weighted_pixel = self.significant_waveforms[:, ipix] * self.lwt
-            """@type weighted_pixel: numpy.core.multiarray.ndarray"""
-            pixel_expanded = np.expand_dims(weighted_pixel, axis=1)
-            all_data = np.concatenate((nb_data, pixel_expanded), axis=1)
-            sum_data = all_data.sum(1)
-            self.peakpos[:, ipix] = sum_data.argmax(1)
+            num_nei = len(neighbours)
+            allvals[:, ipix, :num_nei, :] = sig_wav[:, neighbours]
+            allvals[:, ipix, num_nei, :] = sig_wav[:, ipix] * self.lwt
+        sum_data = allvals.sum(2)
+        self.peakpos = sum_data.argmax(2)
 
 
 class ChargeExtractorFactory(Component):
