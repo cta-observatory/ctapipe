@@ -9,9 +9,8 @@ import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
 from ctapipe import io, visualization
-from ctapipe import reco
 from ctapipe.core import Tool
-from ctapipe.reco import mock
+from ctapipe.image import mock, cleaning
 from matplotlib.animation import FuncAnimation
 
 
@@ -56,10 +55,9 @@ class CameraDemo(Tool):
             # alternate between cleaned and raw images
             if self._counter > 20:
                 plt.suptitle("Image Cleaning ON")
-                cleanmask = reco.cleaning.tailcuts_clean(
-                    geom, image, pedvars=80)
+                cleanmask = cleaning.tailcuts_clean(geom, image, pedvars=80)
                 for ii in range(3):
-                    reco.cleaning.dilate(geom, cleanmask)
+                    cleaning.dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels
             if self._counter >= 40:
                 plt.suptitle("Image Cleaning OFF")
@@ -81,3 +79,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
