@@ -8,7 +8,6 @@ To do:
     - create container class for output
 
 """
-import math
 import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
@@ -112,8 +111,8 @@ class MuonLineIntegrate:
             Chord length for each angle
         """
 
-        bins = int((2 * math.pi * radius)/self.pixel_width) * self.oversample_bins
-        ang = np.linspace(-1*math.pi*u.rad+phi, 1*math.pi*u.rad+phi,bins*1)
+        bins = int((2 * np.pi * radius)/self.pixel_width) * self.oversample_bins
+        ang = np.linspace(-1*np.pi*u.rad+phi, 1*np.pi*u.rad+phi,bins*1)
         l = self.intersect_circle(impact_parameter,ang)
         l = correlate1d(l,np.ones(self.oversample_bins),mode="wrap",axis=0)
         l /= self.oversample_bins
@@ -171,7 +170,7 @@ class MuonLineIntegrate:
         # Produce gaussian weight for each pixel give ring width
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
         ring_dist = radial_dist - radius
-        gauss = np.exp(-np.power(ring_dist,2)/(2*np.power(ring_width,2))) / np.sqrt(2 * math.pi * np.power(ring_width,2))
+        gauss = np.exp(-np.power(ring_dist,2)/(2*np.power(ring_width,2))) / np.sqrt(2 * np.pi * np.power(ring_width,2))
 
         # interpolate profile to find prediction for each pixel
         pred = np.interp(ang,ang_prof,profile)
@@ -255,7 +254,7 @@ class MuonLineIntegrate:
         -------
         ndarray: likelihood for each pixel
         """
-        sq = 1 / np.sqrt(2 * math.pi * (ped**2 + pred * (1 + spe_width**2)))
+        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2)))
         diff = (image - pred)**2
         denom = 2 * (ped**2 + pred * (1 + spe_width**2))
         expo = np.exp(-diff / denom)
