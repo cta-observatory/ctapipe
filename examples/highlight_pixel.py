@@ -1,10 +1,7 @@
-from matplotlib import pyplot as plt
-
+from ctapipe.image import mock
 from ctapipe.io import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-
-from ctapipe.reco import mock
-
+from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
 
