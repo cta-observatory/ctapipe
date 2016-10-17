@@ -26,6 +26,7 @@ from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute,
 
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
+from ..coordinates.representation import PlanarRepresentation
 
 __all__ = [
     'CameraFrame',
@@ -70,13 +71,8 @@ class TelescopeFrame(BaseCoordinateFrame):
     * ``pointing_direction``
         Alt,Az direction of the telescope pointing
     """
-    default_representation = CartesianRepresentation
-    frame_specific_representation_info = {
-        'cartesian': [RepresentationMapping('x', 'x'),
-                      RepresentationMapping('y', 'y')],
-    }
 
-    default_representation = CartesianRepresentation
+    default_representation = PlanarRepresentation
     pointing_direction = FrameAttribute(default=None)
 
 
@@ -90,7 +86,7 @@ class NominalFrame(BaseCoordinateFrame):
 
     Frame attributes:
 
-    * ``pointing_direction``
+    * ``array_direction``
       Alt,Az direction of the array pointing
 
     The Following attributes are carried over from the telescope frame
@@ -104,20 +100,27 @@ class NominalFrame(BaseCoordinateFrame):
       Alt,Az direction of the telescope pointing
 
     """
-    frame_specific_representation_info = {
-        'cartesian': [RepresentationMapping('x', 'x'),
-                      RepresentationMapping('y', 'y')],
-    }
-    default_representation = CartesianRepresentation
+
+    default_representation = PlanarRepresentation
     pointing_direction = FrameAttribute(default=None)
     array_direction = FrameAttribute(default=None)
 
 
 class HorizonFrame(BaseCoordinateFrame):
     """
+    Horizon coordinate frame. Spherical system used to describe the direction
+    of a given position, in terms of the altitude and azimuth of the system. In
+    practice this is functionally identical as the astropy AltAz system, but this
+    implementation allows us to pass array pointing information, allowing us to directly
+    transform to the Horizon Frame from the Camera system.
 
+    The Following attributes are carried over from the telescope frame
+    to allow a direct transformation from the camera frame
 
-
+   * ``array_direction``
+      Alt,Az direction of the array pointing
+    * ``pointing_direction``
+      Alt,Az direction of the telescope pointing
     """
 
     default_representation = UnitSphericalRepresentation
@@ -281,6 +284,7 @@ def nominal_to_altaz(norm_coord, altaz_coord):
     representation = UnitSphericalRepresentation(lon=azimuth.to(u.deg), lat=altitude.to(u.deg))
     return altaz_coord.realize_frame(representation)
 
+
 @frame_transform_graph.transform(FunctionTransform, HorizonFrame, NominalFrame)
 def altaz_to_nominal(altaz_coord, norm_coord):
     """
@@ -303,8 +307,8 @@ def altaz_to_nominal(altaz_coord, norm_coord):
     x_off, y_off = altaz_to_offset(azimuth, altitude, az_norm, alt_norm)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
-    representation = CartesianRepresentation(
-        x_off.to(u.deg), y_off.to(u.deg), 0 * u.deg)
+    representation = PlanarRepresentation(
+        x_off.to(u.deg), y_off.to(u.deg))
 
     return norm_coord.realize_frame(representation)
 
@@ -336,8 +340,8 @@ def telescope_to_nominal(tel_coord, norm_frame):
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
-    representation = CartesianRepresentation(
-        x_off.to(tel_coord.x.unit), y_off.to(tel_coord.x.unit), 0 * tel_coord.x.unit)
+    representation = PlanarRepresentation(
+        x_off.to(tel_coord.x.unit), y_off.to(tel_coord.x.unit))
 
     return norm_frame.realize_frame(representation)
 
@@ -368,9 +372,8 @@ def nominal_to_telescope(norm_coord, tel_frame):
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
-    representation = CartesianRepresentation(x_off.to(norm_coord.x.unit),
-                                             y_off.to(norm_coord.x.unit),
-                                             0 * norm_coord.x.unit)
+    representation = PlanarRepresentation(x_off.to(norm_coord.x.unit),
+                                             y_off.to(norm_coord.x.unit))
 
     return tel_frame.realize_frame(representation)
 
@@ -406,7 +409,7 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
     x_rotated = (x_rotated / focal_length) * u.rad
     y_rotated = (y_rotated / focal_length) * u.rad
-    representation = CartesianRepresentation(x_rotated, y_rotated, 0 * u.rad)
+    representation = PlanarRepresentation(x_rotated, y_rotated)
 
     return telescope_frame.realize_frame(representation)
 
@@ -481,7 +484,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
       Alt,Az direction of the tilted reference plane
 
     """
-    default_representation = CartesianRepresentation
+    default_representation = PlanarRepresentation
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
@@ -555,9 +558,8 @@ def ground_to_tilted(ground_coord, tilted_coord):
 
     x_tilt = trans[0][0] * x_grd + trans[0][1] * y_grd + trans[0][2] * z_grd
     y_tilt = trans[1][0] * x_grd + trans[1][1] * y_grd + trans[1][2] * z_grd
-    z_tilt = 0.0 * u.m
 
-    representation = CartesianRepresentation(x_tilt, y_tilt, z_tilt)
+    representation = PlanarRepresentation(x_tilt, y_tilt)
 
     return tilted_coord.realize_frame(representation)
 
@@ -579,8 +581,8 @@ def tilted_to_ground(tilted_coord, ground_coord):
     -------
     GroundFrame coordinates
     """
-    x_tilt = tilted_coord.cartesian.x
-    y_tilt = tilted_coord.cartesian.y
+    x_tilt = tilted_coord.x
+    y_tilt = tilted_coord.y
 
     altitude, azimuth = tilted_coord.pointing_direction
     altitude = altitude.to(u.rad)
@@ -601,7 +603,7 @@ def tilted_to_ground(tilted_coord, ground_coord):
 def project_to_ground(tilt_system):
     """Project position in the tilted system onto the ground. This is
     needed as the standard transformation will return the 3d position
-    of the tilted frame. This projection may untimately be the
+    of the tilted frame. This projection may ultimately be the
     standard use case so may be implemented in the tilted to ground
     transformation
 

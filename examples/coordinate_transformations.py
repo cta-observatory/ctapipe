@@ -6,10 +6,9 @@ defined in `ctapipe.coordinates`
 
 """
 import astropy.units as u
-from astropy.coordinates import AltAz
-import timeit
 
-from ctapipe.coordinates import CameraFrame, TelescopeFrame, GroundFrame, TiltedGroundFrame, NominalFrame, HorizonFrame, project_to_ground
+from ctapipe.coordinates import CameraFrame, TelescopeFrame, GroundFrame, \
+    TiltedGroundFrame, NominalFrame, HorizonFrame, project_to_ground
 
 
 import numpy as np
@@ -55,7 +54,7 @@ def cam_to_nom():
 def nominal_to_altaz():
     t = np.zeros(10)
     t[5] = 1
-    nom = NominalFrame(x=t*u.deg,y=t*u.deg,z=t*u.deg,array_direction = [75*u.deg,180*u.deg])
+    nom = NominalFrame(x=t*u.deg,y=t*u.deg,array_direction = [75*u.deg,180*u.deg])
     alt_az = nom.transform_to(HorizonFrame)
     print("AltAz Coordinate",alt_az)
     # Provided we know when and where the AltAz was measured we can them convert this to any astronomical
