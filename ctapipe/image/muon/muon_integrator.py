@@ -13,6 +13,8 @@ from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from ctapipe.io.containers import MuonIntensityParameter
+from scipy.stats import norm
+
 __all__ = ['MuonLineIntegrate']
 
 
@@ -169,8 +171,7 @@ class MuonLineIntegrate:
         ang_prof,profile = self.plot_pos(impact_parameter,radius,phi)
         # Produce gaussian weight for each pixel give ring width
         radial_dist = np.sqrt(np.power(pixel_x-centre_x,2) + np.power(pixel_y-centre_y,2))
-        ring_dist = radial_dist - radius
-        gauss = np.exp(-np.power(ring_dist,2)/(2*np.power(ring_width,2))) / np.sqrt(2 * np.pi * np.power(ring_width,2))
+        gauss = norm.pdf(radial_dist, radius, ring_width)
 
         # interpolate profile to find prediction for each pixel
         pred = np.interp(ang,ang_prof,profile)
