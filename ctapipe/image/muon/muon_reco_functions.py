@@ -1,14 +1,10 @@
-from ctapipe.io.containers import CalibratedCameraData, MuonRingParameter, MuonIntensityParameter
 from astropy import log
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.coordinates import CameraFrame, NominalFrame
 import numpy as np
 from astropy import units as u
 
-from IPython import embed
-
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
-from ctapipe.image.muon.muon_integrator import *
 
 
 def analyze_muon_event(event, params=None, geom_dict=None):
@@ -22,8 +18,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
     Returns
     -------
-    muonringparam, muonintensityparam : MuonRingParameter and MuonIntensityParameter container event
-
+    muon_ring_param: MuonRingParameter
+    muon_intensity_param: MuonIntensityParameter
     """
 
     muonringparam = None
@@ -46,21 +42,21 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             log.debug("[calib] Camera geometry found")
             if geom_dict is not None:
                 geom_dict[telid] = geom
-        
-        #embed()
+
+        # embed()
         clean_mask = tailcuts_clean(geom,image,1,picture_thresh=1.5,boundary_thresh=2.5)#was 5,7
 
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
         nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[telid])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
-        
+
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
 
         img = image*clean_mask
         noise = 5
         weight = img / (img+noise)
-        
+
         muonring = ChaudhuriKunduRingFitter()
 
         muonringparam = muonring.fit(x,y,image*clean_mask)
@@ -79,7 +75,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         rad = list()
         cx = list()
         cy = list()
-        
+
         mc_x = event.mc.core_x
         mc_y = event.mc.core_y
         pix_im = image*dist_mask
@@ -97,7 +93,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                     muonintensityparam = muonintensityoutput
                 else:
                     continue
-
 
     return muonringparam, muonintensityparam
 
@@ -122,7 +117,7 @@ def analyze_muon_source(source, params=None, geom_dict=None):
 
     if geom_dict is None:
         geom_dict={}
-        
+
     for event in source:
         analyzed_muon = analyze_muon_event(event, params, geom_dict)
 

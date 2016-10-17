@@ -4,7 +4,6 @@ from logging import getLogger
 from traitlets.config import Configurable
 
 
-
 class Component(Configurable):
     """Base class of all Components (sometimes called
     workers, makers, etc).  Components are are classes that do some sort
@@ -27,9 +26,8 @@ class Component(Configurable):
     subclasses, which provide configuration handling and command-line
     tool generation.
 
-    .. note:: 
 
-    For example: 
+    For example:
 
     .. code:: python
 
@@ -45,9 +43,6 @@ class Component(Configurable):
         comp = MyComponent(None)
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
-
-
-    .. seealso:: 
 
     """
 
