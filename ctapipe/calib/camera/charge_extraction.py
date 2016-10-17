@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABCMeta
 import numpy as np
 from traitlets import Int, Unicode
 
@@ -11,6 +11,7 @@ def all_subclasses(cls):
 
 
 class ChargeExtractor(Component):
+    __metaclass__ = ABCMeta
     name = 'ChargeExtractor'
 
     def __init__(self, waveforms, parent, **kwargs):
@@ -26,6 +27,9 @@ class ChargeExtractor(Component):
 
 
 class Integrator(ChargeExtractor):
+    __metaclass__ = ABCMeta
+    name = 'Integrator'
+
     def __init__(self, waveforms, parent, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
@@ -153,6 +157,7 @@ class SimpleIntegrator(WindowIntegrator):
 
 
 class PeakFindingIntegrator(WindowIntegrator):
+    __metaclass__ = ABCMeta
     name = 'PeakFindingIntegrator'
     window_shift_arg = Int(3, help='Define the shift of the integration '
                                    'window from the peakpos '
