@@ -82,7 +82,7 @@ install:
     - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib ; fi
+    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL sphinx sphinx_rtd_theme matplotlib; fi
 
     # COVERAGE DEPENDENCIES
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls;  fi
@@ -90,6 +90,7 @@ install:
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
+   - if [[ $SETUP_CMD == build_sphinx* ]]; then python -c 'import matplotlib.pyplot as plt'; fi
    - python setup.py $SETUP_CMD
 
 after_success:
