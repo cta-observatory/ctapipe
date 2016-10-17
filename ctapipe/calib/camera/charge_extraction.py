@@ -10,8 +10,12 @@ def all_subclasses(cls):
                                    for g in all_subclasses(s)]
 
 
-class ChargeExtractor(Component):
-    __metaclass__ = ABCMeta
+class AbstractMeta(type(Component), ABCMeta):
+    """Class to allow @abstractmethod to work"""
+    # TODO: remove one Component is made abstract
+
+
+class ChargeExtractor(Component, metaclass=AbstractMeta):
     name = 'ChargeExtractor'
 
     def __init__(self, waveforms, parent, **kwargs):
@@ -27,57 +31,37 @@ class ChargeExtractor(Component):
 
 
 class Integrator(ChargeExtractor):
-    __metaclass__ = ABCMeta
     name = 'Integrator'
 
     def __init__(self, waveforms, parent, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
-        self.__window_width = np.zeros((self.nchan, self.npix), dtype=np.intp)
-        self.__window_start = np.zeros((self.nchan, self.npix), dtype=np.intp)
+        self.window_width = np.zeros((self.nchan, self.npix), dtype=np.intp)
+        self.window_start = np.zeros((self.nchan, self.npix), dtype=np.intp)
 
         self.integration_window = np.zeros_like(self.waveforms, dtype=bool)
         self.windowed_waveforms = None
         self.integrated_waveform = None
         self.peakpos = None
 
-    @property
-    def window_width(self):
-        return self.__window_width
-
-    @window_width.setter
-    def window_width(self, ndarray):
-        """
-        Parameters
-        ----------
-        ndarray : ndarray
-            Numpy array of dimensions (nchan*npix) containing the window
-            size of the integration window for each pixel
-        """
-        ndarray = np.where(ndarray > self.nsamples, self.nsamples, ndarray)
-        self.__window_width = ndarray
-
-    @property
-    def window_start(self):
-        return self.__window_start
-
-    @window_start.setter
-    def window_start(self, ndarray):
-        """
-        Parameters
-        ----------
-        ndarray : ndarray
-            Numpy array of dimensions (nchan*npix) containing the start
-            position of the integration window for each pixel
-        """
+    def check_window_width_and_start(self):
         width = self.window_width
-        # noinspection PyTypeChecker
-        ndarray = np.where(ndarray < 0, 0, ndarray)
-        print(width.shape)
-        print(self.nsamples)
-        ndarray = np.where(ndarray + width > self.nsamples,
-                           self.nsamples - width, ndarray)
-        self.__window_start = ndarray
+        start = self.window_start
+        if width is None:
+            raise ValueError('window width has not been set')
+        if start is None:
+            raise ValueError('window start has not been set')
+        if not width.all():
+            self.log.warn('all window_widths are zero')
+
+        print(width)
+
+        width[width > self.nsamples] = self.nsamples
+        start[start < 0] = 0
+        sum_check = start + width > self.nsamples
+        start[sum_check] = self.nsamples - width[sum_check]
+
+        print(width)
 
     def define_window(self):
         start = self.window_start
@@ -97,9 +81,8 @@ class Integrator(ChargeExtractor):
 
     def extract_charge(self):
         self.get_window_width()
-        if not self.window_width.all():
-            self.log.warn('all window_widths are zero')
         self.get_window_start()
+        self.check_window_width_and_start()
         self.define_window()
         self.integrate()
         return self.integrated_waveform, self.integration_window, self.peakpos
@@ -121,7 +104,7 @@ class FullIntegrator(Integrator):
         self.peakpos = [None, None]
 
     def get_window_width(self):
-        self.window_width[:] = self.nsamples
+        self.window_width = np.full((3, 5), self.nsamples)
 
     def get_window_start(self):
         self.window_start[:] = 0
@@ -157,7 +140,6 @@ class SimpleIntegrator(WindowIntegrator):
 
 
 class PeakFindingIntegrator(WindowIntegrator):
-    __metaclass__ = ABCMeta
     name = 'PeakFindingIntegrator'
     window_shift_arg = Int(3, help='Define the shift of the integration '
                                    'window from the peakpos '
