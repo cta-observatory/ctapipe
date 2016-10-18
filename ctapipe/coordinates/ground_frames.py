@@ -30,6 +30,7 @@ __all__ = [
     'project_to_ground'
 ]
 
+
 class GroundFrame(BaseCoordinateFrame):
     """Ground coordinate frame.  The ground coordinate frame is a simple
     cartesian frame describing the 3 dimensional position of objects
@@ -65,7 +66,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     # direction
     pointing_direction = FrameAttribute(default=None)
 
-#Tranformations defined below this point
+# Transformations defined below this point
 
 
 def get_shower_trans_matrix(azimuth, altitude):
