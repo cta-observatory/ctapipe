@@ -18,3 +18,4 @@ class RecoShowerGeomAlgorithm(Component):
         Standard  `RecoShowerGeom` container
         """
         return RecoShowerGeom()
+
