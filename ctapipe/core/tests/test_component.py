@@ -5,7 +5,7 @@ from ctapipe.core import Component
 from abc import abstractmethod
 
 
-def test_componen_is_abstract():
+def test_component_is_abstract():
 
     class AbstractComponent(Component):
         @abstractmethod
