@@ -340,3 +340,4 @@ class GammaHadronClassification(Container):
         return_string += "Goodness of fit: {0:.2}\n".format(
             self.goodness_of_fit)
         return return_string
+
