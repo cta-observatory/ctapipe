@@ -253,8 +253,8 @@ class RecoShowerGeom(Container):
             self.core_x, self.core_y, self.core_uncert)
         return_string += "h_max: {0:.2} +- {1:.2}\n".format(
             self.h_max, self.h_max_uncert)
-        return_string += "average size: {0:.2} +- {1:.2}\n".format(
-            self.h_max, self.h_max_uncert)
+        return_string += "Average size: {0:.2}\n".format(
+            self.average_size)
         return_string += "Used telescopes: {}\n".format((self.tel_ids))
         return_string += "Valid reconstruction: {0}\n".format(self.is_valid)
         return_string += "Goodness of fit: {0:.2}\n".format(
@@ -298,7 +298,7 @@ class RecoEnergy(Container):
         return_string += "Used telescopes: {0}\n".format(
             np.array2string(self.tel_ids))
         return_string += "Valid reconstruction: {0}\n".format(self.is_valid)
-        return_string += "Goodness of fit: {0,.2}\n".format(
+        return_string += "Goodness of fit: {0:.2}\n".format(
             self.goodness_of_fit)
         return return_string
 
@@ -337,6 +337,6 @@ class GammaHadronClassification(Container):
         return_string += "Used telescopes: {0}\n".format(
             np.array2string(self.tel_ids))
         return_string += "Valid classification: {0}\n".format(self.is_valid)
-        return_string += "Goodness of fit: {0,.2}\n".format(
+        return_string += "Goodness of fit: {0:.2}\n".format(
             self.goodness_of_fit)
         return return_string
