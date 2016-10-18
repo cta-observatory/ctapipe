@@ -22,8 +22,6 @@ CHANGE LOG:
 
 from collections import namedtuple
 import numpy as np
-from numpy.testing import assert_allclose
-from scipy import stats
 from astropy.units import Quantity
 import astropy.units as u
 
