@@ -136,7 +136,9 @@ def simple_integration(data, params):
 
     No weighting of individual samples is applied.
 
-    Note: for multiple gains, this results in identical integration regions.
+    Notes
+    -----
+    For multiple gains, this results in identical integration regions.
 
     Parameters
     ----------

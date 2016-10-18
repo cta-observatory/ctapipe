@@ -49,9 +49,9 @@ commit* changes, you need to `Fork and Clone
 <https://help.github.com/articles/fork-a-repo/>`_ the main ctapipe
 repository (cta-observatory/ctapipe).
 
-+++++++++++
+++++++++++++
 Step 1: Fork
-+++++++++++
+++++++++++++
 
 Follow the instructions in the link above to make a *fork* of the
 ctapipe repo in your own GitHub userspace. That fork will be then
