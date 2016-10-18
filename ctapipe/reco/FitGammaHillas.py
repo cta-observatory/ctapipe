@@ -350,6 +350,10 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             the circle and the horizontal plane here we only care about
             the direction; not the orientation...
         '''
+
+        if test_function is None:
+            test_function = self._dist_to_traces
+
         zdir = np.array([0, 0, 1])
 
         for circle in self.circles.values():
