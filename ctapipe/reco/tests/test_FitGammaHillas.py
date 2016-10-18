@@ -25,7 +25,7 @@ def test_FitGammaHillas():
 
     for event in source:
 
-        Hillas_Dict = {}
+        hillas_dict = {}
         for tel_id in set(event.trig.tels_with_trigger) & set(event.dl0.tels_with_data):
             
 
@@ -45,14 +45,14 @@ def test_FitGammaHillas():
                 moments, moms2 = hillas_parameters(fit.cameras(tel_id)['PixX'],
                                                    fit.cameras(tel_id)['PixY'],
                                                    pmt_signal)
-                Hillas_Dict[tel_id] = moments
+                hillas_dict[tel_id] = moments
             except HillasParameterizationError as e :
                 print(e)
                 continue
         
-        if len(Hillas_Dict) < 2: continue
+        if len(hillas_dict) < 2: continue
     
-        fit_result = fit.predict(Hillas_Dict)
+        fit_result = fit.predict(hillas_dict)
         
         print(fit_result)
         assert fit_result
