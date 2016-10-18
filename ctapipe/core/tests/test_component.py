@@ -1,7 +1,19 @@
 import pytest
 from traitlets import Float, TraitError
 
-from .. import Component
+from ctapipe.core import Component
+from abc import abstractmethod
+
+
+def test_component_is_abstract():
+
+    class AbstractComponent(Component):
+        @abstractmethod
+        def test(self):
+            pass
+
+    with pytest.raises(TypeError):
+        AbstractComponent()
 
 
 def test_component_simple():
