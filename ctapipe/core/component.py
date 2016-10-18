@@ -53,7 +53,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp.some_option = 'test' # will fail validation
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         """
         Parameters
         ----------
