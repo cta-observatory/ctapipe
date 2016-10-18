@@ -5,7 +5,7 @@ from ctapipe.instrument.InstrumentDescription import load_hessio
 from ctapipe.utils.datasets import get_path
 
 from ctapipe.reco.FitGammaHillas import FitGammaHillas
-from ctapipe.image.hillas import hillas_parameters
+from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
 from ctapipe.io.hessio import hessio_event_source
@@ -46,7 +46,7 @@ def test_FitGammaHillas():
                                                    fit.cameras(tel_id)['PixY'],
                                                    pmt_signal)
                 Hillas_Dict[tel_id] = moments
-            except Exception as e :
+            except HillasParameterizationError as e :
                 print(e)
                 continue
         
