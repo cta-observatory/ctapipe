@@ -10,12 +10,7 @@ def all_subclasses(cls):
                                    for g in all_subclasses(s)]
 
 
-class AbstractMeta(type(Component), ABCMeta):
-    """Class to allow @abstractmethod to work"""
-    # TODO: remove once Component is made abstract
-
-
-class ChargeExtractor(Component, metaclass=AbstractMeta):
+class ChargeExtractor(Component):
     name = 'ChargeExtractor'
 
     def __init__(self, waveforms, parent=None, **kwargs):
