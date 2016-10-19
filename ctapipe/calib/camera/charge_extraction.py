@@ -51,6 +51,9 @@ class Integrator(ChargeExtractor):
 
         width[width > self.nsamples] = self.nsamples
         start[start < 0] = 0
+        print(start)
+        print(width)
+        print(self.nsamples)
         sum_check = start + width > self.nsamples
         start[sum_check] = self.nsamples - width[sum_check]
 
@@ -95,7 +98,7 @@ class FullIntegrator(Integrator):
         self.peakpos = [None, None]
 
     def get_window_width(self):
-        self.w_width = np.full((3, 5), self.nsamples)
+        self.w_width = np.full((self.nchan, self.npix), self.nsamples)
 
     def get_window_start(self):
         self.w_start[:] = 0
