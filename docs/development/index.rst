@@ -1,12 +1,10 @@
-=====================
-Development Resources
-=====================
+Development Guidelines
+======================
 
 .. toctree::
 
    style-guide
    code-guidelines
    support-libraries
-   maintainer-info
    pullrequests
-   futureplans
+   maintainer-info
