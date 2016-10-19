@@ -115,7 +115,7 @@ class HorizonFrame(BaseCoordinateFrame):
     The Following attributes are carried over from the telescope frame
     to allow a direct transformation from the camera frame
 
-   * ``array_direction``
+    * ``array_direction``
       Alt,Az direction of the array pointing
     * ``pointing_direction``
       Alt,Az direction of the telescope pointing
