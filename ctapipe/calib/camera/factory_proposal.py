@@ -2,25 +2,6 @@ from ctapipe.core.component import Component
 from abc import abstractmethod
 
 
-def all_subclasses(cls):
-    """
-    Return all base subclasses of a parent class. Finds the bottom level
-    subclasses that have no further children.
-    Parameters
-    ----------
-    cls : class
-        high level class object that contains the desired children classes
-
-    Returns
-    -------
-    list
-        list of bottom level subclasses
-
-    """
-    return cls.__subclasses__() + [g for s in cls.__subclasses__()
-                                   for g in all_subclasses(s)]
-
-
 class Factory(Component):
     """
     A base class for all class factories that exist in the `Tools`/`Components`
@@ -50,7 +31,7 @@ class Factory(Component):
         name = "myfactory"
         description = "do some things and stuff"
 
-        subclasses = all_subclasses(ParentClass)
+        subclasses = Factory.all_subclasses(ParentClass)
         subclass_names = [c.__name__ for c in subclasses]
 
         discriminator = Unicode('DefaultProduct',
@@ -60,7 +41,7 @@ class Factory(Component):
         def get_product_name(self):
             return self.discriminator
 
-        def get_product(self, product_args, parent=None,
+        def get_product(self, product_args=None, parent=None,
                         config=None, **kwargs):
             if not self.product:
                 self.init_product()
@@ -77,6 +58,25 @@ class Factory(Component):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.product = None
+
+    @staticmethod
+    def all_subclasses(cls):
+        """
+        Return all base subclasses of a parent class. Finds the bottom level
+        subclasses that have no further children.
+        Parameters
+        ----------
+        cls : class
+            high level class object that contains the desired children classes
+
+        Returns
+        -------
+        list
+            list of bottom level subclasses
+
+        """
+        return cls.__subclasses__() + [g for s in cls.__subclasses__()
+                                       for g in Factory.all_subclasses(s)]
 
     @abstractmethod
     def get_product_name(self):
@@ -96,10 +96,15 @@ class Factory(Component):
                        '{}'.format(self.get_product_name))
 
     @abstractmethod
-    def get_product(self, product_args, parent=None, config=None, **kwargs):
+    def get_product(self):
         """
         Abstract method to be implemented in child factory.
         If self.product has not been set, then call self.init_product. Then
         return a instance of product with the correct arguments passed to it
         (especially config=config).
+
+        All implementations of this function must have all arguments set with a
+        default so LSV is not violated:
+        https://en.wikipedia.org/wiki/Liskov_substitution_principle
         """
+        pass

@@ -1,13 +1,9 @@
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod
 import numpy as np
 from traitlets import Int, Unicode
 
 from ctapipe.core import Component
-
-
-def all_subclasses(cls):
-    return cls.__subclasses__() + [g for s in cls.__subclasses__()
-                                   for g in all_subclasses(s)]
+from ctapipe.calib.camera.factory_proposal import Factory
 
 
 class ChargeExtractor(Component):
@@ -245,12 +241,12 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         self.peakpos = sum_data.argmax(2)
 
 
-class ChargeExtractorFactory(Component):
+class ChargeExtractorFactory(Factory):
     name = "ChargeExtractorFactory"
     description = "Obtain ChargeExtractor based on extractor traitlet"
 
     # noinspection PyTypeChecker
-    subclasses = all_subclasses(ChargeExtractor)
+    subclasses = Factory.all_subclasses(ChargeExtractor)
     subclass_names = [c.__name__ for c in subclasses]
 
     extractor = Unicode('NeighbourPeakIntegrator',
@@ -274,10 +270,13 @@ class ChargeExtractorFactory(Component):
         raise KeyError('No subclass exists with name: '
                        '{}'.format(self.get_product_name()))
 
-    def get_product(self, waveforms, nei, parent=None, config=None, **kwargs):
+    def get_product(self, waveforms=None, nei=None,
+                    parent=None, config=None, **kwargs):
+        if not waveforms:
+            raise ValueError("waveforms must be specified")
         if not self.product:
             self.init_product()
         product = self.product
-        object_instance = product(waveforms, nei=nei,
+        object_instance = product(waveforms=waveforms, nei=nei,
                                   parent=parent, config=config, **kwargs)
         return object_instance
