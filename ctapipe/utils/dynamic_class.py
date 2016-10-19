@@ -21,18 +21,18 @@ def dynamic_class_from_module(class_name, module,  tool=None):
     """
     Create an instance of a class from a configuration service section name
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     module: str
         a python module file name. This module containe class to instantiate
     class_name: str
         python class name contained in module
 
-    Returns:
-    --------
+    Returns
+    -------
     A python object instance of a class_name
 
-    Raise:
+    Raises
     ------
     """
     if  module == None :

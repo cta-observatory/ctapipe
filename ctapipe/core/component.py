@@ -1,11 +1,18 @@
 """ Class to handle configuration for algorithms """
 
-from logging import getLogger
 from traitlets.config import Configurable
+from abc import ABCMeta
+from logging import getLogger
 
 
+class AbstractConfigurableMeta(type(Configurable), ABCMeta):
+    '''
+    Metaclass to be able to make Component abstract
+    see: http://stackoverflow.com/a/7314847/3838691
+    '''
 
-class Component(Configurable):
+
+class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called
     workers, makers, etc).  Components are are classes that do some sort
     of processing and contain user-configurable parameters, which are
@@ -27,9 +34,8 @@ class Component(Configurable):
     subclasses, which provide configuration handling and command-line
     tool generation.
 
-    .. note:: 
 
-    For example: 
+    For example:
 
     .. code:: python
 
@@ -45,13 +51,9 @@ class Component(Configurable):
         comp = MyComponent(None)
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
-
-
-    .. seealso:: 
-
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         """
         Parameters
         ----------
@@ -69,4 +71,3 @@ class Component(Configurable):
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
             self.log = getLogger(self.__class__.__name__)
-
