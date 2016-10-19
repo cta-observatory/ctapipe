@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 import scipy.constants as const
 from scipy.stats import norm
+from astropy.units import Quantity
 
 __all__ = [
     'kundu_chaudhuri_circle_fit',
@@ -21,25 +22,26 @@ def cherenkov_integral(lambda1, lambda2):
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
     '''
-    Fast, analytic calculation of circle center and radius from
-    x, y and weights. This should be pixel positions and photon equivalents
+    Fast, analytic calculation of circle center and radius for weighted data
+
+    Parameters
+    ----------
+    x: array-like or astropy quantity
+        x coordinates of the points
+    y: array-like or astropy quantity
+        y coordinates of the points
+    weights: array-like
+        weights of the points
 
     Reference:
     B. B. Chaudhuri und P. Kundu.
     "Optimum circular fit to weighted data in multi-dimensional space".
     In: Pattern Recognition Letters 14.1 (1993), S. 1–6
     '''
-    # handle astropy units
-    try:
-        unit = x.unit
-        assert x.unit == y.unit
-        x = x.value
-        y = y.value
-    except AttributeError:
-        unit = None
 
-    mean_x = np.average(x, weights=weights)
-    mean_y = np.average(y, weights=weights)
+    weights_sum = np.sum(weights)
+    mean_x = np.sum(x * weights) / weights_sum
+    mean_y = np.sum(y * weights) / weights_sum
 
     a1 = np.sum(weights * (x - mean_x) * x)
     a2 = np.sum(weights * (y - mean_y) * x)
@@ -53,15 +55,9 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     center_x = (b2 * c1 - b1 * c2) / (a1 * b2 - a2 * b1)
     center_y = (a2 * c1 - a1 * c2) / (a2 * b1 - a1 * b2)
 
-    radius = np.sqrt(np.average(
-        (center_x - x)**2 + (center_y - y)**2,
-        weights=weights,
-    ))
-
-    if unit:
-        radius *= unit
-        center_x *= unit
-        center_y *= unit
+    radius = np.sqrt(np.sum(
+        weights * ((center_x - x)**2 + (center_y - y)**2),
+    ) / weights_sum)
 
     return radius, center_x, center_y
 
