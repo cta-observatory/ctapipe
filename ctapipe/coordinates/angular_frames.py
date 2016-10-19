@@ -83,17 +83,8 @@ class NominalFrame(BaseCoordinateFrame):
     performed in this system
 
     Frame attributes:
-
     * ``array_direction``
       Alt,Az direction of the array pointing
-
-    The Following attributes are carried over from the telescope frame
-    to allow a direct transformation from the camera frame
-
-    * ``focal_length``
-      Focal length of the telescope
-    * ``rotation``
-      Rotation angle of the camera (0 in most cases) [deg]
     * ``pointing_direction``
       Alt,Az direction of the telescope pointing
 
@@ -115,10 +106,12 @@ class HorizonFrame(BaseCoordinateFrame):
     The Following attributes are carried over from the telescope frame
     to allow a direct transformation from the camera frame
 
+    Frame attributes:
     * ``array_direction``
       Alt,Az direction of the array pointing
     * ``pointing_direction``
       Alt,Az direction of the telescope pointing
+
     """
 
     default_representation = UnitSphericalRepresentation
@@ -132,6 +125,7 @@ class HorizonFrame(BaseCoordinateFrame):
 
     pointing_direction = FrameAttribute(default=None)
     array_direction = FrameAttribute(default=None)
+
 
 # Transformations defined below this point
 
@@ -247,6 +241,7 @@ def offset_to_altaz(x_off, y_off, azimuth, altitude):
 
     return obj_altitude.to(unit), obj_azimuth.to(unit)
 
+
 # Transformation between nominal and AltAz system
 
 
@@ -312,6 +307,7 @@ def altaz_to_nominal(altaz_coord, norm_coord):
 
     return norm_coord.realize_frame(representation)
 
+
 # Transformation between telescope and nominal frames
 
 
@@ -372,8 +368,7 @@ def nominal_to_telescope(norm_coord, tel_frame):
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
-    representation = PlanarRepresentation(x_off.to(norm_coord.x.unit),
-                                             y_off.to(norm_coord.x.unit))
+    representation = PlanarRepresentation(x_off.to(norm_coord.x.unit), y_off.to(norm_coord.x.unit))
 
     return tel_frame.realize_frame(representation)
 
