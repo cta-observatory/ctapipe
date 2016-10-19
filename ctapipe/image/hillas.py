@@ -7,7 +7,8 @@ TODO:
 * remove alpha calculation (which is only about (0,0), and make a get
   alpha function that does it from an arbitrary point given a
   pre-computed list of parameters
-* At present skewness and kurtosis are calculated by hand. Is there a scipy way of doing weighted statistics?
+* At present skewness and kurtosis are calculated by hand.
+  Is there a scipy way of doing weighted statistics?
 
 CHANGE LOG:
 -----------
@@ -16,7 +17,8 @@ CHANGE LOG:
 
 * Fixed disagreement in psi between the two versions.
 
-* Defined units for the returned parameters. Version 1 and version 2 are now compatible in units.
+* Defined units for the returned parameters.
+  Version 1 and version 2 are now compatible in units.
 
 """
 
@@ -107,8 +109,6 @@ def hillas_parameters_1(pix_x, pix_y, image):
     S_yyy = np.sum(image * (pix_y - mean_y) ** 3) / size
     S_xyy = np.sum(image * (pix_x - mean_x) * (pix_y - mean_y) ** 2) / size
     S_xxy = np.sum(image * (pix_y - mean_y) * (pix_x - mean_x) ** 2) / size
-    S_x4 = np.sum(image * (pix_x - mean_x) ** 4) / size
-    S_y4 = np.sum(image * (pix_y - mean_y) ** 4) / size
 
     # Sanity check2:
 
@@ -125,8 +125,9 @@ def hillas_parameters_1(pix_x, pix_y, image):
     # temp = d * d + 4 * S_xy * S_xy
     d2 = d0 + np.sqrt(d0 * d0 + d1 * d1)
     a = d2 / d1
-    # Angle between ellipse major ax. and x-axis of camera. Will be used for disp
-    psi = ((np.pi / 2.0) + np.arctan(a))   #in radians
+    # Angle between ellipse major ax. and x-axis of camera. Will be used for
+    # disp
+    psi = ((np.pi / 2.0) + np.arctan(a))  # note: in radians
     b = mean_y - a * mean_x
     # Sin & Cos Will be used for calculating higher order image parameters
     cos_psi = np.cos(psi)
@@ -154,6 +155,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     kurtosis = ((np.sum(image * np.power(sk, 4)) / size) /
                 ((np.sum(image * np.power(sk, 2)) / size) ** 2))
+
     asym3 = (np.power(cos_psi, 3) * S_xxx
              + 3.0 * np.power(cos_psi, 2) * sin_psi * S_xxy
              + 3.0 * cos_psi * np.power(sin_psi, 2) * S_xyy
@@ -167,14 +169,6 @@ def hillas_parameters_1(pix_x, pix_y, image):
     # pix_x[np.argmax(image)]) * cos_delta + (mean_y -
     # pix_y[np.argmax(image)]) * sin_delta
 
-    # Compute azwidth by transforming to (p, q) coordinates
-    sin_theta = mean_y / r
-    cos_theta = mean_x / r
-    q = (mean_x - pix_x) * sin_theta + (pix_y - mean_y) * cos_theta
-    m_q = np.sum(image * q) / size
-    m_qq = np.sum(image * q * q) / size
-    azwidth_2 = m_qq - m_q * m_q
-    azwidth = np.sqrt(azwidth_2)
 
     return (MomentParameters(size=size,
                              cen_x=mean_x * unit,
@@ -274,14 +268,11 @@ def hillas_parameters_2(pix_x, pix_y, image):
     length = np.sqrt((vx2 + vy2 + zz) / 2.0)
     rr = np.hypot(moms[0], moms[1])
 
-    azwidth = np.sqrt(moms[2] + moms[3] - zz)
-
-
     # rotation angle of ellipse relative to centroid
 
     tanpsi_numer = (dd + zz) * moms[1] + 2.0 * vxy * moms[0]
     tanpsi_denom = (2 * vxy * moms[1]) - (dd - zz) * moms[0]
-    psi = ((np.pi / 2.0) + np.arctan2(tanpsi_numer, tanpsi_denom)) #in radians
+    psi = ((np.pi / 2.0) + np.arctan2(tanpsi_numer, tanpsi_denom))  # note: in radians
     cos_psi = np.cos(psi)
     sin_psi = np.sin(psi)
 
@@ -296,7 +287,7 @@ def hillas_parameters_2(pix_x, pix_y, image):
                             sk * sk * sk,
                             sk * sk * sk * sk]) * image
 
-    hmoms = highmom.sum(axis = 1) / size
+    hmoms = highmom.sum(axis=1) / size
 
     skewness = hmoms[1] / hmoms[0] ** (3.0 / 2)
     kurtosis = hmoms[2] / hmoms[0] ** 2
@@ -310,9 +301,18 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     assert np.sign(skewness) == np.sign(asym)
 
-    return MomentParameters(size=size, cen_x=moms[0] * unit, cen_y=moms[1] * unit,
-                            length=length * unit, width=width * unit, r=rr * unit, phi=(phi * u.rad).to(u.deg),
-                            psi=(psi * u.rad).to(u.deg), miss=miss * unit), HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis, Asymmetry=asym)
+    return MomentParameters(size=size,
+                            cen_x=moms[0] * unit,
+                            cen_y=moms[1] * unit,
+                            length=length * unit,
+                            width=width * unit,
+                            r=rr * unit,
+                            phi=(phi * u.rad).to(u.deg),
+                            psi=(psi * u.rad).to(u.deg),
+                            miss=miss * unit), \
+           HighOrderMomentParameters(Skewness=skewness,
+                                     Kurtosis=kurtosis,
+                                     Asymmetry=asym)
 
 
 # use version 2 by default.
