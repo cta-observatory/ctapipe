@@ -50,9 +50,9 @@ basic guidelines:
 Logging and debugging
 ---------------------
   
-* do not use `print()` statments to output text. Instead use the
+* do not use `print()` statements to output text. Instead use the
   common logging failities of `ctapipe`.  Log messages should be
-  simple, and no not include the filename, funciton name, time, or any
+  simple, and no not include the filename, function name, time, or any
   other metadata (which can be attached automatically by the logging
   system)
 

@@ -69,7 +69,7 @@ facilitate the review procedure:
   - Read through the new code being contributed, and see that it
     follows the style guidelines and that the API
     
-   + no lines over 80 cols
+   + no lines over 90 cols (prefer 80, but some can go a bit over)
    + functions and variables are lower case, classes CamelCase, etc.
    + variable names give clear meaning
    + follows all other PEP8 conventions (run `pylint` or `flake8` to
