@@ -62,55 +62,122 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     return radius, center_x, center_y
 
 
-def psf_likelihood_fit(x, y, weights):
-    ''' Apply a gaussian likelihood for a muon ring
+def _psf_neg_log_likelihood(params, x, y, weights):
     '''
-    def _psf_likelihood_function(params, x, y, weights):
-        ''' negative log-likelihood for a gaussian ring profile '''
-        radius, center_x, center_y, sigma = params
-        pixel_distance = np.sqrt((center_x - x)**2 + (center_y - y)**2)
+    Negative log-likelihood for a gaussian ring profile
 
-        return np.sum(
-            (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
-        )
+    Parameters
+    ----------
+    params: 4-tuple
+        the fit parameters: (radius, center_x, center_y, std)
+    x: array-like
+        x coordinates
+    y: array-like
+        y coordinates
+    weights: array-like
+        weights for the (x, y) points
 
-    try:
-        unit = x.unit
-        assert x.unit == y.unit
-        x = x.value
-        y = y.value
-    except AttributeError:
-        unit = None
+    This will usually be x and y coordinates and pe charges of camera pixels
+    '''
+    radius, center_x, center_y, sigma = params
+    pixel_distance = np.sqrt((center_x - x)**2 + (center_y - y)**2)
+
+    return np.sum(
+        (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
+    )
+
+
+def psf_likelihood_fit(x, y, weights):
+    '''
+    Do a likelihood fit using a ring with gaussian profile.
+    Uses the kundu_chaudhuri_circle_fit for the initial guess
+
+
+
+    Parameters
+    ----------
+    x: array-like or astropy quantity
+        x coordinates of the points
+    y: array-like or astropy quantity
+        y coordinates of the points
+    weights: array-like
+        weights of the points
+
+    This will usually be x and y coordinates and pe charges of camera pixels
+
+    Returns
+    -------
+    radius: astropy-quantity
+        radius of the ring
+    center_x: astropy-quantity
+        x coordinate of the ring center
+    center_y: astropy-quantity
+        y coordinate of the ring center
+    std: astropy-quantity
+        standard deviation of the gaussian profile (indictor for the ring width)
+    '''
+
+    x = Quantity(x).decompose()
+    y = Quantity(y).decompose()
+    assert x.unit == y.unit
+    unit = x.unit
+    x = x.value
+    y = y.value
 
     start_r, start_x, start_y = kundu_chaudhuri_circle_fit(x, y, weights)
 
     result = minimize(
-        _psf_likelihood_function,
+        _psf_neg_log_likelihood,
         x0=(start_r, start_x, start_y, 5e-3),
         args=(x, y, weights),
-        method='Powell',
+        method='L-BFGS-B',
+        bounds=[
+            (0, None),      # radius should be positive
+            (None, None),
+            (None, None),
+            (0, None),      # std should be positive
+        ],
     )
 
     if not result.success:
         result.x = np.full_like(result.x, np.nan)
 
-    if unit:
-        return result.x * unit
-
-    return result.x
+    return result.x * unit
 
 
 def impact_parameter_chisq_fit(
         pixel_x,
         pixel_y,
         weights,
+        radius,
         center_x,
         center_y,
-        radius,
         mirror_radius,
         bins=30,
         ):
-    ''' Impact parameter calculation
+    '''
+    Impact parameter calculation for a ring fit before.
+    This is fitting the theoretical angular light distribution to the
+    observed binned angular light distribution using least squares
+
+    Parameters
+    ----------
+    pixel_x: array-like
+        x coordinates of the pixels
+    pixel_y: array-like
+        y coordinates of the pixels
+    weights: array-like
+        the weights for the pixel, usually this should be the pe_charge
+    radius: float
+        ring radius, for example estimated by psf_likelihood_fit
+    center_x: float
+        x coordinate of the ring center, for example estimated by psf_likelihood_fit
+    center_y: float
+        y coordinate of the ring center, for example estimated by psf_likelihood_fit
+    mirror_radius: float
+        the radius of the telescope mirror (circle approximation)
+    bins: int
+        how many bins to use for the binned fit
     '''
 
     phi = np.arctan2(pixel_y - center_y, pixel_x - center_x)
@@ -122,7 +189,11 @@ def impact_parameter_chisq_fit(
         x0=(mirror_radius / 2, bin_centers[np.argmax(hist)], 1),
         args=(bin_centers, hist, mirror_radius),
         method='L-BFGS-B',
-        bounds=[(0, None), (-np.pi, np.pi), (0, None)],
+        bounds=[
+            (0, None),         # impact parameter should be positive
+            (-np.pi, np.pi),   # orientation angle should be in -pi to pi
+            (0, None),         # scale should be positive
+        ],
     )
 
     if not result.success:
@@ -134,23 +205,41 @@ def impact_parameter_chisq_fit(
 
 
 def mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius):
-    ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
+    '''
+    Calculate the distance the muon light went across the telescope mirror
+    Function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11
+
+    Parameters
+    ----------
+    phi: float or array-like
+        the orientation angle on the ring
+    phi_max: float
+        position of the light maximum
+    impact_parameter: float
+        distance of the muon impact point from the mirror center
+    mirror_radius: float
+        radius of the telescope mirror (circle approximation)
+
+    Returns
+    -------
+    distance: float or array-like
+    '''
     phi = phi - phi_max
     ratio = impact_parameter / mirror_radius
     radicant = 1 - ratio**2 * np.sin(phi)**2
 
     if impact_parameter > mirror_radius:
-        D = np.empty_like(phi)
+        distance = np.empty_like(phi)
         mask = np.logical_and(
             phi < np.arcsin(1 / ratio),
             phi > -np.arcsin(1 / ratio)
         )
-        D[np.logical_not(mask)] = 0
-        D[mask] = 2 * mirror_radius * np.sqrt(radicant[mask])
+        distance[np.logical_not(mask)] = 0
+        distance[mask] = 2 * mirror_radius * np.sqrt(radicant[mask])
     else:
-        D = 2 * mirror_radius * (np.sqrt(radicant) + ratio * np.cos(phi))
+        distance = 2 * mirror_radius * (np.sqrt(radicant) + ratio * np.cos(phi))
 
-    return D
+    return distance
 
 
 def radial_light_intensity(
@@ -166,6 +255,27 @@ def radial_light_intensity(
     '''
     Amount of photons per azimuthal angle phi on the muon ring as given in
     G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11, formula (5)
+
+    Parameters
+    ----------
+    phi: float or array-like
+        the orientation angle on the ring
+    phi_max: float
+        position of the light maximum
+    impact_parameter: float
+        distance of the muon impact point from the mirror center
+    pixel_fov: float
+        field of view of the camera pixels in radian
+    mirror_radius: float
+        radius of the telescope mirror (circle approximation)
+    lambda1: float
+        lower integration limit over the cherenkov spectrum in meters
+    lambda2: float
+        upper integration limit over the cherenkov spectrum in meters
+
+    Returns
+    -------
+    light_density: float or array-like
     '''
 
     return (
@@ -196,6 +306,42 @@ def expected_pixel_light_content(
     '''
     Calculate the expected light content of each pixel for a muon ring with the
     given properties
+
+    Parameters
+    ----------
+    pixel_x: array-like
+        x coordinates of the pixels
+    pixel_y: array-like
+        y coordinates of the pixels
+    center_x: float
+        x coordinate of the ring center, for example estimated by psf_likelihood_fit
+    center_y: float
+        y coordinate of the ring center, for example estimated by psf_likelihood_fit
+    phi_max: float
+        position of the light maximum
+    cherenkov_angle: float
+        cherenkov_angle of the muon light
+    impact_parameter: float
+        distance of the muon impact point from the mirror center
+    sigma_pdf: float
+        standard deviation for the gaussian profile of the ring
+    pixel_fov: float
+        field of view of the camera pixels in radian
+    pixel_diameter: float
+        diameter of the pixels
+    mirror_radius: float
+        radius of the telescope mirror (circle approximation)
+    focal_length: float
+        focal legth of the telescope
+    lambda1: float
+        lower integration limit over the cherenkov spectrum in meters
+    lambda2: float
+        upper integration limit over the cherenkov spectrum in meters
+
+    Returns
+    -------
+    pe_charge: array-like
+        number of photons for each pixel given in pixel_x, pixel_y
     '''
     phi = np.arctan2(pixel_y - center_y, pixel_x - center_x)
     pixel_r = np.sqrt((pixel_x - center_x)**2 + (pixel_y - center_y)**2)
@@ -223,8 +369,47 @@ def efficiency_fit(
         lambda2=900e-9,
         ):
     '''
+    Estimate optical efficiency for a muon ring.
+    This is performing several steps:
+        1. fit r, x, y and width with the psf_likelihood_fit
+        2. fit impact parameter with impact_parameter_chisq_fit
+        3. calculate the theoretically expected light contents for each pixel
+           for the estimated parameters
+        4. calculate the ratio between the observed and the expected number
+        of photons.
     A Generic Algorithm for IACT Optical Efficiency Calibration using Muons,
     Allison Mitchell et al. arXiv: 1509.04258v1
+
+    Parameters
+    ----------
+    pe_charge: array-like
+        pe_charges of the pixels
+    pixel_x: array-like
+        x coordinates of the pixels
+    pixel_y: array-like
+        y coordinates of the pixels
+    pixel_fov: float
+        field of view of the camera pixels in radian
+    pixel_diameter: float
+        diameter of the pixels
+    mirror_radius: float
+        radius of the telescope mirror (circle approximation)
+    focal_length: float
+        focal legth of the telescope
+    lambda1: float
+        lower integration limit over the cherenkov spectrum in meters
+    lambda2: float
+        upper integration limit over the cherenkov spectrum in meters
+
+    Returns
+    -------
+    radius
+    center_x
+    center_y
+    sigma_psf
+    imp_par
+    phi_max
+    efficiency
     '''
 
     radius, center_x, center_y, sigma_psf = psf_likelihood_fit(
