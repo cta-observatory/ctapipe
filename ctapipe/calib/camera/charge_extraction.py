@@ -18,11 +18,15 @@ class AbstractMeta(type(Component), ABCMeta):
 class ChargeExtractor(Component, metaclass=AbstractMeta):
     name = 'ChargeExtractor'
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
 
         self.waveforms = waveforms
         self.nchan, self.npix, self.nsamples = waveforms.shape
+
+    @staticmethod
+    def require_neighbour():
+        return False
 
     @abstractmethod
     def extract_charge(self):
@@ -33,11 +37,11 @@ class ChargeExtractor(Component, metaclass=AbstractMeta):
 class Integrator(ChargeExtractor):
     name = 'Integrator'
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
-        self.window_width = np.zeros((self.nchan, self.npix), dtype=np.intp)
-        self.window_start = np.zeros((self.nchan, self.npix), dtype=np.intp)
+        self.w_width = np.zeros((self.nchan, self.npix), dtype=np.intp)
+        self.w_start = np.zeros((self.nchan, self.npix), dtype=np.intp)
 
         self.integration_window = np.zeros_like(self.waveforms, dtype=bool)
         self.windowed_waveforms = None
@@ -45,8 +49,8 @@ class Integrator(ChargeExtractor):
         self.peakpos = None
 
     def check_window_width_and_start(self):
-        width = self.window_width
-        start = self.window_start
+        width = self.w_width
+        start = self.w_start
         if width is None:
             raise ValueError('window width has not been set')
         if start is None:
@@ -54,18 +58,14 @@ class Integrator(ChargeExtractor):
         if not width.all():
             self.log.warn('all window_widths are zero')
 
-        print(width)
-
         width[width > self.nsamples] = self.nsamples
         start[start < 0] = 0
         sum_check = start + width > self.nsamples
         start[sum_check] = self.nsamples - width[sum_check]
 
-        print(width)
-
     def define_window(self):
-        start = self.window_start
-        end = start + self.window_width
+        start = self.w_start
+        end = start + self.w_width
 
         # Obtain integration window using the indices of the waveforms array
         ind = np.indices((self.nchan, self.npix, self.nsamples))[2]
@@ -99,7 +99,7 @@ class Integrator(ChargeExtractor):
 class FullIntegrator(Integrator):
     name = 'FullIntegrator'
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
         self.peakpos = [None, None]
 
@@ -107,19 +107,19 @@ class FullIntegrator(Integrator):
         self.window_width = np.full((3, 5), self.nsamples)
 
     def get_window_start(self):
-        self.window_start[:] = 0
+        self.w_start[:] = 0
 
 
 class WindowIntegrator(Integrator):
     name = 'WindowIntegrator'
-    window_width_arg = Int(7, help='Define the width of the integration '
+    window_width = Int(7, help='Define the width of the integration '
                                    'window').tag(config=True)
 
     def __init__(self, waveforms, parent, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
     def get_window_width(self):
-        self.window_width[:] = self.window_width_arg
+        self.w_width[:] = self.window_width
 
     @abstractmethod
     def get_window_start(self):
@@ -128,20 +128,20 @@ class WindowIntegrator(Integrator):
 
 class SimpleIntegrator(WindowIntegrator):
     name = 'SimpleIntegrator'
-    window_start_arg = Int(3, help='Define the start of the integration '
+    window_start = Int(3, help='Define the start of the integration '
                                    'window').tag(config=True)
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
         self.peakpos = [None, None]
 
     def get_window_start(self):
-        self.window_start[:] = self.window_start_arg
+        self.w_start[:] = self.window_start
 
 
 class PeakFindingIntegrator(WindowIntegrator):
     name = 'PeakFindingIntegrator'
-    window_shift_arg = Int(3, help='Define the shift of the integration '
+    window_shift = Int(3, help='Define the shift of the integration '
                                    'window from the peakpos '
                                    '(peakpos - shift').tag(config=True)
     sig_amp_cut_HG = Int(2, allow_none=True,
@@ -153,13 +153,13 @@ class PeakFindingIntegrator(WindowIntegrator):
                               'considered as significant for PeakFinding '
                               'in the LG channel').tag(config=True)
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
         self.sig_pixels = np.ones((self.nchan, self.npix))
         self.sig_channel = np.ones(self.nchan)
         self.significant_waveforms = self.waveforms
-        self.window_shift = np.zeros((self.nchan, self.npix), dtype=np.intp)
-        self.window_shift[:] = self.window_shift_arg
+        self.w_shift = np.zeros((self.nchan, self.npix), dtype=np.intp)
+        self.w_shift[:] = self.window_shift
 
     # Extract significant entries
     def extract_significant_entries(self):
@@ -180,9 +180,7 @@ class PeakFindingIntegrator(WindowIntegrator):
         self.find_peak()
         if self.peakpos is None:
             raise ValueError('peakpos has not been set')
-        print(self.peakpos.shape)
-        print(self.window_shift.shape)
-        self.window_start = self.peakpos - self.window_shift
+        self.window_start = self.peakpos - self.w_shift
 
     @abstractmethod
     def find_peak(self):
@@ -192,7 +190,7 @@ class PeakFindingIntegrator(WindowIntegrator):
 class GlobalPeakIntegrator(PeakFindingIntegrator):
     name = 'PeakFindingIntegrator'
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
     def find_peak(self):
@@ -214,7 +212,7 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
 class LocalPeakIntegrator(PeakFindingIntegrator):
     name = 'LocalPeakIntegrator'
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
     def find_peak(self):
@@ -230,9 +228,13 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
                       'only, 1: local pixel counts as much '
                       'as any neighbour').tag(config=True)
 
-    def __init__(self, waveforms, nei, parent, **kwargs):
+    def __init__(self, waveforms, nei=None, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
         self.nei = nei
+
+    @staticmethod
+    def require_neighbour():
+        return True
 
     def find_peak(self):
         self.peakpos = np.zeros((self.nchan, self.npix), dtype=np.int)
@@ -258,13 +260,27 @@ class ChargeExtractorFactory(Component):
                         .format(subclass_names)).tag(config=True)
 
     # TODO: temp extractor argument while factory classes are being defined
-    def __init__(self, extractor=None, parent=None, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
+        self.product = None
 
-        if extractor:
-            self.extractor = extractor
+    #abstract
+    def get_product_name(self):
+        return self.extractor
 
-    def get_extractor(self):
-        for c in self.subclasses:
-            if c.__name__ == self.extractor:
-                return c
+    def init_product(self, product_name=None):
+        if not product_name:
+            product_name = self.get_product_name()
+        for subclass in self.subclasses:
+            if subclass.__name__ == product_name:
+                self.product = subclass
+                return subclass
+        raise KeyError('No subclass exists with name: {}'.format(self.extractor))
+
+    #abstract
+    def get_product(self, waveforms, nei, parent=None, config=None, **kwargs):
+        if not self.product:
+            self.init_product()
+        product = self.product
+        object = product(waveforms, nei=nei, parent=parent, config=config, **kwargs)
+        return object
