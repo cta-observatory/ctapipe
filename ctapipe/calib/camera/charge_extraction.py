@@ -272,7 +272,7 @@ class ChargeExtractorFactory(Factory):
 
     def get_product(self, waveforms=None, nei=None,
                     parent=None, config=None, **kwargs):
-        if not waveforms:
+        if waveforms is None:
             raise ValueError("waveforms must be specified")
         if not self.product:
             self.init_product()
