@@ -45,7 +45,22 @@ class CustomLoader(KVArgParseConfigLoader):
 
 class FactoryTool(Tool):
     """
-    Proposal for complete relacement of Tool
+    Proposal for complete relacement of Tool.
+
+    When the factory class is specified in the `factories` Dict inside a `Tool`
+    the factory discriminator trailet is evaluated, and the resultant product
+    class is obtained (using `init_product()`) and added to the `classes` List.
+    All the traitlets of the class is automatically added to the `aliases`
+    Dict. This allows dynamic definition of command-line arguments depending
+    on the factory discriminator traitlet.
+
+    If help is requested at command line, it is not parsed in the CustomLoader,
+    but is instead parsed like normal after the factories have been evaluated,
+    therefore showing all the relavent arguments in the help message (depending
+    on the factory discriminator chosen in the command line)
+
+    The use of config files has not been tested, therefore the current version
+    may not work correctly for them.
     """
     factories = Dict(dict())
 
