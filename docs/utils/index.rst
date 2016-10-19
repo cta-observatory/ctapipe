@@ -1,8 +1,8 @@
 .. _utils:
 
-================
- Utilities
-================
+===================
+Utilities (`utils`)
+===================
 
 .. currentmodule:: ctapipe.utils
 

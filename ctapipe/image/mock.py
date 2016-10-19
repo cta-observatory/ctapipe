@@ -17,7 +17,7 @@ Example:
 """
 import numpy as np
 from scipy.stats import multivariate_normal
-from ..utils import linalg
+from ctapipe.utils import linalg
 
 __all__ = [
     'generate_2d_shower_model',

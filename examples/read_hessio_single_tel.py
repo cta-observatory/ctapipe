@@ -11,19 +11,19 @@ sequence to find ones with the appropriate telescope, therefore this
 is not a fast operation)
 """
 
-from ctapipe.utils.datasets import get_example_simtelarray_file
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe import visualization, io, reco
-from matplotlib import pyplot as plt
-import numpy as np
-from astropy import units as u
-import pyhessio
-from ctapipe.instrument import InstrumentDescription as ID
-from ctapipe.coordinates import CameraFrame, NominalFrame, TelescopeFrame
-import astropy.units as u
-
-import logging
 import argparse
+import logging
+
+import astropy.units as u
+import numpy as np
+import pyhessio
+from ctapipe import visualization, io, reco
+from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.instrument import InstrumentDescription as ID
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils.datasets import get_example_simtelarray_file
+from matplotlib import pyplot as plt
+
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
             disp.image = im
 
             if args.hillas:
-                clean_mask = reco.cleaning.tailcuts_clean(geom,im,1,picture_thresh=10,boundary_thresh=5)
+                clean_mask = ctapipe.image.cleaning.tailcuts_clean(geom, im, 1, picture_thresh=10, boundary_thresh=5)
                 camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
                 nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],

@@ -30,8 +30,8 @@ class Container:
     kwargs: key=value
         initial data (`add_item` is called automatically for each)
 
-    Example
-    -------
+    Examples
+    --------
     >>> data = Container("data")
     >>> data.add_item("x")
     >>> data.x = 3

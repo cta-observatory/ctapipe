@@ -4,11 +4,11 @@ Create a mock event stream of array events
 """
 import logging
 
-from .containers import RawData, RawCameraData
-from ctapipe.core import Container
-from ctapipe.reco import mock
 import numpy as np
+from ctapipe.image import mock
 from scipy.stats import norm
+
+from .containers import RawCameraData
 
 logger = logging.getLogger(__name__)
 

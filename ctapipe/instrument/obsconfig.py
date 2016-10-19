@@ -35,17 +35,18 @@ __all__ = [
 
 def get_site_id_for_run(run_id):
     """ lookup which array and version was used for a given run """
-    
+
     return site_id, version
 
 def get_site_id_for_time(obstime):
     """lookup which array and version was used for a given obstime
     (astropy.time.Time)
 
-    Example::
-        aid,aver = get_site_id_for_time( Time("2015-01-01", scale='utc') ) 
+    :Example:
+
+    aid, aver = get_site_id_for_time( Time("2015-01-01", scale='utc') )
     """
-    
+
     return site_id, version
 
 
@@ -61,7 +62,7 @@ class CameraConfig(BaseConfig):
         self.site_id = site_id
         self.version = version
         self.tel_id = tel_id
-        
+
         # the following are to be loaded:
         self.version_id =version_id
         self.pixel_type = "hexagonal"
@@ -85,7 +86,7 @@ class TelescopeTriggerConfig(BaseConfig):
     """ Contains trigger info for a given run_type """
     pass
 
-        
+
 class TelescopeConfig(BaseConfig):
 
     """Configuration of a single Telescope, including it's optics and
@@ -105,7 +106,7 @@ class TelescopeConfig(BaseConfig):
 class ArrayConfig(BaseConfig):
     """Overall description of an array (including all telescope that are
     built or forseen. This is not a subarray"""
-    
+
     def __init__(self, site_id, version):
 
         self._site_id = site_id
@@ -116,7 +117,7 @@ class ArrayConfig(BaseConfig):
         TelescopeConfigPartial = partial(TelescopeConfig, site_id=site_id,
                                          version=version)
         self._telconfig = defaultdict(TelescopeConfigPartial)
-        
+
         # the telescope positions and ids indexed by index (0-N)
         self.tel_x = []
         self.tel_y = []
@@ -143,7 +144,7 @@ class OpticsConfig(BaseConfig):
     """Definition of Telescope Optics, including information on the
     overall mirror characteristics and the fascets
     """
-    
+
     def __init__(self, site_id, version, tel_id):
         super(OpticsConfig, self).__init__()
         self.site_id = site_id
@@ -186,7 +187,7 @@ class ObsConfig(BaseConfig):
         # trigger type info
         self._trigger = TriggerConfig(run_id)
 
-        
+
 class SimObsConfig(ObsConfig):
     """ObsConfig from a simulation run.
     """

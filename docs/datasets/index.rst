@@ -1,8 +1,8 @@
 .. _datasets:
 
-==========
- Datasets
-==========
+=====================
+Datasets (`datasets`)
+=====================
 
 .. currentmodule:: ctapipe.datasets
 
