@@ -1,3 +1,4 @@
+=====================
 Development Resources
 =====================
 
@@ -6,5 +7,6 @@ Development Resources
    style-guide
    code-guidelines
    support-libraries
-   futureplans
    maintainer-info
+   pullrequests
+   futureplans
