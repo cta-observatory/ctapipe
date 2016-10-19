@@ -12,7 +12,7 @@ def all_subclasses(cls):
 
 class AbstractMeta(type(Component), ABCMeta):
     """Class to allow @abstractmethod to work"""
-    # TODO: remove one Component is made abstract
+    # TODO: remove once Component is made abstract
 
 
 class ChargeExtractor(Component, metaclass=AbstractMeta):
@@ -104,7 +104,7 @@ class FullIntegrator(Integrator):
         self.peakpos = [None, None]
 
     def get_window_width(self):
-        self.window_width = np.full((3, 5), self.nsamples)
+        self.w_width = np.full((3, 5), self.nsamples)
 
     def get_window_start(self):
         self.w_start[:] = 0
@@ -113,7 +113,7 @@ class FullIntegrator(Integrator):
 class WindowIntegrator(Integrator):
     name = 'WindowIntegrator'
     window_width = Int(7, help='Define the width of the integration '
-                                   'window').tag(config=True)
+                               'window').tag(config=True)
 
     def __init__(self, waveforms, parent, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
@@ -129,7 +129,7 @@ class WindowIntegrator(Integrator):
 class SimpleIntegrator(WindowIntegrator):
     name = 'SimpleIntegrator'
     window_start = Int(3, help='Define the start of the integration '
-                                   'window').tag(config=True)
+                               'window').tag(config=True)
 
     def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
@@ -141,9 +141,9 @@ class SimpleIntegrator(WindowIntegrator):
 
 class PeakFindingIntegrator(WindowIntegrator):
     name = 'PeakFindingIntegrator'
-    window_shift = Int(3, help='Define the shift of the integration '
-                                   'window from the peakpos '
-                                   '(peakpos - shift').tag(config=True)
+    window_shift = Int(3, help='Define the shift of the integration window '
+                               'from the peakpos '
+                               '(peakpos - shift').tag(config=True)
     sig_amp_cut_HG = Int(2, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
@@ -180,7 +180,7 @@ class PeakFindingIntegrator(WindowIntegrator):
         self.find_peak()
         if self.peakpos is None:
             raise ValueError('peakpos has not been set')
-        self.window_start = self.peakpos - self.w_shift
+        self.w_start = self.peakpos - self.w_shift
 
     @abstractmethod
     def find_peak(self):
@@ -251,6 +251,9 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
 
 
 class ChargeExtractorFactory(Component):
+    name = "ChargeExtractorFactory"
+    description = "Obtain ChargeExtractor based on extractor traitlet"
+
     # noinspection PyTypeChecker
     subclasses = all_subclasses(ChargeExtractor)
     subclass_names = [c.__name__ for c in subclasses]
@@ -259,12 +262,10 @@ class ChargeExtractorFactory(Component):
                         help='Charge extraction scheme to use: {}'
                         .format(subclass_names)).tag(config=True)
 
-    # TODO: temp extractor argument while factory classes are being defined
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.product = None
 
-    #abstract
     def get_product_name(self):
         return self.extractor
 
@@ -275,12 +276,13 @@ class ChargeExtractorFactory(Component):
             if subclass.__name__ == product_name:
                 self.product = subclass
                 return subclass
-        raise KeyError('No subclass exists with name: {}'.format(self.extractor))
+        raise KeyError('No subclass exists with name: '
+                       '{}'.format(self.get_product_name()))
 
-    #abstract
     def get_product(self, waveforms, nei, parent=None, config=None, **kwargs):
         if not self.product:
             self.init_product()
         product = self.product
-        object = product(waveforms, nei=nei, parent=parent, config=config, **kwargs)
-        return object
+        object_instance = product(waveforms, nei=nei,
+                                  parent=parent, config=config, **kwargs)
+        return object_instance
