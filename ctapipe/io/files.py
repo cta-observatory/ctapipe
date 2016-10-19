@@ -36,10 +36,10 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 
 
-def oxpytools_source(filepath, max_events=None):
+def targetio_source(filepath, max_events=None):
     """
     Temporary function to return a "source" generator from a targetio file,
-    only if oxpytools exists on this python interpreter.
+    only if targetpipe exists on this python interpreter.
 
     Parameters
     ----------
@@ -55,30 +55,19 @@ def oxpytools_source(filepath, max_events=None):
         a targetio file.
     """
 
-    # Check oxpytools is installed
+    # Check targetpipe is installed
     try:
         import importlib
-        oxpytools_spec = importlib.util.find_spec("oxpytools")
-        found = oxpytools_spec is not None
+        targetpipe_spec = importlib.util.find_spec("targetpipe")
+        found = targetpipe_spec is not None
         if found:
-            from oxpytools.io.targetio import targetio_event_source
+            from targetpipe.io.targetio import targetio_event_source
             return targetio_event_source(filepath, max_events=max_events)
         else:
             raise RuntimeError()
     except RuntimeError:
-        log.exception("oxpytools is not installed on this interpreter")
+        log.exception("targetpipe is not installed on this interpreter")
         raise
-
-
-def origin_list():
-    """
-    Returns
-    -------
-    origins : list
-        List of all the origins that have a method for reading
-    """
-    origins = ['hessio', 'targetio']
-    return origins
 
 
 class InputFile:
@@ -144,6 +133,17 @@ class InputFile:
         self.extension = splitext(self.__input_path)[1]
         self.output_directory = join(self.directory, self.filename)
 
+    @staticmethod
+    def origin_list():
+        """
+        Returns
+        -------
+        origins : list
+            List of all the origins that have a method for reading
+        """
+        origins = ['hessio', 'targetio']
+        return origins
+
     def read(self, max_events=None):
         """
         Read the file using the appropriate method depending on the file origin
@@ -160,19 +160,23 @@ class InputFile:
         """
 
         # Obtain relevent source
+        log.debug("[file] Reading file...")
+        if max_events:
+            log.info("[file] Max events being read = {}".format(max_events))
         switch = {
             'hessio':
                 lambda: hessio_event_source(get_path(self.input_path),
                                             max_events=max_events),
             'targetio':
-                lambda: oxpytools_source(self.input_path,
-                                         max_events=max_events),
+                lambda: targetio_source(self.input_path,
+                                        max_events=max_events),
         }
         try:
             source = switch[self.origin]()
         except KeyError:
             log.exception("unknown file origin '{}'".format(self.origin))
             raise
+        log.debug("[file] Reading complete")
 
         return source
 
@@ -192,6 +196,10 @@ class InputFile:
         event : `ctapipe` event-container
 
         """
+        if not id_flag:
+            log.info("[file][read] Finding event index {}...".format(event_req))
+        else:
+            log.info("[file][read] Finding event id {}...".format(event_req))
         source = self.read()
         for event in source:
             event_id = event.dl0.event_id
@@ -199,7 +207,23 @@ class InputFile:
             if not index == event_req:
                 log.debug("[event_id] skipping event: {}".format(event_id))
                 continue
+            log.info("[file] Event {} found".format(event_req))
             return event
+        log.info("[file][read] Event does not exist!")
+        return None
+
+    def get_list_of_event_ids(self, max_events=None):
+        log.info("[file][read] Building list of event ids...")
+        l = []
+        source = self.read(max_events)
+        if self.origin is 'targetio':
+            event = next(source)
+            l = range(event.meta.n_events)
+        else:
+            for event in source:
+                l.append(event.dl0.event_id)
+        log.info("[file] Number of events = {}".format(len(l)))
+        return l
 
     def find_max_true_npe(self, telescopes=None, max_events=None):
         """
@@ -218,7 +242,7 @@ class InputFile:
         max_pe : int
 
         """
-        log.info("[file] Finding maximum true npe inside file")
+        log.info("[file][read] Finding maximum true npe inside file...")
         source = self.read(max_events)
         max_pe = 0
         for event in source:
@@ -242,5 +266,6 @@ class InputFile:
                 this_max = np.max(pe)
                 if this_max > max_pe:
                     max_pe = this_max
+        log.info("[file] Maximum true npe = {}".format(max_pe))
 
         return max_pe

@@ -1,5 +1,7 @@
-from traitlets.config import Configurable
+""" Class to handle configuration for algorithms """
+
 from logging import getLogger
+from traitlets.config import Configurable
 
 
 class Component(Configurable):
@@ -24,13 +26,16 @@ class Component(Configurable):
     subclasses, which provide configuration handling and command-line
     tool generation.
 
+
+    For example:
+
     .. code:: python
 
         from ctapipe.core import Component
         from traitlets import (Integer, Float)
 
         class MyComponent(Component):
-            description = "Does something"
+            \"\"\" Does something \"\"\"
             some_option = Integer(default_value=6,
                                   help='a value to set').tag(config=True)
 
@@ -59,3 +64,4 @@ class Component(Configurable):
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
             self.log = getLogger(self.__class__.__name__)
+

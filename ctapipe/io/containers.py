@@ -5,7 +5,24 @@ from ctapipe.core import Container
 import numpy as np
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
+__all__ = ['EventContainer', 'RawData', 'RawCameraData', 'MCShowerData', 'MCEvent',
+            'MCCamera', 'CalibratedCameraData', 'MuonRingParameter', 'MuonIntensityParameter']
+
+
+class EventContainer(Container):
+    """ Top-level container for all event information """
+    def __init__(self, name="Event"):
+        self.add_item("dl0", RawData())
+        self.add_item("mc", MCEvent())
+        self.add_item("trig", CentralTriggerData())
+        self.add_item("count")
+
+        self.meta.add_item('tel_pos', dict())
+        self.meta.add_item('pixel_pos', dict())
+        self.meta.add_item('optical_foclen', dict())
+        self.meta.add_item('mirror_dish_area', dict())
+        self.meta.add_item('mirror_numtiles', dict())
+        self.meta.add_item('source', "unknown")
 
 
 class RawData(Container):
@@ -52,6 +69,7 @@ class MCShowerData(Container):
         return_string += "core x:   {0:.4}\n".format(self.core_x)
         return_string += "core y:   {0:.4}"  .format(self.core_y)
         return return_string
+
 
 class MCEvent(MCShowerData):
     """
@@ -100,7 +118,6 @@ class MCCamera(Container):
         self.add_item('refstep')
         self.add_item('lrefshape')
         self.add_item('time_slice')
-
 
 
 class RawCameraData(Container):
@@ -165,3 +182,95 @@ class CalibratedCameraData(Container):
         self.add_item('num_channels')
         self.add_item('num_pixels')
         self.add_item('calibration_parameters', dict())
+
+
+class MuonRingParameter(Container):
+    """
+    Storage of muon ring fit output
+
+    Parameters
+    ----------
+
+    run_id : int
+        run number
+    event_id : int
+        event number
+    ring_center_x, ring_center_y, ring_radius:
+        center position and radius of the fitted ring
+    ring_chi2_fit:
+        chi squared of the ring fit
+    ring_cov_matrix:
+        covariance matrix of ring parameters
+    """
+
+    def __init__(self, name="MuonRingParameter"):
+        super().__init__(name)
+        self.add_item('run_id')
+        self.add_item('event_id')
+        self.add_item('ring_center_x')
+        self.add_item('ring_center_y')
+        self.add_item('ring_radius')
+        self.add_item('ring_chi2_fit')
+        self.add_item('ring_cov_matrix')
+        self.meta.add_item('ring_fit_method')
+        self.meta.add_item('inputfile')
+
+
+class MuonIntensityParameter(Container):
+    """
+    Storage of muon intensity fit output
+
+    Parameters
+    ----------
+
+    run_id : int
+        run number
+    event_id : int
+        event number
+    impact_parameter: float
+        reconstructed impact parameter
+    impact_parameter_chi2:
+        chi squared impact parameter
+    intensity_cov_matrix:
+        Covariance matrix of impact parameters or alternatively:
+        full 5x5 covariance matrix for the complete fit (ring + impact)
+    impact_parameter_pos_x, impact_parameter_pos_y:
+        position on the mirror of the muon impact
+    COG_x, COG_y:
+        center of gravity
+    optical_efficiency_muon:
+        optical muon efficiency from intensity fit
+    ring_completeness:
+        completeness of the ring
+    ring_num_pixel: int
+        Number of pixels composing the ring
+    ring_size:
+        ring size
+    off_ring_size:
+        size outside of the ring
+    ring_width:
+        ring width
+    ring_time_width:
+        standard deviation of the photons time arrival
+    """
+
+    def __init__(self, name="MuonIntensityParameter"):
+        super().__init__(name)
+        self.add_item('run_id')
+        self.add_item('event_id')
+        self.add_item('ring_completeness')
+        self.add_item('ring_num_pixel')
+        self.add_item('ring_size')
+        self.add_item('off_ring_size')
+        self.add_item('ring_width')
+        self.add_item('ring_time_width')
+        self.add_item('impact_parameter')
+        self.add_item('impact_parameter_chi2')
+        self.add_item('intensity_cov_matrix')
+        self.add_item('impact_parameter_pos_x')
+        self.add_item('impact_parameter_pos_y')
+        self.add_item('COG_x')
+        self.add_item('COG_y')
+        self.add_item('optical_efficiency_muon')
+        self.meta.add_item('intensity_fit_method')
+        self.meta.add_item('inputfile')

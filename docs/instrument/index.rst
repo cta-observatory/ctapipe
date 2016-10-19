@@ -1,8 +1,8 @@
 .. _instrument:
 
-===========
- Instrument
-===========
+=========================
+Instrument (`instrument`)
+=========================
 
 .. currentmodule:: ctapipe.instrument
 

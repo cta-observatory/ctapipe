@@ -8,8 +8,7 @@ __all__ = ['Histogram']
 
 
 class Histogram:
-    """A simple N-dimensional histogram class that can be written or read
-    from a FITS file. 
+    """An N-D histogram class with FITS image I/O. 
 
     The output FITS file will contain an ImageHDU datacube and
     associated WCS headers to describe the axes of the histogram.
@@ -313,7 +312,7 @@ class Histogram:
 
         pyplot.pcolormesh(self.bin_lower_edges[dims[0]],
                           self.bin_lower_edges[dims[1]],
-                          self.hist.transpose(), **kwargs)
+                          self.hist, **kwargs)
         pyplot.title(self.name)
         pyplot.xlabel(self.axisNames[dims[0]])
         pyplot.ylabel(self.axisNames[dims[1]])

@@ -12,7 +12,6 @@ import numpy as np
 import logging
 import copy
 from astropy import units as u
-from ctapipe.coordinates import CameraFrame, NominalFrame
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -131,6 +130,11 @@ class CameraDisplay:
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
 
+        self.pixel_highlighting = copy.copy(self.pixels)
+        self.pixel_highlighting.set_facecolor('none')
+        self.pixel_highlighting.set_linewidth(0)
+        self.axes.add_collection(self.pixel_highlighting)
+
         # Set up some nice plot defaults
 
         self.axes.set_aspect('equal', 'datalim')
@@ -149,11 +153,11 @@ class CameraDisplay:
         self._active_pixel.set_visible(False)
         self.axes.add_patch(self._active_pixel)
 
-        self._active_pixel_label = plt.text(self._active_pixel.xy[0],
-                                            self._active_pixel.xy[1],
-                                            "0",
-                                            horizontalalignment='center',
-                                            verticalalignment='center')
+        self._active_pixel_label = self.axes.text(self._active_pixel.xy[0],
+                                                  self._active_pixel.xy[1],
+                                                  "0",
+                                                  horizontalalignment='center',
+                                                  verticalalignment='center')
         self._active_pixel_label.set_visible(False)
 
         # enable ability to click on pixel and do something (can be
@@ -168,6 +172,31 @@ class CameraDisplay:
             self.image = np.zeros_like(self.geom.pix_id, dtype=np.float)
 
         self.norm = norm
+
+    def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
+        '''
+        Highlight the given pixels with a colored line around them
+
+        Parameters
+        ----------
+        pixels : index-like
+            The pixels to highlight.
+            Can either be a list or array of integers or a
+            boolean mask of length number of pixels
+        color: a matplotlib conform color
+            the color for the pixel highlighting
+        linewidth: float
+            linewidth of the highlighting in points
+        alpha: 0 <= alpha <= 1
+            The transparency
+        '''
+
+        l = np.zeros_like(self.image)
+        l[pixels] = linewidth
+        self.pixel_highlighting.set_linewidth(l)
+        self.pixel_highlighting.set_alpha(alpha)
+        self.pixel_highlighting.set_edgecolor(color)
+        self.update()
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
@@ -277,7 +306,7 @@ class CameraDisplay:
     def add_colorbar(self, **kwargs):
         """
         add a colobar to the camera plot
-        kwargs are passed to figure.colorbar(self.pixels, **kwargs)
+        kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
         """
@@ -342,9 +371,14 @@ class CameraDisplay:
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
         pix_id = event.ind[-1]
-        xx, yy = u.Quantity(self.geom.pix_x[pix_id]).value,\
-                 u.Quantity(self.geom.pix_y[pix_id]).value
-        self._active_pixel.xy = (xx, yy)
+        xx, yy, aa = u.Quantity(self.geom.pix_x[pix_id]).value, \
+                     u.Quantity(self.geom.pix_y[pix_id]).value, \
+                     u.Quantity(np.array(self.geom.pix_area)[pix_id])
+        if self.geom.pix_type.startswith("hex"):
+            self._active_pixel.xy = (xx, yy)
+        else:
+            rr = sqrt(aa)
+            self._active_pixel.xy = (xx - rr / 2., yy - rr / 2.)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
         self._active_pixel_label.set_y(yy)

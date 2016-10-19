@@ -15,9 +15,9 @@ class PrepareDisplayStep(Component):
         self.fig = plt.figure(figsize=(16, 7))
         return True
 
-    def run(self,parameters):
+    def run(self,inputs):
         self.log.debug("--- PrepareDisplayStep RUN ---")
-        calibrated_event,  geom_dict = parameters
+        calibrated_event,  geom_dict = inputs
         for tel_id in calibrated_event.dl0.tels_with_data:
             self.fig.clear()
             cam_dimensions = (calibrated_event.dl0.tel[tel_id].num_pixels,
@@ -40,6 +40,7 @@ class PrepareDisplayStep(Component):
             # If the geometery has not already been added to geom_dict, it will
             # be added in CameraPlotter
             plotter = CameraPlotter(calibrated_event, geom_dict)
+
             signals = calibrated_event.dl1.tel[tel_id].pe_charge
             camera1 = plotter.draw_camera(tel_id, signals, ax1)
             cmaxmin = (max(signals) - min(signals))
@@ -56,7 +57,7 @@ class PrepareDisplayStep(Component):
             except:
                 camera1.pixels.set_cmap('jet')
             ax1.set_title("CT {} ({}) - Mean pixel charge"
-                          .format(tel_id, geom_dict[cam_dimensions].cam_id))
+                          .format(tel_id, geom_dict[tel_id].cam_id))
             if not calibrated_event.dl1.tel[tel_id].peakpos[0] is None:
                 ax2 = self.fig.add_subplot(1, npads, npads)
                 times = calibrated_event.dl1.tel[tel_id].peakpos
@@ -77,7 +78,7 @@ class PrepareDisplayStep(Component):
                 except:
                     camera2.pixels.set_cmap('jet')
                 ax2.set_title("CT {} ({}) - Pixel peak position"
-                              .format(tel_id, geom_dict[cam_dimensions].cam_id))
+                              .format(tel_id, geom_dict[tel_id].cam_id))
             yield self.fig
         self.log.debug("--- PrepareDisplayStep END ---")
 

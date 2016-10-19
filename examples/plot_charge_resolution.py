@@ -1,6 +1,8 @@
 import argparse
 import glob
 import os
+
+import sys
 from astropy import log
 from os.path import basename, splitext, dirname
 import numpy as np
@@ -10,23 +12,22 @@ from math import log10, floor, ceil
 import warnings
 
 from ctapipe.utils.datasets import get_path
-from ctapipe.io.files import InputFile, origin_list
+from ctapipe.io.files import InputFile
 from ctapipe.calib.camera.calibrators import calibration_parameters, \
-    calibrate_source, calibration_arguments
+    calibrate_source
 from ctapipe.analysis.camera.chargeresolution import ChargeResolution
 
 
 def argparsing():
     parser = argparse.ArgumentParser(
-        description='Display each event in the file')
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', dest='input_paths',
                         default=[get_path('gamma_test.simtel.gz')], nargs='*',
                         help='path to the input files to be combined for a '
-                             'single charge resolution. '
-                             'Default = gamma_test.simtel.gz')
+                             'single charge resolution.')
     parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        default='hessio', help='origin of the file: {}'
-                        .format(origin_list()))
+                        choices=InputFile.origin_list(),
+                        default='hessio', help='origin of the file')
     parser.add_argument('-t', '--telescope', dest='tel', action='store',
                         type=int, default=None, nargs='*',
                         help='list of telecopes to be included. '
@@ -47,10 +48,10 @@ def argparsing():
                         default=None, type=float,
                         help='maximum pe to plot up to. Default = maxpe')
     parser.add_argument('-B', '--binning', dest='binning', action='store',
-                        default="log",
+                        default="log", choices=['none', 'normal', 'log'],
                         help='binning of the charge resoltion graph: '
                              '"none" = no binning, "normal" = bin, '
-                             '"log" = bin in log space. Default = log')
+                             '"log" = bin in log space.')
     parser.add_argument('--normalx', dest='normalx', action='store_true',
                         default=False,
                         help='Use a normal x axis instead of the defualt log'
@@ -69,8 +70,14 @@ def argparsing():
                              'can allow complex combinations of files and '
                              'calibrations to compare the charge resolution '
                              'against each other.')
-
-    calibration_arguments(parser)
+    parser.add_argument('--chargeres-names', dest='chargeres_names',
+                        default=['default'], nargs='*',
+                        help='chargres calculation to include in plot. '
+                             'Only used for runcards.')
+    parser.add_argument('--calib-help', dest='calib_help', action='store_true',
+                        default=False,
+                        help='display the arguments used for the camera '
+                             'calibration')
 
     logger_detail = parser.add_mutually_exclusive_group()
     logger_detail.add_argument('-q', '--quiet', dest='quiet',
@@ -83,7 +90,7 @@ def argparsing():
                                action='store_true', default=False,
                                help='Debug mode')
 
-    args = parser.parse_args()
+    args, excess_args = parser.parse_known_args()
 
     if args.quiet:
         log.setLevel(40)
@@ -91,6 +98,11 @@ def argparsing():
         log.setLevel(20)
     if args.debug:
         log.setLevel(10)
+
+    if args.calib_help:
+        params, unknown_args = calibration_parameters(excess_args,
+                                                      args.origin,
+                                                      args.calib_help)
 
     if args.example:
         print("""
@@ -130,53 +142,51 @@ def argparsing():
 # A plotting block configures an output plot
 
 [plot] normal_plot
-[chargeres_names] test_file_local test_file_nei
+--chargeres-names test_file_local test_file_nei
 -o ~/Downloads/normal_plot.pdf
 --binning normal
 --normalx
 --normaly
 
 [plot] log_plot
-[chargeres_names] test_file_local test_file_nei
+--chargeres-names test_file_local test_file_nei
 -o ~/Downloads/log_plot.pdf""")
         exit()
+
+    chargeres_cmdlines = {}
+    plot_cmdlines = {}
+
     if args.runcard is None:
-        name = splitext(basename(args.input_paths[0]))[0]
-        args.chargeres_names = [name]
+        name = args.chargeres_names[0]
+        chargeres_cmdlines[name] = sys.argv[1:]
+        plot_cmdlines[name] = sys.argv[1:]
         chargeres_args = {name: args}
         plot_args = {name: args}
     else:
         chargeres_args = {}
         plot_args = {}
-        chargeres_cmdline = {}
-        plot_cmdline = {}
-        plot_chargeres_names = {}
         current = None
-        name = ''
         runcard = open(args.runcard)
         for line in runcard:
             if line.strip() and not line.startswith('#'):
                 argument = line.split()[0]
                 if argument == '[chargeres]':
                     name = line.split()[1:][0]
-                    chargeres_cmdline[name] = []
-                    current = chargeres_cmdline[name]
+                    chargeres_cmdlines[name] = []
+                    current = chargeres_cmdlines[name]
                     continue
                 elif argument == '[plot]':
                     name = line.split()[1:][0]
-                    plot_cmdline[name] = []
-                    current = plot_cmdline[name]
-                    continue
-                elif argument == '[chargeres_names]':
-                    plot_chargeres_names[name] = line.split()[1:]
+                    plot_cmdlines[name] = []
+                    current = plot_cmdlines[name]
                     continue
                 current.extend(line.split())
 
-        for name, cmdline in chargeres_cmdline.items():
-            chargeres_args[name] = parser.parse_args(cmdline)
-        for name, cmdline in plot_cmdline.items():
-            plot_args[name] = parser.parse_args(cmdline)
-            plot_args[name].chargeres_names = plot_chargeres_names[name]
+        # Temp fill for checks
+        for name, cmdline in chargeres_cmdlines.items():
+            chargeres_args[name], unknown = parser.parse_known_args(cmdline)
+        for name, cmdline in plot_cmdlines.items():
+            plot_args[name], unknown = parser.parse_known_args(cmdline)
 
     # Check all chargeres_names exist
     for plot_name, args in plot_args.items():
@@ -187,25 +197,21 @@ def argparsing():
             except IndexError:
                 log.exception("[chargeres_names] For plot: {}, no chargeres "
                               "has the name: {}".format(plot_name, name))
+                raise 
 
-    # Check all binning is valid
-    possible = ['none', 'normal', 'log']
-    test = [args.binning in possible for args in plot_args.values()]
-    try:
-        if not all(test):
-            raise IndexError
-    except IndexError:
-        log.exception("[binning] Only options are: {}".format(possible))
-        raise
-
-    return chargeres_args, plot_args
+    return parser, chargeres_cmdlines, plot_cmdlines
 
 
-def calculate_charge_resolutions(chargeres_args):
+def calculate_charge_resolutions(parser, chargeres_cmdlines):
+
     run = 0
-    num_runs = len(chargeres_args)
+    num_runs = len(chargeres_cmdlines)
     chargeres_dict = {}
-    for name, args in chargeres_args.items():
+
+    for name, cmdline in chargeres_cmdlines.items():
+
+        args, excess_args = parser.parse_known_args(cmdline)
+
         run += 1
         log.info("[run] Calculating charge resolution {}/{}"
                  .format(run, num_runs))
@@ -233,7 +239,9 @@ def calculate_charge_resolutions(chargeres_args):
                     maxpe = file_maxpe
         log.info("[maxpe] {}".format(maxpe))
 
-        params = calibration_parameters(args)
+        params, unknown_args = calibration_parameters(excess_args,
+                                                      args.origin,
+                                                      args.calib_help)
 
         chargeres = ChargeResolution(maxpe)
 
@@ -300,11 +308,14 @@ def calculate_charge_resolutions(chargeres_args):
     return chargeres_dict
 
 
-def plot_charge_resolutions(chargeres_dict, plot_args):
+def plot_charge_resolutions(chargeres_dict, parser, plot_cmdlines):
     run = 0
-    for name, args in plot_args.items():
+    for name, cmdline in plot_cmdlines.items():
+
+        args, excess_args = parser.parse_known_args(cmdline)
+
         run += 1
-        log.info('[run] Plotting block: {}/{}'.format(run, len(plot_args)))
+        log.info('[run] Plotting block: {}/{}'.format(run, len(plot_cmdlines)))
 
         handles = []
         labels = []
@@ -403,9 +414,9 @@ def main():
     script = os.path.splitext(os.path.basename(__file__))[0]
     log.info("[SCRIPT] {}".format(script))
 
-    chargeres_args, plot_args = argparsing()
-    chargeres_dict = calculate_charge_resolutions(chargeres_args)
-    plot_charge_resolutions(chargeres_dict, plot_args)
+    parser, chargeres_cmdlines, plot_cmdlines = argparsing()
+    chargeres_dict = calculate_charge_resolutions(parser, chargeres_cmdlines)
+    plot_charge_resolutions(chargeres_dict, parser, plot_cmdlines)
 
     log.info("[COMPLETE]")
 

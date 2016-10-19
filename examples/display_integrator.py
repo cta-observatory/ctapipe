@@ -17,30 +17,33 @@ from astropy import log
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ctapipe.calib.camera.calibrators import calibration_arguments, \
-    calibration_parameters
+from ctapipe.calib.camera.calibrators import calibration_parameters
 from ctapipe.calib.camera.calibrators import calibrate_event
 from ctapipe.io import CameraGeometry
-from ctapipe.io.files import InputFile, origin_list
+from ctapipe.io.files import InputFile
 from ctapipe.plotting.camera import CameraPlotter
+from ctapipe.utils.datasets import get_path
+from ctapipe.calib.camera.integrators import integrator_dict
 
 
 def main():
     script = os.path.splitext(os.path.basename(__file__))[0]
     log.info("[SCRIPT] {}".format(script))
 
-    parser = argparse.ArgumentParser(description='Create a gif of an event')
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', dest='input_path', action='store',
-                        required=True, help='path to the input file')
+                        default=get_path('gamma_test.simtel.gz'),
+                        help='path to the input file')
     parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        required=True, help='origin of the file: {}'
-                        .format(origin_list()))
+                        choices=InputFile.origin_list(),
+                        default='hessio', help='origin of the file')
     parser.add_argument('-o', '--output', dest='output_dir', action='store',
                         default=None,
                         help='path of the output directory to store the '
                              'images (default = input file directory)')
     parser.add_argument('-e', '--event', dest='event_req', action='store',
-                        required=True, type=int,
+                        default=0, type=int,
                         help='event index to plot (not id!)')
     parser.add_argument('--id', dest='event_id_f', action='store_true',
                         default=False, help='-e will specify event_id instead '
@@ -50,8 +53,10 @@ def main():
     parser.add_argument('-c', '--channel', dest='chan', action='store',
                         type=int, default=0,
                         help='channel to view (default = 0 (HG))')
-
-    calibration_arguments(parser)
+    parser.add_argument('--calib-help', dest='calib_help', action='store_true',
+                        default=False,
+                        help='display the arguments used for the camera '
+                             'calibration')
 
     logger_detail = parser.add_mutually_exclusive_group()
     logger_detail.add_argument('-q', '--quiet', dest='quiet',
@@ -64,7 +69,7 @@ def main():
                                action='store_true', default=False,
                                help='Debug mode')
 
-    args = parser.parse_args()
+    args, excess_args = parser.parse_known_args()
 
     if args.quiet:
         log.setLevel(40)
@@ -86,7 +91,15 @@ def main():
     log.info("[telescope] {}".format(telid))
     log.info("[channel] {}".format(chan))
 
-    params = calibration_parameters(args)
+    params, unknown_args = calibration_parameters(excess_args,
+                                                  args.origin,
+                                                  args.calib_help)
+
+    if unknown_args:
+        parser.print_help()
+        calibration_parameters(unknown_args, args.origin, True)
+        msg = 'unrecognized arguments: %s'
+        parser.error(msg % ' '.join(unknown_args))
 
     # Create a dictionary to store any geoms in
     geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
@@ -123,9 +136,9 @@ def main():
     # Draw figures
     ax_max_nei = {}
     ax_min_nei = {}
-    fig_waveforms = plt.figure(figsize=(24, 10))
+    fig_waveforms = plt.figure(figsize=(18, 9))
     fig_waveforms.subplots_adjust(hspace=.5)
-    fig_camera = plt.figure(figsize=(30, 24))
+    fig_camera = plt.figure(figsize=(15, 12))
 
     ax_max_pix = fig_waveforms.add_subplot(4, 2, 1)
     ax_min_pix = fig_waveforms.add_subplot(4, 2, 2)
@@ -147,8 +160,9 @@ def main():
     plotter.draw_waveform(data_ped[max_pixel], ax_max_pix)
     ax_max_pix.set_title("(Max) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(max_pixel, true_pe[max_pixel],
-                                                measured_pe[max_pixel]))
+                         "Measured = {:.3f}".format(max_pixel,
+                                                    true_pe[max_pixel],
+                                                    measured_pe[max_pixel]))
     ax_max_pix.set_ylabel("Amplitude-Ped (ADC)")
     max_ylim = ax_max_pix.get_ylim()
     plotter.draw_waveform_positionline(start[max_pixel], ax_max_pix)
@@ -159,8 +173,8 @@ def main():
             plotter.draw_waveform(data_ped[pix], ax)
             ax.set_title("(Max Nei) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(pix, true_pe[pix],
-                                                measured_pe[pix]))
+                         "Measured = {:.3f}".format(pix, true_pe[pix],
+                                                    measured_pe[pix]))
             ax.set_ylabel("Amplitude-Ped (ADC)")
             ax.set_ylim(max_ylim)
             plotter.draw_waveform_positionline(start[pix], ax)
@@ -170,8 +184,9 @@ def main():
     plotter.draw_waveform(data_ped[min_pixel], ax_min_pix)
     ax_min_pix.set_title("(Min) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(min_pixel, true_pe[min_pixel],
-                                                measured_pe[min_pixel]))
+                         "Measured = {:.3f}".format(min_pixel,
+                                                    true_pe[min_pixel],
+                                                    measured_pe[min_pixel]))
     ax_min_pix.set_ylabel("Amplitude-Ped (ADC)")
     ax_min_pix.set_ylim(max_ylim)
     plotter.draw_waveform_positionline(start[min_pixel], ax_min_pix)
@@ -182,8 +197,8 @@ def main():
             plotter.draw_waveform(data_ped[pix], ax)
             ax.set_title("(Min Nei) Pixel: {}, "
                          "True: {}, "
-                         "Measured = {}".format(pix, true_pe[pix],
-                                                measured_pe[pix]))
+                         "Measured = {:.3f}".format(pix, true_pe[pix],
+                                                    measured_pe[pix]))
             ax.set_ylabel("Amplitude-Ped (ADC)")
             ax.set_ylim(max_ylim)
             plotter.draw_waveform_positionline(start[pix], ax)
@@ -213,21 +228,25 @@ def main():
     plotter.draw_camera_pixel_annotation(telid, max_pixel, min_pixel,
                                          ax_img_true)
 
+    int_dict, inverted = integrator_dict()
+    integrator_name = '' if 'integrator' not in params else \
+        params['integrator']
+
     camera = plotter.draw_camera(telid, measured_pe, ax_img_cal)
     camera.add_colorbar(ax=ax_img_cal, label="Calib Charge (Photo-electrons)")
-    ax_img_cal.set_title("Charge (integrator={})".format(params['integrator']))
+    ax_img_cal.set_title("Charge (integrator={})".format(integrator_name))
     plotter.draw_camera_pixel_annotation(telid, max_pixel, min_pixel,
                                          ax_img_cal)
 
-    fig_waveforms.suptitle("Integrator = {}".format(params['integrator']))
+    fig_waveforms.suptitle("Integrator = {}".format(integrator_name))
     fig_camera.suptitle("Camera = {}".format(geom.cam_id))
 
-    # TODO: another figure of all waveforms that have non-zero true charge
-
     waveform_output_name = "{}_e{}_t{}_c{}_integrator{}_waveform.pdf"\
-        .format(input_file.filename, event.count, telid, chan, args.integrator)
+        .format(input_file.filename, event.count, telid, chan,
+                inverted[params['integrator']])
     camera_output_name = "{}_e{}_t{}_c{}_integrator{}_camera.pdf"\
-        .format(input_file.filename, event.count, telid, chan, args.integrator)
+        .format(input_file.filename, event.count, telid, chan,
+                inverted[params['integrator']])
     output_dir = args.output_dir if args.output_dir is not None else \
         input_file.output_directory
     output_dir = os.path.join(output_dir, script)
@@ -237,11 +256,12 @@ def main():
 
     waveform_output_path = os.path.join(output_dir, waveform_output_name)
     log.info("[output] {}".format(waveform_output_path))
-    fig_waveforms.savefig(waveform_output_path, format='pdf')
+    fig_waveforms.savefig(waveform_output_path, format='pdf',
+                          bbox_inches='tight')
 
     camera_output_path = os.path.join(output_dir, camera_output_name)
     log.info("[output] {}".format(camera_output_path))
-    fig_camera.savefig(camera_output_path, format='pdf')
+    fig_camera.savefig(camera_output_path, format='pdf', bbox_inches='tight')
 
     log.info("[COMPLETE]")
 

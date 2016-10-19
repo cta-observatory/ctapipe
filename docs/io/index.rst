@@ -1,8 +1,8 @@
 .. _io:
 
-==============
- Input/Output
-==============
+====================
+ Input/Output (`io`)
+====================
 
 .. currentmodule:: ctapipe.reco
 

@@ -13,7 +13,7 @@ class CalibrationStep(Component):
     integrator = Unicode('nb_peak_integration',
      help='integration scheme to be used to extract the charge').tag(
         config=True)
-    integration_windows = List([7, 3],help='Set integration window width \
+    integration_window = List([7, 3],help='Set integration window width \
         and offset (to before the peak) respectively' ).tag(
         config=True)
     integration_sigamp = List([2, 4], help='Amplitude in ADC counts above \
@@ -33,12 +33,12 @@ class CalibrationStep(Component):
     def init(self):
         self.log.debug("--- CalibrationStep init ---")
         self.parameters = dict()
-        self.parameters['integrator'] = 'nb_peak_integration'
-        self.parameters['window'] = self.integration_windows[0]
-        self.parameters['shift'] =  self.integration_windows[1]
-        self.parameters['sigamp'] = self.integration_sigamp
-        self.parameters['lwt'] = self.integration_lwt
-        self.parameters['calib_scale'] = self.integration_calib_scale
+        self.parameters['integrator'] = self.integrator#'nb_peak_integration'
+        self.parameters['integration_window'] = self.integration_window
+        self.parameters['integration_shift'] =  self.integration_window[1]
+        self.parameters['integration_sigamp'] = self.integration_sigamp
+        self.parameters['integration_lwt'] = self.integration_lwt
+        self.parameters['integration_calib_scale'] = self.integration_calib_scale
 
         if self.integration_clip_amp != None:
                 self.parameters['clip_amp'] = self.integration_clip_amp
@@ -49,7 +49,7 @@ class CalibrationStep(Component):
 
     def run(self, event):
         if event != None:
-            self.log.debug("--- CalibrationStep RUN ---")
+            self.log.debug("--- CalibrationStep RUN --- event {}".format(event.dl0.event_id))
             geom_dict = {}
             calibrated_event = calibrate_event(event,self.parameters,geom_dict)
             #for tel_id in calibrated_event.dl0.tels_with_data:

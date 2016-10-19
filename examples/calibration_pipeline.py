@@ -8,12 +8,13 @@ from matplotlib import colors, pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from ctapipe.calib.camera.calibrators import calibration_parameters, \
-    calibrate_source, calibration_arguments
+    calibrate_source
 from astropy import log
 from ctapipe.utils.datasets import get_path
 from ctapipe.plotting.camera import CameraPlotter
-from ctapipe.io.files import InputFile, origin_list
+from ctapipe.io.files import InputFile
 import os
+
 
 def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     fig.clear()
@@ -53,7 +54,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     camera1.pixels.set_cmap(cmap_charge)
     camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
     ax1.set_title("CT {} ({}) - Mean pixel charge"
-                  .format(tel_id, geom_dict[cam_dimensions].cam_id))
+                  .format(tel_id, geom_dict[tel_id].cam_id))
     if not event.dl1.tel[tel_id].peakpos[0] is None:
         ax2 = fig.add_subplot(1, npads, npads)
         times = event.dl1.tel[tel_id].peakpos
@@ -71,7 +72,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
         camera2.pixels.set_cmap(cmap_time)
         camera2.add_colorbar(ax=ax2, label="[time slice]")
         ax2.set_title("CT {} ({}) - Pixel peak position"
-                      .format(tel_id, geom_dict[cam_dimensions].cam_id))
+                      .format(tel_id, geom_dict[tel_id].cam_id))
 
     if display:
         plt.pause(0.1)
@@ -84,25 +85,26 @@ def main():
     log.info("[SCRIPT] {}".format(script))
 
     parser = argparse.ArgumentParser(
-        description='Display each event in the file')
+        description='Display each event in the file',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', dest='input_path', action='store',
                         default=get_path('gamma_test.simtel.gz'),
-                        help='path to the input file. '
-                             'Default = gamma_test.simtel.gz')
+                        help='path to the input file')
     parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        default='hessio',
-                        help='origin of the file: {}. Default = hessio'
-                        .format(origin_list()))
+                        choices=InputFile.origin_list(),
+                        default='hessio', help='origin of the file')
     parser.add_argument('-D', dest='display', action='store_true',
                         default=False, help='display the camera events')
     parser.add_argument('--pdf', dest='output_path', action='store',
                         default=None,
                         help='path to store a pdf output of the plots')
     parser.add_argument('-t', '--telescope', dest='tel', action='store',
-                        type=int, default=None, help='telecope to view. '
-                                                     'Default = All')
-
-    calibration_arguments(parser)
+                        type=int, default=None,
+                        help='telecope to view. Default = All')
+    parser.add_argument('--calib-help', dest='calib_help', action='store_true',
+                        default=False,
+                        help='display the arguments used for the camera '
+                             'calibration')
 
     logger_detail = parser.add_mutually_exclusive_group()
     logger_detail.add_argument('-q', '--quiet', dest='quiet',
@@ -115,10 +117,17 @@ def main():
                                action='store_true', default=False,
                                help='Debug mode')
 
-    args = parser.parse_args()
-    print('DEBUG type(args) {}'.format(type(args)))
-    print('DEBUG args {}'.format(args))
-    params = calibration_parameters(args)
+    args, excess_args = parser.parse_known_args()
+
+    params, unknown_args = calibration_parameters(excess_args,
+                                                  args.origin,
+                                                  args.calib_help)
+
+    if unknown_args:
+        parser.print_help()
+        calibration_parameters(unknown_args, args.origin, True)
+        msg = 'unrecognized arguments: %s'
+        parser.error(msg % ' '.join(unknown_args))
 
     if args.quiet:
         log.setLevel(40)
@@ -132,9 +141,8 @@ def main():
     source = input_file.read()
 
     # geom_dict is a dictionary of CameraGeometry, with keys of
-    # (num_pixels, focal_length), the parameters that are used to guess the
-    # geometry of the telescope. By using these keys, the geometry is
-    # calculated only once per telescope type as needed, reducing computation
+    # tel_id. By using these keys, the geometry is
+    # calculated only once per telescope, reducing computation
     # time.
     # Creating a geom_dict at this point is optional, but is recommended, as
     # the same geom_dict can then be shared between the calibration and
