@@ -18,6 +18,6 @@
   },
 
   "SimTelArrayReader": { "filename": "gamma_test.simtel.gz"},
-  "CalibrationStep": {"integration_calib_scale":0.92},
-  "DisplayTelescopeStep" : { "pdf_path" : "calibration_flow.pdf"} 
+  "CalibrationStep": {"integration_calib_scale":0.92, "integrator":"nb_peak_integration"},
+  "DisplayTelescopeStep" : { "pdf_path" : "calibration_flow.pdf"}
 }

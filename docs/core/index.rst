@@ -1,8 +1,8 @@
 .. _core:
 
-=====================================
-Core Data Structures and Base Classes
-=====================================
+==============================================
+Core Structures and Base Classes (`core`)
+==============================================
 
 .. currentmodule:: ctapipe.core
 

@@ -1,8 +1,8 @@
 .. _flow:
 
-====================
-Flow-based framework
-====================
+=============================
+Flow-based framework (`flow`)
+=============================
 
 .. currentmodule:: ctapipe.flow
 
@@ -180,11 +180,13 @@ the default next_step.
 
 Running the ctapipe-flow
 ========================
+
    *prompt$> ctapipe-flow --config=mypipeconfig.json*
+
 By default it will run the flow based framework in sequential mode.
-Use --mode=multiprocessus to run it in a multiprocessus mode.
+Use `--mode=multiprocessus` to run it in a multiprocessus mode.
 By default it does not send any data to gui. To activate data transmition to gui,
-add -- gui=True option.
+add `--gui=True` option.
 flow based framework  send its activity to a GUI  on tcp://localhost:5565.
 But if the GUI is running on another system, you can use --gui_address
 option to define another address.
@@ -208,19 +210,20 @@ Graphical representation
 ========================
 A GUI can be launch to keep a close watch on flow based framework  execution.
 This GUI can be launch on the same system than the flow based framework  or on a different one.
-By default GUI is binded to port 5565. You can change it with --PipeGui.port option
-    *prompt$> python ctapipe/flow/gui/guiflow.py *
+By default GUI is binded to port 5565. You can change it with `--PipeGui.port` option
+
+    *prompt$> python ctapipe/flow/gui/guiflow.py*
 
 Optional packages for GUI
 -------------------------
 
 PyQt4 installation
 ^^^^^^^^^^^^^^^^^^
-   *prompt$> conda install pyqt*
+    *prompt$> conda install pyqt*
 
 graphviz installation
 ^^^^^^^^^^^^^^^^^^^^^
-*prompt$> pip install graphviz*
+    *prompt$> pip install graphviz*
 
 Foreseen improvement
 ====================
@@ -236,7 +239,7 @@ To avoid to serialize and deserialize data and pass data thanks to ZMQ,
  a shared memory system can be develop between stages.
 
 Muliple flow based framework management by GUI
--------------------------------------------
+----------------------------------------------
 When several flow based framework are running, GUI should allows to choose which flow based framework user want to follow.
 
 Issues

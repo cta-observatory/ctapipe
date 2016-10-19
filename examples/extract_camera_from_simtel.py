@@ -4,7 +4,7 @@
 Simple example to read some camera geometry info from a
 SimTelArray data file (using pyhessio) and write it to a set of FITS tables.
 """
-import hessio as h
+import pyhessio as h
 import sys
 from astropy.table import Table
 from astropy import units as u

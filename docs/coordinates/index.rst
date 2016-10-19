@@ -1,8 +1,8 @@
 .. _coordinates:
 
-===========
-Coordinates
-===========
+==============================
+Coordinates (`coordinates`)
+==============================
 
 .. currentmodule:: ctapipe.coordinates
 

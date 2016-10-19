@@ -1,8 +1,8 @@
 .. _analysis:
 
-==========
- Analysis
-==========
+=====================
+Analysis (`analysis`)
+=====================
 
 .. currentmodule:: ctapipe.analysis
 
@@ -22,4 +22,7 @@ Reference/API
 =============
 
 .. automodapi:: ctapipe.analysis
-    :no-inheritance-diagram:
+
+
+.. automodapi:: ctapipe.analysis.camera
+
