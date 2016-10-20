@@ -92,8 +92,8 @@ class PickleSerializer(Serializer):
     def add_container(self, container):
         """
         Add a container to serializer
-        Raise
-        -----
+        Raises
+        ------
         TypeError : When container is not type of container
         """
         if not isinstance(container, Container):
@@ -106,8 +106,8 @@ class PickleSerializer(Serializer):
         Return : str
              output file with pickle.gzip extension added if it is not already
               presents.
-        Raise
-        -----
+        Raises
+        ------
         PickleError: When containers list cannot be write to outfile
         PermissionError:
         FileNotFoundError:
