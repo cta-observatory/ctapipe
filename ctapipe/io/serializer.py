@@ -4,53 +4,142 @@ Serialize ctapipe containers to file
 """
 
 from astropy.table import Table, Column
-
-from ctapipe.core import Component
 from ctapipe.core import Container
-from ctapipe.core.traits import (Integer, Float, List, Dict, Unicode, TraitError, observe)
+from abc import ABC, abstractmethod
 from astropy import log
-import numpy as np
+from pickle import load
+from pickle import dump
+from pickle import PickleError
+import gzip
 
 __all__ = ["Serializer"]
+log.setLevel('INFO')
 
 not_writeable_fields = ('tel', 'tels_with_data', 'calibration_parameters',
-'pedestal_subtracted_adc', 'integration_window')
+                        'pedestal_subtracted_adc', 'integration_window')
 
 
-class Serializer:  # (Component)
-    ''' Context manager to save Containers to file
-
-    # TODO make it a Component
-    '''
-
-    # outfile = Unicode(help="Output file name").tag(config=True, require=True)
-    # writer = Unicode(help="Writer type (fits, img)").tag(config=True, require=True)
-
-    def __init__(self, outfile, format='fits', overwrite=False):
-        self.outfile = outfile
-        self._writer = TableWriter(outfile=outfile, format=format, overwrite=overwrite)
+class Serializer(ABC):
+    """
+    Base class for context manager to save Containers to file
+    """
+    def __init__(self, file,  overwrite=False):
+        """
+        Parameters
+        ----------
+        file:  Unicode
+            input or output full path file name
+        overwrite: Bool
+            overwrite outfile file if it already exists
+        """
+        self.file = file
+        self.overwrite = overwrite
 
     def __enter__(self):
-        log.debug("Serializing on {0}".format(self.outfile))
+        log.debug("Serializing on {0}".format(self.file))
         return self
 
     def __exit__(self, *args):
-        self.save()
+        pass
 
-    def write(self, container):
-        self._writer.write(container)
+    @abstractmethod
+    def add_container(self, container):
+        """
+        Add a container to serializer
+        """
+        pass
 
-    def write_source(self, source):
-        raise NotImplementedError
-        # for container in source:
-        #     self._writer.write(container)
+    @abstractmethod
+    def write(self):
+        """
+        Write all containers to outfile
+        """
+        pass
 
-    def save(self):
-        self._writer.save()
+    @abstractmethod
+    def __iter__(self):
+        """
+        Iterate over all containers
+        """
+        pass
 
 
-def is_writeable(key):
-    return not (key in not_writeable_fields)
+class PickleSerializer(Serializer):
+    """
+    Serializes list of Components.
+    Reads list of Components from file
+    Write list of Components to file
+
+    TO DO gzip
+    """
+    def __init__(self, file, overwrite=False):
+        """
+           Parameters
+           ----------
+           file:  Unicode
+              input/output full path file name
+           overwrite: Bool
+               overwrite outfile file if it already exists
+        """
+        super().__init__(file, overwrite)
+        self.containers = []
+
+    def add_container(self, container):
+        """
+        Add a container to serializer
+        Raise
+        -----
+        TypeError : When container is not type of container
+        """
+        if not isinstance(container, Container):
+            raise TypeError('Can write only Containers')
+        self.containers.append(container)
+
+    def write(self):
+        """
+        Write all containers to outfile
+        Return : str
+             output file with pickle.gzip extension added if it is not already
+              presents.
+        Raise
+        -----
+        PickleError: When containers list cannot be write to outfile
+        PermissionError:
+        FileNotFoundError:
+        """
+        try:
+            file_split = self.file.split('.')
+            if file_split[-1] != 'gzip' or file_split[-2] != 'pickle':
+                output_filename = self.file+'.pickle.gzip'
+            else:
+                output_filename = self.file
+            with gzip.open(output_filename, 'wb') as f_out:
+                dump(self.containers, f_out)
+            return output_filename
+        except (PickleError, PermissionError, FileNotFoundError):
+            raise
+
+    def __iter__(self):
+        """
+        Iterate over all containers
+        """
+        try:
+            with gzip.open(self.file, 'rb') as f:
+                self.containers = load(f)
+                for container in self.containers:
+                    yield container
+        except PickleError:
+            raise
+
+
+def is_writeable(key, out_format='fits'):
+
+    if out_format is 'fits':
+        return not (key in not_writeable_fields)
+    elif out_format is 'pickle':
+        return True
+    else:
+         raise NotImplementedError('Format {} not implemented'.format(out_format))
 
 
 def writeable_items(container):
@@ -77,10 +166,10 @@ def to_table(container):
 
 
 class TableWriter:
-    def __init__(self, outfile, format, overwrite):
+    def __init__(self, outfile, out_format, overwrite):
         self.table = Table()
         self._created_table = False
-        self.format = format
+        self.out_format = out_format
         self.outfile = outfile
         self.overwrite = overwrite
 
@@ -92,7 +181,7 @@ class TableWriter:
                            names=names,
                            meta=container.meta.as_dict())
         # Write HDU name
-        if self.format == "fits":
+        if self.out_format == "fits":
             self.table.meta["EXTNAME"] = container._name
         self._created_table = True
 
@@ -107,5 +196,5 @@ class TableWriter:
 
     def save(self, **kwargs):
         # Write table using astropy.table write method
-        self.table.write(output=self.outfile, format=self.format, overwrite=self.overwrite, **kwargs)
+        self.table.write(output=self.outfile, format=self.out_format, overwrite=self.overwrite, **kwargs)
         return self.table
