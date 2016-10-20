@@ -1,7 +1,12 @@
 from ctapipe.io.serializer import PickleSerializer
+from ctapipe.io.serializer import FitsSerializer
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_datasets_path
 from os import remove
+import gzip
+from pickle import load
+
+# PICKLE SERIALIZER
 
 
 def test_pickle_serializer():
@@ -52,3 +57,40 @@ def test_pickle_serializer_traitlets():
     serial = PickleSerializer()
     assert serial.has_trait('file') is True
     serial.file = 'pickle_data.pickle.gzip'
+
+
+# FITS SERIALIZER
+
+def test_fits_dl0():
+    input_test_file = get_datasets_path('example_container.pickle.gz')
+    with gzip.open(input_test_file, 'rb') as f:
+        data = load(f)
+    serial = FitsSerializer('output.fits', 'fits', overwrite=True)
+    container = data[0].dl0
+    serial.add_container(container)
+    serial.write()
+
+
+def test_fits_dl1():
+    input_test_file = get_datasets_path('example_container.pickle.gz')
+    with gzip.open(input_test_file, 'rb') as f:
+        data = load(f)
+    t38 = data[0].dl1.tel[38]
+    serial = FitsSerializer('output.fits', 'fits', overwrite=True)
+    serial.add_container(t38)
+    serial.write()
+    # t11_1 = data[1].dl1.tel[11]
+    # S_cal.write(t11_1) # This will not work because shape of data is different from tel to tel.
+
+
+def test_fits_context_manager():
+    input_test_file = get_datasets_path('example_container.pickle.gz')
+    with gzip.open(input_test_file, 'rb') as f:
+        data = load(f)
+
+    with FitsSerializer('output.fits', 'fits', overwrite=True) as writer:
+        for container in data:
+            writer.add_container(container.dl0)
+        writer.write()
+
+
