@@ -11,6 +11,7 @@ import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
+from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
 from scipy.stats import norm
 
@@ -42,7 +43,14 @@ class MuonLineIntegrate:
             width of pixel in camera
         oversample_bins: int
             number of angular bins to evaluate for each pixel width
-
+        
+        minlambda: float
+            minimum wavelength for integration (300nm typical)
+        maxlambda: float
+            maximum wavelength for integration (600nm typical)
+        photemit: float
+            1/lambda^2 integrated over the above defined wavelength range
+            multiplied by the fine structure constant (1/137)
         Returns
         -------
             None
@@ -55,7 +63,9 @@ class MuonLineIntegrate:
         self.pixel_x = 0
         self.pixel_y = 0
         self.image = 0
-        self.photemit300_600 = 12165.45
+        self.minlambda = 300.e-9
+        self.maxlambda = 600.e-9
+        self.photemit = alpha*(self.minlambda**-1 - self.maxlambda**-1)#12165.45
         self.unit = u.deg
 
     @staticmethod
@@ -193,7 +203,7 @@ class MuonLineIntegrate:
         pred = np.interp(ang, ang_prof, profile)
 
         # Multiply by integrated emissivity between 300 and 600 nm
-        pred *= 0.5 * self.photemit300_600
+        pred *= 0.5 * self.photemit
 
         # weight by pixel width
         pred *= (self.pixel_width / radius)

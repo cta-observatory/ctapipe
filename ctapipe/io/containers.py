@@ -195,6 +195,8 @@ class MuonRingParameter(Container):
         run number
     event_id : int
         event number
+    tel_id : int
+        telescope ID
     ring_center_x, ring_center_y, ring_radius:
         center position and radius of the fitted ring
     ring_chi2_fit:
@@ -207,6 +209,7 @@ class MuonRingParameter(Container):
         super().__init__(name)
         self.add_item('run_id')
         self.add_item('event_id')
+        self.add_item('tel_id')
         self.add_item('ring_center_x')
         self.add_item('ring_center_y')
         self.add_item('ring_radius')
@@ -227,6 +230,8 @@ class MuonIntensityParameter(Container):
         run number
     event_id : int
         event number
+    tel_id : int
+        telescope ID
     impact_parameter: float
         reconstructed impact parameter
     impact_parameter_chi2:
@@ -258,6 +263,7 @@ class MuonIntensityParameter(Container):
         super().__init__(name)
         self.add_item('run_id')
         self.add_item('event_id')
+        self.add_item('tel_id')
         self.add_item('ring_completeness')
         self.add_item('ring_num_pixel')
         self.add_item('ring_size')

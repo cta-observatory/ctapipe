@@ -8,6 +8,9 @@ from ctapipe.calib.camera.calibrators import calibration_parameters, \
     calibrate_source
 from matplotlib import pyplot as plt
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_source
+from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency
+
+from IPython import embed
 
 """
 Example to load raw data (hessio format),
@@ -59,18 +62,22 @@ def main():
     geom_dict = {}
 
     calibrated_source = calibrate_source(source, params, geom_dict)
-
+    
     muons = analyze_muon_source(calibrated_source, params, geom_dict) # Function that receive muons and make a look over the muon event
     
     fig = plt.figure(figsize=(16, 7))
     if args.display:
         plt.show(block=False)
     pp = PdfPages(args.output_path) if args.output_path is not None else None
+
+    plot_muon_efficiency(muons)
     for muon_evt in muons:
-            #display_telescope(cal_evt, tel_id, args.display, geom_dict, pp, fig)
+        #Test display
+        #display_telescope(cal_evt, telid, args.display, geom_dict, pp, fig)
+            
         if muon_evt[0] is not None and muon_evt[1] is not None:
             display_muon_plot(muon_evt) 
-            
+            #Store and or Plot muon parameters here
     if pp is not None:
         pp.close()
 

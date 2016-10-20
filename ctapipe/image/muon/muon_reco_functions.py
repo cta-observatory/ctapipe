@@ -48,7 +48,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 geom_dict[telid] = geom
         
         #embed()
-        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=1.5,boundary_thresh=2.5)#was 5,7
+        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)#was 5,7 (1.5,2.5)
 
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
@@ -60,8 +60,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         img = image*clean_mask
         noise = 5
         weight = img / (img+noise)
-        
-        muonring = ChaudhuriKunduRingFitter()
+
+        muonring = ChaudhuriKunduRingFitter(None)
 
         muonringparam = muonring.fit(x,y,image*clean_mask)
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
@@ -74,6 +74,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         ring_dist = np.abs(dist-muonringparam.ring_radius)
 
         muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
+        muonringparam.tel_id = telid
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
 
         rad = list()
@@ -84,16 +85,19 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         mc_y = event.mc.core_y
         pix_im = image*dist_mask
         nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,2)+np.power(muonringparam.ring_center_y,2))
+        numpix = event.dl0.tel[telid].num_pixels
+        minpix = 0.06*numpix #or 8%
 
-        mir_rad = np.sqrt(event.meta.mirror_dish_area[telid])/(u.m *np.pi)
+        mir_rad = np.sqrt(event.meta.mirror_dish_area[telid]/(np.pi))#need to consider units?
 
-        if(np.sum(pix_im>5)>30 and np.sum(pix_im)>80 and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
+        if(np.sum(pix_im>5)>0.5*minpix and np.sum(pix_im)>minpix and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
-            hess = MuonLineIntegrate(mir_rad*u.m,0.2*u.m,pixel_width=0.16*u.deg)
+            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.16*u.deg)
 
             if (image.shape[0]<2000):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
-                if( muonintensityoutput.impact_parameter < 0.9*mir_rad*u.m and muonintensityoutput.impact_parameter>0.2*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
+                muonintensityoutput.tel_id = telid
+                if( muonintensityoutput.impact_parameter < 0.9*mir_rad and muonintensityoutput.impact_parameter>0.2*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
                     muonintensityparam = muonintensityoutput
                 else:
                     continue
