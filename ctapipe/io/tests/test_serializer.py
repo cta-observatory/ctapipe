@@ -9,7 +9,7 @@ def test_pickle_serializer():
     input_filename = get_datasets_path("gamma_test.simtel.gz")
     gen = hessio_event_source(input_filename, max_events=3)
     input_containers = []
-    serial = PickleSerializer(binary_filename, overwrite=True)
+    serial = PickleSerializer(file=binary_filename, overwrite=True)
 #   add all input file events in  input_containers list and pickle serializer
     for event in gen:
         serial.add_container(event)
@@ -35,15 +35,20 @@ def test_pickle_serializer():
 
 
 def test_pickle_serializer_with_statement():
-    with PickleSerializer('pickle_data.pickle.gzip') as containers:
+    with PickleSerializer(file='pickle_data.pickle.gzip') as containers:
         for _ in containers:
             pass
     remove('pickle_data.pickle.gzip')
 
 
 def test_pickle_serializer_file_extension():
-    serial = PickleSerializer("pickle_serializer", overwrite=True)
+    serial = PickleSerializer(file="pickle_serializer", overwrite=True)
     output_file = serial.write()
     assert output_file.find('.pickle.gzip')
     remove(output_file)
 
+
+def test_pickle_serializer_traitlets():
+    serial = PickleSerializer()
+    assert serial.has_trait('file') is True
+    serial.file = 'pickle_data.pickle.gzip'

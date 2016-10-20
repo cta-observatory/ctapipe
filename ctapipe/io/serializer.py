@@ -5,11 +5,13 @@ Serialize ctapipe containers to file
 
 from astropy.table import Table, Column
 from ctapipe.core import Container
+from ctapipe.core import Component
 from abc import ABC, abstractmethod
 from astropy import log
 from pickle import load
 from pickle import dump
 from pickle import PickleError
+from traitlets import Unicode
 import gzip
 
 __all__ = ["Serializer"]
@@ -19,7 +21,7 @@ not_writeable_fields = ('tel', 'tels_with_data', 'calibration_parameters',
                         'pedestal_subtracted_adc', 'integration_window')
 
 
-class Serializer(ABC):
+class Serializer(ABC, Component):
     """
     Base class for context manager to save Containers to file
     """
@@ -34,6 +36,7 @@ class Serializer(ABC):
         """
         self.file = file
         self.overwrite = overwrite
+        super().__init__()
 
     def __enter__(self):
         log.debug("Serializing on {0}".format(self.file))
@@ -66,13 +69,14 @@ class Serializer(ABC):
 
 class PickleSerializer(Serializer):
     """
-    Serializes list of Components.
+    Serializes list of ctapipe.core.Components.
     Reads list of Components from file
     Write list of Components to file
-
-    TO DO gzip
     """
-    def __init__(self, file, overwrite=False):
+    file = Unicode('file name', help='serializer file name').tag(
+        config=True)
+
+    def __init__(self, file=None, overwrite=False):
         """
            Parameters
            ----------
@@ -81,7 +85,9 @@ class PickleSerializer(Serializer):
            overwrite: Bool
                overwrite outfile file if it already exists
         """
-        super().__init__(file, overwrite)
+        if file:
+            self.file = file
+        super().__init__(self.file, overwrite)
         self.containers = []
 
     def add_container(self, container):
