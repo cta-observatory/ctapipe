@@ -62,15 +62,20 @@ def test_pickle_serializer_traitlets():
 # FITS SERIALIZER
 
 def test_fits_dl0():
+    """
     input_test_file = get_datasets_path('example_container.pickle.gz')
     with gzip.open(input_test_file, 'rb') as f:
         data = load(f)
+    """
+    input_filename = get_datasets_path("gamma_test.simtel.gz")
+    gen = hessio_event_source(input_filename, max_events=3)
+    data = next(gen)
     serial = FitsSerializer('output.fits', 'fits', overwrite=True)
-    container = data[0].dl0
+    container = data.dl0
     serial.add_container(container)
     serial.write()
 
-
+"""
 def test_fits_dl1():
     input_test_file = get_datasets_path('example_container.pickle.gz')
     with gzip.open(input_test_file, 'rb') as f:
@@ -81,12 +86,11 @@ def test_fits_dl1():
     serial.write()
     # t11_1 = data[1].dl1.tel[11]
     # S_cal.write(t11_1) # This will not work because shape of data is different from tel to tel.
-
+"""
 
 def test_fits_context_manager():
-    input_test_file = get_datasets_path('example_container.pickle.gz')
-    with gzip.open(input_test_file, 'rb') as f:
-        data = load(f)
+    input_filename = get_datasets_path("gamma_test.simtel.gz")
+    data = hessio_event_source(input_filename, max_events=3)
 
     with FitsSerializer('output.fits', 'fits', overwrite=True) as writer:
         for container in data:
