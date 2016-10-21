@@ -1,14 +1,16 @@
 import argparse
 from ctapipe.utils.datasets import get_path
 import os
+import numpy as np
 from astropy import log
 from ctapipe.io.files import InputFile
 from calibration_pipeline import display_telescope
 from ctapipe.calib.camera.calibrators import calibration_parameters, \
     calibrate_source
-from matplotlib import pyplot as plt
+from matplotlib import colors, pyplot as plt
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_source
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency
+from ctapipe.plotting.camera import CameraPlotter
 
 from IPython import embed
 
@@ -62,19 +64,52 @@ def main():
     geom_dict = {}
 
     calibrated_source = calibrate_source(source, params, geom_dict)
-    
-    muons = analyze_muon_source(calibrated_source, params, geom_dict) # Function that receive muons and make a look over the muon event
-    
-    fig = plt.figure(figsize=(16, 7))
-    if args.display:
-        plt.show(block=False)
-    pp = PdfPages(args.output_path) if args.output_path is not None else None
 
-    plot_muon_efficiency(muons)
+    muons = analyze_muon_source(calibrated_source, params, geom_dict, args) # Function that receive muons and make a look over the muon event    
+
+    #fig = plt.figure(figsize=(16, 7))
+    #if args.display:
+    #    plt.show(block=False)
+    #pp = PdfPages(args.output_path) if args.output_path is not None else None
+
+    #colorbar = None
+    #Display events before muon analysis (also do this later)
+    #for cal_evt in calibrated_source:
+     #   tel_id = 1 #True for muon simulations with only one tel simulated
+     #   #display_telescope(evt, evt.dl0.tel[tel_id], 1, geom_dict, pp, fig)    
+     #   npads = 1
+    #    # Only create two pads if there is timing information extracted
+    #    # from the calibration
+    #    ax1 = fig.add_subplot(1, npads, 1)
+    #    plotter = CameraPlotter(cal_evt,geom_dict)
+    #    signals = cal_evt.dl1.tel[tel_id].pe_charge
+    #    camera1 = plotter.draw_camera(tel_id,signals,ax1)
+    #    
+    #    cmaxmin = (max(signals) - min(signals))
+    #    cmap_charge = colors.LinearSegmentedColormap.from_list(
+    #        'cmap_c', [(0 / cmaxmin, 'darkblue'),
+    #                   (np.abs(min(signals)) / cmaxmin, 'black'),
+    #                   (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
+    #                   (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
+    #                   (1, 'yellow')])
+    #    camera1.pixels.set_cmap(cmap_charge)
+    #    if not colorbar:
+    #        camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
+    #        colorbar = camera1.colorbar
+    #    else:
+    #        camera1.colorbar = colorbar
+    #        camera1.update(True)
+    #    ax1.set_title("CT {} ({}) - Mean pixel charge"
+    #                  .format(tel_id, geom_dict[tel_id].cam_id))
+        
+    #    plt.pause(0.1)
+    #    if pp is not None:
+    #        pp.savefig(fig)
+                    
+    #plot_muon_efficiency(muons)
     for muon_evt in muons:
-        #Test display
-        #display_telescope(cal_evt, telid, args.display, geom_dict, pp, fig)
-            
+        #Test display #Flag 1 for true (wish to display)
+        # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)    
         if muon_evt[0] is not None and muon_evt[1] is not None:
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here

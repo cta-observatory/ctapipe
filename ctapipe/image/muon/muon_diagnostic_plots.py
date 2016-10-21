@@ -6,8 +6,13 @@ For generic use with all muon algorithms
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import colors
 from astropy import units as u
+from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
+
+from ctapipe.plotting.camera import CameraPlotter
 
 def plot_muon_efficiency(source):
 
@@ -25,16 +30,108 @@ def plot_muon_efficiency(source):
     for mu_evt in source:
         if mu_evt[0] is not None and mu_evt[1] is not None:
             mu_eff.append(mu_evt[1].optical_efficiency_muon)
-            #impact_param.append(mu_evt[1].impact_parameter/u*m)
-            #ring_width.append(mu_evt[1].ring_width/u*deg)
+            impact_param.append(mu_evt[1].impact_parameter/u.m)
+            ring_width.append(mu_evt[1].ring_width/u.deg)
 
     ax.hist(mu_eff,20)
+    ax.set_xlim(0.2*min(mu_eff),1.2*max(mu_eff))
+    ax.set_ylim(0.,1.2*len(mu_eff))
+    ax.set_xlabel('Muon Efficiency')
     plt.figure(fig.number)
 
     axip.hist(impact_param,20)
+    axip.set_xlim(0.2*min(impact_param),1.2*max(impact_param))
+    axip.set_ylim(0.,1.2*len(impact_param))
+    axip.set_xlabel('Impact Parameter (m)')
     plt.figure(figip.number)
 
     axrw.hist(ring_width,20)
+    axrw.set_xlim(0.2*min(ring_width),1.2*max(ring_width))
+    axrw.set_ylim(0.,1.2*len(ring_width))
+    axrw.set_xlabel('Ring Width ($^\circ$)')
     plt.figure(figrw.number)
 
     plt.show()
+
+
+
+def plot_muon_event(event, muonparams, geom_dict=None, args=None):
+
+    if muonparams[0] is not None:
+
+        #Plot the muon event and overlay muon parameters
+        fig = plt.figure(figsize=(16, 7))
+        if args.display:
+            plt.show(block=False)
+        pp = PdfPages(args.output_path) if args.output_path is not None else None
+
+        colorbar = None
+
+        for tel_id in event.dl0.tels_with_data:
+            npads = 1
+            # Only create two pads if there is timing information extracted
+            # from the calibration
+            ax1 = fig.add_subplot(1, npads, 1)
+            plotter = CameraPlotter(event,geom_dict)
+            image = event.dl1.tel[tel_id].pe_charge
+            #Get geometry
+            geom = None
+            if geom_dict is not None and tel_id in geom_dict:
+                geom = geom_dict[tel_id]
+            else:
+                log.debug("[calib] Guessing camera geometry")
+                geom = CameraGeometry.guess(*event.meta.pixel_pos[tel_id],
+                                            event.meta.optical_foclen[tel_id])
+                log.debug("[calib] Camera geometry found")
+                if geom_dict is not None:
+                    geom_dict[tel_id] = geom
+        
+            clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)
+            signals = image*clean_mask
+
+            camera1 = plotter.draw_camera(tel_id,signals,ax1)
+
+            cmaxmin = (max(signals) - min(signals))
+            cmap_charge = colors.LinearSegmentedColormap.from_list(
+                'cmap_c', [(0 / cmaxmin, 'darkblue'),
+                           (np.abs(min(signals)) / cmaxmin, 'black'),
+                           (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
+                           (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
+                           (1, 'yellow')])
+            camera1.pixels.set_cmap(cmap_charge)
+            if not colorbar:
+                camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
+                colorbar = camera1.colorbar
+            else:
+                camera1.colorbar = colorbar
+            camera1.update(True)
+       
+            #embed()
+            #1/0 Convert to camera frame (centre & radius)
+            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,z=0.*u.deg,array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[tel_id])
+            ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
+
+            #embed()
+            #1/0
+            #centroid = (muonparams[0].ring_center_x.value, muonparams[0].ring_center_y.value)
+            #print("Adding ellipse with x=",muonparams[0].ring_center_x,"y=",muonparams[0].ring_center_y,"r=",muonparams[0].ring_radius)
+            #camera1.add_ellipse(centroid,muonparams[0].ring_radius.value,muonparams[0].ring_radius.value,0.,0.,color="red")
+
+            centroid = (-ring_camcoord.y.value,ring_camcoord.x.value)
+            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.
+            camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="red")
+
+            if muonparams[1] is not None:
+                ringwidthfrac = 0.5*muonparams[1].ring_width/muonparams[0].ring_radius
+                ringrad_inner = ringrad_camcoord*(1.-ringwidthfrac)
+                ringrad_outer = ringrad_camcoord*(1.+ringwidthfrac)
+                camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_inner.value,0.,0.,color="magenta")
+                camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_outer.value,0.,0.,color="magenta")
+
+            ax1.set_title("CT {} ({}) - Mean pixel charge"
+                          .format(tel_id, geom_dict[tel_id].cam_id))
+        
+            plt.pause(0.1)
+            if pp is not None:
+                pp.savefig(fig)
+        

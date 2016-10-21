@@ -9,6 +9,7 @@ from IPython import embed
 
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 from ctapipe.image.muon.muon_integrator import *
+from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 
 
 def analyze_muon_event(event, params=None, geom_dict=None):
@@ -75,6 +76,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
         muonringparam.tel_id = telid
+        muonringparam.run_id = event.dl1.run_id
+        muonringparam.event_id = event.dl1.event_id
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
 
         rad = list()
@@ -92,11 +95,14 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         if(np.sum(pix_im>5)>0.5*minpix and np.sum(pix_im)>minpix and nom_dist <1.*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
-            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.16*u.deg)
+            #Guess HESS is 0.16 - LST is 0.11?
+            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.11*u.deg)
 
             if (image.shape[0]<2000):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
                 muonintensityoutput.tel_id = telid
+                muonintensityoutput.run_id = event.dl1.run_id
+                muonintensityoutput.event_id = event.dl1.event_id
                 if( muonintensityoutput.impact_parameter < 0.9*mir_rad and muonintensityoutput.impact_parameter>0.2*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
                     muonintensityparam = muonintensityoutput
                 else:
@@ -105,8 +111,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
     return muonringparam, muonintensityparam
 
-
-def analyze_muon_source(source, params=None, geom_dict=None):
+def analyze_muon_source(source, params=None, geom_dict=None, args=None):
     """
     Generator for analyzing all the muon events
 
@@ -129,5 +134,7 @@ def analyze_muon_source(source, params=None, geom_dict=None):
         
     for event in source:
         analyzed_muon = analyze_muon_event(event, params, geom_dict)
+
+        plot_muon_event(event, analyzed_muon, geom_dict, args)
 
         yield analyzed_muon
