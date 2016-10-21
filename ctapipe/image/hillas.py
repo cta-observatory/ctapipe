@@ -26,10 +26,10 @@ from collections import namedtuple
 import numpy as np
 from astropy.units import Quantity
 import astropy.units as u
+from ctapipe.core import Container
 
 __all__ = [
-    'MomentParameters',
-    'HighOrderMomentParameters',
+    'HillasContainer',
     'hillas_parameters',
     'HillasParameterizationError',
 ]
@@ -79,7 +79,9 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     Returns
     -------
-    hillas_parameters : `MomentParameters`
+    hillas_parameters : `HillasContainer`
+        Individual image parameters can also be accessed from Container -
+        EX: length = HillasContainer.MomParam.length; overlay_ellipse_mom = HillasContainer.MomParam
     """
     unit = Quantity(pix_x).unit
 
@@ -170,18 +172,16 @@ def hillas_parameters_1(pix_x, pix_y, image):
     # pix_y[np.argmax(image)]) * sin_delta
 
 
-    return (MomentParameters(size=size,
-                             cen_x=mean_x * unit,
-                             cen_y=mean_y * unit,
-                             length=length * unit,
-                             width=width * unit,
-                             r=r * unit,
-                             phi=(phi * u.rad).to(u.deg),
-                             psi=(psi * u.rad).to(u.deg),
-                             miss=miss * unit),
-            HighOrderMomentParameters(Skewness=skewness,
-                                      Kurtosis=kurtosis,
-                                      Asymmetry=asym))
+    mom = MomentParameters(size=size, cen_x=moms[0] * unit, cen_y=moms[1] * unit, length=length * unit,
+                           width=width * unit, r=rr * unit, phi=(phi * u.rad).to(u.deg), psi=(psi * u.rad).to(u.deg),
+                           miss=miss * unit)
+
+    hmom = HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis, Asymmetry=asym)
+
+    HillasContainer = Container("HillasParam")
+    HillasContainer.add_item("MomParam", mom)
+    HillasContainer.add_item("HighMomParam", hmom)
+    return HillasContainer
 
 
 def hillas_parameters_2(pix_x, pix_y, image):
@@ -202,7 +202,9 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     Returns
     -------
-    hillas_parameters : `MomentParameters`
+    hillas_parameters : `HillasContainer`
+        Individual image parameters can also be accessed from Container -
+        EX: length = HillasContainer.MomParam.length; overlay_ellipse_mom = HillasContainer.MomParam
     """
 
     unit = Quantity(pix_x).unit
@@ -301,19 +303,16 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     assert np.sign(skewness) == np.sign(asym)
 
-    return MomentParameters(size=size,
-                            cen_x=moms[0] * unit,
-                            cen_y=moms[1] * unit,
-                            length=length * unit,
-                            width=width * unit,
-                            r=rr * unit,
-                            phi=(phi * u.rad).to(u.deg),
-                            psi=(psi * u.rad).to(u.deg),
-                            miss=miss * unit), \
-           HighOrderMomentParameters(Skewness=skewness,
-                                     Kurtosis=kurtosis,
-                                     Asymmetry=asym)
+    mom = MomentParameters(size=size, cen_x=moms[0] * unit, cen_y=moms[1] * unit, length=length * unit,
+                           width=width * unit, r=rr * unit, phi=(phi * u.rad).to(u.deg), psi=(psi * u.rad).to(u.deg),
+                           miss=miss * unit)
 
+    hmom = HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis, Asymmetry=asym)
+
+    HillasContainer = Container("HillasParam")
+    HillasContainer.add_item("MomParam", mom)
+    HillasContainer.add_item("HighMomParam", hmom)
+    return HillasContainer
 
 # use version 2 by default.
 hillas_parameters = hillas_parameters_2

@@ -12,7 +12,7 @@ DESCRIPTION:
 ------------
 This is a very raw script for end to end test. It generates a 2D shower model in the camera, applies a basic two-level tailcuts cleaning and calculates hillas parameters from the image.
 
-hillas_1 and hillas_2 are just the 'MomentParameters' and 'HighOrderMomentParameters' respectively.
+It accesses 'MomParam' from the 'HillasContainer' to overlay the hillas ellipse.
 
 TODO:
 -----
@@ -45,10 +45,10 @@ if __name__ == '__main__':
   pix_y = geom.pix_y.value
 
   # Hillas parameters
-  hillas1, hillas2 = hillas_parameters(pix_x, pix_y, image)
-  print(hillas1, hillas2)
+  hillas_params = hillas_parameters(pix_x, pix_y, image)
+  print(hillas_params)
 
   #Overlay moments
   disp.image = image
-  disp.overlay_moments(hillas1, color = 'seagreen', linewidth = 2)
+  disp.overlay_moments(hillas_params.MomParam, color = 'seagreen', linewidth = 2)
   plt.show()
