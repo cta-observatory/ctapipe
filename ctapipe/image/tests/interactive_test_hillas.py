@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from ctapipe import io, visualization
 from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.reco import mock
+from ctapipe.image import mock
 
 from ..hillas import hillas_parameters
 
@@ -10,9 +10,10 @@ Test script for hillas_parameters.
 
 DESCRIPTION:
 ------------
-This is a very raw script for end to end test. It generates a 2D shower model in the camera, applies a basic two-level tailcuts cleaning and calculates hillas parameters from the image.
+This is a very raw script for end to end test. It generates a 2D shower model in the camera,
+applies a basic two-level tailcuts cleaning and calculates hillas parameters from the image.
 
-It accesses 'MomParam' from the 'HillasContainer' to overlay the hillas ellipse.
+It accesses moment parameters from the 'HillasContainer' to overlay the hillas ellipse.
 
 TODO:
 -----
@@ -50,5 +51,5 @@ if __name__ == '__main__':
 
   #Overlay moments
   disp.image = image
-  disp.overlay_moments(hillas_params.MomParam, color = 'seagreen', linewidth = 2)
+  disp.overlay_moments(hillas_params, color = 'seagreen', linewidth = 2)
   plt.show()
