@@ -23,7 +23,7 @@ small bug fix and not a new feature or design change):
 
 Note that you can include syntax-hlighted code examples by using 3 back-tics:
 
-.. code-block:: markdown
+.. code-block:: none
 		
    ```python
    
