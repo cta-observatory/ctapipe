@@ -57,7 +57,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
 
     Frame attributes:
     * ``pointing_direction``
-      Alt,Az direction of the tilted reference plane
+        Alt,Az direction of the tilted reference plane
 
     """
     default_representation = PlanarRepresentation

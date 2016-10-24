@@ -43,9 +43,14 @@ class CameraFrame(BaseCoordinateFrame):
     in the focal plane of the telescope Most Typically this will be
     used to describe the positions of the pixels in the focal plane
 
-    Frame attributes:  None
+    Frame attributes:
 
+    * ``focal_length``
+        Focal length of the telescope as a unit quantity (usually meters)
+    * ``rotation``
+        Rotation angle of the camera (0 deg in most cases)
     """
+
     default_representation = CartesianRepresentation
     focal_length = FrameAttribute(default=None)
     rotation = FrameAttribute(default=0 * u.deg)
@@ -84,9 +89,9 @@ class NominalFrame(BaseCoordinateFrame):
 
     Frame attributes:
     * ``array_direction``
-      Alt,Az direction of the array pointing
+        Alt,Az direction of the array pointing
     * ``pointing_direction``
-      Alt,Az direction of the telescope pointing
+        Alt,Az direction of the telescope pointing
 
     """
 
@@ -108,9 +113,9 @@ class HorizonFrame(BaseCoordinateFrame):
 
     Frame attributes:
     * ``array_direction``
-      Alt,Az direction of the array pointing
+        Alt,Az direction of the array pointing
     * ``pointing_direction``
-      Alt,Az direction of the telescope pointing
+        Alt,Az direction of the telescope pointing
 
     """
 
