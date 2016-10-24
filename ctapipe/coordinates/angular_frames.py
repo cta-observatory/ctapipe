@@ -92,7 +92,6 @@ class NominalFrame(BaseCoordinateFrame):
         Alt,Az direction of the array pointing
     * ``pointing_direction``
         Alt,Az direction of the telescope pointing
-
     """
 
     default_representation = PlanarRepresentation
