@@ -1,24 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+
 """Hillas shower parametrization.
 
 TODO:
 -----
-
-* remove alpha calculation (which is only about (0,0), and make a get
+* Remove alpha calculation (which is only about (0,0), and make a get
   alpha function that does it from an arbitrary point given a
-  pre-computed list of parameters
+  pre-computed list of parameters.
 * At present skewness and kurtosis are calculated by hand.
   Is there a scipy way of doing weighted statistics?
-
-CHANGE LOG:
------------
-
-* Higher order moments implemented in version 2.
-
-* Fixed disagreement in psi between the two versions.
-
-* Defined units for the returned parameters.
-  Version 1 and version 2 are now compatible in units.
 
 """
 
@@ -32,12 +22,12 @@ __all__ = [
     'HillasParameterizationError',
 ]
 
-"""
-hillas_parameters: Returns shower parameters Container upto 4th order
+"""hillas_parameters : returns shower parameters Container upto 4th order
 
-See also
+See Also
 --------
 HillasParameterizationError
+
 """
 
 
