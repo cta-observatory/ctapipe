@@ -32,10 +32,10 @@ class YAMLFile(str):
     def __repr__(self):
         return "YAMLFile(%s)" % self
 
-def yaml_representer_yaml(dumper, data):
+def representer_yamlfile(dumper, data):
     return dumper.represent_scalar(u'!yaml', data.filename)
 
-def yaml_constructor_yaml(loader, node):
+def constructor_yamlfile(loader, node):
     if isinstance(node, ScalarNode):
         # Load the contents wherever possible (file exists)
         try:
@@ -43,5 +43,5 @@ def yaml_constructor_yaml(loader, node):
         except FileNotFoundError:
             return File(node.value) # Alternatively, give the object.
 
-yaml.add_representer(YAMLFile, extfile_representer)
-yaml.add_constructor(u'!yaml', extfile_constructor)
+yaml.add_representer(YAMLFile, representer_yamlfile)
+yaml.add_constructor(u'!yaml', constructor_yamlfile)
