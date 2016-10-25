@@ -194,6 +194,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pixel areas
     neighbors: list with next neighbors
     """
+
     bx = np.linspace(range_x[0], range_x[1], npix_x)
     by = np.linspace(range_y[0], range_y[1], npix_y)
     xx, yy = np.meshgrid(bx, by)
