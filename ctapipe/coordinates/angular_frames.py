@@ -50,7 +50,6 @@ class CameraFrame(BaseCoordinateFrame):
     * ``rotation``
         Rotation angle of the camera (0 deg in most cases)
     """
-
     default_representation = CartesianRepresentation
     focal_length = FrameAttribute(default=None)
     rotation = FrameAttribute(default=0 * u.deg)
@@ -73,8 +72,8 @@ class TelescopeFrame(BaseCoordinateFrame):
         Rotation angle of the camera (0 deg in most cases)
     * ``pointing_direction``
         Alt,Az direction of the telescope pointing
-    """
 
+    """
     default_representation = PlanarRepresentation
     pointing_direction = FrameAttribute(default=None)
 
@@ -88,36 +87,35 @@ class NominalFrame(BaseCoordinateFrame):
     performed in this system
 
     Frame attributes:
+    
     * ``array_direction``
         Alt,Az direction of the array pointing
     * ``pointing_direction``
         Alt,Az direction of the telescope pointing
-    """
 
+    """
     default_representation = PlanarRepresentation
     pointing_direction = FrameAttribute(default=None)
     array_direction = FrameAttribute(default=None)
 
 
 class HorizonFrame(BaseCoordinateFrame):
-    """
-    Horizon coordinate frame. Spherical system used to describe the direction
+    """Horizon coordinate frame. Spherical system used to describe the direction
     of a given position, in terms of the altitude and azimuth of the system. In
     practice this is functionally identical as the astropy AltAz system, but this
     implementation allows us to pass array pointing information, allowing us to directly
     transform to the Horizon Frame from the Camera system.
-
     The Following attributes are carried over from the telescope frame
     to allow a direct transformation from the camera frame
 
     Frame attributes:
+
     * ``array_direction``
         Alt,Az direction of the array pointing
     * ``pointing_direction``
         Alt,Az direction of the telescope pointing
 
     """
-
     default_representation = UnitSphericalRepresentation
 
     frame_specific_representation_info = {
@@ -132,7 +130,6 @@ class HorizonFrame(BaseCoordinateFrame):
 
 
 # Transformations defined below this point
-
 
 def altaz_to_offset(obj_azimuth, obj_altitude, azimuth, altitude):
     """
