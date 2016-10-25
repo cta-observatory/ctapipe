@@ -2,7 +2,7 @@
 """
 import matplotlib.pyplot as plt
 from ctapipe.io.camera import make_rectangular_camera_geometry
-from ctapipe.reco import generate_2d_shower_model, make_mock_shower_image
+from ctapipe.image.mock import generate_2d_shower_model, make_mock_shower_image
 
 NX = 40
 NY = 40
@@ -36,4 +36,4 @@ plt.imshow(image, interpolation='nearest', origin='lower')
 plt.title("Image")
 plt.colorbar()
 
-#plt.show()
+plt.show()
