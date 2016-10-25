@@ -909,7 +909,8 @@ def load_config(filename):
 
 
 def load_yaml(filename):
-    import yaml
+    import ruamel.yaml as yaml
+    from io.yaml import *
     """
     Function writing data from YAML files (fill with faked data wherever needed)
     into an astropy.table Table
@@ -920,85 +921,44 @@ def load_yaml(filename):
         all dictionaries contain astropy.table Tables
     """
 
-    # It will, for now, read Telescope files. We should guess how to recognize
-    # sub structures directly
-
-    
-
-
-    print('Yaml + Faked data fill will be produced.')
-    version = 'Oct2016'
-    tel_num = 10
-    tel_id = [random.randrange(1,124,1) for x in xrange(0,tel_num)]
-
-    telescope = {}
-    camera    = {}
-    optics    = {}
-    auxiliary = {}
+    # It will, for now, read Telescope files.
+    # We should guess how to recognize the sub structures directly
+    # Maybe through object property 'type'?
 
     with open(filename, 'r') as fin:
-        yamlobject = yaml.safe_load(fin)
+        YamlObject = yaml.load(fin)
 
-    # There should be objects in the YAML of the form
-    # CamType_1, CameraType_2
-    # Cam_A (overrides CamType_2), Camera_B (overrides CamType_1), ...
-    # Optics_A, Opt_B, ...
-    # Telescope_A, Tel_B, ... (with references to their optics A/B... and cameras A/B...).
-    # Each of these object should have a Header, identifying the columns
-    #   and a Data as items (arrays) with fields.
+    # Get the objects defined
+    Available = {}
+    Available['Telescopes'] = [K for K in YamlObject \
+        if item['type'] is 'Telescope']
+    Available['Optics'] = [K for K in YamlObject \
+        if item['type'] is 'TelescopeOptics']
+    Available['Cameras'] = [K for K in YamlObject \
+        if item['type'] is 'TelescopeOptics']
 
-
-    # Another possibility: define inside pyyaml how to handle astropy.Quantity
-    yaml.add_representer(Quantity, represent_quantity)
-
-    tel_table_prime = Table()
-
-    for tel in list_telescopes:
-        # Basic type
-        telescope = list_telescopetypes[list_telescopes[tel]['BasedOn']]
-        # Change properties that only apply to this particular telescope
-        for item in list_telescopes[tel]['Override']:
-            telescope = override_in_table(telescope,item)
-
-    for cam in list_cameras:
-        # Basic type
-        camera = list_cameratypes[list_cameras[cam]['BasedOn']]
-        # Change properties that only apply to this particular camera
-        for item in list_cameras[cam]['Override']:
-            camera = override_in_table(camera,item)
-
-    for cam in list_optics:
-        # Basic type
-        optics = list_opticstypes[list_optics[cam]['BasedOn']]
-        # Change properties that only apply to this particular optics
-        for item in list_optics[cam]['Override']:
-            optics = override_in_table(optics,item)
-
-
+    if len(Available['Telescopes']) is 0:
+        raise TypeError("File type {} not supported".format(filetype))
 
     for tel_id in list_telescopes:
     try:
         tel_table_prime['TelID'] = telescope[tel_id
     except:
 
-
-    tel_posX = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_posY = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_posZ = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_table_prime['TelX'] = tel_posX
+    #tel_posX = [random.uniform(1,100) for x in xrange(tel_num)]
+    #tel_posY = [random.uniform(1,100) for x in xrange(tel_num)]
+    #tel_posZ = [random.uniform(1,100) for x in xrange(tel_num)]
+    tel_table_prime['TelX'] = []
+    tel_table_prime['TelY'] = []
+    tel_table_prime['TelZ'] = []
+    tel_table_prime['MirA'] = []
+    tel_table_prime['MirN'] = []
+    tel_table_prime['FL']   = []
     tel_table_prime['TelX'].unit = u.m
-    tel_table_prime['TelY'] = tel_posY
     tel_table_prime['TelY'].unit = u.m
-    tel_table_prime['TelZ'] = tel_posZ
     tel_table_prime['TelZ'].unit = u.m
-    mirror_area = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_table_prime['MirA'] = mirror_area
     tel_table_prime['MirA'].unit = u.m**2
-    mirror_num = [random.randrange(1,124,1) for x in xrange(tel_num)]
-    tel_table_prime['MirN'] = mirror_num
-    foclen = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_table_prime['FL'] = foclen
-    tel_table_prime['FL'].unit = u.m
+    tel_table_prime['FL'].unit   = u.m
 
     telescope['TelescopeTable_Version%s' % version] = tel_table_prime
 
@@ -1006,20 +966,27 @@ def load_yaml(filename):
 
         cam_table_prime = Table()
         opt_table_prime = Table()
-        pixel_num = 128
-        pix_posX = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
-        pix_posY = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
-        pix_id = np.arange(len(pix_posX))
-        pix_area = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+        #pixel_num = 128
+        #pix_posX = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+        #pix_posY = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+        #pix_id = np.arange(len(pix_posX))
+        #pix_area = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+
+        Camera    = Telescope['camera']
+        PixelList = Table(data=Camera['pixels']['Data'],\
+                          names=Camera['pixels']['Header'])
+        for k, C in PixelList.colnames:
+            PixelList[C].unit = Camera['pixels']['Units'][k]
+
+        pix_posX = Camera[]
+        pix_posX = Telescope['camera']
 
         cam_table_prime.meta = {'TELID': tid, 'VERSION': version, \
         'PIXX_DES': 'x-position of the pixel measured by...'}
-        cam_table_prime['PixID'] = pix_id
-        cam_table_prime['PixX'] = pix_posX
-        cam_table_prime['PixX'].unit = u.m
-        cam_table_prime['PixY'] = pix_posY
-        cam_table_prime['PixY'].unit = u.m
-        cam_table_prime['PixA'] = pix_area
+        cam_table_prime['PixID'] = PixelList['ID']
+        cam_table_prime['PixX']  = PixelList['x']
+        cam_table_prime['PixY']  = PixelList['y']
+        cam_table_prime['PixA']  = [100 for k in PixelList['ID']]
         cam_table_prime['PixA'].unit = u.mm**2
 
         opt_table_prime.meta = {'TELID': tid, 'VERSION': version, \
