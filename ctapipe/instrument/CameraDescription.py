@@ -107,7 +107,6 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     distance between two pixels just from the pixel positions
 
     Assumes:
-    --------
     - the pixels are square or hexagonal
     - the first two pixels are adjacent
 
@@ -174,6 +173,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
                                      range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
     """Generate a simple camera with 2D rectangular geometry.
     Used for testing.
+
     Parameters
     ----------
     npix_x : int
@@ -184,6 +184,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         min and max of x pixel coordinates in meters
     range_y : (float,float)
         min and max of y pixel coordinates in meters
+
     Returns
     -------
     pix_id: int array

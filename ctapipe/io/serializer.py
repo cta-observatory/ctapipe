@@ -174,6 +174,9 @@ class Reader(ABC):
 
 
 class GZipPickleReader(Reader):
+    """
+    Reads a pickled file and yield containers
+    """
     def __init__(self, infile):
         """
         Parameters
@@ -186,11 +189,14 @@ class GZipPickleReader(Reader):
 
     def get_next_container(self):
         """
+
         Returns
         -------
         Next container in file
+
         Raises:
-          EOFError: When end of file is reached without returning Container
+        ------
+        EOFError: When end of file is reached without returning Container
         """
         return load(self.file_object)
 
@@ -203,7 +209,7 @@ class GZipPickleReader(Reader):
     def __iter__(self):
         """
         Iterate over all containers
-        Return an iterator object
+        Returns an iterator object
         Raises
         ------
         StopIteration: when all containers have been read
@@ -257,9 +263,10 @@ class GZipPickleWriter(Writer):
     def add_container(self, container):
         """
         Add a container to serializer
+
         Raises
         ------
-        TypeError : When container is not type of container
+        TypeError: When container is not type of container
         """
         if not isinstance(container, Container):
             raise TypeError('Can write only Containers')
@@ -275,14 +282,17 @@ not_writeable_fields = ('tel', 'tels_with_data', 'calibration_parameters',
 def is_writeable(key, out_format='fits'):
     """
     check if a key is writable
+
     Parameters
     ----------
     key: str
     out_format: 'fits' or ´ pickle'
         according to out_format a same key can be writable or not
+
     Returns
     -------
     True if key is writable according to the out_format
+
     Raises
     ------
     NameError: When out_format is not know
