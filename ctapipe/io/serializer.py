@@ -93,7 +93,8 @@ class Serializer:
     def add_container(self, container):
         """
         Add a container to serializer
-         Raises
+
+        Raises
         ------
         RuntimeError: When Serializer is used as Writer
         """
