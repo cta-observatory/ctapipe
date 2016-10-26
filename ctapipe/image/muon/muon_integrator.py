@@ -262,6 +262,11 @@ class MuonLineIntegrate:
             self.pixel_x,
             self.pixel_y,
         )
+        #TEST: extra scaling factor, HESS style (ang pix size squared/2piR)
+        #Not including bins atm
+        #HESSscale = self.pixel_width*self.pixel_width / (2.*np.pi() * radius)
+        #prediction *= HESSscale
+
         # scale prediction by optical efficiency of array
         prediction *= optical_efficiency_muon
 

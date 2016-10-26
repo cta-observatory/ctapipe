@@ -59,26 +59,34 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         y = nom_coord.y.to(u.deg)
 
         img = image*clean_mask
-        noise = 5
+        noise = 5.
         weight = img / (img+noise)
 
         muonring = ChaudhuriKunduRingFitter(None)
 
         muonringparam = muonring.fit(x,y,image*clean_mask)
+        #muonringparam = muonring.fit(x,y,weight)
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
         #embed()
         #1/0
-        muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
+        muonringparam = muonring.fit(x,y,img*(ring_dist<muonringparam.ring_radius*0.3))
 
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
+        
+        #embed()
 
-        muonringparam = muonring.fit(x,y,image*(ring_dist<muonringparam.ring_radius*0.3))
+        muonringparam = muonring.fit(x,y,img*(ring_dist<muonringparam.ring_radius*0.3))
         muonringparam.tel_id = telid
         muonringparam.run_id = event.dl1.run_id
         muonringparam.event_id = event.dl1.event_id
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
+
+        print("Fitted ring centre:",muonringparam.ring_center_x,muonringparam.ring_center_y)
+
+        #embed()
+        #1/0
 
         rad = list()
         cx = list()
@@ -108,6 +116,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 else:
                     continue
 
+        #print("Fitted ring centre (2):",muonringparam.ring_center_x,muonringparam.ring_center_y)
+
 
     return muonringparam, muonintensityparam
 
@@ -132,9 +142,15 @@ def analyze_muon_source(source, params=None, geom_dict=None, args=None):
     if geom_dict is None:
         geom_dict={}
         
-    for event in source:
+    numev = 0
+    for event in source:#Put a limit on number of events
+        numev += 1
         analyzed_muon = analyze_muon_event(event, params, geom_dict)
-
+        print("Analysed event number",numev)
+        #
         plot_muon_event(event, analyzed_muon, geom_dict, args)
+
+        if numev > 20: #Ugly, for testing purposes only
+            break
 
         yield analyzed_muon

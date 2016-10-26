@@ -113,8 +113,8 @@ def main():
         if muon_evt[0] is not None and muon_evt[1] is not None:
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here
-    if pp is not None:
-        pp.close()
+    #if pp is not None:
+    #    pp.close()
 
     log.info("[COMPLETE]")
 

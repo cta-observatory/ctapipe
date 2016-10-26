@@ -89,6 +89,45 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)
             signals = image*clean_mask
 
+            print("Ring Centre in Nominal Coords:",muonparams[0].ring_center_x,muonparams[0].ring_center_y)
+            muon_incl = np.sqrt(muonparams[0].ring_center_x**2. + muonparams[0].ring_center_y**2.)
+            print("Muon inclination = ",muon_incl, "sin(i)",np.sin(muon_incl.to(u.rad)),"cos(i)",np.cos(muon_incl.to(u.rad)))
+
+            muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
+            print("Muon_phi = ",muon_phi, "sin(phi)",np.sin(muon_phi),"cos(phi)",np.cos(muon_phi))
+
+            #embed()
+            #1/0 Convert to camera frame (centre & radius)
+            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,z=0.*u.deg,array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[tel_id])
+            ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
+            
+            #embed()
+            #1/0
+            #centroid = (muonparams[0].ring_center_x.value, muonparams[0].ring_center_y.value)
+            #print("Adding ellipse with x=",muonparams[0].ring_center_x,"y=",muonparams[0].ring_center_y,"r=",muonparams[0].ring_radius)
+            #camera1.add_ellipse(centroid,muonparams[0].ring_radius.value,muonparams[0].ring_radius.value,0.,0.,color="red")
+
+            #
+            centroid = (-ring_camcoord.y.value,ring_camcoord.x.value)
+            #
+            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.
+
+            print("Ring Centre in camera coords - centroid:",-ring_camcoord.y, ring_camcoord.x)
+            px, py = event.meta.pixel_pos[tel_id]
+            camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m)
+
+            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+        
+            px = nom_coord.x.to(u.deg)
+            py = nom_coord.y.to(u.deg)
+
+            #embed()
+            dist = np.sqrt(np.power(px-muonparams[0].ring_center_x,2) + np.power(py - muonparams[0].ring_center_y,2))
+            ring_dist = np.abs(dist-muonparams[0].ring_radius)
+            pixRmask = ring_dist < muonparams[0].ring_radius*0.3
+            #embed()
+            signals *= pixRmask
+
             camera1 = plotter.draw_camera(tel_id,signals,ax1)
 
             cmaxmin = (max(signals) - min(signals))
@@ -106,19 +145,6 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 camera1.colorbar = colorbar
             camera1.update(True)
        
-            #embed()
-            #1/0 Convert to camera frame (centre & radius)
-            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,z=0.*u.deg,array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[tel_id])
-            ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
-
-            #embed()
-            #1/0
-            #centroid = (muonparams[0].ring_center_x.value, muonparams[0].ring_center_y.value)
-            #print("Adding ellipse with x=",muonparams[0].ring_center_x,"y=",muonparams[0].ring_center_y,"r=",muonparams[0].ring_radius)
-            #camera1.add_ellipse(centroid,muonparams[0].ring_radius.value,muonparams[0].ring_radius.value,0.,0.,color="red")
-
-            centroid = (-ring_camcoord.y.value,ring_camcoord.x.value)
-            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.
             camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="red")
 
             if muonparams[1] is not None:
