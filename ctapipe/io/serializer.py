@@ -107,6 +107,7 @@ class Serializer:
         Returns
         -------
         The next container in file
+
         Raises
         ------
         EOFError:  When end of file is reached without returning Container
