@@ -12,7 +12,7 @@ from traitlets import Unicode
 import numpy as np
 from gzip import open as gzip_open
 
-__all__ = ['FitsSerializer', 'PickleSerializer']
+__all__ = ['Serializer']
 
 
 class Serializer:

@@ -107,7 +107,7 @@ def test_fits_dl1():
     with gzip_open(input_test_file, 'rb') as f:
         data = load(f)
     t38 = data[0].dl1.tel[38]
-    serial = FitsSerializer('output.fits', 'fits', overwrite=True)
+    serial = Serializer('output.fits', 'fits', overwrite=True)
     serial.add_container(t38)
     serial.write()
     # t11_1 = data[1].dl1.tel[11]
