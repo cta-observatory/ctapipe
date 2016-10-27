@@ -910,7 +910,9 @@ def load_config(filename):
 
 def load_yaml(filename):
     import ruamel.yaml as yaml
-    from io.yaml import *
+    from ctapipe.io.yaml import setup_yaml_customobjects
+    setup_yaml_customobjects()
+
     """
     Function writing data from YAML files (fill with faked data wherever needed)
     into an astropy.table Table
@@ -986,7 +988,7 @@ def load_yaml(filename):
         tel_table_prime['FL'].unit = u.m
     except: pass
     try:
-        tel_table_prime.meta['TelNum'] =  len(Available['Telescopes']])
+        tel_table_prime.meta['TelNum'] =  len(Available['Telescopes'])
     except: pass
 
     #Beside other tables containing telescope configuration data, the main

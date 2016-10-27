@@ -43,5 +43,6 @@ def constructor_yamlfile(loader, node):
         except FileNotFoundError:
             return File(node.value) # Alternatively, give the object.
 
-yaml.add_representer(YAMLFile, representer_yamlfile)
-yaml.add_constructor(u'!yaml', constructor_yamlfile)
+def setup_yaml_customobjects():
+    yaml.add_representer(YAMLFile, representer_yamlfile)
+    yaml.add_constructor(u'!yaml', constructor_yamlfile)
