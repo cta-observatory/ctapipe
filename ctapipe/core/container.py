@@ -8,8 +8,13 @@ class Container:
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
     the user from accessing members that have not been defined
-    a-priori (more like a C struct). It is also used to transform the
-    data into something that can be written to an output table.
+    a-priori (more like a C struct), and also keeps metdata
+    information such as a description, defaults, and units for each
+    item in the container. It is also used to transform the data into
+    something that can be written to an output table, such as a
+    dict(), which can be made recursively and even flattened so that a
+    nested set of `Containers` can be translated into a set of columns
+    in a flat table without naming conflicts.
 
     To use this class, all members must be defined as `Item`s with
     default values specified.  For hierarchical data structures, Items
@@ -76,7 +81,7 @@ class Container:
                         d.update({"{}_{}".format(key, k): v
                                   for k, v in val.as_dict(recursive).items()})
                     else:
-                        d[key] = val.as_dict(recursive, flatten)
+                        d[key] = val.as_dict(recursive=recursive, flatten=flatten)
                     continue
                 d[key] = val
             return d
@@ -104,9 +109,8 @@ class Container:
 
 class Map(dict):
     """A dictionary of sub-containers that can be added to a
-    Container. This may be used e.g. to store telescope-wise
-    Containers(e.g. indexed by `tel_id` or something similar that can
-    be added to a containre like a normal `Item`.
+    Container. This may be used e.g. to store a set of identical
+    sub-Containers (e.g. indexed by `tel_id` or algorithm name).
     """
 
     def as_dict(self, recursive=False, flatten=False):
@@ -120,7 +124,7 @@ class Map(dict):
                         d.update({"{}_{}".format(key, k): v
                                   for k, v in val.as_dict(recursive).items()})
                     else:
-                        d[key] = val.as_dict(recursive, flatten)
+                        d[key] = val.as_dict(recursive=recursive, flatten=flatten)
                     continue
                 d[key] = val
             return d
