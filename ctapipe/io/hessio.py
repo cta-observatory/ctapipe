@@ -6,8 +6,8 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import EventContainer, RawData
-from .containers import RawCameraData, MCEvent, MCCamera, CentralTriggerData
+from .containers import EventContainer, RawDataContainer
+from .containers import RawCameraContainer, MCEventContainer, MCCameraContainer, CentralTriggerContainer
 from ctapipe.core import Container
 
 from astropy import units as u
@@ -118,11 +118,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             nchans = pyhessio.get_num_channel(tel_id)
             npix = pyhessio.get_num_pixels(tel_id)
             nsamples = pyhessio.get_num_samples(tel_id)
-            event.dl0.tel[tel_id] = RawCameraData(tel_id)
+            event.dl0.tel[tel_id] = RawCameraContainer(tel_id)
             event.dl0.tel[tel_id].num_channels = nchans
             event.dl0.tel[tel_id].num_pixels = npix
             event.dl0.tel[tel_id].num_samples = nsamples
-            event.mc.tel[tel_id] = MCCamera(tel_id)
+            event.mc.tel[tel_id] = MCCameraContainer(tel_id)
 
             event.dl0.tel[tel_id].calibration \
                 = pyhessio.get_calibration(tel_id)

@@ -1,182 +1,114 @@
 """
 """
 
-from ctapipe.core import Container
-import numpy as np
+from astropy import units as u
+from astropy.time import Time
+
+from ..core import Container, Item, Map
+
+__all__ = ['EventContainer','RawDataContainer', 'RawCameraContainer',
+           'MCShowerContainer', 'MCEventContainer', 'MCCameraContainer',
+           'CalibratedCameraContainer']
+
+# todo: change some of these Maps to be just 3D NDarrays?
+class CalibratedCameraContainer(Container):
+    """
+    Storage of calibrated (p.e.) data from a single telescope
+    """
+    pe_charge = Item(0, "array of camera image in PE") # todo: rename to pe_image?
+    integration_window = Item(Map(), ("map per channel of bool ndarrays of "
+                                      "shape (npix, nsamples) "
+                                      "indicating the samples used in "
+                                      "the obtaining of the charge, dependant on the "
+                                      "integration method used"))
+    # todo: rename the following to *_image
+    pedestal_subtracted_adc = Item(Map(), "Map of channel  to subtracted ADC image")
+    peakpos = Item(Map(), ("position of the peak as determined by the peak-finding"
+                           " algorithm for each pixel and channel"))
+
+    num_channels = Item(0, "number of channels")  # todo: this is metadata, not a column?
+    num_pixels = Item(0, "number of channels")  # todo: this is metadata, not a column?
+
+    # todo: this cannot be written to a table, so needs to be metadata. Do they change per event?
+    calibration_parameters = Item(dict(), "parameters used to calbrate the event")
 
 
-__all__ = ['RawData', 'RawCameraData', 'MCShowerData', 'MCEvent', 'MCCamera', 'CalibratedCameraData']
+class RawCameraContainer(Container):
+    """
+    Storage of raw data from a single telescope
+    """
+    adc_sums = Item(Map(), ("map of channel to (masked) arrays of all "
+                            "integrated ADC data (n_pixels)"))
+    adc_samples = Item(Map(), "map of channel to arrays of (n_pixels, n_samples)")
+    pedestal = Item(0, "Pedestal values")
+    num_channels = Item(0,"Number of channels in camera") # TODO: this is metadata
+    num_pixels = Item(0,"Number of pixels in camera") # TODO: this is metadata and not needed
+    num_samples = Item(0,"Number of samples per channel)") #TODO: this is metadata
+
+class RawDataContainer(Container):
+    """
+    Storage of a Merged Raw Data Event
+    """
+
+    run_id = Item(-1, "run id number")
+    event_id = Item(-1, "event id number")
+    tels_with_data = Item([], "list of telescopes with data")
+    tel = Item(Map(), "map of tel_id to RawCameraContainer")
+        
+
+# TODO: this should be replaced with a standard Shower container (and just have one called "mc" in the event)
+class MCShowerContainer(Container):
+    """
+    Monte-Carlo shower representation
+    """
+    energy = Item(0, "Monte-Carlo Energy")
+    alt = Item(0, "Monte-carlo altitude", unit=u.deg)
+    az = Item(0, "Monte-Carlo azimuth", unit=u.deg)
+    core_x = Item(0, "MC core position")
+    core_y = Item(0, "MC core position")
+    h_first_int = Item(0, "Height of first interaction")
+
+# TODO: why is this a subclass of MCShowerContainer?
+class MCEventContainer(MCShowerContainer):
+    """
+    Monte-Carlo
+    """
+    tel = Item(Map(), "map of tel_id to MCCameraContainer")
+
+
+class CentralTriggerContainer(Container):
+
+    gps_time = Item(Time, "central average time stamp")
+    tels_with_trigger = Item([], "list of telescopes with data")
+
+
+#TODO: do these all change per event? If not some should be metadata (headers)
+class MCCameraContainer(Container):
+    """
+    Storage of mc data used for a single telescope
+    """
+    photo_electrons = Item(Map(), "map of channel to PE")
+    refshapes = Item(Map(), "map of channel to array defining pulse shape")
+    refstep = Item(0, "RENAME AND WRITE DESC FOR THIS!")
+    lrefshape = Item(0, "RENAME AND WRITE DESC FOR THIS!")
+    time_slice = Item(0, "width of time slice") # TODO: rename to time_slice_width?
+
+
+
 
 
 class EventContainer(Container):
     """ Top-level container for all event information """
-    def __init__(self, name="Event"):
-        self.add_item("dl0", RawData())
-        self.add_item("mc", MCEvent())
-        self.add_item("trig", CentralTriggerData())
-        self.add_item("count")
 
-        self.meta.add_item('tel_pos', dict())
-        self.meta.add_item('pixel_pos', dict())
-        self.meta.add_item('optical_foclen', dict())
-        self.meta.add_item('source', "unknown")
+    dl0 = Item(RawCameraContainer(), "Raw Data")
+    dl1 = Item(CalibratedCameraContainer())
+    mc = Item(MCEventContainer(), "Monte-Carlo data")
+    trig = Item(CentralTriggerContainer(), "central trigger information")
+    count = Item(0, "number of events processed")
 
-
-
-class RawData(Container):
-    """
-    Storage of a Merged Raw Data Event
-
-    Parameters
-    ----------
-
-    run_id : int
-        run number
-    event_id : int
-        event number
-    tels_with_data : list
-        list of which telescope IDs are present
-    pixel_pos : dict of ndarrays by tel_id
-        (deprecated)
-    tel : dict of `RawCameraData` by tel_id
-        dictionary of the data for each telescope
-    """
-
-    def __init__(self, name="RawData"):
-        super().__init__(name)
-        self.add_item('run_id')
-        self.add_item('event_id')
-        self.add_item('tels_with_data')
-        self.add_item('tel', dict())
-        
-
-class MCShowerData(Container):
-    def __init__(self, name='MCShowerData'):
-        super().__init__(name)
-        self.add_item('energy')
-        self.add_item('alt')
-        self.add_item('az')
-        self.add_item('core_x')
-        self.add_item('core_y')
-        self.add_item('h_first_int')
-    def __str__(self):
-        return_string  = self._name+":\n"
-        return_string += "energy:   {0:.2}\n".format(self.energy)
-        return_string += "altitude: {0:.2}\n".format(self.alt)
-        return_string += "azimuth:  {0:.2}\n".format(self.az)
-        return_string += "core x:   {0:.4}\n".format(self.core_x)
-        return_string += "core y:   {0:.4}"  .format(self.core_y)
-        return return_string
-
-class MCEvent(MCShowerData):
-    """
-    Storage of MC event data
-
-    Parameters
-    ----------
-
-    tel : dict of `RawCameraData` by tel_id
-        dictionary of the data for each telescope
-
-    """
-    def __init__(self, name='MCEvent'):
-        super().__init__(name)
-        self.add_item('tel',dict())
-    def __str__(self):
-        return_string = super().__str__()+"\n"
-        npix = np.sum([np.sum(t.photo_electrons > 0) for t in self.tel.values()])
-        return_string += "total photo_electrons: {}".format( npix )
-        return return_string
+    #self.meta.add_item('tel_pos', dict())
+    #self.meta.add_item('pixel_pos', dict())
+    #self.meta.add_item('optical_foclen', dict())
+    #self.meta.add_item('source', "unknown")
 
 
-class CentralTriggerData(Container):
-    def __init__(self, name='CentralTriggerData'):
-        super().__init__(name)
-        self.add_item('gps_time')
-        self.add_item('tels_with_trigger')
-
-
-class MCCamera(Container):
-    """
-    Storage of mc data used for a single telescope
-
-    Parameters
-    ----------
-
-    pe_count : dict by channel
-        (masked) arrays of true (mc) pe count in each pixel (n_pixels)
-
-    """
-    def __init__(self, tel_id):
-        super().__init__("CT{:03d}".format(tel_id))
-        self.add_item('photo_electrons', dict())
-        # Some parameters used in calibration
-        self.add_item('refshapes', dict())
-        self.add_item('refstep')
-        self.add_item('lrefshape')
-        self.add_item('time_slice')
-
-
-
-class RawCameraData(Container):
-    """
-    Storage of raw data from a single telescope
-
-    Parameters
-    ----------
-
-    adc_sums : dict by channel
-        (masked) arrays of all integrated ADC data (n_pixels)
-    adc_samples : dict by channel
-        (masked) arrays of non-integrated ADC sample data (n_pixels, n_samples)
-    num_channels : int
-        number of gain channels in camera
-    num_pixels : int
-        number of pixels in camera
-    num_samples : int
-        number of samples for camera
-
-    """
-    def __init__(self, tel_id):
-        super().__init__("CT{:03d}".format(tel_id))
-        self.add_item('adc_sums', dict())
-        self.add_item('adc_samples', dict())
-        self.add_item('calibration')
-        self.add_item('pedestal')
-        self.add_item('num_channels')
-        self.add_item('num_pixels')
-        self.add_item('num_samples')
-
-
-class CalibratedCameraData(Container):
-    """
-    Storage of calibrated (p.e.) data from a single telescope
-
-    Parameters
-    ----------
-
-    pe_charge : dict
-        ndarrays of all calibrated data (npix)
-    integration_window : dict
-        bool ndarrays of shape [npix][nsamples] indicating the samples used in
-        the obtaining of the charge, dependant on the integration method used
-    pedestal_subtracted_adc : dict
-    peakpos : dict
-        position of the peak as determined by the peak-finding algorithm
-        for each pixel and channel
-    num_channels : int
-        number of gain channels in camera
-    num_pixels : int
-        number of pixels in camera
-    calibration_parameters : dict
-        the calibration parameters used to calbrate the event
-    """
-    def __init__(self, tel_id):
-        super().__init__("CT{:03d}".format(tel_id))
-        self.add_item('pe_charge')
-        self.add_item('integration_window', dict())
-        self.add_item('pedestal_subtracted_adc', dict())
-        self.add_item('peakpos')
-        self.add_item('num_channels')
-        self.add_item('num_pixels')
-        self.add_item('calibration_parameters', dict())

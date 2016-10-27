@@ -8,7 +8,7 @@ import numpy as np
 from ctapipe.image import mock
 from scipy.stats import norm
 
-from .containers import RawCameraData
+from .containers import RawCameraContainer
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def mock_event_source(geoms, events=100, single_tel=False, n_channels=1, n_sampl
                 intensity,
             )
 
-            container.dl0.tel[tel_id] = RawCameraData(tel_id)
+            container.dl0.tel[tel_id] = RawCameraContainer(tel_id)
             container.dl0.tel[tel_id].num_channels = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))

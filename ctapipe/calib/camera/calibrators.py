@@ -8,7 +8,7 @@ from ctapipe.calib.camera import mc
 from ctapipe.calib.camera.integrators import integrator_dict, \
     integrators_requiring_geom
 from functools import partial
-from ctapipe.io.containers import RawData, CalibratedCameraData
+from ctapipe.io.containers import RawDataContainer, CalibratedCameraContainer
 from ctapipe.io import CameraGeometry
 from astropy import log
 
@@ -145,7 +145,7 @@ def calibrate_event(event, params, geom_dict=None):
 
     # Add dl1 to the event container (if it hasn't already been added)
     try:
-        calibrated.add_item("dl1", RawData())
+        calibrated.add_item("dl1", RawDataContainer())
         calibrated.dl1.run_id = event.dl0.run_id
         calibrated.dl1.event_id = event.dl0.event_id
         calibrated.dl1.tels_with_data = event.dl0.tels_with_data
@@ -158,7 +158,7 @@ def calibrate_event(event, params, geom_dict=None):
     for telid in event.dl0.tels_with_data:
         nchan = event.dl0.tel[telid].num_channels
         npix = event.dl0.tel[telid].num_pixels
-        calibrated.dl1.tel[telid] = CalibratedCameraData(telid)
+        calibrated.dl1.tel[telid] = CalibratedCameraContainer(telid)
         calibrated.dl1.tel[telid].num_channels = nchan
         calibrated.dl1.tel[telid].num_pixels = npix
 
