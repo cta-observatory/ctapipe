@@ -91,32 +91,37 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
             print("Ring Centre in Nominal Coords:",muonparams[0].ring_center_x,muonparams[0].ring_center_y)
             muon_incl = np.sqrt(muonparams[0].ring_center_x**2. + muonparams[0].ring_center_y**2.)
-            print("Muon inclination = ",muon_incl, "sin(i)",np.sin(muon_incl.to(u.rad)),"cos(i)",np.cos(muon_incl.to(u.rad)))
+            #print("Muon inclination = ",muon_incl, "sin(i)",np.sin(muon_incl.to(u.rad)),"cos(i)",np.cos(muon_incl.to(u.rad)))
 
             muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
-            print("Muon_phi = ",muon_phi, "sin(phi)",np.sin(muon_phi),"cos(phi)",np.cos(muon_phi))
+            #print("Muon_phi = ",muon_phi, "sin(phi)",np.sin(muon_phi),"cos(phi)",np.cos(muon_phi))
 
             #embed()
+            rot_angle = 0.*u.deg
+            if event.meta.optical_foclen[tel_id] > 10.*u.m:
+                rot_angle = -100.*u.deg
             #1/0 Convert to camera frame (centre & radius)
-            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,z=0.*u.deg,array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[tel_id])
+            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,z=0.*u.deg,array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.meta.optical_foclen[tel_id], rotation=rot_angle)
             ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
             
             #embed()
             #1/0
-            #centroid = (muonparams[0].ring_center_x.value, muonparams[0].ring_center_y.value)
-            #print("Adding ellipse with x=",muonparams[0].ring_center_x,"y=",muonparams[0].ring_center_y,"r=",muonparams[0].ring_radius)
-            #camera1.add_ellipse(centroid,muonparams[0].ring_radius.value,muonparams[0].ring_radius.value,0.,0.,color="red")
 
-            #
-            centroid = (-ring_camcoord.y.value,ring_camcoord.x.value)
+            #True Core location from MC
+            #mccore = (event.mc.core_x.value,event.mc.core_y.value)
+            centroid_rad = np.sqrt(ring_camcoord.y**2 + ring_camcoord.x**2)
+            #embed()
+            centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
+
+            print("Centroid",centroid,"R of centroid",centroid_rad)
             #
             ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.
 
-            print("Ring Centre in camera coords - centroid:",-ring_camcoord.y, ring_camcoord.x)
+            print("Ring Centre in camera coords - centroid:",-ring_camcoord.y, ring_camcoord.x,"radius=",ringrad_camcoord,"focallength=",event.meta.optical_foclen[tel_id])
             px, py = event.meta.pixel_pos[tel_id]
             camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m)
 
-            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.meta.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
         
             px = nom_coord.x.to(u.deg)
             py = nom_coord.y.to(u.deg)
@@ -147,6 +152,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
        
             camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="red")
 
+            #camera1.add_ellipse(mccore,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="green")
+
             if muonparams[1] is not None:
                 ringwidthfrac = 0.5*muonparams[1].ring_width/muonparams[0].ring_radius
                 ringrad_inner = ringrad_camcoord*(1.-ringwidthfrac)
@@ -161,3 +168,4 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             if pp is not None:
                 pp.savefig(fig)
         
+            #embed()
