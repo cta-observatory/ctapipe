@@ -64,7 +64,7 @@ class PickleSource(Source):
 
         Raises:
         ------
-        EOFError: When end of file is reached without returning Container
+        StopIteration: When end of file is reached without returning Container
         """
         try:
             container = load(self.file_object)
@@ -98,6 +98,7 @@ class FITSSource(Source):
         """
         super().__init__(filename)
         self.file_object = fits.open(filename)
+        raise NotImplementedError("FITSSource not yet implemented")
 
     def __next__(self):
         pass
