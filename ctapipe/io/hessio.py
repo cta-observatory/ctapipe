@@ -60,11 +60,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     if allowed_tels is not None:
         allowed_tels = set(allowed_tels)
     event = EventContainer()
-    event.meta.source = "hessio"
+    event.meta['source'] = "hessio"
 
     # some hessio_event_source specific parameters
-    event.meta.add_item('hessio__input', url)
-    event.meta.add_item('hessio__max_events', max_events)
+    event.meta['hessio__input'] =  url
+    event.meta['hessio__max_events'] = max_events
 
     for run_id, event_id in eventstream:
 
@@ -104,29 +104,35 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         for tel_id in event.dl0.tels_with_data:
 
             # fill pixel position dictionary, if not already done:
-            if tel_id not in event.meta.pixel_pos:
-                event.meta.pixel_pos[tel_id] \
+            if 'pixel_pos' not in event.meta:
+                event.meta['pixel_pos'] = dict()
+            if 'optical_foclen' not in event.meta:
+                event.meta['optical_foclen'] = dict()
+            if tel_id not in event.meta.get('pixel_pos',[]):
+                event.meta['pixel_pos'][tel_id] \
                     = pyhessio.get_pixel_position(tel_id) * u.m
-                event.meta.optical_foclen[
-                    tel_id] = pyhessio.get_optical_foclen(tel_id) * u.m
+                event.meta.get('optical_foclen',[])[tel_id] \
+                    = pyhessio.get_optical_foclen(tel_id) * u.m
 
             # fill telescope position dictionary, if not already done:
-            if tel_id not in event.meta.tel_pos:
-                event.meta.tel_pos[
-                    tel_id] = pyhessio.get_telescope_position(tel_id) * u.m
+            if 'tel_pos' not in event.meta:
+                event.meta['tel_pos'] = dict()
+            if tel_id not in event.meta['tel_pos']:
+                event.meta['tel_pos'][tel_id] = \
+                    pyhessio.get_telescope_position(tel_id) * u.m
 
             nchans = pyhessio.get_num_channel(tel_id)
             npix = pyhessio.get_num_pixels(tel_id)
             nsamples = pyhessio.get_num_samples(tel_id)
-            event.dl0.tel[tel_id] = RawCameraContainer(tel_id)
+            event.dl0.tel[tel_id] = RawCameraContainer()
             event.dl0.tel[tel_id].num_channels = nchans
             event.dl0.tel[tel_id].num_pixels = npix
             event.dl0.tel[tel_id].num_samples = nsamples
-            event.mc.tel[tel_id] = MCCameraContainer(tel_id)
+            event.mc.tel[tel_id] = MCCameraContainer()
 
-            event.dl0.tel[tel_id].calibration \
+            event.mc.tel[tel_id].dc_to_pe \
                 = pyhessio.get_calibration(tel_id)
-            event.dl0.tel[tel_id].pedestal \
+            event.mc.tel[tel_id].pedestal \
                 = pyhessio.get_pedestal(tel_id)
 
             # load the data per telescope/chan

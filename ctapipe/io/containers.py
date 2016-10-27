@@ -92,7 +92,8 @@ class MCCameraContainer(Container):
     refstep = Item(0, "RENAME AND WRITE DESC FOR THIS!")
     lrefshape = Item(0, "RENAME AND WRITE DESC FOR THIS!")
     time_slice = Item(0, "width of time slice") # TODO: rename to time_slice_width?
-
+    dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
+    pedestal = Item(None, "pedestal calibration arrays from MC file")
 
 
 
@@ -100,7 +101,7 @@ class MCCameraContainer(Container):
 class EventContainer(Container):
     """ Top-level container for all event information """
 
-    dl0 = Item(RawCameraContainer(), "Raw Data")
+    dl0 = Item(RawDataContainer(), "Raw Data")
     dl1 = Item(CalibratedCameraContainer())
     mc = Item(MCEventContainer(), "Monte-Carlo data")
     trig = Item(CentralTriggerContainer(), "central trigger information")
