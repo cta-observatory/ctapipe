@@ -64,6 +64,8 @@ class Serializer:
         elif self.format == 'img':
             raise NotImplementedError('img serializer format is'
                                       ' not yet implemented')
+        else:
+            raise ValueError('You can serialize only on pickle, fits or img')
 
     def __enter__(self):
         return self
@@ -191,6 +193,7 @@ class GZipPickleReader(Reader):
 
     def get_next_container(self):
         """
+        Get next container in file
 
         Returns
         -------
@@ -264,7 +267,7 @@ class GZipPickleWriter(Writer):
 
     def add_container(self, container):
         """
-        Add a container to serializer
+        Add a container to be serialized
 
         Raises
         ------
@@ -279,7 +282,6 @@ class GZipPickleWriter(Writer):
 
 not_writeable_fields = ('tel', 'tels_with_data', 'calibration_parameters',
                         'pedestal_subtracted_adc', 'integration_window')
-
 
 def is_writeable(key, out_format='fits'):
     """
@@ -328,25 +330,30 @@ def writeable_items(container):
 
 def to_table(container):
     """
-    Return tuple of 2 lists:  names and columns from container
+    Convert a `ctapipe.core.Container` to an `astropy.Table` with one row
+
     Parameters
     ----------
     container: ctapipe.core.Container
+
     Returns
     -------
-    tuple of 2 lists:  names and columns from container
+    Table: astropy.Table
     """
-
     names = list()
     columns = list()
     for k, v in writeable_items(container).items():
+
         v_arr = np.array(v)
         v_arr = v_arr.reshape((1,) + v_arr.shape)
         log.debug("Creating column for item '{0}' of shape {1}".
                   format(k, v_arr.shape))
         names.append(k)
         columns.append(Column(v_arr))
-    return names, columns
+
+    return Table(data=columns,  # dtypes are inferred by columns
+                 names=names,
+                 meta=container.meta.as_dict())
 
 
 class TableWriter(Writer):
@@ -388,15 +395,19 @@ class TableWriter(Writer):
     def _setup_table(self, container):
         """
         Create Fits table and HDU
+
         Parameters
         ----------
         container: ctapipe.core.Container
         """
         # Create Table from Container
-        names, columns = to_table(container)
-        self.table = Table(data=columns,  # dtypes are inferred by columns
-                           names=names,
-                           meta=container.meta.as_dict())
+        self.table = to_table(container)
+
+        # # Create mask of only writeable items
+        # self.mask = dict()
+        # for field, _ in container.items():
+        #     self.mask[field] = False if field in not_writeable_fields else True
+
         # Write HDU name
         if self.format == "fits":
             self.table.meta["EXTNAME"] = container._name
