@@ -1,34 +1,38 @@
-from ctapipe.io.serializer import Serializer
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_datasets_path
+from copy import deepcopy
 from os import remove
 
+import pytest
+from astropy.io import fits
+
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.serializer import Serializer
+from ctapipe.utils.datasets import get_datasets_path
 
 # PICKLE SERIALIZER
 binary_filename = 'pickle_data.pickle.gz'
-input_containers = []
 
 
 def compare(read_container, source_container):
+    # test if 4th adc value of telescope 17 HI_GAIN are equals
     return (read_container.dl0.tel[17].adc_samples[0][2][4] ==
             source_container.dl0.tel[17].adc_samples[0][2][4])
 
 
-def test_prepare_input_data():
-    # Get event from hessio file, append them into input_containers which will
-    # be used later for comparison
+def prepare_input_data():
+    # Get event from hessio file, append them into input_containers
     input_filename = get_datasets_path("gamma_test.simtel.gz")
     gen = hessio_event_source(input_filename, max_events=3)
-    #  append all input file events in  input_containers
-    #  list and pickle serializer
+    input_containers = []
     for event in gen:
-        input_containers.append(event)
+        input_containers.append(deepcopy(event))
+    return input_containers
 
 
 def test_pickle_serializer():
+    input_containers = prepare_input_data()
     serial = Serializer(filename=binary_filename, format='pickle',
                         mode='w')
-#   append all input file events in  input_containers list and pickle serializer
+    # append all input file events in input_containers list and pickle serializer
     for event in input_containers:
         serial.add_container(event)
     serial.write()
@@ -39,18 +43,20 @@ def test_pickle_serializer():
     read_containers = []
     while True:
         try:
-            read_containers.append(serial.get_next_container())
+            read_containers.append(next(serial))
         except EOFError:
             break
-#   test if number of read Container correspond to input
+    # test if number of read Container correspond to input
     assert len(read_containers) is len(input_containers)
-#   test if 4th adc value of telescope 17 HI_GAIN are equals
+    # test if 4th adc value of telescope 17 HI_GAIN are equals
     assert compare(input_containers[2], read_containers[2])
     serial.close()
+    remove(binary_filename)
+
 
 # Test pickle reader/writer with statement
 def test_pickle_with_statement():
-
+    input_containers = prepare_input_data()
     with Serializer(filename=binary_filename, format='pickle', mode='w') as \
             containers_writer:
         for container in input_containers:
@@ -62,44 +68,68 @@ def test_pickle_with_statement():
             containers_reader:
         while True:
             try:
-                read_containers.append(containers_reader.get_next_container())
+                read_containers.append(next(containers_reader))
             except EOFError:
                 break
-    #   test if number of read Container correspond to input
+    # test if number of read Container correspond to input
     assert len(read_containers) is len(input_containers)
-    #   test if 4th adc value of telescope 17 HI_GAIN are equals
+    # test if 4th adc value of telescope 17 HI_GAIN are equals
     assert compare(input_containers[2], read_containers[2])
     containers_reader.close()
+    remove(binary_filename)
 
 
 # Test pickle reader iterator
 def test_pickle_iterator():
+    input_containers = prepare_input_data()
+    serial = Serializer(filename=binary_filename, format='pickle',
+                        mode='w')
+    # append all events in input_containers list and pickle serializer
+    for event in input_containers:
+        serial.add_container(event)
+    serial.write()
+
     read_containers = []
     serial = Serializer(filename=binary_filename, format='pickle', mode='r')
     for container in serial:
         read_containers.append(container)
-    #   test if number of read Container correspond to input
+    # test if number of read Container correspond to input
     assert len(read_containers) is len(input_containers)
-    #   test if 4th adc value of telescope 17 HI_GAIN are equals
+    # test if 4th adc value of telescope 17 HI_GAIN are equals
     assert compare(input_containers[2], read_containers[2])
+    remove(binary_filename)
 
 
 # FITS SERIALIZER
+fits_file_name = 'output.fits'
 
 
 def test_fits_dl0():
-    """
-    input_test_file = get_datasets_path('example_container.pickle.gz')
-    with gzip.open(input_test_file, 'rb') as f:
-        data = load(f)
-    """
-    input_filename = get_datasets_path("gamma_test.simtel.gz")
-    gen = hessio_event_source(input_filename, max_events=3)
-    data = next(gen)
-    serial = Serializer(filename='output.fits', format='fits', mode='w')
-    container = data.dl0
-    serial.add_container(container)
-    serial.write()
+    input_containers = prepare_input_data()
+    serial = Serializer(filename=fits_file_name, format='fits', mode='w')
+    for container in input_containers:
+        serial.add_container(container.dl0)
+    serial.close()
+    hdu = fits.open(fits_file_name)[1]
+    assert hdu.data["event_id"][0] == 408
+    assert hdu.data["event_id"][1] == 409
+    assert hdu.data["event_id"][2] == 803
+    assert hdu.data["run_id"][2] == 31964
+    remove(fits_file_name)
+
+
+def test_exclusive_mode():
+    input_containers = prepare_input_data()
+    serial = Serializer(filename=fits_file_name, format='fits', mode='w')
+    for container in input_containers:
+        serial.add_container(container.dl0)
+    serial.close()
+    # Try to write to fits_file_name in exclusive mode
+    with pytest.raises(OSError):
+        serial = Serializer(filename=fits_file_name, format='fits', mode='x')
+        serial.add_container(input_containers[2].dl0)
+        serial.write()
+    remove(fits_file_name)
 
 """
 def test_fits_dl1():
@@ -115,12 +145,12 @@ def test_fits_dl1():
 """
 
 
-def fits_context_manager():
+def test_fits_context_manager():
+    input_containers = prepare_input_data()
     with Serializer(filename='output.fits', format='fits', mode='w') as writer:
         for container in input_containers:
             writer.add_container(container.dl0)
-        writer.write()
 
-# Remove produced files during tests
-def test_remove_test_file():
-    remove(binary_filename)
+    hdulist = fits.open(fits_file_name)
+    assert hdulist[1].data["event_id"][0] == 408
+    remove(fits_file_name)

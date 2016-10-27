@@ -46,7 +46,7 @@ class Serializer:
         self.filename = filename
         self.format = format
 
-        if mode not in ['r', 'x', 'w', 'a']:
+        if mode not in ('r', 'x', 'w', 'a'):
             raise ValueError('{} is not a valid write mode. Use x, w or a'.
                              format(mode))
         self._writer = None
@@ -104,7 +104,7 @@ class Serializer:
             raise RuntimeError('This serializer instance is a reader')
         self._writer.add_container(container)
 
-    def get_next_container(self):
+    def __next__(self):
         """
         Returns
         -------
@@ -117,7 +117,7 @@ class Serializer:
         """
         if not self._reader:
             raise RuntimeError('This serializer instance is a writer')
-        return self._reader.get_next_container()
+        return next(self._reader)
 
     def write(self):
         """
@@ -165,7 +165,7 @@ class Reader(ABC):
         self.infile = infile
 
     @abstractmethod
-    def get_next_container(self):
+    def __next__(self):
         pass
 
     @abstractmethod
@@ -191,7 +191,7 @@ class GZipPickleReader(Reader):
         super().__init__(infile)
         self.file_object = gzip_open(infile, 'rb')
 
-    def get_next_container(self):
+    def __next__(self):
         """
         Get next container in file
 
