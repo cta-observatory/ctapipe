@@ -2,15 +2,16 @@
 Serialize ctapipe containers to file
 """
 
-from astropy.table import Table, Column
-from ctapipe.core import Container
 from abc import ABC, abstractmethod
-from astropy import log
-from pickle import dump
-from pickle import load
-from traitlets import Unicode
-import numpy as np
 from gzip import open as gzip_open
+from pickle import dump
+
+import numpy as np
+from astropy import log
+from astropy.table import Table, Column
+from traitlets import Unicode
+
+from ctapipe.core import Container
 
 __all__ = ['Serializer']
 
@@ -21,6 +22,18 @@ class Serializer:
     to its Writer object
     For some formats (i.e. pickle +gzip), read serialized components from
     a file
+
+    Examples
+    --------
+    >>> writer = Serializer(filename='output.pickle', format='pickle', mode='w')
+    >>> for container in input_containers:
+    ...       writer.add_container(container.dl0)
+    >>> writer.close()
+
+    or using the context manager syntax
+    >>> with Serializer(filename='output.fits', format='fits', mode='w') as writer:
+    >>> for container in input_containers:
+    ...     writer.add_container(container.dl0)
     """
 
     def __init__(self, filename, format='fits', mode='x'):
@@ -34,7 +47,6 @@ class Serializer:
         mode: str ('write', 'read')
             : use this serializer as writer or reader
         mode: str
-            'r'	open for reading
             'w'	open for writing, truncating the file first
             'x'	open for exclusive creation, failing if the file already exists
             'a'	open for writing, appending to the end of the file if it exists
@@ -45,22 +57,17 @@ class Serializer:
         """
         self.filename = filename
         self.format = format
-
-        if mode not in ('r', 'x', 'w', 'a'):
+        self._stat = None # TODO collect statistics about serialized contents
+        if mode not in ('x', 'w', 'a'):
             raise ValueError('{} is not a valid write mode. Use x, w or a'.
                              format(mode))
         self._writer = None
-        self._reader = None
 
         if self.format == 'fits':
             self._writer = TableWriter(outfile=filename, mode=mode,
                                        format=format)
         elif self.format == 'pickle':
-            if mode == 'r':
-                self._reader = GZipPickleReader(infile=filename)
-            else:
-                self._writer = GZipPickleWriter(outfile=filename,
-                                                mode=mode)
+            self._writer = GZipPickleWriter(outfile=filename, mode=mode)
         elif self.format == 'img':
             raise NotImplementedError('img serializer format is'
                                       ' not yet implemented')
@@ -83,149 +90,31 @@ class Serializer:
         """
         self.close()
 
-    def close(self):
-        """
-        Close reader or writer
-        """
-        if self._writer:
-            self._writer.write()
-        elif self._reader:
-            self._reader.close()
-
     def add_container(self, container):
         """
         Add a container to serializer
-
-        Raises
-        ------
-        RuntimeError: When Serializer is used as Writer
         """
-        if not self._writer:
-            raise RuntimeError('This serializer instance is a reader')
         self._writer.add_container(container)
 
-    def __next__(self):
-        """
-        Returns
-        -------
-        The next container in file
 
-        Raises
-        ------
-        EOFError:  When end of file is reached without returning Container
-        RuntimeError: When Serializer is used as writer
+    def close(self):
         """
-        if not self._reader:
-            raise RuntimeError('This serializer instance is a writer')
-        return next(self._reader)
-
-    def write(self):
+        Write data to disk
         """
-        Write data to disk OR close it
-        Raises
-        ------
-        RuntimeError: When Serializer is used as reader
-        """
-        if not self._writer:
-            raise RuntimeError('This serializer instance is a reader')
-        self._writer.write()
-
-    def __iter__(self):
-        """
-        Yields
-        ------
-        A container
-        Raises
-        ------
-        RuntimeError: when this Serializer instance is a writer
-        """
-        if self._reader:
-            for container in self._reader:
-                yield container
-            raise StopIteration
-        else:
-            raise RuntimeError('This Serializer instance is a writer')
+        self._writer.close()
 
 
 class Writer(ABC):
-    def __init__(self, outfile):
-        self.outfile = outfile
+    def __init__(self, filename):
+        self.outfile = filename
 
     @abstractmethod
     def add_container(self, container):
         pass
 
     @abstractmethod
-    def write(self):
-        pass
-
-
-class Reader(ABC):
-    def __init__(self, infile):
-        self.infile = infile
-
-    @abstractmethod
-    def __next__(self):
-        pass
-
-    @abstractmethod
     def close(self):
         pass
-
-    @abstractmethod
-    def __iter__(self):
-        pass
-
-
-class GZipPickleReader(Reader):
-    """
-    Reads a pickled file and yield containers
-    """
-    def __init__(self, infile):
-        """
-        Parameters
-        ----------
-        infile: str
-             full path input file name
-        """
-        super().__init__(infile)
-        self.file_object = gzip_open(infile, 'rb')
-
-    def __next__(self):
-        """
-        Get next container in file
-
-        Returns
-        -------
-        Next container in file
-
-        Raises:
-        ------
-        EOFError: When end of file is reached without returning Container
-        """
-        return load(self.file_object)
-
-    def close(self):
-        """
-        Close gzip file
-        """
-        self.file_object.close()
-
-    def __iter__(self):
-        """
-        Iterate over all containers
-        Returns an iterator object
-        Raises
-        ------
-        StopIteration: when all containers have been read
-        """
-        try:
-            while True:
-                container = load(self.file_object)
-                yield container
-
-        except EOFError:
-            raise StopIteration
 
 
 class GZipPickleWriter(Writer):
@@ -257,7 +146,7 @@ class GZipPickleWriter(Writer):
             raise FileExistsError('file exists: {} and mode is {}'.
                                   format(outfile, mode))
 
-    def write(self):
+    def close(self):
         """
         close opened file
         Returns
@@ -282,6 +171,7 @@ class GZipPickleWriter(Writer):
 
 not_writeable_fields = ('tel', 'tels_with_data', 'calibration_parameters',
                         'pedestal_subtracted_adc', 'integration_window')
+
 
 def is_writeable(key, out_format='fits'):
     """
@@ -403,11 +293,6 @@ class TableWriter(Writer):
         # Create Table from Container
         self.table = to_table(container)
 
-        # # Create mask of only writeable items
-        # self.mask = dict()
-        # for field, _ in container.items():
-        #     self.mask[field] = False if field in not_writeable_fields else True
-
         # Write HDU name
         if self.format == "fits":
             self.table.meta["EXTNAME"] = container._name
@@ -432,12 +317,12 @@ class TableWriter(Writer):
         else:
             self.table.add_row(writeable_items(container))
 
-    def write(self, **kwargs):
+    def close(self, **kwargs):
         """
         Write Fits table to file
         Parameters
         ----------
-        kwargs
+        kwargs to be passed to `astropy.Table.write method`
 
         Returns
         -------

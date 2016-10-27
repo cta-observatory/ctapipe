@@ -6,6 +6,7 @@ from astropy.io import fits
 
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.io.serializer import Serializer
+from ctapipe.io.sources import PickleSource
 from ctapipe.utils.datasets import get_datasets_path
 
 
@@ -32,27 +33,23 @@ binary_filename = 'pickle_data.pickle.gz'
 
 
 def test_pickle_serializer():
-    serial = Serializer(filename=binary_filename, format='pickle',
-                        mode='w')
+    serial = Serializer(filename=binary_filename, format='pickle', mode='w')
     # append all input file events in input_containers list and pickle serializer
     for event in input_containers:
         serial.add_container(event)
-    serial.write()
+    serial.close()
 
     # read Containers from pickle serializer
-    serial = Serializer(filename=binary_filename, format='pickle', mode='r')
+    reader = PickleSource(filename=binary_filename)
     # file read_containers from serializer generator
     read_containers = []
-    while True:
-        try:
-            read_containers.append(next(serial))
-        except EOFError:
-            break
+    for container in reader:
+        read_containers.append(container)
     # test if number of read Container correspond to input
     assert len(read_containers) is len(input_containers)
     # test if 4th adc value of telescope 17 HI_GAIN are equals
     assert compare(input_containers[2], read_containers[2])
-    serial.close()
+    reader.close()
     remove(binary_filename)
 
 
@@ -62,21 +59,16 @@ def test_pickle_with_statement():
             containers_writer:
         for container in input_containers:
             containers_writer.add_container(container)
-        containers_writer.write()
+        containers_writer.close()
 
     read_containers = []
-    with Serializer(filename=binary_filename, format='pickle', mode='r') as\
-            containers_reader:
-        while True:
-            try:
-                read_containers.append(next(containers_reader))
-            except EOFError:
-                break
+    with PickleSource(filename=binary_filename) as reader:
+        for container in reader:
+            read_containers.append(container)
     # test if number of read Container correspond to input
     assert len(read_containers) is len(input_containers)
     # test if 4th adc value of telescope 17 HI_GAIN are equals
     assert compare(input_containers[2], read_containers[2])
-    containers_reader.close()
     remove(binary_filename)
 
 
@@ -87,16 +79,17 @@ def test_pickle_iterator():
     # append all events in input_containers list and pickle serializer
     for event in input_containers:
         serial.add_container(event)
-    serial.write()
+    serial.close()
 
     read_containers = []
-    serial = Serializer(filename=binary_filename, format='pickle', mode='r')
-    for container in serial:
+    reader = PickleSource(filename=binary_filename)
+    for container in reader:
         read_containers.append(container)
     # test if number of read Container correspond to input
     assert len(read_containers) is len(input_containers)
     # test if 4th adc value of telescope 17 HI_GAIN are equals
     assert compare(input_containers[2], read_containers[2])
+    reader.close()
     remove(binary_filename)
 
 
@@ -126,7 +119,7 @@ def test_exclusive_mode():
     with pytest.raises(OSError):
         serial = Serializer(filename=fits_file_name, format='fits', mode='x')
         serial.add_container(input_containers[2].dl0)
-        serial.write()
+        serial.close()
     remove(fits_file_name)
 
 """
@@ -151,3 +144,6 @@ def test_fits_context_manager():
     hdulist = fits.open(fits_file_name)
     assert hdulist[1].data["event_id"][0] == 408
     remove(fits_file_name)
+
+
+# TODO test FITSSource class
