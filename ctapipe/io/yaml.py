@@ -17,7 +17,7 @@ class YAMLFile(str):
         self.filename = filename
     def read(self):
         with open(self.filename,"r") as fin:
-            return(yaml.load(fin))
+            return yaml.load(fin)
     def append(self,data):
         with open(self.filename,"a+") as fout:
             yaml.dump(data, fout, Dumper=Dumper)

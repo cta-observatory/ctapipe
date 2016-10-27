@@ -113,7 +113,7 @@ def load_fakedata():
     print('Faked data will be produced.')
     version = 'Feb2016'
     tel_num = 10
-    tel_id = [random.randrange(1,124,1) for x in xrange(0,tel_num)]
+    tel_id = [random.randrange(1,124,1) for x in range(0,tel_num)]
 
     telescope = {}
     camera = {}
@@ -122,19 +122,19 @@ def load_fakedata():
     tel_table_prime = Table()
     tel_table_prime['TelID']= tel_id
 
-    tel_posX = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_posY = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_posZ = [random.uniform(1,100) for x in xrange(tel_num)]
+    tel_posX = [random.uniform(1,100) for x in range(tel_num)]
+    tel_posY = [random.uniform(1,100) for x in range(tel_num)]
+    tel_posZ = [random.uniform(1,100) for x in range(tel_num)]
     tel_table_prime['TelX'] = tel_posX
     tel_table_prime['TelX'].unit = u.m
     tel_table_prime['TelY'] = tel_posY
     tel_table_prime['TelY'].unit = u.m
     tel_table_prime['TelZ'] = tel_posZ
     tel_table_prime['TelZ'].unit = u.m
-    mirror_area = [random.uniform(1,100) for x in xrange(tel_num)]
+    mirror_area = [random.uniform(1,100) for x in range(tel_num)]
     tel_table_prime['MirA'] = mirror_area
     tel_table_prime['MirA'].unit = u.m**2
-    mirror_num = [random.randrange(1,124,1) for x in xrange(tel_num)]
+    mirror_num = [random.randrange(1,124,1) for x in range(tel_num)]
     tel_table_prime['MirN'] = mirror_num
     foclen = [random.uniform(1,100) for x in range(tel_num)]
     tel_table_prime['FL'] = foclen
@@ -147,10 +147,10 @@ def load_fakedata():
         cam_table_prime = Table()
         opt_table_prime = Table()
         pixel_num = 128
-        pix_posX = [random.uniform(1,100) for x in xrange(tel_num*pixel_num)]
-        pix_posY = [random.uniform(1,100) for x in xrange(tel_num*pixel_num)]
+        pix_posX = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+        pix_posY = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
         pix_id = np.arange(len(pix_posX))
-        pix_area = [random.uniform(1,100) for x in xrange(tel_num*pixel_num)]
+        pix_area = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
 
         cam_table_prime.meta = {'TELID': tid, 'VERSION': version, \
         'PIXX_DES': 'x-position of the pixel measured by...'}
@@ -170,7 +170,7 @@ def load_fakedata():
         tab_mirrefl['wavel'] = np.arange(100,700,10)
         tab_mirrefl['wavel'].unit = u.nm
         tab_mirrefl['refl'] = [random.uniform(0.01,1) \
-            for x in xrange(len(tab_mirrefl['wavel']))]
+            for x in range(len(tab_mirrefl['wavel']))]
 
         opt_table_prime['MirR'] = tab_mirrefl
 
@@ -327,7 +327,7 @@ def load_hessio(filename):
     print('Astropy tables have been created.')
     h.close_file()
     print("Hessio file has been closed.")
-    return(telescope,camera,optics)
+    return telescope,camera,optics
 
 def load_fits(filename = '',path = None,version = '',instr_item = ''):
     """
@@ -905,7 +905,7 @@ def load_config(filename):
     optics['OpticsTable_%s' % version] = opt_table_prime
 
     print('Astropy tables have been created.')
-    return(telescope,camera,optics)
+    return telescope,camera,optics
 
 
 def load_yaml(filename):
@@ -930,6 +930,11 @@ def load_yaml(filename):
 
     # Get the objects defined
     Available = {}
+    try:
+        version = YamlObject["version"]
+    except:
+        version = "00"
+
     Available['Telescopes'] = [K for K in YamlObject \
         if item['type'] is 'Telescope']
     Available['Optics'] = [K for K in YamlObject \
@@ -940,74 +945,159 @@ def load_yaml(filename):
     if len(Available['Telescopes']) is 0:
         raise TypeError("File type {} not supported".format(filetype))
 
-    for tel_id in list_telescopes:
+    #--------------------------------------------------------------------------
+    #Telescope configuration
+    tel_table_prime = Table()
+    tel_table_prime.meta = {'VERSION': version}
+
     try:
-        tel_table_prime['TelID'] = telescope[tel_id
-    except:
+        tel_table_prime['TelID'] = [T['ID'] for T in Available['Telescopes']]
+    except: pass
+    try:
+        tel_table_prime['TelX'] = [T['X'] for T in Available['Telescopes']]
+        tel_table_prime['TelX'].unit = u.m
+        tel_table_prime.meta['TelX_description'] =\
+        'x-position of the telescope measured by...'
+    except: pass
+    try:
+        tel_table_prime['TelY'] = [T['Y'] for T in Available['Telescopes']]
+        tel_table_prime['TelY'].unit = u.m
+    except: pass
+    try:
+        tel_table_prime['TelZ'] = [T['Z'] for T in Available['Telescopes']]
+        tel_table_prime['TelZ'].unit = u.m
+    except: pass
+    try:
+        tel_table_prime['CameraClass'] = \
+            [T['camera']['class'] for T in Available['Telescopes']]
+    except: pass
+    try:
+        tel_table_prime['MirA'] = \
+            [T['optics']['collectionArea'] for T in Available['Telescopes']]
+        tel_table_prime['MirA'].unit = u.m**2
+    except: pass
+    try:
+        tel_table_prime['MirN'] = \
+            [T['optics']['MirrorNumber'] for T in Available['Telescopes']]
+    except: pass
+    try:
+        tel_table_prime['FL'] = \
+            [T['optics']['focalLength'] for T in Available['Telescopes']]
+        tel_table_prime['FL'].unit = u.m
+    except: pass
+    try:
+        tel_table_prime.meta['TelNum'] =  len(Available['Telescopes']])
+    except: pass
 
-    #tel_posX = [random.uniform(1,100) for x in xrange(tel_num)]
-    #tel_posY = [random.uniform(1,100) for x in xrange(tel_num)]
-    #tel_posZ = [random.uniform(1,100) for x in xrange(tel_num)]
-    tel_table_prime['TelX'] = []
-    tel_table_prime['TelY'] = []
-    tel_table_prime['TelZ'] = []
-    tel_table_prime['MirA'] = []
-    tel_table_prime['MirN'] = []
-    tel_table_prime['FL']   = []
-    tel_table_prime['TelX'].unit = u.m
-    tel_table_prime['TelY'].unit = u.m
-    tel_table_prime['TelZ'].unit = u.m
-    tel_table_prime['MirA'].unit = u.m**2
-    tel_table_prime['FL'].unit   = u.m
-
+    #Beside other tables containing telescope configuration data, the main
+    #telescope table is written into the telescope dictionary.
     telescope['TelescopeTable_Version%s' % version] = tel_table_prime
 
-    for t, tid in enumerate(tel_id):
+    #--------------------------------------------------------------------------
+    #Camera and Optics configuration
+    try:
+        for t,tid in enumerate(tel_table_prime['TelID']):
+            Telescope = Available['Telescopes'][t]
+            Camera    = Telescope['camera']
+            Optics    = Telescope['optics']
 
-        cam_table_prime = Table()
-        opt_table_prime = Table()
-        #pixel_num = 128
-        #pix_posX = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
-        #pix_posY = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
-        #pix_id = np.arange(len(pix_posX))
-        #pix_area = [random.uniform(1,100) for x in range(tel_num*pixel_num)]
+            cam_table_prime = Table()
+            cam_table_prime.meta = {'TELID': tid, 'VERSION': version}
+            opt_table_prime = Table()
+            opt_table_prime.meta = {'TELID': tid, 'VERSION': version}
 
-        Camera    = Telescope['camera']
-        PixelList = Table(data=Camera['pixels']['Data'],\
-                          names=Camera['pixels']['Header'])
-        for k, C in PixelList.colnames:
-            PixelList[C].unit = Camera['pixels']['Units'][k]
+            PixelList = Table(data=Camera['pixels']['Data'],\
+                              names=Camera['pixels']['Header'])
+            for k, C in PixelList.colnames:
+                PixelList[C].unit = Camera['pixels']['Units'][k]
 
-        pix_posX = Camera[]
-        pix_posX = Telescope['camera']
+            try:
+                cam_table_prime['PixID'] = PixelList['ID']
+                cam_table_prime.meta['PixXDescription'] =\
+                'x-position of the pixel measured by...'
+            except: pass
+            try:
+                cam_table_prime['PixX'] = PixelList['x']
+            except: pass
+            try:
+                cam_table_prime['PixY'] = PixelList['y']
+            except: pass
+            try:
+                camera_class = CD.guess_camera_geometry(\
+                    cam_table_prime['PixX'],cam_table_prime['PixY'])
+                pix_area_prime = camera_class.pix_area
+                pix_type_prime = camera_class.pix_type
+                pix_neighbors_prime = camera_class.pix_neighbors
+            except: pass
 
-        cam_table_prime.meta = {'TELID': tid, 'VERSION': version, \
-        'PIXX_DES': 'x-position of the pixel measured by...'}
-        cam_table_prime['PixID'] = PixelList['ID']
-        cam_table_prime['PixX']  = PixelList['x']
-        cam_table_prime['PixY']  = PixelList['y']
-        cam_table_prime['PixA']  = [100 for k in PixelList['ID']]
-        cam_table_prime['PixA'].unit = u.mm**2
+            try:
+                cam_table_prime['PixA'] = PixelList['area']
+            except:
+                try:
+                    cam_table_prime['PixA'] = pix_area_prime
+                    cam_table_prime['PixA'].unit = u.mm**2
+                except: pass
+            try:
+                # We assume the pixel type is the same for the whole camera
+                pix_type = Camera['pixels']['type']
+            except:
+                try: pix_type = pix_type_prime
+                except: pix_type = 'unknown'
+            cam_table_prime.meta['PixType'] = pix_type
+            try:
+                # This is probably not defined, rely on the camera class ...
+                pix_neighbors = Camera['pixels']['neighbors']
+                cam_table_prime['PixNeig'] = pix_neighbors
+            except:
+                try: cam_table_prime['PixNeig'] = pix_neighbors_prime
+                except: pass
 
-        opt_table_prime.meta = {'TELID': tid, 'VERSION': version, \
-        'MIRN': mirror_num[t], 'MIRA': mirror_area[t]*u.m**2, \
-        'FL': foclen[t]*u.m, \
-        'MIRA_DES': 'Area of all mirrors'}
-        tab_mirrefl = Table()
-        tab_mirrefl['wavel'] = np.arange(100,700,10)
-        tab_mirrefl['wavel'].unit = u.nm
-        tab_mirrefl['refl'] = [random.uniform(0.01,1) \
-        for x in range(len(tab_mirrefl['wavel']))]
+            #as long as no mirror IDs are given, use the following:
+            try:
+                # Assume optics is composed by mirrors,
+                # which are composed by panels
+                opt_table_prime['MirrID'] = [M['ID'] for M in Optics['mirrors']]
+            except:
+                try:
+                    opt_table_prime['MirrID'] = range(1,len(Optics['diameter'])+1)
+                except:
+                    opt_table_prime['MirrID'] = [1,2]
+            try:
+                opt_table_prime.meta['MirNum'] = Optics['mirrorNumber']
+            except: pass
+            try:
+                # TODO: Create handler for astropy quantity in YAML
+                # so that the unit is no longer needed.
+                # TODO: We should reorganize the optics section as general
+                # optic properties and then an array or dict with the primaryRef
+                # and secondary mirror with their own properties.
+                opt_table_prime['MirArea'] = []
+                for M,mid in enumerate(Optics['MirrID']):
+                    diam = Optics['diameter']
+                    obst = Optics['mirrorHoleDiameter']
+                    area = diam[M]**2 - obst[M]**2
+                    opt_table_prime['MirArea'].append(area)
 
-        opt_table_prime['MirR'] = tab_mirrefl
+                opt_table_prime['MirArea'].unit = u.cm**2
+                opt_table_prime.meta['MirAreaDescription'] =\
+                'Area of all mirrors'
+            except: pass
+            try:
+                opt_table_prime['OptFocLen'] = Optics['focalLength']
+                opt_table_prime['OptFocLen'].unit = u.cm
+            except: pass
 
-        camera['CameraTable_Version%s_TelID%i' % (version,tid)] \
-        = cam_table_prime
-        optics['OpticsTable_Version%s_TelID%i' % (version,tid)] \
-        = opt_table_prime
+            #Beside other tables containing camera and optics configuration
+            #data, the main  tables are written into the camera and optics
+            #dictionary.
+            camera['CameraTable_Version%s_TelID%i' % (version,tid)] \
+            = cam_table_prime
+            optics['OpticsTable_Version%s_TelID%i' % (version,tid)] \
+            = opt_table_prime
+    except: pass
+
     print('Astropy tables have been created.')
     return telescope,camera,optics
-
 
 def get_var_from_file(filename):
     """
@@ -1102,7 +1192,7 @@ def write_fits(filename = '', path = '',instr_dict = '',table_name = '',\
         default: all tables of the dictionary are wirtten to files
     """
     if instr_dict == '':
-        return(print('instrument dictionary (instr_dict) must be specified.'))
+        return print('instrument dictionary (instr_dict) must be specified.')
     if table_name == '':
         for key in instr_dict:
             if filename == '':
@@ -1123,4 +1213,4 @@ def write_fits(filename = '', path = '',instr_dict = '',table_name = '',\
             instr_dict[table_name].write(filename,overwrite)
             print('%s has been created' % write_name)
 
-    return(print('Writing process finished.'))
+    return print('Writing process finished.')
