@@ -1,139 +1,157 @@
 from pprint import pformat
-
-from astropy.table import Table
-from astropy.units import Quantity
-
+from copy import copy
 
 class Container:
-
     """Generic class that can hold and accumulate data to be passed
     between Components.
 
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
     the user from accessing members that have not been defined
-    a-priori (more like a C struct).  Generally, one can make a
-    sub-class and "Register" all of the members that should be there
-    in the `__init__` method by calling `~Container.add_item`.
+    a-priori (more like a C struct). It is also used to transform the
+    data into something that can be written to an output table.
 
-    Container members can be accessed like a dict `container['item']
-    or with `continer.item` syntax.  You can also iterate over the
-    member names (useful for serialization). However, new data cannot
-    be added arbitrarily. One must call
-    `~ctapipe.core.Container.add_item` to add a new variable to the
-    Container, otherwise an `AttributeError` will be thrown.
+    To use this class, all members must be defined as `Item`s with
+    default values specified.  For hierarchical data structures, Items
+    can use `Container` subclasses or a `Map` as the default value.
 
-    Parameters
-    ----------
-    name: str
-        name of container instance
-    kwargs: key=value
-        initial data (`add_item` is called automatically for each)
-
-    Examples
-    --------
-    >>> data = Container("data")
-    >>> data.add_item("x")
-    >>> data.x = 3
-    >>> print(data.x)
-    3
-    >>> print(data['x'])
-    3
+    >>>    class MyContainer(Container):
+    >>>        x = Item(100,"The X value")
+    >>>        energy = Item(-1, "Energy measurement", unit=u.TeV)
+    >>>
+    >>>    cont = MyContainer()
+    >>>    print(cont.x)
+    100
 
     """
 
-    def __init__(self, name="Container", **kwargs):
-        self.add_item("_name", name)
-        for key, val in kwargs.items():
-            self.__dict__[key] = val
+    def __init__(self):
+        object.__setattr__(self, "_metadata", dict())
+        self.reset()
+
+    def __setattr__(self, name, value):
+        """Prevent new attributes that aren't in the class definition"""
+        if hasattr(self.__class__, name):
+            object.__setattr__(self, name, value)
+        else:
+            raise AttributeError(
+                "{} has no attribute '{}'".format(self.__class__, name))
 
     @property
     def meta(self):
-        """metadata associated with this container"""
-        if "_meta" not in self.__dict__:
-            self.add_item("_meta", Container("meta"))
-        return self._meta
+        return self._metadata
 
-    def add_item(self, name, value=None):
+    @property
+    def attributes(self):
         """
-        Add a new item of data to this Container, initialized to None by
-        default, or value if specified.
+        Returns a dictionary of the attribute metadata of each item in the
+        container class as a dict of `Item`s
         """
-        if name in self.__dict__:
-            raise AttributeError("item '{}' is already in Container"
-                                 .format(name))
-        self.__dict__[name] = value
-
-    def __setattr__(self, name, value):
-        # prevent setting od values that are not yet registered
-        if name not in self.__dict__:
-            raise AttributeError("item '{}' doesn't exist in {}"
-                                 .format(name, repr(self)))
-        self.__dict__[name] = value
-
-    def __getitem__(self, name):
-        # allow getting value by string e.g. cont['x']
-        return self.__dict__[name]
-
-    def __str__(self, ):
-        # string representation (e.g. `print(cont)`)
-        return pformat(self.__dict__)
-
-    def __repr__(self):
-        # standard representation
-        return '{0}.{1}("{2}", {3})'.format(self.__class__.__module__,
-                                            self.__class__.__name__,
-                                            self._name,
-                                            ', '.join(self))
-
-    def __iter__(self):
-        # allow iterating over item names
-        return (k for k in self.__dict__.keys() if not k.startswith("_"))
-
-    def as_dict(self):
-        '''Creates a dictionary of Container items unrolling recursively
-        nested containers.'''
-        d = dict()
-        for k, v in self.items():
-            if isinstance(v, Container):
-                d[k] = v.as_dict()
-                continue
-            d[k] = v
-        return d
+        return {key: val for key, val in self.__class__.__dict__.items()
+                if isinstance(val, Item)}
 
     def items(self):
-        '''Iterate over pairs of key, value. Just like the dictionary method'''
-        # allow iterating over item names
-        return ((k, v) for k, v in self.__dict__.items()
-                if not k.startswith('_'))
+        """dict-like access"""
+        return self.__dict__.items()
 
-    def to_table(self):
-        '''Create Table from Container'''
-        # Scalar `Quantity` objects do not have __len__ method which is
-        # needed by Table.write. We artificially change their shape
-        # With chunking this should not be an issue
-        for _, val in self.items():
-            if isinstance(val, Quantity) and val.isscalar:
-                val.shape = 1
+    def as_dict(self, recursive=False, flatten=False):
+        """
+        convert the `Container` into a dictionary
 
-        names = [i.upper() for i in self]
-        dtype = [v.dtype for _, v in self.items()]
-        data = [v for _, v in self.items()]
+        Parameters
+        ----------
+        recursive: bool
+            sub-Containers should also be converted to dicts
+        flatten: type
+            return a flat dictionary, with any sub-item keys generated
+            by appending the sub-Container name.
+        """
+        if not recursive:
+            return dict(self.__dict__.items())
+        else:
+            d = dict()
+            for key, val in self.items():
+                if isinstance(val, Container) or isinstance(val, Map):
+                    if flatten:
+                        d.update({"{}_{}".format(key, k): v
+                                  for k, v in val.as_dict(recursive).items()})
+                    else:
+                        d[key] = val.as_dict(recursive, flatten)
+                    continue
+                d[key] = val
+            return d
 
-        # It depends on chunking syntax:
-        # data = [v for _, v.chunk in self.items()]
+    @classmethod
+    def disable_attribute_check(cls):
+        """
+        Globally turn off attribute checking for all Containers,
+        which provides a ~5-10x speed up for setting attributes.
+        This may be used e.g. after code is tested to speed up operation.
+        """
+        cls.__setattr__ = object.__setattr__
 
-        return Table(data=data,
-                     names=names,
-                     dtype=dtype,
-                     meta=self.meta.as_dict())
+    def reset(self, recursive=True):
+        """ set all values back to their default values"""
+        for name, value in self.__class__.__dict__.items():
+            if isinstance(value, Item):
+                self.__dict__[name] = copy(value.default)
+            if recursive and isinstance(value, Container):
+                value.reset()
 
-    def write(self, *args, **kwargs):
-        '''Write table using astropy.table write method'''
+    def __str__(self):
+        return pformat(self.as_dict(recursive=True))
 
-        table = self.to_table()
-        # Write HDU name
-        table.meta["EXTNAME"] = self._name
-        table.write(*args, **kwargs)
 
-        return table
+class Map(dict):
+    """A dictionary of sub-containers that can be added to a
+    Container. This may be used e.g. to store telescope-wise
+    Containers(e.g. indexed by `tel_id` or something similar that can
+    be added to a containre like a normal `Item`.
+    """
+
+    def as_dict(self, recursive=False, flatten=False):
+        if not recursive:
+            return dict(self.items())
+        else:
+            d = dict()
+            for key, val in self.items():
+                if isinstance(val, Container):
+                    if flatten:
+                        d.update({"{}_{}".format(key, k): v
+                                  for k, v in val.as_dict(recursive).items()})
+                    else:
+                        d[key] = val.as_dict(recursive, flatten)
+                    continue
+                d[key] = val
+            return d
+
+    def reset(self, recursive=True):
+        for key, val in self.items():
+            if isinstance(val, Container):
+                val.reset(recursive=True)
+
+
+class Item:
+    """
+    Defines the metadata associated with a value in a Container
+
+    Parameters
+    ----------
+    default:
+        default value of the item (this will be set when the `Container`
+        is constructed, as well as when  `Container.reset()` is called
+    description: str
+        Help text associated with the item
+    unit: `astropy.units.Quantity`
+        unit to convert to when writing output, or None for no conversion
+
+    """
+
+    def __init__(self, default, description="", unit=None):
+        self.default = default
+        self.description = description
+        self.unit = unit
+
+    def __repr__(self):
+        return ("Item(default={}, desc='{}', unit={})"
+                .format(self.default, self.description, self.unit))
