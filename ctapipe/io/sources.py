@@ -38,6 +38,22 @@ class PickleSource(Source):
         super().__init__(filename)
         self.file_object = gzip_open(filename, 'rb')
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Exit the runtime context related to this object.
+        The parameters describe the exception that caused the context to be
+        exited. If the context was exited without an exception,
+        all three arguments will be None.
+        If an exception is supplied, and the method wishes to suppress
+        the exception (i.e., prevent it from being propagated),
+        it should return a true value. Otherwise, the exception will be
+        processed normally upon exit from this method.
+        """
+        self.close()
+
     def __next__(self):
         """
         Get next container in file
@@ -56,17 +72,17 @@ class PickleSource(Source):
         except EOFError:
             raise StopIteration
 
-    def close(self):
-        """
-        Close gzip file
-        """
-        self.file_object.close()
-
     def __iter__(self):
         """
         Iterate over all containers
         """
         return self
+
+    def close(self):
+        """
+        Close gzip file
+        """
+        self.file_object.close()
 
 
 class FITSSource(Source):
