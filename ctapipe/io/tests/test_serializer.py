@@ -8,9 +8,6 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.io.serializer import Serializer
 from ctapipe.utils.datasets import get_datasets_path
 
-# PICKLE SERIALIZER
-binary_filename = 'pickle_data.pickle.gz'
-
 
 def compare(read_container, source_container):
     # test if 4th adc value of telescope 17 HI_GAIN are equals
@@ -18,7 +15,7 @@ def compare(read_container, source_container):
             source_container.dl0.tel[17].adc_samples[0][2][4])
 
 
-def prepare_input_data():
+def generate_input_containers():
     # Get event from hessio file, append them into input_containers
     input_filename = get_datasets_path("gamma_test.simtel.gz")
     gen = hessio_event_source(input_filename, max_events=3)
@@ -27,9 +24,14 @@ def prepare_input_data():
         input_containers.append(deepcopy(event))
     return input_containers
 
+# Setup
+input_containers = generate_input_containers()
+
+# PICKLE SERIALIZER
+binary_filename = 'pickle_data.pickle.gz'
+
 
 def test_pickle_serializer():
-    input_containers = prepare_input_data()
     serial = Serializer(filename=binary_filename, format='pickle',
                         mode='w')
     # append all input file events in input_containers list and pickle serializer
@@ -56,7 +58,6 @@ def test_pickle_serializer():
 
 # Test pickle reader/writer with statement
 def test_pickle_with_statement():
-    input_containers = prepare_input_data()
     with Serializer(filename=binary_filename, format='pickle', mode='w') as \
             containers_writer:
         for container in input_containers:
@@ -81,7 +82,6 @@ def test_pickle_with_statement():
 
 # Test pickle reader iterator
 def test_pickle_iterator():
-    input_containers = prepare_input_data()
     serial = Serializer(filename=binary_filename, format='pickle',
                         mode='w')
     # append all events in input_containers list and pickle serializer
@@ -105,7 +105,6 @@ fits_file_name = 'output.fits'
 
 
 def test_fits_dl0():
-    input_containers = prepare_input_data()
     serial = Serializer(filename=fits_file_name, format='fits', mode='w')
     for container in input_containers:
         serial.add_container(container.dl0)
@@ -119,7 +118,6 @@ def test_fits_dl0():
 
 
 def test_exclusive_mode():
-    input_containers = prepare_input_data()
     serial = Serializer(filename=fits_file_name, format='fits', mode='w')
     for container in input_containers:
         serial.add_container(container.dl0)
@@ -146,7 +144,6 @@ def test_fits_dl1():
 
 
 def test_fits_context_manager():
-    input_containers = prepare_input_data()
     with Serializer(filename='output.fits', format='fits', mode='w') as writer:
         for container in input_containers:
             writer.add_container(container.dl0)
