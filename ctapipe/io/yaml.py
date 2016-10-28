@@ -39,9 +39,9 @@ def constructor_yamlfile(loader, node):
     if isinstance(node, ScalarNode):
         # Load the contents wherever possible (file exists)
         try:
-            return File(node.value).read()
+            return YAMLFile(node.value).read()
         except FileNotFoundError:
-            return File(node.value) # Alternatively, give the object.
+            return YAMLFile(node.value) # Alternatively, give the object.
 
 def setup_yaml_customobjects():
     yaml.add_representer(YAMLFile, representer_yamlfile)

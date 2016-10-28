@@ -9,18 +9,19 @@ import random
 import imp
 import textwrap
 
-__all__ = ['load','load_fakedata','load_hessio','load_fits','load_config',
-           'read_config_data','get_var_from_file','write_fits']
+__all__ = ['load', 'load_fakedata', 'load_hessio', 'load_fits', 'load_config',
+           'read_config_data', 'get_var_from_file', 'write_fits']
+
 
 class Atmosphere:
     """Atmosphere is a class that provides data about the atmosphere. This
     data is stored in different files which are read by member functions"""
-    def __init__(self,rho,thickness,ext_coeff):
+    def __init__(self, rho, thickness, ext_coeff):
         self.rho = rho
         self.thickness = thickness
         self.ext_coeff = ext_coeff
 
-    def load_profile(filename):
+    def load_profile(self, filename):
         """
         Load atmosphere profile from file
 
@@ -30,14 +31,14 @@ class Atmosphere:
             name of file
         --------
         """
-        altitude,rho,thickness,n_minus_1 = np.loadtxt(filename,unpack=True,
-                                                      delimeter=' ')
+        altitude, rho,thickness, n_minus_1 = np.loadtxt(filename, unpack=True,
+                                                        delimeter=' ')
         altitude = altitude*u.km
-        rho = rho*u.g*u.cm**-3
-        thickness = thickness*u.g*u.cm**-2
-        return altitude,rho,thickness
+        rho = rho*u.g*u.cm**(-3)
+        thickness = thickness*u.g*u.cm**(-2)
+        return altitude, rho, thickness
 
-    def load_extinction_coeff(filename):
+    def load_extinction_coeff(self, filename):
         """
         Load atmosphere extinction profile from file
 
@@ -51,7 +52,7 @@ class Atmosphere:
         # still work to do
 
 
-def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
+def load(filename='', path=None, version='', instr_item='', telID=''):
     """
     Function to load instrument data from a file
 
@@ -83,6 +84,9 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
                                         version = '',instr_item = '')
     possibility 3:
     telescope,camera,optics = load_config(filename)
+
+    possibility 4:
+    telescope,camera,optics = load_yaml(filename)
 
     all dictionaries contain astropy.table Tables
     """
@@ -471,12 +475,14 @@ def load_config(filename):
         data.discriminator_amplitude[0]
         tel_table_prime['DiscriminatorAmplitude'].unit = u.mV
     except:pass
-    try: tel_table_prime['NumTriggerPixels'] = trigger_pixels[0]
-    except: pass
-    try:
-        tel_table_prime['DiscriminatorThreshold'] = \
-        discriminator_threshold[0]
-    except: pass
+    #TODO: Not implemented yet
+    #try: tel_table_prime['NumTriggerPixels'] = trigger_pixels[0]
+    #except: pass
+    #TODO: Not implemented yet
+    #try:
+    #    tel_table_prime['DiscriminatorThreshold'] = \
+    #    discriminator_threshold[0]
+    #except: pass
     try: tel_table_prime['DefaultTrig'] = data.default_trigger[0]
     except: pass
     try:
@@ -489,10 +495,11 @@ def load_config(filename):
     except: pass
     try: tel_table_prime['TrigDelayComp'] = data.trigger_delay_compensation[0]
     except: pass
-    try:
-        tel_table_prime['DiscriminatorVarThreshold'] = \
-        discriminator_var_threshold[0]
-    except: pass
+    #TODO: Not implemented yet
+    #try:
+    #    tel_table_prime['DiscriminatorVarThreshold'] = \
+    #    discriminator_var_threshold[0]
+    #except: pass
     try:
         tel_table_prime['SamplingRate'] = data.fadc_MHz[0]
         tel_table_prime['SamplingRate'].unit = u.MHz
@@ -646,6 +653,7 @@ def load_config(filename):
             cam_table_prime['FunnelRefl'] = funnel_wall_reflectivity
     except: pass
     try:
+        refl_table = Table() # TODO: Check if the definition has to be here!
         funnel_eff_table = Table()
         funnel_eff_filename = \
         dirname+'/'+funnel_efficiency.reshape(1)[0]
@@ -655,8 +663,8 @@ def load_config(filename):
         np.loadtxt(funnel_eff_filename,unpack=True)
         refl_table.meta = {'NAME': 'Funnel efficiency',
                            'VERSION': funnel_eff_version }
-        funnel_eff_table['Angle'] = wavel
-        funnel_eff_table['Angle'].unit = u.degree
+        #funnel_eff_table['Angle'] = wavel # TODO: wavel not defined yet
+        #funnel_eff_table['Angle'].unit = u.degree
         funnel_eff_table['Transmission'] = transmission
         camera['Cam_FunnelEfficiency'] = funnel_eff_table
     except: pass
@@ -909,6 +917,8 @@ def load_config(filename):
 
 
 def load_yaml(filename):
+    import os.path
+    import re
     import ruamel.yaml as yaml
     from ctapipe.io.yaml import setup_yaml_customobjects
     setup_yaml_customobjects()
@@ -920,15 +930,31 @@ def load_yaml(filename):
     Return
     ------
     telescope,camera,optics: 3 dictionaries
-        all dictionaries contain astropy.table Tables
+
+    all dictionaries contain astropy.table Tables
     """
+
+    telescope = {}
+    camera    = {}
+    optics    = {}
 
     # It will, for now, read Telescope files.
     # We should guess how to recognize the sub structures directly
     # Maybe through object property 'type'?
 
     with open(filename, 'r') as fin:
-        YamlObject = yaml.load(fin)
+        # Get all the defined files and try to see if they exist
+        # if not, assume they are relative paths and add the
+        # main yaml path to the beginning
+        dirname = os.path.abspath(os.path.dirname(filename))
+        content = fin.read()
+        regex = re.compile(".*\!yaml\s+\'(.*)\'.*")
+        for k in re.findall(regex,content):
+            if not os.path.exists(k):
+                if os.path.exists("%s/%s" %(dirname,k)):
+                    content = content.replace(k,"%s/%s" %(dirname,k))
+        YamlObject = yaml.load(content)
+        print(YamlObject)
 
     # Get the objects defined
     Available = {}
@@ -937,15 +963,25 @@ def load_yaml(filename):
     except:
         version = "00"
 
-    Available['Telescopes'] = [K for K in YamlObject \
-        if item['type'] is 'Telescope']
-    Available['Optics'] = [K for K in YamlObject \
-        if item['type'] is 'TelescopeOptics']
-    Available['Cameras'] = [K for K in YamlObject \
-        if item['type'] is 'TelescopeOptics']
+    for K in YamlObject:
+        object_type = list(YamlObject[K]['type'].keys())[0]
+        if object_type=="Telescope":
+            try: Available['Telescopes']
+            except KeyError: Available['Telescopes'] = []
+            Available['Telescopes'].append(YamlObject[K])
+        elif object_type=="TelescopeOptics":
+            try: Available['Optics']
+            except KeyError: Available['Optics'] = []
+            Available['Optics'].append(YamlObject[K])
+        elif object_type=="TelescopeCamera":
+            try: Available['Cameras']
+            except KeyError: Available['Cameras'] = []
+            Available['Cameras'].append(YamlObject[K])
+        else:
+            raise TypeError("Unknown object type %s" %object_type)
 
     if len(Available['Telescopes']) is 0:
-        raise TypeError("File type {} not supported".format(filetype))
+        raise TypeError("File has no Telescope defined, not supported")
 
     #--------------------------------------------------------------------------
     #Telescope configuration
@@ -1009,7 +1045,8 @@ def load_yaml(filename):
             opt_table_prime.meta = {'TELID': tid, 'VERSION': version}
 
             PixelList = Table(data=Camera['pixels']['Data'],\
-                              names=Camera['pixels']['Header'])
+                              names=Camera['pixels']['Header'],\
+                              )
             for k, C in PixelList.colnames:
                 PixelList[C].unit = Camera['pixels']['Units'][k]
 
@@ -1142,13 +1179,11 @@ def read_config_data(filename):
                 for i in range(index1+2,index2+1,1):
                     if line[i] == ' ' or line[i] == 'e' or line[i] == 'E':
                         x = True
-                        pass
                     elif ord(line[i]) > 57:
                         x = False
                         break
                     else:
                         x = True
-                        pass
                 if x==False:
                     line =\
                     line[:index1+2]+'"'+line[index1+2:index2+1]+'"'+']'+'\n'
