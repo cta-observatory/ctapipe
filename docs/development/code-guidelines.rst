@@ -15,7 +15,24 @@ References for good coding practices
 * `Good Python Style <http://docs.python-guide.org/en/latest/writing/style/>`_
 * `Best Practices in Scientific Computing (Presentation) <http://swcarpentry.github.io/slideshows/best-practices/index.html>`_
 * `Best Practices for Scientific Computing (Paper) <http://arxiv.org/abs/1210.0530>`_
-  
+
+Checking for Logistic Errors
+----------------------------
+
+Several static analysis packages exist to help look for common coding
+errors, and these should be used frequently.
+
+.. code-block:: sh
+		
+    % pip install hacking  # installs all checker tools
+
+    % pyflakes file.py # checks for code errors
+    % flake8 file.py   # checks style and code errors
+    % flake8           # checks code in all subdirs
+
+
+If you use *PyCharm* as an IDE, there is also a GUI function to find
+and review all common code errors and style issues.
 
 Data Structures
 ---------------
