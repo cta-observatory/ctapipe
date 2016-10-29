@@ -27,6 +27,8 @@ __all__ = [
     'hessio_event_source',
 ]
 
+#TODO: move all of the hacked pixel and telescope position data to a well-defined class called "EventHeaderContainer"
+
 
 def hessio_event_source(url, max_events=None, allowed_tels=None):
     """A generator that streams data from an EventIO/HESSIO MC data file

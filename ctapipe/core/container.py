@@ -1,5 +1,7 @@
 from pprint import pformat
 from copy import copy
+from textwrap import wrap
+
 
 class Container:
     """Generic class that can hold and accumulate data to be passed
@@ -19,6 +21,9 @@ class Container:
     To use this class, all members must be defined as `Item`s with
     default values specified.  For hierarchical data structures, Items
     can use `Container` subclasses or a `Map` as the default value.
+
+    You should not make class hierarchies of Containers and only ever subclass
+    the Container base class
 
     >>>    class MyContainer(Container):
     >>>        x = Item(100,"The X value")
@@ -106,6 +111,15 @@ class Container:
     def __str__(self):
         return pformat(self.as_dict(recursive=True))
 
+    def __repr__(self):
+        text = ["{}.{}:".format(type(self).__module__,type(self).__name__),]
+        for name, item in self.attributes.items():
+            desc = "{:>30s}: {}".format(name, item)
+            lines = wrap(desc, 80, subsequent_indent=' '*32)
+            text.extend(lines)
+        return  "\n".join(text)
+
+
 
 class Map(dict):
     """A dictionary of sub-containers that can be added to a
@@ -157,5 +171,8 @@ class Item:
         self.unit = unit
 
     def __repr__(self):
-        return ("Item(default={}, desc='{}', unit={})"
-                .format(self.default, self.description, self.unit))
+        desc= '{}'.format(self.description)
+        if self.unit is not None:
+            desc += ' [{}]'.format(self.unit)
+        return desc
+

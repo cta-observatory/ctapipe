@@ -6,31 +6,39 @@ from astropy.time import Time
 
 from ..core import Container, Item, Map
 
-__all__ = ['EventContainer','RawDataContainer', 'RawCameraContainer',
-           'MCShowerContainer', 'MCEventContainer', 'MCCameraContainer',
+__all__ = ['EventContainer', 'RawDataContainer', 'RawCameraContainer',
+           'MCEventContainer', 'MCCameraContainer',
            'CalibratedCameraContainer']
 
 # todo: change some of these Maps to be just 3D NDarrays?
+
+
 class CalibratedCameraContainer(Container):
     """
     Storage of calibrated (p.e.) data from a single telescope
     """
-    pe_charge = Item(0, "array of camera image in PE") # todo: rename to pe_image?
+    # todo: rename to pe_image?
+    pe_charge = Item(0, "array of camera image in PE")
     integration_window = Item(Map(), ("map per channel of bool ndarrays of "
                                       "shape (npix, nsamples) "
                                       "indicating the samples used in "
-                                      "the obtaining of the charge, dependant on the "
-                                      "integration method used"))
+                                      "the obtaining of the charge, dependant "
+                                      "on the integration method used"))
     # todo: rename the following to *_image
-    pedestal_subtracted_adc = Item(Map(), "Map of channel  to subtracted ADC image")
-    peakpos = Item(Map(), ("position of the peak as determined by the peak-finding"
-                           " algorithm for each pixel and channel"))
+    pedestal_subtracted_adc = Item(Map(), "Map of channel to subtracted ADC image")
+    peakpos = Item(Map(), ("position of the peak as determined by the "
+                           "peak-finding algorithm for each pixel"
+                           " and channel"))
 
-    num_channels = Item(0, "number of channels")  # todo: this is metadata, not a column?
-    num_pixels = Item(0, "number of channels")  # todo: this is metadata, not a column?
+    # todo: this is metadata, not a column?
+    num_channels = Item(0, "number of channels")
+    # todo: this is metadata, not a column?
+    num_pixels = Item(0, "number of channels")
 
-    # todo: this cannot be written to a table, so needs to be metadata. Do they change per event?
-    calibration_parameters = Item(dict(), "parameters used to calbrate the event")
+    # todo: this cannot be written to a table, so needs to be metadata. Do
+    # they change per event?
+    calibration_parameters = Item(
+        dict(), "parameters used to calbrate the event")
 
 
 class RawCameraContainer(Container):
@@ -39,11 +47,16 @@ class RawCameraContainer(Container):
     """
     adc_sums = Item(Map(), ("map of channel to (masked) arrays of all "
                             "integrated ADC data (n_pixels)"))
-    adc_samples = Item(Map(), "map of channel to arrays of (n_pixels, n_samples)")
+    adc_samples = Item(
+        Map(), "map of channel to arrays of (n_pixels, n_samples)")
     pedestal = Item(0, "Pedestal values")
-    num_channels = Item(0,"Number of channels in camera") # TODO: this is metadata
-    num_pixels = Item(0,"Number of pixels in camera") # TODO: this is metadata and not needed
-    num_samples = Item(0,"Number of samples per channel)") #TODO: this is metadata
+    # TODO: this is metadata
+    num_channels = Item(0, "Number of channels in camera")
+    # TODO: this is metadata and not needed
+    num_pixels = Item(0, "Number of pixels in camera")
+    # TODO: this is metadata
+    num_samples = Item(0, "Number of samples per channel)")
+
 
 class RawDataContainer(Container):
     """
@@ -54,12 +67,11 @@ class RawDataContainer(Container):
     event_id = Item(-1, "event id number")
     tels_with_data = Item([], "list of telescopes with data")
     tel = Item(Map(), "map of tel_id to RawCameraContainer")
-        
 
-# TODO: this should be replaced with a standard Shower container (and just have one called "mc" in the event)
-class MCShowerContainer(Container):
+
+class MCEventContainer(Container):
     """
-    Monte-Carlo shower representation
+    Monte-Carlo
     """
     energy = Item(0, "Monte-Carlo Energy")
     alt = Item(0, "Monte-carlo altitude", unit=u.deg)
@@ -67,12 +79,6 @@ class MCShowerContainer(Container):
     core_x = Item(0, "MC core position")
     core_y = Item(0, "MC core position")
     h_first_int = Item(0, "Height of first interaction")
-
-# TODO: why is this a subclass of MCShowerContainer?
-class MCEventContainer(MCShowerContainer):
-    """
-    Monte-Carlo
-    """
     tel = Item(Map(), "map of tel_id to MCCameraContainer")
 
 
@@ -82,7 +88,7 @@ class CentralTriggerContainer(Container):
     tels_with_trigger = Item([], "list of telescopes with data")
 
 
-#TODO: do these all change per event? If not some should be metadata (headers)
+# TODO: do these all change per event? If not some should be metadata (headers)
 class MCCameraContainer(Container):
     """
     Storage of mc data used for a single telescope
@@ -91,11 +97,10 @@ class MCCameraContainer(Container):
     refshapes = Item(Map(), "map of channel to array defining pulse shape")
     refstep = Item(0, "RENAME AND WRITE DESC FOR THIS!")
     lrefshape = Item(0, "RENAME AND WRITE DESC FOR THIS!")
-    time_slice = Item(0, "width of time slice") # TODO: rename to time_slice_width?
+    # TODO: rename to time_slice_width?
+    time_slice = Item(0, "width of time slice")
     dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
     pedestal = Item(None, "pedestal calibration arrays from MC file")
-
-
 
 
 class EventContainer(Container):
@@ -111,5 +116,3 @@ class EventContainer(Container):
     #self.meta.add_item('pixel_pos', dict())
     #self.meta.add_item('optical_foclen', dict())
     #self.meta.add_item('source', "unknown")
-
-
