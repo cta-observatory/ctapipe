@@ -6,13 +6,12 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import EventContainer, RawData
-from .containers import RawCameraData, MCEvent, MCCamera, CentralTriggerData
-from ctapipe.core import Container
-
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+
+from .containers import EventContainer
+from .containers import RawCameraData, MCCamera
 
 logger = logging.getLogger(__name__)
 
@@ -157,4 +156,5 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         counter += 1
 
         if max_events is not None and counter >= max_events:
+            pyhessio.close_file()
             return

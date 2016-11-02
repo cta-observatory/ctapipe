@@ -12,6 +12,7 @@ __all__ = ['EventContainer', 'RawData', 'RawCameraData', 'MCShowerData', 'MCEven
 class EventContainer(Container):
     """ Top-level container for all event information """
     def __init__(self, name="Event"):
+        super().__init__(name)
         self.add_item("dl0", RawData())
         self.add_item("mc", MCEvent())
         self.add_item("trig", CentralTriggerData())
