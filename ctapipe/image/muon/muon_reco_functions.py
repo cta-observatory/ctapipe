@@ -49,7 +49,13 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 geom_dict[telid] = geom
         
         #embed()
-        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)#was 5,7 (1.5,2.5)
+        tailcuts = (5.,7.)
+        #Try a higher threshold for FlashCam
+        if event.meta.optical_foclen[telid] == 16.*u.m and event.dl0.tel[telid].num_pixels == 1764:
+            tailcuts = (10.,12.)
+
+
+        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])#was 5,7 (1.5,2.5)
 
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
@@ -83,7 +89,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         muonringparam.event_id = event.dl1.event_id
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
 
-        print("Fitted ring centre:",muonringparam.ring_center_x,muonringparam.ring_center_y)
+        #print("Fitted ring centre:",muonringparam.ring_center_x,muonringparam.ring_center_y)
 
         #embed()
         #1/0

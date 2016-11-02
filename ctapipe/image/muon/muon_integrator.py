@@ -252,6 +252,7 @@ class MuonLineIntegrate:
         phi *= u.rad
 
         # Generate model prediction
+        global prediction
         prediction = self.image_prediction(
             impact_parameter,
             phi,
@@ -269,6 +270,8 @@ class MuonLineIntegrate:
 
         # scale prediction by optical efficiency of array
         prediction *= optical_efficiency_muon
+
+        #How to get prediction also return? AM - wish to plot (add to muonintensityparams?
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
         return -2 * np.sum(self.calc_likelihood(self.image, prediction, 0.5, 1.1))
@@ -367,5 +370,6 @@ class MuonLineIntegrate:
         # fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.ring_width = fit_params['ring_width']*self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
+        fitoutput.prediction = prediction
 
         return fitoutput

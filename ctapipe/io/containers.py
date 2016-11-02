@@ -257,6 +257,10 @@ class MuonIntensityParameter(Container):
         ring width
     ring_time_width:
         standard deviation of the photons time arrival
+
+    prediction: dict
+        ndarray of the predicted charge in all pixels
+
     """
 
     def __init__(self, name="MuonIntensityParameter"):
@@ -277,6 +281,7 @@ class MuonIntensityParameter(Container):
         self.add_item('impact_parameter_pos_y')
         self.add_item('COG_x')
         self.add_item('COG_y')
+        self.add_item('prediction')
         self.add_item('optical_efficiency_muon')
         self.meta.add_item('intensity_fit_method')
         self.meta.add_item('inputfile')
