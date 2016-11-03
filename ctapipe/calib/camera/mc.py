@@ -186,7 +186,7 @@ def calibrate_amplitude_mc(event, charge, telid, params):
         (pedestal substracted)
     """
 
-    calib = event.dl0.tel[telid].calibration
+    calib = event.mc.tel[telid].dc_to_pe
 
     pe = charge * calib
     # TODO: add clever calib for prod3 and LG channel

@@ -53,6 +53,8 @@ class CalibratedCameraContainer(Container):
     calibration_parameters = Item(
         dict(), "parameters used to calbrate the event")
 
+class CalibratedContainer(Container):
+    tel = Item(Map(), "map of tel_id to CalibratedCameraContainer")
 
 class RawCameraContainer(Container):
     """
@@ -119,14 +121,9 @@ class MCCameraContainer(Container):
 class EventContainer(Container):
     """ Top-level container for all event information """
 
-    inst = Item(InstrumentContainer(), "Instrumental info (deprecated)")
     dl0 = Item(RawDataContainer(), "Raw Data")
-    dl1 = Item(CalibratedCameraContainer())
+    dl1 = Item(CalibratedContainer())
     mc = Item(MCEventContainer(), "Monte-Carlo data")
     trig = Item(CentralTriggerContainer(), "central trigger information")
     count = Item(0, "number of events processed")
-
-    #self.meta.add_item('tel_pos', dict())
-    #self.meta.add_item('pixel_pos', dict())
-    #self.meta.add_item('optical_foclen', dict())
-    #self.meta.add_item('source', "unknown")
+    inst = Item(InstrumentContainer(), "instrumental information (deprecated")

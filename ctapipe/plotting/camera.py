@@ -42,7 +42,7 @@ class CameraPlotter:
 
     def get_geometry(self, tel):
         cam_dimensions = (self.event.dl0.tel[tel].num_pixels,
-                          self.event.meta.optical_foclen[tel])
+                          self.event.inst.optical_foclen[tel])
         if tel not in self.geom_dict:
             self.geom_dict[tel] = \
                 CameraGeometry.guess(*self.event.meta.pixel_pos[tel],
@@ -92,7 +92,7 @@ class CameraPlotter:
 
         geom = self.get_geometry(tel)
         axes = axes if axes is not None else plt.gca()
-        log.info("[plot] Annotating with pixel_ids")
+        log.info("Annotating with pixel_ids")
         for pix in pixels:
             x = u.Quantity(geom.pix_x).value[pix]
             y = u.Quantity(geom.pix_y).value[pix]

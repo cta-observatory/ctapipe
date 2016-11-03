@@ -135,10 +135,10 @@ def calibrate_event(event, params, geom_dict=None):
             partial(mc.calibrate_mc, event=event, params=params)
         }
     try:
-        calibrator = switch[event.meta.source]
+        calibrator = switch[event.meta['source']]
     except KeyError:
         log.exception("no calibration created for data origin: '{}'"
-                      .format(event.meta.source))
+                      .format(event.meta['source']))
         raise
 
     calibrated = copy(event)
@@ -154,11 +154,11 @@ def calibrate_event(event, params, geom_dict=None):
         pass
 
     # Fill dl1
-    calibrated.dl1.tel = dict()  # clear the previous telescopes
+    calibrated.dl1.reset()
     for telid in event.dl0.tels_with_data:
         nchan = event.dl0.tel[telid].num_channels
         npix = event.dl0.tel[telid].num_pixels
-        calibrated.dl1.tel[telid] = CalibratedCameraContainer(telid)
+        calibrated.dl1.tel[telid] = CalibratedCameraContainer()
         calibrated.dl1.tel[telid].num_channels = nchan
         calibrated.dl1.tel[telid].num_pixels = npix
 
@@ -166,26 +166,26 @@ def calibrate_event(event, params, geom_dict=None):
         int_dict, inverted = integrator_dict()
         geom = None
         cam_dimensions = (event.dl0.tel[telid].num_pixels,
-                          event.meta.optical_foclen[telid])
+                          event.inst.optical_foclen[telid])
         # Check if geom is even needed for integrator
         if inverted[params['integrator']] in integrators_requiring_geom():
             if geom_dict is not None and telid in geom_dict:
                 geom = geom_dict[telid]
             else:
                 log.debug("[calib] Guessing camera geometry")
-                geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                            event.meta.optical_foclen[telid])
+                geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                            event.inst.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[telid] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
-        calibrated.dl1.tel[telid].pe_charge = pe
-        calibrated.dl1.tel[telid].peakpos = peakpos
+        tel = calibrated.dl1.tel[telid]
+        tel.pe_charge = pe
+        tel.peakpos = peakpos
         for chan in range(nchan):
-            calibrated.dl1.tel[telid].integration_window[chan] = window[chan]
-            calibrated.dl1.tel[telid].pedestal_subtracted_adc[chan] = \
-                data_ped[chan]
+            tel.integration_window[chan] = window[chan]
+            tel.pedestal_subtracted_adc[chan] = data_ped[chan]
 
     return calibrated
 
