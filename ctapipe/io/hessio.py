@@ -8,7 +8,6 @@ import logging
 
 from .containers import EventContainer, RawDataContainer
 from .containers import RawCameraContainer, MCEventContainer, MCCameraContainer, CentralTriggerContainer
-from ctapipe.core import Container
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -100,28 +99,13 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         # data each time (right now it's just deleted and garbage
         # collected)
 
-        event.dl0.tel = dict()  # clear the previous telescopes
-        event.mc.tel = dict()  # clear the previous telescopes
+        event.dl0.tel.clear()
+        event.mc.tel.clear()  # clear the previous telescopes
+
+        _fill_instrument_info(event)
 
         for tel_id in event.dl0.tels_with_data:
 
-            # fill pixel position dictionary, if not already done:
-            if 'pixel_pos' not in event.meta:
-                event.meta['pixel_pos'] = dict()
-            if 'optical_foclen' not in event.meta:
-                event.meta['optical_foclen'] = dict()
-            if tel_id not in event.meta.get('pixel_pos',[]):
-                event.meta['pixel_pos'][tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m
-                event.meta.get('optical_foclen',[])[tel_id] \
-                    = pyhessio.get_optical_foclen(tel_id) * u.m
-
-            # fill telescope position dictionary, if not already done:
-            if 'tel_pos' not in event.meta:
-                event.meta['tel_pos'] = dict()
-            if tel_id not in event.meta['tel_pos']:
-                event.meta['tel_pos'][tel_id] = \
-                    pyhessio.get_telescope_position(tel_id) * u.m
 
             nchans = pyhessio.get_num_channel(tel_id)
             npix = pyhessio.get_num_pixels(tel_id)
@@ -160,3 +144,28 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
 
         if max_events is not None and counter >= max_events:
             return
+
+
+def _fill_instrument_info(event):
+    """
+    fill the event.inst structure with instrumental information.
+
+    Parameters
+    ----------
+    event: EventContainer
+        event container to fill in
+
+    """
+    for tel_id in range(500):
+
+        if tel_id not in event.inst.pixel_pos:
+            try:
+                event.inst.pixel_pos[tel_id] \
+                    = pyhessio.get_pixel_position(tel_id) * u.m
+                event.inst.optical_foclen[tel_id] \
+                    = pyhessio.get_optical_foclen(tel_id) * u.m
+                event.inst.tel_pos[tel_id] = \
+                pyhessio.get_telescope_position(tel_id) * u.m
+            except pyhessio.HessioTelescopeIndexError:
+                pass
+

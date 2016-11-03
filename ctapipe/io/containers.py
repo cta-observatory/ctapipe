@@ -13,6 +13,19 @@ __all__ = ['EventContainer', 'RawDataContainer', 'RawCameraContainer',
 # todo: change some of these Maps to be just 3D NDarrays?
 
 
+class InstrumentContainer(Container):
+    """
+    Storage of header info that does not change with event (this is a temporary
+     hack until the Instrument module and database is fully implemented.
+
+    This should not be relied upon, as it will be replaced with
+    corresponding Instrument module functionality
+    """
+
+    pixel_pos = Item(Map(), "map of tel_id to pixel positions")
+    optical_foclen = Item(Map(), "map of tel_id to focal length")
+    tel_pos = Item(Map(), "map of tel_id to telescope position")
+
 class CalibratedCameraContainer(Container):
     """
     Storage of calibrated (p.e.) data from a single telescope
@@ -106,6 +119,7 @@ class MCCameraContainer(Container):
 class EventContainer(Container):
     """ Top-level container for all event information """
 
+    inst = Item(InstrumentContainer(), "Instrumental info (deprecated)")
     dl0 = Item(RawDataContainer(), "Raw Data")
     dl1 = Item(CalibratedCameraContainer())
     mc = Item(MCEventContainer(), "Monte-Carlo data")

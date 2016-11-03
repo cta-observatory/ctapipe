@@ -175,4 +175,3 @@ class Item:
         if self.unit is not None:
             desc += ' [{}]'.format(self.unit)
         return desc
-
