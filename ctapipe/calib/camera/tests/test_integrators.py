@@ -31,8 +31,8 @@ def test_integrator_switch():
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
     ped = event.dl0.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
+    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                event.inst.optical_foclen[telid])
 
     params['integrator'] = 'full_integration'
     integration, window, peakpos = integrator_switch(data_ped, geom, params)
@@ -148,8 +148,8 @@ def test_nb_peak_integration():
     ped = event.dl0.tel[telid].pedestal
     nsamples = event.dl0.tel[telid].num_samples
     data_ped = data - np.atleast_3d(ped/nsamples)
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
+    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                event.inst.optical_foclen[telid])
 
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
     integration, window, peakpos = nb_peak_integration(data_ped, geom, params)

@@ -8,19 +8,19 @@ import numpy as np
 from ctapipe.image import mock
 from scipy.stats import norm
 
-from .containers import RawCameraContainer
+from .containers import EventContainer, RawCameraContainer
 
 logger = logging.getLogger(__name__)
 
 
-def mock_event_source(geoms, events=100, single_tel=False, n_channels=1, n_samples=25,  p_trigger=0.3):
+def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_samples=25, p_trigger=0.3):
     """
     An event source that produces array
     Parameters
     ----------
     geoms : list of CameraGeometry instances
         Geometries for the telescopes to simulate
-    events : int, default: 100
+    max_events : int, default: 100
         maximum number of events to create
     n_channels : int
         how many channels per telescope
@@ -31,11 +31,11 @@ def mock_event_source(geoms, events=100, single_tel=False, n_channels=1, n_sampl
     """
     n_telescopes = len(geoms)
     container = EventContainer()
-    container.meta.add_item('mock__max_events', events)
-    container.meta.source = "mock"
+    container.meta['mock__max_events'] = max_events
+    container.meta['source'] = "mock"
     tel_ids = np.arange(n_telescopes)
 
-    for event_id in range(events):
+    for event_id in range(max_events):
 
         n_triggered = np.random.poisson(n_telescopes * 0.3)
         if n_triggered > n_telescopes:
@@ -53,15 +53,15 @@ def mock_event_source(geoms, events=100, single_tel=False, n_channels=1, n_sampl
                 continue
             container.dl0.tels_with_data = [single_tel, ]
 
-        container.dl0.tel = dict()  # clear the previous telescopes
+        container.dl0.tel.reset()  # clear the previous telescopes
         t = np.arange(n_samples)
 
         for tel_id in container.dl0.tels_with_data:
             geom = geoms[tel_id]
 
             # fill pixel position dictionary, if not already done:
-            if tel_id not in container.meta.pixel_pos:
-                container.meta.pixel_pos[tel_id] = (
+            if tel_id not in container.inst.pixel_pos:
+                container.inst.pixel_pos[tel_id] = (
                     geom.pix_x.value,
                     geom.pix_y.value,
                 )
@@ -83,7 +83,7 @@ def mock_event_source(geoms, events=100, single_tel=False, n_channels=1, n_sampl
                 intensity,
             )
 
-            container.dl0.tel[tel_id] = RawCameraContainer(tel_id)
+            container.dl0.tel[tel_id] = RawCameraContainer()
             container.dl0.tel[tel_id].num_channels = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))

@@ -45,8 +45,8 @@ class CameraPlotter:
                           self.event.inst.optical_foclen[tel])
         if tel not in self.geom_dict:
             self.geom_dict[tel] = \
-                CameraGeometry.guess(*self.event.meta.pixel_pos[tel],
-                                     self.event.meta.optical_foclen[tel])
+                CameraGeometry.guess(*self.event.inst.pixel_pos[tel],
+                                     self.event.inst.optical_foclen[tel])
         return self.geom_dict[tel]
 
     def draw_camera(self, tel, data, axes=None):

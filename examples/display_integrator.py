@@ -102,8 +102,8 @@ def main():
         parser.error(msg % ' '.join(unknown_args))
 
     # Create a dictionary to store any geoms in
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
+    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                event.inst.optical_foclen[telid])
     geom_dict = {telid: geom}
     calibrated_event = calibrate_event(event, params, geom_dict)
 
