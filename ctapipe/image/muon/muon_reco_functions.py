@@ -57,9 +57,12 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])#was 5,7 (1.5,2.5)
 
-        camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
+        #camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
+        camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.meta.optical_foclen[telid])
 
-        nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[telid])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+        #nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[telid])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+        nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az])) 
+
         
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
