@@ -156,17 +156,14 @@ def calibrate_event(event, params, geom_dict=None):
     # Fill dl1
     calibrated.dl1.reset()
     for telid in event.dl0.tels_with_data:
-        nchan = event.dl0.tel[telid].num_channels
-        npix = event.dl0.tel[telid].num_pixels
+        nchan = event.dl0.tel[telid].meta['num_channels']
+        npix = event.dl0.tel[telid].meta['num_pixels']
         calibrated.dl1.tel[telid] = CalibratedCameraContainer()
-        calibrated.dl1.tel[telid].num_channels = nchan
-        calibrated.dl1.tel[telid].num_pixels = npix
 
         # Get geometry
         int_dict, inverted = integrator_dict()
         geom = None
-        cam_dimensions = (event.dl0.tel[telid].num_pixels,
-                          event.inst.optical_foclen[telid])
+
         # Check if geom is even needed for integrator
         if inverted[params['integrator']] in integrators_requiring_geom():
             if geom_dict is not None and telid in geom_dict:

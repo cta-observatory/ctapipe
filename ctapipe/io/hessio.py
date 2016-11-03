@@ -110,10 +110,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             nchans = pyhessio.get_num_channel(tel_id)
             npix = pyhessio.get_num_pixels(tel_id)
             nsamples = pyhessio.get_num_samples(tel_id)
+            if nsamples <= 0: nsamples = 1
             event.dl0.tel[tel_id] = RawCameraContainer()
-            event.dl0.tel[tel_id].num_channels = nchans
-            event.dl0.tel[tel_id].num_pixels = npix
-            event.dl0.tel[tel_id].num_samples = nsamples
+            event.dl0.tel[tel_id].meta['num_channels'] = nchans
+            event.dl0.tel[tel_id].meta['num_pixels'] = npix
+            event.dl0.tel[tel_id].meta['num_samples'] = nsamples
             event.mc.tel[tel_id] = MCCameraContainer()
 
             event.mc.tel[tel_id].dc_to_pe \
@@ -146,7 +147,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             return
 
 
-def _fill_instrument_info(event):
+def _fill_instrument_info(event, max_tel_id=1000):
     """
     fill the event.inst structure with instrumental information.
 
@@ -156,7 +157,7 @@ def _fill_instrument_info(event):
         event container to fill in
 
     """
-    for tel_id in range(500):
+    for tel_id in range(max_tel_id):
 
         if tel_id not in event.inst.pixel_pos:
             try:

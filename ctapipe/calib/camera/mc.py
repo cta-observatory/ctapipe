@@ -121,8 +121,8 @@ def set_integration_correction(event, telid, params):
         log.exception("[ERROR] missing required params")
         raise
 
-    nchan = event.dl0.tel[telid].num_channels
-    nsamples = event.dl0.tel[telid].num_samples
+    nchan = event.dl0.tel[telid].meta['num_channels']
+    nsamples = event.dl0.tel[telid].meta['num_samples']
 
     # Reference pulse parameters
     refshapes = np.array(list(event.mc.tel[telid].refshapes.values()))
@@ -260,9 +260,18 @@ def integration_mc(event, telid, params, geom=None):
     """
 
     # Obtain the data
-    nsamples = event.dl0.tel[telid].num_samples
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
-    ped = event.dl0.tel[telid].pedestal
+    nsamples = event.dl0.tel[telid].meta['num_samples']
+
+    # KPK: addd this if statement since ASTRI data failed (only 1
+    # sample). Is that the correct way to fix it?
+    if nsamples == 1:
+        data = np.array(list(event.dl0.tel[telid].adc_sums.values()))
+        data = data[:,:,np.newaxis]
+    else:
+        # TODO: the following line converts the structure into a 3D array where the third dimensions is the channel. Should we simply store it that way rathre than a dict by channel? (also this is not a fast operation)
+        data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+        
+    ped = event.mc.tel[telid].pedestal # monte-carlo pedstal
     data_ped = data - np.atleast_3d(ped/nsamples)
     int_dict, inverted = integrator_dict()
     if geom is None and inverted[params['integrator']]\

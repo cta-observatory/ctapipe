@@ -43,11 +43,6 @@ class CalibratedCameraContainer(Container):
                            "peak-finding algorithm for each pixel"
                            " and channel"))
 
-    # todo: this is metadata, not a column?
-    num_channels = Item(0, "number of channels")
-    # todo: this is metadata, not a column?
-    num_pixels = Item(0, "number of channels")
-
     # todo: this cannot be written to a table, so needs to be metadata. Do
     # they change per event?
     calibration_parameters = Item(
@@ -62,16 +57,8 @@ class RawCameraContainer(Container):
     """
     adc_sums = Item(Map(), ("map of channel to (masked) arrays of all "
                             "integrated ADC data (n_pixels)"))
-    adc_samples = Item(
-        Map(), "map of channel to arrays of (n_pixels, n_samples)")
-    pedestal = Item(0, "Pedestal values")
-    # TODO: this is metadata
-    num_channels = Item(0, "Number of channels in camera")
-    # TODO: this is metadata and not needed
-    num_pixels = Item(0, "Number of pixels in camera")
-    # TODO: this is metadata
-    num_samples = Item(0, "Number of samples per channel)")
-
+    adc_samples = Item(Map(), ("map of channel to arrays of "
+                               "(n_pixels, n_samples)"))
 
 class RawDataContainer(Container):
     """
