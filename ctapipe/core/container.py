@@ -1,5 +1,6 @@
-from pprint import pformat
+from collections import defaultdict
 from copy import copy
+from pprint import pformat
 from textwrap import wrap
 
 
@@ -142,8 +143,8 @@ class Container:
         return  "\n".join(text)
 
 
-
-class Map(dict):
+# todo: perhaps make this take a fromtype and totype argument in constructor
+class Map(defaultdict):
     """A dictionary of sub-containers that can be added to a Container. This
     may be used e.g. to store a set of identical sub-Containers (e.g. indexed
     by `tel_id` or algorithm name).

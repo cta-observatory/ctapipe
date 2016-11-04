@@ -146,14 +146,15 @@ def calibrate_event(event, params, geom_dict=None):
     # up to the user if they want to do it, not in the algorithms.
     #    calibrated = copy(event)
 
-    calibrated.dl1.calibration_parameters = params
+    # params stored in metadata
+    event.dl1.meta.update(params)
 
     # Fill dl1
-    calibrated.dl1.reset()
+    event.dl1.reset()
     for telid in event.dl0.tels_with_data:
         nchan = event.dl0.tel[telid].meta['num_channels']
         npix = event.dl0.tel[telid].meta['num_pixels']
-        calibrated.dl1.tel[telid] = CalibratedCameraContainer()
+        event.dl1.tel[telid] = CalibratedCameraContainer()
 
         # Get geometry
         int_dict, inverted = integrator_dict()
@@ -172,14 +173,14 @@ def calibrate_event(event, params, geom_dict=None):
                     geom_dict[telid] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
-        tel = calibrated.dl1.tel[telid]
+        tel = event.dl1.tel[telid]
         tel.pe_charge = pe
         tel.peakpos = peakpos
         for chan in range(nchan):
             tel.integration_window[chan] = window[chan]
             tel.pedestal_subtracted_adc[chan] = data_ped[chan]
 
-    return calibrated
+    return event
 
 
 def calibrate_source(source, params, geom_dict=None):
@@ -236,6 +237,5 @@ def calibrate_source(source, params, geom_dict=None):
 
     log.info("[calib] Calibration generator appended to source")
     for event in source:
-        calibrated = calibrate_event(event, params, geom_dict)
-
-        yield calibrated
+        calibrate_event(event, params, geom_dict)
+        yield event

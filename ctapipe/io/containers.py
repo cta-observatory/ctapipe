@@ -45,11 +45,6 @@ class CalibratedCameraContainer(Container):
                            "peak-finding algorithm for each pixel"
                            " and channel"))
 
-    # todo: this cannot be written to a table, so needs to be metadata.
-    calibration_parameters = Item(dict(),
-                                  "parameters used to calbrate the event")
-
-
 class CalibratedContainer(Container):
     """ Calibrated Camera Images and associated data"""
     tel = Item(Map(), "map of tel_id to CalibratedCameraContainer")
