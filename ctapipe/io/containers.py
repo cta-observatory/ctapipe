@@ -26,6 +26,7 @@ class InstrumentContainer(Container):
     optical_foclen = Item(Map(), "map of tel_id to focal length")
     tel_pos = Item(Map(), "map of tel_id to telescope position")
 
+
 class CalibratedCameraContainer(Container):
     """
     Storage of calibrated (p.e.) data from a single telescope
@@ -38,18 +39,22 @@ class CalibratedCameraContainer(Container):
                                       "the obtaining of the charge, dependant "
                                       "on the integration method used"))
     # todo: rename the following to *_image
-    pedestal_subtracted_adc = Item(Map(), "Map of channel to subtracted ADC image")
+    pedestal_subtracted_adc = Item(Map(), ("Map of channel to subtracted "
+                                           "ADC image"))
     peakpos = Item(Map(), ("position of the peak as determined by the "
                            "peak-finding algorithm for each pixel"
                            " and channel"))
 
     # todo: this cannot be written to a table, so needs to be metadata. Do
     # they change per event?
-    calibration_parameters = Item(
-        dict(), "parameters used to calbrate the event")
+    calibration_parameters = Item(dict(),
+                                  "parameters used to calbrate the event")
+
 
 class CalibratedContainer(Container):
+    """ Calibrated Camera Images and associated data"""
     tel = Item(Map(), "map of tel_id to CalibratedCameraContainer")
+
 
 class RawCameraContainer(Container):
     """
@@ -59,6 +64,7 @@ class RawCameraContainer(Container):
                             "integrated ADC data (n_pixels)"))
     adc_samples = Item(Map(), ("map of channel to arrays of "
                                "(n_pixels, n_samples)"))
+
 
 class RawDataContainer(Container):
     """

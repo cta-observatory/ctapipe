@@ -7,23 +7,25 @@ class Container:
     """Generic class that can hold and accumulate data to be passed
     between Components.
 
-    The purpose of this class is to provide a flexible data structure
-    that works a bit like a dict or blank Python class, but prevents
-    the user from accessing members that have not been defined
-    a-priori (more like a C struct), and also keeps metdata
-    information such as a description, defaults, and units for each
-    item in the container. It is also used to transform the data into
-    something that can be written to an output table, such as a
-    dict(), which can be made recursively and even flattened so that a
-    nested set of `Containers` can be translated into a set of columns
-    in a flat table without naming conflicts.
+    The purpose of this class is to provide a flexible data structure that
+    works a bit like a dict or blank Python class, but prevents the user from
+    accessing members that have not been defined a priori (more like a C
+    struct), and also keeps metdata information such as a description,
+    defaults, and units for each item in the container.
 
-    To use this class, all members must be defined as `Item`s with
-    default values specified.  For hierarchical data structures, Items
-    can use `Container` subclasses or a `Map` as the default value.
+    Containers can transform the data into a `dict` using the `
+    Container.as_dict()` method.  This allows them to be written to an output
+    table for example, where each Item defines a column. The `dict`
+    conversion can be made recursively and even flattened so that a nested
+    set of `Containers` can be translated into a set of columns in a flat
+    table without naming conflicts (the name of the parent Item is pre-pended).
 
-    You should not make class hierarchies of Containers and only ever subclass
-    the Container base class
+    To use this class, all members must be defined as `Item`s with default
+    values specified.  For hierarchical data structures, Items can use
+    `Container` subclasses or a `Map` as the default value.
+
+    You should not make class hierarchies of Containers and only ever
+    subclass the Container base class
 
     >>>    class MyContainer(Container):
     >>>        x = Item(100,"The X value")
@@ -32,6 +34,21 @@ class Container:
     >>>    cont = MyContainer()
     >>>    print(cont.x)
     100
+    >>>    cont.meta['KEY'] = value  # metdata will become header keywords in an output file
+
+    `Items` inside `Containers` can contain instances of other `Containers`,
+    to allow for a hierarchy of containers, and can also contain a `Map` for
+    the case where one wants e.g. a set of sub-classes indexed by a value
+    like the `telescope_id`. Examples of this can be found in
+    `ctapipe.io.containers`
+
+    `Containers` work by shadowing all class variables (which must be
+    instances of `Item`) with instance variables of the same name the hold
+    the value expected. If `Container.reset()` is called, all instance
+    variables are reset to their default values as defined in the class.
+
+    Finally, `Containers` can have associated metadata via their `meta`
+    attribute, which is a `dict` of keywords to values.
 
     """
 
@@ -49,13 +66,18 @@ class Container:
 
     @property
     def meta(self):
+        """ metadata key/values associated with this Container.
+
+        When written to an output file,  these will become headers, so should
+        represent data that does not change after the `Container` is
+        constructed.
+        """
         return self._metadata
 
     @property
     def attributes(self):
         """
-        Returns a dictionary of the attribute metadata of each item in the
-        container class as a dict of `Item`s
+        a dict of the Item metadata of each attribute.
         """
         return {key: val for key, val in self.__class__.__dict__.items()
                 if isinstance(val, Item)}
@@ -114,7 +136,7 @@ class Container:
     def __repr__(self):
         text = ["{}.{}:".format(type(self).__module__,type(self).__name__),]
         for name, item in self.attributes.items():
-            desc = "{:>30s}: {}".format(name, item)
+            desc = "{:>30s}: {}".format(name, repr(item))
             lines = wrap(desc, 80, subsequent_indent=' '*32)
             text.extend(lines)
         return  "\n".join(text)
@@ -122,9 +144,9 @@ class Container:
 
 
 class Map(dict):
-    """A dictionary of sub-containers that can be added to a
-    Container. This may be used e.g. to store a set of identical
-    sub-Containers (e.g. indexed by `tel_id` or algorithm name).
+    """A dictionary of sub-containers that can be added to a Container. This
+    may be used e.g. to store a set of identical sub-Containers (e.g. indexed
+    by `tel_id` or algorithm name).
     """
 
     def as_dict(self, recursive=False, flatten=False):
