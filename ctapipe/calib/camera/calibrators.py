@@ -141,17 +141,12 @@ def calibrate_event(event, params, geom_dict=None):
                       .format(event.meta['source']))
         raise
 
-    calibrated = copy(event)
+    # KPK: should not copy the event here! there is no reason to
+    # Copying is
+    # up to the user if they want to do it, not in the algorithms.
+    #    calibrated = copy(event)
 
-    # Add dl1 to the event container (if it hasn't already been added)
-    try:
-        calibrated.add_item("dl1", RawDataContainer())
-        calibrated.dl1.run_id = event.dl0.run_id
-        calibrated.dl1.event_id = event.dl0.event_id
-        calibrated.dl1.tels_with_data = event.dl0.tels_with_data
-        calibrated.dl1.calibration_parameters = params
-    except AttributeError:
-        pass
+    calibrated.dl1.calibration_parameters = params
 
     # Fill dl1
     calibrated.dl1.reset()
