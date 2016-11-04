@@ -40,7 +40,7 @@ def test_integration_mc():
     telid = 11
     event = get_test_event()
     params = get_test_parameters()
-    nsamples = event.dl0.tel[telid].num_samples
+    nsamples = event.dl0.tel[telid].meta['num_samples']
 
     params['integrator'] = 'full_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)
