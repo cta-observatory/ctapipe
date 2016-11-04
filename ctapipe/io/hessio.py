@@ -111,7 +111,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             npix = pyhessio.get_num_pixels(tel_id)
             nsamples = pyhessio.get_num_samples(tel_id)
             if nsamples <= 0: nsamples = 1
-            event.dl0.tel[tel_id] = RawCameraContainer()
+
             event.dl0.tel[tel_id].meta['num_channels'] = nchans
             event.dl0.tel[tel_id].meta['num_pixels'] = npix
             event.dl0.tel[tel_id].meta['num_samples'] = nsamples
