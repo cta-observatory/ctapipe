@@ -84,7 +84,7 @@ def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_s
             )
 
             # container.dl0.tel[tel_id] = RawCameraContainer()
-            container.dl0.tel[tel_id].num_channels = n_channels
+            container.dl0.tel[tel_id].meta['num_channels'] = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))
             means = np.random.normal(15, 1, (n_pix, 1))
