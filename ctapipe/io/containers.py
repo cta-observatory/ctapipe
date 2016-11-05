@@ -48,7 +48,7 @@ class CalibratedCameraContainer(Container):
 
 class CalibratedContainer(Container):
     """ Calibrated Camera Images and associated data"""
-    tel = Item(Map(), "map of tel_id to CalibratedCameraContainer")
+    tel = Item(Map(CalibratedCameraContainer), "map of tel_id to CalibratedCameraContainer")
 
 
 class RawCameraContainer(Container):

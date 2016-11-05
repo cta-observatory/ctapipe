@@ -137,7 +137,12 @@ class Container:
     def __repr__(self):
         text = ["{}.{}:".format(type(self).__module__,type(self).__name__),]
         for name, item in self.attributes.items():
-            desc = "{:>30s}: {}".format(name, repr(item))
+            extra = ""
+            if isinstance(self.__dict__[name], Container):
+                extra = ".*"
+            if isinstance(self.__dict__[name], Map):
+                extra = "[*]"
+            desc = "{:>30s}: {}".format(name+extra, repr(item))
             lines = wrap(desc, 80, subsequent_indent=' '*32)
             text.extend(lines)
         return  "\n".join(text)
@@ -156,7 +161,7 @@ class Map(defaultdict):
         else:
             d = dict()
             for key, val in self.items():
-                if isinstance(val, Container):
+                if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({"{}_{}".format(key, k): v
                                   for k, v in val.as_dict(recursive).items()})
