@@ -6,8 +6,7 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import EventContainer, RawDataContainer
-from .containers import RawCameraContainer, MCEventContainer, MCCameraContainer, CentralTriggerContainer
+from .containers import EventContainer
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -115,7 +114,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             event.dl0.tel[tel_id].meta['num_channels'] = nchans
             event.dl0.tel[tel_id].meta['num_pixels'] = npix
             event.dl0.tel[tel_id].meta['num_samples'] = nsamples
-            event.mc.tel[tel_id] = MCCameraContainer()
+            # event.mc.tel[tel_id] = MCCameraContainer()
 
             event.mc.tel[tel_id].dc_to_pe \
                 = pyhessio.get_calibration(tel_id)
@@ -144,6 +143,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         counter += 1
 
         if max_events is not None and counter >= max_events:
+            pyhessio.close_file()
             return
 
 

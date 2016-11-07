@@ -1,4 +1,5 @@
 """
+Container structures for data that should be read or written to disk
 """
 
 from astropy import units as u

@@ -45,5 +45,8 @@ Reference/API
 .. automodapi:: ctapipe.io.containers
     :no-inheritance-diagram:
 
+------------------------------
 
+.. automodapi:: ctapipe.io.serializer
+    :no-inheritance-diagram:
 
