@@ -10,7 +10,7 @@ from numpy import ndarray
 
 __all__ = ['EventContainer', 'RawDataContainer', 'RawCameraContainer',
            'MCEventContainer', 'MCCameraContainer',
-           'CalibratedCameraContainer']
+           'CalibratedCameraContainer', 'ReconstructedShowerContainer']
 
 # todo: change some of these Maps to be just 3D NDarrays?
 
@@ -106,8 +106,59 @@ class CentralTriggerContainer(Container):
     tels_with_trigger = Item([], "list of telescopes with data")
 
 
+class ReconstructedShowerContainer(Container):
+    """
+    Standard output of algorithms reconstructing shower geometry
+    """
 
+    
+    alt  = Item(0.0,"reconstructed altitude", unit=u.deg)
+    alt_uncert = Item(0.0,"reconstructed altitude uncertainty", unit=u.deg)
+    az = Item(0.0,"reconstructed azimuth", unit=u.deg)
+    az_uncert =Item(0.0,'reconstructed azimuth uncertainty', unit=u.deg)
+    core_x = Item(0.0,'reconstructed x coordinate of the core position', unit=u.m)
+    core_y = Item(0.0,'reconstructed y coordinate of the core position',unit=u.m)
+    core_uncert = Item(0.0,'uncertainty of the reconstructed core position',unit=u.m)
+    h_max = Item(0.0,'reconstructed height of the shower maximum')
+    h_max_uncert=Item(0.0,'uncertainty of h_max')
+    is_valid=(False,('direction validity flag. True if the shower direction'
+                     'was properly reconstructed by the algorithm'))
+    tel_ids = Item([],('list of the telescope ids used in the'
+                       ' reconstruction of the shower'))
+    average_size = Item(0.0, 'average size of used')
 
+    
+class ReconstructedEnergyContainer(Container):
+    """
+    Standard output of algorithms estimating energy
+    """
+    energy = Item(-1.0, 'reconstructed energy', unit=u.TeV)
+    energy_uncert= Item(-1.0, 'reconstructed energy uncertainty', unit=u.TeV)
+    is_valid = Item(False,('energy reconstruction validity flag. True if '
+                           'the energy was properly reconstructed by the algorithm'))
+    tel_ids = Item([], ('array containing the telescope ids used in the'
+                        ' reconstruction of the shower'))
+    goodness_of_fit = Item(0.0, 'goodness of the algorithm fit')
+
+    
+class ParticleClassificationContainer(Container):
+    """
+    Standard output of gamma/hadron classification algorithms
+    """
+    #TODO: Do people agree on this? This is very MAGIC-like.
+    #TODO: Perhaps an integer classification + error?
+    prediction = Item(0.0, ('prediction of the classifier, defined between '
+                            '[0,1], where values close to 0 are more gamma-like,'
+                            ' and values close to 1 more hadron-like')) 
+    is_valid = Item(False, ('classificator validity flag. True if the predition '
+                            'was successful within the algorithm validity range'))
+                    
+    #TODO: KPK: is this different than the list in the reco container? Why repeat?
+    tel_ids  = Item([],('array containing the telescope ids used '
+                        'in the reconstruction of the shower'))
+    goodness_of_fit  = Item(0.0,'goodness of the algorithm fit')
+
+            
 class EventContainer(Container):
     """ Top-level container for all event information """
 
