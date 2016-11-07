@@ -9,8 +9,10 @@ from ..core import Container, Item, Map
 from numpy import ndarray
 
 __all__ = ['EventContainer', 'RawDataContainer', 'RawCameraContainer',
-           'MCEventContainer', 'MCCameraContainer',
-           'CalibratedCameraContainer', 'ReconstructedShowerContainer']
+           'MCEventContainer', 'MCCameraContainer', 'CalibratedCameraContainer',
+           'ReconstructedShowerContainer',
+           'ReconstructedEnergyContainer','ParticleClassificationContainer',
+           'ReconstructedContainer']
 
 # todo: change some of these Maps to be just 3D NDarrays?
 
@@ -47,9 +49,11 @@ class CalibratedCameraContainer(Container):
                            "peak-finding algorithm for each pixel"
                            " and channel"))
 
+
 class CalibratedContainer(Container):
     """ Calibrated Camera Images and associated data"""
-    tel = Item(Map(CalibratedCameraContainer), "map of tel_id to CalibratedCameraContainer")
+    tel = Item(Map(CalibratedCameraContainer),
+               "map of tel_id to CalibratedCameraContainer")
 
 
 class RawCameraContainer(Container):
@@ -71,6 +75,7 @@ class RawDataContainer(Container):
     event_id = Item(-1, "event id number")
     tels_with_data = Item([], "list of telescopes with data")
     tel = Item(Map(RawCameraContainer), "map of tel_id to RawCameraContainer")
+
 
 # TODO: do these all change per event? If not some should be metadata (headers)
 class MCCameraContainer(Container):
@@ -111,52 +116,55 @@ class ReconstructedShowerContainer(Container):
     Standard output of algorithms reconstructing shower geometry
     """
 
-    
-    alt  = Item(0.0,"reconstructed altitude", unit=u.deg)
-    alt_uncert = Item(0.0,"reconstructed altitude uncertainty", unit=u.deg)
-    az = Item(0.0,"reconstructed azimuth", unit=u.deg)
-    az_uncert =Item(0.0,'reconstructed azimuth uncertainty', unit=u.deg)
-    core_x = Item(0.0,'reconstructed x coordinate of the core position', unit=u.m)
-    core_y = Item(0.0,'reconstructed y coordinate of the core position',unit=u.m)
-    core_uncert = Item(0.0,'uncertainty of the reconstructed core position',unit=u.m)
-    h_max = Item(0.0,'reconstructed height of the shower maximum')
-    h_max_uncert=Item(0.0,'uncertainty of h_max')
-    is_valid=(False,('direction validity flag. True if the shower direction'
-                     'was properly reconstructed by the algorithm'))
-    tel_ids = Item([],('list of the telescope ids used in the'
-                       ' reconstruction of the shower'))
+    alt = Item(0.0, "reconstructed altitude", unit=u.deg)
+    alt_uncert = Item(0.0, "reconstructed altitude uncertainty", unit=u.deg)
+    az = Item(0.0, "reconstructed azimuth", unit=u.deg)
+    az_uncert = Item(0.0, 'reconstructed azimuth uncertainty', unit=u.deg)
+    core_x = Item(0.0, 'reconstructed x coordinate of the core position',
+                  unit=u.m)
+    core_y = Item(0.0, 'reconstructed y coordinate of the core position',
+                  unit=u.m)
+    core_uncert = Item(0.0, 'uncertainty of the reconstructed core position',
+                       unit=u.m)
+    h_max = Item(0.0, 'reconstructed height of the shower maximum')
+    h_max_uncert = Item(0.0, 'uncertainty of h_max')
+    is_valid = (False, ('direction validity flag. True if the shower direction'
+                        'was properly reconstructed by the algorithm'))
+    tel_ids = Item([], ('list of the telescope ids used in the'
+                        ' reconstruction of the shower'))
     average_size = Item(0.0, 'average size of used')
 
-    
+
 class ReconstructedEnergyContainer(Container):
     """
     Standard output of algorithms estimating energy
     """
     energy = Item(-1.0, 'reconstructed energy', unit=u.TeV)
-    energy_uncert= Item(-1.0, 'reconstructed energy uncertainty', unit=u.TeV)
-    is_valid = Item(False,('energy reconstruction validity flag. True if '
-                           'the energy was properly reconstructed by the algorithm'))
+    energy_uncert = Item(-1.0, 'reconstructed energy uncertainty', unit=u.TeV)
+    is_valid = Item(False, ('energy reconstruction validity flag. True if '
+                            'the energy was properly reconstructed by the '
+                            'algorithm'))
     tel_ids = Item([], ('array containing the telescope ids used in the'
                         ' reconstruction of the shower'))
     goodness_of_fit = Item(0.0, 'goodness of the algorithm fit')
 
-    
+
 class ParticleClassificationContainer(Container):
     """
     Standard output of gamma/hadron classification algorithms
     """
-    #TODO: Do people agree on this? This is very MAGIC-like.
-    #TODO: Perhaps an integer classification + error?
+    # TODO: Do people agree on this? This is very MAGIC-like.
+    # TODO: Perhaps an integer classification + error?
     prediction = Item(0.0, ('prediction of the classifier, defined between '
                             '[0,1], where values close to 0 are more gamma-like,'
-                            ' and values close to 1 more hadron-like')) 
+                            ' and values close to 1 more hadron-like'))
     is_valid = Item(False, ('classificator validity flag. True if the predition '
                             'was successful within the algorithm validity range'))
-                    
-    #TODO: KPK: is this different than the list in the reco container? Why repeat?
-    tel_ids  = Item([],('array containing the telescope ids used '
+
+    # TODO: KPK: is this different than the list in the reco container? Why repeat?
+    tel_ids = Item([], ('array containing the telescope ids used '
                         'in the reconstruction of the shower'))
-    goodness_of_fit  = Item(0.0,'goodness of the algorithm fit')
+    goodness_of_fit = Item(0.0, 'goodness of the algorithm fit')
 
 
 class ReconstructedContainer(Container):
@@ -175,7 +183,7 @@ class EventContainer(Container):
 
     dl0 = Item(RawDataContainer(), "Raw Data")
     dl1 = Item(CalibratedContainer())
-    dl2 = Item(ReconstructedContainer(),"Reconstructed Shower Information")
+    dl2 = Item(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Item(MCEventContainer(), "Monte-Carlo data")
     trig = Item(CentralTriggerContainer(), "central trigger information")
     count = Item(0, "number of events processed")
