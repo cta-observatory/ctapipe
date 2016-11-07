@@ -158,12 +158,24 @@ class ParticleClassificationContainer(Container):
                         'in the reconstruction of the shower'))
     goodness_of_fit  = Item(0.0,'goodness of the algorithm fit')
 
-            
+
+class ReconstructedContainer(Container):
+    """ collect reconstructed shower info from multiple algorithms """
+
+    shower = Item(Map(ReconstructedShowerContainer),
+                  "Map of algorithm name to shower info")
+    energy = Item(Map(ReconstructedEnergyContainer),
+                  "Map of algorithm name to energy info")
+    classification = Item(Map(ParticleClassificationContainer),
+                          "Map of algorithm name to classification info")
+
+
 class EventContainer(Container):
     """ Top-level container for all event information """
 
     dl0 = Item(RawDataContainer(), "Raw Data")
     dl1 = Item(CalibratedContainer())
+    dl2 = Item(ReconstructedContainer(),"Reconstructed Shower Information")
     mc = Item(MCEventContainer(), "Monte-Carlo data")
     trig = Item(CentralTriggerContainer(), "central trigger information")
     count = Item(0, "number of events processed")
