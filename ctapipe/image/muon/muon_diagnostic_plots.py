@@ -69,7 +69,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
         colorbar2 = None
 
         for tel_id in event.dl0.tels_with_data:
-            npads = 1
+            npads = 2
             # Only create two pads if there is timing information extracted
             # from the calibration
             ax1 = fig.add_subplot(1, npads, 1)
@@ -93,6 +93,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             if event.meta.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
                 tailcuts = (10.,12.)
         
+            print("Using Tail Cuts:",tailcuts)
             clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
 
 
@@ -105,8 +106,6 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
             #print("Muon_phi = ",muon_phi, "sin(phi)",np.sin(muon_phi),"cos(phi)",np.cos(muon_phi))
 
-            #if muonparams[1] != None:
-                #embed()
             rot_angle = 0.*u.deg
             if event.meta.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
                 rot_angle = -100.*u.deg
@@ -143,7 +142,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             #embed()
             dist = np.sqrt(np.power(px-muonparams[0].ring_center_x,2) + np.power(py - muonparams[0].ring_center_y,2))
             ring_dist = np.abs(dist-muonparams[0].ring_radius)
-            pixRmask = ring_dist < muonparams[0].ring_radius*0.3
+            pixRmask = ring_dist < muonparams[0].ring_radius*0.4
             #embed()
             signals *= pixRmask
 
@@ -171,35 +170,53 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                           .format(tel_id, geom_dict[tel_id].cam_id))
 
             if muonparams[1] is not None:
-                continue #Comment this...
+                #continue #Comment this...
                 ringwidthfrac = 0.5*muonparams[1].ring_width/muonparams[0].ring_radius
                 ringrad_inner = ringrad_camcoord*(1.-ringwidthfrac)
                 ringrad_outer = ringrad_camcoord*(1.+ringwidthfrac)
                 camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_inner.value,0.,0.,color="magenta")
                 camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_outer.value,0.,0.,color="magenta")
-
+                npads = 2
                 ax2 = fig.add_subplot(1,npads,npads)
                 pred = muonparams[1].prediction
-                camera2 = plotter.draw_camera(tel_id,pred,ax2)
 
-                c2maxmin = (max(pred) - min(pred))
+
+                plotpred = []
+                it = 0
+                for mx in pixRmask:
+                    if not mx:
+                        plotpred.append(0.)
+                    else:
+                        plotpred.append(pred[it])
+                        it += 1
+
+                if(len(pred) != np.sum(pixRmask)):
+                    print("Warning! Lengths do not match...")
+
+                #embed()
+                camera2 = plotter.draw_camera(tel_id,plotpred,ax2)
+
+                c2maxmin = (max(plotpred) - min(plotpred))
                 c2map_charge = colors.LinearSegmentedColormap.from_list(
                     'c2map_c', [(0 / c2maxmin, 'darkblue'),
-                               (np.abs(min(pred)) / c2maxmin, 'black'),
-                               (2.0 * np.abs(min(pred)) / c2maxmin, 'blue'),
-                               (2.5 * np.abs(min(pred)) / c2maxmin, 'green'),
+                               (np.abs(min(plotpred)) / c2maxmin, 'black'),
+                               (2.0 * np.abs(min(plotpred)) / c2maxmin, 'blue'),
+                               (2.5 * np.abs(min(plotpred)) / c2maxmin, 'green'),
                                (1, 'yellow')])
-                camera2.pixels.set_c2map(c2map_charge)
+                camera2.pixels.set_cmap(c2map_charge)
                 if not colorbar2:
-                    camera2.add_colorbar(ax=ax1, label=" [photo-electrons]")
+                    camera2.add_colorbar(ax=ax2, label=" [photo-electrons]")
                     colorbar2 = camera2.colorbar
                 else:
                     camera2.colorbar = colorbar2
                 camera2.update(True)
-        
+                plt.pause(0.2)
+
         
             plt.pause(0.1)
             if pp is not None:
                 pp.savefig(fig)
         
+            plt.close()
+
             #embed()

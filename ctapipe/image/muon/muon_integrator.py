@@ -14,6 +14,7 @@ from astropy import units as u
 from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
 from scipy.stats import norm
+from IPython import embed
 
 __all__ = ['MuonLineIntegrate']
 
@@ -271,8 +272,9 @@ class MuonLineIntegrate:
         # scale prediction by optical efficiency of array
         prediction *= optical_efficiency_muon
 
-        #How to get prediction also return? AM - wish to plot (add to muonintensityparams?
-
+        #How sto get prediction also return? AM - wish to plot (add to muonintensityparams?
+        #embed()
+        #1/0
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
         return -2 * np.sum(self.calc_likelihood(self.image, prediction, 0.5, 1.1))
 
