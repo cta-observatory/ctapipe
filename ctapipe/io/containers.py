@@ -133,7 +133,7 @@ class ReconstructedShowerContainer(Container):
     tel_ids = Item([], ('list of the telescope ids used in the'
                         ' reconstruction of the shower'))
     average_size = Item(0.0, 'average size of used')
-
+    goodness_of_fit = Item(0.0, 'measure of algorithm success (if fit)')
 
 class ReconstructedEnergyContainer(Container):
     """
