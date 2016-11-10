@@ -49,12 +49,13 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 geom_dict[telid] = geom
         
         #embed()
+        #tailcuts = (4.,6.)
         tailcuts = (5.,7.)
         #Try a higher threshold for FlashCam
         if event.meta.optical_foclen[telid] == 16.*u.m and event.dl0.tel[telid].num_pixels == 1764:
             tailcuts = (10.,12.)
 
-        print("Using Tail Cuts:",tailcuts)
+        #print("Using Tail Cuts:",tailcuts)
         clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])#was 5,7 (1.5,2.5)
 
         #camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
@@ -119,10 +120,11 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         if(np.sum(pix_im>5)>10. and np.sum(pix_im)>minpix and nom_dist < cam_rad*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
             #Guess HESS is 0.16 - LST is 0.11?
-            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.11*u.deg)
+            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.11*u.deg,sct_flag=True, secondary_radius=1.*u.m)
 
             if (image.shape[0]<2200):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
+
                 muonintensityoutput.tel_id = telid
                 muonintensityoutput.run_id = event.dl1.run_id
                 muonintensityoutput.event_id = event.dl1.event_id

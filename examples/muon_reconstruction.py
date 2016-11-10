@@ -21,7 +21,7 @@ parameters
 """
 
 def display_muon_plot(event):
-    print("MUON:",event[0].run_id,event[0].event_id,event[1].impact_parameter,event[1].ring_width,event[1].optical_efficiency_muon)
+    print("MUON:",event[0].run_id,event[0].event_id,event[1].impact_parameter,event[1].ring_width,"mu_eff=",event[1].optical_efficiency_muon)
     pass
 
 def main():

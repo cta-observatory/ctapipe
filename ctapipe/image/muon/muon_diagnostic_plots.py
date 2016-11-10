@@ -88,12 +88,13 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                     geom_dict[tel_id] = geom
         
 
+            #tailcuts = (4.,6.)
             tailcuts = (5.,7.)
             #Try a higher threshold for FlashCam
             if event.meta.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
                 tailcuts = (10.,12.)
         
-            print("Using Tail Cuts:",tailcuts)
+            #print("Using Tail Cuts:",tailcuts)
             clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
 
 
@@ -149,6 +150,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             camera1 = plotter.draw_camera(tel_id,signals,ax1)
 
             cmaxmin = (max(signals) - min(signals))
+            if not cmaxmin:
+                cmaxmin = 1.
             cmap_charge = colors.LinearSegmentedColormap.from_list(
                 'cmap_c', [(0 / cmaxmin, 'darkblue'),
                            (np.abs(min(signals)) / cmaxmin, 'black'),
@@ -180,23 +183,26 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 ax2 = fig.add_subplot(1,npads,npads)
                 pred = muonparams[1].prediction
 
+                if(len(pred) != np.sum(pixRmask)):
+                    print("Warning! Lengths do not match...len(pred)=",len(pred),"len(pixRmask)=",np.sum(pixRmask))
 
                 plotpred = []
                 it = 0
                 for mx in pixRmask:
                     if not mx:
                         plotpred.append(0.)
-                    else:
+                    elif it < len(pred):
                         plotpred.append(pred[it])
                         it += 1
-
-                if(len(pred) != np.sum(pixRmask)):
-                    print("Warning! Lengths do not match...")
+                    else:
+                        plotpred.append(0.)
 
                 #embed()
                 camera2 = plotter.draw_camera(tel_id,plotpred,ax2)
 
                 c2maxmin = (max(plotpred) - min(plotpred))
+                if not c2maxmin:
+                    c2maxmin = 1.
                 c2map_charge = colors.LinearSegmentedColormap.from_list(
                     'c2map_c', [(0 / c2maxmin, 'darkblue'),
                                (np.abs(min(plotpred)) / c2maxmin, 'black'),

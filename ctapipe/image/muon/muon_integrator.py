@@ -31,7 +31,7 @@ class MuonLineIntegrate:
     Expected 2D images can then be generated when the pixel geometry
     is passed to the class.
     '''
-    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2, oversample_bins=3):
+    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2, oversample_bins=3,sct_flag=False,secondary_radius=1.):
         '''
         Class initialisation funtion
         Parameters
@@ -44,6 +44,10 @@ class MuonLineIntegrate:
             width of pixel in camera
         oversample_bins: int
             number of angular bins to evaluate for each pixel width
+        sct_flag: bool
+            flags whether the telescope uses Schwarzschild-Couder Optics
+        secondary_radius: float
+            Radius of the secondary mirror (circular approx) for dual mirror telescopes
         
         minlambda: float
             minimum wavelength for integration (300nm typical)
@@ -61,6 +65,8 @@ class MuonLineIntegrate:
         self.hole_radius = hole_radius
         self.pixel_width = pixel_width
         self.oversample_bins = oversample_bins
+        self.sct_flag = sct_flag
+        self.secondary_radius = secondary_radius
         self.pixel_x = 0
         self.pixel_y = 0
         self.image = 0
@@ -88,7 +94,12 @@ class MuonLineIntegrate:
         ndarray: chord length
         '''
         chord = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
-        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+
+        if rho <= 1:
+            chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        elif rho > 1:
+            chord = 2. * radius * np.sqrt(chord)
+
         chord[np.isnan(chord)] = 0
         chord[chord < 0] = 0
 
@@ -115,7 +126,19 @@ class MuonLineIntegrate:
             hole_length = self.chord_length(
                 self.hole_radius, r / self.hole_radius, angle
             )
-        return mirror_length-hole_length
+
+        if self.sct_flag:
+            secondary_length = self.chord_length(
+                self.secondary_radius, r / self.secondary_radius, angle
+            )
+            #Should be areas not lengths here?
+            factor = mirror_length - (secondary_length)
+            factor /= (mirror_length - hole_length)
+
+        if not self.sct_flag:
+            return mirror_length-hole_length
+        else:
+            return (mirror_length - hole_length + secondary_length)
 
     def plot_pos(self, impact_parameter, radius, phi):
         '''
@@ -359,10 +382,12 @@ class MuonLineIntegrate:
             error_optical_efficiency_muon=0.05,
             limit_optical_efficiency_muon=(0, 1),
             errordef=1,
+            throw_nan=False,
         )
 
         # Perform minimisation
         minuit.migrad()
+
         # Get fitted values
         fit_params = minuit.values
 
