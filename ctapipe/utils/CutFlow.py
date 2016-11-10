@@ -117,7 +117,8 @@ class CutFlow():
             --------
             t : astropy.Table
                 the table containing the cut names, counted events and
-                efficiencies -- sorted descending by number of counted events
+                efficiencies -- sorted in the order the cuts were added if not
+                specified otherwise
         '''
         print(self.name)
         t = self.get_table(*args, **kwargs)
@@ -135,12 +136,19 @@ class CutFlow():
                 name of the selection criterion that should be taken as 100 %
                 in efficiency calculation
                 if not given, the criterion with the highest count is used
+            sort_column : integer (default: None)
+                the index of the column that should be used for sorting the entries
+                by default the table is sorted in the order the cuts were added
+                (index 0: cut name, index 1: number of passed events, index 2: efficiency)
+            sort_reverse : bool (default: False)
+                if true, revert the order of the entries
 
             Returns:
             --------
             t : astropy.Table
                 the table containing the cut names, counted events and
-                efficiencies -- sorted descending by number of counted events
+                efficiencies -- sorted in the order the cuts were added if not
+                specified otherwise
         '''
 
         if base_cut is None:
