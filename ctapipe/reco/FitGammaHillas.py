@@ -212,7 +212,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 be consistent: make sure to always take the "upper" solution
             '''
             if crossing[2] < 0: crossing *= -1
-            crossings.append(crossing*perm[0].weight * perm[0].weight)
+            crossings.append(crossing * perm[0].weight*perm[1].weight)
 
         ''' averaging over the solutions of all permutations '''
         return linalg.normalise(np.sum(crossings, axis=0))*u.dimless, crossings
