@@ -20,7 +20,7 @@ class PrepareDisplayStep(Component):
         calibrated_event,  geom_dict = inputs
         for tel_id in calibrated_event.dl0.tels_with_data:
             self.fig.clear()
-            cam_dimensions = (calibrated_event.dl0.tel[tel_id].num_pixels,
+            cam_dimensions = (calibrated_event.inst.num_pixels[tel_id],
                               calibrated_event.inst.optical_foclen[tel_id])
             self.fig.suptitle("EVENT {} {:.1e} @({:.1f},{:.1f}) @{:.1f}"
                          .format(calibrated_event.dl1.event_id, calibrated_event.mc.energy,

@@ -152,8 +152,8 @@ def calibrate_event(event, params, geom_dict=None):
     # Fill dl1
     event.dl1.reset()
     for telid in event.dl0.tels_with_data:
-        nchan = event.dl0.tel[telid].meta['num_channels']
-        npix = event.dl0.tel[telid].meta['num_pixels']
+        nchan = event.inst.num_channels[telid]
+        npix = event.inst.num_pixels[telid]
         event.dl1.tel[telid] = CalibratedCameraContainer()
 
         # Get geometry

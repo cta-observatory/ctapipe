@@ -8,7 +8,7 @@ from astropy.time import Time
 from ..core import Container, Item, Map
 from numpy import ndarray
 
-__all__ = ['EventContainer', 'RawDataContainer', 'RawCameraContainer',
+__all__ = ['DataContainer', 'RawDataContainer', 'RawCameraContainer',
            'MCEventContainer', 'MCCameraContainer', 'CalibratedCameraContainer',
            'ReconstructedShowerContainer',
            'ReconstructedEnergyContainer','ParticleClassificationContainer',
@@ -29,11 +29,22 @@ class InstrumentContainer(Container):
     pixel_pos = Item(Map(ndarray), "map of tel_id to pixel positions")
     optical_foclen = Item(Map(ndarray), "map of tel_id to focal length")
     tel_pos = Item(Map(ndarray), "map of tel_id to telescope position")
+    #TODO: fill these, and remove from cameracontainer metadata
+    num_pixels = Item(Map(int), "map of tel_id to number of pixels in camera")
+    num_samples = Item(Map(int), "map of tel_id to number of time samples")
+    num_channels = Item(Map(int), "map of tel_id to number of channels") 
+    
+class MCInstrumentContainer(Container):
+    """ Storage of Monte-Carlo header information
+    pertaining to the instrumental configuration"""
+    pass
+
 
 
 class CalibratedCameraContainer(Container):
-    """
-    Storage of calibrated (p.e.) data from a single telescope
+    """Storage of output of camera calibrationm e.g the final calibrated
+    image in intensity units and other per-event calculated
+    calibration information.
     """
     # todo: rename to pe_image?
     pe_charge = Item(0, "array of camera image in PE")
@@ -49,7 +60,14 @@ class CalibratedCameraContainer(Container):
                            "peak-finding algorithm for each pixel"
                            " and channel"))
 
-
+class CameraCalibrationContainer(Container):
+    """
+    Storage of externally calculated calibration parameters (not per-event)
+    """
+    dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
+    pedestal = Item(None, "pedestal calibration arrays from MC file")
+   
+    
 class CalibratedContainer(Container):
     """ Calibrated Camera Images and associated data"""
     tel = Item(Map(CalibratedCameraContainer),
@@ -78,15 +96,17 @@ class RawDataContainer(Container):
 
 
 # TODO: do these all change per event? If not some should be metadata (headers)
+# Rename to MCCameraCalibrationContainer
+# Move photo_electrons to MCEventContainer and rename photo_electon_image
 class MCCameraContainer(Container):
     """
     Storage of mc data used for a single telescope
     """
-    photo_electrons = Item(Map(), "map of channel to PE")
-    refshapes = Item(Map(), "map of channel to array defining pulse shape")
-    refstep = Item(0, "RENAME AND WRITE DESC FOR THIS!")
-    lrefshape = Item(0, "RENAME AND WRITE DESC FOR THIS!")
-    # TODO: rename to time_slice_width?
+    photo_electrons = Item(Map(), ("reference image in pure photoelectrons,"
+                                   " with no noise"))
+    reference_pulse_shape = Item(Map(), ("map of channel to array "
+                                         "defining pulse shape"))
+    # TODO: rename to time_slice_width? and move to RawCameraContainer
     time_slice = Item(0, "width of time slice")
     dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
     pedestal = Item(None, "pedestal calibration arrays from MC file")
@@ -178,7 +198,47 @@ class ReconstructedContainer(Container):
                           "Map of algorithm name to classification info")
 
 
-class EventContainer(Container):
+
+# dl0.event.tel[5]
+# dl0.event.sub.trig
+# dl0.mon.tel[5]
+
+# class RawEventContainer(Container):
+#     tel = Item(Map(RawEventTelescopeContainer(), "map by tel_id")
+#     sub = Item(RawEventSubarrayContainer(),"per-subarray event info"))
+#
+# class RawMonitorContainer(Container):
+#
+#
+# class RawDataContainer(Container):
+#     """ Data Level 0 Container """
+#
+#     event = Item(RawEventContainer(), "event-wise data")
+#     mon = Item
+#
+#     pass
+#
+# class ProcessedDataContainer(Container):
+#     """ Data Level 1 Container"""
+#
+#     pass
+#
+# class ReconstructedDataContainer(Container):
+#     """ Data Level 2 Container """
+#     pass
+#
+# class ReducedDataContainer(Container):
+#     """ Data Level 3 Container """
+#     pass
+#
+#
+# class MainDataContainer(Container):
+#     dl0 = Item(RawDataContainer(), "Raw (DL0) Data")
+#     dl1 = Item(ProcessedDataContainer(), "Processed (DL1) data")
+#     dl2 = Item(ReconstructedDataContainer(), "Reconstructed (DL2) data")
+#     dl3 = Item(ReducedDataContainer(), "Reduced (DL3) science data")
+
+class DataContainer(Container):
     """ Top-level container for all event information """
 
     dl0 = Item(RawDataContainer(), "Raw Data")

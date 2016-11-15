@@ -1,3 +1,4 @@
+
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 
@@ -40,7 +41,7 @@ def test_integration_mc():
     telid = 11
     event = get_test_event()
     params = get_test_parameters()
-    nsamples = event.dl0.tel[telid].meta['num_samples']
+    nsamples = event.inst.num_samples[telid]
 
     params['integrator'] = 'full_integration'
     charge, window, data_ped, peakpos = integration_mc(event, telid, params)

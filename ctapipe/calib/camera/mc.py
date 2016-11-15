@@ -121,19 +121,21 @@ def set_integration_correction(event, telid, params):
         log.exception("[ERROR] missing required params")
         raise
 
-    nchan = event.dl0.tel[telid].meta['num_channels']
-    nsamples = event.dl0.tel[telid].meta['num_samples']
+    tel =  event.dl0.tel[telid]
+    mctel = event.mc.tel[telid]
+    num_channels = event.inst.num_channels[telid]
+    num_samples = event.inst.num_samples[telid]
 
     # Reference pulse parameters
-    refshapes = np.array(list(event.mc.tel[telid].refshapes.values()))
-    refstep = event.mc.tel[telid].refstep
-    nrefstep = event.mc.tel[telid].lrefshape
+    refshapes = np.array(list(mctel.reference_pulse_shape.values()))
+    refstep = mctel.meta['refstep']
+    nrefstep = len(refshapes[0]) # mctel.lrefshape
     x = np.arange(0, refstep*nrefstep, refstep)
-    y = refshapes[nchan-1]
+    y = refshapes[num_channels-1]
     refipeak = np.argmax(y)
 
     # Sampling pulse parameters
-    time_slice = event.mc.tel[telid].time_slice
+    time_slice = mctel.time_slice
     x1 = np.arange(0, refstep*nrefstep, time_slice)
     y1 = interp(x1, x, y)
     ipeak = np.argmin(np.abs(x1-x[refipeak]))
@@ -142,12 +144,12 @@ def set_integration_correction(event, telid, params):
     window = params['integration_window'][0]
     shift = params['integration_window'][1]
     start = ipeak - shift
-    if window > nsamples:
-        window = nsamples
+    if window > num_samples:
+        window = num_samples
     if start < 0:
         start = 0
-    if start + window > nsamples:
-        start = nsamples - window
+    if start + window > num_samples:
+        start = num_samples - window
 
     correction = round((sum(y) * refstep) / (sum(y1[start:start + window]) *
                                              time_slice), 7)
@@ -260,11 +262,11 @@ def integration_mc(event, telid, params, geom=None):
     """
 
     # Obtain the data
-    nsamples = event.dl0.tel[telid].meta['num_samples']
+    num_samples = event.inst.num_samples[telid]
 
     # KPK: addd this if statement since ASTRI data failed (only 1
     # sample). Is that the correct way to fix it?
-    if nsamples == 1:
+    if num_samples == 1:
         data = np.array(list(event.dl0.tel[telid].adc_sums.values()))
         data = data[:,:,np.newaxis]
     else:
@@ -272,7 +274,7 @@ def integration_mc(event, telid, params, geom=None):
         data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
         
     ped = event.mc.tel[telid].pedestal # monte-carlo pedstal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped/num_samples)
     int_dict, inverted = integrator_dict()
     if geom is None and inverted[params['integrator']]\
             in integrators_requiring_geom():

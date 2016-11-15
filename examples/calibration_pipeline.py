@@ -58,7 +58,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
         ax2 = fig.add_subplot(1, npads, npads)
         times = event.dl1.tel[tel_id].peakpos
         camera2 = plotter.draw_camera(tel_id, times, ax2)
-        tmaxmin = event.dl0.tel[tel_id].meta['num_samples']
+        tmaxmin = event.inst.num_samples[tel_id]
         t_chargemax = times[signals.argmax()]
         if t_chargemax > 15:
             t_chargemax = 7

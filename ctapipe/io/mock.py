@@ -8,7 +8,7 @@ import numpy as np
 from ctapipe.image import mock
 from scipy.stats import norm
 
-from .containers import EventContainer, RawCameraContainer
+from .containers import DataContainer, RawCameraContainer
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_s
         mean trigger probability for the telescopes
     """
     n_telescopes = len(geoms)
-    container = EventContainer()
+    container = DataContainer()
     container.meta['mock__max_events'] = max_events
     container.meta['source'] = "mock"
     tel_ids = np.arange(n_telescopes)
@@ -84,7 +84,7 @@ def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_s
             )
 
             # container.dl0.tel[tel_id] = RawCameraContainer()
-            container.dl0.tel[tel_id].meta['num_channels'] = n_channels
+            container.inst.num_channels[tel_id] = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))
             means = np.random.normal(15, 1, (n_pix, 1))

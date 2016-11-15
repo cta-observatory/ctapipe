@@ -92,8 +92,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
                     zfits.get_pixel_position(tel_id) * u.m
 
             nchans = zfits.get_num_channels(tel_id)
-            container.dl0.tel[tel_id] = RawCameraContainer(tel_id)
-            container.dl0.tel[tel_id].num_channels = nchans
+            container.inst.num_channels[tel_id] = nchans
             
             for chan in range(nchans): 
                 samples = zfits.get_adc_sample(channel=chan, telescope_id=tel_id)
