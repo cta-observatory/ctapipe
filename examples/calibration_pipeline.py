@@ -40,7 +40,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     # If the geometery has not already been added to geom_dict, it will
     # be added in CameraPlotter
     plotter = CameraPlotter(event, geom_dict)
-    signals = event.dl1.tel[tel_id].pe_charge
+    signals = event.dl1.tel[tel_id].calibrated_image
     camera1 = plotter.draw_camera(tel_id, signals, ax1)
     # cmaxmin = (max(signals) - min(signals))
     # cmap_charge = colors.LinearSegmentedColormap.from_list(

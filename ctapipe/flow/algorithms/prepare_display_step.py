@@ -41,7 +41,7 @@ class PrepareDisplayStep(Component):
             # be added in CameraPlotter
             plotter = CameraPlotter(calibrated_event, geom_dict)
 
-            signals = calibrated_event.dl1.tel[tel_id].pe_charge
+            signals = calibrated_event.dl1.tel[tel_id].calibrated_image
             camera1 = plotter.draw_camera(tel_id, signals, ax1)
             cmaxmin = (max(signals) - min(signals))
             color_list = [(0 / cmaxmin, 'darkblue'),

@@ -86,7 +86,7 @@ def calibration_parameters(excess_args, origin, calib_help=False):
 def calibrate_event(event, params, geom_dict=None):
     """
     Generic calibrator for events. Calls the calibrator corresponding to the
-    source of the event, and stores the dl1 (pe_charge) information into a
+    source of the event, and stores the dl1 (calibrated_image) information into a
     new event container.
 
     Parameters
@@ -174,7 +174,7 @@ def calibrate_event(event, params, geom_dict=None):
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
         tel = event.dl1.tel[telid]
-        tel.pe_charge = pe
+        tel.calibrated_image = pe
         tel.peakpos = peakpos
         for chan in range(nchan):
             tel.integration_window[chan] = window[chan]

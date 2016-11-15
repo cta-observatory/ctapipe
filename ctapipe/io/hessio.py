@@ -122,7 +122,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
                     pyhessio.get_ref_shapes(tel_id, chan)
 
             # load the data per telescope/pixel
-            data.mc.tel[tel_id].photo_electrons \
+            data.mc.tel[tel_id].photo_electron_image \
                 = pyhessio.get_mc_number_photon_electron(telescope_id=tel_id)
             data.mc.tel[tel_id].meta['refstep'] = pyhessio.get_ref_step(tel_id)
             data.mc.tel[tel_id].time_slice = \
