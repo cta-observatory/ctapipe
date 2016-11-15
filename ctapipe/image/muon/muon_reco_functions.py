@@ -48,20 +48,19 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             if geom_dict is not None:
                 geom_dict[telid] = geom
         
-        #embed()
-        #tailcuts = (4.,6.)
         tailcuts = (5.,7.)
         #Try a higher threshold for FlashCam
         if event.meta.optical_foclen[telid] == 16.*u.m and event.dl0.tel[telid].num_pixels == 1764:
             tailcuts = (10.,12.)
 
-        #print("Using Tail Cuts:",tailcuts)
-        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])#was 5,7 (1.5,2.5)
 
-        #camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
-        camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.meta.optical_foclen[telid])
+        rot_angle = 0.*u.deg
+        if event.meta.optical_foclen[telid] > 10.*u.m and event.dl0.tel[telid].num_pixels != 1764:
+            rot_angle = -100.14*u.deg
 
-        #nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az],focal_length = event.meta.optical_foclen[telid])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
+        camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.meta.optical_foclen[telid], rotation=rot_angle)
+
         nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az])) 
 
         
@@ -75,28 +74,22 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         muonring = ChaudhuriKunduRingFitter(None)
 
         muonringparam = muonring.fit(x,y,image*clean_mask)
+
         #muonringparam = muonring.fit(x,y,weight)
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
-        #embed()
-        #1/0
         muonringparam = muonring.fit(x,y,img*(ring_dist<muonringparam.ring_radius*0.4))
 
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
         
-        #embed()
-
         muonringparam = muonring.fit(x,y,img*(ring_dist<muonringparam.ring_radius*0.4))
         muonringparam.tel_id = telid
         muonringparam.run_id = event.dl1.run_id
         muonringparam.event_id = event.dl1.event_id
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
-
+        #print("muonringparam.ring_radius=",muonringparam.ring_radius)
         #print("Fitted ring centre:",muonringparam.ring_center_x,muonringparam.ring_center_y)
-
-        #embed()
-        #1/0
 
         rad = list()
         cx = list()
@@ -111,16 +104,22 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         mir_rad = np.sqrt(event.meta.mirror_dish_area[telid]/(np.pi))#need to consider units?
 
-        #Camera containment radius - ouch, but better than nothing - guess pixel diameter of 0.11, all cameras are perfectly circular
+
+        #Camera containment radius -  better than nothing - guess pixel diameter of 0.11, all cameras are perfectly circular
         cam_rad = np.sqrt(numpix*0.11/(2.*np.pi))
 
-        print("Checking cuts:",np.sum(pix_im>5),">",10, "and num pix",np.sum(pix_im),">",minpix,"and nominal distance",nom_dist,"<containment radius = ",cam_rad*u.deg, "imageshape",image.shape[0])
-
+        #print("Checking cuts:",np.sum(pix_im>5),">",10, "and num pix",np.sum(pix_im),">",minpix,"and nominal distance",nom_dist,"<containment radius = ",cam_rad*u.deg, "imageshape",image.shape[0])
 
         if(np.sum(pix_im>5)>10. and np.sum(pix_im)>minpix and nom_dist < cam_rad*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
             #Guess HESS is 0.16 - LST is 0.11?
-            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.11*u.deg,sct_flag=True, secondary_radius=1.*u.m)
+            sec_rad = 0.*u.m
+            sct = False
+            if numpix == 2048 and mir_rad > 2.*u.m and mir_rad < 2.1*u.m:
+                sec_rad = 1.*u.m
+                sct = True
+
+            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.11*u.deg,sct_flag=sct, secondary_radius=sec_rad)
 
             if (image.shape[0]<2200):
                 muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
@@ -128,6 +127,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muonintensityoutput.tel_id = telid
                 muonintensityoutput.run_id = event.dl1.run_id
                 muonintensityoutput.event_id = event.dl1.event_id
+                muonintensityoutput.mask = dist_mask
                 print("Impact parameter = ",muonintensityoutput.impact_parameter,"mir_rad",mir_rad,"ring_width=",muonintensityoutput.ring_width)
 
                 if( muonintensityoutput.impact_parameter < 0.9*mir_rad and muonintensityoutput.impact_parameter>0.2*u.m and muonintensityoutput.ring_width<0.08*u.deg and muonintensityoutput.ring_width>0.04*u.deg ):
@@ -166,10 +166,10 @@ def analyze_muon_source(source, params=None, geom_dict=None, args=None):
         numev += 1
         analyzed_muon = analyze_muon_event(event, params, geom_dict)
         print("Analysed event number",numev)
-        #        if analyzed_muon[1] is not None:
-        plot_muon_event(event, analyzed_muon, geom_dict, args)
+        if analyzed_muon[1] is not None:
+            plot_muon_event(event, analyzed_muon, geom_dict, args)
             
-        if numev > 20: #Ugly, for testing purposes only
+        if numev > 40: #for testing purposes only
             break
 
         yield analyzed_muon

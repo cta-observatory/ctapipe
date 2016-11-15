@@ -70,6 +70,7 @@ class MuonLineIntegrate:
         self.pixel_x = 0
         self.pixel_y = 0
         self.image = 0
+        self.prediction = 0
         self.minlambda = 300.e-9
         self.maxlambda = 600.e-9
         self.photemit = alpha*(self.minlambda**-1 - self.maxlambda**-1)#12165.45
@@ -126,6 +127,9 @@ class MuonLineIntegrate:
             hole_length = self.chord_length(
                 self.hole_radius, r / self.hole_radius, angle
             )
+
+        if self.sct_flag:
+            self.sct_flag = False #Do not treat differently for now...work in progress
 
         if self.sct_flag:
             secondary_length = self.chord_length(
@@ -276,8 +280,7 @@ class MuonLineIntegrate:
         phi *= u.rad
 
         # Generate model prediction
-        global prediction
-        prediction = self.image_prediction(
+        self.prediction = self.image_prediction(
             impact_parameter,
             phi,
             centre_x,
@@ -293,13 +296,10 @@ class MuonLineIntegrate:
         #prediction *= HESSscale
 
         # scale prediction by optical efficiency of array
-        prediction *= optical_efficiency_muon
+        self.prediction *= optical_efficiency_muon
 
-        #How sto get prediction also return? AM - wish to plot (add to muonintensityparams?
-        #embed()
-        #1/0
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
-        return -2 * np.sum(self.calc_likelihood(self.image, prediction, 0.5, 1.1))
+        return -2 * np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
 
     @staticmethod
     def calc_likelihood(image, pred, spe_width, ped):
@@ -397,6 +397,6 @@ class MuonLineIntegrate:
         # fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.ring_width = fit_params['ring_width']*self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
-        fitoutput.prediction = prediction
+        fitoutput.prediction = self.prediction
 
         return fitoutput

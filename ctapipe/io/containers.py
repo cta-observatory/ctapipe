@@ -261,6 +261,8 @@ class MuonIntensityParameter(Container):
 
     prediction: dict
         ndarray of the predicted charge in all pixels
+    mask: 
+        ndarray of the mask used on the image for fitting
 
     """
 
@@ -283,6 +285,7 @@ class MuonIntensityParameter(Container):
         self.add_item('COG_x')
         self.add_item('COG_y')
         self.add_item('prediction')
+        self.add_item('mask')
         self.add_item('optical_efficiency_muon')
         self.meta.add_item('intensity_fit_method')
         self.meta.add_item('inputfile')

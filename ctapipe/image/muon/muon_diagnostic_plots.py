@@ -88,7 +88,6 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                     geom_dict[tel_id] = geom
         
 
-            #tailcuts = (4.,6.)
             tailcuts = (5.,7.)
             #Try a higher threshold for FlashCam
             if event.meta.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
@@ -102,36 +101,35 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
             #print("Ring Centre in Nominal Coords:",muonparams[0].ring_center_x,muonparams[0].ring_center_y)
             muon_incl = np.sqrt(muonparams[0].ring_center_x**2. + muonparams[0].ring_center_y**2.)
-            #print("Muon inclination = ",muon_incl, "sin(i)",np.sin(muon_incl.to(u.rad)),"cos(i)",np.cos(muon_incl.to(u.rad)))
 
             muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
-            #print("Muon_phi = ",muon_phi, "sin(phi)",np.sin(muon_phi),"cos(phi)",np.cos(muon_phi))
+
+            rotr_angle = 0.*u.deg
+            if event.meta.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+                rotr_angle = -200.28*u.deg
+            
+
+            #Convert to camera frame (centre & radius)
+            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ])
+
+            #ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
+            ring_camcoord = ring_nominal.transform_to(CameraFrame(pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.meta.optical_foclen[tel_id], rotation=rotr_angle))
+            
+
+            centroid_rad = np.sqrt(ring_camcoord.y**2 + ring_camcoord.x**2)
+            centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
+
+            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.#But not FC?
+
+
 
             rot_angle = 0.*u.deg
             if event.meta.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
-                rot_angle = -100.*u.deg
-            #1/0 Convert to camera frame (centre & radius)
-            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ])
-            #,focal_length = event.meta.optical_foclen[tel_id], rotation=rot_angle)
-            #ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
-            ring_camcoord = ring_nominal.transform_to(CameraFrame(pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.meta.optical_foclen[tel_id], rotation=rot_angle))
-            
-            #embed()
-            #1/0
+                rot_angle = -100.14*u.deg
 
-            #True Core location from MC
-            #mccore = (event.mc.core_x.value,event.mc.core_y.value)
-            centroid_rad = np.sqrt(ring_camcoord.y**2 + ring_camcoord.x**2)
-            #embed()
-            centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
 
-            #print("Centroid",centroid,"R of centroid",centroid_rad)
-            #
-            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.#But not FC?
-
-            #print("Ring Centre in camera coords - centroid:",-ring_camcoord.y, ring_camcoord.x,"radius=",ringrad_camcoord,"focallength=",event.meta.optical_foclen[tel_id])
             px, py = event.meta.pixel_pos[tel_id]
-            #camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m)
+
             camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m, focal_length=event.meta.optical_foclen[tel_id],rotation=rot_angle)
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ]))
@@ -140,12 +138,11 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             px = nom_coord.x.to(u.deg)
             py = nom_coord.y.to(u.deg)
 
-            #embed()
             dist = np.sqrt(np.power(px-muonparams[0].ring_center_x,2) + np.power(py - muonparams[0].ring_center_y,2))
             ring_dist = np.abs(dist-muonparams[0].ring_radius)
             pixRmask = ring_dist < muonparams[0].ring_radius*0.4
-            #embed()
-            signals *= pixRmask
+
+            signals *= muonparams[1].mask
 
             camera1 = plotter.draw_camera(tel_id,signals,ax1)
 
@@ -168,7 +165,6 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
        
             camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="red")
 
-            #camera1.add_ellipse(mccore,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="green")
             ax1.set_title("CT {} ({}) - Mean pixel charge"
                           .format(tel_id, geom_dict[tel_id].cam_id))
 
@@ -183,21 +179,14 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 ax2 = fig.add_subplot(1,npads,npads)
                 pred = muonparams[1].prediction
 
-                if(len(pred) != np.sum(pixRmask)):
-                    print("Warning! Lengths do not match...len(pred)=",len(pred),"len(pixRmask)=",np.sum(pixRmask))
+                if(len(pred) != np.sum(muonparams[1].mask)):
+                    print("Warning! Lengths do not match...len(pred)=",len(pred),"len(mask)=",np.sum(muonparams[1].mask))
 
-                plotpred = []
-                it = 0
-                for mx in pixRmask:
-                    if not mx:
-                        plotpred.append(0.)
-                    elif it < len(pred):
-                        plotpred.append(pred[it])
-                        it += 1
-                    else:
-                        plotpred.append(0.)
+                    
+                #Numpy broadcasting - fill in the shape
+                plotpred = np.zeros(image.shape)
+                plotpred[muonparams[1].mask==True] = pred
 
-                #embed()
                 camera2 = plotter.draw_camera(tel_id,plotpred,ax2)
 
                 c2maxmin = (max(plotpred) - min(plotpred))
@@ -219,10 +208,9 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 plt.pause(0.2)
 
         
-            plt.pause(0.1)
+            #plt.pause(0.1)
             if pp is not None:
                 pp.savefig(fig)
         
             plt.close()
 
-            #embed()
