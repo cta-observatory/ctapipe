@@ -90,7 +90,7 @@ def dist_to_traces(core, circles):
         MEst = Σ_i 2*√(1 + d_i²) - 2
     '''
     sum_dist = 0.
-    for tel_id, circle in circles.items():
+    for circle in circles.values():
         D = core-circle.pos[:2]/u.m
 
         dist = 2*np.sqrt(1+(D[0]*circle.trace[1] -
@@ -102,7 +102,7 @@ def dist_to_traces(core, circles):
 def MEst(origin, circles, weights):
     '''
         calculates the M-Estimator:
-        a modified chi2 that becomes asymptotically linear for high values
+        a modified χ² that becomes asymptotically linear for high values
         and is therefore less sensitive to outliers
 
         the test is performed to maximise the angles between the
@@ -124,7 +124,7 @@ def MEst(origin, circles, weights):
 
         Algorithm:
         ----------
-        M-Est = sum[  weight * sqrt( 2 * chi**2 ) ]
+        MEst = Σ_i 2*√(1 + χ²) - 2
 
 
         Note:
@@ -134,11 +134,11 @@ def MEst(origin, circles, weights):
 
     sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
                         for circ in circles.values()])
-    return np.sum(weights*np.sqrt(2. + (sin_ang-np.pi/2.)**2))
+    return -2*np.sum(weights * np.sqrt((1+np.square(sin_ang)))-2)
+    return -np.sum(weights * np.square(sin_ang))
 
     ang = np.array([linalg.angle(origin, circ.norm)
                     for circ in circles.values()])
-    ang[ang > np.pi/2.] = np.pi-ang[ang > np.pi/2]
     return np.sum(weights*np.sqrt(2. + (ang-np.pi/2.)**2))
 
 
@@ -208,13 +208,14 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         ''' algebraic direction estimate '''
         dir1 = self.fit_origin_crosses()[0]
         ''' direction estimate using numerical minimisation '''
-        dir2 = self.fit_origin_minimise(dir1)
+        # does not really improve the fit for now
+        # dir2 = self.fit_origin_minimise(dir1)
         ''' core position estimate using numerical minimisation '''
         pos = self.fit_core(seed_pos)
 
         ''' container class for reconstructed showers '''
         result = RecoShowerGeom("FitGammaHillas")
-        (phi, theta) = linalg.get_phi_theta(dir2)
+        (phi, theta) = linalg.get_phi_theta(dir1)
         # TODO make sure az and phi turn in same direction...
         result.alt, result.az = theta-90*u.deg, phi
         result.core_x = pos[0]
@@ -294,9 +295,9 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             seed : length-3 array
                 starting point of the minimisation
             test_function : member function if this class
-                either n_angle_sum or _MEst (or own implementation...)
+                either n_angle_sum or MEst (or own implementation...)
                 defaults to n_angle_sum if none is given
-                n_angle_sum seemingly superior to _MEst
+                n_angle_sum seemingly superior to MEst
 
             Returns:
             --------
