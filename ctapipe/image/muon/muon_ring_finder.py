@@ -54,5 +54,6 @@ class ChaudhuriKunduRingFitter(RingFitter):
         output.ring_center_x = centre_x
         output.ring_center_y = centre_y
         output.ring_radius = radius
+        output.meta.ring_fit_method = "ChaudhuriKundu"
 
         return output

@@ -15,11 +15,13 @@ from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 from ctapipe.image.muon.muon_integrator import *
 
+
 from ctapipe import visualization
 import matplotlib.pyplot as plt
 
 from astropy import units as u
 from IPython import embed
+
 
 import numpy as np
 import pyhessio
@@ -71,6 +73,7 @@ if __name__ == '__main__':
     container.add_item("count")
     tel,cam,opt = ID.load(filename=args.filename)
     #embed()
+
     ev = 0
     efficiency = list()
     efficiency.append(list())
@@ -92,6 +95,7 @@ if __name__ == '__main__':
     teloptconfigdict = {'teltypes':names,'focallengths':focallengths,'telheight':height,'Npix':numpix,'mirarea':mirarea,'mirradii':mirradii,'holeradii':holeradii,'secondmirradii':mir2radii,'secondholeradii':hole2radii}
 
     print(teloptconfigdict)
+
 
     impact = list()
     geom = 0
@@ -142,6 +146,7 @@ if __name__ == '__main__':
             if geom == 0:
                 geom = io.CameraGeometry.guess(x, y,event.meta.optical_foclen[tel_id])
             image = apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0], tel_id)
+
             if image.shape[0] >2500:
                 continue
 
@@ -194,6 +199,7 @@ if __name__ == '__main__':
             dist_mask = np.abs(dist-radius)<radius*0.4
 
             print (centre_x,centre_y,radius)
+
             rad = list()
             cx = list()
             cy = list()
@@ -218,6 +224,7 @@ if __name__ == '__main__':
                     print('Fitted:',im,phi,width,eff)
                     #if( im < 6*u.m and im>0.9*u.m and width<0.08*u.deg and width>0.04*u.deg ):# and radius.value>0.2 and radius.value<0.4):
                     if( im < teloptconfigdict['mirradii'][dictindex]*0.95*u.m and im>teloptconfigdict['holeradii'][dictindex]*1.05*u.m and width<0.08*u.deg and width>0.04*u.deg ):
+
                         efficiency[tel_id-1].append(eff)
                         impact.append(im)
 

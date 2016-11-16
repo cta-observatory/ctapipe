@@ -11,8 +11,10 @@ import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
+from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
 from scipy.stats import norm
+from IPython import embed
 
 __all__ = ['MuonLineIntegrate']
 
@@ -29,7 +31,7 @@ class MuonLineIntegrate:
     Expected 2D images can then be generated when the pixel geometry
     is passed to the class.
     '''
-    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2, oversample_bins=3):
+    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2, oversample_bins=3,sct_flag=False,secondary_radius=1.):
         '''
         Class initialisation funtion
         Parameters
@@ -42,7 +44,18 @@ class MuonLineIntegrate:
             width of pixel in camera
         oversample_bins: int
             number of angular bins to evaluate for each pixel width
-
+        sct_flag: bool
+            flags whether the telescope uses Schwarzschild-Couder Optics
+        secondary_radius: float
+            Radius of the secondary mirror (circular approx) for dual mirror telescopes
+        
+        minlambda: float
+            minimum wavelength for integration (300nm typical)
+        maxlambda: float
+            maximum wavelength for integration (600nm typical)
+        photemit: float
+            1/lambda^2 integrated over the above defined wavelength range
+            multiplied by the fine structure constant (1/137)
         Returns
         -------
             None
@@ -52,10 +65,15 @@ class MuonLineIntegrate:
         self.hole_radius = hole_radius
         self.pixel_width = pixel_width
         self.oversample_bins = oversample_bins
+        self.sct_flag = sct_flag
+        self.secondary_radius = secondary_radius
         self.pixel_x = 0
         self.pixel_y = 0
         self.image = 0
-        self.photemit300_600 = 12165.45
+        self.prediction = 0
+        self.minlambda = 300.e-9
+        self.maxlambda = 600.e-9
+        self.photemit = alpha*(self.minlambda**-1 - self.maxlambda**-1)#12165.45
         self.unit = u.deg
 
     @staticmethod
@@ -77,7 +95,12 @@ class MuonLineIntegrate:
         ndarray: chord length
         '''
         chord = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
-        chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+
+        if rho <= 1:
+            chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
+        elif rho > 1:
+            chord = 2. * radius * np.sqrt(chord)
+
         chord[np.isnan(chord)] = 0
         chord[chord < 0] = 0
 
@@ -104,7 +127,22 @@ class MuonLineIntegrate:
             hole_length = self.chord_length(
                 self.hole_radius, r / self.hole_radius, angle
             )
-        return mirror_length-hole_length
+
+        if self.sct_flag:
+            self.sct_flag = False #Do not treat differently for now...work in progress
+
+        if self.sct_flag:
+            secondary_length = self.chord_length(
+                self.secondary_radius, r / self.secondary_radius, angle
+            )
+            #Should be areas not lengths here?
+            factor = mirror_length - (secondary_length)
+            factor /= (mirror_length - hole_length)
+
+        if not self.sct_flag:
+            return mirror_length-hole_length
+        else:
+            return (mirror_length - hole_length + secondary_length)
 
     def plot_pos(self, impact_parameter, radius, phi):
         '''
@@ -193,7 +231,7 @@ class MuonLineIntegrate:
         pred = np.interp(ang, ang_prof, profile)
 
         # Multiply by integrated emissivity between 300 and 600 nm
-        pred *= 0.5 * self.photemit300_600
+        pred *= 0.5 * self.photemit
 
         # weight by pixel width
         pred *= (self.pixel_width / radius)
@@ -242,7 +280,7 @@ class MuonLineIntegrate:
         phi *= u.rad
 
         # Generate model prediction
-        prediction = self.image_prediction(
+        self.prediction = self.image_prediction(
             impact_parameter,
             phi,
             centre_x,
@@ -252,11 +290,16 @@ class MuonLineIntegrate:
             self.pixel_x,
             self.pixel_y,
         )
+        #TEST: extra scaling factor, HESS style (ang pix size squared/2piR)
+        #Not including bins atm
+        #HESSscale = self.pixel_width*self.pixel_width / (2.*np.pi() * radius)
+        #prediction *= HESSscale
+
         # scale prediction by optical efficiency of array
-        prediction *= optical_efficiency_muon
+        self.prediction *= optical_efficiency_muon
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
-        return -2 * np.sum(self.calc_likelihood(self.image, prediction, 0.5, 1.1))
+        return -2 * np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
 
     @staticmethod
     def calc_likelihood(image, pred, spe_width, ped):
@@ -339,10 +382,12 @@ class MuonLineIntegrate:
             error_optical_efficiency_muon=0.05,
             limit_optical_efficiency_muon=(0, 1),
             errordef=1,
+            throw_nan=False,
         )
 
         # Perform minimisation
         minuit.migrad()
+
         # Get fitted values
         fit_params = minuit.values
 
@@ -352,5 +397,6 @@ class MuonLineIntegrate:
         # fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.ring_width = fit_params['ring_width']*self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
+        fitoutput.prediction = self.prediction
 
         return fitoutput
