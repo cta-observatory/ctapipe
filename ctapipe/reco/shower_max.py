@@ -28,14 +28,14 @@ class ShowerMaxEstimator:
             if line.startswith("#"): continue
             altitude .append(float(line.split()[col_altitude]))
             thickness.append(float(line.split()[col_thickness]))
-        
+
         self.atmosphere = Histogram(axisNames=["altitude"])
         self.atmosphere.hist = thickness*u.g * u.cm**-2
-        self.atmosphere.bin_lower_edges = [np.array(altitude)*u.km]
+        self.atmosphere._binLowerEdges = [np.array(altitude)*u.km]
 
     def interpolate(self, arg, outlierValue=0.,order=3):
-        
-        axis = self.atmosphere._binLowerEdges[0]
+
+        axis = self.atmosphere.bin_lower_edges[0]
         bin_u = np.digitize(arg.to(axis.unit), axis)
         bin_l = bin_u - 1
         
@@ -48,7 +48,6 @@ class ShowerMaxEstimator:
 
         return ndimage.map_coordinates(self.atmosphere.hist, [[coordinate]],order=order,cval=outlierValue)[0] * self.atmosphere.hist.unit
 
-        
     def find_shower_max_height(self,energy,h_first_int,gamma_alt):
         """ estimates the height of the shower maximum in the atmosphere
             according to equation (3) in [arXiv:0907.2610v3]
