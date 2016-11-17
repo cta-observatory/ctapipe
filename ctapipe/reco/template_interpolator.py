@@ -22,18 +22,25 @@ class TemplateInterpolator:
         file = open(filename, 'rb')
         template = pickle.load(file, encoding='latin1')
         grid = pickle.load(file, encoding='latin1')
+        print(template.shape)
+        self.interpolator = interpolate.LinearNDInterpolator(grid, template, fill_value=0)
+        self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 
-        self.interpolator = interpolate.LinearNDInterpolator(grid, template)
         self.y_bounds = (-1.5, 1.5)
         self.y_bin_width = (self.y_bounds[1]-self.y_bounds[0])/float(75)
 
         self.x_bounds = (-5, 1.)
         self.x_bin_width = (self.x_bounds[1] - self.x_bounds[0]) / float(150)
 
-        self.x_bins = np.arange(self.x_bounds[0]+(self.x_bin_width/2),
-                                self.x_bounds[1] + (self.x_bin_width / 2), self.x_bin_width)
-        self.y_bins = np.arange(self.y_bounds[0]+(self.y_bin_width/2),
-                                self.y_bounds[1] + (self.y_bin_width / 2), self.y_bin_width)
+        x_bins = np.arange(self.x_bounds[0]+(self.x_bin_width/2),
+                           self.x_bounds[1] + (self.x_bin_width / 2), self.x_bin_width)
+        y_bins = np.arange(self.y_bounds[0]+(self.y_bin_width/2),
+                           self.y_bounds[1] + (self.y_bin_width / 2), self.y_bin_width)
+
+        self.grid_interp = interpolate.RegularGridInterpolator((x_bins, y_bins),
+                                                               np.zeros([x_bins.shape[0], y_bins.shape[0]]),
+                                                               method="linear", bounds_error=False, fill_value=0)
+        file.close()
 
         print("Templates Loaded from", filename)
 
@@ -57,10 +64,14 @@ class TemplateInterpolator:
         """
 
         image = self.interpolated_image(params)
-        print(image.shape)
-        grid_interp = interpolate.RegularGridInterpolator((self.x_bins, self.y_bins), image)
 
-        return grid_interp([pixel_pos_x, pixel_pos_y])
+
+        #grid_interp = interpolate.RectBivariateSpline(self.x_bins, self.y_bins, image)
+
+        self.grid_interp.values = image
+        points = np.array([pixel_pos_x, pixel_pos_y])
+        return self.grid_interp(points.T)
+        #return grid_interp(pixel_pos_x,pixel_pos_y)
 
     def interpolated_image(self, params):
         """
@@ -77,4 +88,9 @@ class TemplateInterpolator:
         ndarray of a single image template
 
         """
-        return self.interpolator(params)[0]
+        image = self.interpolator(params)[0]
+        if np.isnan(image).all():
+            print("Found a NaN", params)
+            image = self.nearest_interpolator(params)[0]
+
+        return image
