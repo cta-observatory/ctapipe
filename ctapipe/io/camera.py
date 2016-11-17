@@ -77,6 +77,7 @@ class CameraGeometry:
         self.neighbors = neighbors
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
+        self.cam_rotation = cam_rotation
         self.rotate(cam_rotation)
 
 
@@ -236,7 +237,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
         ),
         pix_type=pix_type,
         pix_rotation=pix_rotation,
-        cam_rotation=cam_rotation,
+        cam_rotation=cam_rotation
     )
 
 
