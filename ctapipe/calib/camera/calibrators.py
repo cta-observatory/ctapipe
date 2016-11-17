@@ -173,7 +173,7 @@ def calibrate_event(event, params, geom_dict=None):
                 geom = geom_dict[telid]
             else:
                 log.debug("[calib] Guessing camera geometry")
-                geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
+                geom = CameraGeometry.guess(event.meta.pixel_pos[telid][0], event.meta.pixel_pos[telid][1],
                                             event.meta.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:

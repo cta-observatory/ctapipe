@@ -268,7 +268,7 @@ def integration_mc(event, telid, params, geom=None):
     if geom is None and inverted[params['integrator']]\
             in integrators_requiring_geom():
         log.debug("[calib] Guessing camera geometry")
-        geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
+        geom = CameraGeometry.guess(event.meta.pixel_pos[telid][0], event.meta.pixel_pos[telid][1],
                                     event.meta.optical_foclen[telid])
         log.debug("[calib] Camera geometry found")
 
