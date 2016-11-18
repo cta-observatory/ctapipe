@@ -4,8 +4,8 @@ from ctapipe.core import Container
 
 from ctapipe.io.containers import RawData
 from ctapipe.io.containers import MCShowerData, CentralTriggerData
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.image.hillas import hillas_parameters
+from ctapipe.image.cleaning import tailcuts_clean, dilate
+from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 
 from ctapipe import io, visualization
 from astropy.coordinates import Angle, AltAz
@@ -26,37 +26,13 @@ import argparse
 
 logging.basicConfig(level=logging.DEBUG)
 
-HB4 = [0,1,2,3,4,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,103,104,105,106,107,108,109,278,279,
-       280,281,282,283,284,285,286,287,288,289,296,297,298,299,300,301,302,303,304,305,306,307,308,314,315,316,317,
-       318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,344,345,346,347,348,349,
-      350,392,393,398,399,400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417]
-#HB4 = [280,281,282,283,284,285,286,287,288,289,296,297,298,299,300,301,302,303,304,305,306,307,308,314,315,316,317,
-#       318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,344,345,346,347,348,349,
-#      350,392,393,398,399,400,401,402,403,404,405,406,407,408,409,410,411,412,413,414,415,416,417]
+HB4 = [1, 2, 3, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 104, 105, 106, 107, 108, 109,
+       279, 280, 281, 282, 283, 284, 286, 287, 289, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 315,
+       316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337,
+       338, 345, 346, 347, 348, 349, 350, 375, 376, 377, 378, 379, 380, 393, 400, 402, 403, 404, 405, 406, 408, 410,
+       411, 412, 413, 414, 415, 416, 417]
 
-
-def get_mc_calibration_coeffs(tel_id):
-    """
-    Get the calibration coefficients from the MC data file to the
-    data.  This is ahack (until we have a real data structure for the
-    calibrated data), it should move into `ctapipe.io.hessio_event_source`.
-
-    returns
-    -------
-    (peds,gains) : arrays of the pedestal and pe/dc ratios.
-    """
-    peds = pyhessio.get_pedestal(tel_id)[0]
-    gains = pyhessio.get_calibration(tel_id)[0]
-    return peds, gains
-
-
-def apply_mc_calibration(adcs, tel_id):
-    """
-    apply basic calibration
-    """
-    peds, gains = get_mc_calibration_coeffs(tel_id)
-    return (adcs - peds) * gains
-
+amp_cut = {"LSTCam": 70, "NectarCam": 65, "GATE": 30}
 
 if __name__ == '__main__':
 
@@ -76,17 +52,16 @@ if __name__ == '__main__':
     container.add_item("count")
     tel, cam, opt = ID.load(filename=args.filename)
     ev = 0
-    efficiency = list()
-    efficiency.append(list())
-    efficiency.append(list())
-    efficiency.append(list())
-    efficiency.append(list())
 
     impact = list()
     geom = 0
     ImPACT = ImPACTFitter()
 
     geom_dict = dict()
+
+    energy_list = list()
+    reconstructed_energy_list = list()
+    theta_sqr_list = list()
 
     for event in source:
 
@@ -119,11 +94,15 @@ if __name__ == '__main__':
         image_list = list()
         type_tel = list()
         tel_id_list = list()
+
+        clean = list()
         geom = None
         params = dict()
         params['integrator'] = 'nb_peak_integration'
-        params['integration_window'] = (7,3)
+        params['integration_window'] = (10,4)
         cal = calibrate_event(event, params, geom_dict)
+        #if container.mc.energy < 0.1*u.TeV:
+        #    continue
 
         for tel_id in container.dl0.tels_with_data:
 
@@ -142,35 +121,44 @@ if __name__ == '__main__':
                 if geom_dict is not None:
                     geom_dict[tel_id] = geom
 
-            image = cal.dl1.tel[tel_id].pe_charge     #apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0], tel_id)
-            print(image)
+            image = cal.dl1.tel[tel_id].pe_charge
 
             fl = tel['TelescopeTable_VersionFeb2016'][
                     tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]['FL'][0]
 
-            clean_mask = tailcuts_clean(geom, image, 1, picture_thresh=5, boundary_thresh=10)
+            clean_mask = tailcuts_clean(geom, image, 1, picture_thresh=7, boundary_thresh=14)
             camera_coord = CameraFrame(x=x, y=y, z=np.zeros(x.shape) * u.m,
                                        focal_length=tel['TelescopeTable_VersionFeb2016'][
                                                         tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]
                                                     ['FL'][0] * u.m,
-                                       rotation=90*u.deg - geom.cam_rotation)
+                                       rotation=90*u.deg - geom.cam_rotation + 180 * u.deg)
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[container.mc.alt, container.mc.az],
                                                                pointing_direction=[container.mc.alt, container.mc.az]))
 
             x = nom_coord.x.to(u.deg)
             y = nom_coord.y.to(u.deg)
-            if np.sum(image * clean_mask) < 10:
+
+            try:
+                hillas = hillas_parameters(x, y, image * clean_mask)[0]
+            except HillasParameterizationError:
                 continue
 
-            hillas = hillas_parameters(x, y, image * clean_mask)[0]
+            dilate(geom, clean_mask)
+            dilate(geom, clean_mask)
+            #dilate(geom, clean_mask)
 
-            if hillas.size > 100:
-                pix_x.append(x)
-                pix_y.append(y)
-                image_list.append(image)
+            if hillas.size > amp_cut[geom.cam_id]:
+                pix_x.append(x[clean_mask])
+                pix_y.append(y[clean_mask])
+                image_list.append(image[clean_mask])
+                #pix_x.append(x)
+                #pix_y.append(y)
+                #image_list.append(image)
+
                 type_tel.append(geom.cam_id)
                 tel_id_list.append(tel_id)
+                clean.append(clean_mask)
 
                 cam_name = "CameraTable_VersionFeb2016_TelID" + str(tel_id)
                 area = u.rad*u.rad*(cam[cam_name][cam[cam_name]['PixID'] == 0]['PixA'][0]/(fl*fl))
@@ -190,31 +178,52 @@ if __name__ == '__main__':
 
         if len(tel_x)<2:
             continue
-        print(len(tel_x))
         grd_core_true = GroundFrame(x=np.asarray(container.mc.core_x)*u.m, y=np.asarray(container.mc.core_y)*u.m, z=np.asarray(0)*u.m)
         tilt_core_true = grd_core_true.transform_to(TiltedGroundFrame(pointing_direction=[container.mc.alt,container.mc.az]))
 
         energy = container.mc.energy
 
         ImPACT.set_event_properties(image_list, pix_x, pix_y, pix_a, type_tel, tel_x, tel_y)
+        params = ImPACT.fit_event(np.random.normal(0,0.1)*u.deg, np.random.normal(0,0.1)*u.deg,
+                                  np.random.normal(tilt_core_true.x.value, 20)*u.m,
+                                  np.random.normal(tilt_core_true.y.value, 20)*u.m,
+                                  np.random.normal(energy.value,energy.value*0.15)*u.TeV)
 
-        for tel_num in range(len(tel_x)):
-            fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
+        print(tilt_core_true.x, tilt_core_true.y, energy)
 
-            prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - container.mc.alt, container.mc.az * u.rad,
-                                               tilt_core_true.x, tilt_core_true.y, energy, 1)
+        src_x = params["source_x"] * u.deg
+        src_y = params["source_y"] * u.deg
+        reconstructed_energy = params["energy"] * u.TeV
+        print("ThetaSqr",src_x*src_x + src_y*src_y,"Energy Bias",reconstructed_energy/energy)
+        energy_list.append(energy.value)
+        reconstructed_energy_list.append(reconstructed_energy/energy)
+        theta_sqr_list.append((src_x*src_x + src_y*src_y).value)
+        ev += 1
+        if ev > 1000:
+            break
+        draw = False
+        if draw:
+            for tel_num in range(len(tel_x)):
+                fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
 
-            disp = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[0], title="Image")
-            disp.image = image_list[tel_num]
-            disp.add_colorbar(ax=axs[0])
-            disp_pred = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[1], title="Prediction")
-            disp_pred.image = prediction
-            disp_pred.add_colorbar(ax=axs[1])
-            disp_resid = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[2], title="Prediction")
-            disp_resid.image = image_list[tel_num]-prediction
-            disp_resid.add_colorbar(ax=axs[2])
+                prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - container.mc.alt, container.mc.az * u.rad,
+                                                   params["core_x"]*u.m,  params["core_y"]*u.m,  params["energy"]*u.TeV,
+                                                   params["x_max_scale"])
 
-            print(np.sum(prediction), prediction.shape)
-            plt.show()
+                disp = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[0], title="Image")
+                disp.image = image_list[tel_num]
+                disp.add_colorbar(ax=axs[0])
 
-        ImPACT.fit_event(90*u.deg - container.mc.alt, container.mc.az*u.rad, tilt_core_true.x, tilt_core_true.y, energy)
+                disp_pred = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[1], title="Prediction")
+                disp_pred.image = prediction
+                disp_pred.add_colorbar(ax=axs[1])
+
+                disp_resid = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[2], title="Prediction")
+                disp_resid.image = image_list[tel_num]-prediction
+                disp_resid.add_colorbar(ax=axs[2])
+
+                plt.show()
+
+
+
+
