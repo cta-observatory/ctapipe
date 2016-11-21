@@ -228,7 +228,10 @@ class ImPACTFitter(object):
         """
         source_x = 0*u.deg
         source_y = 0*u.deg
-        x_max = self.get_shower_max(source_x, source_y, core_x, core_y, zenith) * x_max_scale
+        x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
+                                    core_x.to(u.m).value, core_y.to(u.m).value,
+                                    zenith.to(u.rad).value) * x_max_scale
+
         x_max_exp = 300 + 93 * np.log10(energy.value)
 
         x_max_bin = 100 + (x_max.value - x_max_exp) / 25
@@ -242,10 +245,8 @@ class ImPACTFitter(object):
 
         print(energy, impact,x_max_bin,self.type[tel],self.pixel_area[tel].to(u.deg * u.deg).value)
 
-        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel].value, self.pixel_y[tel].value,
-                                                     source_x.value, source_y.value, phi.to(u.rad).value)
-        pix_x_rot *= u.deg
-        pix_y_rot *= u.deg
+        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel], self.pixel_y[tel],
+                                                     source_x, source_y, phi.to(u.rad))
 
         pix_y_rot += 0.02 * u.deg
 
