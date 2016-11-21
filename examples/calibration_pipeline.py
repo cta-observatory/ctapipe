@@ -19,11 +19,9 @@ import os
 def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     fig.clear()
 
-    cam_dimensions = (event.dl0.tel[tel_id].num_pixels,
-                      event.meta.optical_foclen[tel_id])
-
+    
     fig.suptitle("EVENT {} {:.1e} @({:.1f},{:.1f}) @{:.1f}"
-                 .format(event.dl1.event_id, event.mc.energy,
+                 .format(event.dl0.event_id, event.mc.energy,
                          event.mc.alt,
                          event.mc.az,
                          np.sqrt(pow(event.mc.core_x, 2) +
@@ -42,16 +40,17 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
     # If the geometery has not already been added to geom_dict, it will
     # be added in CameraPlotter
     plotter = CameraPlotter(event, geom_dict)
-    signals = event.dl1.tel[tel_id].pe_charge
+    signals = event.dl1.tel[tel_id].calibrated_image
     camera1 = plotter.draw_camera(tel_id, signals, ax1)
-    cmaxmin = (max(signals) - min(signals))
-    cmap_charge = colors.LinearSegmentedColormap.from_list(
-        'cmap_c', [(0 / cmaxmin, 'darkblue'),
-                   (np.abs(min(signals)) / cmaxmin, 'black'),
-                   (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
-                   (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
-                   (1, 'yellow')])
-    camera1.pixels.set_cmap(cmap_charge)
+    # cmaxmin = (max(signals) - min(signals))
+    # cmap_charge = colors.LinearSegmentedColormap.from_list(
+    #     'cmap_c', [(0 / cmaxmin, 'darkblue'),
+    #                (np.abs(min(signals)) / cmaxmin, 'black'),
+    #                (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
+    #                (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
+    #                (1, 'yellow')])
+    # camera1.cmap = cmap_charge
+    camera1.set_limits_percent(95)  # autoscale the camera
     camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
     ax1.set_title("CT {} ({}) - Mean pixel charge"
                   .format(tel_id, geom_dict[tel_id].cam_id))
@@ -59,7 +58,7 @@ def display_telescope(event, tel_id, display, geom_dict, pp, fig):
         ax2 = fig.add_subplot(1, npads, npads)
         times = event.dl1.tel[tel_id].peakpos
         camera2 = plotter.draw_camera(tel_id, times, ax2)
-        tmaxmin = event.dl0.tel[tel_id].num_samples
+        tmaxmin = event.inst.num_samples[tel_id]
         t_chargemax = times[signals.argmax()]
         if t_chargemax > 15:
             t_chargemax = 7

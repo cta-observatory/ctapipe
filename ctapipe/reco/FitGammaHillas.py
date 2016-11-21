@@ -1,6 +1,6 @@
 from ctapipe.utils import linalg
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
-from ctapipe.io.containers import RecoShowerGeom
+from ctapipe.io.containers import ReconstructedShowerContainer
 
 from astropy.utils.decorators import deprecated
 
@@ -145,7 +145,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         pos = self.fit_core(seed_pos)
 
         ''' container class for reconstructed showers '''
-        result = RecoShowerGeom("FitGammaHillas")
+        result = ReconstructedShowerContainer()
         (phi, theta) = linalg.get_phi_theta(dir2)
         # TODO make sure az and phi turn in same direction...
         result.alt, result.az = theta-90*u.deg, phi
