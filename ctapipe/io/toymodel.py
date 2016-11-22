@@ -1,11 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Create a mock event stream of array events
+Create a toymodel event stream of array events
 """
 import logging
 
 import numpy as np
-from ctapipe.image import mock
+from ctapipe.image import toymodel
 from scipy.stats import norm
 
 from .containers import DataContainer, RawCameraContainer
@@ -13,7 +13,8 @@ from .containers import DataContainer, RawCameraContainer
 logger = logging.getLogger(__name__)
 
 
-def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_samples=25, p_trigger=0.3):
+def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
+                          n_samples=25, p_trigger=0.3):
     """
     An event source that produces array
     Parameters
@@ -31,8 +32,8 @@ def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_s
     """
     n_telescopes = len(geoms)
     container = DataContainer()
-    container.meta['mock__max_events'] = max_events
-    container.meta['source'] = "mock"
+    container.meta['toymodel__max_events'] = max_events
+    container.meta['source'] = "toymodel"
     tel_ids = np.arange(n_telescopes)
 
     for event_id in range(max_events):
@@ -71,13 +72,13 @@ def mock_event_source(geoms, max_events=100, single_tel=False, n_channels=1, n_s
             width = np.random.uniform(0.01, length)
             psi = np.random.randint(0, 360)
             intensity = np.random.poisson(int(10000 * width * length))
-            model = mock.generate_2d_shower_model(
+            model = toymodel.generate_2d_shower_model(
                 centroid,
                 width,
                 length,
                 '{}d'.format(psi)
             )
-            image, _, _ = mock.make_mock_shower_image(
+            image, _, _ = toymodel.make_toymodel_shower_image(
                 geom,
                 model.pdf,
                 intensity,
