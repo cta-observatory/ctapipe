@@ -102,8 +102,8 @@ def main():
         parser.error(msg % ' '.join(unknown_args))
 
     # Create a dictionary to store any geoms in
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
+    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                event.inst.optical_foclen[telid])
     geom_dict = {telid: geom}
     calibrated_event = calibrate_event(event, params, geom_dict)
 
@@ -116,8 +116,8 @@ def main():
 
     # Extract required images
     data_ped = calibrated_event.dl1.tel[telid].pedestal_subtracted_adc[chan]
-    true_pe = calibrated_event.mc.tel[telid].photo_electrons
-    measured_pe = calibrated_event.dl1.tel[telid].pe_charge
+    true_pe = calibrated_event.mc.tel[telid].photo_electron_image
+    measured_pe = calibrated_event.dl1.tel[telid].calibrated_image
     max_time = np.unravel_index(np.argmax(data_ped), data_ped.shape)[1]
     max_charges = np.max(data_ped, axis=1)
     max_pixel = int(np.argmax(max_charges))

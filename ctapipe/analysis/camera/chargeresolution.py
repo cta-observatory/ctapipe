@@ -110,7 +110,7 @@ class ChargeResolution:
 
                 # Check events have true charge included
                 try:
-                    if np.all(event.mc.tel[tels[0]].photo_electrons == 0):
+                    if np.all(event.mc.tel[tels[0]].photo_electron_image == 0):
                         raise KeyError
                 except KeyError:
                     log.exception('[chargeres] Source does not '
@@ -118,8 +118,8 @@ class ChargeResolution:
                     raise
 
             for telid in tels:
-                true_charge = event.mc.tel[telid].photo_electrons
-                measured_charge = event.dl1.tel[telid].pe_charge
+                true_charge = event.mc.tel[telid].photo_electron_image
+                measured_charge = event.dl1.tel[telid].calibrated_image
                 self.add_charges(true_charge, measured_charge)
 
     def get_charge_resolution(self):
