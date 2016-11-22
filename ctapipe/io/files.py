@@ -255,14 +255,14 @@ class InputFile:
             if event.count == 0:
                 # Check events have true charge included
                 try:
-                    if np.all(event.mc.tel[tels[0]].photo_electrons == 0):
+                    if np.all(event.mc.tel[tels[0]].photo_electron_image == 0):
                         raise KeyError
                 except KeyError:
                     log.exception('[chargeres] Source does not contain '
                                   'true charge')
                     raise
             for telid in tels:
-                pe = event.mc.tel[telid].photo_electrons
+                pe = event.mc.tel[telid].photo_electron_image
                 this_max = np.max(pe)
                 if this_max > max_pe:
                     max_pe = this_max
