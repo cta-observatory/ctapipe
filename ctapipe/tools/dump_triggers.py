@@ -4,7 +4,7 @@ simtelarray input file.
 """
 
 import numpy as np
-import pyhessio
+import ctapipe.io.hessio as hessio
 from astropy import units as u
 from astropy.table import Table
 from astropy.time import Time
@@ -53,12 +53,11 @@ class DumpTriggersTool(Tool):
     # The methods of the Tool (initialize, start, finish):
     # =============================================
 
-    def add_event_to_table(self, event_id):
+    def add_event_to_table(self, event):
         """
-        add the current pyhessio event to a row in the `self.events` table
+        add the current hessio event to a row in the `self.events` table
         """
-        ts, tns = pyhessio.get_central_event_gps_time()
-        gpstime = Time(ts * u.s, tns * u.ns, format='gps', scale='utc')
+        gpstime = event.trig.gps_time
 
         if self._prev_gpstime is None:
             self._prev_gpstime = gpstime
@@ -72,12 +71,13 @@ class DumpTriggersTool(Tool):
 
         # build the trigger pattern as a fixed-length array
         # (better for storage in FITS format)
-        trigtels = pyhessio.get_telescope_with_data_list()
+        #trigtels = event.get_telescope_with_data_list()
+        trigtels = event.dl0.tels_with_data
         self._current_trigpattern[:] = 0  # zero the trigger pattern
         self._current_trigpattern[trigtels] = 1  # set the triggered tels to 1
 
         # insert the row into the table
-        self.events.add_row((event_id, relative_time.sec, delta_t.sec,
+        self.events.add_row((event.dl0.event_id, relative_time.sec, delta_t.sec,
                              len(trigtels),
                              self._current_trigpattern))
 
@@ -103,21 +103,19 @@ class DumpTriggersTool(Tool):
         self._current_starttime = None
         self._prev_gpstime = None
 
-        pyhessio.file_open(self.infile)
 
     def start(self):
         """ main event loop """
+        source = hessio.hessio_event_source(self.infile)
 
-        for run_id, event_id in pyhessio.move_to_next_event():
-            self.add_event_to_table(event_id)
+        for event in source:
+            self.add_event_to_table(event)
 
     def finish(self):
         """
         finish up and write out results (called automatically after
         `start()`)
         """
-        pyhessio.close_file()
-
         # write out the final table
         if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
             self.events.write(self.outfile, overwrite=self.overwrite)
