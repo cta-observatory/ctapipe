@@ -90,9 +90,9 @@ if __name__ == '__main__':
         print(event.dl0)
 
         if disp is None:
-            x, y = event.meta.pixel_pos[args.tel]
+            x, y = event.inst.pixel_pos[args.tel]
             geom = io.CameraGeometry.guess(x, y,
-                                           event.meta.optical_foclen[args.tel])
+                                           event.inst.optical_foclen[args.tel])
             print(geom.pix_x)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             #disp.enable_pixel_picker()

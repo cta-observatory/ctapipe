@@ -6,9 +6,7 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import EventContainer, RawData
-from .containers import RawCameraData, MCEvent, MCCamera, CentralTriggerData
-from ctapipe.core import Container
+from .containers import DataContainer
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -64,12 +62,12 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
     eventstream = pyhessio.move_to_next_event()
     if allowed_tels is not None:
         allowed_tels = set(allowed_tels)
-    event = EventContainer()
-    event.meta.source = "hessio"
+    data = DataContainer()
+    data.meta['source'] = "hessio"
 
     # some hessio_event_source specific parameters
-    event.meta.add_item('hessio__input', url)
-    event.meta.add_item('hessio__max_events', max_events)
+    data.meta['hessio__input'] =  url
+    data.meta['hessio__max_events'] = max_events
 
     for run_id, event_id in eventstream:
 
@@ -89,80 +87,101 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
         # handle telescope filtering by taking the intersection of
         # tels_with_data and allowed_tels
         if allowed_tels is not None:
-            selected = event.dl0.tels_with_data & allowed_tels
+            selected = data.dl0.tels_with_data & allowed_tels
             if len(selected) == 0:
                 continue  # skip event
-            event.dl0.tels_with_data = selected
+            data.dl0.tels_with_data = selected
 
-        event.trig.tels_with_trigger \
+        data.trig.tels_with_trigger \
             = pyhessio.get_central_event_teltrg_list()
         time_s, time_ns = pyhessio.get_central_event_gps_time()
-        event.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
+        data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                    format='gps', scale='utc')
-        event.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
-        event.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
-        event.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
-        event.mc.core_x = pyhessio.get_mc_event_xcore() * u.m
-        event.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
-        event.mc.h_first_int = pyhessio.get_mc_shower_h_first_int() * u.m
+        data.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
+        data.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
+        data.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
+        data.mc.core_x = pyhessio.get_mc_event_xcore() * u.m
+        data.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
+        data.mc.h_first_int = pyhessio.get_mc_shower_h_first_int() * u.m
 
-        event.count = counter
+        data.count = counter
 
         # this should be done in a nicer way to not re-allocate the
         # data each time (right now it's just deleted and garbage
         # collected)
 
-        event.dl0.tel = dict()  # clear the previous telescopes
-        event.mc.tel = dict()  # clear the previous telescopes
+        data.dl0.tel.clear()
+        data.mc.tel.clear()  # clear the previous telescopes
 
-        for tel_id in event.dl0.tels_with_data:
+        _fill_instrument_info(data)
 
-            # fill pixel position dictionary, if not already done:
-            if tel_id not in event.meta.pixel_pos:
-                event.meta.pixel_pos[tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m
-                event.meta.optical_foclen[
-                    tel_id] = pyhessio.get_optical_foclen(tel_id) * u.m
+        for tel_id in data.dl0.tels_with_data:
 
-            # fill telescope position dictionary, if not already done:
-            if tel_id not in event.meta.tel_pos:
-                event.meta.tel_pos[
-                    tel_id] = pyhessio.get_telescope_position(tel_id) * u.m
+            # event.mc.tel[tel_id] = MCCameraContainer()
 
-            nchans = pyhessio.get_num_channel(tel_id)
-            npix = pyhessio.get_num_pixels(tel_id)
-            nsamples = pyhessio.get_num_samples(tel_id)
-            event.dl0.tel[tel_id] = RawCameraData(tel_id)
-            event.dl0.tel[tel_id].num_channels = nchans
-            event.dl0.tel[tel_id].num_pixels = npix
-            event.dl0.tel[tel_id].num_samples = nsamples
-            event.mc.tel[tel_id] = MCCamera(tel_id)
-
-            event.dl0.tel[tel_id].calibration \
+            data.mc.tel[tel_id].dc_to_pe \
                 = pyhessio.get_calibration(tel_id)
-            event.dl0.tel[tel_id].pedestal \
+            data.mc.tel[tel_id].pedestal \
                 = pyhessio.get_pedestal(tel_id)
 
             # load the data per telescope/chan
-            for chan in range(nchans):
-                event.dl0.tel[tel_id].adc_samples[chan] \
+            # TODO: make this an array dim rather than dict
+            for chan in range(data.inst.num_channels[tel_id]):
+                data.dl0.tel[tel_id].adc_samples[chan] \
                     = pyhessio.get_adc_sample(channel=chan,
                                               telescope_id=tel_id)
-                event.dl0.tel[tel_id].adc_sums[chan] \
+                data.dl0.tel[tel_id].adc_sums[chan] \
                     = pyhessio.get_adc_sum(channel=chan,
                                            telescope_id=tel_id)
-                event.mc.tel[tel_id].refshapes[chan] = \
+                data.mc.tel[tel_id].reference_pulse_shape[chan] = \
                     pyhessio.get_ref_shapes(tel_id, chan)
 
             # load the data per telescope/pixel
-            event.mc.tel[tel_id].photo_electrons \
+            data.mc.tel[tel_id].photo_electron_image \
                 = pyhessio.get_mc_number_photon_electron(telescope_id=tel_id)
-            event.mc.tel[tel_id].refstep = pyhessio.get_ref_step(tel_id)
-            event.mc.tel[tel_id].lrefshape = pyhessio.get_lrefshape(tel_id)
-            event.mc.tel[tel_id].time_slice = \
+            data.mc.tel[tel_id].meta['refstep'] = pyhessio.get_ref_step(tel_id)
+            data.mc.tel[tel_id].time_slice = \
                 pyhessio.get_time_slice(tel_id)
-        yield event
+        yield data
         counter += 1
 
         if max_events is not None and counter >= max_events:
+            pyhessio.close_file()
             return
+
+
+def _fill_instrument_info(data, max_tel_id=1000):
+    """
+    fill the data.inst structure with instrumental information.
+
+    Parameters
+    ----------
+    data: DataContainer
+        data container to fill in
+
+    """
+    for tel_id in range(max_tel_id):
+        if tel_id not in data.inst.pixel_pos:
+            try:
+                data.inst.pixel_pos[tel_id] \
+                    = pyhessio.get_pixel_position(tel_id) * u.m
+            except pyhessio.HessioTelescopeIndexError:
+                pass
+
+    for tel_id in data.inst.pixel_pos:
+        try:
+            data.inst.optical_foclen[tel_id] \
+                = pyhessio.get_optical_foclen(tel_id) * u.m
+            data.inst.tel_pos[tel_id] \
+                = pyhessio.get_telescope_position(tel_id) * u.m
+            nchans = pyhessio.get_num_channel(tel_id)
+            npix = pyhessio.get_num_pixels(tel_id)
+            nsamples = pyhessio.get_num_samples(tel_id)
+            if nsamples <= 0: nsamples = 1
+            data.inst.num_channels[tel_id] = nchans
+            data.inst.num_pixels[tel_id] = npix
+            data.inst.num_samples[tel_id] = nsamples
+        except pyhessio.HessioGeneralError:
+            pass
+
+

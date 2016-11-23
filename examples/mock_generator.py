@@ -18,7 +18,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 
-def display_event(event):
+def display_event(event, geoms):
     """an extremely inefficient display. It creates new instances of
     CameraDisplay for every event and every camera, and also new axes
     for each event. It's hacked, but it works
@@ -37,8 +37,8 @@ def display_event(event):
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
-        x, y = event.meta.pixel_pos[tel_id]
-        geom = io.CameraGeometry.guess(x * u.m, y * u.m)
+        x, y = event.inst.pixel_pos[tel_id]
+        geom = geoms[tel_id]
         disp = visualization.CameraDisplay(geom, ax=ax,
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         while True:
             response = get_input()
             if response.startswith("d"):
-                disps = display_event(event)
+                disps = display_event(event, geoms)
                 plt.pause(0.1)
             elif response.startswith("p"):
                 print("--event-------------------")
@@ -98,7 +98,7 @@ if __name__ == '__main__':
             elif response.startswith('i'):
                 for tel_id in sorted(event.dl0.tel):
                     for chan in event.dl0.tel[tel_id].adc_samples:
-                        npix = len(event.meta.pixel_pos[tel_id][0])
+                        npix = len(event.inst.pixel_pos[tel_id][0])
                         print("CT{:4d} ch{} pixels:{} samples:{}"
                               .format(tel_id, chan, npix,
                                       event.dl0.tel[tel_id].

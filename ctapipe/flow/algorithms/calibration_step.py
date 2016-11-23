@@ -53,7 +53,7 @@ class CalibrationStep(Component):
             geom_dict = {}
             calibrated_event = calibrate_event(event,self.parameters,geom_dict)
             #for tel_id in calibrated_event.dl0.tels_with_data:
-            #    signals = calibrated_event.dl1.tel[tel_id].pe_charge
+            #    signals = calibrated_event.dl1.tel[tel_id].calibrated_image
             #    cmaxmin = (max(signals) - min(signals))
             self.log.debug("--- CalibrationStep STOP ---")
             return ([calibrated_event,geom_dict])
