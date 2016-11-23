@@ -80,9 +80,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 counter += 1
                 continue
 
-        event.dl0.run_id = run_id
-        event.dl0.event_id = event_id
-        event.dl0.tels_with_data = set(pyhessio.get_teldata_list())
+        data.dl0.run_id = run_id
+        data.dl0.event_id = event_id
+        data.dl0.tels_with_data = set(pyhessio.get_teldata_list())
         
         # handle telescope filtering by taking the intersection of
         # tels_with_data and allowed_tels
