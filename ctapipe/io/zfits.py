@@ -83,7 +83,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         
         container.dl0.tel = dict()  # clear the previous telescopes
 
-        # Depecrated loop, we keep it for clarity (similar structure than hessio and mock modules)
+        # Depecrated loop, we keep it for clarity (similar structure than hessio and toymodel modules)
         for tel_id in container.dl0.tels_with_data:
             # fill pixel position dictionary, if not already done:
             #TODO: tel_id here is a dummy parameter, we are dealing with single-telescope data!. TBR.
