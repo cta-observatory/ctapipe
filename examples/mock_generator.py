@@ -7,7 +7,7 @@
 # if no filename is given, a default example file will be used
 # containing ~10 events
 
-from ctapipe.io.mock import mock_event_source
+from ctapipe.io.toymodel import toymodel_event_source
 from ctapipe import visualization, io
 from matplotlib import pyplot as plt
 from astropy import units as u
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     n_telescopes = 20
     geom = io.CameraGeometry.from_name('hess', 1)
     geoms = [geom for i in range(n_telescopes)]
-    source = mock_event_source(geoms)
+    source = toymodel_event_source(geoms)
 
     for event in source:
 
