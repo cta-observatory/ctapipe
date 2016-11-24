@@ -1,19 +1,14 @@
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.core import Container
 
-from ctapipe.io.containers import RawData
-from ctapipe.io.containers import MCShowerData, CentralTriggerData
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 
 from ctapipe import io, visualization
-from astropy.coordinates import Angle, AltAz
-from astropy.time import Time
 from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.coordinates import CameraFrame, NominalFrame, GroundFrame, TiltedGroundFrame
 from ctapipe.reco.ImPACT import ImPACTFitter
-from ctapipe.calib.camera.calibrators import calibration_parameters, calibrate_event
+from ctapipe.calib.camera.calibrators import calibrate_event
 
 from astropy import units as u
 
@@ -44,12 +39,6 @@ if __name__ == '__main__':
     source = hessio_event_source(args.filename,
                                  allowed_tels=HB4)
 
-    container = Container("hessio_container")
-    container.meta.add_item('pixel_pos', dict())
-    container.add_item("dl0", RawData())
-    container.add_item("mc", MCShowerData())
-    container.add_item("trig", CentralTriggerData())
-    container.add_item("count")
     tel, cam, opt = ID.load(filename=args.filename)
     ev = 0
 
@@ -64,25 +53,10 @@ if __name__ == '__main__':
     theta_sqr_list = list()
 
     for event in source:
-
-        container.dl0.tels_with_data = set(pyhessio.get_teldata_list())
-
-        container.trig.tels_with_trigger \
-            = pyhessio.get_central_event_teltrg_list()
-        time_s, time_ns = pyhessio.get_central_event_gps_time()
-        container.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
-                                       format='gps', scale='utc')
-        container.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
-        container.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
-        container.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
-        container.mc.core_x = pyhessio.get_mc_event_xcore() * u.m
-        container.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
-
+        mc = event.mc
         # this should be done in a nicer way to not re-allocate the
         # data each time (right now it's just deleted and garbage
         # collected)
-
-        container.dl0.tel = dict()  # clear the previous telescopes
 
         table = "CameraTable_VersionFeb2016_TelID"
         pix_x = list()
@@ -101,27 +75,25 @@ if __name__ == '__main__':
         params['integrator'] = 'nb_peak_integration'
         params['integration_window'] = (10,4)
         cal = calibrate_event(event, params, geom_dict)
-        #if container.mc.energy < 0.1*u.TeV:
-        #    continue
 
-        for tel_id in container.dl0.tels_with_data:
+        for tel_id in event.dl0.tels_with_data:
 
             used = np.any(HB4 == tel_id)
 
             if not used:
                 continue
 
-            x, y = event.meta.pixel_pos[tel_id]
+            x, y = event.inst.pixel_pos[tel_id]
 
             if geom_dict is not None and tel_id in geom_dict:
                 geom = geom_dict[tel_id]
             else:
                 geom = io.CameraGeometry.guess(event.meta.pixel_pos[tel_id][0], event.meta.pixel_pos[tel_id][1],
-                                            event.meta.optical_foclen[tel_id])
+                                               event.meta.optical_foclen[tel_id])
                 if geom_dict is not None:
                     geom_dict[tel_id] = geom
 
-            image = cal.dl1.tel[tel_id].pe_charge
+            image = cal.dl1.tel[tel_id].calibrated_image
 
             fl = tel['TelescopeTable_VersionFeb2016'][
                     tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]['FL'][0]
@@ -133,8 +105,8 @@ if __name__ == '__main__':
                                                     ['FL'][0] * u.m,
                                        rotation=90*u.deg - geom.cam_rotation + 180 * u.deg)
 
-            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[container.mc.alt, container.mc.az],
-                                                               pointing_direction=[container.mc.alt, container.mc.az]))
+            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[mc.alt, mc.az],
+                                                               pointing_direction=[mc.alt, mc.az]))
 
             x = nom_coord.x.to(u.deg)
             y = nom_coord.y.to(u.deg)
@@ -146,7 +118,6 @@ if __name__ == '__main__':
 
             dilate(geom, clean_mask)
             dilate(geom, clean_mask)
-            #dilate(geom, clean_mask)
 
             if hillas.size > amp_cut[geom.cam_id]:
                 pix_x.append(x[clean_mask])
@@ -172,16 +143,16 @@ if __name__ == '__main__':
                     tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]['TelZ'][0]
 
                 grd_tel = GroundFrame(x=tx*u.m, y=ty*u.m, z=tz*u.m)
-                tilt_tel = grd_tel.transform_to(TiltedGroundFrame(pointing_direction=[container.mc.alt, container.mc.az]))
+                tilt_tel = grd_tel.transform_to(TiltedGroundFrame(pointing_direction=[mc.alt, mc.az]))
                 tel_x.append(tilt_tel.x)
                 tel_y.append(tilt_tel.y)
 
         if len(tel_x)<2:
             continue
-        grd_core_true = GroundFrame(x=np.asarray(container.mc.core_x)*u.m, y=np.asarray(container.mc.core_y)*u.m, z=np.asarray(0)*u.m)
-        tilt_core_true = grd_core_true.transform_to(TiltedGroundFrame(pointing_direction=[container.mc.alt,container.mc.az]))
+        grd_core_true = GroundFrame(x=np.asarray(mc.core_x)*u.m, y=np.asarray(mc.core_y)*u.m, z=np.asarray(0)*u.m)
+        tilt_core_true = grd_core_true.transform_to(TiltedGroundFrame(pointing_direction=[mc.alt,mc.az]))
 
-        energy = container.mc.energy
+        energy = mc.energy
 
         ImPACT.set_event_properties(image_list, pix_x, pix_y, pix_a, type_tel, tel_x, tel_y)
         params = ImPACT.fit_event(np.random.normal(0,0.1)*u.deg, np.random.normal(0,0.1)*u.deg,
@@ -206,7 +177,7 @@ if __name__ == '__main__':
             for tel_num in range(len(tel_x)):
                 fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
 
-                prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - container.mc.alt, container.mc.az * u.rad,
+                prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - mc.alt, mc.az * u.rad,
                                                    params["core_x"]*u.m,  params["core_y"]*u.m,  params["energy"]*u.TeV,
                                                    params["x_max_scale"])
 
