@@ -6,7 +6,7 @@ import math
 import numpy as np
 from iminuit import Minuit
 from astropy import units as u
-from ctapipe.reco.template_interpolator import TemplateInterpolator
+from ctapipe.reco.table_interpolator import TableInterpolator
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
@@ -25,11 +25,11 @@ class ImPACTFitter(object):
         # First we create a dictionary of image template interpolators for each telescope type
         self.prediction = dict()
         self.prediction["LSTCam"] = \
-            TemplateInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/LST.obj")
+            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/LST.obj")
         self.prediction["NectarCam"] = \
-            TemplateInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/MST_NectarCam.obj")
+            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/MST_NectarCam.obj")
         self.prediction["GATE"] = \
-            TemplateInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/SST_GCT.obj")
+            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/SST_GCT.obj")
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA

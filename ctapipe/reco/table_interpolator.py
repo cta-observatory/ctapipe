@@ -3,7 +3,7 @@ from scipy import interpolate
 import numpy as np
 
 
-class TemplateInterpolator:
+class TableInterpolator:
     """
     This is a simple class for loading image templates from a pickle file and
     interpolating between them to provide the model for ImPACT style fitting
@@ -42,7 +42,7 @@ class TemplateInterpolator:
                                                                method="linear", bounds_error=False, fill_value=0)
         file.close()
 
-        print("Templates Loaded from", filename)
+        print("Tables Loaded from", filename)
 
     def interpolate(self, params, pixel_pos_x, pixel_pos_y):
         """
@@ -65,13 +65,9 @@ class TemplateInterpolator:
 
         image = self.interpolated_image(params)
 
-
-        #grid_interp = interpolate.RectBivariateSpline(self.x_bins, self.y_bins, image)
-
         self.grid_interp.values = image
         points = np.array([pixel_pos_x, pixel_pos_y])
         return self.grid_interp(points.T)
-        #return grid_interp(pixel_pos_x,pixel_pos_y)
 
     def interpolated_image(self, params):
         """
