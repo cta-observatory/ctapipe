@@ -3,8 +3,7 @@ low-level utility functions for dealing with data files
 """
 
 import os
-from pathlib import Path
-from os.path import basename, splitext, dirname, join
+from os.path import basename, splitext, dirname, join, exists
 from astropy import log
 import numpy as np
 
@@ -124,17 +123,14 @@ class InputFile:
         log.info("[file][origin] {}".format(self.origin))
 
     def _init_path(self, input_path):
-        path = Path(input_path)
-        try:
-            if not path.exists():
-                raise FileNotFoundError
-        except FileNotFoundError:
-            log.exception("file path does not exist: '{}'".format(input_path))
+        if not exists(input_path):
+                raise FileNotFoundError("file path does not exist: '{}'"
+                                        .format(input_path))
 
-        self.input_path = path.as_posix()
-        self.directory = dirname(path)
-        self.filename = splitext(basename(path))[0]
-        self.extension = splitext(path)[1]
+        self.input_path = input_path
+        self.directory = dirname(input_path)
+        self.filename = splitext(basename(input_path))[0]
+        self.extension = splitext(input_path)[1]
         self.output_directory = join(self.directory, self.filename)
 
     @property
