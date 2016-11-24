@@ -69,8 +69,8 @@ def targetio_source(filepath, max_events=None, requested_event=None,
         if found:
             from targetpipe.io.targetio import targetio_event_source
             return targetio_event_source(filepath, max_events=max_events,
-                                         requested_event=None,
-                                         request_event_id=False)
+                                         requested_event=requested_event,
+                                         request_event_id=request_event_id)
         else:
             raise RuntimeError()
     except RuntimeError:
@@ -101,7 +101,7 @@ class InputFile:
 
     """
 
-    def __init__(self, input_path, file_origin):
+    def __init__(self, input_path, file_origin, max_events=None):
         """
         Parameters
         ----------
@@ -109,58 +109,69 @@ class InputFile:
             Full path to the file
         file_origin : str
             Origin/type of file e.g. hessio, targetio
+        max_events : int
+            Maximum number of events that will be read from file
         """
-        self.__input_path = None
-        self.directory = None
-        self.filename = None
-        self.extension = None
-        self.origin = file_origin
-        self.output_directory = None
+        self._max_events = max_events
+        self._num_events = None
+        self._event_id_list = []
+        self.possible_origins = ['hessio', 'targetio']
 
-        self.input_path = input_path
+        self._init_path(input_path)
+        self.origin = file_origin
 
         log.info("[file] {}".format(self.input_path))
         log.info("[file][origin] {}".format(self.origin))
 
-    @property
-    def input_path(self):
-        return self.__input_path
-
-    @input_path.setter
-    def input_path(self, string):
-        path = Path(string)
+    def _init_path(self, input_path):
+        path = Path(input_path)
         try:
             if not path.exists():
                 raise FileNotFoundError
         except FileNotFoundError:
-            log.exception("file path does not exist: '{}'".format(string))
+            log.exception("file path does not exist: '{}'".format(input_path))
 
-        self.__input_path = path.as_posix()
-        self.directory = dirname(self.__input_path)
-        self.filename = splitext(basename(self.__input_path))[0]
-        self.extension = splitext(self.__input_path)[1]
+        self.input_path = path.as_posix()
+        self.directory = dirname(path)
+        self.filename = splitext(basename(path))[0]
+        self.extension = splitext(path)[1]
         self.output_directory = join(self.directory, self.filename)
 
-    @staticmethod
-    def origin_list():
-        """
-        Returns
-        -------
-        origins : list
-            List of all the origins that have a method for reading
-        """
-        origins = ['hessio', 'targetio']
-        return origins
+    @property
+    def num_events(self):
+        log.info("Obtaining number of events in file...")
+        first_event = self.get_event(0)
+        if self._num_events:
+            pass
+        elif 'num_events' in first_event.meta:
+            self._num_events = first_event.meta['num_events']
+        else:
+            self._num_events = len(self.event_id_list)
+        log.info("[file] Number of events = {}".format(self._num_events))
+        return self._num_events
 
-    def read(self, max_events=None, allowed_tels=None, requested_event=None,
+    @property
+    def event_id_list(self):
+        log.info("Retrieving list of event ids...")
+        if self._event_id_list:
+            pass
+        else:
+            log.info("Building new list of event ids...")
+            source = self.read()
+            for event in source:
+                self._event_id_list.append(event.dl0.event_id)
+        log.info("[file] Number of events = {}"
+                 .format(len(self._event_id_list)))
+        return self._event_id_list
+
+    def read(self, allowed_tels=None, requested_event=None,
              request_event_id=False):
         """
         Read the file using the appropriate method depending on the file origin
 
         Parameters
         ----------
-        max_events : int
-            Maximum number of events to read
+
         allowed_tels : list[int]
             select only a subset of telescope, if None, all are read. This can
             be used for example emulate the final CTA data format, where there
@@ -169,8 +180,8 @@ class InputFile:
         requested_event : int
             Seek to a paricular event index
         request_event_id : bool
-            If True ,'requested_event' now seeks for a particular event id instead
-            of index
+            If True ,'requested_event' now seeks for a particular event id
+            instead of index
 
         Returns
         -------
@@ -180,17 +191,18 @@ class InputFile:
 
         # Obtain relevent source
         log.debug("[file] Reading file...")
-        if max_events:
-            log.info("[file] Max events being read = {}".format(max_events))
+        if self._max_events:
+            log.info("[file] Max events being read = {}"
+                     .format(self._max_events))
         switch = {
             'hessio':
                 lambda: hessio_event_source(get_path(self.input_path),
-                                            max_events=max_events,
+                                            max_events=self._max_events,
                                             requested_event=requested_event,
                                             request_event_id=request_event_id),
             'targetio':
                 lambda: targetio_source(self.input_path,
-                                        max_events=max_events,
+                                        max_events=self._max_events,
                                         requested_event=requested_event,
                                         request_event_id=request_event_id),
         }
@@ -212,13 +224,8 @@ class InputFile:
         requested_event : int
             Seek to a paricular event index
         request_event_id : bool
-            If True ,'requested_event' now seeks for a particular event id instead
-            of index
-
-        event_req : int
-            Event index requested
-        id_flag : bool
-            'event_req' refers to event_id instead of event_index
+            If True ,'requested_event' now seeks for a particular event id
+            instead of index
 
         Returns
         -------
@@ -230,37 +237,7 @@ class InputFile:
         event = next(source)
         return event
 
-
-        # if not id_flag:
-        #     log.info("[file][read] Finding event index {}...".format(event_req))
-        # else:
-        #     log.info("[file][read] Finding event id {}...".format(event_req))
-        # source = self.read()
-        # for event in source:
-        #     event_id = event.dl0.event_id
-        #     index = event.count if not id_flag else event_id
-        #     if not index == event_req:
-        #         log.debug("[event_id] skipping event: {}".format(event_id))
-        #         continue
-        #     log.info("[file] Event {} found".format(event_req))
-        #     return event
-        # log.info("[file][read] Event does not exist!")
-        # return None
-
-    def get_list_of_event_ids(self, max_events=None):
-        log.info("[file][read] Building list of event ids...")
-        l = []
-        source = self.read(max_events)
-        if self.origin is 'targetio':
-            event = next(source)
-            l = range(event.meta.n_events)
-        else:
-            for event in source:
-                l.append(event.dl0.event_id)
-        log.info("[file] Number of events = {}".format(len(l)))
-        return l
-
-    def find_max_true_npe(self, telescopes=None, max_events=None):
+    def find_max_true_npe(self, telescopes=None):
         """
         Loop through events to find the maximum true npe
 
@@ -269,8 +246,6 @@ class InputFile:
         telescopes : list
             List of telecopes to include. If None, then all telescopes
             are included.
-        max_events : int
-            Maximum number of events to read
 
         Returns
         -------
@@ -278,7 +253,7 @@ class InputFile:
 
         """
         log.info("[file][read] Finding maximum true npe inside file...")
-        source = self.read(max_events)
+        source = self.read()
         max_pe = 0
         for event in source:
             tels = list(event.dl0.tels_with_data)
