@@ -33,6 +33,10 @@ def plot_muon_efficiency(source):
             impact_param.append(mu_evt[1].impact_parameter/u.m)
             ring_width.append(mu_evt[1].ring_width/u.deg)
 
+    if len(mu_eff) < 1:
+        print("No muon events to plot")
+        return 
+
     ax.hist(mu_eff,20)
     ax.set_xlim(0.2*min(mu_eff),1.2*max(mu_eff))
     ax.set_ylim(0.,1.2*len(mu_eff))

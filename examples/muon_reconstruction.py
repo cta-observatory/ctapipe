@@ -106,7 +106,7 @@ def main():
     #    if pp is not None:
     #        pp.savefig(fig)
                     
-    #plot_muon_efficiency(muons)
+    #
     for muon_evt in muons:
         #Test display #Flag 1 for true (wish to display)
         # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)    
@@ -115,6 +115,8 @@ def main():
             #Store and or Plot muon parameters here
     #if pp is not None:
     #    pp.close()
+
+    plot_muon_efficiency(muons)
 
     log.info("[COMPLETE]")
 
