@@ -60,10 +60,6 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             data.meta['hessio__input'] =  url
             data.meta['hessio__max_events'] = max_events
 
-            # mc run header data
-            data.mcheader.run_array_direction = \
-                pyhessio.get_mc_run_array_direction()
-
             for event_id in eventstream:
 
                 data.dl0.run_id = pyhessio.get_run_number()
@@ -89,6 +85,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
                 data.mc.core_x = pyhessio.get_mc_event_xcore() * u.m
                 data.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
                 data.mc.h_first_int = pyhessio.get_mc_shower_h_first_int() * u.m
+
+                # mc run header data
+                data.mcheader.run_array_direction = \
+                    pyhessio.get_mc_run_array_direction()
 
                 data.count = counter
 
