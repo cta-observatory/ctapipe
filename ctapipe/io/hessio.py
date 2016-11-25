@@ -60,6 +60,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             data.meta['hessio__input'] =  url
             data.meta['hessio__max_events'] = max_events
 
+            # mc run header data
+            data.mcheader.run_array_direction = \
+                pyhessio.get_mc_run_array_direction()
+
             for event_id in eventstream:
 
                 data.dl0.run_id = pyhessio.get_run_number()
@@ -124,6 +128,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
                     data.mc.tel[tel_id].meta['refstep'] = pyhessio.get_ref_step(tel_id)
                     data.mc.tel[tel_id].time_slice = \
                         pyhessio.get_time_slice(tel_id)
+                    data.mc.tel[tel_id].azimuth_cor = \
+                        pyhessio.get_azimuth_cor(tel_id)
+                    data.mc.tel[tel_id].altitude_cor = \
+                        pyhessio.get_altitude_cor(tel_id)
                 yield data
                 counter += 1
 
