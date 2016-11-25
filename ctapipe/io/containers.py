@@ -104,6 +104,9 @@ class MCCameraEventContainer(Container):
     time_slice = Item(0, "width of time slice", unit=u.ns)
     dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
     pedestal = Item(None, "pedestal calibration arrays from MC file")
+    azimuth_raw = Item(0, "Raw azimuth angle [radians from N->E] "
+                          "for the telescope")
+    altitude_raw = Item(0, "Raw altitude angle [radians] for the telescope")
     azimuth_cor = Item(0, "the tracking Azimuth corrected for pointing "
                              "errors for the telescope")
     altitude_cor = Item(0, "the tracking Altitude corrected for pointing "

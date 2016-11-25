@@ -128,6 +128,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
                     data.mc.tel[tel_id].meta['refstep'] = pyhessio.get_ref_step(tel_id)
                     data.mc.tel[tel_id].time_slice = \
                         pyhessio.get_time_slice(tel_id)
+                    data.mc.tel[tel_id].azimuth_raw = \
+                        pyhessio.get_azimuth_raw(tel_id)
+                    data.mc.tel[tel_id].altitude_raw = \
+                        pyhessio.get_altitude_raw(tel_id)
                     data.mc.tel[tel_id].azimuth_cor = \
                         pyhessio.get_azimuth_cor(tel_id)
                     data.mc.tel[tel_id].altitude_cor = \
