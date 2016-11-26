@@ -36,8 +36,8 @@ from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
 
 
-def targetio_source(filepath, max_events=None, requested_event=None,
-                    request_event_id=False):
+def targetio_source(filepath, max_events=None, allowed_tels=None,
+                    requested_event=None, request_event_id=False):
     """
     Temporary function to return a "source" generator from a targetio file,
     only if targetpipe exists on this python interpreter.
@@ -48,6 +48,8 @@ def targetio_source(filepath, max_events=None, requested_event=None,
         Filepath for the input targetio file
     max_events : int
         Maximum number of events to read
+    allowed_tels : list[int]
+        select only a subset of telescope, if None, all are read.
     requested_event : int
         Seek to a paricular event index
     request_event_id : bool
@@ -69,6 +71,7 @@ def targetio_source(filepath, max_events=None, requested_event=None,
         if found:
             from targetpipe.io.targetio import targetio_event_source
             return targetio_event_source(filepath, max_events=max_events,
+                                         allowed_tels=allowed_tels,
                                          requested_event=requested_event,
                                          request_event_id=request_event_id)
         else:
@@ -168,7 +171,6 @@ class InputFile:
 
         Parameters
         ----------
-
         allowed_tels : list[int]
             select only a subset of telescope, if None, all are read. This can
             be used for example emulate the final CTA data format, where there
@@ -195,11 +197,13 @@ class InputFile:
             'hessio':
                 lambda: hessio_event_source(get_path(self.input_path),
                                             max_events=self._max_events,
+                                            allowed_tels=allowed_tels,
                                             requested_event=requested_event,
                                             request_event_id=request_event_id),
             'targetio':
                 lambda: targetio_source(self.input_path,
                                         max_events=self._max_events,
+                                        allowed_tels=allowed_tels,
                                         requested_event=requested_event,
                                         request_event_id=request_event_id),
         }
