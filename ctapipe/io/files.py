@@ -6,6 +6,7 @@ import os
 from os.path import basename, splitext, dirname, join, exists
 from astropy import log
 import numpy as np
+from copy import deepcopy
 
 
 def get_file_type(filename):
@@ -231,7 +232,7 @@ class InputFile:
         source = self.read(requested_event=requested_event,
                            request_event_id=request_event_id)
         event = next(source)
-        return event
+        return deepcopy(event)
 
     def find_max_true_npe(self, telescopes=None):
         """
