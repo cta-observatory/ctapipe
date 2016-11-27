@@ -116,7 +116,7 @@ def main():
     #if pp is not None:
     #    pp.close()
 
-    plot_muon_efficiency(muons)
+    #plot_muon_efficiency(muons)
 
     log.info("[COMPLETE]")
 
