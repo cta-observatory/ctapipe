@@ -76,27 +76,32 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
 
 def dist_to_traces(core, circles):
     '''
-        TODO optimise the score parameter...
-        the distance of the core to the trace line is the
-        scalar product of
-        • the connecting vector between the core and a random point
-            on the line (e.g. the position of the telescope)
-        • and a normal vector of the trace in the same plane as
-            the trace and the core (e.g. { trace[1], -trace[0] } )
+        This function calculates the M-Estimator from the distances of the suggested
+        core position to all traces of the given GreatCircles.
+        The distance of the core to the trace line is the length of the vector between
+        the core and an arbitrary point on the trace projected perpendicular to the trace.
+
+        This is implemented as the scalar product of
+        • the connecting vector between the core and the position of the telescope
+        • and { trace[1], -trace[0] } as the normal vector of the trace.
 
         Note:
         -----
-        uses an M-Estimator of the distance instead of the distance itself:
+        uses the M-Estimator of the distance instead of the distance itself:
         MEst = Σ_i 2*√(1 + d_i²) - 2
     '''
-    sum_dist = 0.
-    for circle in circles.values():
-        D = core-circle.pos[:2]/u.m
 
-        dist = 2*np.sqrt(1+(D[0]*circle.trace[1] -
-                            D[1]*circle.trace[0])**2) - 2
-        sum_dist += dist * circle.weight
-    return sum_dist
+    MEst = 0.
+    for circle in circles.values():
+        '''
+        the distanece of the core '''
+        D = core-circle.pos[:2]/u.m
+        dist = D[0]*circle.trace[1] - D[1]*circle.trace[0]
+
+        '''
+        summing up the M-Estimator with the given circle weights '''
+        MEst += (2*np.sqrt(1+(dist**2)) - 2) * circle.weight
+    return MEst
 
 
 def MEst(origin, circles, weights):
