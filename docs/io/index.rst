@@ -76,7 +76,7 @@ reading *simtelarray* data files, like those used in CTA monte-carlo
 productions. It requires the `pyhessio` package to be installed (see
 :ref:`getting_started` for instructions installing `pyhessio`).
 
-`mock.mock_event_source`: generates toy-monte-carlo dummy images for
+`toymodel.toymodel_event_source`: generates toy-monte-carlo dummy images for
   testing purposes
 
 `zfits.zfits_event_source`: reads zfits raw event files
