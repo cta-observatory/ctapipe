@@ -1,5 +1,5 @@
 from ctapipe.core import Component
-from ctapipe.io.containers import RecoShowerGeom
+from ctapipe.io.containers import ReconstructedShowerContainer
 
 
 class RecoShowerGeomAlgorithm(Component):
@@ -17,5 +17,5 @@ class RecoShowerGeomAlgorithm(Component):
         --------
         Standard  `RecoShowerGeom` container
         """
-        return RecoShowerGeom()
+        return ReconstructedShowerContainer()
 
