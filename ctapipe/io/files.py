@@ -31,6 +31,7 @@ def get_file_type(filename):
 
     return ext
 
+
 # Placed here to avoid error from recursive import
 from ctapipe.utils.datasets import get_path
 from ctapipe.io.hessio import hessio_event_source
@@ -128,8 +129,8 @@ class InputFile:
 
     def _init_path(self, input_path):
         if not exists(input_path):
-                raise FileNotFoundError("file path does not exist: '{}'"
-                                        .format(input_path))
+            raise FileNotFoundError("file path does not exist: '{}'"
+                                    .format(input_path))
 
         self.input_path = input_path
         self.directory = dirname(input_path)
@@ -147,6 +148,9 @@ class InputFile:
             self._num_events = first_event.meta['num_events']
         else:
             self._num_events = len(self.event_id_list)
+        if self._max_events is not None and \
+                self._num_events > self._max_events:
+            self._num_events = self._max_events
         log.info("[file] Number of events = {}".format(self._num_events))
         return self._num_events
 
