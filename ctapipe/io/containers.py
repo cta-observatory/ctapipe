@@ -104,6 +104,13 @@ class MCCameraEventContainer(Container):
     time_slice = Item(0, "width of time slice", unit=u.ns)
     dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
     pedestal = Item(None, "pedestal calibration arrays from MC file")
+    azimuth_raw = Item(0, "Raw azimuth angle [radians from N->E] "
+                          "for the telescope")
+    altitude_raw = Item(0, "Raw altitude angle [radians] for the telescope")
+    azimuth_cor = Item(0, "the tracking Azimuth corrected for pointing "
+                             "errors for the telescope")
+    altitude_cor = Item(0, "the tracking Altitude corrected for pointing "
+                              "errors for the telescope")
 
 
 class MCEventContainer(Container):
@@ -118,6 +125,18 @@ class MCEventContainer(Container):
     h_first_int = Item(0, "Height of first interaction")
     tel = Item(Map(MCCameraEventContainer),
                "map of tel_id to MCCameraEventContainer")
+
+
+class MCHeaderContainer(Container):
+    """
+    Monte-Carlo information that doesn't change per event
+    """
+    run_array_direction = Item([], "the tracking/pointing direction in "
+                                   "[radians]. Depending on 'tracking_mode' "
+                                   "this either contains: "
+                                   "[0]=Azimuth, [1]=Altitude in mode 0, "
+                                   "OR "
+                                   "[0]=R.A., [1]=Declination in mode 1.")
 
 
 class CentralTriggerContainer(Container):
@@ -203,6 +222,7 @@ class DataContainer(Container):
     dl1 = Item(CalibratedContainer())
     dl2 = Item(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Item(MCEventContainer(), "Monte-Carlo data")
+    mcheader = Item(MCHeaderContainer, "Monte-Carlo run header data")
     trig = Item(CentralTriggerContainer(), "central trigger information")
     count = Item(0, "number of events processed")
     inst = Item(InstrumentContainer(), "instrumental information (deprecated")
