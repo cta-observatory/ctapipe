@@ -1,7 +1,7 @@
 import pickle as pickle
 from scipy import interpolate
 import numpy as np
-
+import gzip
 
 class TableInterpolator:
     """
@@ -19,10 +19,11 @@ class TableInterpolator:
         filename: string
             Location of Template file
         """
-        file = open(filename, 'rb')
-        template = pickle.load(file, encoding='latin1')
-        grid = pickle.load(file, encoding='latin1')
-        print(template.shape)
+        file = gzip.open(filename, 'rb')
+        tables = pickle.load(file, encoding='latin1')
+        template = (list(tables.values()))
+        grid = np.asarray(list(tables.keys()))
+
         self.interpolator = interpolate.LinearNDInterpolator(grid, template, fill_value=0)
         self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 

@@ -25,11 +25,11 @@ class ImPACTFitter(object):
         # First we create a dictionary of image template interpolators for each telescope type
         self.prediction = dict()
         self.prediction["LSTCam"] = \
-            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/LST.obj")
+            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/LST.table.gz")
         self.prediction["NectarCam"] = \
-            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/MST_NectarCam.obj")
+            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/MST_NectarCam.table.gz")
         self.prediction["GATE"] = \
-            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/SST_GCT.obj")
+            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/SST_GCT.table.gz")
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
