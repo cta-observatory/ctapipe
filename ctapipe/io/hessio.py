@@ -30,7 +30,7 @@ __all__ = [
 
 
 def hessio_event_source(url, max_events=None, allowed_tels=None,
-                        requested_event=None, request_event_id=False):
+                        requested_event=None, use_event_id=False):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -47,7 +47,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
         they are all interleaved into one file)
     requested_event : int
         Seek to a paricular event index
-    request_event_id : bool
+    use_event_id : bool
         If True ,'requested_event' now seeks for a particular event id instead
         of index
     """
@@ -71,7 +71,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 # Seek to requested event
                 if requested_event is not None:
                     current = counter
-                    if request_event_id:
+                    if use_event_id:
                         current = event_id
                     if not current == requested_event:
                         counter += 1
