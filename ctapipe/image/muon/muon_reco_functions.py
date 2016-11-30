@@ -42,7 +42,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     sct = [False,False,False,False,True]
 
 
-    muon_cuts = {'Name':names,'TailCuts':TailCuts,'Impact':impact,'RingWidth':ringwidth,'TotalPix':TotalPix,'MinPix':MinPix,'CamRad':cam_rad,'SecRad':sec_rad,'SCT':sct}
+    muon_cuts = {'Name':names,'TailCuts':TailCuts,'Impact':impact,'RingWidth':ringwidth,'TotalPix':TotalPix,'MinPix':MinPix,'CamRad':cam_rad,'SecRad':sec_rad,'SCT':sct,'AngPixW':AngPixelWidth}
     #print(muon_cuts)
 
     muonringparam = None
@@ -68,7 +68,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
 
         dict_index = muon_cuts['Name'].index(geom.cam_id)
-        print('found an index of',dict_index,'for camera',geom.cam_id)
+        #print('found an index of',dict_index,'for camera',geom.cam_id)
 
         tailcuts = (5.,7.)
         #Try a higher threshold for FlashCam
@@ -140,10 +140,10 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             #    sec_rad = 1.*u.m
             #    sct = True
 
-            hess = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=0.11*u.deg,sct_flag=sct, secondary_radius=sec_rad)
+            ctel = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=muon_cuts['AngPixW'][dict_index]*u.deg,sct_flag=muon_cuts['SCT'][dict_index], secondary_radius=muon_cuts['SecRad'][dict_index])
 
             if (image.shape[0] == muon_cuts['TotalPix'][dict_index]):
-                muonintensityoutput = hess.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
+                muonintensityoutput = ctel.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
 
                 muonintensityoutput.tel_id = telid
                 muonintensityoutput.run_id = event.dl1.run_id
@@ -188,12 +188,10 @@ def analyze_muon_source(source, params=None, geom_dict=None, args=None):
         numev += 1
         analyzed_muon = analyze_muon_event(event, params, geom_dict)
         print("Analysed event number",numev)
-        #
-        if analyzed_muon[1] is not None:
-        #    
-            plot_muon_event(event, analyzed_muon, geom_dict, args)
+        #        if analyzed_muon[1] is not None:
+        #    plot_muon_event(event, analyzed_muon, geom_dict, args)
             
-        if numev > 40: #for testing purposes only
-            break
+        #    if numev > 50: #for testing purposes only
+        #            break
 
         yield analyzed_muon

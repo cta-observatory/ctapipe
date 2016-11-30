@@ -3,6 +3,7 @@ from ctapipe.utils.datasets import get_path
 import os
 import numpy as np
 from astropy import log
+from astropy.table import Table
 from ctapipe.io.files import InputFile
 from calibration_pipeline import display_telescope
 from ctapipe.calib.camera.calibrators import calibration_parameters, \
@@ -103,20 +104,39 @@ def main():
     #                  .format(tel_id, geom_dict[tel_id].cam_id))
         
     #    plt.pause(0.1)
-    #    if pp is not None:
+    #if pp is not None:
     #        pp.savefig(fig)
                     
     #
+
+    plot_dict = {}
+    muoneff = []
+    impactp = []
+    ringwidth = []
+    plot_dict = {'MuonEff':muoneff,'ImpactP':impactp,'RingWidth':ringwidth}
+
+
     for muon_evt in muons:
         #Test display #Flag 1 for true (wish to display)
         # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)    
         if muon_evt[0] is not None and muon_evt[1] is not None:
+            
+            plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
+            plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
+            plot_dict['RingWidth'].append(muon_evt[1].ring_width.value)
+            
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here
     #if pp is not None:
     #    pp.close()
 
-    #plot_muon_efficiency(muons)
+    t = Table([muoneff, impactp, ringwidth], names=('MuonEff','ImpactP','RingWidth'), meta={'name': 'muon analysis results'})
+    t['ImpactP'].unit = 'm'
+    t['RingWidth'].unit = 'deg'
+    #    print('plotdict',plot_dict)
+    t.write(args.output_path+'_muontable.fits',overwrite=True)
+
+    plot_muon_efficiency(plot_dict,args.output_path)
 
     log.info("[COMPLETE]")
 

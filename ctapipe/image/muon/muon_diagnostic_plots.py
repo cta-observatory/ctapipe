@@ -6,15 +6,18 @@ For generic use with all muon algorithms
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
 from matplotlib import colors
+from scipy.stats import norm
 from astropy import units as u
+from astropy.table import Table
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
 
 from ctapipe.plotting.camera import CameraPlotter
 
-def plot_muon_efficiency(source):
+def plot_muon_efficiency(evt_dict,outputpath):
 
     """
     Plot the muon efficiencies
@@ -22,40 +25,70 @@ def plot_muon_efficiency(source):
     fig,ax = plt.subplots(1,1,figsize=(10,10))
     figip,axip = plt.subplots(1,1,figsize=(10,10))
     figrw,axrw = plt.subplots(1,1,figsize=(10,10))
+    
+    #figeff = plt.figure(figsize=(15,5))
+    #pp = PdfPages(outputpath)
+    
+    #mu_eff = []
+    #impact_param = []
+    #ring_width = []
 
-    mu_eff = []
-    impact_param = []
-    ring_width = []
+    #for mu_evt in source:
+    #    print("Running over events...")
+    #    if mu_evt[0] is not None and mu_evt[1] is not None:
+    #        mu_eff.append(mu_evt[1].optical_efficiency_muon)
+    #        impact_param.append(mu_evt[1].impact_parameter/u.m)
+    #        ring_width.append(mu_evt[1].ring_width/u.deg)
 
-    for mu_evt in source:
-        if mu_evt[0] is not None and mu_evt[1] is not None:
-            mu_eff.append(mu_evt[1].optical_efficiency_muon)
-            impact_param.append(mu_evt[1].impact_parameter/u.m)
-            ring_width.append(mu_evt[1].ring_width/u.deg)
+    t = Table.read(outputpath+'_muontable.fits')
+    print('Reading muon efficiency from table',outputpath,t['MuonEff'])
 
-    if len(mu_eff) < 1:
+    if len(evt_dict['MuonEff']) < 1:
         print("No muon events to plot")
         return 
 
-    ax.hist(mu_eff,20)
-    ax.set_xlim(0.2*min(mu_eff),1.2*max(mu_eff))
-    ax.set_ylim(0.,1.2*len(mu_eff))
+    
+    (mu, sigma) = norm.fit(evt_dict['MuonEff'])
+
+
+    #ax = figeff.add_subplot(1,3,1)
+    conteff = ax.hist(evt_dict['MuonEff'],16)
+    ax.set_xlim(0.2*min(evt_dict['MuonEff']),1.2*max(evt_dict['MuonEff']))
+
+    xtest = np.linspace(min(evt_dict['MuonEff']),max(evt_dict['MuonEff']),16)
+    yg = mlab.normpdf(xtest,mu,sigma)
+    print('mu',mu,'sigma',sigma,'yg',yg)
+    ax.plot(xtest,yg,'r',linewidth=2)
+
+    ax.set_ylim(0.,1.2*max(conteff[0]))
     ax.set_xlabel('Muon Efficiency')
-    plt.figure(fig.number)
+    #plt.figure(fig.number)
+    #plt.draw()
 
-    axip.hist(impact_param,20)
-    axip.set_xlim(0.2*min(impact_param),1.2*max(impact_param))
-    axip.set_ylim(0.,1.2*len(impact_param))
+
+    #axip = figeff.add_subplot(1,3,1)
+    contimp = axip.hist(evt_dict['ImpactP'],16)
+    axip.set_xlim(0.2*min(evt_dict['ImpactP']),1.2*max(evt_dict['ImpactP']))
+    axip.set_ylim(0.,1.2*max(contimp[0]))
     axip.set_xlabel('Impact Parameter (m)')
-    plt.figure(figip.number)
+    #plt.figure(figip.number)
+    #plt.draw()
 
-    axrw.hist(ring_width,20)
-    axrw.set_xlim(0.2*min(ring_width),1.2*max(ring_width))
-    axrw.set_ylim(0.,1.2*len(ring_width))
+
+
+    #axrw = figeff.add_subplot(1,3,1)
+    contrw = axrw.hist(evt_dict['RingWidth'],16)
+    axrw.set_xlim(0.2*min(evt_dict['RingWidth']),1.2*max(evt_dict['RingWidth']))
+    axrw.set_ylim(0.,1.2*max(contrw[0]))
     axrw.set_xlabel('Ring Width ($^\circ$)')
-    plt.figure(figrw.number)
-
-    plt.show()
+    #plt.figure(figrw.number)
+    #plt.draw()
+    if outputpath is not None:
+        fig.savefig(outputpath+'_MuonEff.png')
+        figip.savefig(outputpath+'_ImpactParameter.png')
+        figrw.savefig(outputpath+'_RingWidth.png')
+    else:
+        plt.show()
 
 
 
