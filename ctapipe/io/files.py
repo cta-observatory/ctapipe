@@ -38,7 +38,7 @@ from ctapipe.io.hessio import hessio_event_source
 
 
 def targetio_source(filepath, max_events=None, allowed_tels=None,
-                    requested_event=None, request_event_id=False):
+                    requested_event=None, use_event_id=False):
     """
     Temporary function to return a "source" generator from a targetio file,
     only if targetpipe exists on this python interpreter.
@@ -53,7 +53,7 @@ def targetio_source(filepath, max_events=None, allowed_tels=None,
         select only a subset of telescope, if None, all are read.
     requested_event : int
         Seek to a paricular event index
-    request_event_id : bool
+    use_event_id : bool
         If True ,'requested_event' now seeks for a particular event id instead
         of index
 
@@ -74,7 +74,7 @@ def targetio_source(filepath, max_events=None, allowed_tels=None,
             return targetio_event_source(filepath, max_events=max_events,
                                          allowed_tels=allowed_tels,
                                          requested_event=requested_event,
-                                         request_event_id=request_event_id)
+                                         use_event_id=use_event_id)
         else:
             raise RuntimeError()
     except RuntimeError:
@@ -209,7 +209,7 @@ class InputFile:
                                         max_events=self._max_events,
                                         allowed_tels=allowed_tels,
                                         requested_event=requested_event,
-                                        request_event_id=use_event_id),
+                                        use_event_id=use_event_id),
         }
         try:
             source = switch[self.origin]()
@@ -220,7 +220,7 @@ class InputFile:
 
         return source
 
-    def get_event(self, requested_event, request_event_id=False):
+    def get_event(self, requested_event, use_event_id=False):
         """
         Loop through events until the requested event is found
 
@@ -228,7 +228,7 @@ class InputFile:
         ----------
         requested_event : int
             Seek to a paricular event index
-        request_event_id : bool
+        use_event_id : bool
             If True ,'requested_event' now seeks for a particular event id
             instead of index
 
@@ -238,7 +238,7 @@ class InputFile:
 
         """
         source = self.read(requested_event=requested_event,
-                           use_event_id=request_event_id)
+                           use_event_id=use_event_id)
         event = next(source)
         return deepcopy(event)
 
