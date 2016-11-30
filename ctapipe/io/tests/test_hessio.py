@@ -19,7 +19,7 @@ def test_get_specific_event():
     assert event.count == 2
     assert event.dl0.event_id == 803
     source = hessio_event_source(dataset, requested_event=803,
-                                 request_event_id=True)
+                                 use_event_id=True)
     event = next(source)
     assert event.count == 2
     assert event.dl0.event_id == 803

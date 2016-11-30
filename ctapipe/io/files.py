@@ -169,7 +169,7 @@ class InputFile:
         return self._event_id_list
 
     def read(self, allowed_tels=None, requested_event=None,
-             request_event_id=False):
+             use_event_id=False):
         """
         Read the file using the appropriate method depending on the file origin
 
@@ -182,7 +182,7 @@ class InputFile:
             they are all interleaved into one file)
         requested_event : int
             Seek to a paricular event index
-        request_event_id : bool
+        use_event_id : bool
             If True ,'requested_event' now seeks for a particular event id
             instead of index
 
@@ -203,13 +203,13 @@ class InputFile:
                                             max_events=self._max_events,
                                             allowed_tels=allowed_tels,
                                             requested_event=requested_event,
-                                            request_event_id=request_event_id),
+                                            use_event_id=use_event_id),
             'targetio':
                 lambda: targetio_source(self.input_path,
                                         max_events=self._max_events,
                                         allowed_tels=allowed_tels,
                                         requested_event=requested_event,
-                                        request_event_id=request_event_id),
+                                        request_event_id=use_event_id),
         }
         try:
             source = switch[self.origin]()
@@ -238,7 +238,7 @@ class InputFile:
 
         """
         source = self.read(requested_event=requested_event,
-                           request_event_id=request_event_id)
+                           use_event_id=request_event_id)
         event = next(source)
         return deepcopy(event)
 
