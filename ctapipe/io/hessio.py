@@ -28,7 +28,9 @@ __all__ = [
     'hessio_event_source',
 ]
 
-def hessio_event_source(url, max_events=None, allowed_tels=None):
+
+def hessio_event_source(url, max_events=None, allowed_tels=None,
+                        requested_event=None, request_event_id=False):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -43,7 +45,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
         be used for example emulate the final CTA data format, where there
         would be 1 telescope per file (whereas in current monte-carlo,
         they are all interleaved into one file)
-
+    requested_event : int
+        Seek to a paricular event index
+    request_event_id : bool
+        If True ,'requested_event' now seeks for a particular event id instead
+        of index
     """
     try:
         with open_hessio(url) as pyhessio:
@@ -61,6 +67,15 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
             data.meta['hessio__max_events'] = max_events
 
             for event_id in eventstream:
+
+                # Seek to requested event
+                if requested_event is not None:
+                    current = counter
+                    if request_event_id:
+                        current = event_id
+                    if not current == requested_event:
+                        counter += 1
+                        continue
 
                 data.dl0.run_id = pyhessio.get_run_number()
                 data.dl0.event_id = event_id
