@@ -6,7 +6,6 @@ from numba import jit
 
 from .camera import CameraGeometry
 
-from ctapipe.utils.linalg import rotation_matrix_2d
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
     """
@@ -19,7 +18,7 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
         cam_angle : astropy.Quantity (default: 0 degrees)
             some cameras have a weird rotation of their grid
             this needs to be corrected since the skewing is performed along the y-axis
-            therefore one of the slanted base-vectors needs to be parallel to the y-axis
+            therefore, one of the slanted base-vectors needs to be parallel to the y-axis
         base_angle : astropy.Quantity (default: 60 degrees)
             the skewing angle of the hex-grid. should be 60° for regular hexagons
 
@@ -32,7 +31,9 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
     tan_angle = np.tan(base_angle)
 
     '''
-    if the camera grid is rotated as a whole, we have to undo that too: '''
+    if the camera grid is rotated as a whole, we have to undo that too
+    the -270 degrees are chosen so that the rotated/slanted image has about the same
+    orientation as the original'''
     if cam_angle != 0*u.deg:
         sin_angle = np.sin(cam_angle-270*u.deg)
         cos_angle = np.cos(cam_angle-270*u.deg)
@@ -42,8 +43,8 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
         angle and a sheer S along a certain axis:
 
          r'  = S * R * r
-        (x') = (1       0) * (cos -sin) * (x) = (cos -sin        -sin      ) * (x)
-        (y')   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan + cos)   (y)
+        (x') = (   1    0) * (cos -sin) * (x) = (    cos         -sin    ) * (x)
+        (y')   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan+cos)   (y)
         TODO put that in latex...
         '''
 
@@ -72,7 +73,7 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
         cam_angle : astropy.Quantity (default: 0 degrees)
             some cameras have a weird rotation of their grid
             this needs to be corrected since the skewing is performed along the y-axis
-            therefore one of the slanted base-vectors needs to be parallel to the y-axis
+            therefore, one of the slanted base-vectors needs to be parallel to the y-axis
         base_angle : astropy.Quantity (default: 60 degrees)
             the skewing angle of the hex-grid. should be 60° for regular hexagons
 
@@ -100,8 +101,8 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
         so that
         r = R' * S' * S * R * r = R' * S'*  r'
 
-        (x) = ( cos sin) * (1      0) * (x') = (cos+sin/tan  sin) * (x)
-        (y)   (-sin cos)   (1/tan  1)   (y')   (cos/tan-sin  cos)   (y)
+        (x) = ( cos sin) * (  1    0) * (x') = (cos+sin/tan  sin) * (x')
+        (y)   (-sin cos)   (1/tan  1)   (y')   (cos/tan-sin  cos)   (y')
         TODO put that in latex...
         '''
 
@@ -204,66 +205,155 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
 rot_buffer = {}
 def convert_geometry_1d_to_2d(geom, signal, key=None):
+    """
+        converts the geometry object of a camera with a hexagonal grid into a square grid
+        by slanting and stretching
+        the 1D arrays of pixel x and y positions and signal intensities are converted to
+        2D arrays. If the signal array contains a time-dimension it is conserved.
+
+        Parameters:
+        -----------
+        geom : CameraGeometry object
+            geometry object of hexagonal cameras
+        signal : ndarray
+            1D (no timing) or 2D (with timing) array of the pmt signals
+        key : (default: None)
+            arbitrary key to store the transformed geometry in a buffer
+
+        Returns:
+        --------
+        new_geom : CameraGeometry object
+            geometry object of the slanted picture now with a rectangular grid and a 2D
+            grid for the pixel positions
+            contains now a 2D masking array signifying which of the pixels came from the
+            original geometry and which are simply fillers from the rectangular grid
+        square_img : ndarray
+            2D (no timing) or 3D (with timing) array of the pmt signals
+
+    """
 
     if key in rot_buffer:
-        (rot_x, rot_y, x_edges, y_edges, square_mask, x_scale) = rot_buffer[key]
+        '''
+        if the conversion with this key was done and stored before, just read it in '''
+        (rot_x, rot_y, x_edges, y_edges, new_geom, x_scale) = rot_buffer[key]
     else:
+        '''
+        otherwise, we have to do the conversion now
+        first, skey all the coordinates of the original geometry '''
         rot_x, rot_y = unskew_hex_pixel_grid(geom.pix_x, geom.pix_y,
                                              geom.cam_rotation)
 
+        '''
+        with all the coordinate points, we can define the bin edges of a 2D histogram '''
         x_edges, y_edges, x_scale = get_orthogonal_grid_edges(rot_x, rot_y)
 
-        square_mask = np.histogramdd([rot_x, rot_y],
-                                     bins=(x_edges, y_edges))[0]
+        '''
+        this histogram will introduce bins that do not correspond to any pixel from the
+        original geometry. so we create a mask to remember the true camera pixels by
+        simply throwing all pixel positions into numpy.histogramdd: proper pixels contain
+        the value 1, false pixels the value 0.'''
+        square_mask = np.histogramdd([rot_y, rot_x],
+                                     bins=(y_edges, x_edges))[0]
+
+        '''
+        to be consistent with the pixel intensity, instead of saving only the rotated
+        positions of the true pixels (rot_x and rot_y), create 2D arrays of all x and y
+        positions (also the false ones). '''
+        grid_x, grid_y = np.meshgrid((x_edges[:-1] + x_edges[1:])/2.,
+                                     (y_edges[:-1] + y_edges[1:])/2.)
+
+        ids = []
+        # instead of blindly enumerating all pixels, let's instead store a list of all
+        # valid -- i.e. picked by the mask -- 2D indices
+        for i, row in enumerate(square_mask):
+            for j, val in enumerate(row):
+                if val is True:
+                    ids.append((i, j))
+
+        ''' the area of the pixels (note that this is still a deformed image) '''
+        pix_area = np.ones_like(grid_x) \
+            * (x_edges[1]-x_edges[0]) * (y_edges[1]-y_edges[0])
+
+        ''' creating a new geometry object with the attributes we just determined '''
+        new_geom = CameraGeometry(
+            cam_id=geom.cam_id,
+            pix_id=ids,  # this is a list of all the valid coordinate pairs now
+            pix_x=grid_x * u.m,
+            pix_y=grid_y * u.m,
+            pix_area=pix_area * u.m**2,
+            neighbors=None,  # TODO? ... it's a 2D grid after all ...
+            pix_type='rectangular')
+
+        ''' storing the pixel mask and camera rotation for later use '''
+        new_geom.mask = square_mask
+        new_geom.cam_rotation = geom.cam_rotation
 
         if key is not None:
-            rot_buffer[key] = (rot_x, rot_y, x_edges, y_edges, square_mask, x_scale)
+            ''' if a key is given, store the essential objects in a buffer '''
+            rot_buffer[key] = (rot_x, rot_y, x_edges, y_edges, new_geom, x_scale)
 
-    square_img = np.histogramdd([rot_x, rot_y],
-                                bins=(x_edges, y_edges),
-                                weights=signal)[0]
-
-    ids = []
-    for i, row in enumerate(square_mask):
-        for j, val in enumerate(row):
-            if val is True:
-                ids.append((i, j))
-
-    grid_x, grid_y = np.meshgrid((x_edges[:-1] + x_edges[1:])/2.,
-                                 (y_edges[:-1] + y_edges[1:])/2.)
-
-    pix_area = np.ones_like(grid_x) \
-        * (x_edges[1]-x_edges[0]) * (y_edges[1]-y_edges[0])
-
-    new_geom = CameraGeometry(
-        cam_id=geom.cam_id,
-        pix_id=ids,  # this is a list of all the valid coordinate pairs now
-        pix_x=grid_x * u.m,
-        pix_y=grid_y * u.m,
-        pix_area=pix_area * u.m**2,
-        neighbors=None,  # TODO? ... it's a 2D grid after all ...
-        pix_type='rectangular')
-
-    new_geom.mask = square_mask.T
-    new_geom.cam_rotation = geom.cam_rotation
-
-    return new_geom, square_img.T
-
-
-def convert_geometry_back(geom, signal, key, foc_len):
-
-    if key in rot_buffer:
-        x_scale = rot_buffer[key][-1]
+    '''
+    resample the signal array to correspond to the square grid -- for signal arrays
+    containing time slices (ndim > 1) or not
+    approach is the same as used for the mask only with the signal as bin-weights '''
+    if signal.ndim > 1:
+        t_dim = signal.shape[1]
+        square_img = np.histogramdd([np.repeat(rot_y, t_dim),
+                                     np.repeat(rot_x, t_dim),
+                                     [a for a in range(t_dim)]*len(rot_x)],
+                                    bins=(y_edges, x_edges, range(t_dim+1)),
+                                    weights=signal.ravel())[0]
     else:
-        raise Exception("key '{}' not found in the buffer".format(key))
+        square_img = np.histogramdd([rot_y, rot_x],
+                                    bins=(y_edges, x_edges),
+                                    weights=signal)[0]
 
-    grid_x, grid_y = geom.pix_x / x_scale, geom.pix_y
+    return new_geom, square_img
+
+
+unrot_buffer = {}
+def convert_geometry_back(geom, signal, key, foc_len):
+    """
+        reverts the geometry distortion performed by convert_geometry_1d_to_2d
+        back to a hexagonal grid stored in 1D arrays
+
+        Parameters:
+        ----------
+        geom : CameraGeometry
+            geometry object where pixel positions are stored in a 2D
+            rectangular camera grid
+        signal : ndarray
+            pixel intensity stored in a 2D rectangular camera grid
+        key
+            key to retrieve buffered geometry information
+        foc_len : astropy.Quantity in metres
+            focal length of the telescope used to retrieve the original geometry through
+            CameraGeometry.guess
+
+        Returns:
+        --------
+        unrot_geom : CameraGeometry
+            pixel rotated back to a hexagonal grid stored in a 1D array
+        signal : ndarray
+            1D (no timing) or 2D (with timing) array of the pmt signals
+    """
+
     square_mask = geom.mask
 
-    unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask == 1],
-                                             grid_y[square_mask == 1],
-                                             geom.cam_rotation)
+    if key in unrot_buffer:
+        unrot_geom = unrot_buffer[key]
+    else:
+        if key in rot_buffer:
+            x_scale = rot_buffer[key][-1]
+        else:
+            raise Exception("key '{}' not found in the buffer".format(key))
 
-    unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len)
+        grid_x, grid_y = geom.pix_x / x_scale, geom.pix_y
 
-    return unrot_geom, signal[square_mask == 1]
+        unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask == 1],
+                                                 grid_y[square_mask == 1],
+                                                 geom.cam_rotation)
+        unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len)
+        unrot_buffer[key] = unrot_geom
+
+    return unrot_geom, signal[square_mask == 1, ...]

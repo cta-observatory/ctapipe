@@ -7,6 +7,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.io import CameraGeometry, convert_geometry_1d_to_2d, convert_geometry_back
 
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.image.cleaning import tailcuts_clean
 
 from ctapipe.visualization import CameraDisplay
 
@@ -53,6 +54,7 @@ def test_convert_geometry():
             print(tel_id, cam_geom[tel_id].pix_type)
 
             pmt_signal = apply_mc_calibration(
+                        #event.dl0.tel[tel_id].adc_samples[0],
                         event.dl0.tel[tel_id].adc_sums[0],
                         event.mc.tel[tel_id].dc_to_pe[0],
                         event.mc.tel[tel_id].pedestal[0])
@@ -65,6 +67,18 @@ def test_convert_geometry():
                 event.inst.optical_foclen[tel_id])
 
             '''
+            do some tailcuts cleaning '''
+            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
+                                   picture_thresh=10.,
+                                   boundary_thresh=5.)
+
+            mask2 = tailcuts_clean(unrot_geom, unrot_signal, 1,
+                                   picture_thresh=10.,
+                                   boundary_thresh=5.)
+            pmt_signal[mask1==False] = 0
+            unrot_signal[mask2==False] = 0
+
+            '''
             testing back and forth conversion on hillas parameters... '''
             try:
                 moments1 = hillas_parameters(cam_geom[tel_id].pix_x,
@@ -74,43 +88,60 @@ def test_convert_geometry():
                 moments2 = hillas_parameters(unrot_geom.pix_x,
                                              unrot_geom.pix_y,
                                              unrot_signal)[0]
+            except (HillasParameterizationError, AssertionError) as e:
                 '''
                 we don't want this test to fail because the hillas code threw an error '''
-            except (HillasParameterizationError, AssertionError):
-                continue
+                print(e)
+                counter -= 1
+                if counter < 0:
+                    return
+                else:
+                    continue
 
             if __name__ == "__main__":
                 try:
-                    np.testing.assert_allclose([moments1.length, moments1.width],
-                                               [moments1.length, moments1.width])
+                    np.testing.assert_allclose(
+                        [moments1.length, moments1.width, moments1.phi],
+                        [moments2.length, moments2.width, moments2.phi],
+                        rtol=1e-2, atol=1e-2)
                 except Exception as e:
-                    print("caught exception: {}".format(e))
+                    print(e)
 
                 fig = plt.figure()
                 plt.style.use('seaborn-talk')
 
                 ax1 = fig.add_subplot(131)
-                disp1 = CameraDisplay(cam_geom[tel_id], image=pmt_signal, ax=ax1)
+                disp1 = CameraDisplay(cam_geom[tel_id],
+                                      image=np.sum(pmt_signal, axis=1)
+                                      if pmt_signal.shape[-1] == 25 else pmt_signal,
+                                      ax=ax1)
                 disp1.cmap = plt.cm.hot
                 disp1.add_colorbar()
                 plt.title("original geometry")
 
                 ax2 = fig.add_subplot(132)
-                disp2 = CameraDisplay(new_geom, image=new_signal, ax=ax2)
+                disp2 = CameraDisplay(new_geom,
+                                      image=np.sum(new_signal, axis=2)
+                                      if new_signal.shape[-1] == 25 else new_signal,
+                                      ax=ax2)
                 disp2.cmap = plt.cm.hot
                 disp2.add_colorbar()
                 plt.title("slanted geometry")
 
                 ax3 = fig.add_subplot(133)
-                disp3 = CameraDisplay(unrot_geom, image=unrot_signal, ax=ax3)
+                disp3 = CameraDisplay(unrot_geom, image=np.sum(unrot_signal, axis=1)
+                                      if unrot_signal.shape[-1] == 25 else unrot_signal,
+                                      ax=ax3)
                 disp3.cmap = plt.cm.hot
                 disp3.add_colorbar()
                 plt.title("geometry converted back to hex")
 
                 plt.show()
             else:
-                np.testing.assert_allclose([moments1.length, moments1.width],
-                                           [moments1.length, moments1.width])
+                np.testing.assert_allclose(
+                    [moments1.length, moments1.width, moments1.phi],
+                    [moments2.length, moments2.width, moments2.phi],
+                    rtol=1e-2, atol=1e-2)
                 counter -= 1
                 if counter < 0:
                     return
