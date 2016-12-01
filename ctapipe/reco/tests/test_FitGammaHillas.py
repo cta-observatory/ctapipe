@@ -76,9 +76,10 @@ def test_FitGammaHillas():
 
             if tel_id not in cam_geom:
                 cam_geom[tel_id] = CameraGeometry.guess(
-                                    event.meta.pixel_pos[tel_id][0],
-                                    event.meta.pixel_pos[tel_id][1],
-                                    event.meta.optical_foclen[tel_id])
+                                        event.inst.pixel_pos[tel_id][0],
+                                        event.inst.pixel_pos[tel_id][1],
+                                        event.inst.optical_foclen[tel_id])
+
                 tel_phi[tel_id] = 180.*u.deg
                 tel_theta[tel_id] = 20.*u.deg
 
@@ -89,8 +90,8 @@ def test_FitGammaHillas():
             pmt_signal[mask is False] = 0
 
             try:
-                moments = hillas_parameters(event.meta.pixel_pos[tel_id][0],
-                                            event.meta.pixel_pos[tel_id][1],
+                moments = hillas_parameters(event.inst.pixel_pos[tel_id][0],
+                                            event.inst.pixel_pos[tel_id][1],
                                             pmt_signal)[0]
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
@@ -99,7 +100,7 @@ def test_FitGammaHillas():
 
         if len(hillas_dict) < 2: continue
 
-        fit_result = fit.predict(hillas_dict, event.meta, tel_phi, tel_theta)
+        fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
 
         print(fit_result)
         fit_result.alt.to(u.deg)

@@ -190,7 +190,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         # super().__init__()
         self.circles = {}
 
-    def predict(self, hillas_dict, meta, tel_phi, tel_theta, seed_pos=(0, 0)):
+    def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):
         '''
             The function you want to call for the reconstruction
             of the event. It takes care of setting up the event
@@ -209,7 +209,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 the core position fit (e.g. CoG of all telescope images)
         '''
 
-        self.get_great_circles(hillas_dict, meta, tel_phi, tel_theta)
+        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
         ''' algebraic direction estimate '''
         dir1 = self.fit_origin_crosses()[0]
         ''' direction estimate using numerical minimisation '''
@@ -240,7 +240,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return result
 
-    def get_great_circles(self, hillas_dict, meta, tel_phi, tel_theta):
+    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
@@ -251,11 +251,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 guess_pix_direction(np.array([moments.cen_x, p2_x])*u.m,
                                     np.array([moments.cen_y, p2_y])*u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
-                                    meta.optical_foclen[tel_id]
+                                    inst.optical_foclen[tel_id]
                                     ),
                 moments.size * (moments.length/moments.width)
                                 )
-            circle.pos = meta.tel_pos[tel_id]
+            circle.pos = inst.tel_pos[tel_id]
             self.circles[tel_id] = circle
 
     def fit_origin_crosses(self):
