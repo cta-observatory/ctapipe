@@ -27,9 +27,6 @@ def apply_mc_calibration(adcs, gains, peds):
 def test_convert_geometry():
     filename = get_path("gamma_test.simtel.gz")
 
-    import glob
-    filename = glob.glob("/local/home/tmichael/Data/cta/ASTRI9/gamma/*")[0]
-
     cam_geom = {}
 
     source = hessio_event_source(filename)
