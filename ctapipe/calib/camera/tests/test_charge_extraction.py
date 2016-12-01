@@ -11,7 +11,7 @@ from ctapipe.calib.camera.charge_extraction import FullIntegrator, \
 def get_test_event():
     filename = get_path('gamma_test.simtel.gz')
     source = hessio_event_source(filename, requested_event=409,
-                                 request_event_id=True)
+                                 use_event_id=True)
     event = next(source)
     return event
 
@@ -19,9 +19,9 @@ def get_test_event():
 def test_full_integration():
     telid = 11
     event = get_test_event()
-    nsamples = event.dl0.tel[telid].num_samples
+    nsamples = event.inst.num_samples[telid]
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
-    ped = event.dl0.tel[telid].pedestal
+    ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -38,8 +38,8 @@ def test_simple_integration():
     telid = 11
     event = get_test_event()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
-    ped = event.dl0.tel[telid].pedestal
-    nsamples = event.dl0.tel[telid].num_samples
+    ped = event.mc.tel[telid].pedestal
+    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -56,8 +56,8 @@ def test_global_peak_integration():
     telid = 11
     event = get_test_event()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
-    ped = event.dl0.tel[telid].pedestal
-    nsamples = event.dl0.tel[telid].num_samples
+    ped = event.mc.tel[telid].pedestal
+    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -74,8 +74,8 @@ def test_local_peak_integration():
     telid = 11
     event = get_test_event()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
-    ped = event.dl0.tel[telid].pedestal
-    nsamples = event.dl0.tel[telid].num_samples
+    ped = event.mc.tel[telid].pedestal
+    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -92,12 +92,12 @@ def test_nb_peak_integration():
     telid = 11
     event = get_test_event()
     data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
-    ped = event.dl0.tel[telid].pedestal
-    nsamples = event.dl0.tel[telid].num_samples
+    ped = event.mc.tel[telid].pedestal
+    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
-    geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                event.meta.optical_foclen[telid])
+    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                event.inst.optical_foclen[telid])
     nei = geom.neighbors
 
     integrator = NeighbourPeakIntegrator(data_ped, nei, None)
