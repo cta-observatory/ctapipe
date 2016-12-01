@@ -29,8 +29,8 @@ def test_CutFlow():
     if flow.cut("smaller5", 4):
         pass
 
-    t = flow()
-    assert np.all( t["selected Events"] == [4,3,2,1] )
+    t = flow(sort_column=1)
+    assert np.all(t["selected Events"] == [4, 3, 2, 1])
 
     with raises(UndefinedCutException):
         flow.cut("undefined", 5)

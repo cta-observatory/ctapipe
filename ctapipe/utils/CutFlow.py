@@ -167,6 +167,7 @@ class CutFlow():
 
         if sort_column:
             t.sort(t.colnames[sort_column])
+            t.reverse()
         if sort_reverse:
             t.reverse()
         return t
