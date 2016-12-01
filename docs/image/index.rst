@@ -31,5 +31,5 @@ Reference/API
 .. automodapi:: ctapipe.image
     :no-inheritance-diagram:
 
-.. automodapi:: ctapipe.image.mock
+.. automodapi:: ctapipe.image.toymodel
     :no-inheritance-diagram:
