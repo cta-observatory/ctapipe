@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from ctapipe.core.component import Component
 from abc import abstractmethod
 
@@ -108,12 +110,16 @@ class Factory(Component):
                                                     self.get_factory_name()))
         try:
             product = subclass_dict[self.get_product_name()]
-
-            # Copy factory traits to product
-            c = self.__dict__['_trait_values']['config']
-            c[self.get_product_name()] = c[self.get_factory_name()]
-            return product
         except KeyError:
             self.log.exception('No product found with name "{}" for '
                                'factory.'.format(self.get_product_name()))
             raise
+
+        # Copy factory traits to product
+        c = self.__dict__['_trait_values']['config']
+        c[self.get_product_name()] = deepcopy(c[self.get_factory_name()])
+        keys = list(c[self.get_product_name()].keys())
+        for key in keys:
+            if key not in product.class_trait_names():
+                del c[self.get_product_name()][key]
+        return product
