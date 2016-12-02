@@ -109,7 +109,7 @@ class WindowIntegrator(Integrator):
     window_width = Int(7, help='Define the width of the integration '
                                'window').tag(config=True)
 
-    def __init__(self, waveforms, parent, **kwargs):
+    def __init__(self, waveforms, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
 
     def get_window_width(self):
@@ -137,7 +137,7 @@ class PeakFindingIntegrator(WindowIntegrator):
     name = 'PeakFindingIntegrator'
     window_shift = Int(3, help='Define the shift of the integration window '
                                'from the peakpos '
-                               '(peakpos - shift').tag(config=True)
+                               '(peakpos - shift)').tag(config=True)
     sig_amp_cut_HG = Int(2, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
@@ -224,6 +224,10 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
 
     def __init__(self, waveforms, nei=None, parent=None, **kwargs):
         super().__init__(waveforms, parent=parent, **kwargs)
+        self.log.info("test")
+        if nei is None:
+            self.log.exception("nei must be specified")
+            raise ValueError()
         self.nei = nei
 
     @staticmethod
@@ -248,38 +252,38 @@ class ChargeExtractorFactory(Factory):
     name = "ChargeExtractorFactory"
     description = "Obtain ChargeExtractor based on extractor traitlet"
 
-    # noinspection PyTypeChecker
-    subclasses = Factory.all_subclasses(ChargeExtractor)
+    subclasses = Factory.child_subclasses(ChargeExtractor)
     subclass_names = [c.__name__ for c in subclasses]
 
     extractor = Unicode('NeighbourPeakIntegrator',
                         help='Charge extraction scheme to use: {}'
                         .format(subclass_names)).tag(config=True)
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
-        self.product = None
+    # Product classes traits
+    # Would be nice to have these automatically set...!
+    window_width = Int(7, help='Define the width of the integration '
+                               'window. Only applicable to '
+                               'WindowIntegrators.').tag(config=True)
+    window_start = Int(3, help='Define the start of the integration '
+                               'window. Only applicable to '
+                               'SimpleIntegrators.').tag(config=True)
+    window_shift = Int(3, help='Define the shift of the integration window '
+                               'from the peakpos (peakpos - shift). Only '
+                               'applicable to '
+                               'PeakFindingIntegrators.').tag(config=True)
+    sig_amp_cut_HG = Int(2, allow_none=True,
+                         help='Define the cut above which a sample is '
+                              'considered as significant for PeakFinding '
+                              'in the HG channel. Only applicable to '
+                              'PeakFindingIntegrators.').tag(config=True)
+    sig_amp_cut_LG = Int(4, allow_none=True,
+                         help='Define the cut above which a sample is '
+                              'considered as significant for PeakFinding '
+                              'in the LG channel. Only applicable to '
+                              'PeakFindingIntegrators.').tag(config=True)
+
+    def get_factory_name(self):
+        return self.name
 
     def get_product_name(self):
         return self.extractor
-
-    def init_product(self, product_name=None):
-        if not product_name:
-            product_name = self.get_product_name()
-        for subclass in self.subclasses:
-            if subclass.__name__ == product_name:
-                self.product = subclass
-                return subclass
-        raise KeyError('No subclass exists with name: '
-                       '{}'.format(self.get_product_name()))
-
-    def get_product(self, waveforms=None, nei=None,
-                    parent=None, config=None, **kwargs):
-        if waveforms is None:
-            raise ValueError("waveforms must be specified")
-        if not self.product:
-            self.init_product()
-        product = self.product
-        object_instance = product(waveforms=waveforms, nei=nei,
-                                  parent=parent, config=config, **kwargs)
-        return object_instance

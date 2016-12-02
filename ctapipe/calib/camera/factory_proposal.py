@@ -3,24 +3,27 @@ from abc import abstractmethod
 
 
 class Factory(Component):
+    # TODO: obtain traits automatically for the classes that can be produced
     """
     A base class for all class factories that exist in the `Tools`/`Components`
     frameworks.
 
-    It operates on the assumption that all possible class products of the
-    factory are a base child of a singular parent class, and have no further
-    children of themselves.
+    Either maunally set "subclasses" as a list of the classes that you wish
+    to be inside the factory, or set it to
+    Factory.child_subclasses(ParentClass). Using that static method will
+    obtain all the lowest-level child classes from the parent class.
 
-    When the factory class is specified in the `factories` Dict inside a `Tool`
-    the factory discriminator trailet is evaluated, and the resultant product
-    class is obtained (using `init_product()`) and added to the `classes` List.
-    All the traitlets of the class is automatically added to the `aliases`
-    Dict. This allows dynamic definition of command-line arguments depending
-    on the factory discriminator traitlet.
+    You must manually specify the discriminator trait (which is what you
+    set at run-time to choose the product you wish to obtain from the factory)
+    and the traits of all the classes that are possible to obtain from the
+    factory. Perhaps in the future these can be obtained automatically.
 
-    To then obtain an instance of the product class, use `get_product()`, an
-    abstract method that should be defined with the relavant arguments for
-    the class.
+    You must also return the factory name in get_factory_name(), and the
+    discriminator in get_product_name() in your custom Factory class.
+
+    To then obtain the product class from the factory, use 'get_class()",
+    which can be used to then initialise the class. The correct traits
+    from the correspoding product are set automatically from the factory.
 
     .. code:: python
 
@@ -35,22 +38,19 @@ class Factory(Component):
         subclass_names = [c.__name__ for c in subclasses]
 
         discriminator = Unicode('DefaultProduct',
-                                 help='Product to obtain: {}'
-                                 .format(subclass_names)).tag(config=True)
+                         help='Product to obtain: {}'
+                         .format(subclass_names)).tag(config=True)
+
+        # Product classes traits
+        # Would be nice to have these automatically set...!
+        product_trait1 = Int(7, help="").tag(config=True)
+        product_trait2 = Int(7, help="").tag(config=True)
+
+        def get_factory_name(self):
+            return self.name
 
         def get_product_name(self):
             return self.discriminator
-
-        def get_product(self, product_args=None, parent=None,
-                        config=None, **kwargs):
-            if not self.product:
-                self.init_product()
-            product = self.product
-            object_instance = product(product_args, parent=parent,
-                                      config=config, **kwargs)
-            return object_instance
-
-
     """
     subclasses = None  # Set to all_subclasses(ParentClass) in factory
     subclass_names = None  # Set to [c.__name__ for c in subclasses] in factory
@@ -60,7 +60,7 @@ class Factory(Component):
         self.product = None
 
     @staticmethod
-    def all_subclasses(cls):
+    def child_subclasses(cls):
         """
         Return all base subclasses of a parent class. Finds the bottom level
         subclasses that have no further children.
@@ -75,8 +75,10 @@ class Factory(Component):
             list of bottom level subclasses
 
         """
-        return cls.__subclasses__() + [g for s in cls.__subclasses__()
-                                       for g in Factory.all_subclasses(s)]
+        family = cls.__subclasses__() + [g for s in cls.__subclasses__()
+                                         for g in Factory.child_subclasses(s)]
+        children = [g for g in family if not g.__subclasses__()]
+        return children
 
     @abstractmethod
     def get_product_name(self):
@@ -85,26 +87,33 @@ class Factory(Component):
         Simply return the discriminator traitlet.
         """
 
-    def init_product(self, product_name=None):
-        if not product_name:
-            product_name = self.get_product_name()
-        for subclass in self.subclasses:
-            if subclass.__name__ == product_name:
-                self.product = subclass
-                return subclass
-        raise KeyError('No subclass exists with name: '
-                       '{}'.format(self.get_product_name))
-
     @abstractmethod
-    def get_product(self):
+    def get_factory_name(self):
         """
         Abstract method to be implemented in child factory.
-        If self.product has not been set, then call self.init_product. Then
-        return a instance of product with the correct arguments passed to it
-        (especially config=config).
-
-        All implementations of this function must have all arguments set with a
-        default so LSV is not violated:
-        https://en.wikipedia.org/wiki/Liskov_substitution_principle
+        Simply return the name of the factory.
         """
-        pass
+
+    def get_class(self):
+        """
+        Obtain the class constructor for the specified product name.
+
+        Returns
+        -------
+        product : class
+
+        """
+        subclass_dict = dict(zip(self.subclass_names, self.subclasses))
+        self.log.info("Obtaining {} from {}".format(self.get_product_name(),
+                                                    self.get_factory_name()))
+        try:
+            product = subclass_dict[self.get_product_name()]
+
+            # Copy factory traits to product
+            c = self.__dict__['_trait_values']['config']
+            c[self.get_product_name()] = c[self.get_factory_name()]
+            return product
+        except KeyError:
+            self.log.exception('No product found with name "{}" for '
+                               'factory.'.format(self.get_product_name()))
+            raise
