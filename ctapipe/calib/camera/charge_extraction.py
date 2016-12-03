@@ -27,7 +27,6 @@ class ChargeExtractor(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        # self._waveforms = None
         self._nchan = None
         self._npix = None
         self._nsamples = None
@@ -95,13 +94,9 @@ class Integrator(ChargeExtractor):
 
     def extract_charge(self, waveforms):
         self.check_neighbour_set()
-
         self._nchan, self._npix, self._nsamples = waveforms.shape
-        w_width = np.zeros((self._nchan, self._npix), dtype=np.intp)
-        w_start = np.zeros((self._nchan, self._npix), dtype=np.intp)
-
-        self._get_window_width(w_width)
-        self._get_window_start(w_start, waveforms)
+        w_width = self._get_window_width()
+        w_start = self._get_window_start(waveforms)
         self._check_window_width_and_start(w_width, w_start)
         window = self._define_window(w_start, w_width)
         windowed_waveforms = self._window_waveforms(waveforms, window)
@@ -111,11 +106,11 @@ class Integrator(ChargeExtractor):
         return charge
 
     @abstractmethod
-    def _get_window_width(self, w_width):
+    def _get_window_width(self):
         """Get the width of the integration window"""
 
     @abstractmethod
-    def _get_window_start(self, w_start, waveforms):
+    def _get_window_start(self, waveforms):
         """Get the starting point for the integration window"""
 
 
@@ -125,11 +120,12 @@ class FullIntegrator(Integrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _get_window_width(self, w_width):
-        w_width[:] = self._nsamples
+    def _get_window_width(self):
+        return np.full((self._nchan, self._npix), self._nsamples,
+                       dtype=np.intp)
 
-    def _get_window_start(self, w_start, waveforms):
-        w_start[:] = 0
+    def _get_window_start(self, waveforms):
+        return np.zeros((self._nchan, self._npix), dtype=np.intp)
 
 
 class WindowIntegrator(Integrator):
@@ -140,11 +136,12 @@ class WindowIntegrator(Integrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _get_window_width(self, w_width):
-        w_width[:] = self.window_width
+    def _get_window_width(self):
+        return np.full((self._nchan, self._npix), self.window_width,
+                       dtype=np.intp)
 
     @abstractmethod
-    def _get_window_start(self, w_start, waveforms):
+    def _get_window_start(self, waveforms):
         """"""
 
 
@@ -156,8 +153,9 @@ class SimpleIntegrator(WindowIntegrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _get_window_start(self, w_start, waveforms):
-        w_start[:] = self.window_start
+    def _get_window_start(self, waveforms):
+        return np.full((self._nchan, self._npix), self.window_start,
+                       dtype=np.intp)
 
 
 class PeakFindingIntegrator(WindowIntegrator):
@@ -178,9 +176,6 @@ class PeakFindingIntegrator(WindowIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
         self._sig_channel = None
         self._sig_pixels = None
-        # self.significant_waveforms = self.waveforms
-        # self.w_shift = np.zeros((self.nchan, self.npix), dtype=np.intp)
-        # self.w_shift[:] = self.window_shift
 
     # Extract significant entries
     def _extract_significant_entries(self, waveforms):
@@ -195,19 +190,17 @@ class PeakFindingIntegrator(WindowIntegrator):
             self.log.error("sigamp value excludes all values in HG channel")
         return waveforms * sig_entries
 
-    def _get_window_start(self, w_start, waveforms):
+    def _get_window_start(self, waveforms):
         significant_samples = waveforms
         if self.sig_amp_cut_HG or self.sig_amp_cut_HG:
             significant_samples = self._extract_significant_entries(waveforms)
-
-        peakpos = np.zeros((self._nchan, self._npix), dtype=np.int)
-        self._find_peak(significant_samples, peakpos)
-
-        w_start[:] = peakpos - self.window_shift
-        self.peakpos = peakpos
+        self.peakpos = self._find_peak(significant_samples)
+        return np.full((self._nchan, self._npix),
+                       self.peakpos - self.window_shift,
+                       dtype=np.intp)
 
     @abstractmethod
-    def _find_peak(self, significant_samples, peakpos):
+    def _find_peak(self, significant_samples):
         """ Find the peak to define window around """
 
 
@@ -217,10 +210,11 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _find_peak(self, significant_samples, peakpos):
+    def _find_peak(self, significant_samples):
         max_t = significant_samples.argmax(2)
         max_s = significant_samples.max(2)
 
+        peakpos = np.zeros((self._nchan, self._npix), dtype=np.int)
         peakpos[0, :] = np.round(np.average(max_t[0], weights=max_s[0]))
         if self._nchan > 1:
             if self._sig_channel[1]:
@@ -230,6 +224,7 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
                 self.log.info("LG not significant, using HG for peak finding "
                               "instead")
                 peakpos[1, :] = peakpos[0]
+        return peakpos
 
 
 class LocalPeakIntegrator(PeakFindingIntegrator):
@@ -238,12 +233,15 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _find_peak(self, significant_samples, peakpos):
-        peakpos[:] = significant_samples.argmax(2)
+    def _find_peak(self, significant_samples):
+        peakpos = np.full((self._nchan, self._npix),
+                          significant_samples.argmax(2),
+                          dtype=np.int)
         sig_pix = self._sig_pixels
         if self._nchan > 1:  # If the LG is not significant, use the HG peakpos
             peakpos[1] = np.where(sig_pix[1] < sig_pix[0],
                                   peakpos[0], peakpos[1])
+        return peakpos
 
 
 class NeighbourPeakIntegrator(PeakFindingIntegrator):
@@ -254,13 +252,12 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        self.neighbours = None
 
     @staticmethod
     def require_neighbour():
         return True
 
-    def _find_peak(self, significant_samples, peakpos):
+    def _find_peak(self, significant_samples):
         sig_sam = significant_samples
         max_num_nei = len(max(self.neighbours, key=len))
         allvals = np.zeros((self._nchan, self._npix,
@@ -270,7 +267,8 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
             allvals[:, ipix, :num_nei, :] = sig_sam[:, neighbours]
             allvals[:, ipix, num_nei, :] = sig_sam[:, ipix] * self.lwt
         sum_data = allvals.sum(2)
-        peakpos[:] = sum_data.argmax(2)
+        return np.full((self._nchan, self._npix), sum_data.argmax(2),
+                       dtype=np.int)
 
 
 class ChargeExtractorFactory(Factory):
