@@ -89,7 +89,7 @@ class Integrator(ChargeExtractor):
 
     @staticmethod
     def _integrate(windowed_waveforms):
-        integration = np.round(windowed_waveforms.sum(2)).astype(np.int)
+        integration = windowed_waveforms.sum(2)
         return integration
 
     def extract_charge(self, waveforms):

@@ -2,6 +2,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 from ctapipe.io import CameraGeometry
 import numpy as np
+from numpy.testing import assert_almost_equal
 
 from ctapipe.calib.camera.charge_extraction import FullIntegrator, \
     SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
@@ -29,8 +30,8 @@ def test_full_integration():
     integration = integrator.extract_charge(data_ped)
     peakpos = integrator.peakpos
 
-    assert integration[0][0] == 149
-    assert integration[1][0] == 149
+    assert_almost_equal(integration[0][0], 149, 0)
+    assert_almost_equal(integration[1][0], 149, 0)
     assert peakpos is None
 
 
@@ -47,8 +48,8 @@ def test_simple_integration():
     integration = integrator.extract_charge(data_ped)
     peakpos = integrator.peakpos
 
-    assert integration[0][0] == 70
-    assert integration[1][0] == 70
+    assert_almost_equal(integration[0][0], 70, 0)
+    assert_almost_equal(integration[1][0], 70, 0)
     assert peakpos is None
 
 
@@ -65,8 +66,8 @@ def test_global_peak_integration():
     integration = integrator.extract_charge(data_ped)
     peakpos = integrator.peakpos
 
-    assert integration[0][0] == 58
-    assert integration[1][0] == 58
+    assert_almost_equal(integration[0][0], 58, 0)
+    assert_almost_equal(integration[1][0], 58, 0)
     assert peakpos[0][0] == 14
     assert peakpos[1][0] == 14
 
@@ -84,8 +85,8 @@ def test_local_peak_integration():
     integration = integrator.extract_charge(data_ped)
     peakpos = integrator.peakpos
 
-    assert integration[0][0] == 76
-    assert integration[1][0] == 76
+    assert_almost_equal(integration[0][0], 76, 0)
+    assert_almost_equal(integration[1][0], 76, 0)
     assert peakpos[0][0] == 13
     assert peakpos[1][0] == 13
 
@@ -108,7 +109,7 @@ def test_nb_peak_integration():
     peakpos = integrator.peakpos
 
     print(integration[0][0])
-    assert integration[0][0] == -64
-    assert integration[1][0] == -64
+    assert_almost_equal(integration[0][0], -64, 0)
+    assert_almost_equal(integration[1][0], -64, 0)
     assert peakpos[0][0] == 20
     assert peakpos[1][0] == 20
