@@ -25,13 +25,13 @@ def test_full_integration():
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = FullIntegrator(data_ped, None)
-    integration, window, peakpos = integrator.extract_charge()
+    integrator = FullIntegrator(None, None)
+    integration = integrator.extract_charge(data_ped)
+    peakpos = integrator.peakpos
 
     assert integration[0][0] == 149
     assert integration[1][0] == 149
-    assert peakpos[0] is None
-    assert peakpos[1] is None
+    assert peakpos is None
 
 
 def test_simple_integration():
@@ -43,13 +43,13 @@ def test_simple_integration():
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = SimpleIntegrator(data_ped, None)
-    integration, window, peakpos = integrator.extract_charge()
+    integrator = SimpleIntegrator(None, None)
+    integration = integrator.extract_charge(data_ped)
+    peakpos = integrator.peakpos
 
     assert integration[0][0] == 70
     assert integration[1][0] == 70
-    assert peakpos[0] is None
-    assert peakpos[1] is None
+    assert peakpos is None
 
 
 def test_global_peak_integration():
@@ -61,8 +61,9 @@ def test_global_peak_integration():
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = GlobalPeakIntegrator(data_ped, None)
-    integration, window, peakpos = integrator.extract_charge()
+    integrator = GlobalPeakIntegrator(None, None)
+    integration = integrator.extract_charge(data_ped)
+    peakpos = integrator.peakpos
 
     assert integration[0][0] == 58
     assert integration[1][0] == 58
@@ -79,8 +80,9 @@ def test_local_peak_integration():
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = LocalPeakIntegrator(data_ped, None)
-    integration, window, peakpos = integrator.extract_charge()
+    integrator = LocalPeakIntegrator(None, None)
+    integration = integrator.extract_charge(data_ped)
+    peakpos = integrator.peakpos
 
     assert integration[0][0] == 76
     assert integration[1][0] == 76
@@ -100,9 +102,12 @@ def test_nb_peak_integration():
                                 event.inst.optical_foclen[telid])
     nei = geom.neighbors
 
-    integrator = NeighbourPeakIntegrator(data_ped, nei, None)
-    integration, window, peakpos = integrator.extract_charge()
+    integrator = NeighbourPeakIntegrator(None, None)
+    integrator.neighbours = nei
+    integration = integrator.extract_charge(data_ped)
+    peakpos = integrator.peakpos
 
+    print(integration[0][0])
     assert integration[0][0] == -64
     assert integration[1][0] == -64
     assert peakpos[0][0] == 20

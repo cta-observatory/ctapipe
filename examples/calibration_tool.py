@@ -49,11 +49,16 @@ class CalTool(Tool):
     classes = List([ChargeExtractorFactory])
 
     def setup(self):
-        kwargs = dict(config=self.config, parent=self)
+        print("setting up")
+        kwargs = dict(config=self.config, tool=self)
 
         self.extractor_factory = ChargeExtractorFactory(**kwargs)
         extractor_class = self.extractor_factory.get_class()
-        self.extractor = extractor_class(waveforms=data_ped, nei=nei, **kwargs)
+        self.extractor = extractor_class(**kwargs)
+        if self.extractor.requires_neighbours():
+            print('nei')
+            self.extractor.neighbours = nei
+        charge = self.extractor.extract_charge(data_ped)
 
         pass
 
@@ -72,6 +77,8 @@ t = CalTool()
 t.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
 argv = ['--extractor','LocalPeakIntegrator', '--window_width', '10']
+t.run(argv=argv)
+argv = ['--window_width', '10']
 t.run(argv=argv)
 argv = ['--extractor','SimpleIntegrator', '--window_width', '10', '--help']
 t.run(argv)
