@@ -1,188 +1,233 @@
 """
+Container structures for data that should be read or written to disk
 """
 
-from ctapipe.core import Container
-import numpy as np
+from astropy import units as u
+from astropy.time import Time
+
+from ..core import Container, Item, Map
+from numpy import ndarray
+
+__all__ = ['DataContainer', 'RawDataContainer', 'RawCameraContainer',
+           'MCEventContainer', 'MCCameraEventContainer',
+           'CalibratedCameraContainer',
+           'ReconstructedShowerContainer',
+           'ReconstructedEnergyContainer',
+           'ParticleClassificationContainer',
+           'ReconstructedContainer']
+
+# todo: change some of these Maps to be just 3D NDarrays?
 
 
-__all__ = ['EventContainer', 'RawData', 'RawCameraData', 'MCShowerData', 'MCEvent',
-            'MCCamera', 'CalibratedCameraData', 'MuonRingParameter', 'MuonIntensityParameter']
-
-
-class EventContainer(Container):
-    """ Top-level container for all event information """
-    def __init__(self, name="Event"):
-        super().__init__(name)
-        self.add_item("dl0", RawData())
-        self.add_item("mc", MCEvent())
-        self.add_item("trig", CentralTriggerData())
-        self.add_item("count")
-
-        self.meta.add_item('tel_pos', dict())
-        self.meta.add_item('pixel_pos', dict())
-        self.meta.add_item('optical_foclen', dict())
-        self.meta.add_item('mirror_dish_area', dict())
-        self.meta.add_item('mirror_numtiles', dict())
-        self.meta.add_item('source', "unknown")
-
-
-class RawData(Container):
-    """
-    Storage of a Merged Raw Data Event
-
-    Parameters
-    ----------
-
-    run_id : int
-        run number
-    event_id : int
-        event number
-    tels_with_data : list
-        list of which telescope IDs are present
-    pixel_pos : dict of ndarrays by tel_id
-        (deprecated)
-    tel : dict of `RawCameraData` by tel_id
-        dictionary of the data for each telescope
-    """
-
-    def __init__(self, name="RawData"):
-        super().__init__(name)
-        self.add_item('run_id')
-        self.add_item('event_id')
-        self.add_item('tels_with_data')
-        self.add_item('tel', dict())
-
-
-class MCShowerData(Container):
-    def __init__(self, name='MCShowerData'):
-        super().__init__(name)
-        self.add_item('energy')
-        self.add_item('alt')
-        self.add_item('az')
-        self.add_item('core_x')
-        self.add_item('core_y')
-        self.add_item('h_first_int')
-    def __str__(self):
-        return_string  = self._name+":\n"
-        return_string += "energy:   {0:.2}\n".format(self.energy)
-        return_string += "altitude: {0:.2}\n".format(self.alt)
-        return_string += "azimuth:  {0:.2}\n".format(self.az)
-        return_string += "core x:   {0:.4}\n".format(self.core_x)
-        return_string += "core y:   {0:.4}"  .format(self.core_y)
-        return return_string
-
-
-class MCEvent(MCShowerData):
-    """
-    Storage of MC event data
-
-    Parameters
-    ----------
-
-    tel : dict of `RawCameraData` by tel_id
-        dictionary of the data for each telescope
+class InstrumentContainer(Container):
+    """Storage of header info that does not change with event. This is a
+    temporary hack until the Instrument module and database is fully
+    implemented.  Eventually static information like this will not be
+    part of the data stream, but be loaded and accessed from
+    functions.
 
     """
-    def __init__(self, name='MCEvent'):
-        super().__init__(name)
-        self.add_item('tel',dict())
-    def __str__(self):
-        return_string = super().__str__()+"\n"
-        npix = np.sum([np.sum(t.photo_electrons > 0) for t in self.tel.values()])
-        return_string += "total photo_electrons: {}".format( npix )
-        return return_string
+
+    pixel_pos = Item(Map(ndarray), "map of tel_id to pixel positions")
+    optical_foclen = Item(Map(ndarray), "map of tel_id to focal length")
+    mirror_dish_area = Item(Map(float), "map of tel_id to the area of the mirror dish", unit=u.m**2)
+    mirror_numtiles = Item(Map(int), "map of tel_id to the number of tiles for the mirror")
+    tel_pos = Item(Map(ndarray), "map of tel_id to telescope position")
+    num_pixels = Item(Map(int), "map of tel_id to number of pixels in camera")
+    num_samples = Item(Map(int), "map of tel_id to number of time samples")
+    num_channels = Item(Map(int), "map of tel_id to number of channels")
 
 
-class CentralTriggerData(Container):
-    def __init__(self, name='CentralTriggerData'):
-        super().__init__(name)
-        self.add_item('gps_time')
-        self.add_item('tels_with_trigger')
-
-
-class MCCamera(Container):
+class CalibratedCameraContainer(Container):
+    """Storage of output of camera calibrationm e.g the final calibrated
+    image in intensity units and other per-event calculated
+    calibration information.
     """
-    Storage of mc data used for a single telescope
+    calibrated_image = Item(0, "array of camera image", unit=u.electron)
+    integration_window = Item(Map(), ("map per channel of bool ndarrays of "
+                                      "shape (npix, nsamples) "
+                                      "indicating the samples used in "
+                                      "the obtaining of the charge, dependant "
+                                      "on the integration method used"))
+    # todo: rename the following to *_image
+    pedestal_subtracted_adc = Item(Map(), ("Map of channel to subtracted "
+                                           "ADC image"))
+    peakpos = Item(Map(), ("position of the peak as determined by the "
+                           "peak-finding algorithm for each pixel"
+                           " and channel"))
 
-    Parameters
-    ----------
 
-    pe_count : dict by channel
-        (masked) arrays of true (mc) pe count in each pixel (n_pixels)
-
+class CameraCalibrationContainer(Container):
     """
-    def __init__(self, tel_id):
-        super().__init__("CT{:03d}".format(tel_id))
-        self.add_item('photo_electrons', dict())
-        # Some parameters used in calibration
-        self.add_item('refshapes', dict())
-        self.add_item('refstep')
-        self.add_item('lrefshape')
-        self.add_item('time_slice')
+    Storage of externally calculated calibration parameters (not per-event)
+    """
+    dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
+    pedestal = Item(None, "pedestal calibration arrays from MC file")
 
 
-class RawCameraData(Container):
+class CalibratedContainer(Container):
+    """ Calibrated Camera Images and associated data"""
+    tel = Item(Map(CalibratedCameraContainer),
+               "map of tel_id to CalibratedCameraContainer")
+
+
+class RawCameraContainer(Container):
     """
     Storage of raw data from a single telescope
-
-    Parameters
-    ----------
-
-    adc_sums : dict by channel
-        (masked) arrays of all integrated ADC data (n_pixels)
-    adc_samples : dict by channel
-        (masked) arrays of non-integrated ADC sample data (n_pixels, n_samples)
-    num_channels : int
-        number of gain channels in camera
-    num_pixels : int
-        number of pixels in camera
-    num_samples : int
-        number of samples for camera
-
     """
-    def __init__(self, tel_id):
-        super().__init__("CT{:03d}".format(tel_id))
-        self.add_item('adc_sums', dict())
-        self.add_item('adc_samples', dict())
-        self.add_item('calibration')
-        self.add_item('pedestal')
-        self.add_item('num_channels')
-        self.add_item('num_pixels')
-        self.add_item('num_samples')
+    adc_sums = Item(Map(), ("map of channel to (masked) arrays of all "
+                            "integrated ADC data (n_pixels)"))
+    adc_samples = Item(Map(), ("map of channel to arrays of "
+                               "(n_pixels, n_samples)"))
 
 
-class CalibratedCameraData(Container):
+class RawDataContainer(Container):
     """
-    Storage of calibrated (p.e.) data from a single telescope
-
-    Parameters
-    ----------
-
-    pe_charge : dict
-        ndarrays of all calibrated data (npix)
-    integration_window : dict
-        bool ndarrays of shape [npix][nsamples] indicating the samples used in
-        the obtaining of the charge, dependant on the integration method used
-    pedestal_subtracted_adc : dict
-    peakpos : dict
-        position of the peak as determined by the peak-finding algorithm
-        for each pixel and channel
-    num_channels : int
-        number of gain channels in camera
-    num_pixels : int
-        number of pixels in camera
-    calibration_parameters : dict
-        the calibration parameters used to calbrate the event
+    Storage of a Merged Raw Data Event
     """
-    def __init__(self, tel_id):
-        super().__init__("CT{:03d}".format(tel_id))
-        self.add_item('pe_charge')
-        self.add_item('integration_window', dict())
-        self.add_item('pedestal_subtracted_adc', dict())
-        self.add_item('peakpos')
-        self.add_item('num_channels')
-        self.add_item('num_pixels')
-        self.add_item('calibration_parameters', dict())
+
+    run_id = Item(-1, "run id number")
+    event_id = Item(-1, "event id number")
+    tels_with_data = Item([], "list of telescopes with data")
+    tel = Item(Map(RawCameraContainer), "map of tel_id to RawCameraContainer")
+
+
+class MCCameraEventContainer(Container):
+    """
+    Storage of mc data for a single telescope that change per event
+    """
+    photo_electron_image = Item(Map(), ("reference image in pure photoelectrons,"
+                                        " with no noise"))
+    # todo: move to instrument (doesn't change per event)
+    reference_pulse_shape = Item(Map(), ("map of channel to array "
+                                         "defining pulse shape"))
+    # todo: move to instrument or a static MC container (don't change per
+    # event)
+    time_slice = Item(0, "width of time slice", unit=u.ns)
+    dc_to_pe = Item(None, "DC/PE calibration arrays from MC file")
+    pedestal = Item(None, "pedestal calibration arrays from MC file")
+    azimuth_raw = Item(0, "Raw azimuth angle [radians from N->E] "
+                          "for the telescope")
+    altitude_raw = Item(0, "Raw altitude angle [radians] for the telescope")
+    azimuth_cor = Item(0, "the tracking Azimuth corrected for pointing "
+                             "errors for the telescope")
+    altitude_cor = Item(0, "the tracking Altitude corrected for pointing "
+                              "errors for the telescope")
+
+
+class MCEventContainer(Container):
+    """
+    Monte-Carlo
+    """
+    energy = Item(0, "Monte-Carlo Energy")
+    alt = Item(0, "Monte-carlo altitude", unit=u.deg)
+    az = Item(0, "Monte-Carlo azimuth", unit=u.deg)
+    core_x = Item(0, "MC core position")
+    core_y = Item(0, "MC core position")
+    h_first_int = Item(0, "Height of first interaction")
+    tel = Item(Map(MCCameraEventContainer),
+               "map of tel_id to MCCameraEventContainer")
+
+
+class MCHeaderContainer(Container):
+    """
+    Monte-Carlo information that doesn't change per event
+    """
+    run_array_direction = Item([], "the tracking/pointing direction in "
+                                   "[radians]. Depending on 'tracking_mode' "
+                                   "this either contains: "
+                                   "[0]=Azimuth, [1]=Altitude in mode 0, "
+                                   "OR "
+                                   "[0]=R.A., [1]=Declination in mode 1.")
+
+
+class CentralTriggerContainer(Container):
+
+    gps_time = Item(Time, "central average time stamp")
+    tels_with_trigger = Item([], "list of telescopes with data")
+
+
+class ReconstructedShowerContainer(Container):
+    """
+    Standard output of algorithms reconstructing shower geometry
+    """
+
+    alt = Item(0.0, "reconstructed altitude", unit=u.deg)
+    alt_uncert = Item(0.0, "reconstructed altitude uncertainty", unit=u.deg)
+    az = Item(0.0, "reconstructed azimuth", unit=u.deg)
+    az_uncert = Item(0.0, 'reconstructed azimuth uncertainty', unit=u.deg)
+    core_x = Item(0.0, 'reconstructed x coordinate of the core position',
+                  unit=u.m)
+    core_y = Item(0.0, 'reconstructed y coordinate of the core position',
+                  unit=u.m)
+    core_uncert = Item(0.0, 'uncertainty of the reconstructed core position',
+                       unit=u.m)
+    h_max = Item(0.0, 'reconstructed height of the shower maximum')
+    h_max_uncert = Item(0.0, 'uncertainty of h_max')
+    is_valid = (False, ('direction validity flag. True if the shower direction'
+                        'was properly reconstructed by the algorithm'))
+    tel_ids = Item([], ('list of the telescope ids used in the'
+                        ' reconstruction of the shower'))
+    average_size = Item(0.0, 'average size of used')
+    goodness_of_fit = Item(0.0, 'measure of algorithm success (if fit)')
+
+
+class ReconstructedEnergyContainer(Container):
+    """
+    Standard output of algorithms estimating energy
+    """
+    energy = Item(-1.0, 'reconstructed energy', unit=u.TeV)
+    energy_uncert = Item(-1.0, 'reconstructed energy uncertainty', unit=u.TeV)
+    is_valid = Item(False, ('energy reconstruction validity flag. True if '
+                            'the energy was properly reconstructed by the '
+                            'algorithm'))
+    tel_ids = Item([], ('array containing the telescope ids used in the'
+                        ' reconstruction of the shower'))
+    goodness_of_fit = Item(0.0, 'goodness of the algorithm fit')
+
+
+class ParticleClassificationContainer(Container):
+    """
+    Standard output of gamma/hadron classification algorithms
+    """
+    # TODO: Do people agree on this? This is very MAGIC-like.
+    # TODO: Perhaps an integer classification to support different classes?
+    # TODO: include an error on the prediction?
+    prediction = Item(0.0, ('prediction of the classifier, defined between '
+                            '[0,1], where values close to 0 are more gamma-like,'
+                            ' and values close to 1 more hadron-like'))
+    is_valid = Item(False, ('classificator validity flag. True if the predition '
+                            'was successful within the algorithm validity range'))
+
+    # TODO: KPK: is this different than the list in the reco
+    # container? Why repeat?
+    tel_ids = Item([], ('array containing the telescope ids used '
+                        'in the reconstruction of the shower'))
+    goodness_of_fit = Item(0.0, 'goodness of the algorithm fit')
+
+
+class ReconstructedContainer(Container):
+    """ collect reconstructed shower info from multiple algorithms """
+
+    shower = Item(Map(ReconstructedShowerContainer),
+                  "Map of algorithm name to shower info")
+    energy = Item(Map(ReconstructedEnergyContainer),
+                  "Map of algorithm name to energy info")
+    classification = Item(Map(ParticleClassificationContainer),
+                          "Map of algorithm name to classification info")
+
+
+class DataContainer(Container):
+    """ Top-level container for all event information """
+
+    dl0 = Item(RawDataContainer(), "Raw Data")
+    dl1 = Item(CalibratedContainer())
+    dl2 = Item(ReconstructedContainer(), "Reconstructed Shower Information")
+    mc = Item(MCEventContainer(), "Monte-Carlo data")
+    mcheader = Item(MCHeaderContainer, "Monte-Carlo run header data")
+    trig = Item(CentralTriggerContainer(), "central trigger information")
+    count = Item(0, "number of events processed")
+    inst = Item(InstrumentContainer(), "instrumental information (deprecated")
 
 
 class MuonRingParameter(Container):
@@ -261,7 +306,7 @@ class MuonIntensityParameter(Container):
 
     prediction: dict
         ndarray of the predicted charge in all pixels
-    mask: 
+    mask:
         ndarray of the mask used on the image for fitting
 
     """

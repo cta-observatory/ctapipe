@@ -32,7 +32,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
     for telid in event.dl0.tels_with_data:
 
-        x, y = event.meta.pixel_pos[telid]
+        x, y = event.inst.pixel_pos[telid]
 
         image = event.dl1.tel[telid].pe_charge
 
@@ -42,24 +42,24 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             geom = geom_dict[telid]
         else:
             log.debug("[calib] Guessing camera geometry")
-            geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                        event.meta.optical_foclen[telid])
+            geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                        event.inst.optical_foclen[telid])
             log.debug("[calib] Camera geometry found")
             if geom_dict is not None:
                 geom_dict[telid] = geom
         
         tailcuts = (5.,7.)
         #Try a higher threshold for FlashCam
-        if event.meta.optical_foclen[telid] == 16.*u.m and event.dl0.tel[telid].num_pixels == 1764:
+        if event.inst.optical_foclen[telid] == 16.*u.m and event.dl0.tel[telid].num_pixels == 1764:
             tailcuts = (10.,12.)
 
 
         rot_angle = 0.*u.deg
-        if event.meta.optical_foclen[telid] > 10.*u.m and event.dl0.tel[telid].num_pixels != 1764:
+        if event.inst.optical_foclen[telid] > 10.*u.m and event.dl0.tel[telid].num_pixels != 1764:
             rot_angle = -100.14*u.deg
 
         clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
-        camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.meta.optical_foclen[telid], rotation=rot_angle)
+        camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.inst.optical_foclen[telid], rotation=rot_angle)
 
         nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az])) 
 
@@ -102,7 +102,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         numpix = event.dl0.tel[telid].num_pixels
         minpix = 0.06*numpix #or 8%
 
-        mir_rad = np.sqrt(event.meta.mirror_dish_area[telid]/(np.pi))#need to consider units?
+        mir_rad = np.sqrt(event.inst.mirror_dish_area[telid]/(np.pi))#need to consider units?
 
 
         #Camera containment radius -  better than nothing - guess pixel diameter of 0.11, all cameras are perfectly circular

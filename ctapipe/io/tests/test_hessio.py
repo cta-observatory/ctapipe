@@ -11,6 +11,15 @@ def test_get_run_id():
     print(tels)
     assert tels == {38, 47}
 
-#    print(event.meta.mirror_dish_area[38], event.meta.mirror_dish_area[47])
-#    print(event.meta.mirror_numtiles[38], event.meta.mirror_numtiles[47])
-#    assert(round(event.meta.mirror_dish_area[38].value, 2) == 14.56)
+
+def test_get_specific_event():
+    dataset = get_datasets_path("gamma_test.simtel.gz")
+    source = hessio_event_source(dataset, requested_event=2)
+    event = next(source)
+    assert event.count == 2
+    assert event.dl0.event_id == 803
+    source = hessio_event_source(dataset, requested_event=803,
+                                 use_event_id=True)
+    event = next(source)
+    assert event.count == 2
+    assert event.dl0.event_id == 803
