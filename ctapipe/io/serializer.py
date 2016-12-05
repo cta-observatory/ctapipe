@@ -243,7 +243,7 @@ def to_table(container):
 
     return Table(data=columns,  # dtypes are inferred by columns
                  names=names,
-                 meta=container.meta.as_dict())
+                 meta=container.meta)
 
 
 class TableWriter(Writer):
@@ -295,7 +295,7 @@ class TableWriter(Writer):
 
         # Write HDU name
         if self.format == "fits":
-            self.table.meta["EXTNAME"] = container._name
+            self.table.meta["EXTNAME"] = type(container).__name__
         self._created_table = True
 
     def add_container(self, container):

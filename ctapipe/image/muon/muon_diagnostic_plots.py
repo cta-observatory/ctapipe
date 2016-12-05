@@ -116,8 +116,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 geom = geom_dict[tel_id]
             else:
                 log.debug("[calib] Guessing camera geometry")
-                geom = CameraGeometry.guess(*event.meta.pixel_pos[tel_id],
-                                            event.meta.optical_foclen[tel_id])
+                geom = CameraGeometry.guess(*event.inst.pixel_pos[tel_id],
+                                            event.inst.optical_foclen[tel_id])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[tel_id] = geom
@@ -125,7 +125,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
             tailcuts = (5.,7.)
             #Try a higher threshold for FlashCam
-            if event.meta.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
+            if event.inst.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
                 tailcuts = (10.,12.)
         
             #print("Using Tail Cuts:",tailcuts)
@@ -140,7 +140,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
 
             rotr_angle = geom.pix_rotation
-            if event.meta.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+            if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
                 #print("Resetting the rotation angle")
                 rotr_angle = 0.*u.deg
             
@@ -149,27 +149,26 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ])
 
             #ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
-            ring_camcoord = ring_nominal.transform_to(CameraFrame(pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.meta.optical_foclen[tel_id], rotation=rotr_angle))
+            ring_camcoord = ring_nominal.transform_to(CameraFrame(pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.inst.optical_foclen[tel_id], rotation=rotr_angle))
             
 
             centroid_rad = np.sqrt(ring_camcoord.y**2 + ring_camcoord.x**2)
             centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
 
-            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.meta.optical_foclen[tel_id]*2.#But not FC?
-
+            ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.inst.optical_foclen[tel_id]*2.#But not FC?
 
 
             #rot_angle = 0.*u.deg
-            #if event.meta.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+            #if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
                 #rot_angle = -100.14*u.deg
 
 
-            px, py = event.meta.pixel_pos[tel_id]
+            px, py = event.inst.pixel_pos[tel_id]
 
-            camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m, focal_length=event.meta.optical_foclen[tel_id],rotation=geom.pix_rotation)
+            camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m, focal_length=event.inst.optical_foclen[tel_id],rotation=geom.pix_rotation)
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ]))
-            #,focal_length = event.meta.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
+            #,focal_length = event.inst.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
         
             px = nom_coord.x.to(u.deg)
             py = nom_coord.y.to(u.deg)

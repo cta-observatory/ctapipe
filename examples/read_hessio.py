@@ -44,8 +44,8 @@ def display_event(event):
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
-        x, y = event.meta.pixel_pos[tel_id]
-        geom = io.CameraGeometry.guess(x, y, event.meta.optical_foclen[tel_id])
+        x, y = event.inst.pixel_pos[tel_id]
+        geom = io.CameraGeometry.guess(x, y, event.inst.optical_foclen[tel_id])
         disp = visualization.CameraDisplay(geom, ax=ax,
                                            title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
@@ -111,11 +111,10 @@ if __name__ == '__main__':
             elif response.startswith('i'):
                 for tel_id in sorted(event.dl0.tel):
                     for chan in event.dl0.tel[tel_id].adc_samples:
-                        npix = len(event.meta.pixel_pos[tel_id][0])
-                        print("CT{:4d} ch{} pixels:{} samples:{}"
-                              .format(tel_id, chan, npix,
-                                      event.dl0.tel[tel_id].
-                                      adc_samples[chan].shape[1]))
+                        npix = event.inst.num_pixels[tel_id]
+                        nsamp = event.inst.num_samples[tel_id]
+                        print("CT{:4d} ch{} pixels,samples:{}"
+                              .format(tel_id, chan, npix, nsamp))
             elif response.startswith('s'):
                 filename = "event_{0:010d}.png".format(event.dl0.event_id)
                 print("Saving to", filename)

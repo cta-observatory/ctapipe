@@ -8,7 +8,7 @@ from ctapipe.calib.camera import mc
 from ctapipe.calib.camera.integrators import integrator_dict, \
     integrators_requiring_geom
 from functools import partial
-from ctapipe.io.containers import RawData, CalibratedCameraData
+from ctapipe.io.containers import RawDataContainer, CalibratedCameraContainer
 from ctapipe.io import CameraGeometry
 from astropy import log
 
@@ -86,7 +86,7 @@ def calibration_parameters(excess_args, origin, calib_help=False):
 def calibrate_event(event, params, geom_dict=None):
     """
     Generic calibrator for events. Calls the calibrator corresponding to the
-    source of the event, and stores the dl1 (pe_charge) information into a
+    source of the event, and stores the dl1 (calibrated_image) information into a
     new event container.
 
     Parameters
@@ -135,59 +135,52 @@ def calibrate_event(event, params, geom_dict=None):
             partial(mc.calibrate_mc, event=event, params=params)
         }
     try:
-        calibrator = switch[event.meta.source]
+        calibrator = switch[event.meta['source']]
     except KeyError:
         log.exception("no calibration created for data origin: '{}'"
-                      .format(event.meta.source))
+                      .format(event.meta['source']))
         raise
 
-    calibrated = copy(event)
+    # KPK: should not copy the event here! there is no reason to
+    # Copying is
+    # up to the user if they want to do it, not in the algorithms.
+    #    calibrated = copy(event)
 
-    # Add dl1 to the event container (if it hasn't already been added)
-    try:
-        calibrated.add_item("dl1", RawData())
-        calibrated.dl1.run_id = event.dl0.run_id
-        calibrated.dl1.event_id = event.dl0.event_id
-        calibrated.dl1.tels_with_data = event.dl0.tels_with_data
-        calibrated.dl1.calibration_parameters = params
-    except AttributeError:
-        pass
+    # params stored in metadata
+    event.dl1.meta.update(params)
 
     # Fill dl1
-    calibrated.dl1.tel = dict()  # clear the previous telescopes
+    event.dl1.reset()
     for telid in event.dl0.tels_with_data:
-        nchan = event.dl0.tel[telid].num_channels
-        npix = event.dl0.tel[telid].num_pixels
-        calibrated.dl1.tel[telid] = CalibratedCameraData(telid)
-        calibrated.dl1.tel[telid].num_channels = nchan
-        calibrated.dl1.tel[telid].num_pixels = npix
+        nchan = event.inst.num_channels[telid]
+        npix = event.inst.num_pixels[telid]
+        event.dl1.tel[telid] = CalibratedCameraContainer()
 
         # Get geometry
         int_dict, inverted = integrator_dict()
         geom = None
-        cam_dimensions = (event.dl0.tel[telid].num_pixels,
-                          event.meta.optical_foclen[telid])
+
         # Check if geom is even needed for integrator
         if inverted[params['integrator']] in integrators_requiring_geom():
             if geom_dict is not None and telid in geom_dict:
                 geom = geom_dict[telid]
             else:
                 log.debug("[calib] Guessing camera geometry")
-                geom = CameraGeometry.guess(*event.meta.pixel_pos[telid],
-                                            event.meta.optical_foclen[telid])
+                geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                            event.inst.optical_foclen[telid])
                 log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[telid] = geom
 
         pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
-        calibrated.dl1.tel[telid].pe_charge = pe
-        calibrated.dl1.tel[telid].peakpos = peakpos
+        tel = event.dl1.tel[telid]
+        tel.calibrated_image = pe
+        tel.peakpos = peakpos
         for chan in range(nchan):
-            calibrated.dl1.tel[telid].integration_window[chan] = window[chan]
-            calibrated.dl1.tel[telid].pedestal_subtracted_adc[chan] = \
-                data_ped[chan]
+            tel.integration_window[chan] = window[chan]
+            tel.pedestal_subtracted_adc[chan] = data_ped[chan]
 
-    return calibrated
+    return event
 
 
 def calibrate_source(source, params, geom_dict=None):
@@ -244,6 +237,5 @@ def calibrate_source(source, params, geom_dict=None):
 
     log.info("[calib] Calibration generator appended to source")
     for event in source:
-        calibrated = calibrate_event(event, params, geom_dict)
-
-        yield calibrated
+        calibrate_event(event, params, geom_dict)
+        yield event
