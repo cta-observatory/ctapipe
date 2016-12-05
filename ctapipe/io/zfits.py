@@ -87,8 +87,8 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         for tel_id in container.dl0.tels_with_data:
             # fill pixel position dictionary, if not already done:
             #TODO: tel_id here is a dummy parameter, we are dealing with single-telescope data!. TBR.
-            if tel_id not in container.meta.pixel_pos:
-                container.meta.pixel_pos[tel_id] = \
+            if tel_id not in container.inst.pixel_pos:
+                container.inst.pixel_pos[tel_id] = \
                     zfits.get_pixel_position(tel_id) * u.m
 
             nchans = zfits.get_num_channels(tel_id)
