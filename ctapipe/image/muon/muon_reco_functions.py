@@ -191,7 +191,7 @@ def analyze_muon_source(source, params=None, geom_dict=None, args=None):
         #        if analyzed_muon[1] is not None:
         #    plot_muon_event(event, analyzed_muon, geom_dict, args)
             
-        #    if numev > 50: #for testing purposes only
-        #            break
+        #          if numev > 50: #for testing purposes only
+        #                break
 
         yield analyzed_muon

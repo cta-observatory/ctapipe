@@ -16,8 +16,9 @@ from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
 
 from ctapipe.plotting.camera import CameraPlotter
+from ctapipe.utils.fitshistogram import Histogram
 
-def plot_muon_efficiency(evt_dict,outputpath):
+def plot_muon_efficiency(outputpath):
 
     """
     Plot the muon efficiencies
@@ -26,36 +27,26 @@ def plot_muon_efficiency(evt_dict,outputpath):
     figip,axip = plt.subplots(1,1,figsize=(10,10))
     figrw,axrw = plt.subplots(1,1,figsize=(10,10))
     
-    #figeff = plt.figure(figsize=(15,5))
-    #pp = PdfPages(outputpath)
-    
-    #mu_eff = []
-    #impact_param = []
-    #ring_width = []
-
-    #for mu_evt in source:
-    #    print("Running over events...")
-    #    if mu_evt[0] is not None and mu_evt[1] is not None:
-    #        mu_eff.append(mu_evt[1].optical_efficiency_muon)
-    #        impact_param.append(mu_evt[1].impact_parameter/u.m)
-    #        ring_width.append(mu_evt[1].ring_width/u.deg)
-
+    nbins = 16
     t = Table.read(outputpath+'_muontable.fits')
     print('Reading muon efficiency from table',outputpath,t['MuonEff'])
 
-    if len(evt_dict['MuonEff']) < 1:
+    if len(t['MuonEff']) < 1:
         print("No muon events to plot")
         return 
-
+    else:
+        print("Found",len(t['MuonEff']),"muon events")
     
-    (mu, sigma) = norm.fit(evt_dict['MuonEff'])
 
+    (mu, sigma) = norm.fit(t['MuonEff'])
+
+    print('Gaussian fit with mu=',mu,'sigma=',sigma)
 
     #ax = figeff.add_subplot(1,3,1)
-    conteff = ax.hist(evt_dict['MuonEff'],16)
-    ax.set_xlim(0.2*min(evt_dict['MuonEff']),1.2*max(evt_dict['MuonEff']))
+    conteff = ax.hist(t['MuonEff'],nbins)
+    ax.set_xlim(0.2*min(t['MuonEff']),1.2*max(t['MuonEff']))
 
-    xtest = np.linspace(min(evt_dict['MuonEff']),max(evt_dict['MuonEff']),16)
+    xtest = np.linspace(min(t['MuonEff']),max(t['MuonEff']),nbins)
     yg = mlab.normpdf(xtest,mu,sigma)
     print('mu',mu,'sigma',sigma,'yg',yg)
     ax.plot(xtest,yg,'r',linewidth=2)
@@ -67,22 +58,29 @@ def plot_muon_efficiency(evt_dict,outputpath):
 
 
     #axip = figeff.add_subplot(1,3,1)
-    contimp = axip.hist(evt_dict['ImpactP'],16)
-    axip.set_xlim(0.2*min(evt_dict['ImpactP']),1.2*max(evt_dict['ImpactP']))
+    yimp = np.linspace(min(t['ImpactP']),max(t['ImpactP']),nbins)
+    contimp = axip.hist(t['ImpactP'],nbins)
+    axip.set_xlim(0.2*min(t['ImpactP']),1.2*max(t['ImpactP']))
     axip.set_ylim(0.,1.2*max(contimp[0]))
     axip.set_xlabel('Impact Parameter (m)')
     #plt.figure(figip.number)
     #plt.draw()
-
-
+    
+    heffimp = Histogram(nbins=[16,16],ranges=[(min(t['MuonEff']),max(t['MuonEff'])),(min(t['ImpactP']),max(t['ImpactP']))],axisNames=["MuonEfficiency","ImpactParameter"])
+    #embed()
+    #heffimp.bin_lower_edges([xtest,yimp])
+    heffimp.fill([t['MuonEff'],t['ImpactP']])
+    heffimp.draw_2d()
 
     #axrw = figeff.add_subplot(1,3,1)
-    contrw = axrw.hist(evt_dict['RingWidth'],16)
-    axrw.set_xlim(0.2*min(evt_dict['RingWidth']),1.2*max(evt_dict['RingWidth']))
+    yrw = np.linspace(min(t['RingWidth']),max(t['RingWidth']),nbins)
+    contrw = axrw.hist(t['RingWidth'],nbins)
+    axrw.set_xlim(0.2*min(t['RingWidth']),1.2*max(t['RingWidth']))
     axrw.set_ylim(0.,1.2*max(contrw[0]))
     axrw.set_xlabel('Ring Width ($^\circ$)')
     #plt.figure(figrw.number)
     #plt.draw()
+    plt.show()
     if outputpath is not None:
         fig.savefig(outputpath+'_MuonEff.png')
         figip.savefig(outputpath+'_ImpactParameter.png')

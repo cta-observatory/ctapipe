@@ -67,45 +67,6 @@ def main():
     calibrated_source = calibrate_source(source, params, geom_dict)
 
     muons = analyze_muon_source(calibrated_source, params, geom_dict, args) # Function that receive muons and make a look over the muon event    
-
-    #fig = plt.figure(figsize=(16, 7))
-    #if args.display:
-    #    plt.show(block=False)
-    #pp = PdfPages(args.output_path) if args.output_path is not None else None
-
-    #colorbar = None
-    #Display events before muon analysis (also do this later)
-    #for cal_evt in calibrated_source:
-     #   tel_id = 1 #True for muon simulations with only one tel simulated
-     #   #display_telescope(evt, evt.dl0.tel[tel_id], 1, geom_dict, pp, fig)    
-     #   npads = 1
-    #    # Only create two pads if there is timing information extracted
-    #    # from the calibration
-    #    ax1 = fig.add_subplot(1, npads, 1)
-    #    plotter = CameraPlotter(cal_evt,geom_dict)
-    #    signals = cal_evt.dl1.tel[tel_id].pe_charge
-    #    camera1 = plotter.draw_camera(tel_id,signals,ax1)
-    #    
-    #    cmaxmin = (max(signals) - min(signals))
-    #    cmap_charge = colors.LinearSegmentedColormap.from_list(
-    #        'cmap_c', [(0 / cmaxmin, 'darkblue'),
-    #                   (np.abs(min(signals)) / cmaxmin, 'black'),
-    #                   (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
-    #                   (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
-    #                   (1, 'yellow')])
-    #    camera1.pixels.set_cmap(cmap_charge)
-    #    if not colorbar:
-    #        camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
-    #        colorbar = camera1.colorbar
-    #    else:
-    #        camera1.colorbar = colorbar
-    #        camera1.update(True)
-    #    ax1.set_title("CT {} ({}) - Mean pixel charge"
-    #                  .format(tel_id, geom_dict[tel_id].cam_id))
-        
-    #    plt.pause(0.1)
-    #if pp is not None:
-    #        pp.savefig(fig)
                     
     #
 
@@ -127,8 +88,7 @@ def main():
             
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here
-    #if pp is not None:
-    #    pp.close()
+
 
     t = Table([muoneff, impactp, ringwidth], names=('MuonEff','ImpactP','RingWidth'), meta={'name': 'muon analysis results'})
     t['ImpactP'].unit = 'm'
@@ -136,7 +96,8 @@ def main():
     #    print('plotdict',plot_dict)
     t.write(args.output_path+'_muontable.fits',overwrite=True)
 
-    plot_muon_efficiency(plot_dict,args.output_path)
+    #plot_muon_efficiency(plot_dict,args.output_path)
+    plot_muon_efficiency(args.output_path)
 
     log.info("[COMPLETE]")
 
