@@ -49,8 +49,8 @@ def list_telescopes_geometry(simtel_file_path):
             tel_id_set.add(tel_id)
 
     for tel_id in tel_id_set:
-        x, y = event.meta.pixel_pos[tel_id]
-        foclen = event.meta.optical_foclen[tel_id]
+        x, y = event.inst.pixel_pos[tel_id]
+        foclen = event.inst.optical_foclen[tel_id]
         geom = ctapipe.io.CameraGeometry.guess(x, y, foclen)
         print("Telescope {:03d}: {} ({} pixels)".format(tel_id, geom.cam_id, geom.pix_type))
 
