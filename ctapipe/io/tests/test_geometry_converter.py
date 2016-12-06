@@ -57,53 +57,14 @@ def test_convert_geometry():
                         event.mc.tel[tel_id].pedestal[0])
 
             new_geom, new_signal = convert_geometry_1d_to_2d(
-                cam_geom[tel_id], pmt_signal, tel_id)
+                cam_geom[tel_id], pmt_signal, cam_geom[tel_id].cam_id, add_rot=-2)
 
             unrot_geom, unrot_signal = convert_geometry_back(
-                new_geom, new_signal, tel_id,
-                event.inst.optical_foclen[tel_id])
+                new_geom, new_signal, cam_geom[tel_id].cam_id,
+                event.inst.optical_foclen[tel_id], add_rot=4)
 
-            '''
-            do some tailcuts cleaning '''
-            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
-                                   picture_thresh=10.,
-                                   boundary_thresh=5.)
-
-            mask2 = tailcuts_clean(unrot_geom, unrot_signal, 1,
-                                   picture_thresh=10.,
-                                   boundary_thresh=5.)
-            pmt_signal[mask1==False] = 0
-            unrot_signal[mask2==False] = 0
-
-            '''
-            testing back and forth conversion on hillas parameters... '''
-            try:
-                moments1 = hillas_parameters(cam_geom[tel_id].pix_x,
-                                             cam_geom[tel_id].pix_y,
-                                             pmt_signal)[0]
-
-                moments2 = hillas_parameters(unrot_geom.pix_x,
-                                             unrot_geom.pix_y,
-                                             unrot_signal)[0]
-            except (HillasParameterizationError, AssertionError) as e:
-                '''
-                we don't want this test to fail because the hillas code threw an error '''
-                print(e)
-                counter -= 1
-                if counter < 0:
-                    return
-                else:
-                    continue
-
+            ''' if run as main, do some plotting '''
             if __name__ == "__main__":
-                try:
-                    np.testing.assert_allclose(
-                        [moments1.length, moments1.width, moments1.phi],
-                        [moments2.length, moments2.width, moments2.phi],
-                        rtol=1e-2, atol=1e-2)
-                except Exception as e:
-                    print(e)
-
                 fig = plt.figure()
                 plt.style.use('seaborn-talk')
 
@@ -134,14 +95,50 @@ def test_convert_geometry():
                 plt.title("geometry converted back to hex")
 
                 plt.show()
-            else:
-                np.testing.assert_allclose(
-                    [moments1.length, moments1.width, moments1.phi],
-                    [moments2.length, moments2.width, moments2.phi],
-                    rtol=1e-2, atol=1e-2)
+
+            '''
+            do some tailcuts cleaning '''
+            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
+                                   picture_thresh=10.,
+                                   boundary_thresh=5.)
+
+            mask2 = tailcuts_clean(unrot_geom, unrot_signal, 1,
+                                   picture_thresh=10.,
+                                   boundary_thresh=5.)
+            pmt_signal[mask1==False] = 0
+            unrot_signal[mask2==False] = 0
+
+            '''
+            testing back and forth conversion on hillas parameters... '''
+            try:
+                moments1 = hillas_parameters(cam_geom[tel_id].pix_x,
+                                             cam_geom[tel_id].pix_y,
+                                             pmt_signal)[0]
+
+                moments2 = hillas_parameters(unrot_geom.pix_x,
+                                             unrot_geom.pix_y,
+                                             unrot_signal)[0]
+            except (HillasParameterizationError, AssertionError) as e:
+                '''
+                we don't want this test to fail because the hillas code
+                threw an error '''
+                print(e)
                 counter -= 1
                 if counter < 0:
                     return
+                else:
+                    continue
+
+            '''
+            test if the hillas parameters from the original geometry and the
+            forth-and-back rotated geometry are close '''
+            np.testing.assert_allclose(
+                [moments1.length, moments1.width, moments1.phi],
+                [moments2.length, moments2.width, moments2.phi],
+                rtol=1e-2, atol=1e-2)
+            counter -= 1
+            if counter < 0:
+                return
 
 if __name__ == "__main__":
     test_convert_geometry()

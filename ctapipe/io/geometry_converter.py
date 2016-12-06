@@ -16,9 +16,10 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
         pix_x, pix_y : 1D numpy arrays
             the list of x and y coordinates of the hexagonal pixel grid
         cam_angle : astropy.Quantity (default: 0 degrees)
-            some cameras have a weird rotation of their grid
-            this needs to be corrected since the skewing is performed along the y-axis
-            therefore, one of the slanted base-vectors needs to be parallel to the y-axis
+            The skewing is performed along the y-axis, therefore, one of the slanted
+            base-vectors needs to be parallel to the y-axis.
+            Some camera grids are rotated in a way that this is not the case.
+            This needs to be corrected.
         base_angle : astropy.Quantity (default: 60 degrees)
             the skewing angle of the hex-grid. should be 60° for regular hexagons
 
@@ -31,12 +32,11 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
     tan_angle = np.tan(base_angle)
 
     '''
-    if the camera grid is rotated as a whole, we have to undo that too
-    the -270 degrees are chosen so that the rotated/slanted image has about the same
-    orientation as the original'''
+    If the camera-rotation angle is non-zero, create a rotation+sheering matrix for
+    the pixel coordinates '''
     if cam_angle != 0*u.deg:
-        sin_angle = np.sin(cam_angle-270*u.deg)
-        cos_angle = np.cos(cam_angle-270*u.deg)
+        sin_angle = np.sin(cam_angle)
+        cos_angle = np.cos(cam_angle)
 
         '''
         the correction on the pixel position r can be described by a rotation R around one
@@ -71,9 +71,10 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
         pix_x, pix_y : 1D numpy arrays
             the list of x and y coordinates of the slanted, orthogonal pixel grid
         cam_angle : astropy.Quantity (default: 0 degrees)
-            some cameras have a weird rotation of their grid
-            this needs to be corrected since the skewing is performed along the y-axis
-            therefore, one of the slanted base-vectors needs to be parallel to the y-axis
+            The skewing is performed along the y-axis, therefore, one of the slanted
+            base-vectors needs to be parallel to the y-axis.
+            Some camera grids are rotated in a way that this is not the case.
+            This needs to be corrected.
         base_angle : astropy.Quantity (default: 60 degrees)
             the skewing angle of the hex-grid. should be 60° for regular hexagons
 
@@ -86,14 +87,11 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0*u.deg, base_angle=60*u.deg):
     tan_angle = np.tan(base_angle)
 
     '''
-    if the camera grid is rotated as a whole, we have to undo that, too
-    the -270 degrees are chosen so that the rotated/slanted image has about the same
-    orientation as the original
-    Note: since CameraGeometry.guess(pix_x, pix_y, optical_foclen) rotates the pixel image
-    itself, we are not going to do that here and only apply the -270 degrees rotation '''
+    If the camera-rotation angle is non-zero, create a rotation+sheering matrix for
+    the pixel coordinates '''
     if cam_angle != 0*u.deg:
-        sin_angle = np.sin(-270*u.deg)
-        cos_angle = np.cos(-270*u.deg)
+        sin_angle = np.sin(cam_angle)
+        cos_angle = np.cos(cam_angle)
 
         '''
         to revert the rotation, we need to find matrices S' and R'
@@ -202,9 +200,9 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     return x_edges, y_edges, x_scale
 
-
+add_angle=180*u.deg
 rot_buffer = {}
-def convert_geometry_1d_to_2d(geom, signal, key=None):
+def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
     """
         converts the geometry object of a camera with a hexagonal grid into a square grid
         by slanting and stretching
@@ -219,6 +217,8 @@ def convert_geometry_1d_to_2d(geom, signal, key=None):
             1D (no timing) or 2D (with timing) array of the pmt signals
         key : (default: None)
             arbitrary key to store the transformed geometry in a buffer
+        add_rot : int/float (default: 0)
+            parameter to apply an additional rotation of @add_rot times 60°
 
         Returns:
         --------
@@ -240,8 +240,11 @@ def convert_geometry_1d_to_2d(geom, signal, key=None):
         '''
         otherwise, we have to do the conversion now
         first, skey all the coordinates of the original geometry '''
+        rot_angle = add_rot * 60*u.deg
+        if geom.cam_id == "NectarCam" or geom.cam_id == "LSTCam":
+            rot_angle += geom.cam_rotation + 90*u.deg
         rot_x, rot_y = unskew_hex_pixel_grid(geom.pix_x, geom.pix_y,
-                                             geom.cam_rotation)
+                                             rot_angle)
 
         '''
         with all the coordinate points, we can define the bin edges of a 2D histogram '''
@@ -312,7 +315,7 @@ def convert_geometry_1d_to_2d(geom, signal, key=None):
 
 
 unrot_buffer = {}
-def convert_geometry_back(geom, signal, key, foc_len):
+def convert_geometry_back(geom, signal, key, foc_len, add_rot=0):
     """
         reverts the geometry distortion performed by convert_geometry_1d_to_2d
         back to a hexagonal grid stored in 1D arrays
@@ -329,6 +332,8 @@ def convert_geometry_back(geom, signal, key, foc_len):
         foc_len : astropy.Quantity in metres
             focal length of the telescope used to retrieve the original geometry through
             CameraGeometry.guess
+        add_rot : int/float (default: 0)
+            parameter to apply an additional rotation of @add_rot times 60°
 
         Returns:
         --------
@@ -346,13 +351,16 @@ def convert_geometry_back(geom, signal, key, foc_len):
         if key in rot_buffer:
             x_scale = rot_buffer[key][-1]
         else:
-            raise Exception("key '{}' not found in the buffer".format(key))
+            raise KeyError("key '{}' not found in the buffer".format(key))
 
         grid_x, grid_y = geom.pix_x / x_scale, geom.pix_y
 
+        rot_angle = add_rot * 60*u.deg
+        if geom.cam_id == "NectarCam" or geom.cam_id == "LSTCam":
+            rot_angle += 90*u.deg
         unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask == 1],
                                                  grid_y[square_mask == 1],
-                                                 geom.cam_rotation)
+                                                 rot_angle)
         unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len)
         unrot_buffer[key] = unrot_geom
 
