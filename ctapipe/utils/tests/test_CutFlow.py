@@ -4,10 +4,11 @@ from ctapipe.utils.CutFlow import CutFlow, \
 import numpy as np
 from pytest import raises
 
+
 def test_CutFlow():
     flow = CutFlow("TestFlow")
-    flow.set_cut(lambda x: x < 5, "smaller5")
-    flow.add_cut(lambda x: x < 3, "smaller3")
+    flow.set_cut("smaller5", lambda x: x < 5)
+    flow.add_cut("smaller3", lambda x: x < 3)
 
     flow.count("noCuts")
     if flow.cut("smaller5", 3):
