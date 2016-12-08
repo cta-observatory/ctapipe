@@ -63,8 +63,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             data.meta['source'] = "hessio"
 
             # some hessio_event_source specific parameters
-            data.meta['hessio__input'] =  url
-            data.meta['hessio__max_events'] = max_events
+            data.meta['input'] =  url
+            data.meta['max_events'] = max_events
 
             for event_id in eventstream:
 
