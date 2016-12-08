@@ -78,11 +78,6 @@ if __name__ == '__main__':
 
         for tel_id in event.dl0.tels_with_data:
 
-            used = np.any(HB4 == tel_id)
-
-            if not used:
-                continue
-
             x, y = event.inst.pixel_pos[tel_id]
 
             if geom_dict is not None and tel_id in geom_dict:
@@ -103,7 +98,7 @@ if __name__ == '__main__':
                                        focal_length=tel['TelescopeTable_VersionFeb2016'][
                                                         tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]
                                                     ['FL'][0] * u.m,
-                                       rotation=90*u.deg - geom.cam_rotation + 180 * u.deg)
+                                       rotation=0*u.deg)# - 180 * u.deg)
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[mc.alt, mc.az],
                                                                pointing_direction=[mc.alt, mc.az]))
@@ -120,12 +115,12 @@ if __name__ == '__main__':
             dilate(geom, clean_mask)
 
             if hillas.size > amp_cut[geom.cam_id]:
-                pix_x.append(x[clean_mask])
-                pix_y.append(y[clean_mask])
-                image_list.append(image[clean_mask])
-                #pix_x.append(x)
-                #pix_y.append(y)
-                #image_list.append(image)
+                #pix_x.append(x[clean_mask])
+                #pix_y.append(y[clean_mask])
+                #image_list.append(image[clean_mask])
+                pix_x.append(x)
+                pix_y.append(y)
+                image_list.append(image)
 
                 type_tel.append(geom.cam_id)
                 tel_id_list.append(tel_id)
@@ -172,7 +167,7 @@ if __name__ == '__main__':
         ev += 1
         if ev > 1000:
             break
-        draw = False
+        draw = True
         if draw:
             for tel_num in range(len(tel_x)):
                 fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
