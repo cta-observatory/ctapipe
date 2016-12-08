@@ -162,7 +162,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                            .format(url))
 
 
-def _fill_instrument_info(data, pyhessio, max_tel_id=1000):
+def _fill_instrument_info(data, pyhessio):
     """
     fill the data.inst structure with instrumental information.
 
@@ -172,28 +172,25 @@ def _fill_instrument_info(data, pyhessio, max_tel_id=1000):
         data container to fill in
 
     """
-    for tel_id in range(max_tel_id):
-        if tel_id not in data.inst.pixel_pos:
+    if not data.inst.telescope_ids:
+        data.inst.telescope_ids = list(pyhessio.get_telescope_ids())
+
+        for tel_id in data.inst.telescope_ids:
             try:
                 data.inst.pixel_pos[tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m                
-            except HessioTelescopeIndexError:
+                    = pyhessio.get_pixel_position(tel_id) * u.m
+                data.inst.optical_foclen[tel_id] \
+                    = pyhessio.get_optical_foclen(tel_id) * u.m
+                data.inst.tel_pos[tel_id] \
+                    = pyhessio.get_telescope_position(tel_id) * u.m
+                nchans = pyhessio.get_num_channel(tel_id)
+                npix = pyhessio.get_num_pixels(tel_id)
+                nsamples = pyhessio.get_num_samples(tel_id)
+                if nsamples <= 0: nsamples = 1
+                data.inst.num_channels[tel_id] = nchans
+                data.inst.num_pixels[tel_id] = npix
+                data.inst.num_samples[tel_id] = nsamples
+            except HessioGeneralError:
                 pass
-
-    for tel_id in data.inst.pixel_pos:
-        try:
-            data.inst.optical_foclen[tel_id] \
-                = pyhessio.get_optical_foclen(tel_id) * u.m
-            data.inst.tel_pos[tel_id] \
-                = pyhessio.get_telescope_position(tel_id) * u.m               
-            nchans = pyhessio.get_num_channel(tel_id)
-            npix = pyhessio.get_num_pixels(tel_id)
-            nsamples = pyhessio.get_num_samples(tel_id)
-            if nsamples <= 0: nsamples = 1
-            data.inst.num_channels[tel_id] = nchans
-            data.inst.num_pixels[tel_id] = npix
-            data.inst.num_samples[tel_id] = nsamples
-        except HessioGeneralError:
-            pass
             
 

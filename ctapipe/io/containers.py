@@ -28,6 +28,7 @@ class InstrumentContainer(Container):
 
     """
 
+    telescope_ids = Item([], "list of IDs of telescopes used in the run")
     pixel_pos = Item(Map(ndarray), "map of tel_id to pixel positions")
     optical_foclen = Item(Map(ndarray), "map of tel_id to focal length")
     tel_pos = Item(Map(ndarray), "map of tel_id to telescope position")
