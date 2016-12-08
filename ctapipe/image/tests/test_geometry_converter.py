@@ -4,8 +4,10 @@ from matplotlib import pyplot as plt
 from ctapipe.utils.datasets import get_path
 
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.io import CameraGeometry, convert_geometry_1d_to_2d, convert_geometry_back
 
+from ctapipe.image.geometry_converter import CameraGeometry, \
+                                             convert_geometry_1d_to_2d, \
+                                             convert_geometry_back
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean
 
