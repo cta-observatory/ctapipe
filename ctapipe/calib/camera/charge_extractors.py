@@ -31,6 +31,7 @@ class ChargeExtractor(Component):
         self._npix = None
         self._nsamples = None
 
+        self.extracted_samples = None
         self.peakpos = None
         self.neighbours = None
 
@@ -55,8 +56,6 @@ class Integrator(ChargeExtractor):
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-
-        self.integration_window = None
 
     def _check_window_width_and_start(self, width, start):
         if width is None:
@@ -102,7 +101,7 @@ class Integrator(ChargeExtractor):
         windowed_waveforms = self._window_waveforms(waveforms, window)
         charge = self._integrate(windowed_waveforms)
 
-        self.integration_window = window
+        self.extracted_samples = window
         return charge
 
     @abstractmethod
@@ -135,6 +134,7 @@ class WindowIntegrator(Integrator):
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
+        self.input_width = self.window_width
 
     def _get_window_width(self):
         return np.full((self._nchan, self._npix), self.window_width,
@@ -152,6 +152,7 @@ class SimpleIntegrator(WindowIntegrator):
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
+        self.input_shift = self.window_start
 
     def _get_window_start(self, waveforms):
         return np.full((self._nchan, self._npix), self.window_start,
@@ -176,6 +177,7 @@ class PeakFindingIntegrator(WindowIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
         self._sig_channel = None
         self._sig_pixels = None
+        self.input_shift = self.window_shift
 
     # Extract significant entries
     def _extract_significant_entries(self, waveforms):
