@@ -1,5 +1,5 @@
 from ctapipe.core import Tool
-from ctapipe.calib.camera.charge_extraction import ChargeExtractorFactory, \
+from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory, \
     LocalPeakIntegrator, ChargeExtractor
 from ctapipe.io import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
