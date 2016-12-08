@@ -254,7 +254,7 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
 
     @staticmethod
-    def require_neighbour():
+    def requires_neighbours():
         return True
 
     def _find_peak(self, significant_samples):
