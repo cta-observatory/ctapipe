@@ -21,7 +21,7 @@ def test_full_integration():
     telid = 11
     event = get_test_event()
     nsamples = event.inst.num_samples[telid]
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
@@ -38,7 +38,7 @@ def test_full_integration():
 def test_simple_integration():
     telid = 11
     event = get_test_event()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
@@ -56,7 +56,7 @@ def test_simple_integration():
 def test_global_peak_integration():
     telid = 11
     event = get_test_event()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
@@ -75,7 +75,7 @@ def test_global_peak_integration():
 def test_local_peak_integration():
     telid = 11
     event = get_test_event()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
@@ -94,7 +94,7 @@ def test_local_peak_integration():
 def test_nb_peak_integration():
     telid = 11
     event = get_test_event()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
