@@ -163,7 +163,7 @@ def get_min_pixel_seperation(pix_x, pix_y):
 
     Returns
     -------
-    pixsep : float
+    pixsep : astropy.units.Unit
 
     """
     #    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
