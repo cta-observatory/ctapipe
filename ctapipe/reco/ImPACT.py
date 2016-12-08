@@ -39,7 +39,6 @@ class ImPACTFitter(object):
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
         self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "GATE": 0.8}
         self.spe = 0.5 # Also hard code single p.e. distribution width
-        self.ped = 0
 
         # Also we need to scale the ImPACT templates a bit, this will be fixed later
         self.scale = {"LSTCam": 1.2, "NectarCam": 1.1, "GATE": 0.75}
@@ -240,8 +239,8 @@ class ImPACTFitter(object):
         if x_max_bin < 93:
             x_max_bin = 93
         impact = np.sqrt(pow(self.tel_pos_x[tel] - core_x, 2) + pow(self.tel_pos_y[tel] - core_y, 2))
-        phi = np.arctan2((self.tel_pos_x[tel] - core_x), (self.tel_pos_y[tel] - core_y))
-        phi += 180 * u.deg
+        phi = np.arctan2((self.tel_pos_y[tel] - core_y), (self.tel_pos_x[tel] - core_x))
+        #phi += 180 * u.deg
 
         print(energy, impact,x_max_bin,self.type[tel],self.pixel_area[tel].to(u.deg * u.deg).value)
 
@@ -314,8 +313,7 @@ class ImPACTFitter(object):
         # Calculate impact distance for all telescopes
         impact = np.sqrt(pow(self.tel_pos_x - core_x, 2) + pow(self.tel_pos_y - core_y, 2))
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_x - core_x), (self.tel_pos_y - core_y))
-        phi += 180 * u.deg # Can't explain why this is needed!
+        phi = np.arctan2((self.tel_pos_y - core_y), (self.tel_pos_x - core_x))
 
         sum_like = 0
         for tel_count in range(self.image.shape[0]):  # Loop over all telescopes
