@@ -42,15 +42,15 @@ class DL1CameraContainer(Container):
     image in intensity units and other per-event calculated
     calibration information.
     """
-    calibrated_image = Item(0, "array of camera image", unit=u.electron)
-    integration_window = Item(Map(), ("map per channel of bool ndarrays of "
-                                      "shape (npix, nsamples) "
-                                      "indicating the samples used in "
-                                      "the obtaining of the charge, dependant "
-                                      "on the integration method used"))
-    peakpos = Item(Map(), ("position of the peak as determined by the "
-                           "peak-finding algorithm for each pixel"
-                           " and channel"))
+    image = Item(None, "np array of camera image", unit=u.electron)
+    extracted_samples = Item(None, ("numpy array of bools indicating which "
+                                    "samples were included in the "
+                                    "charge extraction as a result of the "
+                                    "charge extractor chosen. "
+                                    "Shape=(nchan, npix, nsamples)."))
+    peakpos = Item(None, ("numpy array containing position of the peak as "
+                          "determined by the "
+                          "peak-finding algorithm for each pixel and channel"))
 
 
 class CameraCalibrationContainer(Container):
