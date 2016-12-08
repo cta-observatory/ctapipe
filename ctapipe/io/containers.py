@@ -28,6 +28,7 @@ class InstrumentContainer(Container):
 
     """
 
+    telescope_ids = Item([], "list of IDs of telescopes used in the run")
     pixel_pos = Item(Map(ndarray), "map of tel_id to pixel positions")
     optical_foclen = Item(Map(ndarray), "map of tel_id to focal length")
     tel_pos = Item(Map(ndarray), "map of tel_id to telescope position")
@@ -91,8 +92,8 @@ class MCCameraEventContainer(Container):
     """
     Storage of mc data for a single telescope that change per event
     """
-    photo_electron_image = Item(Map(), ("reference image in pure photoelectrons,"
-                                        " with no noise"))
+    photo_electron_image = Item(Map(), ("reference image in pure "
+                                        "photoelectrons, with no noise"))
     # todo: move to instrument (doesn't change per event)
     reference_pulse_shape = Item(Map(), ("map of channel to array "
                                          "defining pulse shape"))
@@ -105,9 +106,9 @@ class MCCameraEventContainer(Container):
                           "for the telescope")
     altitude_raw = Item(0, "Raw altitude angle [radians] for the telescope")
     azimuth_cor = Item(0, "the tracking Azimuth corrected for pointing "
-                             "errors for the telescope")
+                          "errors for the telescope")
     altitude_cor = Item(0, "the tracking Altitude corrected for pointing "
-                              "errors for the telescope")
+                           "errors for the telescope")
 
 
 class MCEventContainer(Container):
@@ -189,10 +190,12 @@ class ParticleClassificationContainer(Container):
     # TODO: Perhaps an integer classification to support different classes?
     # TODO: include an error on the prediction?
     prediction = Item(0.0, ('prediction of the classifier, defined between '
-                            '[0,1], where values close to 0 are more gamma-like,'
-                            ' and values close to 1 more hadron-like'))
-    is_valid = Item(False, ('classificator validity flag. True if the predition '
-                            'was successful within the algorithm validity range'))
+                            '[0,1], where values close to 0 are more '
+                            'gamma-like, and values close to 1 more '
+                            'hadron-like'))
+    is_valid = Item(False, ('classificator validity flag. True if the '
+                            'predition was successful within the algorithm '
+                            'validity range'))
 
     # TODO: KPK: is this different than the list in the reco
     # container? Why repeat?
