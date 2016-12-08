@@ -32,8 +32,6 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
         high threshold as multiple of the pedvar
     boundary_thresh: float
         low-threshold as mutiple of pedvar (+ nearest neighbor)
-    keep_single_pixels: bool
-        retain single pixels in the resulting cleaned mask
     Returns
     -------
 
