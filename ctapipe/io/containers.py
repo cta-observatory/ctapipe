@@ -71,10 +71,10 @@ class RawCameraContainer(Container):
     """
     Storage of raw data from a single telescope
     """
-    adc_sums = Item(Map(), ("map of channel to (masked) arrays of all "
-                            "integrated ADC data (n_pixels)"))
-    adc_samples = Item(Map(), ("map of channel to arrays of "
-                               "(n_pixels, n_samples)"))
+    adc_sums = Item(None, ("numpy array containing integrated ADC data "
+                           "(n_channels x n_pixels)"))
+    adc_samples = Item(None, ("numpy array containing ADC samples"
+                              "(n_channels x n_pixels, n_samples)"))
 
 
 class RawDataContainer(Container):
@@ -92,11 +92,11 @@ class MCCameraEventContainer(Container):
     """
     Storage of mc data for a single telescope that change per event
     """
-    photo_electron_image = Item(Map(), ("reference image in pure "
+    photo_electron_image = Item(None, ("reference image in pure "
                                         "photoelectrons, with no noise"))
     # todo: move to instrument (doesn't change per event)
-    reference_pulse_shape = Item(Map(), ("map of channel to array "
-                                         "defining pulse shape"))
+    reference_pulse_shape = Item(None, ("reference pulse shape for each "
+                                        "channel"))
     # todo: move to instrument or a static MC container (don't change per
     # event)
     time_slice = Item(0, "width of time slice", unit=u.ns)
