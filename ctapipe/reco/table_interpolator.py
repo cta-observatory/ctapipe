@@ -21,10 +21,10 @@ class TableInterpolator:
         """
         file = gzip.open(filename, 'rb')
         tables = pickle.load(file, encoding='latin1')
-        template = (list(tables.values()))
+        template = np.asarray(list(tables.values()))
         grid = np.asarray(list(tables.keys()))
 
-        self.interpolator = interpolate.LinearNDInterpolator(grid, template, fill_value=0)
+        self.interpolator = interpolate.LinearNDInterpolator(grid, template[:], fill_value=0)
         self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 
         self.y_bounds = (-1.5, 1.5)
@@ -65,7 +65,6 @@ class TableInterpolator:
         """
 
         image = self.interpolated_image(params)
-
         self.grid_interp.values = image
         points = np.array([pixel_pos_x, pixel_pos_y])
         return self.grid_interp(points.T)
