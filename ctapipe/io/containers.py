@@ -36,7 +36,7 @@ class InstrumentContainer(Container):
     num_channels = Item(Map(int), "map of tel_id to number of channels")
 
 
-class CalibratedCameraContainer(Container):
+class DL1CameraContainer(Container):
     """Storage of output of camera calibrationm e.g the final calibrated
     image in intensity units and other per-event calculated
     calibration information.
@@ -47,9 +47,6 @@ class CalibratedCameraContainer(Container):
                                       "indicating the samples used in "
                                       "the obtaining of the charge, dependant "
                                       "on the integration method used"))
-    # todo: rename the following to *_image
-    pedestal_subtracted_adc = Item(Map(), ("Map of channel to subtracted "
-                                           "ADC image"))
     peakpos = Item(Map(), ("position of the peak as determined by the "
                            "peak-finding algorithm for each pixel"
                            " and channel"))
@@ -63,9 +60,9 @@ class CameraCalibrationContainer(Container):
     pedestal = Item(None, "pedestal calibration arrays from MC file")
 
 
-class CalibratedContainer(Container):
-    """ Calibrated Camera Images and associated data"""
-    tel = Item(Map(CalibratedCameraContainer),
+class DL1Container(Container):
+    """ DL1 Calibrated Camera Images and associated data"""
+    tel = Item(Map(DL1CameraContainer),
                "map of tel_id to CalibratedCameraContainer")
 
 
@@ -219,7 +216,7 @@ class DataContainer(Container):
     """ Top-level container for all event information """
 
     dl0 = Item(RawDataContainer(), "Raw Data")
-    dl1 = Item(CalibratedContainer())
+    dl1 = Item(DL1Container())
     dl2 = Item(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Item(MCEventContainer(), "Monte-Carlo data")
     mcheader = Item(MCHeaderContainer, "Monte-Carlo run header data")
