@@ -33,7 +33,6 @@ class InstrumentContainer(Container):
     optical_foclen = Item(Map(ndarray), "map of tel_id to focal length")
     tel_pos = Item(Map(ndarray), "map of tel_id to telescope position")
     num_pixels = Item(Map(int), "map of tel_id to number of pixels in camera")
-    num_samples = Item(Map(int), "map of tel_id to number of time samples")
     num_channels = Item(Map(int), "map of tel_id to number of channels")
 
 
@@ -75,7 +74,7 @@ class RawCameraContainer(Container):
                            "(n_channels x n_pixels)"))
     adc_samples = Item(None, ("numpy array containing ADC samples"
                               "(n_channels x n_pixels, n_samples)"))
-
+    num_samples = Item(int, "number of time samples")
 
 class RawDataContainer(Container):
     """
