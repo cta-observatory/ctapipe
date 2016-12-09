@@ -467,6 +467,10 @@ class ChargeExtractorFactory(Factory):
                               'considered as significant for PeakFinding '
                               'in the LG channel. Only applicable to '
                               'PeakFindingIntegrators.').tag(config=True)
+    lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
+                      'only, 1: local pixel counts as much as any neighbour). '
+                      'Only applicable to '
+                      'NeighbourPeakIntegrator').tag(config=True)
 
     def get_factory_name(self):
         return self.name
