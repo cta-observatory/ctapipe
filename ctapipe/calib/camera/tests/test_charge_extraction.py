@@ -6,7 +6,7 @@ from numpy.testing import assert_almost_equal
 
 from ctapipe.calib.camera.charge_extractors import FullIntegrator, \
     SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
-    NeighbourPeakIntegrator
+    NeighbourPeakIntegrator, ChargeExtractorFactory
 
 
 def get_test_event():
@@ -113,3 +113,21 @@ def test_nb_peak_integration():
     assert_almost_equal(integration[1][0], -64, 0)
     assert peakpos[0][0] == 20
     assert peakpos[1][0] == 20
+
+
+def test_charge_extractor_factory():
+    extractor_f = ChargeExtractorFactory(None, None)
+    extractor_f.extractor = 'LocalPeakIntegrator'
+    extractor_c = extractor_f.get_class()
+    extractor = extractor_c(None, None)
+
+    telid = 11
+    event = get_test_event()
+    data = event.dl0.tel[telid].adc_samples
+    ped = event.mc.tel[telid].pedestal
+    nsamples = event.inst.num_samples[telid]
+    data_ped = data - np.atleast_3d(ped/nsamples)
+
+    integration = extractor.extract_charge(data_ped)
+
+    assert_almost_equal(integration[0][0], 76, 0)

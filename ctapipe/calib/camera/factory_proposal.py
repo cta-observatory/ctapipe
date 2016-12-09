@@ -57,8 +57,23 @@ class Factory(Component):
     subclasses = None  # Set to all_subclasses(ParentClass) in factory
     subclass_names = None  # Set to [c.__name__ for c in subclasses] in factory
 
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent=parent, **kwargs)
+    def __init__(self, config, tool, **kwargs):
+        """
+        Base Factory class
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
+        super().__init__(config=config, parent=tool, **kwargs)
         self.product = None
 
     @staticmethod
