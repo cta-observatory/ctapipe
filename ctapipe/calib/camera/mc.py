@@ -44,5 +44,5 @@ def mc_r0_to_dl0_calibration(event, telid):
     n_samples = samples.shape[2]
     pedestal = event.mc.tel[telid].pedestal / n_samples
     gain = event.mc.tel[telid].dc_to_pe
-    calibrated = (samples - pedestal[..., None]) * gain[..., None] * u.electron
+    calibrated = (samples - pedestal[..., None]) * gain[..., None]
     return calibrated
