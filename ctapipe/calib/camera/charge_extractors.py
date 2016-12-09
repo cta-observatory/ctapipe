@@ -291,11 +291,11 @@ class PeakFindingIntegrator(WindowIntegrator):
     window_shift = Int(3, help='Define the shift of the integration window '
                                'from the peakpos '
                                '(peakpos - shift)').tag(config=True)
-    sig_amp_cut_HG = Int(2, allow_none=True,
+    sig_amp_cut_HG = Int(None, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
                               'in the HG channel').tag(config=True)
-    sig_amp_cut_LG = Int(4, allow_none=True,
+    sig_amp_cut_LG = Int(None, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
                               'in the LG channel').tag(config=True)
@@ -339,6 +339,9 @@ class PeakFindingIntegrator(WindowIntegrator):
         significant_samples = waveforms
         if self.sig_amp_cut_HG or self.sig_amp_cut_HG:
             significant_samples = self._extract_significant_entries(waveforms)
+        else:
+            self._sig_channel = np.ones(self._nchan, dtype=bool)
+            self._sig_pixels = np.ones((self._nchan, self._npix), dtype=bool)
         self.peakpos = self._find_peak(significant_samples)
         return np.full((self._nchan, self._npix),
                        self.peakpos - self.window_shift,
@@ -365,7 +368,7 @@ class PeakFindingIntegrator(WindowIntegrator):
 
 
 class GlobalPeakIntegrator(PeakFindingIntegrator):
-    name = 'PeakFindingIntegrator'
+    name = 'GlobalPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
