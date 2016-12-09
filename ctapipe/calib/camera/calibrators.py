@@ -2,240 +2,258 @@
 Module containing general functions that will calibrate any event regardless of
 the source/telescope, and store the calibration inside the event container.
 """
-import argparse
-from copy import copy
-from ctapipe.calib.camera import mc
-from ctapipe.calib.camera.integrators import integrator_dict, \
-    integrators_requiring_geom
-from functools import partial
-from ctapipe.io.containers import RawDataContainer, CalibratedCameraContainer
-from ctapipe.io import CameraGeometry
-from astropy import log
+import numpy as np
+from ctapipe.core import Component
+from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
+from ctapipe.calib.camera.mc import mc_r0_to_dl0_calibration
+from ctapipe.io.camera import get_min_pixel_seperation, find_neighbor_pixels
+from traitlets import Float, Bool
 
 
-def calibration_parser(origin):
+def integration_correction(event, telid, window_width, window_shift):
     """
-    Obtain the correct parser for your input file.
+    Obtain the integration correction for the window specified.
 
-    Parameters
-    ----------
-    origin : str
-        Origin of data file e.g. hessio
+    This correction accounts for the cherenkov signal that may be missed due
+    to a smaller integration window by looking at the reference pulse shape.
 
-    Return
-    ------
-    parser : `astropy.utils.compat.argparse.ArgumentParser`
-        Argparser for calibration arguments.
-    ns : `argparse.Namespace`
-        Namespace containing the correction for default values so they use
-        a custom Action.
-    """
-
-    # Obtain relevent calibrator arguments
-    switch = {
-        'hessio':
-            lambda: mc.calibration_arguments(),
-        }
-    try:
-        parser, ns = switch[origin]()
-    except KeyError:
-        log.exception("no calibration created for data origin: '{}'"
-                      .format(origin))
-        raise
-
-    return parser, ns
-
-
-def calibration_parameters(excess_args, origin, calib_help=False):
-    """
-    Obtain the calibration parameters.
-
-    Parameters
-    ----------
-    excess_args : list
-        List of arguments left over after intial parsing.
-    origin : str
-        Origin of data file e.g. hessio.
-    calib_help : bool
-        Print help message for calibration arguments.
-
-    Return
-    ------
-    params : dict
-        Calibration parameter dict.
-    unknown_args : list
-        List of leftover cmdline arguments after parsing for calibration
-        arguments.
-    """
-
-    parser, ns = calibration_parser(origin)
-
-    if calib_help:
-        parser.print_help()
-        parser.exit()
-
-    args, unknown_args = parser.parse_known_args(excess_args, ns)
-
-    params = vars(args)
-    for key, value in params.items():
-        log.info("[{}] {}".format(key, value))
-
-    return params, unknown_args
-
-
-def calibrate_event(event, params, geom_dict=None):
-    """
-    Generic calibrator for events. Calls the calibrator corresponding to the
-    source of the event, and stores the dl1 (calibrated_image) information into a
-    new event container.
+    Provides the same result as set_integration_correction from readhess.
 
     Parameters
     ----------
     event : container
         A `ctapipe` event container
-    params : dict
-        REQUIRED:
-
-        params['integrator'] - Integration scheme
-
-        params['integration_window'] - Integration window size and shift of
-        integration window centre
-
-        (adapted such that window fits into readout).
-
-        OPTIONAL:
-
-        params['integration_clip_amp'] - Amplitude in p.e. above which the
-        signal is clipped.
-
-        params['integration_calib_scale'] : Identical to global variable
-        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
-        the default value (corresponds to HESS). The required value changes
-        between cameras (GCT = 1.05).
-
-        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
-        at which a signal is considered as significant (separate for
-        high gain/low gain).
-    geom_dict : dict
-        Dict of pixel geometry for each telescope. Leave as None for automatic
-        calculation when it is required.
-        dict[(num_pixels, focal_length)] = `ctapipe.io.CameraGeometry`
+    telid : int
+        telescope id
+    window_width : int
+        Width of the integration window.
+    window_shift : int
+        Shift to before the peak for the start of the integration window.
 
     Returns
     -------
-    calibrated : container
-        A new `ctapipe` event container containing the dl1 information, and a
-        reference to all other information contained in the original event
-        container.
+    correction : list[2]
+        Value of the integration correction for this telescope for each
+        channel.
     """
+    n_chan = event.inst.num_channels[telid]
+    correction = [1] * n_chan
+    for chan in range(n_chan):
 
-    # Obtain relevent calibrator
-    switch = {
-        'hessio':
-            partial(mc.calibrate_mc, event=event, params=params)
-        }
-    try:
-        calibrator = switch[event.meta['source']]
-    except KeyError:
-        log.exception("no calibration created for data origin: '{}'"
-                      .format(event.meta['source']))
-        raise
+        shape = event.mc.tel[telid].reference_pulse_shape[chan]
+        step = event.mc.tel[telid].meta['refstep']
+        time_slice = event.mc.tel[telid].time_slice
 
-    # KPK: should not copy the event here! there is no reason to
-    # Copying is
-    # up to the user if they want to do it, not in the algorithms.
-    #    calibrated = copy(event)
+        if shape.all() is False or time_slice == 0 or step == 0:
+            continue
 
-    # params stored in metadata
-    event.dl1.meta.update(params)
+        ref_x = np.arange(0, shape.size * step, step)
+        edges = np.arange(0, shape.size * step + 1, time_slice)
 
-    # Fill dl1
-    event.dl1.reset()
-    for telid in event.dl0.tels_with_data:
-        nchan = event.inst.num_channels[telid]
-        npix = event.inst.num_pixels[telid]
-        event.dl1.tel[telid] = CalibratedCameraContainer()
+        sampled = np.histogram(ref_x, edges, weights=shape, density=True)[0]
+        n_samples = sampled.size
+        start = sampled.argmax() - window_shift
+        end = start + window_width
 
-        # Get geometry
-        int_dict, inverted = integrator_dict()
-        geom = None
+        if window_width > n_samples:
+            window_width = n_samples
+        if start < 0:
+            start = 0
+        if start + window_width > n_samples:
+            start = n_samples - window_width
 
-        # Check if geom is even needed for integrator
-        if inverted[params['integrator']] in integrators_requiring_geom():
-            if geom_dict is not None and telid in geom_dict:
-                geom = geom_dict[telid]
+        correction[chan] = 1 / sampled[start:end].sum()
+
+    return correction
+
+
+class CameraDL1Calibrator(Component):
+    name = 'CameraCalibrator'
+    radius = Float(None, allow_none=True,
+                   help='Pixels within radius from a pixel are considered '
+                        'neighbours to the pixel. Set to None for the default '
+                        '(1.4 * min_pixel_seperation)').tag(config=True)
+    correction = Bool(True,
+                      help='Apply an integration correction to the charge to '
+                           'account for the full cherenkov signal that your '
+                           'smaller integration window may be '
+                           'missing').tag(config=True)
+
+    def __init__(self, config, tool, extractor=None, **kwargs):
+        """
+        The calibrator for DL1 charge extraction.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        extractor : ctapipe.calib.camera.charge_extractors.ChargeExtractor
+            The extractor to use to extract the charge from the waveforms.
+            By default the NeighbourPeakIntegrator with default configuration
+            is used.
+        kwargs
+        """
+        super().__init__(config=config, parent=tool, **kwargs)
+        self._extractor = extractor
+        if self._extractor is None:
+            self._extractor = NeighbourPeakIntegrator(config, tool)
+        self._current_url = None
+
+        self.neighbour_dict = {}
+        self.correction_dict = {}
+
+    def _check_url_change(self, event):
+        """
+        Check if the event comes from a different file to the previous events.
+        If it has, then the neighbour and correction dicts need to be reset
+        as telescope ids might not indicate the same telescope type as before.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        """
+        if 'input' in event.meta:
+            url = event.meta['input']
+            if not self._current_url:
+                self._current_url = url
+            if url != self._current_url:
+                self.log.warning("A new CameraDL1Calibrator should be created"
+                                 "for each individual file so stored "
+                                 "neighbours and integration_correction "
+                                 "match the correct telid")
+                self.neighbour_dict = {}
+                self.correction_dict = {}
+
+    def get_neighbours(self, event, telid):
+        """
+        Obtain the neighbouring pixels for this telescope.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+            The neighbours are calculated once per telescope.
+        """
+        if telid in self.neighbour_dict:
+            return self.neighbour_dict[telid]
+        else:
+            pixel_pos = event.inst.pixel_pos[telid]
+
+            if not self.radius:
+                pixsep = get_min_pixel_seperation(*pixel_pos)
+                self.radius = 1.4 * pixsep.value
+
+            self.neighbour_dict[telid] = \
+                find_neighbor_pixels(*pixel_pos, self.radius)
+            return self.neighbour_dict[telid]
+
+    def get_correction(self, event, telid):
+        """
+        Obtain the integration correction for this telescope.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+            The integration correction is calculated once per telescope.
+        """
+        if telid in self.correction_dict:
+            return self.correction_dict[telid]
+        else:
+            try:
+                shift = self._extractor.input_shift
+                width = self._extractor.input_width
+                self.correction_dict[telid] = \
+                    integration_correction(event, telid, width, shift)
+                return self.correction_dict[telid]
+            except AttributeError:
+                return 1
+
+    def obtain_dl0(self, event, telid):
+        """
+        Obtain the dl0 adc_samples.
+
+        For hessio files, this means to calibrate from r0 to dl0. As what is
+        currently stored as dl0 in hessio.py is actually r0.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+
+        Returns
+        -------
+        waveforms : ndarray
+            The dl0 PE samples inside a numpy array of shape (n_samples)
+
+        """
+        # TODO: dl0 should be correctly filled with pe_samples in IO
+        if event.meta['source'] == 'hessio':
+            return mc_r0_to_dl0_calibration(event, telid)
+        else:
+            self.log.exception("no calibration created for data source: "
+                               "{}".format(event.meta['source']))
+
+    def calibrate(self, event):
+        """
+        Fill the dl1 container with the calibration data that results from the
+        configuration of this calibrator.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        """
+        self._check_url_change(event)
+        for telid in event.dl0.tels_with_data:
+            waveforms = self.obtain_dl0(event, telid)
+
+            if self._extractor.requires_neighbours():
+                self._extractor.neighbours = self.get_neighbours(event, telid)
+
+            charge = self._extractor.extract_charge(waveforms)
+            extracted_samples = self._extractor.extracted_samples
+
+            peakpos = self._extractor.peakpos
+
+            if self.correction:
+                corrected = charge * self.get_correction(event, telid)
             else:
-                log.debug("[calib] Guessing camera geometry")
-                geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                            event.inst.optical_foclen[telid])
-                log.debug("[calib] Camera geometry found")
-                if geom_dict is not None:
-                    geom_dict[telid] = geom
+                corrected = charge
 
-        pe, window, data_ped, peakpos = calibrator(telid=telid, geom=geom)
-        tel = event.dl1.tel[telid]
-        tel.calibrated_image = pe
-        tel.peakpos = peakpos
-        for chan in range(nchan):
-            tel.integration_window[chan] = window[chan]
-            tel.pedestal_subtracted_adc[chan] = data_ped[chan]
+            event.dl1.tel[telid].image = corrected
+            event.dl1.tel[telid].extracted_samples = extracted_samples
+            event.dl1.tel[telid].peakpos = peakpos
 
-    return event
+    def calibrate_source(self, source):
+        """
+        Generator for calibrating all events in a file.
 
+        Parameters
+        ----------
+        source : generator
+            A `ctapipe` event generator such as
+            `ctapipe.io.hessio.hessio_event_source`
 
-def calibrate_source(source, params, geom_dict=None):
-    """
-    Generator for calibrating all events in a file. Using this function is
-    faster than `calibrate_event` if you require more than one event
-    calibrated, as the geometry for each telescope is stored instead of being
-    recalculated. If you only require one event calibrated, use
-    `calibrate_event`.
-
-    Parameters
-    ----------
-    source : generator
-        A `ctapipe` event generator such as
-        `ctapipe.io.hessio.hessio_event_source`
-    params : dict
-        REQUIRED:
-
-        params['integrator'] - Integration scheme
-
-        params['integration_window'] - Integration window size and shift of
-        integration window centre
-
-        (adapted such that window fits into readout).
-
-        OPTIONAL:
-
-        params['integration_clip_amp'] - Amplitude in p.e. above which the
-        signal is clipped.
-
-        params['integration_calib_scale'] : Identical to global variable
-        CALIB_SCALE in reconstruct.c in hessioxxx software package. 0.92 is
-        the default value (corresponds to HESS). The required value changes
-        between cameras (GCT = 1.05).
-
-        params['integration_sigamp'] - Amplitude in ADC counts above pedestal
-        at which a signal is considered as significant (separate for
-        high gain/low gain).
-    geom_dict : dict
-        Dict of pixel geometry for each telescope. Leave as None for automatic
-        calculation when it is required. Can be used to only calculate a geom
-        once per telescope by utilising a dicts mutability.
-        dict[(num_pixels, focal_length)] = `ctapipe.io.CameraGeometry`
-
-    Returns
-    -------
-    calibrated : container
-        A new `ctapipe` event container containing the dl1 information, and a
-        reference to all other information contained in the original event
-        container.
-    """
-    if geom_dict is None:
-        geom_dict = {}
-
-    log.info("[calib] Calibration generator appended to source")
-    for event in source:
-        calibrate_event(event, params, geom_dict)
-        yield event
+        Returns
+        -------
+        generator
+            A new generator that also contains the dl1 calibration.
+        """
+        self.log.info("Calibration generator appended to source")
+        for event in source:
+            self.calibrate(event)
+            yield event
