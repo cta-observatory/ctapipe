@@ -2,14 +2,14 @@ from numpy.testing import assert_almost_equal
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
 from ctapipe.calib.camera.mc import mc_r0_to_dl0_calibration
-from IPython import embed
 
 
 def get_test_event():
     filename = get_path('gamma_test.simtel.gz')
-    for event in hessio_event_source(filename):
-        if event.dl0.event_id == 409:
-            return event
+    source = hessio_event_source(filename, requested_event=409,
+                                 use_event_id=True)
+    event = next(source)
+    return event
 
 
 def test_mc_r0_to_dl0_calibration():
