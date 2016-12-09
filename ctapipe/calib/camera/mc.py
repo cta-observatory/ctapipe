@@ -13,7 +13,17 @@ Input MC version = prod2. For future MC versions the calibration
 function might be different for each camera type.
 """
 
-from astropy import units as u
+CALIB_SCALE = 1.05
+"""
+CALIB_SCALE is the factor needed to transform from mean p.e. units to units of
+the single-p.e. peak: Depends on the collection efficiency, the asymmetry of
+the single p.e. amplitude  distribution and the electronic noise added to the
+signals. Default value is for GCT.
+
+To correctly calibrate to number of photoelectron, a fresh SPE calibration
+should be applied using a SPE sim_telarray run with an artificial light source.
+"""
+# TODO: add SPE calibration
 
 
 def mc_r0_to_dl0_calibration(event, telid):
@@ -43,6 +53,6 @@ def mc_r0_to_dl0_calibration(event, telid):
     samples = event.dl0.tel[telid].adc_samples
     n_samples = samples.shape[2]
     pedestal = event.mc.tel[telid].pedestal / n_samples
-    gain = event.mc.tel[telid].dc_to_pe
+    gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
     calibrated = (samples - pedestal[..., None]) * gain[..., None]
     return calibrated
