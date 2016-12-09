@@ -189,11 +189,13 @@ def _fill_instrument_info(data, pyhessio):
                     = pyhessio.get_telescope_position(tel_id) * u.m
                 nchans = pyhessio.get_num_channel(tel_id)
                 npix = pyhessio.get_num_pixels(tel_id)
-                nsamples = pyhessio.get_num_samples(tel_id)
-                if nsamples <= 0:
-                    nsamples = 1
                 data.inst.num_channels[tel_id] = nchans
                 data.inst.num_pixels[tel_id] = npix
-                data.inst.num_samples[tel_id] = nsamples
             except HessioGeneralError:
                 pass
+
+    for tel_id in data.dl0.tels_with_data:
+        nsamples = pyhessio.get_num_samples(tel_id)
+        if nsamples <= 0:
+            nsamples = 1
+        data.inst.num_samples[tel_id] = nsamples
