@@ -22,8 +22,8 @@ def calibration_parser(origin):
     origin : str
         Origin of data file e.g. hessio
 
-    Return
-    ------
+    Returns
+    -------
     parser : `astropy.utils.compat.argparse.ArgumentParser`
         Argparser for calibration arguments.
     ns : `argparse.Namespace`
@@ -59,8 +59,8 @@ def calibration_parameters(excess_args, origin, calib_help=False):
     calib_help : bool
         Print help message for calibration arguments.
 
-    Return
-    ------
+    Returns
+    -------
     params : dict
         Calibration parameter dict.
     unknown_args : list

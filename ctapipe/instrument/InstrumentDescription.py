@@ -24,11 +24,11 @@ class Atmosphere:
         """
         Load atmosphere profile from file
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         filename: string
             name of file
-        --------
+
         """
         altitude,rho,thickness,n_minus_1 = np.loadtxt(filename,unpack=True,
                                                       delimeter=' ')
@@ -41,11 +41,11 @@ class Atmosphere:
         """
         Load atmosphere extinction profile from file
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         filename: string
             name of file
-        --------
+
         """
         
         # still work to do
@@ -910,8 +910,8 @@ def get_var_from_file(filename):
     Function to load and initialize a module implemented as a Python source
     file called `filename` and to return its module objects.
     
-    Parameter
-    ---------
+    Parameters
+    ----------
     filename: ASCII file
         file in which the module objects are defined
     """
