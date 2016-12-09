@@ -20,8 +20,8 @@ def get_test_event():
 def test_full_integration():
     telid = 11
     event = get_test_event()
-    nsamples = event.inst.num_samples[telid]
     data = event.dl0.tel[telid].adc_samples
+    nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
@@ -39,8 +39,8 @@ def test_simple_integration():
     telid = 11
     event = get_test_event()
     data = event.dl0.tel[telid].adc_samples
+    nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -57,8 +57,8 @@ def test_global_peak_integration():
     telid = 11
     event = get_test_event()
     data = event.dl0.tel[telid].adc_samples
+    nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -76,8 +76,8 @@ def test_local_peak_integration():
     telid = 11
     event = get_test_event()
     data = event.dl0.tel[telid].adc_samples
+    nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -95,8 +95,8 @@ def test_nb_peak_integration():
     telid = 11
     event = get_test_event()
     data = event.dl0.tel[telid].adc_samples
+    nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
     geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
@@ -124,8 +124,8 @@ def test_charge_extractor_factory():
     telid = 11
     event = get_test_event()
     data = event.dl0.tel[telid].adc_samples
+    nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    nsamples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/nsamples)
 
     integration = extractor.extract_charge(data_ped)
