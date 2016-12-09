@@ -7,6 +7,20 @@ from ctapipe.calib.camera.factory_proposal import Factory
 
 
 class ChargeExtractor(Component):
+    """
+    Attributes
+    ----------
+    extracted_samples : ndarray
+        Numpy array containing True where the samples lay within the
+        integration window, and False where the samples lay outside. Has
+        shape of (n_chan, n_pix, n_samples).
+    peakpos : ndarray
+        Numpy array of the peak position for each pixel. Has shape of
+        (n_chan, n_pix).
+    neighbours : list
+        List of neighbours for each pixel. Changes per telescope.
+
+    """
     name = 'ChargeExtractor'
 
     def __init__(self, config, tool, **kwargs):
@@ -37,9 +51,25 @@ class ChargeExtractor(Component):
 
     @staticmethod
     def requires_neighbours():
+        """
+        Method used for callers of the ChargeExtractor to know if the extractor
+        requires knowledge of the pixel neighbours
+
+        Returns
+        -------
+        bool
+        """
         return False
 
     def check_neighbour_set(self):
+        """
+        Check if the pixel neighbours has been set for the extractor
+
+        Raises
+        -------
+        ValueError
+            If neighbours has not been set
+        """
         if self.requires_neighbours():
             if self.neighbours is None:
                 self.log.exception("neighbours attribute must be set")
@@ -47,8 +77,21 @@ class ChargeExtractor(Component):
 
     @abstractmethod
     def extract_charge(self, waveforms):
-        """ Calls the relevant functions to fully extract the charge for the
-        particular extractor """
+        """
+        Call the relevant functions to fully extract the charge for the
+        particular extractor.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        charge : ndarray
+            Extracted charge stored in a numpy array of shape (n_chan, n_pix).
+        """
 
 
 class Integrator(ChargeExtractor):
@@ -58,22 +101,53 @@ class Integrator(ChargeExtractor):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _check_window_width_and_start(self, width, start):
-        if width is None:
-            raise ValueError('window width has not been set')
-        if start is None:
-            raise ValueError('window start has not been set')
+        """
+        Check that the combination of window width and start positions fit
+        within the readout window.
+
+        Parameters
+        ----------
+        width : ndarray
+            Numpy array containing the window width for each pixel. Shape =
+            (n_chan, n_pix)
+        start : ndarray
+            Numpy array containing the window start for each pixel. Shape =
+            (n_chan, n_pix)
+
+        """
+        # if width is None:
+        #     raise ValueError('window width has not been set')
+        # if start is None:
+        #     raise ValueError('window start has not been set')
         if not width.all():
             self.log.warn('all window_widths are zero')
 
         width[width > self._nsamples] = self._nsamples
         start[start < 0] = 0
-        print(start)
-        print(width)
-        print(self._nsamples)
         sum_check = start + width > self._nsamples
         start[sum_check] = self._nsamples - width[sum_check]
 
     def _define_window(self, start, width):
+        """
+        Build the a numpy array of bools defining the integration window.
+
+        Parameters
+        ----------
+        width : ndarray
+            Numpy array containing the window width for each pixel. Shape =
+            (n_chan, n_pix)
+        start : ndarray
+            Numpy array containing the window start for each pixel. Shape =
+            (n_chan, n_pix)
+
+        Returns
+        -------
+        integration_window : ndarray
+            Numpy array containing True where the samples lay within the
+            integration window, and False where the samples lay outside. Has
+            shape of (n_chan, n_pix, n_samples).
+
+        """
         end = start + width
 
         # Obtain integration window using the indices of the waveforms array
@@ -83,11 +157,46 @@ class Integrator(ChargeExtractor):
 
     @staticmethod
     def _window_waveforms(waveforms, window):
+        """
+        Mask the waveforms with the integration window
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+        window : ndarray
+            Numpy array containing True where the samples lay within the
+            integration window, and False where the samples lay outside. Has
+            shape of (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        windowed : masked ndarray
+            Waveforms masked with the integration window.
+
+        """
         windowed = np.ma.array(waveforms, mask=~window)
         return windowed
 
     @staticmethod
     def _integrate(windowed_waveforms):
+        """
+        Integrate a the waveforms after they have been masked with the
+        integration window.
+
+        Parameters
+        ----------
+        windowed_waveforms : masked ndarray
+            Waveforms array that has been masked by the integration_window
+            array.
+
+        Returns
+        -------
+        integration : ndarray
+            Result of the integration. Has a shape of (n_chan, n_pix).
+
+        """
         integration = windowed_waveforms.sum(2)
         return integration
 
@@ -106,11 +215,29 @@ class Integrator(ChargeExtractor):
 
     @abstractmethod
     def _get_window_width(self):
-        """Get the width of the integration window"""
+        """
+        Get the width of the integration window
+
+        Returns
+        -------
+        width : ndarray
+            Numpy array containing the window width for each pixel. Shape =
+            (n_chan, n_pix)
+
+        """
 
     @abstractmethod
     def _get_window_start(self, waveforms):
-        """Get the starting point for the integration window"""
+        """
+        Get the starting point for the integration window
+
+        Returns
+        -------
+        start : ndarray
+            Numpy array containing the window start for each pixel. Shape =
+            (n_chan, n_pix)
+
+        """
 
 
 class FullIntegrator(Integrator):
@@ -181,6 +308,22 @@ class PeakFindingIntegrator(WindowIntegrator):
 
     # Extract significant entries
     def _extract_significant_entries(self, waveforms):
+        """
+        Obtain the samples that the user has specified as significant.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        significant_samples : masked ndarray
+            Identical to waveforms, except the insignificant samples are
+            masked.
+
+        """
         sig_entries = np.ones(waveforms.shape, dtype=bool)
         if self.sig_amp_cut_HG:
             sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
@@ -190,7 +333,7 @@ class PeakFindingIntegrator(WindowIntegrator):
         self._sig_channel = np.any(self._sig_pixels, axis=1)
         if not self._sig_channel[0]:
             self.log.error("sigamp value excludes all values in HG channel")
-        return waveforms * sig_entries
+        return np.ma.array(waveforms, mask=~sig_entries)
 
     def _get_window_start(self, waveforms):
         significant_samples = waveforms
@@ -203,7 +346,22 @@ class PeakFindingIntegrator(WindowIntegrator):
 
     @abstractmethod
     def _find_peak(self, significant_samples):
-        """ Find the peak to define window around """
+        """
+        Find the peak to define integration window around.
+
+        Parameters
+        ----------
+        significant_samples : masked ndarray
+            Numpy array with the significant samples unmasked. Has shape of
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel. Has shape of
+            (n_chan, n_pix).
+
+        """
 
 
 class GlobalPeakIntegrator(PeakFindingIntegrator):
