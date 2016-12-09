@@ -25,22 +25,22 @@ Installation for Users
 
 *ctapipe* and its dependencies may be installed using the *Anaconda* or
 *Miniconda* package system. We recommend creating a conda virtual environment
- first, to isolate the installed version and dependencies from your master
- environment (this is optional).
+first, to isolate the installed version and dependencies from your master
+environment (this is optional).
 
 
 Optionally create the virtual env:
 
-```
-conda create -n cta ipython ipython-notebook  # create cta virtual environment
-source activate cta  # switch to virtual environment
-```
+::
+
+  conda create -n cta ipython ipython-notebook
+  source activate cta
 
 Then, install the packages via:
 
-```
-conda install -c cta-observatory ctapipe  # install ctapipe into environment
-```
+::
+
+  conda install -c cta-observatory ctapipe  
 
 Developers should follow the development install instructions found in the
 documentation above.
