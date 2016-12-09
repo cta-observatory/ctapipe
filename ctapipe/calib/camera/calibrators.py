@@ -81,7 +81,10 @@ class CameraDL1Calibrator(Component):
 
     def __init__(self, config, tool, extractor=None, **kwargs):
         """
-        The calibrator for DL1 charge extraction.
+        The calibrator for DL1 charge extraction. Fills the dl1 container.
+
+        It handles the integration correction and, if required, the list of
+        neighbours.
 
         Parameters
         ----------
