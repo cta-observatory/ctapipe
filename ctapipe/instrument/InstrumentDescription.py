@@ -70,8 +70,9 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
         item of the instrument (Telescope,Camera or Optics) whose data
         should be loaded, can be either a list, e.g. ('Camera','Telescope') or
         just one string, e.g. 'Camera'
-    Return
-    ------
+
+    Returns
+    -------
     possibility 0:
     telescope,camera,optics = load_fakedata(filename)
     
@@ -103,8 +104,8 @@ def load_fakedata():
     """
     Function writing faked date into an astropy.table Table
     
-    Return
-    ------
+    Returns
+    -------
     telescope,camera,optics: 3 dictionaries
         all dictionaries contain astropy.table Tables
     """
@@ -346,8 +347,9 @@ def load_fits(filename = '',path = None,version = '',instr_item = ''):
         item of the instrument (Telescope,Camera or Optics) whose data
         should be loaded, can be either a list, e.g. ('Camera','Telescope') or
         just one string, e.g. 'Camera'
-    Return
-    ------
+
+    Returns
+    -------
     telescope,camera,optics: 3 dictionaries
         all dictionaries contain astropy.table Tables
     """
@@ -415,8 +417,9 @@ def load_config(filename):
     ----------
     filename: string
         name of the file
-    Return
-    ------
+
+    Returns
+    -------
     telescope,camera,optics: 3 dictionaries
         all dictionaries contain astropy.table Tables
     """
