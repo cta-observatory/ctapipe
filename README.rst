@@ -31,16 +31,18 @@ environment (this is optional).
 
 Optionally create the virtual env:
 
-```
+..
+
 conda create -n cta ipython ipython-notebook  # create cta virtual environment
 source activate cta  # switch to virtual environment
-```
+
 
 Then, install the packages via:
 
-```
+..
+
 conda install -c cta-observatory ctapipe  # install ctapipe into environment
-```
+
 
 Developers should follow the development install instructions found in the
 documentation above.
