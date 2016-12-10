@@ -72,12 +72,16 @@ class CameraDL1Calibrator(Component):
     radius = Float(None, allow_none=True,
                    help='Pixels within radius from a pixel are considered '
                         'neighbours to the pixel. Set to None for the default '
-                        '(1.4 * min_pixel_seperation)').tag(config=True)
+                        '(1.4 * min_pixel_seperation).').tag(config=True)
     correction = Bool(True,
                       help='Apply an integration correction to the charge to '
                            'account for the full cherenkov signal that your '
                            'smaller integration window may be '
-                           'missing').tag(config=True)
+                           'missing.').tag(config=True)
+    clip_amplitude = Float(None, allow_none=True,
+                           help='Amplitude in p.e. above which the signal is '
+                                'clipped. Set to None for no '
+                                'clipping.').tag(config=True)
 
     def __init__(self, config, tool, extractor=None, **kwargs):
         """
@@ -236,6 +240,10 @@ class CameraDL1Calibrator(Component):
                 corrected = charge * self.get_correction(event, telid)
             else:
                 corrected = charge
+
+            if self.clip_amplitude:
+                corrected[corrected > self.clip_amplitude] = \
+                    self.clip_amplitude
 
             event.dl1.tel[telid].image = corrected
             event.dl1.tel[telid].extracted_samples = extracted_samples
