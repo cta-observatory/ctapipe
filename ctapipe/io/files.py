@@ -99,22 +99,19 @@ class FileReader(Component):
         Automatically set from `input_path`.
     extension : str
         Automatically set from `input_path`.
-    origin : {'hessio', 'targetio'}
-        The type of file, related to its source.
-        Automatically set from `input_path`.
     output_directory : str
         Directory to save outputs for this file
 
     """
     name = 'FileReader'
 
-    possible_sources = ['hessio', 'targetio']
+    possible_origins = ['hessio', 'targetio']
 
     input_path = Unicode(get_path('gamma_test.simtel.gz'),
                          help='Path to the input file containing '
                               'events.').tag(config=True)
-    source = CaselessStrEnum(possible_sources, 'hessio',
-                             help='Source of the input file.').tag(config=True)
+    origin = CaselessStrEnum(possible_origins, 'hessio',
+                             help='Origin of the input file.').tag(config=True)
     max_events = Int(None, allow_none=True,
                      help='Maximum number of events that will be read from'
                           'the file').tag(config=True)
@@ -155,7 +152,7 @@ class FileReader(Component):
         self.output_directory = join(self.directory, self.filename)
 
         self.log.info("INPUT PATH = {}".format(self.input_path))
-        self.log.info("ORIGIN = {}".format(self.source))
+        self.log.info("ORIGIN = {}".format(self.origin))
 
     @observe('input_path')
     def on_input_path_changed(self, change):
@@ -164,9 +161,9 @@ class FileReader(Component):
         self._event_id_list = []
         self._init_path(change)
 
-    @observe('source')
-    def on_source_changed(self, change):
-        self.log.warning("Change: source={}".format(change))
+    @observe('origin')
+    def on_origin_changed(self, change):
+        self.log.warning("Change: origin={}".format(change))
 
     @observe('max_events')
     def on_max_events_changed(self, change):
@@ -246,9 +243,9 @@ class FileReader(Component):
                                         use_event_id=use_event_id),
         }
         try:
-            source = switch[self.source]()
+            source = switch[self.origin]()
         except KeyError:
-            self.log.exception("unknown file origin '{}'".format(self.source))
+            self.log.exception("unknown file origin '{}'".format(self.origin))
             raise
         self.log.debug("File reading complete")
 

@@ -61,7 +61,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             if allowed_tels is not None:
                 allowed_tels = set(allowed_tels)
             data = DataContainer()
-            data.meta['source'] = "hessio"
+            data.meta['origin'] = "hessio"
 
             # some hessio_event_source specific parameters
             data.meta['input'] = url

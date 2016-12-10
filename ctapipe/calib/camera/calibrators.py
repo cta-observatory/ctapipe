@@ -1,6 +1,6 @@
 """
 Module containing general functions that will calibrate any event regardless of
-the source/telescope, and store the calibration inside the event container.
+the origin/telescope, and store the calibration inside the event container.
 """
 import numpy as np
 from ctapipe.core import Component
@@ -208,11 +208,11 @@ class CameraDL1Calibrator(Component):
 
         """
         # TODO: dl0 should be correctly filled with pe_samples in IO
-        if event.meta['source'] == 'hessio':
+        if event.meta['origin'] == 'hessio':
             return mc_r0_to_dl0_calibration(event, telid)
         else:
-            self.log.exception("no calibration created for data source: "
-                               "{}".format(event.meta['source']))
+            self.log.exception("no calibration created for data origin: "
+                               "{}".format(event.meta['origin']))
 
     def calibrate(self, event):
         """
