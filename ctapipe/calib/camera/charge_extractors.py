@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import numpy as np
-from traitlets import Int, Unicode
+from traitlets import Int, CaselessStrEnum
 
 from ctapipe.core import Component
 from ctapipe.calib.camera.factory_proposal import Factory
@@ -441,9 +441,9 @@ class ChargeExtractorFactory(Factory):
     subclasses = Factory.child_subclasses(ChargeExtractor)
     subclass_names = [c.__name__ for c in subclasses]
 
-    extractor = Unicode('NeighbourPeakIntegrator',
-                        help='Charge extraction scheme to use: {}'
-                        .format(subclass_names)).tag(config=True)
+    extractor = CaselessStrEnum(subclass_names, 'NeighbourPeakIntegrator',
+                                help='Charge extraction scheme to '
+                                     'use.').tag(config=True)
 
     # Product classes traits
     # Would be nice to have these automatically set...!
