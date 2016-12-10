@@ -16,4 +16,4 @@ def test_mc_r0_to_dl0_calibration():
     telid = 11
     event = get_test_event()
     dl0 = mc_r0_to_dl0_calibration(event, telid)
-    assert_almost_equal(dl0[0, 0, 0], -0.087, 3)
+    assert_almost_equal(dl0[0, 0, 0], -0.091, 3)

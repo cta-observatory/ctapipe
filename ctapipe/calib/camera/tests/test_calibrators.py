@@ -34,15 +34,15 @@ def test_camera_dl1_calibrator():
     assert_almost_equal(calibrator.correction_dict[telid][0], 2.154, 3)
 
     dl0 = calibrator.obtain_dl0(event, telid)
-    assert_almost_equal(dl0[0, 0, 0], -0.087, 3)
+    assert_almost_equal(dl0[0, 0, 0], -0.091, 3)
 
     calibrator.calibrate(event)
     image = event.dl1.tel[telid].image
-    assert_almost_equal(image[0, 0], -4.220, 3)
+    assert_almost_equal(image[0, 0], -4.431, 3)
 
     filename = get_path('gamma_test.simtel.gz')
     source = hessio_event_source(filename, requested_event=409,
                                  use_event_id=True)
     calibrator.calibrate_source(source)
     event = next(source)
-    assert_almost_equal(event.dl1.tel[21].image[0, 0], -3.248, 3)
+    assert_almost_equal(event.dl1.tel[21].image[0, 0], -3.410, 3)
