@@ -68,10 +68,11 @@ class ImagePlotter(Component):
         peakpos = event.dl1.tel[telid].peakpos[chan]
 
         if self._current_tel != telid:
+            self._current_tel = telid
+
             self.ax_intensity.cla()
             self.ax_peakpos.cla()
 
-            self._current_tel = telid
             # Redraw camera
             geom = self.get_geometry(event, telid)
             self.c_intensity = CameraDisplay(geom, cmap=plt.cm.viridis,
@@ -81,8 +82,6 @@ class ImagePlotter(Component):
 
             tmaxmin = event.dl0.tel[telid].adc_samples.shape[2]
             t_chargemax = peakpos[image.argmax()]
-            # if t_chargemax > 15:
-            #     t_chargemax = 7
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 'cmap_t', [(0 / tmaxmin, 'darkgreen'),
                            (0.6 * t_chargemax / tmaxmin, 'green'),
