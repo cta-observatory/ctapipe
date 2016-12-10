@@ -141,6 +141,7 @@ class FileReader(Component):
         self._init_path(self.input_path)
 
     def _init_path(self, input_path):
+        print(input_path)
         if not exists(input_path):
             raise FileNotFoundError("file path does not exist: '{}'"
                                     .format(input_path))
@@ -151,25 +152,36 @@ class FileReader(Component):
         self.extension = splitext(input_path)[1]
         self.output_directory = join(self.directory, self.filename)
 
-        self.log.info("INPUT PATH = {}".format(self.input_path))
-        self.log.info("ORIGIN = {}".format(self.origin))
+        if self.log:
+            self.log.info("INPUT PATH = {}".format(self.input_path))
+            self.log.info("ORIGIN = {}".format(self.origin))
 
     @observe('input_path')
     def on_input_path_changed(self, change):
-        self.log.warning("Change: input_path={}".format(change))
-        self._num_events = None
-        self._event_id_list = []
-        self._init_path(change)
+        new = change['new']
+        try:
+            self.log.warning("Change: input_path={}".format(change))
+            self._num_events = None
+            self._event_id_list = []
+            self._init_path(new)
+        except AttributeError:
+            pass
 
     @observe('origin')
     def on_origin_changed(self, change):
-        self.log.warning("Change: origin={}".format(change))
+        try:
+            self.log.warning("Change: origin={}".format(change))
+        except AttributeError:
+            pass
 
     @observe('max_events')
     def on_max_events_changed(self, change):
-        self.log.warning("Change: max_events={}".format(change))
-        self._num_events = None
-        self._event_id_list = []
+        try:
+            self.log.warning("Change: max_events={}".format(change))
+            self._num_events = None
+            self._event_id_list = []
+        except AttributeError:
+            pass
 
     @property
     def num_events(self):
