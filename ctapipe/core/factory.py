@@ -36,7 +36,7 @@ class Factory(Component):
         name = "myfactory"
         description = "do some things and stuff"
 
-        subclasses = Factory.all_subclasses(ParentClass)
+        subclasses = Factory.child_subclasses(ParentClass)
         subclass_names = [c.__name__ for c in subclasses]
 
         discriminator = Unicode('DefaultProduct',
@@ -133,6 +133,10 @@ class Factory(Component):
         # Copy factory traits to product
         c = self.__dict__['_trait_values']['config']
         c[self.get_product_name()] = deepcopy(c[self.get_factory_name()])
+        items = self.__dict__['_trait_values'].items()
+        for key, values in items:
+            if key != 'config' and key != 'parent':
+                c[self.get_product_name()][key] = values
         keys = list(c[self.get_product_name()].keys())
         for key in keys:
             if key not in product.class_trait_names():

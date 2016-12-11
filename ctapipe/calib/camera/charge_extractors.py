@@ -3,8 +3,7 @@ from abc import abstractmethod
 import numpy as np
 from traitlets import Int, CaselessStrEnum
 
-from core.factory import Factory
-from ctapipe.core import Component
+from ctapipe.core import Component, Factory
 
 
 class ChargeExtractor(Component):
