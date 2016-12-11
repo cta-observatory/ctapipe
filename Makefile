@@ -35,10 +35,10 @@ test:
 	$(PYTHON) setup.py test -V $<
 
 doc:
-	$(PYTHON) setup.py build_sphinx
+	$(PYTHON) setup.py build_sphinx -w
 
 doc-show:
-	$(PYTHON) setup.py build_sphinx --open-docs-in-browser
+	$(PYTHON) setup.py build_sphinx -w --open-docs-in-browser
 
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
