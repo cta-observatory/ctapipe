@@ -350,6 +350,13 @@ class EventFileReaderFactory(Factory):
         if self.reader is not None:
             return self.reader
         else:
-            for subclass in self.subclasses:
-                if subclass.check_file_compatibility(self.input_path):
-                    return subclass.__name__
+            try:
+                for subclass in self.subclasses:
+                    if subclass.check_file_compatibility(self.input_path):
+                        return subclass.__name__
+                raise ValueError
+            except ValueError:
+                self.log.exception("Cannot find compatible EventFileReader "
+                                   "for: {}".format(self.input_path))
+                raise
+
