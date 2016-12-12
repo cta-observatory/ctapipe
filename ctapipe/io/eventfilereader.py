@@ -363,4 +363,3 @@ class EventFileReaderFactory(Factory):
                 self.log.exception("Cannot find compatible EventFileReader "
                                    "for: {}".format(self.input_path))
                 raise
-
