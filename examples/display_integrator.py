@@ -97,10 +97,9 @@ class IntegratorPlotter(Component):
         # Draw max pixel traces
         ax_max_pix.plot(dl0[max_pix])
         ax_max_pix.set_xlabel("Time (ns)")
-        ax_max_pix.set_ylabel("Amplitude (ADC)")
+        ax_max_pix.set_ylabel("DL0 Samples (ADC)")
         ax_max_pix.set_title("(Max) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(max_pix, t_pe[max_pix], dl1[max_pix]))
-        ax_max_pix.set_ylabel("Amplitude-Ped (ADC)")
         max_ylim = ax_max_pix.get_ylim()
         ax_max_pix.plot([start[max_pix], start[max_pix]],
                         ax_max_pix.get_ylim(), color='r', alpha=1)
@@ -111,10 +110,9 @@ class IntegratorPlotter(Component):
                 pix = max_pixel_nei[i]
                 ax.plot(dl0[pix])
                 ax.set_xlabel("Time (ns)")
-                ax.set_ylabel("Amplitude (ADC)")
+                ax.set_ylabel("DL0 Samples (ADC)")
                 ax.set_title("(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(pix, t_pe[pix], dl1[pix]))
-                ax.set_ylabel("Amplitude-Ped (ADC)")
                 ax.set_ylim(max_ylim)
                 ax.plot([start[pix], start[pix]],
                         ax.get_ylim(), color='r', alpha=1)
@@ -124,10 +122,9 @@ class IntegratorPlotter(Component):
         # Draw min pixel traces
         ax_min_pix.plot(dl0[min_pix])
         ax_min_pix.set_xlabel("Time (ns)")
-        ax_min_pix.set_ylabel("Amplitude (ADC)")
+        ax_min_pix.set_ylabel("DL0 Samples (ADC)")
         ax_min_pix.set_title("(Min) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(min_pix, t_pe[min_pix], dl1[min_pix]))
-        ax_min_pix.set_ylabel("Amplitude-Ped (ADC)")
         ax_min_pix.set_ylim(max_ylim)
         ax_min_pix.plot([start[min_pix], start[min_pix]],
                         ax_min_pix.get_ylim(), color='r', alpha=1)
@@ -138,10 +135,9 @@ class IntegratorPlotter(Component):
                 pix = min_pixel_nei[i]
                 ax.plot(dl0[pix])
                 ax.set_xlabel("Time (ns)")
-                ax.set_ylabel("Amplitude (ADC)")
+                ax.set_ylabel("DL0 Samples (ADC)")
                 ax.set_title("(Min Nei) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(pix, t_pe[pix], dl1[pix]))
-                ax.set_ylabel("Amplitude-Ped (ADC)")
                 ax.set_ylim(max_ylim)
                 ax.plot([start[pix], start[pix]],
                         ax.get_ylim(), color='r', alpha=1)
@@ -179,7 +175,7 @@ class IntegratorPlotter(Component):
         camera = CameraDisplay(geom, ax=ax_img_max)
         camera.image = dl0[:, max_time]
         camera.cmap = plt.cm.viridis
-        camera.add_colorbar(ax=ax_img_max, label="Amplitude-Ped (ADC)")
+        camera.add_colorbar(ax=ax_img_max, label="DL0 Samples (ADC)")
         ax_img_max.set_title("Max Timeslice (T = {})".format(max_time))
         ax_img_max.annotate("Pixel: {}".format(max_pix),
                             xy=(geom.pix_x.value[max_pix],
