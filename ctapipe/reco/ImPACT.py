@@ -20,20 +20,20 @@ class ImPACTFitter(object):
     This method uses a comparision of the predicted image from a library of image templates
     to perform a maximum likelihood fit for the shower axis, energy and height of maximum.
     """
-    def __init__(self):
+    def __init__(self, root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/"):
 
         # First we create a dictionary of image template interpolators for each telescope type
         self.prediction = dict()
         self.prediction["LSTCam"] = \
-            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/LST.table.gz")
+            TableInterpolator(root_dir+"LST.table.gz")
         self.prediction["NectarCam"] = \
-            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/MST_NectarCam.table.gz")
+            TableInterpolator(root_dir+"MST_NectarCam.table.gz")
         self.prediction["GATE"] = \
-            TableInterpolator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/SST_GCT.table.gz")
+            TableInterpolator(root_dir+"SST_GCT.table.gz")
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        self.shower_max = ShowerMaxEstimator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/atmprof.dat")
+        self.shower_max = ShowerMaxEstimator(root_dir+"atmprof.dat")
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
@@ -59,7 +59,6 @@ class ImPACTFitter(object):
         self.peak_amp = 0
 
         self.unit = u.deg
-
 
     def get_brightest_mean(self, num_pix=3):
         """
@@ -239,7 +238,7 @@ class ImPACTFitter(object):
         if x_max_bin < 93:
             x_max_bin = 93
         impact = np.sqrt(pow(self.tel_pos_x[tel] - core_x, 2) + pow(self.tel_pos_y[tel] - core_y, 2))
-        phi = np.arctan2((self.tel_pos_y[tel] - core_y), (self.tel_pos_x[tel] - core_x))
+        phi = np.arctan2((self.tel_pos_x[tel] - core_x), (self.tel_pos_y[tel] - core_y))
         #phi += 180 * u.deg
 
         print(energy, impact,x_max_bin,self.type[tel],self.pixel_area[tel].to(u.deg * u.deg).value)
@@ -313,7 +312,7 @@ class ImPACTFitter(object):
         # Calculate impact distance for all telescopes
         impact = np.sqrt(pow(self.tel_pos_x - core_x, 2) + pow(self.tel_pos_y - core_y, 2))
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_y - core_y), (self.tel_pos_x - core_x))
+        phi = np.arctan2((self.tel_pos_x - core_x), (self.tel_pos_y - core_y))
 
         sum_like = 0
         for tel_count in range(self.image.shape[0]):  # Loop over all telescopes
