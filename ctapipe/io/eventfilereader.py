@@ -8,7 +8,7 @@ from traitlets import Unicode, Int, CaselessStrEnum, observe
 from copy import deepcopy
 from ctapipe.core import Component, Factory
 from ctapipe.utils.datasets import get_path
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
 
 
 class EventFileReader(Component):
@@ -261,15 +261,10 @@ class HessioFileReader(EventFileReader):
     @property
     def num_events(self):
         self.log.info("Obtaining number of events in file...")
-        first_event = self.get_event(0)
         if self._num_events:
             pass
-        elif 'num_events' in first_event.meta:
-            self._num_events = first_event.meta['num_events']
         else:
             self._num_events = len(self.event_id_list)
-        if self.max_events is not None and self._num_events > self.max_events:
-            self._num_events = self.max_events
         self.log.info("Number of events inside file = {}"
                       .format(self._num_events))
         return self._num_events
@@ -281,9 +276,9 @@ class HessioFileReader(EventFileReader):
             pass
         else:
             self.log.info("Building new list of event ids...")
-            source = self.read()
-            for event in source:
-                self._event_id_list.append(event.dl0.event_id)
+            ids = hessio_get_list_event_ids(get_path(self.input_path),
+                                            max_events=self.max_events)
+            self._event_id_list = ids
         self.log.info("List of event ids retrieved.")
         return self._event_id_list
 

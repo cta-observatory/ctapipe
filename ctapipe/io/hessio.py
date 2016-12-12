@@ -30,6 +30,43 @@ __all__ = [
 ]
 
 
+def hessio_get_list_event_ids(url, max_events=None):
+    """
+    Faster method to get a list of all the event ids in the hessio file.
+    This list can also be used to find out the number of events that exist
+    in the file.
+
+    Parameters
+    ----------
+    url : str
+        path to file to open
+    max_events : int, optional
+        maximum number of events to read
+
+    Returns
+    -------
+    event_id_list : list[num_events]
+        A list with all the event ids that are in the file.
+
+    """
+    logger.warning("This method is slow. Need to find faster method.")
+    try:
+        with open_hessio(url) as pyhessio:
+            counter = 0
+            event_id_list = []
+            eventstream = pyhessio.move_to_next_event()
+            for event_id in eventstream:
+                event_id_list.append(event_id)
+                counter += 1
+                if max_events is not None and counter >= max_events:
+                    pyhessio.close_file()
+                    break
+            return event_id_list
+    except HessioError:
+        raise RuntimeError("hessio_event_source failed to open '{}'"
+                           .format(url))
+
+
 def hessio_event_source(url, max_events=None, allowed_tels=None,
                         requested_event=None, use_event_id=False):
     """A generator that streams data from an EventIO/HESSIO MC data file
