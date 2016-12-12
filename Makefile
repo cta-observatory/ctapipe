@@ -47,7 +47,7 @@ conda:
 	python setup.py bdist_conda
 
 analyze:
-	@pyflakes ctapipe examples
+	@pylint ctapipe --ignored-classes=astropy.units
 
 pep8:
 	@pep8 --statistics
