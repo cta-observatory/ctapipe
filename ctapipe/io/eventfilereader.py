@@ -31,7 +31,7 @@ class EventFileReader(Component):
     """
     name = 'EventFileReader'
 
-    input_path = Unicode(get_path('gamma_test.simtel.gz'),
+    input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,
@@ -60,6 +60,8 @@ class EventFileReader(Component):
         self._num_events = None
         self._event_id_list = []
 
+        if self.input_path is None:
+            raise ValueError("Please specify an input_path for event file")
         self._init_path(self.input_path)
 
     def _init_path(self, input_path):
@@ -336,7 +338,7 @@ class EventFileReaderFactory(Factory):
 
     # Product classes traits
     # Would be nice to have these automatically set...!
-    input_path = Unicode(get_path('gamma_test.simtel.gz'),
+    input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,
@@ -350,6 +352,8 @@ class EventFileReaderFactory(Factory):
         if self.reader is not None:
             return self.reader
         else:
+            if self.input_path is None:
+                raise ValueError("Please specify an input_path for event file")
             try:
                 for subclass in self.subclasses:
                     if subclass.check_file_compatibility(self.input_path):
