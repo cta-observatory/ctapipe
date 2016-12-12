@@ -11,7 +11,7 @@ from traitlets import Dict, List, Int, Bool, Unicode, Enum
 import numpy as np
 from matplotlib import pyplot as plt
 from ctapipe.core import Tool, Component
-from ctapipe.io.files import FileReader
+from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.io import CameraGeometry
@@ -21,11 +21,10 @@ from ctapipe.visualization import CameraDisplay
 class IntegratorPlotter(Component):
     name = 'IntegratorPlotter'
 
-    output_dir = Unicode(None, allow_none=True,
+    output_dir = Unicode('./outputs', allow_none=True,
                          help='Output path to the directory where the plots '
-                              'will be saved. If None, a directory is created '
-                              'in the location of the '
-                              'input file.').tag(config=True)
+                              'will be saved. Default: a directory is created '
+                              'in the current directory').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -293,9 +292,9 @@ class DisplayIntegrator(Tool):
                          'telescope with data.').tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    aliases = Dict(dict(f='FileReader.input_path',
-                        o='FileReader.origin',
-                        max_events='FileReader.max_events',
+    aliases = Dict(dict(r='EventFileReaderFactory.reader',
+                        f='EventFileReaderFactory.input_path',
+                        max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
                         window_start='ChargeExtractorFactory.window_start',
@@ -314,7 +313,7 @@ class DisplayIntegrator(Tool):
                           'event_index will obtain an event using '
                           'event_id instead of index.')
                       ))
-    classes = List([FileReader,
+    classes = List([EventFileReaderFactory,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
                     IntegratorPlotter
@@ -331,7 +330,9 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.file_reader = FileReader(config=self.config, tool=self)
+        reader_factory = EventFileReaderFactory(**kwargs)
+        reader_class = reader_factory.get_class()
+        self.file_reader = reader_class(**kwargs)
 
         extractor_factory = ChargeExtractorFactory(**kwargs)
         extractor_class = extractor_factory.get_class()
