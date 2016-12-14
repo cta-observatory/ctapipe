@@ -93,13 +93,13 @@ class CameraR1Calibrator(Component):
             return False
 
 
-class MCR1Calibrator(CameraR1Calibrator):
-    name = 'MCR1Calibrator'
+class HessioR1Calibrator(CameraR1Calibrator):
+    name = 'HessioR1Calibrator'
     origin = 'hessio'
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
-            raise ValueError('Using MCR1Calibrator to calibrate a non-hessio '
+            raise ValueError('Using HessioR1Calibrator to calibrate a non-hessio '
                              'event.')
 
         for telid in event.r0.tels_with_data:
