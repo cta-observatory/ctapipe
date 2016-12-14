@@ -47,6 +47,8 @@ class CameraR1Calibrator(Component):
             raise ValueError("Subclass of CameraR1Calibrator should specify "
                              "an origin")
 
+        self._r0_empty_warn = False
+
     @abstractmethod
     def calibrate(self, event):
         """
@@ -61,23 +63,53 @@ class CameraR1Calibrator(Component):
             A `ctapipe` event container
         """
 
+    def check_r0_exists(self, event, telid):
+        """
+        Check that r0 data exists. If it does not, then do not change r1.
+
+        This ensures that if the containers were filled from a file containing
+        r0 data, it is not overwritten by non-existant data.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+
+        Returns
+        -------
+        bool
+            True if r0.tel[telid].adc_samples is not None, else false.
+        """
+        r0 = event.r0.tel[telid].adc_samples
+        if r0 is None:
+            return True
+        else:
+            if not self._r0_empty_warn:
+                self.log.warning("Encountered an event with no R0 data. "
+                                 "R1 is unchanged in this circumstance.")
+                self._r0_empty_warn = True
+            return False
+
 
 class MCR1Calibrator(CameraR1Calibrator):
     name = 'MCR1Calibrator'
     origin = 'hessio'
 
     def calibrate(self, event):
-        if event.meta['source'] != 'hessio':
+        if event.meta['origin'] != 'hessio':
             raise ValueError('Using MCR1Calibrator to calibrate a non-hessio '
                              'event.')
 
         for telid in event.r0.tels_with_data:
-            samples = event.r0.tel[telid].adc_samples
-            n_samples = samples.shape[2]
-            pedestal = event.mc.tel[telid].pedestal / n_samples
-            gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
-            calibrated = (samples - pedestal[..., None]) * gain[..., None]
-            event.r1.tel[telid].pe_samples = calibrated
+            if self.check_r0_exists(event, telid):
+                samples = event.r0.tel[telid].adc_samples
+                n_samples = samples.shape[2]
+                pedestal = event.mc.tel[telid].pedestal / n_samples
+                gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
+                calibrated = (samples - pedestal[..., None]) * gain[..., None]
+                event.r1.tel[telid].pe_samples = calibrated
 
 
 class CameraR1CalibratorFactory(Factory):

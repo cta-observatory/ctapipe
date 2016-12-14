@@ -111,6 +111,7 @@ class CameraDL1Calibrator(Component):
         if self._extractor is None:
             self._extractor = NeighbourPeakIntegrator(config, tool)
         self._current_url = None
+        self._dl0_empty_warn = False
 
         self.neighbour_dict = {}
         self.correction_dict = {}
@@ -137,6 +138,35 @@ class CameraDL1Calibrator(Component):
                                  "match the correct telid")
                 self.neighbour_dict = {}
                 self.correction_dict = {}
+
+    def check_dl0_exists(self, event, telid):
+        """
+        Check that dl0 data exists. If it does not, then do not change dl1.
+
+        This ensures that if the containers were filled from a file containing
+        dl1 data, it is not overwritten by non-existant data.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+
+        Returns
+        -------
+        bool
+            True if dl0.tel[telid].pe_samples is not None, else false.
+        """
+        dl0 = event.dl0.tel[telid].pe_samples
+        if dl0 is None:
+            return True
+        else:
+            if not self._dl0_empty_warn:
+                self.log.warning("Encountered an event with no DL0 data. "
+                                 "DL1 is unchanged in this circumstance.")
+                self._dl0_empty_warn = True
+            return False
 
     def get_neighbours(self, event, telid):
         """
@@ -199,28 +229,30 @@ class CameraDL1Calibrator(Component):
         """
         self._check_url_change(event)
         for telid in event.dl0.tels_with_data:
-            waveforms = event.dl0.tel[telid].pe_samples
+            if self.check_dl0_exists(event, telid):
+                waveforms = event.dl0.tel[telid].pe_samples
 
-            if self._extractor.requires_neighbours():
-                self._extractor.neighbours = self.get_neighbours(event, telid)
+                if self._extractor.requires_neighbours():
+                    self._extractor.neighbours = self.get_neighbours(event,
+                                                                     telid)
 
-            charge = self._extractor.extract_charge(waveforms)
-            extracted_samples = self._extractor.extracted_samples
+                charge = self._extractor.extract_charge(waveforms)
+                extracted_samples = self._extractor.extracted_samples
 
-            peakpos = self._extractor.peakpos
+                peakpos = self._extractor.peakpos
 
-            if self.correction:
-                corrected = charge * self.get_correction(event, telid)
-            else:
-                corrected = charge
+                if self.correction:
+                    corrected = charge * self.get_correction(event, telid)
+                else:
+                    corrected = charge
 
-            if self.clip_amplitude:
-                corrected[corrected > self.clip_amplitude] = \
-                    self.clip_amplitude
+                if self.clip_amplitude:
+                    corrected[corrected > self.clip_amplitude] = \
+                        self.clip_amplitude
 
-            event.dl1.tel[telid].image = corrected
-            event.dl1.tel[telid].extracted_samples = extracted_samples
-            event.dl1.tel[telid].peakpos = peakpos
+                event.dl1.tel[telid].image = corrected
+                event.dl1.tel[telid].extracted_samples = extracted_samples
+                event.dl1.tel[telid].peakpos = peakpos
 
     def calibrate_source(self, source):
         """

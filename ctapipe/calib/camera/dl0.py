@@ -35,6 +35,35 @@ class CameraDL0Reducer(Component):
         self._reductor = reductor
         self._r1_empty_warn = False
 
+    def check_r1_exists(self, event, telid):
+        """
+        Check that r1 data exists. If it does not, then do not change dl0.
+
+        This ensures that if the containers were filled from a file containing
+        r1 data, it is not overwritten by non-existant data.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+
+        Returns
+        -------
+        bool
+            True if r1.tel[telid].pe_samples is not None, else false.
+        """
+        r1 = event.r1.tel[telid].pe_samples
+        if r1 is None:
+            return True
+        else:
+            if not self._r1_empty_warn:
+                self.log.warning("Encountered an event with no R1 data. "
+                                 "DL0 is unchanged in this circumstance.")
+                self._r1_empty_warn = True
+            return False
+
     def reduce(self, event):
         """
         Abstract method to be defined in child class.
@@ -50,14 +79,9 @@ class CameraDL0Reducer(Component):
         tels = event.r1.tels_with_data
         for telid in tels:
             r1 = event.r1.tel[telid].pe_samples
-            if r1 is not None:
+            if self.check_r1_exists(event, telid):
                 if self._reductor is None:
                     event.dl0.tel[telid].pe_samples = r1
                 else:
                     reduction = self._reductor.reduce_waveforms(r1)
                     event.dl0.tel[telid].pe_samples = reduction
-            else:
-                if not self._r1_empty_warn:
-                    self.log.warning("Encountered an event with no R1 data. "
-                                     "DL0 is unchanged in this circumstance.")
-                    self._r1_empty_warn = True
