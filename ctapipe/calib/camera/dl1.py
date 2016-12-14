@@ -253,23 +253,3 @@ class CameraDL1Calibrator(Component):
                 event.dl1.tel[telid].image = corrected
                 event.dl1.tel[telid].extracted_samples = extracted_samples
                 event.dl1.tel[telid].peakpos = peakpos
-
-    def calibrate_source(self, source):
-        """
-        Generator for calibrating all events in a file.
-
-        Parameters
-        ----------
-        source : generator
-            A `ctapipe` event generator such as
-            `ctapipe.io.hessio.hessio_event_source`
-
-        Returns
-        -------
-        generator
-            A new generator that also contains the dl1 calibration.
-        """
-        self.log.info("Calibration generator appended to source")
-        for event in source:
-            self.calibrate(event)
-            yield event
