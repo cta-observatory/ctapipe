@@ -162,7 +162,6 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 data.r1.tel.clear()
                 data.dl0.tel.clear()
                 data.dl1.tel.clear()
-                data.dl2.tel.clear()
                 data.mc.tel.clear()  # clear the previous telescopes
 
                 _fill_instrument_info(data, pyhessio)
