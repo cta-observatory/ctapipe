@@ -1,6 +1,7 @@
 """
-Module containing general functions that will calibrate any event regardless of
-the origin/telescope, and store the calibration inside the event container.
+Module containing general functions that will perform the dl1 calibration
+on any event regardless of the origin/telescope, and store the calibration
+inside the event container.
 """
 import numpy as np
 from ctapipe.core import Component
