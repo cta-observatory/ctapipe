@@ -83,7 +83,7 @@ class CameraR1Calibrator(Component):
             True if r0.tel[telid].adc_samples is not None, else false.
         """
         r0 = event.r0.tel[telid].adc_samples
-        if r0 is None:
+        if r0 is not None:
             return True
         else:
             if not self._r0_empty_warn:
@@ -117,9 +117,9 @@ class CameraR1CalibratorFactory(Factory):
     description = "Obtain CameraR1Calibrator based on file origin"
 
     subclasses = Factory.child_subclasses(CameraR1Calibrator)
-    subclass_origins = [c.origin for c in subclasses]
+    subclass_names = [c.origin for c in subclasses]
 
-    origin = CaselessStrEnum(subclass_origins, 'hessio',
+    origin = CaselessStrEnum(subclass_names, 'hessio',
                              help='Origin of events to be '
                                   'calibration.').tag(config=True)
 

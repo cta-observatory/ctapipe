@@ -55,7 +55,7 @@ class CameraDL0Reducer(Component):
             True if r1.tel[telid].pe_samples is not None, else false.
         """
         r1 = event.r1.tel[telid].pe_samples
-        if r1 is None:
+        if r1 is not None:
             return True
         else:
             if not self._r1_empty_warn:

@@ -159,7 +159,7 @@ class CameraDL1Calibrator(Component):
             True if dl0.tel[telid].pe_samples is not None, else false.
         """
         dl0 = event.dl0.tel[telid].pe_samples
-        if dl0 is None:
+        if dl0 is not None:
             return True
         else:
             if not self._dl0_empty_warn:
