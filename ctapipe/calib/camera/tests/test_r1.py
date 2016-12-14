@@ -1,7 +1,8 @@
 from numpy.testing import assert_almost_equal
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path
-from ctapipe.calib.camera.r1 import CameraR1Calibrator, HessioR1Calibrator
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory, \
+    HessioR1Calibrator
 
 
 def get_test_event():
@@ -12,8 +13,31 @@ def get_test_event():
     return event
 
 
-def test_mc_r0_to_dl0_calibration():
+def test_hessio_r1_calibrator():
     telid = 11
     event = get_test_event()
-    dl0 = mc_r0_to_dl0_calibration(event, telid)
-    assert_almost_equal(dl0[0, 0, 0], -0.091, 3)
+    calibrator = HessioR1Calibrator(None, None)
+    calibrator.calibrate(event)
+    r1 = event.r1.tel[telid].pe_samples
+    assert_almost_equal(r1[0, 0, 0], -0.091, 3)
+
+
+def test_check_r0_exists():
+    telid = 11
+    event = get_test_event()
+    calibrator = HessioR1Calibrator(None, None)
+    assert(calibrator.check_r0_exists(event, telid) is True)
+    event.r0.tel[telid].adc_samples = None
+    assert(calibrator.check_r0_exists(event, telid) is False)
+
+
+def test_factory():
+    factory = CameraR1CalibratorFactory(None, None)
+    cls = factory.get_class()
+    calibrator = cls(None, None)
+
+    telid = 11
+    event = get_test_event()
+    calibrator.calibrate(event)
+    r1 = event.r1.tel[telid].pe_samples
+    assert_almost_equal(r1[0, 0, 0], -0.091, 3)
