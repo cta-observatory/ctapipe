@@ -6,7 +6,6 @@ inside the event container.
 import numpy as np
 from ctapipe.core import Component
 from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
-from ctapipe.calib.camera.mc import mc_r0_to_dl0_calibration
 from ctapipe.io.camera import get_min_pixel_seperation, find_neighbor_pixels
 from traitlets import Float, Bool
 
@@ -188,33 +187,6 @@ class CameraDL1Calibrator(Component):
             except AttributeError:
                 return 1
 
-    def obtain_dl0(self, event, telid):
-        """
-        Obtain the dl0 adc_samples.
-
-        For hessio files, this means to calibrate from r0 to dl0. As what is
-        currently stored as dl0 in hessio.py is actually r0.
-
-        Parameters
-        ----------
-        event : container
-            A `ctapipe` event container
-        telid : int
-            The telescope id.
-
-        Returns
-        -------
-        waveforms : ndarray
-            The dl0 PE samples inside a numpy array of shape (n_samples)
-
-        """
-        # TODO: dl0 should be correctly filled with pe_samples in IO
-        if event.meta['origin'] == 'hessio':
-            return mc_r0_to_dl0_calibration(event, telid)
-        else:
-            self.log.exception("no calibration created for data origin: "
-                               "{}".format(event.meta['origin']))
-
     def calibrate(self, event):
         """
         Fill the dl1 container with the calibration data that results from the
@@ -227,7 +199,7 @@ class CameraDL1Calibrator(Component):
         """
         self._check_url_change(event)
         for telid in event.dl0.tels_with_data:
-            waveforms = self.obtain_dl0(event, telid)
+            waveforms = event.dl0.tel[telid].pe_samples
 
             if self._extractor.requires_neighbours():
                 self._extractor.neighbours = self.get_neighbours(event, telid)
