@@ -48,12 +48,17 @@ class CameraR1Calibrator(Component):
                              "an origin")
 
     @abstractmethod
-    def calibrate(self, event, telid):
+    def calibrate(self, event):
         """
         Abstract method to be defined in child class.
 
         Perform the conversion from raw R0 data to R1 data
         (ADC Samples -> PE Samples), and fill the r1 container.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
         """
 
 
@@ -61,17 +66,18 @@ class MCR1Calibrator(CameraR1Calibrator):
     name = 'MCR1Calibrator'
     origin = 'hessio'
 
-    def calibrate(self, event, telid):
+    def calibrate(self, event):
         if event.meta['source'] != 'hessio':
             raise ValueError('Using MCR1Calibrator to calibrate a non-hessio '
                              'event.')
 
-        samples = event.dl0.tel[telid].adc_samples
-        n_samples = samples.shape[2]
-        pedestal = event.mc.tel[telid].pedestal / n_samples
-        gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
-        calibrated = (samples - pedestal[..., None]) * gain[..., None]
-        event.r1.tel[telid].pe_samples = calibrated
+        for telid in event.r0.tels_with_data:
+            samples = event.r0.tel[telid].adc_samples
+            n_samples = samples.shape[2]
+            pedestal = event.mc.tel[telid].pedestal / n_samples
+            gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
+            calibrated = (samples - pedestal[..., None]) * gain[..., None]
+            event.r1.tel[telid].pe_samples = calibrated
 
 
 class CameraR1CalibratorFactory(Factory):
