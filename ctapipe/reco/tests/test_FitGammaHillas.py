@@ -35,7 +35,7 @@ def test_FitGammaHillas():
                     fit.cameras(tel_id)['PixY'].to(u.m),
                     fit.telescopes['FL'][tel_id-1] * u.m)
 
-            pmt_signal = event.dl0.tel[tel_id].adc_sums[0]
+            pmt_signal = event.r0.tel[tel_id].adc_sums[0]
 
             mask = tailcuts_clean(tel_geom[tel_id], pmt_signal, 1,
                                   picture_thresh=10., boundary_thresh=5.)
