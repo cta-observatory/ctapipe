@@ -319,6 +319,13 @@ class HessioFileReader(EventFileReader):
         return source
 
 
+# External Children
+try:
+    from targetpipe.io.eventfilereader import TargetioFileReader
+except ImportError:
+    pass
+
+
 class EventFileReaderFactory(Factory):
     name = "EventFileReaderFactory"
     description = "Obtain EventFileReader based on file type"
