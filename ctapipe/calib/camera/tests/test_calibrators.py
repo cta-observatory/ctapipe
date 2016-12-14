@@ -1,4 +1,4 @@
-from ctapipe.calib.camera.calibrators import integration_correction, \
+from ctapipe.calib.camera.dl1 import integration_correction, \
     CameraDL1Calibrator
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils.datasets import get_path

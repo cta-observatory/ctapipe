@@ -1,4 +1,4 @@
-from ctapipe.calib.camera.calibrators import calibrate_event
+from ctapipe.calib.camera.dl1 import calibrate_event
 from ctapipe.core import Component
 from traitlets import Unicode
 from traitlets import Int

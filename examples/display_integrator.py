@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from ctapipe.core import Tool, Component
 from ctapipe.io.eventfilereader import EventFileReaderFactory
-from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.io import CameraGeometry
 from ctapipe.visualization import CameraDisplay

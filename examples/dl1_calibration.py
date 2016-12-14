@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from ctapipe.core import Tool, Component
 from ctapipe.io.files import FileReader
-from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.io import CameraGeometry
 from ctapipe.visualization import CameraDisplay

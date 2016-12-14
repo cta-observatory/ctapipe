@@ -13,7 +13,7 @@ import warnings
 
 from ctapipe.utils.datasets import get_path
 from ctapipe.io.files import InputFile
-from ctapipe.calib.camera.calibrators import calibration_parameters, \
+from ctapipe.calib.camera.dl1 import calibration_parameters, \
     calibrate_source
 from ctapipe.analysis.camera.chargeresolution import ChargeResolution
 
