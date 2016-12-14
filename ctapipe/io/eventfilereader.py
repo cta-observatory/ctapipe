@@ -30,6 +30,7 @@ class EventFileReader(Component):
 
     """
     name = 'EventFileReader'
+    origin = None
 
     input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
@@ -57,6 +58,11 @@ class EventFileReader(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
+
+        if self.origin is None:
+            raise ValueError("Subclass of EventFileReader should specify "
+                             "an origin")
+
         self._num_events = None
         self._event_id_list = []
 
@@ -104,6 +110,19 @@ class EventFileReader(Component):
             self._event_id_list = []
         except AttributeError:
             pass
+
+    @property
+    @abstractmethod
+    def origin(self):
+        """
+        Abstract property to be defined in child class.
+
+        Get the name for the origin of the file. E.g. 'hessio'.
+
+        Returns
+        -------
+        origin : str
+        """
 
     @staticmethod
     @abstractmethod
@@ -249,6 +268,7 @@ class EventFileReader(Component):
 
 class HessioFileReader(EventFileReader):
     name = 'HessioFileReader'
+    origin = 'hessio'
 
     @staticmethod
     def check_file_compatibility(file_path):
