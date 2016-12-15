@@ -88,7 +88,7 @@ class EventFileReader(Component):
     def on_input_path_changed(self, change):
         new = change['new']
         try:
-            self.log.warning("Change: input_path={}".format(change))
+            self.log.warning("Change: input_path={}".format(new))
             self._num_events = None
             self._event_id_list = []
             self._init_path(new)
@@ -97,15 +97,17 @@ class EventFileReader(Component):
 
     @observe('origin')
     def on_origin_changed(self, change):
+        new = change['new']
         try:
-            self.log.warning("Change: origin={}".format(change))
+            self.log.warning("Change: origin={}".format(new))
         except AttributeError:
             pass
 
     @observe('max_events')
     def on_max_events_changed(self, change):
+        new = change['new']
         try:
-            self.log.warning("Change: max_events={}".format(change))
+            self.log.warning("Change: max_events={}".format(new))
             self._num_events = None
             self._event_id_list = []
         except AttributeError:
