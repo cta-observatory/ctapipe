@@ -124,7 +124,7 @@ class DL0Container(Container):
     run_id = Item(-1, "run id number")
     event_id = Item(-1, "event id number")
     tels_with_data = Item([], "list of telescopes with data")
-    tel = Item(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
+    tel = Item(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
 class MCCameraEventContainer(Container):
