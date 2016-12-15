@@ -87,7 +87,7 @@ def test_FitGammaHillas():
 
             mask = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
                                   picture_thresh=10., boundary_thresh=5.)
-            pmt_signal[mask is False] = 0
+            pmt_signal[mask == 0] = 0
 
             try:
                 moments = hillas_parameters(event.inst.pixel_pos[tel_id][0],
