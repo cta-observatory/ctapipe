@@ -136,7 +136,7 @@ class DisplayDL1Calib(Tool):
 
     aliases = Dict(dict(f='EventFileReaderFactory.input_path',
                         o='EventFileReaderFactory.origin',
-                        max_events='FileReader.max_events',
+                        max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
                         window_start='ChargeExtractorFactory.window_start',
