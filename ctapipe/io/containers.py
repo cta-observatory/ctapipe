@@ -259,7 +259,7 @@ class DataContainer(Container):
 
     r0 = Item(R0Container(), "Raw Data")
     r1 = Item(R1Container(), "R1 Calibrated Data")
-    dl0 = Item(R1Container(), "DL0 Data Volume Reduced Data")
+    dl0 = Item(DL0Container(), "DL0 Data Volume Reduced Data")
     dl1 = Item(DL1Container(), "DL1 Calibrated image")
     dl2 = Item(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Item(MCEventContainer(), "Monte-Carlo data")
