@@ -30,3 +30,13 @@ def test_inputfile():
     source = file.read()
     event = next(source)
     assert event.dl0.tels_with_data == {38, 47}
+
+def test_getevent():
+    dataset = get_datasets_path("gamma_test.simtel.gz")
+    file = InputFile(dataset, 'hessio')
+    event = file.get_event(2)
+    assert event.count == 2
+    assert event.dl0.event_id == 803
+    event = file.get_event(803, True)
+    assert event.count == 2
+    assert event.dl0.event_id == 803
