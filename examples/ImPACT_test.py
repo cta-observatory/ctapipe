@@ -26,8 +26,9 @@ HB4 = [1, 2, 3, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 
        316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337,
        338, 345, 346, 347, 348, 349, 350, 375, 376, 377, 378, 379, 380, 393, 400, 402, 403, 404, 405, 406, 408, 410,
        411, 412, 413, 414, 415, 416, 417]
+#HB4 = [1, 2, 3]
 
-amp_cut = {"LSTCam": 70, "NectarCam": 65, "GATE": 30}
+amp_cut = {"LSTCam": 100, "NectarCam": 100, "GATE": 50}
 
 if __name__ == '__main__':
 
@@ -44,7 +45,7 @@ if __name__ == '__main__':
 
     impact = list()
     geom = 0
-    ImPACT = ImPACTFitter()
+    ImPACT = ImPACTFitter(root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/")
 
     geom_dict = dict()
 
@@ -73,7 +74,7 @@ if __name__ == '__main__':
         geom = None
         params = dict()
         params['integrator'] = 'nb_peak_integration'
-        params['integration_window'] = (10,4)
+        params['integration_window'] = (7,3)
         cal = calibrate_event(event, params, geom_dict)
 
         for tel_id in event.dl0.tels_with_data:
@@ -98,7 +99,7 @@ if __name__ == '__main__':
                                        focal_length=tel['TelescopeTable_VersionFeb2016'][
                                                         tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]
                                                     ['FL'][0] * u.m,
-                                       rotation=0*u.deg)# - 180 * u.deg)
+                                       rotation= 90*u.deg - geom.cam_rotation )
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[mc.alt, mc.az],
                                                                pointing_direction=[mc.alt, mc.az]))
@@ -115,12 +116,12 @@ if __name__ == '__main__':
             dilate(geom, clean_mask)
 
             if hillas.size > amp_cut[geom.cam_id]:
-                #pix_x.append(x[clean_mask])
-                #pix_y.append(y[clean_mask])
-                #image_list.append(image[clean_mask])
-                pix_x.append(x)
-                pix_y.append(y)
-                image_list.append(image)
+                pix_x.append(x[clean_mask])
+                pix_y.append(y[clean_mask])
+                image_list.append(image[clean_mask])
+                #pix_x.append(x)
+                #pix_y.append(y)
+                #image_list.append(image)
 
                 type_tel.append(geom.cam_id)
                 tel_id_list.append(tel_id)
@@ -150,9 +151,9 @@ if __name__ == '__main__':
         energy = mc.energy
 
         ImPACT.set_event_properties(image_list, pix_x, pix_y, pix_a, type_tel, tel_x, tel_y)
-        params = ImPACT.fit_event(np.random.normal(0,0.1)*u.deg, np.random.normal(0,0.1)*u.deg,
-                                  np.random.normal(tilt_core_true.x.value, 20)*u.m,
-                                  np.random.normal(tilt_core_true.y.value, 20)*u.m,
+        params = ImPACT.fit_event(np.random.normal(0,0.2)*u.deg, np.random.normal(0,0.2)*u.deg,
+                                  np.random.normal(tilt_core_true.x.value, 30)*u.m,
+                                  np.random.normal(tilt_core_true.y.value, 30)*u.m,
                                   np.random.normal(energy.value,energy.value*0.15)*u.TeV)
 
         print(tilt_core_true.x, tilt_core_true.y, energy)
@@ -167,13 +168,16 @@ if __name__ == '__main__':
         ev += 1
         if ev > 1000:
             break
-        draw = True
+        draw = False
         if draw:
             for tel_num in range(len(tel_x)):
                 fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
 
+                #prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - mc.alt, mc.az * u.rad,
+                #                                   params["core_x"]*u.m,  params["core_y"]*u.m,  params["energy"]*u.TeV,
+                #                                   params["x_max_scale"])
                 prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - mc.alt, mc.az * u.rad,
-                                                   params["core_x"]*u.m,  params["core_y"]*u.m,  params["energy"]*u.TeV,
+                                                   tilt_core_true.x,  tilt_core_true.y,  energy,
                                                    params["x_max_scale"])
 
                 disp = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[0], title="Image")
