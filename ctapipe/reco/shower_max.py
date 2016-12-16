@@ -36,11 +36,11 @@ class ShowerMaxEstimator:
 
         self.atmosphere = Histogram(axisNames=["altitude"])
         self.atmosphere.hist = thickness * u.g * u.cm ** -2
-        self.atmosphere.bin_lower_edges = [np.array(altitude) * u.km]
+        self.atmosphere._binLowerEdges = [np.array(altitude) * u.km]
 
     def interpolate(self, arg, outlierValue=0., order=3):
 
-        axis = self.atmosphere._binLowerEdges[0]
+        axis = self.atmosphere.bin_lower_edges[0]
         bin_u = np.digitize(arg.to(axis.unit), axis)
         bin_l = bin_u - 1
 

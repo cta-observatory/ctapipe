@@ -95,7 +95,7 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
         return load_fits(filename)
     elif filetype == 'cfg':
         return load_config(filename)
-    elif filetype == 'simtel':
+    elif filetype == 'simtel' or 'simhess':
         return load_hessio(filename)
     else:
         raise TypeError("File type {} not supported".format(filetype))
