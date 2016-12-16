@@ -304,11 +304,11 @@ class ImPACTFitter(object):
         # Convert to binning of Xmax, addition of 100 can probably be removed
         x_max_bin = 100 + (x_max.value - x_max_exp)/25
         # Check for range
-        if x_max_bin > 107:
-            x_max_bin = 107
-        if x_max_bin < 93:
-            x_max_bin = 93
-
+        if x_max_bin > 103:
+            x_max_bin = 103
+        if x_max_bin < 97:
+            x_max_bin = 97
+        #x_max_bin = 100
         # Calculate impact distance for all telescopes
         impact = np.sqrt(pow(self.tel_pos_x - core_x, 2) + pow(self.tel_pos_y - core_y, 2))
         # And the expected rotation angle
@@ -482,7 +482,7 @@ class ImPACTFitter(object):
         migrad = min.migrad()
         fit_params = min.values
         print(fit_params)
-        print(migrad)
+        print(min.errors)
 
         #self.draw_surfaces(fit_params["source_x"]*u.deg, fit_params["source_y"]*u.deg,
         #                   fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
