@@ -78,7 +78,9 @@ class CameraGeometry:
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = cam_rotation
-        self.rotate(cam_rotation)
+        # FIXME the rotation does not work on 2D pixel grids
+        if len(pix_x.shape) == 1:
+            self.rotate(cam_rotation)
 
 
     @classmethod
