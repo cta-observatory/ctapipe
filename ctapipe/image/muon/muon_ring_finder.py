@@ -2,6 +2,7 @@ import numpy as np
 import astropy.units as u
 from ctapipe.image.muon.ring_fitter import RingFitter
 from ctapipe.io.containers import MuonRingParameter
+from IPython import embed
 
 
 class ChaudhuriKunduRingFitter(RingFitter):
@@ -54,6 +55,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
         output.ring_center_x = centre_x
         output.ring_center_y = centre_y
         output.ring_radius = radius
-        output.meta.ring_fit_method = "ChaudhuriKundu"
+        #output.meta.ring_fit_method = "ChaudhuriKundu"
+        output.ring_fit_method = "ChaudhuriKundu"
 
         return output

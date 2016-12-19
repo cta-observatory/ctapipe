@@ -37,7 +37,7 @@ def main():
                         help='path to the input file')
 
     parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        choices=InputFile.origin_list(),
+                         #was .origin_list()
                         default='hessio', help='origin of the file')
     parser.add_argument('-D', dest='display', action='store_true',
                         default=False, help='display the camera events')

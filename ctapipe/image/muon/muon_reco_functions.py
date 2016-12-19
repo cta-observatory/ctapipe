@@ -1,4 +1,4 @@
-from ctapipe.io.containers import CalibratedCameraData, MuonRingParameter, MuonIntensityParameter
+from ctapipe.io.containers import CalibratedCameraContainer, MuonRingParameter, MuonIntensityParameter
 from astropy import log
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.coordinates import CameraFrame, NominalFrame
@@ -52,7 +52,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         x, y = event.inst.pixel_pos[telid]
 
-        image = event.dl1.tel[telid].pe_charge
+        image = event.dl1.tel[telid].calibrated_image
 
         # Get geometry
         geom = None
@@ -109,8 +109,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         
         muonringparam = muonring.fit(x,y,img*(ring_dist<muonringparam.ring_radius*0.4))
         muonringparam.tel_id = telid
-        muonringparam.run_id = event.dl1.run_id
-        muonringparam.event_id = event.dl1.event_id
+        muonringparam.run_id = event.dl0.run_id
+        muonringparam.event_id = event.dl0.event_id
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
         #print("muonringparam.ring_radius=",muonringparam.ring_radius)
         #print("Fitted ring centre:",muonringparam.ring_center_x,muonringparam.ring_center_y)
@@ -123,7 +123,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         mc_y = event.mc.core_y
         pix_im = image*dist_mask
         nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,2)+np.power(muonringparam.ring_center_y,2))
-        numpix = event.dl0.tel[telid].num_pixels
+        #numpix = event.dl0.tel[telid].num_pixels
 
         minpix = muon_cuts['MinPix'][dict_index]#0.06*numpix #or 8%
 
@@ -148,8 +148,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muonintensityoutput = ctel.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
 
                 muonintensityoutput.tel_id = telid
-                muonintensityoutput.run_id = event.dl1.run_id
-                muonintensityoutput.event_id = event.dl1.event_id
+                muonintensityoutput.run_id = event.dl0.run_id
+                muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask
                 print("Impact parameter = ",muonintensityoutput.impact_parameter,"mir_rad",mir_rad,"ring_width=",muonintensityoutput.ring_width)
 
