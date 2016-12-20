@@ -112,6 +112,13 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 event.r1.tel[telid].pe_samples = calibrated
 
 
+# External Children
+try:
+    from targetpipe.calib.camera.r1 import TargetioR1Calibrator
+except ImportError:
+    pass
+
+
 class CameraR1CalibratorFactory(Factory):
     name = "CameraR1CalibratorFactory"
     description = "Obtain CameraR1Calibrator based on file origin"

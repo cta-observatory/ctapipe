@@ -343,7 +343,8 @@ class HessioFileReader(EventFileReader):
 
 # External Children
 try:
-    from targetpipe.io.eventfilereader import TargetioFileReader
+    from targetpipe.io.eventfilereader import TargetioFileReader, \
+        ToyioFileReader
 except ImportError:
     pass
 
