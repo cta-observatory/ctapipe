@@ -23,7 +23,7 @@ class TooFewTelescopesException(Exception):
 
 @deprecated(0.1, "will be replaced with real coord transform")
 def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
-                        camera_rotation=-100.893 * u.degree):
+                        camera_rotation=0*u.degree):
     '''
         TODO replace with proper implementation
         calculates the direction vector of corresponding to a
@@ -74,6 +74,105 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
     return pix_dirs
 
 
+def dist_to_traces(core, circles):
+    '''
+        This function calculates the M-Estimator from the distances of the suggested
+        core position to all traces of the given GreatCircles.
+        The distance of the core to the trace line is the length of the vector between
+        the core and an arbitrary point on the trace projected perpendicular to the trace.
+
+        This is implemented as the scalar product of
+        • the connecting vector between the core and the position of the telescope
+        • and { trace[1], -trace[0] } as the normal vector of the trace.
+
+        Note:
+        -----
+        uses the M-Estimator of the distance instead of the distance itself:
+        MEst = Σ_i 2*√(1 + d_i²) - 2
+    '''
+
+    MEst = 0.
+    for circle in circles.values():
+        '''
+        the distanece of the core '''
+        D = core-circle.pos[:2]/u.m
+        dist = D[0]*circle.trace[1] - D[1]*circle.trace[0]
+
+        '''
+        summing up the M-Estimator with the given circle weights '''
+        MEst += (2*np.sqrt(1+(dist**2)) - 2) * circle.weight
+    return MEst
+
+
+def MEst(origin, circles, weights):
+    '''
+        calculates the M-Estimator:
+        a modified χ² that becomes asymptotically linear for high values
+        and is therefore less sensitive to outliers
+
+        the test is performed to maximise the angles between the
+        fit direction and the all the normal vectors of the great circles
+
+        Parameters:
+        -----------
+        origin : length-3 array
+            direction vector of the gamma's origin used as seed
+        circles : GreatCircle array
+            collection of great circles created from the camera images
+        weights : array
+            list of weights for each image/great circle
+
+        Returns:
+        --------
+        MEstimator : float
+
+
+        Algorithm:
+        ----------
+        MEst = Σ_i 2*√(1 + χ²) - 2
+
+
+        Note:
+        -----
+        seemingly inferior to negative sum of sin(angle)...
+    '''
+
+    sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
+                        for circ in circles.values()])
+    return -2*np.sum(weights * np.sqrt((1+np.square(sin_ang)))-2)
+    return -np.sum(weights * np.square(sin_ang))
+
+    ang = np.array([linalg.angle(origin, circ.norm)
+                    for circ in circles.values()])
+    return np.sum(weights*np.sqrt(2. + (ang-np.pi/2.)**2))
+
+
+def n_angle_sum(origin, circles, weights):
+    '''
+        calculates the negative sum of the angle between
+        the fit direction and all the normal vectors of the great circles
+
+        Parameters:
+        -----------
+        origin : length-3 array
+            direction vector of the gamma's origin used as seed
+        circles : GreatCircle array
+            collection of great circles created from the camera images
+        weights : array
+            list of weights for each image/great circle
+
+        Returns:
+        --------
+        n_sum_angles : float
+            negative of the sum of the angles between the test direction
+            and all normal vectors of the given great circles
+    '''
+
+    sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
+                        for circ in circles.values()])
+    return -np.sum(weights*sin_ang)
+
+
 class FitGammaHillas(RecoShowerGeomAlgorithm):
     '''
         class that reconstructs the direction of an atmospheric shower
@@ -89,35 +188,9 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         # TODO RecoShowerGeomAlgorithm inherits from Component
         # Component needs a parent to be set in __init__
         # super().__init__()
-        self.tel_geom = {}
         self.circles = {}
 
-    def setup_geometry(self, telescopes, cameras, optics,
-                       phi=180.*u.deg, theta=20.*u.deg):
-        '''
-            reading in the instrument discription and setting up
-            functions for easy access inside the class
-
-            Parameters:
-            ----------
-            telescopes, cameras, optics : InstrumentDiscription output
-                output from instrument.InstrumentDescription.load_hessio()
-            phi, theta : astropy quantities
-                two angles that describe the orientation of the telescope
-        '''
-        self.Ver = 'Feb2016'
-        self.TelVer = 'TelescopeTable_Version{}'.format(self.Ver)
-        self.CamVer = 'CameraTable_Version{}_TelID'.format(self.Ver)
-        self.OptVer = 'OpticsTable_Version{}_TelID'.format(self.Ver)
-
-        self.telescopes = telescopes[self.TelVer]
-        self.cameras    = lambda tel_id: cameras[self.CamVer+str(tel_id)]
-        self.optics     = lambda tel_id: optics [self.OptVer+str(tel_id)]
-
-        self.tel_phi   = phi
-        self.tel_theta = theta
-
-    def predict(self, hillas_dict, seed_pos=(0, 0)):
+    def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):
         '''
             The function you want to call for the reconstruction
             of the event. It takes care of setting up the event
@@ -136,17 +209,19 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 the core position fit (e.g. CoG of all telescope images)
         '''
 
-        self.get_great_circles(hillas_dict)
+        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
         ''' algebraic direction estimate '''
         dir1 = self.fit_origin_crosses()[0]
         ''' direction estimate using numerical minimisation '''
-        dir2 = self.fit_origin_minimise(dir1)
+        # does not really improve the fit for now
+        # dir2 = self.fit_origin_minimise(dir1)
         ''' core position estimate using numerical minimisation '''
         pos = self.fit_core(seed_pos)
 
         ''' container class for reconstructed showers '''
         result = ReconstructedShowerContainer()
-        (phi, theta) = linalg.get_phi_theta(dir2)
+        (phi, theta) = linalg.get_phi_theta(dir1)
+
         # TODO make sure az and phi turn in same direction...
         result.alt, result.az = theta-90*u.deg, phi
         result.core_x = pos[0]
@@ -165,12 +240,9 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return result
 
-    def get_great_circles(self, hillas_dict):
+    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
-
-            camera_rotation = -90.*u.deg
-            # if tel_id in TelDict["LST"]: camera_rotation = -110.893*u.deg
 
             p2_x = moments.cen_x + moments.length*np.cos(moments.psi + np.pi/2)
             p2_y = moments.cen_y + moments.length*np.sin(moments.psi + np.pi/2)
@@ -178,13 +250,12 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             circle = GreatCircle(
                 guess_pix_direction(np.array([moments.cen_x, p2_x])*u.m,
                                     np.array([moments.cen_y, p2_y])*u.m,
-                                    self.tel_phi, self.tel_theta,
-                                    self.telescopes['FL'][tel_id-1] * u.m,
-                                    camera_rotation=camera_rotation
+                                    tel_phi[tel_id], tel_theta[tel_id],
+                                    inst.optical_foclen[tel_id]
                                     ),
                 moments.size * (moments.length/moments.width)
                                 )
-
+            circle.pos = inst.tel_pos[tel_id]
             self.circles[tel_id] = circle
 
     def fit_origin_crosses(self):
@@ -217,7 +288,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         ''' averaging over the solutions of all permutations '''
         return linalg.normalise(np.sum(crossings, axis=0))*u.dimless, crossings
 
-    def fit_origin_minimise(self, seed=[0, 0, 1], test_function=None):
+    def fit_origin_minimise(self, seed=[0, 0, 1], test_function=n_angle_sum):
         ''' fits the origin of the gamma with a minimisation procedure
             this function expects that get_great_circles has been run already
             a seed should be given otherwise it defaults to "straight up"
@@ -230,9 +301,9 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             seed : length-3 array
                 starting point of the minimisation
             test_function : member function if this class
-                either _n_angle_sum or _MEst (or own implementation...)
-                defaults to _n_angle_sum if none is given
-                _n_angle_sum seemingly superior to _MEst
+                either n_angle_sum or MEst (or own implementation...)
+                defaults to n_angle_sum if none is given
+                n_angle_sum seemingly superior to MEst
 
             Returns:
             --------
@@ -241,7 +312,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 the minimisation process
         '''
 
-        if test_function is None: test_function = self._n_angle_sum
         '''
             using the sum of the cosines of each direction with
             every otherdirection as weight;
@@ -262,74 +332,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return np.array(linalg.normalise(self.fit_result_origin.x))*u.dimless
 
-    def _MEst(self, origin, circles, weights):
-        '''
-            calculates the M-Estimator:
-            a modified chi2 that becomes asymptotically linear for high values
-            and is therefore less sensitive to outliers
-
-            the test is performed to maximise the angles between the
-            fit direction and the all the normal vectors of the great circles
-
-            Parameters:
-            -----------
-            origin : length-3 array
-                direction vector of the gamma's origin used as seed
-            circles : GreatCircle array
-                collection of great circles created from the camera images
-            weights : array
-                list of weights for each image/great circle
-
-            Returns:
-            --------
-            MEstimator : float
-
-
-            Algorithm:
-            ----------
-            M-Est = sum[  weight * sqrt( 2 * chi**2 ) ]
-
-
-            Note:
-            -----
-            seemingly inferior to negative sum of sin(angle)...
-        '''
-
-        sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
-                            for circ in circles.values()])
-        return np.sum(weights*np.sqrt(2. + (sin_ang-np.pi/2.)**2))
-
-        ang = np.array([linalg.angle(origin, circ.norm)
-                        for circ in circles.values()])
-        ang[ang > np.pi/2.] = np.pi-ang[ang > np.pi/2]
-        return np.sum(weights*np.sqrt(2. + (ang-np.pi/2.)**2))
-
-    def _n_angle_sum(self, origin, circles, weights):
-        '''
-            calculates the negative sum of the angle between
-            the fit direction and all the normal vectors of the great circles
-
-            Parameters:
-            -----------
-            origin : length-3 array
-                direction vector of the gamma's origin used as seed
-            circles : GreatCircle array
-                collection of great circles created from the camera images
-            weights : array
-                list of weights for each image/great circle
-
-            Returns:
-            --------
-            n_sum_angles : float
-                negative of the sum of the angles between the test direction
-                and all normal vectors of the given great circles
-        '''
-
-        sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
-                            for circ in circles.values()])
-        return -np.sum(weights*sin_ang)
-
-    def fit_core(self, seed=[0, 0]*u.m, test_function=None):
+    def fit_core(self, seed=[0, 0]*u.m, test_function=dist_to_traces):
         '''
             reconstructs the shower core position from the already set up
             great circles
@@ -351,16 +354,15 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             the direction; not the orientation...
         '''
 
-        if test_function is None:
-            test_function = self._dist_to_traces
-
+        '''
+        the direction of the cross section of the great circle with the horizontal frame
+        is the cross product of the great circle's normal vector with the z-axis '''
         zdir = np.array([0, 0, 1])
-
         for circle in self.circles.values():
             circle.trace = linalg.normalise(np.cross(circle.norm, zdir))
 
         # minimising the test function
-        self.fit_result_core = minimize(test_function, seed,
+        self.fit_result_core = minimize(test_function, seed[:2]/u.m,
                                         args=(self.circles),
                                         method='BFGS', options={'disp': False})
         if self.fit_result_core.success:
@@ -369,24 +371,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             print("fit no success")
             return np.array(self.fit_result_core.x) * u.m
             return np.array([np.nan]*3) * u.m
-
-    def _dist_to_traces(self, core, circles):
-        '''
-            TODO optimise the score parameter...
-            the distance of the core to the trace line is the
-            scalar product of
-            • the connecting vector between the core and a random point
-              on the line (e.g. the position of the telescope)
-            • and a normal vector of the trace in the same plane as
-              the trace and the core (e.g. { trace[1], -trace[0] } )
-        '''
-        sum_dist = 0.
-        for tel_id, circle in circles.items():
-            D = [core[0]-self.telescopes["TelX"][tel_id-1],
-                 core[1]-self.telescopes["TelY"][tel_id-1]]
-            sum_dist += np.sqrt(2 + (D[0]*circle.trace[1] -
-                                     D[1]*circle.trace[0])**2/5)*circle.weight
-        return sum_dist
 
 
 class GreatCircle:
@@ -410,7 +394,7 @@ class GreatCircle:
             Algorithm:
             ----------
             c : length 3 ndarray
-                c = (a x b) x a -> a and c form an orthogonal base for the
+                c = (a × b) × a -> a and c form an orthogonal base for the
                 great circle (only orthonormal if a and b are of unit-length)
             norm : length 3 ndarray
                 normal vector of the circle's plane,
@@ -430,5 +414,3 @@ class GreatCircle:
         # (put e.g. uncertainty on the Hillas parameters
         # or number of PE in here)
         self.weight = weight
-
-
