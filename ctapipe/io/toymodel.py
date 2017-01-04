@@ -1,33 +1,27 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Create a mock event stream of array events
+Create a toymodel event stream of array events
 """
 import logging
 
-from .containers import RawData, RawCameraData
-from ctapipe.core import Container
-from ctapipe.reco import mock
 import numpy as np
+from ctapipe.image import toymodel
 from scipy.stats import norm
+
+from .containers import DataContainer, RawCameraContainer
 
 logger = logging.getLogger(__name__)
 
 
-def mock_event_source(
-        geoms,
-        events=100,
-        single_tel=False,
-        n_channels=1,
-        n_samples=25,
-        p_trigger=0.3,
-        ):
+def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
+                          n_samples=25, p_trigger=0.3):
     """
     An event source that produces array
     Parameters
     ----------
     geoms : list of CameraGeometry instances
         Geometries for the telescopes to simulate
-    events : int, default: 100
+    max_events : int, default: 100
         maximum number of events to create
     n_channels : int
         how many channels per telescope
@@ -37,14 +31,12 @@ def mock_event_source(
         mean trigger probability for the telescopes
     """
     n_telescopes = len(geoms)
-    container = Container("mock_container")
-    container.meta.add_item('mock__max_events', events)
-    container.meta.add_item('pixel_pos', dict())
-    container.add_item("dl0", RawData())
-    container.add_item("count")
+    container = DataContainer()
+    container.meta['toymodel__max_events'] = max_events
+    container.meta['source'] = "toymodel"
     tel_ids = np.arange(n_telescopes)
 
-    for event_id in range(events):
+    for event_id in range(max_events):
 
         n_triggered = np.random.poisson(n_telescopes * 0.3)
         if n_triggered > n_telescopes:
@@ -62,15 +54,15 @@ def mock_event_source(
                 continue
             container.dl0.tels_with_data = [single_tel, ]
 
-        container.dl0.tel = dict()  # clear the previous telescopes
+        container.dl0.tel.reset()  # clear the previous telescopes
         t = np.arange(n_samples)
 
         for tel_id in container.dl0.tels_with_data:
             geom = geoms[tel_id]
 
             # fill pixel position dictionary, if not already done:
-            if tel_id not in container.meta.pixel_pos:
-                container.meta.pixel_pos[tel_id] = (
+            if tel_id not in container.inst.pixel_pos:
+                container.inst.pixel_pos[tel_id] = (
                     geom.pix_x.value,
                     geom.pix_y.value,
                 )
@@ -80,20 +72,20 @@ def mock_event_source(
             width = np.random.uniform(0.01, length)
             psi = np.random.randint(0, 360)
             intensity = np.random.poisson(int(10000 * width * length))
-            model = mock.generate_2d_shower_model(
+            model = toymodel.generate_2d_shower_model(
                 centroid,
                 width,
                 length,
                 '{}d'.format(psi)
             )
-            image, _, _ = mock.make_mock_shower_image(
+            image, _, _ = toymodel.make_toymodel_shower_image(
                 geom,
                 model.pdf,
                 intensity,
             )
 
-            container.dl0.tel[tel_id] = RawCameraData(tel_id)
-            container.dl0.tel[tel_id].num_channels = n_channels
+            # container.dl0.tel[tel_id] = RawCameraContainer()
+            container.inst.num_channels[tel_id] = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))
             means = np.random.normal(15, 1, (n_pix, 1))

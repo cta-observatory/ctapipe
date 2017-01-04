@@ -1,8 +1,18 @@
+""" Class to handle configuration for algorithms """
+
 from traitlets.config import Configurable
+from abc import ABCMeta
 from logging import getLogger
 
 
-class Component(Configurable):
+class AbstractConfigurableMeta(type(Configurable), ABCMeta):
+    '''
+    Metaclass to be able to make Component abstract
+    see: http://stackoverflow.com/a/7314847/3838691
+    '''
+    pass
+
+class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called
     workers, makers, etc).  Components are are classes that do some sort
     of processing and contain user-configurable parameters, which are
@@ -24,13 +34,16 @@ class Component(Configurable):
     subclasses, which provide configuration handling and command-line
     tool generation.
 
+
+    For example:
+
     .. code:: python
 
         from ctapipe.core import Component
         from traitlets import (Integer, Float)
 
         class MyComponent(Component):
-            description = "Does something"
+            \"\"\" Does something \"\"\"
             some_option = Integer(default_value=6,
                                   help='a value to set').tag(config=True)
 
@@ -38,10 +51,9 @@ class Component(Configurable):
         comp = MyComponent(None)
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
-
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         """
         Parameters
         ----------

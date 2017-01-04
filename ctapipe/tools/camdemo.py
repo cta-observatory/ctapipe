@@ -6,14 +6,12 @@ running.
 """
 
 import matplotlib.pylab as plt
-from ctapipe import io, visualization
-from ctapipe.reco import mock
-from ctapipe import reco
-from matplotlib.animation import FuncAnimation
 import numpy as np
 from astropy import units as u
-
+from ctapipe import io, visualization
 from ctapipe.core import Tool
+from ctapipe.image import toymodel, cleaning
+from matplotlib.animation import FuncAnimation
 
 
 class CameraDemo(Tool):
@@ -27,9 +25,9 @@ class CameraDemo(Tool):
 
     def start(self):
         self.log.info("Starting Camera Display")
-        self._display_cam_animation()
+        self._display_camera_animation()
 
-    def _display_cam_animation(self):
+    def _display_camera_animation(self):
         plt.style.use("ggplot")
         fig = plt.figure(num="ctapipe Camera Demo", figsize=(7, 7))
         ax = plt.subplot(111)
@@ -46,21 +44,20 @@ class CameraDemo(Tool):
             length = np.random.uniform(0, 0.03) + width
             angle = np.random.uniform(0, 360)
             intens = np.random.exponential(2) * 50
-            model = mock.generate_2d_shower_model(centroid=centroid,
-                                                  width=width,
-                                                  length=length,
-                                                  psi=angle * u.deg)
-            image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
-                                                         intensity=intens,
-                                                         nsb_level_pe=5000)
+            model = toymodel.generate_2d_shower_model(centroid=centroid,
+                                                      width=width,
+                                                      length=length,
+                                                      psi=angle * u.deg)
+            image, sig, bg = toymodel.make_toymodel_shower_image(geom, model.pdf,
+                                                                 intensity=intens,
+                                                                 nsb_level_pe=5000)
 
             # alternate between cleaned and raw images
             if self._counter > 20:
                 plt.suptitle("Image Cleaning ON")
-                cleanmask = reco.cleaning.tailcuts_clean(
-                    geom, image, pedvars=80)
+                cleanmask = cleaning.tailcuts_clean(geom, image, pedvars=80)
                 for ii in range(3):
-                    reco.cleaning.dilate(geom, cleanmask)
+                    cleaning.dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels
             if self._counter >= 40:
                 plt.suptitle("Image Cleaning OFF")
@@ -82,3 +79,4 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+

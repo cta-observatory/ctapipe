@@ -4,9 +4,14 @@
 Getting Started For Developers
 ******************************
 
-This guide assumes you are using the *Anaconda* python distribution, installed locally (*miniconda* should also work).
+This guide assumes you are using the *Anaconda* python distribution,
+installed locally (*miniconda* should also work).
 
-First you should create a virtual environment in which to do your developement (this will allow you to control the dependency libraries independently of other projects). You can use either python 3.4 or python 3.5. Here we will create a virtualenv called "cta" (but you can choose another name if you like)
+First you should create a virtual environment in which to do your
+development (this will allow you to control the dependent libraries
+independently of other projects). You can use either python 3.4 or
+python 3.5. Here we will create a virtualenv called "cta" (but you can
+choose another name if you like)
 
 -----------------------
 Set up your environment
@@ -22,7 +27,7 @@ Next, switch to this new virtual environment and install some other useful tools
 
 	source activate cta
 	
-	conda install ipython ipython-notebook ipython-qtconsole spyder pyflakes traitlets
+	conda install pyhessio ipython ipython-notebook ipython-qtconsole spyder pyflakes traitlets
 	conda install -c conda-forge autopep8 graphviz
 
 Next, you should create a directory where you can store the software you check out. For example:
@@ -32,26 +37,28 @@ Next, you should create a directory where you can store the software you check o
     mkdir ctasoft
     cd ctasoft
 
-If you want to access SimTelArrray data files (recommended), you must first install the `pyhessio` package.  This can be done by:
-
-.. code-block:: bash
-
-	git clone https://github.com/cta-observatory/pyhessio
-	conda build pyhessio
-	conda install --use-local pyhessio
-
 ------------------------
 Get the ctapipe software
 ------------------------
+
+..
+   .. quote::
+
+   the following guide is used only if you want to *develop* the
+   `ctapipe` package, if you just want to write code that uses it
+   externally, you can install `ctapipe` as a conda package
+   with `conda install ctapipe`.
+
 
 In order to checkout the software in such a way that you can read *and
 commit* changes, you need to `Fork and Clone
 <https://help.github.com/articles/fork-a-repo/>`_ the main ctapipe
 repository (cta-observatory/ctapipe).
 
-+++++++++++
+
+++++++++++++
 Step 1: Fork
-+++++++++++
+++++++++++++
 
 Follow the instructions in the link above to make a *fork* of the
 ctapipe repo in your own GitHub userspace. That fork will be then

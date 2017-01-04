@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Example of drawing a Camera using a mock shower image.
+Example of drawing a Camera using a toymodel shower image.
 """
 
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
-from ctapipe.reco import mock
-from ctapipe.reco import hillas_parameters
+from ctapipe.image import toymodel
+from ctapipe.image.hillas import hillas_parameters_1 as hillas_parameters
 
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):
@@ -29,21 +29,21 @@ if __name__ == '__main__':
     disp.add_colorbar()
 
     # Create a fake camera image to display:
-    model = mock.generate_2d_shower_model(centroid=(0.2, 0.0),
-                                          width=0.01,
-                                          length=0.1,
-                                          psi='35d')
+    model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.0),
+                                              width=0.01,
+                                              length=0.1,
+                                              psi='35d')
 
-    image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
-                                                 intensity=50,
-                                                 nsb_level_pe=1000)
+    image, sig, bg = toymodel.make_toymodel_shower_image(geom, model.pdf,
+                                                         intensity=50,
+                                                         nsb_level_pe=1000)
 
     # Apply really stupid image cleaning (single threshold):
     clean = image.copy()
     clean[image <= 3.0 * image.mean()] = 0.0
 
     # Calculate image parameters
-    hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
+    hillas, _ = hillas_parameters(geom.pix_x, geom.pix_y, clean)
     print(hillas)
 
     # Show the camera image and overlay Hillas ellipse

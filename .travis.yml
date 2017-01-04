@@ -69,10 +69,9 @@ install:
     - conda config --add channels astropy-ci-extras
 
     # CORE DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets; fi
+    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets matplotlib; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
-    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v0.5.5.tar.gz; fi
-
+    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v1.0.1.tar.gz; fi
 
     # ASTROPY
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
@@ -82,7 +81,7 @@ install:
     - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
 
     # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL Sphinx matplotlib ; fi
+    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL sphinx sphinx_rtd_theme matplotlib; fi
 
     # COVERAGE DEPENDENCIES
     - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls;  fi
@@ -90,6 +89,7 @@ install:
 
 script:
    - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
+   - if [[ $SETUP_CMD == build_sphinx* ]]; then python -c 'import matplotlib.pyplot as plt'; fi
    - python setup.py $SETUP_CMD
 
 after_success:

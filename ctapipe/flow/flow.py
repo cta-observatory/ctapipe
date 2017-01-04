@@ -119,7 +119,7 @@ class Flow(Tool):
     aliases = Dict({'gui_address': 'Flow.gui_address',
                     'mode':'Flow.mode','gui': 'Flow.gui'})
     examples = ('prompt%> ctapipe-flow \
-    --config=examples/brainstorm/flow/flow_py/example.json')
+    --config=examples/flow/switch.json')
 
     PRODUCER = 'PRODUCER'
     STAGER = 'STAGER'

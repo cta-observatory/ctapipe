@@ -2,15 +2,15 @@
 
 """
 Demo to show multiple shower images on a single figure using
-`CameraDisplay` and really simple mock shower images (not
+`CameraDisplay` and really simple toymodel shower images (not
 simulations). Also shows how to change the color palette.
 """
 
 import matplotlib.pylab as plt
-from ctapipe import io, visualization
-from ctapipe.reco import mock
-from ctapipe.reco.hillas import hillas_parameters_2 as hillas_parameters
 from astropy import units as u
+from ctapipe import io, visualization
+from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
+from ctapipe.reco import toymodel
 
 
 def draw_several_cams(geom, ncams=4):
@@ -26,14 +26,14 @@ def draw_several_cams(geom, ncams=4):
         )
         disp.cmap = cmaps[ii]
 
-        model = mock.generate_2d_shower_model(
+        model = toymodel.generate_2d_shower_model(
             centroid=(0.2 - ii * 0.1, -ii * 0.05),
             width=0.005 + 0.001 * ii,
             length=0.1 + 0.05 * ii,
             psi=ii * 20 * u.deg,
         )
 
-        image, sig, bg = mock.make_mock_shower_image(
+        image, sig, bg = toymodel.make_toymodel_shower_image(
             geom,
             model.pdf,
             intensity=50,
