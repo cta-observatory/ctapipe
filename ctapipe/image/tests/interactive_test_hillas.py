@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 from ctapipe import io, visualization
 from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.reco import toymodel
+from ctapipe.image import toymodel
 
-from ..hillas import hillas_parameters
+from ctapipe.image.hillas import hillas_parameters
 
 """
 Test script for hillas_parameters.
@@ -45,10 +45,10 @@ if __name__ == '__main__':
   pix_y = geom.pix_y.value
 
   # Hillas parameters
-  hillas1, hillas2 = hillas_parameters(pix_x, pix_y, image)
-  print(hillas1, hillas2)
+  hillas = hillas_parameters(pix_x, pix_y, image)
+  print(hillas)
 
   #Overlay moments
   disp.image = image
-  disp.overlay_moments(hillas1, color = 'seagreen', linewidth = 2)
+  disp.overlay_moments(hillas, color = 'seagreen', linewidth = 2)
   plt.show()

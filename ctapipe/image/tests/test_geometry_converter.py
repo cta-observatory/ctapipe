@@ -115,11 +115,11 @@ def test_convert_geometry():
             try:
                 moments1 = hillas_parameters(cam_geom[tel_id].pix_x,
                                              cam_geom[tel_id].pix_y,
-                                             pmt_signal)[0]
+                                             pmt_signal)
 
                 moments2 = hillas_parameters(unrot_geom.pix_x,
                                              unrot_geom.pix_y,
-                                             unrot_signal)[0]
+                                             unrot_signal)
             except (HillasParameterizationError, AssertionError) as e:
                 '''
                 we don't want this test to fail because the hillas code
