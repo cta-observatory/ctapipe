@@ -337,14 +337,14 @@ class CameraDisplay:
         width: float
             minor axis
         angle: float
-            rotation angle wrt "up" about the centroid, clockwise, in radians
+            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
         asymmetry: float
             3rd-order moment for directionality if known
         kwargs:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
-        ellipse = Ellipse(xy=centroid, width=width, height=length,
+        ellipse = Ellipse(xy=centroid, width=length, height=width,
                           angle=np.degrees(angle), fill=False, **kwargs)
         self.axes.add_patch(ellipse)
         self.update()

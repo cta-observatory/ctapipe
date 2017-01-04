@@ -30,7 +30,7 @@ if __name__ == '__main__':
   disp.add_colorbar()
 
   # make a toymodel shower model
-  model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.2), width=0.01, length=0.1, psi='45d')
+  model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.3), width=0.01, length=0.1, psi='30d')
 
   # generate toymodel image in camera for this shower model.
   image, signal, noise = toymodel.make_toymodel_shower_image(geom, model.pdf, intensity=50, nsb_level_pe=100)
