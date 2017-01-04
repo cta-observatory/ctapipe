@@ -24,18 +24,18 @@ CHANGE LOG:
     hillas_parameters_1(pix_x, pix_y, image, higherMoments=True)                        best of 3:     598 µs per loop
     hillas_parameters_1(pix_x, pix_y, image, higherMoments=False)                       best of 3:     391 µs per loop
 
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)        best of 3:     210 µs per loop
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=False)       best of 3:     137 µs per loop
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=False, reCalcPix=True)       best of 3:     125 µs per loop
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=False, reCalcPix=False)      best of 3:      95.9 µs per loop
+    hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=True)        best of 3:     210 µs per loop
+    hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=False)       best of 3:     137 µs per loop
+    hillas_parameters_2(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=True)       best of 3:     125 µs per loop
+    hillas_parameters_2(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=False)      best of 3:      95.9 µs per loop
 
     hillas_parameters_3(pix_x, pix_y, image, higherMoments=True)                        best of 3:   1.55 ms per loop
     hillas_parameters_3(pix_x, pix_y, image, higherMoments=False)                       best of 3:   1.5 ms per loop
 
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)        best of 3:     130 µs per loop
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=False)       best of 3:     110 µs per loop
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, reCalcPix=True)       best of 3:      70.4 µs per loop
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, reCalcPix=False)      best of 3:      62.7 µs per loop
+    hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=True)        best of 3:     130 µs per loop
+    hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=False)       best of 3:     110 µs per loop
+    hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=True)       best of 3:      70.4 µs per loop
+    hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=False)      best of 3:      62.7 µs per loop
 
     (any way to compare compiled versions?)
 
@@ -52,9 +52,9 @@ CHANGE LOG:
 * MP: removed returning of asymmetry, just left skewness...
     either MP/Whipple or MAGIC asymmetry can be calculated then in function
 
-* MP: added two Boolean variables to the call: higherMoments (default True) and ReCalcPix (default True)
+* MP: added two Boolean variables to the call: higherMoments (default True) and recalculate_pixels (default True)
     If higherMoments is False, then it doesn't calculate them (if True, calculated for those routines have them)
-    If reCalcPix is False, then the multiples of pixel positions are calculated always (if True, only if not existing)
+    If recalculate_pixels is False, then the multiples of pixel positions are calculated always (if True, only if not existing)
 
 * MP: hillas_parameter_1 doesn't work for the case of horizontal image
     It raises an exception wrongly; no reason to raise exception for S_xy = 0
@@ -107,6 +107,7 @@ CHANGE LOG:
 from collections import namedtuple
 import numpy as np
 from astropy.units import Quantity
+from astropy.coordinates import Angle
 import astropy.units as u
 
 __all__ = [
@@ -118,32 +119,15 @@ __all__ = [
 
 MomentParameters = namedtuple(
     "MomentParameters",
-    "size,cen_x,cen_y,length,width,r,phi,psi,miss"
+    "size,cen_x,cen_y,length,width,r,phi,psi,miss,skewness,kurtosis"
 )
-"""Shower moment parameters up to second order.
-
-See also
---------
-HighOrderMomentParameters, hillas_parameters
-"""
-
-HighOrderMomentParameters = namedtuple(
-    "HighOrderMomentParameters",
-    "Skewness, Kurtosis"
-)
-"""Shower moment parameters of third and fourth order.
-
-See also
---------
-MomentParameters, hillas_parameters
-"""
 
 
 class HillasParameterizationError(RuntimeError):
     pass
 
 
-def hillas_parameters_1(pix_x, pix_y, image, higherMoments=True, reCalcPix=True):
+def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
     """Compute Hillas parameters for a given shower image.
 
     Reference: Appendix of the Whipple Crab paper Weekes et al. (1998) /
@@ -163,8 +147,9 @@ def hillas_parameters_1(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
         Pixel values corresponding
     higherMoments : Boolean (default True)
         Calculate also higher moments
-    reCalcPix : Boolean (default True)
-        Recalculate the pixel higher multiples (e.g., if pixels move (!) or pixel list changes between calls)
+    recalculate_pixels : Boolean (default True)
+        Recalculate the pixel higher multiples (e.g., if pixels move (!) or
+        pixel list changes between calls)
 
 
     Returns
@@ -237,11 +222,6 @@ def hillas_parameters_1(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     r = np.sqrt(mean_x * mean_x + mean_y * mean_y)
     phi = np.arctan2(mean_y, mean_x)
 
-    if not higherMoments:
-        return MomentParameters(size=size, cen_x=mean_x, cen_y=mean_y,
-                                length=length, width=width,
-                                r=r, phi=phi, psi=delta, miss=miss)
-
     # Higher order moments
     sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
 
@@ -271,19 +251,19 @@ def hillas_parameters_1(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     # azwidth_2 = m_qq - m_q * m_q
     # azwidth = np.sqrt(azwidth_2)
 
-    return (MomentParameters(size=size,
+    return MomentParameters(size=size,
                              cen_x=mean_x,
                              cen_y=mean_y,
                              length=length,
                              width=width,
                              r=r,
-                             phi=phi,
-                             psi=delta,
-                             miss=miss),
-            HighOrderMomentParameters(Skewness=skewness,
-                                      Kurtosis=kurtosis))
+                             phi=Angle(phi*u.rad),
+                             psi=Angle(delta*u.rad),
+                             miss=miss,
+                             skewness=skewness,
+                            kurtosis=kurtosis)
 
-def static_pix(pix_x, pix_y, higherMoments, reCalcPix):
+def static_pix(pix_x, pix_y, recalculate_pixels):
     """Hold static variables for a given camera's pixel positions,
     #if the camera's pixel positions haven't changed since last call, and otherwise or
     if first call initializes them to the right values.
@@ -294,17 +274,15 @@ def static_pix(pix_x, pix_y, higherMoments, reCalcPix):
         Pixel x-coordinate
     pix_y : array_like
         Pixel y-coordinate
-    higherMoments : Boolean
-        Calculate also higher moments
-    reCalcPix : Boolean
+    recalculate_pixels : Boolean
         Recalculate the pixel higher multiples (e.g., if pixels move (!) or pixel list changes between calls)
 
     Returns
     -------
     Nothing, but keeps variables as attributes to the function, so acts like a static variable holder."""
 
-    # If not called before or reCalcPix
-    if (not hasattr(static_pix, "pixdata") or reCalcPix): # \
+    # If not called before or recalculate_pixels
+    if (not hasattr(static_pix, "pixdata") or recalculate_pixels): # \
       #or not (np.array_equal(pix_x,static_xy.pix_x) and np.array_equal(pix_y,static_xy.pix_y)):
       #, or if the pixel positions have changed, but this adds 15% calculation time
         static_pix.pixdata = np.row_stack([pix_x,
@@ -313,21 +291,19 @@ def static_pix(pix_x, pix_y, higherMoments, reCalcPix):
                                            pix_x * pix_y,
                                            pix_y * pix_y])
 
-        if higherMoments:
-            # Add higher order moments x3, x2y, xy2, y3, x4, x3y, x2y2, xy3, y4
-            static_pix.pixdataHO = \
-                np.row_stack([pix_x * static_pix.pixdata[2],
-                              static_pix.pixdata[2] * pix_y,
-                              pix_x * static_pix.pixdata[4],
-                              pix_y * static_pix.pixdata[4],
-                              static_pix.pixdata[2] * static_pix.pixdata[2],
-                              static_pix.pixdata[2] * static_pix.pixdata[3],
-                              static_pix.pixdata[2] * static_pix.pixdata[4],
-                              static_pix.pixdata[3] * static_pix.pixdata[4],
-                              static_pix.pixdata[4] * static_pix.pixdata[4]])
+        static_pix.pixdataHO = \
+        np.row_stack([pix_x * static_pix.pixdata[2],
+                      static_pix.pixdata[2] * pix_y,
+                      pix_x * static_pix.pixdata[4],
+                      pix_y * static_pix.pixdata[4],
+                      static_pix.pixdata[2] * static_pix.pixdata[2],
+                      static_pix.pixdata[2] * static_pix.pixdata[3],
+                      static_pix.pixdata[2] * static_pix.pixdata[4],
+                      static_pix.pixdata[3] * static_pix.pixdata[4],
+                      static_pix.pixdata[4] * static_pix.pixdata[4]])
 
 
-def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True):
+def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
     """Compute Hillas parameters for a given shower image.
 
     Alternate implementation of `hillas_parameters` ...
@@ -342,9 +318,7 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    higherMoments : Boolean (default True)
-        Calculate also higher moments
-    reCalcPix : Boolean (default True)
+    recalculate_pixels : Boolean (default True)
         Recalculate the pixel higher multiples (e.g., if pixels move (!) or pixel list changes between calls)
 
     Returns
@@ -353,8 +327,8 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     """
 
     if type(pix_x)==Quantity:
-        unit = pix_x.unit()
-        assert pix_x.unit() == pix_y.unit()
+        unit = pix_x.unit
+        assert pix_x.unit == pix_y.unit
     else:
         unit = 1.0
 
@@ -372,7 +346,7 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
 
     #call static_xy to initialize the "static variables"
     #actually, would be nice to just call this if we know the pixel positions have changed
-    static_pix(pix_x, pix_y, higherMoments, reCalcPix)
+    static_pix(pix_x, pix_y, recalculate_pixels)
 
     # Compute image moments (done in a bit faster way, but putting all
     # into one 2D array, where each row will be summed to calculate a
@@ -386,15 +360,12 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     #                         pix_x * pix_y]) * image
     momdata = static_pix.pixdata * image
     moms = momdata.sum(axis=1) / size
-
-    if higherMoments:
-        momdataHO = static_pix.pixdataHO * image
-        momsHO = momdataHO.sum(axis=1) / size
+    momdataHO = static_pix.pixdataHO * image
+    momsHO = momdataHO.sum(axis=1) / size
 
     # give the moms values comprehensible names
     xm, ym, x2m, xym, y2m = moms
-    if higherMoments:
-        x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m, y4m = momsHO
+    x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m, y4m = momsHO
 
     # intermediate variables (could be avoided if compiler which understands powers, etc)
     xm2 = xm * xm
@@ -406,12 +377,10 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     vx2 = x2m - xm2
     vy2 = y2m - ym2
     vxy = xym - xmym
-
-    if higherMoments:
-        vx3 = x3m - 3.0 * xm * x2m + 2.0 * xm2 * xm
-        vx2y = x2ym - x2m * ym - 2.0 * xym * xm + 2.0 * xm2 * ym
-        vxy2 = xy2m - y2m * xm - 2.0 * xym * ym + 2.0 * xm * ym2
-        vy3 = y3m - 3.0 * ym * y2m + 2.0 * ym2 * ym
+    vx3 = x3m - 3.0 * xm * x2m + 2.0 * xm2 * xm
+    vx2y = x2ym - x2m * ym - 2.0 * xym * xm + 2.0 * xm2 * ym
+    vxy2 = xy2m - y2m * xm - 2.0 * xym * ym + 2.0 * xm * ym2
+    vy3 = y3m - 3.0 * ym * y2m + 2.0 * ym2 * ym
 
     # polar coordinates of centroid
 
@@ -445,11 +414,6 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     tanpsi_denom = (2.0 * vxy * ym) - (dd - zz) * xm
 
     psi = (np.arctan2(tanpsi_numer, tanpsi_denom)) * u.rad
-
-    if not higherMoments:
-        return MomentParameters(size=size, cen_x=xm*unit, cen_y=ym*unit,
-                                length=length*unit, width=width,
-                                r=rr*unit, phi=phi, psi=psi.to(u.rad), miss=miss*unit)
 
     # -- Asymmetry and other higher moments
     if length != 0.0:
@@ -492,11 +456,13 @@ def hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
         kurtosis = 0.0
 
     return MomentParameters(size=size, cen_x=xm*unit, cen_y=ym*unit,
-                            length=length*unit, width=width, r=rr*unit, phi=phi, psi=psi.to(u.deg), miss=miss*unit), \
-           HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis)
+                            length=length*unit, width=width, r=rr*unit,
+                            phi=Angle(phi*u.rad), psi=Angle(psi),
+                            miss=miss*unit, skewness=skewness,
+                            kurtosis=kurtosis)
 
 
-def hillas_parameters_3(pix_x, pix_y, image, higherMoments=True, reCalcPix=True):
+def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     """Compute Hillas parameters for a given shower image.
 
     MP: probably better to use Whipple Reynolds et al 1993 paper:
@@ -511,9 +477,7 @@ def hillas_parameters_3(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    higherMoments : Boolean (default True)
-        Calculate also higher moments
-    reCalcPix : Boolean (default True)
+    recalculate_pixels : Boolean (default True)
         Recalculate the pixel higher multiples (e.g., if pixels move (!) or pixel list changes between calls)
 
     Returns
@@ -598,16 +562,15 @@ def hillas_parameters_3(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     vy2 = y2m - ym2
     vxy = xym - xmym
 
-    if higherMoments:
-        x3m = sumx3sig / sumsig
-        x2ym = sumx2ysig / sumsig
-        xy2m = sumxy2sig / sumsig
-        y3m = sumy3sig / sumsig
+    x3m = sumx3sig / sumsig
+    x2ym = sumx2ysig / sumsig
+    xy2m = sumxy2sig / sumsig
+    y3m = sumy3sig / sumsig
 
-        vx3 = x3m - 3.0 * xm * x2m + 2.0 * xm2 * xm
-        vx2y = x2ym - x2m * ym - 2.0 * xym * xm + 2.0 * xm2 * ym
-        vxy2 = xy2m - y2m * xm - 2.0 * xym * ym + 2.0 * xm * ym2
-        vy3 = y3m - 3.0 * ym * y2m + 2.0 * ym2 * ym
+    vx3 = x3m - 3.0 * xm * x2m + 2.0 * xm2 * xm
+    vx2y = x2ym - x2m * ym - 2.0 * xym * xm + 2.0 * xm2 * ym
+    vxy2 = xy2m - y2m * xm - 2.0 * xym * ym + 2.0 * xm * ym2
+    vy3 = y3m - 3.0 * ym * y2m + 2.0 * ym2 * ym
 
     d = vy2 - vx2
     dist = np.sqrt(xm2 + ym2)
@@ -639,9 +602,6 @@ def hillas_parameters_3(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     cpsi = np.cos(psi)
     spsi = np.sin(psi)
 
-    if not higherMoments:
-        return MomentParameters(size=size, cen_x=m_x, cen_y=m_y, length=length, width=width,
-                                r=r, phi=phi, psi=psi, miss=miss)
 
     # -- Asymmetry
     if length == 0.0:
@@ -664,10 +624,11 @@ def hillas_parameters_3(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     kurtosis = np.nan
 
     return MomentParameters(size=size, cen_x=m_x, cen_y=m_y, length=length, width=width,
-                            r=r, phi=phi, psi=psi, miss=miss), \
-           HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis)
+                            r=r, phi=Angle(phi*u.rad), psi=Angle(psi*u.rad),
+                            miss=miss,
+                            skewness=skewness, kurtosis=kurtosis)
 
-def static_xy(pix_x,pix_y, higherMoments, reCalcPix):
+def static_xy(pix_x, pix_y, recalculate_pixels):
     """Hold static variables for a given camera's pixel positions,
     #if the camera's pixel positions haven't changed since last call, and otherwise or
     if first call initializes them to the right values.
@@ -678,17 +639,15 @@ def static_xy(pix_x,pix_y, higherMoments, reCalcPix):
         Pixel x-coordinate
     pix_y : array_like
         Pixel y-coordinate
-    higherMoments : Boolean
-        Calculate also higher moments
-    reCalcPix : Boolean
+    recalculate_pixels : Boolean
         Recalculate the pixel higher multiples (e.g., if pixels move (!) or pixel list changes between calls)
 
     Returns
     -------
     Nothing, but keeps variables as attributes to the function, so acts like a static variable holder."""
 
-    # If not called before or reCalcPix
-    if (not hasattr(static_xy, "pix_x") or reCalcPix): # \
+    # If not called before or recalculate_pixels
+    if (not hasattr(static_xy, "pix_x") or recalculate_pixels): # \
       #or not (np.array_equal(pix_x,static_xy.pix_x) and np.array_equal(pix_y,static_xy.pix_y)):
       #, or if the pixel positions have changed, but this adds 15% calculation time
         static_xy.pix_x = pix_x
@@ -699,15 +658,15 @@ def static_xy(pix_x,pix_y, higherMoments, reCalcPix):
         static_xy.pix_x3 = static_xy.pix_x2 * pix_x
         static_xy.pix_x2y = static_xy.pix_x2 * pix_y
         static_xy.pix_xy2 = pix_x * static_xy.pix_y2
-        if higherMoments:
-            static_xy.pix_y3 = pix_y * static_xy.pix_y2
-            static_xy.pix_x4 = static_xy.pix_x3 * pix_x
-            static_xy.pix_x3y = static_xy.pix_x3 * pix_y
-            static_xy.pix_x2y2 = static_xy.pix_x2 * static_xy.pix_y2
-            static_xy.pix_xy3 = pix_x * static_xy.pix_y3
-            static_xy.pix_y4 = static_xy.pix_y3 * pix_y
 
-def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True):
+        static_xy.pix_y3 = pix_y * static_xy.pix_y2
+        static_xy.pix_x4 = static_xy.pix_x3 * pix_x
+        static_xy.pix_x3y = static_xy.pix_x3 * pix_y
+        static_xy.pix_x2y2 = static_xy.pix_x2 * static_xy.pix_y2
+        static_xy.pix_xy3 = pix_x * static_xy.pix_y3
+        static_xy.pix_y4 = static_xy.pix_y3 * pix_y
+
+def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     """Compute Hillas parameters for a given shower image.
 
     As for hillas_parameters_3 (old Whipple Fortran code), but more Pythonized
@@ -724,9 +683,7 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    higherMoments : Boolean (default True)
-        Calculate also higher moments
-    reCalcPix : Boolean (default True)
+    recalculate_pixels : Boolean (default True)
         Recalculate the pixel higher multiples (e.g., if pixels move (!) or pixel list changes between calls)
 
     Returns
@@ -748,11 +705,12 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
 
-    sumsig , sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig, sumx2ysig, sumxy2sig, sumy3sig = np.zeros(10)
+    (sumsig , sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig,
+     sumx2ysig, sumxy2sig, sumy3sig) = np.zeros(10)
 
     # Call static_xy to initialize the "static variables"
     # Actually, would be nice to just call this if we know the pixel positions have changed
-    static_xy(pix_x,pix_y,higherMoments,reCalcPix)
+    static_xy(pix_x, pix_y, recalculate_pixels)
 
     sumsig = image.sum()
     sumxsig = (image * pix_x).sum()
@@ -761,17 +719,17 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     sumy2sig = (image * static_xy.pix_y2).sum()
     sumxysig = (image * static_xy.pix_xy).sum()
 
-    if higherMoments:
-        sumx3sig = (image * static_xy.pix_x3).sum()
-        sumx2ysig = (image * static_xy.pix_x2y).sum()
-        sumxy2sig = (image * static_xy.pix_xy2).sum()
-        sumy3sig = (image * static_xy.pix_y3).sum()
 
-        sumx4sig = (image * static_xy.pix_x4).sum()
-        sumx3ysig = (image * static_xy.pix_x3y).sum()
-        sumx2y2sig = (image * static_xy.pix_x2y2).sum()
-        sumxy3sig = (image * static_xy.pix_xy3).sum()
-        sumy4sig = (image * static_xy.pix_y4).sum()
+    sumx3sig = (image * static_xy.pix_x3).sum()
+    sumx2ysig = (image * static_xy.pix_x2y).sum()
+    sumxy2sig = (image * static_xy.pix_xy2).sum()
+    sumy3sig = (image * static_xy.pix_y3).sum()
+
+    sumx4sig = (image * static_xy.pix_x4).sum()
+    sumx3ysig = (image * static_xy.pix_x3y).sum()
+    sumx2y2sig = (image * static_xy.pix_x2y2).sum()
+    sumxy3sig = (image * static_xy.pix_xy3).sum()
+    sumy4sig = (image * static_xy.pix_y4).sum()
 
     if sumsig == 0.0:
         raise (HillasParameterizationError("Empty pixels! Cannot calculate image parameters. Exiting..."))
@@ -782,21 +740,22 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     y2m  = sumy2sig  / sumsig
     xym  = sumxysig  / sumsig
 
-    if higherMoments:
-        x3m  = sumx3sig  / sumsig
-        x2ym = sumx2ysig / sumsig
-        xy2m = sumxy2sig / sumsig
-        y3m  = sumy3sig  / sumsig
 
-        x4m  = sumx4sig  / sumsig
-        x3ym = sumx3ysig / sumsig
-        x2y2m = sumx2y2sig / sumsig
-        xy3m = sumxy3sig / sumsig
-        y4m  = sumy4sig  / sumsig
+    x3m  = sumx3sig  / sumsig
+    x2ym = sumx2ysig / sumsig
+    xy2m = sumxy2sig / sumsig
+    y3m  = sumy3sig  / sumsig
+
+    x4m  = sumx4sig  / sumsig
+    x3ym = sumx3ysig / sumsig
+    x2y2m = sumx2y2sig / sumsig
+    xy3m = sumxy3sig / sumsig
+    y4m  = sumy4sig  / sumsig
 
     # Doing this should be same as above, but its 4us slower !?
     #(xm, ym, x2m, y2m, xym, x3m, x2ym, xy2m, y3m) = \
-    #    (sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig, sumx2ysig, sumxy2sig, sumy3sig) / sumsig
+    #    (sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig,
+    # sumx2ysig, sumxy2sig, sumy3sig) / sumsig
 
     xm2 = xm * xm
     ym2 = ym * ym
@@ -806,16 +765,10 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     vy2 = y2m - ym2
     vxy = xym - xmym
 
-    if higherMoments:
-        vx3 = x3m - 3.0 * xm * x2m + 2.0 * xm2 * xm
-        vx2y = x2ym - x2m * ym - 2.0 * xym * xm + 2.0 * xm2 * ym
-        vxy2 = xy2m - y2m * xm - 2.0 * xym * ym + 2.0 * xm * ym2
-        vy3 = y3m - 3.0 * ym * y2m + 2.0 * ym2 * ym
-        # print("vs 3th: x3, x2y, xy2, y4", vx3, vx2y, vxy2, vy3)
-        # print("cross check vx3",(image*(pix_x-xm)**3).sum()/sumsig)
-        # print("cross check vx2y",(image*(pix_x-xm)**2*(pix_y-ym)).sum()/sumsig)
-        # print("cross check vxy2",(image*(pix_x-xm)*(pix_y-ym)**2).sum()/sumsig)
-        # print("cross check vy3",(image*(pix_y-ym)**3).sum()/sumsig)
+    vx3 = x3m - 3.0 * xm * x2m + 2.0 * xm2 * xm
+    vx2y = x2ym - x2m * ym - 2.0 * xym * xm + 2.0 * xm2 * ym
+    vxy2 = xy2m - y2m * xm - 2.0 * xym * ym + 2.0 * xm * ym2
+    vy3 = y3m - 3.0 * ym * y2m + 2.0 * ym2 * ym
 
     d = vy2 - vx2
     dist = np.sqrt(xm2 + ym2) #could use hypot(xm,ym), but already have squares
@@ -854,10 +807,6 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     width = width*unit
     r = dist*unit
     psi = psi
-
-    if not higherMoments:
-        return MomentParameters(size=size, cen_x=m_x, cen_y=m_y,
-                                length=length, width=width, r=r, phi=phi, psi=psi, miss=miss)
 
     # Note, "skewness" is the same as the Whipple/MP "asymmetry^3", which is fine.
     # ... and also, Whipple/MP "asymmetry" * "length" = MAGIC "asymmetry"
@@ -920,8 +869,12 @@ def hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, reCalcPix=True)
     # z = np.sqrt(d * d + 4 * xym * xym)
     # azwidth = np.sqrt((x2m + y2m - z) / 2.0)
 
-    return MomentParameters(size=size, cen_x=m_x, cen_y=m_y, length=length, width=width, r=r, phi=phi, psi=psi,
-                            miss=miss), HighOrderMomentParameters(Skewness=skewness, Kurtosis=kurtosis)
+    return MomentParameters(size=size, cen_x=m_x, cen_y=m_y,
+                            length=length, width=width, r=r,
+                            phi=Angle(phi*u.rad),
+                            psi=Angle(psi*u.rad),
+                            miss=miss,
+                            skewness=skewness, kurtosis=kurtosis)
 
 # use the 1 version by default. Version 2 has apparent differences.
 hillas_parameters = hillas_parameters_1
