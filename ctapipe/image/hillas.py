@@ -586,9 +586,9 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     if z == 0.0:
         miss = dist
     else:
-        u = 1 + d / z
-        v = 2 - u
-        miss = np.sqrt((u * xm2 + v * ym2) / 2.0 - xmym * (2.0 * vxy / z))
+        uu = 1 + d / z
+        vv = 2 - uu
+        miss = np.sqrt((uu * xm2 + vv * ym2) / 2.0 - xmym * (2.0 * vxy / z))
 
     # Code to de-interface with historical code
     size = sumsig
@@ -784,9 +784,9 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     if z == 0.0:
         miss = dist
     else:
-        u = 1 + d / z
-        v = 2 - u
-        miss = np.sqrt((u * xm2 + v * ym2) / 2.0 - xmym * (2.0 * vxy / z))
+        uu = 1 + d / z
+        vv = 2 - uu
+        miss = np.sqrt((uu * xm2 + vv * ym2) / 2.0 - xmym * (2.0 * vxy / z))
 
     #Change to faster caluclation of psi and avoid inaccuracy for hyp
     #psi = np.arctan2((d + z) * ym + 2.0 * vxy * xm, 2.0 *vxy * ym - (d - z) * xm)
