@@ -1,6 +1,6 @@
 digraph Core {
 
-  node [shape=record fontsize=12 fontname="Arial"];
+  node [shape=rect fontsize=12 fontname="Arial"];
   edge [fontname = "Arial" fontsize = 10 dir=front]
 
   splines = line
