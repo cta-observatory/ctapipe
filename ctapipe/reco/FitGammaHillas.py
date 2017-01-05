@@ -244,8 +244,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
-            p2_x = moments.cen_x + moments.length*np.cos(moments.psi + np.pi/2)
-            p2_y = moments.cen_y + moments.length*np.sin(moments.psi + np.pi/2)
+            p2_x = moments.cen_x + moments.length*np.cos(moments.psi + np.pi/2*u.rad)
+            p2_y = moments.cen_y + moments.length*np.sin(moments.psi + np.pi/2*u.rad)
 
             circle = GreatCircle(
                 guess_pix_direction(np.array([moments.cen_x, p2_x])*u.m,
