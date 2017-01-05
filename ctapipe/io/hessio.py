@@ -53,8 +53,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
     """
     try:
         with open_hessio(url) as pyhessio:
-        # the container is initialized once, and data is replaced within
-        # it after each yield
+            # the container is initialized once, and data is replaced within
+            # it after each yield
             counter = 0
             eventstream = pyhessio.move_to_next_event()
             if allowed_tels is not None:
@@ -63,7 +63,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             data.meta['source'] = "hessio"
 
             # some hessio_event_source specific parameters
-            data.meta['hessio__input'] =  url
+            data.meta['hessio__input'] = url
             data.meta['hessio__max_events'] = max_events
 
             for event_id in eventstream:
@@ -93,7 +93,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     = pyhessio.get_central_event_teltrg_list()
                 time_s, time_ns = pyhessio.get_central_event_gps_time()
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
-                                           format='gps', scale='utc')
+                                          format='gps', scale='utc')
+
                 data.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
                 data.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
@@ -187,7 +188,8 @@ def _fill_instrument_info(data, pyhessio, max_tel_id=1000):
             nchans = pyhessio.get_num_channel(tel_id)
             npix = pyhessio.get_num_pixels(tel_id)
             nsamples = pyhessio.get_event_num_samples(tel_id)
-            if nsamples <= 0: nsamples = 1
+            if nsamples <= 0:
+                nsamples = 1
             data.inst.num_channels[tel_id] = nchans
             data.inst.num_pixels[tel_id] = npix
             data.inst.num_samples[tel_id] = nsamples
