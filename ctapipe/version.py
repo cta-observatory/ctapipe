@@ -3,6 +3,15 @@ Get version identification from git
 
 See the documentation of get_version for more information
 
+This code was (only slightly) adapted from here:
+https://github.com/aebrahim/python-git-version
+
+Combining ideas from
+http://blogs.nopcode.org/brainstorm/2013/05/20/pragmatic-python-versioning-via-setuptools-and-git-tags/
+and Python Versioneer
+https://github.com/warner/python-versioneer
+but being much more lightwheight
+
 """
 from subprocess import check_output, CalledProcessError
 from os import path, name, devnull, environ, listdir
@@ -79,27 +88,7 @@ def format_git_describe(git_str, pep440=False):
         else:
             return git_str.replace("-g", "+git")
 
-#
-# def read_release_version():
-#     """Read version information from VERSION file"""
-#     try:
-#         with open(VERSION_FILE, "r") as infile:
-#             version = str(infile.read().strip())
-#         if len(version) == 0:
-#             version = None
-#         return version
-#     except IOError:
-#         return None
-#
-#
-# def update_release_version():
-#     """Update VERSION file"""
-#     version = get_version(pep440=True)
-#     with open(VERSION_FILE, "w") as outfile:
-#         outfile.write(version)
-#         outfile.write("\n")
-#
-#
+
 def get_version(pep440=False):
     """Tracks the version number.
 
@@ -108,17 +97,9 @@ def get_version(pep440=False):
         a release as defined by PEP 440. When False, the githash (if
         available) will be appended to the version string.
 
-    # The file VERSION holds the version information. If this is not a git
-    # repository, then it is reasonable to assume that the version is not
-    # being incremented and the version returned will be the release version as
-    # read from the file.
 
-    However, if the script is located within an active git repository,
+    If the script is located within an active git repository,
     git-describe is used to get the version information.
-    #
-    # The file VERSION will need to be changed by manually. This should be done
-    # before running git tag (set to the same as the version in the tag).
-
     """
 
     git_version = format_git_describe(call_git_describe(), pep440=pep440)
