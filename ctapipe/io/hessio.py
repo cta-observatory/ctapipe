@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Components to read HESSIO data.  
+Components to read HESSIO data.
 
 This requires the hessio python library to be installed
 """
@@ -114,7 +114,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 data.dl0.tel.clear()
                 data.mc.tel.clear()  # clear the previous telescopes
 
-                _fill_instrument_info(data,pyhessio)
+                _fill_instrument_info(data, pyhessio)
 
                 for tel_id in data.dl0.tels_with_data:
 
@@ -129,13 +129,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     # TODO: make this an array dim rather than dict
                     for chan in range(data.inst.num_channels[tel_id]):
                         data.dl0.tel[tel_id].adc_samples[chan] \
-                            = pyhessio.get_adc_sample(channel=chan,
-                                                      telescope_id=tel_id)
+                            = pyhessio.get_adc_sample(tel_id)[chan]
                         data.dl0.tel[tel_id].adc_sums[chan] \
-                            = pyhessio.get_adc_sum(channel=chan,
-                                                   telescope_id=tel_id)
+                            = pyhessio.get_adc_sum(tel_id)[chan]
                         data.mc.tel[tel_id].reference_pulse_shape[chan] = \
-                            pyhessio.get_ref_shapes(tel_id, chan)
+                            pyhessio.get_ref_shapes(tel_id)[chan]
 
                     # load the data per telescope/pixel
                     data.mc.tel[tel_id].photo_electron_image \
@@ -176,7 +174,7 @@ def _fill_instrument_info(data, pyhessio, max_tel_id=1000):
         if tel_id not in data.inst.pixel_pos:
             try:
                 data.inst.pixel_pos[tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m                
+                    = pyhessio.get_pixel_position(tel_id) * u.m
             except HessioTelescopeIndexError:
                 pass
 
@@ -185,15 +183,13 @@ def _fill_instrument_info(data, pyhessio, max_tel_id=1000):
             data.inst.optical_foclen[tel_id] \
                 = pyhessio.get_optical_foclen(tel_id) * u.m
             data.inst.tel_pos[tel_id] \
-                = pyhessio.get_telescope_position(tel_id) * u.m               
+                = pyhessio.get_telescope_position(tel_id) * u.m
             nchans = pyhessio.get_num_channel(tel_id)
             npix = pyhessio.get_num_pixels(tel_id)
-            nsamples = pyhessio.get_num_samples(tel_id)
+            nsamples = pyhessio.get_event_num_samples(tel_id)
             if nsamples <= 0: nsamples = 1
             data.inst.num_channels[tel_id] = nchans
             data.inst.num_pixels[tel_id] = npix
             data.inst.num_samples[tel_id] = nsamples
         except HessioGeneralError:
             pass
-            
-

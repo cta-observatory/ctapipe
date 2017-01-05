@@ -28,7 +28,7 @@ if __name__ == '__main__':
                 camtab = Table(names=['PIX_POS_X', 'PIX_POS_Y'],
                                data=[px * u.m, py * u.m])
                 camtab.meta['N_PIX'] = h.get_num_pixels(telid)
-                camtab.meta['N_SAMPS'] = h.get_num_samples(telid)
+                camtab.meta['N_SAMPS'] = h.get_event_num_samples(telid)
                 camtab.meta['N_TIMES'] = h.get_pixel_timing_num_times_types(telid)
                 camtab.meta['MIR_AREA'] = h.get_mirror_area(telid)
                 geom = CameraDescription.guess_camera_geometry(px * u.m, py * u.m)
