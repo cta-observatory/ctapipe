@@ -18,12 +18,11 @@ A *Cherenkov image* is defined as two pieces of data:
 
 
 This module contains the following sub-modules:
-* `cleaning` : image noise suppression
-* `muon`: muon detection and parameterization
-* `hillas`: image moment parameterization
 
-.. plot:: image/image_example.py
-    :include-source:
+* `cleaning` : image noise suppression
+* `hillas`: image moment parameterization
+* `toymodel`: fake shower image generation for testing purposes
+  
 
 Reference/API
 =============
@@ -33,3 +32,15 @@ Reference/API
 
 .. automodapi:: ctapipe.image.toymodel
     :no-inheritance-diagram:
+
+Toymodel Example
+^^^^^^^^^^^^^^^^
+  
+.. plot:: image/image_example.py
+    :include-source:
+
+.. automodapi:: ctapipe.image.hillas
+
+.. automodapi:: ctapipe.image.cleaning
+
+
