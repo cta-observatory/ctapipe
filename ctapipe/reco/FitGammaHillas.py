@@ -251,10 +251,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
-            p2_x = moments.cen_x + moments.length * \
-                np.cos(moments.psi + np.pi / 2)
-            p2_y = moments.cen_y + moments.length * \
-                np.sin(moments.psi + np.pi / 2)
+            p2_x = moments.cen_x + moments.length*np.cos(moments.psi +
+                                                         np.pi/2*u.rad)
+            p2_y = moments.cen_y + moments.length*np.sin(moments.psi +
+                                                         np.pi/2*u.rad)
+
 
             circle = GreatCircle(
                 guess_pix_direction(np.array([moments.cen_x, p2_x]) * u.m,
@@ -299,7 +300,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         # averaging over the solutions of all permutations
         return linalg.normalise(np.sum(crossings, axis=0)) * u.dimless, crossings
 
-    def fit_origin_minimise(self, seed=[0, 0, 1], test_function=n_angle_sum):
+    def fit_origin_minimise(self, seed=(0, 0, 1), test_function=n_angle_sum):
         '''fits the origin of the gamma with a minimisation procedure this
         function expects that get_great_circles has been run already a
         seed should be given otherwise it defaults to "straight up"
@@ -343,7 +344,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
-    def fit_core(self, seed=[0, 0] * u.m, test_function=dist_to_traces):
+    def fit_core(self, seed=(0*u.m, 0*u.m), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up
         great circles
 
