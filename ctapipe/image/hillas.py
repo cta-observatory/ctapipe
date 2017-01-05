@@ -19,7 +19,8 @@ TODO:
 
 CHANGE LOG:
 ===========
-* MP: Speed comparison for an image in a 960 pixel camera for image created with "mock",
+* MP: Speed comparison for an image in a 960 pixel camera for image created with "mock"::
+
     %timeit -n 10000
     hillas_parameters_1(pix_x, pix_y, image, higherMoments=True)                        best of 3:     598 µs per loop
     hillas_parameters_1(pix_x, pix_y, image, higherMoments=False)                       best of 3:     391 µs per loop
@@ -37,12 +38,16 @@ CHANGE LOG:
     hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=True)       best of 3:      70.4 µs per loop
     hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=False)      best of 3:      62.7 µs per loop
 
-    (any way to compare compiled versions?)
 
-* MP: all routines tested with +/- combinations and x/y swaps of "mini-camera"
+(any way to compare compiled versions?)
+
+* MP: all routines tested with +/- combinations and x/y swaps of "mini-camera"::
+
         pix_x = array([1.1, 1.1, 1, 1, 1, 1, 1, 1])
         pix_y = array([0, 1, 2, 3, 4, 5, 6, 7])
         image = array([0., 10, 3, 5, 7, 6, 2, 4 ])
+
+
     TODO: add this as a test, with known results (change sign of psi where needed):
         (MomentParameters(size=37.0, cen_x=1.027027027027027, cen_y=3.4864864864864864,
         length=1.9951647036522218, width=0.028933760477638449, r=3.6346076177074274,
@@ -112,8 +117,11 @@ import astropy.units as u
 
 __all__ = [
     'MomentParameters',
-    'HighOrderMomentParameters',
     'hillas_parameters',
+    'hillas_parameters_1',
+    'hillas_parameters_2',
+    'hillas_parameters_3',
+    'hillas_parameters_4',
     'HillasParameterizationError',
 ]
 
@@ -145,8 +153,6 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    higherMoments : Boolean (default True)
-        Calculate also higher moments
     recalculate_pixels : Boolean (default True)
         Recalculate the pixel higher multiples (e.g., if pixels move (!) or
         pixel list changes between calls)
