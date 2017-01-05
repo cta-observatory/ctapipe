@@ -35,6 +35,7 @@ entry_points['console_scripts'] = [
 ]
 
 setup(name=PACKAGENAME,
+      packages=[PACKAGENAME],
       version=package.version.get_version(pep440=True),
       description=DESCRIPTION,
       # these should be minimum list of what is needed to run (note
@@ -48,7 +49,10 @@ setup(name=PACKAGENAME,
         'dev': [
             'pytest',
             'pytest-pep8',
-            'pytest-cov'
+            'pytest-cov',
+            'sphinx',
+            'sphinx_rtd_theme',
+            'sphinx-automodapi',
         ]
       },
       author=AUTHOR,
