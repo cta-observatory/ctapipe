@@ -2,7 +2,7 @@ from traitlets import Unicode
 from traitlets.config import Application
 from abc import abstractmethod
 
-from ctapipe import version
+from ctapipe import __version__ as version
 
 
 class Tool(Application):
