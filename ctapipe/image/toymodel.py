@@ -39,7 +39,7 @@ def generate_2d_shower_model(centroid, width, length, psi):
     length : float
         length of shower (major axis)
     psi : convertable to `astropy.coordinates.Angle`
-        rotation angle about the centroid (0=up)
+        rotation angle about the centroid (0=x-axis)
 
     Returns
     -------
@@ -47,7 +47,7 @@ def generate_2d_shower_model(centroid, width, length, psi):
     a `scipy.stats` object
 
     """
-    aligned_covariance = np.array([[width, 0], [0, length]])
+    aligned_covariance = np.array([[length, 0], [0, width]])
     # rotate by psi angle: C' = R C R+
     rotation = linalg.rotation_matrix_2d(psi)
     rotated_covariance = rotation.dot(aligned_covariance).dot(rotation.T)

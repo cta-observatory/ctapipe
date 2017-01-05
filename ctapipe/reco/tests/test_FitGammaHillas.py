@@ -92,7 +92,7 @@ def test_FitGammaHillas():
             try:
                 moments = hillas_parameters(event.inst.pixel_pos[tel_id][0],
                                             event.inst.pixel_pos[tel_id][1],
-                                            pmt_signal)[0]
+                                            pmt_signal)
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 print(e)
