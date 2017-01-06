@@ -29,7 +29,7 @@ def test_integrator_switch():
     params = get_test_parameters()
     num_samples = event.inst.num_samples[telid]
 
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/num_samples)
     geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
@@ -70,7 +70,7 @@ def test_full_integration():
     telid = 11
     event = get_test_event()
     num_samples = event.inst.num_samples[telid]
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/num_samples)
 
@@ -88,7 +88,7 @@ def test_simple_integration():
     telid = 11
     event = get_test_event()
     params = get_test_parameters()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     num_samples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/num_samples)
@@ -107,7 +107,7 @@ def test_global_peak_integration():
     telid = 11
     event = get_test_event()
     params = get_test_parameters()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     num_samples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/num_samples)
@@ -126,7 +126,7 @@ def test_local_peak_integration():
     telid = 11
     event = get_test_event()
     params = get_test_parameters()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     num_samples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/num_samples)
@@ -145,7 +145,7 @@ def test_nb_peak_integration():
     telid = 11
     event = get_test_event()
     params = get_test_parameters()
-    data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+    data = event.dl0.tel[telid].adc_samples
     ped = event.mc.tel[telid].pedestal
     num_samples = event.inst.num_samples[telid]
     data_ped = data - np.atleast_3d(ped/num_samples)

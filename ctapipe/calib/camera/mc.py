@@ -127,7 +127,7 @@ def set_integration_correction(event, telid, params):
     num_samples = event.inst.num_samples[telid]
 
     # Reference pulse parameters
-    refshapes = np.array(list(mctel.reference_pulse_shape.values()))
+    refshapes = mctel.reference_pulse_shape
     refstep = mctel.meta['refstep']
     nrefstep = len(refshapes[0]) # mctel.lrefshape
     x = np.arange(0, refstep*nrefstep, refstep)
@@ -267,11 +267,11 @@ def integration_mc(event, telid, params, geom=None):
     # KPK: addd this if statement since ASTRI data failed (only 1
     # sample). Is that the correct way to fix it?
     if num_samples == 1:
-        data = np.array(list(event.dl0.tel[telid].adc_sums.values()))
+        data = event.dl0.tel[telid].adc_sums
         data = data[:,:,np.newaxis]
     else:
         # TODO: the following line converts the structure into a 3D array where the third dimensions is the channel. Should we simply store it that way rathre than a dict by channel? (also this is not a fast operation)
-        data = np.array(list(event.dl0.tel[telid].adc_samples.values()))
+        data = event.dl0.tel[telid].adc_samples
         
     ped = event.mc.tel[telid].pedestal # monte-carlo pedstal
     data_ped = data - np.atleast_3d(ped/num_samples)
