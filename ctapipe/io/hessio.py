@@ -134,6 +134,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     data.mc.tel[tel_id].reference_pulse_shape = \
                         pyhessio.get_ref_shapes(tel_id)
 
+                    nsamples = pyhessio.get_event_num_samples(tel_id)
+                    if nsamples <= 0:
+                        nsamples = 1
+                        data.dl0.tel[tel_id].num_samples = nsamples
+
                     # load the data per telescope/pixel
                     hessio_mc_npe = pyhessio.get_mc_number_photon_electron
                     data.mc.tel[tel_id].photo_electron_image \
@@ -188,9 +193,3 @@ def _fill_instrument_info(data, pyhessio):
                 data.inst.num_pixels[tel_id] = npix
             except HessioGeneralError:
                 pass
-
-    for tel_id in data.dl0.tels_with_data:
-        nsamples = pyhessio.get_num_samples(tel_id)
-        if nsamples <= 0:
-            nsamples = 1
-        data.inst.num_samples[tel_id] = nsamples
