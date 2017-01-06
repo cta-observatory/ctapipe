@@ -174,7 +174,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     nsamples = pyhessio.get_event_num_samples(tel_id)
                     if nsamples <= 0:
                         nsamples = 1
-                    data.dl0.tel[tel_id].num_samples = nsamples
+                        data.dl0.tel[tel_id].num_samples = nsamples
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = pyhessio.get_mc_number_photon_electron
