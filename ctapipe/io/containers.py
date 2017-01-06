@@ -33,6 +33,7 @@ class InstrumentContainer(Container):
     optical_foclen = Item(Map(ndarray), "map of tel_id to focal length")
     tel_pos = Item(Map(ndarray), "map of tel_id to telescope position")
     num_pixels = Item(Map(int), "map of tel_id to number of pixels in camera")
+    num_samples = Item(Map(int), "map of tel_id to number of time samples")
     num_channels = Item(Map(int), "map of tel_id to number of channels")
 
 
@@ -74,7 +75,7 @@ class RawCameraContainer(Container):
                            "(n_channels x n_pixels)"))
     adc_samples = Item(None, ("numpy array containing ADC samples"
                               "(n_channels x n_pixels, n_samples)"))
-    num_samples = Item(int, "number of time samples")
+
 
 class RawDataContainer(Container):
     """
@@ -91,7 +92,7 @@ class MCCameraEventContainer(Container):
     """
     Storage of mc data for a single telescope that change per event
     """
-    photo_electron_image = Item(None, ("reference image in pure "
+    photo_electron_image = Item(Map(), ("reference image in pure "
                                         "photoelectrons, with no noise"))
     # todo: move to instrument (doesn't change per event)
     reference_pulse_shape = Item(None, ("reference pulse shape for each "
