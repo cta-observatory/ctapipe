@@ -2,7 +2,7 @@ from traitlets import Unicode
 from traitlets.config import Application
 from abc import abstractmethod
 
-from ctapipe import version
+from ctapipe import __version__ as version
 
 
 class Tool(Application):
@@ -150,6 +150,6 @@ class Tool(Application):
     @property
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
-        return "{} [release={}] [githash={}]".format(version.version,
-                                                     version.release,
-                                                     version.githash)
+        return "{} [release={}] [githash={}]".format(version,
+                                                     version.split('+')[0],
+                                                     version.split('+')[1][3:])
