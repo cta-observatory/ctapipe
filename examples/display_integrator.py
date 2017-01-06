@@ -74,7 +74,7 @@ class IntegratorPlotter(Component):
         windows = event.dl1.tel[telid].extracted_samples[chan]
         length = np.sum(windows, axis=1)
         start = np.argmax(windows, axis=1)
-        end = start + length
+        end = start + length - 1
 
         # Draw figures
         ax_max_nei = {}
