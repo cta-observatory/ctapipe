@@ -53,6 +53,9 @@ setup(name=PACKAGENAME,
             'sphinx',
             'sphinx_rtd_theme',
             'sphinx-automodapi',
+            'graphviz',
+            'numpydoc',
+            
         ]
       },
       author=AUTHOR,

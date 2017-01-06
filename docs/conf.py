@@ -61,7 +61,14 @@ setup_cfg = dict(conf.items('metadata'))
 
 # This does not *have* to match the package name, but typically does
 
-extensions = ['sphinx_automodapi.automodapi']
+extensions = ['sphinx_automodapi.automodapi',
+              'matplotlib.sphinxext.mathmpl',
+              'matplotlib.sphinxext.only_directives',
+              'matplotlib.sphinxext.plot_directive',
+            #   'matplotlib.sphinxext.ipython_directive',
+              'numpydoc']
+
+numpydoc_show_class_members = False
 
 project = setup_cfg['package_name']
 author = setup_cfg['author']
@@ -133,16 +140,16 @@ man_pages = [('index', project.lower(), project + u' Documentation',
 
 # -- Options for the edit_on_github extension ---------------------------------
 
-if eval(setup_cfg.get('edit_on_github')):
-    versionmod = __import__(setup_cfg['package_name'] + '.version')
-    edit_on_github_project = setup_cfg['github_project']
-    if versionmod.version.release:
-        edit_on_github_branch = "v" + versionmod.version.version
-    else:
-        edit_on_github_branch = "master"
-
-    edit_on_github_source_root = ""
-    edit_on_github_doc_root = "docs"
+# if eval(setup_cfg.get('edit_on_github')):
+#     versionmod = __import__(setup_cfg['package_name'] + '.version')
+#     edit_on_github_project = setup_cfg['github_project']
+#     if versionmod.version.release:
+#         edit_on_github_branch = "v" + versionmod.version.version
+#     else:
+#         edit_on_github_branch = "master"
+#
+#     edit_on_github_source_root = ""
+#     edit_on_github_doc_root = "docs"
 
 # on_rtd is whether we are on readthedocs.org
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
