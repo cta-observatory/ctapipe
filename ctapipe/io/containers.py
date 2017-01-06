@@ -74,7 +74,8 @@ class R0CameraContainer(Container):
                            "(n_channels x n_pixels)"))
     adc_samples = Item(None, ("numpy array containing ADC samples"
                               "(n_channels x n_pixels, n_samples)"))
-    num_samples = Item(int, "number of time samples")
+    num_samples = Item(None, "number of time samples for telescope")
+
 
 
 class R0Container(Container):
@@ -131,7 +132,7 @@ class MCCameraEventContainer(Container):
     """
     Storage of mc data for a single telescope that change per event
     """
-    photo_electron_image = Item(None, ("reference image in pure "
+    photo_electron_image = Item(Map(), ("reference image in pure "
                                         "photoelectrons, with no noise"))
     # todo: move to instrument (doesn't change per event)
     reference_pulse_shape = Item(None, ("reference pulse shape for each "
