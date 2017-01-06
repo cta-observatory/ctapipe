@@ -44,3 +44,6 @@ Then, install the packages via:
 
 Developers should follow the development install instructions found in the
 documentation above.
+
+
+.. image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
