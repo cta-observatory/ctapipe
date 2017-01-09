@@ -1,9 +1,20 @@
 """
-Get version identification from git
+Get version identification from git.
 
-See the documentation of get_version for more information
 
-This code was (only slightly) adapted from here:
+The update_release_version() function writes the current version to the
+VERSION file. This function should be called before packaging a release version.
+
+Use the get_version() function to get the version string, including the latest
+commit,  from git.
+If git is not available the VERSION file will be read.
+
+Heres an example of such a version string:
+
+    v0.2.0.post58+git57440dc
+
+
+This code was taken from here:
 https://github.com/aebrahim/python-git-version
 
 Combining ideas from
@@ -89,6 +100,36 @@ def format_git_describe(git_str, pep440=False):
             return git_str.replace("-g", "+git")
 
 
+def read_release_version():
+    """Read version information from VERSION file"""
+    try:
+        with open(VERSION_FILE, "r") as infile:
+            version = infile.read().strip()
+        if len(version) == 0:
+            version = None
+        return version
+    except IOError:
+        return None
+
+
+def update_release_version(pep440=False):
+    """Release versions are stored in a file called VERSION.
+    This method updates the version stored in the file.
+    This function should be called when creating new releases.
+
+
+    pep440: bool
+        When True, this function returns a version string suitable for
+        a release as defined by PEP 440. When False, the githash (if
+        available) will be appended to the version string.
+
+    """
+    version = get_version(pep440=pep440)
+    with open(VERSION_FILE, "w") as outfile:
+        outfile.write(version)
+        outfile.write("\n")
+
+
 def get_version(pep440=False):
     """Tracks the version number.
 
@@ -97,14 +138,20 @@ def get_version(pep440=False):
         a release as defined by PEP 440. When False, the githash (if
         available) will be appended to the version string.
 
+    The file VERSION holds the version information. If this is not a git
+    repository, then it is reasonable to assume that the version is not
+    being incremented and the version returned will be the release version as
+    read from the file.
 
-    If the script is located within an active git repository,
+    However, if the script is located within an active git repository,
     git-describe is used to get the version information.
+
+    The file VERSION will need to be changed manually.
     """
 
     git_version = format_git_describe(call_git_describe(), pep440=pep440)
-    if git_version is None:  # not a git repository
-        raise FileNotFoundError('Not a git repository')
+    if not git_version:  # not a git repository
+        return read_release_version()
     return git_version
 
 
