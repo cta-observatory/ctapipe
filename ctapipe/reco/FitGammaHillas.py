@@ -147,11 +147,6 @@ def MEst(origin, circles, weights):
     sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
                         for circ in circles.values()])
     return -2 * np.sum(weights * np.sqrt((1 + np.square(sin_ang))) - 2)
-    return -np.sum(weights * np.square(sin_ang))
-
-    ang = np.array([linalg.angle(origin, circ.norm)
-                    for circ in circles.values()])
-    return np.sum(weights * np.sqrt(2. + (ang - np.pi / 2.) ** 2))
 
 
 def neg_angle_sum(origin, circles, weights):
