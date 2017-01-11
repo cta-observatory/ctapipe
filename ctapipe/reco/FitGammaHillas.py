@@ -261,7 +261,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             circle.pos = inst.tel_pos[tel_id]
             self.circles[tel_id] = circle
 
-
     def fit_origin_crosses(self):
         '''calculates the origin of the gamma as the weighted average
         direction of the intersections of all great circles
