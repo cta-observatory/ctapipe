@@ -43,7 +43,7 @@ if __name__ == '__main__':
     clean[image <= 3.0 * image.mean()] = 0.0
 
     # Calculate image parameters
-    hillas, _ = hillas_parameters(geom.pix_x, geom.pix_y, clean)
+    hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
     print(hillas)
 
     # Show the camera image and overlay Hillas ellipse
