@@ -247,10 +247,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
-            p2_x = moments.cen_x + moments.length*np.cos(moments.psi +
-                                                         np.pi/2*u.rad)
-            p2_y = moments.cen_y + moments.length*np.sin(moments.psi +
-                                                         np.pi/2*u.rad)
+            p2_x = moments.cen_x + moments.length*np.cos(moments.psi)
+            p2_y = moments.cen_y + moments.length*np.sin(moments.psi)
 
             circle = GreatCircle(
                 guess_pix_direction(np.array([moments.cen_x/u.m, p2_x/u.m]) * u.m,
@@ -262,6 +260,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             )
             circle.pos = inst.tel_pos[tel_id]
             self.circles[tel_id] = circle
+
 
     def fit_origin_crosses(self):
         '''calculates the origin of the gamma as the weighted average
