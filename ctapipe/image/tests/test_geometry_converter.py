@@ -33,7 +33,7 @@ def test_convert_geometry():
 
     source = hessio_event_source(filename)
 
-    ''' testing a few images just for the sake of being thorough '''
+    # testing a few images just for the sake of being thorough
     counter = 5
 
     for event in source:
@@ -45,8 +45,8 @@ def test_convert_geometry():
                                         event.inst.pixel_pos[tel_id][1],
                                         event.inst.optical_foclen[tel_id])
 
-            '''
-            we want to test conversion of hex to rectangular pixel grid '''
+
+            # we want to test conversion of hex to rectangular pixel grid
             if cam_geom[tel_id].pix_type is not "hexagonal":
                 continue
 
@@ -65,7 +65,7 @@ def test_convert_geometry():
                 new_geom, new_signal, cam_geom[tel_id].cam_id,
                 event.inst.optical_foclen[tel_id], add_rot=4)
 
-            ''' if run as main, do some plotting '''
+            # if run as main, do some plotting
             if __name__ == "__main__":
                 fig = plt.figure()
                 plt.style.use('seaborn-talk')
@@ -98,8 +98,8 @@ def test_convert_geometry():
 
                 plt.show()
 
-            '''
-            do some tailcuts cleaning '''
+
+            # do some tailcuts cleaning
             mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
                                    picture_thresh=10.,
                                    boundary_thresh=5.)
@@ -115,11 +115,11 @@ def test_convert_geometry():
             try:
                 moments1 = hillas_parameters(cam_geom[tel_id].pix_x,
                                              cam_geom[tel_id].pix_y,
-                                             pmt_signal)[0]
+                                             pmt_signal)
 
                 moments2 = hillas_parameters(unrot_geom.pix_x,
                                              unrot_geom.pix_y,
-                                             unrot_signal)[0]
+                                             unrot_signal)
             except (HillasParameterizationError, AssertionError) as e:
                 '''
                 we don't want this test to fail because the hillas code
