@@ -27,7 +27,7 @@ Next, switch to this new virtual environment and install some other useful tools
 
 	source activate cta
 	
-	conda install ipython ipython-notebook ipython-qtconsole spyder pyflakes traitlets
+	conda install pyhessio ipython ipython-notebook ipython-qtconsole spyder pyflakes traitlets
 	conda install -c conda-forge autopep8 graphviz
 
 Next, you should create a directory where you can store the software you check out. For example:
@@ -36,14 +36,6 @@ Next, you should create a directory where you can store the software you check o
     
     mkdir ctasoft
     cd ctasoft
-
-If you want to access SimTelArrray data files (recommended), you must first install the `pyhessio` package.  This can be done by:
-
-.. code-block:: bash
-
-	git clone https://github.com/cta-observatory/pyhessio
-	conda build pyhessio
-	conda install --use-local pyhessio
 
 ------------------------
 Get the ctapipe software
@@ -54,7 +46,8 @@ Get the ctapipe software
 
    the following guide is used only if you want to *develop* the
    `ctapipe` package, if you just want to write code that uses it
-   externally, you can install `ctapipe` as a conda package.
+   externally, you can install `ctapipe` as a conda package
+   with `conda install ctapipe`.
 
 
 In order to checkout the software in such a way that you can read *and
