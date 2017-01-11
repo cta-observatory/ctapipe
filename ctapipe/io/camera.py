@@ -27,7 +27,7 @@ _npix_to_type = {
     (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
     (1296, None):  ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None):  ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 90 * u.degree),
+    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 

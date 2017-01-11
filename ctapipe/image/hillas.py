@@ -258,15 +258,15 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
     # azwidth = np.sqrt(azwidth_2)
 
     return MomentParameters(size=size,
-                             cen_x=mean_x,
-                             cen_y=mean_y,
-                             length=length,
-                             width=width,
-                             r=r,
-                             phi=Angle(phi*u.rad),
-                             psi=Angle(delta*u.rad),
-                             miss=miss,
-                             skewness=skewness,
+                            cen_x=mean_x*u.m,
+                            cen_y=mean_y*u.m,
+                            length=length*u.m,
+                            width=width*u.m,
+                            r=r*u.m,
+                            phi=Angle(phi*u.rad),
+                            psi=Angle(delta*u.rad),
+                            miss=miss,
+                            skewness=skewness,
                             kurtosis=kurtosis)
 
 def static_pix(pix_x, pix_y, recalculate_pixels):
@@ -391,7 +391,7 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
     # polar coordinates of centroid
 
     rr = np.sqrt(xm2 + ym2)  # could use hypot(xm, ym), but already have squares
-    phi = np.arctan2(ym, xm)
+    phi = np.arctan2(ym, xm)*u.rad
 
     # common factors:
 
@@ -457,13 +457,14 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
                     vy4 * spsi2 * spsi2)
         kurtosis = kurt / (length*length*length*length)
     else:  # Skip Higher Moments
-        psi = 0.0
+        psi = 0.0*u.rad
         skewness = 0.0
         kurtosis = 0.0
+        asym = 0.0
 
     return MomentParameters(size=size, cen_x=xm*unit, cen_y=ym*unit,
-                            length=length*unit, width=width, r=rr*unit,
-                            phi=Angle(phi*u.rad), psi=Angle(psi),
+                            length=length*unit, width=width*unit, r=rr*unit,
+                            phi=Angle(phi), psi=Angle(psi),
                             miss=miss*unit, skewness=skewness,
                             kurtosis=kurtosis)
 
@@ -492,8 +493,8 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     """
 
     if type(pix_x)==Quantity:
-        unit = pix_x.unit()
-        assert pix_x.unit() == pix_y.unit()
+        unit = pix_x.unit
+        assert pix_x.unit == pix_y.unit
     else:
         unit = 1.0
 
@@ -672,6 +673,7 @@ def static_xy(pix_x, pix_y, recalculate_pixels):
         static_xy.pix_xy3 = pix_x * static_xy.pix_y3
         static_xy.pix_y4 = static_xy.pix_y3 * pix_y
 
+
 def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     """Compute Hillas parameters for a given shower image.
 
@@ -699,8 +701,8 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
 
 
     if type(pix_x)==Quantity:
-        unit = pix_x.unit()
-        assert pix_x.unit() == pix_y.unit()
+        unit = pix_x.unit
+        assert pix_x.unit == pix_y.unit
     else:
         unit = 1.0
     # MP: Actually, I don't know why we need to strip the units... shouldn' the calculations all work with them?
