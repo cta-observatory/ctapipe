@@ -11,7 +11,7 @@ from traitlets import Dict, List, Int, Bool, Unicode, Enum
 import numpy as np
 from matplotlib import pyplot as plt
 from ctapipe.core import Tool, Component
-from ctapipe.io.files import FileReader
+from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.io import CameraGeometry
@@ -72,7 +72,7 @@ class IntegratorPlotter(Component):
         windows = event.dl1.tel[telid].extracted_samples[chan]
         length = np.sum(windows, axis=1)
         start = np.argmax(windows, axis=1)
-        end = start + length - 1
+        end = start + length
 
         # Draw figures
         ax_max_nei = {}
@@ -98,10 +98,9 @@ class IntegratorPlotter(Component):
         # Draw max pixel traces
         ax_max_pix.plot(dl0[max_pix])
         ax_max_pix.set_xlabel("Time (ns)")
-        ax_max_pix.set_ylabel("Amplitude (ADC)")
+        ax_max_pix.set_ylabel("DL0 Samples (ADC)")
         ax_max_pix.set_title("(Max) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(max_pix, t_pe[max_pix], dl1[max_pix]))
-        ax_max_pix.set_ylabel("Amplitude-Ped (ADC)")
         max_ylim = ax_max_pix.get_ylim()
         ax_max_pix.plot([start[max_pix], start[max_pix]],
                         ax_max_pix.get_ylim(), color='r', alpha=1)
@@ -112,10 +111,9 @@ class IntegratorPlotter(Component):
                 pix = max_pixel_nei[i]
                 ax.plot(dl0[pix])
                 ax.set_xlabel("Time (ns)")
-                ax.set_ylabel("Amplitude (ADC)")
+                ax.set_ylabel("DL0 Samples (ADC)")
                 ax.set_title("(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(pix, t_pe[pix], dl1[pix]))
-                ax.set_ylabel("Amplitude-Ped (ADC)")
                 ax.set_ylim(max_ylim)
                 ax.plot([start[pix], start[pix]],
                         ax.get_ylim(), color='r', alpha=1)
@@ -125,10 +123,9 @@ class IntegratorPlotter(Component):
         # Draw min pixel traces
         ax_min_pix.plot(dl0[min_pix])
         ax_min_pix.set_xlabel("Time (ns)")
-        ax_min_pix.set_ylabel("Amplitude (ADC)")
+        ax_min_pix.set_ylabel("DL0 Samples (ADC)")
         ax_min_pix.set_title("(Min) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(min_pix, t_pe[min_pix], dl1[min_pix]))
-        ax_min_pix.set_ylabel("Amplitude-Ped (ADC)")
         ax_min_pix.set_ylim(max_ylim)
         ax_min_pix.plot([start[min_pix], start[min_pix]],
                         ax_min_pix.get_ylim(), color='r', alpha=1)
@@ -139,10 +136,9 @@ class IntegratorPlotter(Component):
                 pix = min_pixel_nei[i]
                 ax.plot(dl0[pix])
                 ax.set_xlabel("Time (ns)")
-                ax.set_ylabel("Amplitude (ADC)")
+                ax.set_ylabel("DL0 Samples (ADC)")
                 ax.set_title("(Min Nei) Pixel: {}, True: {}, Measured = {:.3f}"
                              .format(pix, t_pe[pix], dl1[pix]))
-                ax.set_ylabel("Amplitude-Ped (ADC)")
                 ax.set_ylim(max_ylim)
                 ax.plot([start[pix], start[pix]],
                         ax.get_ylim(), color='r', alpha=1)
@@ -180,7 +176,7 @@ class IntegratorPlotter(Component):
         camera = CameraDisplay(geom, ax=ax_img_max)
         camera.image = dl0[:, max_time]
         camera.cmap = plt.cm.viridis
-        camera.add_colorbar(ax=ax_img_max, label="Amplitude-Ped (ADC)")
+        camera.add_colorbar(ax=ax_img_max, label="DL0 Samples (ADC)")
         ax_img_max.set_title("Max Timeslice (T = {})".format(max_time))
         ax_img_max.annotate("Pixel: {}".format(max_pix),
                             xy=(geom.pix_x.value[max_pix],
@@ -293,9 +289,9 @@ class DisplayIntegrator(Tool):
                          'telescope with data.').tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    aliases = Dict(dict(f='FileReader.input_path',
-                        o='FileReader.origin',
-                        max_events='FileReader.max_events',
+    aliases = Dict(dict(r='EventFileReaderFactory.reader',
+                        f='EventFileReaderFactory.input_path',
+                        max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
                         window_start='ChargeExtractorFactory.window_start',
@@ -314,7 +310,7 @@ class DisplayIntegrator(Tool):
                           'event_index will obtain an event using '
                           'event_id instead of index.')
                       ))
-    classes = List([FileReader,
+    classes = List([EventFileReaderFactory,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
                     IntegratorPlotter
@@ -331,7 +327,9 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.file_reader = FileReader(config=self.config, tool=self)
+        reader_factory = EventFileReaderFactory(**kwargs)
+        reader_class = reader_factory.get_class()
+        self.file_reader = reader_class(**kwargs)
 
         extractor_factory = ChargeExtractorFactory(**kwargs)
         extractor_class = extractor_factory.get_class()

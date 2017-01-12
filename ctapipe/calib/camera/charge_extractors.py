@@ -457,12 +457,12 @@ class ChargeExtractorFactory(Factory):
                                'from the peakpos (peakpos - shift). Only '
                                'applicable to '
                                'PeakFindingIntegrators.').tag(config=True)
-    sig_amp_cut_HG = Int(2, allow_none=True,
+    sig_amp_cut_HG = Int(None, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
                               'in the HG channel. Only applicable to '
                               'PeakFindingIntegrators.').tag(config=True)
-    sig_amp_cut_LG = Int(4, allow_none=True,
+    sig_amp_cut_LG = Int(None, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
                               'in the LG channel. Only applicable to '
