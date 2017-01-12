@@ -146,7 +146,7 @@ class Tool(Application):
         if self.config_file != '':
             self.log.debug("Loading config from '{}'".format(self.config_file))
             self.load_config_file(self.config_file)
-        self.log.info("version {}".format(self.version_string))
+        self.log.info("ctapipe version {}".format(self.version_string))
         self.setup()
         self.is_setup = True
 
@@ -187,6 +187,4 @@ class Tool(Application):
     @property
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
-        return "{} [release={}] [githash={}]".format(version,
-                                                     version.split('+')[0],
-                                                     version.split('+')[1][3:])
+        return "{}".format(version)
