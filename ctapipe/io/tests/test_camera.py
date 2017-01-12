@@ -1,5 +1,5 @@
-from ..camera import CameraGeometry, make_rectangular_camera_geometry
-from ..camera import find_neighbor_pixels
+from ctapipe.io.camera import CameraGeometry, make_rectangular_camera_geometry
+from ctapipe.io.camera import find_neighbor_pixels, get_min_pixel_seperation
 import numpy as np
 from astropy import units as u
 
@@ -25,6 +25,12 @@ def test_guess_camera():
     py = np.linspace(-10, 10, 11328) * u.m
     geom = CameraGeometry.guess(px, py,0 * u.m)
     assert geom.pix_type.startswith('rect')
+
+
+def test_get_min_pixel_seperation():
+    x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
+    pixsep = get_min_pixel_seperation(x.ravel(), y.ravel())
+    assert(pixsep == 2.5)
 
 
 def test_find_neighbor_pixels():

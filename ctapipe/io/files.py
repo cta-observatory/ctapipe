@@ -4,9 +4,11 @@ low-level utility functions for dealing with data files
 
 import os
 from os.path import basename, splitext, dirname, join, exists
-from astropy import log
+# from astropy import log
 import numpy as np
 from copy import deepcopy
+from ctapipe.core import Component
+from traitlets import Unicode, Int, CaselessStrEnum, observe
 
 
 def get_file_type(filename):
@@ -78,11 +80,11 @@ def targetio_source(filepath, max_events=None, allowed_tels=None,
         else:
             raise RuntimeError()
     except RuntimeError:
-        log.exception("targetpipe is not installed on this interpreter")
+        # log.exception("targetpipe is not installed on this interpreter")
         raise
 
 
-class InputFile:
+class FileReader(Component):
     """
     Class to handle generic input files. Enables obtaining the "source"
     generator, regardless of the type of file (either hessio or camera file).
@@ -97,37 +99,49 @@ class InputFile:
         Automatically set from `input_path`.
     extension : str
         Automatically set from `input_path`.
-    origin : {'hessio', 'targetio'}
-        The type of file, related to its source.
-        Automatically set from `input_path`.
     output_directory : str
         Directory to save outputs for this file
 
     """
+    name = 'FileReader'
 
-    def __init__(self, input_path, file_origin, max_events=None):
+    possible_origins = ['hessio', 'targetio']
+
+    input_path = Unicode(get_path('gamma_test.simtel.gz'),
+                         help='Path to the input file containing '
+                              'events.').tag(config=True)
+    origin = CaselessStrEnum(possible_origins, 'hessio',
+                             help='Origin of the input file.').tag(config=True)
+    max_events = Int(None, allow_none=True,
+                     help='Maximum number of events that will be read from'
+                          'the file').tag(config=True)
+
+    def __init__(self, config, tool, **kwargs):
         """
+        Class to handle generic input files. Enables obtaining the "source"
+        generator, regardless of the type of file (either hessio or camera
+        file).
+
         Parameters
         ----------
-        input_path : str
-            Full path to the file
-        file_origin : str
-            Origin/type of file e.g. hessio, targetio
-        max_events : int
-            Maximum number of events that will be read from file
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
         """
-        self._max_events = max_events
+        super().__init__(config=config, parent=tool, **kwargs)
         self._num_events = None
         self._event_id_list = []
-        self.possible_origins = ['hessio', 'targetio']
 
-        self._init_path(input_path)
-        self.origin = file_origin
-
-        log.info("[file] {}".format(self.input_path))
-        log.info("[file][origin] {}".format(self.origin))
+        self._init_path(self.input_path)
 
     def _init_path(self, input_path):
+        print(input_path)
         if not exists(input_path):
             raise FileNotFoundError("file path does not exist: '{}'"
                                     .format(input_path))
@@ -138,9 +152,40 @@ class InputFile:
         self.extension = splitext(input_path)[1]
         self.output_directory = join(self.directory, self.filename)
 
+        if self.log:
+            self.log.info("INPUT PATH = {}".format(self.input_path))
+            self.log.info("ORIGIN = {}".format(self.origin))
+
+    @observe('input_path')
+    def on_input_path_changed(self, change):
+        new = change['new']
+        try:
+            self.log.warning("Change: input_path={}".format(change))
+            self._num_events = None
+            self._event_id_list = []
+            self._init_path(new)
+        except AttributeError:
+            pass
+
+    @observe('origin')
+    def on_origin_changed(self, change):
+        try:
+            self.log.warning("Change: origin={}".format(change))
+        except AttributeError:
+            pass
+
+    @observe('max_events')
+    def on_max_events_changed(self, change):
+        try:
+            self.log.warning("Change: max_events={}".format(change))
+            self._num_events = None
+            self._event_id_list = []
+        except AttributeError:
+            pass
+
     @property
     def num_events(self):
-        log.info("Obtaining number of events in file...")
+        self.log.info("Obtaining number of events in file...")
         first_event = self.get_event(0)
         if self._num_events:
             pass
@@ -148,24 +193,23 @@ class InputFile:
             self._num_events = first_event.meta['num_events']
         else:
             self._num_events = len(self.event_id_list)
-        if self._max_events is not None and \
-                self._num_events > self._max_events:
-            self._num_events = self._max_events
-        log.info("[file] Number of events = {}".format(self._num_events))
+        if self.max_events is not None and self._num_events > self.max_events:
+            self._num_events = self.max_events
+        self.log.info("Number of events inside file = {}"
+                      .format(self._num_events))
         return self._num_events
 
     @property
     def event_id_list(self):
-        log.info("Retrieving list of event ids...")
+        self.log.info("Retrieving list of event ids...")
         if self._event_id_list:
             pass
         else:
-            log.info("Building new list of event ids...")
+            self.log.info("Building new list of event ids...")
             source = self.read()
             for event in source:
                 self._event_id_list.append(event.dl0.event_id)
-        log.info("[file] Number of events = {}"
-                 .format(len(self._event_id_list)))
+        self.log.info("List of event ids retrieved.")
         return self._event_id_list
 
     def read(self, allowed_tels=None, requested_event=None,
@@ -193,20 +237,19 @@ class InputFile:
         """
 
         # Obtain relevent source
-        log.debug("[file] Reading file...")
-        if self._max_events:
-            log.info("[file] Max events being read = {}"
-                     .format(self._max_events))
+        self.log.debug("Reading file...")
+        if self.max_events:
+            self.log.info("Max events being read = {}".format(self.max_events))
         switch = {
             'hessio':
                 lambda: hessio_event_source(get_path(self.input_path),
-                                            max_events=self._max_events,
+                                            max_events=self.max_events,
                                             allowed_tels=allowed_tels,
                                             requested_event=requested_event,
                                             use_event_id=use_event_id),
             'targetio':
                 lambda: targetio_source(self.input_path,
-                                        max_events=self._max_events,
+                                        max_events=self.max_events,
                                         allowed_tels=allowed_tels,
                                         requested_event=requested_event,
                                         use_event_id=use_event_id),
@@ -214,9 +257,9 @@ class InputFile:
         try:
             source = switch[self.origin]()
         except KeyError:
-            log.exception("unknown file origin '{}'".format(self.origin))
+            self.log.exception("unknown file origin '{}'".format(self.origin))
             raise
-        log.debug("[file] Reading complete")
+        self.log.debug("File reading complete")
 
         return source
 
@@ -257,7 +300,7 @@ class InputFile:
         max_pe : int
 
         """
-        log.info("[file][read] Finding maximum true npe inside file...")
+        self.log.info("Finding maximum true npe inside file...")
         source = self.read()
         max_pe = 0
         for event in source:
@@ -273,14 +316,14 @@ class InputFile:
                     if np.all(event.mc.tel[tels[0]].photo_electron_image == 0):
                         raise KeyError
                 except KeyError:
-                    log.exception('[chargeres] Source does not contain '
-                                  'true charge')
+                    self.log.exception('[chargeres] Source does not contain '
+                                       'true charge')
                     raise
             for telid in tels:
                 pe = event.mc.tel[telid].photo_electron_image
                 this_max = np.max(pe)
                 if this_max > max_pe:
                     max_pe = this_max
-        log.info("[file] Maximum true npe = {}".format(max_pe))
+        self.log.info("Maximum true npe inside file = {}".format(max_pe))
 
         return max_pe
