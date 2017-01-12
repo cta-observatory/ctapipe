@@ -33,9 +33,11 @@ def create_sample_image():
     return pix_x, pix_y, image
 
 def compare_result(x,y):
-    close = isclose(x,y)
-    goodunit = u.Quantity(x).unit == u.Quantity(y).unit
-    return (close and goodunit)
+    ux = u.Quantity(x)
+    uy = u.Quantity(y)
+    assert isclose(ux.value,uy.value)
+    assert ux.unit == uy.unit
+    
 
 def do_test_hillas(withunits=True):
     """
@@ -61,13 +63,13 @@ def do_test_hillas(withunits=True):
         for bb in results:
             if aa is not bb:
                 print("comparing {} to {}".format(aa,bb))
-                assert compare_result(results[aa].length, results[bb].length)
-                assert compare_result(results[aa].width, results[bb].width)
-                assert compare_result(results[aa].r, results[bb].r)
-                assert compare_result(results[aa].phi.deg, results[bb].phi.deg)
-                assert compare_result(results[aa].psi.deg, results[bb].psi.deg)
-                assert compare_result(results[aa].miss, results[bb].miss)
-                assert compare_result(results[aa].skewness, results[bb].skewness)
+                compare_result(results[aa].length, results[bb].length)
+                compare_result(results[aa].width, results[bb].width)
+                compare_result(results[aa].r, results[bb].r)
+                compare_result(results[aa].phi.deg, results[bb].phi.deg)
+                compare_result(results[aa].psi.deg, results[bb].psi.deg)
+                compare_result(results[aa].miss, results[bb].miss)
+                compare_result(results[aa].skewness, results[bb].skewness)
                 #assert compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
 def test_hillas_with_units():
