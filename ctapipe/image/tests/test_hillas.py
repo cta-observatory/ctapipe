@@ -37,7 +37,7 @@ def compare_result(x,y):
     uy = u.Quantity(y)
     assert isclose(ux.value,uy.value)
     assert ux.unit == uy.unit
-    
+
 
 def do_test_hillas(withunits=True):
     """
@@ -50,8 +50,8 @@ def do_test_hillas(withunits=True):
     results = {}
 
     if withunits:
-        px = px * u.m
-        py = py * u.m
+        px = px * u.cm
+        py = py * u.cm
 
     results['v1'] = hillas_parameters_1(px, py, image)
     results['v2'] = hillas_parameters_2(px, py, image)
