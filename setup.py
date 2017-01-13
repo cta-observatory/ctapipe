@@ -28,7 +28,7 @@ LONG_DESCRIPTION = package.__doc__
 # rename _ to -, and prepend 'ctapipe'
 entry_points = {}
 entry_points['console_scripts'] = [
-    # 'ctapipe-info = ctapipe.tools.info:main',
+    'ctapipe-info = ctapipe.tools.info:main',
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
     'ctapipe-flow = ctapipe.flow.flow:main'

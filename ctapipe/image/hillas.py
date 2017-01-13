@@ -162,6 +162,7 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
     -------
     hillas_parameters : `MomentParameters`
     """
+    unit = Quantity(pix_x).unit
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
@@ -258,15 +259,15 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
     # azwidth = np.sqrt(azwidth_2)
 
     return MomentParameters(size=size,
-                             cen_x=mean_x,
-                             cen_y=mean_y,
-                             length=length,
-                             width=width,
-                             r=r,
-                             phi=Angle(phi*u.rad),
-                             psi=Angle(delta*u.rad),
-                             miss=miss,
-                             skewness=skewness,
+                            cen_x=mean_x*unit,
+                            cen_y=mean_y*unit,
+                            length=length*unit,
+                            width=width*unit,
+                            r=r*unit,
+                            phi=Angle(phi*u.rad),
+                            psi=Angle(delta*u.rad),
+                            miss=miss*unit,
+                            skewness=skewness,
                             kurtosis=kurtosis)
 
 def static_pix(pix_x, pix_y, recalculate_pixels):
@@ -391,7 +392,7 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
     # polar coordinates of centroid
 
     rr = np.sqrt(xm2 + ym2)  # could use hypot(xm, ym), but already have squares
-    phi = np.arctan2(ym, xm)
+    phi = np.arctan2(ym, xm)*u.rad
 
     # common factors:
 
@@ -457,13 +458,14 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
                     vy4 * spsi2 * spsi2)
         kurtosis = kurt / (length*length*length*length)
     else:  # Skip Higher Moments
-        psi = 0.0
+        psi = 0.0*u.rad
         skewness = 0.0
         kurtosis = 0.0
+        asym = 0.0
 
     return MomentParameters(size=size, cen_x=xm*unit, cen_y=ym*unit,
-                            length=length*unit, width=width, r=rr*unit,
-                            phi=Angle(phi*u.rad), psi=Angle(psi),
+                            length=length*unit, width=width*unit, r=rr*unit,
+                            phi=Angle(phi), psi=Angle(psi),
                             miss=miss*unit, skewness=skewness,
                             kurtosis=kurtosis)
 
@@ -492,14 +494,19 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     """
 
     if type(pix_x)==Quantity:
-        unit = pix_x.unit()
-        assert pix_x.unit() == pix_y.unit()
+        unit = pix_x.unit
+        assert pix_x.unit == pix_y.unit
     else:
         unit = 1.0
 
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+
+    # make sure they are numpy arrays so we can use numpy operations
+    #pix_x = np.asanyarray(pix_x)
+    #pix_y = np.asanyarray(pix_y)
     image = np.asanyarray(image, dtype=np.float64)
+
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
 
@@ -598,11 +605,11 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
 
     # Code to de-interface with historical code
     size = sumsig
-    m_x = xm*unit
-    m_y = ym*unit
-    length = length*unit
-    width = width*unit
-    r = dist*unit
+    m_x = xm
+    m_y = ym
+    length = length
+    width = width
+    r = dist
 
     psi = np.arctan2((d + z) * ym + 2.0 * vxy * xm, 2.0 * vxy * ym - (d - z) * xm)
     cpsi = np.cos(psi)
@@ -629,9 +636,11 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     skewness = asymm*asymm*asymm
     kurtosis = np.nan
 
-    return MomentParameters(size=size, cen_x=m_x, cen_y=m_y, length=length, width=width,
-                            r=r, phi=Angle(phi*u.rad), psi=Angle(psi*u.rad),
-                            miss=miss,
+    return MomentParameters(size=size, cen_x=m_x*unit, cen_y=m_y*unit,
+                            length=length*unit, width=width*unit,
+                            r=r*unit, phi=Angle(phi*u.rad),
+                            psi=Angle(psi*u.rad),
+                            miss=miss*unit,
                             skewness=skewness, kurtosis=kurtosis)
 
 def static_xy(pix_x, pix_y, recalculate_pixels):
@@ -672,6 +681,7 @@ def static_xy(pix_x, pix_y, recalculate_pixels):
         static_xy.pix_xy3 = pix_x * static_xy.pix_y3
         static_xy.pix_y4 = static_xy.pix_y3 * pix_y
 
+
 def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     """Compute Hillas parameters for a given shower image.
 
@@ -699,8 +709,8 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
 
 
     if type(pix_x)==Quantity:
-        unit = pix_x.unit()
-        assert pix_x.unit() == pix_y.unit()
+        unit = pix_x.unit
+        assert pix_x.unit == pix_y.unit
     else:
         unit = 1.0
     # MP: Actually, I don't know why we need to strip the units... shouldn' the calculations all work with them?
@@ -807,11 +817,11 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
 
     # Code to de-interface with historical code
     size = sumsig
-    m_x = xm*unit
-    m_y = ym*unit
-    length = length*unit
-    width = width*unit
-    r = dist*unit
+    m_x = xm
+    m_y = ym
+    length = length
+    width = width
+    r = dist
     psi = psi
 
     # Note, "skewness" is the same as the Whipple/MP "asymmetry^3", which is fine.
@@ -875,11 +885,11 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     # z = np.sqrt(d * d + 4 * xym * xym)
     # azwidth = np.sqrt((x2m + y2m - z) / 2.0)
 
-    return MomentParameters(size=size, cen_x=m_x, cen_y=m_y,
-                            length=length, width=width, r=r,
+    return MomentParameters(size=size, cen_x=m_x*unit, cen_y=m_y*unit,
+                            length=length*unit, width=width*unit, r=r*unit,
                             phi=Angle(phi*u.rad),
                             psi=Angle(psi*u.rad),
-                            miss=miss,
+                            miss=miss*unit,
                             skewness=skewness, kurtosis=kurtosis)
 
 # use the 1 version by default. Version 2 has apparent differences.

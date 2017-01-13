@@ -80,7 +80,7 @@ def test_FitGammaHillas():
                                         event.inst.pixel_pos[tel_id][1],
                                         event.inst.optical_foclen[tel_id])
 
-                tel_phi[tel_id] = 180.*u.deg
+                tel_phi[tel_id] = 0.*u.deg
                 tel_theta[tel_id] = 20.*u.deg
 
             pmt_signal = event.r0.tel[tel_id].adc_sums[0]

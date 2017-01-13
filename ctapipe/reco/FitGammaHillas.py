@@ -10,6 +10,7 @@ import numpy as np
 
 from scipy.optimize import minimize
 
+
 from astropy import units as u
 u.dimless = u.dimensionless_unscaled
 
@@ -146,14 +147,9 @@ def MEst(origin, circles, weights):
     sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
                         for circ in circles.values()])
     return -2 * np.sum(weights * np.sqrt((1 + np.square(sin_ang))) - 2)
-    return -np.sum(weights * np.square(sin_ang))
-
-    ang = np.array([linalg.angle(origin, circ.norm)
-                    for circ in circles.values()])
-    return np.sum(weights * np.sqrt(2. + (ang - np.pi / 2.) ** 2))
 
 
-def n_angle_sum(origin, circles, weights):
+def neg_angle_sum(origin, circles, weights):
     '''calculates the negative sum of the angle between the fit direction
     and all the normal vectors of the great circles
 
@@ -227,10 +223,10 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         # container class for reconstructed showers '''
         result = ReconstructedShowerContainer()
-        (phi, theta) = linalg.get_phi_theta(dir1)
+        (phi, theta) = linalg.get_phi_theta(dir1).to(u.deg)
 
         # TODO make sure az and phi turn in same direction...
-        result.alt, result.az = theta - 90 * u.deg, phi
+        result.alt, result.az = 90*u.deg - theta, phi
         result.core_x = pos[0]
         result.core_y = pos[1]
 
@@ -251,15 +247,12 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
-            p2_x = moments.cen_x + moments.length*np.cos(moments.psi +
-                                                         np.pi/2*u.rad)
-            p2_y = moments.cen_y + moments.length*np.sin(moments.psi +
-                                                         np.pi/2*u.rad)
-
+            p2_x = moments.cen_x + moments.length*np.cos(moments.psi)
+            p2_y = moments.cen_y + moments.length*np.sin(moments.psi)
 
             circle = GreatCircle(
-                guess_pix_direction(np.array([moments.cen_x, p2_x]) * u.m,
-                                    np.array([moments.cen_y, p2_y]) * u.m,
+                guess_pix_direction(np.array([moments.cen_x/u.m, p2_x/u.m]) * u.m,
+                                    np.array([moments.cen_y/u.m, p2_y/u.m]) * u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
                                     inst.optical_foclen[tel_id]
                                     ),
@@ -300,7 +293,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         # averaging over the solutions of all permutations
         return linalg.normalise(np.sum(crossings, axis=0)) * u.dimless, crossings
 
-    def fit_origin_minimise(self, seed=(0, 0, 1), test_function=n_angle_sum):
+    def fit_origin_minimise(self, seed=(0, 0, 1), test_function=neg_angle_sum):
         '''fits the origin of the gamma with a minimisation procedure this
         function expects that get_great_circles has been run already a
         seed should be given otherwise it defaults to "straight up"
@@ -313,9 +306,9 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         seed : length-3 array
             starting point of the minimisation
         test_function : member function if this class
-            either n_angle_sum or MEst (or own implementation...)
-            defaults to n_angle_sum if none is given
-            n_angle_sum seemingly superior to MEst
+            either neg_angle_sum or MEst (or own implementation...)
+            defaults to neg_angle_sum if none is given
+            neg_angle_sum seemingly superior to MEst
 
         Returns
         -------
@@ -326,7 +319,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         '''
 
         # using the sum of the cosines of each direction with every
-        # otherdirection as weight; don't use the product -- with many
+        # other direction as weight; don't use the product -- with many
         # steep angles, the product will become too small and the
         # weight (and the whole fit) useless
 
@@ -344,7 +337,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
-    def fit_core(self, seed=(0*u.m, 0*u.m), test_function=dist_to_traces):
+    def fit_core(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up
         great circles
 
@@ -359,13 +352,19 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Parameters
         ----------
-        seed : python tuple * astropy quantity, optional
-            shape (2) tuple with optional starting coordinates in
+        seed : tuple, optional (default: (0, 0))
+            shape (2) tuple with optional starting coordinates
+            tuple of floats or astropy.length -- if floats, assume metres
         test_function : function object, optional
             function to be used by the minimiser
             by default uses self._dist_to_traces
 
         '''
+
+        if type(seed) == u.Quantity:
+            unit = seed.unit
+        else:
+            unit = u.m
 
         # the direction of the cross section of the great circle with
         # the horizontal frame is the cross product of the great
@@ -375,16 +374,15 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         for circle in self.circles.values():
             circle.trace = linalg.normalise(np.cross(circle.norm, zdir))
 
-        # minimising the test function
-        self.fit_result_core = minimize(test_function, seed[:2] / u.m,
+        # minimising the test function (note: minimize strips seed off its unit)
+        self.fit_result_core = minimize(test_function, seed[:2],
                                         args=(self.circles),
                                         method='BFGS', options={'disp': False})
-        if self.fit_result_core.success:
-            return np.array(self.fit_result_core.x) * u.m
-        else:
-            print("fit no success")
-            return np.array(self.fit_result_core.x) * u.m
-            return np.array([np.nan] * 3) * u.m
+
+        if not self.fit_result_core.success:
+            print("fit_core: fit no success")
+
+        return np.array(self.fit_result_core.x) * unit
 
 
 class GreatCircle:

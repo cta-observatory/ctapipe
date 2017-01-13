@@ -2,6 +2,7 @@ from ctapipe.io import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
                                   hillas_parameters_3, hillas_parameters_4)
+from astropy import units as u
 from numpy import isclose
 
 def create_sample_image():
@@ -31,7 +32,14 @@ def create_sample_image():
 
     return pix_x, pix_y, image
 
-def test_hillas():
+def compare_result(x,y):
+    ux = u.Quantity(x)
+    uy = u.Quantity(y)
+    assert isclose(ux.value,uy.value)
+    assert ux.unit == uy.unit
+
+
+def do_test_hillas(withunits=True):
     """
     test all Hillas-parameter routines on a sample image and see if they
     agree with eachother and with the toy model (assuming the toy model code
@@ -40,6 +48,10 @@ def test_hillas():
 
     px, py, image = create_sample_image()
     results = {}
+
+    if withunits:
+        px = px * u.cm
+        py = py * u.cm
 
     results['v1'] = hillas_parameters_1(px, py, image)
     results['v2'] = hillas_parameters_2(px, py, image)
@@ -51,14 +63,18 @@ def test_hillas():
         for bb in results:
             if aa is not bb:
                 print("comparing {} to {}".format(aa,bb))
-                assert isclose(results[aa].length, results[bb].length)
-                assert isclose(results[aa].width, results[bb].width)
-                assert isclose(results[aa].r, results[bb].r)
-                assert isclose(results[aa].phi.deg, results[bb].phi.deg)
-                assert isclose(results[aa].psi.deg, results[bb].psi.deg)
-                assert isclose(results[aa].miss, results[bb].miss)
-                assert isclose(results[aa].skewness, results[bb].skewness)
-                #assert isclose(results[aa].kurtosis, results[bb].kurtosis)
+                compare_result(results[aa].length, results[bb].length)
+                compare_result(results[aa].width, results[bb].width)
+                compare_result(results[aa].r, results[bb].r)
+                compare_result(results[aa].phi.deg, results[bb].phi.deg)
+                compare_result(results[aa].psi.deg, results[bb].psi.deg)
+                compare_result(results[aa].miss, results[bb].miss)
+                compare_result(results[aa].skewness, results[bb].skewness)
+                #assert compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
+def test_hillas_with_units():
+    do_test_hillas(withunits=True)
 
+def test_hillas_unitless():
+    do_test_hillas(withunits=False)
 
