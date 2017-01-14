@@ -126,20 +126,20 @@ class ChargeResolutionCalculator(Component):
 
         n_1 = self.n_array > 0
         n = self.n_array[n_1]
-        true_charge = (np.arange(self.max_pe) + 1)[n_1]
+        true = (np.arange(self.max_pe) + 1)[n_1]
         sum_ = self.sum_array[n_1]
 
-        chargeres = np.sqrt((sum_ / n) + true_charge) / true_charge
-        chargeres_error = chargeres * (1 / np.sqrt(2 * n))
+        res = np.sqrt((sum_ / n) + true) / true
+        res_error = res * (1 / np.sqrt(2 * n))
 
-        scale = self.goal(true_charge)
-        scaled_chargeres = chargeres / scale
-        scaled_chargeres_error = chargeres_error / scale
+        scale = self.goal(true)
+        scaled_res = res / scale
+        scaled_res_error = res_error / scale
 
         if self.binning is not None:
-            x = true_charge
+            x = true
             if self.log_bins:
-                x = np.log10(true_charge)
+                x = np.log10(true)
 
             def binning(array):
                 return bs(x, array, 'mean', bins=self.binning)
@@ -150,14 +150,13 @@ class ChargeResolutionCalculator(Component):
             def bin_errors(array):
                 return bs(x, array, sum_errors, bins=self.binning)
 
-            true_charge, _, _ = binning(true_charge)
-            chargeres, _, _ = binning(chargeres)
-            chargeres_error, _, _ = bin_errors(chargeres_error)
-            scaled_chargeres, _, _ = binning(scaled_chargeres)
-            scaled_chargeres_error, _, _ = bin_errors(scaled_chargeres_error)
+            true, _, _ = binning(true)
+            res, _, _ = binning(res)
+            res_error, _, _ = bin_errors(res_error)
+            scaled_res, _, _ = binning(scaled_res)
+            scaled_res_error, _, _ = bin_errors(scaled_res_error)
 
-        return true_charge, chargeres, chargeres_error, \
-               scaled_chargeres, scaled_chargeres_error
+        return true, res, res_error, scaled_res, scaled_res_error
 
     @staticmethod
     def limit_curves(npe, n_nsb, n_add, enf, sigma2):
