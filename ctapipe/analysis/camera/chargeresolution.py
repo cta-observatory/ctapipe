@@ -1,3 +1,5 @@
+from os.path import dirname, exists
+from os import makedirs
 import numpy as np
 from math import log10, sqrt
 from scipy.stats import binned_statistic as bs
@@ -257,6 +259,10 @@ class ChargeResolutionCalculator(Component):
                  variation_hist=self.variation_hist,
                  variation_xedges=self.variation_xedges,
                  variation_yedges=self.variation_yedges)
+        output_dir = dirname(path)
+        if not exists(output_dir):
+            self.log.info("[output] Creating directory: {}".format(output_dir))
+            makedirs(output_dir)
         with open(path, 'wb') as f:
             self.log.info("Saving Charge Resolution file: {}".format(path))
             pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
