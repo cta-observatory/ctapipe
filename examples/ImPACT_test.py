@@ -9,6 +9,7 @@ from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.coordinates import CameraFrame, NominalFrame, GroundFrame, TiltedGroundFrame
 from ctapipe.reco.ImPACT import ImPACTFitter
 from ctapipe.calib.camera.calibrators import calibrate_event
+from ctapipe.reco.shower_max import ShowerMaxEstimator
 
 from astropy import units as u
 
@@ -26,9 +27,14 @@ HB4 = [1, 2, 3, 71, 72, 73, 74, 75, 76, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 
        316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337,
        338, 345, 346, 347, 348, 349, 350, 375, 376, 377, 378, 379, 380, 393, 400, 402, 403, 404, 405, 406, 408, 410,
        411, 412, 413, 414, 415, 416, 417]
-#HB4 = [1, 2, 3]
+HB4 = [
+       279, 280, 281, 282, 283, 284, 286, 287, 289, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 315,
+       316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337,
+       338, 345, 346, 347, 348, 349, 350, 375, 376, 377, 378, 379, 380, 393, 400, 402, 403, 404, 405, 406, 408, 410,
+       411, 412, 413, 414, 415, 416, 417
+       ]
 
-amp_cut = {"LSTCam": 100, "NectarCam": 100, "GATE": 50}
+amp_cut = {"LSTCam": 100, "NectarCam": 100, "FlashCam": 100, "GATE": 50}
 
 if __name__ == '__main__':
 
@@ -45,7 +51,8 @@ if __name__ == '__main__':
 
     impact = list()
     geom = 0
-    ImPACT = ImPACTFitter(root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/")
+    ImPACT = ImPACTFitter(root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/", fit_xmax=True)
+    shower_max = ShowerMaxEstimator("/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/atmprof.dat")
 
     geom_dict = dict()
 
@@ -103,7 +110,7 @@ if __name__ == '__main__':
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[mc.alt, mc.az],
                                                                pointing_direction=[mc.alt, mc.az]))
-
+            print(geom.cam_id)
             x = nom_coord.x.to(u.deg)
             y = nom_coord.y.to(u.deg)
 
@@ -114,14 +121,15 @@ if __name__ == '__main__':
 
             dilate(geom, clean_mask)
             dilate(geom, clean_mask)
+            print(np.sqrt(np.power(hillas.cen_x,2) + np.power(hillas.cen_y,2) ))
 
-            if hillas.size > amp_cut[geom.cam_id]:
-                pix_x.append(x[clean_mask])
-                pix_y.append(y[clean_mask])
-                image_list.append(image[clean_mask])
-                #pix_x.append(x)
-                #pix_y.append(y)
-                #image_list.append(image)
+            if hillas.size > amp_cut[geom.cam_id] and np.sqrt(np.power(hillas.cen_x,2) + np.power(hillas.cen_y,2) < 3.5):
+                #pix_x.append(x[clean_mask])
+                #pix_y.append(y[clean_mask])
+                #image_list.append(image[clean_mask])
+                pix_x.append(x)
+                pix_y.append(y)
+                image_list.append(image)
 
                 type_tel.append(geom.cam_id)
                 tel_id_list.append(tel_id)
@@ -143,7 +151,7 @@ if __name__ == '__main__':
                 tel_x.append(tilt_tel.x)
                 tel_y.append(tilt_tel.y)
 
-        if len(tel_x)<2:
+        if len(tel_x)<3:
             continue
         grd_core_true = GroundFrame(x=np.asarray(mc.core_x)*u.m, y=np.asarray(mc.core_y)*u.m, z=np.asarray(0)*u.m)
         tilt_core_true = grd_core_true.transform_to(TiltedGroundFrame(pointing_direction=[mc.alt,mc.az]))
@@ -151,10 +159,11 @@ if __name__ == '__main__':
         energy = mc.energy
 
         ImPACT.set_event_properties(image_list, pix_x, pix_y, pix_a, type_tel, tel_x, tel_y)
-        params = ImPACT.fit_event(np.random.normal(0,0.2)*u.deg, np.random.normal(0,0.2)*u.deg,
+
+        params = ImPACT.fit_event(np.random.normal(0,0.0001)*u.deg, np.random.normal(0,0.0001)*u.deg,
                                   np.random.normal(tilt_core_true.x.value, 30)*u.m,
                                   np.random.normal(tilt_core_true.y.value, 30)*u.m,
-                                  np.random.normal(energy.value,energy.value*0.15)*u.TeV)
+                                  np.random.normal(energy.value,energy.value*0.05)*u.TeV)
 
         print(tilt_core_true.x, tilt_core_true.y, energy)
 
@@ -168,17 +177,17 @@ if __name__ == '__main__':
         ev += 1
         if ev > 1000:
             break
-        draw = False
+        draw = True
         if draw:
             for tel_num in range(len(tel_x)):
                 fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
 
-                #prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - mc.alt, mc.az * u.rad,
-                #                                   params["core_x"]*u.m,  params["core_y"]*u.m,  params["energy"]*u.TeV,
-                #                                   params["x_max_scale"])
-                prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - mc.alt, mc.az * u.rad,
-                                                   tilt_core_true.x,  tilt_core_true.y,  energy,
+                prediction = ImPACT.get_prediction(tel_num, params["source_x"]*u.deg, params["source_y"]*u.deg,
+                                                   params["core_x"]*u.m,  params["core_y"]*u.m,  params["energy"]*u.TeV,
                                                    params["x_max_scale"])
+                #prediction = ImPACT.get_prediction(tel_num, 90 * u.deg - mc.alt, mc.az * u.rad,
+                #                                   tilt_core_true.x,  tilt_core_true.y,  energy,
+                #                                   params["x_max_scale"])
 
                 disp = visualization.CameraDisplay(geom_dict[tel_id_list[tel_num]], ax=axs[0], title="Image")
                 disp.image = image_list[tel_num]
