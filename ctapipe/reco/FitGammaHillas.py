@@ -354,8 +354,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             ( ...     ... ) * (x, y) =  ( ... )                    (1)
             ( nx_n   ny_n )             ( d_n )
         or A * r = D.
-        Since we do not live in a perfect world, this equation system is solved by
-        the method of least linear square:
+        Since we do not live in a perfect world and there probably is no point r that
+        fulfils this equation system, it is solved by the method of least linear square:
             r_χ² = (A^T * A)^-1 * A^T * D                          (2)
 
         r_χ² minimises the squared difference of
