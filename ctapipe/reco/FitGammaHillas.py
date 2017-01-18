@@ -342,8 +342,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         ''' calculates the core position as the least linear square solution of an
         (over-constrained) equation system
 
-        Algorithm:
-        ----------
+        Notes
+        -----
         The basis is the "trace" of each telescope's GreatCircle which can be determined
         by the telescope's position P=(Px, Py) and the circle's normal vector, projected
         to the ground n=(nx, ny), so that for every r=(x, y) on the trace:
@@ -352,9 +352,19 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         In a perfect world, the traces of all telescopes cross in the shower's point
         of impact. This means that there is one common point (x, y) for every telescope,
         so we can write in matrix form:
-            ( nx_1   ny_1 )             ( d_1 )
-            ( ...     ... ) * (x, y) =  ( ... )                    (1)
-            ( nx_n   ny_n )             ( d_n )
+        .. math::
+            \begin{pmatrix}
+                 nx_1  &  ny_1  \\
+                \vdots & \vdots \\
+                 nx_n  &  ny_n
+            \end{pmatrix}
+            * (x, y) =
+            \begin{pmatrix}
+                 d_1  \\
+                \vots \\
+                 d_n
+            \end{pmatrix}
+
         or A * r = D.
         Since we do not live in a perfect world and there probably is no point r that
         fulfils this equation system, it is solved by the method of least linear square:
@@ -366,8 +376,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         Weights are applied to every line of equation (1) as stored in circle.weight
         (assuming they have been set in self.get_great_circles or elsewhere).
 
-        Returns:
-        --------
+        Returns
+        -------
         r_χ² : shape (2) numpy array
             the minimum χ² solution for the shower impact position
 
