@@ -89,6 +89,8 @@ def format_git_describe(git_str, pep440=False):
     if git_str is None:
         return None
     if "-" not in git_str:  # currently at a tag
+        if git_str.startswith('v'):
+            return git_str[1:]
         return git_str
     else:
         # formatted as version-N-githash
