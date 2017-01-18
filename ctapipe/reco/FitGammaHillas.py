@@ -344,18 +344,21 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         ----------
         The basis is the "trace" of each telescope's GreatCircle which can be determined
         by the telescope's position P=(Px, Py) and the circle's normal vector, projected
-        to the ground n=(nx, ny), so that for every r=(x, y):
+        to the ground n=(nx, ny), so that for every r=(x, y) on the trace:
             n * r = n * P
             nx * x + ny * y = d
-        This is true for every telescope, so we can write in matrix form:
+        In a perfect world, the traces of all telescopes cross in the shower's point
+        of impact. This means that there is one common point (x, y) for every telescope,
+        so we can write in matrix form:
             ( nx_1   ny_1 )             ( d_1 )
             ( ...     ... ) * (x, y) =  ( ... )                    (1)
             ( nx_n   ny_n )             ( d_n )
         or A * r = D.
-        This equation system is solved by the method of least linear square:
-            r_χ2 = (A^T * A)^-1 * A^T * D
+        Since we do not live in a perfect world, this equation system is solved by
+        the method of least linear square:
+            r_χ² = (A^T * A)^-1 * A^T * D                          (2)
 
-        r_χ2 minimises the squared difference of
+        r_χ² minimises the squared difference of
             D - A*r.
 
         Weights are applied to every line of equation (1) as stored in circle.weight
@@ -368,12 +371,18 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         '''
 
-        A = np.zeros((len(self.circles)+1, 2))
-        D = np.zeros(len(self.circles)+1)
-        for i, circ in enumerate(self.circles.values()):
-            A[i] = circ.weight * circ.norm[:2]
-            D[i] = np.dot(A[i], circ.pos[:2])
+        A = np.zeros((len(self.circles), 2))
+        D = np.zeros(len(self.circles))
+        for i, circle in enumerate(self.circles.values()):
+            # apply weight from circle and from the tilt of the circle towards the
+            # horizontal plane: simply projecting circle.norm to the ground gives higher
+            # wegiht to planes perpendicular to the ground and less that have a steeper
+            # angle
+            A[i] = circle.weight * circle.norm[:2]
+            # since A[i] is used in the dot-product, no need to multiply the weight here
+            D[i] = np.dot(A[i], circle.pos[:2])
 
+        # now do the math from equation (2) and return the result
         ATA = np.dot(A.T, A)
         ATAinv = np.linalg.inv(ATA)
         ATAinvAT = np.dot(ATAinv, A.T)
