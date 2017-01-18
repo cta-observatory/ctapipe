@@ -214,12 +214,14 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         dir1 = self.fit_origin_crosses()[0]
 
         # direction estimate using numerical minimisation
-        #
         # does not really improve the fit for now
         # dir2 = self.fit_origin_minimise(dir1)
-        #
-        # core position estimate using numerical minimisation '''
-        pos = self.fit_core_minimise(seed_pos)
+
+        # core position estimate using numerical minimisation
+        # pos = self.fit_core_minimise(seed_pos)
+
+        # core position estimate using a geometric approach
+        pos = self.fit_core_crosses()
 
         # container class for reconstructed showers '''
         result = ReconstructedShowerContainer()
@@ -366,7 +368,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Returns:
         --------
-        r_χ2 : shape (2) numpy array
+        r_χ² : shape (2) numpy array
             the minimum χ² solution for the shower impact position
 
         '''

@@ -95,7 +95,7 @@ def test_fit_origin():
 
 def test_FitGammaHillas():
     '''
-    a test on one event of the complete fit procedure including:
+    a test of the complete fit procedure on one event including:
     • tailcut cleaning
     • hillas parametrisation
     • GreatCircle creation
