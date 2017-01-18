@@ -28,10 +28,10 @@ class TableInterpolator:
         self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 
         self.y_bounds = (-1.5, 1.5)
-        self.y_bin_width = (self.y_bounds[1]-self.y_bounds[0])/float(75)
+        self.y_bin_width = (self.y_bounds[1]-self.y_bounds[0])/float(150)
 
         self.x_bounds = (-5, 1.)
-        self.x_bin_width = (self.x_bounds[1] - self.x_bounds[0]) / float(150)
+        self.x_bin_width = (self.x_bounds[1] - self.x_bounds[0]) / float(300)
 
         x_bins = np.arange(self.x_bounds[0]+(self.x_bin_width/2),
                            self.x_bounds[1] + (self.x_bin_width / 2), self.x_bin_width)
