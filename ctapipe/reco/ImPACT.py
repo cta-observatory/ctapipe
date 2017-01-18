@@ -20,16 +20,13 @@ class ImPACTFitter(object):
     This method uses a comparision of the predicted image from a library of image templates
     to perform a maximum likelihood fit for the shower axis, energy and height of maximum.
     """
-    def __init__(self, root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/"):
+    def __init__(self, fit_xmax=True, root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/"):
 
         # First we create a dictionary of image template interpolators for each telescope type
+        self.root_dir = root_dir
         self.prediction = dict()
-        self.prediction["LSTCam"] = \
-            TableInterpolator(root_dir+"LST.table.gz")
-        self.prediction["NectarCam"] = \
-            TableInterpolator(root_dir+"MST_NectarCam.table.gz")
-        self.prediction["GATE"] = \
-            TableInterpolator(root_dir+"SST_GCT.table.gz")
+        self.file_names = {"GATE":"SST_GCT.table.gz", "LSTCam":"LST.table.gz",
+                           "NectarCam":"MST_NectarCam.table.gz", "FlashCam":"MST_FlashCam.table.gz"}
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
@@ -37,11 +34,11 @@ class ImPACTFitter(object):
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "GATE": 0.8}
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 1.0}
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the ImPACT templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.1, "GATE": 0.75}
+        self.scale = {"LSTCam": 1., "NectarCam": 1., "FlashCam": 1.0, "GATE": 1.0}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -57,8 +54,29 @@ class ImPACTFitter(object):
         self.peak_x = 0
         self.peak_y = 0
         self.peak_amp = 0
-
+        self.fit_xmax = fit_xmax
         self.unit = u.deg
+
+    def initialise_templates(self, type):
+        """
+
+        Parameters
+        ----------
+        type
+
+        Returns
+        -------
+
+        """
+        for t in type:
+            if t in self.prediction.keys():
+                continue
+
+            self.prediction[t] = \
+                TableInterpolator(self.root_dir + self.file_names[t])
+
+        return True
+
 
     def get_brightest_mean(self, num_pix=3):
         """
@@ -207,52 +225,52 @@ class ImPACTFitter(object):
         return self.prediction[type].interpolate([energy.to(u.TeV).value,impact.to(u.m).value,x_max],
                                                  pix_x, pix_y)
 
-    def get_prediction(self, tel, zenith, azimuth, core_x, core_y, energy, x_max_scale):
+    def get_prediction(self, tel, source_x, source_y, core_x, core_y, energy, x_max_scale, zenith):
         """
 
         Parameters
         ----------
         tel
-        zenith
-        azimuth
+        source_x
+        source_y
         core_x
         core_y
         energy
         x_max_scale
+        zenith
 
         Returns
         -------
 
         """
-        source_x = 0*u.deg
-        source_y = 0*u.deg
-        x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
-                                    core_x.to(u.m).value, core_y.to(u.m).value,
-                                    zenith.to(u.rad).value) * x_max_scale
+        zenith = 20*u.deg
+        if self.fit_xmax:
+            x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
+                                        core_x.to(u.m).value, core_y.to(u.m).value,
+                                        zenith.to(u.rad).value) * x_max_scale
 
-        x_max_exp = 300 + 93 * np.log10(energy.value)
+            x_max_exp = 343 + 84 * np.log10(energy.value)
+            x_max_bin = x_max.value - x_max_exp
 
-        x_max_bin = 100 + (x_max.value - x_max_exp) / 25
-        if x_max_bin > 107:
-            x_max_bin = 107
-        if x_max_bin < 93:
-            x_max_bin = 93
+        else:
+            x_max_bin = x_max_scale * 37.8
+            if x_max_bin < 13:
+                x_max_bin = 13
         impact = np.sqrt(pow(self.tel_pos_x[tel] - core_x, 2) + pow(self.tel_pos_y[tel] - core_y, 2))
         phi = np.arctan2((self.tel_pos_x[tel] - core_x), (self.tel_pos_y[tel] - core_y))
-        #phi += 180 * u.deg
-
-        print(energy, impact,x_max_bin,self.type[tel],self.pixel_area[tel].to(u.deg * u.deg).value)
 
         pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel], self.pixel_y[tel],
                                                      source_x, source_y, phi.to(u.rad))
 
-        pix_y_rot += 0.02 * u.deg
-
-        prediction = self.image_prediction(self.type[tel], zenith, azimuth,
+        prediction = self.image_prediction(self.type[tel], 20*u.deg, 0*u.deg,
                                            energy, impact, x_max_bin,
                                            pix_x_rot, pix_y_rot)
-        prediction *= self.pixel_area[tel].to(u.deg * u.deg).value
+        print(pix_x_rot, pix_y_rot)
+
         prediction *= self.scale[self.type[tel]]
+        prediction[prediction < 0] = 0
+        prediction[np.isnan(prediction)] = 0
+
         return prediction
 
     def get_likelihood(self, source_x, source_y, core_x, core_y, energy, x_max_scale):
@@ -286,7 +304,6 @@ class ImPACTFitter(object):
         # when loading in the class and ignore them from then on
         source_x *= u.deg
         source_y *= u.deg
-
         core_x *= u.m
         core_y *= u.m
 
@@ -296,19 +313,27 @@ class ImPACTFitter(object):
         zenith = 20*u.deg
         azimuth = 0*u.deg
         # Geometrically calculate the depth of maximum given this test position
-        x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
-                                    core_x.to(u.m).value, core_y.to(u.m).value,
-                                    zenith.to(u.rad).value) * x_max_scale
-        # Calculate expected Xmax given this energy
-        x_max_exp = 300 + 93 * np.log10(energy.value)
-        # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = 100 + (x_max.value - x_max_exp)/25
-        # Check for range
-        if x_max_bin > 103:
-            x_max_bin = 103
-        if x_max_bin < 97:
-            x_max_bin = 97
-        #x_max_bin = 100
+
+        if self.fit_xmax:
+            x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
+                                        core_x.to(u.m).value, core_y.to(u.m).value,
+                                        zenith.to(u.rad).value) * x_max_scale
+
+            # Calculate expected Xmax given this energy
+            x_max_exp = 343 + 84 * np.log10(energy.value)
+            # Convert to binning of Xmax, addition of 100 can probably be removed
+            x_max_bin = x_max.value - x_max_exp
+
+            # Check for range
+            if x_max_bin > 100:
+                x_max_bin = 100
+            if x_max_bin < -100:
+                x_max_bin = -100
+        else:
+            x_max_bin = x_max_scale * 37.8
+            if x_max_bin< 13:
+                x_max_bin = 13
+
         # Calculate impact distance for all telescopes
         impact = np.sqrt(pow(self.tel_pos_x - core_x, 2) + pow(self.tel_pos_y - core_y, 2))
         # And the expected rotation angle
@@ -320,16 +345,15 @@ class ImPACTFitter(object):
             pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_count], self.pixel_y[tel_count],
                                                          source_x, source_y, phi[tel_count])
 
-            pix_y_rot += 0.02 * u.deg  # This needs to be added to correct for biasing in the smoothing
-            pix_x_rot += 0.02 * u.deg
-
             # Then get the predicted image
             prediction = self.image_prediction(self.type[tel_count], zenith, azimuth,
                                                energy, impact[tel_count], x_max_bin,
                                                pix_x_rot, pix_y_rot)
+            prediction[prediction<0] = 0
+            prediction[np.isnan(prediction)] = 0
+
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
-            prediction *= self.pixel_area[tel_count].to(u.deg*u.deg).value  # Scale by pixel area
             # Get likelihood that the prediction matched the camera image
             like = self.calc_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
             sum_like += np.sum(like)
@@ -443,6 +467,8 @@ class ImPACTFitter(object):
 
         self.get_brightest_mean(num_pix=5)
         self.type = type_tel
+        self.initialise_templates(type_tel)
+
         self.ped = ped
 
     def fit_event(self, source_x, source_y, core_x, core_y, energy):
@@ -473,10 +499,10 @@ class ImPACTFitter(object):
                      core_x=core_x.value, error_core_x=10, limit_core_x= (core_x.value-200,core_x.value+200), fix_core_x=False,
                      core_y=core_y.value, error_core_y=10, limit_core_y= (core_y.value-200,core_y.value+200), fix_core_y=False,
                      energy=energy.value, error_energy=energy.value*0.05, limit_energy=(energy.value*0.1,energy.value*10.),
-                     x_max_scale=1, error_x_max_scale=0.05, limit_x_max_scale=(0.5,1.5), errordef=1)
+                     x_max_scale=1, error_x_max_scale=0.1, limit_x_max_scale=(0.5,2), fix_x_max_scale=False, errordef=1)
 
         min.tol *= 1000
-        min.strategy = 0
+        min.strategy = 1
 
         # Perform minimisation
         migrad = min.migrad()
@@ -484,9 +510,9 @@ class ImPACTFitter(object):
         print(fit_params)
         print(min.errors)
 
-        #self.draw_surfaces(fit_params["source_x"]*u.deg, fit_params["source_y"]*u.deg,
-        #                   fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
-        #                   fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
+        self.draw_surfaces(fit_params["source_x"]*u.deg, fit_params["source_y"]*u.deg,
+                           fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
+                           fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
 
         # Return interesting stuff
         return fit_params
