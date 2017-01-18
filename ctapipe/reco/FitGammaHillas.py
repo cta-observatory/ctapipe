@@ -388,8 +388,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         for i, circle in enumerate(self.circles.values()):
             # apply weight from circle and from the tilt of the circle towards the
             # horizontal plane: simply projecting circle.norm to the ground gives higher
-            # wegiht to planes perpendicular to the ground and less that have a steeper
-            # angle
+            # weight to planes perpendicular to the ground and less to those that have
+            # a steeper angle
             A[i] = circle.weight * circle.norm[:2]
             # since A[i] is used in the dot-product, no need to multiply the weight here
             D[i] = np.dot(A[i], circle.pos[:2])
