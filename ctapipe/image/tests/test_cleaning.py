@@ -1,7 +1,7 @@
 import numpy as np
 from ctapipe.image import cleaning
 
-from ... import io
+from ctapipe import io
 
 
 def test_tailcuts_clean():
