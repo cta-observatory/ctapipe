@@ -94,6 +94,7 @@ def main():
     t['ImpactP'].unit = 'm'
     t['RingWidth'].unit = 'deg'
     #    print('plotdict',plot_dict)
+
     t.write(args.output_path+'_muontable.fits',overwrite=True)
 
     #plot_muon_efficiency(plot_dict,args.output_path)

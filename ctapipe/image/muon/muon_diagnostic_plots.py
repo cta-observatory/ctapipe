@@ -54,7 +54,7 @@ def plot_muon_efficiency(outputpath):
     ax.set_ylim(0.,1.2*max(conteff[0]))
     ax.set_xlabel('Muon Efficiency')
     #plt.figure(fig.number)
-    #plt.draw()
+    plt.draw()
 
 
     #axip = figeff.add_subplot(1,3,1)
@@ -64,7 +64,7 @@ def plot_muon_efficiency(outputpath):
     axip.set_ylim(0.,1.2*max(contimp[0]))
     axip.set_xlabel('Impact Parameter (m)')
     #plt.figure(figip.number)
-    #plt.draw()
+    plt.draw()
     
     heffimp = Histogram(nbins=[16,16],ranges=[(min(t['MuonEff']),max(t['MuonEff'])),(min(t['ImpactP']),max(t['ImpactP']))],axisNames=["MuonEfficiency","ImpactParameter"])
     #embed()
@@ -79,7 +79,7 @@ def plot_muon_efficiency(outputpath):
     axrw.set_ylim(0.,1.2*max(contrw[0]))
     axrw.set_xlabel('Ring Width ($^\circ$)')
     #plt.figure(figrw.number)
-    #plt.draw()
+    plt.draw()
     plt.show()
     if outputpath is not None:
         fig.savefig(outputpath+'_MuonEff.png')
@@ -109,7 +109,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             # from the calibration
             ax1 = fig.add_subplot(1, npads, 1)
             plotter = CameraPlotter(event,geom_dict)
-            image = event.dl1.tel[tel_id].pe_charge
+            image = event.dl1.tel[tel_id].calibrated_image
             #Get geometry
             geom = None
             if geom_dict is not None and tel_id in geom_dict:
@@ -125,7 +125,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
             tailcuts = (5.,7.)
             #Try a higher threshold for FlashCam
-            if event.inst.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
+            #if event.inst.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
+            if geom.cam_id == 'FlashCam':
                 tailcuts = (10.,12.)
         
             #print("Using Tail Cuts:",tailcuts)
@@ -140,7 +141,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
 
             rotr_angle = geom.pix_rotation
-            if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+            #if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
                 #print("Resetting the rotation angle")
                 rotr_angle = 0.*u.deg
             
