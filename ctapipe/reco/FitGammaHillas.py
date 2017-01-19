@@ -92,13 +92,13 @@ def dist_to_traces(core, circles):
     between the core and the position of the telescope and `{ trace[1],
     -trace[0] }` as the normal vector of the trace.
 
-    .. note::
+    Notes
+    -----
 
-      uses the M-Estimator of the distance instead of the distance itself:
+    uses the M-Estimator of the distance instead of the distance itself:
 
-    .. math::
+    :math:`M_{Est} = \sum_i{ 2 \sqrt{1 + d_i^2} - 2}`
 
-      M_{Est} = \sum_i{ 2 \sqrt{1 + d_i^2} - 2}
 
     '''
 
@@ -351,13 +351,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         Notes
         -----
 
-        The basis is the "trace" of each telescope's `GreatCircle` which
-        can be determined by the telescope's position P=(Px, Py) and
-        the circle's normal vector, projected to the ground n=(nx,
-        ny), so that for every r=(x, y) on the trace
-
-        :math:`n  r = n P`
-        :math:`n_x  x + n_y y = d`
+        The basis is the "trace" of each telescope's `GreatCircle`
+        which can be determined by the telescope's position P=(Px, Py)
+        and the circle's normal vector, projected to the ground n=(nx,
+        ny), so that for every r=(x, y) on the trace :math:`n r = n P`
+        and :math:`n_x x + n_y y = d`
 
         In a perfect world, the traces of all telescopes cross in the
         shower's point of impact. This means that there is one common
@@ -383,8 +381,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Since we do not live in a perfect world and there probably is
         no point r that fulfils this equation system, it is solved by
-        the method of least linear square: :math:`r_\chi^2 = (A^T
-        A)^-1 A^T D `(2)
+        the method of least linear square: 
+        :math:`r_\chi^2 = (A^T A)^-1 A^T D (2)`
 
         :math:`r_\chi^2` minimises the squared difference of
 
