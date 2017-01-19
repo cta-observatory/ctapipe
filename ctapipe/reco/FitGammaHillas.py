@@ -17,7 +17,7 @@ u.dimless = u.dimensionless_unscaled
 
 __all__ = ['FitGammaHillas',
            'TooFewTelescopesException',
-           'dist_to_traces', 'MEst']
+           'dist_to_traces', 'MEst', 'GreatCircle']
 
 
 class TooFewTelescopesException(Exception):
@@ -94,11 +94,11 @@ def dist_to_traces(core, circles):
 
     Notes
     -----
-
     uses the M-Estimator of the distance instead of the distance itself:
 
-    :math:`M_{Est} = \sum_i{ 2 \sqrt{1 + d_i^2} - 2}`
+    .. math::
 
+        M_\\text{Est} = \sum_i{ 2 \cdot \sqrt{1 + d_i^2} - 2}
 
     '''
 
@@ -124,11 +124,11 @@ def MEst(origin, circles, weights):
 
     .. math::
 
-      M_{Est} = \sum_i{ 2*\sqrt{1 + \chi^2} - 2}
+        M_\\text{Est} = \sum_i{ 2 \cdot \sqrt{1 + d_i^2} - 2}
 
-    .. note::
-
-      seemingly inferior to negative sum of sin(angle)...
+    Notes
+    -----
+    seemingly inferior to negative sum of sin(angle)...
 
 
     Parameters
@@ -251,6 +251,20 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         return result
 
     def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
+        """
+        creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas parameters
+
+        Parameters
+        ----------
+        hillas_dict : dictionary
+            dictionary of hillas moments
+        inst : ctapipe instrument container
+            the container you get from event.inst
+        tel_phi, tel_theta : dictionaries
+            dictionaries of the orientation angles of the telescopes
+            needs to contain at least the same keys as in `hillas_dict`
+        """
+
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
@@ -302,10 +316,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         return linalg.normalise(np.sum(crossings, axis=0)) * u.dimless, crossings
 
     def fit_origin_minimise(self, seed=(0, 0, 1), test_function=neg_angle_sum):
-        '''fits the origin of the gamma with a minimisation procedure this
-        function expects that get_great_circles has been run already a
-        seed should be given otherwise it defaults to "straight up"
-        supperted functions to minimise are an M-estimator and the
+        ''' Fits the origin of the gamma with a minimisation procedure this
+        function expects that
+        :func:`get_great_circles<ctapipe.reco.FitGammaHillas.get_great_circles>`
+        has been run already. A seed should be given otherwise it defaults to
+        "straight up" supperted functions to minimise are an M-estimator and the
         negative sum of the angles to all normal vectors of the great
         circles
 
@@ -350,12 +365,14 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Notes
         -----
+        The basis is the "trace" of each telescope's :class:`.GreatCircle` which
+        can be determined by the telescope's position P=(Px, Py) and
+        the circle's normal vector, projected to the ground n=(nx,
+        ny), so that for every r=(x, y) on the trace
 
-        The basis is the "trace" of each telescope's `GreatCircle`
-        which can be determined by the telescope's position P=(Px, Py)
-        and the circle's normal vector, projected to the ground n=(nx,
-        ny), so that for every r=(x, y) on the trace :math:`n r = n P`
-        and :math:`n_x x + n_y y = d`
+        :math:`\vec n \cdot \vec r = \vec n \cdot \vec P`
+
+        :math:`n_x \cdot x + n_y \cdot y = d`
 
         In a perfect world, the traces of all telescopes cross in the
         shower's point of impact. This means that there is one common
@@ -363,36 +380,41 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         form:
 
         .. math::
+            \begin{pmatrix}
+                nx_1  &  ny_1  \\
+                \vdots & \vdots \\
+                nx_n  &  ny_n
+            \end{pmatrix}
+                \cdot (x, y) =
+            \begin{pmatrix}
+                d_1  \\
+                \vdots \\
+                d_n
+            \end{pmatrix}
+            :label: fullmatrix
 
-          \begin{pmatrix}
-             nx_1  &  ny_1  \\
-             \vdots & \vdots \\
-              nx_n  &  ny_n
-          \end{pmatrix}
-              * (x, y) =
-          \begin{pmatrix}
-               d_1  \\
-               \vdots \\
-               d_n
-          \end{pmatrix}
 
-
-        or :math:`A  r = D`.
+        or :math:`\boldsymbol{A} \cdot \vec r = \vec D`.
 
         Since we do not live in a perfect world and there probably is
         no point r that fulfils this equation system, it is solved by
-        the method of least linear square: 
-        :math:`r_\chi^2 = (A^T A)^-1 A^T D (2)`
+        the method of least linear square:
 
-        :math:`r_\chi^2` minimises the squared difference of
+        .. math::
+            \vec{r}_{\chi^2} = (\boldsymbol{A}^\text{T} \cdot \boldsymbol{A})^{-1}
+            \boldsymbol{A}^\text{T} \cdot \vec D
+            :label: rchisqr
+
+        :math:`\vec{r}_{\chi^2}` minimises the squared difference of
 
         .. math::
 
-            D - A r.
+            \vec D - \boldsymbol{A} \cdot \vec r.
 
-        Weights are applied to every line of equation (1) as stored in
+        Weights are applied to every line of equation :eq:`fullmatrix` as stored in
         circle.weight (assuming they have been set in
-        self.get_great_circles or elsewhere).
+        :func:`get_great_circles<ctapipe.reco.FitGammaHillas.get_great_circles>`
+        or elsewhere).
 
         Returns
         -------
@@ -424,13 +446,12 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         '''reconstructs the shower core position from the already set up
         great circles
 
-        .. note::
-
-          the core of the shower lies on the cross section of the
-          great circle with the horizontal plane.
-          the direction of this cross section is the cross-product of
-          the circle's normal vector and the horizontal plane.
-          here, we only care about the direction; not the orientation...
+        Notes
+        -----
+        The core of the shower lies on the cross section of the great circle with
+        the horizontal plane. The direction of this cross section is the cross-product of
+        the circle's normal vector and the horizontal plane.
+        Here, we only care about the direction; not the orientation...
 
 
         Parameters
@@ -485,11 +506,12 @@ class GreatCircle:
             weight of this telescope for later use during the
             reconstruction
 
-        Algorithm:
-        ----------
+        Notes
+        -----
         c : length 3 ndarray
-            c = (a × b) × a -> a and c form an orthogonal base for the
-            great circle (only orthonormal if a and b are of unit-length)
+            :math:`\vec c = (\vec a \times \vec b) \times \vec a`
+            :math:`\rightarrow` a and c form an orthogonal base for the great circle
+            (only orthonormal if a and b are of unit-length)
         norm : length 3 ndarray
             normal vector of the circle's plane,
             perpendicular to a, b and c
