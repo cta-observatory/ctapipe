@@ -3,8 +3,7 @@ Module containing the r1 calibration for the MC. This could be extended to have
 the r1 calibration for each telescope, if you want to be able to read in raw
 r0 telescope data.
 """
-from traitlets import CaselessStrEnum
-
+from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
 
@@ -99,8 +98,8 @@ class HessioR1Calibrator(CameraR1Calibrator):
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
-            raise ValueError('Using HessioR1Calibrator to calibrate a non-hessio '
-                             'event.')
+            raise ValueError('Using HessioR1Calibrator to calibrate a '
+                             'non-hessio event.')
 
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
@@ -131,6 +130,10 @@ class CameraR1CalibratorFactory(Factory):
                                   'calibration.').tag(config=True)
 
     # Product classes traits
+    pedestal_path = Unicode('', allow_none=True,
+                            help='Path to a pedestal file').tag(config=True)
+    tf_path = Unicode('', allow_none=True,
+                      help='Path to a Transfer Function file').tag(config=True)
 
     def get_factory_name(self):
         return self.name
