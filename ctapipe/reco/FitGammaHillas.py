@@ -17,7 +17,7 @@ u.dimless = u.dimensionless_unscaled
 
 __all__ = ['FitGammaHillas',
            'TooFewTelescopesException',
-           'dist_to_traces', 'MEst']
+           'dist_to_traces', 'MEst', 'GreatCircle']
 
 
 class TooFewTelescopesException(Exception):
@@ -316,10 +316,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         return linalg.normalise(np.sum(crossings, axis=0)) * u.dimless, crossings
 
     def fit_origin_minimise(self, seed=(0, 0, 1), test_function=neg_angle_sum):
-        '''fits the origin of the gamma with a minimisation procedure this
-        function expects that get_great_circles has been run already a
-        seed should be given otherwise it defaults to "straight up"
-        supperted functions to minimise are an M-estimator and the
+        ''' Fits the origin of the gamma with a minimisation procedure this
+        function expects that
+        :func:`get_great_circles<ctapipe.reco.FitGammaHillas.get_great_circles>`
+        has been run already. A seed should be given otherwise it defaults to
+        "straight up" supperted functions to minimise are an M-estimator and the
         negative sum of the angles to all normal vectors of the great
         circles
 
@@ -412,7 +413,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Weights are applied to every line of equation :eq:`fullmatrix` as stored in
         circle.weight (assuming they have been set in
-        self.get_great_circles or elsewhere).
+        :func:`get_great_circles<ctapipe.reco.FitGammaHillas.get_great_circles>`
+        or elsewhere).
 
         Returns
         -------
