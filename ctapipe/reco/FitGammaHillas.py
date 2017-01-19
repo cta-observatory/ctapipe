@@ -32,6 +32,17 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
     calculates the direction vector of corresponding to a
     (x,y) position on the camera
 
+
+      beta is the pixel's angular distance to the centre
+      according to beta / tel_view = r / maxR
+      alpha is the polar angle between the y-axis and the pixel
+      to find the direction the pixel is looking at:
+
+      - the pixel direction is set to the telescope direction
+      - offset by beta towards up
+      - rotated around the telescope direction by the angle alpha
+
+
     Parameters
     -----------
     pix_x, pix_y : ndarray
@@ -49,16 +60,8 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
         shape (n,3) list of "direction vectors"
         corresponding to a position on the camera
 
-    .. note::
 
-      beta is the pixel's angular distance to the centre
-      according to beta / tel_view = r / maxR
-      alpha is the polar angle between the y-axis and the pixel
-      to find the direction the pixel is looking at:
 
-      - the pixel direction is set to the telescope direction
-      - offset by beta towards up
-      - rotated around the telescope direction by the angle alpha
     '''
     pix_alpha = np.arctan2(pix_x, pix_y)
     pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
@@ -176,7 +179,8 @@ def neg_angle_sum(origin, circles, weights):
 
 
 class FitGammaHillas(RecoShowerGeomAlgorithm):
-    '''class that reconstructs the direction of an atmospheric shower
+    '''
+    class that reconstructs the direction of an atmospheric shower
     using a simple hillas parametrisation of the camera images it
     provides a direction estimate in two steps and an estimate for the
     shower's impact position on the ground.
@@ -207,6 +211,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         seed_pos : python tuple
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)
+
         '''
 
         self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
@@ -228,7 +233,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         (phi, theta) = linalg.get_phi_theta(dir1).to(u.deg)
 
         # TODO make sure az and phi turn in same direction...
-        result.alt, result.az = 90*u.deg - theta, phi
+        result.alt, result.az = 90 * u.deg - theta, phi
         result.core_x = pos[0]
         result.core_y = pos[1]
 
@@ -249,15 +254,16 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
-            p2_x = moments.cen_x + moments.length*np.cos(moments.psi)
-            p2_y = moments.cen_y + moments.length*np.sin(moments.psi)
+            p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
+            p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
 
             circle = GreatCircle(
-                guess_pix_direction(np.array([moments.cen_x/u.m, p2_x/u.m]) * u.m,
-                                    np.array([moments.cen_y/u.m, p2_y/u.m]) * u.m,
+                guess_pix_direction(np.array([moments.cen_x / u.m,
+                                              p2_x / u.m]) * u.m,
+                                    np.array([moments.cen_y / u.m,
+                                              p2_y / u.m]) * u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
-                                    inst.optical_foclen[tel_id]
-                                    ),
+                                    inst.optical_foclen[tel_id]),
                 moments.size * (moments.length / moments.width)
             )
             circle.pos = inst.tel_pos[tel_id]
@@ -339,66 +345,82 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
     def fit_core_crosses(self, unit=u.m):
-        ''' calculates the core position as the least linear square solution of an
-        (over-constrained) equation system
+        r"""calculates the core position as the least linear square solution
+        of an (over-constrained) equation system
 
         Notes
         -----
-        The basis is the "trace" of each telescope's GreatCircle which can be determined
-        by the telescope's position P=(Px, Py) and the circle's normal vector, projected
-        to the ground n=(nx, ny), so that for every r=(x, y) on the trace:
-            n * r = n * P
-            nx * x + ny * y = d
-        In a perfect world, the traces of all telescopes cross in the shower's point
-        of impact. This means that there is one common point (x, y) for every telescope,
-        so we can write in matrix form:
+
+        The basis is the "trace" of each telescope's `GreatCircle` which
+        can be determined by the telescope's position P=(Px, Py) and
+        the circle's normal vector, projected to the ground n=(nx,
+        ny), so that for every r=(x, y) on the trace
+
+        :math:`n  r = n P`
+        :math:`n_x  x + n_y y = d`
+
+        In a perfect world, the traces of all telescopes cross in the
+        shower's point of impact. This means that there is one common
+        point (x, y) for every telescope, so we can write in matrix
+        form:
+
         .. math::
-            \begin{pmatrix}
-                 nx_1  &  ny_1  \\
-                \vdots & \vdots \\
-                 nx_n  &  ny_n
-            \end{pmatrix}
-            * (x, y) =
-            \begin{pmatrix}
-                 d_1  \\
-                \vots \\
-                 d_n
-            \end{pmatrix}
 
-        or A * r = D.
-        Since we do not live in a perfect world and there probably is no point r that
-        fulfils this equation system, it is solved by the method of least linear square:
-            r_χ² = (A^T * A)^-1 * A^T * D                          (2)
+          \begin{pmatrix}
+             nx_1  &  ny_1  \\
+             \vdots & \vdots \\
+              nx_n  &  ny_n
+          \end{pmatrix}
+              * (x, y) =
+          \begin{pmatrix}
+               d_1  \\
+               \vdots \\
+               d_n
+          \end{pmatrix}
 
-        r_χ² minimises the squared difference of
-            D - A*r.
 
-        Weights are applied to every line of equation (1) as stored in circle.weight
-        (assuming they have been set in self.get_great_circles or elsewhere).
+        or :math:`A  r = D`.
+
+        Since we do not live in a perfect world and there probably is
+        no point r that fulfils this equation system, it is solved by
+        the method of least linear square: :math:`r_\chi^2 = (A^T
+        A)^-1 A^T D `(2)
+
+        :math:`r_\chi^2` minimises the squared difference of
+
+        .. math::
+
+            D - A r.
+
+        Weights are applied to every line of equation (1) as stored in
+        circle.weight (assuming they have been set in
+        self.get_great_circles or elsewhere).
 
         Returns
         -------
-        r_χ² : shape (2) numpy array
-            the minimum χ² solution for the shower impact position
+        r_chisqr : shape (2) numpy array
+            the minimum :math:`\chi^2` solution for the shower impact position
 
-        '''
+        """
 
         A = np.zeros((len(self.circles), 2))
         D = np.zeros(len(self.circles))
         for i, circle in enumerate(self.circles.values()):
-            # apply weight from circle and from the tilt of the circle towards the
-            # horizontal plane: simply projecting circle.norm to the ground gives higher
-            # weight to planes perpendicular to the ground and less to those that have
+            # apply weight from circle and from the tilt of the circle
+            # towards the horizontal plane: simply projecting
+            # circle.norm to the ground gives higher weight to planes
+            # perpendicular to the ground and less to those that have
             # a steeper angle
             A[i] = circle.weight * circle.norm[:2]
-            # since A[i] is used in the dot-product, no need to multiply the weight here
+            # since A[i] is used in the dot-product, no need to multiply the
+            # weight here
             D[i] = np.dot(A[i], circle.pos[:2])
 
         # now do the math from equation (2) and return the result
         ATA = np.dot(A.T, A)
         ATAinv = np.linalg.inv(ATA)
         ATAinvAT = np.dot(ATAinv, A.T)
-        return np.dot(ATAinvAT, D)*unit
+        return np.dot(ATAinvAT, D) * unit
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up
@@ -436,7 +458,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             circle.trace = linalg.normalise(np.array([circle.norm[1],
                                                       -circle.norm[0], 0]))
 
-        # minimising the test function (note: minimize strips seed off its unit)
+        # minimising the test function (note: minimize strips seed off its
+        # unit)
         self.fit_result_core = minimize(test_function, seed[:2],
                                         args=(self.circles),
                                         method='BFGS', options={'disp': False})
