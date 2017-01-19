@@ -8,13 +8,18 @@ from astropy.time import Time
 from ..core import Container, Item, Map
 from numpy import ndarray
 
-__all__ = ['DataContainer', 'RawDataContainer', 'RawCameraContainer',
-           'MCEventContainer', 'MCCameraEventContainer',
-           'CalibratedCameraContainer',
+__all__ = ['DataContainer',
+           'RawDataContainer',
+           'RawCameraContainer',
+           'MCEventContainer',
+           'MCCameraEventContainer',
+           'CameraCalibrationContainer',
            'ReconstructedShowerContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
-           'ReconstructedContainer']
+           'ReconstructedContainer',
+           'DL1CameraContainer',
+           'DL1Container']
 
 # todo: change some of these Maps to be just 3D NDarrays?
 
@@ -63,7 +68,7 @@ class CameraCalibrationContainer(Container):
 class DL1Container(Container):
     """ DL1 Calibrated Camera Images and associated data"""
     tel = Item(Map(DL1CameraContainer),
-               "map of tel_id to CalibratedCameraContainer")
+               "map of tel_id to DL1CameraContainer")
 
 
 class RawCameraContainer(Container):
