@@ -214,12 +214,14 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         dir1 = self.fit_origin_crosses()[0]
 
         # direction estimate using numerical minimisation
-        #
         # does not really improve the fit for now
         # dir2 = self.fit_origin_minimise(dir1)
-        #
-        # core position estimate using numerical minimisation '''
-        pos = self.fit_core(seed_pos)
+
+        # core position estimate using numerical minimisation
+        # pos = self.fit_core_minimise(seed_pos)
+
+        # core position estimate using a geometric approach
+        pos = self.fit_core_crosses()
 
         # container class for reconstructed showers '''
         result = ReconstructedShowerContainer()
@@ -305,9 +307,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         -----------
         seed : length-3 array
             starting point of the minimisation
-        test_function : member function if this class
+        test_function : function object, optional (default: neg_angle_sum)
             either neg_angle_sum or MEst (or own implementation...)
-            defaults to neg_angle_sum if none is given
             neg_angle_sum seemingly superior to MEst
 
         Returns
@@ -337,17 +338,79 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
-    def fit_core(self, seed=(0, 0), test_function=dist_to_traces):
+    def fit_core_crosses(self, unit=u.m):
+        ''' calculates the core position as the least linear square solution of an
+        (over-constrained) equation system
+
+        Notes
+        -----
+        The basis is the "trace" of each telescope's GreatCircle which can be determined
+        by the telescope's position P=(Px, Py) and the circle's normal vector, projected
+        to the ground n=(nx, ny), so that for every r=(x, y) on the trace:
+            n * r = n * P
+            nx * x + ny * y = d
+        In a perfect world, the traces of all telescopes cross in the shower's point
+        of impact. This means that there is one common point (x, y) for every telescope,
+        so we can write in matrix form:
+        .. math::
+            \begin{pmatrix}
+                 nx_1  &  ny_1  \\
+                \vdots & \vdots \\
+                 nx_n  &  ny_n
+            \end{pmatrix}
+            * (x, y) =
+            \begin{pmatrix}
+                 d_1  \\
+                \vots \\
+                 d_n
+            \end{pmatrix}
+
+        or A * r = D.
+        Since we do not live in a perfect world and there probably is no point r that
+        fulfils this equation system, it is solved by the method of least linear square:
+            r_χ² = (A^T * A)^-1 * A^T * D                          (2)
+
+        r_χ² minimises the squared difference of
+            D - A*r.
+
+        Weights are applied to every line of equation (1) as stored in circle.weight
+        (assuming they have been set in self.get_great_circles or elsewhere).
+
+        Returns
+        -------
+        r_χ² : shape (2) numpy array
+            the minimum χ² solution for the shower impact position
+
+        '''
+
+        A = np.zeros((len(self.circles), 2))
+        D = np.zeros(len(self.circles))
+        for i, circle in enumerate(self.circles.values()):
+            # apply weight from circle and from the tilt of the circle towards the
+            # horizontal plane: simply projecting circle.norm to the ground gives higher
+            # weight to planes perpendicular to the ground and less to those that have
+            # a steeper angle
+            A[i] = circle.weight * circle.norm[:2]
+            # since A[i] is used in the dot-product, no need to multiply the weight here
+            D[i] = np.dot(A[i], circle.pos[:2])
+
+        # now do the math from equation (2) and return the result
+        ATA = np.dot(A.T, A)
+        ATAinv = np.linalg.inv(ATA)
+        ATAinvAT = np.dot(ATAinv, A.T)
+        return np.dot(ATAinvAT, D)*unit
+
+    def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up
         great circles
 
         .. note::
 
           the core of the shower lies on the cross section of the
-          great circle with the horizontal plane the direction of this
-          cross section is the cross-product of the normal vectors of
-          the circle and the horizontal plane here we only care about
-          the direction; not the orientation...
+          great circle with the horizontal plane.
+          the direction of this cross section is the cross-product of
+          the circle's normal vector and the horizontal plane.
+          here, we only care about the direction; not the orientation...
 
 
         Parameters
@@ -355,9 +418,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         seed : tuple, optional (default: (0, 0))
             shape (2) tuple with optional starting coordinates
             tuple of floats or astropy.length -- if floats, assume metres
-        test_function : function object, optional
+        test_function : function object, optional (default: dist_to_traces)
             function to be used by the minimiser
-            by default uses self._dist_to_traces
 
         '''
 
@@ -368,11 +430,11 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         # the direction of the cross section of the great circle with
         # the horizontal frame is the cross product of the great
-        # circle's normal vector with the z-axis
-
-        zdir = np.array([0, 0, 1])
+        # circle's normal vector with the z-axis:
+        # n × z = (n[1], -n[0], 0)
         for circle in self.circles.values():
-            circle.trace = linalg.normalise(np.cross(circle.norm, zdir))
+            circle.trace = linalg.normalise(np.array([circle.norm[1],
+                                                      -circle.norm[0], 0]))
 
         # minimising the test function (note: minimize strips seed off its unit)
         self.fit_result_core = minimize(test_function, seed[:2],
