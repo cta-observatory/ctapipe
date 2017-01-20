@@ -7,7 +7,7 @@ def compare_histograms(hist1: Histogram, hist2: Histogram):
     """ check that 2 histograms are identical in value """
     assert hist1.ndims == hist2.ndims
     assert (hist1.axis_names == hist2.axis_names).all()
-    assert (hist1.hist == hist2.hist).all
+    assert (hist1.data == hist2.data).all
 
     for ii in range(hist1.ndims):
         assert np.isclose(hist1.bin_lower_edges[ii],

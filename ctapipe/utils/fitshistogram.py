@@ -32,13 +32,31 @@ class Histogram:
     axis_names: list(str)
         name of each axis
 
-    Example:
+    Examples
     --------
 
     >>> hist = Histogram(nbins=(10,10), ranges=[[-1,1], [-1,1]])
-    >>> data = np.random.normal(shape=(100)
-    >>> y = np.random.normal(shape=100)
-    >>> hist.fill(  )
+    >>> data = np.random.normal(shape=(2*100)) # make 100 random 2D events
+    >>> hist.fill(data)
+
+
+    Get a point in the histogram (can also get multiple values at once by
+    passing an array)
+
+    >>> val = hist.get_value([0.1,-0.5])
+    >>> vals = hist.get_value([[0.1,-0.5], [0.9,0.9]])
+
+    Get the full data array and do things with it:
+
+    >>> meanx = hist.data.mean(axis=0)
+
+    Write it to a FITS image file:
+
+    >>> hist.to_fits().writeto("output.fits")
+
+    Read it from FITS image file:
+
+    >>> hist2 = Histogram.from_fits("output.fits")
 
     """
 
@@ -51,7 +69,7 @@ class Histogram:
         The `Histogram.from_fits()` constructor
         """
 
-        self.hist = np.zeros(nbins)
+        self.data = np.zeros(nbins)
         self._binLowerEdges = None
         self._nbins = np.array([nbins]).flatten()
         self._ranges = np.array(ranges, ndmin=2)
@@ -114,7 +132,7 @@ class Histogram:
         datapoints - the sum of the histogram). This assumes the data
         of the histogram is unmodified (and represents "counts").
         """
-        return self._numsamples - self.hist.sum()
+        return self._numsamples - self.data.sum()
 
     def fill(self, datapoints, **kwargs):
         """
@@ -134,7 +152,7 @@ class Histogram:
         hist, __ = np.histogramdd(datapoints, bins=self._nbins,
                                   range=self._ranges, **kwargs)
 
-        self.hist += hist
+        self.data += hist
         self._numsamples += len(datapoints)
 
     def bin_centers(self, index):
@@ -153,7 +171,7 @@ class Histogram:
         myhist.to_fits().writeto("outputfile.fits")
 
         """
-        ohdu = fits.ImageHDU(data=self.hist.transpose())
+        ohdu = fits.ImageHDU(data=self.data.transpose())
         ohdu.name = self.name
         ndim = len(self._nbins)
 
@@ -216,8 +234,8 @@ class Histogram:
         else:
             hdu = input_fits
         
-        hist.hist = hdu.data.transpose()
-        hist._nbins = hist.hist.shape
+        hist.data = hdu.data.transpose()
+        hist._nbins = hist.data.shape
 
         wcs = WCS(hdu.header)
         ndim = len(hist._nbins)
@@ -285,7 +303,7 @@ class Histogram:
                                      self.bin_lower_edges[ii][1:])
                          for ii in range(ndims)])
 
-        maxbin = np.array(self.hist.shape)
+        maxbin = np.array(self.data.shape)
 
         # deal with out-of-range values:
         if outlier_value is None:
@@ -297,7 +315,7 @@ class Histogram:
             if (bins >= maxbin).any() or (bins < 0).any():
                 return outlier_value
 
-        return self.hist[tuple(bins)]
+        return self.data[tuple(bins)]
 
     def draw_2d(self, dims=(0, 1), **kwargs):
         """draw the histogram using pcolormesh() (only works for 2D
@@ -312,7 +330,7 @@ class Histogram:
         """
         from matplotlib import pyplot
 
-        if self.hist.ndim < 2:
+        if self.data.ndim < 2:
             raise ValueError("Too few dimensions")
 
         if len(dims) != 2:
@@ -320,7 +338,7 @@ class Histogram:
 
         pyplot.pcolormesh(self.bin_lower_edges[dims[0]],
                           self.bin_lower_edges[dims[1]],
-                          self.hist, **kwargs)
+                          self.data, **kwargs)
         pyplot.title(self.name)
         pyplot.xlabel(self.axis_names[dims[0]])
         pyplot.ylabel(self.axis_names[dims[1]])
@@ -329,7 +347,7 @@ class Histogram:
         from matplotlib import pyplot
 
         # todo fix this to work properly with dim argument!
-        pyplot.plot(self.bin_centers(dim), self.hist, drawstyle='steps-mid',
+        pyplot.plot(self.bin_centers(dim), self.data, drawstyle='steps-mid',
                     **kwargs)
 
     def interpolate(self, nbins):
@@ -354,5 +372,11 @@ class Histogram:
                            for X in range(len(nbins))])
 
         self._nbins = nbins
-        self.hist = ndimage.map_coordinates(self.hist, coords)
+        self.data = ndimage.map_coordinates(self.data, coords)
         self._binLowerEdges = None  # need to be recalculated
+
+    @property
+    def hist(self):
+        """ for backward compatibility. Use `Histogram.data` for read/write
+        access"""
+        return self.data
