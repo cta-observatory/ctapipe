@@ -1,6 +1,17 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
-from ..fitshistogram import Histogram
+import pytest
+from ctapipe.utils.fitshistogram import Histogram
+
+def compare_histograms(hist1: Histogram, hist2: Histogram):
+    """ check that 2 histograms are identical in value """
+    assert hist1.ndims == hist2.ndims
+    assert (hist1.axis_names == hist2.axis_names).all()
+    assert (hist1.hist == hist2.hist).all
+
+    for ii in range(hist1.ndims):
+        assert np.isclose(hist1.bin_lower_edges[ii],
+                          hist2.bin_lower_edges[ii]).all()
 
 
 def test_histogram_str():
@@ -57,15 +68,50 @@ def test_outliers():
     """
     H = Histogram(nbins=[5, 10], ranges=[[-2.5, 2.5], [-1, 1]])
     H.fill(np.array([[1, 1], ]))
-    val1 = H.get_value((100, 100), outlierValue=-10000)
-    val2 = H.get_value((-100, 0), outlierValue=None)
+    val1 = H.get_value((100, 100), outlier_value=-10000)
+    val2 = H.get_value((-100, 0), outlier_value=None)
     assert val1 == -10000
     assert val2 == 0
 
 
-def test_histogram_write_fits():
+def get_temp_fits_filename():
+
+    return fn
+
+@pytest.fixture(scope='session')
+def histogram_file(tmpdir_factory):
+    """ a fixture that fetches a temporary output dir/file for a test
+    histogram"""
+    return str(tmpdir_factory.mktemp('data').join('histogram_test.fits'))
+
+
+def test_histogram_fits(histogram_file):
     """
     Write to fits,read back, and check
     """
-    # TODO: implement
-    pass
+
+    hist = Histogram(nbins=[5, 11], ranges=[[-2.5, 2.5], [-1, 1]])
+    hist.fill(np.array([[0, 0],
+                        [0, 0.5]]))
+
+    hist.to_fits().writeto(histogram_file, clobber=True)
+    newhist = Histogram.from_fits(histogram_file)
+
+    # check that the values are the same
+    compare_histograms(hist, newhist)
+
+
+def test_histogram_interpolate():
+    H = Histogram(nbins=[5, 11], ranges=[[-2.5, 2.5], [-1, 1]])
+    H.fill(np.array([[0, 0],
+                     [0,0.5]]))
+
+    for testpoint in [(0,0), (0,1), (1,0), (3,3)]:
+        val0 = H.get_value(testpoint)
+        H.interpolate((10,22))
+        val1 = H.get_value(testpoint)
+        H.interpolate((5,11))
+        val2 = H.get_value(testpoint)
+
+        # at least check the interpolation is undoable
+        assert np.isclose(val0[0], val2[0])
