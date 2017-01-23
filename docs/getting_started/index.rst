@@ -138,11 +138,95 @@ Developing a new feature or code change
 ---------------------------------------
 
 You should always create a branch when developing some new code (unless it is
- a very small change).  Genearlly make a new branch for each new feature, so
- that you can make pull-requests for each one separately and not mix code
- from each.
+a very small change).  Genearlly make a new branch for each new feature, so
+that you can make pull-requests for each one separately and not mix code
+from each.  Remember that `git checkout <name>` switches between branches,
+`git checkout -b <name>` creates a new branch, and `git branch` on it's own
+will tell you which branches are available and which one you are currently on.
 
-Start working on a feature:
+First think of a name for your code change, here we'll use
+*implement_feature_1* as an example.
+
++++++++++++++++++++++++++++
+1. Create a feature branch:
++++++++++++++++++++++++++++
+
+.. code-block:: sh
+
+    git checkout -b implement_feature_1
+
+++++++++++++++++
+2. Edit the code
+++++++++++++++++
+and make as many commits as you want (more than one is generally
+better for large changes!).
+
+.. code-block:: sh
+
+    git add some_changed_file.py another_file.py
+    git commit
+      [type descriptive message in window that pops up]
+
+and repeat. Of course, make sure you frequently test via `make test` (or
+`py.test` in a sub-module), check the style, and make sure the docs  render
+correctly (both code and top-level) using `make doc`.
+
+++++++++++++++++++++++++++++++++++++++++++
+3. Push your branch to your fork on github
+++++++++++++++++++++++++++++++++++++++++++
+
+(sometimes refered to as
+"publishing" since it becomes public, but only in your fork) by running
+
+.. code-block:: sh
+
+    git push
+
+You can do this at any time and more than once. It just moves the changes
+from your local branch on your development machine to your fork on github.
+
+
+++++++++++++++++++++++++
+4. make a *Pull Request*
+++++++++++++++++++++++++
+
+When you're happy, you make  PR on on your github fork page by clicking "pull
+request".  You can also do this via the GitHub GUI if you have that installed.
+
+Make sure to describe all the changes and give examples and use cases!
+
+See the :ref:`pullrequests` section for more info.
+
++++++++++++++++++++++++++
+5. Wait for a code review
++++++++++++++++++++++++++
+
+At least one reviewer must accept your request.
+
+If the reviewer asks for changes, all you need to do is make them, `git
+commit` them and then run `git push` and the reviewer will see the changes.
+When they accept them, they will be merged into the *master* repo on
+cta-observatory's account.
+
++++++++++++++++++++++++++++++
+6. delete your feature branch
++++++++++++++++++++++++++++++
+
+since it is no longer needed:
+
+.. code-block:: sh
+
+    git checkout master   # switch back to your master branch
+
+pull in the upstream changes, which should include your new features, and
+remove the branch from the local and remote (github).
+
+.. code-block:: sh
+
+    git pull upstream master
+    git branch --delete --remotes implement_feature_1
+
+Note the last step can also be done on the GitHub website.
 
 ---------------------
 More Development help
