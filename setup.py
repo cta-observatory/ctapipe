@@ -43,7 +43,7 @@ setup(name=PACKAGENAME,
       # astropy already depends on it)
       install_requires=['astropy', 'scipy', 'matplotlib',
                         'scikit-learn', 'traitlets'],
-      setup_requires=['pytest-runner', ],
+#      setup_requires=[, ],
       tests_require=['pytest', ],
       extras_require={
         'dev': [
