@@ -126,6 +126,7 @@ class Histogram:
     def ndims(self):
         return len(self._nbins)
 
+    @property
     def outliers(self):
         """
         returns the number of outlier points (the number of input
@@ -164,11 +165,13 @@ class Histogram:
 
     def to_fits(self):
         """ 
-        return A FITS hdu, suitable for writing to disk
+        Convert the `Histogram` into an `astropy.io.fits.ImageHDU`,
+        suitable for writing to a file.
 
-        to write it, just do 
+        Examples
+        --------
 
-        myhist.to_fits().writeto("outputfile.fits")
+        >>> myhist.to_fits().writeto("outputfile.fits.gz", clobber=True)
 
         """
         ohdu = fits.ImageHDU(data=self.data.transpose())
@@ -221,10 +224,15 @@ class Histogram:
     @staticmethod
     def from_fits(input_fits):
         """
-        load a FITS histogram file
+        Construct a `Histogram` from a previously written FITS histogram file
+        or HDU (see `Histogram.to_fits()`)
 
-        Arguments:
-        - `inputfits`: filename or fits HDU
+        Parameters
+        ----------
+        input_fits: string or astropy.io.fits.ImageHDU
+            File or HDU to read into histogram (Should be a FITS HDU
+            originally created by `Histogram.to_fits()`, may not work for
+            general FITS images)
         """
 
         hist = Histogram()
@@ -260,7 +268,6 @@ class Histogram:
                 axis_names.append(hist._ctypes[dim][0:4])
 
         hist.axis_names = np.array(axis_names)
-
         hist._binLowerEdges = edges
         hist._ranges = np.array(hist._ranges)
 
