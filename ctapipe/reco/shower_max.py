@@ -35,7 +35,7 @@ class ShowerMaxEstimator:
             altitude.append(float(line.split()[col_altitude]))
             thickness.append(float(line.split()[col_thickness]))
 
-        self.atmosphere = Histogram(axisNames=["altitude"])
+        self.atmosphere = Histogram(axis_names=["altitude"])
         self.atmosphere.data = thickness * u.g * u.cm ** -2
         self.atmosphere._bin_lower_edges = [np.array(altitude) * u.km]
 
