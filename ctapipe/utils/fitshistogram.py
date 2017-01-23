@@ -70,7 +70,7 @@ class Histogram:
         """
 
         self.data = np.zeros(nbins)
-        self._bin_lower_edges = None  # TODO: should be a property, get only
+        self._bin_lower_edges = None
         self._nbins = np.array([nbins]).flatten()
         self._ranges = np.array(ranges, ndmin=2)
         self.value_scale = None
