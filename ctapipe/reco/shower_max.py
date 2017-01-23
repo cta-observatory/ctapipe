@@ -9,14 +9,13 @@ from scipy import ndimage
 class ShowerMaxEstimator:
 
     def __init__(self, filename, col_altitude=0, col_thickness=2):
-
         """
         small class that calculates the height of the shower maximum
         given a parametrisation of the atmosphere
         and certain parameters of the shower itself
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filename : string
             path to text file that contains a table of the
             atmosphere parameters
@@ -64,8 +63,8 @@ class ShowerMaxEstimator:
         estimates the height of the shower maximum in the atmosphere
         according to equation (3) in [arXiv:0907.2610v3]
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         energy : astropy.Quantity
             energy of the parent gamma photon
         h_first_int : astropy.Quantity
@@ -74,8 +73,8 @@ class ShowerMaxEstimator:
             altitude / pi-minus-zenith (in radians in case of float)
             of the parent gamma photon
 
-        Returns:
-        --------
+        Returns
+        -------
         shower_max_height : astropy.Quantity
             height of the shower maximum
         """
@@ -102,6 +101,7 @@ class ShowerMaxEstimator:
 
                 height1 = self.atmosphere.bin_lower_edges[0][ii]
                 height2 = self.atmosphere.bin_lower_edges[0][ii - 1]
+
                 val = [height2.to(
                     self.atmosphere.bin_lower_edges[0].unit).value]
                 thick2 = self.atmosphere.get_value(val)[0]
