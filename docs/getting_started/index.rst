@@ -4,6 +4,13 @@
 Getting Started For Developers
 ******************************
 
+.. warning::
+
+   the following guide is used only if you want to *develop* the
+   `ctapipe` package, if you just want to write code that uses it
+   externally, you can install `ctapipe` as a conda package
+   with `conda install -c cta-observatory ctapipe`.
+
 This guide assumes you are using the *Anaconda* python distribution,
 installed locally (*miniconda* should also work).
 
@@ -27,7 +34,7 @@ Next, switch to this new virtual environment and install some other useful tools
 
 	source activate cta
 	
-	conda install pyhessio ipython ipython-notebook ipython-qtconsole spyder pyflakes traitlets
+	conda install -c cta-observatory pyhessio ipython ipython-notebook pyflakes traitlets
 	conda install -c conda-forge autopep8 graphviz
 
 Next, you should create a directory where you can store the software you check out. For example:
@@ -40,15 +47,6 @@ Next, you should create a directory where you can store the software you check o
 ------------------------
 Get the ctapipe software
 ------------------------
-
-..
-   .. quote::
-
-   the following guide is used only if you want to *develop* the
-   `ctapipe` package, if you just want to write code that uses it
-   externally, you can install `ctapipe` as a conda package
-   with `conda install ctapipe`.
-
 
 In order to checkout the software in such a way that you can read *and
 commit* changes, you need to `Fork and Clone
@@ -63,6 +61,9 @@ Step 1: Fork
 Follow the instructions in the link above to make a *fork* of the
 ctapipe repo in your own GitHub userspace. That fork will be then
 called *yourusername*/ctapipe (it's as simple as clicking the fork button on `main ctapipe github page <https://github.com/cta-observatory/ctapipe>`_.
+
+You only need to make this fork once, when you first start developing, and
+you can use it from then on.
 
 +++++++++++++
 Step 2: clone
@@ -131,11 +132,25 @@ to your local working copy):
 .. code-block:: bash
 
    git pull upstream master
-            
+
+---------------------------------------
+Developing a new feature or code change
+---------------------------------------
+
+You should always create a branch when developing some new code (unless it is
+ a very small change).  Genearlly make a new branch for each new feature, so
+ that you can make pull-requests for each one separately and not mix code
+ from each.
+
+Start working on a feature:
+
 ---------------------
 More Development help
 ---------------------
- 
+
+For coding details, read the :ref:`guidelines` section of this
+documentation.
+
 More information on how to develop code using the GitHub-FLow workflow
 (which is what we are using) can be found in the AstroPy documentation
 http://astropy.readthedocs.org/en/latest/development/workflow/get_devel_version.html#get-devel
@@ -150,3 +165,4 @@ provides a graphical view of your fork and the upstream
 cta-observatory repository, so you can see easily what version you are
 working on. It will handle the forking, syncing, and even allow you to
 issue pull-requests.
+
