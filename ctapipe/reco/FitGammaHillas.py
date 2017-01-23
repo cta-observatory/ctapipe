@@ -7,9 +7,9 @@ from astropy.utils.decorators import deprecated
 from itertools import combinations, permutations
 
 import numpy as np
+from numpy.linalg import LinAlgError as npLinAlgError
 
 from scipy.optimize import minimize
-
 
 from astropy import units as u
 u.dimless = u.dimensionless_unscaled
@@ -212,25 +212,37 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)
 
+        Raises
+        ------
+        TooFewTelescopesException
+            if len(hillas_dict) < 2
+
         '''
 
+        # stereoscopy needs at least two telescopes
+        if len(hillas_dict) < 2:
+            raise TooFewTelescopesException(
+                "need at least two telescopes, have {}"
+                .format(len(hillas_dict)))
+
         self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
+
         # algebraic direction estimate
-        dir1 = self.fit_origin_crosses()[0]
-
-        # direction estimate using numerical minimisation
-        # does not really improve the fit for now
-        # dir2 = self.fit_origin_minimise(dir1)
-
-        # core position estimate using numerical minimisation
-        # pos = self.fit_core_minimise(seed_pos)
+        dir = self.fit_origin_crosses()[0]
 
         # core position estimate using a geometric approach
         pos = self.fit_core_crosses()
 
+        # numerical minimisations do not really improve the fit
+        # direction estimate using numerical minimisation
+        # dir = self.fit_origin_minimise(dir)
+        #
+        # core position estimate using numerical minimisation
+        # pos = self.fit_core_minimise(seed_pos)
+
         # container class for reconstructed showers '''
         result = ReconstructedShowerContainer()
-        (phi, theta) = linalg.get_phi_theta(dir1).to(u.deg)
+        (phi, theta) = linalg.get_phi_theta(dir).to(u.deg)
 
         # TODO make sure az and phi turn in same direction...
         result.alt, result.az = 90 * u.deg - theta, phi
@@ -286,8 +298,21 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
     def fit_origin_crosses(self):
         '''calculates the origin of the gamma as the weighted average
         direction of the intersections of all great circles
+
+        Returns
+        -------
+        gamma : shape (3) numpy array
+            direction of origin of the reconstructed shower as a 3D vector
+        crossings : shape (n,3) list
+            list of all the crossings of the `GreatCircle`s
+
+        Raises
+        ------
+        TooFewTelescopesException
+            if len(self.circles) < 2
         '''
 
+        # stereoscopy needs at least two telescopes
         if len(self.circles) < 2:
             raise TooFewTelescopesException(
                 "need at least two telescopes, have {}"
@@ -299,7 +324,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             # cross product automatically weighs in the angle between
             # the two vectors: narrower angles have less impact,
             # perpendicular vectors have the most
-
             crossing = np.cross(n1, n2)
 
             # two great circles cross each other twice (one would be
@@ -307,7 +331,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             # doesn't matter which we pick but it should at least be
             # consistent: make sure to always take the "upper"
             # solution
-
             if crossing[2] < 0:
                 crossing *= -1
             crossings.append(crossing * perm[0].weight * perm[1].weight)
@@ -344,7 +367,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         # other direction as weight; don't use the product -- with many
         # steep angles, the product will become too small and the
         # weight (and the whole fit) useless
-
         weights = [np.sum([linalg.length(np.cross(A.norm, B.norm))
                            for A in self.circles.values()]
                           ) * B.weight
@@ -436,15 +458,19 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             # weight here
             D[i] = np.dot(A[i], circle.pos[:2])
 
-        # now do the math from equation (2) and return the result
-        ATA = np.dot(A.T, A)
-        ATAinv = np.linalg.inv(ATA)
-        ATAinvAT = np.dot(ATAinv, A.T)
-        return np.dot(ATAinvAT, D) * unit
+        try:
+            # now do the math from equation (2) and return the result
+            ATA = np.dot(A.T, A)
+            ATAinv = np.linalg.inv(ATA)
+            ATAinvAT = np.dot(ATAinv, A.T)
+            return np.dot(ATAinvAT, D) * unit
+        except npLinAlgError:
+            # does basically the same -- just catches some "singular matrix" errors
+            D = np.linalg.lstsq(A, D)[0] * unit
+            return D
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
-        '''reconstructs the shower core position from the already set up
-        great circles
+        '''reconstructs the shower core position from the already set up great circles
 
         Notes
         -----
@@ -490,8 +516,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
 
 class GreatCircle:
-    '''a tiny helper class to collect some parameters for each great
-    great circle
+    '''a tiny helper class to collect some parameters for each great great circle
     '''
 
     def __init__(self, dirs, weight=1):
