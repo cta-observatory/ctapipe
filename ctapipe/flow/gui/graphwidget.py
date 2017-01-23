@@ -59,8 +59,8 @@ class GraphWidget(QWidget):
 
     def build_graph(self):
         """
-        Return
-        ======
+        Returns
+        -------
         graphiz.Digraph
             It contains nodes and links corresponding to self.steps
         """
@@ -92,8 +92,9 @@ class GraphWidget(QWidget):
     def format_name(self,name, max_car=15):
         """
         trim name if its length is more than max_car and add 3 points
-        Return
-        ======
+
+        Returns
+        -------
         Name triped or not
         """
         if len(name) > max_car:
@@ -103,10 +104,14 @@ class GraphWidget(QWidget):
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
         self.consumer_step
+
         Parameters:
-        ===========
+        -----------
         name : str Step name
-        Return: PipeStep if found, otherwise None
+
+        Returns
+        -------
+        PipeStep if found, otherwise None
         '''
         for step in self.steps:
             if step.name.split('$$processus')[0] == name:

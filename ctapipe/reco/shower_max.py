@@ -36,7 +36,7 @@ class ShowerMaxEstimator:
             thickness.append(float(line.split()[col_thickness]))
 
         self.atmosphere = Histogram(axisNames=["altitude"])
-        self.atmosphere.hist = thickness * u.g * u.cm ** -2
+        self.atmosphere.data = thickness * u.g * u.cm ** -2
         self.atmosphere._bin_lower_edges = [np.array(altitude) * u.km]
 
     def interpolate(self, arg, outlierValue=0., order=3):
@@ -53,11 +53,11 @@ class ShowerMaxEstimator:
         coordinate = (argv - bin_u_edge) / (bin_u_edge - bin_l_edge) \
             * (bin_u - bin_l) + bin_u
 
-        return ndimage.map_coordinates(self.atmosphere.hist,
+        return ndimage.map_coordinates(self.atmosphere.data,
                                        [[coordinate]],
                                        order=order,
                                        cval=outlierValue)[0]\
-            * self.atmosphere.hist.unit
+            * self.atmosphere.data.unit
 
     def find_shower_max_height(self, energy, h_first_int, gamma_alt):
         """
@@ -97,7 +97,7 @@ class ShowerMaxEstimator:
         t_shower_max = t_first_int + c
 
         # now find the height with the wanted thickness
-        for ii, thick1 in enumerate(self.atmosphere.hist):
+        for ii, thick1 in enumerate(self.atmosphere.data):
             if t_shower_max > thick1:
 
                 height1 = self.atmosphere.bin_lower_edges[0][ii]

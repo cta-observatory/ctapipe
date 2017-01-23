@@ -10,7 +10,7 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     Metaclass to be able to make Component abstract
     see: http://stackoverflow.com/a/7314847/3838691
     '''
-
+    pass
 
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called

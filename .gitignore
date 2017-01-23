@@ -10,7 +10,6 @@ __pycache__
 *.c
 
 # Other generated files
-*/version.py
 */cython_version.py
 htmlcov
 .coverage
@@ -59,3 +58,8 @@ distribute-*.tar.gz
 .ipynb_checkpoints
 .cache*
 .cache
+
+*.out
+
+#sonarlint command-line output
+.sonarlint
