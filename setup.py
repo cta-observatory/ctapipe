@@ -3,7 +3,7 @@
 import sys
 
 # import ah_bootstrap
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # Get some values from the setup.cfg
 from configparser import RawConfigParser
@@ -37,7 +37,7 @@ entry_points['console_scripts'] = [
 package.version.update_release_version()
 
 setup(name=PACKAGENAME,
-      packages=[PACKAGENAME],
+      packages=find_packages(),
       version=package.version.get_version(pep440=True),
       description=DESCRIPTION,
       # these should be minimum list of what is needed to run (note
