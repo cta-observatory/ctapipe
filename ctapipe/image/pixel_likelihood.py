@@ -44,7 +44,7 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     return -2 * np.log(sq * expo)
 
 
-def poisson_likelihood_full(image, prediction, spe_width, ped):
+def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3):
     """
     Calculate likelihood of prediction given the measured signal, full numerical integration from
     de Naurois et al 2009
@@ -73,7 +73,14 @@ def poisson_likelihood_full(image, prediction, spe_width, ped):
                              "Image shape: ",image.shape, "Prediction shape: ", prediction.shape)
 
     max_val = np.max(image)
-    pe_summed = np.arange(max_val*10) # Need to decide how range is determined
+    min_val = np.max(image)
+
+    max_sum = max_val + width_fac * np.sqrt(max_val)
+    if max_sum<10:
+        max_sum = 10
+    min_sum = max_val + width_fac * np.sqrt(max_val)
+
+    pe_summed = np.arange(max_sum) # Need to decide how range is determined
     pe_factorial = factorial(pe_summed)
 
     first_term = np.power(prediction, pe_summed[:,np.newaxis]) * np.exp(-1*prediction)
