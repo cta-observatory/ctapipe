@@ -153,9 +153,12 @@ def get_version(pep440=False):
     The file VERSION will need to be changed manually.
     """
 
-    git_version = format_git_describe(call_git_describe(), pep440=pep440)
-    if not git_version:  # not a git repository
-        return read_release_version()
+    raw_git_version = call_git_describe()
+    if not raw_git_version:  # not a git repository
+        return  read_release_version()
+
+    git_version = format_git_describe(raw_git_version, pep440=pep440)
+
     return git_version
 
 

@@ -29,7 +29,7 @@ transformations, e.g. precision pointing corrections using a pointing model.
   much faster. All routines can accept arrays instead of single values.
 
 
-Earth Orientiation Corrections
+Earth Orientation Corrections
 ==============================
 
 Polar motion and leap-second corrections are taken into account automatically
