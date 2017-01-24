@@ -8,7 +8,7 @@ __all__ = ['Histogram']
 
 
 class Histogram:
-    """An N-D histogram class with FITS image I/O. 
+    """An N-D histogram class with FITS image I/O.
 
     The output FITS file will contain an ImageHDU datacube and
     associated WCS headers to describe the axes of the histogram.
@@ -70,7 +70,7 @@ class Histogram:
         """
 
         self.data = np.zeros(nbins)
-        self._binLowerEdges = None
+        self._bin_lower_edges = None
         self._nbins = np.array([nbins]).flatten()
         self._ranges = np.array(ranges, ndmin=2)
         self.value_scale = None
@@ -93,13 +93,13 @@ class Histogram:
             self.axis_names.resize(self.ndims)
         else:
             self.axis_names = ["axis{}".format(x) for x in range(self.ndims)]
-        
+
     def __str__(self,):
         return ("Histogram(name='{name}', axes={axnames}, "
                 "nbins={nbins}, ranges={ranges})"
                 .format(name=self.name, ranges=self._ranges,
                         nbins=self._nbins, axnames=self.axis_names))
-    
+
     @property
     def bin_lower_edges(self):
         """
@@ -107,12 +107,12 @@ class Histogram:
         since the final edge of the last bin is included for ease of
         use in vector operations
         """
-        if self._binLowerEdges is None:
-            self._binLowerEdges = [np.linspace(self._ranges[ii][0],
-                                               self._ranges[ii][-1],
-                                               self._nbins[ii] + 1)
-                                   for ii in range(self.ndims)]
-        return self._binLowerEdges
+        if self._bin_lower_edges is None:
+            self._bin_lower_edges = [np.linspace(self._ranges[ii][0],
+                                                 self._ranges[ii][-1],
+                                                 self._nbins[ii] + 1)
+                                     for ii in range(self.ndims)]
+        return self._bin_lower_edges
 
     @property
     def bins(self):
@@ -145,8 +145,8 @@ class Histogram:
         ----------
         datapoints: array_like
             array of N-d points (see `numpy.histogramdd` documentation)
-        kwargs: 
-            any extra options to pass to `numpy.histogramdd` when 
+        kwargs:
+            any extra options to pass to `numpy.histogramdd` when
             creating the histogram
         """
 
@@ -157,14 +157,14 @@ class Histogram:
         self._numsamples += len(datapoints)
 
     def bin_centers(self, index):
-        """ 
+        """
         returns array of bin centers for the given index
         """
         return 0.5 * (self.bin_lower_edges[index][1:] +
                       self.bin_lower_edges[index][0:-1])
 
     def to_fits(self):
-        """ 
+        """
         Convert the `Histogram` into an `astropy.io.fits.ImageHDU`,
         suitable for writing to a file.
 
@@ -241,7 +241,7 @@ class Histogram:
             hdu = fits.open(input_fits)[1]
         else:
             hdu = input_fits
-        
+
         hist.data = hdu.data.transpose()
         hist._nbins = hist.data.shape
 
@@ -268,7 +268,7 @@ class Histogram:
                 axis_names.append(hist._ctypes[dim][0:4])
 
         hist.axis_names = np.array(axis_names)
-        hist._binLowerEdges = edges
+        hist._bin_lower_edges = edges
         hist._ranges = np.array(hist._ranges)
 
         if hdu.header.get("BSCALE"):
@@ -284,7 +284,7 @@ class Histogram:
 
     def get_value(self, coords, outlier_value=None):
         """ Returns the values of the histogram at the given world
-        coordinate(s) 
+        coordinate(s)
 
         Parameters
         ----------
@@ -297,7 +297,7 @@ class Histogram:
           histogram will be given the edge value
 
         """
-        # if (self._binLowerEdges == None):
+        # if (self._bin_lower_edges == None):
         #     raise ValueError("Histogram is not filled")
 
         if np.isnan(coords).any():
@@ -332,7 +332,7 @@ class Histogram:
         ----------
         dims: (int,int)
             indices of which dimensions to draw
-        kwargs: 
+        kwargs:
             arguments to pass to matplotlib `pcolormesh` command
         """
         from matplotlib import pyplot
@@ -380,7 +380,7 @@ class Histogram:
 
         self._nbins = nbins
         self.data = ndimage.map_coordinates(self.data, coords)
-        self._binLowerEdges = None  # need to be recalculated
+        self._bin_lower_edges = None  # need to be recalculated
 
     @property
     def hist(self):
