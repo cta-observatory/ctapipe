@@ -58,6 +58,10 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtyp
         width of single p.e. distribution
     ped: ndarray
         width of pedestal
+    width_fac: float
+        Factor to determine range of summation on integral
+    dtype: datatype
+        Data type of output array
     Returns
     -------
     ndarray: likelihood for each pixel
@@ -68,9 +72,9 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtyp
     spe_width = np.asarray(spe_width, dtype=dtype)
     ped = np.asarray(ped, dtype=dtype)
 
-    if image.shape[0] is not prediction.shape[0]:
+    if image.shape[0] != prediction.shape[0]:
         raise PixelLikelihoodError("Image and prediction arrays have different dimensions",
-                                   "Image shape: ",image.shape, "Prediction shape: ", prediction.shape)
+                                   "Image shape: ",image.shape[0], "Prediction shape: ", prediction.shape[0])
 
     max_val = np.max(image)
     min_val = np.max(image)
@@ -101,6 +105,50 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtyp
     like = first_term * second_term
     return -2 * np.log(np.sum(like, axis=0))
 
+
+def poisson_likelihood_safe(image, prediction, spe_width, ped, pedestal_safety=2, width_fac=3, dtype=np.float32):
+    """
+
+    Parameters
+    ----------
+    image: ndarray
+        Pixel amplitudes from image
+    prediction: ndarray
+        Predicted pixel amplitudes from model
+    spe_width: ndarray
+        width of single p.e. distribution
+    ped: ndarray
+        width of pedestal
+    pedestal_safety: float
+        Decision point to choose between poissonian likelihood and gaussian approximation (p.e. resolution)
+    width_fac: float
+        Factor to determine range of summation on integral
+    dtype: datatype
+        Data type of output array
+    Returns
+    -------
+    ndarray: pixel likelihoods
+    """
+    # Convert everything to arrays to begin
+    image = np.asarray(image, dtype=dtype)
+    prediction= np.asarray(prediction, dtype=dtype)
+    spe_width = np.asarray(spe_width, dtype=dtype)
+    ped = np.asarray(ped, dtype=dtype)
+
+    # Calculate photoelectron resolution
+    width = 2 * (ped*ped + image*spe_width*spe_width)
+    like = np.zeros(image.shape)
+    # If larger than safety value use gaussian approx
+    poisson_pix = width<pedestal_safety
+    gaus_pix = width>pedestal_safety
+
+    like[poisson_pix] = poisson_likelihood_full(image[poisson_pix], prediction[poisson_pix],
+                                                spe_width, ped, width_fac, dtype)
+
+    like[gaus_pix] = poisson_likelihood_gaussian(image[gaus_pix], prediction[gaus_pix],
+                                                 spe_width, ped)
+
+    return like
 
 def chi_squared(image, prediction, ped, error_factor=2.9):
     """
