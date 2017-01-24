@@ -44,7 +44,7 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     return -2 * np.log(sq * expo)
 
 
-def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3):
+def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtype=np.float32):
     """
     Calculate likelihood of prediction given the measured signal, full numerical integration from
     de Naurois et al 2009
@@ -63,14 +63,14 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3):
     ndarray: likelihood for each pixel
     """
 
-    image = np.asarray(image)
-    prediction= np.asarray(prediction)
-    spe_width = np.asarray(spe_width)
-    ped = np.asarray(ped)
+    image = np.asarray(image, dtype=dtype)
+    prediction= np.asarray(prediction, dtype=dtype)
+    spe_width = np.asarray(spe_width, dtype=dtype)
+    ped = np.asarray(ped, dtype=dtype)
 
-    if image.shape is not prediction.shape:
-        PixelLikelihoodError("Image and prediction arrays have different dimensions",
-                             "Image shape: ",image.shape, "Prediction shape: ", prediction.shape)
+    if image.shape[0] is not prediction.shape[0]:
+        raise PixelLikelihoodError("Image and prediction arrays have different dimensions",
+                                   "Image shape: ",image.shape, "Prediction shape: ", prediction.shape)
 
     max_val = np.max(image)
     min_val = np.max(image)
@@ -78,7 +78,6 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3):
     max_sum = max_val + width_fac * np.sqrt(max_val)
     if max_sum<10:
         max_sum = 10
-    min_sum = max_val + width_fac * np.sqrt(max_val)
 
     pe_summed = np.arange(max_sum) # Need to decide how range is determined
     pe_factorial = factorial(pe_summed)
@@ -87,6 +86,13 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3):
     first_term /= pe_factorial[:,np.newaxis] * \
                   np.sqrt(math.pi*2 * (ped*ped + pe_summed[:,np.newaxis] * spe_width*spe_width))
 
+    # Throw error if we get NaN in likelihood
+    if np.any(np.isnan(first_term)):
+        raise PixelLikelihoodError("Likelihood returning NaN, likely due to extremely high signal"
+                                   " deviation. Switch to poisson_likelihood_safe implementation or"
+                                   " increase floating point precision e.g. dtype=float64")
+
+    # Should not have any porblems here with NaN that have not bee seens
     second_term = (image-pe_summed[:,np.newaxis])*(image-pe_summed[:,np.newaxis])
     second_term_denom = 2*(ped*ped + spe_width*spe_width*pe_summed[:,np.newaxis])
 
