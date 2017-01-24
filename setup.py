@@ -34,6 +34,8 @@ entry_points['console_scripts'] = [
     'ctapipe-flow = ctapipe.flow.flow:main'
 ]
 
+package.version.update_release_version()
+
 setup(name=PACKAGENAME,
       packages=[PACKAGENAME],
       version=package.version.get_version(pep440=True),
