@@ -357,7 +357,7 @@ class Histogram:
         pyplot.plot(self.bin_centers(dim), self.data, drawstyle='steps-mid',
                     **kwargs)
 
-    def interpolate(self, nbins):
+    def resample_inplace(self, nbins):
         """
         Change the shape of the histogram using an n-dimensional
         interpolation function (via `ndimage.map_coordinates`).
@@ -365,7 +365,7 @@ class Histogram:
         Parameters
         ----------
         nbins: tuple of int
-            a tuple of the new number of bins to interpolate
+            a tuple of the new number of bins to resample_inplace
             this histogram over (e.g. if the original histogram was
             (100,100), setting bins to (200,200) would provide double
             the resolution, with the interviening bins interpolated.
