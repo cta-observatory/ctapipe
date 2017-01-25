@@ -38,8 +38,9 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     diff = np.power(image - prediction, 2.)
     denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
     expo = np.exp(-1 * diff / denom)
-    sm = expo < 1e-300
-    expo[sm] = 1e-300
+
+    min_prob = np.finfo(expo.dtype).tiny # If we are outside of the range of datatype, fix to lower bound
+    expo[expo<min_prob] = min_prob
 
     return -2 * np.log(sq * expo)
 
@@ -47,7 +48,10 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
 def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtype=np.float32):
     """
     Calculate likelihood of prediction given the measured signal, full numerical integration from
-    de Naurois et al 2009
+    de Naurois et al 2009. The width factor included here defines the range over which photo electron contributions
+    are summed, and is defined as a multiple of the expected resolution of the highest amplitude pixel. For
+    most applications the defult of 3 is sufficient.
+
     Parameters
     ----------
     image: ndarray
@@ -77,11 +81,10 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtyp
                                    "Image shape: ",image.shape[0], "Prediction shape: ", prediction.shape[0])
 
     max_val = np.max(image)
-    min_val = np.max(image)
 
-    max_sum = max_val + width_fac * np.sqrt(max_val)
-    if max_sum<10:
-        max_sum = 10
+    max_sum = max_val + width_fac*np.sqrt(ped*ped + max_val*spe_width*spe_width)
+    if max_sum<5:
+        max_sum = 5
 
     pe_summed = np.arange(max_sum) # Need to decide how range is determined
     pe_factorial = factorial(pe_summed)
@@ -102,12 +105,20 @@ def poisson_likelihood_full(image, prediction, spe_width, ped, width_fac=3, dtyp
 
     second_term = second_term/second_term_denom
     second_term = np.exp(-1 * second_term)
+
+    min_prob = np.finfo(second_term.dtype).tiny # If we are outside of the range of datatype, fix to lower bound
+    second_term[second_term<min_prob] = min_prob
+
     like = first_term * second_term
     return -2 * np.log(np.sum(like, axis=0))
 
 
-def poisson_likelihood_safe(image, prediction, spe_width, ped, pedestal_safety=2, width_fac=3, dtype=np.float32):
+def poisson_likelihood(image, prediction, spe_width, ped, pedestal_safety=1.5, width_fac=3, dtype=np.float32):
     """
+    Safe implementation of the poissonian likelihood implementation , adaptively switches between the full
+    solution and the gaussian approx depending on the signal. Pedestal safety parameter determines cross
+    over point between the two solutions, based on the expected p.e. resolution of the image pixels. Therefore
+    the cross over point will change dependent on the single p.e. resolution and pedestal levels.
 
     Parameters
     ----------
@@ -136,7 +147,11 @@ def poisson_likelihood_safe(image, prediction, spe_width, ped, pedestal_safety=2
     ped = np.asarray(ped, dtype=dtype)
 
     # Calculate photoelectron resolution
-    width = 2 * (ped*ped + image*spe_width*spe_width)
+
+    width = ped*ped + image*spe_width*spe_width
+    width[width<0] = 0 # Set width to 0 for negative pixel amplitudes
+    width = np.sqrt(width)
+
     like = np.zeros(image.shape)
     # If larger than safety value use gaussian approx
     poisson_pix = width<pedestal_safety
