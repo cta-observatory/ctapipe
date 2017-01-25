@@ -134,9 +134,11 @@ def test_convert_geometry():
             '''
             test if the hillas parameters from the original geometry and the
             forth-and-back rotated geometry are close '''
-            np.testing.assert_allclose(
-                [moments1.length, moments1.width, moments1.phi],
-                [moments2.length, moments2.width, moments2.phi],
+            assert np.allclose(
+                [moments1.length.value, moments1.width.value,
+                 moments1.phi.value],
+                [moments2.length.value, moments2.width.value,
+                 moments2.phi.value],
                 rtol=1e-2, atol=1e-2)
             counter -= 1
             if counter < 0:
