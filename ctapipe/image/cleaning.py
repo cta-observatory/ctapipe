@@ -2,7 +2,7 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
-__all__ = ['tailcuts_clean', 'clean_single_pixels', 'dilate']
+__all__ = ['tailcuts_clean', 'dilate']
 
 
 def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
@@ -32,8 +32,6 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
         high threshold as multiple of the pedvar
     boundary_thresh: float
         low-threshold as mutiple of pedvar (+ nearest neighbor)
-    keep_single_pixels: bool
-        retain single pixels in the resulting cleaned mask
     Returns
     -------
 
@@ -54,11 +52,6 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     clean_mask[boundary_ids] = True
     return clean_mask
-
-
-def clean_single_pixels(geom, mask):
-
-    mask = [pix_id for pix_id in geom.pix_id[mask] if mask[geom.neighbors[pix_id]].any()]
 
 
 def dilate(geom, mask):

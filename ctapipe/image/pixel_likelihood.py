@@ -4,7 +4,6 @@ import numpy as np
 import math
 from scipy.misc import factorial
 from scipy.integrate import quad
-from numpy import vectorize
 
 class PixelLikelihoodError(RuntimeError):
     pass
