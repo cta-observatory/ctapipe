@@ -27,6 +27,9 @@ docs/_build
 # Pycharm editor project files
 .idea
 
+# KDevelop editor project files
+*kdev4
+
 # Packages/installer info
 *.egg
 *.eggs
@@ -60,3 +63,6 @@ distribute-*.tar.gz
 .cache
 
 *.out
+
+#sonarlint command-line output
+.sonarlint

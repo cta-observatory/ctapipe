@@ -45,11 +45,12 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.coverage',
               'sphinx.ext.viewcode',
-              'sphinx.ext.githubpages']
+              'sphinx.ext.githubpages',
+              'sphinx.ext.mathjax']
 
 
 extensions += ['sphinx_automodapi.automodapi',
-               'matplotlib.sphinxext.mathmpl',
+#               'matplotlib.sphinxext.mathmpl',
                'matplotlib.sphinxext.only_directives',
                'matplotlib.sphinxext.plot_directive',
                'numpydoc']

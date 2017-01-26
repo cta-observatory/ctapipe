@@ -12,7 +12,7 @@ def create_sample_image():
 
     # make a toymodel shower model
     model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.3),
-                                              width=0.01, length=0.1,
+                                              width=0.001, length=0.01,
                                               psi='30d')
 
     # generate toymodel image in camera for this shower model.
