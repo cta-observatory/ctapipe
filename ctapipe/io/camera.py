@@ -27,7 +27,7 @@ _npix_to_type = {
     (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
     (1296, None):  ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None):  ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 90. * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
@@ -153,6 +153,30 @@ class CameraGeometry:
 # utility functions:
 # ======================================================================
 
+def get_min_pixel_seperation(pix_x, pix_y):
+    """
+    Obtain the minimum seperation between two pixels on the camera
+
+    Parameters
+    ----------
+    pix_x : array_like
+        x position of each pixel
+    pix_y : array_like
+        y position of each pixels
+
+    Returns
+    -------
+    pixsep : astropy.units.Unit
+
+    """
+    #    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
+    #    dy = pix_y[1] - pix_y[0]
+
+    dx = pix_x - pix_x[0]
+    dy = pix_y - pix_y[0]
+    pixsep = np.min(np.sqrt(dx ** 2 + dy ** 2)[1:])
+    return pixsep
+
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
     """use a KD-Tree to quickly find nearest neighbors of the pixels in a
@@ -203,16 +227,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
     - the pixels are square or hexagonal
     """
 
-#    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
-#    dy = pix_y[1] - pix_y[0]
-
-    pixsep = []
-    for ipix in range(1, len(pix_x)):
-        dx = pix_x[ipix] - pix_x[0]
-        dy = pix_y[ipix] - pix_y[0]
-        pixsep.append (np.sqrt(dx ** 2 + dy ** 2))  # dist between pixels 0 and ipix
-
-    dist = min(pixsep)
+    dist = get_min_pixel_seperation(pix_x, pix_y)
 
     tel_type, cam_id, pix_type, pix_rotation, cam_rotation = _guess_camera_type(
         len(pix_x), optical_foclen
