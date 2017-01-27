@@ -1,9 +1,47 @@
-# Class for calculation of likelihood of a pixel expectation, given the pixel amplitude
-# and typically the level of noise in the pixel
-import numpy as np
+"""
+Class for calculation of likelihood of a pixel expectation, given the pixel amplitude,
+the level of noise in the pixel and the photoelectron resolution. This calculation is
+taken from:
+de Naurois & Rolland, Astroparticle Physics, Volume 32, Issue 5, p. 231-252 (2009)
+https://arxiv.org/abs/0907.2610
+
+The likelihood is essentially a poissonian convolved with a gaussian, at low signal
+a full possonian approach must be adopted, which requires the sum of contibutions
+over a number of potential contributing photoelectrons (which is slow and can fail
+at high signals due to the factorial which mst be calculated). At high signal this
+simplifies to a gaussian approximation.
+
+The full and gaussian approximations are implemented, in addition to a general purpose
+implementation, which tries to intellegently switch between the two. Speed tests are below:
+
+poisson_likelihood_gaussian(image, prediction, spe, ped)
+29.8 µs per loop
+
+poisson_likelihood_full(image, prediction, spe, ped)
+93.4 µs per loop
+
+poisson_likelihood(image, prediction, spe, ped)
+59.9 µs per loop
+
+TODO:
+=====
+- Need to implement more tests, particularly checking for error states
+- Additional terms may be useful to add to the likelihood
+"""
+
 import math
-from scipy.misc import factorial
+
+import numpy as np
 from scipy.integrate import quad
+from scipy.misc import factorial
+
+__all__ = [
+    'poisson_likelihood_gaussian',
+    'poisson_likelihood_full',
+    'poisson_likelihood',
+    'mean_poisson_likelihood_gaussian',
+    'mean_poisson_likelihood_full',
+]
 
 
 class PixelLikelihoodError(RuntimeError):
@@ -14,6 +52,7 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     """
     Calculate likelihood of prediction given the measured signal, gaussian approx from
     de Naurois et al 2009
+
     Parameters
     ----------
     image: ndarray
@@ -24,6 +63,7 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
         width of single p.e. distributio
     ped: ndarray
         width of pedestal
+
     Returns
     -------
     ndarray: likelihood for each pixel
@@ -69,6 +109,7 @@ def poisson_likelihood_full(
         Factor to determine range of summation on integral
     dtype: datatype
         Data type of output array
+
     Returns
     -------
     ndarray: likelihood for each pixel
@@ -147,6 +188,7 @@ def poisson_likelihood(image, prediction, spe_width, ped,
         Factor to determine range of summation on integral
     dtype: datatype
         Data type of output array
+
     Returns
     -------
     ndarray: pixel likelihoods
@@ -165,7 +207,7 @@ def poisson_likelihood(image, prediction, spe_width, ped,
 
     like = np.zeros(image.shape)
     # If larger than safety value use gaussian approx
-    poisson_pix = width < pedestal_safety
+    poisson_pix = width <= pedestal_safety
     gaus_pix = width > pedestal_safety
 
     if np.any(poisson_pix):
@@ -191,6 +233,7 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
         width of single p.e. distribution
     ped: ndarray
         width of pedestal
+
     Returns
     -------
     ndarray: mean likelihood for give pixel expectation
@@ -227,6 +270,7 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
         width of single p.e. distribution
     ped: ndarray
         width of pedestal
+
     Returns
     -------
     ndarray: mean likelihood for give pixel expectation
