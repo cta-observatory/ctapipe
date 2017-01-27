@@ -41,6 +41,8 @@ __all__ = [
     'poisson_likelihood',
     'mean_poisson_likelihood_gaussian',
     'mean_poisson_likelihood_full',
+    'PixelLikelihoodError',
+    'chi_squared'
 ]
 
 
