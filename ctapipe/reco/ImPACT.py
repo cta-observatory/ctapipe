@@ -10,6 +10,7 @@ from ctapipe.reco.table_interpolator import TableInterpolator
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+from ctapipe.image import pixel_likelihood
 
 
 class ImPACTFitter(object):
@@ -355,10 +356,10 @@ class ImPACTFitter(object):
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
             # Get likelihood that the prediction matched the camera image
-            like = self.calc_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
+            like = pixel_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
             sum_like += np.sum(like)
 
-        return -2 * sum_like  # Multiply by -2 to make is chi-squared like
+        return sum_like
 
     def get_likelihood_min(self, x):
         """
@@ -374,39 +375,6 @@ class ImPACTFitter(object):
         float: Likelihood value of test position
         """
         return self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
-
-
-    @staticmethod
-    def calc_likelihood(image, prediction, spe_width, ped):
-        """
-        Calculate likelihood of prediction given the measured signal, gaussian approx from
-        de Naurois et al 2009
-
-        Parameters
-        ----------
-        image: ndarray
-            Pixel amplitudes from image
-        prediction: ndarray
-            Predicted pixel amplitudes from model
-        spe_width: ndarray
-            width of single p.e. distributio
-        ped: ndarray
-            width of pedestal
-
-        Returns
-        -------
-        ndarray: likelihood for each pixel
-        """
-        sq = 1./np.sqrt(2 * math.pi * (np.power(ped, 2)
-                                       + prediction * (1 + np.power(spe_width, 2))))
-
-        diff = np.power(image - prediction, 2.)
-        denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
-        expo = np.exp(-1 * diff / denom)
-        sm = expo<1e-300
-        expo[sm] = 1e-300
-
-        return np.log(sq*expo)
 
     def set_event_properties(self, image, pixel_x, pixel_y, pixel_area, type_tel, tel_x, tel_y):
         """
