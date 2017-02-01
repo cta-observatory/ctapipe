@@ -264,7 +264,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
     def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
         """
-        creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas parameters
+        creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas
+        parameters
 
         Parameters
         ----------
@@ -305,18 +306,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             direction of origin of the reconstructed shower as a 3D vector
         crossings : shape (n,3) list
             list of all the crossings of the `GreatCircle`s
-
-        Raises
-        ------
-        TooFewTelescopesException
-            if len(self.circles) < 2
         '''
-
-        # stereoscopy needs at least two telescopes
-        if len(self.circles) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}"
-                .format(len(self.circles)))
 
         crossings = []
         for perm in combinations(self.circles.values(), 2):
@@ -458,16 +448,18 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             # weight here
             D[i] = np.dot(A[i], circle.pos[:2])
 
-        try:
-            # now do the math from equation (2) and return the result
-            ATA = np.dot(A.T, A)
-            ATAinv = np.linalg.inv(ATA)
-            ATAinvAT = np.dot(ATAinv, A.T)
-            return np.dot(ATAinvAT, D) * unit
-        except npLinAlgError:
-            # does basically the same -- just catches some "singular matrix" errors
-            D = np.linalg.lstsq(A, D)[0] * unit
-            return D
+        # the math from equation (2) would look like this:
+        # ATA = np.dot(A.T, A)
+        # ATAinv = np.linalg.inv(ATA)
+        # ATAinvAT = np.dot(ATAinv, A.T)
+        # return np.dot(ATAinvAT, D) * unit
+
+        # instead used directly the numpy implementation
+        # speed is the same, just handles already "SingularMatrixError"
+
+        print(np.linalg.lstsq(A, D)[:2])
+        D, r = np.linalg.lstsq(A, D)[:2]
+        return D * unit, r * unit**2
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up great circles
