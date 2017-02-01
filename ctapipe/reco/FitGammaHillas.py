@@ -7,7 +7,6 @@ from astropy.utils.decorators import deprecated
 from itertools import combinations, permutations
 
 import numpy as np
-from numpy.linalg import LinAlgError as npLinAlgError
 
 from scipy.optimize import minimize
 
@@ -456,10 +455,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         # instead used directly the numpy implementation
         # speed is the same, just handles already "SingularMatrixError"
-
-        print(np.linalg.lstsq(A, D)[:2])
-        D, r = np.linalg.lstsq(A, D)[:2]
-        return D * unit, r * unit**2
+        return np.linalg.lstsq(A, D)[0] * u.m
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up great circles
