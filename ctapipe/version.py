@@ -86,19 +86,23 @@ def call_git_describe(abbrev=7):
 
 def format_git_describe(git_str, pep440=False):
     """format the result of calling 'git describe' as a python version"""
-    if git_str is None:
-        return None
+
     if "-" not in git_str:  # currently at a tag
-        return git_str
+        formatted_str = git_str
     else:
         # formatted as version-N-githash
         # want to convert to version.postN-githash
         git_str = git_str.replace("-", ".post", 1)
         if pep440:  # does not allow git hash afterwards
-            return git_str.split("-")[0]
+            formatted_str = git_str.split("-")[0]
         else:
-            return git_str.replace("-g", "+git")
+            formatted_str = git_str.replace("-g", "+git")
 
+    # need to remove the "v" to have a proper python version
+    if formatted_str.startswith('v'):
+        formatted_str = formatted_str[1:]
+
+    return formatted_str
 
 def read_release_version():
     """Read version information from VERSION file"""

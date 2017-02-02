@@ -60,3 +60,6 @@ distribute-*.tar.gz
 .cache
 
 *.out
+
+#sonarlint command-line output
+.sonarlint
