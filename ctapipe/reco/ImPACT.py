@@ -9,9 +9,9 @@ from astropy import units as u
 from ctapipe.reco.table_interpolator import TableInterpolator
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
-from ctapipe.image import pixel_likelihood
-
+from ctapipe.image import poisson_likelihood
+from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
+from ctapipe.coordinates import HorizonFrame, NominalFrame
 
 class ImPACTFitter(object):
     """
@@ -20,6 +20,14 @@ class ImPACTFitter(object):
     Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
     This method uses a comparision of the predicted image from a library of image templates
     to perform a maximum likelihood fit for the shower axis, energy and height of maximum.
+
+    Because this application is computationally intensive the usual advice to use astropy units
+    for all quantities is ignored (as these slow down some computations), instead units within the
+    class are fixed:
+    - Angular units in radians
+    - Distance units in metres
+    - Energy units in TeV
+
     """
     def __init__(self, fit_xmax=True, root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/"):
 
@@ -55,29 +63,31 @@ class ImPACTFitter(object):
         self.peak_x = 0
         self.peak_y = 0
         self.peak_amp = 0
-        self.fit_xmax = fit_xmax
-        self.unit = u.deg
 
-    def initialise_templates(self, type):
+        self.fit_xmax = fit_xmax
+        self.ped = dict()
+
+        self.array_direction = 0
+
+    def initialise_templates(self, tel_type):
         """
 
         Parameters
         ----------
-        type
+        tel_type
 
         Returns
         -------
 
         """
-        for t in type:
-            if t in self.prediction.keys():
+        for t in tel_type:
+            if tel_type[t] in self.prediction.keys():
                 continue
 
-            self.prediction[t] = \
-                TableInterpolator(self.root_dir + self.file_names[t])
+            self.prediction[tel_type[t]] = \
+                TableInterpolator(self.root_dir + self.file_names[tel_type[t]])
 
         return True
-
 
     def get_brightest_mean(self, num_pix=3):
         """
@@ -94,28 +104,32 @@ class ImPACTFitter(object):
         -------
             None
         """
-        peak_x = np.zeros([len(self.pixel_x)]) # Create blank arrays for peaks
+        peak_x = np.zeros([len(self.pixel_x)]) # Create blank arrays for peaks rather than a dict (faster)
         peak_y = np.zeros(peak_x.shape)
         peak_amp = np.zeros(peak_x.shape)
-        unit = self.pixel_x[0].unit
+        #unit = self.pixel_x[0].unit
 
         # Loop over all tels to take weighted average of pixel positions
         # This loop could maybe be replaced by an array operation by a numpy wizard
-        for im, px, py, tel_num in zip(self.image, self.pixel_x, self.pixel_y, range(len(self.pixel_y))):
-            top_index = im.argsort()[-1*num_pix:][::-1]
-            weight = im[top_index]
-            weighted_x = px[top_index] * weight
-            weighted_y = py[top_index] * weight
+        #for im, px, py, tel_num in zip(self.image, self.pixel_x, self.pixel_y, range(len(self.pixel_y))):
+
+        tel_num = 0
+        for tel in self.image:
+            top_index = self.image[tel].argsort()[-1*num_pix:][::-1]
+            weight = self.image[tel][top_index]
+            weighted_x = self.pixel_x[tel][top_index] * weight
+            weighted_y = self.pixel_y[tel][top_index] * weight
 
             ppx = np.sum(weighted_x)/np.sum(weight)
             ppy = np.sum(weighted_y)/np.sum(weight)
 
-            peak_x[tel_num] = ppx.value # Fill up array
-            peak_y[tel_num] = ppy.value
+            peak_x[tel_num] = ppx # Fill up array
+            peak_y[tel_num] = ppy
             peak_amp[tel_num] = np.sum(weight)
+            tel_num+=1
 
-        self.peak_x = peak_x * unit # Add to class member
-        self.peak_y = peak_y * unit
+        self.peak_x = peak_x #* unit # Add to class member
+        self.peak_y = peak_y #* unit
         self.peak_amp = peak_amp
 
     # This function would be useful elsewhere so probably be implemented in a more general form
@@ -143,11 +157,11 @@ class ImPACTFitter(object):
         """
 
         # Calculate displacement of image centroid from source position (in rad)
-        disp = np.sqrt(np.power(self.peak_x.to(u.rad).value-source_x, 2) +
-                       np.power(self.peak_y.to(u.rad).value-source_y, 2))
+        disp = np.sqrt(np.power(self.peak_x-source_x, 2) +
+                       np.power(self.peak_y-source_y, 2))
         # Calculate impact parameter of the shower
-        impact = np.sqrt(np.power(self.tel_pos_x.to(u.m).value-core_x, 2) +
-                         np.power(self.tel_pos_y.to(u.m).value-core_y, 2))
+        impact = np.sqrt(np.power(np.array(list(self.tel_pos_x.values()))-core_x, 2) +
+                         np.power(np.array(list(self.tel_pos_y.values()))-core_y, 2))
 
         height = impact / disp  # Distance above telescope is ration of these two (small angle)
         weight = np.sqrt(self.peak_amp)  # weight average by amplitude
@@ -223,27 +237,10 @@ class ImPACTFitter(object):
         ndarray: predicted amplitude for all pixels
         """
 
-        return self.prediction[type].interpolate([energy.to(u.TeV).value,impact.to(u.m).value,x_max],
-                                                 pix_x, pix_y)
+        return self.prediction[type].interpolate([energy,impact,x_max], pix_x, pix_y)
 
     def get_prediction(self, tel, source_x, source_y, core_x, core_y, energy, x_max_scale, zenith):
-        """
 
-        Parameters
-        ----------
-        tel
-        source_x
-        source_y
-        core_x
-        core_y
-        energy
-        x_max_scale
-        zenith
-
-        Returns
-        -------
-
-        """
         zenith = 20*u.deg
         if self.fit_xmax:
             x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
@@ -291,7 +288,7 @@ class ImPACTFitter(object):
             Core position of shower in tilted telescope system (in m)
         energy: float
             Shower energy (in TeV)
-        x_max_scale:
+        x_max_scale: float
             Scaling factor applied to geometrically calculated Xmax
 
         Returns
@@ -303,25 +300,18 @@ class ImPACTFitter(object):
         # First we add units back onto everything.
         # Currently not handled very well, maybe in future we could just put everything in the correct units
         # when loading in the class and ignore them from then on
-        source_x *= u.deg
-        source_y *= u.deg
-        core_x *= u.m
-        core_y *= u.m
 
-        energy *= u.TeV
-
-        # Hardcoded for now, will be a coordinate transform later
-        zenith = 20*u.deg
-        azimuth = 0*u.deg
+        zenith = 90*u.deg - self.array_direction[0]
+        azimuth = self.array_direction[1]
         # Geometrically calculate the depth of maximum given this test position
 
         if self.fit_xmax:
-            x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
-                                        core_x.to(u.m).value, core_y.to(u.m).value,
+            x_max = self.get_shower_max(source_x, source_y,
+                                        core_x, core_y,
                                         zenith.to(u.rad).value) * x_max_scale
 
             # Calculate expected Xmax given this energy
-            x_max_exp = 343 + 84 * np.log10(energy.value)
+            x_max_exp = 343 + 84 * np.log10(energy)
             # Convert to binning of Xmax, addition of 100 can probably be removed
             x_max_bin = x_max.value - x_max_exp
 
@@ -335,20 +325,20 @@ class ImPACTFitter(object):
             if x_max_bin< 13:
                 x_max_bin = 13
 
-        # Calculate impact distance for all telescopes
-        impact = np.sqrt(pow(self.tel_pos_x - core_x, 2) + pow(self.tel_pos_y - core_y, 2))
-        # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_x - core_x), (self.tel_pos_y - core_y))
-
         sum_like = 0
-        for tel_count in range(self.image.shape[0]):  # Loop over all telescopes
+        for tel_count in self.image:  # Loop over all telescopes
+            # Calculate impact distance for all telescopes
+            impact = np.sqrt(pow(self.tel_pos_x[tel_count] - core_x, 2) + pow(self.tel_pos_y[tel_count] - core_y, 2))
+            # And the expected rotation angle
+            phi = np.arctan2((self.tel_pos_x[tel_count] - core_x), (self.tel_pos_y[tel_count] - core_y))
+
             # Rotate and translate all pixels such that they match the template orientation
             pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_count], self.pixel_y[tel_count],
-                                                         source_x, source_y, phi[tel_count])
+                                                         source_x, source_y, phi)
 
             # Then get the predicted image
             prediction = self.image_prediction(self.type[tel_count], zenith, azimuth,
-                                               energy, impact[tel_count], x_max_bin,
+                                               energy, impact, x_max_bin,
                                                pix_x_rot, pix_y_rot)
             prediction[prediction<0] = 0
             prediction[np.isnan(prediction)] = 0
@@ -356,7 +346,7 @@ class ImPACTFitter(object):
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
             # Get likelihood that the prediction matched the camera image
-            like = pixel_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
+            like = poisson_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
             sum_like += np.sum(like)
 
         return sum_like
@@ -376,7 +366,7 @@ class ImPACTFitter(object):
         """
         return self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
 
-    def set_event_properties(self, image, pixel_x, pixel_y, pixel_area, type_tel, tel_x, tel_y):
+    def set_event_properties(self, image, pixel_x, pixel_y, pixel_area, type_tel, tel_x, tel_y, array_direction):
         """
         The setter class is used to set the event properties within this class before minimisation
         can take place. This simply copies a bunch of useful properties to class members, so that we
@@ -384,19 +374,19 @@ class ImPACTFitter(object):
 
         Parameters
         ----------
-        image: ndarray
+        image: dictionary
             Amplitude of pixels in camera images
-        pixel_x: list
+        pixel_x: dictionary
             X position of pixels in nominal system
-        pixel_y: list
+        pixel_y: dictionary
             Y position of pixels in nominal system
-        pixel_area: list
+        pixel_area: dictionary
             Area of pixel in each telescope type
-        type_tel: list
+        type_tel: dictionary
             Type of telescope
-        tel_x: list
+        tel_x: dictionary
             X position of telescope
-        tel_y: list
+        tel_y: dictionary
             Y position of telescope
 
         Returns
@@ -405,41 +395,33 @@ class ImPACTFitter(object):
         """
         # First store these parameters in the class so we can use them in minimisation
         # For most values this is simply copying
-        self.image = np.asarray(image)
+        self.image = image
 
-        self.pixel_x = pixel_x
-        self.pixel_y = pixel_y
+        self.pixel_x = dict()
+        self.pixel_y = dict()
 
-        self.unit = pixel_x[0].unit
+        self.tel_pos_x = dict()
+        self.tel_pos_y = dict()
+        self.pixel_area = dict()
+        self.ped = dict()
 
-        # However in this case we need the value to be in a numpy array,
-        # so we have t be careful how we copy it
-        tel_unit = tel_x[0].unit
-        tel_x_array = np.zeros(len(tel_x))
-        tel_y_array = np.zeros(len(tel_x))
-
-        pixel_area_array = np.zeros(len(tel_x))
-        area_unit = pixel_area[0].unit
-        ped = np.zeros(len(tel_x))
         # So here we must loop over the telescopes
-        for x in range(len(tel_x)):
-            tel_x_array[x] = tel_x[x].value
-            tel_y_array[x] = tel_y[x].value
-            pixel_area_array[x] = pixel_area[x].value
-            ped[x] = self.ped_table[type_tel[x]] # Here look up pedestal value
+        for x in tel_x:
+            self.pixel_x[x] = pixel_x[x].to(u.rad).value
+            self.pixel_y[x] = pixel_y[x].to(u.rad).value
 
-        self.pixel_area = pixel_area_array * area_unit
+            self.tel_pos_x[x] = tel_x[x].value
+            self.tel_pos_y[x] = tel_y[x].value
+            self.pixel_area[x] = pixel_area[x].value
+            self.ped[x] = self.ped_table[type_tel[x]] # Here look up pedestal value
 
-        self.tel_pos_x = tel_x_array * tel_unit
-        self.tel_pos_y = tel_y_array * tel_unit
-
-        self.get_brightest_mean(num_pix=5)
+        self.get_brightest_mean(num_pix=3)
         self.type = type_tel
         self.initialise_templates(type_tel)
 
-        self.ped = ped
+        self.array_direction= array_direction
 
-    def fit_event(self, source_x, source_y, core_x, core_y, energy):
+    def predict(self, source_x, source_y, core_x, core_y, energy):
         """
 
         Parameters
@@ -459,7 +441,7 @@ class ImPACTFitter(object):
         -------
         Shower object with fit results
         """
-
+        print("here")
         # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
         min = Minuit(self.get_likelihood, print_level=1,
                      source_x=source_x.value, error_source_x=0.01, fix_source_x=False,
@@ -475,15 +457,33 @@ class ImPACTFitter(object):
         # Perform minimisation
         migrad = min.migrad()
         fit_params = min.values
-        print(fit_params)
-        print(min.errors)
 
-        self.draw_surfaces(fit_params["source_x"]*u.deg, fit_params["source_y"]*u.deg,
-                           fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
-                           fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
+        # container class for reconstructed showers '''
+        shower_result = ReconstructedShowerContainer()
+
+        nominal = NominalFrame(x=fit_params["source_x"] * u.rad, y=fit_params["source_y"] * u.rad,
+                               array_direction=self.array_direction)
+        horizon = nominal.transform_to(HorizonFrame())
+
+        # TODO make sure az and phi turn in same direction...
+        shower_result.alt, shower_result.az = horizon.alt, horizon.az
+        shower_result.core_x = fit_params["core_x"] * u.m
+        shower_result.core_y = fit_params["core_y"] * u.m
+
+        shower_result.is_valid = True
+
+        shower_result.alt_uncert = np.nan
+        shower_result.az_uncert = np.nan
+        shower_result.core_uncert = np.nan
+        shower_result.h_max = np.nan
+        shower_result.h_max_uncert = np.nan
+        shower_result.goodness_of_fit = np.nan
+
+        energy_result = ReconstructedEnergyContainer()
+        energy_result.energy = fit_params["energy"] * u.TeV
 
         # Return interesting stuff
-        return fit_params
+        return shower_result, energy_result
 
     def draw_surfaces(self, x_src, y_src, x_grd, y_grd, energy, xmax):
         """
