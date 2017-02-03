@@ -26,7 +26,6 @@ def test_ImPACT_fit():
     in the end, proper units in the output are asserted '''
 
     filename = "/Users/dparsons/Desktop/gamma_20deg_180deg_run9021___cta-prod3-merged_desert-2150m-Paranal-subarray-3.simtel.gz"
-    #get_path("gamma_test.simtel.gz")
     ImPACT = ImPACTFitter(root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/", fit_xmax=True)
     tel, cam, opt = ID.load(filename=filename)
 
@@ -38,9 +37,10 @@ def test_ImPACT_fit():
     tel_phi = {}
     tel_theta = {}
 
-    source = hessio_event_source(filename)
+    source = hessio_event_source(filename)# Get source ready to loop over the file
 
     for event in source:
+        # First we need to create some dictionaries with the info we will need for ImPACT
         hillas_dict = {}
         image = {}
         pixel_x = {}
@@ -50,7 +50,9 @@ def test_ImPACT_fit():
         tel_x = {}
         tel_y = {}
 
-        calibrator.calibrate(event)
+        calibrator.calibrate(event) # calibrate the events
+
+        # store MC pointing direction for the array
         array_pointing = np.array((event.mcheader.run_array_direction[1], event.mcheader.run_array_direction[0])) * \
                          u.rad
 
@@ -73,6 +75,7 @@ def test_ImPACT_fit():
 
             tel_type[tel_id] = cam_geom[tel_id].cam_id
 
+            # Transform the pixels positions into nominal coordinates
             camera_coord = CameraFrame(x=x, y=y, z=np.zeros(x.shape) * u.m,
                                        focal_length=fl,
                                        rotation= 90*u.deg - cam_geom[tel_id].cam_rotation )
@@ -92,6 +95,7 @@ def test_ImPACT_fit():
             tz = tel['TelescopeTable_VersionFeb2016'][
                 tel['TelescopeTable_VersionFeb2016']['TelID'] == tel_id]['TelZ'][0]
 
+            # ImPACT reconstruction is performed in the tilted system, so we need to transform tel positions
             grd_tel = GroundFrame(x=tx * u.m, y=ty * u.m, z=tz * u.m)
             tilt_tel = grd_tel.transform_to(TiltedGroundFrame(pointing_direction=array_pointing))
 
@@ -110,21 +114,24 @@ def test_ImPACT_fit():
                 print(e)
                 continue
 
+        # Perform Hillas analysis first for seeding the fit
         fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
-
         print(fit_result)
+
+        # Set up the ImPACT class for use in the reconstruction
         ImPACT.set_event_properties(image, pixel_x, pixel_y, pixel_area, tel_type, tel_x, tel_y, array_pointing)
         energy_result = ReconstructedEnergyContainer()
         energy_result.energy = event.mc.energy
 
+        # Perform ImPACT fit
         shower_reco, energy_reco = ImPACT.predict(fit_result, energy_result)
         if len(hillas_dict) < 2: continue
 
         print(shower_reco)
         print(energy_reco)
 
-        assert fit_result.is_valid
-        return
+        #assert fit_result.is_valid
+        #return
 
 if __name__ == "__main__":
     test_ImPACT_fit()
