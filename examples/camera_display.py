@@ -7,7 +7,7 @@ Example of drawing a Camera using a toymodel shower image.
 import matplotlib.pylab as plt
 from ctapipe import io, visualization
 from ctapipe.image import toymodel
-from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
+from ctapipe.image.hillas import hillas_parameters_1 as hillas_parameters
 
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):

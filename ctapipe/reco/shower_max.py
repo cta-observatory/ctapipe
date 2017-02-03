@@ -9,15 +9,15 @@ from scipy import ndimage
 class ShowerMaxEstimator:
 
     def __init__(self, filename, col_altitude=0, col_thickness=2):
-        """ 
+        """
         small class that calculates the height of the shower maximum
-        given a parametrisation of the atmosphere 
+        given a parametrisation of the atmosphere
         and certain parameters of the shower itself
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filename : string
-            path to text file that contains a table of the 
+            path to text file that contains a table of the
             atmosphere parameters
         col_altitude : int
             column in the text file that contains the altitude/height
@@ -34,13 +34,13 @@ class ShowerMaxEstimator:
             altitude.append(float(line.split()[col_altitude]))
             thickness.append(float(line.split()[col_thickness]))
 
-        self.atmosphere = Histogram(axisNames=["altitude"])
-        self.atmosphere.hist = thickness * u.g * u.cm ** -2
-        self.atmosphere.bin_lower_edges = [np.array(altitude) * u.km]
+        self.atmosphere = Histogram(axis_names=["altitude"])
+        self.atmosphere.data = thickness * u.g * u.cm ** -2
+        self.atmosphere._bin_lower_edges = [np.array(altitude) * u.km]
 
     def interpolate(self, arg, outlierValue=0., order=3):
 
-        axis = self.atmosphere._binLowerEdges[0]
+        axis = self.atmosphere.bin_lower_edges[0]
         bin_u = np.digitize(arg.to(axis.unit), axis)
         bin_l = bin_u - 1
 
@@ -52,29 +52,29 @@ class ShowerMaxEstimator:
         coordinate = (argv - bin_u_edge) / (bin_u_edge - bin_l_edge) \
             * (bin_u - bin_l) + bin_u
 
-        return ndimage.map_coordinates(self.atmosphere.hist,
+        return ndimage.map_coordinates(self.atmosphere.data,
                                        [[coordinate]],
                                        order=order,
                                        cval=outlierValue)[0]\
-            * self.atmosphere.hist.unit
+            * self.atmosphere.data.unit
 
     def find_shower_max_height(self, energy, h_first_int, gamma_alt):
-        """ 
+        """
         estimates the height of the shower maximum in the atmosphere
         according to equation (3) in [arXiv:0907.2610v3]
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         energy : astropy.Quantity
             energy of the parent gamma photon
         h_first_int : astropy.Quantity
             hight of the first interaction
         gamma_alt : astropy.Quantity or float
-            altitude / pi-minus-zenith (in radians in case of float) 
+            altitude / pi-minus-zenith (in radians in case of float)
             of the parent gamma photon
 
-        Returns:
-        --------
+        Returns
+        -------
         shower_max_height : astropy.Quantity
             height of the shower maximum
         """
@@ -96,12 +96,14 @@ class ShowerMaxEstimator:
         t_shower_max = t_first_int + c
 
         # now find the height with the wanted thickness
-        for ii, thick1 in enumerate(self.atmosphere.hist):
+        for ii, thick1 in enumerate(self.atmosphere.data):
             if t_shower_max > thick1:
+
                 height1 = self.atmosphere.bin_lower_edges[0][ii]
                 height2 = self.atmosphere.bin_lower_edges[0][ii - 1]
+
                 val = [height2.to(
-                    self.atmosphere._binLowerEdges[0].unit).value]
+                    self.atmosphere.bin_lower_edges[0].unit).value]
                 thick2 = self.atmosphere.get_value(val)[0]
 
                 return (height2 - height1) / (thick2 - thick1) \

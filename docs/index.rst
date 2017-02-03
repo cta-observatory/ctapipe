@@ -22,7 +22,7 @@ pipelines for CTA.
 
 .. CAUTION::
    This is not yet stable code, so expect large and rapid changes to
-   structure and functionality as we explore various design choices. 
+   structure and functionality as we explore various design choices.
 
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
@@ -30,7 +30,7 @@ pipelines for CTA.
 * Python 3.4 or later (Python 2 is not supported)
 
 
-  
+
 .. _ctapipe_docs:
 
 General documentation
@@ -40,7 +40,7 @@ General documentation
   :maxdepth: 1
   :glob:
 
-  getting_started/index   
+  getting_started/index
   development/index
   tools/index
   */index
@@ -58,24 +58,23 @@ Module API Status (relative to next release)
 ================  ===============
  Module           Status
 ================  ===============
-`analysis`        empty           
-`calib`           caution         
-`coordinates`     **stable**                     
-`core`            **stable**      
-`flow`            experimental    
-`instrument`      unstable    
-`pipeline`        deprecated      
-`plotting`        caution         
-`reco`            caution         
-`utils`           **stable**      
-`visualization`   **stable**      
+`analysis`        empty
+`calib`           caution
+`coordinates`     **stable**
+`core`            **stable**
+`flow`            experimental
+`instrument`      unstable
+`pipeline`        deprecated
+`plotting`        caution
+`reco`            caution
+`utils`           **stable**
+`visualization`   **stable**
 ================  ===============
 
-  
+
 Development Help
 ================
 
 * Development workflow examples from AstroPy: http://astropy.readthedocs.org/en/latest/development/workflow/development_workflow.html
 * GIT tutorial: https://www.atlassian.com/git/tutorials/syncing/git-pull
 * Code distribution and Packaging https://packaging.python.org/en/latest/
-  

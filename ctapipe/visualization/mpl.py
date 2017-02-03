@@ -105,9 +105,14 @@ class CameraDisplay:
 
         patches = []
 
-        for xx, yy, aa in zip(u.Quantity(self.geom.pix_x).value,
-                              u.Quantity(self.geom.pix_y).value,
-                              u.Quantity(np.array(self.geom.pix_area))):
+        if not hasattr(self.geom, "mask"):
+            self.geom.mask = np.ones_like(self.geom.pix_x.value)
+
+        for xx, yy, aa in zip(
+            u.Quantity(self.geom.pix_x[self.geom.mask==1]).value,
+            u.Quantity(self.geom.pix_y[self.geom.mask==1]).value,
+            u.Quantity(np.array(self.geom.pix_area)[self.geom.mask==1]).value):
+
             if self.geom.pix_type.startswith("hex"):
                 rr = sqrt(aa * 2 / 3 / sqrt(3))
                 poly = RegularPolygon(
@@ -281,12 +286,12 @@ class CameraDisplay:
         image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
             raise ValueError(
-                "Image has a different shape {} than the"
+                "Image has a different shape {} than the "
                 "given CameraGeometry {}"
                 .format(image.shape, self.geom.pix_x.shape)
             )
 
-        self.pixels.set_array(image)
+        self.pixels.set_array(image[self.geom.mask==True])
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()
@@ -332,14 +337,14 @@ class CameraDisplay:
         width: float
             minor axis
         angle: float
-            rotation angle wrt "up" about the centroid, clockwise, in radians
+            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
         asymmetry: float
             3rd-order moment for directionality if known
         kwargs:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
-        ellipse = Ellipse(xy=centroid, width=width, height=length,
+        ellipse = Ellipse(xy=centroid, width=length, height=width,
                           angle=np.degrees(angle), fill=False, **kwargs)
         self.axes.add_patch(ellipse)
         self.update()
@@ -356,11 +361,19 @@ class CameraDisplay:
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
-        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_y.value),
-                              length=momparams.length.value,
-                              width=momparams.width.value, angle=momparams.psi.to(u.rad).value,
+
+        # strip off any units
+        cen_x = u.Quantity(momparams.cen_x).value
+        cen_y = u.Quantity(momparams.cen_y).value
+        length = u.Quantity(momparams.length).value
+        width = u.Quantity(momparams.width).value
+
+
+        el = self.add_ellipse(centroid=(cen_x, cen_y),
+                              length=length,
+                              width=width, angle=momparams.psi.rad,
                               **kwargs)
-        self.axes.text(momparams.cen_x.value, momparams.cen_y.value,
+        self.axes.text(cen_x, cen_y,
                        ("({:.02f},{:.02f})\n"
                         "[w={:.02f},l={:.02f}]")
                        .format(momparams.cen_x,

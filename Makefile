@@ -13,7 +13,6 @@ help:
 	@echo '  clean        Remove temp files'
 	@echo '  test         Run tests'
 	@echo '  doc          Generate Sphinx docs'
-	@echo '  doc-show     Generate and display docs in browser'
 	@echo '  analyze      Do a static code check and report errors'
 	@echo ''
 	@echo 'Advanced targets (for experts)'
@@ -32,13 +31,12 @@ clean:
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	$(PYTHON) setup.py test -V $<
+	$(PYTHON) setup.py test
 
 doc:
-	$(PYTHON) setup.py build_sphinx
-
-doc-show:
-	$(PYTHON) setup.py build_sphinx --open-docs-in-browser
+	cd docs && $(MAKE) html
+	@echo "------------------------------------------------"
+	@echo "Documentation is in: docs/_build/html/index.html"
 
 doc-publish:
 	ghp-import -n -p -m 'Update gh-pages docs' docs/_build/html
@@ -47,7 +45,7 @@ conda:
 	python setup.py bdist_conda
 
 analyze:
-	@pyflakes ctapipe examples
+	@pylint ctapipe --ignored-classes=astropy.units
 
 pep8:
 	@pep8 --statistics
