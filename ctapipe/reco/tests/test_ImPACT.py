@@ -12,6 +12,7 @@ from ctapipe.io import CameraGeometry
 from ctapipe.reco.ImPACT import ImPACTFitter
 from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
 from ctapipe.coordinates import *
+from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
 
 def test_ImPACT_fit():
     '''
@@ -113,7 +114,10 @@ def test_ImPACT_fit():
 
         print(fit_result)
         ImPACT.set_event_properties(image, pixel_x, pixel_y, pixel_area, tel_type, tel_x, tel_y, array_pointing)
-        shower_reco, energy_reco = ImPACT.predict(0*u.deg,0*u.deg,0*u.m,0*u.m,1*u.TeV)
+        energy_result = ReconstructedEnergyContainer()
+        energy_result.energy = event.mc.energy
+
+        shower_reco, energy_reco = ImPACT.predict(fit_result, energy_result)
         if len(hillas_dict) < 2: continue
 
         print(shower_reco)

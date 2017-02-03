@@ -12,8 +12,10 @@ import matplotlib.pyplot as plt
 from ctapipe.image import poisson_likelihood
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
 from ctapipe.coordinates import HorizonFrame, NominalFrame
+from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
 
-class ImPACTFitter(object):
+
+class ImPACTFitter(RecoShowerGeomAlgorithm):
     """
     This class is an implementation if the ImPACT Monte Carlo Template based image fitting
     method from:
@@ -421,7 +423,7 @@ class ImPACTFitter(object):
 
         self.array_direction= array_direction
 
-    def predict(self, source_x, source_y, core_x, core_y, energy):
+    def predict(self, shower_seed, energy_seed):
         """
 
         Parameters
@@ -441,14 +443,20 @@ class ImPACTFitter(object):
         -------
         Shower object with fit results
         """
-        print("here")
+        horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
+        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
+
         # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
         min = Minuit(self.get_likelihood, print_level=1,
-                     source_x=source_x.value, error_source_x=0.01, fix_source_x=False,
-                     source_y=source_y.value, error_source_y=0.01, fix_source_y=False,
-                     core_x=core_x.value, error_core_x=10, limit_core_x= (core_x.value-200,core_x.value+200), fix_core_x=False,
-                     core_y=core_y.value, error_core_y=10, limit_core_y= (core_y.value-200,core_y.value+200), fix_core_y=False,
-                     energy=energy.value, error_energy=energy.value*0.05, limit_energy=(energy.value*0.1,energy.value*10.),
+                     source_x=nominal_seed.x.value, error_source_x=0.01, fix_source_x=False,
+                     source_y=nominal_seed.y.value, error_source_y=0.01, fix_source_y=False,
+                     core_x=shower_seed.core_x.value, error_core_x=10, limit_core_x= (shower_seed.core_x.value-200,
+                                                                                      shower_seed.core_x.value+200),
+                     fix_core_x=False,
+                     core_y=shower_seed.core_y.value, error_core_y=10, limit_core_y= (shower_seed.core_y.value-200,
+                                                                                      shower_seed.core_y.value+200),
+                     energy=energy_seed.energy.value, error_energy=energy_seed.energy.value*0.05,
+                     limit_energy=(energy_seed.energy.value*0.1,energy_seed.energy.value*10.),
                      x_max_scale=1, error_x_max_scale=0.1, limit_x_max_scale=(0.5,2), fix_x_max_scale=False, errordef=1)
 
         min.tol *= 1000
