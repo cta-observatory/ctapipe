@@ -237,7 +237,8 @@ class CameraDL1Calibrator(Component):
             peakpos = self._extractor.peakpos
 
             if self.correction:
-                corrected = charge * self.get_correction(event, telid)
+                correction = np.array(self.get_correction(event, telid))
+                corrected = charge * correction[:, np.newaxis]
             else:
                 corrected = charge
 
