@@ -69,3 +69,5 @@ distribute-*.tar.gz
 
 #sonarlint command-line output
 .sonarlint
+
+ctapipe/_version_cache.py
