@@ -130,8 +130,8 @@ def test_ImPACT_fit():
         print(shower_reco)
         print(energy_reco)
 
-        #assert fit_result.is_valid
-        #return
+        assert fit_result.is_valid
+        return
 
 if __name__ == "__main__":
     test_ImPACT_fit()

@@ -11,7 +11,7 @@ from ctapipe.reco.shower_max import ShowerMaxEstimator
 import matplotlib.pyplot as plt
 from ctapipe.image import poisson_likelihood
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
-from ctapipe.coordinates import HorizonFrame, NominalFrame
+from ctapipe.coordinates import HorizonFrame, NominalFrame, TiltedGroundFrame, GroundFrame
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
 
 
@@ -73,14 +73,17 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     def initialise_templates(self, tel_type):
         """
+        Check if templates for a given telescope type has been initialised and if not
+        do it and add to the dictionary
 
         Parameters
         ----------
-        tel_type
+        tel_type: dictionary
+            Dictionary of telescope types in event
 
         Returns
         -------
-
+        boolean: Confirm initialisation
         """
         for t in tel_type:
             if tel_type[t] in self.prediction.keys():
@@ -109,11 +112,9 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         peak_x = np.zeros([len(self.pixel_x)]) # Create blank arrays for peaks rather than a dict (faster)
         peak_y = np.zeros(peak_x.shape)
         peak_amp = np.zeros(peak_x.shape)
-        #unit = self.pixel_x[0].unit
 
         # Loop over all tels to take weighted average of pixel positions
         # This loop could maybe be replaced by an array operation by a numpy wizard
-        #for im, px, py, tel_num in zip(self.image, self.pixel_x, self.pixel_y, range(len(self.pixel_y))):
 
         tel_num = 0
         for tel in self.image:
@@ -241,33 +242,33 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         return self.prediction[type].interpolate([energy,impact,x_max], pix_x, pix_y)
 
-    def get_prediction(self, tel, source_x, source_y, core_x, core_y, energy, x_max_scale, zenith):
+    def get_prediction(self, tel_id, shower_reco, energy_reco):
 
-        zenith = 20*u.deg
-        if self.fit_xmax:
-            x_max = self.get_shower_max(source_x.to(u.rad).value, source_y.to(u.rad).value,
-                                        core_x.to(u.m).value, core_y.to(u.m).value,
-                                        zenith.to(u.rad).value) * x_max_scale
+        zenith = 90*u.deg - self.array_direction[0]
+        azimuth = self.array_direction[1]
 
-            x_max_exp = 343 + 84 * np.log10(energy.value)
-            x_max_bin = x_max.value - x_max_exp
+        x_max_exp = 343 + 84 * np.log10(energy_reco.energy.value)
+        h_max = shower_reco.hmax * np.cos(zenith) + 2100*u.m
+        x_max = self.shower_max.interpolate(h_max.to(u.km))
 
-        else:
-            x_max_bin = x_max_scale * 37.8
-            if x_max_bin < 13:
-                x_max_bin = 13
-        impact = np.sqrt(pow(self.tel_pos_x[tel] - core_x, 2) + pow(self.tel_pos_y[tel] - core_y, 2))
-        phi = np.arctan2((self.tel_pos_x[tel] - core_x), (self.tel_pos_y[tel] - core_y))
+        # Convert to binning of Xmax, addition of 100 can probably be removed
+        x_max_bin = x_max.value - x_max_exp
 
-        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel], self.pixel_y[tel],
-                                                     source_x, source_y, phi.to(u.rad))
+        horizon_seed = HorizonFrame(az=shower_reco.az, alt=shower_reco.alt)
+        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
 
-        prediction = self.image_prediction(self.type[tel], 20*u.deg, 0*u.deg,
-                                           energy, impact, x_max_bin,
+        impact = np.sqrt(pow(self.tel_pos_x[tel_id] - shower_reco.core_x, 2) + pow(self.tel_pos_y[tel_id] -
+                                                                                   shower_reco.core_y, 2))
+        phi = np.arctan2((self.tel_pos_x[tel_id] - shower_reco.core_x), (self.tel_pos_y[tel_id] - shower_reco.core_y))
+
+        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id], self.pixel_y[tel_id],
+                                                     nominal_seed.x.value, nominal_seed.y.value, phi.to(u.rad))
+
+        prediction = self.image_prediction(self.type[tel_id], 20*u.deg, 0*u.deg,
+                                           energy_reco.energy.value, impact, x_max_bin,
                                            pix_x_rot, pix_y_rot)
-        print(pix_x_rot, pix_y_rot)
 
-        prediction *= self.scale[self.type[tel]]
+        prediction *= self.scale[self.type[tel_id]]
         prediction[prediction < 0] = 0
         prediction[np.isnan(prediction)] = 0
 
@@ -316,7 +317,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
             x_max_exp = 343 + 84 * np.log10(energy)
             # Convert to binning of Xmax, addition of 100 can probably be removed
             x_max_bin = x_max.value - x_max_exp
-
             # Check for range
             if x_max_bin > 100:
                 x_max_bin = 100
@@ -338,10 +338,10 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
             pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_count], self.pixel_y[tel_count],
                                                          source_x, source_y, phi)
 
-            # Then get the predicted image
+            # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(self.type[tel_count], zenith, azimuth,
                                                energy, impact, x_max_bin,
-                                               pix_x_rot, pix_y_rot)
+                                               pix_x_rot*(180/math.pi), pix_y_rot*(180/math.pi))
             prediction[prediction<0] = 0
             prediction[np.isnan(prediction)] = 0
 
@@ -446,20 +446,27 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
 
+        source_x = nominal_seed.x.to(u.rad).value
+        source_y = nominal_seed.y.to(u.rad).value
+
+        ground = GroundFrame(x=shower_seed.core_x, y=shower_seed.core_y, z=0*u.m)
+        tilted = ground.transform_to(TiltedGroundFrame(pointing_direction=self.array_direction))
+        tilt_x = tilted.x.to(u.m).value
+        tilt_y = tilted.y.to(u.m).value
+
         # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
         min = Minuit(self.get_likelihood, print_level=1,
-                     source_x=nominal_seed.x.value, error_source_x=0.01, fix_source_x=False,
-                     source_y=nominal_seed.y.value, error_source_y=0.01, fix_source_y=False,
-                     core_x=shower_seed.core_x.value, error_core_x=10, limit_core_x= (shower_seed.core_x.value-200,
-                                                                                      shower_seed.core_x.value+200),
-                     fix_core_x=False,
-                     core_y=shower_seed.core_y.value, error_core_y=10, limit_core_y= (shower_seed.core_y.value-200,
-                                                                                      shower_seed.core_y.value+200),
+                     source_x=source_x, error_source_x=0.01/57.3, fix_source_x=False,
+                     limit_source_x= (source_x - 0.2/57.3, source_x + 0.2 / 57.3),
+                     source_y=source_y, error_source_y=0.01/57.3, fix_source_y=False,
+                     limit_source_y=(source_y - 0.2 / 57.3, source_y+ 0.2 / 57.3),
+                     core_x=tilt_x, error_core_x=10, limit_core_x=(tilt_x-200, tilt_x+200),
+                     core_y=tilt_y, error_core_y=10, limit_core_y=(tilt_y-200,tilt_y+200),
                      energy=energy_seed.energy.value, error_energy=energy_seed.energy.value*0.05,
                      limit_energy=(energy_seed.energy.value*0.1,energy_seed.energy.value*10.),
                      x_max_scale=1, error_x_max_scale=0.1, limit_x_max_scale=(0.5,2), fix_x_max_scale=False, errordef=1)
 
-        min.tol *= 1000
+        #min.tol *= 1000
         min.strategy = 1
 
         # Perform minimisation
@@ -473,7 +480,9 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                array_direction=self.array_direction)
         horizon = nominal.transform_to(HorizonFrame())
 
-        # TODO make sure az and phi turn in same direction...
+        self.draw_surfaces(nominal.x.to(u.rad), nominal.y.to(u.rad), fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
+                           fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
+
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
         shower_result.core_x = fit_params["core_x"] * u.m
         shower_result.core_y = fit_params["core_y"] * u.m
@@ -493,6 +502,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # Return interesting stuff
         return shower_result, energy_result
 
+    # These drawing functions should really be moved elsewhere, as drawing a 2D map of the array is quite
+    # generic and should probably live in plotting
     def draw_surfaces(self, x_src, y_src, x_grd, y_grd, energy, xmax):
         """
         Simple function to draw the surface of the test statistic in both the nominal
@@ -560,7 +571,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         for xb in x_dir:
             j = 0
             for yb in y_dir:
-                w[i][j] = self.get_likelihood(xb.value, yb.value, x_grd.value, y_grd.value, energy.value, xmax)
+                w[i][j] = self.get_likelihood(xb.to(u.rad).value, yb.to(u.rad).value, x_grd.value, y_grd.value, energy.value,
+                                              xmax)
                 j += 1
             i += 1
 
@@ -601,7 +613,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         for xb in x_ground_list:
             j = 0
             for yb in y_ground_list:
-                w[i][j] = self.get_likelihood(x_src.value, y_src.value, xb.value, yb.value, energy.value, xmax)
+                w[i][j] = self.get_likelihood(x_src.to(u.rad).value, y_src.to(u.rad).value, xb.value, yb.value, energy.value, xmax)
                 j += 1
 
             i += 1
