@@ -37,25 +37,34 @@ class ArrayPlotter:
             self.tel_x = tel_x*u.m
             self.tel_y = tel_y*u.m
 
-    def draw_array(self, range=((-2000,2000),(-2000,2000)), hillas=None, background=None):
-
-        plt.close()
-
-        if background is not None:
-            plt.imshow(background)
-
-        array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y),
+        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y),
                              mirrorarea=np.ones(len(self.tel_y))*100)
 
-        array.axes.set_xlim(range[0])
-        array.axes.set_ylim(range[1])
+        self.hillas = None
 
-        if hillas is not None:
-            count = 0
-            for tel in self.telescopes:
-                if tel in hillas:
-                    array.overlay_moments(hillas[tel], (self.tel_x[count], self.tel_y[count]))
-                count += 1
+    def overlay_hillas(self, hillas):
+        count = 0
+        for tel in self.telescopes:
+            if tel in hillas:
+                self.array.overlay_moments(hillas[tel], (self.tel_x[count], self.tel_y[count]))
+            count += 1
+        self.hillas = hillas
+
+    def background_image(self, background, range):
+
+        plt.imshow(background, extent=[range[0][0], range[0][1], range[1][0], range[1][1]], cmap="viridis")
+
+        # Annoyingly we need to redraw everything
+        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y),
+                             mirrorarea=np.ones(len(self.tel_y))*100)
+
+        if self.hillas is not None:
+            self.overlay_hillas(self.hillas)
+
+    def draw_array(self, range=((-2000,2000),(-2000,2000))):
+
+        self.array.axes.set_xlim(range[0])
+        self.array.axes.set_ylim(range[1])
 
         plt.tight_layout()
         plt.show()

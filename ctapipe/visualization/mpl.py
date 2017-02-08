@@ -2,7 +2,7 @@
 """
 Visualization routines using matplotlib
 """
-
+import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
@@ -436,8 +436,8 @@ class ArrayDisplay:
         self.axes.set_xlim(-1000, 1000)
         self.axes.set_ylim(-1000, 1000)
 
-        self.bar = plt.colorbar(self.telescopes)
-        self.bar.set_label("Value")
+        #self.bar = plt.colorbar(self.telescopes)
+        #self.bar.set_label("Value")
 
     @property
     def values(self):
@@ -455,7 +455,7 @@ class ArrayDisplay:
         if self.autoupdate:
             plt.draw()
 
-    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
+    def add_ellipse(self, centroid, length, width, angle, size,
                     **kwargs):
         """
         plot an ellipse on top of the camera
@@ -476,8 +476,12 @@ class ArrayDisplay:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
+        print(size)
+
+        cmap = matplotlib.cm.get_cmap('Greys')
+        rgba = cmap(size/1000.)
         ellipse = Ellipse(xy=centroid, width=length, height=width,
-                          angle=np.degrees(angle), fill=False, **kwargs)
+                          angle=np.degrees(angle), fill=True, facecolor=rgba, alpha=0.7,  **kwargs)
         self.axes.add_patch(ellipse)
         #self.update()
         return ellipse
@@ -495,13 +499,13 @@ class ArrayDisplay:
             or linewidth=6)
         """
         # strip off any units
-        length = u.Quantity(momparams.length).value * 200
-        width = u.Quantity(momparams.width).value * 100
-        size = u.Quantity(momparams.width).value
+        length = u.Quantity(momparams.length).value * 5000
+        width = u.Quantity(momparams.width).value * 5000
+        size = u.Quantity(momparams.size).value
         tel_x = u.Quantity(tel_position[0]).value
         tel_y = u.Quantity(tel_position[1]).value
 
         el = self.add_ellipse(centroid=(tel_x, tel_y),
                               length=length,
-                              width=width, angle=momparams.psi.rad,
+                              width=width, angle=momparams.psi.rad, size=size,
                               **kwargs)
