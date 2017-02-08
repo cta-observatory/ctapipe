@@ -51,8 +51,8 @@ def test_array_draw():
             except HillasParameterizationError as e:
                 print(e)
                 continue
-        array_view.draw_array()
-        return
+        array_view.draw_array(hillas=hillas_dict)
+        #return
 
 if __name__ == "__main__":
     test_array_draw()

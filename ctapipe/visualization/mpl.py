@@ -454,3 +454,54 @@ class ArrayDisplay:
         """ signal a redraw if necessary """
         if self.autoupdate:
             plt.draw()
+
+    def add_ellipse(self, centroid, length, width, angle, asymmetry=0.0,
+                    **kwargs):
+        """
+        plot an ellipse on top of the camera
+
+        Parameters
+        ----------
+        centroid: (float, float)
+            position of centroid
+        length: float
+            major axis
+        width: float
+            minor axis
+        angle: float
+            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
+        asymmetry: float
+            3rd-order moment for directionality if known
+        kwargs:
+            any MatPlotLib style arguments to pass to the Ellipse patch
+
+        """
+        ellipse = Ellipse(xy=centroid, width=length, height=width,
+                          angle=np.degrees(angle), fill=False, **kwargs)
+        self.axes.add_patch(ellipse)
+        #self.update()
+        return ellipse
+
+    def overlay_moments(self, momparams, tel_position, **kwargs):
+        """helper to overlay ellipse from a `reco.MomentParameters` structure
+
+        Parameters
+        ----------
+        momparams: `reco.MomentParameters`
+            structuring containing Hillas-style parameterization
+
+        kwargs: key=value
+            any style keywords to pass to matplotlib (e.g. color='red'
+            or linewidth=6)
+        """
+        # strip off any units
+        length = u.Quantity(momparams.length).value * 200
+        width = u.Quantity(momparams.width).value * 100
+        size = u.Quantity(momparams.width).value
+        tel_x = u.Quantity(tel_position[0]).value
+        tel_y = u.Quantity(tel_position[1]).value
+
+        el = self.add_ellipse(centroid=(tel_x, tel_y),
+                              length=length,
+                              width=width, angle=momparams.psi.rad,
+                              **kwargs)

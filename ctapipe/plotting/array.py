@@ -37,7 +37,7 @@ class ArrayPlotter:
             self.tel_x = tel_x*u.m
             self.tel_y = tel_y*u.m
 
-    def draw_array(self, range=((-1000,1000),(-1000,1000)), hillas=None, background=None):
+    def draw_array(self, range=((-2000,2000),(-2000,2000)), hillas=None, background=None):
 
         plt.close()
 
@@ -49,6 +49,13 @@ class ArrayPlotter:
 
         array.axes.set_xlim(range[0])
         array.axes.set_ylim(range[1])
+
+        if hillas is not None:
+            count = 0
+            for tel in self.telescopes:
+                if tel in hillas:
+                    array.overlay_moments(hillas[tel], (self.tel_x[count], self.tel_y[count]))
+                count += 1
 
         plt.tight_layout()
         plt.show()
