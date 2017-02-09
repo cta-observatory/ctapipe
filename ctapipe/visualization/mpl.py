@@ -421,15 +421,15 @@ class ArrayDisplay:
 
         if tel_type is None:
             tel_type = np.ones(len(telx))
-        patches = [Rectangle(xy=(x-radius/2, y-radius/2), width=radius, height=radius)
+        patches = [Rectangle(xy=(x-radius/2, y-radius/2), width=radius, height=radius, fill=False)
                    for x, y in zip(telx, tely)]
 
         self.autoupdate = autoupdate
-        self.telescopes = PatchCollection(patches)
+        self.telescopes = PatchCollection(patches, match_original=True)
         self.telescopes.set_clim(1, 9)
-        self.telescopes.set_array(tel_type)
-        self.telescopes.set_cmap('Set1') # Set telescope colour based on type
-        #self.telescopes.set_edgecolor('none')
+        rgb = matplotlib.cm.Set1((tel_type-1)/9)
+        self.telescopes.set_edgecolor(rgb)
+        self.telescopes.set_linewidth(2.0)
 
         self.axes = axes if axes is not None else plt.gca()
         self.axes.add_collection(self.telescopes)

@@ -14,7 +14,12 @@ class ArrayPlotter:
 
         Parameters
         ----------
-        telescopes
+        instrument: dictionary
+            intrument containers for this event
+        telescopes: list
+            List of telescopes included
+        system: Coordinate system
+            Coordinate system to transform coordinates into
         """
 
         self.instrument = instrument
@@ -27,6 +32,7 @@ class ArrayPlotter:
                      2.1500000953674316: 3,
                      2.2829999923706055: 4,
                      5.599999904632568: 5}
+
         tel_x = [self.instrument.tel_pos[i][0].to(u.m).value for i in self.telescopes]
         tel_y = [self.instrument.tel_pos[i][1].to(u.m).value for i in self.telescopes]
         tel_z = [self.instrument.tel_pos[i][2].to(u.m).value for i in self.telescopes]
@@ -49,16 +55,20 @@ class ArrayPlotter:
 
     def overlay_hillas(self, hillas, scale_fac=20000, **kwargs):
         """
+        Overlay hillas parameters on top of the array map
 
         Parameters
         ----------
-        hillas
-        scale_fac
-        kwargs
+        hillas: dictionary
+            Hillas moments objects to overlay
+        scale_fac: float
+            Scaling factor to array to hillas width and length when drawing
+        kwargs: key=value
+            any style keywords to pass to matplotlib
 
         Returns
         -------
-
+        None
         """
         tel_x = [self.instrument.tel_pos[i][0].to(u.m).value for i in hillas]
         tel_y = [self.instrument.tel_pos[i][1].to(u.m).value for i in hillas]
@@ -75,17 +85,22 @@ class ArrayPlotter:
 
     def background_contour(self, x, y, background, **kwargs):
         """
+        Draw image contours in background of the display, useful when likelihood fitting
 
         Parameters
         ----------
-        x
-        y
-        background
-        kwargs
+        x: ndarray
+            array of image X coordinates
+        y: ndarray
+            array of image Y coordinates
+        background: ndarray
+            Array of image to use in background
+        kwargs: key=value
+            any style keywords to pass to matplotlib
 
         Returns
         -------
-
+        None
         """
 
         plt.contour(x, y, background, **kwargs)
@@ -98,14 +113,16 @@ class ArrayPlotter:
 
     def draw_array(self, range=((-2000,2000),(-2000,2000))):
         """
+        Draw the array plotter (including any overlayed elements)
 
         Parameters
         ----------
-        range
+        range: tuple
+            XY range in which to draw plotter
 
         Returns
         -------
-
+        None
         """
 
         self.array.axes.set_xlim((self.centre[0]+range[0][0], range[0][1]+self.centre[0]))
@@ -116,17 +133,23 @@ class ArrayPlotter:
 
     def draw_position(self, core_x, core_y, use_centre=False, **kwargs):
         """
+        Draw a marker at a position in the array plotter (for marking reconstructed
+        positions etc)
 
         Parameters
         ----------
-        core_x
-        core_y
-        use_centre
-        kwargs
+        core_x: float
+            X position of point
+        core_y: float
+            Y position of point
+        use_centre: bool
+            Centre the plotter on this position
+        kwargs: key=value
+            any style keywords to pass to matplotlib
 
         Returns
         -------
-
+        None
         """
         if self.system is not None:
             ground = GroundFrame(x=np.asarray(core_x)*u.m, y=np.asarray(core_y)*u.m, z=np.asarray(0)*u.m)
