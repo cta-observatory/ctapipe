@@ -416,18 +416,20 @@ class ArrayDisplay:
     Display a top-town view of a telescope array
     """
 
-    def __init__(self, telx, tely, mirrorarea,
+    def __init__(self, telx, tely, tel_type=None, radius=20,
                  axes=None, title="Array", autoupdate=True):
 
-        patches = [Circle(xy=(x, y), radius=np.sqrt(a))
-                   for x, y, a in zip(telx, tely, mirrorarea)]
+        if tel_type is None:
+            tel_type = np.ones(len(telx))
+        patches = [Rectangle(xy=(x-radius/2, y-radius/2), width=radius, height=radius)
+                   for x, y in zip(telx, tely)]
 
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches)
-        self.telescopes.set_clim(0, 100)
-        self.telescopes.set_array(np.zeros(len(telx)))
-        self.telescopes.set_cmap('spectral_r')
-        self.telescopes.set_edgecolor('none')
+        self.telescopes.set_clim(1, 9)
+        self.telescopes.set_array(tel_type)
+        self.telescopes.set_cmap('Set1') # Set telescope colour based on type
+        #self.telescopes.set_edgecolor('none')
 
         self.axes = axes if axes is not None else plt.gca()
         self.axes.add_collection(self.telescopes)
@@ -436,8 +438,8 @@ class ArrayDisplay:
         self.axes.set_xlim(-1000, 1000)
         self.axes.set_ylim(-1000, 1000)
 
-        #self.bar = plt.colorbar(self.telescopes)
-        #self.bar.set_label("Value")
+        self.axes_hillas = axes if axes is not None else plt.gca()
+
 
     @property
     def values(self):
@@ -455,8 +457,7 @@ class ArrayDisplay:
         if self.autoupdate:
             plt.draw()
 
-    def add_ellipse(self, centroid, length, width, angle, size,
-                    **kwargs):
+    def add_ellipse(self, centroid, length, width, angle, **kwargs):
         """
         plot an ellipse on top of the camera
 
@@ -476,36 +477,64 @@ class ArrayDisplay:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
-        print(size)
-
-        cmap = matplotlib.cm.get_cmap('Greys')
-        rgba = cmap(size/1000.)
         ellipse = Ellipse(xy=centroid, width=length, height=width,
-                          angle=np.degrees(angle), fill=True, facecolor=rgba, alpha=0.7,  **kwargs)
+                          angle=np.degrees(angle), fill=True,  **kwargs)
         self.axes.add_patch(ellipse)
-        #self.update()
         return ellipse
 
-    def overlay_moments(self, momparams, tel_position, **kwargs):
+    def add_polygon(self, centroid, radius, nsides=3, **kwargs):
+        """
+        plot a polygon on top of the camera
+
+        Parameters
+        ----------
+        centroid: (float, float)
+            position of centroid
+        radius: float
+            radius
+        nsides: int
+            Number of points on polygon
+        kwargs:
+            any MatPlotLib style arguments to pass to the RegularPolygon patch
+
+        """
+        polygon = RegularPolygon(xy=centroid, radius=radius, numVertices=nsides, **kwargs)
+        self.axes.add_patch(polygon)
+        return polygon
+
+    def overlay_moments(self, momparams, tel_position, scale_fac, **kwargs):
         """helper to overlay ellipse from a `reco.MomentParameters` structure
 
         Parameters
         ----------
         momparams: `reco.MomentParameters`
             structuring containing Hillas-style parameterization
-
+        tel_position: list
+            (x, y) positions of each telescope
+        scale_fac: float
+            scaling factor to apply to width and length when overlaying moments
         kwargs: key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
         # strip off any units
-        length = u.Quantity(momparams.length).value * 5000
-        width = u.Quantity(momparams.width).value * 5000
-        size = u.Quantity(momparams.size).value
-        tel_x = u.Quantity(tel_position[0]).value
-        tel_y = u.Quantity(tel_position[1]).value
+        ellipse_list = list()
+        size_list = list()
+        i = 0
+        for h in momparams:
 
-        el = self.add_ellipse(centroid=(tel_x, tel_y),
-                              length=length,
-                              width=width, angle=momparams.psi.rad, size=size,
-                              **kwargs)
+            length = u.Quantity(momparams[h].length).value * scale_fac
+            width = u.Quantity(momparams[h].width).value * scale_fac
+            size_list.append(u.Quantity(momparams[h].size).value)
+            tel_x = u.Quantity(tel_position[0][i]).value
+            tel_y = u.Quantity(tel_position[1][i]).value
+            i += 1
+
+            ellipse = Ellipse(xy=(tel_x,tel_y), width=length, height=width,
+                              angle=np.degrees(momparams[h].psi.rad))
+            ellipse_list.append(ellipse)
+
+        patches = PatchCollection(ellipse_list, **kwargs)
+        patches.set_clim(0, 1000) # Set ellipse colour based on image size
+        patches.set_array(np.asarray(size_list))
+        self.axes_hillas.add_collection(patches)
