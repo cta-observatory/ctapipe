@@ -434,6 +434,19 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
                        dtype=np.int)
 
 
+class AverageWfPeakIntegrator(PeakFindingIntegrator):
+    name = 'AverageWfPeakIntegrator'
+
+    def __init__(self, config, tool, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
+
+    def _find_peak(self, significant_samples):
+        peakpos = np.zeros((self._nchan, self._npix), dtype=np.int)
+        avg_wf = np.mean(significant_samples, axis=0)
+        peakpos += np.argmax(avg_wf, axis=1)[:, None]
+        return peakpos
+
+
 class ChargeExtractorFactory(Factory):
     name = "ChargeExtractorFactory"
     description = "Obtain ChargeExtractor based on extractor traitlet"
