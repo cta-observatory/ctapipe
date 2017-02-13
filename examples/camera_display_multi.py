@@ -8,9 +8,10 @@ simulations). Also shows how to change the color palette.
 
 import matplotlib.pylab as plt
 from astropy import units as u
+
 from ctapipe import io, visualization
+from ctapipe.image import toymodel
 from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
-from ctapipe.reco import toymodel
 
 
 def draw_several_cams(geom, ncams=4):
