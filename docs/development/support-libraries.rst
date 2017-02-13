@@ -3,14 +3,13 @@ Support Libraries
 *****************
 
 In general, we will try to avoid re-implementing complex mathematical
-algorhtms, and use instead a small set of well-tested, community
-supported packages. All packages chosen have very large developer
-bases, and a wide community of users, ensuring long-term support. 
+algorithms, and use instead a small set of well-tested, community
+supported packages. All packages chosen have large developer
+bases, and a wide community of users, ensuring long-term support.
 
 The following are support libraries that are
 recommended when developing CTA Pipeline algorithms:
 
-.. contents::
 
 
 Math/Stats
@@ -24,7 +23,7 @@ in the `numpy <http://www.numpy.org>`_  (data structures and numerics
 * NumPy reference  : http://docs.scipy.org/doc/numpy/reference/
 * SciPy user guide : http://docs.scipy.org/doc/scipy/reference/
 * SciPy reference : http://docs.scipy.org/doc/scipy/reference/index.html
-  
+
 Specific functionality:
 
 * `scipy.stats`: statistical models (pdfs, random sampling, etc) for
@@ -35,10 +34,10 @@ Specific functionality:
 * `scipy.signal`: signal processing
 * `scipy.interpolate`: interpolation of multi-variate datasets
 * `scipy.spatial`: spatial algorithms (clustering, nearest neighbors)
-* `scipy.special`: special functions 
+* `scipy.special`: special functions
 
 these functions are all based on `numpy.ndarray` data structures,
-which provide c-like speeds. 
+which provide c-like speeds.
 
 Multivariate Analysis and Machine Learning
 ==========================================
@@ -72,13 +71,13 @@ astronomical calculations. Specifically:
 * `astropy.table`: quick and easy reading of tables in nearly any
   format (FITS, ascii, HDF, VO, etc)
 * `astropy.convolution`: convolution and filtering (built upon
-  scipy.signal, but with more robust defaults) 
+  scipy.signal, but with more robust defaults)
 
 subpackages of Astropy that are not marked as "reasonable stable" or
 "mature" should be avoided until their interfaces are solidified. The
 list can be found on the astropy documentation page, under the list
-*current status of subpackages* 
-  
+*current status of subpackages*
+
 
 FITS Table Access
 =================

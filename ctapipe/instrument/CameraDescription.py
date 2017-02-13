@@ -223,10 +223,8 @@ def rotate_camera(angle, pix_x: u.m, pix_y: u.m):
     specified angle. Modifies the CameraGeometry in-place (so
     after this is called, the pix_x and pix_y arrays are
     rotated.
-
-    Note
-    ----
-    This is intended only to correct simulated data that are
+    
+    Note: This is intended only to correct simulated data that are
     rotated by a fixed angle.  For the more general case of
     correction for camera pointing errors (rotations,
     translations, skews, etc), you should use a true coordinate
