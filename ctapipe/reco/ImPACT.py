@@ -49,7 +49,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the ImPACT templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1., "NectarCam": 1., "FlashCam": 1.0, "GATE": 1.0}
+        self.scale = {"LSTCam": 2., "NectarCam": 1., "FlashCam": 1.0, "GATE": 1.0}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -176,7 +176,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # Add on the height of the detector above sea level
         mean_height += 2100
 
-        if mean_height > 100000:
+        if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
 
         mean_height *= u.m
@@ -244,29 +244,41 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     def get_prediction(self, tel_id, shower_reco, energy_reco):
 
+
+        horizon_seed = HorizonFrame(az=shower_reco.az, alt=shower_reco.alt)
+        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
+        source_x = nominal_seed.x.to(u.rad).value
+        source_y = nominal_seed.y.to(u.rad).value
+        source_x =0
+        source_y =0
+
+        ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0*u.m)
+        tilted = ground.transform_to(TiltedGroundFrame(pointing_direction=self.array_direction))
+        tilt_x = tilted.x.to(u.m).value
+        tilt_y = tilted.y.to(u.m).value
+
         zenith = 90*u.deg - self.array_direction[0]
         azimuth = self.array_direction[1]
 
         x_max_exp = 343 + 84 * np.log10(energy_reco.energy.value)
-        h_max = shower_reco.hmax * np.cos(zenith) + 2100*u.m
-        x_max = self.shower_max.interpolate(h_max.to(u.km))
-
+        #h_max = shower_reco.hmax * np.cos(zenith) + 2100*u.m
+        #x_max = self.shower_max.interpolate(h_max.to(u.km))
+        x_max = x_max_exp
         # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = x_max.value - x_max_exp
+        x_max_bin = x_max - x_max_exp
 
-        horizon_seed = HorizonFrame(az=shower_reco.az, alt=shower_reco.alt)
-        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
+        impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) + pow(self.tel_pos_y[tel_id] -
+                                                                                   tilt_y, 2))
+        phi = np.arctan2((self.tel_pos_y[tel_id] - tilt_y), (self.tel_pos_x[tel_id] - tilt_x))
 
-        impact = np.sqrt(pow(self.tel_pos_x[tel_id] - shower_reco.core_x, 2) + pow(self.tel_pos_y[tel_id] -
-                                                                                   shower_reco.core_y, 2))
-        phi = np.arctan2((self.tel_pos_x[tel_id] - shower_reco.core_x), (self.tel_pos_y[tel_id] - shower_reco.core_y))
-
-        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id], self.pixel_y[tel_id],
-                                                     nominal_seed.x.value, nominal_seed.y.value, phi.to(u.rad))
+        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id]*-1, self.pixel_y[tel_id],
+                                                     source_x, source_y, phi)
+        #pix_y_rot = pix_y_rot * -1
+        #pix_x_rot = pix_x_rot * -1
 
         prediction = self.image_prediction(self.type[tel_id], 20*u.deg, 0*u.deg,
                                            energy_reco.energy.value, impact, x_max_bin,
-                                           pix_x_rot, pix_y_rot)
+                                           pix_x_rot*(180/math.pi), pix_y_rot*(180/math.pi))
 
         prediction *= self.scale[self.type[tel_id]]
         prediction[prediction < 0] = 0
@@ -332,24 +344,29 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
             # Calculate impact distance for all telescopes
             impact = np.sqrt(pow(self.tel_pos_x[tel_count] - core_x, 2) + pow(self.tel_pos_y[tel_count] - core_y, 2))
             # And the expected rotation angle
-            phi = np.arctan2((self.tel_pos_x[tel_count] - core_x), (self.tel_pos_y[tel_count] - core_y))
+            phi = np.arctan2((self.tel_pos_y[tel_count] - core_y), (self.tel_pos_x[tel_count] - core_x))# - (math.pi/2.)
 
             # Rotate and translate all pixels such that they match the template orientation
-            pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_count], self.pixel_y[tel_count],
+            pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_count]*-1, self.pixel_y[tel_count],
                                                          source_x, source_y, phi)
 
+            #plt.plot(pix_x_rot, pix_y_rot)
+            #plt.show()
             # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(self.type[tel_count], zenith, azimuth,
                                                energy, impact, x_max_bin,
                                                pix_x_rot*(180/math.pi), pix_y_rot*(180/math.pi))
-            prediction[prediction<0] = 0
             prediction[np.isnan(prediction)] = 0
+            prediction[prediction<0] = 0
 
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
             # Get likelihood that the prediction matched the camera image
             like = poisson_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
+            like[np.isnan(like)] = 1e9
             sum_like += np.sum(like)
+            if np.sum(prediction) is 0:
+                sum_like += 1e9
 
         return sum_like
 
@@ -454,6 +471,9 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
+        lower_en_limit = energy_seed.energy*0.1
+        if lower_en_limit < 0.04*u.TeV:
+            lower_en_limit = 0.04*u.TeV
         # Create Minuit object with first guesses at parameters, strip away the units as Minuit doesnt like them
         min = Minuit(self.get_likelihood, print_level=1,
                      source_x=source_x, error_source_x=0.01/57.3, fix_source_x=False,
@@ -463,7 +483,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                      core_x=tilt_x, error_core_x=10, limit_core_x=(tilt_x-200, tilt_x+200),
                      core_y=tilt_y, error_core_y=10, limit_core_y=(tilt_y-200,tilt_y+200),
                      energy=energy_seed.energy.value, error_energy=energy_seed.energy.value*0.05,
-                     limit_energy=(energy_seed.energy.value*0.1,energy_seed.energy.value*10.),
+                     limit_energy=(lower_en_limit.value,energy_seed.energy.value*10.),
                      x_max_scale=1, error_x_max_scale=0.1, limit_x_max_scale=(0.5,2), fix_x_max_scale=False, errordef=1)
 
         #min.tol *= 1000
@@ -472,6 +492,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # Perform minimisation
         migrad = min.migrad()
         fit_params = min.values
+        errors = min.errors
 
         # container class for reconstructed showers '''
         shower_result = ReconstructedShowerContainer()
@@ -480,8 +501,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                array_direction=self.array_direction)
         horizon = nominal.transform_to(HorizonFrame())
 
-        self.draw_surfaces(nominal.x.to(u.rad), nominal.y.to(u.rad), fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
-                           fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
+        #self.draw_surfaces(nominal.x.to(u.rad), nominal.y.to(u.rad), fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
+        #                   fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
 
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
         shower_result.core_x = fit_params["core_x"] * u.m
@@ -492,14 +513,22 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         shower_result.alt_uncert = np.nan
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
-        shower_result.h_max = np.nan
-        shower_result.h_max_uncert = np.nan
+        zenith = 90*u.deg - self.array_direction[0]
+        shower_result.h_max = fit_params["x_max_scale"] * \
+                              self.get_shower_max(fit_params["source_x"],fit_params["source_y"],
+                                                  fit_params["core_x"],fit_params["core_y"],
+                                                  zenith.to(u.rad).value)
+        shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
         shower_result.goodness_of_fit = np.nan
+        shower_result.tel_ids = list(self.image.keys())
 
         energy_result = ReconstructedEnergyContainer()
         energy_result.energy = fit_params["energy"] * u.TeV
-
+        energy_result.energy_uncert = errors["energy"] * u.TeV
+        energy_result.is_valid = True
+        energy_result.tel_ids = list(self.image.keys())
         # Return interesting stuff
+
         return shower_result, energy_result
 
     # These drawing functions should really be moved elsewhere, as drawing a 2D map of the array is quite
@@ -538,7 +567,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         return
 
-    def draw_nominal_surface(self, x_src, y_src, x_grd, y_grd, energy, xmax, plot_name, bins=100, range=1):
+    def draw_nominal_surface(self, x_src, y_src, x_grd, y_grd, energy, xmax, plot_name, bins=30, range=1):
         """
         Function for creating test statistic surface in nominal plane
 
@@ -580,7 +609,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                 extent=(x_src.value - range.value, x_src.value + range.value,
                                          y_src.value - range.value, y_src.value + range.value))
 
-    def draw_tilted_surface(self, x_src, y_src, x_grd, y_grd, energy, xmax, plot_name, bins=100, range=100):
+    def draw_tilted_surface(self, x_src, y_src, x_grd, y_grd, energy, xmax, bins=50, range=100*u.m):
         """
         Function for creating test statistic surface in tilted plane
 
@@ -613,12 +642,16 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         for xb in x_ground_list:
             j = 0
             for yb in y_ground_list:
-                w[i][j] = self.get_likelihood(x_src.to(u.rad).value, y_src.to(u.rad).value, xb.value, yb.value, energy.value, xmax)
+                w[i][j] = self.get_likelihood(x_src.to(u.rad).value, y_src.to(u.rad).value,
+                                              xb.value, yb.value, energy.value, xmax)
                 j += 1
 
             i += 1
+        print(w)
 
-        return plot_name.imshow(w, interpolation="nearest", cmap=plt.cm.viridis_r,
-                                extent=(x_grd.value - range.value , x_grd.value + range.value,
-                                        y_grd.value -range.value, y_grd.value + range.value))
+        X, Y = np.meshgrid(x_ground_list, y_ground_list)
+        return X, Y, w
+        #plot_name.imshow(w, interpolation="nearest", cmap=plt.cm.viridis_r,
+                                #extent=(x_grd.value - range.value , x_grd.value + range.value,
+                                #        y_grd.value -range.value, y_grd.value + range.value))
 
