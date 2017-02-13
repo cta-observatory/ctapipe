@@ -45,11 +45,11 @@ def info(version=False, tools=False, dependencies=False):
 
 def _info_version():
     """Print version info."""
-    from ctapipe import version
+    import ctapipe
     print('\n*** ctapipe version info ***\n')
-    print('version: {0}'.format(version.version))
-    print('release: {0}'.format(version.release))
-    print('githash: {0}'.format(version.githash))
+    print('version: {0}'.format(ctapipe.__version__))
+    #print('release: {0}'.format(version.release))
+    #print('githash: {0}'.format(version.githash))
     print('')
 
 
