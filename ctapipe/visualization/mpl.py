@@ -6,7 +6,7 @@ Visualization routines using matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from matplotlib.colors import Normalize, LogNorm
+from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from numpy import sqrt
 import numpy as np
 import logging
@@ -234,7 +234,8 @@ class CameraDisplay:
         Possible values:
 
         - "lin": linear scale
-        - "log": log scale
+        - "log": log scale (cannot have negative values)
+        - "symlog": symmetric log scale (negative values are ok)
         -  any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
         '''
         return self.pixels.norm
@@ -247,6 +248,9 @@ class CameraDisplay:
         elif norm == 'log':
             self.pixels.norm = LogNorm()
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
+        elif norm == 'symlog':
+            self.pixels.norm = SymLogNorm(linthresh=1.0)
+            self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
         else:
