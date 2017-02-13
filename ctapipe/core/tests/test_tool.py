@@ -21,3 +21,13 @@ def test_tool_simple():
     tool.userparam = 4.0
     with pytest.raises(TraitError):
         tool.userparam = "badvalue"
+
+
+def test_tool_version():
+
+    class MyTool(Tool):
+        description = "test"
+        userparam = Float(5.0, help="parameter").tag(config=True)
+
+    tool = MyTool()
+    assert tool.version_string !=  ""
