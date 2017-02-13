@@ -9,7 +9,7 @@ import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
 from ctapipe import io, visualization
-from ctapipe.core import Tool
+from ctapipe.core import Tool, traits
 from ctapipe.image import toymodel, cleaning
 from matplotlib.animation import FuncAnimation
 
@@ -19,16 +19,28 @@ class CameraDemo(Tool):
     name = u"ctapipe-cam-demo"
     description = "Display fake events in a demo camera"
 
+    delay = traits.Int(20, help="Frame delay in ms").tag(config=True)
+    cleanframes = traits.Int(100, help="Number of frames between turning on "
+                                      "cleaning").tag(config=True)
+    autoscale = traits.Bool(False, help='scale each frame to max if '
+                                        'True').tag(config=True)
+
+    aliases = traits.Dict({'delay': 'CameraDemo.delay',
+                           'cleanframes': 'CameraDemo.cleanframes',
+                           'autoscale' : 'CameraDemo.autoscale'})
+
+
     def __init__(self):
         super().__init__()
         self._counter = 0
+        self.imclean = False
 
     def start(self):
         self.log.info("Starting Camera Display")
         self._display_camera_animation()
 
     def _display_camera_animation(self):
-        plt.style.use("ggplot")
+        #plt.style.use("ggplot")
         fig = plt.figure(num="ctapipe Camera Demo", figsize=(7, 7))
         ax = plt.subplot(111)
 
@@ -53,21 +65,33 @@ class CameraDemo(Tool):
                                                                  nsb_level_pe=5000)
 
             # alternate between cleaned and raw images
-            if self._counter > 20:
+            if self._counter == self.cleanframes:
                 plt.suptitle("Image Cleaning ON")
+                self.imclean = True
+            if self._counter == self.cleanframes*2:
+                plt.suptitle("Image Cleaning OFF")
+                self.imclean = False
+                self._counter = 0
+
+            if self.imclean:
                 cleanmask = cleaning.tailcuts_clean(geom, image, pedvars=80)
                 for ii in range(3):
                     cleaning.dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels
-            if self._counter >= 40:
-                plt.suptitle("Image Cleaning OFF")
-                self._counter = 0
 
+            self.log.debug("count = {}, image sum={} max={}"
+                .format(self._counter, image.sum(), image.max()))
             disp.image = image
-            disp.set_limits_percent(100)
-            self._counter += 1
 
-        anim = FuncAnimation(fig, update, interval=100)
+            if self.autoscale:
+                disp.set_limits_percent(95)
+            else:
+                disp.set_limits_minmax(-100, 4000)
+
+            self._counter += 1
+            return [disp.axes, disp.pixels]
+
+        anim = FuncAnimation(fig, update, interval=self.delay, blit=True)
         plt.show()
 
 

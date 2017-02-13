@@ -48,17 +48,17 @@ def test_histogram_range_fill_and_read():
     binnings and fill positions
     """
 
-    N = 100
+    num = 100
 
     for nxbins in np.arange(1, 50, 1):
         for xx in np.arange(-2.0, 2.0, 0.1):
             pp = (xx + 0.01829384, 0.1)
-            coords = np.ones((N, 2)) * np.array(pp)
+            coords = np.ones((num, 2)) * np.array(pp)
             hist = Histogram(nbins=[nxbins, 10],
                              ranges=[[-2.5, 2.5], [-1, 1]])
             hist.fill(coords)
             val = hist.get_value(pp)[0]
-            assert val == N
+            assert val == num
             del hist
 
 
@@ -73,10 +73,6 @@ def test_outliers():
     assert val1 == -10000
     assert val2 == 0
 
-
-def get_temp_fits_filename():
-
-    return fn
 
 @pytest.fixture(scope='session')
 def histogram_file(tmpdir_factory):
@@ -101,17 +97,17 @@ def test_histogram_fits(histogram_file):
     compare_histograms(hist, newhist)
 
 
-def test_histogram_interpolate():
-    H = Histogram(nbins=[5, 11], ranges=[[-2.5, 2.5], [-1, 1]])
-    H.fill(np.array([[0, 0],
+def test_histogram_resample_inplace():
+    hist = Histogram(nbins=[5, 11], ranges=[[-2.5, 2.5], [-1, 1]])
+    hist.fill(np.array([[0, 0],
                      [0,0.5]]))
 
     for testpoint in [(0,0), (0,1), (1,0), (3,3)]:
-        val0 = H.get_value(testpoint)
-        H.interpolate((10,22))
-        val1 = H.get_value(testpoint)
-        H.interpolate((5,11))
-        val2 = H.get_value(testpoint)
+        val0 = hist.get_value(testpoint)
+        hist.resample_inplace((10, 22))
+        val1 = hist.get_value(testpoint)
+        hist.resample_inplace((5, 11))
+        val2 = hist.get_value(testpoint)
 
-        # at least check the interpolation is undoable
+        # at least check the resampling is undoable
         assert np.isclose(val0[0], val2[0])
