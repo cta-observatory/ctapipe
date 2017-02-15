@@ -106,12 +106,12 @@ class CameraDisplay:
         patches = []
 
         if not hasattr(self.geom, "mask"):
-            self.geom.mask = np.ones_like(self.geom.pix_x.value)
+            self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
         for xx, yy, aa in zip(
-            u.Quantity(self.geom.pix_x[self.geom.mask==1]).value,
-            u.Quantity(self.geom.pix_y[self.geom.mask==1]).value,
-            u.Quantity(np.array(self.geom.pix_area)[self.geom.mask==1]).value):
+            u.Quantity(self.geom.pix_x[self.geom.mask]).value,
+            u.Quantity(self.geom.pix_y[self.geom.mask]).value,
+            u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
 
             if self.geom.pix_type.startswith("hex"):
                 rr = sqrt(aa * 2 / 3 / sqrt(3))
@@ -291,7 +291,7 @@ class CameraDisplay:
                 .format(image.shape, self.geom.pix_x.shape)
             )
 
-        self.pixels.set_array(image[self.geom.mask==True])
+        self.pixels.set_array(image[self.geom.mask])
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()
