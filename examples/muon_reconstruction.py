@@ -3,13 +3,14 @@ from ctapipe.utils.datasets import get_path
 import os
 import numpy as np
 from astropy import log
-from ctapipe.io.files import InputFile
-from calibration_pipeline import display_telescope
-from ctapipe.calib.camera.calibrators import calibration_parameters, \
-    calibrate_source
+from astropy.table import Table
+from ctapipe.io.hessio import hessio_event_source
+#from calibration_pipeline import display_telescope
+from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
+from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
 from matplotlib import colors, pyplot as plt
-from ctapipe.image.muon.muon_reco_functions import analyze_muon_source
-from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency
+from ctapipe.image.muon.muon_reco_functions import analyze_muon_source, analyze_muon_event
+from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency, plot_muon_event
 from ctapipe.plotting.camera import CameraPlotter
 
 from IPython import embed
@@ -36,7 +37,7 @@ def main():
                         help='path to the input file')
 
     parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        choices=InputFile.origin_list(),
+                         #was .origin_list()
                         default='hessio', help='origin of the file')
     parser.add_argument('-D', dest='display', action='store_true',
                         default=False, help='display the camera events')
@@ -53,68 +54,58 @@ def main():
     
     args, excess_args = parser.parse_known_args()
 
-    params, unknown_args = calibration_parameters(excess_args,
-                                                  args.origin,
-                                                  args.calib_help)
+    #params, unknown_args = calibration_parameters(excess_args,
+    #                                              args.origin,
+    #                                              args.calib_help)
+    calibrator = CameraDL1Calibrator(None, None, extractor=NeighbourPeakIntegrator(None,None))
 
     log.debug("[file] Reading file")
-    input_file = InputFile(args.input_path, args.origin)
-    source = input_file.read()
-
+    #input_file = InputFile(args.input_path, args.origin)
+    #source = input_file.read()
+    source = hessio_event_source(args.input_path)
+    
     geom_dict = {}
 
-    calibrated_source = calibrate_source(source, params, geom_dict)
+    #
+    plot_dict = {}
+    muoneff = []
+    impactp = []
+    ringwidth = []
+    plot_dict = {'MuonEff':muoneff,'ImpactP':impactp,'RingWidth':ringwidth}
 
-    muons = analyze_muon_source(calibrated_source, params, geom_dict, args) # Function that receive muons and make a look over the muon event    
+    numev = 0
 
-    #fig = plt.figure(figsize=(16, 7))
-    #if args.display:
-    #    plt.show(block=False)
-    #pp = PdfPages(args.output_path) if args.output_path is not None else None
+    for event in source:
+        print("Event Number",numev)
+        calibrator.calibrate(event)
+        muon_evt = analyze_muon_event(event)
 
-    #colorbar = None
-    #Display events before muon analysis (also do this later)
-    #for cal_evt in calibrated_source:
-     #   tel_id = 1 #True for muon simulations with only one tel simulated
-     #   #display_telescope(evt, evt.dl0.tel[tel_id], 1, geom_dict, pp, fig)    
-     #   npads = 1
-    #    # Only create two pads if there is timing information extracted
-    #    # from the calibration
-    #    ax1 = fig.add_subplot(1, npads, 1)
-    #    plotter = CameraPlotter(cal_evt,geom_dict)
-    #    signals = cal_evt.dl1.tel[tel_id].pe_charge
-    #    camera1 = plotter.draw_camera(tel_id,signals,ax1)
-    #    
-    #    cmaxmin = (max(signals) - min(signals))
-    #    cmap_charge = colors.LinearSegmentedColormap.from_list(
-    #        'cmap_c', [(0 / cmaxmin, 'darkblue'),
-    #                   (np.abs(min(signals)) / cmaxmin, 'black'),
-    #                   (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
-    #                   (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
-    #                   (1, 'yellow')])
-    #    camera1.pixels.set_cmap(cmap_charge)
-    #    if not colorbar:
-    #        camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
-    #        colorbar = camera1.colorbar
-    #    else:
-    #        camera1.colorbar = colorbar
-    #        camera1.update(True)
-    #    ax1.set_title("CT {} ({}) - Mean pixel charge"
-    #                  .format(tel_id, geom_dict[tel_id].cam_id))
-        
-    #    plt.pause(0.1)
-    #    if pp is not None:
-    #        pp.savefig(fig)
-                    
-    #plot_muon_efficiency(muons)
-    for muon_evt in muons:
+        numev += 1
         #Test display #Flag 1 for true (wish to display)
-        # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)    
+        # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)
         if muon_evt[0] is not None and muon_evt[1] is not None:
+
+            plot_muon_event(event,muon_evt)
+            
+            plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
+            plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
+            plot_dict['RingWidth'].append(muon_evt[1].ring_width.value)
+            
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here
-    #if pp is not None:
-    #    pp.close()
+
+        if numev > 50: #for testing purposes - kill early
+            break
+
+    t = Table([muoneff, impactp, ringwidth], names=('MuonEff','ImpactP','RingWidth'), meta={'name': 'muon analysis results'})
+    t['ImpactP'].unit = 'm'
+    t['RingWidth'].unit = 'deg'
+    #    print('plotdict',plot_dict)
+
+    #t.write(args.output_path+'_muontable.fits',overwrite=True) #NEED this to overwrite
+
+    #plot_muon_efficiency(plot_dict,args.output_path)
+    #plot_muon_efficiency(args.output_path)
 
     log.info("[COMPLETE]")
 
