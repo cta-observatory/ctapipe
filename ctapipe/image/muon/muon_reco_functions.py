@@ -1,5 +1,6 @@
-from ctapipe.io.containers import CalibratedCameraContainer, MuonRingParameter, MuonIntensityParameter
+from ctapipe.io.containers import  MuonRingParameter, MuonIntensityParameter
 from astropy import log
+from ctapipe.io import CameraGeometry
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.coordinates import CameraFrame, NominalFrame
 import numpy as np
@@ -31,7 +32,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     names = ['LSTCam','NectarCam','FlashCam','SST-1m','GATE']
     TailCuts = [(5,7),(5,7),(10,12),(5,7),(5,7)]
     impact = [(0.2,0.9),(0.2,0.9),(0.2,0.9),(0.2,0.9),(0.2,0.9)]
-    ringwidth = [(0.04,0.08),(0.04,0.08),(0.04,0.08),(0.04,0.08),(0.04,0.08)]
+    ringwidth = [(0.04,0.08),(0.04,0.08),(0.01,0.5),(0.01,0.5),(0.04,0.08)]
     TotalPix = [1855.,1855.,1764.,1296.,2048.]#8% (or 6%) as limit
     MinPix = [148.,148.,141.,104.,164.]
     #Need to either convert from the pixel area in m^2 or check the camera specs
@@ -50,9 +51,12 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
     for telid in event.dl0.tels_with_data:
 
+        print("Analysing muon event for tel",telid)
+        
         x, y = event.inst.pixel_pos[telid]
 
-        image = event.dl1.tel[telid].calibrated_image
+        #image = event.dl1.tel[telid].calibrated_image
+        image = event.dl1.tel[telid].image[0]
 
         # Get geometry
         geom = None
@@ -73,11 +77,12 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         tailcuts = (5.,7.)
         #Try a higher threshold for FlashCam
 
-        #if event.inst.optical_foclen[telid] == 16.*u.m and event.dl0.tel[telid].num_pixels == 1764:
         if geom.cam_id == 'FlashCam':
-            tailcuts = (10.,12.)
-
-
+            tailcuts = (20.,30.)
+            #tailcuts = TailCuts[dict_index]
+        elif geom.cam_id == 'SST-1m':
+            tailcuts = (24.,30.)
+            
         #rot_angle = 0.*u.deg
         #if event.inst.optical_foclen[telid] > 10.*u.m and event.dl0.tel[telid].num_pixels != 1764:
             #rot_angle = -100.14*u.deg
@@ -85,6 +90,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.inst.optical_foclen[telid], rotation=geom.pix_rotation)
 
+        #print("Camera",geom.cam_id,"focal length",event.inst.optical_foclen[telid],"rotation",geom.pix_rotation)
+        
         nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az])) 
 
         
@@ -97,6 +104,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         muonring = ChaudhuriKunduRingFitter(None)
 
+        #print("img:",np.sum(clean_mask), "x=",x,"y=",y)
         muonringparam = muonring.fit(x,y,image*clean_mask)
 
         #muonringparam = muonring.fit(x,y,weight)
@@ -106,14 +114,14 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)
-        
+
+        #print("1: x",muonringparam.ring_center_x,"y",muonringparam.ring_center_y,"radius",muonringparam.ring_radius)
         muonringparam = muonring.fit(x,y,img*(ring_dist<muonringparam.ring_radius*0.4))
+        #print("2: x",muonringparam.ring_center_x,"y",muonringparam.ring_center_y,"radius",muonringparam.ring_radius)
         muonringparam.tel_id = telid
         muonringparam.run_id = event.dl0.run_id
         muonringparam.event_id = event.dl0.event_id
         dist_mask = np.abs(dist-muonringparam.ring_radius)<muonringparam.ring_radius*0.4
-        #print("muonringparam.ring_radius=",muonringparam.ring_radius)
-        #print("Fitted ring centre:",muonringparam.ring_center_x,muonringparam.ring_center_y)
 
         rad = list()
         cx = list()
@@ -131,7 +139,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
 
         #Camera containment radius -  better than nothing - guess pixel diameter of 0.11, all cameras are perfectly circular   cam_rad = np.sqrt(numpix*0.11/(2.*np.pi))
-        #print("Checking cuts:",np.sum(pix_im>5),">",10, "and num pix",np.sum(pix_im),">",minpix,"and nominal distance",nom_dist,"<containment radius = ",cam_rad*u.deg, "imageshape",image.shape[0])
 
         if(np.sum(pix_im>tailcuts[0])>0.1*minpix and np.sum(pix_im)>minpix and nom_dist < muon_cuts['CamRad'][dict_index]*u.deg and muonringparam.ring_radius<1.5*u.deg and muonringparam.ring_radius>1.*u.deg):
 
@@ -143,7 +150,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             #    sct = True
 
             ctel = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=muon_cuts['AngPixW'][dict_index]*u.deg,sct_flag=muon_cuts['SCT'][dict_index], secondary_radius=muon_cuts['SecRad'][dict_index])
-
+          
             if (image.shape[0] == muon_cuts['TotalPix'][dict_index]):
                 muonintensityoutput = ctel.fit_muon(muonringparam.ring_center_x,muonringparam.ring_center_y,muonringparam.ring_radius,x[dist_mask],y[dist_mask],image[dist_mask])
 
@@ -153,7 +160,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muonintensityoutput.mask = dist_mask
                 print("Impact parameter = ",muonintensityoutput.impact_parameter,"mir_rad",mir_rad,"ring_width=",muonintensityoutput.ring_width)
 
-
+                #print("Cuts <",muon_cuts["Impact"][dict_index][1]*mir_rad,"cuts >",muon_cuts['Impact'][dict_index][0]*u.m,'ring_width < ',muon_cuts['RingWidth'][dict_index][1]*u.deg,'ring_width >',muon_cuts['RingWidth'][dict_index][0]*u.deg)
                 if( muonintensityoutput.impact_parameter < muon_cuts['Impact'][dict_index][1]*mir_rad and muonintensityoutput.impact_parameter > muon_cuts['Impact'][dict_index][0]*u.m and muonintensityoutput.ring_width < muon_cuts['RingWidth'][dict_index][1]*u.deg and muonintensityoutput.ring_width > muon_cuts['RingWidth'][dict_index][0]*u.deg ):
                     muonintensityparam = muonintensityoutput
                 else:

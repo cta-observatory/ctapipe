@@ -4,13 +4,13 @@ import os
 import numpy as np
 from astropy import log
 from astropy.table import Table
-from ctapipe.io.files import InputFile
-from calibration_pipeline import display_telescope
-from ctapipe.calib.camera.calibrators import calibration_parameters, \
-    calibrate_source
+from ctapipe.io.hessio import hessio_event_source
+#from calibration_pipeline import display_telescope
+from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
+from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
 from matplotlib import colors, pyplot as plt
-from ctapipe.image.muon.muon_reco_functions import analyze_muon_source
-from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency
+from ctapipe.image.muon.muon_reco_functions import analyze_muon_source, analyze_muon_event
+from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency, plot_muon_event
 from ctapipe.plotting.camera import CameraPlotter
 
 from IPython import embed
@@ -54,33 +54,38 @@ def main():
     
     args, excess_args = parser.parse_known_args()
 
-    params, unknown_args = calibration_parameters(excess_args,
-                                                  args.origin,
-                                                  args.calib_help)
+    #params, unknown_args = calibration_parameters(excess_args,
+    #                                              args.origin,
+    #                                              args.calib_help)
+    calibrator = CameraDL1Calibrator(None, None, extractor=NeighbourPeakIntegrator(None,None))
 
     log.debug("[file] Reading file")
-    input_file = InputFile(args.input_path, args.origin)
-    source = input_file.read()
-
+    #input_file = InputFile(args.input_path, args.origin)
+    #source = input_file.read()
+    source = hessio_event_source(args.input_path)
+    
     geom_dict = {}
 
-    calibrated_source = calibrate_source(source, params, geom_dict)
-
-    muons = analyze_muon_source(calibrated_source, params, geom_dict, args) # Function that receive muons and make a look over the muon event    
-                    
     #
-
     plot_dict = {}
     muoneff = []
     impactp = []
     ringwidth = []
     plot_dict = {'MuonEff':muoneff,'ImpactP':impactp,'RingWidth':ringwidth}
 
+    numev = 0
 
-    for muon_evt in muons:
+    for event in source:
+        print("Event Number",numev)
+        calibrator.calibrate(event)
+        muon_evt = analyze_muon_event(event)
+
+        numev += 1
         #Test display #Flag 1 for true (wish to display)
-        # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)    
+        # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)
         if muon_evt[0] is not None and muon_evt[1] is not None:
+
+            plot_muon_event(event,muon_evt)
             
             plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
             plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
@@ -89,16 +94,18 @@ def main():
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here
 
+        if numev > 50: #for testing purposes - kill early
+            break
 
     t = Table([muoneff, impactp, ringwidth], names=('MuonEff','ImpactP','RingWidth'), meta={'name': 'muon analysis results'})
     t['ImpactP'].unit = 'm'
     t['RingWidth'].unit = 'deg'
     #    print('plotdict',plot_dict)
 
-    t.write(args.output_path+'_muontable.fits',overwrite=True)
+    #t.write(args.output_path+'_muontable.fits',overwrite=True) #NEED this to overwrite
 
     #plot_muon_efficiency(plot_dict,args.output_path)
-    plot_muon_efficiency(args.output_path)
+    #plot_muon_efficiency(args.output_path)
 
     log.info("[COMPLETE]")
 

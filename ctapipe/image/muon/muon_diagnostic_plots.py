@@ -11,6 +11,7 @@ from matplotlib import colors
 from scipy.stats import norm
 from astropy import units as u
 from astropy.table import Table
+from ctapipe.io import CameraGeometry
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
@@ -96,10 +97,11 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
         #Plot the muon event and overlay muon parameters
         fig = plt.figure(figsize=(16, 7))
-        if args.display:
-            plt.show(block=False)
-        pp = PdfPages(args.output_path) if args.output_path is not None else None
-
+        #if args.display:
+        #    plt.show(block=False)
+        #pp = PdfPages(args.output_path) if args.output_path is not None else None
+        pp = None #For now, need to correct this
+        
         colorbar = None
         colorbar2 = None
 
@@ -109,23 +111,23 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             # from the calibration
             ax1 = fig.add_subplot(1, npads, 1)
             plotter = CameraPlotter(event,geom_dict)
-            image = event.dl1.tel[tel_id].calibrated_image
+            #image = event.dl1.tel[tel_id].calibrated_image
+            image = event.dl1.tel[tel_id].image[0]
             #Get geometry
             geom = None
             if geom_dict is not None and tel_id in geom_dict:
                 geom = geom_dict[tel_id]
             else:
-                log.debug("[calib] Guessing camera geometry")
+                #log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.inst.pixel_pos[tel_id],
                                             event.inst.optical_foclen[tel_id])
-                log.debug("[calib] Camera geometry found")
+                #log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[tel_id] = geom
         
 
             tailcuts = (5.,7.)
-            #Try a higher threshold for FlashCam
-            #if event.inst.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
+            #Try a higher threshold for 
             if geom.cam_id == 'FlashCam':
                 tailcuts = (10.,12.)
         
@@ -202,8 +204,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
        
             camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="red")
 
-            ax1.set_title("CT {} ({}) - Mean pixel charge"
-                          .format(tel_id, geom_dict[tel_id].cam_id))
+#            ax1.set_title("CT {} ({}) - Mean pixel charge"
+#                          .format(tel_id, geom_dict[tel_id].cam_id))
 
             if muonparams[1] is not None:
                 #continue #Comment this...(should ringwidthfrac also be *0.5?)
@@ -242,7 +244,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 else:
                     camera2.colorbar = colorbar2
                 camera2.update(True)
-                plt.pause(0.2)
+                plt.pause(1.)#make shorter
 
         
             #plt.pause(0.1)
