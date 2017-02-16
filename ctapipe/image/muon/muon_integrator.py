@@ -10,6 +10,7 @@ To do:
 import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
+from scipy.optimize import minimize
 from astropy import units as u
 from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
@@ -120,12 +121,12 @@ class MuonLineIntegrate:
             length from impact point to mirror edge
         '''
         mirror_length = self.chord_length(
-            self.mirror_radius, r / self.mirror_radius, angle
+            self.mirror_radius, r / self.mirror_radius.value, angle
         )
-        hole_length = 0 * mirror_length.unit
+        hole_length = 0 * mirror_length#.unit
         if self.hole_radius > 0:
             hole_length = self.chord_length(
-                self.hole_radius, r / self.hole_radius, angle
+                self.hole_radius, r / self.hole_radius.value, angle
             )
 
         if self.sct_flag:
@@ -156,9 +157,10 @@ class MuonLineIntegrate:
         :return: ndarray
             Chord length for each angle
         '''
-
-        bins = int((2 * np.pi * radius) / self.pixel_width) * self.oversample_bins
-        ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
+        bins = int((2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
+        #ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
+        #embed()
+        ang = np.linspace(-np.pi + phi, np.pi + phi, bins)
         l = self.intersect_circle(impact_parameter, ang)
         l = correlate1d(l, np.ones(self.oversample_bins), mode='wrap', axis=0)
         l /= self.oversample_bins
@@ -179,6 +181,7 @@ class MuonLineIntegrate:
         :return: ndarray
             Pixel rotation angle
         '''
+        #embed()
         del_x = pixel_x - centre_x
         del_y = pixel_y - centre_y
 
@@ -272,12 +275,13 @@ class MuonLineIntegrate:
         -------
         float: Likelihood that model matches data
         '''
-        centre_x *= self.unit
-        centre_y *= self.unit
-        radius *= self.unit
-        ring_width *= self.unit
-        impact_parameter *= u.m
-        phi *= u.rad
+        #embed()
+        #centre_x *= self.unit
+        #centre_y *= self.unit
+        #radius *= self.unit
+        #ring_width *= self.unit
+        #impact_parameter *= u.m
+        #phi *= u.rad
 
         # Generate model prediction
         self.prediction = self.image_prediction(
@@ -287,8 +291,8 @@ class MuonLineIntegrate:
             centre_y,
             radius,
             ring_width,
-            self.pixel_x,
-            self.pixel_y,
+            self.pixel_x.value,
+            self.pixel_y.value,
         )
         #TEST: extra scaling factor, HESS style (ang pix size squared/2piR)
         #Not including bins atm
@@ -355,9 +359,18 @@ class MuonLineIntegrate:
 
         # First store these parameters in the class so we can use them in minimisation
         self.image = image
-        self.pixel_x = pixel_x
-        self.pixel_y = pixel_y
+        self.pixel_x = pixel_x.to(u.deg)
+        self.pixel_y = pixel_y.to(u.deg)
         self.unit = pixel_x.unit
+
+        radius.to(u.deg)
+        centre_x.to(u.deg)
+        centre_y.to(u.deg)
+
+        # Return interesting stuff
+        fitoutput = MuonIntensityParameter()
+
+
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
@@ -371,32 +384,35 @@ class MuonLineIntegrate:
             error_phi=0.1,
             radius=radius.value,
             fix_radius=True,
+            error_radius=0.,
             centre_x=centre_x.value,
             fix_centre_x=True,
+            error_centre_x=0.,
             centre_y=centre_y.value,
             fix_centre_y=True,
+            error_centre_y=0.,
             ring_width=0.1,
             error_ring_width=0.001*radius.value,
             limit_ring_width=(0, 1),
             optical_efficiency_muon=0.1,
             error_optical_efficiency_muon=0.05,
             limit_optical_efficiency_muon=(0, 1),
-            errordef=1,
             throw_nan=False,
+            errordef=1,
         )
 
         # Perform minimisation
         minuit.migrad()
-
+            
         # Get fitted values
         fit_params = minuit.values
-
-        # Return interesting stuff
-        fitoutput = MuonIntensityParameter()
         fitoutput.impact_parameter = fit_params['impact_parameter']*u.m
-        # fitoutput.phi = fit_params['phi']*u.rad
+        #fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.ring_width = fit_params['ring_width']*self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
+
+        #embed()
+        #
         fitoutput.prediction = self.prediction
 
         return fitoutput

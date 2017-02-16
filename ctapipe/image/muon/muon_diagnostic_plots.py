@@ -6,15 +6,20 @@ For generic use with all muon algorithms
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
 from matplotlib import colors
+from scipy.stats import norm
 from astropy import units as u
+from astropy.table import Table
+from ctapipe.io import CameraGeometry
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
 
 from ctapipe.plotting.camera import CameraPlotter
+from ctapipe.utils.fitshistogram import Histogram
 
-def plot_muon_efficiency(source):
+def plot_muon_efficiency(outputpath):
 
     """
     Plot the muon efficiencies
@@ -22,36 +27,67 @@ def plot_muon_efficiency(source):
     fig,ax = plt.subplots(1,1,figsize=(10,10))
     figip,axip = plt.subplots(1,1,figsize=(10,10))
     figrw,axrw = plt.subplots(1,1,figsize=(10,10))
+    
+    nbins = 16
+    t = Table.read(outputpath+'_muontable.fits')
+    print('Reading muon efficiency from table',outputpath,t['MuonEff'])
 
-    mu_eff = []
-    impact_param = []
-    ring_width = []
+    if len(t['MuonEff']) < 1:
+        print("No muon events to plot")
+        return 
+    else:
+        print("Found",len(t['MuonEff']),"muon events")
+    
 
-    for mu_evt in source:
-        if mu_evt[0] is not None and mu_evt[1] is not None:
-            mu_eff.append(mu_evt[1].optical_efficiency_muon)
-            impact_param.append(mu_evt[1].impact_parameter/u.m)
-            ring_width.append(mu_evt[1].ring_width/u.deg)
+    (mu, sigma) = norm.fit(t['MuonEff'])
 
-    ax.hist(mu_eff,20)
-    ax.set_xlim(0.2*min(mu_eff),1.2*max(mu_eff))
-    ax.set_ylim(0.,1.2*len(mu_eff))
+    print('Gaussian fit with mu=',mu,'sigma=',sigma)
+
+    #ax = figeff.add_subplot(1,3,1)
+    conteff = ax.hist(t['MuonEff'],nbins)
+    ax.set_xlim(0.2*min(t['MuonEff']),1.2*max(t['MuonEff']))
+
+    xtest = np.linspace(min(t['MuonEff']),max(t['MuonEff']),nbins)
+    yg = mlab.normpdf(xtest,mu,sigma)
+    print('mu',mu,'sigma',sigma,'yg',yg)
+    ax.plot(xtest,yg,'r',linewidth=2)
+
+    ax.set_ylim(0.,1.2*max(conteff[0]))
     ax.set_xlabel('Muon Efficiency')
-    plt.figure(fig.number)
+    #plt.figure(fig.number)
+    plt.draw()
 
-    axip.hist(impact_param,20)
-    axip.set_xlim(0.2*min(impact_param),1.2*max(impact_param))
-    axip.set_ylim(0.,1.2*len(impact_param))
+
+    #axip = figeff.add_subplot(1,3,1)
+    yimp = np.linspace(min(t['ImpactP']),max(t['ImpactP']),nbins)
+    contimp = axip.hist(t['ImpactP'],nbins)
+    axip.set_xlim(0.2*min(t['ImpactP']),1.2*max(t['ImpactP']))
+    axip.set_ylim(0.,1.2*max(contimp[0]))
     axip.set_xlabel('Impact Parameter (m)')
-    plt.figure(figip.number)
+    #plt.figure(figip.number)
+    plt.draw()
+    
+    heffimp = Histogram(nbins=[16,16],ranges=[(min(t['MuonEff']),max(t['MuonEff'])),(min(t['ImpactP']),max(t['ImpactP']))],axisNames=["MuonEfficiency","ImpactParameter"])
+    #embed()
+    #heffimp.bin_lower_edges([xtest,yimp])
+    heffimp.fill([t['MuonEff'],t['ImpactP']])
+    heffimp.draw_2d()
 
-    axrw.hist(ring_width,20)
-    axrw.set_xlim(0.2*min(ring_width),1.2*max(ring_width))
-    axrw.set_ylim(0.,1.2*len(ring_width))
+    #axrw = figeff.add_subplot(1,3,1)
+    yrw = np.linspace(min(t['RingWidth']),max(t['RingWidth']),nbins)
+    contrw = axrw.hist(t['RingWidth'],nbins)
+    axrw.set_xlim(0.2*min(t['RingWidth']),1.2*max(t['RingWidth']))
+    axrw.set_ylim(0.,1.2*max(contrw[0]))
     axrw.set_xlabel('Ring Width ($^\circ$)')
-    plt.figure(figrw.number)
-
+    #plt.figure(figrw.number)
+    plt.draw()
     plt.show()
+    if outputpath is not None:
+        fig.savefig(outputpath+'_MuonEff.png')
+        figip.savefig(outputpath+'_ImpactParameter.png')
+        figrw.savefig(outputpath+'_RingWidth.png')
+    else:
+        plt.show()
 
 
 
@@ -61,10 +97,11 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
         #Plot the muon event and overlay muon parameters
         fig = plt.figure(figsize=(16, 7))
-        if args.display:
-            plt.show(block=False)
-        pp = PdfPages(args.output_path) if args.output_path is not None else None
-
+        #if args.display:
+        #    plt.show(block=False)
+        #pp = PdfPages(args.output_path) if args.output_path is not None else None
+        pp = None #For now, need to correct this
+        
         colorbar = None
         colorbar2 = None
 
@@ -74,23 +111,24 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             # from the calibration
             ax1 = fig.add_subplot(1, npads, 1)
             plotter = CameraPlotter(event,geom_dict)
-            image = event.dl1.tel[tel_id].pe_charge
+            #image = event.dl1.tel[tel_id].calibrated_image
+            image = event.dl1.tel[tel_id].image[0]
             #Get geometry
             geom = None
             if geom_dict is not None and tel_id in geom_dict:
                 geom = geom_dict[tel_id]
             else:
-                log.debug("[calib] Guessing camera geometry")
+                #log.debug("[calib] Guessing camera geometry")
                 geom = CameraGeometry.guess(*event.inst.pixel_pos[tel_id],
                                             event.inst.optical_foclen[tel_id])
-                log.debug("[calib] Camera geometry found")
+                #log.debug("[calib] Camera geometry found")
                 if geom_dict is not None:
                     geom_dict[tel_id] = geom
         
 
             tailcuts = (5.,7.)
-            #Try a higher threshold for FlashCam
-            if event.inst.optical_foclen[tel_id] == 16.*u.m and event.dl0.tel[tel_id].num_pixels == 1764:
+            #Try a higher threshold for 
+            if geom.cam_id == 'FlashCam':
                 tailcuts = (10.,12.)
         
             #print("Using Tail Cuts:",tailcuts)
@@ -104,9 +142,11 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
             muon_phi = np.arctan(muonparams[0].ring_center_y/muonparams[0].ring_center_x)
 
-            rotr_angle = 0.*u.deg
-            if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
-                rotr_angle = -200.28*u.deg
+            rotr_angle = geom.pix_rotation
+            #if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
+                #print("Resetting the rotation angle")
+                rotr_angle = 0.*u.deg
             
 
             #Convert to camera frame (centre & radius)
@@ -122,15 +162,14 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             ringrad_camcoord = muonparams[0].ring_radius.to(u.rad)*event.inst.optical_foclen[tel_id]*2.#But not FC?
 
 
-
-            rot_angle = 0.*u.deg
-            if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
-                rot_angle = -100.14*u.deg
+            #rot_angle = 0.*u.deg
+            #if event.inst.optical_foclen[tel_id] > 10.*u.m and event.dl0.tel[tel_id].num_pixels != 1764:
+                #rot_angle = -100.14*u.deg
 
 
             px, py = event.inst.pixel_pos[tel_id]
 
-            camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m, focal_length=event.inst.optical_foclen[tel_id],rotation=rot_angle)
+            camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m, focal_length=event.inst.optical_foclen[tel_id],rotation=geom.pix_rotation)
 
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ]))
             #,focal_length = event.inst.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
@@ -165,16 +204,16 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
        
             camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_camcoord.value,0.,0.,color="red")
 
-            ax1.set_title("CT {} ({}) - Mean pixel charge"
-                          .format(tel_id, geom_dict[tel_id].cam_id))
+#            ax1.set_title("CT {} ({}) - Mean pixel charge"
+#                          .format(tel_id, geom_dict[tel_id].cam_id))
 
             if muonparams[1] is not None:
-                #continue #Comment this...
-                ringwidthfrac = 0.5*muonparams[1].ring_width/muonparams[0].ring_radius
+                #continue #Comment this...(should ringwidthfrac also be *0.5?)
+                ringwidthfrac = muonparams[1].ring_width/muonparams[0].ring_radius
                 ringrad_inner = ringrad_camcoord*(1.-ringwidthfrac)
                 ringrad_outer = ringrad_camcoord*(1.+ringwidthfrac)
-                camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_inner.value,0.,0.,color="magenta")
-                camera1.add_ellipse(centroid,ringrad_camcoord.value,ringrad_outer.value,0.,0.,color="magenta")
+                camera1.add_ellipse(centroid,ringrad_inner.value,ringrad_inner.value,0.,0.,color="magenta")
+                camera1.add_ellipse(centroid,ringrad_outer.value,ringrad_outer.value,0.,0.,color="magenta")
                 npads = 2
                 ax2 = fig.add_subplot(1,npads,npads)
                 pred = muonparams[1].prediction
@@ -205,7 +244,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 else:
                     camera2.colorbar = colorbar2
                 camera2.update(True)
-                plt.pause(0.2)
+                plt.pause(1.)#make shorter
 
         
             #plt.pause(0.1)
