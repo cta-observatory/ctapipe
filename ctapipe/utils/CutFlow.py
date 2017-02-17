@@ -127,23 +127,26 @@ class CutFlow():
         print(t)
         return t
 
-    def get_table(self, base_cut=None, sort_column=None, sort_reverse=False):
+    def get_table(self, base_cut=None, sort_column=None,
+                  sort_reverse=False, format='5.3f'):
         '''
         creates an astropy table of the cut names, counted events and
         selection efficiencies
 
         Parameters
         ----------
-        base_cut : string (default: None)
+        base_cut : string, optional (default: None)
             name of the selection criterion that should be taken as 100 %
             in efficiency calculation
             if not given, the criterion with the highest count is used
-        sort_column : integer (default: None)
+        sort_column : integer, optional (default: None)
             the index of the column that should be used for sorting the entries
             by default the table is sorted in the order the cuts were added
             (index 0: cut name, index 1: number of passed events, index 2: efficiency)
-        sort_reverse : bool (default: False)
+        sort_reverse : bool, optional (default: False)
             if true, revert the order of the entries
+        format : string, optional (default: '5.3f')
+            formatting string for the efficiency column
 
         Returns
         -------
@@ -166,6 +169,7 @@ class CutFlow():
                    [self.cuts[cut][1] for cut in self.cuts.keys()],
                    [self.cuts[cut][1]/base_value for cut in self.cuts.keys()]],
                   names=['Cut Name', 'selected Events', 'Efficiency'])
+        t['Efficiency'].format = format
 
         if sort_column:
             t.sort(t.colnames[sort_column])
