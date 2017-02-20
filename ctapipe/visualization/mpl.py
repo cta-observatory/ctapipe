@@ -201,7 +201,7 @@ class CameraDisplay:
         self.pixel_highlighting.set_linewidth(l)
         self.pixel_highlighting.set_alpha(alpha)
         self.pixel_highlighting.set_edgecolor(color)
-        self.update()
+        self._update()
 
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
@@ -215,7 +215,7 @@ class CameraDisplay:
         """ set the color scale limits from min to max """
         self.pixels.set_clim(zmin, zmax)
         self.autoscale = False
-        self.update()
+        self._update()
 
     def set_limits_percent(self, percent=95):
         """ auto-scale the color range to percent of maximum """
@@ -254,7 +254,9 @@ class CameraDisplay:
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
         else:
-            raise ValueError('Unsupported norm: {}'.format(norm))
+            raise ValueError("Unsupported norm: '{}', options are 'lin',"
+                             "'log','symlog', or a matplotlib Normalize object"
+                             .format(norm))
 
         self.update(force=True)
         self.pixels.autoscale()
@@ -270,7 +272,7 @@ class CameraDisplay:
     @cmap.setter
     def cmap(self, cmap):
         self.pixels.set_cmap(cmap)
-        self.update()
+        self._update()
 
     @property
     def image(self):
@@ -299,18 +301,22 @@ class CameraDisplay:
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()
-        self.update()
+        self._update()
+
+    def _update(self, force=False):
+        """ signal a redraw if autoupdate is turned on """
+        if self.autoupdate:
+            self.update(force)
 
     def update(self, force=False):
-        """ signal a redraw if necessary """
-        if self.autoupdate:
-            if self.colorbar is not None:
-                if force is True:
-                    self.colorbar.update_bruteforce(self.pixels)
-                else:
-                    self.colorbar.update_normal(self.pixels)
-                self.colorbar.draw_all()
-            self.axes.figure.canvas.draw()
+        """ redraw the display now """
+        self.axes.figure.canvas.draw()
+        if self.colorbar is not None:
+            if force is True:
+                self.colorbar.update_bruteforce(self.pixels)
+            else:
+                self.colorbar.update_normal(self.pixels)
+            self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):
         """
@@ -401,7 +407,7 @@ class CameraDisplay:
         self._active_pixel_label.set_y(yy)
         self._active_pixel_label.set_text("{:003d}".format(pix_id))
         self._active_pixel_label.set_visible(True)
-        self.update()
+        self._update()
         self.on_pixel_clicked(pix_id)  # call user-function
 
     def on_pixel_clicked(self, pix_id):
