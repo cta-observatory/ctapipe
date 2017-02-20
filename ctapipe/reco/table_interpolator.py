@@ -23,7 +23,6 @@ class TableInterpolator:
         tables = pickle.load(file, encoding='latin1')
         template = np.asarray(list(tables.values()))
         grid = np.asarray(list(tables.keys()))
-
         self.interpolator = interpolate.LinearNDInterpolator(grid, template[:], fill_value=0)
         self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 
