@@ -82,6 +82,7 @@ def main():
 
         numev += 1
         #Test display #Flag 1 for true (wish to display)
+        plot_muon_event(event,muon_evt)
         # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)
         if muon_evt[0] is not None and muon_evt[1] is not None:
 
@@ -94,7 +95,7 @@ def main():
             display_muon_plot(muon_evt) 
             #Store and or Plot muon parameters here
 
-        if numev > 50: #for testing purposes - kill early
+        if numev > 20: #for testing purposes - kill early
             break
 
     t = Table([muoneff, impactp, ringwidth], names=('MuonEff','ImpactP','RingWidth'), meta={'name': 'muon analysis results'})

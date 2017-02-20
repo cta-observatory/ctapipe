@@ -181,7 +181,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             ring_dist = np.abs(dist-muonparams[0].ring_radius)
             pixRmask = ring_dist < muonparams[0].ring_radius*0.4
 
-            signals *= muonparams[1].mask
+            if muonparams[1] is not None:
+                signals *= muonparams[1].mask
 
             camera1 = plotter.draw_camera(tel_id,signals,ax1)
 
