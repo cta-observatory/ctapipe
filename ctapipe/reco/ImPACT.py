@@ -36,8 +36,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # First we create a dictionary of image template interpolators for each telescope type
         self.root_dir = root_dir
         self.prediction = dict()
-        self.file_names = {"GATE":"SST_GCT.table.gz", "LSTCam":"LST.table.gz",
-                           "NectarCam":"MST_NectarCam.table.gz", "FlashCam":"MST_FlashCam.table.gz"}
+        self.file_names = {"GATE":"SST-GCT.table.gz", "LSTCam":"LST.table.gz",
+                           "NectarCam":"MST.table.gz", "FlashCam":"MST.table.gz"}
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
@@ -45,7 +45,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 1.0}
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 0.5}
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the ImPACT templates a bit, this will be fixed later
@@ -266,10 +266,14 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         #x_max = x_max_exp
         # Convert to binning of Xmax, addition of 100 can probably be removed
         x_max_bin = x_max.value-x_max_exp
+        if x_max_bin > 150:
+            x_max_bin = 150
+        if x_max_bin < -150:
+            x_max_bin = -150
 
         impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) + pow(self.tel_pos_y[tel_id] -
                                                                                    tilt_y, 2))
-        print(impact, energy_reco.energy.value, x_max_bin)
+
         phi = np.arctan2((self.tel_pos_y[tel_id] - tilt_y), (self.tel_pos_x[tel_id] - tilt_x))
 
         pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id]*-1, self.pixel_y[tel_id],
@@ -425,7 +429,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         self.pixel_y = dict()
 
         self.tel_pos_x = dict()
-        print(tel_x, tel_y)
         self.tel_pos_y = dict()
         self.pixel_area = dict()
         self.ped = dict()
@@ -499,8 +502,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         migrad = min.migrad()
         fit_params = min.values
         errors = min.errors
-        print(migrad)
-        print(min.minos())
+    #    print(migrad)
+    #    print(min.minos())
 
         # container class for reconstructed showers '''
         shower_result = ReconstructedShowerContainer()
@@ -509,13 +512,9 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                array_direction=self.array_direction)
         horizon = nominal.transform_to(HorizonFrame())
 
-        #self.draw_surfaces(nominal.x.to(u.rad), nominal.y.to(u.rad), fit_params["core_x"]*u.m, fit_params["core_y"]*u.m,
-        #                   fit_params["energy"]*u.TeV, fit_params["x_max_scale"])
-
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
         tilted = TiltedGroundFrame(x=fit_params["core_x"] * u.m, y=fit_params["core_y"] * u.m,
                                    pointing_direction=self.array_direction)
-        #ground = tilted.transform_to(GroundFrame())
         ground = project_to_ground(tilted)
 
         shower_result.core_x = ground.x
