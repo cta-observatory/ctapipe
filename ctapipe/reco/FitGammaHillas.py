@@ -25,7 +25,7 @@ class TooFewTelescopesException(Exception):
 
 @deprecated(0.1, "will be replaced with real coord transform")
 def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
-                        camera_rotation=0 * u.degree):
+                        camera_rotation=0*u.deg):
     '''
     TODO replace with proper implementation
     calculates the direction vector of corresponding to a
@@ -59,10 +59,9 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
         shape (n,3) list of "direction vectors"
         corresponding to a position on the camera
 
-
-
     '''
-    pix_alpha = np.arctan2(pix_x, pix_y)
+
+    pix_alpha = np.arctan2(pix_y, pix_x)
     pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
 
     pix_beta = pix_rho / tel_foclen * u.rad
@@ -74,7 +73,7 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
         pix_dir = linalg.set_phi_theta(tel_phi, tel_theta + b)
 
         pix_dir = linalg.rotate_around_axis(pix_dir, tel_dir,
-                                            (a - camera_rotation))
+                                            camera_rotation - a)
         pix_dirs.append(pix_dir * u.dimless)
 
     return pix_dirs
@@ -261,7 +260,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return result
 
-    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
+    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta,
+                          cam_rotation=0*u.deg):
         """
         creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas
         parameters
@@ -275,6 +275,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         tel_phi, tel_theta : dictionaries
             dictionaries of the orientation angles of the telescopes
             needs to contain at least the same keys as in `hillas_dict`
+        cam_rotation : astropy angle
+            rotation of the camera
         """
 
         self.circles = {}
@@ -289,7 +291,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                                     np.array([moments.cen_y / u.m,
                                               p2_y / u.m]) * u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
-                                    inst.optical_foclen[tel_id]),
+                                    inst.optical_foclen[tel_id],
+                                    cam_rotation),
                 moments.size * (moments.length / moments.width)
             )
             circle.pos = inst.tel_pos[tel_id]
