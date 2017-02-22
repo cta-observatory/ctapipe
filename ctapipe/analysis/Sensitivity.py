@@ -36,7 +36,7 @@ def convert_astropy_array(arr, unit=None):
 
 
 def crab_source_rate(energy):
-    ''' function for a pseudo-Crab point source rate
+    ''' function for a pseudo-Crab point-source rate
     Crab source rate:   dN/dE = 3e-7  * (E/TeV)**-2.48 / (TeV * m² * s)
     (watch out: unbroken power law... not really true)
     norm and spectral index reverse engineered from HESS plot...
@@ -76,7 +76,7 @@ def CR_background_rate(energy):
 
 def Eminus2(energy, unit=u.GeV):
     '''
-    boring old unnormalised E^-2 spectrum
+    boring, old, unnormalised E^-2 spectrum
 
     Parameters
     ----------
@@ -184,7 +184,7 @@ def diff_to_X_sigma(scale, N_g, N_p, alpha, X=5):
         the gamma events are to be scaled by `scale[0]`
     alpha : float
         the ratio of the on and off areas
-    X : float, optional (deflaut: 5)
+    X : float, optional (default: 5)
         target significance in multiples of "sigma"
 
     Returns
@@ -206,7 +206,7 @@ class Sensitivity_PointSource():
     class to calculate the sensitivity to a known point-source
     TODO:
         • add extended source?
-        • add pseude experiment for low exposure times?
+        • add pseudo experiment for low exposure times?
         • make "background" more flexible / particle agnostic so you can add electrons
           and/or muons?
     """
@@ -403,9 +403,11 @@ class Sensitivity_PointSource():
         sensitivities["Energy MC"].unit = self.energy_unit
         sensitivities["Sensitivity"].unit = self.flux_unit
 
-        # loob over all energy bins
+        # loop over all energy bins
         for elow, ehigh in zip(10**(self.bin_edges_gam[:-1]),
                                10**(self.bin_edges_gam[1:])):
+
+            e_mask = (self.mc_energy_gam > elow) & (self.mc_energy_gam < ehigh)
 
             N_g = np.array([0, 0])
             N_p = np.array([0, 0])
@@ -413,18 +415,14 @@ class Sensitivity_PointSource():
             # loop over all angular distances and their weights for this energy bin
             # and count the events in the on and off regions
             # for gammas ...
-            for s, w in zip(self.off_angles_g[(self.mc_energy_gam > elow) &
-                                              (self.mc_energy_gam < ehigh)],
-                            self.weight_g[(self.mc_energy_gam > elow) &
-                                          (self.mc_energy_gam < ehigh)]):
+            for s, w in zip(self.off_angles_g[e_mask],
+                            self.weight_g[e_mask]):
                 if s < r_off:
                     N_g[int(s > r_on)] += w
 
             # ... and protons
-            for s, w in zip(self.off_angles_p[(self.mc_energy_pro > elow) &
-                                              (self.mc_energy_pro < ehigh)],
-                            self.weight_p[(self.mc_energy_pro > elow) &
-                                          (self.mc_energy_pro < ehigh)]):
+            for s, w in zip(self.off_angles_p[e_mask],
+                            self.weight_p[e_mask]):
                 if s < r_off:
                     N_p[int(s > r_on)] += w
 
@@ -436,7 +434,6 @@ class Sensitivity_PointSource():
             # in this energy bin
             scale = minimize(diff_to_X_sigma, [1e-3],
                              args=(N_g, N_p, alpha),
-                             # method='BFGS',
                              method='L-BFGS-B', bounds=[(1e-4, None)],
                              options={'disp': False}
                              ).x[0]
@@ -464,7 +461,7 @@ class Sensitivity_PointSource():
                 scale *= scale_r
 
             # get the flux at the bin centre
-            flux = Eminus2((elow+ehigh)/2.).to(self.flux_unit)
+            flux = Eminus2((elow+ehigh)/2.)
             # and scale it up by the determined factor
             sensitivity = flux*scale
 
