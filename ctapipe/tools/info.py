@@ -8,6 +8,16 @@ from .utils import get_parser
 __all__ = ['info']
 
 
+# TODO: this list should be global (or generated at install time)
+_dependencies = sorted(['astropy', 'matplotlib',
+                        'numpy', 'traitlets',
+                        'sklearn','scipy',
+                        'pytest'])
+
+_optional_dependencies = sorted(['pytest','graphviz','pyzmq','iminuit',
+                                 'fitsio','pyhessio','targetio'])
+
+
 def main(args=None):
     parser = get_parser(info)
     parser.add_argument('--version', action='store_true',
@@ -79,14 +89,27 @@ def _info_tools():
 
 def _info_dependencies():
     """Print info about dependencies."""
-    print('\n*** ctapipe dependencies ***\n')
-    from ctapipe.conftest import PYTEST_HEADER_MODULES
+    print('\n*** ctapipe core dependencies ***\n')
 
-    for label, name in PYTEST_HEADER_MODULES.items():
+    for name in _dependencies:
         try:
             module = importlib.import_module(name)
             version = module.__version__
         except ImportError:
-            version = 'not available'
+            version = 'not installed'
 
-        print('{:>20s} -- {}'.format(label, version))
+        print('{:>20s} -- {}'.format(name, version))
+
+    print('\n*** ctapipe optional dependencies ***\n')
+
+    for name in _optional_dependencies:
+        try:
+            module = importlib.import_module(name)
+            version = module.__version__
+        except ImportError:
+            version = 'not installed'
+        except AttributeError:
+            version = "installed, but __version__ doesn't exist"
+
+        print('{:>20s} -- {}'.format(name, version))
+
