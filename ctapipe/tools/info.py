@@ -26,6 +26,8 @@ def main(args=None):
                         help='Print available command line tools')
     parser.add_argument('--dependencies', action='store_true',
                         help='Print available versions of dependencies')
+    parser.add_argument('--all', action='store_true',
+                        help='show all info')
     args = parser.parse_args(args)
 
     if len(sys.argv) <= 1:
@@ -35,7 +37,7 @@ def main(args=None):
     info(**vars(args))
 
 
-def info(version=False, tools=False, dependencies=False):
+def info(version=False, tools=False, dependencies=False, all=False):
     """Print various info to the console.
 
     TODO: explain.
@@ -43,13 +45,13 @@ def info(version=False, tools=False, dependencies=False):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(levelname)s - %(message)s')
 
-    if version:
+    if version or all:
         _info_version()
 
-    if tools:
+    if tools or all:
         _info_tools()
 
-    if dependencies:
+    if dependencies or all:
         _info_dependencies()
 
 
