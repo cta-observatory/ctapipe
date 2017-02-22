@@ -2,7 +2,8 @@ import numpy as np
 import astropy.units as u
 
 from ctapipe.analysis.Sensitivity import *
-from ctapipe.analysis.Sensitivity import check_min_N, check_background_contamination
+from ctapipe.analysis.Sensitivity import check_min_N, check_background_contamination, \
+                                         CR_background_rate, Eminus2
 
 
 def test_check_min_N():
@@ -36,15 +37,19 @@ def test_Sensitivity_PointSource():
     gen_area_p = np.tau/2*(2000*u.m)**2
 
     # energy list of "selected" events
-    energy_sel_gamma  = np.logspace(2, 6, 200, False)
-    energy_sel_proton = np.logspace(2, 6, 200, False)
+    # (randomise the order so they don't align with the angle arrays)
+    energy_sel_gamma  = np.random.choice(np.logspace(2, 6, 200, False), 200, False)
+    energy_sel_elect  = np.random.choice(np.logspace(2, 6, 200, False), 200, False)
+    energy_sel_proton = np.random.choice(np.logspace(2, 6, 400, False), 400, False)
 
     # energy list of "generated" events
     energy_sim_gamma  = np.logspace(2, 6, 400, False)
-    energy_sim_proton = np.logspace(2, 6, 400, False)
+    energy_sim_elect  = np.logspace(2, 6, 400, False)
+    energy_sim_proton = np.logspace(2, 6, 800, False)
 
     # angular distance of the events from the "point-source"
     angles_gamma  = np.logspace(-3, 1, 200)
+    angles_elect  = np.logspace(-3, 1, 200)
     angles_proton = np.linspace(1e-3, 1e1, 400)
 
     # binning for the energy histograms
@@ -53,24 +58,34 @@ def test_Sensitivity_PointSource():
     # energy histogram for the generated events
     energy_sim_hist_gamma = np.histogram(np.log10(energy_sim_gamma),
                                          bins=energy_edges)[0]
+    energy_sim_hist_elect = np.histogram(np.log10(energy_sim_elect),
+                                         bins=energy_edges)[0]
     energy_sim_hist_proton = np.histogram(np.log10(energy_sim_proton),
                                           bins=energy_edges)[0]
 
     # constructer gets fed with energy and angular offset lists and desired energy binning
-    Sens = Sensitivity_PointSource(energy_sel_gamma, energy_sel_proton,
-                                   angles_gamma, angles_proton,
-                                   energy_edges, energy_edges,
-                                   energy_unit=u.GeV, flux_unit=u.erg/(u.m**2*u.s))
+    Sens = Sensitivity_PointSource(
+                    mc_energies={'g': energy_sel_gamma, 'p':energy_sel_proton,
+                                 'e': energy_sel_elect},
+                    off_angles={"g": angles_gamma, "p": angles_proton, 'e': angles_elect},
+                    energy_bin_edges={"g": energy_edges,
+                                      "p": energy_edges,
+                                      'e': energy_edges},
+                    energy_unit=u.GeV, flux_unit=u.erg/(u.m**2*u.s))
 
     # wrapper for various internal functions
     # spits out energy | sensitivity table
-    sensitivities = Sens.calculate_sensitivities(gen_energy_gamma=energy_sim_hist_gamma,
-                                                 gen_energy_proton=energy_sim_hist_proton,
-                                                 gen_area_gamma=gen_area_g,
-                                                 gen_area_proton=gen_area_p)
+    sensitivities = Sens.calculate_sensitivities(
+                    generator_energy_hists={'g': energy_sim_hist_gamma,
+                                            'p': energy_sim_hist_proton,
+                                            'e': energy_sim_hist_elect},
+                    rates={'g': Eminus2, 'p': CR_background_rate, 'e': Eminus2},
+                    generator_areas={'g': gen_area_g,
+                                     'p': gen_area_p,
+                                     'e': gen_area_g})
 
     # midway result are the effective areas
-    eff_area_g, eff_area_p = Sens.eff_area_gam, Sens.eff_area_pro
+    eff_area_g, eff_area_p, eff_area_e = Sens.effective_areas.values()
 
     # "selected" events are half of the "generated" events
     # so effective areas should be half of generator areas, too

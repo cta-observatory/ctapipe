@@ -168,7 +168,7 @@ def sigma_lima(Non, Noff, alpha=0.2):
     return sigma
 
 
-def diff_to_X_sigma(scale, N_g, N_p, alpha, X=5):
+def diff_to_X_sigma(scale, N_signal, N_backgr, alpha, X=5):
     """
     calculates the significance according to `sigma_lima` and returns the squared
     difference to X. To be used in a minimiser that determines the necessary source
@@ -179,7 +179,7 @@ def diff_to_X_sigma(scale, N_g, N_p, alpha, X=5):
     scale : python list with a single float
         this is the variable in the minimisation procedure
         it scales the number of gamma events
-    N_g, N_p : shape (2) numpy arrays
+    N_signal, N_backgr : shape (2) numpy arrays
         the on (index 0) and off (index 1) counts for gamma and proton events
         the gamma events are to be scaled by `scale[0]`
     alpha : float
@@ -195,8 +195,8 @@ def diff_to_X_sigma(scale, N_g, N_p, alpha, X=5):
         significance of `X` sigma
     """
 
-    Non = N_p[0] + N_g[0] * scale[0]
-    Noff = N_p[1] + N_g[1] * scale[0]
+    Non = N_backgr[0] + N_signal[0] * scale[0]
+    Noff = N_backgr[1] + N_signal[1] * scale[0]
     sigma = sigma_lima(Non, Noff, alpha)
     return (sigma-X)**2
 
@@ -210,9 +210,7 @@ class Sensitivity_PointSource():
         • make "background" more flexible / particle agnostic so you can add electrons
           and/or muons?
     """
-    def __init__(self, mc_energy_gamma, mc_energy_proton,
-                 off_angles_g, off_angles_p,
-                 bin_edges_gamma, bin_edges_proton,
+    def __init__(self, mc_energies, off_angles, energy_bin_edges,
                  energy_unit=u.GeV, flux_unit=u.GeV / (u.m**2*u.s)):
         """
         constructor, simply sets some initial parameters
@@ -234,21 +232,19 @@ class Sensitivity_PointSource():
 
         """
 
-        self.mc_energy_gam = mc_energy_gamma
-        self.mc_energy_pro = mc_energy_proton
-        self.off_angles_g = off_angles_g
-        self.off_angles_p = off_angles_p
-        self.bin_edges_gam = bin_edges_gamma
-        self.bin_edges_pro = bin_edges_proton
 
+        self.mc_energies = mc_energies
+        self.off_angles = off_angles
+        self.energy_bin_edges = energy_bin_edges
+
+        self.class_list = mc_energies.keys()
         self.energy_unit = energy_unit
         self.flux_unit = flux_unit
 
-    def get_effective_areas(self, n_simulated_gamma=None, n_simulated_proton=None,
-                            spectrum_gamma=Eminus2, spectrum_proton=Eminus2,
-                            gen_energy_gamma=None, gen_energy_proton=None,
-                            gen_area_gamma=np.tau/2*(1000*u.m)**2,
-                            gen_area_proton=np.tau/2*(2000*u.m)**2):
+    def get_effective_areas(self, n_simulated_events=None,
+                            spectra=None,
+                            generator_energy_hists=None,
+                            generator_areas=None):
         """
         calculates the effective areas for gammas and protons and stores them in the
         class instance
@@ -278,30 +274,26 @@ class Sensitivity_PointSource():
             `.bin_edges_gam` and `.bin_edges_pro`
         """
 
-        if gen_energy_gamma is None:
-            gen_energy_gamma = make_mock_event_rate(
-                            spectrum_gamma, norm=n_simulated_gamma,
-                            bin_edges=self.bin_edges_gam)[0]
-        if gen_energy_proton is None:
-            gen_energy_proton = make_mock_event_rate(
-                            spectrum_proton, norm=n_simulated_proton,
-                            bin_edges=self.bin_edges_pro)[0]
+        if generator_energy_hists is None:
+            for cl in self.signal_list:
+                generator_energy_hists[cl] = make_mock_event_rate(
+                                    spectra[cl], norm=n_simulated_events[cl],
+                                    bin_edges=self.energy_bin_edges[cl])[0]
 
-        self.Sel_Gammas = np.histogram(np.log10(self.mc_energy_gam),
-                                       bins=self.bin_edges_gam)[0]
-        self.Sel_Proton = np.histogram(np.log10(self.mc_energy_pro),
-                                       bins=self.bin_edges_pro)[0]
+        self.effective_areas = {}
+        self.selected_events = {}
 
-        Efficiency_Gammas = self.Sel_Gammas / gen_energy_gamma
-        Efficiency_Proton = self.Sel_Proton / gen_energy_proton
+        for cl in self.class_list:
+            self.selected_events[cl] = np.histogram(np.log10(self.mc_energies[cl]),
+                                                    bins=self.energy_bin_edges[cl])[0]
 
-        self.eff_area_gam = Efficiency_Gammas * gen_area_gamma
-        self.eff_area_pro = Efficiency_Proton * gen_area_proton
+            efficiency = self.selected_events[cl] / generator_energy_hists[cl]
+            self.effective_areas[cl] = efficiency * generator_areas[cl]
 
-        return self.eff_area_gam, self.eff_area_pro
+        return self.effective_areas
 
-    def get_expected_events(self, source_rate=Eminus2, background_rate=CR_background_rate,
-                            extension_gamma=None, extension_proton=6*u.deg,
+    def get_expected_events(self, rates={'g': Eminus2, 'b': CR_background_rate},
+                            extensions={'p': 6*u.deg},
                             observation_time=50*u.h):
         """
         given a source rate and the effective area, calculates the number of expected
@@ -324,26 +316,19 @@ class Sensitivity_PointSource():
         # for book keeping
         self.observation_time = observation_time
 
-        SourceRate = make_mock_event_rate(source_rate,
-                                          bin_edges=self.bin_edges_gam)[0]
-        BackgrRate = make_mock_event_rate(background_rate,
-                                          bin_edges=self.bin_edges_pro)[0]
+        self.exp_events_per_energy = {}
+        for cl in self.class_list:
+            event_rate = make_mock_event_rate(rates[cl],
+                                              bin_edges=self.energy_bin_edges[cl])[0]
 
-        if extension_gamma:
-            omega_gam = np.tau*(1 - np.cos(extension_gamma))*u.rad**2
-            SourceRate *= omega_gam
-        if extension_proton:
-            omega_pro = np.tau*(1 - np.cos(extension_proton))*u.rad**2
-            BackgrRate *= omega_pro
+            if cl in extensions:
+                omega = np.tau*(1 - np.cos(extensions[cl]))*u.rad**2
+                event_rate *= omega
 
-        try:
-            self.exp_events_per_E_gam = SourceRate * observation_time * self.eff_area_gam
-            self.exp_events_per_E_pro = BackgrRate * observation_time * self.eff_area_pro
+            self.exp_events_per_energy[cl] = event_rate * observation_time * \
+                                             self.effective_areas[cl]
 
-            return self.exp_events_per_E_gam, self.exp_events_per_E_pro
-        except AttributeError as e:
-            print("did you call get_effective_areas already?")
-            raise e
+        return self.exp_events_per_energy
 
     def scale_events_to_expected_events(self):
         """
@@ -358,21 +343,21 @@ class Sensitivity_PointSource():
             `exp_events_per_E_pro` for every energy bin
         """
 
-        weight_g = []
-        weight_p = []
-        for ev in self.mc_energy_gam:
-            weight_g.append((self.exp_events_per_E_gam/self.Sel_Gammas)[
-                                np.digitize(np.log10(ev), self.bin_edges_gam) - 1])
-        for ev in self.mc_energy_pro:
-            weight_p.append((self.exp_events_per_E_pro/self.Sel_Proton)[
-                                np.digitize(np.log10(ev), self.bin_edges_pro) - 1])
+        self.weights = {}
+        for cl in self.class_list:
+            self.weights[cl] = []
+            for ev in self.mc_energies[cl]:
+                self.weights[cl].append((self.exp_events_per_energy[cl] /
+                                         self.selected_events[cl])[
+                                                np.digitize(np.log10(ev),
+                                                            self.energy_bin_edges[cl])-1]
+                                      )
 
-        self.weight_g = np.array(weight_g)
-        self.weight_p = np.array(weight_p)
-        return self.weight_g, self.weight_p
+            self.weights[cl] = np.array(self.weights[cl])
+        return self.weights
 
-    def get_sensitivity(self, min_n=10, max_prot_ratio=.05, r_on=.3, r_off=5,
-                        verbose=False):
+    def get_sensitivity(self, min_n=10, max_background_ratio=.05, r_on=.3, r_off=5,
+                        signal_list=("g"), verbose=False):
         """
         finally calculates the sensitivity to a point-source
 
@@ -381,7 +366,7 @@ class Sensitivity_PointSource():
         min_n : integer, optional (default: 10)
             minimum number of events per energy bin -- if the number is smaller, scale up
             all events to sum up to this
-        max_prot_ratio : float, optional (default: 0.05)
+        max_background_ratio : float, optional (default: 0.05)
             maximal proton contamination per bin -- if fraction of protons in a bin is
             larger than this, scale up the gammas events accordingly
         r_on, r_off : floats, optional (defaults: 0.3, 5)
@@ -403,61 +388,66 @@ class Sensitivity_PointSource():
         sensitivities["Energy MC"].unit = self.energy_unit
         sensitivities["Sensitivity"].unit = self.flux_unit
 
+        count = 0
         # loop over all energy bins
-        for elow, ehigh in zip(10**(self.bin_edges_gam[:-1]),
-                               10**(self.bin_edges_gam[1:])):
+        for elow, ehigh in zip(10**(self.energy_bin_edges[signal_list[0]][:-1]),
+                               10**(self.energy_bin_edges[signal_list[0]][1:])):
 
-            e_mask = (self.mc_energy_gam > elow) & (self.mc_energy_gam < ehigh)
-
-            N_g = np.array([0, 0])
-            N_p = np.array([0, 0])
+            N_signal = np.array([0, 0])
+            N_backgr = np.array([0, 0])
 
             # loop over all angular distances and their weights for this energy bin
             # and count the events in the on and off regions
-            # for gammas ...
-            for s, w in zip(self.off_angles_g[e_mask],
-                            self.weight_g[e_mask]):
-                if s < r_off:
-                    N_g[int(s > r_on)] += w
+            for cl in self.class_list:
+                e_mask = (self.mc_energies[cl] > elow) & (self.mc_energies[cl] < ehigh)
+                for s, w in zip(self.off_angles[cl][e_mask],
+                                self.weights[cl][e_mask]):
+                    if s < r_off:
+                        if cl in signal_list:
+                            N_signal[int(s > r_on)] += w
+                        else:
+                            N_backgr[int(s > r_on)] += w
 
-            # ... and protons
-            for s, w in zip(self.off_angles_p[e_mask],
-                            self.weight_p[e_mask]):
-                if s < r_off:
-                    N_p[int(s > r_on)] += w
+            count += 1
+            print(count, elow, ehigh)
+            print(N_signal)
+            print(N_backgr)
+            print()
+            continue
 
             # if we have no gammas in the on region, there is no sensitivity
-            if N_g[0] == 0:
+            if N_signal[0] == 0:
                 continue
 
             # find the scaling factor for the gamma events that gives a 5 sigma discovery
             # in this energy bin
             scale = minimize(diff_to_X_sigma, [1e-3],
-                             args=(N_g, N_p, alpha),
+                             args=(N_signal, N_backgr, alpha),
                              method='L-BFGS-B', bounds=[(1e-4, None)],
                              options={'disp': False}
                              ).x[0]
 
             # scale up the gamma events by this factor
-            N_g = N_g * scale
+            N_signal = N_signal * scale
 
             if verbose:
                 print("e low {}\te high {}".format(np.log10(elow),
                                                    np.log10(ehigh)))
 
             # check if there are sufficient events in this energy bin
-            scale_a = check_min_N(N_g, N_p, min_n, verbose)
+            scale_a = check_min_N(N_signal, N_backgr, min_n, verbose)
 
             # and scale the gamma events accordingly if not
             if scale_a > 1:
-                N_g = N_g * scale_a
+                N_signal = N_signal * scale_a
                 scale *= scale_a
 
             # check if the relative amount of protons in this bin is sufficiently small
-            scale_r = check_background_contamination(N_g, N_p, max_prot_ratio, verbose)
+            scale_r = check_background_contamination(N_signal, N_backgr,
+                                                     max_background_ratio, verbose)
             # and scale the gamma events accordingly if not
             if scale_r > 1:
-                N_g = N_g * scale_r
+                N_signal = N_signal * scale_r
                 scale *= scale_r
 
             # get the flux at the bin centre
@@ -470,11 +460,12 @@ class Sensitivity_PointSource():
 
             if verbose:
                 print("sensitivity: ", sensitivity)
-                print("Non:", N_g[0]+N_p[1])
-                print("Noff:", N_g[0]+N_p[1])
-                print("  {}, {}".format(N_g, N_p))
+                print("Non:", N_signal[0]+N_backgr[1])
+                print("Noff:", N_signal[0]+N_backgr[1])
+                print("  {}, {}".format(N_signal, N_backgr))
                 print("alpha:", alpha)
-                print("sigma:", sigma_lima(N_g[0]+N_p[1], N_g[0]+N_p[1], alpha=alpha))
+                print("sigma:", sigma_lima(N_signal[0]+N_backgr[1],
+                                           N_signal[0]+N_backgr[1], alpha=alpha))
 
                 print()
 
@@ -482,15 +473,15 @@ class Sensitivity_PointSource():
 
     def calculate_sensitivities(self,
                                 # arguments for `get_effective_areas`
-                                n_simulated_gamma=None, n_simulated_proton=None,
-                                spectrum_gamma=Eminus2, spectrum_proton=Eminus2,
-                                gen_energy_gamma=None, gen_energy_proton=None,
-                                gen_area_gamma=np.tau/2*(1000*u.m)**2,
-                                gen_area_proton=np.tau/2*(2000*u.m)**2,
+                                n_simulated_events=None,
+                                spectra=None,
+                                generator_energy_hists=None,
+                                generator_areas={'g': np.tau/2*(1000*u.m)**2,
+                                          'p': np.tau/2*(2000*u.m)**2},
 
                                 # arguments for `get_expected_events`
-                                source_rate=Eminus2, background_rate=CR_background_rate,
-                                extension_gamma=None, extension_proton=6*u.deg,
+                                rates={'g': Eminus2, 'p': CR_background_rate},
+                                extensions={'p': 6*u.deg},
                                 observation_time=50*u.h,
 
                                 # arguments for `get_sensitivity`
@@ -509,25 +500,25 @@ class Sensitivity_PointSource():
             the sensitivity for every energy bin of `.bin_edges_gam`
 
         """
-        self.get_effective_areas(n_simulated_gamma, n_simulated_proton,
-                                 spectrum_gamma, spectrum_proton,
-                                 gen_energy_gamma, gen_energy_proton,
-                                 gen_area_gamma, gen_area_proton)
-        self.get_expected_events(source_rate, background_rate,
-                                 extension_gamma, extension_proton,
+        self.get_effective_areas(n_simulated_events,
+                                 spectra,
+                                 generator_energy_hists,
+                                 generator_areas)
+        self.get_expected_events(rates,
+                                 extensions,
                                  observation_time)
         self.scale_events_to_expected_events()
         return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off)
 
 
-def check_min_N(N_g, N_p, min_N, verbose=True):
+def check_min_N(N_signal, N_backgr, min_N, verbose=True):
     """
     check if there are sufficenly many events in this energy bin and calculates scaling
     parameter if not
 
     Parameters
     ----------
-    N_g, N_p : shape (2) numpy arrays
+    N_signal, N_backgr : shape (2) numpy arrays
         the on (index 0) and off (index 1) counts for gamma and proton events
     min_n : integer
         minimum number of desired events; if too low, scale up to this number
@@ -540,11 +531,11 @@ def check_min_N(N_g, N_p, min_N, verbose=True):
         factor to scale up gamma events if insuficently many events present
     """
 
-    if np.sum(N_g) + np.sum(N_p) < min_N:
-        scale_a = (min_N-np.sum(N_p)) / np.sum(N_g)
+    if np.sum(N_signal) + np.sum(N_backgr) < min_N:
+        scale_a = (min_N-np.sum(N_backgr)) / np.sum(N_signal)
 
         if verbose:
-            print("  N_tot too small: {}, {}".format(N_g, N_p))
+            print("  N_tot too small: {}, {}".format(N_signal, N_backgr))
             print("  scale_a:", scale_a)
 
         return scale_a
@@ -552,14 +543,14 @@ def check_min_N(N_g, N_p, min_N, verbose=True):
         return 1
 
 
-def check_background_contamination(N_g, N_p, max_prot_ratio, verbose=True):
+def check_background_contamination(N_signal, N_backgr, max_prot_ratio, verbose=True):
     """
     check if there are sufficenly few proton events in this energy bin and calculates
     scaling parameter if not
 
     Parameters
     ----------
-    N_g, N_p : shape (2) numpy arrays
+    N_signal, N_backgr : shape (2) numpy arrays
         the on (index 0) and off (index 1) counts for gamma and proton events
     max_prot_ratio : float
         maximum allowed proton contamination
@@ -572,13 +563,13 @@ def check_background_contamination(N_g, N_p, max_prot_ratio, verbose=True):
         factor to scale up gamma events if too high proton contamination
     """
 
-    N_p_tot = np.sum(N_p)
-    N_g_tot = np.sum(N_g)
-    N_tot = N_g_tot + N_p_tot
-    if N_p_tot / N_tot > max_prot_ratio:
-        scale_r = (1/max_prot_ratio - 1) * N_p_tot / N_g_tot
+    N_backgr_tot = np.sum(N_backgr)
+    N_signal_tot = np.sum(N_signal)
+    N_tot = N_signal_tot + N_backgr_tot
+    if N_backgr_tot / N_tot > max_prot_ratio:
+        scale_r = (1/max_prot_ratio - 1) * N_backgr_tot / N_signal_tot
         if verbose:
-            print("  too high proton contamination: {}, {}".format(N_g, N_p))
+            print("  too high proton contamination: {}, {}".format(N_signal, N_backgr))
             print("  scale_r:", scale_r)
         return scale_r
     else:
