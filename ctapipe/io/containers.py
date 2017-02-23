@@ -75,6 +75,10 @@ class RawCameraContainer(Container):
     """
     Storage of raw data from a single telescope
     """
+    event_number = Item(-1, "telescope event number")
+    num_channels = Item(-1, "number of channels per pixel")
+    num_pixels   = Item(-1, "number of pixels")
+    pixel_flags  = Item(None, ("pixel flags","(n_channels x n_pixels)"))
     adc_sums = Item(None, ("numpy array containing integrated ADC data "
                            "(n_channels x n_pixels)"))
     adc_samples = Item(None, ("numpy array containing ADC samples"
