@@ -13,6 +13,7 @@ from ctapipe.image import poisson_likelihood
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
 from ctapipe.coordinates import HorizonFrame, NominalFrame, TiltedGroundFrame, GroundFrame, project_to_ground
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from scipy.stats import norm
 
 
 class ImPACTFitter(RecoShowerGeomAlgorithm):
@@ -336,7 +337,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
             # Convert to binning of Xmax, addition of 100 can probably be removed
             x_max_bin = x_max.value - x_max_exp
-            #x_max_bin = 100
 
             # Check for range
             if x_max_bin > 150:
@@ -443,7 +443,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
             self.pixel_area[x] = pixel_area[x].value
             self.ped[x] = self.ped_table[type_tel[x]] # Here look up pedestal value
 
-        self.get_brightest_mean(num_pix=3)
+        self.get_brightest_mean(num_pix=5)
         self.type = type_tel
         self.initialise_templates(type_tel)
 
@@ -495,8 +495,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                      limit_energy=(lower_en_limit.value,energy_seed.energy.value*10.),
                      x_max_scale=1, error_x_max_scale=0.1, limit_x_max_scale=(0.5,2), fix_x_max_scale=False, errordef=1)
 
-        min.tol *= 1000
-        min.strategy = 0
+        #min.tol *= 1000
+        #min.strategy = 0
 
         # Perform minimisation
         migrad = min.migrad()
