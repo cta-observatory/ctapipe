@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # the calc_peds function defined above to do some work:
     for event in hessio_event_source(filename):
         for telid in event.r0.tels_with_data:
-            for chan in event.r0.tel[telid].adc_samples.keys():
+            for chan in event.r0.tel[telid].adc_samples[:,...]:
 
                 print("CT{} chan {}:".format(telid, chan))
 
