@@ -39,11 +39,12 @@ if __name__ == '__main__':
     # the calc_peds function defined above to do some work:
     for event in hessio_event_source(filename):
         for telid in event.r0.tels_with_data:
-            for chan in event.r0.tel[telid].adc_samples[:,...]:
+            for chan in range(event.r0.tel[telid].adc_samples.shape[0]):
 
                 print("CT{} chan {}:".format(telid, chan))
 
-                traces = event.r0.tel[telid].adc_samples[chan]
+                traces = event.r0.tel[telid].adc_samples[chan,...]
+
                 peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
                                                                      start,
                                                                      end)

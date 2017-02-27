@@ -91,6 +91,7 @@ if __name__ == '__main__':
                 print("--event.r0---------------")
                 print(event.dl0)
                 print("--event.r0.tel-----------")
+
                 for teldata in event.r0.tel.values():
                     print(teldata)
             elif response == "" or response.startswith("n"):

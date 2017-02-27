@@ -114,6 +114,7 @@ class ImagePlotter(Component):
         self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
                           .format(event.count, event.r0.event_id, telid))
 
+
         if self.display:
             plt.pause(0.001)
         if self.pdf is not None:
@@ -197,6 +198,7 @@ class DisplayDL1Calib(Tool):
             self.dl1.calibrate(event)
 
             tel_list = event.r0.tels_with_data
+
             if self.telescope:
                 if self.telescope not in tel_list:
                     continue

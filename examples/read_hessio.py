@@ -100,7 +100,7 @@ if __name__ == '__main__':
                 print("--event-------------------")
                 print(event)
                 print("--event.r0---------------")
-                print(event.dl0)
+                print(event.r0)
                 print("--event.mc----------------")
                 print(event.mc)
                 print("--event.r0.tel-----------")
