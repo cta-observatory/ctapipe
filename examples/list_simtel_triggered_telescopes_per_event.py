@@ -29,7 +29,7 @@ def list_simtel_triggered_telescopes_per_event(simtel_file_path):
     tels_per_event_dict = {}   # List of events per telescope
 
     for event in source:
-        tels_per_event_dict[int(event.dl0.event_id)] = [int(tel) for tel in event.trig.tels_with_trigger]
+        tels_per_event_dict[int(event.r0.event_id)] = [int(tel) for tel in event.trig.tels_with_trigger]
 
     return tels_per_event_dict
 

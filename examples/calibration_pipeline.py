@@ -82,7 +82,7 @@ class ImagePlotter(Component):
             self.c_peakpos = CameraDisplay(geom, cmap=plt.cm.viridis,
                                            ax=self.ax_peakpos)
 
-            tmaxmin = event.dl0.tel[telid].pe_samples.shape[2]
+            tmaxmin = event.r0.tel[telid].pe_samples.shape[2]
             t_chargemax = peakpos[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 'cmap_t', [(0 / tmaxmin, 'darkgreen'),
@@ -112,7 +112,7 @@ class ImagePlotter(Component):
             self.c_peakpos.image = peakpos
 
         self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
-                          .format(event.count, event.dl0.event_id, telid))
+                          .format(event.count, event.r0.event_id, telid))
 
         if self.display:
             plt.pause(0.001)
@@ -196,7 +196,7 @@ class DisplayDL1Calib(Tool):
             self.dl0.reduce(event)
             self.dl1.calibrate(event)
 
-            tel_list = event.dl0.tels_with_data
+            tel_list = event.r0.tels_with_data
             if self.telescope:
                 if self.telescope not in tel_list:
                     continue

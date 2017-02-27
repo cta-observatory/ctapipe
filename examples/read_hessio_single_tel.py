@@ -100,10 +100,10 @@ if __name__ == '__main__':
 
         # display the event
         disp.axes.set_title('CT{:03d}, event {:010d}'
-                            .format(args.tel, event.dl0.event_id))
+                            .format(args.tel, event.r0.event_id))
         if args.show_samples:
             # display time-varying event
-            data = event.dl0.tel[args.tel].adc_samples[args.channel]
+            data = event.r0.tel[args.tel].adc_samples[args.channel]
             if args.calibrate:
                 peds, gains = get_mc_calibration_coeffs(event, args.tel)
                 data = apply_mc_calibration(data, peds, gains, args.tel)
@@ -114,10 +114,10 @@ if __name__ == '__main__':
                 plt.pause(0.01)
                 if args.write:
                     plt.savefig('CT{:03d}_EV{:010d}_S{:02d}.png'
-                                .format(args.tel, event.dl0.event_id, ii))
+                                .format(args.tel, event.r0.event_id, ii))
         else:
             # display integrated event:
-            im = event.dl0.tel[args.tel].adc_sums[args.channel]
+            im = event.r0.tel[args.tel].adc_sums[args.channel]
             peds, gains = get_mc_calibration_coeffs(event, args.tel)
             im = apply_mc_calibration(im, peds, gains, args.tel)
             disp.image = im
@@ -148,7 +148,7 @@ if __name__ == '__main__':
             plt.pause(1.0)
             if args.write:
                 plt.savefig('CT{:03d}_EV{:010d}.png'
-                            .format(args.tel, event.dl0.event_id))
+                            .format(args.tel, event.r0.event_id))
 
     print("FINISHED READING DATA FILE")
 
