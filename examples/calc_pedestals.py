@@ -12,11 +12,11 @@ def plot_peds(peds, pedvars):
     pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
     plt.scatter(pixid, peds)
-    plt.title("Pedestals for event {}".format(event.dl0.event_id))
+    plt.title("Pedestals for event {}".format(event.r0.event_id))
 
     plt.subplot(1, 2, 2)
     plt.scatter(pixid, pedvars)
-    plt.title("Ped Variances for event {}".format(event.dl0.event_id))
+    plt.title("Ped Variances for event {}".format(event.r0.event_id))
 
 
 if __name__ == '__main__':
@@ -44,6 +44,7 @@ if __name__ == '__main__':
                 print("CT{} chan {}:".format(telid, chan))
 
                 traces = event.r0.tel[telid].adc_samples[chan,...]
+
                 peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
                                                                      start,
                                                                      end)
