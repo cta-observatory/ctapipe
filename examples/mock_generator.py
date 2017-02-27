@@ -88,9 +88,9 @@ if __name__ == '__main__':
             elif response.startswith("p"):
                 print("--event-------------------")
                 print(event)
-                print("--event.dl0---------------")
+                print("--event.r0---------------")
                 print(event.dl0)
-                print("--event.dl0.tel-----------")
+                print("--event.r0.tel-----------")
                 for teldata in event.dl0.tel.values():
                     print(teldata)
             elif response == "" or response.startswith("n"):

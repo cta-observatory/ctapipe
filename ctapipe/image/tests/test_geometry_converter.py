@@ -53,7 +53,7 @@ def test_convert_geometry():
             print(tel_id, cam_geom[tel_id].pix_type)
 
             pmt_signal = apply_mc_calibration(
-                        #event.dl0.tel[tel_id].adc_samples[0],
+                        #event.r0.tel[tel_id].adc_samples[0],
                         event.dl0.tel[tel_id].adc_sums[0],
                         event.mc.tel[tel_id].dc_to_pe[0],
                         event.mc.tel[tel_id].pedestal[0])

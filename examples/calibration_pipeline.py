@@ -2,8 +2,10 @@ from traitlets import Dict, List, Int, Bool, Unicode
 from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from ctapipe.core import Tool, Component
-from ctapipe.io.files import FileReader
-from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
+from ctapipe.io.eventfilereader import EventFileReaderFactory
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.io import CameraGeometry
 from ctapipe.visualization import CameraDisplay
@@ -80,7 +82,7 @@ class ImagePlotter(Component):
             self.c_peakpos = CameraDisplay(geom, cmap=plt.cm.viridis,
                                            ax=self.ax_peakpos)
 
-            tmaxmin = event.dl0.tel[telid].adc_samples.shape[2]
+            tmaxmin = event.dl0.tel[telid].pe_samples.shape[2]
             t_chargemax = peakpos[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 'cmap_t', [(0 / tmaxmin, 'darkgreen'),
@@ -132,9 +134,9 @@ class DisplayDL1Calib(Tool):
                     help='Telescope to view. Set to None to display all '
                          'telescopes.').tag(config=True)
 
-    aliases = Dict(dict(f='FileReader.input_path',
-                        o='FileReader.origin',
-                        max_events='FileReader.max_events',
+    aliases = Dict(dict(f='EventFileReaderFactory.input_path',
+                        o='EventFileReaderFactory.origin',
+                        max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
                         window_start='ChargeExtractorFactory.window_start',
@@ -150,7 +152,7 @@ class DisplayDL1Calib(Tool):
                          "Display the photoelectron images on-screen as they "
                          "are produced.")
                       ))
-    classes = List([FileReader,
+    classes = List([EventFileReaderFactory,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
                     ImagePlotter
@@ -159,27 +161,41 @@ class DisplayDL1Calib(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.file_reader = None
-        self.calibrator = None
+        self.r1 = None
+        self.dl0 = None
+        self.dl1 = None
         self.plotter = None
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.file_reader = FileReader(config=self.config, tool=self)
+        reader_factory = EventFileReaderFactory(**kwargs)
+        reader_class = reader_factory.get_class()
+        self.file_reader = reader_class(**kwargs)
 
         extractor_factory = ChargeExtractorFactory(**kwargs)
         extractor_class = extractor_factory.get_class()
         extractor = extractor_class(**kwargs)
 
-        self.calibrator = CameraDL1Calibrator(extractor=extractor, **kwargs)
+        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
+                                               **kwargs)
+        r1_class = r1_factory.get_class()
+        self.r1 = r1_class(**kwargs)
+
+        self.dl0 = CameraDL0Reducer(**kwargs)
+
+        self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
 
         self.plotter = ImagePlotter(**kwargs)
 
     def start(self):
         source = self.file_reader.read()
-        calibrated_source = self.calibrator.calibrate_source(source)
-        for event in calibrated_source:
+        for event in source:
+            self.r1.calibrate(event)
+            self.dl0.reduce(event)
+            self.dl1.calibrate(event)
+
             tel_list = event.dl0.tels_with_data
             if self.telescope:
                 if self.telescope not in tel_list:
