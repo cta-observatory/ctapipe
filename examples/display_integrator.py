@@ -56,6 +56,7 @@ class IntegratorPlotter(Component):
     def plot(self, input_file, event, telid, chan, extractor_name, nei):
         # Extract required images
         dl0 = event.dl0.tel[telid].pe_samples[chan]
+
         t_pe = event.mc.tel[telid].photo_electron_image
         dl1 = event.dl1.tel[telid].image[chan]
         max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
@@ -359,7 +360,7 @@ class DisplayIntegrator(Tool):
         self.dl1.calibrate(event)
 
         # Select telescope
-        tels = list(event.dl0.tels_with_data)
+        tels = list(event.r0.tels_with_data)
         telid = self.telescope
         if telid is None:
             telid = tels[0]

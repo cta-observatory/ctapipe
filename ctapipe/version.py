@@ -30,7 +30,7 @@ from os import path, name, devnull, environ, listdir
 __all__ = ("get_version",)
 
 CURRENT_DIRECTORY = path.dirname(path.abspath(__file__))
-VERSION_FILE = path.join(CURRENT_DIRECTORY, "VERSION")
+VERSION_FILE = path.join(CURRENT_DIRECTORY, "_version_cache.py")
 
 GIT_COMMAND = "git"
 
@@ -107,8 +107,7 @@ def format_git_describe(git_str, pep440=False):
 def read_release_version():
     """Read version information from VERSION file"""
     try:
-        with open(VERSION_FILE, "r") as infile:
-            version = infile.read().strip()
+        from ._version_cache import version
         if len(version) == 0:
             version = None
         return version
@@ -130,7 +129,7 @@ def update_release_version(pep440=False):
     """
     version = get_version(pep440=pep440)
     with open(VERSION_FILE, "w") as outfile:
-        outfile.write(version)
+        outfile.write("version='{}'".format(version))
         outfile.write("\n")
 
 
@@ -153,9 +152,12 @@ def get_version(pep440=False):
     The file VERSION will need to be changed manually.
     """
 
-    git_version = format_git_describe(call_git_describe(), pep440=pep440)
-    if not git_version:  # not a git repository
-        return read_release_version()
+    raw_git_version = call_git_describe()
+    if not raw_git_version:  # not a git repository
+        return  read_release_version()
+
+    git_version = format_git_describe(raw_git_version, pep440=pep440)
+
     return git_version
 
 

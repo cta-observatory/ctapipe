@@ -45,7 +45,7 @@ def list_telescopes_geometry(simtel_file_path):
     tel_id_set = set()
 
     for event in source:
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id in event.r0.tels_with_data:
             tel_id_set.add(tel_id)
 
     for tel_id in tel_id_set:

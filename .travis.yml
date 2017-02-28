@@ -65,7 +65,7 @@ install:
     # CONDA
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
-    - conda config --add channels http://conda.anaconda.org/jacquemier
+    - conda config --add channels cta-observatory
     - conda config --add channels astropy-ci-extras
 
     # CORE DEPENDENCIES
