@@ -5,15 +5,7 @@ Components to read ZFITS data.
 This requires the protozfitsreader python library to be installed
 """
 import logging
-
-import numpy as np
-import numpy.ma as ma
-
 from .containers import DataContainer
-
-from astropy import units as u
-from astropy.coordinates import Angle
-from astropy.time import Time
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +21,8 @@ __all__ = [
 ]
 
 def zfits_event_source(url, max_events=None, allowed_tels=None):
-    """A generator that streams data from an EventIO/HESSIO MC data file
-    (e.g. a standard CTA data file.)
+    """A generator that streams data from an ZFITs data file
+
 
     Parameters
     ----------
@@ -65,7 +57,6 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         data.meta['zfits__max_events'] = max_events
         data.dl0.run_id = run_id
         data.dl0.event_id = event_id
-        # TODO, check on MC file (or at least a file with many teslecopes how it works)
         data.dl0.tels_with_data = [zfits.event.telescopeID, ]
         data.count = counter
         # remove forbidden telescopes
@@ -74,8 +65,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
                 [list(filter(lambda x: x in data.dl0.tels_with_data, sublist)) for sublist in allowed_tels]
 
         for tel_id in data.dl0.tels_with_data :
-            # TODO: add the time flag, check the DL0 wrt previous
-
+            # TODO: add the time flag
             data.dl0.tel[tel_id].event_number = zfits.event.eventNumber
             data.dl0.tel[tel_id].num_channels =  zfits.event.num_gains
             data.dl0.tel[tel_id].num_pixels = zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
