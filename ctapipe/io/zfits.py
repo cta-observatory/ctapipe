@@ -6,6 +6,7 @@ This requires the protozfitsreader python library to be installed
 """
 import logging
 from .containers import DataContainer
+from .containers import DigiCamRawCameraContainer
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         data.dl0.event_id = event_id
         data.dl0.tels_with_data = [zfits.event.telescopeID, ]
         data.count = counter
+
         # remove forbidden telescopes
         if allowed_tels:
             data.dl0.tels_with_data = \
@@ -66,14 +68,24 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
 
         for tel_id in data.dl0.tels_with_data :
             # TODO: add the time flag
-            data.dl0.tel[tel_id].event_number = zfits.event.eventNumber
-            data.dl0.tel[tel_id].num_channels =  zfits.event.num_gains
-            data.dl0.tel[tel_id].num_pixels = zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
+            data.inst.num_channels = zfits.event.num_gains
+            data.inst.num_pixels = zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
+            if data.inst.num_pixels == 1296:
+                # Note, I'll add in the data model of the zfits a camera identifier, just need some time
+                # to be released and to have some data containing this new field to test.
+                # In the future telescopeID will allow to know which camera it is
+                data.dl0.tel[tel_id] = DigiCamRawCameraContainer()
+                data.dl0.tel[tel_id].camera_event_number = zfits.event.eventNumber
+                data.dl0.tel[tel_id].pixel_flags = zfits.get_pixel_flags(telescope_id=tel_id)
+
+            # elif data.inst.num_pixels ==  N :
+            #    data.dl0.tel[tel_id] = OtherCameraNameRawCameraContainer()
+            # if no specific OtherCameraNameRawCameraContainer() it satys by default a RawCameraContainer
+
             data.dl0.tel[tel_id].num_samples = zfits._get_numpyfield(zfits.event.hiGain.waveforms.samples).shape[0] //\
                                                zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
             data.dl0.tel[tel_id].adc_samples = zfits.get_adcs_samples(telescope_id=tel_id)
-            data.dl0.tel[tel_id].pixel_flags = zfits.get_pixel_flags(telescope_id=tel_id)
-            #
+
 
         yield data
         counter += 1

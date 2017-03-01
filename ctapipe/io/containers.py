@@ -75,10 +75,6 @@ class RawCameraContainer(Container):
     """
     Storage of raw data from a single telescope
     """
-    event_number = Item(-1, "telescope event number")
-    num_channels = Item(-1, "number of channels per pixel")
-    num_pixels   = Item(-1, "number of pixels")
-    pixel_flags  = Item(None, ("pixel flags","(n_channels x n_pixels)"))
     adc_sums = Item(None, ("numpy array containing integrated ADC data "
                            "(n_channels x n_pixels)"))
     adc_samples = Item(None, ("numpy array containing ADC samples"
@@ -235,3 +231,10 @@ class DataContainer(Container):
     trig = Item(CentralTriggerContainer(), "central trigger information")
     count = Item(0, "number of events processed")
     inst = Item(InstrumentContainer(), "instrumental information (deprecated")
+
+class DigiCamRawCameraContainer(RawCameraContainer):
+    """ DigiCam specific information """
+    camera_event_number =  Item(-1, "camera event number")
+    pixel_flags  = Item(None, ("pixel status flags","(n_channels x n_pixels)"))
+    local_camera_clock  = Item(-1, "camera timestamp")
+    timestamp  = Item(-1, "precise white rabbit based timestamp")

@@ -10,7 +10,7 @@ def test_loop_over_events():
         tels = event.dl0.tels_with_data
         assert tels == [3]
         for telid in event.dl0.tels_with_data:
-            evt_num = event.dl0.tel[telid].event_number
+            evt_num = event.dl0.tel[telid].camera_event_number
             assert i == evt_num
             adcs = np.array(list(event.dl0.tel[telid].adc_samples.values()))
             assert adcs.shape == (1296,20,)
