@@ -136,7 +136,7 @@ class DisplayDL1Calib(Tool):
                          'telescopes.').tag(config=True)
 
     aliases = Dict(dict(f='EventFileReaderFactory.input_path',
-                        o='EventFileReaderFactory.origin',
+                        r='EventFileReaderFactory.reader',
                         max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
