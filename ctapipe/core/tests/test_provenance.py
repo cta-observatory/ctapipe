@@ -16,7 +16,8 @@ if __name__ == '__main__':
     prov = provenance.Provenance()
     prov.start()
 
-    for ii in range(3):
+    print("please wait...")
+    for ii in range(10):
         time.sleep(1)
         prov.sample()
 
