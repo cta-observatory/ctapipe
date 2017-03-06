@@ -321,8 +321,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
             # two great circles cross each other twice (one would be
             # the origin, the other one the direction of the gamma) it
             # doesn't matter which we pick but it should at least be
-            # consistent: make sure to always take the "upper"
-            # solution
+            # consistent: make sure to always take the "upper" solution
             if crossing[2] < 0:
                 crossing *= -1
             crossings.append(crossing * perm[0].weight * perm[1].weight)
