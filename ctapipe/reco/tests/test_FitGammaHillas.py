@@ -20,19 +20,19 @@ def test_fit_core():
     two east-west) and that have a slight position errors (+- 0.1 m in one of the four
     cardinal directions '''
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle1.pos = [0, 0.9]*u.m
+    circle1.pos = [0, 0.1]*u.m
     circle1.trace = [1, 0, 0]
 
     circle2 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle2.pos = [0.9, 0] * u.m
+    circle2.pos = [0.1, 0] * u.m
     circle2.trace = [0, 1, 0]
 
     circle3 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle3.pos = [0, -.9] * u.m
+    circle3.pos = [0, -.1] * u.m
     circle3.trace = [1, 0, 0]
 
     circle4 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle4.pos = [-.9, 0] * u.m
+    circle4.pos = [-.1, 0] * u.m
     circle4.trace = [0, 1, 0]
 
     # creating the fit class and setting the the great circle member
