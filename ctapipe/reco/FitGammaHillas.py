@@ -188,13 +188,12 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
     '''
 
-    def __init__(self):
-        # TODO RecoShowerGeomAlgorithm inherits from Component
-        # Component needs a parent to be set in __init__
-        # super().__init__()
+    def __init__(self, configurable=None):
+        super().__init__(configurable)
         self.circles = {}
 
-    def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):
+    def predict(self, hillas_dict, inst, tel_phi, tel_theta, cam_orientation,
+                seed_pos=(0, 0)):
         '''The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
         calls the functions for the direction and core position
@@ -206,6 +205,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         hillas_dict : python dictionary
             dictionary with telescope IDs as key and
             MomentParameters instances as values
+        cam_rotation : dictionary of astropy angles
+            rotation of the cameras
         seed_pos : python tuple
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)
@@ -223,7 +224,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
-        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
+        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta, cam_orientation)
 
         # algebraic direction estimate
         dir = self.fit_origin_crosses()[0]
@@ -240,7 +241,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         # container class for reconstructed showers '''
         result = ReconstructedShowerContainer()
-        (phi, theta) = linalg.get_phi_theta(dir).to(u.deg)
+        phi, theta = linalg.get_phi_theta(dir).to(u.deg)
 
         # TODO make sure az and phi turn in same direction...
         result.alt, result.az = 90 * u.deg - theta, phi
@@ -261,7 +262,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         return result
 
     def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta,
-                          cam_rotation=0*u.deg):
+                          cam_rotation):
         """
         creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas
         parameters
@@ -275,8 +276,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         tel_phi, tel_theta : dictionaries
             dictionaries of the orientation angles of the telescopes
             needs to contain at least the same keys as in `hillas_dict`
-        cam_rotation : astropy angle
-            rotation of the camera
+        cam_rotation : dictionary of astropy angles
+            rotation of the cameras
         """
 
         self.circles = {}
@@ -292,7 +293,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                                               p2_y / u.m]) * u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
                                     inst.optical_foclen[tel_id],
-                                    cam_rotation),
+                                    cam_rotation[tel_id]),
                 moments.size * (moments.length / moments.width)
             )
             circle.pos = inst.tel_pos[tel_id]

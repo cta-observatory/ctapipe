@@ -111,6 +111,7 @@ def test_FitGammaHillas():
     cam_geom = {}
     tel_phi = {}
     tel_theta = {}
+    cam_orientation = {}
 
     source = hessio_event_source(filename)
 
@@ -125,8 +126,9 @@ def test_FitGammaHillas():
                                         event.inst.pixel_pos[tel_id][1],
                                         event.inst.optical_foclen[tel_id])
 
-                tel_phi[tel_id] = 0.*u.deg
-                tel_theta[tel_id] = 20.*u.deg
+                tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
+                tel_theta[tel_id] = (np.pi/2-event.mc.tel[tel_id].altitude_raw)*u.rad
+                cam_orientation[tel_id] = cam_geom[tel_id].cam_rotation
 
             pmt_signal = event.dl0.tel[tel_id].adc_sums[0]
 
@@ -145,7 +147,8 @@ def test_FitGammaHillas():
 
         if len(hillas_dict) < 2: continue
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
+        fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta,
+                                 cam_orientation)
 
         print(fit_result)
         fit_result.alt.to(u.deg)
