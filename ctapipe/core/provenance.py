@@ -13,13 +13,14 @@ import ctapipe
 import numpy as np
 import psutil
 from astropy.time import Time
+from .support import Singleton
 
 log = logging.getLogger(__name__)
 
-__all__ = ['Provenance','prov']
+__all__ = ['Provenance']
 
 
-class Provenance:
+class Provenance(metaclass=Singleton):
     """
     Manage the provenance info for a stack of *activities*
 
@@ -206,5 +207,3 @@ def _sample_cpu_and_memory():
     )
 
 
-
-prov = Provenance()
