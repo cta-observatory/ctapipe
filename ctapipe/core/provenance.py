@@ -7,35 +7,104 @@ TODO: have this register whenever ctapipe is loaded
 
 import platform
 import sys
+import logging
 
 import ctapipe
 import numpy as np
 import psutil
 from astropy.time import Time
 
-__all__ = ['Provenance']
+log = logging.getLogger(__name__)
+
+__all__ = ['Provenance','prov']
+
 
 class Provenance:
     """
-    Collect local provenance information for later storage.
+    Manage the provenance info for a stack of *activities*
 
+    use `start_activity(name)` to start an activity. Any calls to
+    `add_input_entity()`
 
-    This class is used accumulate information on system execution
-    environment, inputs, and outputs for a given Tool or script.
     """
 
     def __init__(self):
-        self._prov = {'STARTUP': {},
-                      'SHUTDOWN': {},
-                      'SYSTEM': {},
-                      'INPUT': [],
-                      'OUTPUT': []}
+        self._activities = []  # stack of active activities
+        self._finished_activities = []
+
+    def start_activity(self, activity_name):
+        """ push activity onto the stack"""
+        activity = _ActivityProvenance(activity_name)
+        activity.start()
+        self._activities.append(activity)
+        log.debug("started activity: {}".format(activity_name))
+
+    def add_input_entity(self, url):
+        """ register an input to the current activity """
+        self.current_activity.register_input(url)
+        log.debug("added input entity '{}' to activity: '{}'".format(
+            url, self.current_activity.name))
+
+    def add_output_entity(self,url):
+        """ register an output to the current activity """
+        self.current_activity.register_output(url)
+        log.debug("added output entity '{}' to activity: '{}'".format(
+            url, self.current_activity.name))
+
+    def finish_activity(self, activity_name=None):
+        """ end the current activity """
+        activity = self._activities.pop()
+        if activity_name is not None and activity_name != activity.name:
+            raise ValueError("Tried to end activity '{}', but '{}' is current "
+                             "activity".format(activity_name, activity.name))
+
+        activity.finish()
+        self._finished_activities.append(activity)
+        log.debug("finished activity: {}".format(activity.name))
+
+    @property
+    def current_activity(self):
+        if len(self._activities) == 0:
+            raise IndexError("No activities in progress")
+
+        return self._activities[-1] # current activity as at the top of stack
+
+    @property
+    def provenance(self):
+        return [x.provenance for x in self._finished_activities]
+
+    @property
+    def active_activity_names(self):
+        return [x.name for x in self._activities]
+
+    @property
+    def finished_activity_names(self):
+        return [x.name for x in self._finished_activities]
+
+
+class _ActivityProvenance:
+    """
+    Low-level helper class to ollect provenance information for a given
+    *activity*.  Users should use `Provenance` as a top-level API, not this
+    class directly.
+    """
+
+    def __init__(self, activity_name=sys.executable):
+        self._prov = {
+            'activity_name': activity_name,
+            'start': {},
+            'stop' :{},
+            'system': {},
+            'input': [],
+            'output': []
+        }
+        self.name = activity_name
 
     def start(self):
-        """ begin recording provenance. Set's up the system and startup
-        provenance data. Generally should be called at start of a program."""
-        self._prov['STARTUP'].update(self._sample_cpu_and_memory())
-        self._prov['SYSTEM'].update(self._get_system_provenance())
+        """ begin recording provenance for this activity. Set's up the system
+        and startup provenance data. Generally should be called at start of a program."""
+        self._prov['start'].update(self._sample_cpu_and_memory())
+        self._prov['system'].update(self._get_system_provenance())
 
     def register_input(self, url):
         """
@@ -47,7 +116,7 @@ class Provenance:
         url: str
             filename or url of input file
         """
-        self._prov['INPUT'].append(url)
+        self._prov['input'].append(url)
 
     def register_output(self, url):
         """
@@ -59,19 +128,22 @@ class Provenance:
         url: str
             filename or url of output file
         """
-        self._prov['OUTPUT'].append(url)
+        self._prov['output'].append(url)
 
     def finish(self):
         """ record final provenance information, normally called at shutdown."""
-        self._prov['SHUTDOWN'] = self._sample_cpu_and_memory()
+        self._prov['stop'].update(self._sample_cpu_and_memory())
+        t_start = Time(self._prov['start']['time_utc'], format='isot')
+        t_stop = Time(self._prov['stop']['time_utc'], format='isot')
+        self._prov['duration'] = (t_stop-t_start).to('min').value
 
-    def sample(self):
+    def sample_cpu_and_memory(self):
         """
         Record a snapshot of current CPU and memory information.
         """
-        if 'SAMPLES' not in self._prov:
-            self._prov['SAMPLES'] = []
-        self._prov['SAMPLES'].append(self._sample_cpu_and_memory())
+        if 'samples' not in self._prov:
+            self._prov['samples'] = []
+        self._prov['samples'].append(self._sample_cpu_and_memory())
 
     @property
     def provenance(self):
@@ -81,9 +153,7 @@ class Provenance:
         """ return JSON string containing provenance for all things that are
         fixed during the runtime"""
 
-        uname = platform.uname()
         bits, linkage = platform.architecture()
-        pyver = sys.version_info
 
         return dict(
             ctapipe_version=ctapipe.__version__,
@@ -91,24 +161,22 @@ class Provenance:
             platform=dict(
                 architecture_bits=bits,
                 architecture_linkage=linkage,
-                machine=uname.machine,
-                processor=uname.processor,
-                node=uname.node,
-                version=uname.version,
-                system=uname.system,
-                release=uname.release,
+                machine=platform.machine(),
+                processor=platform.processor(),
+                node=platform.node(),
+                version=platform.version(),
+                system=platform.system(),
+                release=platform.release(),
                 libcver=platform.libc_ver(),
                 num_cpus=psutil.cpu_count(),
                 boot_time=Time(psutil.boot_time(), format='unix').isot,
             ),
             python=dict(
                 version_string=sys.version,
-                version=[
-                    pyver.major,
-                    pyver.minor,
-                    pyver.micro,
-                    pyver.releaselevel
-                ]),
+                version=platform.python_version_tuple(),
+                compiler=platform.python_compiler(),
+                implementation=platform.python_implementation(),
+            ),
             arguments=sys.argv,
             start_time_utc=Time.now().isot,
         )
@@ -130,3 +198,7 @@ class Provenance:
                      system=list(times[:, 2]),
                      idle=list(times[:, 3])),
         )
+
+
+
+prov = Provenance()

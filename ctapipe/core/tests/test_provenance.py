@@ -1,31 +1,38 @@
 import json
 
 from ctapipe.core import Provenance
+from ctapipe.core.provenance import _ActivityProvenance
 
 
-def test_prov():
+def test_Provenance():
     prov = Provenance()
-    prov.start()
-    prov.register_input("input.txt")
-    prov.register_output("output.txt")
-    prov.finish()
+    prov.start_activity("test1")
+    prov.add_input_entity("input.txt")
+    prov.add_output_entity("output.txt")
+    prov.start_activity("test2")
+    prov.add_input_entity("input_a.txt")
+    prov.add_input_entity("input_b.txt")
+    assert len(prov.active_activity_names) == 2
+    prov.finish_activity("test2")
+    prov.finish_activity("test1")
 
+    assert set(prov.finished_activity_names) == {'test2', 'test1'}
 
-if __name__ == '__main__':
+    return prov
 
-    import time
-
-    prov = Provenance()
+def test_ActivityProvenance():
+    prov = _ActivityProvenance()
     prov.start()
     prov.register_input('test.txt')
     prov.register_input('test2.txt')
     prov.register_output('out.txt')
-
-    print("please wait...")
-    for ii in range(3):
-        print("sample", ii)
-        time.sleep(1)
-        prov.sample()
-
+    prov.sample_cpu_and_memory()
     prov.finish()
+
+if __name__ == '__main__':
+
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+
+    prov = test_Provenance()
     print(json.dumps(prov.provenance, indent=4))

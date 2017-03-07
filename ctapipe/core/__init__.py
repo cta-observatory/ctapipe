@@ -3,8 +3,8 @@
 from .component import Component
 from .container import Container, Item, Map
 from .factory import Factory
-from .provenance import Provenance
+from .provenance import prov, Provenance
 from .tool import Tool
 
 __all__ = ['Component', 'Container', 'Tool', 'Item', 'Map', 'Factory',
-           'Provenance']
+           'prov', 'Provenance']
