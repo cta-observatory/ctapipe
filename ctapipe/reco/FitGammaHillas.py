@@ -230,7 +230,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         dir = self.fit_origin_crosses()[0]
 
         # core position estimate using a geometric approach
-        pos = self.fit_core_crosses()
+        pos, pos_uncert = self.fit_core_crosses()
 
         # numerical minimisations do not really improve the fit
         # direction estimate using numerical minimisation
@@ -247,12 +247,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         result.alt, result.az = 90 * u.deg - theta, phi
         result.core_x = pos[0]
         result.core_y = pos[1]
-        weighted_sum_dist = np.sum([np.dot(pos[:2]-c.pos[:2], c.norm[:2]) * c.weight
-                                    for c in self.circles.values()]) * pos.unit
-
-        norm_sum_dist = np.sum([c.weight * linalg.length(c.norm[:2])
-                                for c in self.circles.values()])
-        result.core_uncert = abs(weighted_sum_dist / norm_sum_dist)
+        result.core_uncert = pos_uncert
 
         result.tel_ids = [h for h in hillas_dict.keys()]
         result.average_size = np.mean([h.size for h in hillas_dict.values()])
@@ -463,7 +458,15 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         # instead used directly the numpy implementation
         # speed is the same, just handles already "SingularMatrixError"
-        return np.linalg.lstsq(A, D)[0] * u.m
+        pos = np.linalg.lstsq(A, D)[0] * u.m
+
+        weighted_sum_dist = np.sum([np.dot(pos[:2]-c.pos[:2], c.norm[:2]) * c.weight
+                                    for c in self.circles.values()]) * pos.unit
+        norm_sum_dist = np.sum([c.weight * linalg.length(c.norm[:2])
+                                for c in self.circles.values()])
+        pos_uncert = abs(weighted_sum_dist / norm_sum_dist)
+
+        return poss, pos_uncert
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up great circles
