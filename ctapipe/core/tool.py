@@ -1,6 +1,7 @@
 from traitlets import Unicode
 from traitlets.config import Application
 from abc import abstractmethod
+from . import prov
 import logging
 
 from ctapipe import __version__ as version
@@ -177,8 +178,11 @@ class Tool(Application):
             self.initialize(argv)
             self.log.info("Starting: {}".format(self.name))
             self.log.debug("CONFIG: {}".format(self.config))
+            prov.start_activity(self.name)
             self.start()
             self.finish()
+            prov.finish_activity(self.name)
+            self.log.debug(prov.provenance)
         except ValueError as err:
             self.log.error('{}'.format(err))
         except RuntimeError as err:

@@ -24,7 +24,11 @@ class Provenance:
     Manage the provenance info for a stack of *activities*
 
     use `start_activity(name)` to start an activity. Any calls to
-    `add_input_entity()`
+    `add_input_entity()` or `add_output_entity()` will register files within
+    that activity. Finish the current activity with `finish_activity()`.
+
+    Nested activities are handled as a stack, so you can start more than one
+    activity.
 
     """
 
@@ -103,8 +107,8 @@ class _ActivityProvenance:
     def start(self):
         """ begin recording provenance for this activity. Set's up the system
         and startup provenance data. Generally should be called at start of a program."""
-        self._prov['start'].update(self._sample_cpu_and_memory())
-        self._prov['system'].update(self._get_system_provenance())
+        self._prov['start'].update(_sample_cpu_and_memory())
+        self._prov['system'].update(_get_system_provenance())
 
     def register_input(self, url):
         """
@@ -132,10 +136,12 @@ class _ActivityProvenance:
 
     def finish(self):
         """ record final provenance information, normally called at shutdown."""
-        self._prov['stop'].update(self._sample_cpu_and_memory())
+        self._prov['stop'].update(_sample_cpu_and_memory())
+
+        # record the duration (wall-clock) for this activity
         t_start = Time(self._prov['start']['time_utc'], format='isot')
         t_stop = Time(self._prov['stop']['time_utc'], format='isot')
-        self._prov['duration'] = (t_stop-t_start).to('min').value
+        self._prov['duration_min'] = (t_stop-t_start).to('min').value
 
     def sample_cpu_and_memory(self):
         """
@@ -143,61 +149,61 @@ class _ActivityProvenance:
         """
         if 'samples' not in self._prov:
             self._prov['samples'] = []
-        self._prov['samples'].append(self._sample_cpu_and_memory())
+        self._prov['samples'].append(_sample_cpu_and_memory())
 
     @property
     def provenance(self):
         return self._prov
 
-    def _get_system_provenance(self):
-        """ return JSON string containing provenance for all things that are
-        fixed during the runtime"""
+def _get_system_provenance():
+    """ return JSON string containing provenance for all things that are
+    fixed during the runtime"""
 
-        bits, linkage = platform.architecture()
+    bits, linkage = platform.architecture()
 
-        return dict(
-            ctapipe_version=ctapipe.__version__,
-            executable=sys.executable,
-            platform=dict(
-                architecture_bits=bits,
-                architecture_linkage=linkage,
-                machine=platform.machine(),
-                processor=platform.processor(),
-                node=platform.node(),
-                version=platform.version(),
-                system=platform.system(),
-                release=platform.release(),
-                libcver=platform.libc_ver(),
-                num_cpus=psutil.cpu_count(),
-                boot_time=Time(psutil.boot_time(), format='unix').isot,
-            ),
-            python=dict(
-                version_string=sys.version,
-                version=platform.python_version_tuple(),
-                compiler=platform.python_compiler(),
-                implementation=platform.python_implementation(),
-            ),
-            arguments=sys.argv,
-            start_time_utc=Time.now().isot,
-        )
+    return dict(
+        ctapipe_version=ctapipe.__version__,
+        executable=sys.executable,
+        platform=dict(
+            architecture_bits=bits,
+            architecture_linkage=linkage,
+            machine=platform.machine(),
+            processor=platform.processor(),
+            node=platform.node(),
+            version=platform.version(),
+            system=platform.system(),
+            release=platform.release(),
+            libcver=platform.libc_ver(),
+            num_cpus=psutil.cpu_count(),
+            boot_time=Time(psutil.boot_time(), format='unix').isot,
+        ),
+        python=dict(
+            version_string=sys.version,
+            version=platform.python_version_tuple(),
+            compiler=platform.python_compiler(),
+            implementation=platform.python_implementation(),
+        ),
+        arguments=sys.argv,
+        start_time_utc=Time.now().isot,
+    )
 
-    def _sample_cpu_and_memory(self):
-        times = np.asarray(psutil.cpu_times(percpu=True))
-        mem = psutil.virtual_memory()
+def _sample_cpu_and_memory():
+    times = np.asarray(psutil.cpu_times(percpu=True))
+    mem = psutil.virtual_memory()
 
-        return dict(
-            time_utc=Time.now().utc.isot,
-            memory=dict(total=mem.total,
-                        inactive=mem.inactive,
-                        available=mem.available,
-                        free=mem.free,
-                        wired=mem.wired),
-            cpu=dict(ncpu=psutil.cpu_count(),
-                     user=list(times[:, 0]),
-                     nice=list(times[:, 1]),
-                     system=list(times[:, 2]),
-                     idle=list(times[:, 3])),
-        )
+    return dict(
+        time_utc=Time.now().utc.isot,
+        memory=dict(total=mem.total,
+                    inactive=mem.inactive,
+                    available=mem.available,
+                    free=mem.free,
+                    wired=mem.wired),
+        cpu=dict(ncpu=psutil.cpu_count(),
+                 user=list(times[:, 0]),
+                 nice=list(times[:, 1]),
+                 system=list(times[:, 2]),
+                 idle=list(times[:, 3])),
+    )
 
 
 
