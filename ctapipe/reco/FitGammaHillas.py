@@ -24,8 +24,7 @@ class TooFewTelescopesException(Exception):
 
 
 @deprecated(0.1, "will be replaced with real coord transform")
-def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
-                        camera_rotation=0*u.deg):
+def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
     '''
     TODO replace with proper implementation
     calculates the direction vector of corresponding to a
@@ -50,8 +49,6 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
         two angles that describe the orientation of the telescope
     tel_foclen : astropy quantity
         focal length of the telescope
-    camera_rotation : astropy quantity
-        rotation of the camera frame inside of the telescope
 
     Returns
     -------
@@ -72,8 +69,7 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen,
     for a, b in zip(pix_alpha, pix_beta):
         pix_dir = linalg.set_phi_theta(tel_phi, tel_theta + b)
 
-        pix_dir = linalg.rotate_around_axis(pix_dir, tel_dir,
-                                            camera_rotation - a)
+        pix_dir = linalg.rotate_around_axis(pix_dir, tel_dir, -a)
         pix_dirs.append(pix_dir * u.dimless)
 
     return pix_dirs
@@ -192,8 +188,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         super().__init__(configurable)
         self.circles = {}
 
-    def predict(self, hillas_dict, inst, tel_phi, tel_theta, cam_orientation,
-                seed_pos=(0, 0)):
+    def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):
         '''The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
         calls the functions for the direction and core position
@@ -205,8 +200,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         hillas_dict : python dictionary
             dictionary with telescope IDs as key and
             MomentParameters instances as values
-        cam_rotation : dictionary of astropy angles
-            rotation of the cameras
         seed_pos : python tuple
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)
@@ -224,7 +217,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
-        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta, cam_orientation)
+        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
 
         # algebraic direction estimate
         dir = self.fit_origin_crosses()[0]
@@ -261,8 +254,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         return result
 
-    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta,
-                          cam_rotation):
+    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
         """
         creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas
         parameters
@@ -276,8 +268,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         tel_phi, tel_theta : dictionaries
             dictionaries of the orientation angles of the telescopes
             needs to contain at least the same keys as in `hillas_dict`
-        cam_rotation : dictionary of astropy angles
-            rotation of the cameras
         """
 
         self.circles = {}
@@ -292,8 +282,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                                     np.array([moments.cen_y / u.m,
                                               p2_y / u.m]) * u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
-                                    inst.optical_foclen[tel_id],
-                                    cam_rotation[tel_id]),
+                                    inst.optical_foclen[tel_id]),
                 moments.size * (moments.length / moments.width)
             )
             circle.pos = inst.tel_pos[tel_id]

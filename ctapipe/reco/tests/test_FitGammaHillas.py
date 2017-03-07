@@ -20,19 +20,19 @@ def test_fit_core():
     two east-west) and that have a slight position errors (+- 0.1 m in one of the four
     cardinal directions '''
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle1.pos = [0, 0.1]*u.m
+    circle1.pos = [0, 0.9]*u.m
     circle1.trace = [1, 0, 0]
 
     circle2 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle2.pos = [0.1, 0] * u.m
+    circle2.pos = [0.9, 0] * u.m
     circle2.trace = [0, 1, 0]
 
     circle3 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle3.pos = [0, -.1] * u.m
+    circle3.pos = [0, -.9] * u.m
     circle3.trace = [1, 0, 0]
 
     circle4 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle4.pos = [-.1, 0] * u.m
+    circle4.pos = [-.9, 0] * u.m
     circle4.trace = [0, 1, 0]
 
     # creating the fit class and setting the the great circle member
@@ -43,10 +43,13 @@ def test_fit_core():
     # and a seed that is quite far away
     pos_fit_minimise = fit.fit_core_minimise([100, 1000]*u.m)
     print("position fit test minimise:", pos_fit_minimise)
+    print()
 
     # performing the position fit with the geometric algorithm
-    pos_fit_crosses = fit.fit_core_crosses()
+    pos_fit_crosses, err_est_pos_fit_crosses = fit.fit_core_crosses()
     print("position fit test crosses:", pos_fit_crosses)
+    print("error estimate:", err_est_pos_fit_crosses)
+    print()
 
     # the results should be close to the origin of the coordinate system
     np.testing.assert_allclose(pos_fit_minimise/u.m, [0, 0], atol=1e-3)
@@ -83,10 +86,12 @@ def test_fit_origin():
     # and a seed that is perpendicular to the up direction
     dir_fit_minimise = fit.fit_origin_minimise((0.1, 0.1, 1))
     print("direction fit test minimise:", dir_fit_minimise)
+    print()
 
     # performing the direction fit with the geometric algorithm
     dir_fit_crosses = fit.fit_origin_crosses()[0]
     print("direction fit test crosses:", dir_fit_crosses)
+    print()
 
     # the results should be close to the direction straight up
     # np.testing.assert_allclose(dir_fit_minimise, [0, 0, 1], atol=1e-1)
@@ -111,7 +116,6 @@ def test_FitGammaHillas():
     cam_geom = {}
     tel_phi = {}
     tel_theta = {}
-    cam_orientation = {}
 
     source = hessio_event_source(filename)
 
@@ -128,7 +132,6 @@ def test_FitGammaHillas():
 
                 tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
                 tel_theta[tel_id] = (np.pi/2-event.mc.tel[tel_id].altitude_raw)*u.rad
-                cam_orientation[tel_id] = cam_geom[tel_id].cam_rotation
 
             pmt_signal = event.dl0.tel[tel_id].adc_sums[0]
 
@@ -147,8 +150,7 @@ def test_FitGammaHillas():
 
         if len(hillas_dict) < 2: continue
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta,
-                                 cam_orientation)
+        fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
 
         print(fit_result)
         fit_result.alt.to(u.deg)
