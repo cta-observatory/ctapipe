@@ -5,14 +5,17 @@ TODO: have this register whenever ctapipe is loaded
 
 """
 
+import json
+import logging
 import platform
 import sys
-import logging
+from os.path import abspath
 
 import ctapipe
 import numpy as np
 import psutil
 from astropy.time import Time
+
 from .support import Singleton
 
 log = logging.getLogger(__name__)
@@ -37,24 +40,24 @@ class Provenance(metaclass=Singleton):
         self._activities = []  # stack of active activities
         self._finished_activities = []
 
-    def start_activity(self, activity_name):
+    def start_activity(self, activity_name=sys.executable):
         """ push activity onto the stack"""
         activity = _ActivityProvenance(activity_name)
         activity.start()
         self._activities.append(activity)
         log.debug("started activity: {}".format(activity_name))
 
-    def add_input_entity(self, url):
+    def add_input_file(self, filename):
         """ register an input to the current activity """
-        self.current_activity.register_input(url)
+        self.current_activity.register_input(abspath(filename))
         log.debug("added input entity '{}' to activity: '{}'".format(
-            url, self.current_activity.name))
+            filename, self.current_activity.name))
 
-    def add_output_entity(self,url):
+    def add_output_file(self, filename):
         """ register an output to the current activity """
-        self.current_activity.register_output(url)
+        self.current_activity.register_output(abspath(filename))
         log.debug("added output entity '{}' to activity: '{}'".format(
-            url, self.current_activity.name))
+            filename, self.current_activity.name))
 
     def finish_activity(self, activity_name=None):
         """ end the current activity """
@@ -70,13 +73,19 @@ class Provenance(metaclass=Singleton):
     @property
     def current_activity(self):
         if len(self._activities) == 0:
-            raise IndexError("No activities in progress")
-
-        return self._activities[-1] # current activity as at the top of stack
+            log.warning("No activity has been started... starting a default "
+                        "one")
+            self.start_activity()
+        return self._activities[-1]  # current activity as at the top of stack
 
     @property
     def provenance(self):
         return [x.provenance for x in self._finished_activities]
+
+    def as_json(self, **kwargs):
+        """ return all finished provenance as JSON.  Kwargs for `json.dumps`
+        may be included, e.g. `indent=4`"""
+        return json.dumps(self.provenance, **kwargs)
 
     @property
     def active_activity_names(self):
@@ -98,7 +107,7 @@ class _ActivityProvenance:
         self._prov = {
             'activity_name': activity_name,
             'start': {},
-            'stop' :{},
+            'stop': {},
             'system': {},
             'input': [],
             'output': []
@@ -107,7 +116,8 @@ class _ActivityProvenance:
 
     def start(self):
         """ begin recording provenance for this activity. Set's up the system
-        and startup provenance data. Generally should be called at start of a program."""
+        and startup provenance data. Generally should be called at start of a
+        program."""
         self._prov['start'].update(_sample_cpu_and_memory())
         self._prov['system'].update(_get_system_provenance())
 
@@ -142,7 +152,7 @@ class _ActivityProvenance:
         # record the duration (wall-clock) for this activity
         t_start = Time(self._prov['start']['time_utc'], format='isot')
         t_stop = Time(self._prov['stop']['time_utc'], format='isot')
-        self._prov['duration_min'] = (t_stop-t_start).to('min').value
+        self._prov['duration_min'] = (t_stop - t_start).to('min').value
 
     def sample_cpu_and_memory(self):
         """
@@ -155,6 +165,7 @@ class _ActivityProvenance:
     @property
     def provenance(self):
         return self._prov
+
 
 def _get_system_provenance():
     """ return JSON string containing provenance for all things that are
@@ -188,6 +199,7 @@ def _get_system_provenance():
         start_time_utc=Time.now().isot,
     )
 
+
 def _sample_cpu_and_memory():
     times = np.asarray(psutil.cpu_times(percpu=True))
     mem = psutil.virtual_memory()
@@ -205,5 +217,3 @@ def _sample_cpu_and_memory():
                  system=list(times[:, 2]),
                  idle=list(times[:, 3])),
     )
-
-

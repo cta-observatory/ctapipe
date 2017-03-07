@@ -7,11 +7,11 @@ from ctapipe.core.provenance import _ActivityProvenance
 def test_Provenance():
     prov = Provenance()
     prov.start_activity("test1")
-    prov.add_input_entity("input.txt")
-    prov.add_output_entity("output.txt")
+    prov.add_input_file("input.txt")
+    prov.add_output_file("output.txt")
     prov.start_activity("test2")
-    prov.add_input_entity("input_a.txt")
-    prov.add_input_entity("input_b.txt")
+    prov.add_input_file("input_a.txt")
+    prov.add_input_file("input_b.txt")
     assert len(prov.active_activity_names) == 2
     prov.finish_activity("test2")
     prov.finish_activity("test1")

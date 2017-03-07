@@ -182,7 +182,7 @@ class Tool(Application):
             self.start()
             self.finish()
             Provenance().finish_activity(self.name)
-            self.log.debug('PROVENANCE: "%s"', Provenance().provenance)
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
         except ValueError as err:
             self.log.error('{}'.format(err))
         except RuntimeError as err:
