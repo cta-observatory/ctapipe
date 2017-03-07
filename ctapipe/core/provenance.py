@@ -31,9 +31,9 @@ class Provenance(metaclass=Singleton):
     `add_input_entity()` or `add_output_entity()` will register files within
     that activity. Finish the current activity with `finish_activity()`.
 
-    Nested activities are handled as a stack, so you can start more than one
-    activity.
-
+    Nested activities are allowed, and handled as a stack. The final output
+    is not hierarchical, but a flat list of activities (however hierarchical
+    activities could easily be implemented if necessary)
     """
 
     def __init__(self):
@@ -80,6 +80,7 @@ class Provenance(metaclass=Singleton):
 
     @property
     def provenance(self):
+        """ returns provenence for full list of activities """
         return [x.provenance for x in self._finished_activities]
 
     def as_json(self, **kwargs):
@@ -94,6 +95,11 @@ class Provenance(metaclass=Singleton):
     @property
     def finished_activity_names(self):
         return [x.name for x in self._finished_activities]
+
+    def clear(self):
+        """ remove all tracked activities """
+        self._activities = []
+        self._finished_activities = []
 
 
 class _ActivityProvenance:
