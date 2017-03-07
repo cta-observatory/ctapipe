@@ -466,7 +466,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                                 for c in self.circles.values()])
         pos_uncert = abs(weighted_sum_dist / norm_sum_dist)
 
-        return poss, pos_uncert
+        return pos, pos_uncert
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
         '''reconstructs the shower core position from the already set up great circles
