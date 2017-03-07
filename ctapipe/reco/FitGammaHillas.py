@@ -423,7 +423,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         -------
         r_chisqr : shape (2) numpy array
             the minimum :math:`\chi^2` solution for the shower impact position
-
+        pos_uncert : astropy length quantity
+            error estimate on the reconstructed core position
         """
 
         A = np.zeros((len(self.circles), 2))
