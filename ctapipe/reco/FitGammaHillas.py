@@ -247,6 +247,12 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         result.alt, result.az = 90 * u.deg - theta, phi
         result.core_x = pos[0]
         result.core_y = pos[1]
+        weighted_sum_dist = np.sum([np.dot(pos[:2]-c.pos[:2], c.norm[:2]) * c.weight
+                                    for c in self.circles.values()]) * pos.unit
+
+        norm_sum_dist = np.sum([c.weight * linalg.length(c.norm[:2])
+                                for c in self.circles.values()])
+        result.core_uncert = abs(weighted_sum_dist / norm_sum_dist)
 
         result.tel_ids = [h for h in hillas_dict.keys()]
         result.average_size = np.mean([h.size for h in hillas_dict.values()])
@@ -254,7 +260,6 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         result.alt_uncert = np.nan
         result.az_uncert = np.nan
-        result.core_uncert = np.nan
         result.h_max = np.nan
         result.h_max_uncert = np.nan
         result.goodness_of_fit = np.nan
