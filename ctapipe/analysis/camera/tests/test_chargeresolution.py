@@ -1,9 +1,9 @@
-from ..chargeresolution import ChargeResolution
+from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 import numpy as np
 
 
 def test_add_charges():
-    chargeres = ChargeResolution(100)
+    chargeres = ChargeResolutionCalculator(None, None)
     true_charge = np.arange(100)
     measured_charge = np.arange(100)
     chargeres.add_charges(true_charge, measured_charge)
@@ -17,7 +17,7 @@ def test_add_charges():
 
 
 def test_get_charge_resolution():
-    chargeres = ChargeResolution(100)
+    chargeres = ChargeResolutionCalculator(None, None, binning=None)
     true_charge = np.arange(100)
     measured_charge = np.arange(100)
     chargeres.add_charges(true_charge, measured_charge)
@@ -33,13 +33,13 @@ def test_get_charge_resolution():
 
 
 def test_get_binned_charge_resolution():
-    chargeres = ChargeResolution(100)
+    chargeres = ChargeResolutionCalculator(None, None)
     true_charge = np.arange(100)
     measured_charge = np.arange(100)
     chargeres.add_charges(true_charge, measured_charge)
     true_charge, chargeres, chargeres_error, \
         scaled_chargeres, scaled_chargeres_error = \
-        chargeres.get_binned_charge_resolution()
+        chargeres.get_charge_resolution()
 
     assert(true_charge[0] == 1)
     assert(chargeres[0] == 1)
@@ -49,19 +49,19 @@ def test_get_binned_charge_resolution():
 
 
 def test_limit_curves():
-    value = ChargeResolution.limit_curves(1, 2, 3, 4, 5)
+    value = ChargeResolutionCalculator.limit_curves(1, 2, 3, 4, 5)
     assert(round(value, 7) == 6.78233)
 
 
 def test_requirement():
-    value = ChargeResolution.requirement(1)
-    value2 = ChargeResolution.requirement(np.arange(1, 10))[-1]
+    value = ChargeResolutionCalculator.requirement(1)
+    value2 = ChargeResolutionCalculator.requirement(np.arange(1, 10))[-1]
     assert(round(value, 7) == 2.0237963)
     assert(round(value2, 7) == 0.4501817)
 
 
 def test_goal():
-    value = ChargeResolution.goal(1)
-    value2 = ChargeResolution.goal(np.arange(1, 10))[-1]
+    value = ChargeResolutionCalculator.goal(1)
+    value2 = ChargeResolutionCalculator.goal(np.arange(1, 10))[-1]
     assert(round(value, 7) == 1.8017134)
     assert(round(value2, 7) == 0.4066657)
