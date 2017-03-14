@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import allclose
 import astropy.units as u
 
 from ctapipe.analysis.Sensitivity import *
@@ -7,8 +8,8 @@ from ctapipe.analysis.Sensitivity import check_min_N, check_background_contamina
 
 
 def test_check_min_N():
-    N_g = [2, 1]
-    N_p = [0, 1]
+    N_g = np.array([2., 1.])
+    N_p = np.array([0., 1.])
 
     min_N = 10
 
@@ -19,8 +20,8 @@ def test_check_min_N():
 
 
 def test_check_background_contamination():
-    N_g = [2, 1]
-    N_p = [0, 1]
+    N_g = np.array([2., 1.])
+    N_p = np.array([0., 1.])
 
     max_prot_ratio = .1
 
@@ -37,10 +38,9 @@ def test_Sensitivity_PointSource():
     gen_area_p = np.tau/2*(2000*u.m)**2
 
     # energy list of "selected" events
-    # (randomise the order so they don't align with the angle arrays)
-    energy_sel_gamma  = np.random.choice(np.logspace(2, 6, 200, False), 200, False)
-    energy_sel_elect  = np.random.choice(np.logspace(2, 6, 200, False), 200, False)
-    energy_sel_proton = np.random.choice(np.logspace(2, 6, 400, False), 400, False)
+    energy_sel_gamma  = np.logspace(2, 6, 200, False)
+    energy_sel_elect  = np.logspace(2, 6, 200, False)
+    energy_sel_proton = np.logspace(2, 6, 400, False)
 
     # energy list of "generated" events
     energy_sim_gamma  = np.logspace(2, 6, 400, False)
@@ -48,9 +48,10 @@ def test_Sensitivity_PointSource():
     energy_sim_proton = np.logspace(2, 6, 800, False)
 
     # angular distance of the events from the "point-source"
-    angles_gamma  = np.logspace(-3, 1, 200)
-    angles_elect  = np.logspace(-3, 1, 200)
-    angles_proton = np.linspace(1e-3, 1e1, 400)
+    # (randomise the order so they don't align with the energy arrays)
+    angles_gamma  = np.random.choice(np.logspace(-3, 1, 200)    , 200, False) * u.deg
+    angles_elect  = np.random.choice(np.logspace(-3, 1, 200)    , 200, False) * u.deg
+    angles_proton = np.random.choice(np.linspace(1e-3, 1e1, 400), 400, False) * u.deg
 
     # binning for the energy histograms
     energy_edges = np.linspace(2, 6, 41)
@@ -85,9 +86,10 @@ def test_Sensitivity_PointSource():
                                      'e': gen_area_g})
 
     # midway result are the effective areas
-    eff_area_g, eff_area_p, eff_area_e = Sens.effective_areas.values()
+    eff_a = Sens.effective_areas
+    eff_area_g, eff_area_p, eff_area_e = eff_a['g'], eff_a['p'], eff_a['e']
 
     # "selected" events are half of the "generated" events
     # so effective areas should be half of generator areas, too
-    assert (eff_area_g == gen_area_g/2).all()
-    assert (eff_area_p == gen_area_p/2).all()
+    np.testing.assert_allclose(eff_area_g.value, gen_area_g.value/2)
+    np.testing.assert_allclose(eff_area_p.value, gen_area_p.value/2)
