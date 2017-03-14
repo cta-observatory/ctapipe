@@ -208,31 +208,51 @@ class Sensitivity_PointSource():
         • add extended source?
         • add pseudo experiment for low exposure times?
     """
-    def __init__(self, mc_energies, off_angles, energy_bin_edges,
+    def __init__(self, mc_energies, energy_bin_edges,
+                 off_angles=None,
+                 source_origin=None, event_origins=None,
                  energy_unit=u.GeV, flux_unit=u.GeV / (u.m**2*u.s)):
         """
         constructor, simply sets some initial parameters
 
         Parameters
         ----------
-        mc_energy_gamma, mc_energy_proton: quantified numpy arrays
-            list of simulated energies of the selected gammas and protons
-        off_angles_g, off_angles_p : numpy arrays
-            list of offset angles between the reconstructed direction and the point-source
-            direction for gamma and proton events
-        bin_edges_gamma, bin_edges_proton : numpy arrays
-            list of the bin edges for the various histograms for gammas and protons
+        mc_energies: dictionary of quantified numpy arrays
+            lists of simulated energies of the selected events for each channel
+        energy_bin_edges : dictionary of numpy arrays
+            lists of the bin edges for the various histograms for each channel;
             assumes binning in log10(energy)
+        off_angles : dictionary of numpy arrays
+            lists of offset angles between the reconstructed direction and
+            the point-source direction for the events of each channel
+        source_origin : `astropy.coordinates.SkyCoord`, optional (default: None)
+            position in the sky of the assumed point-source
+        event_origins : dictionary of lists of `astropy.coordinates.SkyCoord`,
+                        optional (default: None)
+            lists of origins (*not* directions) of the reconstructed events
+            for each channel
         energy_unit : astropy quantity, optional (default: u.GeV)
             your favourite energy unit
         flux_unit : astropy quantity, optional (default: u.GeV / (u.m**2 * u.s))
             your favourite differential flux unit
 
+        Notes
+        -----
+        use either `off_angles` directly, or let the constructor compute them itself
+        by using `source_origin` and `event_origins`
         """
 
+        assert (off_angles is not None) != (event_origins is not None), \
+            "use only 'off_angles' OR 'event_origins'"
+
+        if off_angles is not None:
+            self.off_angles = off_angles
+        else:
+            self.off_angles = {}
+            for cl in event_origins.keys():
+                self.off_angles[cl] = source_origin.separation(event_origins[cl])
 
         self.mc_energies = mc_energies
-        self.off_angles = off_angles
         self.energy_bin_edges = energy_bin_edges
 
         self.class_list = mc_energies.keys()
@@ -353,7 +373,8 @@ class Sensitivity_PointSource():
 
         return self.event_weights
 
-    def get_sensitivity(self, min_n=10, max_background_ratio=.05, r_on=.3, r_off=5,
+    def get_sensitivity(self, min_n=10, max_background_ratio=.05,
+                        r_on=.3*u.deg, r_off=5*u.deg,
                         signal_list=("g"), verbose=False):
         """
         finally calculates the sensitivity to a point-source
@@ -374,10 +395,14 @@ class Sensitivity_PointSource():
         Returns
         -------
         sensitivities : astropy.table.Table
-            the sensitivity for every energy bin of `.bin_edges_gam`
+            the sensitivity for every energy bin of `.energy_bin_edges[signal_list[0]]`
         """
 
         # the area-ratio of the on- and off-region
+        # A_on = r_on**2 * pi
+        # A_off = r_off**2 * pi - r_on**2 * pi
+        #       = (r_off**2 - r_on**2) * pi
+        # alpha = A_on / A_off
         alpha = 1/(((r_off/r_on)**2)-1)
 
         # sensitivities go in here
@@ -389,20 +414,25 @@ class Sensitivity_PointSource():
         for elow, ehigh in zip(10**(self.energy_bin_edges[signal_list[0]][:-1]),
                                10**(self.energy_bin_edges[signal_list[0]][1:])):
 
-            N_signal = np.array([0., 0.])
-            N_backgr = np.array([0., 0.])
+            # N_events[backgr/signal][on/off region]
+            N_events = np.array([[0., 0.], [0., 0.]])
+            N_backgr, N_signal = N_events
 
-            # loop over all angular distances and their weights for this energy bin
-            # and count the events in the on and off regions
+            # count the (weights of the) events in the on and off regions for this
+            # energy bin
             for cl in self.class_list:
+                # all events that have a smaller angular offset than `r_on`
+                on_mask = (self.off_angles[cl] < r_on)
+                # all events that have a smaller angular offset than `r_off` but are
+                # not in the on-region
+                off_mask = (self.off_angles[cl] < r_off) ^ on_mask
+                # single out the events in this energy bin
                 e_mask = (self.mc_energies[cl] > elow) & (self.mc_energies[cl] < ehigh)
-                for s, w in zip(self.off_angles[cl][e_mask],
-                                self.event_weights[cl][e_mask]):
-                    if s < r_off:
-                        if cl in signal_list:
-                            N_signal[int(s > r_on)] += w
-                        else:
-                            N_backgr[int(s > r_on)] += w
+                # is this channel signal or background
+                is_sig = int(cl in signal_list)
+                # count the events as the sum of their weights with all masks applied
+                N_events[is_sig][0] += np.sum(self.event_weights[cl][e_mask & on_mask])
+                N_events[is_sig][1] += np.sum(self.event_weights[cl][e_mask & off_mask])
 
             # if we have no gammas in the on region, there is no sensitivity
             if N_signal[0] == 0:
@@ -474,7 +504,8 @@ class Sensitivity_PointSource():
                                 observation_time=50*u.h,
 
                                 # arguments for `get_sensitivity`
-                                min_n=10, max_prot_ratio=.05, r_on=.3, r_off=5
+                                min_n=10, max_prot_ratio=.05,
+                                r_on=.3*u.deg, r_off=5*u.deg
                                 ):
         """
         wrapper that calls all functions to calculate the point-source sensitivity
