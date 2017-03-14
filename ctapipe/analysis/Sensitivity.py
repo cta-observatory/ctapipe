@@ -20,7 +20,8 @@ def convert_astropy_array(arr, unit=None):
     arr : python list
         list of quantities of same dimension (not strictly exact same unit)
     unit : astropy unit, optional (default: None)
-        if set, uses this as the unit of the numpy array
+        if set, uses this as the unit of the numpy array; if not, uses the unit of the
+        first element
         ought to be of same dimension of the quantities in the list (there is no test)
 
     Returns
@@ -30,9 +31,7 @@ def convert_astropy_array(arr, unit=None):
 
     if unit is None:
         unit = arr[0].unit
-        return (np.array([a.to(unit).value for a in arr])*unit).si
-    else:
-        return np.array([a.to(unit).value for a in arr])*unit
+    return np.array([a.to(unit).value for a in arr])*unit
 
 
 def crab_source_rate(energy):
