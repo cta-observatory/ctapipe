@@ -8,6 +8,16 @@ from .utils import get_parser
 __all__ = ['info']
 
 
+# TODO: this list should be global (or generated at install time)
+_dependencies = sorted(['astropy', 'matplotlib',
+                        'numpy', 'traitlets',
+                        'sklearn','scipy',
+                        'pytest'])
+
+_optional_dependencies = sorted(['pytest','graphviz','pyzmq','iminuit',
+                                 'fitsio','pyhessio','targetio'])
+
+
 def main(args=None):
     parser = get_parser(info)
     parser.add_argument('--version', action='store_true',
@@ -16,6 +26,8 @@ def main(args=None):
                         help='Print available command line tools')
     parser.add_argument('--dependencies', action='store_true',
                         help='Print available versions of dependencies')
+    parser.add_argument('--all', action='store_true',
+                        help='show all info')
     args = parser.parse_args(args)
 
     if len(sys.argv) <= 1:
@@ -25,7 +37,7 @@ def main(args=None):
     info(**vars(args))
 
 
-def info(version=False, tools=False, dependencies=False):
+def info(version=False, tools=False, dependencies=False, all=False):
     """Print various info to the console.
 
     TODO: explain.
@@ -33,13 +45,13 @@ def info(version=False, tools=False, dependencies=False):
     logging.basicConfig(level=logging.DEBUG,
                         format='%(levelname)s - %(message)s')
 
-    if version:
+    if version or all:
         _info_version()
 
-    if tools:
+    if tools or all:
         _info_tools()
 
-    if dependencies:
+    if dependencies or all:
         _info_dependencies()
 
 
@@ -79,14 +91,27 @@ def _info_tools():
 
 def _info_dependencies():
     """Print info about dependencies."""
-    print('\n*** ctapipe dependencies ***\n')
-    from ctapipe.conftest import PYTEST_HEADER_MODULES
+    print('\n*** ctapipe core dependencies ***\n')
 
-    for label, name in PYTEST_HEADER_MODULES.items():
+    for name in _dependencies:
         try:
             module = importlib.import_module(name)
             version = module.__version__
         except ImportError:
-            version = 'not available'
+            version = 'not installed'
 
-        print('{:>20s} -- {}'.format(label, version))
+        print('{:>20s} -- {}'.format(name, version))
+
+    print('\n*** ctapipe optional dependencies ***\n')
+
+    for name in _optional_dependencies:
+        try:
+            module = importlib.import_module(name)
+            version = module.__version__
+        except ImportError:
+            version = 'not installed'
+        except AttributeError:
+            version = "installed, but __version__ doesn't exist"
+
+        print('{:>20s} -- {}'.format(name, version))
+
