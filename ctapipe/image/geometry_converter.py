@@ -251,9 +251,8 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
         # positions into numpy.histogramdd: proper pixels contain the
         # value 1, false pixels the value 0.
         square_mask = np.histogramdd([rot_y, rot_x],
-                                     bins=(y_edges, x_edges))[0]
+                                     bins=(y_edges, x_edges))[0].astype(bool)
 
-        
         # to be consistent with the pixel intensity, instead of saving
         # only the rotated positions of the true pixels (rot_x and
         # rot_y), create 2D arrays of all x and y positions (also the
@@ -361,10 +360,10 @@ def convert_geometry_back(geom, signal, key, foc_len, add_rot=0):
         rot_angle = add_rot * 60 * u.deg
         if geom.cam_id == "NectarCam" or geom.cam_id == "LSTCam":
             rot_angle += 90 * u.deg
-        unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask == 1],
-                                                 grid_y[square_mask == 1],
+        unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask],
+                                                 grid_y[square_mask],
                                                  rot_angle)
         unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len)
         unrot_buffer[key] = unrot_geom
 
-    return unrot_geom, signal[square_mask == 1, ...]
+    return unrot_geom, signal[square_mask, ...]

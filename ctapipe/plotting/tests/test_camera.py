@@ -8,7 +8,7 @@ def test_eventplotter():
     dataset = get_datasets_path("gamma_test.simtel.gz")
     source = hessio_event_source(dataset)
     event = next(source)
-    data = event.dl0.tel[38].adc_samples[0]
+    data = event.r0.tel[38].adc_samples[0]
     plotter = CameraPlotter(event)
 
     camera = plotter.draw_camera(38, data[:, 0])

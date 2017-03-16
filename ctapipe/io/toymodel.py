@@ -8,7 +8,7 @@ import numpy as np
 from ctapipe.image import toymodel
 from scipy.stats import norm
 
-from .containers import DataContainer, RawCameraContainer
+from .containers import DataContainer, R0CameraContainer
 
 logger = logging.getLogger(__name__)
 
@@ -44,20 +44,20 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
 
         triggered_tels = np.random.choice(tel_ids, n_triggered, replace=False)
 
-        container.dl0.event_id = event_id
-        container.dl0.tels_with_data = triggered_tels
+        container.r0.event_id = event_id
+        container.r0.tels_with_data = triggered_tels
         container.count = event_id
 
         # handle single-telescope case (ignore others:
         if single_tel:
-            if single_tel not in container.dl0.tels_with_data:
+            if single_tel not in container.r0.tels_with_data:
                 continue
-            container.dl0.tels_with_data = [single_tel, ]
+            container.r0.tels_with_data = [single_tel, ]
 
-        container.dl0.tel.reset()  # clear the previous telescopes
+        container.r0.tel.reset()  # clear the previous telescopes
         t = np.arange(n_samples)
 
-        for tel_id in container.dl0.tels_with_data:
+        for tel_id in container.r0.tels_with_data:
             geom = geoms[tel_id]
 
             # fill pixel position dictionary, if not already done:
@@ -84,7 +84,7 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
                 intensity,
             )
 
-            # container.dl0.tel[tel_id] = RawCameraContainer()
+            # container.r0.tel[tel_id] = R0CameraContainer()
             container.inst.num_channels[tel_id] = n_channels
             n_pix = len(geom.pix_id)
             samples = np.empty((n_pix, n_samples))
@@ -93,7 +93,7 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
             samples = image[:, np.newaxis] * norm.pdf(t, means, stds)
 
             for chan in range(n_channels):
-                container.dl0.tel[tel_id].adc_samples[chan] = samples
-                container.dl0.tel[tel_id].adc_sums[chan] = image
+                container.r0.tel[tel_id].adc_samples[chan] = samples
+                container.r0.tel[tel_id].adc_sums[chan] = image
 
         yield container

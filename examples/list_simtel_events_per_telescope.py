@@ -33,7 +33,7 @@ def list_simtel_events_per_telescope(simtel_file_path):
         for telescope_id in triggered_telescopes_list:
             if telescope_id not in events_per_tel_dict:
                 events_per_tel_dict[telescope_id] = []
-            events_per_tel_dict[telescope_id].append(int(event.dl0.event_id))
+            events_per_tel_dict[telescope_id].append(int(event.r0.event_id))
 
     return events_per_tel_dict
 
