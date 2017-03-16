@@ -23,7 +23,7 @@ def test_hessio_file_reader():
     assert file.filename == "gamma_test.simtel"
     source = file.read()
     event = next(source)
-    assert event.dl0.tels_with_data == {38, 47}
+    assert event.r0.tels_with_data == {38, 47}
 
 
 def test_get_event():
@@ -31,10 +31,10 @@ def test_get_event():
     file = HessioFileReader(None, None, input_path=dataset)
     event = file.get_event(2)
     assert event.count == 2
-    assert event.dl0.event_id == 803
+    assert event.r0.event_id == 803
     event = file.get_event(803, True)
     assert event.count == 2
-    assert event.dl0.event_id == 803
+    assert event.r0.event_id == 803
 
 
 def test_get_num_events():

@@ -16,7 +16,7 @@ from matplotlib.animation import FuncAnimation
 
 class CameraDemo(Tool):
 
-    name = u"ctapipe-cam-demo"
+    name = u"ctapipe-camdemo"
     description = "Display fake events in a demo camera"
 
     delay = traits.Int(20, help="Frame delay in ms").tag(config=True)
@@ -24,10 +24,14 @@ class CameraDemo(Tool):
                                       "cleaning").tag(config=True)
     autoscale = traits.Bool(False, help='scale each frame to max if '
                                         'True').tag(config=True)
+    blit = traits.Bool(False, help='use blit operation to draw on screen ('
+                                   'much faster but may cause some draw '
+                                   'artifacts)').tag(config=True)
 
     aliases = traits.Dict({'delay': 'CameraDemo.delay',
                            'cleanframes': 'CameraDemo.cleanframes',
-                           'autoscale' : 'CameraDemo.autoscale'})
+                           'autoscale' : 'CameraDemo.autoscale',
+                           'blit': 'CameraDemo.blit'})
 
 
     def __init__(self):
@@ -46,7 +50,7 @@ class CameraDemo(Tool):
 
         # load the camera
         geom = io.CameraGeometry.from_name("hess", 1)
-        disp = visualization.CameraDisplay(geom, ax=ax)
+        disp = visualization.CameraDisplay(geom, ax=ax, autoupdate=True)
         disp.cmap = plt.cm.terrain
 
         def update(frame):
@@ -88,10 +92,12 @@ class CameraDemo(Tool):
             else:
                 disp.set_limits_minmax(-100, 4000)
 
+            disp.axes.figure.canvas.draw()
             self._counter += 1
-            return [disp.axes, disp.pixels]
+            return [ax,]
 
-        anim = FuncAnimation(fig, update, interval=self.delay, blit=True)
+        self.anim = FuncAnimation(fig, update, interval=self.delay,
+                                  blit=self.blit)
         plt.show()
 
 
