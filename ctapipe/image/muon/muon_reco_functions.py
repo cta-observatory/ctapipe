@@ -15,7 +15,7 @@ from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 
 def analyze_muon_event(event, params=None, geom_dict=None):
     """
-    Generic muon event analyzer.
+    Generic muon event analyzer. 
 
     Parameters
     ----------
