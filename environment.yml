@@ -1,0 +1,33 @@
+name: cta-dev
+channels:
+  - cta-observatory
+  - openastronomy
+dependencies:
+  - astropy
+  - bokeh
+  - fitsio
+  - gammapy
+  - graphviz
+  - healpy
+  - iminuit
+  - ipython
+  - ipywidgets
+  - jupyter
+  - matplotlib
+  - numba
+  - numpy
+  - pyhessio
+  - pytest 
+  - readline
+  - scikit-learn
+  - scikit-image
+  - scipy
+  - setuptools
+  - sphinx
+  - sphinx_rtd_theme
+  - traitlets
+  - wheel
+  - xz
+  - yaml
+  - zlib
+

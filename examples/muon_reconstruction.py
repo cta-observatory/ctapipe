@@ -6,8 +6,9 @@ from astropy import log
 from astropy.table import Table
 from ctapipe.io.hessio import hessio_event_source
 #from calibration_pipeline import display_telescope
-from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
-from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
+from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from matplotlib import colors, pyplot as plt
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_source, analyze_muon_event
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency, plot_muon_event
@@ -57,7 +58,9 @@ def main():
     #params, unknown_args = calibration_parameters(excess_args,
     #                                              args.origin,
     #                                              args.calib_help)
-    calibrator = CameraDL1Calibrator(None, None, extractor=NeighbourPeakIntegrator(None,None))
+    r1 = HessioR1Calibrator(None, None)
+    dl0 = CameraDL0Reducer(None, None)
+    dl1 = CameraDL1Calibrator(None, None)
 
     log.debug("[file] Reading file")
     #input_file = InputFile(args.input_path, args.origin)
@@ -77,7 +80,9 @@ def main():
 
     for event in source:
         print("Event Number",numev)
-        calibrator.calibrate(event)
+        r1.calibrate(event)
+        dl0.reduce(event)
+        dl1.calibrate(event)
         muon_evt = analyze_muon_event(event)
 
         numev += 1
