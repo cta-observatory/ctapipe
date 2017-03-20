@@ -22,12 +22,13 @@ __all__ = ['CameraGeometry',
 # Value = (type, subtype, pixtype, pixrotation, camrotation)
 _npix_to_type = {
     (2048, 2.3):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 36.0):  ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
     (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
     (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
     (1296, None):  ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None):  ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 90. * u.degree),
+    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
@@ -43,8 +44,8 @@ class CameraGeometry:
     pixels, gaps between pixels, etc.
     """
 
-    def __init__(self, cam_id, pix_id, pix_x, pix_y,
-                 pix_area, neighbors, pix_type, pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
+    def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, neighbors, pix_type,
+                 pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
         """
         Parameters
         ----------
@@ -215,7 +216,8 @@ def _guess_camera_type(npix, optical_foclen):
         return _npix_to_type[(npix, None)]
     except KeyError:
         return _npix_to_type.get((npix, round(optical_foclen.value, 1)),
-                                 ('unknown', 'unknown', 'hexagonal', 0 * u.degree, 0 * u.degree))
+                                 ('unknown', 'unknown', 'hexagonal',
+                                  0 * u.degree, 0 * u.degree))
 
 
 @u.quantity_input

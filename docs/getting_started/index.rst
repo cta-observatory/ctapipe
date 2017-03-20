@@ -14,35 +14,8 @@ Getting Started For Developers
 This guide assumes you are using the *Anaconda* python distribution,
 installed locally (*miniconda* should also work).
 
-First you should create a virtual environment in which to do your
-development (this will allow you to control the dependent libraries
-independently of other projects). You can use either python 3.4 or
-python 3.5. Here we will create a virtualenv called "cta" (but you can
-choose another name if you like)
-
------------------------
-Set up your environment
------------------------
-
-.. code-block:: bash
-
-	conda create -n cta python=3.5 astropy matplotlib scipy scikit-learn numba cython 
-
-Next, switch to this new virtual environment and install some other useful tools for development:
-	
-.. code-block:: bash
-
-	source activate cta
-	
-	conda install -c cta-observatory pyhessio ipython ipython-notebook pyflakes traitlets
-	conda install -c conda-forge autopep8 graphviz
-
-Next, you should create a directory where you can store the software you check out. For example:
-
-.. code-block:: bash
-    
-    mkdir ctasoft
-    cd ctasoft
+You can use *python 3.4* or above (we've tested with at least 3.4,
+3.5, and 3.6.
 
 ------------------------
 Get the ctapipe software
@@ -53,10 +26,17 @@ commit* changes, you need to `Fork and Clone
 <https://help.github.com/articles/fork-a-repo/>`_ the main ctapipe
 repository (cta-observatory/ctapipe).
 
+First, it's useful to make a directory where you have can check out
+cta GIT repos (this is optinal - you can put it anywhere)
 
-++++++++++++
-Step 1: Fork
-++++++++++++
+.. code-block:: bash
+    
+    mkdir ctasoft
+    cd ctasoft
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Step 1: Fork the Master CTA-Observatory ctapipe repository
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Follow the instructions in the link above to make a *fork* of the
 ctapipe repo in your own GitHub userspace. That fork will be then
@@ -65,9 +45,9 @@ called *yourusername*/ctapipe (it's as simple as clicking the fork button on `ma
 You only need to make this fork once, when you first start developing, and
 you can use it from then on.
 
-+++++++++++++
-Step 2: clone
-+++++++++++++
++++++++++++++++++++++++++++++++++++++++++
+Step 2: clone your forked version locally
++++++++++++++++++++++++++++++++++++++++++
 
 Next, you need to clone (copy to your local machine) the newly forked
 ctapipe repo (make sure you put in your own username there):
@@ -80,7 +60,6 @@ ctapipe repo (make sure you put in your own username there):
 
 You now need to tell Git that this repo where the master CTA version is:
 
-
 .. code-block:: bash
 		
 	git remote add upstream https://github.com/cta-observatory/ctapipe.git
@@ -90,9 +69,38 @@ addition to *origin* when typing `git remote -v`.  Later if you want
 to pull in any changes from the master repo, you just need to type
 `git pull upstream master`.
 
-+++++++++++++
-Step 3: Setup
-+++++++++++++
+
++++++++++++++++++++++++++++++++++++++++
+Step 4: Set up your package environment
++++++++++++++++++++++++++++++++++++++++
+
+Change to the directory where you cloned `ctapipe`, and type:
+
+.. code-block:: bash
+
+       
+	conda env create -f environment.yml
+
+	
+This will create a conda virtual environment called `cta-dev` with all
+the ctapipe dependencies and a few useful packages for development and
+interaction. Next, switch to this new virtual environment:
+	
+.. code-block:: bash
+
+	source activate cta-dev
+	
+
+You will need to type that last command any time you open a new
+terminal to actiavate the virtual environment (you can of course
+install everything into the base Anaconda environment without creating
+a virtual environment, but then you may have trouble if you want to
+install other packages with different requirements on the
+dependencies)
+
++++++++++++++++++++++++++++++++++++++
+Step 5: Setup ctapipe for development
++++++++++++++++++++++++++++++++++++++
 
 Now setup this cloned version for development:
  

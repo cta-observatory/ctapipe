@@ -22,8 +22,7 @@ class DumpTriggersTool(Tool):
     # configuration parameters:
     # =============================================
 
-    infile = Unicode(help='input simtelarray file').tag(config=True,
-                                                        allow_none=False)
+    infile = Unicode(help='input simtelarray file').tag(config=True)
 
     outfile = Unicode('triggers.fits',
                       help='output filename (*.fits, *.h5)').tag(config=True)
@@ -74,7 +73,8 @@ class DumpTriggersTool(Tool):
         #trigtels = event.get_telescope_with_data_list()
         trigtels = event.dl0.tels_with_data
         self._current_trigpattern[:] = 0  # zero the trigger pattern
-        self._current_trigpattern[trigtels] = 1  # set the triggered tels to 1
+        self._current_trigpattern[list(trigtels)] = 1  # set the triggered tels
+        # to 1
 
         # insert the row into the table
         self.events.add_row((event.dl0.event_id, relative_time.sec, delta_t.sec,
