@@ -7,28 +7,27 @@ from pytest import raises
 
 def test_CutFlow():
     flow = CutFlow("TestFlow")
+    # set_cut and add_cut a aliases
     flow.set_cut("smaller5", lambda x: x < 5)
     flow.add_cut("smaller3", lambda x: x < 3)
 
-    flow.count("noCuts")
-    if flow.cut("smaller5", 3):
-        flow.count("something")
-        flow.cut("smaller3", 3)
+    for i in range(2, 6):
+        flow.count("noCuts")
+        # .keep counts if the function returns True,
+        # i.e. when we "keep" the event
+        if flow.keep("smaller5", i):
+            # .cut counts if the function returns False,
+            # i.e. when we do NOT "cut" the event
+            if flow.cut("smaller3", i):
+                pass
+            else:
+                # do something else that could fail or be rejected
+                try:
+                    assert i == 3
+                    flow.count("something")
+                except:
+                    pass
 
-    flow.count("noCuts")
-    if flow.cut("smaller5", 1):
-        flow.count("something")
-        flow.cut("smaller3", 1)
-
-    flow["noCuts"]
-    if flow.cut("smaller5", 6):
-        # note: not counted since previous cut fails
-        flow.count("something")
-        flow.cut("smaller3", 6)
-
-    flow.count("noCuts")
-    if flow.cut("smaller5", 4):
-        pass
 
     t = flow(sort_column=1)
     assert np.all(t["selected Events"] == [4, 3, 2, 1])

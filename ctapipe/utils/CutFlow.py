@@ -25,7 +25,7 @@ class CutFlow():
         self.cuts = OrderedDict()
         self.name = name
 
-    def count(self, cut):
+    def count(self, cut, weight=1):
         '''
         counts an event/image at a given stage of the analysis
 
@@ -33,6 +33,8 @@ class CutFlow():
         ----------
         cut : string
             name of the cut/stage where you want to count
+        weight : int or float, optional (default: 1)
+            weight of the current element
 
         Notes
         -----
@@ -40,9 +42,9 @@ class CutFlow():
         Will be an alias to __getitem__
         '''
         if cut not in self.cuts:
-            self.cuts[cut] = [None, 1]
+            self.cuts[cut] = [None, weight]
         else:
-            self.cuts[cut][1] += 1
+            self.cuts[cut][1] += weight
 
     def set_cut(self, cut, function):
         '''
@@ -53,23 +55,70 @@ class CutFlow():
 
         Parameters
         ----------
-        function : function
-            a function that is your selection criterion
-            should return True if event shall pass and False if event
-            shall be rejected
         cut : string
             name of the cut/stage where you want to count
+        function : function
+            a function that is your selection criterion
 
         Notes
         -----
-        Will be an alias to add_cut
+        add_cut and set_cut are aliases
         '''
         self.cuts[cut] = [function, 0]
 
-    def cut(self, cut, *args, **kwargs):
+    def set_cuts(self, cut_dict, clear=False):
+        '''
+        sets functions that select on whatever you want to count
+        sets the counter corresponding to the selection criterion to 0
+        that means: it overwrites whatever you counted before under this
+        name
+
+        Parameters
+        ----------
+        cut_dict : {string: functor} dictionary
+            dictionary of {name: function} of cuts to add as your selection criteria
+        clear : bool, optional (default: False)
+            if set to `True`, clear the cut-dictionary before applying the new cuts
+
+        Notes
+        -----
+        add_cuts and set_cuts are aliases
+        '''
+
+        if clear:
+            self.cuts = OrderedDict()
+
+        for cut, function in cut_dict.items():
+            self.cuts[cut] = [function, 0]
+
+    def _check_cut(self, cut):
+        """
+        checks if `cut` is a valid name for a function to select on
+
+        Parameters
+        ----------
+        cut : string
+            name of the selection criterion
+
+        Raises
+        ------
+        UndefinedCutException if `cut` is not known
+        PureCountingCutException if `cut` has no associated function
+        (i.e. manual counting mode)
+        """
+
+        if cut not in self.cuts:
+            raise UndefinedCutException(
+                "unknown cut '{}' -- only know: {}"
+                .format(cut, [a for a in self.cuts.keys()]))
+        elif self.cuts[cut][0] is None:
+            raise PureCountingCutException(
+                "'{}' has no function associated".format(cut))
+
+    def cut(self, cut, *args, weight=1, **kwargs):
         '''
         selects the function associated with `cut` and hands it all
-        additional arguments provided. if the function returns True,
+        additional arguments provided. if the function returns `False`,
         the event counter is incremented.
 
         Parameters
@@ -78,6 +127,8 @@ class CutFlow():
             name of the selection criterion
         args, kwargs: additional arguments
             anything you want to hand to the associated function
+        weight : int or float, optional (default: 1)
+            weight of the current element
 
         Returns
         -------
@@ -90,16 +141,46 @@ class CutFlow():
         PureCountingCutException if `cut` has no associated function
         (i.e. manual counting mode)
         '''
-        if cut not in self.cuts:
-            raise UndefinedCutException(
-                "unknown cut {} -- only know: {}"
-                .format(cut, [a for a in self.cuts.keys()]))
-        elif self.cuts[cut][0] is None:
-            raise PureCountingCutException(
-                "{} has no function associated".format(cut))
+
+        self._check_cut(cut)
 
         if self.cuts[cut][0](*args, **kwargs):
-            self.cuts[cut][1] += 1
+            return True
+        else:
+            self.cuts[cut][1] += weight
+            return False
+
+    def keep(self, cut, *args, weight=1, **kwargs):
+        '''
+        selects the function associated with `cut` and hands it all
+        additional arguments provided. if the function returns True,
+        the event counter is incremented.
+
+        Parameters
+        ----------
+        cut : string
+            name of the selection criterion
+        args, kwargs: additional arguments
+            anything you want to hand to the associated function
+        weight : int or float, optional (default: 1)
+            weight of the current element
+
+        Returns
+        -------
+        True if the function evaluats to True
+        False otherwise
+
+        Raises
+        ------
+        UndefinedCutException if `cut` is not known
+        PureCountingCutException if `cut` has no associated function
+        (i.e. manual counting mode)
+        '''
+
+        self._check_cut(cut)
+
+        if self.cuts[cut][0](*args, **kwargs):
+            self.cuts[cut][1] += weight
             return True
         else:
             return False
@@ -117,7 +198,7 @@ class CutFlow():
 
         Returns
         -------
-        t : astropy.Table
+        t : `astropy.table.Table`
             the table containing the cut names, counted events and
             efficiencies -- sorted in the order the cuts were added if not
             specified otherwise
@@ -150,7 +231,7 @@ class CutFlow():
 
         Returns
         -------
-        t : astropy.Table
+        t : `astropy.table.Table`
             the table containing the cut names, counted events and
             efficiencies -- sorted in the order the cuts were added if not
             specified otherwise
@@ -160,7 +241,7 @@ class CutFlow():
             base_value = max([a[1] for a in self.cuts.values()])
         elif base_cut not in self.cuts:
             raise UndefinedCutException(
-                "unknown cut {} -- only know: {}"
+                "unknown cut '{}' -- only know: {}"
                 .format(base_cut, [a for a in self.cuts.keys()]))
         else:
             base_value = self.cuts[base_cut][1]
@@ -179,4 +260,5 @@ class CutFlow():
         return t
 
     add_cut = set_cut
+    add_cuts = set_cuts
     __getitem__ = count
