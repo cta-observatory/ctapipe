@@ -93,3 +93,26 @@ def test_Sensitivity_PointSource():
     # so effective areas should be half of generator areas, too
     np.testing.assert_allclose(eff_area_g.value, gen_area_g.value/2)
     np.testing.assert_allclose(eff_area_p.value, gen_area_p.value/2)
+
+
+def test_generate_toy_timestamps():
+    from scipy import signal
+    gamma_light_curve = signal.gaussian(5000, 700) * 1000
+
+    tmin, tmax = 0, 5
+
+    NP = 500
+
+    time_stamps = Sensitivity_PointSource.\
+        generate_toy_timestamps(light_curve={'g': gamma_light_curve,
+                                             'p': NP},
+                                time_window=(tmin, tmax))
+
+    assert len(time_stamps['g']) == int(np.sum(gamma_light_curve))
+    assert len(time_stamps['p']) == NP
+    for st in time_stamps.values():
+        assert (np.min(st) >= tmin) and (np.max(st) <= tmax)
+        np.testing.assert_allclose(np.mean(st), 2.5, atol=.1)
+
+test_generate_toy_timestamps()
+

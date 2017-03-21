@@ -546,6 +546,34 @@ class Sensitivity_PointSource():
 
         return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off)
 
+    @staticmethod
+    def generate_toy_timestamps(light_curve, time_window):
+        """
+        expects you to have run
+            .get_effective_areas
+            .get_expected_events
+            .scale_events_to_expected_events
+
+        light_curve : dictionary of numpy arrays or floats
+            light curve you want to sample time stamps from
+            sum of the elements (cast to `int`) will be taken as number of draws
+            if value is float and not an array, assume take than uniform draws
+        time_window : tuple of floats
+            min and max of the drawn time stamps
+        """
+
+        time_stamps = {}
+        for cl, f in light_curve.items():
+            if hasattr(f, "__iter__"):
+                cum_sum = np.cumsum(f)
+                random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
+                indices = np.digitize(random_draws, cum_sum)
+                time_stamps[cl] = time_window[0] + indices * (time_window[1] -
+                                                              time_window[0]) / len(f)
+            else:
+                time_stamps[cl] = np.random.uniform(*time_window, f)
+
+        return time_stamps
 
 def check_min_N(N_signal, N_backgr, min_N, verbose=True):
     """
