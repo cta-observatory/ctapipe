@@ -27,13 +27,13 @@ class Serializer:
     --------
     >>> writer = Serializer(filename='output.pickle', format='pickle', mode='w')
     >>> for container in input_containers:
-    ...       writer.add_container(container.dl0)
+    ...       writer.add_container(container.r0)
     >>> writer.close()
 
     or using the context manager syntax
     >>> with Serializer(filename='output.fits', format='fits', mode='w') as writer:
     >>> for container in input_containers:
-    ...     writer.add_container(container.dl0)
+    ...     writer.add_container(container.r0)
     """
 
     def __init__(self, filename, format='fits', mode='x'):
