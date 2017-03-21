@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 from ctapipe import io, visualization
 from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.reco import mock
+from ctapipe.image import toymodel
 
-from ..hillas import hillas_parameters
+from ctapipe.image.hillas import hillas_parameters
 
 """
 Test script for hillas_parameters.
@@ -29,11 +29,11 @@ if __name__ == '__main__':
   disp.set_limits_minmax(0, 350)
   disp.add_colorbar()
 
-  # make a mock shower model
-  model = mock.generate_2d_shower_model(centroid=(0.2, 0.2), width=0.01, length=0.1, psi='45d')
+  # make a toymodel shower model
+  model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.3), width=0.01, length=0.1, psi='30d')
 
-  # generate mock image in camera for this shower model.
-  image, signal, noise = mock.make_mock_shower_image(geom, model.pdf, intensity=50, nsb_level_pe=100)
+  # generate toymodel image in camera for this shower model.
+  image, signal, noise = toymodel.make_toymodel_shower_image(geom, model.pdf, intensity=50, nsb_level_pe=100)
 
   #Image cleaning
   clean_mask = tailcuts_clean(geom, image, 1, 10, 5)      #pedvars = 1 and core and boundary threshold in pe
@@ -45,10 +45,10 @@ if __name__ == '__main__':
   pix_y = geom.pix_y.value
 
   # Hillas parameters
-  hillas1, hillas2 = hillas_parameters(pix_x, pix_y, image)
-  print(hillas1, hillas2)
+  hillas = hillas_parameters(pix_x, pix_y, image)
+  print(hillas)
 
   #Overlay moments
   disp.image = image
-  disp.overlay_moments(hillas1, color = 'seagreen', linewidth = 2)
+  disp.overlay_moments(hillas, color = 'seagreen', linewidth = 2)
   plt.show()

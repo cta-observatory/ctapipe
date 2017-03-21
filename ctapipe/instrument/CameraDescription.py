@@ -107,7 +107,6 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     distance between two pixels just from the pixel positions
 
     Assumes:
-    --------
     - the pixels are square or hexagonal
     - the first two pixels are adjacent
 
@@ -174,6 +173,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
                                      range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
     """Generate a simple camera with 2D rectangular geometry.
     Used for testing.
+
     Parameters
     ----------
     npix_x : int
@@ -184,6 +184,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         min and max of x pixel coordinates in meters
     range_y : (float,float)
         min and max of y pixel coordinates in meters
+
     Returns
     -------
     pix_id: int array
@@ -194,6 +195,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pixel areas
     neighbors: list with next neighbors
     """
+
     bx = np.linspace(range_x[0], range_x[1], npix_x)
     by = np.linspace(range_y[0], range_y[1], npix_y)
     xx, yy = np.meshgrid(bx, by)
@@ -221,10 +223,8 @@ def rotate_camera(angle, pix_x: u.m, pix_y: u.m):
     specified angle. Modifies the CameraGeometry in-place (so
     after this is called, the pix_x and pix_y arrays are
     rotated.
-
-    Note
-    ----
-    This is intended only to correct simulated data that are
+    
+    Note: This is intended only to correct simulated data that are
     rotated by a fixed angle.  For the more general case of
     correction for camera pointing errors (rotations,
     translations, skews, etc), you should use a true coordinate

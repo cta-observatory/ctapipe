@@ -8,7 +8,7 @@ env:
         # The following versions are the 'default' for tests, unless
         # overidden underneath. They are defined here in order to save having
         # to repeat them for all configurations.
-        - ASTROPY_VERSION=development
+        - ASTROPY_VERSION=stable
         - CONDA_INSTALL='conda install --yes'
         - PIP_INSTALL='pip install'
         - INSTALL_OPTIONAL=true
@@ -65,14 +65,13 @@ install:
     # CONDA
     - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
     - source activate test
-    - conda config --add channels http://conda.anaconda.org/jacquemier
+    - conda config --add channels cta-observatory
     - conda config --add channels astropy-ci-extras
 
     # CORE DEPENDENCIES
     - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets matplotlib; fi
     - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
-    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v0.5.5.tar.gz; fi
-
+    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v2.0.0.tar.gz; fi
 
     # ASTROPY
     - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi

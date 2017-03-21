@@ -8,7 +8,7 @@ calibrators.py
 This module selects the correct calibrator based on the
 origin of the file. For example, it will use the calibrator in mc.py if the
 file’s origin is hessio. It then calibrates every telescope in that event,
-and stores the pe_charge in the new dl1 container of the event (along with
+and stores the calibrated_image in the new dl1 container of the event (along with
 some useful information such as the integration window used). Now the returned
 event container contains the original dl0 and mc information
 (actually a reference to the original) and the new dl1 container.

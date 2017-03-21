@@ -16,7 +16,6 @@ import logging
 
 import astropy.units as u
 import numpy as np
-import pyhessio
 from ctapipe import visualization, io, reco
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.instrument import InstrumentDescription as ID
@@ -27,7 +26,7 @@ from matplotlib import pyplot as plt
 logging.basicConfig(level=logging.DEBUG)
 
 
-def get_mc_calibration_coeffs(tel_id):
+def get_mc_calibration_coeffs(event, tel_id):
     """
     Get the calibration coefficients from the MC data file to the
     data.  This is ahack (until we have a real data structure for the
@@ -37,16 +36,16 @@ def get_mc_calibration_coeffs(tel_id):
     -------
     (peds,gains) : arrays of the pedestal and pe/dc ratios.
     """
-    peds = pyhessio.get_pedestal(tel_id)[0]
-    gains = pyhessio.get_calibration(tel_id)[0]
+    peds = event.mc.tel[tel_id].pedestal[0]
+    gains = event.mc.tel[tel_id].dc_to_pe[0]
     return peds, gains
 
 
-def apply_mc_calibration(adcs, tel_id):
+def apply_mc_calibration(adcs, peds, gains, tel_id):
     """
     apply basic calibration
     """
-    peds, gains = get_mc_calibration_coeffs(tel_id)
+
 
     if adcs.ndim > 1:  # if it's per-sample need to correct the peds
         return ((adcs - peds[:, np.newaxis] / adcs.shape[1]) *
@@ -90,9 +89,9 @@ if __name__ == '__main__':
         print(event.dl0)
 
         if disp is None:
-            x, y = event.meta.pixel_pos[args.tel]
+            x, y = event.inst.pixel_pos[args.tel]
             geom = io.CameraGeometry.guess(x, y,
-                                           event.meta.optical_foclen[args.tel])
+                                           event.inst.optical_foclen[args.tel])
             print(geom.pix_x)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             #disp.enable_pixel_picker()
@@ -101,12 +100,13 @@ if __name__ == '__main__':
 
         # display the event
         disp.axes.set_title('CT{:03d}, event {:010d}'
-                            .format(args.tel, event.dl0.event_id))
+                            .format(args.tel, event.r0.event_id))
         if args.show_samples:
             # display time-varying event
-            data = event.dl0.tel[args.tel].adc_samples[args.channel]
+            data = event.r0.tel[args.tel].adc_samples[args.channel]
             if args.calibrate:
-                data = apply_mc_calibration(data, args.tel)
+                peds, gains = get_mc_calibration_coeffs(event, args.tel)
+                data = apply_mc_calibration(data, peds, gains, args.tel)
             for ii in range(data.shape[1]):
                 disp.image = data[:, ii]
                 disp.set_limits_percent(70)
@@ -114,11 +114,12 @@ if __name__ == '__main__':
                 plt.pause(0.01)
                 if args.write:
                     plt.savefig('CT{:03d}_EV{:010d}_S{:02d}.png'
-                                .format(args.tel, event.dl0.event_id, ii))
+                                .format(args.tel, event.r0.event_id, ii))
         else:
             # display integrated event:
-            im = event.dl0.tel[args.tel].adc_sums[args.channel]
-            im = apply_mc_calibration(im, args.tel)
+            im = event.r0.tel[args.tel].adc_sums[args.channel]
+            peds, gains = get_mc_calibration_coeffs(event, args.tel)
+            im = apply_mc_calibration(im, peds, gains, args.tel)
             disp.image = im
 
             if args.hillas:
@@ -147,7 +148,7 @@ if __name__ == '__main__':
             plt.pause(1.0)
             if args.write:
                 plt.savefig('CT{:03d}_EV{:010d}.png'
-                            .format(args.tel, event.dl0.event_id))
+                            .format(args.tel, event.r0.event_id))
 
     print("FINISHED READING DATA FILE")
 
