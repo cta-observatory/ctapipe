@@ -257,7 +257,7 @@ class CutFlow():
         # if sorted by column 0 (i.e. the cut name) default sorting (alphabetically) is
         # fine. if sorted by column 1 or 2 or `sort_reverse` is True,
         # revert the order of the table
-        if (sort_column > 0) != sort_reverse:
+        if (sort_column is not None and sort_column > 0) != sort_reverse:
             t.reverse()
         return t
 
