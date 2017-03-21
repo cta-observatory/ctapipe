@@ -259,16 +259,20 @@ class Sensitivity_PointSource():
         self.energy_unit = energy_unit
         self.flux_unit = flux_unit
 
-    def get_effective_areas(self, n_simulated_events=None,
+    def get_effective_areas(self, generator_areas,
+                            n_simulated_events=None,
                             generator_spectra=None,
-                            generator_energy_hists={},
-                            generator_areas=None):
+                            generator_energy_hists={}
+                            ):
         """
         calculates the effective areas for gammas and protons and stores them in the
         class instance
 
         Parameters
         ----------
+        generator_areas : astropy quantities
+            the area for each channel within which the shower impact position was
+            generated
         n_simulated_events : dictionary of integers, optional (defaults: None)
             number of events used in the MC simulation for each channel
         generator_spectra : dictionary of functors, optional (default: None)
@@ -276,9 +280,6 @@ class Sensitivity_PointSource():
         generator_energy_hists : numpy arrays, optional (default: {})
             energy histogram of the generated events for each channel binned according to
             `.energy_bin_edges`
-        generator_areas : astropy quantities
-            the area for each channel within which the shower impact position was
-            generated
 
         Returns
         -------
@@ -292,6 +293,12 @@ class Sensitivity_PointSource():
         `generator_energy_hists` or create them on the fly with `n_simulated_events` and
         `spectra`
         """
+
+        assert (n_simulated_events is not None and generator_spectra is not None) != \
+                (generator_energy_hists is not None), \
+            "use either (n_simulated_events and generator_spectra) or generator_" \
+            "energy_hists to set the MC generated energy spectrum -- not both\n" \
+
 
         if not generator_energy_hists:
             for cl in self.class_list:
@@ -323,13 +330,19 @@ class Sensitivity_PointSource():
         rates : dictionary of functors, optional (default: 'g': `Eminus2`,
             'p': `CR_background_rate`)
             functions for the differential source and background rates
-        extensions : dictionary of astropy quantities, optional (defaults: {'g': None,
-            'p': 6*u.deg)
-            opening angle of the view-cone the events have been generated in
-            put `None` for point source
+        extensions : dictionary of astropy quantities, optional (defaults: {'p': 6*u.deg})
+            opening angle of the view-cone the events have been generated in, if any
+            don't set the key if a channel was generated as a point-source
             note: if you use an extension, the flux needs to accomodate that as well
         observation_time : astropy quantity, optional (default: 50*u.h)
             length of the assumed exposure
+
+        Returns
+        -------
+        exp_events_per_energy_bin : dictionary of ndarrays
+            the energy-binned histogram of expected events for each channel, considering
+            targeted source rate, effective area and observation time
+
         """
 
         # for book keeping
@@ -338,7 +351,7 @@ class Sensitivity_PointSource():
         self.exp_events_per_energy_bin = {}
         for cl in self.class_list:
             event_rate = make_mock_event_rate(rates[cl],
-                                              bin_edges=self.energy_bin_edges[cl])[0]
+                                              bin_edges=self.energy_bin_edges[cl])
 
             if cl in extensions:
                 omega = np.tau*(1 - np.cos(extensions[cl]))*u.rad**2
@@ -494,8 +507,7 @@ class Sensitivity_PointSource():
                                 n_simulated_events=None,
                                 generator_spectra=None,
                                 generator_energy_hists={},
-                                generator_areas={'g': np.tau/2*(1000*u.m)**2,
-                                          'p': np.tau/2*(2000*u.m)**2},
+                                generator_areas=None,
 
                                 # arguments for `get_expected_events`
                                 rates={'g': Eminus2, 'p': CR_background_rate},
@@ -515,22 +527,23 @@ class Sensitivity_PointSource():
 
         Returns
         -------
-        sensitivities : astropy.table.Table
+        sensitivities : `astropy.table.Table`
             the sensitivity for every energy bin of `.bin_edges_gam`
-
         """
-        print("calling 'get_effective_areas'")
-        self.get_effective_areas(n_simulated_events,
-                                 generator_spectra,
-                                 generator_energy_hists,
-                                 generator_areas)
-        print("calling 'get_expected_events'")
-        self.get_expected_events(rates,
-                                 extensions,
-                                 observation_time)
-        print("calling 'scale_events_to_expected_events'")
+
+        assert generator_areas is not None, "generator_areas ought to be set"
+
+        self.get_effective_areas(n_simulated_events=n_simulated_events,
+                                 generator_spectra=generator_spectra,
+                                 generator_energy_hists=generator_energy_hists,
+                                 generator_areas=generator_areas)
+
+        self.get_expected_events(rates=rates,
+                                 extensions=extensions,
+                                 observation_time=observation_time)
+
         self.scale_events_to_expected_events()
-        print("calling 'get_sensitivity'")
+
         return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off)
 
 
