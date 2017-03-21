@@ -260,7 +260,7 @@ class Sensitivity_PointSource():
         self.flux_unit = flux_unit
 
     def get_effective_areas(self, n_simulated_events=None,
-                            spectra=None,
+                            generator_spectra=None,
                             generator_energy_hists={},
                             generator_areas=None):
         """
@@ -271,7 +271,7 @@ class Sensitivity_PointSource():
         ----------
         n_simulated_events : dictionary of integers, optional (defaults: None)
             number of events used in the MC simulation for each channel
-        spectra : dictionary of functors, optional (default: None)
+        generator_spectra : dictionary of functors, optional (default: None)
             function object for the differential generator flux of each channel
         generator_energy_hists : numpy arrays, optional (default: {})
             energy histogram of the generated events for each channel binned according to
@@ -296,7 +296,7 @@ class Sensitivity_PointSource():
         if not generator_energy_hists:
             for cl in self.class_list:
                 generator_energy_hists[cl] = make_mock_event_rate(
-                                    spectra[cl], norm=n_simulated_events[cl],
+                                    generator_spectra[cl], norm=n_simulated_events[cl],
                                     bin_edges=self.energy_bin_edges[cl])
 
         self.effective_areas = {}
@@ -492,7 +492,7 @@ class Sensitivity_PointSource():
     def calculate_sensitivities(self,
                                 # arguments for `get_effective_areas`
                                 n_simulated_events=None,
-                                spectra=None,
+                                generator_spectra=None,
                                 generator_energy_hists={},
                                 generator_areas={'g': np.tau/2*(1000*u.m)**2,
                                           'p': np.tau/2*(2000*u.m)**2},
@@ -521,7 +521,7 @@ class Sensitivity_PointSource():
         """
         print("calling 'get_effective_areas'")
         self.get_effective_areas(n_simulated_events,
-                                 spectra,
+                                 generator_spectra,
                                  generator_energy_hists,
                                  generator_areas)
         print("calling 'get_expected_events'")
