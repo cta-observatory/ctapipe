@@ -1,4 +1,4 @@
-from ..files import get_file_type
+from ctapipe.io.files import get_file_type
 
 
 def test_get_file_type():

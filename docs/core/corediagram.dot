@@ -1,0 +1,24 @@
+digraph Core {
+
+  node [shape=rect fontsize=12 fontname="Arial"];
+  edge [fontname = "Arial" fontsize = 10 dir=front]
+
+  splines = line
+  subgraph cluster_Tool_0 {
+
+    label="Tool (configuration/command-line, logging, provenance)";
+    rankdir="TB"
+
+       Container_1 [shape=ellipse];
+     Component_1 [fillcolor=dodgerblue3, fontcolor=white, style=filled, label="Component"];
+     Component_2 [fillcolor=dodgerblue3, fontcolor=white, style=filled,label="Component"];
+
+     { rank=same; Component_1 Component_2 Container_1 }
+
+
+}
+
+  Component_1 -> Container_1
+  Container_1 -> Component_2
+
+}

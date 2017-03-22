@@ -1,4 +1,7 @@
-"""Example of extracting a single telescope from a merged/interleaved
+#!/usr/bin/env python3
+
+"""
+Example of extracting a single telescope from a merged/interleaved
 simtelarray data file.
 
 Only events that contain the specified telescope are read and
@@ -6,25 +9,24 @@ displayed. Other telescopes and events are skipped over (EventIO data
 files have no index table in them, so the events must be read in
 sequence to find ones with the appropriate telescope, therefore this
 is not a fast operation)
-
 """
-from ctapipe.utils.datasets import get_example_simtelarray_file
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe import visualization, io, reco
-from matplotlib import pyplot as plt
-import numpy as np
-from astropy import units as u
-import pyhessio
-from ctapipe.instrument import InstrumentDescription as ID
-from ctapipe.coordinates import CameraFrame, NominalFrame, TelescopeFrame
-import astropy.units as u
 
-import logging
 import argparse
+import logging
+
+import astropy.units as u
+import numpy as np
+from ctapipe import visualization, io, reco
+from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.instrument import InstrumentDescription as ID
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils.datasets import get_example_simtelarray_file
+from matplotlib import pyplot as plt
+
 logging.basicConfig(level=logging.DEBUG)
 
 
-def get_mc_calibration_coeffs(tel_id):
+def get_mc_calibration_coeffs(event, tel_id):
     """
     Get the calibration coefficients from the MC data file to the
     data.  This is ahack (until we have a real data structure for the
@@ -34,16 +36,16 @@ def get_mc_calibration_coeffs(tel_id):
     -------
     (peds,gains) : arrays of the pedestal and pe/dc ratios.
     """
-    peds = pyhessio.get_pedestal(tel_id)[0]
-    gains = pyhessio.get_calibration(tel_id)[0]
+    peds = event.mc.tel[tel_id].pedestal[0]
+    gains = event.mc.tel[tel_id].dc_to_pe[0]
     return peds, gains
 
 
-def apply_mc_calibration(adcs, tel_id):
+def apply_mc_calibration(adcs, peds, gains, tel_id):
     """
     apply basic calibration
     """
-    peds, gains = get_mc_calibration_coeffs(tel_id)
+
 
     if adcs.ndim > 1:  # if it's per-sample need to correct the peds
         return ((adcs - peds[:, np.newaxis] / adcs.shape[1]) *
@@ -65,6 +67,8 @@ if __name__ == '__main__':
                         help='show time-variablity, one frame at a time')
     parser.add_argument('--calibrate', action='store_true',
                         help='apply calibration coeffs from MC')
+    parser.add_argument('--hillas', action='store_true',
+                        help='apply hillas parameterization and cleaning')
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
@@ -85,9 +89,9 @@ if __name__ == '__main__':
         print(event.dl0)
 
         if disp is None:
-            x, y = event.meta.pixel_pos[args.tel]
+            x, y = event.inst.pixel_pos[args.tel]
             geom = io.CameraGeometry.guess(x, y,
-                                           event.meta.optical_foclen[args.tel])
+                                           event.inst.optical_foclen[args.tel])
             print(geom.pix_x)
             disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
             #disp.enable_pixel_picker()
@@ -96,12 +100,13 @@ if __name__ == '__main__':
 
         # display the event
         disp.axes.set_title('CT{:03d}, event {:010d}'
-                            .format(args.tel, event.dl0.event_id))
+                            .format(args.tel, event.r0.event_id))
         if args.show_samples:
             # display time-varying event
-            data = event.dl0.tel[args.tel].adc_samples[args.channel]
+            data = event.r0.tel[args.tel].adc_samples[args.channel]
             if args.calibrate:
-                data = apply_mc_calibration(data, args.tel)
+                peds, gains = get_mc_calibration_coeffs(event, args.tel)
+                data = apply_mc_calibration(data, peds, gains, args.tel)
             for ii in range(data.shape[1]):
                 disp.image = data[:, ii]
                 disp.set_limits_percent(70)
@@ -109,39 +114,41 @@ if __name__ == '__main__':
                 plt.pause(0.01)
                 if args.write:
                     plt.savefig('CT{:03d}_EV{:010d}_S{:02d}.png'
-                                .format(args.tel, event.dl0.event_id, ii))
+                                .format(args.tel, event.r0.event_id, ii))
         else:
             # display integrated event:
-            im = event.dl0.tel[args.tel].adc_sums[args.channel]
-            im = apply_mc_calibration(im, args.tel)
+            im = event.r0.tel[args.tel].adc_sums[args.channel]
+            peds, gains = get_mc_calibration_coeffs(event, args.tel)
+            im = apply_mc_calibration(im, peds, gains, args.tel)
             disp.image = im
 
-            clean_mask = reco.cleaning.tailcuts_clean(geom,im,1,picture_thresh=10,boundary_thresh=5)
-            camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
+            if args.hillas:
+                clean_mask = ctapipe.image.cleaning.tailcuts_clean(geom, im, 1, picture_thresh=10, boundary_thresh=5)
+                camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
 
-            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
-                                                       pointing_direction=[70*u.deg,0*u.deg],
-                                                       focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel]['FL'][0]*u.m))
+                nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
+                                                           pointing_direction=[70*u.deg,0*u.deg],
+                                                           focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel]['FL'][0]*u.m))
 
-            image = np.asanyarray(im * clean_mask, dtype=np.float64)
+                image = np.asanyarray(im * clean_mask, dtype=np.float64)
 
-            nom_x = nom_coord.x
-            nom_y = nom_coord.y
+                nom_x = nom_coord.x
+                nom_y = nom_coord.y
 
-            hillas = reco.hillas_parameters(x,y,im * clean_mask)
-            hillas_nom = reco.hillas_parameters(nom_x,nom_y,im * clean_mask)
+                hillas = reco.hillas_parameters(x,y,im * clean_mask)
+                hillas_nom = reco.hillas_parameters(nom_x,nom_y,im * clean_mask)
 
-            print (hillas)
-            print (hillas_nom)
+                print (hillas)
+                print (hillas_nom)
 
-            disp.image = im * clean_mask
-            disp.overlay_moments(hillas, color='seagreen', linewidth=3)
-            disp.set_limits_percent(70)
+                disp.image = im * clean_mask
+                disp.overlay_moments(hillas, color='seagreen', linewidth=3)
+                disp.set_limits_percent(70)
 
             plt.pause(1.0)
             if args.write:
                 plt.savefig('CT{:03d}_EV{:010d}.png'
-                            .format(args.tel, event.dl0.event_id))
+                            .format(args.tel, event.r0.event_id))
 
     print("FINISHED READING DATA FILE")
 

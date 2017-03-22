@@ -1,8 +1,8 @@
 .. _calib_camera:
 
-============
+===================
  Camera calibration
-============
+===================
 
 .. currentmodule:: ctapipe.calib.camera
 
@@ -11,10 +11,6 @@ This module contains the functions to calibrate the CTA cameras.
 These functions are divided into the different python modules:
 
 * MC Camera calibration (`mc.py`)
-
-.. plot:: ../ctapipe/calib/camera/mc.py
-    :caption: my_mc.py
-    :name: mc.py
 
 * Camera prototypes:
 

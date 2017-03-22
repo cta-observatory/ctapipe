@@ -8,12 +8,13 @@ from ctapipe.utils.linalg import rotation_matrix_2d
 __all__ = ['Camera','npix_to_type','find_neighbor_pixels',
            'guess_camera_geometry','guess_camera_type',
            'make_rectangular_camera_geometry','rotate_camera']
-    
+
+
 class Camera:
-    
+
     """`Camera` is a class that provides and gets all the information about
     the camera of a specific telescope."""
-    
+
     def __init__(self,pix_id,pix_X,pix_Y,
                  pix_area,pix_type,pix_neighbors):
         """
@@ -23,9 +24,9 @@ class Camera:
             description
         pix_id: array (int)
             pixel ids of the camera of the telescope
-        pix_posX: array with units
+        pix_X: array with units
             position of each pixel (x-coordinate)
-        pix_posY: array with units
+        pix_Y: array with units
             position of each pixel (y-coordinate)
         pix_area: array with units
             area of each pixel
@@ -41,7 +42,7 @@ class Camera:
         self.pix_area = pix_area
         self.pix_type = pix_type
         self.pix_neighbors = pix_neighbors
-    
+
     @classmethod
     def guess(cls, pix_x, pix_y):
         """
@@ -49,11 +50,11 @@ class Camera:
         from a list of pixel positions.
         """
         return guess_camera_geometry(pix_x, pix_y)
-    
+
     @staticmethod
     def rotate(cls,angle):
         return rotate_camera(angle,cls.pix_X,cls.pix_Y)
-    
+
     @staticmethod
     def to_table(cls,version = 'test'):
         """ convert this to an `astropy.table.Table` """
@@ -64,13 +65,13 @@ class Camera:
                       names=['PixID', 'PixX', 'PixY', 'PixA', 'PixNeig'],
                       meta=dict(VERSION=version))
 
-                    
+
 npix_to_type = {(2048, 0.006): ('SST', 'GATE', 'rectangular'),
                  (2048, 0.042): ('LST', 'HESSII', 'hexagonal'),
                  (1141, None): ('MST', 'NectarCam', 'hexagonal'),
                  (1855, None): ('LST', 'LSTCam', 'hexagonal'),
                  (11328, None): ('SCT', 'SCTCam', 'rectangular')}
-                 
+
 def find_neighbor_pixels(pix_x, pix_y, rad):
     """uses a KD-Tree to quickly find nearest neighbors of the pixels in a
     camera. This function can be used to find the neighbor pixels if
@@ -98,25 +99,24 @@ def find_neighbor_pixels(pix_x, pix_y, rad):
     for nn, ii in zip(neighbors, indices):
         nn.remove(ii)  # get rid of the pixel itself
     return neighbors
-                      
+
 @u.quantity_input
 def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     """
     returns a the camera class, the pixel area, the pixel type and the
-    distance between two pixels just from the pixel positions        
-    
+    distance between two pixels just from the pixel positions
+
     Assumes:
-    --------
     - the pixels are square or hexagonal
     - the first two pixels are adjacent
-    
+
     Parameters
     ----------
     pix_x: array with units
         positions of pixels (x-coordinate)
     pix_y: array with units
         positions of pixels (y-coordinate
-    
+
     Returns
     -------
     camera class, pixel area, pixel type, and distance between 2 pixels
@@ -126,7 +126,7 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m):
     try: cam_class,pix_type = guess_camera_type(len(pix_x))
     except:
         pix_type = -1
-        
+
     dx = pix_x[1] - pix_x[0]
     dy = pix_y[1] - pix_y[0]
     dist = np.sqrt(dx ** 2 + dy ** 2)  # dist between two pixels
@@ -173,6 +173,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
                                      range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
     """Generate a simple camera with 2D rectangular geometry.
     Used for testing.
+
     Parameters
     ----------
     npix_x : int
@@ -183,6 +184,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         min and max of x pixel coordinates in meters
     range_y : (float,float)
         min and max of y pixel coordinates in meters
+
     Returns
     -------
     pix_id: int array
@@ -193,6 +195,7 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
         pixel areas
     neighbors: list with next neighbors
     """
+
     bx = np.linspace(range_x[0], range_x[1], npix_x)
     by = np.linspace(range_y[0], range_y[1], npix_y)
     xx, yy = np.meshgrid(bx, by)
@@ -204,23 +207,29 @@ def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
     pix_area = (2 * rr) ** 2
     neighbors = find_neighbor_pixels(pix_x.value, pix_y.value,
                                      rad=(rr.mean() * 2.001).value)
-                              
-    return Camera(pix_id = pix_ids,pix_X = pix_x, pix_Y = pix_y,
-                  pix_area = pix_area,pix_neighbors = neighbors,
-                  pix_type = 'rectangular')
-                      
-def rotate_camera(angle,pix_x: u.m,pix_y:u.m):
+
+    return Camera(
+        pix_id=pix_ids,
+        pix_X=pix_x,
+        pix_Y=pix_y,
+        pix_area=pix_area,
+        pix_neighbors=neighbors,
+        pix_type='rectangular',
+    )
+
+
+def rotate_camera(angle, pix_x: u.m, pix_y: u.m):
     """rotate the camera coordinates about the center of the camera by
     specified angle. Modifies the CameraGeometry in-place (so
     after this is called, the pix_x and pix_y arrays are
     rotated.
-    Note:
-    -----
-    This is intended only to correct simulated data that are
+    
+    Note: This is intended only to correct simulated data that are
     rotated by a fixed angle.  For the more general case of
     correction for camera pointing errors (rotations,
     translations, skews, etc), you should use a true coordinate
     transformation defined in `ctapipe.coordinates`.
+
     Parameters
     ----------
     angle: value convertable to an `astropy.coordinates.Angle`
@@ -235,5 +244,5 @@ def rotate_camera(angle,pix_x: u.m,pix_y:u.m):
     rotated = np.dot(rotmat.T, [pix_x.value, pix_y.value])
     pix_x = rotated[0] * pix_x.unit
     pix_y = rotated[1] * pix_x.unit
-    
+
     return pix_x, pix_y

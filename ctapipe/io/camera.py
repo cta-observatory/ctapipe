@@ -22,6 +22,7 @@ __all__ = ['CameraGeometry',
 # Value = (type, subtype, pixtype, pixrotation, camrotation)
 _npix_to_type = {
     (2048, 2.3):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 36.0):  ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
     (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
     (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
@@ -43,8 +44,8 @@ class CameraGeometry:
     pixels, gaps between pixels, etc.
     """
 
-    def __init__(self, cam_id, pix_id, pix_x, pix_y,
-                 pix_area, neighbors, pix_type, pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
+    def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, neighbors, pix_type,
+                 pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
         """
         Parameters
         ----------
@@ -77,7 +78,10 @@ class CameraGeometry:
         self.neighbors = neighbors
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
-        self.rotate(cam_rotation)
+        self.cam_rotation = cam_rotation
+        # FIXME the rotation does not work on 2D pixel grids
+        if len(pix_x.shape) == 1:
+            self.rotate(cam_rotation)
 
 
     @classmethod
@@ -123,7 +127,7 @@ class CameraGeometry:
         after this is called, the pix_x and pix_y arrays are
         rotated.
 
-        Note:
+        Notes
         -----
 
         This is intended only to correct simulated data that are
@@ -149,6 +153,30 @@ class CameraGeometry:
 # ======================================================================
 # utility functions:
 # ======================================================================
+
+def get_min_pixel_seperation(pix_x, pix_y):
+    """
+    Obtain the minimum seperation between two pixels on the camera
+
+    Parameters
+    ----------
+    pix_x : array_like
+        x position of each pixel
+    pix_y : array_like
+        y position of each pixels
+
+    Returns
+    -------
+    pixsep : astropy.units.Unit
+
+    """
+    #    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
+    #    dy = pix_y[1] - pix_y[0]
+
+    dx = pix_x - pix_x[0]
+    dy = pix_y - pix_y[0]
+    pixsep = np.min(np.sqrt(dx ** 2 + dy ** 2)[1:])
+    return pixsep
 
 
 def find_neighbor_pixels(pix_x, pix_y, rad):
@@ -188,7 +216,8 @@ def _guess_camera_type(npix, optical_foclen):
         return _npix_to_type[(npix, None)]
     except KeyError:
         return _npix_to_type.get((npix, round(optical_foclen.value, 1)),
-                                 ('unknown', 'unknown', 'hexagonal', 0 * u.degree, 0 * u.degree))
+                                 ('unknown', 'unknown', 'hexagonal',
+                                  0 * u.degree, 0 * u.degree))
 
 
 @u.quantity_input
@@ -200,17 +229,8 @@ def guess_camera_geometry(pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
     - the pixels are square or hexagonal
     """
 
-#    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
-#    dy = pix_y[1] - pix_y[0]
+    dist = get_min_pixel_seperation(pix_x, pix_y)
 
-    pixsep = []
-    for ipix in range(1, len(pix_x)):
-        dx = pix_x[ipix] - pix_x[0]
-        dy = pix_y[ipix] - pix_y[0]        
-        pixsep.append (np.sqrt(dx ** 2 + dy ** 2))  # dist between pixels 0 and ipix
-        
-    dist = min(pixsep)
-        
     tel_type, cam_id, pix_type, pix_rotation, cam_rotation = _guess_camera_type(
         len(pix_x), optical_foclen
     )

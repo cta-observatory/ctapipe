@@ -6,13 +6,12 @@ Visualization routines using matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from matplotlib.colors import Normalize, LogNorm
+from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from numpy import sqrt
 import numpy as np
 import logging
 import copy
 from astropy import units as u
-from ctapipe.coordinates import CameraFrame, NominalFrame
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -21,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 class CameraDisplay:
 
-    """Camera Display using matplotlib.
+    """
+    Camera Display using matplotlib.
 
     Parameters
     ----------
@@ -36,8 +36,8 @@ class CameraDisplay:
     norm : str or `matplotlib.color.Normalize` instance (default 'lin')
         Normalization for the color scale.
         Supported str arguments are
-           'lin': linear scale
-           'log': logarithmic scale (base 10)
+        - 'lin': linear scale
+        - 'log': logarithmic scale (base 10)
     cmap : str or `matplotlib.colors.Colormap` (default 'hot')
         Color map to use (see `matplotlib.cm`)
     allow_pick : bool (default False)
@@ -105,9 +105,14 @@ class CameraDisplay:
 
         patches = []
 
-        for xx, yy, aa in zip(u.Quantity(self.geom.pix_x).value,
-                              u.Quantity(self.geom.pix_y).value,
-                              u.Quantity(np.array(self.geom.pix_area))):
+        if not hasattr(self.geom, "mask"):
+            self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
+
+        for xx, yy, aa in zip(
+            u.Quantity(self.geom.pix_x[self.geom.mask]).value,
+            u.Quantity(self.geom.pix_y[self.geom.mask]).value,
+            u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
+
             if self.geom.pix_type.startswith("hex"):
                 rr = sqrt(aa * 2 / 3 / sqrt(3))
                 poly = RegularPolygon(
@@ -118,7 +123,7 @@ class CameraDisplay:
             else:
                 rr = sqrt(aa)
                 poly = Rectangle(
-                    (xx, yy),
+                    (xx-rr/2., yy-rr/2.),
                     width=rr,
                     height=rr,
                     angle=self.geom.pix_rotation.deg,
@@ -129,6 +134,11 @@ class CameraDisplay:
 
         self.pixels = PatchCollection(patches, cmap=cmap, linewidth=0)
         self.axes.add_collection(self.pixels)
+
+        self.pixel_highlighting = copy.copy(self.pixels)
+        self.pixel_highlighting.set_facecolor('none')
+        self.pixel_highlighting.set_linewidth(0)
+        self.axes.add_collection(self.pixel_highlighting)
 
         # Set up some nice plot defaults
 
@@ -148,11 +158,11 @@ class CameraDisplay:
         self._active_pixel.set_visible(False)
         self.axes.add_patch(self._active_pixel)
 
-        self._active_pixel_label = plt.text(self._active_pixel.xy[0],
-                                            self._active_pixel.xy[1],
-                                            "0",
-                                            horizontalalignment='center',
-                                            verticalalignment='center')
+        self._active_pixel_label = self.axes.text(self._active_pixel.xy[0],
+                                                  self._active_pixel.xy[1],
+                                                  "0",
+                                                  horizontalalignment='center',
+                                                  verticalalignment='center')
         self._active_pixel_label.set_visible(False)
 
         # enable ability to click on pixel and do something (can be
@@ -168,6 +178,31 @@ class CameraDisplay:
 
         self.norm = norm
 
+    def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
+        '''
+        Highlight the given pixels with a colored line around them
+
+        Parameters
+        ----------
+        pixels : index-like
+            The pixels to highlight.
+            Can either be a list or array of integers or a
+            boolean mask of length number of pixels
+        color: a matplotlib conform color
+            the color for the pixel highlighting
+        linewidth: float
+            linewidth of the highlighting in points
+        alpha: 0 <= alpha <= 1
+            The transparency
+        '''
+
+        l = np.zeros_like(self.image)
+        l[pixels] = linewidth
+        self.pixel_highlighting.set_linewidth(l)
+        self.pixel_highlighting.set_alpha(alpha)
+        self.pixel_highlighting.set_edgecolor(color)
+        self._update()
+
     def enable_pixel_picker(self):
         """ enable ability to click on pixels """
         self.pixels.set_picker(True)  # enable click
@@ -180,7 +215,7 @@ class CameraDisplay:
         """ set the color scale limits from min to max """
         self.pixels.set_clim(zmin, zmax)
         self.autoscale = False
-        self.update()
+        self._update()
 
     def set_limits_percent(self, percent=95):
         """ auto-scale the color range to percent of maximum """
@@ -195,10 +230,13 @@ class CameraDisplay:
     def norm(self):
         '''
         The norm instance of the Display
+
         Possible values:
-            "lin": linear scale
-            "log": log scale
-            any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
+
+        - "lin": linear scale
+        - "log": log scale (cannot have negative values)
+        - "symlog": symmetric log scale (negative values are ok)
+        -  any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
         '''
         return self.pixels.norm
 
@@ -210,34 +248,35 @@ class CameraDisplay:
         elif norm == 'log':
             self.pixels.norm = LogNorm()
             self.pixels.autoscale()  # this is to handle matplotlib bug #5424
+        elif norm == 'symlog':
+            self.pixels.norm = SymLogNorm(linthresh=1.0)
+            self.pixels.autoscale()
         elif isinstance(norm, Normalize):
             self.pixels.norm = norm
         else:
-            raise ValueError('Unsupported norm: {}'.format(norm))
+            raise ValueError("Unsupported norm: '{}', options are 'lin',"
+                             "'log','symlog', or a matplotlib Normalize object"
+                             .format(norm))
 
         self.update(force=True)
         self.pixels.autoscale()
 
     @property
     def cmap(self):
+        """
+        Color map to use. Either a name or  `matplotlib.colors.ColorMap`
+        instance, e.g. from `matplotlib.pyplot.cm`
+        """
         return self.pixels.get_cmap()
 
     @cmap.setter
     def cmap(self, cmap):
-        """ Change the color map
-
-        Parameters
-        ----------
-        self: type
-            description
-        cmap: `matplotlib.colors.ColorMap`
-            a color map, e.g. from `matplotlib.pyplot.cm.*`
-        """
         self.pixels.set_cmap(cmap)
-        self.update()
+        self._update()
 
     @property
     def image(self):
+        """The image displayed on the camera (1D array of pixel values)"""
         return self.pixels.get_array()
 
     @image.setter
@@ -253,32 +292,36 @@ class CameraDisplay:
         image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
             raise ValueError(
-                "Image has a different shape {} than the"
+                "Image has a different shape {} than the "
                 "given CameraGeometry {}"
                 .format(image.shape, self.geom.pix_x.shape)
             )
 
-        self.pixels.set_array(image)
+        self.pixels.set_array(image[self.geom.mask])
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()
-        self.update()
+        self._update()
+
+    def _update(self, force=False):
+        """ signal a redraw if autoupdate is turned on """
+        if self.autoupdate:
+            self.update(force)
 
     def update(self, force=False):
-        """ signal a redraw if necessary """
-        if self.autoupdate:
-            if self.colorbar is not None:
-                if force is True:
-                    self.colorbar.update_bruteforce(self.pixels)
-                else:
-                    self.colorbar.update_normal(self.pixels)
-                self.colorbar.draw_all()
-            self.axes.figure.canvas.draw()
+        """ redraw the display now """
+        self.axes.figure.canvas.draw()
+        if self.colorbar is not None:
+            if force is True:
+                self.colorbar.update_bruteforce(self.pixels)
+            else:
+                self.colorbar.update_normal(self.pixels)
+            self.colorbar.draw_all()
 
     def add_colorbar(self, **kwargs):
         """
         add a colobar to the camera plot
-        kwargs are passed to figure.colorbar(self.pixels, **kwargs)
+        kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
         """
@@ -304,14 +347,14 @@ class CameraDisplay:
         width: float
             minor axis
         angle: float
-            rotation angle wrt "up" about the centroid, clockwise, in radians
+            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
         asymmetry: float
             3rd-order moment for directionality if known
         kwargs:
             any MatPlotLib style arguments to pass to the Ellipse patch
 
         """
-        ellipse = Ellipse(xy=centroid, width=width, height=length,
+        ellipse = Ellipse(xy=centroid, width=length, height=width,
                           angle=np.degrees(angle), fill=False, **kwargs)
         self.axes.add_patch(ellipse)
         self.update()
@@ -328,11 +371,19 @@ class CameraDisplay:
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
-        el = self.add_ellipse(centroid=(momparams.cen_x.value, momparams.cen_x.value),
-                              length=momparams.length.value,
-                              width=momparams.width.value, angle=momparams.psi.to(u.rad).value,
+
+        # strip off any units
+        cen_x = u.Quantity(momparams.cen_x).value
+        cen_y = u.Quantity(momparams.cen_y).value
+        length = u.Quantity(momparams.length).value
+        width = u.Quantity(momparams.width).value
+
+
+        el = self.add_ellipse(centroid=(cen_x, cen_y),
+                              length=length,
+                              width=width, angle=momparams.psi.rad,
                               **kwargs)
-        self.axes.text(momparams.cen_x.value, momparams.cen_y.value,
+        self.axes.text(cen_x, cen_y,
                        ("({:.02f},{:.02f})\n"
                         "[w={:.02f},l={:.02f}]")
                        .format(momparams.cen_x,
@@ -342,16 +393,21 @@ class CameraDisplay:
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
-        pix_id = event.ind.pop()
-        xx, yy = u.Quantity(self.geom.pix_x[pix_id]).value,\
-                 u.Quantity(self.geom.pix_y[pix_id]).value
-        self._active_pixel.xy = (xx, yy)
+        pix_id = event.ind[-1]
+        xx, yy, aa = u.Quantity(self.geom.pix_x[pix_id]).value, \
+                     u.Quantity(self.geom.pix_y[pix_id]).value, \
+                     u.Quantity(np.array(self.geom.pix_area)[pix_id])
+        if self.geom.pix_type.startswith("hex"):
+            self._active_pixel.xy = (xx, yy)
+        else:
+            rr = sqrt(aa)
+            self._active_pixel.xy = (xx - rr / 2., yy - rr / 2.)
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
         self._active_pixel_label.set_y(yy)
         self._active_pixel_label.set_text("{:003d}".format(pix_id))
         self._active_pixel_label.set_visible(True)
-        self.update()
+        self._update()
         self.on_pixel_clicked(pix_id)  # call user-function
 
     def on_pixel_clicked(self, pix_id):
@@ -395,6 +451,7 @@ class ArrayDisplay:
 
     @property
     def values(self):
+        """An array containing a value per telescope"""
         return self.telescopes.get_array()
 
     @values.setter

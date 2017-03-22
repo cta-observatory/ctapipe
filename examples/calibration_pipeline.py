@@ -1,269 +1,214 @@
-import sys
-import argparse
-from matplotlib import colors, pyplot as plt
-import numpy as np
-from ctapipe.io.hessio import hessio_event_source
-from pyhessio import *
-from ctapipe.core import Container
-from ctapipe.io.containers import RawData, CalibratedCameraData
-from ctapipe import visualization, io
-from astropy import units as u
-from ctapipe.calib.camera.mc import *
-import logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(stream=sys.stdout,level=logging.INFO)
-
-fig = plt.figure(figsize=(16, 7))
-cmaps = [plt.cm.jet, plt.cm.winter,
-         plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
-         plt.cm.cool, plt.cm.coolwarm]
+from traitlets import Dict, List, Int, Bool, Unicode
+from matplotlib import pyplot as plt, colors
+from matplotlib.backends.backend_pdf import PdfPages
+from ctapipe.core import Tool, Component
+from ctapipe.io.eventfilereader import EventFileReaderFactory
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
+from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
+from ctapipe.io import CameraGeometry
+from ctapipe.visualization import CameraDisplay
 
 
-def init_dl1(event):
-    # Load dl1 container
-    container = Container("calibrated_hessio_container")
-    container.add_item("dl1", RawData())
-    container.meta.add_item('pixel_pos', dict())
-    container.meta.pixel_pos = event.meta.pixel_pos
+class ImagePlotter(Component):
+    name = 'ImagePlotter'
 
-    return container
+    display = Bool(False,
+                   help='Display the photoelectron images on-screen as they '
+                        'are produced.').tag(config=True)
+    output_path = Unicode(None, allow_none=True,
+                          help='Output path for the pdf containing all the '
+                               'images. Set to None for no saved '
+                               'output.').tag(config=True)
 
-def load_dl1_eventheader(dl0,dl1):
-    dl1.run_id = dl0.run_id
-    dl1.event_id = dl0.event_id
-    dl1.tel = dict()  # clear the previous telescopes
-    dl1.tels_with_data = dl0.tels_with_data
-    return
+    def __init__(self, config, tool, **kwargs):
+        """
+        Plotter for camera images.
 
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
+        super().__init__(config=config, parent=tool, **kwargs)
+        self._geom_dict = {}
+        self._current_tel = None
+        self.c_intensity = None
+        self.c_peakpos = None
+        self.cb_intensity = None
+        self.cb_peakpos = None
+        self.pdf = None
 
-def display_telescope(event, tel_id):
-    global fig
-    ntels = len(event.dl1.tels_with_data)
-    fig.clear()
+        self._init_figure()
 
-    plt.suptitle("EVENT {} {:.1e} TeV @({:.1f},{:.1f})deg @{:.1f} m".format(
-            event.dl1.event_id, get_mc_shower_energy(),
-            get_mc_shower_altitude(), get_mc_shower_azimuth(),
-            np.sqrt(pow(get_mc_event_xcore(), 2) +
-                    pow(get_mc_event_ycore(), 2))))
-    print("\t draw cam {}...".format(tel_id))
-    x, y = event.meta.pixel_pos[tel_id]
-    #geom = io.CameraGeometry.guess(x * u.m, y * u.m)
-    geom = io.CameraGeometry.guess(x, y)
-    npads = 1
-    # Only create two pads if there is timing information extracted
-    # from the calibration
-    if not event.dl1.tel[tel_id].tom is None:
-        npads = 2
+    def _init_figure(self):
+        self.fig = plt.figure(figsize=(16, 7))
+        self.ax_intensity = self.fig.add_subplot(1, 2, 1)
+        self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
+        if self.output_path:
+            self.log.info("Creating PDF: {}".format(self.output_path))
+            self.pdf = PdfPages(self.output_path)
 
-    ax = plt.subplot(1, npads, npads-1)
-    disp = visualization.CameraDisplay(geom, ax=ax,
-                                       title="CT{0}".format(tel_id))
+    def get_geometry(self, event, telid):
+        if telid not in self._geom_dict:
+            geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                        event.inst.optical_foclen[telid])
+            self._geom_dict[telid] = geom
+        return self._geom_dict[telid]
 
-    disp.pixels.set_antialiaseds(False)
-    disp.autoupdate = False
-    disp.pixels.set_cmap('seismic')
-    chan = 0
-    signals = event.dl1.tel[tel_id].pe_charge
-    disp.image = signals
-    disp.add_colorbar()
-    if npads == 2:
-        ax = plt.subplot(1, npads, npads)
-        disp = visualization.CameraDisplay(geom,
-                                           ax=ax,
-                                           title="CT{0}".format(tel_id))
-        disp.pixels.set_antialiaseds(False)
-        disp.autoupdate = False
-        disp.pixels.set_cmap('gnuplot')
+    def plot(self, event, telid):
         chan = 0
-        disp.image = event.dl1.tel[tel_id].tom
-        disp.add_colorbar()
+        image = event.dl1.tel[telid].image[chan]
+        peakpos = event.dl1.tel[telid].peakpos[chan]
 
-    if __debug__:
-        print("All sum = %.3f\n" % sum(event.dl1.tel[tel_id].pe_charge))
+        if self._current_tel != telid:
+            self._current_tel = telid
+
+            self.ax_intensity.cla()
+            self.ax_peakpos.cla()
+
+            # Redraw camera
+            geom = self.get_geometry(event, telid)
+            self.c_intensity = CameraDisplay(geom, cmap=plt.cm.viridis,
+                                             ax=self.ax_intensity)
+            self.c_peakpos = CameraDisplay(geom, cmap=plt.cm.viridis,
+                                           ax=self.ax_peakpos)
+
+            tmaxmin = event.dl0.tel[telid].pe_samples.shape[2]
+            t_chargemax = peakpos[image.argmax()]
+            cmap_time = colors.LinearSegmentedColormap.from_list(
+                'cmap_t', [(0 / tmaxmin, 'darkgreen'),
+                           (0.6 * t_chargemax / tmaxmin, 'green'),
+                           (t_chargemax / tmaxmin, 'yellow'),
+                           (1.4 * t_chargemax / tmaxmin, 'blue'),
+                           (1, 'darkblue')])
+            self.c_peakpos.pixels.set_cmap(cmap_time)
+
+            if not self.cb_intensity:
+                self.c_intensity.add_colorbar(ax=self.ax_intensity,
+                                              label='Intensity (p.e.)')
+                self.cb_intensity = self.c_intensity.colorbar
+            else:
+                self.c_intensity.colorbar = self.cb_intensity
+                self.c_intensity.update(True)
+            if not self.cb_peakpos:
+                self.c_peakpos.add_colorbar(ax=self.ax_peakpos,
+                                            label='Peakpos (ns)')
+                self.cb_peakpos = self.c_peakpos.colorbar
+            else:
+                self.c_peakpos.colorbar = self.cb_peakpos
+                self.c_peakpos.update(True)
+
+        self.c_intensity.image = image
+        if peakpos is not None:
+            self.c_peakpos.image = peakpos
+
+        self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
+                          .format(event.count, event.r0.event_id, telid))
 
 
-def camera_calibration(filename, parameters, disp_args, level):
-    """
-    Parameters
-    ----------
-    filename   MC filename with raw data (in ADC samples)
-    parameters Parameters to be passed to the different calibration functions
-               (described in each function separately inside mc.py)
-    disp_args  Either: per telescope per event or
-               all telescopes of the event (currently dissabled)
-    level      Output information of the calibration level results
-    Returns
-    -------
-    A display (see function display_telescope)
+        if self.display:
+            plt.pause(0.001)
+        if self.pdf is not None:
+            self.pdf.savefig(self.fig)
 
-    """
+    def finish(self):
+        if self.pdf is not None:
+            self.log.info("Closing PDF")
+            self.pdf.close()
 
-    ## Load dl1 container
-    #container = Container("calibrated_hessio_container")
-    #container.add_item("dl1", RawData())
-    #container.meta.add_item('pixel_pos', dict())
 
-    # loop over all events, all telescopes and all channels and call
-    # the calc_peds function defined above to do some work:
-    nt = 0
-    for event in hessio_event_source(filename):
-        if nt==0: 
-            container = init_dl1(event)
-    
-        nt = nt+1
-        # Fill DL1 container headers information. Clear also telescope info.
-        load_dl1_eventheader(event.dl0,container.dl1)
-        #container.dl1.run_id = event.dl0.run_id
-        #container.dl1.event_id = event.dl0.event_id
-        #container.dl1.tel = dict()  # clear the previous telescopes
-        #container.dl1.tels_with_data = event.dl0.tels_with_data
-        if __debug__:
-            logger.debug("%s> %d #%d %d"%
-                        (sys._getframe().f_code.co_name,
-                         container.dl1.run_id, nt,
-                         container.dl1.event_id),
-                         container.dl1.tels_with_data,
-                        "%.3e TeV @ (%.0f,%.0f)deg @ %.3f m"%
-                        (get_mc_shower_energy(), get_mc_shower_altitude(),
-                         get_mc_shower_azimuth(),
-                         np.sqrt(pow(get_mc_event_xcore(), 2) +
-                                 pow(get_mc_event_ycore(), 2)))
-                        )
+class DisplayDL1Calib(Tool):
+    name = "DisplayDL1Calib"
+    description = "Calibrate dl0 data to dl1, and plot the photoelectron " \
+                  "images."
 
-        for telid in event.dl0.tels_with_data:
-            logger.info("%s> Calibrating.. CT%d\n"
-                        %(sys._getframe().f_code.co_name,  telid))
+    telescope = Int(None, allow_none=True,
+                    help='Telescope to view. Set to None to display all '
+                         'telescopes.').tag(config=True)
 
-            # Get per telescope the camera geometry
-            x, y = event.meta.pixel_pos[telid]
-            #geom = io.CameraGeometry.guess(x * u.m, y * u.m)
-            geom = io.CameraGeometry.guess(x,y)
+    aliases = Dict(dict(f='EventFileReaderFactory.input_path',
+                        r='EventFileReaderFactory.reader',
+                        max_events='EventFileReaderFactory.max_events',
+                        extractor='ChargeExtractorFactory.extractor',
+                        window_width='ChargeExtractorFactory.window_width',
+                        window_start='ChargeExtractorFactory.window_start',
+                        window_shift='ChargeExtractorFactory.window_shift',
+                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+                        lwt='ChargeExtractorFactory.lwt',
+                        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
+                        T='DisplayDL1Calib.telescope',
+                        O='ImagePlotter.output_path'
+                        ))
+    flags = Dict(dict(D=({'ImagePlotter': {'display': True}},
+                         "Display the photoelectron images on-screen as they "
+                         "are produced.")
+                      ))
+    classes = List([EventFileReaderFactory,
+                    ChargeExtractorFactory,
+                    CameraDL1Calibrator,
+                    ImagePlotter
+                    ])
 
-            # Get the calibration data sets (pedestals and single-pe)
-            ped = get_pedestal(telid)
-            calib = get_calibration(telid)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.file_reader = None
+        self.r1 = None
+        self.dl0 = None
+        self.dl1 = None
+        self.plotter = None
 
-            # Integrate pixels traces and substract pedestal
-            # See pixel_integration_mc function documentation in mc.py
-            # for the different algorithms options
-            int_adc_pix, peak_adc_pix = pixel_integration_mc(event, 
-                                                             ped, telid, 
-                                                             parameters)
+    def setup(self):
+        self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
+        kwargs = dict(config=self.config, tool=self)
 
-            # Convert integrated ADC counts into p.e.
-            # selecting also the HG/LG channel (currently hard-coded)
-            pe_pix = calibrate_amplitude_mc(int_adc_pix, calib,
-                                            telid, parameters)
-            # Including per telescope metadata in the DL1 container
-            #load_dl1_results(event.dl0,container.dl1)
-            #if telid not in container.meta.pixel_pos:
-            #    container.meta.pixel_pos[telid] = event.meta.pixel_pos[telid]
-            container.dl1.tels_with_data = event.dl0.tels_with_data
-            container.dl1.tel[telid] = CalibratedCameraData(telid)
-            container.dl1.tel[telid].pe_charge = np.array(pe_pix)
-            container.dl1.tel[telid].tom = np.array(peak_adc_pix[0])
+        reader_factory = EventFileReaderFactory(**kwargs)
+        reader_class = reader_factory.get_class()
+        self.file_reader = reader_class(**kwargs)
 
-            # FOR THE CTA USERS:
-            # From here you can include your code.
-            # It should take as input the last data level calculated here (DL1)
-            # or call reconstruction algorithms (reco module) to be called.
-            # For example: you could ask to calculate the tail cuts cleaning
-            # using the tailcuts_clean in reco/cleaning.py module
-            #
-            # if 'tail_cuts' in parameters:
-            #    clean_mask = tailcuts_clean(geom,
-            #    image=np.array(pe_pix),pedvars=1,
-            #    picture_thresh=parameters['tail_cuts'][0],
-            #    boundary_thresh=parameters['tail_cuts'][1])
-            #    container.dl1.tel[telid].pe_charge = np.array(pe_pix) *
-            #    np.array(clean_mask)
-            #    container.dl1.tel[telid].tom = np.array(peak_adc_pix[0]) *
-            #    np.array(clean_mask)
-            #
+        extractor_factory = ChargeExtractorFactory(**kwargs)
+        extractor_class = extractor_factory.get_class()
+        extractor = extractor_class(**kwargs)
 
-        sys.stdout.flush()
-        # Display
-        if 'event' in disp_args:
-            ello = input("See evt. %d?<[n]/y/q> " % container.dl1.event_id)
-            if ello == 'y':
+        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
+                                               **kwargs)
+        r1_class = r1_factory.get_class()
+        self.r1 = r1_class(**kwargs)
 
-                if 'telescope' in disp_args:
-                    for telid in container.dl1.tels_with_data:
-                        ello = input(
-                            "See telescope/evt. %d?[CT%d]<[n]/y/q/e> " %
-                            (container.dl1.event_id, telid))
-                        if ello == 'y':
-                            display_telescope(container, telid)
-                            plt.pause(0.1)
-                        elif ello == 'q':
-                            break
-                        elif ello == 'e':
-                            return None
-                        else:
-                            continue
-                else:
-                    plt.pause(0.1)
-            elif ello == 'q':
-                return None
+        self.dl0 = CameraDL0Reducer(**kwargs)
 
+        self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
+
+        self.plotter = ImagePlotter(**kwargs)
+
+    def start(self):
+        source = self.file_reader.read()
+        for event in source:
+            self.r1.calibrate(event)
+            self.dl0.reduce(event)
+            self.dl1.calibrate(event)
+
+            tel_list = event.r0.tels_with_data
+
+            if self.telescope:
+                if self.telescope not in tel_list:
+                    continue
+                tel_list = [self.telescope]
+            for telid in tel_list:
+                self.plotter.plot(event, telid)
+
+    def finish(self):
+        self.plotter.finish()
 
 if __name__ == '__main__':
-
-    # Declare and parse command line option
-    parser = argparse.ArgumentParser(
-        description='Tel_id, pixel id and number of event to compute.')
-    parser.add_argument('--f', dest='filename',
-                        required=True, help='filename MC file name')
-    args = parser.parse_args()
-
-    plt.show(block=False)
-
-    # Function description of camera_calibration options, given here
-    # Integrator: samples integration algorithm (equivalent to hessioxxx
-    # option --integration-sheme)
-    #   -options: full_integration,
-    #             simple_integration,
-    #             global_peak_integration,
-    #             local_peak_integration,
-    #             nb_peak_integration
-    # nsum: Number of samples to sum up (is reduced if exceeding available
-    # length). (equivalent to first number in
-    # hessioxxx option --integration-window)
-    # nskip: Number of initial samples skipped (adapted such that interval
-    # fits into what is available). Start the integration a number of
-    # samples before the peak. (equivalent to second number in
-    # hessioxxx option --integration-window)
-    # sigamp: Amplitude in ADC counts [igain] above pedestal at which a
-    # signal is considered as significant (separate for high gain/low gain).
-    # (equivalent to hessioxxx option --integration-threshold)
-    # clip_amp: Amplitude in p.e. above which the signal is clipped.
-    # (equivalent to hessioxxx option --clip_pixel_amplitude (default 0))
-    # lwt: Weight of the local pixel (0: peak from neighbours only,
-    # 1: local pixel counts as much as any neighbour).
-    # (option in pixel integration function in hessioxxx)
-    # display: optionaly you can display events (all telescopes present on it)
-    # or per telescope per event. By default the last one.
-    # The first one is currently deprecated.
-    # level: data level from which information is displayed.
-
-    # The next call to camera_calibration would be equivalent of producing
-    # DST0 MC file using:
-    # hessioxxx/bin/read_hess -r 4 -u --integration-scheme 4
-    # --integration-window 7, 3 --integration-threshold 2, 4
-    # --dst-level 0 <MC_prod2_filename>
-
-    calibrated_camera = camera_calibration(
-        args.filename,
-        parameters={"integrator": "nb_peak_integration",
-                    "nsum": 7,
-                    "nskip": 3,
-                    "sigamp": [2, 4],
-                    "clip_amp": 0,
-                    "lwt": 0},
-        disp_args={'event', 'telescope'}, level=1)
-
-    sys.stdout.flush()
-
-    logger.info("%s> Closing file..."%sys._getframe().f_code.co_name)
-    close_file()
+    exe = DisplayDL1Calib()
+    exe.run()
