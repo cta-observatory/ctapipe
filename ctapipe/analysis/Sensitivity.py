@@ -108,6 +108,7 @@ def make_mock_event_rate(spectrum, bin_edges, e_unit=u.GeV, log_e=True, norm=Non
         tell if the values in `bin_edges` are given in logarithm
     norm : float, optional (default: None)
         normalisation factor for the histogram that's being filled
+        sum of all elements in the array will be equal to `norm`
 
     Returns
     -------
@@ -120,7 +121,6 @@ def make_mock_event_rate(spectrum, bin_edges, e_unit=u.GeV, log_e=True, norm=Non
         if log_e:
             bin_centre = 10**((l_edge+h_edge)/2.) * e_unit
             bin_width = (10**h_edge-10**l_edge) * e_unit
-
         else:
             bin_centre = (l_edge+h_edge) * e_unit / 2.
             bin_width = (h_edge-l_edge) * e_unit
@@ -306,7 +306,12 @@ class Sensitivity_PointSource():
                                     generator_spectra[cl], norm=n_simulated_events[cl],
                                     bin_edges=self.energy_bin_edges[cl])
 
+        # an energy-binned histogram of the effective areas
+        # binning according to .energy_bin_edges[cl]
         self.effective_areas = {}
+
+        # an energy-binned histogram of the selected events
+        # binning according to .energy_bin_edges[cl]
         self.selected_events = {}
 
         for cl in self.class_list:
@@ -348,6 +353,8 @@ class Sensitivity_PointSource():
         # for book keeping
         self.observation_time = observation_time
 
+        # an energy-binned histogram of the number of events expected from the given flux
+        # binning according to .energy_bin_edges[cl]
         self.exp_events_per_energy_bin = {}
         for cl in self.class_list:
             event_rate = make_mock_event_rate(rates[cl],
@@ -547,33 +554,79 @@ class Sensitivity_PointSource():
         return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off)
 
     @staticmethod
-    def generate_toy_timestamps(light_curve, time_window):
+    def generate_toy_timestamps(light_curves, time_window):
         """
-        expects you to have run
-            .get_effective_areas
-            .get_expected_events
-            .scale_events_to_expected_events
+        randomly draw time stamps within a time window
+        either uniformly distributed or by following the distribution of a light curve
 
+        Parameters
+        ----------
         light_curve : dictionary of numpy arrays or floats
             light curve you want to sample time stamps from
             sum of the elements (cast to `int`) will be taken as number of draws
             if value is float and not an array, assume take than uniform draws
         time_window : tuple of floats
             min and max of the drawn time stamps
+
+        Returns
+        -------
+        time_stamps : dictionary of numpy arrays
+            lists of randomly drawn time stamps
         """
 
         time_stamps = {}
-        for cl, f in light_curve.items():
+        for cl, f in light_curves.items():
             if hasattr(f, "__iter__"):
+                # if `f` is any kind of list, create cumulative distribution, draw
+                # randomly from it, and sample time stamps within the `time_window`
+                # accordingly
                 cum_sum = np.cumsum(f)
                 random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
                 indices = np.digitize(random_draws, cum_sum)
                 time_stamps[cl] = time_window[0] + indices * (time_window[1] -
                                                               time_window[0]) / len(f)
             else:
+                # if `f` is just a number, draw uniformly that many events within the
+                # `time_window`
                 time_stamps[cl] = np.random.uniform(*time_window, f)
 
         return time_stamps
+
+    def draw_events_from_flux_histogram(self, spectrum_hists, energy_bin_edges):
+
+        drawn_indices = {}
+        for cl, h in spectrum_hists.items():
+            cum_sum = np.cumsum(h)
+            random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
+
+            # TODO instead of digitize, interpolate coordinates?
+            cumsum_indices = np.clip(np.digitize(random_draws, cum_sum), 0, len(cum_sum)-2)
+            drawn_energies = ((energy_bin_edges[cl][1:]+energy_bin_edges[cl][:-1])/2)[cumsum_indices]
+
+            drawn_indices[cl] = np.argmin(np.abs(self.mc_energies[cl] -
+                                                 drawn_energies[:, np.newaxis]),
+                                          axis=1)
+        return drawn_indices
+
+    def draw_events_with_flux_weight(self, energy_reweight, N_draws):
+
+        drawn_indices = {}
+        for cl, weight in energy_reweight.items():
+            drawn_indices[cl] = np.random.choice(
+                                 range(len(self.mc_energies[cl])),
+                                 size=N_draws[cl],
+                                 **({'p': weight(self.mc_energies[cl])} if
+                                    weight else {}))
+        return drawn_indices
+
+    def draw_events_from_spectral_function(self, spectra, N_draws, energy_bin_edges):
+
+        spectrum_hists = {}
+        for cl, s in spectra.items():
+            spectrum_hists[cl] = make_mock_event_rate(spectra[cl],
+                                                      energy_bin_edges[cl],
+                                                      norm=N_draws[cl])
+        return self.draw_events_from_flux_histogram(spectrum_hists)
 
 def check_min_N(N_signal, N_backgr, min_N, verbose=True):
     """

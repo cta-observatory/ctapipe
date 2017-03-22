@@ -114,5 +114,41 @@ def test_generate_toy_timestamps():
         assert (np.min(st) >= tmin) and (np.max(st) <= tmax)
         np.testing.assert_allclose(np.mean(st), 2.5, atol=.1)
 
-test_generate_toy_timestamps()
 
+def Emin2toEmin3(e):
+    e_w = e**-1
+    return e_w / np.sum(e_w)
+
+def Emin2toFlat(e):
+    e_w = e**2
+    return e_w / np.sum(e_w)
+
+def FlattoFlat(e):
+    e_w = e**0
+    return e_w / np.sum(e_w)
+
+
+def test_draw_events_with_flux_weight():
+
+    Emin = 0
+    Emax = 50
+    Nbin = 50
+
+    energy_edges = np.linspace(Emin, Emax, Nbin, True)
+
+    energy_sel_gamma = np.random.uniform(Emin, Emax, 50000)
+
+    sens = Sensitivity_PointSource(
+                    mc_energies={'g': energy_sel_gamma},
+                    off_angles={},
+                    energy_bin_edges={"g": energy_edges},
+                    energy_unit=u.GeV, flux_unit=u.erg/(u.m**2*u.s))
+
+    indices = sens.draw_events_with_flux_weight({'g': FlattoFlat}, {'g': 1000})
+
+    from matplotlib import pyplot as plt
+    plt.figure()
+    plt.hist(energy_sel_gamma[indices['g']], bins=energy_edges[::])
+    plt.show()
+
+test_draw_events_with_flux_weight()
