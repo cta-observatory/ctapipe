@@ -9,7 +9,7 @@ from astropy import units as u
 from ctapipe.reco.table_interpolator import TableInterpolator
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 import matplotlib.pyplot as plt
-from ctapipe.image import poisson_likelihood
+from ctapipe.image import poisson_likelihood, poisson_likelihood_gaussian
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
 from ctapipe.coordinates import HorizonFrame, NominalFrame, TiltedGroundFrame, GroundFrame, project_to_ground
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
@@ -50,7 +50,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the ImPACT templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1., "NectarCam": 1., "FlashCam": 1.0, "GATE": 1.0}
+        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.1, "GATE": 0.75}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -267,10 +267,10 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         #x_max = x_max_exp
         # Convert to binning of Xmax, addition of 100 can probably be removed
         x_max_bin = x_max.value-x_max_exp
-        if x_max_bin > 150:
-            x_max_bin = 150
-        if x_max_bin < -150:
-            x_max_bin = -150
+        if x_max_bin > 100:
+            x_max_bin = 100
+        if x_max_bin < -100:
+            x_max_bin = -100
 
         impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) + pow(self.tel_pos_y[tel_id] -
                                                                                    tilt_y, 2))
@@ -279,8 +279,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id]*-1, self.pixel_y[tel_id],
                                                      source_x, source_y, phi)
-        #pix_y_rot = pix_y_rot * -1
-        #pix_x_rot = pix_x_rot * -1
 
         prediction = self.image_prediction(self.type[tel_id], 20*u.deg, 0*u.deg,
                                            energy_reco.energy.value, impact, x_max_bin,
@@ -339,10 +337,10 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
             x_max_bin = x_max.value - x_max_exp
 
             # Check for range
-            if x_max_bin > 150:
-                x_max_bin = 150
-            if x_max_bin < -150:
-                x_max_bin = -150
+            if x_max_bin > 100:
+                x_max_bin = 100
+            if x_max_bin < -100:
+                x_max_bin = -100
         else:
             x_max_bin = x_max_scale * 37.8
             if x_max_bin< 13:
@@ -366,12 +364,14 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                                energy, impact, x_max_bin,
                                                pix_x_rot*(180/math.pi), pix_y_rot*(180/math.pi))
             prediction[np.isnan(prediction)] = 0
-            prediction[prediction<0] = 0
+            prediction[prediction<1e-6] = 1e-6
 
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
             # Get likelihood that the prediction matched the camera image
-            like = poisson_likelihood(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
+            like = poisson_likelihood_gaussian(self.image[tel_count], prediction, self.spe, self.ped[tel_count])
+            if np.any(prediction == np.inf):
+                print("inf found at ",self.type[tel_count], zenith, azimuth, energy, impact, x_max_bin)
             like[np.isnan(like)] = 1e9
             sum_like += np.sum(like)
             if np.sum(prediction) is 0:
@@ -495,8 +495,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                      limit_energy=(lower_en_limit.value,energy_seed.energy.value*10.),
                      x_max_scale=1, error_x_max_scale=0.1, limit_x_max_scale=(0.5,2), fix_x_max_scale=False, errordef=1)
 
-        #min.tol *= 1000
-        #min.strategy = 0
+        min.tol *= 1000
+        min.strategy = 0
 
         # Perform minimisation
         migrad = min.migrad()

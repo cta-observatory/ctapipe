@@ -104,7 +104,6 @@ class ArrayPlotter:
         """
 
         plt.contour(x, y, background, **kwargs)
-
         # Annoyingly we need to redraw everything
         self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y))
 
