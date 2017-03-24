@@ -3,8 +3,9 @@ from numpy import allclose
 import astropy.units as u
 
 from ctapipe.analysis.Sensitivity import *
-from ctapipe.analysis.Sensitivity import check_min_N, check_background_contamination, \
-                                         CR_background_rate, Eminus2
+from ctapipe.analysis.Sensitivity import (check_min_N, check_background_contamination,
+                                         CR_background_rate, Eminus2,
+                                         make_mock_event_rate, crab_source_rate)
 
 
 def test_check_min_N():
@@ -101,38 +102,49 @@ def test_generate_toy_timestamps():
 
     tmin, tmax = 0, 5
 
-    NP = 500
+    Nthrows = 500
 
     time_stamps = Sensitivity_PointSource.\
         generate_toy_timestamps(light_curve={'g': gamma_light_curve,
-                                             'p': NP},
+                                             'p': Nthrows},
                                 time_window=(tmin, tmax))
 
     assert len(time_stamps['g']) == int(np.sum(gamma_light_curve))
-    assert len(time_stamps['p']) == NP
+    assert len(time_stamps['p']) == Nthrows
     for st in time_stamps.values():
         assert (np.min(st) >= tmin) and (np.max(st) <= tmax)
         np.testing.assert_allclose(np.mean(st), 2.5, atol=.1)
 
 
-def Emin2toEmin3(e):
-    e_w = e**-1
-    return e_w / np.sum(e_w)
-
-def Emin2toFlat(e):
-    e_w = e**2
-    return e_w / np.sum(e_w)
-
-def FlattoFlat(e):
-    e_w = e**0
-    return e_w / np.sum(e_w)
-
-
 def test_draw_events_with_flux_weight():
 
-    Emin = 0
+    Emin = 20
     Emax = 50
     Nbin = 50
+    Ndraws = 10000
+
+    def weight_from_energy(e, gamma_new=3, gamma_old=2):
+        """
+        use this to determine event weights (i.e. probabilities to get picked in the
+        random draw
+
+        Parameters
+        ----------
+        e : numpy array
+            the energies of the MC events
+        gamma_new : float
+            the spectral index the drawn set of events are supposed to follow
+        gamma_old : float
+            the spectral index the MC events have been generated with
+
+        Returns
+        -------
+        weights : numpy array
+            list of event weights normalised to 1
+            to be used as PDF in `np.random.choice`
+        """
+        e_w = e**(gamma_old - gamma_new)
+        return e_w / np.sum(e_w)
 
     energy_edges = np.linspace(Emin, Emax, Nbin, True)
 
@@ -144,11 +156,45 @@ def test_draw_events_with_flux_weight():
                     energy_bin_edges={"g": energy_edges},
                     energy_unit=u.GeV, flux_unit=u.erg/(u.m**2*u.s))
 
-    indices = sens.draw_events_with_flux_weight({'g': FlattoFlat}, {'g': 1000})
+    indices = sens.draw_events_with_flux_weight(
+                        {'g': lambda e: weight_from_energy(e, 2, 0)},
+                        {'g': Ndraws})
 
+    assert len(energy_sel_gamma[indices['g']]) == Ndraws
+    # TODO come up with more tests...
+
+
+def test_draw_events_from_flux_histogram():
     from matplotlib import pyplot as plt
+
+    Emin = 20
+    Emax = 50
+    Nbin = 100
+    Ndraws = 5000
+
+    energy_edges = np.linspace(Emin, Emax, Nbin, True)
+    energy_sel_gamma = np.random.uniform(Emin, Emax, 50000)
+
+
+    target_distribution = make_mock_event_rate(lambda e: e**-3,
+                                               energy_edges,
+                                               norm=Ndraws, log_e=False)
     plt.figure()
-    plt.hist(energy_sel_gamma[indices['g']], bins=energy_edges[::])
+    plt.plot(energy_edges[:-1], target_distribution)
+    plt.pause(0.1)
+
+    sens = Sensitivity_PointSource(
+                    mc_energies={'g': energy_sel_gamma},
+                    off_angles={},
+                    energy_bin_edges={"g": energy_edges},
+                    energy_unit=u.GeV, flux_unit=u.erg/(u.m**2*u.s))
+
+    indices = sens.draw_events_from_flux_histogram(
+                        {'g': target_distribution},
+                        {'g': energy_edges})
+
+    plt.figure()
+    plt.hist(energy_sel_gamma[indices['g']], bins=energy_edges[::4])
     plt.show()
 
-test_draw_events_with_flux_weight()
+test_draw_events_from_flux_histogram()

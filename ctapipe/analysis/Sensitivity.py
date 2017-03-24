@@ -209,7 +209,7 @@ class Sensitivity_PointSource():
     """
     def __init__(self, mc_energies, energy_bin_edges,
                  off_angles=None,
-                 source_origin=None, event_origins=None,
+                 source_origin=None, event_origins=None, verbose=False,
                  energy_unit=u.GeV, flux_unit=u.GeV / (u.m**2*u.s)):
         """
         constructor, simply sets some initial parameters
@@ -256,6 +256,8 @@ class Sensitivity_PointSource():
 
         self.class_list = mc_energies.keys()
 
+        self.verbose = verbose
+
         self.energy_unit = energy_unit
         self.flux_unit = flux_unit
 
@@ -295,7 +297,7 @@ class Sensitivity_PointSource():
         """
 
         assert (n_simulated_events is not None and generator_spectra is not None) != \
-                (generator_energy_hists is not None), \
+                (generator_energy_hists), \
             "use either (n_simulated_events and generator_spectra) or generator_" \
             "energy_hists to set the MC generated energy spectrum -- not both\n" \
 
@@ -305,6 +307,7 @@ class Sensitivity_PointSource():
                 generator_energy_hists[cl] = make_mock_event_rate(
                                     generator_spectra[cl], norm=n_simulated_events[cl],
                                     bin_edges=self.energy_bin_edges[cl])
+        self.generator_energy_hists = generator_energy_hists
 
         # an energy-binned histogram of the effective areas
         # binning according to .energy_bin_edges[cl]
@@ -441,10 +444,17 @@ class Sensitivity_PointSource():
             # energy bin
             for cl in self.class_list:
                 # all events that have a smaller angular offset than `r_on`
-                on_mask = (self.off_angles[cl] < r_on)
+                try:
+                    on_mask = (self.off_angles[cl] < r_on)
+                except:
+                    on_mask = (self.off_angles[cl] < r_on.value)
+
                 # all events that have a smaller angular offset than `r_off` but are
                 # not in the on-region
-                off_mask = (self.off_angles[cl] < r_off) ^ on_mask
+                try:
+                    off_mask = (self.off_angles[cl] < r_off) ^ on_mask
+                except:
+                    off_mask = (self.off_angles[cl] < r_off.value) ^ on_mask
                 # single out the events in this energy bin
                 e_mask = (self.mc_energies[cl] > elow) & (self.mc_energies[cl] < ehigh)
                 # is this channel signal or background
@@ -599,9 +609,19 @@ class Sensitivity_PointSource():
             cum_sum = np.cumsum(h)
             random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
 
-            # TODO instead of digitize, interpolate coordinates?
-            cumsum_indices = np.clip(np.digitize(random_draws, cum_sum), 0, len(cum_sum)-2)
-            drawn_energies = ((energy_bin_edges[cl][1:]+energy_bin_edges[cl][:-1])/2)[cumsum_indices]
+            cumsum_indices = np.digitize(random_draws, cum_sum)
+
+            cum_sums_up = cum_sum[np.clip(cumsum_indices, 1, len(cum_sum)-1)]
+            cum_sums_lo = cum_sum[np.clip(cumsum_indices-1, 0, len(cum_sum)-2)]
+
+            energies_up = ((energy_bin_edges[cl][1:]+energy_bin_edges[cl][:-1])/2)[cumsum_indices]
+            energies_lo = ((energy_bin_edges[cl][1:]+energy_bin_edges[cl][:-1])/2)[cumsum_indices-1]
+
+            energies_up = energy_bin_edges[cl][cumsum_indices]
+            energies_lo = energy_bin_edges[cl][cumsum_indices-1]
+
+            drawn_energies = energies_lo + (random_draws-cum_sums_lo) * \
+                        (energies_up-energies_lo) / (cum_sums_up-cum_sums_lo)
 
             drawn_indices[cl] = np.argmin(np.abs(self.mc_energies[cl] -
                                                  drawn_energies[:, np.newaxis]),
@@ -615,8 +635,7 @@ class Sensitivity_PointSource():
             drawn_indices[cl] = np.random.choice(
                                  range(len(self.mc_energies[cl])),
                                  size=N_draws[cl],
-                                 **({'p': weight(self.mc_energies[cl])} if
-                                    weight else {}))
+                                 p=weight(self.mc_energies[cl]))
         return drawn_indices
 
     def draw_events_from_spectral_function(self, spectra, N_draws, energy_bin_edges):
