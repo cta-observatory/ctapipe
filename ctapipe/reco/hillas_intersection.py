@@ -39,7 +39,6 @@ def reconstruct_nominal(hillas_parameters,weighting="Konrad"):
     # Find all pairs of Hillas parameters
     hillas_pairs = list(itertools.combinations(list(hillas_parameters.values()), 2))
 
-    print(type(hillas_pairs))
     # Copy parameters we need to a numpy array to speed things up
     h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].cen_x.value,h[0].cen_y.value,h[0].size],hillas_pairs))
     h1 = np.array(h1)
