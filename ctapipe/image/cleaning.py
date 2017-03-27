@@ -48,11 +48,8 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
     # good boundary pixels are those that have any picture pixel as a
     # neighbor
     boundary_mask = image >= boundary_thresh * pedvars
-    neigh = geom['PixNeig']
-    ids = geom['PixID']
-
-    boundary_ids = [pix_id for pix_id in ids[boundary_mask]
-                    if clean_mask[neigh[pix_id]].any()]
+    boundary_ids = [pix_id for pix_id in geom.pix_id[boundary_mask]
+                    if clean_mask[geom.neighbors[pix_id]].any()]
 
     clean_mask[boundary_ids] = True
     return clean_mask
