@@ -7,7 +7,6 @@
 import numpy as np
 import itertools
 import astropy.units as u
-from ctapipe.coordinates.frames import NominalFrame,TiltedGroundFrame,GroundFrame
 
 __all__ = [
     'reconstruct_nominal',
@@ -35,9 +34,12 @@ def reconstruct_nominal(hillas_parameters,weighting="Konrad"):
     if len(hillas_parameters)<2:
         return None # Throw away events with < 2 images
 
-    # Find all pairs of Hillas parameters
-    hillas_pairs = list(itertools.combinations(hillas_parameters, 2))
+    print(type(list(hillas_parameters.values())))
 
+    # Find all pairs of Hillas parameters
+    hillas_pairs = list(itertools.combinations(list(hillas_parameters.values()), 2))
+
+    print(type(hillas_pairs))
     # Copy parameters we need to a numpy array to speed things up
     h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].cen_x.value,h[0].cen_y.value,h[0].size],hillas_pairs))
     h1 = np.array(h1)
@@ -74,7 +76,7 @@ def reconstruct_tilted(hillas_parameters,tel_x,tel_y,weighting="Konrad"):
         return None # Throw away events with < 2 images
 
     # Find all pairs of Hillas parameters
-    hillas_pairs = list(itertools.combinations(hillas_parameters, 2))
+    hillas_pairs = list(itertools.combinations(hillas_parameters.values, 2))
     tel_x = np.array(list(itertools.combinations(tel_x, 2)))
     tel_y= np.array(list(itertools.combinations(tel_y, 2)))
 
