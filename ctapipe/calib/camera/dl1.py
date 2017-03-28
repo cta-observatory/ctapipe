@@ -243,7 +243,6 @@ class CameraDL1Calibrator(Component):
 
                 if self.correction:
                     correction = np.asarray(self.get_correction(event, telid))
-                    print(type(correction), type(charge))
                     corrected = charge * correction[:, np.newaxis]
                 else:
                     corrected = charge
