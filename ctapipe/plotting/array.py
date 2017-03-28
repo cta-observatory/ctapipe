@@ -38,6 +38,7 @@ class ArrayPlotter:
         tel_z = [self.instrument.tel_pos[i][2].to(u.m).value for i in self.telescopes]
 
         tel_type = np.asarray([type_dict[self.instrument.optical_foclen[i].to(u.m).value] for i in self.telescopes])
+        self.tel_type = tel_type
 
         if system is not None:
             ground = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
@@ -106,7 +107,7 @@ class ArrayPlotter:
         plt.contour(x, y, background, **kwargs)
 
         # Annoyingly we need to redraw everything
-        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y))
+        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y), tel_type=self.tel_type)
 
         if self.hillas is not None:
             self.overlay_hillas(self.hillas)
@@ -155,6 +156,6 @@ class ArrayPlotter:
             ground = GroundFrame(x=np.asarray(core_x)*u.m, y=np.asarray(core_y)*u.m, z=np.asarray(0)*u.m)
             new_sys = ground.transform_to(self.system)
 
-        self.array.add_polygon(centroid=(new_sys.x.value,new_sys.y.value), radius=20, nsides=3, **kwargs)
+        self.array.add_polygon(centroid=(new_sys.x.value,new_sys.y.value), radius=10, nsides=3, **kwargs)
         if use_centre:
             self.centre = (new_sys.x.value,new_sys.y.value)
