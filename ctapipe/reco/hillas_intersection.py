@@ -44,8 +44,11 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         horiz = nom.transform_to(HorizonFrame())
         result = ReconstructedShowerContainer()
         result.alt, result.az = horiz.alt, horiz.az
-        result.core_x = core_x * u.m
-        result.core_y = core_y * u.m
+
+        tilt = TiltedGroundFrame(x=core_x*u.m, y=core_y*u.m, pointing_direction=array_direction)
+        grd = project_to_ground(tilt)
+        result.core_x = grd.x
+        result.core_y = grd.y
 
         result.core_uncert = np.sqrt(core_err_x*core_err_x + core_err_y*core_err_y) * u.m
 
@@ -131,20 +134,29 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         """
         if len(hillas_parameters)<2:
             return None # Throw away events with < 2 images
+        h = list()
+        tx = list()
+        ty = list()
+
+        for tel in hillas_parameters.keys():
+            h.append(hillas_parameters[tel])
+            tx.append(tel_x[tel])
+            ty.append(tel_y[tel])
 
         # Find all pairs of Hillas parameters
-        hillas_pairs = list(itertools.combinations(list(hillas_parameters.values()), 2))
-        tel_x = list(itertools.combinations(list(tel_x.values()), 2))
-        tel_y= list(itertools.combinations(list(tel_y.values()), 2))
+        hillas_pairs = list(itertools.combinations(h, 2))
+        tel_x = list(itertools.combinations(tx, 2))
+        tel_y= list(itertools.combinations(ty, 2))
 
         tx = np.zeros((len(tel_x),2))
         ty = np.zeros((len(tel_y),2))
         for i in range(len(tel_x)):
             tx[i][0], tx[i][1] = tel_x[i][0].value, tel_x[i][1].value
-            ty[i][0], ty[i][0] = tel_y[i][0].value, tel_y[i][1].value
+            ty[i][0], ty[i][1] = tel_y[i][0].value, tel_y[i][1].value
 
         tel_x = np.array(tx)
         tel_y = np.array(ty)
+
 
          # Copy parameters we need to a numpy array to speed things up
         h1 = list(map(lambda h:[h[0].psi.to(u.rad).value,h[0].size],hillas_pairs))
@@ -154,6 +166,7 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         h2 = np.array(list(map(lambda h:[h[1].psi.to(u.rad).value,h[1].size],hillas_pairs)))
         h2 = np.array(h2)
         h2 = np.transpose(h2)
+
         # Perform intersection
         cx,cy = self.intersect_lines(tel_x[:,0],tel_y[:,0],h1[0],
                                      tel_x[:,1],tel_y[:,1],h2[0])
