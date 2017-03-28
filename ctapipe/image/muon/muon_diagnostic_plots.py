@@ -29,7 +29,7 @@ def plot_muon_efficiency(outputpath):
     figrw,axrw = plt.subplots(1,1,figsize=(10,10))
     
     nbins = 16
-    t = Table.read(outputpath+'_muontable.fits')
+    t = Table.read(str(outputpath)+'_muontable.fits')
     print('Reading muon efficiency from table',outputpath,t['MuonEff'])
 
     if len(t['MuonEff']) < 1:
@@ -67,7 +67,7 @@ def plot_muon_efficiency(outputpath):
     #plt.figure(figip.number)
     plt.draw()
     
-    heffimp = Histogram(nbins=[16,16],ranges=[(min(t['MuonEff']),max(t['MuonEff'])),(min(t['ImpactP']),max(t['ImpactP']))],axisNames=["MuonEfficiency","ImpactParameter"])
+    heffimp = Histogram(nbins=[16,16],ranges=[(min(t['MuonEff']),max(t['MuonEff'])),(min(t['ImpactP']),max(t['ImpactP']))])#,axisNames=["MuonEfficiency","ImpactParameter"])
     #embed()
     #heffimp.bin_lower_edges([xtest,yimp])
     heffimp.fill([t['MuonEff'],t['ImpactP']])
@@ -81,12 +81,14 @@ def plot_muon_efficiency(outputpath):
     axrw.set_xlabel('Ring Width ($^\circ$)')
     #plt.figure(figrw.number)
     plt.draw()
-    plt.show()
+    #plt.show()
     if outputpath is not None:
-        fig.savefig(outputpath+'_MuonEff.png')
-        figip.savefig(outputpath+'_ImpactParameter.png')
-        figrw.savefig(outputpath+'_RingWidth.png')
+        print("saving figure at",outputpath)
+        fig.savefig(str(outputpath)+'_MuonEff.png')
+        figip.savefig(str(outputpath)+'_ImpactParameter.png')
+        figrw.savefig(str(outputpath)+'_RingWidth.png')
     else:
+        print("Not saving figure, no outputpath")
         plt.show()
 
 
@@ -99,8 +101,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
         fig = plt.figure(figsize=(16, 7))
         #if args.display:
         #    plt.show(block=False)
-        #pp = PdfPages(args.output_path) if args.output_path is not None else None
-        pp = None #For now, need to correct this
+        pp = PdfPages(args.output_path) if args.output_path is not None else None
+        #pp = None #For now, need to correct this
         
         colorbar = None
         colorbar2 = None
