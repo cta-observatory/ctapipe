@@ -12,8 +12,8 @@ from ctapipe.utils.datasets import get_datasets_path
 
 def compare(read_container, source_container):
     # test if 4th adc value of telescope 17 HI_GAIN are equals
-    return (read_container.dl0.tel[17].adc_samples[0][2][4] ==
-            source_container.dl0.tel[17].adc_samples[0][2][4])
+    return (read_container.r0.tel[17].adc_samples[0][2][4] ==
+            source_container.r0.tel[17].adc_samples[0][2][4])
 
 
 def generate_input_containers():

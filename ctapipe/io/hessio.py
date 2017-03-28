@@ -115,6 +115,12 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                         counter += 1
                         continue
 
+                data.r0.run_id = pyhessio.get_run_number()
+                data.r0.event_id = event_id
+                data.r0.tels_with_data = set(pyhessio.get_teldata_list())
+                data.r1.run_id = pyhessio.get_run_number()
+                data.r1.event_id = event_id
+                data.r1.tels_with_data = set(pyhessio.get_teldata_list())
                 data.dl0.run_id = pyhessio.get_run_number()
                 data.dl0.event_id = event_id
                 data.dl0.tels_with_data = set(pyhessio.get_teldata_list())
@@ -122,9 +128,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 # handle telescope filtering by taking the intersection of
                 # tels_with_data and allowed_tels
                 if allowed_tels is not None:
-                    selected = data.dl0.tels_with_data & allowed_tels
+                    selected = data.r0.tels_with_data & allowed_tels
                     if len(selected) == 0:
                         continue  # skip event
+                    data.r0.tels_with_data = selected
+                    data.r1.tels_with_data = selected
                     data.dl0.tels_with_data = selected
 
                 data.trig.tels_with_trigger \
@@ -150,12 +158,15 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 # data each time (right now it's just deleted and garbage
                 # collected)
 
+                data.r0.tel.clear()
+                data.r1.tel.clear()
                 data.dl0.tel.clear()
+                data.dl1.tel.clear()
                 data.mc.tel.clear()  # clear the previous telescopes
 
                 _fill_instrument_info(data, pyhessio)
 
-                for tel_id in data.dl0.tels_with_data:
+                for tel_id in data.r0.tels_with_data:
 
                     # event.mc.tel[tel_id] = MCCameraContainer()
 
@@ -164,9 +175,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     data.mc.tel[tel_id].pedestal \
                         = pyhessio.get_pedestal(tel_id)
 
-                    data.dl0.tel[tel_id].adc_samples = \
+                    data.r0.tel[tel_id].adc_samples = \
                         pyhessio.get_adc_sample(tel_id)
-                    data.dl0.tel[tel_id].adc_sums = \
+                    data.r0.tel[tel_id].adc_sums = \
                         pyhessio.get_adc_sum(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = \
                         pyhessio.get_ref_shapes(tel_id)
@@ -174,7 +185,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     nsamples = pyhessio.get_event_num_samples(tel_id)
                     if nsamples <= 0:
                         nsamples = 1
-                        data.dl0.tel[tel_id].num_samples = nsamples
+                    data.r0.tel[tel_id].num_samples = nsamples
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = pyhessio.get_mc_number_photon_electron
