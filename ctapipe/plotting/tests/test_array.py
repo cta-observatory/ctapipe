@@ -22,8 +22,7 @@ def test_array_draw():
     calibrator = CameraDL1Calibrator(None, None)
 
     for event in source:
-        array_pointing = np.array((event.mcheader.run_array_direction[1], event.mcheader.run_array_direction[0])) * \
-                         u.rad
+        array_pointing =(event.mcheader.run_array_direction[1]*u.rad, event.mcheader.run_array_direction[0]*u.rad)
         array_view = ArrayPlotter(instrument=event.inst,
                                   system=TiltedGroundFrame(pointing_direction=array_pointing))
 
@@ -66,9 +65,9 @@ def test_array_draw():
                 print(e)
                 continue
 
-        array_view.background_image(np.ones((4,4)), ((-1500,1500),(-1500,1500)))
-        array_view.overlay_hillas(hillas_dict)
-        array_view.draw_array()
+        #array_view.background_image(np.ones((4,4)), ((-1500,1500),(-1500,1500)))
+        array_view.overlay_hillas(hillas_dict, draw_axes=True)
+        array_view.draw_array(range=((-1000,1000),(-1000,1000)))
         #return
 
 if __name__ == "__main__":

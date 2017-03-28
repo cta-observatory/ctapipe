@@ -54,7 +54,7 @@ class ArrayPlotter:
 
         self.hillas = None
 
-    def overlay_hillas(self, hillas, scale_fac=20000, **kwargs):
+    def overlay_hillas(self, hillas, scale_fac=20000, draw_axes=False, **kwargs):
         """
         Overlay hillas parameters on top of the array map
 
@@ -79,6 +79,8 @@ class ArrayPlotter:
             new_sys = ground.transform_to(self.system)
             self.array.overlay_moments(hillas, (new_sys.x, new_sys.y), scale_fac,
                                        cmap="Greys", alpha=0.5, **kwargs)
+            if draw_axes:
+                self.array.overlay_axis(hillas, (new_sys.x, new_sys.y))
         else:
             self.array.overlay_moments(hillas, (tel_x, tel_y), scale_fac, cmap="viridis", **kwargs)
 

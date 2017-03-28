@@ -4,8 +4,9 @@ Visualization routines using matplotlib
 """
 import matplotlib
 from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection
+from matplotlib.collections import PatchCollection, LineCollection
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
+from matplotlib.lines import Line2D
 from matplotlib.colors import Normalize, LogNorm
 from numpy import sqrt
 import numpy as np
@@ -538,3 +539,30 @@ class ArrayDisplay:
         patches.set_clim(0, 1000) # Set ellipse colour based on image size
         patches.set_array(np.asarray(size_list))
         self.axes_hillas.add_collection(patches)
+
+    def overlay_axis(self, momparams, tel_position, **kwargs):
+        """helper to overlay ellipse from a `reco.MomentParameters` structure
+
+        Parameters
+        ----------
+        momparams: `reco.MomentParameters`
+            structuring containing Hillas-style parameterization
+        tel_position: list
+            (x, y) positions of each telescope
+        kwargs: key=value
+            any style keywords to pass to matplotlib (e.g. color='red'
+            or linewidth=6)
+        """
+        # strip off any units
+        line_list = list()
+        size_list = list()
+        i = 0
+        for h in momparams:
+            tel_x = u.Quantity(tel_position[0][i]).value
+            tel_y = u.Quantity(tel_position[1][i]).value
+            psi = u.Quantity(momparams[h].psi).value
+            x_sc = [tel_x - np.cos(psi) * 10000, tel_x + np.cos(psi) * 10000]
+            y_sc = [tel_y - np.sin(psi) * 10000, tel_y + np.sin(psi) * 10000]
+
+            i += 1
+            self.axes_hillas.add_line(Line2D(x_sc, y_sc, linestyle='dashed', color='black'))
