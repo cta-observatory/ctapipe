@@ -86,7 +86,7 @@ def main():
         # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)
         if muon_evt[0] is not None and muon_evt[1] is not None:
 
-            #plot_muon_event(event,muon_evt)
+            plot_muon_event(event,muon_evt,None,args)
             
             plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
             plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
@@ -105,7 +105,6 @@ def main():
 
     t.write(str(args.output_path)+'_muontable.fits',overwrite=True) #NEED this to overwrite
 
-    #plot_muon_efficiency(plot_dict,args.output_path)
     plot_muon_efficiency(args.output_path)
     
     log.info("[COMPLETE]")

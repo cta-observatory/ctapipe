@@ -101,7 +101,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
         fig = plt.figure(figsize=(16, 7))
         #if args.display:
         #    plt.show(block=False)
-        pp = PdfPages(args.output_path) if args.output_path is not None else None
+        #pp = PdfPages(args.output_path) if args.output_path is not None else None
         #pp = None #For now, need to correct this
         
         colorbar = None
@@ -251,8 +251,9 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
         
             #plt.pause(0.1)
-            if pp is not None:
-                pp.savefig(fig)
-        
+            #if pp is not None:
+            #    pp.savefig(fig)
+            fig.savefig(str(args.output_path)+"_"+str(event.dl0.event_id)+'.png')
+
             plt.close()
 
