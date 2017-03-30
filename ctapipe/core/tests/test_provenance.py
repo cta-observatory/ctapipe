@@ -29,6 +29,17 @@ def test_ActivityProvenance():
     prov.sample_cpu_and_memory()
     prov.finish()
 
+
+def test_provenence_contextmanager():
+
+    prov = Provenance()
+
+    with prov.activity("myactivity"):
+        assert 'myactivity' in prov.active_activity_names
+
+    assert 'myactivity' in prov.finished_activity_names
+    assert 'myactivity' not in prov.active_activity_names
+
 if __name__ == '__main__':
 
     import logging

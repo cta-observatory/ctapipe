@@ -10,6 +10,7 @@ import logging
 import platform
 import sys
 from os.path import abspath
+from contextlib import contextmanager
 
 import ctapipe
 import numpy as np
@@ -69,6 +70,13 @@ class Provenance(metaclass=Singleton):
         activity.finish()
         self._finished_activities.append(activity)
         log.debug("finished activity: {}".format(activity.name))
+
+    @contextmanager
+    def activity(self, name):
+        """ context manager for activities """
+        self.start_activity(name)
+        yield
+        self.finish_activity(name)
 
     @property
     def current_activity(self):
