@@ -41,7 +41,7 @@ class CameraPlotter:
         self.cameradisplay_dict = {}
 
     def get_geometry(self, tel):
-        npix = len(self.event.dl0.tel[tel].adc_sums[0])
+        npix = len(self.event.r0.tel[tel].adc_sums[0])
         cam_dimensions = (npix, self.event.inst.optical_foclen[tel])
 
         if tel not in self.geom_dict:

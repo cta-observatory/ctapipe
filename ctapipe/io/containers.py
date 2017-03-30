@@ -8,18 +8,25 @@ from astropy.time import Time
 from ..core import Container, Item, Map
 from numpy import ndarray
 
-__all__ = ['DataContainer',
-           'RawDataContainer',
-           'RawCameraContainer',
+__all__ = ['InstrumentContainer',
+           'R0Container',
+           'R0CameraContainer',
+           'R1Container',
+           'R1CameraContainer',
+           'DL0Container',
+           'DL0CameraContainer',
+           'DL1Container',
+           'DL1CameraContainer',
            'MCEventContainer',
+           'MCHeaderContainer',
            'MCCameraEventContainer',
            'CameraCalibrationContainer',
+           'CentralTriggerContainer',
+           'ReconstructedContainer',
            'ReconstructedShowerContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
-           'ReconstructedContainer',
-           'DL1CameraContainer',
-           'DL1Container']
+           'DataContainer']
 
 # todo: change some of these Maps to be just 3D NDarrays?
 
@@ -73,7 +80,7 @@ class DL1Container(Container):
                "map of tel_id to DL1CameraContainer")
 
 
-class RawCameraContainer(Container):
+class R0CameraContainer(Container):
     """
     Storage of raw data from a single telescope
     """
@@ -84,7 +91,8 @@ class RawCameraContainer(Container):
     num_samples = Item(None, "number of time samples for telescope")
 
 
-class RawDataContainer(Container):
+
+class R0Container(Container):
     """
     Storage of a Merged Raw Data Event
     """
@@ -92,7 +100,46 @@ class RawDataContainer(Container):
     run_id = Item(-1, "run id number")
     event_id = Item(-1, "event id number")
     tels_with_data = Item([], "list of telescopes with data")
-    tel = Item(Map(RawCameraContainer), "map of tel_id to RawCameraContainer")
+    tel = Item(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
+
+
+class R1CameraContainer(Container):
+    """
+    Storage of r1 calibrated data from a single telescope
+    """
+    pe_samples = Item(None, ("numpy array containing p.e. samples"
+                             "(n_channels x n_pixels, n_samples)"))
+
+
+class R1Container(Container):
+    """
+    Storage of a r1 calibrated Data Event
+    """
+
+    run_id = Item(-1, "run id number")
+    event_id = Item(-1, "event id number")
+    tels_with_data = Item([], "list of telescopes with data")
+    tel = Item(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
+
+
+class DL0CameraContainer(Container):
+    """
+    Storage of data volume reduced dl0 data from a single telescope
+    """
+    pe_samples = Item(None, ("numpy array containing data volume reduced "
+                             "p.e. samples"
+                             "(n_channels x n_pixels, n_samples)"))
+
+
+class DL0Container(Container):
+    """
+    Storage of a data volume reduced Event
+    """
+
+    run_id = Item(-1, "run id number")
+    event_id = Item(-1, "event id number")
+    tels_with_data = Item([], "list of telescopes with data")
+    tel = Item(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
 class MCCameraEventContainer(Container):
@@ -225,8 +272,10 @@ class ReconstructedContainer(Container):
 class DataContainer(Container):
     """ Top-level container for all event information """
 
-    dl0 = Item(RawDataContainer(), "Raw Data")
-    dl1 = Item(DL1Container())
+    r0 = Item(R0Container(), "Raw Data")
+    r1 = Item(R1Container(), "R1 Calibrated Data")
+    dl0 = Item(DL0Container(), "DL0 Data Volume Reduced Data")
+    dl1 = Item(DL1Container(), "DL1 Calibrated image")
     dl2 = Item(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Item(MCEventContainer(), "Monte-Carlo data")
     mcheader = Item(MCHeaderContainer, "Monte-Carlo run header data")

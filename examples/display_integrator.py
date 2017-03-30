@@ -7,12 +7,14 @@ image, and a calibrated camera image
 """
 
 import os
-from traitlets import Dict, List, Int, Bool, Unicode, Enum
 import numpy as np
+from traitlets import Dict, List, Int, Bool, Unicode, Enum
 from matplotlib import pyplot as plt
 from ctapipe.core import Tool, Component
 from ctapipe.io.eventfilereader import EventFileReaderFactory
-from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.io import CameraGeometry
 from ctapipe.visualization import CameraDisplay
@@ -53,7 +55,8 @@ class IntegratorPlotter(Component):
 
     def plot(self, input_file, event, telid, chan, extractor_name, nei):
         # Extract required images
-        dl0 = event.dl0.tel[telid].adc_samples[chan]
+        dl0 = event.dl0.tel[telid].pe_samples[chan]
+
         t_pe = event.mc.tel[telid].photo_electron_image
         dl1 = event.dl1.tel[telid].image[chan]
         max_time = np.unravel_index(np.argmax(dl0), dl0.shape)[1]
@@ -72,7 +75,7 @@ class IntegratorPlotter(Component):
         windows = event.dl1.tel[telid].extracted_samples[chan]
         length = np.sum(windows, axis=1)
         start = np.argmax(windows, axis=1)
-        end = start + length
+        end = start + length - 1
 
         # Draw figures
         ax_max_nei = {}
@@ -319,8 +322,10 @@ class DisplayIntegrator(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.file_reader = None
+        self.r1 = None
+        self.dl0 = None
         self.extractor = None
-        self.calibrator = None
+        self.dl1 = None
         self.plotter = None
 
     def setup(self):
@@ -335,17 +340,27 @@ class DisplayIntegrator(Tool):
         extractor_class = extractor_factory.get_class()
         self.extractor = extractor_class(**kwargs)
 
-        self.calibrator = CameraDL1Calibrator(extractor=self.extractor,
-                                              **kwargs)
+        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
+                                               **kwargs)
+        r1_class = r1_factory.get_class()
+        self.r1 = r1_class(**kwargs)
+
+        self.dl0 = CameraDL0Reducer(**kwargs)
+
+        self.dl1 = CameraDL1Calibrator(extractor=self.extractor, **kwargs)
 
         self.plotter = IntegratorPlotter(**kwargs)
 
     def start(self):
         event = self.file_reader.get_event(self.event_index, self.use_event_id)
-        self.calibrator.calibrate(event)
+
+        # Calibrate
+        self.r1.calibrate(event)
+        self.dl0.reduce(event)
+        self.dl1.calibrate(event)
 
         # Select telescope
-        tels = list(event.dl0.tels_with_data)
+        tels = list(event.r0.tels_with_data)
         telid = self.telescope
         if telid is None:
             telid = tels[0]
@@ -354,7 +369,7 @@ class DisplayIntegrator(Tool):
                            "telescopes for this event: {}".format(tels))
             exit()
 
-        neighbour_list = self.calibrator.get_neighbours(event, telid)
+        neighbour_list = self.dl1.get_neighbours(event, telid)
         extractor_name = self.extractor.name
 
         self.plotter.plot(self.file_reader, event, telid,

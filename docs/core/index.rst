@@ -26,8 +26,13 @@ to provide a common interface.
 
 For details about creating command-line tools, see :ref:`tools`
 
-.. graphviz:: corediagram.dot
+The following shows the conceptual difference between `Tools` and
+`Components` with overall pipelines and stages.  Serialization and
+Deserialization are simply specialized Components that perform data access.
 
+.. image:: tool-component.pdf
+
+	      
 Reference/API
 =============
 
