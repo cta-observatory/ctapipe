@@ -386,7 +386,6 @@ class Sensitivity_PointSource():
 
         self.event_weights = {}
         for cl in self.class_list:
-            self.event_weights[cl] = []
             weights = (self.exp_events_per_energy_bin[cl] / self.selected_events[cl]).si
             self.event_weights[cl] = weights[np.digitize(np.log10(self.mc_energies[cl]),
                                                     self.energy_bin_edges[cl])-1]
@@ -396,8 +395,8 @@ class Sensitivity_PointSource():
         return self.event_weights
 
     def get_sensitivity(self, min_n=10, max_background_ratio=.05,
-                        r_on=.3*u.deg, r_off=5*u.deg,
-                        signal_list=("g"), verbose=False):
+                        r_on=.3*u.deg, r_off=5*u.deg, signal_list=("g"),
+                        sensitivity_energy_bin_edges=None, verbose=False):
         """
         finally calculates the sensitivity to a point-source
 
@@ -411,14 +410,20 @@ class Sensitivity_PointSource():
             is larger than this, scale up the gammas events accordingly
         r_on, r_off : floats, optional (defaults: 0.3, 5)
             radii of the on and off region considered for the significance calculation
+        sensitivity_energy_bin_edges : numpy array
+            array of the bin edges for the sensitivity calculation
         verbose : bool, optional
             print some statistics for every energy bin
 
         Returns
         -------
         sensitivities : astropy.table.Table
-            the sensitivity for every energy bin of `.energy_bin_edges[signal_list[0]]`
+            the sensitivity for every energy bin of `sensitivity_energy_bin_edges`
         """
+
+        assert sensitivity_energy_bin_edges is not None, \
+            "sensitivity_energy_bin_edges has to be set"
+
 
         # the area-ratio of the on- and off-region
         # A_on = r_on**2 * pi
@@ -433,8 +438,8 @@ class Sensitivity_PointSource():
         sensitivities["Sensitivity"].unit = self.flux_unit
 
         # loop over all energy bins
-        for elow, ehigh in zip(10**(self.energy_bin_edges[signal_list[0]][:-1]),
-                               10**(self.energy_bin_edges[signal_list[0]][1:])):
+        for elow, ehigh in zip(10**sensitivity_energy_bin_edges[:-1],
+                               10**sensitivity_energy_bin_edges[1:]):
 
             # N_events[backgr/signal][on/off region]
             N_events = np.array([[0., 0.], [0., 0.]])
@@ -533,7 +538,8 @@ class Sensitivity_PointSource():
 
                                 # arguments for `get_sensitivity`
                                 min_n=10, max_prot_ratio=.05,
-                                r_on=.3*u.deg, r_off=5*u.deg
+                                r_on=.3*u.deg, r_off=5*u.deg,
+                                sensitivity_energy_bin_edges=None
                                 ):
         """
         wrapper that calls all functions to calculate the point-source sensitivity
@@ -550,6 +556,9 @@ class Sensitivity_PointSource():
 
         assert generator_areas is not None, "generator_areas ought to be set"
 
+        if sensitivity_energy_bin_edges is None:
+            sensitivity_energy_bin_edges = np.linspace(2, 6, 17)
+
         self.get_effective_areas(n_simulated_events=n_simulated_events,
                                  generator_spectra=generator_spectra,
                                  generator_energy_hists=generator_energy_hists,
@@ -561,7 +570,8 @@ class Sensitivity_PointSource():
 
         self.scale_events_to_expected_events()
 
-        return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off)
+        return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off,
+                            sensitivity_energy_bin_edges=sensitivity_energy_bin_edges)
 
     @staticmethod
     def generate_toy_timestamps(light_curves, time_window):
