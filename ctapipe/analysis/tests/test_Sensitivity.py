@@ -196,5 +196,3 @@ def test_draw_events_from_flux_histogram():
     plt.figure()
     plt.hist(energy_sel_gamma[indices['g']], bins=energy_edges[::4])
     plt.show()
-
-test_draw_events_from_flux_histogram()
