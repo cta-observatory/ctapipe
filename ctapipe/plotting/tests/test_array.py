@@ -8,10 +8,12 @@ from ctapipe.image.cleaning import tailcuts_clean, dilate
 
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.io import CameraGeometry
-from ctapipe.plotting.array import ArrayPlotter
+from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
 from ctapipe.coordinates import TiltedGroundFrame, NominalFrame, CameraFrame
-from ctapipe.calib.camera.calibrators import CameraDL1Calibrator
 
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.r1 import HessioR1Calibrator
 
 def test_array_draw():
 
@@ -19,14 +21,19 @@ def test_array_draw():
     cam_geom = {}
 
     source = hessio_event_source(filename)
+    r1 = HessioR1Calibrator(None, None)
+    dl0 = CameraDL0Reducer(None, None)
+
     calibrator = CameraDL1Calibrator(None, None)
 
     for event in source:
         array_pointing =(event.mcheader.run_array_direction[1]*u.rad, event.mcheader.run_array_direction[0]*u.rad)
-        array_view = ArrayPlotter(instrument=event.inst,
-                                  system=TiltedGroundFrame(pointing_direction=array_pointing))
+        #array_view = ArrayPlotter(instrument=event.inst,
+        #                          system=TiltedGroundFrame(pointing_direction=array_pointing))
 
         hillas_dict = {}
+        r1.calibrate(event)
+        dl0.reduce(event)
         calibrator.calibrate(event) # calibrate the events
 
         # store MC pointing direction for the array
@@ -65,9 +72,11 @@ def test_array_draw():
                 print(e)
                 continue
 
+        nom_coord = NominalPlotter(hillas_parameters=hillas_dict, draw_axes=True)
+        nom_coord.draw_array()
         #array_view.background_image(np.ones((4,4)), ((-1500,1500),(-1500,1500)))
-        array_view.overlay_hillas(hillas_dict, draw_axes=True)
-        array_view.draw_array(range=((-1000,1000),(-1000,1000)))
+        #array_view.overlay_hillas(hillas_dict, draw_axes=True)
+        #array_view.draw_array(range=((-1000,1000),(-1000,1000)))
         #return
 
 if __name__ == "__main__":
