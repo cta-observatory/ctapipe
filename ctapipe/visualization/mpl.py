@@ -17,8 +17,7 @@ __all__ = ['CameraDisplay', 'ArrayDisplay']
 
 logger = logging.getLogger(__name__)
 
-PIXEL_EPSILON = 0.003 # a bit of extra space to add to square pixels to
-                      # avoid aliasing
+PIXEL_EPSILON = 0.0005 # a bit of extra size to pixels to avoid aliasing
 
 class CameraDisplay:
 
@@ -85,7 +84,7 @@ class CameraDisplay:
             geometry,
             image=None,
             ax=None,
-            title="Camera",
+            title=None,
             norm="lin",
             cmap="hot",
             allow_pick=False,
@@ -102,6 +101,9 @@ class CameraDisplay:
         self._active_pixel = None
         self._active_pixel_label = None
 
+        if title is None:
+            title = geometry.cam_id
+
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
@@ -116,7 +118,7 @@ class CameraDisplay:
             u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
 
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3)) + PIXEL_EPSILON
+                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2*PIXEL_EPSILON
                 poly = RegularPolygon(
                     (xx, yy), 6, radius=rr,
                     orientation=self.geom.pix_rotation.rad,
