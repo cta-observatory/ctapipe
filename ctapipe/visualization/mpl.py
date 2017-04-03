@@ -17,8 +17,8 @@ __all__ = ['CameraDisplay', 'ArrayDisplay']
 
 logger = logging.getLogger(__name__)
 
-RECT_EPSILON_HACK = 0.002 # a bit of extra space to add to square pixels to
-                          # avoid aliasing
+PIXEL_EPSILON = 0.003 # a bit of extra space to add to square pixels to
+                      # avoid aliasing
 
 class CameraDisplay:
 
@@ -116,14 +116,14 @@ class CameraDisplay:
             u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
 
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3))
+                rr = sqrt(aa * 2 / 3 / sqrt(3)) + PIXEL_EPSILON
                 poly = RegularPolygon(
                     (xx, yy), 6, radius=rr,
                     orientation=self.geom.pix_rotation.rad,
                     fill=True,
                 )
             else:
-                rr = sqrt(aa) + RECT_EPSILON_HACK
+                rr = sqrt(aa) + PIXEL_EPSILON
                 poly = Rectangle(
                     (xx-rr/2., yy-rr/2.),
                     width=rr,
