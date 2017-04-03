@@ -17,6 +17,8 @@ __all__ = ['CameraDisplay', 'ArrayDisplay']
 
 logger = logging.getLogger(__name__)
 
+RECT_EPSILON_HACK = 0.002 # a bit of extra space to add to square pixels to
+                          # avoid aliasing
 
 class CameraDisplay:
 
@@ -121,7 +123,7 @@ class CameraDisplay:
                     fill=True,
                 )
             else:
-                rr = sqrt(aa)
+                rr = sqrt(aa) + RECT_EPSILON_HACK
                 poly = Rectangle(
                     (xx-rr/2., yy-rr/2.),
                     width=rr,
