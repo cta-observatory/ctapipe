@@ -31,7 +31,13 @@ entry_points['console_scripts'] = [
     'ctapipe-info = ctapipe.tools.info:main',
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
-    'ctapipe-flow = ctapipe.flow.flow:main'
+    'ctapipe-flow = ctapipe.flow.flow:main',
+    'ctapipe-extract-chargeresolution = '
+    'ctapipe.tools.extract_charge_resolution:main',
+    'ctapipe-plot-chargeresolution = '
+    'ctapipe.tools.plot_charge_resolution:main',
+    'ctapipe-plot-chargeresolution-hist = '
+    'ctapipe.tools.plot_charge_resolution_variation_hist:main'
 ]
 
 package.version.update_release_version()
