@@ -59,6 +59,8 @@ class DL1CameraContainer(Container):
     peakpos = Item(None, ("numpy array containing position of the peak as "
                           "determined by the "
                           "peak-finding algorithm for each pixel and channel"))
+    cleaned = Item(None, ("numpy array containing the waveform "
+                          "after cleaning"))
 
 
 class CameraCalibrationContainer(Container):

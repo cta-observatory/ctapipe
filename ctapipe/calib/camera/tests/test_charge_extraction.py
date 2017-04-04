@@ -27,12 +27,12 @@ def test_full_integration():
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = FullIntegrator(None, None)
-    integration = integrator.extract_charge(data_ped)
-    peakpos = integrator.peakpos
+    integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 149, 0)
     assert_almost_equal(integration[1][0], 149, 0)
-    assert peakpos is None
+    assert peakpos[0][0] == 0
+    assert peakpos[1][0] == 0
 
 
 def test_simple_integration():
@@ -45,12 +45,12 @@ def test_simple_integration():
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = SimpleIntegrator(None, None)
-    integration = integrator.extract_charge(data_ped)
-    peakpos = integrator.peakpos
+    integration, peakpos, window = integrator.extract_charge(data_ped)
 
-    assert_almost_equal(integration[0][0], 70, 0)
-    assert_almost_equal(integration[1][0], 70, 0)
-    assert peakpos is None
+    assert_almost_equal(integration[0][0], 74, 0)
+    assert_almost_equal(integration[1][0], 74, 0)
+    assert peakpos[0][0] == 0
+    assert peakpos[1][0] == 0
 
 
 def test_global_peak_integration():
@@ -63,8 +63,7 @@ def test_global_peak_integration():
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = GlobalPeakIntegrator(None, None)
-    integration = integrator.extract_charge(data_ped)
-    peakpos = integrator.peakpos
+    integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 58, 0)
     assert_almost_equal(integration[1][0], 58, 0)
@@ -82,8 +81,7 @@ def test_local_peak_integration():
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = LocalPeakIntegrator(None, None)
-    integration = integrator.extract_charge(data_ped)
-    peakpos = integrator.peakpos
+    integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 76, 0)
     assert_almost_equal(integration[1][0], 76, 0)
@@ -105,10 +103,8 @@ def test_nb_peak_integration():
 
     integrator = NeighbourPeakIntegrator(None, None)
     integrator.neighbours = nei
-    integration = integrator.extract_charge(data_ped)
-    peakpos = integrator.peakpos
+    integration, peakpos, window = integrator.extract_charge(data_ped)
 
-    print(integration[0][0])
     assert_almost_equal(integration[0][0], -64, 0)
     assert_almost_equal(integration[1][0], -64, 0)
     assert peakpos[0][0] == 20
@@ -128,6 +124,6 @@ def test_charge_extractor_factory():
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
 
-    integration = extractor.extract_charge(data_ped)
+    integration, peakpos, window = extractor.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 76, 0)

@@ -41,12 +41,6 @@ class ChargeExtractor(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        self._nchan = None
-        self._npix = None
-        self._nsamples = None
-
-        self.extracted_samples = None
-        self.peakpos = None
         self.neighbours = None
 
     @staticmethod
@@ -76,6 +70,25 @@ class ChargeExtractor(Component):
                 raise ValueError()
 
     @abstractmethod
+    def get_peakpos(self, waveforms):
+        """
+        Get the peak position from the waveforms
+        
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+            
+        Returns
+        -------
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel. 
+            Has shape of (n_chan, n_pix).
+
+        """
+
+    @abstractmethod
     def extract_charge(self, waveforms):
         """
         Call the relevant functions to fully extract the charge for the
@@ -91,6 +104,9 @@ class ChargeExtractor(Component):
         -------
         charge : ndarray
             Extracted charge stored in a numpy array of shape (n_chan, n_pix).
+        window : ndarray
+            Bool numpy array defining the samples included in the integration
+            window.
         """
 
 
@@ -100,45 +116,117 @@ class Integrator(ChargeExtractor):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _check_window_width_and_start(self, width, start):
+    @staticmethod
+    def check_window_width_and_start(n_samples, start, width):
         """
         Check that the combination of window width and start positions fit
         within the readout window.
 
         Parameters
         ----------
-        width : ndarray
-            Numpy array containing the window width for each pixel. Shape =
-            (n_chan, n_pix)
         start : ndarray
             Numpy array containing the window start for each pixel. Shape =
             (n_chan, n_pix)
+        width : ndarray
+            Numpy array containing the window width for each pixel. Shape =
+            (n_chan, n_pix)
 
         """
-        # if width is None:
-        #     raise ValueError('window width has not been set')
-        # if start is None:
-        #     raise ValueError('window start has not been set')
-        if not width.all():
-            self.log.warn('all window_widths are zero')
-
-        width[width > self._nsamples] = self._nsamples
+        width[width > n_samples] = n_samples
         start[start < 0] = 0
-        sum_check = start + width > self._nsamples
-        start[sum_check] = self._nsamples - width[sum_check]
+        sum_check = start + width > n_samples
+        start[sum_check] = n_samples - width[sum_check]
 
-    def _define_window(self, start, width):
+    @abstractmethod
+    def get_peakpos(self, waveforms):
+        """"""
+
+    @abstractmethod
+    def _get_window_start(self, waveforms, peakpos):
+        """
+        Get the starting point for the integration window
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+        peakpos : ndarray
+            Numpy array containing the peak position for each pixel. 
+            Shape = (n_chan, n_pix)
+
+        Returns
+        -------
+        start : ndarray
+            Numpy array containing the window start for each pixel. 
+            Shape = (n_chan, n_pix)
+
+        """
+
+    @abstractmethod
+    def _get_window_width(self, waveforms):
+        """
+        Get the width of the integration window
+        
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        width : ndarray
+            Numpy array containing the window width for each pixel. 
+            Shape = (n_chan, n_pix)
+
+        """
+
+    def get_start_and_width(self, waveforms, peakpos):
+        """
+        Obtain the numpy arrays containing the start and width for the
+        integration window for each pixel.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel. 
+            Has shape of (n_chan, n_pix).
+
+        Returns
+        -------
+        w_start : ndarray
+            Numpy array containing the Start sample of integration window.
+            Shape: (n_chan, n_pix).
+        w_width : ndarray
+            Numpy array containing the window size of integration window.
+            Shape (n_chan, n_pix).
+        """
+        w_start = self._get_window_start(waveforms, peakpos)
+        w_width = self._get_window_width(waveforms)
+        n_samples = waveforms.shape[2]
+        self.check_window_width_and_start(n_samples, w_start, w_width)
+        return w_start, w_width
+
+    @staticmethod
+    def get_window(waveforms, start, width):
         """
         Build the a numpy array of bools defining the integration window.
 
         Parameters
         ----------
-        width : ndarray
-            Numpy array containing the window width for each pixel. Shape =
-            (n_chan, n_pix)
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
         start : ndarray
-            Numpy array containing the window start for each pixel. Shape =
-            (n_chan, n_pix)
+            Numpy array containing the Start sample of integration window.
+            Shape: (n_chan, n_pix).
+        width : ndarray
+            Numpy array containing the window size of integration window.
+            Shape (n_chan, n_pix).
 
         Returns
         -------
@@ -151,14 +239,15 @@ class Integrator(ChargeExtractor):
         end = start + width
 
         # Obtain integration window using the indices of the waveforms array
-        ind = np.indices((self._nchan, self._npix, self._nsamples))[2]
-        integration_window = (ind >= start[..., None]) * (ind < end[..., None])
+        ind = np.indices(waveforms.shape)[2]
+        integration_window = (ind >= start[..., None]) & (ind < end[..., None])
         return integration_window
 
     @staticmethod
-    def _window_waveforms(waveforms, window):
+    def extract_from_window(waveforms, window):
         """
-        Mask the waveforms with the integration window
+        Extract the charge but applying an intregration window to the 
+        waveforms.
 
         Parameters
         ----------
@@ -172,72 +261,19 @@ class Integrator(ChargeExtractor):
 
         Returns
         -------
-        windowed : masked ndarray
-            Waveforms masked with the integration window.
-
+        charge : ndarray
+            Extracted charge stored in a numpy array of shape (n_chan, n_pix).
         """
         windowed = np.ma.array(waveforms, mask=~window)
-        return windowed
-
-    @staticmethod
-    def _integrate(windowed_waveforms):
-        """
-        Integrate a the waveforms after they have been masked with the
-        integration window.
-
-        Parameters
-        ----------
-        windowed_waveforms : masked ndarray
-            Waveforms array that has been masked by the integration_window
-            array.
-
-        Returns
-        -------
-        integration : ndarray
-            Result of the integration. Has a shape of (n_chan, n_pix).
-
-        """
-        integration = windowed_waveforms.sum(2)
-        return integration
-
-    def extract_charge(self, waveforms):
-        self.check_neighbour_set()
-        self._nchan, self._npix, self._nsamples = waveforms.shape
-        w_width = self._get_window_width()
-        w_start = self._get_window_start(waveforms)
-        self._check_window_width_and_start(w_width, w_start)
-        window = self._define_window(w_start, w_width)
-        windowed_waveforms = self._window_waveforms(waveforms, window)
-        charge = self._integrate(windowed_waveforms)
-
-        self.extracted_samples = window
+        charge = windowed.sum(2)
         return charge
 
-    @abstractmethod
-    def _get_window_width(self):
-        """
-        Get the width of the integration window
-
-        Returns
-        -------
-        width : ndarray
-            Numpy array containing the window width for each pixel. Shape =
-            (n_chan, n_pix)
-
-        """
-
-    @abstractmethod
-    def _get_window_start(self, waveforms):
-        """
-        Get the starting point for the integration window
-
-        Returns
-        -------
-        start : ndarray
-            Numpy array containing the window start for each pixel. Shape =
-            (n_chan, n_pix)
-
-        """
+    def extract_charge(self, waveforms):
+        peakpos = self.get_peakpos(waveforms)
+        start, width = self.get_start_and_width(waveforms, peakpos)
+        window = self.get_window(waveforms, start, width)
+        charge = self.extract_from_window(waveforms, window)
+        return charge, peakpos, window
 
 
 class FullIntegrator(Integrator):
@@ -246,51 +282,75 @@ class FullIntegrator(Integrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _get_window_width(self):
-        return np.full((self._nchan, self._npix), self._nsamples,
-                       dtype=np.intp)
+    def _get_window_start(self, waveforms, peakpos):
+        nchan, npix, nsamples = waveforms.shape
+        return np.zeros((nchan, npix), dtype=np.intp)
 
-    def _get_window_start(self, waveforms):
-        return np.zeros((self._nchan, self._npix), dtype=np.intp)
+    def _get_window_width(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        return np.full((nchan, npix), nsamples, dtype=np.intp)
+
+    def get_peakpos(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        return np.zeros((nchan, npix), dtype=np.intp)
 
 
 class WindowIntegrator(Integrator):
     name = 'WindowIntegrator'
+    window_shift = Int(3, help='Define the shift of the integration window '
+                               'from the peakpos '
+                               '(peakpos - shift)').tag(config=True)
     window_width = Int(7, help='Define the width of the integration '
                                'window').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        self.input_width = self.window_width
 
-    def _get_window_width(self):
-        return np.full((self._nchan, self._npix), self.window_width,
-                       dtype=np.intp)
+    def get_peakpos(self, waveforms):
+        return self._obtain_peak_position(waveforms)
+
+    def _get_window_start(self, waveforms, peakpos):
+        return peakpos - self.window_shift
+
+    def _get_window_width(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        return np.full((nchan, npix), self.window_width, dtype=np.intp)
 
     @abstractmethod
-    def _get_window_start(self, waveforms):
-        """"""
+    def _obtain_peak_position(self, waveforms):
+        """
+        Find the peak to define integration window around.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel. Has shape of
+            (n_chan, n_pix).
+
+        """
 
 
 class SimpleIntegrator(WindowIntegrator):
     name = 'SimpleIntegrator'
-    window_start = Int(3, help='Define the start of the integration '
-                               'window').tag(config=True)
+    t0 = Int(0, help='Define the peak position for all '
+                     'pixels').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        self.input_shift = self.window_start
 
-    def _get_window_start(self, waveforms):
-        return np.full((self._nchan, self._npix), self.window_start,
-                       dtype=np.intp)
+    def _obtain_peak_position(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        return np.full((nchan, npix), self.t0, dtype=np.intp)
 
 
 class PeakFindingIntegrator(WindowIntegrator):
     name = 'PeakFindingIntegrator'
-    window_shift = Int(3, help='Define the shift of the integration window '
-                               'from the peakpos '
-                               '(peakpos - shift)').tag(config=True)
     sig_amp_cut_HG = Int(None, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
@@ -304,7 +364,6 @@ class PeakFindingIntegrator(WindowIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
         self._sig_channel = None
         self._sig_pixels = None
-        self.input_shift = self.window_shift
 
     # Extract significant entries
     def _extract_significant_entries(self, waveforms):
@@ -324,47 +383,26 @@ class PeakFindingIntegrator(WindowIntegrator):
             masked.
 
         """
-        sig_entries = np.ones(waveforms.shape, dtype=bool)
-        if self.sig_amp_cut_HG:
-            sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
-        if self._nchan > 1 and self.sig_amp_cut_LG:
-            sig_entries[1] = waveforms[1] > self.sig_amp_cut_LG
-        self._sig_pixels = np.any(sig_entries, axis=2)
-        self._sig_channel = np.any(self._sig_pixels, axis=1)
-        if not self._sig_channel[0]:
-            self.log.error("sigamp value excludes all values in HG channel")
-        return np.ma.array(waveforms, mask=~sig_entries)
-
-    def _get_window_start(self, waveforms):
-        significant_samples = waveforms
+        nchan, npix, nsamples = waveforms.shape
         if self.sig_amp_cut_HG or self.sig_amp_cut_HG:
-            significant_samples = self._extract_significant_entries(waveforms)
+            sig_entries = np.ones(waveforms.shape, dtype=bool)
+            if self.sig_amp_cut_HG:
+                sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
+            if nchan > 1 and self.sig_amp_cut_LG:
+                sig_entries[1] = waveforms[1] > self.sig_amp_cut_LG
+            self._sig_pixels = np.any(sig_entries, axis=2)
+            self._sig_channel = np.any(self._sig_pixels, axis=1)
+            if not self._sig_channel[0]:
+                self.log.error("sigamp excludes all values in HG channel")
+            return np.ma.array(waveforms, mask=~sig_entries)
         else:
-            self._sig_channel = np.ones(self._nchan, dtype=bool)
-            self._sig_pixels = np.ones((self._nchan, self._npix), dtype=bool)
-        self.peakpos = self._find_peak(significant_samples)
-        return np.full((self._nchan, self._npix),
-                       self.peakpos - self.window_shift,
-                       dtype=np.intp)
+            self._sig_channel = np.ones(nchan, dtype=bool)
+            self._sig_pixels = np.ones((nchan, npix), dtype=bool)
+            return waveforms
 
     @abstractmethod
-    def _find_peak(self, significant_samples):
-        """
-        Find the peak to define integration window around.
-
-        Parameters
-        ----------
-        significant_samples : masked ndarray
-            Numpy array with the significant samples unmasked. Has shape of
-            (n_chan, n_pix, n_samples).
-
-        Returns
-        -------
-        peakpos : ndarray
-            Numpy array of the peak position for each pixel. Has shape of
-            (n_chan, n_pix).
-
-        """
+    def _obtain_peak_position(self, waveforms):
+        """"""
 
 
 class GlobalPeakIntegrator(PeakFindingIntegrator):
@@ -373,13 +411,15 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _find_peak(self, significant_samples):
+    def _obtain_peak_position(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        significant_samples = self._extract_significant_entries(waveforms)
         max_t = significant_samples.argmax(2)
         max_s = significant_samples.max(2)
 
-        peakpos = np.zeros((self._nchan, self._npix), dtype=np.int)
+        peakpos = np.zeros((nchan, npix), dtype=np.int)
         peakpos[0, :] = np.round(np.average(max_t[0], weights=max_s[0]))
-        if self._nchan > 1:
+        if nchan > 1:
             if self._sig_channel[1]:
                 peakpos[1, :] = np.round(
                     np.average(max_t[1], weights=max_s[1]))
@@ -396,12 +436,13 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _find_peak(self, significant_samples):
-        peakpos = np.full((self._nchan, self._npix),
-                          significant_samples.argmax(2),
+    def _obtain_peak_position(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        significant_samples = self._extract_significant_entries(waveforms)
+        peakpos = np.full((nchan, npix), significant_samples.argmax(2),
                           dtype=np.int)
         sig_pix = self._sig_pixels
-        if self._nchan > 1:  # If the LG is not significant, use the HG peakpos
+        if nchan > 1:  # If the LG is not significant, use the HG peakpos
             peakpos[1] = np.where(sig_pix[1] < sig_pix[0],
                                   peakpos[0], peakpos[1])
         return peakpos
@@ -420,18 +461,18 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
     def requires_neighbours():
         return True
 
-    def _find_peak(self, significant_samples):
+    def _obtain_peak_position(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        significant_samples = self._extract_significant_entries(waveforms)
         sig_sam = significant_samples
         max_num_nei = len(max(self.neighbours, key=len))
-        allvals = np.zeros((self._nchan, self._npix,
-                            max_num_nei + 1, self._nsamples))
+        allvals = np.zeros((nchan, npix, max_num_nei + 1, nsamples))
         for ipix, neighbours in enumerate(self.neighbours):
             num_nei = len(neighbours)
             allvals[:, ipix, :num_nei, :] = sig_sam[:, neighbours]
             allvals[:, ipix, num_nei, :] = sig_sam[:, ipix] * self.lwt
         sum_data = allvals.sum(2)
-        return np.full((self._nchan, self._npix), sum_data.argmax(2),
-                       dtype=np.int)
+        return np.full((nchan, npix), sum_data.argmax(2), dtype=np.int)
 
 
 class AverageWfPeakIntegrator(PeakFindingIntegrator):
@@ -440,8 +481,10 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-    def _find_peak(self, significant_samples):
-        peakpos = np.zeros((self._nchan, self._npix), dtype=np.int)
+    def _obtain_peak_position(self, waveforms):
+        nchan, npix, nsamples = waveforms.shape
+        significant_samples = self._extract_significant_entries(waveforms)
+        peakpos = np.zeros((nchan, npix), dtype=np.int)
         avg_wf = np.mean(significant_samples, axis=0)
         peakpos += np.argmax(avg_wf, axis=1)[:, None]
         return peakpos
@@ -463,13 +506,12 @@ class ChargeExtractorFactory(Factory):
     window_width = Int(7, help='Define the width of the integration '
                                'window. Only applicable to '
                                'WindowIntegrators.').tag(config=True)
-    window_start = Int(3, help='Define the start of the integration '
-                               'window. Only applicable to '
-                               'SimpleIntegrators.').tag(config=True)
     window_shift = Int(3, help='Define the shift of the integration window '
                                'from the peakpos (peakpos - shift). Only '
                                'applicable to '
                                'PeakFindingIntegrators.').tag(config=True)
+    t0 = Int(0, help='Define the peak position for all pixels. '
+                     'Only applicable to SimpleIntegrators.').tag(config=True)
     sig_amp_cut_HG = Int(None, allow_none=True,
                          help='Define the cut above which a sample is '
                               'considered as significant for PeakFinding '
