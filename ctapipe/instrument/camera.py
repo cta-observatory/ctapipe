@@ -8,9 +8,9 @@ from astropy.table import Table
 from astropy.coordinates import Angle
 from scipy.spatial import cKDTree as KDTree
 
-from io.files import get_file_type
-from utils.datasets import get_path
-from utils.linalg import rotation_matrix_2d
+from ..io.files import get_file_type
+from ..utils.datasets import get_path
+from ..utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
@@ -85,12 +85,41 @@ class CameraGeometry:
 
 
     @classmethod
-    def guess(cls, pix_x, pix_y, optical_foclen):
-        """
+    @u.quantity_input
+    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
+        """ 
         Construct a `CameraGeometry` by guessing the appropriate quantities
-        from a list of pixel positions.
+        from a list of pixel positions and the focal length. 
         """
-        return guess_camera_geometry(pix_x, pix_y, optical_foclen)
+
+        dist = _get_min_pixel_seperation(pix_x, pix_y)
+
+        tel_type, cam_id, pix_type, pix_rotation, cam_rotation = \
+            _guess_camera_type(len(pix_x), optical_foclen)
+
+        if pix_type.startswith('hex'):
+            rad = dist / np.sqrt(3)  # radius to vertex of hexagon
+            area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
+        elif pix_type.startswith('rect'):
+            area = dist ** 2
+        else:
+            raise KeyError("unsupported pixel type")
+
+        return cls(
+            cam_id=cam_id,
+            pix_id=np.arange(len(pix_x)),
+            pix_x=pix_x,
+            pix_y=pix_y,
+            pix_area=np.ones(pix_x.shape) * area,
+            neighbors=_find_neighbor_pixels(
+                pix_x.value,
+                pix_y.value,
+                1.4 * dist.value,
+            ),
+            pix_type=pix_type,
+            pix_rotation=pix_rotation,
+            cam_rotation=cam_rotation,
+        )
 
     @classmethod
     def from_name(cls, name, tel_id):
@@ -150,11 +179,53 @@ class CameraGeometry:
         self.pix_rotation -= angle
 
 
+    @classmethod
+    def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
+                         range_y=(-0.5, 0.5)):
+            """Generate a simple camera with 2D rectangular geometry.
+
+            Used for testing.
+
+            Parameters
+            ----------
+            npix_x : int
+                number of pixels in X-dimension
+            npix_y : int
+                number of pixels in Y-dimension
+            range_x : (float,float)
+                min and max of x pixel coordinates in meters
+            range_y : (float,float)
+                min and max of y pixel coordinates in meters
+
+            Returns
+            -------
+            CameraGeometry object
+
+            """
+            bx = np.linspace(range_x[0], range_x[1], npix_x)
+            by = np.linspace(range_y[0], range_y[1], npix_y)
+            xx, yy = np.meshgrid(bx, by)
+            xx = xx.ravel() * u.m
+            yy = yy.ravel() * u.m
+
+            ids = np.arange(npix_x * npix_y)
+            rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
+            nn = _find_neighbor_pixels(xx.value, yy.value,
+                                       rad=(rr.mean() * 2.001).value)
+            return cls(
+                cam_id=-1,
+                pix_id=ids,
+                pix_x=xx * u.m,
+                pix_y=yy * u.m,
+                pix_area=(2 * rr) ** 2,
+                neighbors=nn,
+                pix_type='rectangular')
+
 # ======================================================================
 # utility functions:
 # ======================================================================
 
-def get_min_pixel_seperation(pix_x, pix_y):
+def _get_min_pixel_seperation(pix_x, pix_y):
     """
     Obtain the minimum seperation between two pixels on the camera
 
@@ -179,7 +250,7 @@ def get_min_pixel_seperation(pix_x, pix_y):
     return pixsep
 
 
-def find_neighbor_pixels(pix_x, pix_y, rad):
+def _find_neighbor_pixels(pix_x, pix_y, rad):
     """use a KD-Tree to quickly find nearest neighbors of the pixels in a
     camera. This function can be used to find the neighbor pixels if
     they are not already present in a camera geometry file.
@@ -220,44 +291,6 @@ def _guess_camera_type(npix, optical_foclen):
                                   0 * u.degree, 0 * u.degree))
 
 
-@u.quantity_input
-def guess_camera_geometry(pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
-    """ returns a CameraGeometry filled in from just the x,y positions
-
-    Assumes:
-    --------
-    - the pixels are square or hexagonal
-    """
-
-    dist = get_min_pixel_seperation(pix_x, pix_y)
-
-    tel_type, cam_id, pix_type, pix_rotation, cam_rotation = _guess_camera_type(
-        len(pix_x), optical_foclen
-    )
-
-    if pix_type.startswith('hex'):
-        rad = dist / np.sqrt(3)  # radius to vertex of hexagon
-        area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
-    elif pix_type.startswith('rect'):
-        area = dist ** 2
-    else:
-        raise KeyError("unsupported pixel type")
-
-    return CameraGeometry(
-        cam_id=cam_id,
-        pix_id=np.arange(len(pix_x)),
-        pix_x=pix_x,
-        pix_y=pix_y,
-        pix_area=np.ones(pix_x.shape) * area,
-        neighbors=find_neighbor_pixels(
-            pix_x.value,
-            pix_y.value,
-            1.4 * dist.value,
-        ),
-        pix_type=pix_type,
-        pix_rotation=pix_rotation,
-        cam_rotation=cam_rotation,
-    )
 
 
 def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
@@ -301,8 +334,8 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     aa = u.Quantity(geom['PIX_AREA'], u.m ** 2)
 
     if recalc_neighbors is True:
-        neigh = find_neighbor_pixels(xx.value, yy.value,
-                                     (dd.mean() + 0.01 * u.m).value)
+        neigh = _find_neighbor_pixels(xx.value, yy.value,
+                                      (dd.mean() + 0.01 * u.m).value)
 
     return CameraGeometry(
         cam_id=cam_id,
@@ -358,43 +391,4 @@ def _load_camera_geometry_from_hessio_file(tel_id, filename):
     return CameraGeometry.guess(pix_x * u.m, pix_y * u.m, optical_foclen)
 
 
-def make_rectangular_camera_geometry(npix_x=40, npix_y=40,
-                                     range_x=(-0.5, 0.5), range_y=(-0.5, 0.5)):
-    """Generate a simple camera with 2D rectangular geometry.
 
-    Used for testing.
-
-    Parameters
-    ----------
-    npix_x : int
-        number of pixels in X-dimension
-    npix_y : int
-        number of pixels in Y-dimension
-    range_x : (float,float)
-        min and max of x pixel coordinates in meters
-    range_y : (float,float)
-        min and max of y pixel coordinates in meters
-
-    Returns
-    -------
-    CameraGeometry object
-
-    """
-    bx = np.linspace(range_x[0], range_x[1], npix_x)
-    by = np.linspace(range_y[0], range_y[1], npix_y)
-    xx, yy = np.meshgrid(bx, by)
-    xx = xx.ravel() * u.m
-    yy = yy.ravel() * u.m
-
-    ids = np.arange(npix_x * npix_y)
-    rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
-    nn = find_neighbor_pixels(xx.value, yy.value,
-                              rad=(rr.mean() * 2.001).value)
-    return CameraGeometry(
-        cam_id=-1,
-        pix_id=ids,
-        pix_x=xx * u.m,
-        pix_y=yy * u.m,
-        pix_area=(2 * rr) ** 2,
-        neighbors=nn,
-        pix_type='rectangular')

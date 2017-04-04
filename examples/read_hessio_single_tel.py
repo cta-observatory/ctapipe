@@ -16,7 +16,9 @@ import logging
 
 import astropy.units as u
 import numpy as np
-from ctapipe import visualization, io, reco
+from ctapipe.visualization import CameraDisplay
+from ctapipe.instrument import CameraGeometry
+from ctapipe.image import hillas_parameters
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.instrument import InstrumentDescription as ID
 from ctapipe.io.hessio import hessio_event_source
@@ -90,10 +92,10 @@ if __name__ == '__main__':
 
         if disp is None:
             x, y = event.inst.pixel_pos[args.tel]
-            geom = io.CameraGeometry.guess(x, y,
+            geom = CameraGeometry.guess(x, y,
                                            event.inst.optical_foclen[args.tel])
             print(geom.pix_x)
-            disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
+            disp = CameraDisplay(geom, title='CT%d' % args.tel)
             #disp.enable_pixel_picker()
             disp.add_colorbar()
             plt.show(block=False)
@@ -135,8 +137,8 @@ if __name__ == '__main__':
                 nom_x = nom_coord.x
                 nom_y = nom_coord.y
 
-                hillas = reco.hillas_parameters(x,y,im * clean_mask)
-                hillas_nom = reco.hillas_parameters(nom_x,nom_y,im * clean_mask)
+                hillas = hillas_parameters(x,y,im * clean_mask)
+                hillas_nom = hillas_parameters(nom_x,nom_y,im * clean_mask)
 
                 print (hillas)
                 print (hillas_nom)

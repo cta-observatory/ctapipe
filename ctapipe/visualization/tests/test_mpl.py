@@ -2,14 +2,14 @@
 import pytest
 plt = pytest.importorskip("matplotlib.pyplot")
 
-from ctapipe import io
+from ctapipe.instrument import CameraGeometry
 from numpy import ones
 
 def test_camera_display_single():
     """ test CameraDisplay functionality """
     from ..mpl import CameraDisplay
 
-    geom = io.CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("HESS", 1)
     disp = CameraDisplay(geom)
     image = ones(len(geom.pix_x), dtype=float)
     disp.image = image
@@ -23,7 +23,7 @@ def test_camera_display_multiple():
     """ create a figure with 2 subplots, each with a CameraDisplay """
     from ..mpl import CameraDisplay
     
-    geom = io.CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("HESS", 1)
     fig, ax = plt.subplots(2, 1)
 
     d1 = CameraDisplay(geom, ax=ax[0])

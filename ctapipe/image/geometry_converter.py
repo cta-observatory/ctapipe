@@ -4,7 +4,7 @@ from astropy import units as u
 
 from numba import jit
 
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):

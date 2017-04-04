@@ -9,7 +9,8 @@
 
 from ctapipe.utils.datasets import get_example_simtelarray_file
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe import visualization, io
+from ctapipe.instrument import CameraGeometry
+from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 from astropy import units as u
 from numpy import ceil, sqrt
@@ -45,9 +46,8 @@ def display_event(event):
         ax = plt.subplot(nn, nn, ii + 1)
 
         x, y = event.inst.pixel_pos[tel_id]
-        geom = io.CameraGeometry.guess(x, y, event.inst.optical_foclen[tel_id])
-        disp = visualization.CameraDisplay(geom, ax=ax,
-                                           title="CT{0}".format(tel_id))
+        geom = CameraGeometry.guess(x, y, event.inst.optical_foclen[tel_id])
+        disp = CameraDisplay(geom, ax=ax, title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
         disp.cmap = random.choice(cmaps)

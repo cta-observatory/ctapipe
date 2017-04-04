@@ -8,7 +8,8 @@ running.
 import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
-from ctapipe import io, visualization
+from ctapipe.visualization import CameraDisplay
+from ctapipe.instrument import CameraGeometry
 from ctapipe.core import Tool, traits
 from ctapipe.image import toymodel, cleaning
 from matplotlib.animation import FuncAnimation
@@ -49,8 +50,8 @@ class CameraDemo(Tool):
         ax = plt.subplot(111)
 
         # load the camera
-        geom = io.CameraGeometry.from_name("hess", 1)
-        disp = visualization.CameraDisplay(geom, ax=ax, autoupdate=True)
+        geom = CameraGeometry.from_name("hess", 1)
+        disp = CameraDisplay(geom, ax=ax, autoupdate=True)
         disp.cmap = plt.cm.terrain
 
         def update(frame):

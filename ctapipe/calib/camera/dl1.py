@@ -7,7 +7,7 @@ import numpy as np
 from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
 from ctapipe.calib.camera.waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
-from instrument.camera import get_min_pixel_seperation, find_neighbor_pixels
+from instrument.camera import _get_min_pixel_seperation, _find_neighbor_pixels
 from traitlets import Float, Bool
 
 
@@ -194,11 +194,11 @@ class CameraDL1Calibrator(Component):
             pixel_pos = event.inst.pixel_pos[telid]
 
             if not self.radius:
-                pixsep = get_min_pixel_seperation(*pixel_pos)
+                pixsep = _get_min_pixel_seperation(*pixel_pos)
                 self.radius = 1.4 * pixsep.value
 
             self.neighbour_dict[telid] = \
-                find_neighbor_pixels(*pixel_pos, self.radius)
+                _find_neighbor_pixels(*pixel_pos, self.radius)
             return self.neighbour_dict[telid]
 
     def get_correction(self, event, telid):

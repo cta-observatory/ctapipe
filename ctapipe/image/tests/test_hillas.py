@@ -1,4 +1,4 @@
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
                                   hillas_parameters_3, hillas_parameters_4)

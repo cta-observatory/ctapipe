@@ -19,7 +19,7 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     Parameters
     ----------
-    geom: `ctapipe.io.CameraGeometry`
+    geom: `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image: array
         pedestal-subtracted, flat-fielded pixel values

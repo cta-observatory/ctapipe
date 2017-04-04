@@ -8,7 +8,7 @@ import numpy as np
 from astropy.table import Table
 from ctapipe.core import Tool
 from ctapipe.core.traits import (Unicode, Dict, Integer)
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.visualization import CameraDisplay
 from instrument.camera import _guess_camera_type
