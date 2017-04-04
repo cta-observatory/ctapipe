@@ -21,8 +21,8 @@ __all__ = ['CameraGeometry',
 # Key = (npix, pix_separation_m)
 # Value = (type, subtype, pixtype, pixrotation, camrotation)
 _npix_to_type = {
-    (2048, 2.3):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2):   ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.3):   ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2):   ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 36.0):  ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
     (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
     (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
