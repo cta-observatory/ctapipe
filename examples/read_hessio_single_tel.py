@@ -77,8 +77,7 @@ if __name__ == '__main__':
                                  allowed_tels=[args.tel, ],
                                  max_events=args.max_events)
     disp = None
-    tel,cam,opt = ID.load(args.filename)
-    print(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel])
+    focal_len = event.inst.optical_foclen[args.tel]
 
     print('SELECTING EVENTS FROM TELESCOPE {}'.format(args.tel))
     print('=' * 70)
@@ -92,8 +91,7 @@ if __name__ == '__main__':
 
         if disp is None:
             x, y = event.inst.pixel_pos[args.tel]
-            geom = CameraGeometry.guess(x, y,
-                                           event.inst.optical_foclen[args.tel])
+            geom = CameraGeometry.guess(x, y, focal_len)
             print(geom.pix_x)
             disp = CameraDisplay(geom, title='CT%d' % args.tel)
             #disp.enable_pixel_picker()
@@ -130,7 +128,7 @@ if __name__ == '__main__':
 
                 nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
                                                            pointing_direction=[70*u.deg,0*u.deg],
-                                                           focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel]['FL'][0]*u.m))
+                                                           focal_length=focal_len))
 
                 image = np.asanyarray(im * clean_mask, dtype=np.float64)
 
