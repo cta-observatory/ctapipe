@@ -112,7 +112,8 @@ class ImagePlotter(Component):
             self.c_peakpos.image = peakpos
 
         self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
-                          .format(event.count, event.dl0.event_id, telid))
+                          .format(event.count, event.r0.event_id, telid))
+
 
         if self.display:
             plt.pause(0.001)
@@ -135,7 +136,7 @@ class DisplayDL1Calib(Tool):
                          'telescopes.').tag(config=True)
 
     aliases = Dict(dict(f='EventFileReaderFactory.input_path',
-                        o='EventFileReaderFactory.origin',
+                        r='EventFileReaderFactory.reader',
                         max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
@@ -196,7 +197,8 @@ class DisplayDL1Calib(Tool):
             self.dl0.reduce(event)
             self.dl1.calibrate(event)
 
-            tel_list = event.dl0.tels_with_data
+            tel_list = event.r0.tels_with_data
+
             if self.telescope:
                 if self.telescope not in tel_list:
                     continue

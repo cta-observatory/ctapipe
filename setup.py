@@ -3,7 +3,7 @@
 import sys
 
 # import ah_bootstrap
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # Get some values from the setup.cfg
 from configparser import RawConfigParser
@@ -31,11 +31,19 @@ entry_points['console_scripts'] = [
     'ctapipe-info = ctapipe.tools.info:main',
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
-    'ctapipe-flow = ctapipe.flow.flow:main'
+    'ctapipe-flow = ctapipe.flow.flow:main',
+    'ctapipe-extract-chargeresolution = '
+    'ctapipe.tools.extract_charge_resolution:main',
+    'ctapipe-plot-chargeresolution = '
+    'ctapipe.tools.plot_charge_resolution:main',
+    'ctapipe-plot-chargeresolution-hist = '
+    'ctapipe.tools.plot_charge_resolution_variation_hist:main'
 ]
 
+package.version.update_release_version()
+
 setup(name=PACKAGENAME,
-      packages=[PACKAGENAME],
+      packages=find_packages(),
       version=package.version.get_version(pep440=True),
       description=DESCRIPTION,
       # these should be minimum list of what is needed to run (note

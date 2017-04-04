@@ -22,7 +22,8 @@ This module contains the following sub-modules:
 * `cleaning` : image noise suppression
 * `hillas`: image moment parameterization
 * `toymodel`: fake shower image generation for testing purposes
-  
+* `pixel_likelihood`: generates the likelihood of a pixel intensity, given an expectation value
+
 
 Reference/API
 =============
@@ -43,4 +44,4 @@ Toymodel Example
 
 .. automodapi:: ctapipe.image.cleaning
 
-
+.. automodapi:: ctapipe.image.pixel_likelihood
