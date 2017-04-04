@@ -1,7 +1,7 @@
-from ctapipe.io.camera import CameraGeometry, make_rectangular_camera_geometry
-from ctapipe.io.camera import find_neighbor_pixels, get_min_pixel_seperation
 import numpy as np
 from astropy import units as u
+from instrument.camera import CameraGeometry, make_rectangular_camera_geometry
+from instrument.camera import find_neighbor_pixels, get_min_pixel_seperation
 
 
 def test_make_rectangular_camera_geometry():

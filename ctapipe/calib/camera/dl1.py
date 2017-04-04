@@ -4,10 +4,10 @@ on any event regardless of the origin/telescope, and store the calibration
 inside the event container.
 """
 import numpy as np
-from ctapipe.core import Component
 from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
 from ctapipe.calib.camera.waveform_cleaning import NullWaveformCleaner
-from ctapipe.io.camera import get_min_pixel_seperation, find_neighbor_pixels
+from ctapipe.core import Component
+from instrument.camera import get_min_pixel_seperation, find_neighbor_pixels
 from traitlets import Float, Bool
 
 

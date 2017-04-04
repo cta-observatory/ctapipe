@@ -8,9 +8,9 @@ from astropy.table import Table
 from astropy.coordinates import Angle
 from scipy.spatial import cKDTree as KDTree
 
-from .files import get_file_type
-from ..utils.datasets import get_path
-from ..utils.linalg import rotation_matrix_2d
+from io.files import get_file_type
+from utils.datasets import get_path
+from utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']

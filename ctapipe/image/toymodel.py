@@ -1,14 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Utilities to generate toymodel (fake) reconstruction inputs for testing purposes.
+Utilities to generate toymodel (fake) reconstruction inputs for testing 
+purposes.
 
 Example:
 
 .. code-block:: python
 
-    >>> from ctapipe.io import camera
+    >>> from instrument import camera
     >>> geom = camera.make_rectangular_camera_geometry(20,20)
-    >>> showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], length=0.1,width=0.02, psi='40d')
+    >>> showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], 
+    length=0.1,width=0.02, psi='40d')
     >>> image, signal, noise = make_toymodel_shower_image(geom, showermodel.pdf)
     >>> print(image.shape)
     (400,)
