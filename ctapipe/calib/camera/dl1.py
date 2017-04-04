@@ -4,11 +4,12 @@ on any event regardless of the origin/telescope, and store the calibration
 inside the event container.
 """
 import numpy as np
-from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
-from ctapipe.calib.camera.waveform_cleaning import NullWaveformCleaner
+from .charge_extractors import NeighbourPeakIntegrator
+from .waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
-from instrument.camera import _get_min_pixel_seperation, _find_neighbor_pixels
-from traitlets import Float, Bool
+from ctapipe.instrument.camera import _get_min_pixel_seperation, \
+    _find_neighbor_pixels
+from ctapipe.core.traits import Float, Bool
 
 
 def integration_correction(event, telid, window_width, window_shift):

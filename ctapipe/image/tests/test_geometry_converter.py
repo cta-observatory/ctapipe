@@ -38,7 +38,7 @@ def test_convert_geometry():
 
     for event in source:
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id in event.r0.tels_with_data:
             if tel_id not in cam_geom:
                 cam_geom[tel_id] = CameraGeometry.guess(
                                         event.inst.pixel_pos[tel_id][0],
@@ -54,7 +54,7 @@ def test_convert_geometry():
 
             pmt_signal = apply_mc_calibration(
                         #event.r0.tel[tel_id].adc_samples[0],
-                        event.dl0.tel[tel_id].adc_sums[0],
+                        event.r0.tel[tel_id].adc_sums[0],
                         event.mc.tel[tel_id].dc_to_pe[0],
                         event.mc.tel[tel_id].pedestal[0])
 

@@ -3,6 +3,7 @@ import pytest
 plt = pytest.importorskip("matplotlib.pyplot")
 
 from ctapipe.instrument import CameraGeometry
+from ctapipe.io import get_array_layout
 from numpy import ones
 
 def test_camera_display_single():
@@ -38,7 +39,7 @@ def test_array_display():
     from ..mpl import ArrayDisplay
 
     # load some test data
-    layout = io.get_array_layout("hess")
+    layout = get_array_layout("hess")
     X = layout['POSX']
     Y = layout['POSY']
     A = layout['MIRAREA']
