@@ -485,7 +485,7 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         nchan, npix, nsamples = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
         peakpos = np.zeros((nchan, npix), dtype=np.int)
-        avg_wf = np.mean(significant_samples, axis=0)
+        avg_wf = np.mean(significant_samples, axis=1)
         peakpos += np.argmax(avg_wf, axis=1)[:, None]
         return peakpos
 

@@ -6,7 +6,7 @@ from numpy.testing import assert_almost_equal
 
 from ctapipe.calib.camera.charge_extractors import FullIntegrator, \
     SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
-    NeighbourPeakIntegrator, ChargeExtractorFactory
+    NeighbourPeakIntegrator, ChargeExtractorFactory, AverageWfPeakIntegrator
 
 
 def get_test_event():
@@ -109,6 +109,24 @@ def test_nb_peak_integration():
     assert_almost_equal(integration[1][0], -64, 0)
     assert peakpos[0][0] == 20
     assert peakpos[1][0] == 20
+
+
+def test_averagewf_peak_integration():
+    telid = 11
+    event = get_test_event()
+    data = event.r0.tel[telid].adc_samples
+    nsamples = data.shape[2]
+    ped = event.mc.tel[telid].pedestal
+    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
+
+    integrator = AverageWfPeakIntegrator(None, None)
+    integration, peakpos, window = integrator.extract_charge(data_ped)
+
+    assert_almost_equal(integration[0][0], 73, 0)
+    assert_almost_equal(integration[1][0], 73, 0)
+    assert peakpos[0][0] == 10
+    assert peakpos[1][0] == 10
 
 
 def test_charge_extractor_factory():
