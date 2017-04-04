@@ -66,7 +66,7 @@ class Camera:
                       meta=dict(VERSION=version))
 
 
-npix_to_type = {(2048, 0.006): ('SST', 'GATE', 'rectangular'),
+npix_to_type = {(2048, 0.006): ('SST', 'GCT', 'rectangular'),
                  (2048, 0.042): ('LST', 'HESSII', 'hexagonal'),
                  (1141, None): ('MST', 'NectarCam', 'hexagonal'),
                  (1855, None): ('LST', 'LSTCam', 'hexagonal'),
