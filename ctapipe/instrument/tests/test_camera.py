@@ -15,11 +15,6 @@ def test_load_hess_camera():
     assert len(geom.pix_x) == 960
 
 
-def test_rotate_camera():
-    geom = CameraGeometry.make_rectangular(10, 10)
-    geom.rotate(10* u.deg)
-
-
 def test_guess_camera():
     px = np.linspace(-10, 10, 11328) * u.m
     py = np.linspace(-10, 10, 11328) * u.m

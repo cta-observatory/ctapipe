@@ -4,13 +4,13 @@ Utilities for reading or working with Camera geometry files
 """
 import numpy as np
 from astropy import units as u
-from astropy.table import Table
 from astropy.coordinates import Angle
+from astropy.table import Table
+from ctapipe.io.files import get_file_type
+from ctapipe.utils.datasets import get_path
+from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-
-from ..io.files import get_file_type
-from ..utils.datasets import get_path
-from ..utils.linalg import rotation_matrix_2d
+from astropy.utils.decorators import deprecated
 
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
@@ -33,16 +33,31 @@ _npix_to_type = {
 }
 
 
+_geometry_cache = {}
+
+
 class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
     Cherenkov Camera that us useful for imaging algorithms and
     displays. It contains lists of pixel positions, areas, pixel
-    shapes, as well as a neighbor (adjacency) list for each pixel.
+    shapes, as well as a neighbor (adjacency) list and matrix for each pixel. 
+    In general the neighbor_matrix attribute should be used in any algorithm 
+    needing pixel neighbors, since it is much faster. See for example 
+    `ctapipe.image.tailcuts_clean` 
 
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
+    
+    You can construct a CameraGeometry either by specifying all data, 
+    or using the `CameraGeometry.guess()` constructor, which takes metadata 
+    like the pixel positions and telescope focal length to look up the rest 
+    of the data. Note that this function is memoized, so calling it multiple 
+    times with the same inputs will give back the same object (for speed).
+    
     """
+
+    _geometry_cache = {}
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, neighbors, pix_type,
                  pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
@@ -75,14 +90,14 @@ class CameraGeometry:
         self.pix_x = pix_x
         self.pix_y = pix_y
         self.pix_area = pix_area
-        self.neighbors = neighbors
+        self._neighbors = neighbors
+        self._neighbor_matrix = None
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = cam_rotation
         # FIXME the rotation does not work on 2D pixel grids
         if len(pix_x.shape) == 1:
             self.rotate(cam_rotation)
-
 
     @classmethod
     @u.quantity_input
@@ -91,6 +106,12 @@ class CameraGeometry:
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions and the focal length. 
         """
+
+        # only construct a new one if it has never been constructed before,
+        # to speed up access. Otherwise return the already constructed instance
+        identifier = hash((len(pix_x), optical_foclen))
+        if identifier in CameraGeometry._geometry_cache:
+            return CameraGeometry._geometry_cache[identifier]
 
         dist = _get_min_pixel_seperation(pix_x, pix_y)
 
@@ -105,21 +126,20 @@ class CameraGeometry:
         else:
             raise KeyError("unsupported pixel type")
 
-        return cls(
+        instance = cls(
             cam_id=cam_id,
             pix_id=np.arange(len(pix_x)),
             pix_x=pix_x,
             pix_y=pix_y,
             pix_area=np.ones(pix_x.shape) * area,
-            neighbors=_find_neighbor_pixels(
-                pix_x.value,
-                pix_y.value,
-                1.4 * dist.value,
-            ),
+            neighbors=None,
             pix_type=pix_type,
             pix_rotation=pix_rotation,
             cam_rotation=cam_rotation,
         )
+
+        CameraGeometry._geometry_cache[identifier] = instance
+        return instance
 
     @classmethod
     def from_name(cls, name, tel_id):
@@ -150,6 +170,34 @@ class CameraGeometry:
                                TYPE='CameraGeometry',
                                CAM_ID=self.cam_id))
 
+
+    @property
+    def neighbors(self):
+        """" only calculate neighbors when needed """
+        if self._neighbors is None:
+            self.update_neighors()
+        return self._neighbors
+
+    @property
+    def neighbor_matrix(self):
+        if self._neighbor_matrix is None:
+            self._neighbor_matrix = _neighbor_list_to_matrix(self.neighbors)
+        return self._neighbor_matrix
+
+    def update_neighbors():
+        dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
+        if self.pix_type.startswith('hex'):
+            self._neighbors = _find_neighbor_pixels(
+                self.pix_x.value,
+                self.pix_y.value,
+                1.4 * dist.value
+            )
+        else:
+            xx, yy = self.pix_x, self.pix_y
+            rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
+            self._neighbors = _find_neighbor_pixels(xx.value, yy.value,
+                                                    rad=(rr.mean() * 2.001).value)
+    @deprecated(0.5, "no longer needed due to coordinate transforms")
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
@@ -177,6 +225,9 @@ class CameraGeometry:
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= angle
+        # mark neighbors to be recalculated
+        self._neighbor_matrix = None
+        self._neighbors = None
 
 
     @classmethod
@@ -210,8 +261,7 @@ class CameraGeometry:
 
             ids = np.arange(npix_x * npix_y)
             rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
-            nn = _find_neighbor_pixels(xx.value, yy.value,
-                                       rad=(rr.mean() * 2.001).value)
+
             return cls(
                 cam_id=-1,
                 pix_id=ids,
@@ -391,4 +441,19 @@ def _load_camera_geometry_from_hessio_file(tel_id, filename):
     return CameraGeometry.guess(pix_x * u.m, pix_y * u.m, optical_foclen)
 
 
+
+def _neighbor_list_to_matrix(neighbors):
+    """ 
+    convert a neighbor adjacency list (list of list of neighbors) to a 2D 
+    numpy array, which is much faster (and can simply be multiplied)
+    """
+
+    npix = len(neighbors)
+    neigh2d = np.zeros(shape=(npix, npix), dtype=np.bool)
+
+    for ipix, neighbors in enumerate(neighbors):
+        for jn, neighbor in enumerate(neighbors):
+            neigh2d[ipix, neighbor] = True
+
+    return neigh2d
 

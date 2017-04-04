@@ -281,7 +281,7 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
             pix_x=grid_x * u.m,
             pix_y=grid_y * u.m,
             pix_area=pix_area * u.m ** 2,
-            neighbors=None,  # TODO: ... it's a 2D grid after all ...
+            neighbors=None,
             pix_type='rectangular')
 
         # storing the pixel mask and camera rotation for later use
