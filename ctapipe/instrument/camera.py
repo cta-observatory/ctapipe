@@ -6,11 +6,11 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
+from astropy.utils import lazyproperty
 from ctapipe.io.files import get_file_type
 from ctapipe.utils.datasets import get_path
 from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-from astropy.utils.decorators import deprecated
 
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
@@ -59,8 +59,9 @@ class CameraGeometry:
 
     _geometry_cache = {}
 
-    def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, neighbors, pix_type,
-                 pix_rotation=0 * u.degree, cam_rotation=0 * u.degree):
+    def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
+                 pix_rotation=0 * u.degree, cam_rotation=0 * u.degree,
+                 neighbors=None):
         """
         Parameters
         ----------
@@ -90,11 +91,10 @@ class CameraGeometry:
         self.pix_x = pix_x
         self.pix_y = pix_y
         self.pix_area = pix_area
-        self._neighbors = neighbors
-        self._neighbor_matrix = None
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = cam_rotation
+        self._precalculated_neighbors = neighbors
         # FIXME the rotation does not work on 2D pixel grids
         if len(pix_x.shape) == 1:
             self.rotate(cam_rotation)
@@ -170,24 +170,18 @@ class CameraGeometry:
                                TYPE='CameraGeometry',
                                CAM_ID=self.cam_id))
 
-
-    @property
+    @lazyproperty
     def neighbors(self):
-        """" only calculate neighbors when needed """
-        if self._neighbors is None:
-            self.update_neighors()
-        return self._neighbors
+        """" only calculate neighbors when needed or if not already 
+        calculated"""
 
-    @property
-    def neighbor_matrix(self):
-        if self._neighbor_matrix is None:
-            self._neighbor_matrix = _neighbor_list_to_matrix(self.neighbors)
-        return self._neighbor_matrix
+        if self._precalculated_neighbors is not None:
+            return self._precalculated_neighbors
 
-    def update_neighbors():
+        # otherwise compute the neighbors from the pixel list
         dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
         if self.pix_type.startswith('hex'):
-            self._neighbors = _find_neighbor_pixels(
+            neighbors = _find_neighbor_pixels(
                 self.pix_x.value,
                 self.pix_y.value,
                 1.4 * dist.value
@@ -195,9 +189,15 @@ class CameraGeometry:
         else:
             xx, yy = self.pix_x, self.pix_y
             rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
-            self._neighbors = _find_neighbor_pixels(xx.value, yy.value,
-                                                    rad=(rr.mean() * 2.001).value)
-    @deprecated(0.5, "no longer needed due to coordinate transforms")
+            neighbors = _find_neighbor_pixels(xx.value, yy.value,
+                                              rad=(rr.mean() * 2.001).value)
+        return neighbors
+
+
+    @lazyproperty
+    def neighbor_matrix(self):
+        return _neighbor_list_to_matrix(self.neighbors)
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
@@ -262,14 +262,13 @@ class CameraGeometry:
             ids = np.arange(npix_x * npix_y)
             rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
 
-            return cls(
-                cam_id=-1,
-                pix_id=ids,
-                pix_x=xx * u.m,
-                pix_y=yy * u.m,
-                pix_area=(2 * rr) ** 2,
-                neighbors=nn,
-                pix_type='rectangular')
+            return cls(cam_id=-1,
+                       pix_id=ids,
+                       pix_x=xx * u.m,
+                       pix_y=yy * u.m,
+                       pix_area=(2 * rr) ** 2,
+                       neighbors=None,
+                       pix_type='rectangular')
 
 # ======================================================================
 # utility functions:
