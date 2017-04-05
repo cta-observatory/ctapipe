@@ -79,7 +79,7 @@ class CameraDemo(Tool):
                 self._counter = 0
 
             if self.imclean:
-                cleanmask = cleaning.tailcuts_clean(geom, image, pedvars=80)
+                cleanmask = cleaning.tailcuts_clean(geom, image)
                 for ii in range(3):
                     cleaning.dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels

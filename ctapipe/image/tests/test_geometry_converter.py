@@ -100,12 +100,10 @@ def test_convert_geometry():
 
 
             # do some tailcuts cleaning
-            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
-                                   picture_thresh=10.,
-                                   boundary_thresh=5.)
+            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal,
+                                   picture_thresh=10., boundary_thresh=5.)
 
-            mask2 = tailcuts_clean(unrot_geom, unrot_signal, 1,
-                                   picture_thresh=10.,
+            mask2 = tailcuts_clean(unrot_geom, unrot_signal, picture_thresh=10.,
                                    boundary_thresh=5.)
             pmt_signal[mask1==False] = 0
             unrot_signal[mask2==False] = 0

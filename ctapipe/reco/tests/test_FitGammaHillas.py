@@ -135,7 +135,7 @@ def test_FitGammaHillas():
 
             pmt_signal = event.r0.tel[tel_id].adc_sums[0]
 
-            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
+            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
             pmt_signal[mask == 0] = 0
 

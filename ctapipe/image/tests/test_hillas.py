@@ -25,7 +25,7 @@ def create_sample_image(psi='-30d'):
                                                                nsb_level_pe=100)
 
     # denoise the image, so we can calculate hillas params
-    clean_mask = tailcuts_clean(geom, image, 1, 10,
+    clean_mask = tailcuts_clean(geom, image, 10,
                                 5)  # pedvars = 1 and core and boundary
     # threshold in pe
     image[~clean_mask] = 0

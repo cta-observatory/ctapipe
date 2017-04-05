@@ -4,9 +4,9 @@ Image Cleaning Algorithms (identification of noisy pixels)
 
 __all__ = ['tailcuts_clean', 'dilate']
 
+import numpy as np
 
-def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
-                   boundary_thresh=2.25):
+def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5):
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
     defined with respect to the pedestal dispersion. All pixels that
@@ -22,16 +22,12 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
     geom: `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image: array
-        pedestal-subtracted, flat-fielded pixel values
-    pedvars: array or scalar
-        pedestal dispersion of all pixels, or any other
-        multiplicative factor that one wants to use to normalize the
-        thresholds (e.g. if your image is already in PE units, this could
-        simply be set to 1, and the thresholds defined in PE)
-    picture_thresh: float
-        high threshold as multiple of the pedvar
-    boundary_thresh: float
-        low-threshold as mutiple of pedvar (+ nearest neighbor)
+        pixel values
+    picture_thresh: float or array
+        threshold above which all pixels are retained
+    boundary_thresh: float or array
+        threshold above which pixels are retained if they have a neighbor 
+        already above the picture_thresh
 
     Returns
     -------
@@ -43,16 +39,25 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     """
 
-    clean_mask = image >= picture_thresh * pedvars  # starts as picture pixels
+    pixels_in_picture = image >= picture_thresh  # if pixel > p_thresh
 
-    # good boundary pixels are those that have any picture pixel as a
-    # neighbor
-    boundary_mask = image >= boundary_thresh * pedvars
-    boundary_ids = [pix_id for pix_id in geom.pix_id[boundary_mask]
-                    if clean_mask[geom.neighbors[pix_id]].any()]
+    # make a 2d representation of all pixels that are in the picture
+    # by simply repeating pixels_in_picture for each pixel,
+    # so we can apply the neighbor matrix later with a simple multiplication
+    npix = len(image)
+    pixels_in_picture_2d = np.tile(pixels_in_picture, npix).reshape(npix, npix)
 
-    clean_mask[boundary_ids] = True
-    return clean_mask
+    # now find all pixels that are above the boundary threshold
+    # AND have any neighbor that is in the picture
+    pixels_above_boundary = image >= boundary_thresh
+    pixels_with_picture_neighbors = (pixels_in_picture_2d
+                                     * geom.neighbor_matrix).any(axis=1)
+
+    return (pixels_above_boundary
+            & pixels_with_picture_neighbors) | pixels_in_picture
+
+
+
 
 
 def dilate(geom, mask):
