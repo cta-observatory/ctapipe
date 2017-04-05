@@ -24,10 +24,8 @@ Getting Started
 Reference/API
 =============
 
-.. automodapi:: ctapipe.instrument.CameraDescription
+.. automodapi:: ctapipe.instrument
 
-
-.. automodapi:: ctapipe.instrument.InstrumentDescription
 		
 
 
