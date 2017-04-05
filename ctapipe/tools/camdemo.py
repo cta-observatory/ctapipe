@@ -11,7 +11,7 @@ from astropy import units as u
 from ctapipe.visualization import CameraDisplay
 from ctapipe.instrument import CameraGeometry
 from ctapipe.core import Tool, traits
-from ctapipe.image import toymodel, cleaning
+from ctapipe.image import toymodel, tailcuts_clean, dilate
 from matplotlib.animation import FuncAnimation
 
 
@@ -51,7 +51,7 @@ class CameraDemo(Tool):
 
         # load the camera
         geom = CameraGeometry.from_name("hess", 1)
-        disp = CameraDisplay(geom, ax=ax, autoupdate=True)
+        disp = CameraDisplay(geom, ax=ax, autoupdate=True, )
         disp.cmap = plt.cm.terrain
 
         def update(frame):
@@ -79,9 +79,9 @@ class CameraDemo(Tool):
                 self._counter = 0
 
             if self.imclean:
-                cleanmask = cleaning.tailcuts_clean(geom, image)
+                cleanmask = tailcuts_clean(geom, image/80.0)
                 for ii in range(3):
-                    cleaning.dilate(geom, cleanmask)
+                    dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels
 
             self.log.debug("count = {}, image sum={} max={}"
