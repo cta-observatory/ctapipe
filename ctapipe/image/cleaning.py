@@ -57,16 +57,20 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5):
             & pixels_with_picture_neighbors) | pixels_in_picture
 
 
-
-
-
 def dilate(geom, mask):
-    """Add one row of neighbors to the True values of a pixel mask.  This
-    can be used to include extra rows of pixels in a mask that was
-    pre-computed, e.g. via `tailcuts_clean`.
-
-    Modifies mask in-place by default (pass `mask.copy()` if you want
-    to maintain a copy of the undialated data)
     """
-    for pixid in geom.pix_id[mask]:
-        mask[geom.neighbors[pixid]] = True
+    Add one row of neighbors to the True values of a pixel mask and return 
+    the new mask.
+    This can be used to include extra rows of pixels in a mask that was
+    pre-computed, e.g. via `tailcuts_clean`.
+    
+    Parameters
+    ----------
+    geom: `~ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    mask: ndarray 
+        array of booleans corresponding to the pixels in the camera
+    """
+    npix = len(mask)
+    mask_2d = np.tile(mask, npix).reshape(npix, npix)
+    return mask | (mask_2d*geom.neighbor_matrix).any(axis=1)

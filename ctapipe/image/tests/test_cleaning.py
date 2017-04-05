@@ -36,13 +36,13 @@ def test_dilate():
     assert mask.sum() == 1
 
     # dilate a single row
-    cleaning.dilate(geom, mask)
-    assert mask.sum() == 1 + 6
+    dmask = cleaning.dilate(geom, mask)
+    assert dmask.sum() == 1 + 6
 
     # dilate a second row
-    cleaning.dilate(geom, mask)
-    assert mask.sum() == 1 + 6 + 12
+    dmask = cleaning.dilate(geom, dmask)
+    assert dmask.sum() == 1 + 6 + 12
 
     # dilate a third row
-    cleaning.dilate(geom, mask)
-    assert mask.sum() == 1 + 6 + 12 + 18
+    dmask = cleaning.dilate(geom, dmask)
+    assert dmask.sum() == 1 + 6 + 12 + 18
