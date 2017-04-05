@@ -109,7 +109,7 @@ class CameraGeometry:
 
         # only construct a new one if it has never been constructed before,
         # to speed up access. Otherwise return the already constructed instance
-        identifier = hash((len(pix_x), optical_foclen))
+        identifier = hash((pix_x.value.tostring(), optical_foclen))
         if identifier in CameraGeometry._geometry_cache:
             return CameraGeometry._geometry_cache[identifier]
 
@@ -170,6 +170,13 @@ class CameraGeometry:
                                TYPE='CameraGeometry',
                                CAM_ID=self.cam_id))
 
+    def __str__(self):
+        tab = self.to_table()
+        return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
+               "npix={npix})".format(cam_id=self.cam_id,
+                                     pix_type=self.pix_type,
+                                     npix = len(self.pix_id))
+
     @lazyproperty
     def neighbors(self):
         """" only calculate neighbors when needed or if not already 
@@ -225,9 +232,6 @@ class CameraGeometry:
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= angle
-        # mark neighbors to be recalculated
-        self._neighbor_matrix = None
-        self._neighbors = None
 
 
     @classmethod
@@ -387,7 +391,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
                                       (dd.mean() + 0.01 * u.m).value)
 
     return CameraGeometry(
-        cam_id=cam_id,
+        cam_id="{}:{}".format(instrument_name,cam_id),
         pix_id=np.array(geom['PIX_ID']),
         pix_x=xx,
         pix_y=yy,
