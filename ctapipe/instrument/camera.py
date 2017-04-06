@@ -33,9 +33,6 @@ _npix_to_type = {
 }
 
 
-_geometry_cache = {}
-
-
 class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
     Cherenkov Camera that us useful for imaging algorithms and
