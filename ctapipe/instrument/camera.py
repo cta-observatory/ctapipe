@@ -186,6 +186,11 @@ class CameraGeometry:
         """" only calculate neighbors when needed or if not already 
         calculated"""
 
+        # return pre-calculated ones (e.g. those that were passed in during
+        # the object construction) if they exist
+        if self._precalculated_neighbors is not None:
+            return self._precalculated_neighbors
+
         # otherwise compute the neighbors from the pixel list
         dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
         if self.pix_type.startswith('hex'):
