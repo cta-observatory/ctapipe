@@ -43,3 +43,25 @@ def test_camera_neighbor_pixels():
     assert int(median(recgeom.neighbor_matrix.sum(axis=1))) == 4
     assert int(median(hexgeom.neighbor_matrix.sum(axis=1))) == 6
 
+def test_camera_to_and_from_table():
+    geom = CameraGeometry.from_name("HESS", 1)
+    tab = geom.to_table()
+    geom2 = geom.from_table(tab)
+
+    assert geom.cam_id == geom2.cam_id
+    assert (geom.pix_x == geom2.pix_x).all()
+    assert (geom.pix_y == geom2.pix_y).all()
+    assert (geom.pix_area == geom2.pix_area).all()
+    assert geom.pix_type == geom2.pix_type
+
+
+def test_camera_write_read():
+    geom = CameraGeometry.from_name("HESS", 1)
+    geom.to_table().write('testcamera.fits.gz', overwrite=True)
+    geom2 = geom.from_table('testcamera.fits.gz')
+
+    assert geom.cam_id == geom2.cam_id
+    assert (geom.pix_x == geom2.pix_x).all()
+    assert (geom.pix_y == geom2.pix_y).all()
+    assert (geom.pix_area == geom2.pix_area).all()
+    assert geom.pix_type == geom2.pix_type

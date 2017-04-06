@@ -15,20 +15,21 @@ from scipy.spatial import cKDTree as KDTree
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
 
-
 # dictionary to convert number of pixels to camera type for use in
 # guess_camera_geometry.
 # Key = (npix, pix_separation_m)
 # Value = (type, subtype, pixtype, pixrotation, camrotation)
 _npix_to_type = {
-    (2048, 2.3):   ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2):   ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 36.0):  ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
-    (1855, 16.0):  ('MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
-    (1855, 28.0):  ('LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
-    (1296, None):  ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (1764, None):  ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None):  ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.3): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 36.0): ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
+    (1855, 16.0): (
+        'MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
+    (1855, 28.0): (
+        'LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
+    (1296, None): ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (1764, None): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (2368, None): ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
@@ -90,11 +91,12 @@ class CameraGeometry:
         self.pix_area = pix_area
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
-        self.cam_rotation = cam_rotation
+        self.cam_rotation = Angle(cam_rotation)
         self._precalculated_neighbors = neighbors
         # FIXME the rotation does not work on 2D pixel grids
         if len(pix_x.shape) == 1:
             self.rotate(cam_rotation)
+            self.cam_rotation = Angle(0 * u.deg)
 
     @classmethod
     @u.quantity_input
@@ -135,8 +137,8 @@ class CameraGeometry:
             pix_area=np.ones(pix_x.shape) * area,
             neighbors=None,
             pix_type=pix_type,
-            pix_rotation=pix_rotation,
-            cam_rotation=cam_rotation,
+            pix_rotation=Angle(pix_rotation),
+            cam_rotation=Angle(cam_rotation),
         )
 
         CameraGeometry._geometry_cache[identifier] = instance
@@ -167,16 +169,48 @@ class CameraGeometry:
         # var-length arrays are not supported by astropy.table.Table
         return Table([self.pix_id, self.pix_x, self.pix_y, self.pix_area],
                      names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
-                     meta=dict(pix_type=self.pix_type,
+                     meta=dict(PIX_TYPE=self.pix_type,
                                TYPE='CameraGeometry',
-                               CAM_ID=self.cam_id))
+                               CAM_ID=self.cam_id,
+                               PIX_ROT=self.pix_rotation.deg,
+                               CAM_ROT=self.cam_rotation.deg,
+                ))
+
+
+    @classmethod
+    def from_table(cls, url_or_table):
+        """
+        Load a CameraGeometry from an `astropy.table.Table` instance or a 
+        file that is readable by `astropy.table.Table.read()`
+         
+        Parameters
+        ----------
+        url_or_table: string or astropy.table.Table
+            either input filename/url or a Table instance
+
+        """
+
+        tab = url_or_table
+        if not isinstance(url_or_table, Table):
+            tab = Table.read(url_or_table)
+
+        return cls(
+            cam_id=tab.meta['CAM_ID'],
+            pix_id=tab['pix_id'],
+            pix_x=tab['pix_x'].quantity,
+            pix_y=tab['pix_y'].quantity,
+            pix_area=tab['pix_area'].quantity,
+            pix_type=tab.meta['PIX_TYPE'],
+            pix_rotation=Angle(tab.meta['PIX_ROT'] * u.deg),
+            cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
+        )
 
     def __str__(self):
         tab = self.to_table()
         return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
                "npix={npix})".format(cam_id=self.cam_id,
                                      pix_type=self.pix_type,
-                                     npix = len(self.pix_id))
+                                     npix=len(self.pix_id))
 
     @lazyproperty
     def neighbors(self):
@@ -198,7 +232,6 @@ class CameraGeometry:
         )
 
         return neighbors
-
 
     @lazyproperty
     def neighbor_matrix(self):
@@ -232,46 +265,46 @@ class CameraGeometry:
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= angle
 
-
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
                          range_y=(-0.5, 0.5)):
-            """Generate a simple camera with 2D rectangular geometry.
+        """Generate a simple camera with 2D rectangular geometry.
 
-            Used for testing.
+        Used for testing.
 
-            Parameters
-            ----------
-            npix_x : int
-                number of pixels in X-dimension
-            npix_y : int
-                number of pixels in Y-dimension
-            range_x : (float,float)
-                min and max of x pixel coordinates in meters
-            range_y : (float,float)
-                min and max of y pixel coordinates in meters
+        Parameters
+        ----------
+        npix_x : int
+            number of pixels in X-dimension
+        npix_y : int
+            number of pixels in Y-dimension
+        range_x : (float,float)
+            min and max of x pixel coordinates in meters
+        range_y : (float,float)
+            min and max of y pixel coordinates in meters
 
-            Returns
-            -------
-            CameraGeometry object
+        Returns
+        -------
+        CameraGeometry object
 
-            """
-            bx = np.linspace(range_x[0], range_x[1], npix_x)
-            by = np.linspace(range_y[0], range_y[1], npix_y)
-            xx, yy = np.meshgrid(bx, by)
-            xx = xx.ravel() * u.m
-            yy = yy.ravel() * u.m
+        """
+        bx = np.linspace(range_x[0], range_x[1], npix_x)
+        by = np.linspace(range_y[0], range_y[1], npix_y)
+        xx, yy = np.meshgrid(bx, by)
+        xx = xx.ravel() * u.m
+        yy = yy.ravel() * u.m
 
-            ids = np.arange(npix_x * npix_y)
-            rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
+        ids = np.arange(npix_x * npix_y)
+        rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
 
-            return cls(cam_id=-1,
-                       pix_id=ids,
-                       pix_x=xx * u.m,
-                       pix_y=yy * u.m,
-                       pix_area=(2 * rr) ** 2,
-                       neighbors=None,
-                       pix_type='rectangular')
+        return cls(cam_id=-1,
+                   pix_id=ids,
+                   pix_x=xx * u.m,
+                   pix_y=yy * u.m,
+                   pix_area=(2 * rr) ** 2,
+                   neighbors=None,
+                   pix_type='rectangular')
+
 
 # ======================================================================
 # utility functions:
@@ -343,8 +376,6 @@ def _guess_camera_type(npix, optical_foclen):
                                   0 * u.degree, 0 * u.degree))
 
 
-
-
 def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     """Helper function to provide the camera geometry definition for a
     camera by name.
@@ -390,7 +421,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
                                       (dd.mean() + 0.01 * u.m).value)
 
     return CameraGeometry(
-        cam_id="{}:{}".format(instrument_name,cam_id),
+        cam_id="{}:{}".format(instrument_name, cam_id),
         pix_id=np.array(geom['PIX_ID']),
         pix_x=xx,
         pix_y=yy,
@@ -443,7 +474,6 @@ def _load_camera_geometry_from_hessio_file(tel_id, filename):
     return CameraGeometry.guess(pix_x * u.m, pix_y * u.m, optical_foclen)
 
 
-
 def _neighbor_list_to_matrix(neighbors):
     """ 
     convert a neighbor adjacency list (list of list of neighbors) to a 2D 
@@ -458,4 +488,3 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
-

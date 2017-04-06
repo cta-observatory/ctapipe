@@ -1,9 +1,10 @@
-from .camera import CameraGeometry
+import logging
 from collections import defaultdict
 
-import logging
+from .camera import CameraGeometry
 
 log = logging.getLogger(__name__)
+
 
 def get_camera_types(inst):
     """ return dict of camera names mapped to a list of tel_ids
@@ -26,12 +27,12 @@ def get_camera_types(inst):
 
     return camid
 
-def print_camera_types(inst, printer=log.info):
 
+def print_camera_types(inst, printer=log.info):
     camtypes = get_camera_types(inst)
 
     printer("              CAMERA  Num IDmin  IDmax")
     printer("=====================================")
     for cam, tels in camtypes.items():
         printer("{:>20s} {:4d} {:4d} ..{:4d}".format(cam, len(tels), min(tels),
-                                                   max(tels)))
+                                                     max(tels)))
