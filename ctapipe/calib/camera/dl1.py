@@ -225,7 +225,8 @@ class CameraDL1Calibrator(Component):
                 return self.correction_dict[telid]
             except AttributeError:
                 # Don't apply correction when window_shift or window_width
-                # does not exist in extractor
+                # does not exist in extractor, or when container does not have
+                # a reference pulse shape
                 return 1
 
     def calibrate(self, event):
