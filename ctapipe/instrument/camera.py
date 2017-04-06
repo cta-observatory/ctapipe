@@ -190,17 +190,13 @@ class CameraGeometry:
 
         # otherwise compute the neighbors from the pixel list
         dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
-        if self.pix_type.startswith('hex'):
-            neighbors = _find_neighbor_pixels(
-                self.pix_x.value,
-                self.pix_y.value,
-                1.4 * dist.value
-            )
-        else:
-            xx, yy = self.pix_x, self.pix_y
-            rr = np.ones_like(xx).value * (xx[1] - xx[0]) / 2.0
-            neighbors = _find_neighbor_pixels(xx.value, yy.value,
-                                              rad=(rr.mean() * 2.001).value)
+
+        neighbors = _find_neighbor_pixels(
+            self.pix_x.value,
+            self.pix_y.value,
+            rad=1.4 * dist.value
+        )
+
         return neighbors
 
 
