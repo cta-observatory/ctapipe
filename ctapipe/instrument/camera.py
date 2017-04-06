@@ -57,7 +57,7 @@ class CameraGeometry:
     
     """
 
-    _geometry_cache = {}
+    _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
                  pix_rotation=0 * u.degree, cam_rotation=0 * u.degree,
@@ -106,13 +106,17 @@ class CameraGeometry:
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions and the focal length. 
         """
-
         # only construct a new one if it has never been constructed before,
         # to speed up access. Otherwise return the already constructed instance
+        # the identifier uses the values of pix_x (which are converted to a
+        # string to make them hashable) and the optical_foclen. So far,
+        # that is enough to uniquely identify a geometry.
         identifier = hash((pix_x.value.tostring(), optical_foclen))
         if identifier in CameraGeometry._geometry_cache:
             return CameraGeometry._geometry_cache[identifier]
 
+        # now try to determine the camera type using the map defined at the
+        # top of this file.
         dist = _get_min_pixel_seperation(pix_x, pix_y)
 
         tel_type, cam_id, pix_type, pix_rotation, cam_rotation = \
