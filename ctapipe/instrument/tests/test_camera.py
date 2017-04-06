@@ -4,6 +4,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.instrument.camera import _find_neighbor_pixels, \
     _get_min_pixel_seperation
 from numpy import median
+import pytest
 
 
 def test_make_rectangular_camera_geometry():
@@ -34,7 +35,7 @@ def test_find_neighbor_pixels():
     neigh = _find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
     assert(set(neigh[11]) == set([16, 6, 10, 12]))
 
-def test_camera_neighbor_pixels():
+def test_neighbor_pixels():
     hexgeom = CameraGeometry.from_name("HESS", 1)
     recgeom = CameraGeometry.make_rectangular()
 
@@ -43,7 +44,7 @@ def test_camera_neighbor_pixels():
     assert int(median(recgeom.neighbor_matrix.sum(axis=1))) == 4
     assert int(median(hexgeom.neighbor_matrix.sum(axis=1))) == 6
 
-def test_camera_to_and_from_table():
+def test_to_and_from_table():
     geom = CameraGeometry.from_name("HESS", 1)
     tab = geom.to_table()
     geom2 = geom.from_table(tab)
@@ -55,10 +56,13 @@ def test_camera_to_and_from_table():
     assert geom.pix_type == geom2.pix_type
 
 
-def test_camera_write_read():
+def test_write_read(tmpdir):
+
+    filename = str(tmpdir.join('testcamera.fits.gz'))
+
     geom = CameraGeometry.from_name("HESS", 1)
-    geom.to_table().write('testcamera.fits.gz', overwrite=True)
-    geom2 = geom.from_table('testcamera.fits.gz')
+    geom.to_table().write(filename, overwrite=True)
+    geom2 = geom.from_table(filename)
 
     assert geom.cam_id == geom2.cam_id
     assert (geom.pix_x == geom2.pix_x).all()
