@@ -41,16 +41,11 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5):
 
     pixels_in_picture = image >= picture_thresh  # if pixel > p_thresh
 
-    # make a 2d representation of all pixels that are in the picture
-    # by simply repeating pixels_in_picture for each pixel,
-    # so we can apply the neighbor matrix later with a simple multiplication
-    npix = len(image)
-    pixels_in_picture_2d = np.tile(pixels_in_picture, npix).reshape(npix, npix)
-
-    # now find all pixels that are above the boundary threshold
+    # by broadcasting together pixels_in_picture (1d) with the neighbor
+    # matrix (2d), we find all pixels that are above the boundary threshold
     # AND have any neighbor that is in the picture
     pixels_above_boundary = image >= boundary_thresh
-    pixels_with_picture_neighbors = (pixels_in_picture_2d
+    pixels_with_picture_neighbors = (pixels_in_picture
                                      * geom.neighbor_matrix).any(axis=1)
 
     return (pixels_above_boundary
@@ -71,6 +66,4 @@ def dilate(geom, mask):
     mask: ndarray 
         array of booleans corresponding to the pixels in the camera
     """
-    npix = len(mask)
-    mask_2d = np.tile(mask, npix).reshape(npix, npix)
-    return mask | (mask_2d*geom.neighbor_matrix).any(axis=1)
+    return mask | (mask*geom.neighbor_matrix).any(axis=1)
