@@ -110,7 +110,7 @@ class CameraGeometry:
         # the identifier uses the values of pix_x (which are converted to a
         # string to make them hashable) and the optical_foclen. So far,
         # that is enough to uniquely identify a geometry.
-        identifier = hash((pix_x.value.tostring(), optical_foclen))
+        identifier = (pix_x.value.tostring(), optical_foclen)
         if identifier in CameraGeometry._geometry_cache:
             return CameraGeometry._geometry_cache[identifier]
 

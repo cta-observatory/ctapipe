@@ -21,13 +21,13 @@ Camera Geometries
 =================
 
 The `CameraGeometry` provides an easy way to work with images or data
-cubces related to Cherenkov Cameras.  In *ctapipe*, a camera image is
+cubes related to Cherenkov Cameras.  In *ctapipe*, a camera image is
 simply a flat 1D array (or 2D if time information is included), where
 there is one value per pixel. Of course, to work with such an array,
-one needs spatial information abotu how the pixels are laid out.
+one needs spatial information about how the pixels are laid out.
 Since CTA has at least 6 different camera types, and may have multiple
 versions of each as revisions are made, it is necessary to have a
-common way to decribe all cameras.
+common way to describe all cameras.
 
 So far there are several ways to construct a `CameraGeometry`:
 
@@ -36,7 +36,7 @@ So far there are several ways to construct a `CameraGeometry`:
   
 * use `CameraGeometry.from_name(telescope, revision)` (ex: `geom =
   CameraGeometry.from_name('HESS',1)`).  This reads the telescope def
-  from the $CTAPIPE_EXTRA directory, and so far we only have HESS
+  from the `$CTAPIPE_EXTRA` directory, and so far we only have HESS
   telescopes there (more to come)
 
 * load a Monte-Carlo file, get the list of pixel X and Y positions and
@@ -60,7 +60,7 @@ speed-efficient.
 `ctapipe.visualization` module.
 
 Input/Output
--------------
+------------
 
 You can write out a `CameraGeometry` by using the `CameraGeometry.to_table()`
  method to turn it into an `astropy.table.Table`, and then call its `write()`
