@@ -15,11 +15,11 @@ from scipy.spatial import cKDTree as KDTree
 __all__ = ['CameraGeometry',
            'make_rectangular_camera_geometry']
 
-# dictionary to convert number of pixels to camera type for use in
-# guess_camera_geometry.
-# Key = (npix, pix_separation_m)
-# Value = (type, subtype, pixtype, pixrotation, camrotation)
-_npix_to_type = {
+# dictionary to convert number of pixels to camera + the focal length of the
+# telescope into a camera type for use in `CameraGeometry.guess()`
+#     Key = (num_pix, focal_length_in_meters)
+#     Value = (type, subtype, pixtype, pixrotation, camrotation)
+_CAMERA_GEOMETRY_TABLE = {
     (2048, 2.3): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 2.2): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 36.0): ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
@@ -367,13 +367,13 @@ def _find_neighbor_pixels(pix_x, pix_y, rad):
 
 
 def _guess_camera_type(npix, optical_foclen):
-    global _npix_to_type
+    global _CAMERA_GEOMETRY_TABLE
 
     try:
-        return _npix_to_type[(npix, None)]
+        return _CAMERA_GEOMETRY_TABLE[(npix, None)]
     except KeyError:
-        return _npix_to_type.get((npix, round(optical_foclen.value, 1)),
-                                 ('unknown', 'unknown', 'hexagonal',
+        return _CAMERA_GEOMETRY_TABLE.get((npix, round(optical_foclen.value, 1)),
+                                          ('unknown', 'unknown', 'hexagonal',
                                   0 * u.degree, 0 * u.degree))
 
 
