@@ -179,7 +179,7 @@ class CameraGeometry:
 
 
     @classmethod
-    def from_table(cls, url_or_table):
+    def from_table(cls, url_or_table, **kwargs):
         """
         Load a CameraGeometry from an `astropy.table.Table` instance or a 
         file that is readable by `astropy.table.Table.read()`
@@ -188,12 +188,21 @@ class CameraGeometry:
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
+        
+        format: str
+            astropy.table format string (e.g. 'ascii.ecsv') in case the 
+            format cannot be determined from the file extension
+            
+        kwargs: extra keyword arguments
+            extra arguments passed to `astropy.table.read()`, depending on 
+            file type (e.g. format, hdu, path)
+
 
         """
 
         tab = url_or_table
         if not isinstance(url_or_table, Table):
-            tab = Table.read(url_or_table)
+            tab = Table.read(url_or_table, **kwargs)
 
         return cls(
             cam_id=tab.meta['CAM_ID'],

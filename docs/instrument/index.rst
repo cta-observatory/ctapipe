@@ -59,6 +59,27 @@ speed-efficient.
 `ctapipe.image` module, as well as displays in the
 `ctapipe.visualization` module.
 
+Input/Output
+-------------
+
+You can write out a `CameraGeometry` by using the `CameraGeometry.to_table()`
+ method to turn it into an `astropy.table.Table`, and then call its `write()`
+  function.  Reading it back in can be done with `CameraGeometry.from_table()`
+
+.. code-block:: python
+
+   geom = CameraGeometry(...)  # constructed elsewhere
+
+   geom.to_table().write('mycam.fits.gz') # FITS output
+   geom.to_table().write('mycam.h5', path='/cameras/mycam') # hdf5 output
+   geom.to_table().write('mycam.ecsv', format='ascii.ecsv') # text table
+
+   # later read back in:
+
+   geom = CameraGeometry.from_table('mycam.ecsv', format='ascii.ecsv')
+   geom = CameraGeometry.from_table('mycam.fits.gz')
+   geom = CameraGeometry.from_table('mycam.h5', path='/cameras/mycam')
+
 
 A note on Pixel Neighbors
 -------------------------
