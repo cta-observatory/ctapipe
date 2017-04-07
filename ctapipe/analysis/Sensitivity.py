@@ -2,8 +2,12 @@ from itertools import chain
 import astropy.units as u
 from astropy.table import Table
 from scipy.optimize import minimize
+import scipy.integrate as integrate
 
 import numpy as np
+
+from matplotlib import pyplot as plt
+
 
 # tau, the superior circle number
 np.tau = 2*np.pi
@@ -51,6 +55,7 @@ def crab_source_rate(energy):
         differential flux at E
 
     '''
+    #return 3e-7 * (energy/u.TeV)**-2.52 / (u.TeV * u.m**2 * u.s)
     return 3e-7 * (energy/u.TeV)**-2.48 / (u.TeV * u.m**2 * u.s)
 
 
@@ -161,7 +166,10 @@ def sigma_lima(Non, Noff, alpha=0.2):
     arg1   = Non / sum
     arg2   = Noff / sum
     term1  = Non  * np.log((alpha1/alpha)*arg1)
-    term2  = Noff * np.log(alpha1*arg2)
+    if Noff == 0:
+        term2 = 0
+    else:
+        term2  = Noff * np.log(alpha1*arg2)
     sigma  = np.sqrt(2.0 * (term1 + term2))
 
     return sigma
@@ -194,9 +202,13 @@ def diff_to_X_sigma(scale, N_signal, N_backgr, alpha, X=5):
         significance of `X` sigma
     """
 
-    Non = N_backgr[0] + N_signal[0] * scale[0]
-    Noff = N_backgr[1] + N_signal[1] * scale[0]
+    Non = N_backgr[0] + N_signal * scale[0]
+    Noff = N_backgr[1]
     sigma = sigma_lima(Non, Noff, alpha)
+    #print("N:", N_signal, N_backgr)
+    #print("sigma:", sigma)
+    #print("scale:", scale)
+    #print()
     return (sigma-X)**2
 
 
@@ -210,7 +222,7 @@ class Sensitivity_PointSource():
     def __init__(self, mc_energies, energy_bin_edges,
                  off_angles=None,
                  source_origin=None, event_origins=None, verbose=False,
-                 energy_unit=u.GeV, flux_unit=u.GeV / (u.m**2*u.s)):
+                 energy_unit=u.GeV, flux_unit=1/(u.GeV*u.m**2*u.s)):
         """
         constructor, simply sets some initial parameters
 
@@ -324,9 +336,21 @@ class Sensitivity_PointSource():
             efficiency = self.selected_events[cl] / generator_energy_hists[cl]
             self.effective_areas[cl] = efficiency * generator_areas[cl]
 
+            plt.figure(figsize=(7,5))
+            plt.plot(self.energy_bin_edges[cl][:-1], generator_energy_hists[cl],
+                     label="gen events")
+            plt.plot(self.energy_bin_edges[cl][:-1], self.selected_events[cl],
+                     label="selected events")
+            plt.plot(self.energy_bin_edges[cl][:-1], efficiency, label="ratio")
+            plt.legend()
+            plt.title("generated / selected event")
+            plt.suptitle(cl)
+            plt.grid(axis="y")
+
         return self.effective_areas
 
-    def get_expected_events(self, rates={'g': Eminus2, 'p': CR_background_rate},
+    def get_expected_events(self, rates={'g': crab_source_rate,
+                                         'p': CR_background_rate},
                             extensions={'p': 6*u.deg},
                             observation_time=50*u.h):
         """
@@ -367,8 +391,8 @@ class Sensitivity_PointSource():
                 omega = np.tau*(1 - np.cos(extensions[cl]))*u.rad**2
                 event_rate *= omega
 
-            self.exp_events_per_energy_bin[cl] = event_rate * observation_time * \
-                                                 self.effective_areas[cl]
+            self.exp_events_per_energy_bin[cl] = (event_rate * observation_time *
+                                                  self.effective_areas[cl]).si
 
         return self.exp_events_per_energy_bin
 
@@ -394,8 +418,83 @@ class Sensitivity_PointSource():
 
         return self.event_weights
 
+    def event_weights_from_spectrum(self, n_simulated_events, e_min_max, spectra,
+                                    generator_areas,
+                                    extensions={'p': 6*u.deg},
+                                    observation_time=50*u.h,
+                                    gamma_old={"g": 2, "p": 2},
+                                    gamma_new={"g":2.48, "p": 8./3}):
+
+        self.event_weights = {}
+        self.exp_events_per_energy_bin = {}
+        NGen = {}
+        for cl in self.class_list:
+            dNdE = lambda x: (spectra[cl](x) * observation_time.to(u.s)
+                              * generator_areas[cl].to(u.m**2)
+                              * (1 if (cl not in extensions) else
+                                 np.tau*(1-np.cos(extensions[cl]))*u.rad**2)
+                              ).value
+            print()
+            print(cl)
+            print("dNdE(.1):", dNdE(.1))
+            print("dNdE(1):", dNdE(1))
+            print("e_min_max:", e_min_max[cl])
+            N_r = integrate.quad(dNdE, *e_min_max[cl])[0]
+            print("N integrated:", N_r)
+
+
+            #self.mc_energies[cl] = np.array([0.1, 1, 10])
+            #n_simulated_events[cl] = 100
+
+            # event weights to reskew the energy spectrum
+            e_w = self.mc_energies[cl]**(gamma_old[cl]-gamma_new[cl])
+
+
+            self.event_weights[cl] = e_w * N_r \
+                                     / np.sum(e_w) \
+                                     #/ n_simulated_events[cl] \
+                                     #* len(e_w)
+
+
+            print("sum(e_w):", np.sum(e_w))
+            print("len(e_w):", len(e_w))
+
+            print("n_simulated_events:", n_simulated_events[cl])
+
+            print("sum all weights:", np.sum(self.event_weights[cl]))
+            print()
+
+            self.exp_events_per_energy_bin[cl], _ = \
+                np.histogram(np.log10(self.mc_energies[cl]),
+                             bins=self.energy_bin_edges[cl],
+                             weights=self.event_weights[cl])
+
+
+
+
+
+            NGen[cl] = []
+            for elow, ehigh in zip(10**self.energy_bin_edges[cl][:-1],
+                                   10**self.energy_bin_edges[cl][1:]):
+                NGen[cl].append(integrate.quad(dNdE, elow/1000, ehigh/1000)[0])
+
+
+            plt.figure(figsize=(7,5))
+            plt.plot(self.energy_bin_edges[cl][:-1], NGen[cl], label="assumed events")
+            plt.plot(self.energy_bin_edges[cl][:-1], self.exp_events_per_energy_bin[cl],
+                     label="selected events")
+            plt.plot(self.energy_bin_edges[cl][:-1],
+                     self.exp_events_per_energy_bin[cl]/NGen[cl], label="ratio")
+            plt.title("assumed / selected event")
+            plt.suptitle(cl)
+            plt.grid(axis="y")
+            plt.legend()
+
+
+        return self.event_weights
+
     def get_sensitivity(self, min_n=10, max_background_ratio=.05,
-                        r_on=.3*u.deg, r_off=5*u.deg, signal_list=("g"),
+                        r_on=.3*u.deg, r_off=.3*u.deg, signal_list=("g"),
                         sensitivity_energy_bin_edges=None, verbose=False):
         """
         finally calculates the sensitivity to a point-source
@@ -424,26 +523,21 @@ class Sensitivity_PointSource():
         assert sensitivity_energy_bin_edges is not None, \
             "sensitivity_energy_bin_edges has to be set"
 
-
-        # the area-ratio of the on- and off-region
-        # A_on = r_on**2 * pi
-        # A_off = r_off**2 * pi - r_on**2 * pi
-        #       = (r_off**2 - r_on**2) * pi
-        # alpha = A_on / A_off
-        alpha = 1/(((r_off/r_on)**2)-1)
+        alpha = (r_on/r_off)**2
 
         # sensitivities go in here
-        sensitivities = Table(names=("Energy MC", "Sensitivity"))
-        sensitivities["Energy MC"].unit = self.energy_unit
+        sensitivities = Table(names=("MC Energy", "Sensitivity", "Sensitivity_uncorr"))
+        sensitivities["MC Energy"].unit = self.energy_unit
         sensitivities["Sensitivity"].unit = self.flux_unit
+        sensitivities["Sensitivity_uncorr"].unit = self.flux_unit
 
         # loop over all energy bins
         for elow, ehigh in zip(10**sensitivity_energy_bin_edges[:-1],
                                10**sensitivity_energy_bin_edges[1:]):
+            emid = (elow+ehigh)/2.*self.energy_unit
 
-            # N_events[backgr/signal][on/off region]
-            N_events = np.array([[0., 0.], [0., 0.]])
-            N_backgr, N_signal = N_events
+            N_signal = 0.
+            N_backgr = np.array([0., 0.])  # [on, off]
 
             # count the (weights of the) events in the on and off regions for this
             # energy bin
@@ -457,19 +551,26 @@ class Sensitivity_PointSource():
                 # all events that have a smaller angular offset than `r_off` but are
                 # not in the on-region
                 try:
-                    off_mask = (self.off_angles[cl] < r_off) ^ on_mask
+                    off_mask = (self.off_angles[cl] < r_off)
                 except:
-                    off_mask = (self.off_angles[cl] < r_off.value) ^ on_mask
+                    off_mask = (self.off_angles[cl] < r_off.value)
+
                 # single out the events in this energy bin
                 e_mask = (self.mc_energies[cl] > elow) & (self.mc_energies[cl] < ehigh)
-                # is this channel signal or background
-                is_sig = int(cl in signal_list)
+
                 # count the events as the sum of their weights with all masks applied
-                N_events[is_sig][0] += np.sum(self.event_weights[cl][e_mask & on_mask])
-                N_events[is_sig][1] += np.sum(self.event_weights[cl][e_mask & off_mask])
+                if cl in signal_list:
+                    N_signal += np.sum(self.event_weights[cl][e_mask & on_mask])
+                    #print("number of signal MC events:",
+                          #np.count_nonzero(e_mask & on_mask))
+                else:
+                    N_backgr[0] += np.sum(self.event_weights[cl][e_mask & on_mask])
+                    N_backgr[1] += np.sum(self.event_weights[cl][e_mask & off_mask])
+                    #print("number of background MC events:",
+                          #np.count_nonzero(e_mask & off_mask))
 
             # if we have no gammas in the on region, there is no sensitivity
-            if N_signal[0] == 0:
+            if N_signal == 0:
                 continue
 
             # find the scaling factor for the gamma events that gives a 5 sigma discovery
@@ -478,47 +579,56 @@ class Sensitivity_PointSource():
                              args=(N_signal, N_backgr, alpha),
                              method='L-BFGS-B', bounds=[(1e-4, None)],
                              options={'disp': False}
-                             ).x[0]
+                            ).x[0]
+
+            #print("scale:", scale)
+
+            #if scale == 0.001:
+                #continue
+
+            scale_m = scale
 
             # scale up the gamma events by this factor
-            N_signal = N_signal * scale
+            N_signal *= scale
 
-            if verbose:
-                print("e low {}\te high {}".format(np.log10(elow),
-                                                   np.log10(ehigh)))
+            if False:
+                print("\ne low {}\te high {}".format(np.log10(elow/1e3),
+                                                     np.log10(ehigh/1e3)))
 
             # check if there are sufficient events in this energy bin
-            scale_a = check_min_N(N_signal, N_backgr, min_n, verbose)
-
-            # and scale the gamma events accordingly if not
-            if scale_a > 1:
-                N_signal = N_signal * scale_a
-                scale *= scale_a
+            scale *= check_min_N(N_signal, N_backgr, min_n, False)
 
             # check if the relative amount of protons in this bin is sufficiently small
-            scale_r = check_background_contamination(N_signal, N_backgr,
-                                                     max_background_ratio, verbose)
-            # and scale the gamma events accordingly if not
-            if scale_r > 1:
-                N_signal = N_signal * scale_r
-                scale *= scale_r
+            scale *= check_background_contamination(
+                                N_signal, N_backgr, max_background_ratio, False)
 
             # get the flux at the bin centre
-            flux = Eminus2((elow+ehigh)/2.)
+            flux = crab_source_rate(emid).to(self.flux_unit)
             # and scale it up by the determined factor
             sensitivity = flux*scale
+            sensitivity_unsc = flux*scale_m
 
-            # store results in arrays
-            sensitivities.add_row([(elow+ehigh)/2., sensitivity.to(self.flux_unit)])
+            if False:
+                print()
+                print(N_signal, N_backgr)
+                print("scale:", scale)
+                print("flux:", flux)
+                print("sens:", sensitivity)
+                print("sens u/s:", sensitivity_unsc)
+                print()
+                print()
+
+
+            # store results in table
+            sensitivities.add_row([emid, sensitivity,
+                                   sensitivity_unsc])
 
             if verbose:
                 print("sensitivity: ", sensitivity)
-                print("Non:", N_signal[0]+N_backgr[1])
-                print("Noff:", N_signal[0]+N_backgr[1])
                 print("  {}, {}".format(N_signal, N_backgr))
                 print("alpha:", alpha)
-                print("sigma:", sigma_lima(N_signal[0]+N_backgr[1],
-                                           N_signal[0]+N_backgr[1], alpha=alpha))
+                print("sigma:", sigma_lima(N_signal+N_backgr[0], N_backgr[1],
+                                           alpha=alpha))
 
                 print()
 
@@ -532,13 +642,14 @@ class Sensitivity_PointSource():
                                 generator_areas=None,
 
                                 # arguments for `get_expected_events`
-                                rates={'g': Eminus2, 'p': CR_background_rate},
+                                rates={'g': crab_source_rate,
+                                       'p': CR_background_rate},
                                 extensions={'p': 6*u.deg},
                                 observation_time=50*u.h,
 
                                 # arguments for `get_sensitivity`
                                 min_n=10, max_prot_ratio=.05,
-                                r_on=.3*u.deg, r_off=5*u.deg,
+                                r_on=.3*u.deg, r_off=.3*u.deg,
                                 sensitivity_energy_bin_edges=None
                                 ):
         """
@@ -564,11 +675,20 @@ class Sensitivity_PointSource():
                                  generator_energy_hists=generator_energy_hists,
                                  generator_areas=generator_areas)
 
-        self.get_expected_events(rates=rates,
-                                 extensions=extensions,
-                                 observation_time=observation_time)
+        #self.get_expected_events(rates=rates,
+                                 #extensions=extensions,
+                                 #observation_time=observation_time)
 
-        self.scale_events_to_expected_events()
+        #self.scale_events_to_expected_events()
+
+        self.event_weights_from_spectrum(n_simulated_events=n_simulated_events,
+                                         observation_time=observation_time,
+                                         extensions=extensions,
+                                         e_min_max={"g": (0.1, 330),
+                                                    "p": (0.1, 600)},
+                                         spectra={'g': crab_source_rate,
+                                                  'p': CR_background_rate},
+                                         generator_areas=generator_areas)
 
         return self.get_sensitivity(min_n, max_prot_ratio, r_on, r_off,
                             sensitivity_energy_bin_edges=sensitivity_energy_bin_edges)
@@ -624,8 +744,10 @@ class Sensitivity_PointSource():
             cum_sums_up = cum_sum[np.clip(cumsum_indices, 1, len(cum_sum)-1)]
             cum_sums_lo = cum_sum[np.clip(cumsum_indices-1, 0, len(cum_sum)-2)]
 
-            energies_up = ((energy_bin_edges[cl][1:]+energy_bin_edges[cl][:-1])/2)[cumsum_indices]
-            energies_lo = ((energy_bin_edges[cl][1:]+energy_bin_edges[cl][:-1])/2)[cumsum_indices-1]
+            energies_up = ((energy_bin_edges[cl][1:] +
+                            energy_bin_edges[cl][:-1])/2)[cumsum_indices]
+            energies_lo = ((energy_bin_edges[cl][1:] +
+                            energy_bin_edges[cl][:-1])/2)[cumsum_indices-1]
 
             energies_up = energy_bin_edges[cl][cumsum_indices]
             energies_lo = energy_bin_edges[cl][cumsum_indices-1]
@@ -677,19 +799,22 @@ def check_min_N(N_signal, N_backgr, min_N, verbose=True):
         factor to scale up gamma events if insuficently many events present
     """
 
-    if np.sum(N_signal) + np.sum(N_backgr) < min_N:
-        scale_a = (min_N-np.sum(N_backgr)) / np.sum(N_signal)
+    #if np.sum(N_signal) + np.sum(N_backgr) < min_N:
+        #scale_a = (min_N-np.sum(N_backgr)) / np.sum(N_signal)
+    if N_signal + N_backgr[0] < min_N:
+        scale_a = (min_N-N_backgr[0]) / N_signal
 
         if verbose:
             print("  N_tot too small: {}, {}".format(N_signal, N_backgr))
             print("  scale_a:", scale_a)
 
+        N_signal *= scale_a
         return scale_a
     else:
         return 1
 
 
-def check_background_contamination(N_signal, N_backgr, max_prot_ratio, verbose=True):
+def check_background_contamination(N_signal, N_backgr, max_prot_ratio=.05, verbose=True):
     """
     check if there are sufficenly few proton events in this energy bin and calculates
     scaling parameter if not
@@ -709,14 +834,13 @@ def check_background_contamination(N_signal, N_backgr, max_prot_ratio, verbose=T
         factor to scale up gamma events if too high proton contamination
     """
 
-    N_backgr_tot = np.sum(N_backgr)
-    N_signal_tot = np.sum(N_signal)
-    N_tot = N_signal_tot + N_backgr_tot
-    if N_backgr_tot / N_tot > max_prot_ratio:
-        scale_r = (1/max_prot_ratio - 1) * N_backgr_tot / N_signal_tot
+    N_tot = N_signal + N_backgr[0]
+    if N_backgr[0] / N_tot > max_prot_ratio:
+        scale_r = (1/max_prot_ratio - 1) * N_backgr[0] / N_signal
         if verbose:
             print("  too high proton contamination: {}, {}".format(N_signal, N_backgr))
             print("  scale_r:", scale_r)
+        N_signal *= scale_r
         return scale_r
     else:
         return 1
