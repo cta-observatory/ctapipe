@@ -35,7 +35,7 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5):
     A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
     list, use `image[mask], geom.pix_id[mask]`, or to keep the same
     image size and just set unclean pixels to 0 or similar, use
-    `image[mask] = 0`
+    `image[~mask] = 0`
 
     """
 
@@ -64,6 +64,6 @@ def dilate(geom, mask):
     geom: `~ctapipe.instrument.CameraGeometry`
         Camera geometry information
     mask: ndarray 
-        array of booleans corresponding to the pixels in the camera
+        input mask (array of booleans) to be dilated
     """
     return mask | (mask * geom.neighbor_matrix).any(axis=1)
