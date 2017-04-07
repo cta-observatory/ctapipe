@@ -5,7 +5,7 @@ geom = CameraGeometry.from_name("HESS", 1)
 
 plt.figure(figsize=(8, 3))
 plt.subplot(1, 2, 1)
-plt.imshow(geom.neighbor_matrix)
+plt.imshow(geom.neighbor_matrix, origin='bottom')
 plt.title('Pixel Neighbor Matrix')
 
 plt.subplot(1, 2, 2)
