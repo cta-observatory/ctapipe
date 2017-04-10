@@ -10,6 +10,7 @@ import astropy.units as u
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
 from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.coordinates import *
+from ctapipe.reco.shower_max import ShowerMaxEstimator
 
 __all__ = [
     'HillasIntersection'
@@ -21,6 +22,15 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
 
 
     '''
+
+    def __init__(self, atmfile=None):
+
+        # We also need a conversion function from height above ground to depth of maximum
+        # To do this we need the conversion table from CORSIKA
+        self.shower_max = None
+
+        if atmfile is not None:
+            self.shower_max = ShowerMaxEstimator(atmfile)
 
     def predict(self, hillas_parameters, tel_x, tel_y, array_direction):
         """
@@ -50,6 +60,9 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         result.core_x = grd.x
         result.core_y = grd.y
 
+        x_max = self.reconstruct_xmax(nom.x, nom.y, tilt.x, tilt.y, hillas_parameters,
+                                      tel_x, tel_y, 90*u.deg - array_direction[0])
+
         result.core_uncert = np.sqrt(core_err_x*core_err_x + core_err_y*core_err_y) * u.m
 
         result.tel_ids = [h for h in hillas_parameters.keys()]
@@ -59,7 +72,7 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         src_error = np.sqrt(err_x*err_x + err_y*err_y)
         result.alt_uncert = src_error.to(u.deg)
         result.az_uncert = src_error.to(u.deg)
-        result.h_max = np.nan
+        result.h_max = x_max
         result.h_max_uncert = np.nan
         result.goodness_of_fit = np.nan
 
@@ -171,6 +184,10 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         cx,cy = self.intersect_lines(tel_x[:,0],tel_y[:,0],h1[0],
                                      tel_x[:,1],tel_y[:,1],h2[0])
 
+        c= self.intersect_lines(tel_x[:,0],tel_y[:,0],h1[0],
+                                           tel_x[:,1],tel_y[:,1],h2[0])
+
+        print(cx,cy,c)
         if weighting == "Konrad":
             weight_fn = self.weight_konrad
         elif weighting == "HESS":
@@ -186,6 +203,47 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         var_y = np.average((cy - y_pos) ** 2, weights=weight)
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
+
+    def reconstruct_xmax(self, source_x, source_y, core_x, core_y,
+                         hillas_parameters,tel_x,tel_y, zen):
+
+        cog_x = list()
+        cog_y = list()
+        amp = list()
+
+        tx = list()
+        ty = list()
+
+        for tel in hillas_parameters.keys():
+            cog_x.append(hillas_parameters[tel].cen_x.to(u.rad).value)
+            cog_y.append(hillas_parameters[tel].cen_y.to(u.rad).value)
+            amp.append(hillas_parameters[tel].size)
+
+            tx.append(tel_x[tel].to(u.m).value)
+            ty.append(tel_y[tel].to(u.m).value)
+
+        height = get_shower_height(source_x.to(u.rad).value, source_y.to(u.rad).value,
+                                   np.array(cog_x), np.array(cog_y),
+                                   core_x.to(u.m).value, core_y.to(u.m).value,
+                                   np.array(tx), np.array(ty))
+        weight = np.array(amp)
+        mean_height = np.sum(height*weight)/np.sum(weight)
+
+        # This value is height above telescope in the tilted system, we should convert to height above ground
+        mean_height *= np.cos(zen)
+        # Add on the height of the detector above sea level
+        mean_height += 2100
+
+        if mean_height > 100000 or np.isnan(mean_height):
+            mean_height = 100000
+
+        mean_height *= u.m
+        # Lookup this height in the depth tables, the convert Hmax to Xmax
+        x_max = self.shower_max.interpolate(mean_height.to(u.km))
+        # Convert to slant depth
+        x_max /= np.cos(zen)
+
+        return x_max
 
     @staticmethod
     def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
@@ -210,11 +268,11 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         -------
         ndarray of x and y crossing points for all pairs
         """
-        s1 = np.sin(phi1)
-        c1 = np.cos(phi1)
-        A1 = s1
-        B1 = -1*c1
-        C1 = yp1*c1 - xp1*s1
+        sin_1 = np.sin(phi1)
+        cos_1 = np.cos(phi1)
+        A1 = sin_1
+        B1 = -1*cos_1
+        C1 = yp1*cos_1 - xp1*sin_1
 
         s2 = np.sin(phi2)
         c2 = np.cos(phi2)
@@ -223,14 +281,14 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         B2 = -1*c2
         C2 = yp2*c2 - xp2*s2
 
-        detAB = (A1*B2-A2*B1)
-        detBC = (B1*C2-B2*C1)
-        detCA = (C1*A2-C2*A1)
+        det_ab = (A1*B2-A2*B1)
+        det_bc = (B1*C2-B2*C1)
+        det_ca = (C1*A2-C2*A1)
 
-        #if  math.fabs(detAB) < 1e-14 : # /* parallel */
+        #if  math.fabs(det_ab) < 1e-14 : # /* parallel */
         #    return 0,0
-        xs = detBC / detAB
-        ys = detCA / detAB
+        xs = det_bc / det_ab
+        ys = det_ca / det_ab
 
         return xs,ys
 
@@ -245,3 +303,36 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
     @staticmethod
     def weight_sin(phi1,phi2):
         return np.abs(np.sin(np.fabs(phi1-phi2)))
+
+def get_shower_height(source_x, source_y, cog_x, cog_y,
+                   core_x, core_y, tel_pos_x, tel_pos_y):
+    """
+    Function to calculate the depth of shower maximum geometrically under the assumption
+    that the shower maximum lies at the brightest point of the camera image.
+    Parameters
+    ----------
+    source_x: float
+        Event source position in nominal frame
+    source_y: float
+        Event source position in nominal frame
+    core_x: float
+        Event core position in telescope tilted frame
+    core_y: float
+        Event core position in telescope tilted frame
+    zen: float
+        Zenith angle of event
+    Returns
+    -------
+    float: Depth of maximum of air shower
+    """
+
+    # Calculate displacement of image centroid from source position (in rad)
+    disp = np.sqrt(np.power(cog_x - source_x, 2) +
+                   np.power(cog_y - source_y, 2))
+    # Calculate impact parameter of the shower
+    impact = np.sqrt(np.power(tel_pos_x - core_x, 2) +
+                     np.power(tel_pos_y - core_y, 2))
+
+    height = impact / disp  # Distance above telescope is ration of these two (small angle)
+
+    return height
