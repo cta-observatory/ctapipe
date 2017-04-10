@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 # tau, the superior circle number
 np.tau = 2*np.pi
 
-__all__ = ["Sensitivity_PointSource"]
+__all__ = ["SensitivityPointSource"]
 
 
 def convert_astropy_array(arr, unit=None):
@@ -212,7 +212,7 @@ def diff_to_X_sigma(scale, N_signal, N_backgr, alpha, X=5):
     return (sigma-X)**2
 
 
-class Sensitivity_PointSource():
+class SensitivityPointSource():
     """
     class to calculate the sensitivity to a known point-source
     TODO:
@@ -222,7 +222,7 @@ class Sensitivity_PointSource():
     def __init__(self, mc_energies, energy_bin_edges,
                  off_angles=None,
                  source_origin=None, event_origins=None, verbose=False,
-                 energy_unit=u.GeV, flux_unit=1/(u.GeV*u.m**2*u.s)):
+                 energy_unit=u.TeV, flux_unit=1/(u.TeV*u.m**2*u.s)):
         """
         constructor, simply sets some initial parameters
 
@@ -242,9 +242,9 @@ class Sensitivity_PointSource():
                         optional (default: None)
             lists of origins (*not* directions) of the reconstructed events
             for each channel
-        energy_unit : astropy quantity, optional (default: u.GeV)
+        energy_unit : astropy quantity, optional (default: u.TeV)
             your favourite energy unit
-        flux_unit : astropy quantity, optional (default: u.GeV / (u.m**2 * u.s))
+        flux_unit : astropy quantity, optional (default: u.TeV / (u.m**2 * u.s))
             your favourite differential flux unit
 
         Notes
@@ -318,7 +318,7 @@ class Sensitivity_PointSource():
             for cl in self.class_list:
                 generator_energy_hists[cl] = make_mock_event_rate(
                                     generator_spectra[cl], norm=n_simulated_events[cl],
-                                    bin_edges=self.energy_bin_edges[cl])
+                                    bin_edges=self.energy_bin_edges[cl], log_e=False)
         self.generator_energy_hists = generator_energy_hists
 
         # an energy-binned histogram of the effective areas
@@ -330,7 +330,7 @@ class Sensitivity_PointSource():
         self.selected_events = {}
 
         for cl in self.class_list:
-            self.selected_events[cl] = np.histogram(np.log10(self.mc_energies[cl]),
+            self.selected_events[cl] = np.histogram(self.mc_energies[cl],
                                                     bins=self.energy_bin_edges[cl])[0]
 
             efficiency = self.selected_events[cl] / generator_energy_hists[cl]
@@ -346,6 +346,8 @@ class Sensitivity_PointSource():
             plt.title("generated / selected event")
             plt.suptitle(cl)
             plt.grid(axis="y")
+            plt.gca().set_xscale("log")
+            plt.gca().set_yscale("log")
 
         return self.effective_areas
 
@@ -439,25 +441,26 @@ class Sensitivity_PointSource():
             print("dNdE(.1):", dNdE(.1))
             print("dNdE(1):", dNdE(1))
             print("e_min_max:", e_min_max[cl])
-            N_r = integrate.quad(dNdE, *e_min_max[cl])[0]
+            N_r = integrate.quad(dNdE, *(e_min_max[cl]).value)[0]
             print("N integrated:", N_r)
-
-
-            #self.mc_energies[cl] = np.array([0.1, 1, 10])
-            #n_simulated_events[cl] = 100
+            print("generator_areas:", generator_areas[cl])
 
             # event weights to reskew the energy spectrum
-            e_w = self.mc_energies[cl]**(gamma_old[cl]-gamma_new[cl])
+            e_w = (self.mc_energies[cl])**gamma_old[cl] \
+                  * (e_min_max[cl][1]**(1-gamma_old[cl])
+                    -e_min_max[cl][0]**(1-gamma_old[cl])) / \
+                    (1-gamma_old[cl]) \
+                  * generator_areas[cl] \
+                  * (1 if (cl not in extensions) else
+                     np.tau*(1-np.cos(extensions[cl]))*u.rad**2) \
+                  * observation_time \
+                  / n_simulated_events[cl]
 
 
-            self.event_weights[cl] = e_w * N_r \
-                                     / np.sum(e_w) \
-                                     #/ n_simulated_events[cl] \
-                                     #* len(e_w)
+            print("e_w[0]:", e_w[0])
 
+            self.event_weights[cl] = (e_w * spectra[cl](self.mc_energies[cl])).si
 
-            print("sum(e_w):", np.sum(e_w))
-            print("len(e_w):", len(e_w))
 
             print("n_simulated_events:", n_simulated_events[cl])
 
@@ -465,7 +468,7 @@ class Sensitivity_PointSource():
             print()
 
             self.exp_events_per_energy_bin[cl], _ = \
-                np.histogram(np.log10(self.mc_energies[cl]),
+                np.histogram(self.mc_energies[cl],
                              bins=self.energy_bin_edges[cl],
                              weights=self.event_weights[cl])
 
@@ -474,9 +477,11 @@ class Sensitivity_PointSource():
 
 
             NGen[cl] = []
-            for elow, ehigh in zip(10**self.energy_bin_edges[cl][:-1],
-                                   10**self.energy_bin_edges[cl][1:]):
-                NGen[cl].append(integrate.quad(dNdE, elow/1000, ehigh/1000)[0])
+            for elow, ehigh in zip(self.energy_bin_edges[cl][:-1],
+                                   self.energy_bin_edges[cl][1:]):
+                NGen[cl].append(integrate.quad(dNdE,
+                                               elow.to(u.TeV).value,
+                                               ehigh.to(u.TeV).value)[0])
 
 
             plt.figure(figsize=(7,5))
@@ -488,6 +493,8 @@ class Sensitivity_PointSource():
             plt.title("assumed / selected event")
             plt.suptitle(cl)
             plt.grid(axis="y")
+            plt.gca().set_xscale("log")
+            plt.gca().set_yscale("log")
             plt.legend()
 
 
@@ -527,14 +534,18 @@ class Sensitivity_PointSource():
 
         # sensitivities go in here
         sensitivities = Table(names=("MC Energy", "Sensitivity", "Sensitivity_uncorr"))
-        sensitivities["MC Energy"].unit = self.energy_unit
+        try:
+            sensitivities["MC Energy"].unit = sensitivity_energy_bin_edges.unit
+        except AttributeError:
+            sensitivities["MC Energy"].unit = self.energy_unit
         sensitivities["Sensitivity"].unit = self.flux_unit
         sensitivities["Sensitivity_uncorr"].unit = self.flux_unit
 
         # loop over all energy bins
-        for elow, ehigh in zip(10**sensitivity_energy_bin_edges[:-1],
-                               10**sensitivity_energy_bin_edges[1:]):
-            emid = (elow+ehigh)/2.*self.energy_unit
+        for elow, ehigh, emid in zip(sensitivity_energy_bin_edges[:-1],
+                                     sensitivity_energy_bin_edges[1:],
+                                     np.sqrt(sensitivity_energy_bin_edges[:-1]*
+                                             sensitivity_energy_bin_edges[1:])):
 
             N_signal = 0.
             N_backgr = np.array([0., 0.])  # [on, off]
@@ -591,10 +602,6 @@ class Sensitivity_PointSource():
             # scale up the gamma events by this factor
             N_signal *= scale
 
-            if False:
-                print("\ne low {}\te high {}".format(np.log10(elow/1e3),
-                                                     np.log10(ehigh/1e3)))
-
             # check if there are sufficient events in this energy bin
             scale *= check_min_N(N_signal, N_backgr, min_n, False)
 
@@ -608,20 +615,8 @@ class Sensitivity_PointSource():
             sensitivity = flux*scale
             sensitivity_unsc = flux*scale_m
 
-            if False:
-                print()
-                print(N_signal, N_backgr)
-                print("scale:", scale)
-                print("flux:", flux)
-                print("sens:", sensitivity)
-                print("sens u/s:", sensitivity_unsc)
-                print()
-                print()
-
-
             # store results in table
-            sensitivities.add_row([emid, sensitivity,
-                                   sensitivity_unsc])
+            sensitivities.add_row([emid, sensitivity, sensitivity_unsc])
 
             if verbose:
                 print("sensitivity: ", sensitivity)
@@ -650,7 +645,9 @@ class Sensitivity_PointSource():
                                 # arguments for `get_sensitivity`
                                 min_n=10, max_prot_ratio=.05,
                                 r_on=.3*u.deg, r_off=.3*u.deg,
-                                sensitivity_energy_bin_edges=None
+                                sensitivity_energy_bin_edges=np.logspace(-1, 3, 17)*u.TeV,
+
+                                e_min_max=None
                                 ):
         """
         wrapper that calls all functions to calculate the point-source sensitivity
@@ -667,9 +664,6 @@ class Sensitivity_PointSource():
 
         assert generator_areas is not None, "generator_areas ought to be set"
 
-        if sensitivity_energy_bin_edges is None:
-            sensitivity_energy_bin_edges = np.linspace(2, 6, 17)
-
         self.get_effective_areas(n_simulated_events=n_simulated_events,
                                  generator_spectra=generator_spectra,
                                  generator_energy_hists=generator_energy_hists,
@@ -684,8 +678,7 @@ class Sensitivity_PointSource():
         self.event_weights_from_spectrum(n_simulated_events=n_simulated_events,
                                          observation_time=observation_time,
                                          extensions=extensions,
-                                         e_min_max={"g": (0.1, 330),
-                                                    "p": (0.1, 600)},
+                                         e_min_max=e_min_max,
                                          spectra={'g': crab_source_rate,
                                                   'p': CR_background_rate},
                                          generator_areas=generator_areas)
