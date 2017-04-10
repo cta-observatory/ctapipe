@@ -7,8 +7,7 @@ import numpy as np
 from .charge_extractors import NeighbourPeakIntegrator
 from .waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
-from ctapipe.instrument.camera import _get_min_pixel_seperation, \
-    _find_neighbor_pixels
+from ctapipe.instrument import CameraGeometry
 from ctapipe.core.traits import Float, Bool
 
 
@@ -177,7 +176,7 @@ class CameraDL1Calibrator(Component):
                 self._dl0_empty_warn = True
             return False
 
-    def get_neighbours(self, event, telid):
+    def get_geometry(self, event, telid):
         """
         Obtain the neighbouring pixels for this telescope.
 
@@ -189,18 +188,8 @@ class CameraDL1Calibrator(Component):
             The telescope id.
             The neighbours are calculated once per telescope.
         """
-        if telid in self.neighbour_dict:
-            return self.neighbour_dict[telid]
-        else:
-            pixel_pos = event.inst.pixel_pos[telid]
-
-            if not self.radius:
-                pixsep = _get_min_pixel_seperation(*pixel_pos)
-                self.radius = 1.4 * pixsep.value
-
-            self.neighbour_dict[telid] = \
-                _find_neighbor_pixels(*pixel_pos, self.radius)
-            return self.neighbour_dict[telid]
+        return CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                    event.inst.optical_foclen[telid])
 
     def get_correction(self, event, telid):
         """
@@ -250,7 +239,7 @@ class CameraDL1Calibrator(Component):
                 # Extract charge
                 if self.extractor.requires_neighbours():
                     e = self.extractor
-                    e.neighbours = self.get_neighbours(event, telid)
+                    e.neighbours = self.get_geometry(event, telid).neighbors
                 extract = self.extractor.extract_charge
                 charge, peakpos, window = extract(cleaned)
 
