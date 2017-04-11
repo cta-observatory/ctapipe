@@ -1,3 +1,3 @@
 from .hillas import *
-from .cleaning import tailcuts_clean, dilate
+from .cleaning import *
 from .pixel_likelihood import *

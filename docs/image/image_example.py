@@ -1,13 +1,14 @@
 """Example how to make a toymodel shower image and plot it.
 """
 import matplotlib.pyplot as plt
-from ctapipe.io.camera import make_rectangular_camera_geometry
-from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_shower_image
+from ctapipe.image.toymodel import generate_2d_shower_model, \
+    make_toymodel_shower_image
+from ctapipe.instrument import CameraGeometry
 
 NX = 40
 NY = 40
 
-geom = make_rectangular_camera_geometry(NX, NY)
+geom = CameraGeometry.make_rectangular(NX, NY)
 
 showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], length=0.1,
                                        width=0.02, psi='40d')
