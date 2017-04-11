@@ -69,6 +69,9 @@ class Container:
             raise AttributeError(
                 "{} has no attribute '{}'".format(self.__class__, name))
 
+    def __getitem__(self, item):
+        return self.__dict__[item]
+
     @property
     def meta(self):
         """metadata key/values associated with this Container.
