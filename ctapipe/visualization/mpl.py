@@ -26,7 +26,7 @@ class CameraDisplay:
 
     Parameters
     ----------
-    geometry : `~ctapipe.io.CameraGeometry`
+    geometry : `~ctapipe.instrument.CameraGeometry`
         Definition of the Camera/Image
     image: array_like
         array of values corresponding to the pixels in the CameraGeometry.

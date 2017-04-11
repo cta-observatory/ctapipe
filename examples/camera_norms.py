@@ -6,7 +6,7 @@ Example of drawing a Camera using different norms
 
 import matplotlib.pylab as plt
 from ctapipe.image import toymodel
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from matplotlib.colors import PowerNorm
 from matplotlib.style import use
