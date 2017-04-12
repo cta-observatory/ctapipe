@@ -281,9 +281,19 @@ class DataContainer(Container):
     count = Item(0, "number of events processed")
     inst = Item(InstrumentContainer(), "instrumental information (deprecated")
 
-class DigiCamRawCameraContainer(RawCameraContainer):
+class DigiCamCameraContainer(R0CameraContainer):
     """ DigiCam specific information """
     camera_event_number =  Item(-1, "camera event number")
     pixel_flags  = Item(None, ("pixel status flags","(n_channels x n_pixels)"))
     local_camera_clock  = Item(-1, "camera timestamp")
     timestamp  = Item(-1, "precise white rabbit based timestamp")
+
+class DigiCamExpertCameraContainer(DigiCamCameraContainer):
+    """ DigiCam specific information
+        for debugging and engeneering runs
+    """
+    event_type =  Item(-1, "event type (1)")
+    eventType =  Item(-1, "event Type (2)")
+    trigger_input_traces  = Item(None, ("trigger patch trace","(n_patches)"))
+    trigger_output_patch7  = Item(None, ("trigger 7 patch cluster trace","(n_clusters)"))
+    trigger_output_patch19 = Item(None, ("trigger 19 patch cluster trace","(n_clusters)"))
