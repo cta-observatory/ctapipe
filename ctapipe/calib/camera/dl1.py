@@ -184,11 +184,9 @@ class CameraDL1Calibrator(Component):
             return self.neighbour_dict[telid]
         else:
             pixel_pos = event.inst.pixel_pos[telid]
-
-            if not self.radius:
-                pixsep = get_min_pixel_seperation(*pixel_pos)
-                self.radius = 1.4 * pixsep.value
-
+            #if not self.radius:
+            pixsep = get_min_pixel_seperation(*pixel_pos)
+            self.radius = 1.4 * pixsep.value
             self.neighbour_dict[telid] = \
                 find_neighbor_pixels(*pixel_pos, self.radius)
             return self.neighbour_dict[telid]
