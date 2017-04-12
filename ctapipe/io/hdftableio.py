@@ -93,7 +93,7 @@ class SimpleHDF5TableWriter:
             if isinstance(value, Quantity):
                 req_unit = container.attributes[col_name].unit
                 if req_unit is not None:
-                    tr = partial(_convert_and_strip_unit, unit=req_unit)
+                    tr = partial(tr_convert_and_strip_unit, unit=req_unit)
                     meta['{}_UNIT'.format(col_name)] = str(req_unit)
                 else:
                     tr = lambda x: x.value
@@ -190,5 +190,11 @@ class SimpleHDF5TableWriter:
         row.append()
 
 
-def _convert_and_strip_unit(quantity, unit):
+def tr_convert_and_strip_unit(quantity, unit):
     return quantity.to(unit).value
+
+def tr_list_to_mask(thelist, length):
+    """ transform list to a fixed-length mask"""
+    arr = np.zeros(shape=length, dtype=np.bool)
+    arr[thelist] = True
+    return arr
