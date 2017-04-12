@@ -4,10 +4,11 @@ on any event regardless of the origin/telescope, and store the calibration
 inside the event container.
 """
 import numpy as np
+from .charge_extractors import NeighbourPeakIntegrator
+from .waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
-from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
-from ctapipe.io.camera import get_min_pixel_seperation, find_neighbor_pixels
-from traitlets import Float, Bool
+from ctapipe.instrument import CameraGeometry
+from ctapipe.core.traits import Float, Bool
 
 
 def integration_correction(event, telid, window_width, window_shift):
@@ -83,7 +84,7 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config, tool, extractor=None, **kwargs):
+    def __init__(self, config, tool, extractor=None, cleaner=None, **kwargs):
         """
         The calibrator for DL1 charge extraction. Fills the dl1 container.
 
@@ -104,12 +105,19 @@ class CameraDL1Calibrator(Component):
             The extractor to use to extract the charge from the waveforms.
             By default the NeighbourPeakIntegrator with default configuration
             is used.
+        cleaner : ctapipe.calib.camera.waveform_cleaners.Cleaner
+            The waveform cleaner to use. By default no cleaning is
+            applied to the waveforms.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self._extractor = extractor
-        if self._extractor is None:
-            self._extractor = NeighbourPeakIntegrator(config, tool)
+        self.cleaner = cleaner
+        self.extractor = extractor
+        if self.extractor is None:
+            self.extractor = NeighbourPeakIntegrator(config, tool)
+        self.cleaner = cleaner
+        if self.cleaner is None:
+            self.cleaner = NullWaveformCleaner(config, tool)
         self._current_url = None
         self._dl0_empty_warn = False
 
@@ -168,7 +176,7 @@ class CameraDL1Calibrator(Component):
                 self._dl0_empty_warn = True
             return False
 
-    def get_neighbours(self, event, telid):
+    def get_geometry(self, event, telid):
         """
         Obtain the neighbouring pixels for this telescope.
 
@@ -180,16 +188,11 @@ class CameraDL1Calibrator(Component):
             The telescope id.
             The neighbours are calculated once per telescope.
         """
-        if telid in self.neighbour_dict:
-            return self.neighbour_dict[telid]
-        else:
-            pixel_pos = event.inst.pixel_pos[telid]
-            #if not self.radius:
-            pixsep = get_min_pixel_seperation(*pixel_pos)
-            self.radius = 1.4 * pixsep.value
-            self.neighbour_dict[telid] = \
-                find_neighbor_pixels(*pixel_pos, self.radius)
-            return self.neighbour_dict[telid]
+
+
+        return CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                    event.inst.optical_foclen[telid])
+
 
     def get_correction(self, event, telid):
         """
@@ -207,12 +210,15 @@ class CameraDL1Calibrator(Component):
             return self.correction_dict[telid]
         else:
             try:
-                shift = self._extractor.input_shift
-                width = self._extractor.input_width
+                shift = self.extractor.window_shift
+                width = self.extractor.window_width
                 self.correction_dict[telid] = \
                     integration_correction(event, telid, width, shift)
                 return self.correction_dict[telid]
             except AttributeError:
+                # Don't apply correction when window_shift or window_width
+                # does not exist in extractor, or when container does not have
+                # a reference pulse shape
                 return 1
 
     def calibrate(self, event):
@@ -230,25 +236,30 @@ class CameraDL1Calibrator(Component):
             if self.check_dl0_exists(event, telid):
                 waveforms = event.dl0.tel[telid].pe_samples
 
-                if self._extractor.requires_neighbours():
-                    self._extractor.neighbours = self.get_neighbours(event,
-                                                                     telid)
+                # Clean waveforms
+                cleaned = self.cleaner.apply(waveforms)
 
-                charge = self._extractor.extract_charge(waveforms)
-                extracted_samples = self._extractor.extracted_samples
+                # Extract charge
+                if self.extractor.requires_neighbours():
+                    e = self.extractor
+                    e.neighbours = self.get_geometry(event, telid).neighbors
+                extract = self.extractor.extract_charge
+                charge, peakpos, window = extract(cleaned)
 
-                peakpos = self._extractor.peakpos
-
+                # Apply integration correction
                 if self.correction:
                     correction = np.asarray(self.get_correction(event, telid))
                     corrected = charge * correction[:, np.newaxis]
                 else:
                     corrected = charge
 
+                # Clip amplitude
                 if self.clip_amplitude:
                     corrected[corrected > self.clip_amplitude] = \
                         self.clip_amplitude
 
+                # Store into event container
                 event.dl1.tel[telid].image = corrected
-                event.dl1.tel[telid].extracted_samples = extracted_samples
+                event.dl1.tel[telid].extracted_samples = window
                 event.dl1.tel[telid].peakpos = peakpos
+                event.dl1.tel[telid].cleaned = cleaned

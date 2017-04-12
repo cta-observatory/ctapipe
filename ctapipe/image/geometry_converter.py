@@ -4,7 +4,7 @@ from astropy import units as u
 
 from numba import jit
 
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):
@@ -281,7 +281,7 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
             pix_x=grid_x * u.m,
             pix_y=grid_y * u.m,
             pix_area=pix_area * u.m ** 2,
-            neighbors=None,  # TODO: ... it's a 2D grid after all ...
+            neighbors=geom.neighbors,
             pix_type='rectangular')
 
         # storing the pixel mask and camera rotation for later use
@@ -363,6 +363,8 @@ def convert_geometry_back(geom, signal, key, foc_len, add_rot=0):
         unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask],
                                                  grid_y[square_mask],
                                                  rot_angle)
+
+        # TODO: probably should use base constructor, not guess here:
         unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len)
         unrot_buffer[key] = unrot_geom
 
