@@ -49,7 +49,7 @@ class InstrumentContainer(Container):
 
 
 class DL1CameraContainer(Container):
-    """Storage of output of camera calibrationm e.g the final calibrated
+    """Storage of output of camera calibration e.g the final calibrated
     image in intensity units and other per-event calculated
     calibration information.
     """
@@ -169,11 +169,11 @@ class MCEventContainer(Container):
     """
     Monte-Carlo
     """
-    energy = Item(0, "Monte-Carlo Energy")
+    energy = Item(0, "Monte-Carlo Energy", unit=u.TeV)
     alt = Item(0, "Monte-carlo altitude", unit=u.deg)
     az = Item(0, "Monte-Carlo azimuth", unit=u.deg)
-    core_x = Item(0, "MC core position")
-    core_y = Item(0, "MC core position")
+    core_x = Item(0, "MC core position", unit=u.m)
+    core_y = Item(0, "MC core position", unit=u.m)
     h_first_int = Item(0, "Height of first interaction")
     tel = Item(Map(MCCameraEventContainer),
                "map of tel_id to MCCameraEventContainer")
