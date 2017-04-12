@@ -1,21 +1,21 @@
-import tables
-import numpy as np
-from ctapipe.core import Container, Item
-from astropy.units import Quantity
-from functools import partial
-from collections import defaultdict
-
 import logging
+from collections import defaultdict
+from functools import partial
+
+import ctapipe
+import numpy as np
+import tables
+from astropy.units import Quantity
+
 log = logging.getLogger(__name__)
 
 PYTABLES_TYPE_MAP = {
     'float': tables.Float64Col,
     'float64': tables.Float64Col,
     'float32': tables.Float32Col,
-    'int' : tables.IntCol,
+    'int': tables.IntCol,
     'bool': tables.BoolCol,
 }
-
 
 
 class SimpleHDF5TableWriter:
@@ -39,7 +39,8 @@ class SimpleHDF5TableWriter:
     written to the table's header on the first call to write() 
     
     Multiple tables may be written at once in a single file, as long as you 
-    change the table_name attribute to write() to specify which one to write to. 
+    change the table_name attribute to write() to specify which one to write 
+    to. 
     
     Parameters:
     -----------
@@ -55,66 +56,100 @@ class SimpleHDF5TableWriter:
         self._schemas = {}
         self._tables = {}
         self._transforms = defaultdict(dict)
-        self._h5file = tables.open_file(filename, mode = "w")
+        self._h5file = tables.open_file(filename, mode="w")
         self._group = self._h5file.create_group("/", group_name)
 
     def __del__(self):
         self._h5file.close()
 
-    def _create_schema(self, tablename, container):
+    def _create_schema(self, table_name, container):
+        """
+        Creates a pytables description class for a container 
+        and registers it in the Writer
+        
+        Parameters
+        ----------
+        table_name: str
+            name of table
+        container: ctapipe.core.Container
+            instance of an initalized container
+
+        Returns
+        -------
+        dictionary of extra metadata to add to the table's header
+        """
 
         class Schema(tables.IsDescription):
             pass
 
+        meta = {}  # any extra meta-data generated here (like units, etc)
+
         # create pytables schema description for the given container
-        for colname, value in container.items():
+        for col_name, value in container.items():
 
             typename = ""
             shape = 1
 
             if isinstance(value, Quantity):
-                req_unit = container.attributes[colname].unit
+                req_unit = container.attributes[col_name].unit
                 if req_unit is not None:
                     tr = partial(_convert_and_strip_unit, unit=req_unit)
+                    meta['{}_UNIT'.format(col_name)] = str(req_unit)
                 else:
                     tr = lambda x: x.value
+                    meta['{}_UNIT'.format(col_name)] = str(value.unit)
 
                 value = tr(value)
-                self.add_transform(tablename, colname, tr)
+                self.add_transform(table_name, col_name, tr)
 
             if isinstance(value, np.ndarray):
                 typename = value.dtype.name
                 coltype = PYTABLES_TYPE_MAP[typename]
                 shape = value.shape
-                Schema.columns[colname] = coltype(shape=shape)
+                Schema.columns[col_name] = coltype(shape=shape)
 
             elif type(value).__name__ in PYTABLES_TYPE_MAP:
                 typename = type(value).__name__
                 coltype = PYTABLES_TYPE_MAP[typename]
-                Schema.columns[colname] = coltype()
+                Schema.columns[col_name] = coltype()
 
-            log.debug("Table {}: added col: {} type: {} shape: {}"\
-                .format(tablename, colname, typename, shape))
+            log.debug("Table {}: added col: {} type: {} shape: {}"
+                      .format(table_name, col_name, typename, shape))
 
-        self._schemas[tablename] = Schema
+        self._schemas[table_name] = Schema
+        meta['CTAPIPE_VERSION'] = ctapipe.__version__
+        return meta
 
-    def add_transform(self, tablename, colname, transform):
-        self._transforms[tablename][colname] = transform
-        log.debug("Added transform: {}/{} -> {}".format(tablename, colname,
+    def add_transform(self, table_name, col_name, transform):
+        """
+        Add a transformation function for a column. This function will be 
+        called on the value in the container before it is written to the 
+        output file. 
+        
+        Parameters
+        ----------
+        table_name: str
+            identifier of table being written
+        col_name: str
+            name of column in the table (or item in the Container)
+        transform: function(value)
+            function that converts value 
+        """
+        self._transforms[table_name][col_name] = transform
+        log.debug("Added transform: {}/{} -> {}".format(table_name, col_name,
                                                         transform))
 
-    def _create_table(self, tablename, title, metadata):
-        table =  self._h5file.create_table(where=self._group,
-                                           name=tablename,
-                                           title=title,
-                                           description=self._schemas[tablename])
+    def _create_table(self, table_name, title, metadata):
+        table = self._h5file.create_table(where=self._group,
+                                          name=table_name,
+                                          title=title,
+                                          description=self._schemas[table_name])
         for key, val in metadata.items():
             table.attrs[key] = val
 
-        self._tables[tablename] = table
+        self._tables[table_name] = table
 
-
-    def write(self, tablename, container):
+    def write(self, table_name, container):
         """
         Write the contents of the given container to a table.  The first call 
         to write  will create a schema and initialize the table within the 
@@ -123,21 +158,22 @@ class SimpleHDF5TableWriter:
         
         Parameters
         ----------
-        tablename: str 
+        table_name: str 
             name of table to write to 
         container: `ctapipe.core.Container` 
             container to write
         """
 
-        if tablename not in self._schemas:
-            log.debug("Initializing table '{}'".format(tablename))
-            self._create_schema(tablename, container)
-            self._create_table(tablename,
+        if table_name not in self._schemas:
+            log.debug("Initializing table '{}'".format(table_name))
+            meta = self._create_schema(table_name, container)
+            meta.update(container.meta)
+            self._create_table(table_name,
                                container.__class__.__name__,
-                               container.meta)
+                               meta)
 
         # append a row to the table
-        table = self._tables[tablename]
+        table = self._tables[table_name]
         row = table.row
 
         for colname in table.colnames:
@@ -145,8 +181,8 @@ class SimpleHDF5TableWriter:
             value = container[colname]
 
             # apply value transform function if it exists for this column
-            if colname in self._transforms[tablename]:
-                tr = self._transforms[tablename][colname]
+            if colname in self._transforms[table_name]:
+                tr = self._transforms[table_name][colname]
                 value = tr(value)
 
             row[colname] = value
@@ -154,7 +190,5 @@ class SimpleHDF5TableWriter:
         row.append()
 
 
-
 def _convert_and_strip_unit(quantity, unit):
     return quantity.to(unit).value
-
