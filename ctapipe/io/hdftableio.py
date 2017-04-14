@@ -7,6 +7,7 @@ import ctapipe
 import numpy as np
 import tables
 from astropy.units import Quantity
+from astropy.time import Time
 from ctapipe.core import Component
 
 __all__ = ['SimpleHDF5TableWriter',
@@ -18,8 +19,10 @@ PYTABLES_TYPE_MAP = {
     'float64': tables.Float64Col,
     'float32': tables.Float32Col,
     'int': tables.IntCol,
+    'int32': tables.Int32Col,
+    'int64': tables.Int64Col,
     'bool': tables.BoolCol,
-}
+    }
 
 
 class TableWriter(Component, metaclass=ABCMeta):
@@ -128,12 +131,13 @@ class SimpleHDF5TableWriter(TableWriter):
         
     """
 
-    def __init__(self, filename, group_name):
+    def __init__(self, filename, group_name, **kwargs):
         super().__init__()
         self._schemas = {}
         self._tables = {}
-        self._h5file = tables.open_file(filename, mode="w")
+        self._h5file = tables.open_file(filename, mode="w", **kwargs)
         self._group = self._h5file.create_group("/", group_name)
+        self.log.debug("h5file: {}".format(self._h5file))
 
     def __del__(self):
         self._h5file.close()
@@ -188,6 +192,12 @@ class SimpleHDF5TableWriter(TableWriter):
                 shape = value.shape
                 Schema.columns[col_name] = coltype(shape=shape)
 
+            if isinstance(value, Time):
+                # TODO: really should use MET, but need a func for that
+                Schema.columns[col_name] = tables.Float64Col()
+                self.add_column_transform(table_name, col_name,
+                                          tr_time_to_float)
+
             elif type(value).__name__ in PYTABLES_TYPE_MAP:
                 typename = type(value).__name__
                 coltype = PYTABLES_TYPE_MAP[typename]
@@ -210,7 +220,8 @@ class SimpleHDF5TableWriter(TableWriter):
 
         table = self._h5file.create_table(where=self._group,
                                           name=table_name,
-                                          title=container.__class__.__name__,
+                                          title="storage of {}".format(
+                                                container.__class__.__name__),
                                           description=self._schemas[table_name])
         for key, val in meta.items():
             table.attrs[key] = val
@@ -255,6 +266,73 @@ class SimpleHDF5TableWriter(TableWriter):
 
         self._append_row(table_name, container)
 
+
+class SimpleHDF5TableReader(Component):
+    """
+    Reader that reads a single row of an HDF5 table at once into a Container.
+    """
+    def __init__(self, filename):
+        """
+        Parameters
+        ----------
+        filename: str 
+            name of hdf5 file
+        group_name: str
+            HDF5 path to group where tables are  to be found
+        """
+        super().__init__(None)
+        self._tables = {}
+        self._transforms = defaultdict(dict)
+        self._cols_to_read = defaultdict(list)
+        self._h5file = tables.open_file(filename)
+        self._currow = 0
+        pass
+
+    def _setup_table(self, table_name, container):
+        tab = self._h5file.get_node(table_name)
+        self._tables[table_name] = tab
+        self._map_table_to_container(table_name, container)
+        return tab
+
+    def _map_table_to_container(self, table_name, container):
+        tab = self._tables[table_name]
+        for colname in tab.colnames:
+            if colname in container.attributes:
+                self._cols_to_read[table_name].append(colname)
+            else:
+                self.log.warn("Table '{}' has column '{}' that is not in "
+                              "container {}. It will be skipped"
+                    .format(table_name, colname, container.__class__.__name__ ))
+
+        # also check that the container doesn't have attributes that are not
+        # in the table:
+        for colname in container.attributes:
+            if colname not in self._cols_to_read[table_name]:
+                self.log.warn("Table '{}' is missing column '{}' that is "
+                              "in container {}. It will be skipped"
+                    .format(table_name, colname, container.__class__.__name__ ))
+
+
+    def read(self, table_name, container):
+        """
+        Read a row from the table into the given container. 
+        """
+        if table_name not in self._tables:
+            tab = self._setup_table(table_name, container)
+        else:
+            tab = self._tables[table_name]
+
+        row = tab[self._currow]
+
+        for colname in self._cols_to_read[table_name]:
+            container[colname] = row[colname]
+
+
+
+
+
+
+
 def tr_convert_and_strip_unit(quantity, unit):
     return quantity.to(unit).value
 
@@ -263,3 +341,6 @@ def tr_list_to_mask(thelist, length):
     arr = np.zeros(shape=length, dtype=np.bool)
     arr[thelist] = True
     return arr
+
+def tr_time_to_float(thetime):
+    return thetime.mjd
