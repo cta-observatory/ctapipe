@@ -1,4 +1,3 @@
-import logging
 import re
 from abc import abstractmethod, ABCMeta
 from collections import defaultdict
@@ -8,12 +7,11 @@ import ctapipe
 import numpy as np
 import tables
 from astropy.units import Quantity
+from ctapipe.core import Component
 
 __all__ = ['SimpleHDF5TableWriter',
            'tr_convert_and_strip_unit',
            'tr_list_to_mask']
-
-log = logging.getLogger(__name__)
 
 PYTABLES_TYPE_MAP = {
     'float': tables.Float64Col,
@@ -24,8 +22,9 @@ PYTABLES_TYPE_MAP = {
 }
 
 
-class TableWriter(metaclass=ABCMeta):
-    def __init__(self):
+class TableWriter(Component, metaclass=ABCMeta):
+    def __init__(self, parent=None, **kwargs):
+        super().__init__(parent, **kwargs)
         self._transforms = defaultdict(dict)
         self._exclusions = defaultdict(list)
 
@@ -64,8 +63,9 @@ class TableWriter(metaclass=ABCMeta):
             function that take a value and returns a new one 
         """
         self._transforms[table_name][col_name] = transform
-        log.debug("Added transform: {}/{} -> {}".format(table_name, col_name,
-                                                        transform))
+        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
+                                                             col_name,
+                                                             transform))
 
     @abstractmethod
     def write(self, table_name, container):
@@ -83,6 +83,15 @@ class TableWriter(metaclass=ABCMeta):
             container to write
         """
         pass
+
+    def _apply_col_transform(self,  table_name, col_name, value):
+        """ 
+        apply value transform function if it exists for this column
+        """
+        if col_name in self._transforms[table_name]:
+            tr = self._transforms[table_name][col_name]
+            value = tr(value)
+        return value
 
 
 class SimpleHDF5TableWriter(TableWriter):
@@ -158,7 +167,7 @@ class SimpleHDF5TableWriter(TableWriter):
             shape = 1
 
             if self._is_column_excluded(table_name, col_name):
-                log.debug("excluded column: {}/{}".format(table_name,col_name))
+                self.log.debug("excluded column: {}/{}".format(table_name,col_name))
                 continue
 
             if isinstance(value, Quantity):
@@ -184,7 +193,7 @@ class SimpleHDF5TableWriter(TableWriter):
                 coltype = PYTABLES_TYPE_MAP[typename]
                 Schema.columns[col_name] = coltype()
 
-            log.debug("Table {}: added col: {} type: {} shape: {}"
+            self.log.debug("Table {}: added col: {} type: {} shape: {}"
                       .format(table_name, col_name, typename, shape))
 
         self._schemas[table_name] = Schema
@@ -195,7 +204,7 @@ class SimpleHDF5TableWriter(TableWriter):
     def _setup_new_table(self, table_name, container):
         """ set up the table. This is called the first time `write()` 
         is called on a new table """
-        log.debug("Initializing table '{}'".format(table_name))
+        self.log.debug("Initializing table '{}'".format(table_name))
         meta = self._create_hdf5_table_schema(table_name, container)
         meta.update(container.meta) # copy metadata from container
 
@@ -219,12 +228,8 @@ class SimpleHDF5TableWriter(TableWriter):
 
         for colname in table.colnames:
 
-            value = container[colname]
-
-            # apply value transform function if it exists for this column
-            if colname in self._transforms[table_name]:
-                tr = self._transforms[table_name][colname]
-                value = tr(value)
+            value = self._apply_col_transform(table_name, colname,
+                                              container[colname])
 
             row[colname] = value
 
