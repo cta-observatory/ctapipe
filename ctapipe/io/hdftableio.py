@@ -55,7 +55,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         Add a transformation function for a column. This function will be 
         called on the value in the container before it is written to the 
         output file. 
-        
+
         Parameters
         ----------
         table_name: str
@@ -246,6 +246,7 @@ class SimpleHDF5TableWriter(TableWriter):
 
         row.append()
 
+
     def write(self, table_name, container):
         """
         Write the contents of the given container to a table.  The first call 
@@ -270,6 +271,15 @@ class SimpleHDF5TableWriter(TableWriter):
 class SimpleHDF5TableReader(Component):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
+    
+    Note that this is only useful if you want to read all information one 
+    event at a time into a container, which is not very I/O efficient. For some 
+    other use cases, it may be much more efficient to access the table data 
+    directly, for example to read an entire column or table at once. 
+    
+    Todo: 
+    - add ability to synchronize reading of multiple tables on a key
+    
     """
     def __init__(self, filename):
         """
@@ -285,16 +295,31 @@ class SimpleHDF5TableReader(Component):
         self._transforms = defaultdict(dict)
         self._cols_to_read = defaultdict(list)
         self._h5file = tables.open_file(filename)
-        self._currow = 0
+        self._currow = defaultdict(int)
         pass
 
     def _setup_table(self, table_name, container):
         tab = self._h5file.get_node(table_name)
         self._tables[table_name] = tab
         self._map_table_to_container(table_name, container)
+        self._map_transforms_from_table_header(table_name)
         return tab
 
+    def _map_transforms_from_table_header(self, table_name):
+        """
+        create any transforms needed to "undo" ones in the writer
+        """
+        tab = self._tables[table_name]
+        for attr in tab.attrs._f_list():
+            if attr.endswith("_UNIT"):
+                colname = attr[:-5]
+                tr = partial(tr_add_unit, unitname=tab.attrs[attr])
+                self.add_column_transform(table_name, colname, tr)
+
+
     def _map_table_to_container(self, table_name, container):
+        """ identifies which columns in the table to read into the container, 
+        by comparing their names."""
         tab = self._tables[table_name]
         for colname in tab.colnames:
             if colname in container.attributes:
@@ -312,6 +337,34 @@ class SimpleHDF5TableReader(Component):
                               "in container {}. It will be skipped"
                     .format(table_name, colname, container.__class__.__name__ ))
 
+    def add_column_transform(self, table_name, col_name, transform):
+        """
+        Add a transformation function for a column. This function will be 
+        called on the value in the container before it is written to the 
+        output file. 
+
+        Parameters
+        ----------
+        table_name: str
+            identifier of table being written
+        col_name: str
+            name of column in the table (or item in the Container)
+        transform: callable
+            function that take a value and returns a new one 
+        """
+        self._transforms[table_name][col_name] = transform
+        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
+                                                             col_name,
+                                                             transform))
+
+    def _apply_col_transform(self, table_name, col_name, value):
+        """ 
+        apply value transform function if it exists for this column
+        """
+        if col_name in self._transforms[table_name]:
+            tr = self._transforms[table_name][col_name]
+            value = tr(value)
+        return value
 
     def read(self, table_name, container):
         """
@@ -322,11 +375,13 @@ class SimpleHDF5TableReader(Component):
         else:
             tab = self._tables[table_name]
 
-        row = tab[self._currow]
+        row = tab[self._currow[table_name]]
 
         for colname in self._cols_to_read[table_name]:
-            container[colname] = row[colname]
+            container[colname] = self._apply_col_transform(table_name, colname,
+                                                           row[colname])
 
+        self._currow[table_name] += 1
 
 
 
@@ -336,11 +391,17 @@ class SimpleHDF5TableReader(Component):
 def tr_convert_and_strip_unit(quantity, unit):
     return quantity.to(unit).value
 
+
 def tr_list_to_mask(thelist, length):
     """ transform list to a fixed-length mask"""
     arr = np.zeros(shape=length, dtype=np.bool)
     arr[thelist] = True
     return arr
 
+
 def tr_time_to_float(thetime):
     return thetime.mjd
+
+
+def tr_add_unit(value, unitname):
+    return Quantity(value, unitname)
