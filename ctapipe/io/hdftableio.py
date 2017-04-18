@@ -302,7 +302,6 @@ class SimpleHDF5TableReader(Component):
         self._transforms = defaultdict(dict)
         self._cols_to_read = defaultdict(list)
         self._h5file = tables.open_file(filename)
-        self._currow = defaultdict(int)
         pass
 
     def _setup_table(self, table_name, container):
@@ -376,20 +375,36 @@ class SimpleHDF5TableReader(Component):
 
     def read(self, table_name, container):
         """
-        Read a row from the table into the given container. 
+        Returns a generator that reads the next row from the table into the 
+        given container.  The generator returns the same container. Note that
+        no containers are copied, the data are overwritten inside.
         """
         if table_name not in self._tables:
             tab = self._setup_table(table_name, container)
         else:
             tab = self._tables[table_name]
 
-        row = tab[self._currow[table_name]]
 
-        for colname in self._cols_to_read[table_name]:
-            container[colname] = self._apply_col_transform(table_name, colname,
-                                                           row[colname])
+        row_count = 0
 
-        self._currow[table_name] += 1
+        while 1:
+
+            try:
+                row = tab[row_count]
+            except IndexError:
+                raise StopIteration() # stop generator when done
+
+            for colname in self._cols_to_read[table_name]:
+                container[colname] = self._apply_col_transform(table_name,
+                                                               colname,
+                                                               row[colname])
+
+            yield container
+            row_count += 1
+
+
+
+
 
 
 def tr_convert_and_strip_unit(quantity, unit):
