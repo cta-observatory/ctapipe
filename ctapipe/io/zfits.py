@@ -79,12 +79,12 @@ def zfits_event_source(url, max_events=None, allowed_tels=None, expert_mode = Fa
                 data.r0.tel[tel_id].camera_event_number = zfits.event.eventNumber
                 data.r0.tel[tel_id].pixel_flags = zfits.get_pixel_flags(telescope_id=tel_id)
 
-                seconds = zfits._get_numpyfield(zfits.event.local_time_sec)
-                nano_seconds = zfits._get_numpyfield(zfits.event.local_time_nanosec)
+                #seconds = zfits._get_numpyfield(zfits.event.local_time_sec)
+                #nano_seconds = zfits._get_numpyfield(zfits.event.local_time_nanosec)
 
-                data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
-                data.r0.tel[tel_id].event_type =zfits._get_numpyfield(zfits.event.event_type)
-                data.r0.tel[tel_id].eventType =zfits._get_numpyfield(zfits.event.eventType)
+                #data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
+                #data.r0.tel[tel_id].event_type =zfits._get_numpyfield(zfits.event.event_type)
+                #data.r0.tel[tel_id].eventType =zfits._get_numpyfield(zfits.event.eventType)
 
                 if expert_mode:
                     data.r0.tel[tel_id].trigger_input_traces = zfits.get_trigger_input_traces(telescope_id=tel_id)
