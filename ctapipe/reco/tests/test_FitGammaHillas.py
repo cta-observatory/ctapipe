@@ -10,7 +10,7 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 
 
 def test_fit_core():
@@ -135,7 +135,7 @@ def test_FitGammaHillas():
 
             pmt_signal = event.r0.tel[tel_id].adc_sums[0]
 
-            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
+            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
             pmt_signal[mask == 0] = 0
 

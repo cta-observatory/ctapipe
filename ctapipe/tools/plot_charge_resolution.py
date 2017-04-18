@@ -197,6 +197,9 @@ class ChargeResolutionViewer(Tool):
         self.plotter.save()
 
 
-if __name__ == '__main__':
+def main():
     exe = ChargeResolutionViewer()
     exe.run()
+
+if __name__ == '__main__':
+    main()

@@ -114,6 +114,10 @@ class ChargeResolutionGenerator(Tool):
         self.calculator.save(ouput_path)
 
 
-if __name__ == '__main__':
+def main():
     exe = ChargeResolutionGenerator()
     exe.run()
+
+
+if __name__ == '__main__':
+    main()

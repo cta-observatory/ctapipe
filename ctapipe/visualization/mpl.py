@@ -18,6 +18,7 @@ __all__ = ['CameraDisplay', 'ArrayDisplay']
 
 logger = logging.getLogger(__name__)
 
+PIXEL_EPSILON = 0.0005 # a bit of extra size to pixels to avoid aliasing
 
 class CameraDisplay:
 
@@ -26,7 +27,7 @@ class CameraDisplay:
 
     Parameters
     ----------
-    geometry : `~ctapipe.io.CameraGeometry`
+    geometry : `~ctapipe.instrument.CameraGeometry`
         Definition of the Camera/Image
     image: array_like
         array of values corresponding to the pixels in the CameraGeometry.
@@ -84,7 +85,7 @@ class CameraDisplay:
             geometry,
             image=None,
             ax=None,
-            title="Camera",
+            title=None,
             norm="lin",
             cmap="hot",
             allow_pick=False,
@@ -101,6 +102,9 @@ class CameraDisplay:
         self._active_pixel = None
         self._active_pixel_label = None
 
+        if title is None:
+            title = geometry.cam_id
+
         # initialize the plot and generate the pixels as a
         # RegularPolyCollection
 
@@ -115,14 +119,14 @@ class CameraDisplay:
             u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
 
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3))
+                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2*PIXEL_EPSILON
                 poly = RegularPolygon(
                     (xx, yy), 6, radius=rr,
                     orientation=self.geom.pix_rotation.rad,
                     fill=True,
                 )
             else:
-                rr = sqrt(aa)
+                rr = sqrt(aa) + PIXEL_EPSILON
                 poly = Rectangle(
                     (xx-rr/2., yy-rr/2.),
                     width=rr,

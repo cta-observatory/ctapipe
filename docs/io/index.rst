@@ -10,11 +10,7 @@ Introduction
 ============
 
 `ctapipe.io` contains functions and classes related to reading data,
-like `~ctapipe.io.hessio_event_source`.  It currently contains some
-data structures related to the observatory layout, like
-:class:`~ctapipe.io.camera.CameraGeometry`, but those will likely move
-soon to an instrument package.
-
+like `~ctapipe.io.hessio_event_source`. 
 
 Container Classes
 =================
@@ -96,9 +92,6 @@ tables or pickle files)
 
 Reference/API
 =============
-
-.. automodapi:: ctapipe.io.camera
-    :no-inheritance-diagram:
 
 ------------------------------
        
