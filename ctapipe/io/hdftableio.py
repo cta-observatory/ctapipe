@@ -6,8 +6,8 @@ from functools import partial
 import ctapipe
 import numpy as np
 import tables
-from astropy.units import Quantity
 from astropy.time import Time
+from astropy.units import Quantity
 from ctapipe.core import Component
 
 __all__ = ['SimpleHDF5TableWriter',
@@ -22,7 +22,7 @@ PYTABLES_TYPE_MAP = {
     'int32': tables.Int32Col,
     'int64': tables.Int64Col,
     'bool': tables.BoolCol,
-    }
+}
 
 
 class TableWriter(Component, metaclass=ABCMeta):
@@ -87,7 +87,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         """
         pass
 
-    def _apply_col_transform(self,  table_name, col_name, value):
+    def _apply_col_transform(self, table_name, col_name, value):
         """ 
         apply value transform function if it exists for this column
         """
@@ -120,6 +120,15 @@ class SimpleHDF5TableWriter(TableWriter):
     Multiple tables may be written at once in a single file, as long as you 
     change the table_name attribute to write() to specify which one to write 
     to. 
+    
+    TODO:
+    - ability to write several containers to the same table (appending a 
+    string to each column name). Perhaps `write(name, dict(method_a=cont, 
+    method_b=cont2))`, where "method_a_X" would be a column name. May be 
+    possible to do this with some container magic, like joining two 
+    containers `joined_container(cont1, cont2, "A", "B")` or "cont1+cont2". 
+    Perhaps need to provide a better way to get container contents as a 
+    dictionary.
     
     Parameters:
     -----------
@@ -171,7 +180,8 @@ class SimpleHDF5TableWriter(TableWriter):
             shape = 1
 
             if self._is_column_excluded(table_name, col_name):
-                self.log.debug("excluded column: {}/{}".format(table_name,col_name))
+                self.log.debug("excluded column: {}/{}".format(table_name,
+                                                               col_name))
                 continue
 
             if isinstance(value, Quantity):
@@ -204,30 +214,28 @@ class SimpleHDF5TableWriter(TableWriter):
                 Schema.columns[col_name] = coltype()
 
             self.log.debug("Table {}: added col: {} type: {} shape: {}"
-                      .format(table_name, col_name, typename, shape))
+                           .format(table_name, col_name, typename, shape))
 
         self._schemas[table_name] = Schema
         meta['CTAPIPE_VERSION'] = ctapipe.__version__
         return meta
-
 
     def _setup_new_table(self, table_name, container):
         """ set up the table. This is called the first time `write()` 
         is called on a new table """
         self.log.debug("Initializing table '{}'".format(table_name))
         meta = self._create_hdf5_table_schema(table_name, container)
-        meta.update(container.meta) # copy metadata from container
+        meta.update(container.meta)  # copy metadata from container
 
         table = self._h5file.create_table(where=self._group,
                                           name=table_name,
                                           title="storage of {}".format(
-                                                container.__class__.__name__),
+                                              container.__class__.__name__),
                                           description=self._schemas[table_name])
         for key, val in meta.items():
             table.attrs[key] = val
 
         self._tables[table_name] = table
-
 
     def _append_row(self, table_name, container):
         """
@@ -238,14 +246,12 @@ class SimpleHDF5TableWriter(TableWriter):
         row = table.row
 
         for colname in table.colnames:
-
             value = self._apply_col_transform(table_name, colname,
                                               container[colname])
 
             row[colname] = value
 
         row.append()
-
 
     def write(self, table_name, container):
         """
@@ -281,6 +287,7 @@ class SimpleHDF5TableReader(Component):
     - add ability to synchronize reading of multiple tables on a key
     
     """
+
     def __init__(self, filename):
         """
         Parameters
@@ -316,7 +323,6 @@ class SimpleHDF5TableReader(Component):
                 tr = partial(tr_add_unit, unitname=tab.attrs[attr])
                 self.add_column_transform(table_name, colname, tr)
 
-
     def _map_table_to_container(self, table_name, container):
         """ identifies which columns in the table to read into the container, 
         by comparing their names."""
@@ -327,7 +333,8 @@ class SimpleHDF5TableReader(Component):
             else:
                 self.log.warn("Table '{}' has column '{}' that is not in "
                               "container {}. It will be skipped"
-                    .format(table_name, colname, container.__class__.__name__ ))
+                              .format(table_name, colname,
+                                      container.__class__.__name__))
 
         # also check that the container doesn't have attributes that are not
         # in the table:
@@ -335,7 +342,8 @@ class SimpleHDF5TableReader(Component):
             if colname not in self._cols_to_read[table_name]:
                 self.log.warn("Table '{}' is missing column '{}' that is "
                               "in container {}. It will be skipped"
-                    .format(table_name, colname, container.__class__.__name__ ))
+                              .format(table_name, colname,
+                                      container.__class__.__name__))
 
     def add_column_transform(self, table_name, col_name, transform):
         """
@@ -382,10 +390,6 @@ class SimpleHDF5TableReader(Component):
                                                            row[colname])
 
         self._currow[table_name] += 1
-
-
-
-
 
 
 def tr_convert_and_strip_unit(quantity, unit):
