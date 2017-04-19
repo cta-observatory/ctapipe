@@ -277,11 +277,23 @@ class SimpleHDF5TableWriter(TableWriter):
 class SimpleHDF5TableReader(Component):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
+    Simply construct a `SimpleHDF5TableReader` with an input HDF5 file, 
+    and call the `read(path, container)` method to get a generator that fills 
+    the given container with a new row of the table on each access.
+     
+    Columns in the table are automatically mapped to container fields by 
+    name, and if a field is missing in either, it is skipped during read, 
+    but a warning is emitted.
     
-    Note that this is only useful if you want to read all information one 
-    event at a time into a container, which is not very I/O efficient. For some 
-    other use cases, it may be much more efficient to access the table data 
-    directly, for example to read an entire column or table at once. 
+    Columns that were written by SimpleHDF5TableWriter and which had unit 
+    transforms applied, will have the units re-applied when reading (the 
+    unit used is stored in the header attributes).
+    
+    Note that this is only useful if you want to read all information *one 
+    event at a time* into a container, which is not very I/O efficient. For 
+    some other use cases, it may be much more efficient to access the 
+    table data directly, for example to read an entire column or table at 
+    once (which means not using the Container data structure). 
     
     Todo: 
     - add ability to synchronize reading of multiple tables on a key
