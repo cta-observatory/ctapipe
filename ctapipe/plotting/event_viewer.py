@@ -18,7 +18,12 @@ class EventViewer(Component):
     test = Bool(True, help='').tag(config=True)
 
     def __init__(self, draw_hillas_planes=False):
+        """
 
+        Parameters
+        ----------
+        draw_hillas_planes
+        """
         self.array_view = None
         self.nominal_view = None
 
@@ -27,33 +32,67 @@ class EventViewer(Component):
         self.draw_hillas_planes = draw_hillas_planes
 
     def draw_source(self, source):
+        """
 
+        Parameters
+        ----------
+        source
+
+        Returns
+        -------
+
+        """
         for event in source:
             self.draw_event(event)
 
         return
 
     def draw_event(self, event, hillas_parameters=None):
+        """
 
+        Parameters
+        ----------
+        event
+        hillas_parameters
+
+        Returns
+        -------
+
+        """
         tel_list = event.r0.tels_with_data
         images = event.dl1
 
+        # First close any plots that already exist
         plt.close()
         ntels = len(tel_list)
-        nn = int(ceil(sqrt(ntels)))
 
         fig = plt.figure(figsize=(20, 20 * 0.66))
 
+        # If we want to draw the Hillas parameters in different planes we need to split our figure
         if self.draw_hillas_planes:
-            y_axis_split = 1
-        else:
             y_axis_split = 2
+        else:
+            y_axis_split = 1
 
         outer_grid = gridspec.GridSpec(1, y_axis_split, width_ratios=[y_axis_split, 1])
-        camera_grid = gridspec.GridSpecFromSubplotSpec(nn, nn, subplot_spec=outer_grid[0])
+        # Create a square grid for camera images
+        nn = int(ceil(sqrt(ntels)))
+        nx = nn
+        ny = nn
 
-        ii = 0
-        for ii, tel_id in zip(range(len(tel_list)), tel_list):
+        while nx * ny >= ntels:
+            ny-=1
+        ny+=1
+        while nx * ny >= ntels:
+            nx -= 1
+        nx += 1
+
+        camera_grid = gridspec.GridSpecFromSubplotSpec(ny, nx, subplot_spec=outer_grid[0])
+
+        # Loop over camera images of all telescopes and create plots
+        for ii, tel_id in zip(range(ntels), tel_list):
+
+            # Cache of camera geometries, this may go away soon
             if tel_id not in self.geom:
                 self.geom[tel_id] = CameraGeometry.guess(
                     event.inst.pixel_pos[tel_id][0],
@@ -63,26 +102,27 @@ class EventViewer(Component):
             ax = plt.subplot(camera_grid[ii])
             self.get_camera_view(tel_id, images.tel[tel_id].image[0], ax)
 
-        reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_grid[1])
+        # If we want to draw the Hillas parameters in different planes we need to make a couple more viewers
+        if self.draw_hillas_planes:
+            # Split the second sub figure into two further figures
+            reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_grid[1])
+            # Create plot of telescope positions at ground level
+            array = ArrayPlotter(telescopes=tel_list, instrument=event.inst,# system=tilted_system,
+                                ax=plt.subplot(reco_grid[0]))
+            # Draw MC position (this should change later)
+            array.draw_position(event.mc.core_x, event.mc.core_y, use_centre=True)
+            array.draw_array(((-300,300),(-300,300)))
 
-        array = ArrayPlotter(telescopes=tel_list, instrument=event.inst,# system=tilted_system,
-                             ax=plt.subplot(reco_grid[0]))
+            # If we have valid Hillas parameters we should draw them in the Nominal system
+            if hillas_parameters is not None:
+                array.overlay_hillas(hillas_parameters, draw_axes=True)
 
-        array.draw_position(event.mc.core_x, event.mc.core_y, use_centre=True)
-        array.draw_array(((-300,300),(-300,300)))
-
-        if hillas_parameters is not None:
-            array.overlay_hillas(hillas_parameters)
-
-            nominal =  NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
-            nominal.draw_array()
-
+                nominal =  NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
+                nominal.draw_array()
 
         plt.show()
 
         return
-
-        return 0
 
     def get_camera_view(self, tel_id, image, axis):
         """
