@@ -1,10 +1,7 @@
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 
-from ctapipe import visualization, io
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe import visualization
 from ctapipe.instrument import CameraGeometry
 from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
 from numpy import ceil, sqrt
@@ -13,7 +10,11 @@ from ctapipe.core.traits import Float, Bool
 
 
 class EventViewer(Component):
-
+    """
+    Event viewer class built on top of the other plotters to allow a single view of both the camera images
+    and the projected Hillas parameters for a single event. Can be further modified to show the reconstructed
+    shower direction and core position if needed. Plus further info
+    """
     name = 'EventViewer'
     test = Bool(True, help='').tag(config=True)
 
@@ -22,7 +23,8 @@ class EventViewer(Component):
 
         Parameters
         ----------
-        draw_hillas_planes
+        draw_hillas_planes: bool
+            Determines whether a projection of the Hillas parameters in the nominal and tilted systems should be drawn
         """
         self.array_view = None
         self.nominal_view = None
@@ -36,11 +38,11 @@ class EventViewer(Component):
 
         Parameters
         ----------
-        source
+        source: ctapipe source object
 
         Returns
         -------
-
+            None
         """
         for event in source:
             self.draw_event(event)
@@ -52,12 +54,13 @@ class EventViewer(Component):
 
         Parameters
         ----------
-        event
-        hillas_parameters
+        event: ctapipe event object
+        hillas_parameters: dict
+            Dictionary of Hillas parameters (in nominal system)
 
         Returns
         -------
-
+            None
         """
         tel_list = event.r0.tels_with_data
         images = event.dl1
@@ -129,7 +132,9 @@ class EventViewer(Component):
 
         Parameters
         ----------
-        images
+        tel_id
+        image
+        axis
 
         Returns
         -------
