@@ -6,7 +6,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
 from numpy import ceil, sqrt
 from ctapipe.core import Component
-from ctapipe.core.traits import Float, Bool
+from ctapipe.core.traits import Bool
 
 
 class EventViewer(Component):
@@ -35,6 +35,7 @@ class EventViewer(Component):
 
     def draw_source(self, source):
         """
+        Loop over events and draw each
 
         Parameters
         ----------
@@ -51,6 +52,7 @@ class EventViewer(Component):
 
     def draw_event(self, event, hillas_parameters=None):
         """
+        Draw display for a given event
 
         Parameters
         ----------
@@ -129,16 +131,20 @@ class EventViewer(Component):
 
     def get_camera_view(self, tel_id, image, axis):
         """
+        Create camera viewer for a given camera image
 
         Parameters
         ----------
-        tel_id
-        image
-        axis
+        tel_id: int
+            Telescope ID number
+        image: ndarray
+            Array of calibrated pixel intensities
+        axis: matplotlib axis
+            Axis on which to draw plot
 
         Returns
         -------
-
+            Camera display
         """
         #if tel_id not in self.cam_display:
         # Argh this is annoying, for some reason we cannot cahe the displays
