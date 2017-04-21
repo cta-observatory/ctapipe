@@ -9,6 +9,7 @@ from astropy import units as u
 from astropy.table import Table
 from astropy.time import Time
 from ctapipe.core.traits import (Unicode, Dict, Bool)
+from ctapipe.core import Provenance
 
 from ..core import Tool
 
@@ -17,6 +18,7 @@ MAX_TELS = 1000
 
 class DumpTriggersTool(Tool):
     description = Unicode(__doc__)
+    name='ctapipe-dump-triggers'
 
     # =============================================
     # configuration parameters:
@@ -124,6 +126,7 @@ class DumpTriggersTool(Tool):
                               overwrite=self.overwrite)
         else:
             self.events.write(self.outfile)
+        Provenance().add_output_file(self.outfile)
 
         self.log.info("Table written to '{}'".format(self.outfile))
         self.log.info('\n %s', self.events)
