@@ -102,24 +102,25 @@ dependencies)
 Step 5: Setup ctapipe for development
 +++++++++++++++++++++++++++++++++++++
 
-Now setup this cloned version for development:
+Now setup this cloned version for development (this just makes symlinks in
+your python environment's path so that the packages and executable tools are
+found):
  
 .. code-block:: bash
 
-    make init     # will fetch required sub-repos and set up package 
     make develop  # will make symlinks in your python library dir
 
 Run the tests to make sure everything is OK:
 
 .. code-block:: bash
 
-   make test
+    pytest
 
 Build the HTML docs locally and open them in your web browser:
 
 .. code-block:: bash
 
-   make doc-show
+    make doc
 
 Run the example Python scripts:
 

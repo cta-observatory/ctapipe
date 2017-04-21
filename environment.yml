@@ -3,6 +3,7 @@ channels:
   - cta-observatory
   - openastronomy
 dependencies:
+  - ctapipe-extra
   - astropy
   - bokeh
   - fitsio

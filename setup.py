@@ -50,7 +50,7 @@ setup(name=PACKAGENAME,
       install_requires=['astropy', 'scipy', 'matplotlib',
                         'scikit-learn', 'traitlets', 'numpy', 'tables'],
       #      setup_requires=[, ],
-      tests_require=['pytest', ],
+      tests_require=['pytest'],
       extras_require={
         'dev': [
             'pytest',

@@ -1,5 +1,5 @@
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 from ctapipe.instrument import CameraGeometry
 import numpy as np
 from numpy.testing import assert_almost_equal
@@ -10,7 +10,7 @@ from ctapipe.calib.camera.charge_extractors import FullIntegrator, \
 
 
 def get_test_event():
-    filename = get_path('gamma_test.simtel.gz')
+    filename = get_dataset('gamma_test.simtel.gz')
     source = hessio_event_source(filename, requested_event=409,
                                  use_event_id=True)
     event = next(source)
