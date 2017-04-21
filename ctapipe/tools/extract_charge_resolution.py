@@ -8,7 +8,7 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
 from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
-from tqdm import tqdm
+from astropy.utils.console import ProgressBarOrSpinner
 
 
 class ChargeResolutionGenerator(Tool):
@@ -75,10 +75,10 @@ class ChargeResolutionGenerator(Tool):
 
     def start(self):
         desc = "Filling Charge Resolution"
-        with tqdm(desc=desc) as pbar:
+        with ProgressBarOrSpinner(None, message=desc) as pbar:
             source = self.file_reader.read()
             for event in source:
-                pbar.update(1)
+                pbar.update(event.count)
                 tels = list(event.dl0.tels_with_data)
 
                 # Check events have true charge included
@@ -114,6 +114,10 @@ class ChargeResolutionGenerator(Tool):
         self.calculator.save(ouput_path)
 
 
-if __name__ == '__main__':
+def main():
     exe = ChargeResolutionGenerator()
     exe.run()
+
+
+if __name__ == '__main__':
+    main()

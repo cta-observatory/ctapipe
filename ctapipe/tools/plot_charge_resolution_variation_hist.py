@@ -144,6 +144,9 @@ class ChargeResolutionVariationViewer(Tool):
         self.plotter.plot_hist(hist, xedges, yedges)
 
 
-if __name__ == '__main__':
+def main():
     exe = ChargeResolutionVariationViewer()
     exe.run()
+
+if __name__ == '__main__':
+    main()

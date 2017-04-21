@@ -134,6 +134,8 @@ class CameraR1CalibratorFactory(Factory):
                             help='Path to a pedestal file').tag(config=True)
     tf_path = Unicode('', allow_none=True,
                       help='Path to a Transfer Function file').tag(config=True)
+    adc2pe_path = Unicode('', allow_none=True,
+                          help='Path to an adc2pe file').tag(config=True)
 
     def get_factory_name(self):
         return self.name

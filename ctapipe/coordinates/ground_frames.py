@@ -130,7 +130,7 @@ def ground_to_tilted(ground_coord, tilted_coord):
     y_grd = ground_coord.cartesian.y
     z_grd = ground_coord.cartesian.z
 
-    altitude, azimuth = tilted_coord.pointing_direction
+    altitude, azimuth = tilted_coord.pointing_direction.alt, tilted_coord.pointing_direction.az
     altitude = altitude.to(u.rad)
     azimuth = azimuth.to(u.rad)
     trans = get_shower_trans_matrix(azimuth, altitude)
@@ -163,7 +163,7 @@ def tilted_to_ground(tilted_coord, ground_coord):
     x_tilt = tilted_coord.x
     y_tilt = tilted_coord.y
 
-    altitude, azimuth = tilted_coord.pointing_direction
+    altitude, azimuth = tilted_coord.pointing_direction.alt, tilted_coord.pointing_direction.az
     altitude = altitude.to(u.rad)
     azimuth = azimuth.to(u.rad)
 
@@ -203,8 +203,8 @@ def project_to_ground(tilt_system):
     y_initial = ground_system.y.value
     z_initial = ground_system.z.value
 
-    trans = get_shower_trans_matrix(tilt_system.pointing_direction[1],
-                                    tilt_system.pointing_direction[0])
+    trans = get_shower_trans_matrix(tilt_system.pointing_direction.az,
+                                    tilt_system.pointing_direction.alt)
 
     x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]

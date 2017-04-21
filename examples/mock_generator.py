@@ -8,7 +8,8 @@
 # containing ~10 events
 
 from ctapipe.io.toymodel import toymodel_event_source
-from ctapipe import visualization, io
+from ctapipe.instrument import CameraGeometry
+from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 from astropy import units as u
 from numpy import ceil, sqrt
@@ -39,8 +40,7 @@ def display_event(event, geoms):
 
         x, y = event.inst.pixel_pos[tel_id]
         geom = geoms[tel_id]
-        disp = visualization.CameraDisplay(geom, ax=ax,
-                                           title="CT{0}".format(tel_id))
+        disp = CameraDisplay(geom, ax=ax, title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
         disp.cmap = 'afmhot'
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     plt.show(block=False)
 
     n_telescopes = 20
-    geom = io.CameraGeometry.from_name('hess', 1)
+    geom = CameraGeometry.from_name('hess', 1)
     geoms = [geom for i in range(n_telescopes)]
     source = toymodel_event_source(geoms)
 
