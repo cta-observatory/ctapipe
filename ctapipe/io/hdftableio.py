@@ -356,6 +356,7 @@ class SimpleHDF5TableReader(Component):
                               .format(table_name, colname,
                                       container.__class__.__name__))
 
+
     def add_column_transform(self, table_name, col_name, transform):
         """
         Add a transformation function for a column. This function will be 
@@ -404,7 +405,7 @@ class SimpleHDF5TableReader(Component):
             try:
                 row = tab[row_count]
             except IndexError:
-                raise StopIteration() # stop generator when done
+                return # stop generator when done
 
             for colname in self._cols_to_read[table_name]:
                 container[colname] = self._apply_col_transform(table_name,
