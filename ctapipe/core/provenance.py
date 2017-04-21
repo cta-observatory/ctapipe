@@ -9,6 +9,7 @@ import json
 import logging
 import platform
 import sys
+import uuid
 from os.path import abspath
 from contextlib import contextmanager
 
@@ -112,14 +113,15 @@ class Provenance(metaclass=Singleton):
 
 class _ActivityProvenance:
     """
-    Low-level helper class to ollect provenance information for a given
-    *activity*.  Users should use `Provenance` as a top-level API, not this
-    class directly.
+    Low-level helper class to collect provenance information for a given
+    *activity*.  Users should use `Provenance` as a top-level API, 
+    not this class directly.
     """
 
     def __init__(self, activity_name=sys.executable):
         self._prov = {
             'activity_name': activity_name,
+            'activity_uuid': str(uuid.uuid4()),
             'start': {},
             'stop': {},
             'system': {},
