@@ -12,7 +12,6 @@ def test_Provenance():
     prov.start_activity("test2")
     prov.add_input_file("input_a.txt")
     prov.add_input_file("input_b.txt")
-    assert len(prov.active_activity_names) == 2
     prov.finish_activity("test2")
     prov.finish_activity("test1")
 
