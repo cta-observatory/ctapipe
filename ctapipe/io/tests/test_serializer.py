@@ -28,11 +28,18 @@ def generate_input_containers():
 # Setup
 input_containers = generate_input_containers()
 
-# PICKLE SERIALIZER
-binary_filename = 'pickle_data.pickle.gz'
+@pytest.fixture(scope='session')
+def binary_filename(tmpdir_factory):
+    return str(tmpdir_factory.mktemp('data')
+               .join('pickle_data.pickle.gz'))
+
+@pytest.fixture(scope='session')
+def fits_file_name(tmpdir_factory):
+    return str(tmpdir_factory.mktemp('data').join('output.fits'))
 
 
-def test_pickle_serializer():
+
+def test_pickle_serializer(binary_filename):
     serial = Serializer(filename=binary_filename, format='pickle', mode='w')
     # append all input file events in input_containers list and pickle serializer
     for event in input_containers:
@@ -54,7 +61,7 @@ def test_pickle_serializer():
 
 
 # Test pickle reader/writer with statement
-def test_pickle_with_statement():
+def test_pickle_with_statement(binary_filename):
     with Serializer(filename=binary_filename, format='pickle', mode='w') as \
             containers_writer:
         for container in input_containers:
@@ -73,7 +80,7 @@ def test_pickle_with_statement():
 
 
 # Test pickle reader iterator
-def test_pickle_iterator():
+def test_pickle_iterator(binary_filename):
     serial = Serializer(filename=binary_filename, format='pickle',
                         mode='w')
     # append all events in input_containers list and pickle serializer
@@ -93,11 +100,10 @@ def test_pickle_iterator():
     remove(binary_filename)
 
 
-# FITS SERIALIZER
-fits_file_name = 'output.fits'
 
 
-def test_fits_dl0():
+
+def test_fits_dl0(fits_file_name):
     serial = Serializer(filename=fits_file_name, format='fits', mode='w')
     for container in input_containers:
         serial.add_container(container.dl0)
@@ -110,7 +116,7 @@ def test_fits_dl0():
     remove(fits_file_name)
 
 
-def test_exclusive_mode():
+def test_exclusive_mode(fits_file_name):
     serial = Serializer(filename=fits_file_name, format='fits', mode='w')
     for container in input_containers:
         serial.add_container(container.dl0)
@@ -136,8 +142,8 @@ def test_fits_dl1():
 """
 
 
-def test_fits_context_manager():
-    with Serializer(filename='output.fits', format='fits', mode='w') as writer:
+def test_fits_context_manager(fits_file_name):
+    with Serializer(filename=fits_file_name, format='fits', mode='w') as writer:
         for container in input_containers:
             writer.add_container(container.dl0)
 
