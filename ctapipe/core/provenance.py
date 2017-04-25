@@ -217,19 +217,19 @@ def _get_system_provenance():
 
 
 def _sample_cpu_and_memory():
-    times = np.asarray(psutil.cpu_times(percpu=True))
-    mem = psutil.virtual_memory()
+    # times = np.asarray(psutil.cpu_times(percpu=True))
+    # mem = psutil.virtual_memory()
 
     return dict(
         time_utc=Time.now().utc.isot,
-        memory=dict(total=mem.total,
-                    inactive=mem.inactive,
-                    available=mem.available,
-                    free=mem.free,
-                    wired=mem.wired),
-        cpu=dict(ncpu=psutil.cpu_count(),
-                 user=list(times[:, 0]),
-                 nice=list(times[:, 1]),
-                 system=list(times[:, 2]),
-                 idle=list(times[:, 3])),
+        # memory=dict(total=mem.total,
+        #             inactive=mem.inactive,
+        #             available=mem.available,
+        #             free=mem.free,
+        #             wired=mem.wired),
+        # cpu=dict(ncpu=psutil.cpu_count(),
+        #          user=list(times[:, 0]),
+        #          nice=list(times[:, 1]),
+        #          system=list(times[:, 2]),
+        #          idle=list(times[:, 3])),
     )
