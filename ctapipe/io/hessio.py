@@ -142,7 +142,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     = pyhessio.get_central_event_teltrg_list()
                 time_s, time_ns = pyhessio.get_central_event_gps_time()
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
-                                          format='gps', scale='utc')
+                                          format='unix', scale='utc')
                 data.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
                 data.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
