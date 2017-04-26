@@ -32,9 +32,9 @@ entry_points['console_scripts'] = [
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
     'ctapipe-flow = ctapipe.flow.flow:main',
-    'ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main',
-    'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
-    'ctapipe-chargeres-hist = '
+    'ctapipe-extract-chargeresolution = ctapipe.tools.extract_charge_resolution:main',
+    'ctapipe-plot-chargeresolution = ctapipe.tools.plot_charge_resolution:main',
+    'ctapipe-plot-chargeresolution-hist = '
     'ctapipe.tools.plot_charge_resolution_variation_hist:main'
 ]
 
