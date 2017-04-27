@@ -35,7 +35,8 @@ entry_points['console_scripts'] = [
     'ctapipe-extract-chargeresolution = ctapipe.tools.extract_charge_resolution:main',
     'ctapipe-plot-chargeresolution = ctapipe.tools.plot_charge_resolution:main',
     'ctapipe-plot-chargeresolution-hist = '
-    'ctapipe.tools.plot_charge_resolution_variation_hist:main'
+    'ctapipe.tools.plot_charge_resolution_variation_hist:main',
+    'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main'
 ]
 
 package.version.update_release_version()
