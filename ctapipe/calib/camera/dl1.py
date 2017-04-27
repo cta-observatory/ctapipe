@@ -245,7 +245,8 @@ class CameraDL1Calibrator(Component):
 
                 # Apply integration correction
                 if self.correction:
-                    corrected = charge * self.get_correction(event, telid)
+                    correction = np.asarray(self.get_correction(event, telid))
+                    corrected = charge * correction[:, np.newaxis]
                 else:
                     corrected = charge
 

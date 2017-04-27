@@ -96,7 +96,7 @@ class CameraGeometry:
         # FIXME the rotation does not work on 2D pixel grids
         if len(pix_x.shape) == 1:
             self.rotate(cam_rotation)
-            self.cam_rotation = Angle(0 * u.deg)
+            self.cam_rotation = cam_rotation#Angle(0 * u.deg)
 
     def __eq__(self, other):
         return ( (self.cam_id == other.cam_id)
