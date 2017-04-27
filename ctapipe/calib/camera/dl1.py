@@ -8,10 +8,11 @@ from .charge_extractors import NeighbourPeakIntegrator
 from .waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
 from ctapipe.instrument import CameraGeometry
-from ctapipe.core.traits import Float, Bool
+from ctapipe.core.traits import Float
 
 
-def integration_correction(event, telid, window_width, window_shift):
+def integration_correction(n_chan, pulse_shape, refstep, time_slice,
+                           window_width, window_shift):
     """
     Obtain the integration correction for the window specified.
 
@@ -22,10 +23,14 @@ def integration_correction(event, telid, window_width, window_shift):
 
     Parameters
     ----------
-    event : container
-        A `ctapipe` event container
-    telid : int
-        telescope id
+    n_chan : int
+        Number of gain channels for the telescope
+    pulse_shape : ndarray
+        Numpy array containing the pulse shape for each channel.
+    refstep : int
+        The step in time for each sample of the reference pulse shape
+    time_slice : int
+        The step in time for each sample of the waveforms
     window_width : int
         Width of the integration window.
     window_shift : int
@@ -37,21 +42,16 @@ def integration_correction(event, telid, window_width, window_shift):
         Value of the integration correction for this telescope for each
         channel.
     """
-    n_chan = event.inst.num_channels[telid]
-    correction = [1] * n_chan
+    correction = np.ones(n_chan)
     for chan in range(n_chan):
-
-        shape = event.mc.tel[telid].reference_pulse_shape[chan]
-        step = event.mc.tel[telid].meta['refstep']
-        time_slice = event.mc.tel[telid].time_slice
-
-        if shape.all() is False or time_slice == 0 or step == 0:
+        pshape = pulse_shape[chan]
+        if pshape.all() is False or time_slice == 0 or refstep == 0:
             continue
 
-        ref_x = np.arange(0, shape.size * step, step)
-        edges = np.arange(0, shape.size * step + 1, time_slice)
+        ref_x = np.arange(0, pshape.size * refstep, refstep)
+        edges = np.arange(0, pshape.size * refstep + 1, time_slice)
 
-        sampled = np.histogram(ref_x, edges, weights=shape, density=True)[0]
+        sampled, se = np.histogram(ref_x, edges, weights=pshape, density=True)
         n_samples = sampled.size
         start = sampled.argmax() - window_shift
         end = start + window_width
@@ -63,7 +63,8 @@ def integration_correction(event, telid, window_width, window_shift):
         if start + window_width > n_samples:
             start = n_samples - window_width
 
-        correction[chan] = 1 / sampled[start:end].sum()
+        integration = np.diff(se)[start:end] * sampled[start:end]
+        correction[chan] = 1 / np.sum(integration)
 
     return correction
 
@@ -74,11 +75,6 @@ class CameraDL1Calibrator(Component):
                    help='Pixels within radius from a pixel are considered '
                         'neighbours to the pixel. Set to None for the default '
                         '(1.4 * min_pixel_seperation).').tag(config=True)
-    correction = Bool(True,
-                      help='Apply an integration correction to the charge to '
-                           'account for the full cherenkov signal that your '
-                           'smaller integration window may be '
-                           'missing.').tag(config=True)
     clip_amplitude = Float(None, allow_none=True,
                            help='Amplitude in p.e. above which the signal is '
                                 'clipped. Set to None for no '
@@ -111,41 +107,13 @@ class CameraDL1Calibrator(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self.cleaner = cleaner
         self.extractor = extractor
         if self.extractor is None:
             self.extractor = NeighbourPeakIntegrator(config, tool)
         self.cleaner = cleaner
         if self.cleaner is None:
             self.cleaner = NullWaveformCleaner(config, tool)
-        self._current_url = None
         self._dl0_empty_warn = False
-
-        self.neighbour_dict = {}
-        self.correction_dict = {}
-
-    def _check_url_change(self, event):
-        """
-        Check if the event comes from a different file to the previous events.
-        If it has, then the neighbour and correction dicts need to be reset
-        as telescope ids might not indicate the same telescope type as before.
-
-        Parameters
-        ----------
-        event : container
-            A `ctapipe` event container
-        """
-        if 'input' in event.meta:
-            url = event.meta['input']
-            if not self._current_url:
-                self._current_url = url
-            if url != self._current_url:
-                self.log.warning("A new CameraDL1Calibrator should be created"
-                                 "for each individual file so stored "
-                                 "neighbours and integration_correction "
-                                 "match the correct telid")
-                self.neighbour_dict = {}
-                self.correction_dict = {}
 
     def check_dl0_exists(self, event, telid):
         """
@@ -176,9 +144,10 @@ class CameraDL1Calibrator(Component):
                 self._dl0_empty_warn = True
             return False
 
-    def get_geometry(self, event, telid):
+    @staticmethod
+    def get_geometry(event, telid):
         """
-        Obtain the neighbouring pixels for this telescope.
+        Obtain the geometry for this telescope.
 
         Parameters
         ----------
@@ -187,6 +156,10 @@ class CameraDL1Calibrator(Component):
         telid : int
             The telescope id.
             The neighbours are calculated once per telescope.
+            
+        Returns
+        -------
+        `CameraGeometry`
         """
         return CameraGeometry.guess(*event.inst.pixel_pos[telid],
                                     event.inst.optical_foclen[telid])
@@ -202,21 +175,26 @@ class CameraDL1Calibrator(Component):
         telid : int
             The telescope id.
             The integration correction is calculated once per telescope.
+            
+        Returns
+        -------
+        ndarray
         """
-        if telid in self.correction_dict:
-            return self.correction_dict[telid]
-        else:
-            try:
-                shift = self.extractor.window_shift
-                width = self.extractor.window_width
-                self.correction_dict[telid] = \
-                    integration_correction(event, telid, width, shift)
-                return self.correction_dict[telid]
-            except AttributeError:
-                # Don't apply correction when window_shift or window_width
-                # does not exist in extractor, or when container does not have
-                # a reference pulse shape
-                return 1
+        try:
+            shift = self.extractor.window_shift
+            width = self.extractor.window_width
+            n_chan = event.inst.num_channels[telid]
+            shape = event.mc.tel[telid].reference_pulse_shape
+            step = event.mc.tel[telid].meta['refstep']
+            time_slice = event.mc.tel[telid].time_slice
+            correction = integration_correction(n_chan, shape, step,
+                                                time_slice, width, shift)
+            return correction
+        except AttributeError:
+            # Don't apply correction when window_shift or window_width
+            # does not exist in extractor, or when container does not have
+            # a reference pulse shape
+            return np.ones(event.inst.num_channels[telid])
 
     def calibrate(self, event):
         """
@@ -228,7 +206,6 @@ class CameraDL1Calibrator(Component):
         event : container
             A `ctapipe` event container
         """
-        self._check_url_change(event)
         for telid in event.dl0.tels_with_data:
             if self.check_dl0_exists(event, telid):
                 waveforms = event.dl0.tel[telid].pe_samples
@@ -244,10 +221,7 @@ class CameraDL1Calibrator(Component):
                 charge, peakpos, window = extract(cleaned)
 
                 # Apply integration correction
-                if self.correction:
-                    corrected = charge * self.get_correction(event, telid)
-                else:
-                    corrected = charge
+                corrected = charge * self.get_correction(event, telid)[:, None]
 
                 # Clip amplitude
                 if self.clip_amplitude:
