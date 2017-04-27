@@ -10,7 +10,7 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 
 
 def test_fit_core():
@@ -43,10 +43,13 @@ def test_fit_core():
     # and a seed that is quite far away
     pos_fit_minimise = fit.fit_core_minimise([100, 1000]*u.m)
     print("position fit test minimise:", pos_fit_minimise)
+    print()
 
     # performing the position fit with the geometric algorithm
-    pos_fit_crosses = fit.fit_core_crosses()
+    pos_fit_crosses, err_est_pos_fit_crosses = fit.fit_core_crosses()
     print("position fit test crosses:", pos_fit_crosses)
+    print("error estimate:", err_est_pos_fit_crosses)
+    print()
 
     # the results should be close to the origin of the coordinate system
     np.testing.assert_allclose(pos_fit_minimise/u.m, [0, 0], atol=1e-3)
@@ -83,10 +86,12 @@ def test_fit_origin():
     # and a seed that is perpendicular to the up direction
     dir_fit_minimise = fit.fit_origin_minimise((0.1, 0.1, 1))
     print("direction fit test minimise:", dir_fit_minimise)
+    print()
 
     # performing the direction fit with the geometric algorithm
     dir_fit_crosses = fit.fit_origin_crosses()[0]
     print("direction fit test crosses:", dir_fit_crosses)
+    print()
 
     # the results should be close to the direction straight up
     # np.testing.assert_allclose(dir_fit_minimise, [0, 0, 1], atol=1e-1)
@@ -125,12 +130,12 @@ def test_FitGammaHillas():
                                         event.inst.pixel_pos[tel_id][1],
                                         event.inst.optical_foclen[tel_id])
 
-                tel_phi[tel_id] = 0.*u.deg
-                tel_theta[tel_id] = 20.*u.deg
+                tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
+                tel_theta[tel_id] = (np.pi/2-event.mc.tel[tel_id].altitude_raw)*u.rad
 
-            pmt_signal = event.dl0.tel[tel_id].adc_sums[0]
+            pmt_signal = event.r0.tel[tel_id].adc_sums[0]
 
-            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
+            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
             pmt_signal[mask == 0] = 0
 

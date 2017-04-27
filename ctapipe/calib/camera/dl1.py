@@ -1,13 +1,14 @@
 """
-Module containing general functions that will calibrate any event regardless of
-the origin/telescope, and store the calibration inside the event container.
+Module containing general functions that will perform the dl1 calibration
+on any event regardless of the origin/telescope, and store the calibration
+inside the event container.
 """
 import numpy as np
+from .charge_extractors import NeighbourPeakIntegrator
+from .waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
-from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
-from ctapipe.calib.camera.mc import mc_r0_to_dl0_calibration
-from ctapipe.io.camera import get_min_pixel_seperation, find_neighbor_pixels
-from traitlets import Float, Bool
+from ctapipe.instrument import CameraGeometry
+from ctapipe.core.traits import Float, Bool
 
 
 def integration_correction(event, telid, window_width, window_shift):
@@ -83,7 +84,7 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config, tool, extractor=None, **kwargs):
+    def __init__(self, config, tool, extractor=None, cleaner=None, **kwargs):
         """
         The calibrator for DL1 charge extraction. Fills the dl1 container.
 
@@ -104,13 +105,21 @@ class CameraDL1Calibrator(Component):
             The extractor to use to extract the charge from the waveforms.
             By default the NeighbourPeakIntegrator with default configuration
             is used.
+        cleaner : ctapipe.calib.camera.waveform_cleaners.Cleaner
+            The waveform cleaner to use. By default no cleaning is
+            applied to the waveforms.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self._extractor = extractor
-        if self._extractor is None:
-            self._extractor = NeighbourPeakIntegrator(config, tool)
+        self.cleaner = cleaner
+        self.extractor = extractor
+        if self.extractor is None:
+            self.extractor = NeighbourPeakIntegrator(config, tool)
+        self.cleaner = cleaner
+        if self.cleaner is None:
+            self.cleaner = NullWaveformCleaner(config, tool)
         self._current_url = None
+        self._dl0_empty_warn = False
 
         self.neighbour_dict = {}
         self.correction_dict = {}
@@ -138,7 +147,36 @@ class CameraDL1Calibrator(Component):
                 self.neighbour_dict = {}
                 self.correction_dict = {}
 
-    def get_neighbours(self, event, telid):
+    def check_dl0_exists(self, event, telid):
+        """
+        Check that dl0 data exists. If it does not, then do not change dl1.
+
+        This ensures that if the containers were filled from a file containing
+        dl1 data, it is not overwritten by non-existant data.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            The telescope id.
+
+        Returns
+        -------
+        bool
+            True if dl0.tel[telid].pe_samples is not None, else false.
+        """
+        dl0 = event.dl0.tel[telid].pe_samples
+        if dl0 is not None:
+            return True
+        else:
+            if not self._dl0_empty_warn:
+                self.log.warning("Encountered an event with no DL0 data. "
+                                 "DL1 is unchanged in this circumstance.")
+                self._dl0_empty_warn = True
+            return False
+
+    def get_geometry(self, event, telid):
         """
         Obtain the neighbouring pixels for this telescope.
 
@@ -150,18 +188,8 @@ class CameraDL1Calibrator(Component):
             The telescope id.
             The neighbours are calculated once per telescope.
         """
-        if telid in self.neighbour_dict:
-            return self.neighbour_dict[telid]
-        else:
-            pixel_pos = event.inst.pixel_pos[telid]
-
-            if not self.radius:
-                pixsep = get_min_pixel_seperation(*pixel_pos)
-                self.radius = 1.4 * pixsep.value
-
-            self.neighbour_dict[telid] = \
-                find_neighbor_pixels(*pixel_pos, self.radius)
-            return self.neighbour_dict[telid]
+        return CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                    event.inst.optical_foclen[telid])
 
     def get_correction(self, event, telid):
         """
@@ -179,40 +207,16 @@ class CameraDL1Calibrator(Component):
             return self.correction_dict[telid]
         else:
             try:
-                shift = self._extractor.input_shift
-                width = self._extractor.input_width
+                shift = self.extractor.window_shift
+                width = self.extractor.window_width
                 self.correction_dict[telid] = \
                     integration_correction(event, telid, width, shift)
                 return self.correction_dict[telid]
             except AttributeError:
+                # Don't apply correction when window_shift or window_width
+                # does not exist in extractor, or when container does not have
+                # a reference pulse shape
                 return 1
-
-    def obtain_dl0(self, event, telid):
-        """
-        Obtain the dl0 adc_samples.
-
-        For hessio files, this means to calibrate from r0 to dl0. As what is
-        currently stored as dl0 in hessio.py is actually r0.
-
-        Parameters
-        ----------
-        event : container
-            A `ctapipe` event container
-        telid : int
-            The telescope id.
-
-        Returns
-        -------
-        waveforms : ndarray
-            The dl0 PE samples inside a numpy array of shape (n_samples)
-
-        """
-        # TODO: dl0 should be correctly filled with pe_samples in IO
-        if event.meta['origin'] == 'hessio':
-            return mc_r0_to_dl0_calibration(event, telid)
-        else:
-            self.log.exception("no calibration created for data origin: "
-                               "{}".format(event.meta['origin']))
 
     def calibrate(self, event):
         """
@@ -226,46 +230,33 @@ class CameraDL1Calibrator(Component):
         """
         self._check_url_change(event)
         for telid in event.dl0.tels_with_data:
-            waveforms = self.obtain_dl0(event, telid)
 
-            if self._extractor.requires_neighbours():
-                self._extractor.neighbours = self.get_neighbours(event, telid)
+            if self.check_dl0_exists(event, telid):
+                waveforms = event.dl0.tel[telid].pe_samples
 
-            charge = self._extractor.extract_charge(waveforms)
-            extracted_samples = self._extractor.extracted_samples
+                # Clean waveforms
+                cleaned = self.cleaner.apply(waveforms)
 
-            peakpos = self._extractor.peakpos
+                # Extract charge
+                if self.extractor.requires_neighbours():
+                    e = self.extractor
+                    e.neighbours = self.get_geometry(event, telid).neighbors
+                extract = self.extractor.extract_charge
+                charge, peakpos, window = extract(cleaned)
 
-            if self.correction:
-                correction = np.array(self.get_correction(event, telid))
-                corrected = charge * correction[:, np.newaxis]
-            else:
-                corrected = charge
+                # Apply integration correction
+                if self.correction:
+                    corrected = charge * self.get_correction(event, telid)
+                else:
+                    corrected = charge
 
-            if self.clip_amplitude:
-                corrected[corrected > self.clip_amplitude] = \
-                    self.clip_amplitude
+                # Clip amplitude
+                if self.clip_amplitude:
+                    corrected[corrected > self.clip_amplitude] = \
+                        self.clip_amplitude
 
-            event.dl1.tel[telid].image = corrected
-            event.dl1.tel[telid].extracted_samples = extracted_samples
-            event.dl1.tel[telid].peakpos = peakpos
-
-    def calibrate_source(self, source):
-        """
-        Generator for calibrating all events in a file.
-
-        Parameters
-        ----------
-        source : generator
-            A `ctapipe` event generator such as
-            `ctapipe.io.hessio.hessio_event_source`
-
-        Returns
-        -------
-        generator
-            A new generator that also contains the dl1 calibration.
-        """
-        self.log.info("Calibration generator appended to source")
-        for event in source:
-            self.calibrate(event)
-            yield event
+                # Store into event container
+                event.dl1.tel[telid].image = corrected
+                event.dl1.tel[telid].extracted_samples = window
+                event.dl1.tel[telid].peakpos = peakpos
+                event.dl1.tel[telid].cleaned = cleaned
