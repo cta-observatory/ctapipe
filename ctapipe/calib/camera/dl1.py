@@ -63,7 +63,8 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
         if start + window_width > n_samples:
             start = n_samples - window_width
 
-        correction[chan] = 1 / np.sum(np.diff(se)[start:end] * sampled[start:end])
+        integration = np.diff(se)[start:end] * sampled[start:end]
+        correction[chan] = 1 / np.sum(integration)
 
     return correction
 
