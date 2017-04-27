@@ -51,7 +51,7 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
         ref_x = np.arange(0, pshape.size * refstep, refstep)
         edges = np.arange(0, pshape.size * refstep + 1, time_slice)
 
-        sampled = np.histogram(ref_x, edges, weights=pshape, density=True)[0]
+        sampled, se = np.histogram(ref_x, edges, weights=pshape, density=True)
         n_samples = sampled.size
         start = sampled.argmax() - window_shift
         end = start + window_width
@@ -63,7 +63,7 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
         if start + window_width > n_samples:
             start = n_samples - window_width
 
-        correction[chan] = 1 / sampled[start:end].sum()
+        correction[chan] = 1 / np.sum(np.diff(se)[start:end] * sampled[start:end])
 
     return correction
 
