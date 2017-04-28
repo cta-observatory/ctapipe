@@ -42,7 +42,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        self.shower_max = ShowerMaxEstimator(root_dir+"atmprof.dat")
+        self.shower_max = ShowerMaxEstimator(root_dir+"/atmprof.dat")
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
@@ -91,7 +91,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                 continue
 
             self.prediction[tel_type[t]] = \
-                TableInterpolator(self.root_dir + self.file_names[tel_type[t]])
+                TableInterpolator(self.root_dir + "/" + self.file_names[tel_type[t]])
 
         return True
 
@@ -120,6 +120,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         tel_num = 0
         for tel in self.image:
             top_index = self.image[tel].argsort()[-1*num_pix:][::-1]
+            print(top_index, self.pixel_x[tel][top_index], self.image[tel][top_index])
             weight = self.image[tel][top_index]
             weighted_x = self.pixel_x[tel][top_index] * weight
             weighted_y = self.pixel_y[tel][top_index] * weight
@@ -245,26 +246,25 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     def get_prediction(self, tel_id, shower_reco, energy_reco):
 
-
         horizon_seed = HorizonFrame(az=shower_reco.az, alt=shower_reco.alt)
-        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
+        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=horizon_seed))
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
+        print(self.array_direction[0])
         ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0*u.m)
-        tilted = ground.transform_to(TiltedGroundFrame(pointing_direction=self.array_direction))
+        tilted = ground.transform_to(
+            TiltedGroundFrame(pointing_direction=
+                              HorizonFrame(alt=self.array_direction[0], az=self.array_direction[1])))
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
         zenith = 90*u.deg - self.array_direction[0]
         azimuth = self.array_direction[1]
 
-        #x_max_exp = 343 + 84 * np.log10(energy_reco.energy.value)
         x_max_exp = 300 + 93 * np.log10(energy_reco.energy.value)
-
         x_max = shower_reco.h_max / np.cos(zenith)
-        #x_max = self.shower_max.interpolate(h_max.to(u.km))
-        #x_max = x_max_exp
+
         # Convert to binning of Xmax, addition of 100 can probably be removed
         x_max_bin = x_max.value-x_max_exp
         if x_max_bin > 100:
@@ -330,7 +330,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                         zenith.to(u.rad).value) * x_max_scale
 
             # Calculate expected Xmax given this energy
-            #x_max_exp = 343 + 84 * np.log10(energy)
             x_max_exp = 300 + 93 * np.log10(energy)
 
             # Convert to binning of Xmax, addition of 100 can probably be removed
@@ -357,8 +356,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
             pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_count]*-1, self.pixel_y[tel_count],
                                                          source_x, source_y, phi)
 
-            #plt.plot(pix_x_rot, pix_y_rot)
-            #plt.show()
             # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(self.type[tel_count], zenith, azimuth,
                                                energy, impact, x_max_bin,
@@ -662,7 +659,3 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         X, Y = np.meshgrid(x_ground_list, y_ground_list)
         return X, Y, w
-        #plot_name.imshow(w, interpolation="nearest", cmap=plt.cm.viridis_r,
-                                #extent=(x_grd.value - range.value , x_grd.value + range.value,
-                                #        y_grd.value -range.value, y_grd.value + range.value))
-
