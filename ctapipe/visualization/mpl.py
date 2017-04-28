@@ -384,8 +384,8 @@ class CameraDisplay:
 
 
         el = self.add_ellipse(centroid=(cen_x, cen_y),
-                              length=length,
-                              width=width, angle=momparams.psi.rad,
+                              length=length*2,
+                              width=width*2, angle=momparams.psi.rad,
                               **kwargs)
         self.axes.text(cen_x, cen_y,
                        ("({:.02f},{:.02f})\n"
