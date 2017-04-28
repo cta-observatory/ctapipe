@@ -89,11 +89,13 @@ Authors (as of 2017-04-28)
 - Jeremie Decock              
 - Justus Zorn
 - Kai Bruegge                 
-- Maximilian Noethe           
+- Maximilian Noethe
+- Markus Gaug
 - Michael Punch               
 - Michele Mastropietro        
-- Miguel Nievas               
-- Pierre Aubert               
+- Miguel Nievas
+- Paulo Cumani
+- Pierre Aubert
 - Raquel de los Reyes         
 - Tarek Hassan                
 - Tino Michael                

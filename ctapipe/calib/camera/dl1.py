@@ -213,6 +213,7 @@ class CameraDL1Calibrator(Component):
             A `ctapipe` event container
         """
         for telid in event.dl0.tels_with_data:
+
             if self.check_dl0_exists(event, telid):
                 waveforms = event.dl0.tel[telid].pe_samples
 

@@ -1,11 +1,11 @@
 from ctapipe.io.hessio import hessio_event_source
-from ...utils.datasets import get_datasets_path
+from ...utils.datasets import get_dataset
 from ..camera import CameraPlotter
 import numpy as np
 
 
 def test_eventplotter():
-    dataset = get_datasets_path("gamma_test.simtel.gz")
+    dataset = get_dataset("gamma_test.simtel.gz")
     source = hessio_event_source(dataset)
     event = next(source)
     data = event.r0.tel[38].adc_samples[0]

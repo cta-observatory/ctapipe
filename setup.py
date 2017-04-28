@@ -52,7 +52,7 @@ setup(name=PACKAGENAME,
                         'scikit-learn', 'traitlets', 'numpy',
                         'tables','tqdm','iminuit'],
       #      setup_requires=[, ],
-      tests_require=['pytest', ],
+      tests_require=['pytest'],
       extras_require={
         'dev': [
             'pytest',
