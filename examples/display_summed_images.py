@@ -11,7 +11,7 @@ from ctapipe.core.traits import (Unicode, Dict, Integer)
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.visualization import CameraDisplay
-from instrument.camera import _guess_camera_type
+from ctapipe.instrument.camera import _guess_camera_type
 from matplotlib import pyplot as plt
 
 

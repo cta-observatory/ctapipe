@@ -34,14 +34,13 @@ def test_ground_to_tilt():
     grd_coord = GroundFrame(x=1*u.m, y=2*u.m, z=0*u.m)
 
     # Convert to tilted frame at zenith (should be the same)
-    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction=[90*u.deg, 0*u.deg]))
+    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction=HorizonFrame(alt=90*u.deg, az=0*u.deg)))
     assert tilt_coord.separation_3d(grd_coord) == 0 * u.m
 
     # Check 180 degree rotation reverses y coordinate
-    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction=[90*u.deg, 180*u.deg]))
+    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction=HorizonFrame(alt=90*u.deg, az=180*u.deg)))
     assert np.abs(tilt_coord.y + 2. * u.m) < 1e-5 * u.m
 
     # Check that if we look at horizon the x coordinate is 0
-    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction=[0*u.deg, 0*u.deg]))
+    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction=HorizonFrame(alt=0*u.deg, az=0*u.deg)))
     assert np.abs(tilt_coord.x) < 1e-5 * u.m
-
