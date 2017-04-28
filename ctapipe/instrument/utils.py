@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from ctapipe.utils.datasets import get_dataset
 
 from .camera import CameraGeometry
 
@@ -36,3 +37,7 @@ def print_camera_types(inst, printer=log.info):
     for cam, tels in camtypes.items():
         printer("{:>20s} {:4d} {:4d} ..{:4d}".format(cam, len(tels), min(tels),
                                                      max(tels)))
+
+
+def get_atmosphere_profile(site="paranal"):
+    return get_dataset('atmprof_{}.dat'.format(site))

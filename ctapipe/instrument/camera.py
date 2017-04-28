@@ -8,7 +8,7 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from ctapipe.io.files import get_file_type
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
 
@@ -423,7 +423,7 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
     # let's assume the instrument name is encoded in the
     # filename
     name = instrument_name.lower()
-    geomfile = get_path('{}_camgeom.fits.gz'.format(name))
+    geomfile = get_dataset('{}_camgeom.fits.gz'.format(name))
 
     geom = _load_camera_table_from_file(cam_id, geomfile=geomfile)
     neigh_list = geom['PIX_NEIG'].data
@@ -446,7 +446,10 @@ def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
         pix_y=yy,
         pix_area=aa,
         neighbors=neigh,
-        pix_type='hexagonal'
+        pix_type='hexagonal',
+        cam_rotation=Angle('0deg'),
+        pix_rotation=Angle('0deg'),
+
     )
 
 

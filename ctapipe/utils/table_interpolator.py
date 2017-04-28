@@ -6,7 +6,7 @@ import gzip
 class TableInterpolator:
     """
     This is a simple class for loading image templates from a pickle file and
-    interpolating between them to provide the model for ImPACT style fitting
+    interpolating between them to provide the model for impact_reco style fitting
     """
 
     def __init__(self, filename):

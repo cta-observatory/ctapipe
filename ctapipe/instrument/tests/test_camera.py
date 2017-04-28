@@ -69,3 +69,7 @@ def test_write_read(tmpdir):
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
+
+
+if __name__ == '__main__':
+    test_to_and_from_table()

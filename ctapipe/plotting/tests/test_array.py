@@ -7,7 +7,7 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
 from ctapipe.coordinates import TiltedGroundFrame, NominalFrame, CameraFrame
 

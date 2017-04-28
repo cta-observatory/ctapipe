@@ -3,7 +3,7 @@ import numpy as np
 
 from ctapipe.instrument.InstrumentDescription import load_hessio
 
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 
 from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
@@ -109,7 +109,7 @@ def test_FitGammaHillas():
 
     in the end, proper units in the output are asserted '''
 
-    filename = get_path("gamma_test.simtel.gz")
+    filename = get_dataset("gamma_test.simtel.gz")
 
     fit = FitGammaHillas()
 

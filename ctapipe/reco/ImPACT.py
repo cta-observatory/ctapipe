@@ -20,11 +20,12 @@ from ctapipe.io.containers import (ReconstructedShowerContainer,
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
+from ctapipe import instrument
 
 
 class ImPACTFitter(RecoShowerGeomAlgorithm):
     """
-    This class is an implementation if the ImPACT Monte Carlo Template based image fitting
+    This class is an implementation if the impact_reco Monte Carlo Template based image fitting
     method from:
     Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
     This method uses a comparision of the predicted image from a library of image templates
@@ -38,7 +39,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
     - Energy units in TeV
 
     """
-    def __init__(self, fit_xmax=True, root_dir="/Users/dparsons/Documents/Unix/CTA/ImPACT_pythontests/"):
+    def __init__(self, fit_xmax=True, root_dir="."):
 
         # First we create a dictionary of image template interpolators for each telescope type
         self.root_dir = root_dir
@@ -48,14 +49,15 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        self.shower_max = ShowerMaxEstimator(root_dir+"/atmprof.dat")
+        self.shower_max = ShowerMaxEstimator(
+            instrument.get_atmosphere_profile('paranal'))
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
         self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 0.5}
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
-        # Also we need to scale the ImPACT templates a bit, this will be fixed later
+        # Also we need to scale the impact_reco templates a bit, this will be fixed later
         self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.1, "GATE": 0.75}
 
         # Next we need the position, area and amplitude from each pixel in the event
