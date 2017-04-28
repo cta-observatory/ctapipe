@@ -6,3 +6,4 @@ Camera calibration module.
 from .r1 import *
 from .dl0 import *
 from .dl1 import *
+from .calibrator import *

@@ -74,8 +74,6 @@ class CameraDL0Reducer(Component):
 
     def reduce(self, event):
         """
-        Abstract method to be defined in child class.
-
         Perform the conversion from raw R1 data to dl0 data
         (PE Samples -> Reduced PE Samples), and fill the dl0 container.
 
