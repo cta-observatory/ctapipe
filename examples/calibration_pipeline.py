@@ -6,7 +6,7 @@ from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 

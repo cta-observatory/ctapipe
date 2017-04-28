@@ -8,11 +8,11 @@ or basline subtraction) performed by a cleaner from
 from `ctapipe.image.charge_extractors`.
 """
 import numpy as np
-from ctapipe.calib.camera.charge_extractors import NeighbourPeakIntegrator
-from ctapipe.calib.camera.waveform_cleaning import NullWaveformCleaner
+
 from ctapipe.core import Component
-from ctapipe.instrument import CameraGeometry
 from ctapipe.core.traits import Float
+from ctapipe.image import NeighbourPeakIntegrator, NullWaveformCleaner
+from ctapipe.instrument import CameraGeometry
 
 __all__ = ['CameraDL1Calibrator']
 

@@ -8,7 +8,8 @@ import numpy as np
 from scipy.signal import general_gaussian
 from abc import abstractmethod
 
-__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleaner']
+__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleaner',
+           'NullWaveformCleaner']
 
 
 class WaveformCleaner(Component):
