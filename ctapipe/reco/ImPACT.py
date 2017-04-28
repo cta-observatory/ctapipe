@@ -3,17 +3,23 @@
 
 """
 import math
-import numpy as np
-from iminuit import Minuit
-from astropy import units as u
-from ctapipe.reco.table_interpolator import TableInterpolator
-from ctapipe.reco.shower_max import ShowerMaxEstimator
+
 import matplotlib.pyplot as plt
-from ctapipe.image import poisson_likelihood, poisson_likelihood_gaussian
-from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
-from ctapipe.coordinates import HorizonFrame, NominalFrame, TiltedGroundFrame, GroundFrame, project_to_ground
+import numpy as np
+from astropy import units as u
+from iminuit import Minuit
+
+from ctapipe.coordinates import (HorizonFrame,
+                                 NominalFrame,
+                                 TiltedGroundFrame,
+                                 GroundFrame,
+                                 project_to_ground)
+from ctapipe.image import poisson_likelihood_gaussian
+from ctapipe.io.containers import (ReconstructedShowerContainer,
+                                   ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
-from scipy.stats import norm
+from ctapipe.reco.shower_max import ShowerMaxEstimator
+from ctapipe.utils import TableInterpolator
 
 
 class ImPACTFitter(RecoShowerGeomAlgorithm):
