@@ -156,7 +156,7 @@ class CameraDL1Calibrator(Component):
         telid : int
             The telescope id.
             The neighbours are calculated once per telescope.
-            
+
         Returns
         -------
         `CameraGeometry`
@@ -175,7 +175,7 @@ class CameraDL1Calibrator(Component):
         telid : int
             The telescope id.
             The integration correction is calculated once per telescope.
-            
+
         Returns
         -------
         ndarray

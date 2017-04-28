@@ -242,5 +242,9 @@ def _fill_instrument_info(data, pyhessio):
                 npix = pyhessio.get_num_pixels(tel_id)
                 data.inst.num_channels[tel_id] = nchans
                 data.inst.num_pixels[tel_id] = npix
+                data.inst.mirror_dish_area[tel_id] = \
+                    pyhessio.get_mirror_area(tel_id) * u.m ** 2
+                data.inst.mirror_numtiles[tel_id] = \
+                    pyhessio.get_mirror_number(tel_id)
             except HessioGeneralError:
                 pass

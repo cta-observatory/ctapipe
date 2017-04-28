@@ -1,0 +1,1340 @@
+{
+ "cells": [
+  {
+   "cell_type": "raw",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "skip"
+    }
+   },
+   "source": [
+    "<link rel=\"stylesheet\" href=\"reveal.js/css/theme/solarized.css\" id=\"theme\">"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "# An introduction to git for cta developers\n",
+    "\n",
+    "Michele Mastropietro - INAF, Roma\n",
+    "\n",
+    "(original content by Jean Jacquemier, LAPP/IN2P3/CNRS)\n",
+    "\n",
+    "[based on Official documentation](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control) and on\n",
+    "\n",
+    "[git-tower documentation](https://www.git-tower.com/learn/git/ebook/command-line/basics/basic-workflow#start)  \n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "You can follow the presentation, copy-paste and use it as a reference here:\n",
+    "    \n",
+    "https://github.com/cta-observatory/training-material \n",
+    "-> tutorials/git-introduction.ipynb"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "f3f2819e-277a-441f-92f5-295fa97f070e"
+    },
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "This introduction will proceed through four sections:\n",
+    "1. Git introduction and main commands  \n",
+    "2. Branching\n",
+    "3. Local & Remote Repositories\n",
+    "4. In case of conflicts?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "notes"
+    }
+   },
+   "source": [
+    "Who have ever made a Pull Request?\n",
+    "Who have ever used SVN or CVS?"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "# Part 1: Introduction"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "In 2005 the Linux development community (and in particular Linus Torvalds, the creator of Linux) started to develop their own tool based on some of the lessons they learned while using BitKeeper. Some of the goals of the new system were as follows:\n",
+    "* **Speed**\n",
+    "* Simple design\n",
+    "* **Strong support for non-linear development** (thousands of parallel branches)\n",
+    "* Fully distributed\n",
+    "* Able to handle large projects like the Linux kernel efficiently (speed and data size)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### About Version Control\n",
+    "\n",
+    "_Version control is a system that records changes to a file or set of files over time so that you can recall specific versions later._ \n",
+    "\n",
+    "It allows you to:\n",
+    "* revert files back to a previous state.\n",
+    "* revert the entire project back to a previous state.\n",
+    "* compare changes over time.\n",
+    "* see who last modified something that might be causing a problem.\n",
+    "* see who introduced an issue and when."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Distributed Version Control Systems\n",
+    "\n",
+    "In a DVCS, clients fully mirror the repository. Every clone is really a full backup of all the data.  \n",
+    "\n",
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/distributed.png\" alt=\"Drawing\" style=\"width: 400px;\"/></center>\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "notes"
+    }
+   },
+   "source": [
+    "Furthermore, DVCS deal pretty well with having several remote repositories they can work with, so you can collaborate with different groups of people in different ways simultaneously within the same project."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/getting_start.jpg\" alt=\"Drawing\" style=\"width: 500px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Installation and configuration\n",
+    "[Official documentation: Installing Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)\n",
+    "\n",
+    "\n",
+    "### Add username and email to git config\n",
+    "```bash\n",
+    "$ git config --global user.name \"My Name\"\n",
+    "$ git config --global user.email my.name@example.com\n",
+    "$ git config --global core.editor emacs\n",
+    "```\n",
+    "\n",
+    "### Getting Help\n",
+    "```bash\n",
+    "$ git help <command>\n",
+    "$ git command --help     \n",
+    "$ man git-command  \n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Get a Git Repository\n",
+    "You can get a Git project using two main approaches:\n",
+    "1. Take an directory (with or without file) and import it into Git.  \n",
+    "2. Clone an existing Git repository from another server.\n",
+    "\n",
+    "### Import an existing directory into Git\n",
+    "```bash\n",
+    "$ mkdir test_git\n",
+    "$ cd test_git\n",
+    "$ git init\n",
+    "```\n",
+    "\n",
+    "This creates a new subdirectory named `.git` that contains all of your necessary repository files.\n",
+    "At this point, nothing in your project is tracked yet.\n",
+    "\n",
+    "```bash\n",
+    "$ ls -al\n",
+    "total 12\n",
+    "drwxrwxr-x 4 michele michele 4096 mar 17  2016 .\n",
+    "drwxrwxr-x 7 michele michele 4096 ott  7 10:36 ..\n",
+    "drwxrwxr-x 8 michele michele 4096 ott  9 19:38 .git\n",
+    "\n",
+    "$ git status\n",
+    "On branch master\n",
+    "\n",
+    "First commit\n",
+    "\n",
+    "nothing to commit (create/copy files and use \"git add\" to track)\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## The basic Git workflow\n",
+    "\n",
+    "1. You create or modify files in your working directory.\n",
+    "2. You stage the files, adding snapshots of them to your staging area.\n",
+    "3. You do a commit, which takes the files as they are in the staging area and stores that snapshot permanently to your Git directory."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## The Three States\n",
+    "Git has three main states that your files can reside in:  \n",
+    "1. **committed**: the data is safely stored in your local database\n",
+    "2. **modified**: you have changed the file but have not committed it to your database yet.\n",
+    "3. **staged**: you have marked a modified file in its current version to go into your next commit snapshot."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### The Three  Sections \n",
+    "1. **the working directory**: single checkout of one version of the project. These files are pulled out of the compressed database in the Git directory and placed on disk for you to use or modify\n",
+    "2. **the staging area**: a file, sometimes referred to as \"the index\", stores information about what will go into your next commit.\n",
+    "3. **the .git directory**: where Git stores the metadata and object database for your project. This is the most important part of Git, and it is what is copied when you clone a repository from another computer  \n",
+    "\n",
+    "\n",
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/three_sections.png\" alt=\"Drawing\" style=\"width: 600px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## An example of basic Git workflow\n",
+    "```bash\n",
+    "$ echo \"print('Welcome to Git')\" > test.py\n",
+    "$ echo \"A simple project to test GIT\" > README.rst\n",
+    "```\n",
+    "### Track new files \n",
+    "```bash\n",
+    "$ git add test.py\n",
+    "$ git add *.rst\n",
+    "```\n",
+    "\n",
+    "### Do an initial commit. \n",
+    "```bash\n",
+    "$ git commit -m 'initial commit'\n",
+    "[master (root-commit) 491e634] initial commit\n",
+    " 2 files changed, 2 insertions(+)\n",
+    " create mode 100644 README.rst\n",
+    " create mode 100644 test.py\n",
+    "```\n",
+    "Note: `-m` option stands for 'message'"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Stage modified files\n",
+    "Let’s change a file that was already tracked.\n",
+    "```bash\n",
+    "$ echo \"for ctapipe developers\" >> README.rst\n",
+    "$ git add README.rst\n",
+    "```\n",
+    "\n",
+    "Note: To unstage a file use: `git reset filename`\n",
+    "\n",
+    "### Commit\n",
+    "```bash\n",
+    "$ git commit -m \"Add detail\"\n",
+    "```\n",
+    "    \n",
+    "### To restore a file to its last committed version\n",
+    "```bash\n",
+    "$ git checkout -- file_to_restore.ext\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Other git commands: \n",
+    "\n",
+    "* `git diff`\n",
+    "* `git rm`\n",
+    "* `git mv`\n",
+    "* ...\n",
+    "\n",
+    "[Refer to official documentation](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#Ignoring-Files)  \n",
+    "\n",
+    "https://www.git-tower.com/learn/git/ebook/command-line/basics/what-is-version-control#start"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## The lifecycle of the status of your files.\n",
+    "\n",
+    "Each file in your working directory can be in one of two states:\n",
+    "* untracked\n",
+    "* tracked (Tracked files are files that were in the last snapshot or in your staging area)\n",
+    "   * unmodified  \n",
+    "   * modified\n",
+    "   * staged \n",
+    "   \n",
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/lifecycle.png\" alt=\"Drawing\" style=\"width: 700px;\"/></center>\n",
+    "   "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "466f3d80-3729-4b96-8d7d-8e9141e938ff"
+    },
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## THE  GOLDEN RULES OF VERSION CONTROL\n",
+    "(from https://www.git-tower.com)\n",
+    "  \n",
+    "### Commit Only Related Changes\n",
+    "When crafting a commit, it's very important to only include changes that belong together. You should never mix up changes from multiple, different topics in a single commit  \n",
+    "  \n",
+    "### Write Good Commit Messages\n",
+    "Time spent on crafting a good commit message is time spent well: it will make it easier to understand what happened for your teammates (and after some time also for yourself). \n",
+    "  \n",
+    "### Tested Work\n",
+    "Related to the point above, you shouldn't commit code that you think is working. Test it well - and before you commit it to the repository.\n",
+    "  \n",
+    "### Commit completed Work\n",
+    "Never commit something that is half-done. If you need to save your current work temporarily in something like a clipboard, you can use Git's \"Stash\" feature (which will no be discussed in this training).\n",
+    "\n",
+    "\n",
+    "### Exercises\n",
+    "Note: Read carrefully git messages. They always contain useful information.  \n",
+    "Note: use `git status` after every git command.\n",
+    "1. create a new git repository on your local system\n",
+    "2. create new files, stage, unstage and commit them until you feel comfortable with *The Three State*)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "# Part 2: Branching\n",
+    "\n",
+    "<center><img src=\"http://www.atlassian.com/git/images/tutorials/collaborating/using-branches/hero.svg\" alt=\"Drawing\" style=\"width: 900px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "skip"
+    }
+   },
+   "source": [
+    "###  Branching can Change Your Life\n",
+    "This is quite a sensational headline, I know... But the truth is: it's not an exaggeration. \n",
+    " -- <cite>[www.git-tower.com][1]</cite>    \n",
+    "  \n",
+    "  \n",
+    "* **Forget** branching & merging  from another version control system.\n",
+    "* Git's concepts in this area are absolutely unique when it **comes to ease of use** and performance.\n",
+    "\n",
+    "[1]:https://www.git-tower.com/learn/git/ebook/command-line/branching-merging/branching-can-change-your-life#start"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "skip"
+    }
+   },
+   "source": [
+    "### Working in Contexts\n",
+    "\n",
+    "* Each feature  \n",
+    "* Bugfix  \n",
+    "* Experiment\n",
+    "* ..."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Basic Branching and Merging\n",
+    "Let’s go through a simple example of branching and merging.  \n",
+    "Image that you're working on a data reduction algorithm. \n",
+    "So you will:\n",
+    "\n",
+    "* Create a branch for a new algorithm you’re working on.  \n",
+    "* Do some work in that branch.  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "At this stage, you receive a mail that another issue is critical and you need a hotfix.\n",
+    "You’ll do the following:\n",
+    "* Switch to your production branch.  \n",
+    "* Create a branch to add the hotfix.  \n",
+    "* Test modifications.  \n",
+    "* Merge the hotfix branch.  \n",
+    "* Push to production.  \n",
+    "  \n",
+    "* Switch back to your original story and continue working on your algorithm."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Current status\n",
+    "```bash\n",
+    "$ git log\n",
+    "commit b275291183114ff5330c14ab6e669c6a9dd01d2b\n",
+    "Author: Michele Mastropietro <michele.mastropietro@gmail.com>\n",
+    "Date:   Sun Oct 9 23:45:36 2016 +0200\n",
+    "\n",
+    "    Add detail\n",
+    "\n",
+    "commit 491e6346deeea505718f2cdf246647b70be2b5ab\n",
+    "Author: Michele Mastropietro <michele.mastropietro@gmail.com>\n",
+    "Date:   Sun Oct 9 23:36:16 2016 +0200\n",
+    "\n",
+    "    initial commit\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_00.png\" alt=\"Drawing\" style=\"width: 400px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "Create hillas_01 branch on the same commit as the master branch\n",
+    "\n",
+    "```bash\n",
+    "$ git branch hillas_01 master\n",
+    "```\n",
+    "\n",
+    "Work on new branch\n",
+    "\n",
+    "```bash\n",
+    "$ git checkout hillas_01\n",
+    "```\n",
+    "\n",
+    "or, alternatively\n",
+    "\n",
+    "```bash\n",
+    "$ git checkout -b hillas_01    # create + checkout\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "\n",
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_01.png\" alt=\"Drawing\" style=\"width: 400px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Let's modify and commit files on new branch\n",
+    "\n",
+    "```bash\n",
+    "$ echo \"print('New Hillas algorithm')\" >> hillas.py\n",
+    "$ git add hillas.py \n",
+    "$ echo \"Add a new Hillas algorithm\" >> README.rst\n",
+    "$ git add README.rst\n",
+    "$ git commit -m \"First hillas.py import\"\n",
+    "[master 609ea07] First hillas.py import\n",
+    " 2 file changed, 2 insertions(+)\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "###After commit 609ea07 (commit 2)\n",
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_02.png\" alt=\"Drawing\" style=\"width: 500px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "<center><span style=\"color: red; font-size:1.5em\"> At this stage, you receive a mail that another issue is critical and you need a hotfix </span></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "Switch to your production branch.\n",
+    "```bash\n",
+    "$ git checkout master\n",
+    "```\n",
+    "\n",
+    "Create a branch, switch to it  and add the hotfix:\n",
+    "```bash\n",
+    "$ git checkout -b hotfix_42 master\n",
+    "```\n",
+    "\n",
+    "Modify test.py with your favorite editor and test modifications.  \n",
+    "```bash\n",
+    "$ git add test.py\n",
+    "$ git commit -m \"Fix bug 42 on test.py\"\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_03.png\" alt=\"Drawing\" style=\"width: 500px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "Merge the hotfix branch.  \n",
+    "```bash\n",
+    "git checkout master\n",
+    "git merge hotfix_42\n",
+    "```\n",
+    "Info: git merge also commit changes after merge"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_04.png\" alt=\"Drawing\" style=\"width: 500px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "Remove hotfix_42 branch\n",
+    "```bash\n",
+    "$ git branch -d hotfix_42*   \n",
+    "```\n",
+    "\n",
+    "Switch back to your original story and continue working on your algorithm.\n",
+    "```bash\n",
+    "$ git checkout hillas_01  \n",
+    "```\n",
+    "\n",
+    "Note: hotfix_42 modications is not present in hillas_01 branches.  \n",
+    "Modify hillas.py with your favorite editor and test modifications.  \n",
+    "\n",
+    "```bash\n",
+    "$ git add hillas.py\"\n",
+    "$ git commit -m \"Add hillas parameter\"\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_05.png\" alt=\"Drawing\" style=\"width: 650px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Let's merge this new feature within master\n",
+    "\n",
+    "branch master already contains buxfix_42 modification\n",
+    "```bash\n",
+    "$ git checkout master\n",
+    "$ git merge hillas_01\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/branch_06.png\" alt=\"Drawing\" style=\"width: 650px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "#### Remove hillas_01 branch\n",
+    "```bash\n",
+    "git branch -d hillas_01\n",
+    "```\n",
+    "\n",
+    "<center><img src=\"branch_07.png\" alt=\"Drawing\" style=\"width: 650px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true,
+    "nbpresent": {
+     "id": "9637ffff-2295-4d12-aa2f-393289d3d1e4"
+    },
+    "slideshow": {
+     "slide_type": "skip"
+    }
+   },
+   "source": [
+    ">### THE  GOLDEN RULES OF VERSION CONTROL (from https://www.git-tower.com)\n",
+    ">  \n",
+    " #### Use Branches Extensively\n",
+    "Branching is one of Git’s most powerful features – and this is not by accident: quick and easy branching was a central requirement from day one. Branches are the perfect tool to help you avoid mixing up different lines of development. You should use branches extensively in your development workflows: for new features, bug fixes, experiments, ideas…\n",
+    " \n",
+    "\n",
+    "---------------------------------------\n",
+    "<br>\n",
+    "<br>\n",
+    "<br>\n",
+    "\n",
+    "### Exercises\n",
+    "1. create at least 2 branches at the same time, and merge them to master branch"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "# Part 3:  Local & Remote Repositories"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### There are two kinds of repositories:\n",
+    "\n",
+    "* A **\"local\" repository**\n",
+    "  * on your local computer, as a \".git\" folder.\n",
+    "  * You are the only person that can work with this repository, by committing changes to it."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "* A **\"remote\" repository**,\n",
+    "  * Typically located on a remote server on the internet or in your local network.\n",
+    "  * No actual working files are associated with a remote repository:\n",
+    "  * it has no working directory but it exclusively consists of the \".git\" repository folder.\n",
+    "  * Teams are using remote repositories to share & exchange data."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "<center><img src=\"http://cta-lapp.in2p3.fr/images/remote_repo.png\" alt=\"Drawing\" style=\"width: 700px;\"/></center>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Add a remote repository\n",
+    "```bash\n",
+    "$ git remote add remote_name https://github.com/user_name/git_tutorial.git\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "### Let your github account know about this branch  \n",
+    "```bash\n",
+    "$ git push -u remote_name master\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "### View remote repositories\n",
+    "\n",
+    "```bash\n",
+    "$ git remote -v\n",
+    "remote_name  https://github.com/user_name/git_tutorial.git (fetch)\n",
+    "remote_name  https://github.com/user_name/git_tutorial.git (push)\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "notes"
+    }
+   },
+   "source": [
+    "(since git 1.7.11 the default push policy is now 'simple' :push only the current branch, and only if it has a similarly named remote tracking branch on upstream)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Push to share you work  on remote repository  \n",
+    "Then, you continue to work as usual with branches stage and commit.  \n",
+    "When you have tested and commited your modifications, you can push them to the remote repository.   \n",
+    "\n",
+    "```bash\n",
+    "$ git push\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### If git push failed:\n",
+    "\n",
+    "```bash\n",
+    "! [rejected]        master -> master (fetch first)\n",
+    "error: failed to push some refs to 'https://github.com/user/git_test.git'\n",
+    "hint: Updates were rejected because the remote contains work that you do\n",
+    "hint: not have locally. This is usually caused by another repository pushing\n",
+    "hint: to the same ref. You may want to first integrate the remote changes\n",
+    "hint: (e.g., 'git pull ...') before pushing again.\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Update your local repository + merge modifications\n",
+    "```bash\n",
+    "$ git pull\n",
+    "remote: Counting objects: 3, done.\n",
+    "remote: Compressing objects: 100% (3/3), done.\n",
+    "remote: Total 3 (delta 2), reused 0 (delta 0)\n",
+    "Unpacking objects: 100% (3/3), done.\n",
+    "Da https://github.com/user/git_test.git\n",
+    "   c5d2b9f..19c42a6  master     -> origin/master\n",
+    "Updating c5d2b9f..19c42a6\n",
+    "Fast-forward\n",
+    " README.md | 2 +-\n",
+    " 1 file changed, 1 insertion(+), 1 deletion(-)\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "fragment"
+    }
+   },
+   "source": [
+    "## Pull = fetch + merge\n",
+    "\n",
+    "### Download objects and refs from another repository to update your local repository\n",
+    "\n",
+    "```bash\n",
+    "$ git fetch remote_name\n",
+    "```\n",
+    "\n",
+    "### Look at the differences\n",
+    "```bash\n",
+    "$ git diff origin/master master     #(alias : git log FECTCH_HEAD)\n",
+    "```\n",
+    "\n",
+    "### Merge new developement on my branch\n",
+    "```bash\n",
+    "$ git merge\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true,
+    "nbpresent": {
+     "id": "8cb86fb3-776b-486e-bd02-ab0552cecd2d"
+    },
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Exercises\n",
+    "#### Add a remote repository\n",
+    "1. [Create a new account on github if you have not already one.](https://github.com)  \n",
+    "2. Sign in GitHub  \n",
+    "3. Create a new repository on github named *git_tutorial*   \n",
+    "4. Push your existing repository (from your local system)to github.com \n",
+    "5. Create a new branch, add files and commit them\n",
+    "6. Merge to master branch\n",
+    "7. push master branch to the remote repository\n",
+    "\n",
+    "#### Share a remote repository and get a merge issue  \n",
+    "1. Let's form groups of 2 or 3 for a practical work  \n",
+    "2. All group's members use the same remote repository (use the git_tutorial.git you have just created)\n",
+    ">  Note: you have to use *git clone* ie:\n",
+    ">  \\$ *git clone https://github.com/jacquemier/git_test.git*  \n",
+    ">  And give push permission for other users in github for this projet   \n",
+    "\n",
+    "4. Each person of the group **edit the same file**, commit it and push modification to remote repository  \n",
+    "5. Try to resolve merge issue.\n",
+    " "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "<img src=\"http://cta-lapp.in2p3.fr/images/cta-logo.jpg\" alt=\"Drawing\" style=\"width: 200px;\"/>\n",
+    "\n",
+    "\n",
+    "# Part 4: Development workflow for the CTA pipeline\n",
+    "\n",
+    "\n",
+    "[ctapipe development workflow follows astropy workflow](http://docs.astropy.org/en/stable/development/workflow/development_workflow.html#workflow)  \n",
+    "[Full example from astropy](http://docs.astropy.org/en/stable/development/workflow/git_edit_workflow_examples.html#astropy-fix-example)  \n",
+    "[Terminal-cast of worked example](http://docs.astropy.org/en/stable/development/workflow/terminal_cast.html#terminal-cast)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "### Get a working copy of the latest version of ctapipe on your computer: \n",
+    "\n",
+    "* Make your own copy of ctapipe on GitHub; this copy is called a fork.  \n",
+    "<img src=\"http://cta-lapp.in2p3.fr/images/fork.png\" alt=\"Drawing\" style=\"width: 1000px;\"/>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "* Copy your fork of ctapipe from GitHub to your computer; this is called making a clone of the repository\n",
+    "```bash\n",
+    "$ git clone https://github.com/user_name/ctapipe\n",
+    "```\n",
+    "\n",
+    "* Tell git where to look for changes in the development version of ctapipe.  \n",
+    "```bash\n",
+    "$ git remote add ctapipe https://github.com/cta-observatory/ctapipe.git\n",
+    "```\n",
+    "\n",
+    "* Rename your remote repository\n",
+    "```bash\n",
+    "$ git remote rename origin username_repo\n",
+    "```\n",
+    "\n",
+    "* get ctapipe-extra\n",
+    "```bash\n",
+    "$ make init\n",
+    "```\n",
+    "\n",
+    "* \"Activate\" the development version of ctapipe. \n",
+    "```bash\n",
+    "$ make develop\n",
+    "```\n",
+    "\n",
+    "* Test your development copy. \n",
+    "```bash\n",
+    "$ python setup.py test\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "## Workflow to contribute to ctapipe\n",
+    "<img src=\"http://cta-lapp.in2p3.fr/images/workflow.jpg\" alt=\"Drawing\" style=\"width: 400px;\"/>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "These, conceptually, are the steps you will follow in contributing to ctapipe:\n",
+    "\n",
+    "* Inform your local copy of ctapipe about the latest changes in the development version with:\n",
+    "\n",
+    "```bash\n",
+    "$ git fetch  ctapipe\n",
+    "```\n",
+    "\n",
+    "* Make a new feature branch from the official master; you will make your changes on this branch.   \n",
+    "\n",
+    "```bash\n",
+    "$ git branch hillas ctapipe/master\n",
+    "$ git checkout hillas  \n",
+    "```\n",
+    "\n",
+    "* Let your github account know about this branch\n",
+    "\n",
+    "```bash\n",
+    "$ git push -u username_repo hillas\n",
+    "```\n",
+    "\n",
+    "* Install your branch\n",
+    "\n",
+    "```bash\n",
+    "$ python setup.py develop\n",
+    "```"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "## Create a Pull Request\n",
+    "* Add/remove/modify files for your contribution\n",
+    "* Add unit test\n",
+    "* Test your modifications and verify all other tests still pass with `make test`\n",
+    "\n",
+    "* Push to your github repository with `git push`\n",
+    "\n",
+    "* From GitHub, ask for your changes to be reviewed to let the ctapipe maintainers know you have contributions to review.\n",
+    "\n",
+    "    1. Go to the URL of your fork of cta-pipe, e.g., https://github.com/your-user-name/ctapipe.  \n",
+    "    2. Use the ‘Switch Branches’ dropdown menu to select the branch with your changes  \n",
+    "    3. Click on the ‘Pull request’ button:\n",
+    "\n",
+    "\n",
+    "* Revise and push as necessary in response to comments on the pull request. Pushing those changes to GitHub automatically updates the pull request.  "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": true,
+    "nbpresent": {
+     "id": "c0146c5a-168f-4aa1-a2ed-54ac58c08376"
+    },
+    "slideshow": {
+     "slide_type": "subslide"
+    }
+   },
+   "source": [
+    "\n",
+    "### Exercises\n",
+    "a1. Let's form groups of 2 or 3 for a practical work  \n",
+    "a2. Fork your colleague repository: git_test.git  \n",
+    "a3. Copy your fork of git_test.git from GitHub to your computer  \n",
+    "a4. Follow the ctapipe workflow to contribute to git_test.git (until pull request)  \n",
+    "\n",
+    "b1. Review and accept (or not) pull request of your colleague"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "slideshow": {
+     "slide_type": "slide"
+    }
+   },
+   "source": [
+    "## Nice tutorial for newcomers useful to familiarize with git commands\n",
+    "\n",
+    "<center><span style=\"font-size:2em\"> https://try.github.io </center></span>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "585fa46a-e43a-4f0d-9408-39ec23d22615"
+    },
+    "slideshow": {
+     "slide_type": "notes"
+    }
+   },
+   "source": [
+    "\n",
+    "Here  (https://try.github.io) is a  tutorial really helpful when explaining git to newcomers. It contains step by step exercises. The whole thing takes about 15-30 minutes to complete. \n"
+   ]
+  }
+ ],
+ "metadata": {
+  "anaconda-cloud": {},
+  "celltoolbar": "Slideshow",
+  "kernelspec": {
+   "display_name": "Python [default]",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.5.2"
+  },
+  "nbpresent": {
+   "slides": {
+    "370e9562-f955-478a-9675-2b4355eabc87": {
+     "id": "370e9562-f955-478a-9675-2b4355eabc87",
+     "prev": null,
+     "regions": {}
+    },
+    "9e32d59a-f4f4-4577-ba07-449574f3f83e": {
+     "id": "9e32d59a-f4f4-4577-ba07-449574f3f83e",
+     "layout": "grid",
+     "prev": "a5f01533-1430-4a18-9169-118dc4bf9314",
+     "regions": {
+      "10090a76-9005-4877-b6ac-1f636f4e06f9": {
+       "attrs": {
+        "height": 0.75,
+        "pad": 0.01,
+        "treemap:weight": 1,
+        "width": 0.3333333333333333,
+        "x": 0.3333333333333333,
+        "y": 0
+       },
+       "id": "10090a76-9005-4877-b6ac-1f636f4e06f9"
+      },
+      "5e8dc71d-2b98-47dc-ade7-2b6704b13b0b": {
+       "attrs": {
+        "height": 0.75,
+        "pad": 0.01,
+        "treemap:weight": 1,
+        "width": 0.3333333333333333,
+        "x": 0,
+        "y": 0
+       },
+       "id": "5e8dc71d-2b98-47dc-ade7-2b6704b13b0b"
+      },
+      "7be541f7-3e76-42be-9a00-e6ba06bd8915": {
+       "attrs": {
+        "height": 0.75,
+        "pad": 0.01,
+        "treemap:weight": 1,
+        "width": 0.3333333333333333,
+        "x": 0.6666666666666666,
+        "y": 0
+       },
+       "id": "7be541f7-3e76-42be-9a00-e6ba06bd8915"
+      },
+      "9913157f-833f-4c8c-aef5-2d1e1b7a2c13": {
+       "attrs": {
+        "height": 0.25,
+        "pad": 0.01,
+        "treemap:weight": 1,
+        "width": 1,
+        "x": 0,
+        "y": 0.75
+       },
+       "id": "9913157f-833f-4c8c-aef5-2d1e1b7a2c13"
+      }
+     }
+    },
+    "a5f01533-1430-4a18-9169-118dc4bf9314": {
+     "id": "a5f01533-1430-4a18-9169-118dc4bf9314",
+     "prev": "bd500fd7-e1a1-498e-9ae4-47c5049fdbe0",
+     "regions": {
+      "256e6686-d242-471b-ab50-0daa140acb28": {
+       "attrs": {
+        "height": 0.9499999999999991,
+        "width": 0.9500000000000002,
+        "x": 0.02404745989304803,
+        "y": 0.030481283422459985
+       },
+       "content": {
+        "cell": "f3f2819e-277a-441f-92f5-295fa97f070e",
+        "part": "whole"
+       },
+       "id": "256e6686-d242-471b-ab50-0daa140acb28"
+      }
+     }
+    },
+    "bd500fd7-e1a1-498e-9ae4-47c5049fdbe0": {
+     "id": "bd500fd7-e1a1-498e-9ae4-47c5049fdbe0",
+     "layout": "treemap",
+     "prev": "370e9562-f955-478a-9675-2b4355eabc87",
+     "regions": {
+      "eb92e490-7573-42b7-9eb8-5bc14937e957": {
+       "attrs": {
+        "height": 1,
+        "pad": 0.01,
+        "treemap:weight": 1,
+        "width": 1,
+        "x": 0,
+        "y": 0
+       },
+       "content": {
+        "cell": "4528ffc4-1bc4-430c-93ec-0eaed25f4cab",
+        "part": "whole"
+       },
+       "height": 1,
+       "id": "eb92e490-7573-42b7-9eb8-5bc14937e957",
+       "width": 1,
+       "y": 1
+      }
+     },
+     "theme": null
+    }
+   },
+   "themes": {
+    "default": "1e7304d0-1946-4c10-8395-fffc71928414",
+    "theme": {}
+   }
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
