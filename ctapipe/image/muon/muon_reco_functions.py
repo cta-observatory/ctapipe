@@ -1,8 +1,8 @@
 from ctapipe.io.containers import  MuonRingParameter, MuonIntensityParameter
 from astropy import log
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
 import numpy as np
 from astropy import units as u
 
@@ -83,12 +83,17 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         #if event.inst.optical_foclen[telid] > 10.*u.m and event.dl0.tel[telid].num_pixels != 1764:
             #rot_angle = -100.14*u.deg
 
-        clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
+        clean_mask = tailcuts_clean(geom,image,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
         camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.inst.optical_foclen[telid], rotation=geom.pix_rotation)
 
         #print("Camera",geom.cam_id,"focal length",event.inst.optical_foclen[telid],"rotation",geom.pix_rotation)
-        
-        nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az],pointing_direction=[event.mc.alt, event.mc.az])) 
+        #TODO: correct this hack for values over 90
+        altval = event.mcheader.run_array_direction[1]
+        if (altval > np.pi/2.):
+            altval = np.pi/2.
+
+        altaz = HorizonFrame(alt=altval*u.rad,az=event.mcheader.run_array_direction[0]*u.rad)
+        nom_coord = camera_coord.transform_to(NominalFrame(array_direction=altaz,pointing_direction=altaz))
 
         
         x = nom_coord.x.to(u.deg)

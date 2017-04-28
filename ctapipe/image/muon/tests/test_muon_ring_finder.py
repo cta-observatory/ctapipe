@@ -1,7 +1,7 @@
 from ctapipe.image.muon import muon_ring_finder
 import numpy as np
 import astropy.units as u
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from functools import partial
 from ctapipe.image import toymodel,tailcuts_clean
 
@@ -64,7 +64,7 @@ def test_ChaudhuriKunduRingFitter():
 
     toymodel_image, toy_signal, toy_noise = toymodel.make_toymodel_shower_image(geom, muon_model)
 
-    clean_toy_mask = tailcuts_clean(geom, toymodel_image, 1.,boundary_thresh=5, picture_thresh=10)
+    clean_toy_mask = tailcuts_clean(geom, toymodel_image, boundary_thresh=5, picture_thresh=10)
 
     #camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m, focal_length = event.inst.optical_foclen[telid], rotation=geom.pix_rotation)
     muonring = muon_ring_finder.ChaudhuriKunduRingFitter(None)

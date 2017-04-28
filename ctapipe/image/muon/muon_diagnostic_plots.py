@@ -11,7 +11,7 @@ from matplotlib import colors
 from scipy.stats import norm
 from astropy import units as u
 from astropy.table import Table
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
