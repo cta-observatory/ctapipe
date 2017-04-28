@@ -26,7 +26,7 @@ class CameraDL0Reducer(Component):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
+        tool : ctapipe.core.Tool or None
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
