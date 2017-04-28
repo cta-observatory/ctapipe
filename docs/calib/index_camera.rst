@@ -30,9 +30,6 @@ different data levels.
 Reference/API
 =============
 
-
-------------------------------
-
 .. automodapi:: ctapipe.calib.camera
 
 ------------------------------
@@ -48,3 +45,5 @@ Reference/API
 
 .. automodapi:: ctapipe.calib.camera.dl1
     :no-inheritance-diagram:
+
+------------------------------
