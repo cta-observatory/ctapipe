@@ -1,31 +1,28 @@
-from abc import abstractmethod
+"""
+Charge extraction algorithms to reduce the image to one value per pixel
+"""
 
+from abc import abstractmethod
 import numpy as np
 from traitlets import Int, CaselessStrEnum
-
 from ctapipe.core import Component, Factory
+
+__all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
+           'GlobalPeakIntegrator', 'LocalPeakIntegrator',
+           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
 
 
 class ChargeExtractor(Component):
-    """
-    Attributes
-    ----------
-    extracted_samples : ndarray
-        Numpy array containing True where the samples lay within the
-        integration window, and False where the samples lay outside. Has
-        shape of (n_chan, n_pix, n_samples).
-    peakpos : ndarray
-        Numpy array of the peak position for each pixel. Has shape of
-        (n_chan, n_pix).
-    neighbours : list
-        List of neighbours for each pixel. Changes per telescope.
-
-    """
     name = 'ChargeExtractor'
 
     def __init__(self, config, tool, **kwargs):
         """
-        Base component for charge extractors
+        Base component to handle the extraction of charge from an image cube.
+        
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
 
         Parameters
         ----------
@@ -114,6 +111,26 @@ class Integrator(ChargeExtractor):
     name = 'Integrator'
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Base component for charge extractors that perform integration.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     @staticmethod
@@ -265,7 +282,7 @@ class Integrator(ChargeExtractor):
             Extracted charge stored in a numpy array of shape (n_chan, n_pix).
         """
         windowed = np.ma.array(waveforms, mask=~window)
-        charge = windowed.sum(2)
+        charge = windowed.sum(2).data
         return charge
 
     def extract_charge(self, waveforms):
@@ -280,6 +297,26 @@ class FullIntegrator(Integrator):
     name = 'FullIntegrator'
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Charge extractor that integrates the entire waveform.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _get_window_start(self, waveforms, peakpos):
@@ -304,6 +341,27 @@ class WindowIntegrator(Integrator):
                                'window').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Base component for charge extractors that perform integration within
+        a window.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def get_peakpos(self, waveforms):
@@ -342,6 +400,26 @@ class SimpleIntegrator(WindowIntegrator):
                      'pixels').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Charge extractor that integrates within a window defined by the user.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -361,6 +439,27 @@ class PeakFindingIntegrator(WindowIntegrator):
                               'in the LG channel').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Base component for charge extractors that perform integration within
+        a window defined around a peak position.
+        
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
         self._sig_channel = None
         self._sig_pixels = None
@@ -409,6 +508,27 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
     name = 'GlobalPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Charge extractor that defines an integration window about the global
+        peak in the image.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -434,6 +554,27 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
     name = 'LocalPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Charge extractor that defines an integration window about the local
+        peak in each pixel.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -455,6 +596,27 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
                       'as any neighbour').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Charge extractor that defines an integration window defined by the 
+        peaks in the neighbouring pixels.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     @staticmethod
@@ -479,6 +641,27 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
     name = 'AverageWfPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
+        """
+        Charge extractor that defines an integration window defined by the 
+        average waveform across all pixels.
+
+        Attributes
+        ----------
+        neighbours : list
+            List of neighbours for each pixel. Changes per telescope.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -491,6 +674,9 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
 
 
 class ChargeExtractorFactory(Factory):
+    """
+    Factory to obtain a ChargeExtractor.
+    """
     name = "ChargeExtractorFactory"
     description = "Obtain ChargeExtractor based on extractor traitlet"
 
