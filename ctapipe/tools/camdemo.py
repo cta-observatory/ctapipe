@@ -8,9 +8,10 @@ running.
 import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
-from ctapipe import io, visualization
+from ctapipe.visualization import CameraDisplay
+from ctapipe.instrument import CameraGeometry
 from ctapipe.core import Tool, traits
-from ctapipe.image import toymodel, cleaning
+from ctapipe.image import toymodel, tailcuts_clean, dilate
 from matplotlib.animation import FuncAnimation
 
 
@@ -49,8 +50,8 @@ class CameraDemo(Tool):
         ax = plt.subplot(111)
 
         # load the camera
-        geom = io.CameraGeometry.from_name("hess", 1)
-        disp = visualization.CameraDisplay(geom, ax=ax, autoupdate=True)
+        geom = CameraGeometry.from_name("hess", 1)
+        disp = CameraDisplay(geom, ax=ax, autoupdate=True, )
         disp.cmap = plt.cm.terrain
 
         def update(frame):
@@ -78,9 +79,9 @@ class CameraDemo(Tool):
                 self._counter = 0
 
             if self.imclean:
-                cleanmask = cleaning.tailcuts_clean(geom, image, pedvars=80)
+                cleanmask = tailcuts_clean(geom, image/80.0)
                 for ii in range(3):
-                    cleaning.dilate(geom, cleanmask)
+                    dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels
 
             self.log.debug("count = {}, image sum={} max={}"

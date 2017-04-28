@@ -7,7 +7,7 @@ from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 
 
@@ -140,7 +140,7 @@ class DisplayDL1Calib(Tool):
                         max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
-                        window_start='ChargeExtractorFactory.window_start',
+                        t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
                         sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
                         sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
