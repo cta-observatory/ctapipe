@@ -44,6 +44,7 @@ General documentation
   development/index
   tools/index
   */index
+  FAQ
 
 
 Module API Status (relative to next release)
