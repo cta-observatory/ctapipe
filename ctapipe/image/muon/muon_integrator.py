@@ -398,6 +398,8 @@ class MuonLineIntegrate:
             error_optical_efficiency_muon=0.05,
             limit_optical_efficiency_muon=(0, 1),
             throw_nan=False,
+            print_level=0,
+            pedantic=False,
             errordef=1,
         )
 

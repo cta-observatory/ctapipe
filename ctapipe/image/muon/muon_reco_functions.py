@@ -30,14 +30,14 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     # Declare a dict to define the muon cuts (ASTRI and SCT missing)
     muon_cuts = {}
     names = ['LSTCam','NectarCam','FlashCam','SST-1m','GATE']
-    TailCuts = [(5,7),(5,7),(10,12),(5,7),(5,7)]
+    TailCuts = [(5,7),(5,7),(75,80),(30,35),(5,7)] #10,12?
     impact = [(0.2,0.9),(0.2,0.9),(0.2,0.9),(0.2,0.9),(0.2,0.9)]
     ringwidth = [(0.04,0.08),(0.04,0.08),(0.01,0.5),(0.01,0.5),(0.04,0.08)]
     TotalPix = [1855.,1855.,1764.,1296.,2048.]#8% (or 6%) as limit
     MinPix = [148.,148.,141.,104.,164.]
     #Need to either convert from the pixel area in m^2 or check the camera specs
     AngPixelWidth = [0.1,0.2,0.18,0.24,0.2] #Found from TDRs (or the pixel area)
-    hole_rad = []
+    hole_rad = []#Need to check and implement
     cam_rad = [2.26,3.96,3.87,4.45,2.86]#Found from the field of view calculation
     sec_rad = [0.*u.m,0.*u.m,0.*u.m,0.*u.m,1.*u.m]
     sct = [False,False,False,False,True]
@@ -74,15 +74,11 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         dict_index = muon_cuts['Name'].index(geom.cam_id)
         #print('found an index of',dict_index,'for camera',geom.cam_id)
 
-        tailcuts = (5.,7.)
-        #Try a higher threshold for FlashCam
+        #tailcuts = (5.,7.)
+        tailcuts = muon_cuts['TailCuts'][dict_index]
 
-        if geom.cam_id == 'FlashCam':
-            tailcuts = (20.,30.)
-            #tailcuts = TailCuts[dict_index]
-        elif geom.cam_id == 'SST-1m':
-            tailcuts = (24.,30.)
-            
+        #print("Tailcuts are",tailcuts[0],tailcuts[1])
+
         #rot_angle = 0.*u.deg
         #if event.inst.optical_foclen[telid] > 10.*u.m and event.dl0.tel[telid].num_pixels != 1764:
             #rot_angle = -100.14*u.deg
@@ -104,7 +100,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         muonring = ChaudhuriKunduRingFitter(None)
 
-        #print("img:",np.sum(clean_mask), "x=",x,"y=",y)
+        #print("img:",np.sum(image),"mask:",np.sum(clean_mask), "x=",x,"y=",y)
         muonringparam = muonring.fit(x,y,image*clean_mask)
 
         #muonringparam = muonring.fit(x,y,weight)
