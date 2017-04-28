@@ -1,11 +1,23 @@
 """
-Module containing the r1 calibration for the MC. This could be extended to have
-the r1 calibration for each telescope, if you want to be able to read in raw
-r0 telescope data.
+Calibrator for the R0 -> R1 data level transition.
+
+This module handles the calibration from the R0 data level to R1. This data
+level transition will be handled by the camera servers, not in the pipeline,
+however the pipeline can be used as a test-bench in the comissioning stage of
+the cameras.
+
+As the R1 calibration is camera specific, each camera (and seperately the MC)
+requires their own calibrator class with inherits from `CameraR1Calibrator`.
+`HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
+Through the use of `CameraR1CalibratorFactory`, the correct
+`CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
+of the data.
 """
 from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
+
+__all__ = ['HessioR1Calibrator', 'CameraR1CalibratorFactory']
 
 CALIB_SCALE = 1.05
 """
@@ -114,7 +126,6 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
                 calibrated = (samples - ped[..., None]) * gain[..., None]
                 event.r1.tel[telid].pe_samples = calibrated
-
 
 
 # External Children

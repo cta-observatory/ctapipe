@@ -1,7 +1,11 @@
 """
-Module containing general functions that will perform the dl1 calibration
-on any event regardless of the origin/telescope, and store the calibration
-inside the event container.
+Calibrator for the DL0 -> DL1 data level transition.
+
+This module handles the calibration from the DL0 data level to DL1. This
+transition involves the waveform cleaning (such as filtering, smoothing,
+or basline subtraction) performed by a cleaner from
+`ctapipe.image.waveform_cleaning`, and the charge extraction technique
+from `ctapipe.image.charge_extractors`.
 """
 import numpy as np
 from .charge_extractors import NeighbourPeakIntegrator
@@ -9,6 +13,8 @@ from .waveform_cleaning import NullWaveformCleaner
 from ctapipe.core import Component
 from ctapipe.instrument import CameraGeometry
 from ctapipe.core.traits import Float
+
+__all__ = ['CameraDL1Calibrator']
 
 
 def integration_correction(n_chan, pulse_shape, refstep, time_slice,
