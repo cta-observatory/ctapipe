@@ -47,3 +47,8 @@ Reference/API
     :no-inheritance-diagram:
 
 ------------------------------
+
+.. automodapi:: ctapipe.calib.camera.calibrator
+    :no-inheritance-diagram:
+
+------------------------------
