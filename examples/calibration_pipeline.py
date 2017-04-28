@@ -140,7 +140,7 @@ class DisplayDL1Calib(Tool):
                         max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
-                        window_start='ChargeExtractorFactory.window_start',
+                        t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
                         sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
                         sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',

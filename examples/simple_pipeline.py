@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     filename = sys.argv[1]
 
-    source = hessio_event_source(filename, max_events=100,
+    source = hessio_event_source(filename, max_events=None,
                                  allowed_tels=np.arange(279,423))
 
     cal_r0 = HessioR1Calibrator(None,None)
