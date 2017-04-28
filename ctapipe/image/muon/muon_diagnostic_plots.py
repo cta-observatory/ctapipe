@@ -12,7 +12,7 @@ from scipy.stats import norm
 from astropy import units as u
 from astropy.table import Table
 from ctapipe.instrument import CameraGeometry
-from ctapipe.coordinates import CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame, TelescopeFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from IPython import embed
 
@@ -134,7 +134,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
                 tailcuts = (10.,12.)
         
             #print("Using Tail Cuts:",tailcuts)
-            clean_mask = tailcuts_clean(geom,image,1,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
+            clean_mask = tailcuts_clean(geom,image,picture_thresh=tailcuts[0],boundary_thresh=tailcuts[1])
 
 
             signals = image*clean_mask
@@ -152,11 +152,15 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             
 
             #Convert to camera frame (centre & radius)
-            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x,y=muonparams[0].ring_center_y,array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ])
+            altaz = HorizonFrame(alt=event.mc.alt,az=event.mc.az)
 
-            #ring_camcoord = ring_nominal.transform_to(CameraFrame(None))
-            ring_camcoord = ring_nominal.transform_to(CameraFrame(pointing_direction=[event.mc.alt, event.mc.az ],focal_length = event.inst.optical_foclen[tel_id], rotation=rotr_angle))
-            
+            ring_nominal = NominalFrame(x=muonparams[0].ring_center_x, y=muonparams[0].ring_center_y,
+                                        array_direction=altaz,
+                                        pointing_direction=altaz)
+
+
+            #embed()
+            ring_camcoord = ring_nominal.transform_to(CameraFrame(pointing_direction=altaz,focal_length = event.inst.optical_foclen[tel_id], rotation=rotr_angle))
 
             centroid_rad = np.sqrt(ring_camcoord.y**2 + ring_camcoord.x**2)
             centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
@@ -173,7 +177,8 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
 
             camera_coord = CameraFrame(x=px,y=py,z=np.zeros(px.shape)*u.m, focal_length=event.inst.optical_foclen[tel_id],rotation=geom.pix_rotation)
 
-            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[event.mc.alt, event.mc.az ],pointing_direction=[event.mc.alt, event.mc.az ]))
+            nom_coord = camera_coord.transform_to(NominalFrame(array_direction=altaz,
+                                                               pointing_direction=altaz))
             #,focal_length = event.inst.optical_foclen[tel_id])) # tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==telid]['FL'][0]*u.m))
         
             px = nom_coord.x.to(u.deg)
