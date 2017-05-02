@@ -6,6 +6,8 @@ from collections import defaultdict
 
 import numpy as np
 import logging
+from pkg_resources import resource_listdir
+import re
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
@@ -160,6 +162,31 @@ class CameraGeometry:
 
         CameraGeometry._geometry_cache[identifier] = instance
         return instance
+
+    @classmethod
+    def get_known_camera_names(cls, array_id='CTA'):
+        """
+        Returns a list of camera_ids that are registered in 
+        `ctapipe_resources`. These are all the camera-ids that can be 
+        instantiated by the `from_name` method
+     
+        Parameters
+        ----------
+        array_id: str 
+            which array to search (default CTA)
+
+        Returns
+        -------
+        list(str)
+        """
+        names = []
+        pattern = "{}-(.*)\.camgeom.fits".format(array_id)
+        for resource in resource_listdir('ctapipe_resources', '/'):
+            match = re.match(pattern, resource)
+            if match:
+                names.append(match[1])
+        return names
+
 
     @classmethod
     def from_name(cls, camera_id='NectarCam', array_id='CTA', version=None):
