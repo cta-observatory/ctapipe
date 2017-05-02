@@ -27,7 +27,8 @@ class ShowerMaxEstimator:
             column in the text file that contains the thickness
         """
 
-        self.profile = get_atmosphere_profile_functions(atmosphere_profile_name)
+        self.thickness_profile, self.altitude_profile = \
+            get_atmosphere_profile_functions(atmosphere_profile_name)
 
 
     def find_shower_max_height(self, energy, h_first_int, gamma_alt):
@@ -61,7 +62,7 @@ class ShowerMaxEstimator:
         c *= np.sin(gamma_alt)
 
         # find the thickness at the height of the first interaction
-        t_first_int = self.profile(h_first_int)
+        t_first_int = self.thickness_profile(h_first_int)
 
         # total thickness at shower maximum = thickness at first
         # interaction + thickness traversed to shower maximum
@@ -69,6 +70,6 @@ class ShowerMaxEstimator:
 
         # now find the height with the wanted thickness by solving for the
         # desired thickness
-        return fsolve(lambda x: self.profile(x*u.m)-t_shower_max,
-                      x0=0)[0]*u.g/u.cm**2
+        return self.altitude_profile(t_shower_max)
+
 
