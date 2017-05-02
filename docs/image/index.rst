@@ -44,8 +44,10 @@ Reference/API
 .. plot:: image/image_example.py
     :include-source:
 
+
 ------------------------------
-       
+
+
 .. automodapi:: ctapipe.image.hillas
 
 ------------------------------
