@@ -110,6 +110,15 @@ see also `ctapipe.image.tailcuts_clean()` and `ctapipe.image.dilate()`
 for usage examples
        
 
+Atmosphere Profiles
+===================
+
+With the instrument module you can also load standard atmosphere profiles,
+which are read from tables located in `ctapipe_resources` by default
+
+The function `get_atmosphere_profile_functions()` returns two inerpolation
+functions that convert between height and atmosphere thickness.
+
 Reference/API
 =============
 

@@ -529,7 +529,7 @@ def get_camera_types(inst):
      
      """
 
-    camid = defaultdict(list)
+    cam_types = defaultdict(list)
 
     for telid in inst.pixel_pos:
         x, y = inst.pixel_pos[telid]
@@ -538,10 +538,24 @@ def get_camera_types(inst):
 
         camid[geom.cam_id].append(telid)
 
-    return camid
+    return cam_types
 
 
-def print_camera_types(inst, printer=logger.info):
+def print_camera_types(inst, printer=print):
+    """
+    Print out a friendly table of which camera types are registered in the 
+    inst dictionary (from a hessio file), along with their starting and 
+    stopping `tel_id`s.
+    
+    Parameters
+    ----------
+    inst: ctapipe.io.containers.InstrumentContainer
+        input container
+    printer:
+        function to call to output the text (default is the standard python 
+        print command, but you can give for example logger.info to have it 
+        write to a logger) 
+    """
     camtypes = get_camera_types(inst)
 
     printer("              CAMERA  Num IDmin  IDmax")
