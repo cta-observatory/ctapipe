@@ -1,10 +1,16 @@
 import logging
 from collections import defaultdict
 from ctapipe.utils.datasets import get_dataset
+from astropy.table import Table
+from scipy.interpolate import interp1d
+import numpy as np
 
 from .camera import CameraGeometry
 
+__all__ = ['get_atmosphere_profile_table', 'get_atmosphere_profile_functions']
+
 log = logging.getLogger(__name__)
+
 
 
 def get_camera_types(inst):
@@ -39,5 +45,21 @@ def print_camera_types(inst, printer=log.info):
                                                      max(tels)))
 
 
-def get_atmosphere_profile(site="paranal"):
-    return get_dataset('atmprof_{}.dat'.format(site))
+def get_atmosphere_profile_table(atmosphere_name='paranal'):
+    return Table.read(get_dataset('{}.atmprof.fits.gz'.format(atmosphere_name)))
+
+
+def get_atmosphere_profile_functions(atmosphere_name="paranal"):
+    """ 
+    returns the atmospheric profile as a continuous function thickness(
+    altitude), and it's inverse altitude(thickness)  in m and g/cm^2
+    """
+    tab = get_atmosphere_profile_table(atmosphere_name)
+    alt = tab['altitude'].to('m')
+    thick = (tab['thickness']).to("g cm-2")
+
+    alt_to_thickness = interp1d(x=np.array(alt), y=np.array(thick))
+    thickness_to_alt = interp1d(x=np.array(thick), y=np.array(alt))
+
+
+    return alt_to_thickness, thickness_to_alt
