@@ -51,7 +51,7 @@ def test_ChaudhuriKunduRingFitterHline():
 
 def test_ChaudhuriKunduRingFitter():
 
-    geom = CameraGeometry.from_name(name='hess',tel_id=1)
+    geom = CameraGeometry.from_name('HESSI', array_id='HESS')
 
     ring_rad = np.deg2rad(1.*u.deg) * 15.  # make sure this is in camera coordinates
     ring_width = np.deg2rad(0.05*u.deg) * 15.

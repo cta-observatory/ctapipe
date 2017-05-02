@@ -50,7 +50,7 @@ class CameraDemo(Tool):
         ax = plt.subplot(111)
 
         # load the camera
-        geom = CameraGeometry.from_name("hess", 1)
+        geom = CameraGeometry.from_name("LSTCam")
         disp = CameraDisplay(geom, ax=ax, autoupdate=True, )
         disp.cmap = plt.cm.terrain
 
