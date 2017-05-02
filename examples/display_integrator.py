@@ -7,16 +7,18 @@ image, and a calibrated camera image
 """
 
 import os
+
 import numpy as np
-from traitlets import Dict, List, Int, Bool, Unicode, Enum
 from matplotlib import pyplot as plt
-from ctapipe.core import Tool, Component
-from ctapipe.io.eventfilereader import EventFileReaderFactory
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from traitlets import Dict, List, Int, Bool, Unicode, Enum
+
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.core import Tool, Component
+from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.instrument import CameraGeometry
+from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.visualization import CameraDisplay
 
 

@@ -1,8 +1,15 @@
+"""
+Waveform cleaning algorithms (smoothing, filtering, baseline subtraction)
+"""
+
 from traitlets import Int, CaselessStrEnum
 from ctapipe.core import Component, Factory
 import numpy as np
 from scipy.signal import general_gaussian
 from abc import abstractmethod
+
+__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleaner',
+           'NullWaveformCleaner']
 
 
 class WaveformCleaner(Component):
@@ -10,7 +17,7 @@ class WaveformCleaner(Component):
 
     def __init__(self, config, tool, **kwargs):
         """
-        Use a method for filtering the signal
+        Base component to handle the cleaning of the waveforms in an image.
 
         Parameters
         ----------
@@ -18,7 +25,7 @@ class WaveformCleaner(Component):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
+        tool : ctapipe.core.Tool or None
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
@@ -47,6 +54,9 @@ class WaveformCleaner(Component):
 
 
 class NullWaveformCleaner(WaveformCleaner):
+    """
+    Dummy waveform cleaner that simply returns its input
+    """
     name = 'NullWaveformCleaner'
 
     def apply(self, waveforms):
@@ -65,7 +75,12 @@ class CHECMWaveformCleaner(WaveformCleaner):
 
     def __init__(self, config, tool, **kwargs):
         """
-        Use a method for filtering the signal
+        Waveform cleaner used by CHEC-M.
+        
+        This cleaner performs 2 basline subtractions: a simple subtraction
+        using the average of the first 32 samples in the waveforms, then a 
+        convolved baseline subtraction to remove and low frequency drifts in 
+        the baseline.
 
         Parameters
         ----------
@@ -144,6 +159,9 @@ class CHECMWaveformCleaner(WaveformCleaner):
 
 
 class WaveformCleanerFactory(Factory):
+    """
+    Factory to obtain a WaveformCleaner.
+    """
     name = "WaveformCleanerFactory"
     description = "Obtain WavefromCleaner based on cleaner traitlet"
 
