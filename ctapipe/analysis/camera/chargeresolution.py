@@ -1,12 +1,15 @@
-from os.path import dirname, exists
-from os import makedirs
-import numpy as np
-from math import log10, sqrt
-from scipy.stats import binned_statistic as bs
-from traitlets import Int, Bool
 import pickle
-from ctapipe.core import Component
+from math import log10, sqrt
+from os import makedirs
+from os.path import dirname, exists
 
+import numpy as np
+from scipy.stats import binned_statistic as bs
+
+from ctapipe.core import Component
+from ctapipe.core.traits import Int, Bool
+
+__all__ = ['ChargeResolutionCalculator',]
 
 class ChargeResolutionCalculator(Component):
     """

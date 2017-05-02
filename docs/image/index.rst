@@ -71,3 +71,4 @@ An example of image cleaning and dilation:
 ------------------------------
 
 .. automodapi:: ctapipe.image.reductors
+
