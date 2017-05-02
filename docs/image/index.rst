@@ -23,6 +23,9 @@ This module contains the following sub-modules, but the most important functions
 * `hillas`: image moment parameterization
 * `toymodel`: fake shower image generation for testing purposes
 * `pixel_likelihood`: generates the likelihood of a pixel intensity, given an expectation value
+* `charge_extractors`: extracts charge from the waveform, resulting in a single number per pixel
+* `waveform_cleaners`: cleans the waveform, e.g. applying filters, convolutions, or baseline subtractions
+* `reductors`: performs data volume reduction
   
 Reference/API
 =============
@@ -56,3 +59,15 @@ An example of image cleaning and dilation:
 ------------------------------
 	   
 .. automodapi:: ctapipe.image.pixel_likelihood
+
+------------------------------
+
+.. automodapi:: ctapipe.image.charge_extractors
+
+------------------------------
+
+.. automodapi:: ctapipe.image.waveform_cleaning
+
+------------------------------
+
+.. automodapi:: ctapipe.image.reductors

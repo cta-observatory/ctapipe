@@ -4,7 +4,7 @@ from ctapipe.instrument import CameraGeometry
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from ctapipe.calib.camera.charge_extractors import FullIntegrator, \
+from ctapipe.image.charge_extractors import FullIntegrator, \
     SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
     NeighbourPeakIntegrator, ChargeExtractorFactory, AverageWfPeakIntegrator
 

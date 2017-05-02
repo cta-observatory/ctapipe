@@ -1,10 +1,10 @@
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_path
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from ctapipe.calib.camera.waveform_cleaning import NullWaveformCleaner, \
+from ctapipe.image.waveform_cleaning import NullWaveformCleaner, \
     CHECMWaveformCleaner
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils.datasets import get_path
 
 
 def get_test_event():
