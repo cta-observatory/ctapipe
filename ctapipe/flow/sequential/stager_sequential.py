@@ -43,7 +43,7 @@ class StagerSequential():
 
         Parameters
         ----------
-        inputs: 
+        inputs: object
              input for coroutine.run
         """
         result = self.coroutine.run(inputs)

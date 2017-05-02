@@ -8,7 +8,9 @@ class IntensityFitter(Component):
     """
 
     def fit(self, x, y, charge, center_x, center_y, radius, times=None):
-        """overwrite this method with your favourite muon intensity fitting algorithm
+        """
+        overwrite this method with your favourite muon intensity fitting
+        algorithm
 
         Parameters
         ----------
@@ -30,5 +32,6 @@ class IntensityFitter(Component):
         Returns
         -------
         impact_x, impact_y, size, efficiency
+
         """
         pass
