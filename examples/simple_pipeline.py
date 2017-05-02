@@ -8,7 +8,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.calib.camera.r1 import HessioR1Calibrator
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.instrument.utils import get_camera_types
+from ctapipe.instrument.camera import get_camera_types
 import sys
 import numpy as np
 

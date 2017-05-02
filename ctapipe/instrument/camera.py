@@ -2,18 +2,25 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+from collections import defaultdict
+
 import numpy as np
+import logging
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
+
 from ctapipe.io.files import get_file_type
 from ctapipe.utils.datasets import get_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
 
 __all__ = ['CameraGeometry',
-           'make_rectangular_camera_geometry']
+           'get_camera_types',
+           'print_camera_types']
+
+logger = logging.getLogger(__name__)
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
@@ -510,3 +517,35 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
+
+
+def get_camera_types(inst):
+    """ return dict of camera names mapped to a list of tel_ids
+     that use that camera
+     
+     Parameters
+     ----------
+     inst: instument Container
+     
+     """
+
+    camid = defaultdict(list)
+
+    for telid in inst.pixel_pos:
+        x, y = inst.pixel_pos[telid]
+        f = inst.optical_foclen[telid]
+        geom = CameraGeometry.guess(x, y, f)
+
+        camid[geom.cam_id].append(telid)
+
+    return camid
+
+
+def print_camera_types(inst, printer=logger.info):
+    camtypes = get_camera_types(inst)
+
+    printer("              CAMERA  Num IDmin  IDmax")
+    printer("=====================================")
+    for cam, tels in camtypes.items():
+        printer("{:>20s} {:4d} {:4d} ..{:4d}".format(cam, len(tels), min(tels),
+                                                     max(tels)))
