@@ -4,13 +4,12 @@ import pkg_resources
 __all__ = ['resource_filename', 'gamma_test_file']
 
 
-def _resource_filename(filename):
-    """Return the full pathname of a particular resource"""
-    return pkg_resources.resource_filename(__name__, filename)
-
 def get(resource_name):
     """ get the filename for a resource """
-    return _resource_filename(resource_name)
+    if not pkg_resources.resource_exists(__name__, resource_name):
+        raise FileNotFoundError("Couldn't find resource: '{}'"
+                                .format(resource_name))
+    return pkg_resources.resource_filename(__name__, resource_name)
 
 # some helper attributes
 
