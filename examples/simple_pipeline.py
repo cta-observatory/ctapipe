@@ -7,27 +7,26 @@ import sys
 
 import numpy as np
 
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.io.hessio import hessio_event_source
 
 if __name__ == '__main__':
 
     filename = sys.argv[1]
 
-    source = hessio_event_source(filename, max_events=None,
-                                 allowed_tels=np.arange(279,423))
+    source = hessio_event_source(filename, max_events=None)
 
-    cal_r0 = HessioR1Calibrator(None,None)
-    cal_dl0 = CameraDL0Reducer(None,None)
-    cal_dl1 = CameraDL1Calibrator(None,None)
+    cal = CameraCalibrator(None,None)
 
     for data in source:
 
-        print("EVENT", data.r0.event_id)
-        cal_r0.calibrate(data)
-        cal_dl0.reduce(data)
-        cal_dl1.calibrate(data)
+        print("EVENT: {}, ENERGY: {:.2f}, TELS:{}"
+              .format(data.r0.event_id,
+                      data.mc.energy,
+                      len(data.dl0.tels_with_data))
+        )
+
+        cal.calibrate(data)
+
         
 
