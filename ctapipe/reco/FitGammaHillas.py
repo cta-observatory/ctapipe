@@ -30,15 +30,14 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
     calculates the direction vector of corresponding to a
     (x,y) position on the camera
 
+    beta is the pixel's angular distance to the centre
+    according to beta / tel_view = r / maxR
+    alpha is the polar angle between the y-axis and the pixel
+    to find the direction the pixel is looking at:
 
-      beta is the pixel's angular distance to the centre
-      according to beta / tel_view = r / maxR
-      alpha is the polar angle between the y-axis and the pixel
-      to find the direction the pixel is looking at:
-
-      - the pixel direction is set to the telescope direction
-      - offset by beta towards up
-      - rotated around the telescope direction by the angle alpha
+    - the pixel direction is set to the telescope direction
+    - offset by beta towards up
+    - rotated around the telescope direction by the angle alpha
 
 
     Parameters
@@ -368,7 +367,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Notes
         -----
-        The basis is the "trace" of each telescope's :class:`.GreatCircle` which
+        The basis is the "trace" of each telescope's `GreatCircle` which
         can be determined by the telescope's position P=(Px, Py) and
         the circle's normal vector, projected to the ground n=(nx,
         ny), so that for every r=(x, y) on the trace
