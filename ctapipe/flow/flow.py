@@ -147,8 +147,9 @@ class Flow(Tool):
         '''
         Create producers, stagers and consumers instance according to
          configuration
-        Returns:
-        --------
+
+        Returns
+        -------
         bool : True if Flow based framework is correctly setup and all producer,stager
          and consumer initialised Otherwise False
         '''
@@ -174,8 +175,9 @@ class Flow(Tool):
     def init_multiprocessus(self):
         """
         Initialise Flow for multiprocessus mode
-        Returns:
-        ========
+
+        Returns
+        -------
         True if every initialisation are correct
         Otherwise False
         """
@@ -198,8 +200,9 @@ class Flow(Tool):
     def init_sequential(self):
         """
         Initialise Flow for sequential mode
-        Returns:
-        ========
+
+        Returns
+        -------
         True if every initialisation are correct
         Otherwise False
         """
@@ -376,8 +379,9 @@ class Flow(Tool):
 
     def generate_steps(self):
         """ Generate Flow based framework steps from configuration
-        Returns:
-        ========
+
+        Returns
+        -------
         True if everything correct
         Otherwise False
         """
@@ -548,8 +552,12 @@ class Flow(Tool):
             return None
 
     def def_step_for_gui(self):
-        ''' Create a list (levels_for_gui) containing all steps
-        Returns: the created list and actual time
+        ''' 
+        Create a list (levels_for_gui) containing all steps
+
+        Returns
+        -------
+        the created list and actual time
         '''
         levels_for_gui = list()
 
@@ -807,8 +815,9 @@ class Flow(Tool):
         ----------
         name : str
                 stage name
-        Returns:
-        --------
+
+        Returns
+        -------
         Step name matching instance, or None is not found
         '''
         if self.producer_conf['name'] == name:

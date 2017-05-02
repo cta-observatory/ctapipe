@@ -130,8 +130,8 @@ class SimpleHDF5TableWriter(TableWriter):
     Perhaps need to provide a better way to get container contents as a 
     dictionary.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     filename: str
         name of hdf5 output file
     group_name: str

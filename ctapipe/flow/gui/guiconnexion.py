@@ -100,7 +100,8 @@ class GuiConnexion(Thread, QtCore.QObject):
     def update_full_state(self,topic,msg):
         """
         Redirect topic and message depending on topic
-        Parameters:
+
+        Parameters
         -----------
         topic : bytes
             define why message has been send
@@ -121,7 +122,8 @@ class GuiConnexion(Thread, QtCore.QObject):
         Update self.steps with new receiv_steps
         Test if receiv_steps is same as self.steps.
         If yes do nothing otherwise set self.steps to receiv_steps
-        Parameters:
+
+        Parameters
         -----------
         receiv_steps: list of StagerRep
         """
@@ -199,8 +201,9 @@ class GuiConnexion(Thread, QtCore.QObject):
     def send_mode(self,msg):
         """ Flow can run in sequetial or multiprocessus mode.
         This will informs InfoLabel of Flow MODE
-        Parameters:
-        ===========
+
+        Parameters
+        ----------
         msg: A Picle.dumps msg containing Flow mode
         """
         self.mode_message.emit(msg)

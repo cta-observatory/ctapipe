@@ -17,6 +17,6 @@ Currently this includes computing charge resolution.
 Reference/API
 =============
 
-.. automodapi:: ctapipe.analysis
+.. automodapi:: ctapipe.analysis.camera
 
 

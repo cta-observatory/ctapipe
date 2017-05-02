@@ -9,18 +9,25 @@ class ChaudhuriKunduRingFitter(RingFitter):
 
     @u.quantity_input
     def fit(self, x: u.deg, y: u.deg, weight, times=None):
-        """
-        Fast and reliable analytical circle fitting method previously used in the H.E.S.S.
-        experiment for muon identification
+        """Fast and reliable analytical circle fitting method previously used
+        in the H.E.S.S.  experiment for muon identification
 
-        Implementation based on:
-        Chaudhuri/Kundu "Optimum circular fit to weighted data in multi-dimensional space"
-        Pattern Recognition Letters 14 (1993) pp.1-6
+        Implementation based on: *Chaudhuri/Kundu "Optimum circular fit
+        to weighted data in multi-dimensional space" Pattern
+        Recognition Letters 14 (1993) pp.1-6*
 
-        :param x: X position of pixel [ndarray]
-        :param y: Y position of pixel [ndarray]
-        :param weight: weighting of pixel in fit [ndarray]
-        :return: X position, Y position and radius of circle
+        Parameters
+        ----------
+        x: ndarray 
+            X position of pixel
+        y: ndarray
+            Y position of pixel
+        weight: ndarray
+            weighting of pixel in fit 
+
+        Returns
+        -------
+        X position, Y position and radius of circle
         """
         # First calculate the weighted average positions of the pixels
         sum_weight = np.sum(weight)

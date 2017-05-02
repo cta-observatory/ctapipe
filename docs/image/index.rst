@@ -31,8 +31,6 @@ Reference/API
 =============
 
 
-------------------------------
-
 .. automodapi:: ctapipe.image
     :no-inheritance-diagram:
 

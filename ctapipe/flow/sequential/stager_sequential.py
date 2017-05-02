@@ -25,6 +25,7 @@ class StagerSequential():
     def init(self):
         """
         Initialise coroutine sockets and poller
+
         Returns
         -------
         True if coroutine init method returns True, otherwise False
@@ -39,9 +40,11 @@ class StagerSequential():
 
     def run(self,inputs=None):
         """ Executes coroutine run method
-        Parameters:
-        ===========
-        inputs: input for coroutine.run
+
+        Parameters
+        ----------
+        inputs: 
+             input for coroutine.run
         """
         result = self.coroutine.run(inputs)
         if isinstance(result, GeneratorType):
