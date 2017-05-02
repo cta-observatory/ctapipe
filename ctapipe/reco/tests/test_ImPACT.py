@@ -1,17 +1,18 @@
 import numpy as np
 from ctapipe.reco.ImPACT import ImPACTFitter
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 import astropy.units as u
 from numpy.testing import assert_allclose
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
-
+import pytest
 
 class TestImPACT():
 
     @classmethod
     def setup_class(self):
-        self.ImPACT = ImPACTFitter(root_dir=get_path(""), fit_xmax=True)
+        self.impact_reco = ImPACTFitter(root_dir=".", fit_xmax=True)
 
+    @pytest.mark.skip('need a dataset for this to work')
     def test_brightest_mean_average(self):
         """
         Test that averaging of the brightest pixel position give a sensible outcome
@@ -21,13 +22,17 @@ class TestImPACT():
         pixel_y = np.array([-1.,0.,1.,0.])*u.deg
         pixel_area = np.array([0,0,0,0])*u.deg*u.deg
 
-        self.ImPACT.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
-                                {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, {1:0*u.m})
-        self.ImPACT.get_brightest_mean(num_pix=pixel_x.shape[0])
+        self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
+                                              {1:pixel_y}, {1:pixel_area},
+                                              {1:"GATE"}, {1:0*u.m},
+                                              {1:0*u.m}, {1:0*u.m})
 
-        assert_allclose(self.ImPACT.peak_x[0], 0, rtol=0, atol=0.001)
-        assert_allclose(self.ImPACT.peak_y[0], 0, rtol=0, atol=0.001)
+        self.impact_reco.get_brightest_mean(num_pix=pixel_x.shape[0])
 
+        assert_allclose(self.impact_reco.peak_x[0], 0, rtol=0, atol=0.001)
+        assert_allclose(self.impact_reco.peak_y[0], 0, rtol=0, atol=0.001)
+
+    @pytest.mark.skip('need a dataset for this to work')
     def test_brightest_mean_sort(self):
         """
         Test that pixels are sorted into the correct order
@@ -37,12 +42,12 @@ class TestImPACT():
         pixel_y = np.array([1,1,1,0.])*u.rad
         pixel_area = np.array([0,0,0,0])*u.deg*u.deg
 
-        self.ImPACT.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
-                                {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, {1:0*u.m})
-        self.ImPACT.get_brightest_mean(num_pix=3)
+        self.impact_reco.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
+                                              {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, {1:0*u.m})
+        self.impact_reco.get_brightest_mean(num_pix=3)
 
-        assert_allclose(self.ImPACT.peak_x[0], 1, rtol=0, atol=0.001)
-        assert_allclose(self.ImPACT.peak_y[0], 1, rtol=0, atol=0.001)
+        assert_allclose(self.impact_reco.peak_x[0], 1, rtol=0, atol=0.001)
+        assert_allclose(self.impact_reco.peak_y[0], 1, rtol=0, atol=0.001)
 
     def test_rotation(self):
         """Test pixel rotation function"""
@@ -66,6 +71,7 @@ class TestImPACT():
         assert_allclose(xt, -1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
+    @pytest.mark.skip('need a dataset for this to work')
     def test_xmax_calculation(self):
         """Test calculation of hmax and interpolation of Xmax tables"""
 
@@ -74,13 +80,17 @@ class TestImPACT():
         pixel_y = np.array([1,1,1])*u.deg
         pixel_area = np.array([0,0,0])*u.deg*u.deg
 
-        self.ImPACT.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
-                                {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, array_direction=[0*u.deg,0*u.deg])
+        self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
+                                              {1:pixel_y}, {1:pixel_area},
+                                              {1:"GATE"}, {1:0*u.m},
+                                              {1:0*u.m},
+                                              array_direction=[0*u.deg,0*u.deg])
 
-        max = self.ImPACT.get_shower_max(0, 0, 0, 100, 0)
+        max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
 
         assert_allclose(max, 486.85820802*u.g/(u.cm*u.cm), rtol=0.01)
 
+    @pytest.mark.skip('need a dataset for this to work')
     def test_image_prediction(self):
 
         pixel_x = np.array([0])*u.deg
@@ -89,13 +99,15 @@ class TestImPACT():
         image = np.array([1])
         pixel_area = np.array([1])*u.deg*u.deg
 
-        self.ImPACT.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
-                                {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, array_direction=[0*u.deg,0*u.deg])
+        self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
+                                              {1:pixel_y}, {1:pixel_area},
+                                              {1:"GATE"}, {1:0*u.m}, {1:0*u.m},
+                                              array_direction=[0*u.deg,0*u.deg])
 
         """First check image prediction by directly accessing the function"""
-        pred = self.ImPACT.image_prediction("GATE", zenith=0, azimuth=0,
-                                            energy=1, impact=50, x_max=0,
-                                            pix_x=pixel_x, pix_y=pixel_y)
+        pred = self.impact_reco.image_prediction("GATE", zenith=0, azimuth=0,
+                                                 energy=1, impact=50, x_max=0,
+                                                 pix_x=pixel_x, pix_y=pixel_y)
 
         assert np.sum(pred) != 0
 
@@ -111,10 +123,12 @@ class TestImPACT():
         energy = ReconstructedEnergyContainer()
         energy.is_valid = True
         energy.energy = 1*u.TeV
-        pred2 = self.ImPACT.get_prediction(1, shower_reco=shower, energy_reco=energy)
+        pred2 = self.impact_reco.get_prediction(1, shower_reco=shower,
+                                                energy_reco=energy)
         print(pred, pred2)
         assert pred.all() == pred2.all()
 
+    @pytest.mark.skip('need a dataset for this to work')
     def test_likelihood(self):
 
         pixel_x = np.array([0])*u.deg
@@ -123,8 +137,10 @@ class TestImPACT():
         image = np.array([1])
         pixel_area = np.array([1])*u.deg*u.deg
 
-        self.ImPACT.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
-                                {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, array_direction=[0*u.deg,0*u.deg])
+        self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
+                                              {1:pixel_y}, {1:pixel_area},
+                                              {1:"GATE"}, {1:0*u.m}, {1:0*u.m},
+                                              array_direction=[0*u.deg,0*u.deg])
 
-        like = self.ImPACT.get_likelihood(0, 0, 0, 100, 1, 0)
+        like = self.impact_reco.get_likelihood(0, 0, 0, 100, 1, 0)
         assert like is not np.nan and like > 0

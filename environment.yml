@@ -2,7 +2,9 @@ name: cta-dev
 channels:
   - cta-observatory
   - openastronomy
+  - astropy
 dependencies:
+  - ctapipe-extra
   - astropy
   - bokeh
   - fitsio
@@ -30,4 +32,6 @@ dependencies:
   - xz
   - yaml
   - zlib
+  - iminuit
+  
 

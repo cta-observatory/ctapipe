@@ -1,48 +1,35 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
 from pathlib import Path
+from astropy.utils.decorators import deprecated
 
-__all__ = ['CTAPipeDatasetsNotFoundError',
-           'get_ctapipe_extra_path',
-           'get_datasets_path',
-           ]
+try:
+    import ctapipe_resources
+except:
+    raise RuntimeError("Please install the 'ctapipe-extra' package, "
+                       "which contains the ctapipe_resources module "
+                       "needed by ctapipe. (conda install ctapipe-extra)")
 
 
-class CTAPipeDatasetsNotFoundError(RuntimeError):
-    """ctapipe datasets not found error.
+__all__ = ['get_dataset'  ]
+
+
+def get_dataset(filename):
     """
-    def __init__(self, path):
-        message = "Does not exist: '{}'".format(path)
-        super(RuntimeError, self).__init__(message)
+    Returns the full file path to an auxiliary dataset needed by ctapipe 
     
+    Parameters
+    ----------
+    filename: str
+        name of dataset to fetch
 
-def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
-    """Get path to `ctapipe-extra`.
-
-    First try shell environment variable.
-    Then try git submodule in the right location.
+    Returns
+    -------
+    string with full path to the given dataset
     """
-    try:
-        return Path(os.environ[environ_variable_name])
-    except KeyError:
-        pass
+    return ctapipe_resources.get(filename)
 
-    import ctapipe
-    path = Path(ctapipe.__file__).parent.parent.joinpath('ctapipe-extra')
-    if path.exists():
-        return path
+@deprecated("ctapipe-0.4.1",alternative='get_dataset()')
+def get_path(filename):
+    return ctapipe_resources.get(filename)
 
-    raise CTAPipeDatasetsNotFoundError(path)
-
-
-def get_datasets_path(file_path):
-    path = Path(get_ctapipe_extra_path(), 'datasets', file_path)
-    return path.as_posix()
-
-
-def get_path(file_path):
-    return get_datasets_path(file_path)
-
-
-def get_example_simtelarray_file():
-    return get_datasets_path("gamma_test.simtel.gz")

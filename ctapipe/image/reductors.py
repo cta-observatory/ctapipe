@@ -1,9 +1,12 @@
+"""
+Reductor algorithms for the data volume reduction.
+"""
+
 from abc import abstractmethod
-
-import numpy as np
-from traitlets import Int, CaselessStrEnum
-
+from traitlets import CaselessStrEnum
 from ctapipe.core import Component, Factory
+
+__all__ = []
 
 
 class DataVolumeReductor(Component):

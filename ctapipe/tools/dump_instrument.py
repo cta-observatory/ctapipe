@@ -8,8 +8,8 @@ automatically generated.
 from ctapipe.core.traits import (Unicode, Dict, Bool)
 from ctapipe.core import Tool
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.instrument import CameraGeometry
-from ctapipe.instrument.utils import get_camera_types, print_camera_types
+from ctapipe.instrument import CameraGeometry, get_camera_types, print_camera_types
+
 
 class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)

@@ -1,14 +1,16 @@
 import os
+
 import numpy as np
+from astropy.utils.console import ProgressBarOrSpinner
 from traitlets import Dict, List, Int, Unicode
-from ctapipe.core import Tool
-from ctapipe.io.eventfilereader import HessioFileReader
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+
+from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
-from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
-from astropy.utils.console import ProgressBarOrSpinner
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.core import Tool
+from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.io.eventfilereader import HessioFileReader
 
 
 class ChargeResolutionGenerator(Tool):

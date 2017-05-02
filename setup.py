@@ -49,9 +49,10 @@ setup(name=PACKAGENAME,
       # don't need to list the sub-dependencies like numpy, since
       # astropy already depends on it)
       install_requires=['astropy', 'scipy', 'matplotlib',
-                        'scikit-learn', 'traitlets', 'numpy', 'tables'],
+                        'scikit-learn', 'traitlets', 'numpy',
+                        'tables','tqdm','iminuit'],
       #      setup_requires=[, ],
-      tests_require=['pytest', ],
+      tests_require=['pytest'],
       extras_require={
         'dev': [
             'pytest',
