@@ -21,7 +21,7 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     # load the camera
-    geom = CameraGeometry.from_name("hess", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     disp = CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
     disp.add_colorbar(ax=ax)

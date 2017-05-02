@@ -1,7 +1,7 @@
 from ctapipe.instrument import CameraGeometry
 from matplotlib import pyplot as plt
 
-geom = CameraGeometry.from_name("HESS", 1)
+geom = CameraGeometry.from_name("LSTCam")
 
 plt.figure(figsize=(8, 3))
 plt.subplot(1, 2, 1)
