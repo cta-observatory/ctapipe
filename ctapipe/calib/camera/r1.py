@@ -17,7 +17,8 @@ from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
 
-__all__ = ['HessioR1Calibrator', 'CameraR1CalibratorFactory']
+__all__ = ['HessioR1Calibrator', 'DstioR1Calibrator',
+           'CameraR1CalibratorFactory']
 
 CALIB_SCALE = 1.05
 """
@@ -126,6 +127,39 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
                 calibrated = (samples - ped[..., None]) * gain[..., None]
                 event.r1.tel[telid].pe_samples = calibrated
+
+
+class DstioR1Calibrator(CameraR1Calibrator):
+    name = 'DstioR1Calibrator'
+    origin = 'dstio'
+
+    def calibrate(self, event):
+        pass
+
+    @staticmethod
+    def calibrate_read(image, pedestal, dc_to_pe):
+        """
+        Function to handle to calibration of the dst files from summed adc 
+        into photoelectrons. This calibration is applied at the dl1 level,
+        but it technically fits into the r1 level calibration, and exists here
+        to keep common code together.
+        
+        Parameters
+        ----------
+        image : ndarray
+            Numpy array of shape (n_channels x n_pixels) containing the 
+            extracted charge in each pixel.
+        pedestal : ndarray
+            Numpy array of shape (n_channels x n_pixels) containing the 
+            summed pedestal for each pixel.
+        dc_to_pe : ndarray
+            Numpy array of shape (n_channels x n_pixels) containing the 
+            dc_to_pe conversion in each pixel.
+        """
+        ped = pedestal
+        gain = dc_to_pe * CALIB_SCALE
+        calibrated = (image - ped) * gain
+        return calibrated
 
 
 # External Children

@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Components to read HESSIO data.  
+Components to read HESSIO DST data.  
 
 This requires the hessio python library to be installed
 """
@@ -12,6 +12,8 @@ from ..core import Provenance
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+import numpy as np
+from ctapipe.calib.camera import DstioR1Calibrator
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +29,13 @@ except ImportError as err:
     raise err
 
 __all__ = [
-    'hessio_event_source',
+    'dst_event_source',
 ]
 
 
-def hessio_get_list_event_ids(url, max_events=None):
+def dst_get_list_event_ids(url, max_events=None):
     """
-    Faster method to get a list of all the event ids in the hessio file.
+    Faster method to get a list of all the event ids in the dst file.
     This list can also be used to find out the number of events that exist
     in the file.
 
@@ -58,21 +60,21 @@ def hessio_get_list_event_ids(url, max_events=None):
             event_id_list = []
             eventstream = pyhessio.move_to_next_event()
             for event_id in eventstream:
-                event_id_list.append(event_id)
-                counter += 1
-                if max_events is not None and counter >= max_events:
-                    pyhessio.close_file()
-                    break
+                if len(pyhessio.get_teldata_list()) > 0:
+                    event_id_list.append(event_id)
+                    counter += 1
+                    if max_events is not None and counter >= max_events:
+                        pyhessio.close_file()
+                        break
             return event_id_list
     except HessioError:
         raise RuntimeError("hessio_event_source failed to open '{}'"
                            .format(url))
 
 
-def hessio_event_source(url, max_events=None, allowed_tels=None,
+def dst_event_source(url, max_events=None, allowed_tels=None,
                         requested_event=None, use_event_id=False):
-    """A generator that streams data from an EventIO/HESSIO MC data file
-    (e.g. a standard CTA data file.)
+    """A generator that streams data from an dst MC data file.
 
     Parameters
     ----------
@@ -101,15 +103,20 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             if allowed_tels is not None:
                 allowed_tels = set(allowed_tels)
             data = DataContainer()
-            data.meta['origin'] = "hessio"
+            data.meta['origin'] = "dstio"
 
             # some hessio_event_source specific parameters
             data.meta['input'] = url
             data.meta['max_events'] = max_events
 
-            run_id = pyhessio.get_run_number()
+            # TODO: Currently returns HessioError
+            run_id = 0  # pyhessio.get_run_number()
 
             for event_id in eventstream:
+
+                tels_with_data = set(pyhessio.get_teldata_list())
+                if len(tels_with_data) == 0:
+                    continue
 
                 # Seek to requested event
                 if requested_event is not None:
@@ -119,8 +126,6 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     if not current == requested_event:
                         counter += 1
                         continue
-
-                tels_with_data = set(pyhessio.get_teldata_list())
 
                 data.r0.run_id = run_id
                 data.r0.event_id = event_id
@@ -185,10 +190,14 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     data.mc.tel[tel_id].pedestal \
                         = pyhessio.get_pedestal(tel_id)
 
-                    data.r0.tel[tel_id].adc_samples = \
-                        pyhessio.get_adc_sample(tel_id)
-                    data.r0.tel[tel_id].adc_sums = \
-                        pyhessio.get_adc_sum(tel_id)
+                    calibrator = DstioR1Calibrator.calibrate_read
+                    image = calibrator(pyhessio.get_adc_sum(tel_id),
+                                       data.mc.tel[tel_id].pedestal,
+                                       data.mc.tel[tel_id].dc_to_pe)
+                    data.dl1.tel[tel_id].image = image
+                    # TODO: correctly obtain peakpos from the dst files,
+                    # requires changes to pyhessio
+                    data.dl1.tel[tel_id].peakpos = np.zeros(image.shape)
                     data.mc.tel[tel_id].reference_pulse_shape = \
                         pyhessio.get_ref_shapes(tel_id)
 
@@ -220,7 +229,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     pyhessio.close_file()
                     return
     except HessioError:
-        raise RuntimeError("hessio_event_source failed to open '{}'"
+        raise RuntimeError("dstio_event_source failed to open '{}'"
                            .format(url))
 
 
