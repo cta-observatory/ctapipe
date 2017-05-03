@@ -22,7 +22,8 @@ def cherenkov_integral(lambda1, lambda2):
 
 def kundu_chaudhuri_circle_fit(x, y, weights):
     '''
-    Fast, analytic calculation of circle center and radius for weighted data
+    Fast, analytic calculation of circle center and radius for 
+    weighted data using method given in [1]_
 
     Parameters
     ----------
@@ -33,10 +34,12 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     weights: array-like
         weights of the points
 
-    Reference:
-    B. B. Chaudhuri und P. Kundu.
-    "Optimum circular fit to weighted data in multi-dimensional space".
-    In: Pattern Recognition Letters 14.1 (1993), S. 1–6
+    
+    References
+    ----------
+    .. [1] B. B. Chaudhuri und P. Kundu. "Optimum circular fit to weighted 
+           data in multi-dimensional space". Pattern Recognition Letters 14.1 
+           (1993), S. 1–6
     '''
 
     weights_sum = np.sum(weights)
@@ -254,7 +257,7 @@ def radial_light_intensity(
         ):
     '''
     Amount of photons per azimuthal angle phi on the muon ring as given in
-    G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11, formula (5)
+    formula (5) of [2]_ 
 
     Parameters
     ----------
@@ -276,6 +279,11 @@ def radial_light_intensity(
     Returns
     -------
     light_density: float or array-like
+    
+    References
+    ----------
+    .. [2] G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11
+    
     '''
 
     return (
@@ -369,16 +377,20 @@ def efficiency_fit(
         lambda2=900e-9,
         ):
     '''
-    Estimate optical efficiency for a muon ring.
+    Estimate optical efficiency for a muon ring using method of [3]_.
     This is performing several steps:
-        1. fit r, x, y and width with the psf_likelihood_fit
-        2. fit impact parameter with impact_parameter_chisq_fit
-        3. calculate the theoretically expected light contents for each pixel
-           for the estimated parameters
-        4. calculate the ratio between the observed and the expected number
-        of photons.
-    A Generic Algorithm for IACT Optical Efficiency Calibration using Muons,
-    Allison Mitchell et al. arXiv: 1509.04258v1
+    
+    1. fit r, x, y and width with the psf_likelihood_fit
+    2. fit impact parameter with impact_parameter_chisq_fit
+    3. calculate the theoretically expected light contents for each pixel 
+       for the estimated parameters
+    4. calculate the ratio between the observed and the expected number
+       of photons.
+        
+    References
+    ----------
+    .. [3] A Generic Algorithm for IACT Optical Efficiency Calibration 
+           using Muons, Allison Mitchell et al. arXiv: 1509.04258v1
 
     Parameters
     ----------
