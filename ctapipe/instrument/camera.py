@@ -479,7 +479,7 @@ def get_camera_types(inst):
         f = inst.optical_foclen[telid]
         geom = CameraGeometry.guess(x, y, f)
 
-        camid[geom.cam_id].append(telid)
+        cam_types[geom.cam_id].append(telid)
 
     return cam_types
 
