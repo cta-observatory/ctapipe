@@ -16,6 +16,14 @@ Example:
     (400,)
                                            
 
+.. automodapi:: ctapipe.image.toymodel
+    :no-inheritance-diagram:
+  
+.. plot:: image/image_example.py
+    :include-source:
+
+
+
 """
 import numpy as np
 from scipy.stats import multivariate_normal
