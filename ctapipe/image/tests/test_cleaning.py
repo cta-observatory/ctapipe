@@ -6,7 +6,7 @@ from ctapipe.instrument import CameraGeometry
 
 def test_tailcuts_clean():
 
-    geom = CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
     pedvar = np.ones_like(geom.pix_id, dtype=np.float)
 
@@ -29,7 +29,7 @@ def test_tailcuts_clean():
 
 def test_dilate():
 
-    geom = CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     mask = np.zeros_like(geom.pix_id, dtype=bool)
 
     mask[100] = True  # a single pixel far from a border is true.

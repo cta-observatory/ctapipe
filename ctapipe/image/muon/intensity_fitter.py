@@ -8,10 +8,12 @@ class IntensityFitter(Component):
     """
 
     def fit(self, x, y, charge, center_x, center_y, radius, times=None):
-        """overwrite this method with your favourite muon intensity fitting algorithm
+        """
+        overwrite this method with your favourite muon intensity fitting
+        algorithm
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         x: array
            vector of pixel x-coordinates as astropy quantities
         y: array
@@ -27,10 +29,9 @@ class IntensityFitter(Component):
         times: array
            optional vector of pixel DAQ times as astropy quantities
 
-        Returns:
-        --------
-        impact_x
-        impact_y
-        size
-        efficiency
+        Returns
+        -------
+        impact_x, impact_y, size, efficiency
+
         """
+        pass

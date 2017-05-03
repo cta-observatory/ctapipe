@@ -31,8 +31,6 @@ Reference/API
 =============
 
 
-------------------------------
-
 .. automodapi:: ctapipe.image
     :no-inheritance-diagram:
 
@@ -44,8 +42,10 @@ Reference/API
 .. plot:: image/image_example.py
     :include-source:
 
+
 ------------------------------
-       
+
+
 .. automodapi:: ctapipe.image.hillas
 
 ------------------------------
@@ -71,3 +71,4 @@ An example of image cleaning and dilation:
 ------------------------------
 
 .. automodapi:: ctapipe.image.reductors
+

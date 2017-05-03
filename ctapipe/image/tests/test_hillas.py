@@ -12,7 +12,7 @@ def create_sample_image(psi='-30d'):
 
     # set up the sample image using a HESS camera geometry (since it's easy
     # to load)
-    geom = CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
 
     # make a toymodel shower model
     model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.3),

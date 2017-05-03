@@ -11,11 +11,14 @@ class InfoLabel(QLabel):
         self.mode = 'sequential'
 
     def pipechange(self, steps):
-        """Called by GuiConnexion instance when it receives zmq message from pipeline
-        Update pipeline state (self.steps) and force to update drawing
+        """Called by GuiConnexion instance when it receives zmq message from
+        pipeline Update pipeline state (self.steps) and force to
+        update drawing
+
         Parameters
         ----------
         topic : str
+
         """
         if steps:
             if self.mode == 'sequential':
@@ -29,11 +32,13 @@ class InfoLabel(QLabel):
 
     def formatText(self,step):
         """ Format Step state
-        Parameters:
-        ===========
+
+        Parameters
+        ----------
         step : StagerRep to format
-        Return:
-        =======
+
+        Returns
+        -------
         A str containg sdtep state
         """
         text = str()
@@ -59,8 +64,8 @@ class InfoLabel(QLabel):
 
     def mode_receive(self,mode):
         """
-        Parameter:
-        ==========
+        Parameters
+        ----------
         Flow mode (sequential or multiprocessus)
         """
         self.mode = mode

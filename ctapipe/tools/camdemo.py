@@ -28,11 +28,16 @@ class CameraDemo(Tool):
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
                                    'much faster but may cause some draw '
                                    'artifacts)').tag(config=True)
+    camera = traits.Enum(CameraGeometry.get_known_camera_names(),
+                         default_value='LSTCam', help='Name of camera to '
+                                                      'display').tag(
+        config=True)
 
     aliases = traits.Dict({'delay': 'CameraDemo.delay',
                            'cleanframes': 'CameraDemo.cleanframes',
                            'autoscale' : 'CameraDemo.autoscale',
-                           'blit': 'CameraDemo.blit'})
+                           'blit': 'CameraDemo.blit',
+                           'camera': 'CameraDemo.camera'})
 
 
     def __init__(self):
@@ -50,7 +55,7 @@ class CameraDemo(Tool):
         ax = plt.subplot(111)
 
         # load the camera
-        geom = CameraGeometry.from_name("hess", 1)
+        geom = CameraGeometry.from_name(self.camera)
         disp = CameraDisplay(geom, ax=ax, autoupdate=True, )
         disp.cmap = plt.cm.terrain
 
