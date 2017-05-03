@@ -22,4 +22,3 @@ API Reference
 .. automodapi:: ctapipe.image.waveform_cleaning
 
 
-    `waveform_cleaners`: 
