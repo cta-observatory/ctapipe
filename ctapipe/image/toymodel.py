@@ -14,11 +14,7 @@ Example:
     >>> image, signal, noise = make_toymodel_shower_image(geom, showermodel.pdf)
     >>> print(image.shape)
     (400,)
-                                           
-
-.. automodapi:: ctapipe.image.toymodel
-    :no-inheritance-diagram:
-  
+                                             
 .. plot:: image/image_example.py
     :include-source:
 

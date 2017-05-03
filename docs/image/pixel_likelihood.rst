@@ -1,4 +1,4 @@
-.. _image_pixel_likelihood
+.. _image_pixel_likelihood:
 
 ============================
 Pixel likelihood calculation

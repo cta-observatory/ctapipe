@@ -1,4 +1,4 @@
-.. _image_hillas
+.. _image_hillas:
 
 =======================
 Hillas Parameterization
