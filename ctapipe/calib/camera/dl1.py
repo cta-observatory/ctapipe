@@ -76,6 +76,32 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
 
 
 class CameraDL1Calibrator(Component):
+    """
+    The calibrator for DL1 charge extraction. Fills the dl1 container.
+
+    It handles the integration correction and, if required, the list of
+    neighbours.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    extractor : ctapipe.calib.camera.charge_extractors.ChargeExtractor
+        The extractor to use to extract the charge from the waveforms.
+        By default the NeighbourPeakIntegrator with default configuration
+        is used.
+    cleaner : ctapipe.calib.camera.waveform_cleaners.Cleaner
+        The waveform cleaner to use. By default no cleaning is
+        applied to the waveforms.
+    kwargs
+    """
+
     name = 'CameraCalibrator'
     radius = Float(None, allow_none=True,
                    help='Pixels within radius from a pixel are considered '
@@ -87,31 +113,6 @@ class CameraDL1Calibrator(Component):
                                 'clipping.').tag(config=True)
 
     def __init__(self, config, tool, extractor=None, cleaner=None, **kwargs):
-        """
-        The calibrator for DL1 charge extraction. Fills the dl1 container.
-
-        It handles the integration correction and, if required, the list of
-        neighbours.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        extractor : ctapipe.calib.camera.charge_extractors.ChargeExtractor
-            The extractor to use to extract the charge from the waveforms.
-            By default the NeighbourPeakIntegrator with default configuration
-            is used.
-        cleaner : ctapipe.calib.camera.waveform_cleaners.Cleaner
-            The waveform cleaner to use. By default no cleaning is
-            applied to the waveforms.
-        kwargs
-        """
         super().__init__(config=config, parent=tool, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
