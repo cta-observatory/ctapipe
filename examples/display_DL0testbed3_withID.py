@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import logging
+import sys
+
+import numpy as np
 from matplotlib import colors, pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
-from ctapipe.io.hessio import hessio_event_source
-from pyhessio import *
-from ctapipe.io.containers import RawData
-from ctapipe import visualization, io
-import logging
-from ctapipe.utils.datasets import get_path
-from ctapipe.instrument import InstrumentDescription as ID
 
+from ctapipe import visualization
+from ctapipe.instrument import InstrumentDescription as ID
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils.datasets import get_dataset
+from ctapipe.instrument import CameraGeometry
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -40,7 +40,7 @@ def display_telescope(calibrated_data,cam,tel_id,pdffilename):
     pp = PdfPages("%s"%pdffilename)
     global fig
     for event in calibrated_data:
-        tels = list(event.dl0.tels_with_data)
+        tels = list(event.r0.tels_with_data)
         logger.debug(tels)
         # Select telescope
         if tel_id not in tels:
@@ -49,16 +49,16 @@ def display_telescope(calibrated_data,cam,tel_id,pdffilename):
         fig.clear()
 
         # geom = cam['CameraTable_VersionFeb2016_TelID%s'%tel_id]
-        geom = io.CameraGeometry.guess(*event.meta.pixel_pos[tel_id],
-                                       event.meta.optical_foclen[tel_id])
+        geom = CameraGeometry.guess(*event.inst.pixel_pos[tel_id],
+                                       event.inst.optical_foclen[tel_id])
         # Select number of pads to display. It depends on the numberr of gains:
-        nchan = event.dl0.tel[tel_id].num_channels
+        nchan = event.inst.num_channels[tel_id]
 
         plt.suptitle("EVENT {} {:.1e} TeV @({:.1f},{:.1f})deg @{:.1f} m".format(
-            event.dl0.event_id, get_mc_shower_energy(),
-            get_mc_shower_altitude(), get_mc_shower_azimuth(),
-            np.sqrt(pow(get_mc_event_xcore(), 2) +
-                    pow(get_mc_event_ycore(), 2))))
+            event.r0.event_id, event.mc.energy,
+            event.mc.alt, event.mc.az,
+            np.sqrt(pow(event.mc.core_x, 2) +
+                    pow(event.mc.core_y, 2))))
         print("\t draw cam {} (gains={})...".format(tel_id,nchan))
         ax=[]
         disp=[]
@@ -71,7 +71,7 @@ def display_telescope(calibrated_data,cam,tel_id,pdffilename):
             disp.append(visualization.CameraDisplay(geom, ax=ax[-1],
                                                     title="CT{} [{} ADC cts]".format(tel_id,gain_label[i])))
             disp[-1].pixels.set_antialiaseds(False)
-            signals.append(event.dl0.tel[tel_id].adc_sums[i])
+            signals.append(event.r0.tel[tel_id].adc_sums[i])
             disp[-1].image = signals[-1]
             disp[-1].pixels.set_cmap(get_cmap(disp[-1].image))
             disp[-1].add_colorbar(label=" [{} ADC cts]".format(gain_label[i]))
@@ -82,7 +82,7 @@ def display_telescope(calibrated_data,cam,tel_id,pdffilename):
             disp.append(visualization.CameraDisplay(geom, ax=ax[-1],
                                                     title="CT{} [{} ADC cts]".format(tel_id,gain_label[i])))
             disp[-1].pixels.set_antialiaseds(False)
-            signals.append(event.dl0.tel[tel_id].adc_sums[i])
+            signals.append(event.r0.tel[tel_id].adc_sums[i])
             m = (get_zero_sup_mode(tel_id) & 0x001) or (get_significant(tel_id) & 0x020)
             disp[-1].image = signals[-1]*(m/m.max())
             disp[-1].pixels.set_cmap(get_cmap(disp[-1].image))
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         description='Tel_id, pixel id and number of event to compute.')
     parser.add_argument('--f', dest='filename',
                         required=False,
-                        default=get_path('gamma_test.simtel.gz'),
+                        default=get_dataset('gamma_test_large.simtel.gz'),
                         help='filename <MC file name>')
     parser.add_argument('--d', dest='display', action='store_true',
                         required=False,help='display the camera events')

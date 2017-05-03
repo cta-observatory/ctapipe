@@ -13,6 +13,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from ctapipe.image import toymodel
 from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
+from ctapipe.image import tailcuts_clean
 
 
 def draw_several_cams(geom, ncams=4):
@@ -42,12 +43,15 @@ def draw_several_cams(geom, ncams=4):
             nsb_level_pe=1000,
         )
 
-        clean = image.copy()
-        clean[image <= 3.0 * image.mean()] = 0.0
-        hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
+        mask = tailcuts_clean(geom, image, picture_thresh=6*image.mean(),
+                              boundary_thresh=4*image.mean())
+
+        hillas = hillas_parameters(geom.pix_x[mask], geom.pix_y[mask],
+                                   image[mask])
 
         disp.image = image
         disp.add_colorbar(ax=axs[ii])
+
         disp.set_limits_percent(95)
         disp.overlay_moments(hillas, linewidth=3, color='blue')
 
