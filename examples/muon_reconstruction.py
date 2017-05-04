@@ -1,5 +1,5 @@
 import argparse
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 import os
 import numpy as np
 from astropy import log
@@ -34,7 +34,7 @@ def main():
         description='Display each event in the file',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-f', '--file', dest='input_path', action='store',
-                        default=get_path('gamma_test.simtel.gz'),
+                        default=get_dataset('gamma_test.simtel.gz'),
                         help='path to the input file')
 
     parser.add_argument('-O', '--origin', dest='origin', action='store',
