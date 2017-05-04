@@ -1,6 +1,6 @@
 from astropy import units as u
 import numpy as np
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError

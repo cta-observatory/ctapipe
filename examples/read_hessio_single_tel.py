@@ -17,7 +17,7 @@ import logging
 import numpy as np
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 

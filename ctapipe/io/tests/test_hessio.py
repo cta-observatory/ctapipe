@@ -1,5 +1,5 @@
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 
 def test_get_run_id():
