@@ -11,10 +11,10 @@ except:
                        "needed by ctapipe. (conda install ctapipe-extra)")
 
 
-__all__ = ['get_dataset'  ]
+__all__ = ['get_dataset', 'find_in_path'  ]
 
 
-def find_in_path(searchpath, filename):
+def find_in_path(filename, searchpath):
     """
     Search in searchpath for filename
     
@@ -39,8 +39,6 @@ def find_in_path(searchpath, filename):
     return None
 
 
-
-
 def get_dataset(filename):
     """
     Returns the full file path to an auxiliary dataset needed by 
@@ -63,7 +61,7 @@ def get_dataset(filename):
     searchpath = os.getenv("CTAPIPE_SVC_PATH")
 
     if searchpath:
-        filepath = find_in_path(searchpath, filename)
+        filepath = find_in_path(filename=filename, searchpath=searchpath)
         if filepath:
             return filepath
 
