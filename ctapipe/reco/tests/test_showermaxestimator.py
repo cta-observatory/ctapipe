@@ -1,6 +1,6 @@
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 from astropy import units as u
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 
 def test_showermaxestimator(en=5*u.TeV, h_first_int=10*u.km, az=70*u.deg):

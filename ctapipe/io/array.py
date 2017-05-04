@@ -4,7 +4,7 @@ Array layout utilities
 """
 from glob import glob
 from astropy.table import Table
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 _telclass_map = {0: 'SST', 1: 'MST', 2: 'LST'}
 

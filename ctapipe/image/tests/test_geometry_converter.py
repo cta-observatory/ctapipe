@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 from ctapipe.io.hessio import hessio_event_source
 

@@ -1,5 +1,5 @@
 from os.path import join
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
     EventFileReaderFactory, HessioFileReader
 

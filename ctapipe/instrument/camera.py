@@ -14,10 +14,10 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 
 from ctapipe.io.files import get_file_type
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 __all__ = ['CameraGeometry',
            'get_camera_types',

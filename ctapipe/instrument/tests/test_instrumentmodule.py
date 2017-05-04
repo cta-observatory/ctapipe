@@ -11,7 +11,7 @@ import astropy.units as u
 import ctapipe.instrument.InstrumentDescription as ID
 import numpy as np
 from ctapipe.instrument import CameraGeometry
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 import pytest
 
 filename1 = get_dataset('PROD2_telconfig.fits.gz')

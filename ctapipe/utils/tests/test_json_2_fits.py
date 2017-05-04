@@ -37,7 +37,7 @@ from traitlets import (
 )
 
 from ctapipe.utils.json2fits import traitlets_config_to_fits, json_to_fits
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 import tempfile
 
 import sys

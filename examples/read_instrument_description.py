@@ -11,7 +11,7 @@ fits, and a sim_telarray-config file.
 """
 
 from ctapipe.instrument import InstrumentDescription as ID
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 import matplotlib.pyplot as plt
 import os
 

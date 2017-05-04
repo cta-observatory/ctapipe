@@ -3,7 +3,7 @@
 import sys
 import matplotlib.pyplot as plt
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 from ctapipe.calib import pedestals
 import numpy as np
 

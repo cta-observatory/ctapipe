@@ -3,7 +3,7 @@ from ctapipe.calib.camera.dl1 import integration_correction, \
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.r1 import HessioR1Calibrator
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 from numpy.testing import assert_allclose
 
 

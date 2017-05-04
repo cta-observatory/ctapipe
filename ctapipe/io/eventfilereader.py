@@ -7,7 +7,7 @@ import numpy as np
 from traitlets import Unicode, Int, CaselessStrEnum, observe
 from copy import deepcopy
 from ctapipe.core import Component, Factory
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
 
 
