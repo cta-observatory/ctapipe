@@ -1,16 +1,30 @@
 """
-Reductor algorithms for the data volume reduction.
+Algorithms for the data volume reduction.
 """
 
 from abc import abstractmethod
 from traitlets import CaselessStrEnum
 from ctapipe.core import Component, Factory
 
-__all__ = []
+__all__ = ['DataVolumeReductor', 'DataVolumeReductorFactory']
 
 
 class DataVolumeReductor(Component):
     """
+    Base component for data volume reductors.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+
     Attributes
     ----------
     extracted_samples : ndarray
@@ -27,21 +41,6 @@ class DataVolumeReductor(Component):
     name = 'DataVolumeReductor'
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Base component for data volume reductors.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, parent=tool, **kwargs)
 
         self._nchan = None
@@ -99,6 +98,9 @@ class DataVolumeReductor(Component):
 
 
 class DataVolumeReductorFactory(Factory):
+    """
+    Factory class for creating a DataVolumeReductor
+    """
     name = "DataVolumeReductorFactory"
     description = "Obtain DataVolumeReductor based on reductor traitlet"
 

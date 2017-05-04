@@ -14,7 +14,11 @@ Example:
     >>> image, signal, noise = make_toymodel_shower_image(geom, showermodel.pdf)
     >>> print(image.shape)
     (400,)
-                                           
+                                             
+.. plot:: image/image_example.py
+    :include-source:
+
+
 
 """
 import numpy as np

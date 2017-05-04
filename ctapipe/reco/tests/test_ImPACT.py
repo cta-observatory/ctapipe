@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.reco.ImPACT import ImPACTFitter
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 import astropy.units as u
 from numpy.testing import assert_allclose
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer

@@ -1,6 +1,6 @@
 from astropy import units as u
 import numpy as np
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils import get_dataset
 
 from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
@@ -17,7 +17,7 @@ from ctapipe.calib.camera.r1 import HessioR1Calibrator
 
 def test_array_draw():
 
-    filename = get_path("gamma_test.simtel.gz")
+    filename = get_dataset("gamma_test.simtel.gz")
     cam_geom = {}
 
     source = hessio_event_source(filename)

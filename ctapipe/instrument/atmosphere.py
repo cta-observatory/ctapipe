@@ -7,7 +7,7 @@ from astropy.table import Table
 from astropy.units import Quantity
 from scipy.interpolate import interp1d
 
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils import get_dataset
 
 __all__ = ['get_atmosphere_profile_table', 'get_atmosphere_profile_functions']
 
