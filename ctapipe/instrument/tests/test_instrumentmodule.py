@@ -11,12 +11,12 @@ import astropy.units as u
 import ctapipe.instrument.InstrumentDescription as ID
 import numpy as np
 from ctapipe.instrument import CameraGeometry
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 import pytest
 
-filename1 = get_path('PROD2_telconfig.fits.gz')
-filename2 = get_path('gamma_test.simtel.gz')
-filename3 = get_path('CTA-ULTRA6-SCT.cfg')
+filename1 = get_dataset('PROD2_telconfig.fits.gz')
+filename2 = get_dataset('gamma_test.simtel.gz')
+filename3 = get_dataset('CTA-ULTRA6-SCT.cfg')
 
 @pytest.mark.skip(reason="instrument module currently broken")
 def test_load_and_write_telescope_data():

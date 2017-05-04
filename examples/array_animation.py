@@ -12,7 +12,7 @@ if __name__ == '__main__':
     plt.style.use("ggplot")
     plt.figure(figsize=(10, 8))
 
-    arrayfile = datasets.get_path("PROD2_telconfig.fits.gz")
+    arrayfile = datasets.get_dataset("PROD2_telconfig.fits.gz")
     tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
 
     adisp = ArrayDisplay(tels['TelX'], tels['TelY'], tels['MirrorArea'] * 2,

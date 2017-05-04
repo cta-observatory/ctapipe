@@ -49,8 +49,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        self.shower_max = ShowerMaxEstimator(
-            instrument.get_atmosphere_profile('paranal'))
+        self.shower_max = ShowerMaxEstimator('paranal')
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict

@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 
 from ctapipe.io.hessio import hessio_event_source
 
@@ -27,7 +27,7 @@ def apply_mc_calibration(adcs, gains, peds):
 
 
 def test_convert_geometry():
-    filename = get_path("gamma_test.simtel.gz")
+    filename = get_dataset("gamma_test.simtel.gz")
 
     cam_geom = {}
 
