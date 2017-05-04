@@ -51,7 +51,7 @@ setup(name=PACKAGENAME,
       install_requires=['astropy', 'scipy',
                         'traitlets', 'numpy',
                         'tables', 'tqdm','iminuit',
-                        'pytables'],
+                        'tables'],
       tests_require=['pytest', 'ctapipe-extra'],
       extras_require={
         'dev': [
