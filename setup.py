@@ -50,7 +50,7 @@ setup(name=PACKAGENAME,
       # astropy already depends on it)
       install_requires=['astropy', 'scipy',
                         'traitlets', 'numpy',
-                        'tables', 'tqdm','iminuit'],
+                        'tables', 'tqdm','iminuit'. 'pytables'],
       tests_require=['pytest', 'ctapipe-extra'],
       extras_require={
         'dev': [
