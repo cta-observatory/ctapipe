@@ -7,7 +7,7 @@ import numpy as np
 from traitlets import Unicode, Int, CaselessStrEnum, observe
 from copy import deepcopy
 from ctapipe.core import Component, Factory
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils.datasets import get_dataset
 from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
 
 
@@ -30,8 +30,9 @@ class EventFileReader(Component):
 
     """
     name = 'EventFileReader'
+    origin = None
 
-    input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
+    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,
@@ -57,6 +58,11 @@ class EventFileReader(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
+
+        if self.origin is None:
+            raise ValueError("Subclass of EventFileReader should specify "
+                             "an origin")
+
         self._num_events = None
         self._event_id_list = []
 
@@ -82,7 +88,7 @@ class EventFileReader(Component):
     def on_input_path_changed(self, change):
         new = change['new']
         try:
-            self.log.warning("Change: input_path={}".format(change))
+            self.log.warning("Change: input_path={}".format(new))
             self._num_events = None
             self._event_id_list = []
             self._init_path(new)
@@ -91,19 +97,34 @@ class EventFileReader(Component):
 
     @observe('origin')
     def on_origin_changed(self, change):
+        new = change['new']
         try:
-            self.log.warning("Change: origin={}".format(change))
+            self.log.warning("Change: origin={}".format(new))
         except AttributeError:
             pass
 
     @observe('max_events')
     def on_max_events_changed(self, change):
+        new = change['new']
         try:
-            self.log.warning("Change: max_events={}".format(change))
+            self.log.warning("Change: max_events={}".format(new))
             self._num_events = None
             self._event_id_list = []
         except AttributeError:
             pass
+
+    @property
+    @abstractmethod
+    def origin(self):
+        """
+        Abstract property to be defined in child class.
+
+        Get the name for the origin of the file. E.g. 'hessio'.
+
+        Returns
+        -------
+        origin : str
+        """
 
     @staticmethod
     @abstractmethod
@@ -249,6 +270,7 @@ class EventFileReader(Component):
 
 class HessioFileReader(EventFileReader):
     name = 'HessioFileReader'
+    origin = 'hessio'
 
     @staticmethod
     def check_file_compatibility(file_path):
@@ -276,7 +298,7 @@ class HessioFileReader(EventFileReader):
             pass
         else:
             self.log.info("Building new list of event ids...")
-            ids = hessio_get_list_event_ids(get_path(self.input_path),
+            ids = hessio_get_list_event_ids(self.input_path,
                                             max_events=self.max_events)
             self._event_id_list = ids
         self.log.info("List of event ids retrieved.")
@@ -310,13 +332,21 @@ class HessioFileReader(EventFileReader):
         self.log.debug("Reading file...")
         if self.max_events:
             self.log.info("Max events being read = {}".format(self.max_events))
-        source = hessio_event_source(get_path(self.input_path),
+        source = hessio_event_source(self.input_path,
                                      max_events=self.max_events,
                                      allowed_tels=allowed_tels,
                                      requested_event=requested_event,
                                      use_event_id=use_event_id)
         self.log.debug("File reading complete")
         return source
+
+
+# External Children
+try:
+    from targetpipe.io.eventfilereader import TargetioFileReader, \
+        ToyioFileReader
+except ImportError:
+    pass
 
 
 class EventFileReaderFactory(Factory):
@@ -333,7 +363,7 @@ class EventFileReaderFactory(Factory):
 
     # Product classes traits
     # Would be nice to have these automatically set...!
-    input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
+    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,

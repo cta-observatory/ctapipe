@@ -29,30 +29,30 @@ class Factory(Component):
 
     .. code:: python
 
-    from ctapipe.core import Factory
-    from traitlets import (Integer, Float, List, Dict, Unicode)
+        from ctapipe.core import Factory
+        from traitlets import (Integer, Float, List, Dict, Unicode)
 
-    class MyFactory(Factory):
-        name = "myfactory"
-        description = "do some things and stuff"
+        class MyFactory(Factory):
+            name = "myfactory"
+            description = "do some things and stuff"
 
-        subclasses = Factory.child_subclasses(ParentClass)
-        subclass_names = [c.__name__ for c in subclasses]
+            subclasses = Factory.child_subclasses(ParentClass)
+            subclass_names = [c.__name__ for c in subclasses]
 
-        discriminator = Unicode('DefaultProduct',
-                         help='Product to obtain: {}'
-                         .format(subclass_names)).tag(config=True)
+            discriminator = Unicode('DefaultProduct',
+                             help='Product to obtain: {}'
+                             .format(subclass_names)).tag(config=True)
 
-        # Product classes traits
-        # Would be nice to have these automatically set...!
-        product_trait1 = Int(7, help="").tag(config=True)
-        product_trait2 = Int(7, help="").tag(config=True)
+            # Product classes traits
+            # Would be nice to have these automatically set...!
+            product_trait1 = Int(7, help="").tag(config=True)
+            product_trait2 = Int(7, help="").tag(config=True)
 
-        def get_factory_name(self):
-            return self.name
+            def get_factory_name(self):
+                return self.name
 
-        def get_product_name(self):
-            return self.discriminator
+            def get_product_name(self):
+                return self.discriminator
     """
     subclasses = None  # Set to all_subclasses(ParentClass) in factory
     subclass_names = None  # Set to [c.__name__ for c in subclasses] in factory
@@ -72,6 +72,7 @@ class Factory(Component):
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
         kwargs
+
         """
         super().__init__(config=config, parent=tool, **kwargs)
         self.product = None
@@ -81,6 +82,7 @@ class Factory(Component):
         """
         Return all base subclasses of a parent class. Finds the bottom level
         subclasses that have no further children.
+
         Parameters
         ----------
         cls : class
@@ -132,13 +134,13 @@ class Factory(Component):
 
         # Copy factory traits to product
         c = self.__dict__['_trait_values']['config']
-        c[self.get_product_name()] = deepcopy(c[self.get_factory_name()])
+        c[product.name] = deepcopy(c[self.get_factory_name()])
         items = self.__dict__['_trait_values'].items()
         for key, values in items:
             if key != 'config' and key != 'parent':
-                c[self.get_product_name()][key] = values
-        keys = list(c[self.get_product_name()].keys())
+                c[product.name][key] = values
+        keys = list(c[product.name].keys())
         for key in keys:
             if key not in product.class_trait_names():
-                del c[self.get_product_name()][key]
+                del c[product.name][key]
         return product

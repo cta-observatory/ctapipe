@@ -38,7 +38,7 @@ def test_convert_geometry():
 
     for event in source:
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id in event.r0.tels_with_data:
             if tel_id not in cam_geom:
                 cam_geom[tel_id] = CameraGeometry.guess(
                                         event.inst.pixel_pos[tel_id][0],
@@ -53,8 +53,8 @@ def test_convert_geometry():
             print(tel_id, cam_geom[tel_id].pix_type)
 
             pmt_signal = apply_mc_calibration(
-                        #event.dl0.tel[tel_id].adc_samples[0],
-                        event.dl0.tel[tel_id].adc_sums[0],
+                        #event.r0.tel[tel_id].adc_samples[0],
+                        event.r0.tel[tel_id].adc_sums[0],
                         event.mc.tel[tel_id].dc_to_pe[0],
                         event.mc.tel[tel_id].pedestal[0])
 
@@ -100,12 +100,10 @@ def test_convert_geometry():
 
 
             # do some tailcuts cleaning
-            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
-                                   picture_thresh=10.,
-                                   boundary_thresh=5.)
+            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal,
+                                   picture_thresh=10., boundary_thresh=5.)
 
-            mask2 = tailcuts_clean(unrot_geom, unrot_signal, 1,
-                                   picture_thresh=10.,
+            mask2 = tailcuts_clean(unrot_geom, unrot_signal, picture_thresh=10.,
                                    boundary_thresh=5.)
             pmt_signal[mask1==False] = 0
             unrot_signal[mask2==False] = 0
@@ -134,9 +132,11 @@ def test_convert_geometry():
             '''
             test if the hillas parameters from the original geometry and the
             forth-and-back rotated geometry are close '''
-            np.testing.assert_allclose(
-                [moments1.length, moments1.width, moments1.phi],
-                [moments2.length, moments2.width, moments2.phi],
+            assert np.allclose(
+                [moments1.length.value, moments1.width.value,
+                 moments1.phi.value],
+                [moments2.length.value, moments2.width.value,
+                 moments2.phi.value],
                 rtol=1e-2, atol=1e-2)
             counter -= 1
             if counter < 0:

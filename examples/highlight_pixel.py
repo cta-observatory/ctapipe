@@ -1,5 +1,5 @@
 from ctapipe.image import toymodel
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 

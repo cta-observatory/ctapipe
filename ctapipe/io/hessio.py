@@ -7,6 +7,7 @@ This requires the hessio python library to be installed
 import logging
 
 from .containers import DataContainer
+from ..core import Provenance
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -52,6 +53,7 @@ def hessio_get_list_event_ids(url, max_events=None):
     logger.warning("This method is slow. Need to find faster method.")
     try:
         with open_hessio(url) as pyhessio:
+            Provenance().add_input_file(url)
             counter = 0
             event_id_list = []
             eventstream = pyhessio.move_to_next_event()
@@ -93,6 +95,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
         with open_hessio(url) as pyhessio:
             # the container is initialized once, and data is replaced within
             # it after each yield
+            Provenance().add_input_file(url)
             counter = 0
             eventstream = pyhessio.move_to_next_event()
             if allowed_tels is not None:
@@ -115,6 +118,12 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                         counter += 1
                         continue
 
+                data.r0.run_id = pyhessio.get_run_number()
+                data.r0.event_id = event_id
+                data.r0.tels_with_data = set(pyhessio.get_teldata_list())
+                data.r1.run_id = pyhessio.get_run_number()
+                data.r1.event_id = event_id
+                data.r1.tels_with_data = set(pyhessio.get_teldata_list())
                 data.dl0.run_id = pyhessio.get_run_number()
                 data.dl0.event_id = event_id
                 data.dl0.tels_with_data = set(pyhessio.get_teldata_list())
@@ -122,16 +131,18 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 # handle telescope filtering by taking the intersection of
                 # tels_with_data and allowed_tels
                 if allowed_tels is not None:
-                    selected = data.dl0.tels_with_data & allowed_tels
+                    selected = data.r0.tels_with_data & allowed_tels
                     if len(selected) == 0:
                         continue  # skip event
+                    data.r0.tels_with_data = selected
+                    data.r1.tels_with_data = selected
                     data.dl0.tels_with_data = selected
 
                 data.trig.tels_with_trigger \
                     = pyhessio.get_central_event_teltrg_list()
                 time_s, time_ns = pyhessio.get_central_event_gps_time()
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
-                                          format='gps', scale='utc')
+                                          format='unix', scale='utc')
                 data.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
                 data.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
@@ -150,12 +161,15 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 # data each time (right now it's just deleted and garbage
                 # collected)
 
+                data.r0.tel.clear()
+                data.r1.tel.clear()
                 data.dl0.tel.clear()
+                data.dl1.tel.clear()
                 data.mc.tel.clear()  # clear the previous telescopes
 
                 _fill_instrument_info(data, pyhessio)
 
-                for tel_id in data.dl0.tels_with_data:
+                for tel_id in data.r0.tels_with_data:
 
                     # event.mc.tel[tel_id] = MCCameraContainer()
 
@@ -164,9 +178,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     data.mc.tel[tel_id].pedestal \
                         = pyhessio.get_pedestal(tel_id)
 
-                    data.dl0.tel[tel_id].adc_samples = \
+                    data.r0.tel[tel_id].adc_samples = \
                         pyhessio.get_adc_sample(tel_id)
-                    data.dl0.tel[tel_id].adc_sums = \
+                    data.r0.tel[tel_id].adc_sums = \
                         pyhessio.get_adc_sum(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = \
                         pyhessio.get_ref_shapes(tel_id)
@@ -174,7 +188,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     nsamples = pyhessio.get_event_num_samples(tel_id)
                     if nsamples <= 0:
                         nsamples = 1
-                        data.dl0.tel[tel_id].num_samples = nsamples
+                    data.r0.tel[tel_id].num_samples = nsamples
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = pyhessio.get_mc_number_photon_electron
@@ -228,5 +242,9 @@ def _fill_instrument_info(data, pyhessio):
                 npix = pyhessio.get_num_pixels(tel_id)
                 data.inst.num_channels[tel_id] = nchans
                 data.inst.num_pixels[tel_id] = npix
+                data.inst.mirror_dish_area[tel_id] = \
+                    pyhessio.get_mirror_area(tel_id) * u.m ** 2
+                data.inst.mirror_numtiles[tel_id] = \
+                    pyhessio.get_mirror_number(tel_id)
             except HessioGeneralError:
                 pass

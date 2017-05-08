@@ -1,112 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # -*- coding: UTF-8 -*-
-"""Hillas shower parametrization.
-
-TODO:
-=====
-
-* remove alpha calculation (which is only about (0,0)),
-    and make a get alpha function that does it from an arbitrary point given a pre-computed list of parameters
-    (has this alpha function been implemented?  V. easy, given centroid and psi, or miss and dist/r)
-    (logically, should also remove "miss", which is relative to (0,0)
-* add function(s) to calculate asymmetry (or asymmetries?) including sign calculation
-    (for now, MP/Whipple asymmetry is positive for "tail" pointing away from (0,0))
-    (I have a wonderful way to to this, but this margin is too small to contain it)
-* psi of hillas_parameters_1 and 2 does not match. Mismatch in hillas_parameters_2 need to be resolved:
-    psi of hillas_parameters_1 has inconsistent sign.  hillas_parameters_2/3/4 better, since +ve for tail pointing away
-    Mismatch between hillas_parameters_1/2 fixed in previous version, shouldn't this TODO be removed?
-* Implement higher order hillas parameters in hillas_parameters_2: Done (MP)
-
-CHANGE LOG:
-===========
-* MP: Speed comparison for an image in a 960 pixel camera for image created with "mock"::
-
-    %timeit -n 10000
-    hillas_parameters_1(pix_x, pix_y, image, higherMoments=True)                        best of 3:     598 µs per loop
-    hillas_parameters_1(pix_x, pix_y, image, higherMoments=False)                       best of 3:     391 µs per loop
-
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=True)        best of 3:     210 µs per loop
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=False)       best of 3:     137 µs per loop
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=True)       best of 3:     125 µs per loop
-    hillas_parameters_2(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=False)      best of 3:      95.9 µs per loop
-
-    hillas_parameters_3(pix_x, pix_y, image, higherMoments=True)                        best of 3:   1.55 ms per loop
-    hillas_parameters_3(pix_x, pix_y, image, higherMoments=False)                       best of 3:   1.5 ms per loop
-
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=True)        best of 3:     130 µs per loop
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=True, recalculate_pixels=False)       best of 3:     110 µs per loop
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=True)       best of 3:      70.4 µs per loop
-    hillas_parameters_4(pix_x, pix_y, image, higherMoments=False, recalculate_pixels=False)      best of 3:      62.7 µs per loop
-
-
-(any way to compare compiled versions?)
-
-* MP: all routines tested with +/- combinations and x/y swaps of "mini-camera"::
-
-        pix_x = array([1.1, 1.1, 1, 1, 1, 1, 1, 1])
-        pix_y = array([0, 1, 2, 3, 4, 5, 6, 7])
-        image = array([0., 10, 3, 5, 7, 6, 2, 4 ])
-
-
-    TODO: add this as a test, with known results (change sign of psi where needed):
-        (MomentParameters(size=37.0, cen_x=1.027027027027027, cen_y=3.4864864864864864,
-        length=1.9951647036522218, width=0.028933760477638449, r=3.6346076177074274,
-        phi=1.2843252459918457, psi=1.5876852050217887, miss=1.0857606054046072),
-        HighOrderMomentParameters(Skewness=0.21338802620071526, Kurtosis=1.9087015993786907))
-
-* MP: removed returning of asymmetry, just left skewness...
-    either MP/Whipple or MAGIC asymmetry can be calculated then in function
-
-* MP: added two Boolean variables to the call: higherMoments (default True) and recalculate_pixels (default True)
-    If higherMoments is False, then it doesn't calculate them (if True, calculated for those routines have them)
-    If recalculate_pixels is False, then the multiples of pixel positions are calculated always (if True, only if not existing)
-
-* MP: hillas_parameter_1 doesn't work for the case of horizontal image
-    It raises an exception wrongly; no reason to raise exception for S_xy = 0
-
-* MP: In hillas_parameter_1, it says delta/psi is angle with x-axis, but adds pi/2 (as does hillas_parameter_2).
-    cos_delta and sin_delta are correct, though.
-     => changed this in hillas_parameter_1, and in modified the display visualization (in visualization/mpl.py)... and "mock.py" in reco.
-
-* MP: Added higher moments to hillas_parameters_2, and added a sub-function to hold static variables
-    of pixel multiplications, if pixel positions don't change
-
-* MP: Added Pythonified version of hillas_parameters_3, called hillal_parameters_4, also using
-    a sub-function's attributes to hold "static variables" of pixel multiplications, if pixel positions don't change
-
-* MP: Added the historic 1993 Whipple calculation (translated Fortran code via c), as hillas_parameters_3
-    Note, MAGIC's "skewness" is the same as the Whipple/MP "asymmetry^3", why ???
-    ... and also, Whipple/MP "asymmetry" * "length" = MAGIC "asymmetry"
-    ... so, MAGIC "asymmetry" = MAGIC "skewness"^(1/3) * "length"
-    I don't know what MAGIC's "asymmetry" is supposed to be.
-
-* MP: MAGIC (hillas_parameters_1) seems to be using the Whipple 1989 Weekes et al. formula calculation!
-  The Whipple 1993 Reynolds et al formula calculation is better (using non central or raw moments, not central moments).
-
-* Higher order moments need not be explicitly defined.
-    Only mean and size parameters are enough to define correlations of all order.
-    Implemented in the same way as in MAGIC.
-
-* Third and fourth order correlations implemented in hillas_1.
-
-* Sanity checks for size, x_y correlation
-  (HillasParameterizationError), length, width.
-
-* Parameter psi introduced in hillas_parameters_1: angle between
-  ellipse major axis and camera x-axis.
-
-* Correction in implementation of miss parameter of hillas_parameters_1.
-    Previous implementation missed a square root factor.
-
-* Correction in implementation of length, width in
-  hillas_parameters_2. Previous version missed a 2 in the denominator.
-
-* Implementation of Higher Order Moment Parameters in
-  hillas_parameters_1: Skewness, Kurtosis.
-
-* Implementation of Asymmetry. Alternative definition of asym using
-  higher order correlations mentioned in comments below asym.
-
+"""
+Hillas-style moment-based shower image parametrization.
 """
 
 from collections import namedtuple
@@ -892,6 +787,6 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
                             miss=miss*unit,
                             skewness=skewness, kurtosis=kurtosis)
 
-# use the 1 version by default. Version 2 has apparent differences.
-hillas_parameters = hillas_parameters_1
+# use the 4 version by default.
+hillas_parameters = hillas_parameters_4
 
