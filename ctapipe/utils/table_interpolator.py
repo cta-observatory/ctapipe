@@ -1,7 +1,33 @@
 """
+Table interpolation class, to allow interpolation of 2D images in any number of other 
+dimensions. Reads in an interim FITS table as defined below:
 
+Tables organised as a standard FITS image file with each table as an image HDU. 
+---------------
+First (primary) HDU must contain the following header entries:
 
+CRPIXx, CRVALx, CRDELTAx: Number, position and pixel spacing of the reference pixel in 
+the image. Where x is the axis number (1 or 2).
+
+GRIDVALS: Names of values describing the grid points
+e.g. GRIDVALS = ALT,AZ
+---------------
+Each HDU must contain a header entry containing the grid points described by GRIDVALS
+e.g. ALT =70
+AZI = 0
+
+It is also strongly recommended to include documentation for each interpolation 
+dimension containing at least the units. This entry ust begin with DOC, followed by the 
+dimension name
+e.g. DOCALT = "Altitude of event (deg)"
+
+TODO:
+    - Improve error handling
+    - Add option for caching nd interpolated value
+    - Better deal with edges of phase space
+    - Allow non-linear interpolation
 """
+
 from scipy import interpolate
 import numpy as np
 from astropy.io import fits
@@ -88,7 +114,7 @@ class TableInterpolator:
             for p in points:
                 print(p,":", primHDU["DOC"+p])
 
-        for hdu in file[1:]:
+        for hdu in file:
             template.append(hdu.data)
 
             hdu_pt = list()
