@@ -44,20 +44,20 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # First we create a dictionary of image template interpolators for each telescope type
         self.root_dir = root_dir
         self.prediction = dict()
-        self.file_names = {"GATE":"SST-GCT.table.gz", "LSTCam":"LST.table.gz",
+        self.file_names = {"GCT":"SST-GCT.table.gz", "LSTCam":"LST.table.gz",
                            "NectarCam":"MST.table.gz", "FlashCam":"MST.table.gz"}
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        self.shower_max = ShowerMaxEstimator('paranal')
+        #self.shower_max = ShowerMaxEstimator('paranal')
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 0.5}
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GCT": 0.5}
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.1, "GATE": 0.75}
+        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.1, "GCT": 0.75}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -127,7 +127,6 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         tel_num = 0
         for tel in self.image:
             top_index = self.image[tel].argsort()[-1*num_pix:][::-1]
-            print(top_index, self.pixel_x[tel][top_index], self.image[tel][top_index])
             weight = self.image[tel][top_index]
             weighted_x = self.pixel_x[tel][top_index] * weight
             weighted_y = self.pixel_y[tel][top_index] * weight
@@ -258,16 +257,14 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
-        print(self.array_direction[0])
         ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0*u.m)
         tilted = ground.transform_to(
-            TiltedGroundFrame(pointing_direction=
-                              HorizonFrame(alt=self.array_direction[0], az=self.array_direction[1])))
+            TiltedGroundFrame(pointing_direction=self.array_direction))
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
-        zenith = 90*u.deg - self.array_direction[0]
-        azimuth = self.array_direction[1]
+        zenith = 90*u.deg - self.array_direction.alt
+        azimuth = self.array_direction.az
 
         x_max_exp = 300 + 93 * np.log10(energy_reco.energy.value)
         x_max = shower_reco.h_max / np.cos(zenith)
@@ -327,20 +324,21 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # Currently not handled very well, maybe in future we could just put everything in the correct units
         # when loading in the class and ignore them from then on
 
-        zenith = 90*u.deg - self.array_direction[0]
-        azimuth = self.array_direction[1]
+        zenith = 90*u.deg - self.array_direction.alt
+        azimuth = self.array_direction.az
         # Geometrically calculate the depth of maximum given this test position
 
         if self.fit_xmax:
-            x_max = self.get_shower_max(source_x, source_y,
-                                        core_x, core_y,
-                                        zenith.to(u.rad).value) * x_max_scale
+            #x_max = self.get_shower_max(source_x, source_y,
+            #                            core_x, core_y,
+            #                            zenith.to(u.rad).value) * x_max_scale
 
             # Calculate expected Xmax given this energy
             x_max_exp = 300 + 93 * np.log10(energy)
 
             # Convert to binning of Xmax, addition of 100 can probably be removed
-            x_max_bin = x_max.value - x_max_exp
+            #x_max_bin = x_max.value - x_max_exp
+            x_max_bin = 0
 
             # Check for range
             if x_max_bin > 100:
@@ -475,7 +473,9 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
-
+        print(nominal_seed)
+        print(horizon_seed)
+        print(self.array_direction)
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
@@ -529,12 +529,14 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         shower_result.alt_uncert = np.nan
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
-        zenith = 90*u.deg - self.array_direction[0]
-        shower_result.h_max = fit_params["x_max_scale"] * \
-                              self.get_shower_max(fit_params["source_x"],fit_params["source_y"],
-                                                  fit_params["core_x"],fit_params["core_y"],
-                                                  zenith.to(u.rad).value)
-        shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
+        zenith = 90*u.deg - self.array_direction.alt
+        #shower_result.h_max = fit_params["x_max_scale"] * \
+        #                      self.get_shower_max(fit_params["source_x"],fit_params[
+        # "source_y"],
+         #                                         fit_params["core_x"],fit_params[
+        # "core_y"],
+         #                                         zenith.to(u.rad).value)
+        #shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
         shower_result.goodness_of_fit = np.nan
         shower_result.tel_ids = list(self.image.keys())
 
