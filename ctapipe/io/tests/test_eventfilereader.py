@@ -1,7 +1,7 @@
 from os.path import join
 from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
-    EventFileReaderFactory, HessioFileReader
+    EventFileReaderFactory, HessioFileReader, DstioFileReader
 
 
 def test_event_file_reader():
@@ -24,6 +24,20 @@ def test_hessio_file_reader():
     source = file.read()
     event = next(source)
     assert event.r0.tels_with_data == {38, 47}
+
+
+# TODO: Requires a dst test file
+# def test_dst_file_reader():
+#     dataset = get_dataset("gamma_test.simtel.gz")
+#     file = DstioFileReader(None, None, input_path=dataset)
+#     datasets_path = get_dataset("")
+#     assert file.input_path == join(datasets_path, "gamma_test.simtel.gz")
+#     assert file.directory == datasets_path
+#     assert file.extension == ".gz"
+#     assert file.filename == "gamma_test.simtel"
+#     source = file.read()
+#     event = next(source)
+#     assert event.r0.tels_with_data == {38, 47}
 
 
 def test_get_event():

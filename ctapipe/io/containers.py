@@ -78,9 +78,10 @@ class CameraCalibrationContainer(Container):
 
 class DL1Container(Container):
     """ DL1 Calibrated Camera Images and associated data"""
-    tel = Item(Map(DL1CameraContainer),
-               "map of tel_id to DL1CameraContainer")
-
+    run_id = Item(-1, "run id number")
+    event_id = Item(-1, "event id number")
+    tels_with_data = Item([], "list of telescopes with data")
+    tel = Item(Map(DL1CameraContainer), "map of tel_id to DL1CameraContainer")
 
 class R0CameraContainer(Container):
     """

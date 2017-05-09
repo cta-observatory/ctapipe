@@ -22,6 +22,16 @@ def test_hessio_r1_calibrator():
     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
 
 
+# TODO: Requires a dst test file
+# def test_dstio_r1_calibrator():
+#     telid = 11
+#     event = get_test_event()
+#     calibrator = HessioR1Calibrator(None, None)
+#     calibrator.calibrate(event)
+#     r1 = event.r1.tel[telid].pe_samples
+#     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
+
+
 def test_check_r0_exists():
     telid = 11
     event = get_test_event()
