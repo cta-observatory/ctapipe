@@ -79,7 +79,7 @@ Change to the directory where you cloned `ctapipe`, and type:
 .. code-block:: bash
 
        
-	conda env create -f environment.yml
+	conda env create -n cta-dev -f environment.yml
 
 	
 This will create a conda virtual environment called `cta-dev` with all
