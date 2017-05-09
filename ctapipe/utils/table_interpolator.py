@@ -1,15 +1,45 @@
-import pickle as pickle
+"""
+Table interpolation class, to allow interpolation of 2D images in any number of other 
+dimensions. Reads in an interim FITS table as defined below:
+
+Tables organised as a standard FITS image file with each table as an image HDU. 
+---------------
+First (primary) HDU must contain the following header entries:
+
+CRPIXx, CRVALx, CRDELTAx: Number, position and pixel spacing of the reference pixel in 
+the image. Where x is the axis number (1 or 2).
+
+GRIDVALS: Names of values describing the grid points
+e.g. GRIDVALS = ALT,AZ
+---------------
+Each HDU must contain a header entry containing the grid points described by GRIDVALS
+e.g. ALT =70
+AZI = 0
+
+It is also strongly recommended to include documentation for each interpolation 
+dimension containing at least the units. This entry ust begin with DOC, followed by the 
+dimension name
+e.g. DOCALT = "Altitude of event (deg)"
+
+TODO:
+    - Improve error handling
+    - Add option for caching nd interpolated value
+    - Better deal with edges of phase space
+    - Allow non-linear interpolation
+"""
+
 from scipy import interpolate
 import numpy as np
-import gzip
+from astropy.io import fits
+
 
 class TableInterpolator:
     """
-    This is a simple class for loading image templates from a pickle file and
-    interpolating between them to provide the model for impact_reco style fitting
+    This is a simple class for loading lookup tables from a fits file and
+    interpolating between them
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, verbose=1):
         """
         Initialisation of class to load templates from a file and create the interpolation
         objects
@@ -18,31 +48,83 @@ class TableInterpolator:
         ----------
         filename: string
             Location of Template file
+        verbose: int
+            Verbosity level,
+            0 = no logging
+            1 = File + interpolation point information
+            2 = Detailed description of interpolation points
         """
-        file = gzip.open(filename, 'rb')
-        tables = pickle.load(file, encoding='latin1')
-        template = np.asarray(list(tables.values()))
-        grid = np.asarray(list(tables.keys()))
-        self.interpolator = interpolate.LinearNDInterpolator(grid, template[:], fill_value=0)
+        self.verbose = verbose
+        if self.verbose:
+            print("Loading lookup tables from", filename)
+
+        grid, bins, template = self.parse_fits_table(filename)
+        x_bins, y_bins = bins
+
+        self.interpolator = interpolate.LinearNDInterpolator(grid, template, fill_value=0)
         self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
 
-        self.y_bounds = (-1.5, 1.5)
-        self.y_bin_width = (self.y_bounds[1]-self.y_bounds[0])/float(150)
-
-        self.x_bounds = (-5, 1.)
-        self.x_bin_width = (self.x_bounds[1] - self.x_bounds[0]) / float(300)
-
-        x_bins = np.arange(self.x_bounds[0]+(self.x_bin_width/2),
-                           self.x_bounds[1] + (self.x_bin_width / 2), self.x_bin_width)
-        y_bins = np.arange(self.y_bounds[0]+(self.y_bin_width/2),
-                           self.y_bounds[1] + (self.y_bin_width / 2), self.y_bin_width)
-
         self.grid_interp = interpolate.RegularGridInterpolator((x_bins, y_bins),
-                                                               np.zeros([x_bins.shape[0], y_bins.shape[0]]),
-                                                               method="linear", bounds_error=False, fill_value=0)
-        file.close()
+                                                               np.zeros([x_bins.shape[0],
+                                                                         y_bins.shape[0]]),
+                                                               method="linear",
+                                                               bounds_error=False,
+                                                               fill_value=0)
 
-        print("Tables Loaded from", filename)
+    def parse_fits_table(self, filename):
+        """
+        Function opens tables contained within fits files and parses them into a format 
+        recognisable by the interpolator.
+        
+        Parameters
+        ----------
+        filename: str
+            Name of table file
+
+        Returns
+        -------
+            tuple (grid points, bin centres, images)
+        """
+        file = fits.open(filename)
+        template = list()
+        grid = list()
+
+        primHDU = file[0].header  # We require first HDU to be primary
+
+        if self.verbose:
+            print("File contains")
+            print("Contains a total of", len(file), "tables of size", file[0].shape)
+
+        # Below definitions are standard
+        ix, iy = primHDU["CRPIX1"], primHDU["CRPIX2"]
+        val_x, val_y = primHDU["CRVAL1"], primHDU["CRVAL2"]
+        delta_x, delta_y = primHDU["CRDELTA1"], primHDU["CRDELTA2"]
+        nbins_x, nbins_y = primHDU["NAXIS1"], primHDU["NAXIS2"]
+        ix *= delta_x
+        iy *= delta_y
+
+        x_bins = np.arange(val_x-ix ,val_x+(delta_x*nbins_x)-ix, step=delta_x)
+        y_bins = np.arange(val_y-iy ,val_y+(delta_y*nbins_y)-iy, step=delta_y)
+        grid_vals = primHDU["GRIDVALS"]
+        points = grid_vals.split(",")
+
+        if self.verbose:
+            print("Interpolation point source be called in order", points)
+        if self.verbose>1:
+            for p in points:
+                print(p,":", primHDU["DOC"+p])
+
+        for hdu in file:
+            template.append(hdu.data)
+            
+            hdu_pt = list()
+            for p in points:
+                hdu_pt.append(hdu.header[p])
+            grid.append(np.array(hdu_pt))
+
+        bins = (x_bins, y_bins)
+
+        return grid, bins, template
 
     def interpolate(self, params, pixel_pos_x, pixel_pos_y):
         """

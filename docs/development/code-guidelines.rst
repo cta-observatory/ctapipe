@@ -34,6 +34,41 @@ errors, and these should be used frequently.
 If you use *PyCharm* as an IDE, there is also a GUI function to find
 and review all common code errors and style issues.
 
+Unit-tests
+----------
+
+A *unit test* is a piece of code that tests a single functionality of
+a library (e.g. a function, method, or class).
+
+All code your write should have associated *unit tests* to ensure the
+code works, gives resonable results, handles error cases properly, and
+to keep bugs at a minimum
+
+Unit tests in `ctapipe` use the `PyTest system
+<http://docs.pytest.org>`_ .  Each module should put tests in a
+`[module_name]/test` subdirectory, which can contain one or more files
+called `test_[X]` containing tests to run (these are automatically
+discovered by name).
+
+To run the test suite, you can run `make test` from the top-level
+ctapipe directory (which is just an alias to `python -m pytest`).  You
+can also run tests in subdirectories to limit which ones are run.
+
+Follow these basic guidelines:
+
+1. There should be at least a unit test that *executes* all
+   functions/classes/methods that you have written (minimally just
+   runs them)
+2. You should write tests that give simple inputs and check that the
+   expected output is returned
+3. Make sure to test edge and error cases for your functions
+   (e.g. test what happens if an unexpected but still valid input is
+   given)
+4. Any time you fix a bug, it is good practice to add a unit test to
+   make sure that bug does not appear again in the future (this is
+   called regression testing)
+
+
 Data Structures
 ---------------
 
@@ -125,9 +160,6 @@ tested and converted for each function call. For functions that are
 called frequently, it's best to enforce a unit earlier (e.g when the
 parameters are defined), and assume it.
    
-Unit-tests
-----------
-
 
 Writing Algorithms
 ------------------
