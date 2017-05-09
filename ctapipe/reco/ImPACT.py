@@ -23,9 +23,11 @@ from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
 
 
+__all__ = ['ImPACTFitter']
+
 class ImPACTFitter(RecoShowerGeomAlgorithm):
     """This class is an implementation if the impact_reco Monte Carlo
-    Template based image fitting method from [1]_.  This method uses a
+    Template based image fitting method from [parsons14]_.  This method uses a
     comparision of the predicted image from a library of image
     templates to perform a maximum likelihood fit for the shower axis,
     energy and height of maximum.
@@ -41,7 +43,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     References
     ----------
-    .. [1] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
+    .. [parsons14] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
 
     """
 
