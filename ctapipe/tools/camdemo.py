@@ -28,10 +28,10 @@ class CameraDemo(Tool):
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
                                    'much faster but may cause some draw '
                                    'artifacts)').tag(config=True)
-    camera = traits.Enum(CameraGeometry.get_known_camera_names(),
-                         default_value='LSTCam', help='Name of camera to '
-                                                      'display').tag(
-        config=True)
+    camera = traits.CaselessStrEnum(
+        CameraGeometry.get_known_camera_names(),
+        default_value='LSTCam',
+        help='Name of camera to display').tag(config=True)
 
     aliases = traits.Dict({'delay': 'CameraDemo.delay',
                            'cleanframes': 'CameraDemo.cleanframes',
@@ -46,7 +46,7 @@ class CameraDemo(Tool):
         self.imclean = False
 
     def start(self):
-        self.log.info("Starting Camera Display")
+        self.log.info("Starting CameraDisplay for {}".format(self.camera))
         self._display_camera_animation()
 
     def _display_camera_animation(self):
