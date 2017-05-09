@@ -8,7 +8,7 @@ import pytest
 
 
 def test_load_by_name():
-    for cam in ['NectarCam', 'LSTCam','GCT', 'SST-1M']:
+    for cam in ['NectarCam', 'LSTCam','GCT', 'SST-1m']:
         geom = CameraGeometry.from_name(cam)
     geom = CameraGeometry.from_name('HESSI', array_id='HESS')
 
