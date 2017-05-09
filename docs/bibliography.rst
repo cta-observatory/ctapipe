@@ -5,6 +5,8 @@ References
 	to weighted data in multi-dimensional space". Pattern
 	Recognition Letters 14.1 (1993), S. 1–6
 
+.. [denaurois2009] de Naurois et al, 2009
+	
 .. [vacanti94] G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11
 
 
