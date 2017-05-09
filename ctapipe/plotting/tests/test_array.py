@@ -2,7 +2,7 @@ from astropy import units as u
 import numpy as np
 from ctapipe.utils import get_dataset
 
-from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
+from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
