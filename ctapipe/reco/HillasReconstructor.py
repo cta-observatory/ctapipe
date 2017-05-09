@@ -5,7 +5,7 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 """
 
 from ctapipe.utils import linalg
-from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 
 from astropy.utils.decorators import deprecated
@@ -20,7 +20,7 @@ from astropy import units as u
 u.dimless = u.dimensionless_unscaled
 
 
-__all__ = ['FitGammaHillas',
+__all__ = ['HillasReconstructor',
            'TooFewTelescopesException',
            'dist_to_traces', 'MEst', 'GreatCircle']
 
@@ -180,7 +180,7 @@ def neg_angle_sum(origin, circles, weights):
     return -np.sum(weights * sin_ang)
 
 
-class FitGammaHillas(RecoShowerGeomAlgorithm):
+class HillasReconstructor(Reconstructor):
     '''
     class that reconstructs the direction of an atmospheric shower
     using a simple hillas parametrisation of the camera images it

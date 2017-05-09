@@ -1,5 +1,5 @@
 import numpy as np
-from ctapipe.reco.ImPACT import ImPACTFitter
+from ctapipe.reco.ImPACT import ImPACTReconstructor
 from ctapipe.utils import get_dataset
 import astropy.units as u
 from numpy.testing import assert_allclose
@@ -10,7 +10,7 @@ class TestImPACT():
 
     @classmethod
     def setup_class(self):
-        self.impact_reco = ImPACTFitter(root_dir=".", fit_xmax=True)
+        self.impact_reco = ImPACTReconstructor(root_dir=".", fit_xmax=True)
 
     @pytest.mark.skip('need a dataset for this to work')
     def test_brightest_mean_average(self):
@@ -54,11 +54,11 @@ class TestImPACT():
         x = np.array([1])
         y = np.array([0])
 
-        xt, yt = ImPACTFitter.rotate_translate(x,y,0,0,np.deg2rad(90))
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(90))
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = ImPACTFitter.rotate_translate(x,y,0,0,np.deg2rad(180))
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(180))
         assert_allclose(xt, -1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -67,7 +67,7 @@ class TestImPACT():
         x = np.array([0])
         y = np.array([0])
 
-        xt, yt = ImPACTFitter.rotate_translate(x, y, 1, 1, 0)
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 1, 1, 0)
         assert_allclose(xt, -1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
