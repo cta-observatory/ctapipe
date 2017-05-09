@@ -51,7 +51,7 @@ setup(name=PACKAGENAME,
       install_requires=[
           'astropy>=1.3',
           'iminuit',
-          'numpy>=1.12',
+          'numpy',
           'pytest_runner',
           'scipy>=0.19',
           'tables',
