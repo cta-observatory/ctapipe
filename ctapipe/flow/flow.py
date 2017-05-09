@@ -4,10 +4,8 @@ from os import path
 from time import time
 from time import sleep
 from pickle import dumps
-from traitlets import Bool
-from traitlets import List
-from traitlets import Dict
-from traitlets import Unicode
+from traitlets import Bool, List, Dict, Unicode, Enum
+
 from ctapipe.flow.multiprocessus.producer_zmq import ProducerZmq
 from ctapipe.flow.multiprocessus.stager_zmq import StagerZmq
 from ctapipe.flow.multiprocessus.consumer_zmq import ConsumerZMQ
@@ -97,26 +95,22 @@ class Flow(Tool):
     The router also manage Queue for each step.
     '''
     description = 'run stages in multiprocessus Flow based framework'
-    gui = Bool(False, help='send status to GUI').tag(
-        config=True, allow_none=True)
-    gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
-        config=True, allow_none=True)
-    mode = Unicode('sequential', help='Flow mode [sequential | multiprocessus]').tag(
-        config=True, allow_none=True)
-    producer_conf = Dict(
-        help='producer description: name , module, class',
-                                            allow_none=False).tag(config=True)
-    stagers_conf = List(
-        help='stagers list description in a set order:',
-         allow_none=False).tag(config=True)
+    gui = Bool(False, help='send status to GUI').tag( config=True)
+    gui_address = Unicode('localhost:5565', help='GUI adress and port')\
+                                                  .tag(config=True)
+    mode = Enum(['sequential','multiprocess'], default_vallue='sequential',
+                help='Flow mode', allow_none=True).tag(config=True)
+    producer_conf = Dict(help='producer description: name , module, class',
+                         allow_none=False).tag(config=True)
+    stagers_conf = List( help='stagers list description in a set order:',
+                         allow_none=False).tag(config=True)
     consumer_conf = Dict(
         default_value={'name': 'CONSUMER', 'class': 'Producer',
                        'module': 'producer',  'prev': 'STAGE1'},
         help='producer description: name , module, class',
                 allow_none=False).tag(config=True)
     ports_list = list(range(5555,5600,1))
-    zmq_ports = List(ports_list, help='ZMQ ports').tag(
-        config=True, allow_none=True)
+    zmq_ports = List(ports_list, help='ZMQ ports').tag(config=True)
     aliases = Dict({'gui_address': 'Flow.gui_address',
                     'mode':'Flow.mode','gui': 'Flow.gui'})
     examples = ('prompt%> ctapipe-flow \
@@ -312,7 +306,6 @@ class Flow(Tool):
             consumer_zmq = self.instantiation(self.consumer_step.name,
                                               self.CONSUMER,
                                               port_in=self.consumer_step.port_in,
-                                              port_in=self.consumer_step.port_in,
                                               config=self.consumer_conf)
         except FlowError as e:
             self.log.error(e)
@@ -349,7 +342,6 @@ class Flow(Tool):
         try:
             producer_zmq = self.instantiation(self.producer_step.name,
                                               self.PRODUCER,
-                                              connexions=self.producer_step.connexions,
                                               connexions=self.producer_step.connexions,
                                               main_connexion_name=self.producer_step.main_connexion_name,
                                               config=self.producer_conf)

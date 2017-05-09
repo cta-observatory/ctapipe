@@ -32,9 +32,9 @@ entry_points['console_scripts'] = [
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
     'ctapipe-flow = ctapipe.flow.flow:main',
-    'ctapipe-extract-chargeresolution = ctapipe.tools.extract_charge_resolution:main',
-    'ctapipe-plot-chargeresolution = ctapipe.tools.plot_charge_resolution:main',
-    'ctapipe-plot-chargeresolution-hist = '
+    'ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main',
+    'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
+    'ctapipe-chargeres-hist = '
     'ctapipe.tools.plot_charge_resolution_variation_hist:main',
     'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main'
 ]
@@ -50,7 +50,8 @@ setup(name=PACKAGENAME,
       # astropy already depends on it)
       install_requires=['astropy', 'scipy',
                         'traitlets', 'numpy',
-                        'tables', 'tqdm','iminuit'],
+                        'tables', 'tqdm','iminuit',
+                        'tables'],
       tests_require=['pytest', 'ctapipe-extra'],
       extras_require={
         'dev': [

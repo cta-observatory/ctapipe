@@ -1,3 +1,7 @@
+"""
+Extract data necessary to calcualte charge resolution from raw data files.
+"""
+
 import os
 
 import numpy as np
