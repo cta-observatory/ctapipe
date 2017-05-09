@@ -37,4 +37,4 @@ dependencies:
   - pytables  
   - tqdm
   - pip:
-      pytest_runner
+      - pytest_runner

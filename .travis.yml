@@ -1,8 +1,7 @@
 language: python
 
 python:
-    - 3.5
-    - 3.6
+    - 3.5  # not really used, since the anaconda one supercedes it
 
 before_install:
 
@@ -36,12 +35,13 @@ before_install:
 
 install:
 
-    - conda env create -n cta-dev -f environment.yml
+    - conda env create --quiet --force --name cta-dev --file environment.yml
     - source activate cta-dev
 
 script: make test
 
 after_script:
   - source deactivate
+
   
 
