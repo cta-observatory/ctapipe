@@ -116,7 +116,7 @@ class TableInterpolator:
 
         for hdu in file:
             template.append(hdu.data)
-
+            
             hdu_pt = list()
             for p in points:
                 hdu_pt.append(hdu.header[p])
