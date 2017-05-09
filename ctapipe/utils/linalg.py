@@ -4,7 +4,8 @@ from astropy import units as u
 import numpy as np
 from numpy import cos, sin, arctan2 as atan2, arccos as acos
 
-
+__all__ = ['rotate_around_axis', 'rotation_matrix_2d', 'length', 'normalise',
+    'angle','set_phi_theta', 'set_phi_theta_r']
 
 def rotation_matrix_2d(angle):
     """construct a 2D rotation matrix as a numpy NDArray that rotates a
@@ -23,7 +24,7 @@ def rotate_around_axis(vec, axis, angle):
         the initial vector with it
     
     Parameters
-    ---------
+    ----------
     vec  : length-3 numpy array
             3D vector to be rotated
     axis : length-3 numpy array
@@ -31,8 +32,8 @@ def rotate_around_axis(vec, axis, angle):
     angle : astropy angle quantity or float
             angle (in rad if float) by which vec is rotated around axis
     
-    Result
-    ------
+    Returns
+    -------
     rotated numpy array
     """
 
@@ -73,12 +74,12 @@ def angle(v1, v2):
     """ computes the angle between two vectors
         assuming carthesian coordinates
         
-    Parameters:
-    -----------
+    Parameters
+    ----------
     vec1 : numpy array
     vec2 : numpy array
     
-    Result:
+    Returns
     -------
     the angle between vec1 and vec2 as a dimensioned astropy quantity
     """
@@ -87,7 +88,7 @@ def angle(v1, v2):
 def set_phi_theta_r(phi, theta, r=1):
     """ sets a 3D vector according to the given angles
     
-    Parameters:
+    Parameters
     ----------
     phi : astropy.Quantity
     theta : astropy.Quantity
@@ -95,7 +96,7 @@ def set_phi_theta_r(phi, theta, r=1):
         the length of the vector
         can have a unit, doesn't have to
         
-    Result:
+    Returns
     -------
     numpy array with the given direction and length
     """

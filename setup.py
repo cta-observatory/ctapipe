@@ -31,7 +31,12 @@ entry_points['console_scripts'] = [
     'ctapipe-info = ctapipe.tools.info:main',
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
-    'ctapipe-flow = ctapipe.flow.flow:main'
+    'ctapipe-flow = ctapipe.flow.flow:main',
+    'ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main',
+    'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
+    'ctapipe-chargeres-hist = '
+    'ctapipe.tools.plot_charge_resolution_variation_hist:main',
+    'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main'
 ]
 
 package.version.update_release_version()
@@ -43,10 +48,11 @@ setup(name=PACKAGENAME,
       # these should be minimum list of what is needed to run (note
       # don't need to list the sub-dependencies like numpy, since
       # astropy already depends on it)
-      install_requires=['astropy', 'scipy', 'matplotlib',
-                        'scikit-learn', 'traitlets'],
-#      setup_requires=[, ],
-      tests_require=['pytest', ],
+      install_requires=['astropy', 'scipy',
+                        'traitlets', 'numpy',
+                        'tables', 'tqdm','iminuit',
+                        'tables'],
+      tests_require=['pytest', 'ctapipe-extra'],
       extras_require={
         'dev': [
             'pytest',
@@ -68,11 +74,9 @@ setup(name=PACKAGENAME,
       classifiers=[
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: BSD License',
-          'Operating System :: OS Independent',
           'Programming Language :: C',
           'Programming Language :: Cython',
           'Programming Language :: Python :: 3',
-          'Programming Language :: Python :: 3.4',
           'Programming Language :: Python :: Implementation :: CPython',
           'Topic :: Scientific/Engineering :: Astronomy',
           'Development Status :: 3 - Alpha',

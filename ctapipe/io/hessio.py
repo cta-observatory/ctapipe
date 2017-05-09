@@ -7,6 +7,7 @@ This requires the hessio python library to be installed
 import logging
 
 from .containers import DataContainer
+from ..core import Provenance
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -52,6 +53,7 @@ def hessio_get_list_event_ids(url, max_events=None):
     logger.warning("This method is slow. Need to find faster method.")
     try:
         with open_hessio(url) as pyhessio:
+            Provenance().add_input_file(url)
             counter = 0
             event_id_list = []
             eventstream = pyhessio.move_to_next_event()
@@ -93,6 +95,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
         with open_hessio(url) as pyhessio:
             # the container is initialized once, and data is replaced within
             # it after each yield
+            Provenance().add_input_file(url)
             counter = 0
             eventstream = pyhessio.move_to_next_event()
             if allowed_tels is not None:
@@ -139,7 +142,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     = pyhessio.get_central_event_teltrg_list()
                 time_s, time_ns = pyhessio.get_central_event_gps_time()
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
-                                          format='gps', scale='utc')
+                                          format='unix', scale='utc')
                 data.mc.energy = pyhessio.get_mc_shower_energy() * u.TeV
                 data.mc.alt = Angle(pyhessio.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(pyhessio.get_mc_shower_azimuth(), u.rad)
@@ -239,5 +242,9 @@ def _fill_instrument_info(data, pyhessio):
                 npix = pyhessio.get_num_pixels(tel_id)
                 data.inst.num_channels[tel_id] = nchans
                 data.inst.num_pixels[tel_id] = npix
+                data.inst.mirror_dish_area[tel_id] = \
+                    pyhessio.get_mirror_area(tel_id) * u.m ** 2
+                data.inst.mirror_numtiles[tel_id] = \
+                    pyhessio.get_mirror_number(tel_id)
             except HessioGeneralError:
                 pass

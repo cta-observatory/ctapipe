@@ -1,14 +1,13 @@
 # Makefile with some convenient quick ways to do common things
 
 PROJECT=ctapipe
-PYTHON=CTAPIPE_EXTRA_DIR=${PWD}/ctapipe-extra python
+PYTHON=python
 
 help:
 	@echo ''
 	@echo '$(PROJECT) available make targets:'
 	@echo ''
 	@echo '  help         Print this help message (the default)'
-	@echo '  init         Set up shell to use and work on ctapipe'
 	@echo '  develop      make symlinks to this package in python install dir'
 	@echo '  clean        Remove temp files'
 	@echo '  test         Run tests'
@@ -21,8 +20,7 @@ help:
 	@echo ''
 
 init:
-	git submodule init
-	git submodule update
+	@echo "'make init' is no longer needed"
 
 clean:
 	$(RM) -rf build docs/_build docs/api htmlcov
@@ -31,7 +29,7 @@ clean:
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	$(PYTHON) setup.py test
+	$(PYTHON) -m pytest
 
 doc:
 	cd docs && $(MAKE) html

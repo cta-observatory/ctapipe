@@ -1,11 +1,23 @@
 """
-Module containing the r1 calibration for the MC. This could be extended to have
-the r1 calibration for each telescope, if you want to be able to read in raw
-r0 telescope data.
+Calibrator for the R0 -> R1 data level transition.
+
+This module handles the calibration from the R0 data level to R1. This data
+level transition will be handled by the camera servers, not in the pipeline,
+however the pipeline can be used as a test-bench in the comissioning stage of
+the cameras.
+
+As the R1 calibration is camera specific, each camera (and seperately the MC)
+requires their own calibrator class with inherits from `CameraR1Calibrator`.
+`HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
+Through the use of `CameraR1CalibratorFactory`, the correct
+`CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
+of the data.
 """
 from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
+
+__all__ = ['HessioR1Calibrator', 'CameraR1CalibratorFactory']
 
 CALIB_SCALE = 1.05
 """
@@ -35,7 +47,7 @@ class CameraR1Calibrator(Component):
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
+        tool : ctapipe.core.Tool or None
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
@@ -103,11 +115,16 @@ class HessioR1Calibrator(CameraR1Calibrator):
 
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
-                samples = event.r0.tel[telid].adc_samples
-                n_samples = samples.shape[2]
-                pedestal = event.mc.tel[telid].pedestal / n_samples
+                try:
+                    samples = event.r0.tel[telid].adc_samples
+                    n_samples = samples.shape[2]
+                except IndexError:
+                    # To handle ASTRI
+                    samples = event.r0.tel[telid].adc_sums[..., None]
+                    n_samples = samples.shape[2]
+                ped = event.mc.tel[telid].pedestal / n_samples
                 gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
-                calibrated = (samples - pedestal[..., None]) * gain[..., None]
+                calibrated = (samples - ped[..., None]) * gain[..., None]
                 event.r1.tel[telid].pe_samples = calibrated
 
 
@@ -134,6 +151,8 @@ class CameraR1CalibratorFactory(Factory):
                             help='Path to a pedestal file').tag(config=True)
     tf_path = Unicode('', allow_none=True,
                       help='Path to a Transfer Function file').tag(config=True)
+    adc2pe_path = Unicode('', allow_none=True,
+                          help='Path to an adc2pe file').tag(config=True)
 
     def get_factory_name(self):
         return self.name

@@ -41,8 +41,10 @@ class GraphWidget(QWidget):
         qp.end()
 
     def pipechange(self, steps):
-        """Called by GuiConnexion instance when it receives zmq message from Flow.
+        """
+        Called by GuiConnexion instance when it receives zmq message from Flow.
         Update pipeline state (self.steps) and force to update drawing
+
         Parameters
         ----------
         steps: list of (StagerRep)
@@ -105,8 +107,8 @@ class GraphWidget(QWidget):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
         self.consumer_step
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         name : str Step name
 
         Returns

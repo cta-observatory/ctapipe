@@ -10,7 +10,8 @@ running.
 import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
-from ctapipe import io, visualization
+from ctapipe.instrument import CameraGeometry
+from ctapipe.visualization import CameraDisplay
 from ctapipe.image import toymodel
 from matplotlib.animation import FuncAnimation
 
@@ -20,8 +21,8 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     # load the camera
-    geom = io.CameraGeometry.from_name("hess", 1)
-    disp = visualization.CameraDisplay(geom, ax=ax)
+    geom = CameraGeometry.from_name("LSTCam")
+    disp = CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
     disp.add_colorbar(ax=ax)
 

@@ -14,13 +14,11 @@ is not a fast operation)
 import argparse
 import logging
 
-import astropy.units as u
 import numpy as np
-from ctapipe import visualization, io, reco
-from ctapipe.coordinates import CameraFrame, NominalFrame
-from ctapipe.instrument import InstrumentDescription as ID
+from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_example_simtelarray_file
+from ctapipe.utils import get_dataset
+from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 
 logging.basicConfig(level=logging.DEBUG)
@@ -58,7 +56,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='show single telescope')
     parser.add_argument('tel', metavar='TEL_ID', type=int)
     parser.add_argument('filename', metavar='EVENTIO_FILE', nargs='?',
-                        default=get_example_simtelarray_file())
+                        default=get_dataset("gamma_test_large.simtel.gz"))
     parser.add_argument('-m', '--max-events', type=int, default=10)
     parser.add_argument('-c', '--channel', type=int, default=0)
     parser.add_argument('-w', '--write', action='store_true',
@@ -67,16 +65,12 @@ if __name__ == '__main__':
                         help='show time-variablity, one frame at a time')
     parser.add_argument('--calibrate', action='store_true',
                         help='apply calibration coeffs from MC')
-    parser.add_argument('--hillas', action='store_true',
-                        help='apply hillas parameterization and cleaning')
     args = parser.parse_args()
 
     source = hessio_event_source(args.filename,
                                  allowed_tels=[args.tel, ],
                                  max_events=args.max_events)
     disp = None
-    tel,cam,opt = ID.load(args.filename)
-    print(tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel])
 
     print('SELECTING EVENTS FROM TELESCOPE {}'.format(args.tel))
     print('=' * 70)
@@ -90,10 +84,10 @@ if __name__ == '__main__':
 
         if disp is None:
             x, y = event.inst.pixel_pos[args.tel]
-            geom = io.CameraGeometry.guess(x, y,
-                                           event.inst.optical_foclen[args.tel])
+            focal_len = event.inst.optical_foclen[args.tel]
+            geom = CameraGeometry.guess(x, y, focal_len)
             print(geom.pix_x)
-            disp = visualization.CameraDisplay(geom, title='CT%d' % args.tel)
+            disp = CameraDisplay(geom, title='CT%d' % args.tel)
             #disp.enable_pixel_picker()
             disp.add_colorbar()
             plt.show(block=False)
@@ -121,29 +115,6 @@ if __name__ == '__main__':
             peds, gains = get_mc_calibration_coeffs(event, args.tel)
             im = apply_mc_calibration(im, peds, gains, args.tel)
             disp.image = im
-
-            if args.hillas:
-                clean_mask = ctapipe.image.cleaning.tailcuts_clean(geom, im, 1, picture_thresh=10, boundary_thresh=5)
-                camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m)
-
-                nom_coord = camera_coord.transform_to(NominalFrame(array_direction=[70*u.deg,0*u.deg],
-                                                           pointing_direction=[70*u.deg,0*u.deg],
-                                                           focal_length=tel['TelescopeTable_VersionFeb2016'][tel['TelescopeTable_VersionFeb2016']['TelID']==args.tel]['FL'][0]*u.m))
-
-                image = np.asanyarray(im * clean_mask, dtype=np.float64)
-
-                nom_x = nom_coord.x
-                nom_y = nom_coord.y
-
-                hillas = reco.hillas_parameters(x,y,im * clean_mask)
-                hillas_nom = reco.hillas_parameters(nom_x,nom_y,im * clean_mask)
-
-                print (hillas)
-                print (hillas_nom)
-
-                disp.image = im * clean_mask
-                disp.overlay_moments(hillas, color='seagreen', linewidth=3)
-                disp.set_limits_percent(70)
 
             plt.pause(1.0)
             if args.write:
