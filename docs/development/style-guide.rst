@@ -29,7 +29,9 @@ written in ReStructuredText format (same as the Sphinx high-level
 documentation), and should follow the `NumPy Docstring Standards
 <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt#docstring-standard>`_
 
-Documentation for all algorithms should contain references, which should be collected in `bibliography.rst`. An example of citing a reference in that file::
+Documentation for all algorithms should contain citations to external
+works, which should be collected in `bibliography.rst`. An example of
+citing a reference in that file::
 
   this algorithm is an implementaton of [author2003]_
 
