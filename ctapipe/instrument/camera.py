@@ -181,10 +181,10 @@ class CameraGeometry:
         """
         names = []
         pattern = "{}-(.*)\.camgeom.fits".format(array_id)
-        for resource in resource_listdir('ctapipe_resources', '/'):
+        for resource in resource_listdir('ctapipe_resources', ''):
             match = re.match(pattern, resource)
             if match:
-                names.append(match[1])
+                names.append(match.group(1))
         return names
 
 
