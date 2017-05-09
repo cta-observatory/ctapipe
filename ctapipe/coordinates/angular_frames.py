@@ -297,7 +297,7 @@ def altaz_to_nominal(altaz_coord, norm_coord):
     -------
     nominal Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.alt
+    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
     azimuth = altaz_coord.az
     altitude = altaz_coord.alt
     x_off, y_off = altaz_to_offset(azimuth, altitude, az_norm, alt_norm)
