@@ -1,4 +1,5 @@
 import pkg_resources
+from .VERSION import __version__
 
 
 __all__ = ['resource_filename', 'gamma_test_file']
