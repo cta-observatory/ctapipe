@@ -37,7 +37,7 @@ install:
 
     - conda env create --quiet --force --name cta-dev --file environment.yml
     - source activate cta-dev
-    - ulimit -s 16000
+    - ulimit -s 16000  # increase stack size limit, for libhessio
 
 script: make test
 
