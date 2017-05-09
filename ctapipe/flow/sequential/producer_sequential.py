@@ -57,11 +57,13 @@ class ProducerSequential():
         If type(result) is tuple, check if last tuple elem is a valid next step.
         If yes, return a destination defined to the last tuple elem and send result without the destination
         If no return None as destination
-        Parameter:
+        
+        Parameters
         ----------
         result : any type
             value to send (can contain next step name)
-        Return:
+            
+        Returns
         -------
         msg, destination
 
