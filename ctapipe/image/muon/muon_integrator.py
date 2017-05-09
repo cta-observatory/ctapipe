@@ -30,39 +30,32 @@ class MuonLineIntegrate:
 
     Expected 2D images can then be generated when the pixel geometry
     is passed to the class.
+
+    Parameters
+    ----------
+    mirror_radius: float
+        Radius of telescope mirror (circular approx)
+    hole_radius: float
+        Radius of telescope mirror hole (circular approx)
+    pixel_width: float
+        width of pixel in camera
+    oversample_bins: int
+        number of angular bins to evaluate for each pixel width
+    sct_flag: bool
+        flags whether the telescope uses Schwarzschild-Couder Optics
+    secondary_radius: float
+        Radius of the secondary mirror (circular approx) for dual
+        mirror telescopes
+    minlambda: float
+        minimum wavelength for integration (300nm typical)
+    maxlambda: float
+        maximum wavelength for integration (600nm typical)
+    photemit: float
+        1/lambda^2 integrated over the above defined wavelength range
+        multiplied by the fine structure constant (1/137)
     """
     def __init__(self, mirror_radius, hole_radius, pixel_width=0.2,
                  oversample_bins=3,sct_flag=False,secondary_radius=1.):
-        """Class initialisation funtion
-
-        Parameters
-        ----------
-        mirror_radius: float
-            Radius of telescope mirror (circular approx)
-        hole_radius: float
-            Radius of telescope mirror hole (circular approx)
-        pixel_width: float
-            width of pixel in camera
-        oversample_bins: int
-            number of angular bins to evaluate for each pixel width
-        sct_flag: bool
-            flags whether the telescope uses Schwarzschild-Couder Optics
-        secondary_radius: float
-            Radius of the secondary mirror (circular approx) for dual
-            mirror telescopes
-        minlambda: float
-            minimum wavelength for integration (300nm typical)
-        maxlambda: float
-            maximum wavelength for integration (600nm typical)
-        photemit: float
-            1/lambda^2 integrated over the above defined wavelength range
-            multiplied by the fine structure constant (1/137)
-
-        Returns
-        -------
-            None
-
-        """
 
         self.mirror_radius = mirror_radius
         self.hole_radius = hole_radius
@@ -122,7 +115,7 @@ class MuonLineIntegrate:
         angle: float
             Angle along which to integrate mirror
 
-        Returns:
+        Returns
         --------
         float: length from impact point to mirror edge
 
