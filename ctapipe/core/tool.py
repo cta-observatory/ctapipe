@@ -141,7 +141,7 @@ class Tool(Application):
         self.is_setup = False
 
 
-    def initialize(self, argv=""):
+    def initialize(self, argv=None):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
         if self.config_file != '':
@@ -170,9 +170,16 @@ class Tool(Application):
         after `start()` when `run()` is called."""
         self.log.info("Goodbye")
 
-    def run(self, argv=""):
+    def run(self, argv=None):
         """Run the tool. This automatically calls `initialize()`,
         `start()` and `finish()`
+
+        Parameters
+        ----------
+
+        argv: list(str)
+            command-line arguments, or None to get them 
+            from sys.argv automatically
         """
         try:
             self.initialize(argv)

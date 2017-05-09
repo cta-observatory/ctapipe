@@ -20,9 +20,9 @@ class CameraDemo(Tool):
     name = u"ctapipe-camdemo"
     description = "Display fake events in a demo camera"
 
-    delay = traits.Int(20, help="Frame delay in ms").tag(config=True)
+    delay = traits.Int(50, help="Frame delay in ms", min=20).tag(config=True)
     cleanframes = traits.Int(100, help="Number of frames between turning on "
-                                      "cleaning").tag(config=True)
+                                      "cleaning", min=0).tag(config=True)
     autoscale = traits.Bool(False, help='scale each frame to max if '
                                         'True').tag(config=True)
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
