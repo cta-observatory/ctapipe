@@ -7,12 +7,13 @@ telescope, and display it
 import numpy as np
 from astropy.table import Table
 from ctapipe.core import Tool
-from ctapipe.core.traits import (Unicode, Dict, Integer)
+from ctapipe.core.traits import *
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.visualization import CameraDisplay
 from ctapipe.instrument.camera import _guess_camera_type
 from matplotlib import pyplot as plt
+from ctapipe.calib import CameraCalibrator
 
 
 def get_camera_types(inst):
@@ -42,8 +43,20 @@ class ImageSumDisplayerTool(Tool):
     telgroup = Integer(help='telescope group number', default=1).tag(
         config=True)
 
+    max_events = Integer(help='stop after this many events if non-zero',
+                         default_value=0, min=0).tag(config=True)
+
+    output_suffix=Unicode(help='suffix (file extension) of output '
+                               'filenames to write images '
+                               'to (no writing is done if blank). '
+                               'Images will be named [EVENTID][suffix]' ,
+                          default_value="").tag(config=True)
+
     aliases = Dict({'infile': 'ImageSumDisplayerTool.infile',
-                    'telgroup': 'ImageSumDisplayerTool.telgroup'})
+                    'telgroup': 'ImageSumDisplayerTool.telgroup',
+                    'max-events': 'ImageSumDisplayerTool.max_events',
+                    'output-suffix': 'ImageSumDisplayerTool.output_suffix'})
+    classes = List([CameraCalibrator,])
 
     def setup(self):
         # load up the telescope types table (need to first open a file, a bit of
@@ -57,6 +70,7 @@ class ImageSumDisplayerTool(Tool):
         self.log.info("Telescope group %d: %s with %s camera", self.telgroup,
                       group[0]['tel_type'], group[0]['cam_type'])
         self.log.info("SELECTED TELESCOPES:{}".format(self._selected_tels))
+        self.calibrator = CameraCalibrator(self.config, self)
 
     def start(self):
         geom = None
@@ -65,7 +79,10 @@ class ImageSumDisplayerTool(Tool):
 
         for data in hessio_event_source(self.infile,
                                         allowed_tels=self._selected_tels,
-                                        max_events=None):
+                                        max_events=self.max_events):
+
+            self.calibrator.calibrate(data)
+
             if geom is None:
                 x, y = data.inst.pixel_pos[self._base_tel]
                 flen = data.inst.optical_foclen[self._base_tel]
@@ -75,19 +92,25 @@ class ImageSumDisplayerTool(Tool):
                 disp.add_colorbar()
                 disp.cmap = 'viridis'
 
-            if len(data.r0.tels_with_data) <= 2:
+            if len(data.dl0.tels_with_data) <= 2:
                 continue
 
             imsum[:] = 0
-            for telid in data.r0.tels_with_data:
-                imsum += data.r0.tel[telid].adc_sums[0]
+            for telid in data.dl0.tels_with_data:
+                imsum += data.dl1.tel[telid].image[0]
 
             self.log.info("event={} ntels={} energy={}" \
                           .format(data.r0.event_id,
-                                  len(data.r0.tels_with_data),
+                                  len(data.dl0.tels_with_data),
                                   data.mc.energy))
             disp.image = imsum
             plt.pause(0.1)
+
+            if self.output_suffix is not "":
+                filename = "{:020d}{}".format(data.r0.event_id,
+                                              self.output_suffix)
+                self.log.info("saving: '{}'".format(filename))
+                plt.savefig(filename)
 
 
 if __name__ == '__main__':
