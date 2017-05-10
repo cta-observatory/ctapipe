@@ -12,6 +12,7 @@ from ..core import Provenance
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+from astropy.utils.decorators import deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,12 @@ def build_event_id_list(url, max_events=None):
         raise RuntimeError("hessio_event_source failed to open '{}'"
                            .format(url))
 
+
+@deprecated(since='v0.5', alternative='simtelarray_event_source')
+def hessio_event_source(url, max_events=None, allowed_tels=None,
+                             requested_event=None, use_event_id=False):
+    return simtelarray_event_source(url, max_events, allowed_tels,
+                                    requested_event, use_event_id)
 
 def simtelarray_event_source(url, max_events=None, allowed_tels=None,
                              requested_event=None, use_event_id=False):
