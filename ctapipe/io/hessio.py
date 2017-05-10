@@ -27,11 +27,11 @@ except ImportError as err:
     raise err
 
 __all__ = [
-    'hessio_event_source',
+    'simtelarray_event_source',
 ]
 
 
-def hessio_get_list_event_ids(url, max_events=None):
+def build_event_id_list(url, max_events=None):
     """
     Faster method to get a list of all the event ids in the hessio file.
     This list can also be used to find out the number of events that exist
@@ -69,8 +69,8 @@ def hessio_get_list_event_ids(url, max_events=None):
                            .format(url))
 
 
-def hessio_event_source(url, max_events=None, allowed_tels=None,
-                        requested_event=None, use_event_id=False):
+def simtelarray_event_source(url, max_events=None, allowed_tels=None,
+                             requested_event=None, use_event_id=False):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -208,6 +208,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     pyhessio.get_altitude_cor(tel_id)
             yield data
             counter += 1
+
+            if requested_event is not None and current == requested_event:
+                return
 
             if max_events is not None and counter >= max_events:
                 pyhessio.close_file()

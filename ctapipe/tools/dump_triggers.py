@@ -108,7 +108,7 @@ class DumpTriggersTool(Tool):
 
     def start(self):
         """ main event loop """
-        source = hessio.hessio_event_source(self.infile)
+        source = hessio.simtelarray_event_source(self.infile)
 
         for event in source:
             self.add_event_to_table(event)

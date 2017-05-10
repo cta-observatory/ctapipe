@@ -9,7 +9,7 @@ from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.instrument import CameraGeometry
 
 
@@ -117,7 +117,7 @@ def test_FitGammaHillas():
     tel_phi = {}
     tel_theta = {}
 
-    source = hessio_event_source(filename)
+    source = simtelarray_event_source(filename)
 
     for event in source:
 

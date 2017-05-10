@@ -1,7 +1,7 @@
 from os.path import join
 from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
-    EventFileReaderFactory, HessioFileReader
+    EventFileReaderFactory, SimTelArrayFileReader
 
 
 def test_event_file_reader():
@@ -15,7 +15,7 @@ def test_event_file_reader():
 
 def test_hessio_file_reader():
     dataset = get_dataset("gamma_test.simtel.gz")
-    file = HessioFileReader(None, None, input_path=dataset)
+    file = SimTelArrayFileReader(None, None, input_path=dataset)
     datasets_path = get_dataset("")
     assert file.input_path == join(datasets_path, "gamma_test.simtel.gz")
     assert file.directory == datasets_path
@@ -28,7 +28,7 @@ def test_hessio_file_reader():
 
 def test_get_event():
     dataset = get_dataset("gamma_test.simtel.gz")
-    file = HessioFileReader(None, None, input_path=dataset)
+    file = SimTelArrayFileReader(None, None, input_path=dataset)
     event = file.get_event(2)
     assert event.count == 2
     assert event.r0.event_id == 803
@@ -39,7 +39,7 @@ def test_get_event():
 
 def test_get_num_events():
     dataset = get_dataset("gamma_test.simtel.gz")
-    file = HessioFileReader(None, None, input_path=dataset)
+    file = SimTelArrayFileReader(None, None, input_path=dataset)
     num_events = file.num_events
     assert(num_events == 9)
 

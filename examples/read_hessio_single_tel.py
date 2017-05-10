@@ -16,7 +16,7 @@ import logging
 
 import numpy as np
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.utils import get_dataset
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
@@ -67,9 +67,9 @@ if __name__ == '__main__':
                         help='apply calibration coeffs from MC')
     args = parser.parse_args()
 
-    source = hessio_event_source(args.filename,
-                                 allowed_tels=[args.tel, ],
-                                 max_events=args.max_events)
+    source = simtelarray_event_source(args.filename,
+                                      allowed_tels=[args.tel, ],
+                                      max_events=args.max_events)
     disp = None
 
     print('SELECTING EVENTS FROM TELESCOPE {}'.format(args.tel))

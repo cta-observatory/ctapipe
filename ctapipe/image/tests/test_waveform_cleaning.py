@@ -3,14 +3,14 @@ from numpy.testing import assert_almost_equal
 
 from ctapipe.image.waveform_cleaning import NullWaveformCleaner, \
     CHECMWaveformCleaner
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.utils import get_dataset
 
 
 def get_test_event():
     filename = get_dataset('gamma_test.simtel.gz')
-    source = hessio_event_source(filename, requested_event=409,
-                                 use_event_id=True)
+    source = simtelarray_event_source(filename, requested_event=409,
+                                      use_event_id=True)
     event = next(source)
     return event
 
