@@ -18,6 +18,7 @@ dependencies:
   - matplotlib
   - numba
   - numpy
+  - numpydoc
   - pyhessio
   - pytest
   - psutil
@@ -28,6 +29,7 @@ dependencies:
   - setuptools
   - sphinx
   - sphinx_rtd_theme
+  - sphinx-automodapi
   - traitlets
   - wheel
   - xz

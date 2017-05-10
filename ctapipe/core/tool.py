@@ -173,6 +173,13 @@ class Tool(Application):
     def run(self, argv=None):
         """Run the tool. This automatically calls `initialize()`,
         `start()` and `finish()`
+
+        Parameters
+        ----------
+
+        argv: list(str)
+            command-line arguments, or None to get them 
+            from sys.argv automatically
         """
         try:
             self.initialize(argv)

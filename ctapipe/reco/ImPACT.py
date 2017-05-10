@@ -17,15 +17,14 @@ from ctapipe.coordinates import (HorizonFrame,
 from ctapipe.image import poisson_likelihood_gaussian
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
-from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
 
+__all__ = ['ImPACTReconstructor']
 
-__all__ = ['ImPACTFitter']
-
-class ImPACTFitter(RecoShowerGeomAlgorithm):
+class ImPACTReconstructor(Reconstructor):
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from [parsons14]_.  This method uses a
     comparision of the predicted image from a library of image

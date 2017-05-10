@@ -12,7 +12,7 @@ __all__ = ['info']
 _dependencies = sorted(['astropy', 'matplotlib',
                         'numpy', 'traitlets',
                         'sklearn','scipy',
-                        'pytest'])
+                        'pytest', 'ctapipe_resources'])
 
 _optional_dependencies = sorted(['pytest','graphviz','pyzmq','iminuit',
                                  'fitsio','pyhessio','targetio'])
