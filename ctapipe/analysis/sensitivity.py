@@ -224,7 +224,7 @@ class SensitivityPointSource():
             you should provide this at some point if not done here
         energy_unit : astropy quantity, optional (default: u.TeV)
             your favourite energy unit
-        flux_unit : astropy quantity, optional (default: u.TeV / (u.m**2 * u.s))
+        flux_unit : astropy quantity, optional (default: 1 / (u.TeV * u.m**2 * u.s))
             your favourite differential flux unit
         """
 
@@ -242,7 +242,7 @@ class SensitivityPointSource():
                             generator_energy_hists={}
                             ):
         """
-        calculates the effective areas for gammas and protons and stores them in the
+        calculates the effective areas for the provided channels and stores them in the
         class instance
 
         Parameters
@@ -314,9 +314,9 @@ class SensitivityPointSource():
         Parameters
         ----------
         spectra : dictionary of functors, optional (default: 'g': `crab_source_rate`,
-            'p': `CR_background_rate`)
+                                                             'p': `CR_background_rate`)
             functions for the differential source and background rates
-        extensions : dictionary of astropy quantities, optional (defaults: {'p': 6*u.deg})
+        extensions : dictionary of astropy quantities, optional (default: {'p': 6*u.deg})
             opening angle of the view-cone the events have been generated in, if any
             don't set the key if a channel was generated as a point-source
             note: if you use an extension, the flux needs to accomodate that as well

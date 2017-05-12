@@ -149,7 +149,7 @@ def test_generate_toy_timestamps():
     assert len(time_stamps['p']) == Nthrows
     for st in time_stamps.values():
         assert (np.min(st) >= tmin) and (np.max(st) <= tmax)
-        np.testing.assert_allclose(np.mean(st), 2.5, atol=.1)
+        np.testing.assert_allclose(np.mean(st), 2.5, atol=.25)
 
 
 def test_draw_events_with_flux_weight():
