@@ -647,22 +647,21 @@ class SensitivityPointSource():
 
         return time_stamps
 
-    def draw_events_from_flux_histogram(self, spectrum_hists, energy_bin_edges):
+    @staticmethod
+    def draw_events_from_flux_histogram(mc_energies, spectrum_hists, energy_bin_edges):
 
         drawn_indices = {}
         for cl, h in spectrum_hists.items():
-            cum_sum = np.cumsum(h)
-            random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
+            cum_sum = np.insert(np.cumsum(h), 0, 0)
+
+            # rounding errors can make the sum slightly smaller than intended
+            # add a small epsilon to push above that number
+            random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]+1e-5))
 
             cumsum_indices = np.digitize(random_draws, cum_sum)
 
-            cum_sums_up = cum_sum[np.clip(cumsum_indices, 1, len(cum_sum)-1)]
-            cum_sums_lo = cum_sum[np.clip(cumsum_indices-1, 0, len(cum_sum)-2)]
-
-            energies_up = ((energy_bin_edges[cl][1:] +
-                            energy_bin_edges[cl][:-1])/2)[cumsum_indices]
-            energies_lo = ((energy_bin_edges[cl][1:] +
-                            energy_bin_edges[cl][:-1])/2)[cumsum_indices-1]
+            cum_sums_up = cum_sum[cumsum_indices]
+            cum_sums_lo = cum_sum[cumsum_indices-1]
 
             energies_up = energy_bin_edges[cl][cumsum_indices]
             energies_lo = energy_bin_edges[cl][cumsum_indices-1]
@@ -670,29 +669,20 @@ class SensitivityPointSource():
             drawn_energies = energies_lo + (random_draws-cum_sums_lo) * \
                 (energies_up-energies_lo) / (cum_sums_up-cum_sums_lo)
 
-            drawn_indices[cl] = np.argmin(np.abs(self.mc_energies[cl] -
+            drawn_indices[cl] = np.argmin(np.abs(mc_energies[cl] -
                                                  drawn_energies[:, np.newaxis]),
                                           axis=1)
         return drawn_indices
 
-    def draw_events_with_flux_weight(self, energy_reweight, N_draws):
+    @staticmethod
+    def draw_events_from_flux_weight(mc_energies, energy_weights, N_draws):
 
         drawn_indices = {}
-        for cl, weight in energy_reweight.items():
-            drawn_indices[cl] = np.random.choice(
-                                 range(len(self.mc_energies[cl])),
-                                 size=N_draws[cl],
-                                 p=weight(self.mc_energies[cl]))
+        for cl, weights in energy_weights.items():
+            drawn_indices[cl] = np.random.choice(range(len(mc_energies[cl])),
+                                                 size=N_draws[cl],
+                                                 p=weights)
         return drawn_indices
-
-    def draw_events_from_spectral_function(self, spectra, N_draws, energy_bin_edges):
-
-        spectrum_hists = {}
-        for cl, s in spectra.items():
-            spectrum_hists[cl] = make_mock_event_rate(spectra[cl],
-                                                      energy_bin_edges[cl],
-                                                      norm=N_draws[cl])
-        return self.draw_events_from_flux_histogram(spectrum_hists)
 
 
 def check_min_N(N, alpha=1, min_N=10):

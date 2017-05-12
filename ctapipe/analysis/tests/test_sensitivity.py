@@ -109,9 +109,9 @@ def test_generate_toy_timestamps():
 
     Nthrows = 500
 
-    time_stamps = Sensitivity_PointSource.\
-        generate_toy_timestamps(light_curve={'g': gamma_light_curve,
-                                             'p': Nthrows},
+    time_stamps = SensitivityPointSource.\
+        generate_toy_timestamps(light_curves={'g': gamma_light_curve,
+                                              'p': Nthrows},
                                 time_window=(tmin, tmax))
 
     assert len(time_stamps['g']) == int(np.sum(gamma_light_curve))
@@ -151,18 +151,11 @@ def test_draw_events_with_flux_weight():
         e_w = e**(gamma_old - gamma_new)
         return e_w / np.sum(e_w)
 
-    energy_edges = np.linspace(Emin, Emax, Nbin, True)
-
     energy_sel_gamma = np.random.uniform(Emin, Emax, 50000)
 
-    sens = Sensitivity_PointSource(
-                    mc_energies={'g': energy_sel_gamma},
-                    off_angles={},
-                    energy_bin_edges={"g": energy_edges},
-                    energy_unit=u.TeV, flux_unit=u.erg/(u.m**2*u.s))
-
-    indices = sens.draw_events_with_flux_weight(
-                        {'g': lambda e: weight_from_energy(e, 2, 0)},
+    indices = SensitivityPointSource.draw_events_from_flux_weight(
+                        {'g': energy_sel_gamma},
+                        {'g': weight_from_energy(energy_sel_gamma, 2, 0)},
                         {'g': Ndraws})
 
     assert len(energy_sel_gamma[indices['g']]) == Ndraws
@@ -170,37 +163,32 @@ def test_draw_events_with_flux_weight():
 
 
 def test_draw_events_from_flux_histogram():
-    from matplotlib import pyplot as plt
+    import scipy.stats
 
-    Emin = 20 * u.TeV
-    Emax = 50 * u.TeV
-    Nbin = 100
+    Emin = 20
+    Emax = 50
+    Nbin = 30
     Ndraws = 5000
 
-    energy_edges = np.linspace(Emin, Emax, Nbin, True) * u.TeV
-    energy_sel_gamma = np.random.uniform(Emin, Emax, 50000)
+    energy_edges = np.linspace(Emin, Emax, Nbin+1, True) * u.TeV
+    energy_sel_gamma = np.random.uniform(Emin, Emax, 50000) * u.TeV
 
     target_distribution = make_mock_event_rate(lambda e: (e/u.TeV)**-3,
                                                energy_edges,
                                                norm=Ndraws, log_e=False)
-    plt.figure()
-    plt.plot(energy_edges[:-1], target_distribution)
-    plt.pause(0.1)
 
-    sens = SensitivityPointSource(
-                    mc_energies={'g': energy_sel_gamma},
-                    off_angles={},
-                    energy_bin_edges={"g": energy_edges},
-                    energy_unit=u.TeV, flux_unit=u.erg/(u.m**2*u.s))
-
-    indices = sens.draw_events_from_flux_histogram(
+    indices = SensitivityPointSource.draw_events_from_flux_histogram(
+                        {'g': energy_sel_gamma},
                         {'g': target_distribution},
                         {'g': energy_edges})
 
-    plt.figure()
-    plt.hist(energy_sel_gamma[indices['g']], bins=energy_edges[::4])
-    plt.show()
+    hist, _ = np.histogram(energy_sel_gamma[indices['g']], bins=energy_edges[::])
+
+    # checking the χ² between `target_distribution` and the drawn one
+    chisquare = scipy.stats.chisquare(target_distribution, hist)[0]
+    # the test that the reduced χ² is close to 1 (tollorance of 1)
+    np.testing.assert_allclose([chisquare/Nbin], [1], atol=1)
 
 
 if __name__ == "__main__":
-    test_SensitivityPointSource()
+    test_generate_toy_timestamps()
