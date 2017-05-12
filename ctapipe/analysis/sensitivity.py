@@ -204,60 +204,34 @@ def diff_to_X_sigma(scale, N, alpha, X=5):
 class SensitivityPointSource():
     """
     class to calculate the sensitivity to a known point-source
-    TODO:
+    TODO extend sensitvity module
         • add extended source?
         • add pseudo experiment for low exposure times?
     """
-    def __init__(self, mc_energies, energy_bin_edges,
-                 off_angles=None,
-                 source_origin=None, event_origins=None, verbose=False,
+    def __init__(self, mc_energies=None, energy_bin_edges=None,
                  energy_unit=u.TeV, flux_unit=1/(u.TeV*u.m**2*u.s)):
         """
         constructor, simply sets some initial parameters
 
         Parameters
         ----------
-        mc_energies: dictionary of quantified numpy arrays
+        mc_energies: dictionary of quantified numpy arrays, optional
             lists of simulated energies of the selected events for each channel
-        energy_bin_edges : dictionary of numpy arrays
+            you should provide this at some point if not done here
+        energy_bin_edges : dictionary of numpy arrays, optional
             lists of the bin edges for the various histograms for each channel;
             assumes binning in log10(energy)
-        off_angles : dictionary of numpy arrays
-            lists of offset angles between the reconstructed direction and
-            the point-source direction for the events of each channel
-        source_origin : `astropy.coordinates.SkyCoord`, optional (default: None)
-            position in the sky of the assumed point-source
-        event_origins : dictionary of lists of `astropy.coordinates.SkyCoord`,
-                        optional (default: None)
-            lists of origins (*not* directions) of the reconstructed events
-            for each channel
+            you should provide this at some point if not done here
         energy_unit : astropy quantity, optional (default: u.TeV)
             your favourite energy unit
         flux_unit : astropy quantity, optional (default: u.TeV / (u.m**2 * u.s))
             your favourite differential flux unit
-
-        Notes
-        -----
-        use either `off_angles` directly, or let the constructor compute them itself
-        by using `source_origin` and `event_origins`
         """
-
-        assert (off_angles is not None) != (event_origins is not None), \
-            "use only 'off_angles' OR 'event_origins'"
-
-        if off_angles is not None:
-            self.off_angles = off_angles
-        else:
-            self.off_angles = {}
-            for cl in event_origins.keys():
-                self.off_angles[cl] = source_origin.separation(event_origins[cl])
 
         self.mc_energies = mc_energies
         self.energy_bin_edges = energy_bin_edges
 
         self.class_list = mc_energies.keys()
-
-        self.verbose = verbose
 
         self.energy_unit = energy_unit
         self.flux_unit = flux_unit
@@ -422,9 +396,11 @@ class SensitivityPointSource():
 
             # multiply these flat event weights by the flux to get weights corresponding
             # to the number of expected events from that flux
-            # the event weight should be unit-less; the .si call is to resolve any
-            # possible mixed units that can be reduced to 1
-            self.event_weights[cl] = (e_w * spectra[cl](self.mc_energies[cl])).si
+            # the event weight should be unit-less; the call to `dimensionless_unscaled`
+            # is an explicit test of this requirement and resolves any possible mixed
+            # units to unity
+            self.event_weights[cl] = \
+                (e_w * spectra[cl](self.mc_energies[cl])).to(dimensionless_unscaled)
 
             # now, for the fun of it, make an energy-binned histogram of the events
             self.exp_events_per_energy_bin[cl], _ = \
@@ -489,6 +465,13 @@ class SensitivityPointSource():
         sensitivities["Sensitivity"].unit = self.flux_unit
         sensitivities["Sensitivity_base"].unit = self.flux_unit
 
+        if hasattr(self, "event_weights"):
+            # in case we do have event weights, we sum them within the energy bin
+            count_events = lambda mask: np.sum(self.event_weights[cl][mask])
+        else:
+            # otherwise we simple check the length of the masked energy array
+            count_events = lambda mask: len(self.mc_energies[cl][mask])
+
         # loop over all energy bins
         # the bins are spaced logarithmically: use the geometric mean as the bin-centre,
         # so when plotted logarithmically, they appear at the middle between the bin-edges
@@ -507,9 +490,9 @@ class SensitivityPointSource():
 
                 # count the events as the sum of their weights within this energy bin
                 if cl in signal_list:
-                    N_events[0] += np.sum(self.event_weights[cl][e_mask])
+                    N_events[0] += count_events(e_mask)
                 else:
-                    N_events[1] += np.sum(self.event_weights[cl][e_mask])
+                    N_events[1] += count_events(e_mask)
 
             # if we have no counts in the on-region, there is no sensitivity
             if N_events[0] == 0:

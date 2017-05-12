@@ -1,10 +1,9 @@
 import numpy as np
-from numpy import allclose
 import astropy.units as u
 
 from ctapipe.analysis.sensitivity import SensitivityPointSource
 from ctapipe.analysis.sensitivity import (check_min_N, check_background_contamination,
-                                          CR_background_rate, Eminus2,
+                                          CR_background_rate, Eminus2, sigma_lima,
                                           make_mock_event_rate, crab_source_rate)
 
 
@@ -28,7 +27,7 @@ def test_check_background_contamination():
     assert N[1] / sum(N) == max_prot_ratio
 
 
-def test_SensitivityPointSource():
+def test_SensitivityPointSource_effective_area():
 
     # areas used in the event generator
     gen_area_g = np.pi*(1000*u.m)**2
@@ -43,12 +42,6 @@ def test_SensitivityPointSource():
     energy_sim_gamma  = np.logspace(2, 6, 400, False) * u.TeV
     energy_sim_elect  = np.logspace(2, 6, 400, False) * u.TeV
     energy_sim_proton = np.logspace(2, 6, 800, False) * u.TeV
-
-    # angular distance of the events from the "point-source"
-    # (randomise the order so they don't align with the energy arrays)
-    angles_gamma  = np.random.choice(np.logspace(-3, 1, 200)    , 200, False) * u.deg
-    angles_elect  = np.random.choice(np.logspace(-3, 1, 200)    , 200, False) * u.deg
-    angles_proton = np.random.choice(np.linspace(1e-3, 1e1, 400), 400, False) * u.deg
 
     # binning for the energy histograms
     energy_edges = np.logspace(2, 6, 41) * u.TeV
@@ -66,11 +59,9 @@ def test_SensitivityPointSource():
                     mc_energies={'g': energy_sel_gamma,
                                  'p': energy_sel_proton,
                                  'e': energy_sel_elect},
-                    off_angles={"g": angles_gamma, "p": angles_proton, 'e': angles_elect},
                     energy_bin_edges={"g": energy_edges,
                                       "p": energy_edges,
-                                      'e': energy_edges},
-                    energy_unit=u.TeV, flux_unit=1/(u.erg*u.m**2*u.s))
+                                      'e': energy_edges})
 
     # effective areas
     Sens.get_effective_areas(
@@ -81,16 +72,6 @@ def test_SensitivityPointSource():
                                      'p': gen_area_p,
                                      'e': gen_area_g})
 
-    Sens.generate_event_weights_histogram(
-                             spectra={'g': Eminus2,
-                                      'p': CR_background_rate,
-                                      'e': Eminus2},
-                             extensions={})
-
-    Sens.get_sensitivity(alpha=1, min_n=10, max_background_ratio=.05,
-                         sensitivity_energy_bin_edges=np.logspace(2, 6, 16,) * u.TeV,
-                         calc_sens_errors=False)
-
     # midway result are the effective areas
     eff_a = Sens.effective_areas
     eff_area_g, eff_area_p, eff_area_e = eff_a['g'], eff_a['p'], eff_a['e']
@@ -99,6 +80,28 @@ def test_SensitivityPointSource():
     # so effective areas should be half of generator areas, too
     np.testing.assert_allclose(eff_area_g.value, gen_area_g.value/2)
     np.testing.assert_allclose(eff_area_p.value, gen_area_p.value/2)
+
+
+def test_SensitivityPointSource_sensitivity():
+
+    alpha = 1
+    Nsig = 20
+    Nbgr = 10
+    energy_bin_edges = np.array([.1, 10])*u.TeV  # one bin with 1 TeV at the bin-centre
+    energies_sig = np.ones(Nsig)
+    energies_bgr = np.ones(Nbgr)
+    sens = SensitivityPointSource(
+            {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
+             'b': energies_bgr*u.TeV})  # all events have 1 TeV energy
+
+    sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"),
+                                       sensitivity_source_flux=crab_source_rate,
+                                       sensitivity_energy_bin_edges=energy_bin_edges)
+    # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
+    # be the scaling factor that needs to be applied on Nsig to produce a 5 sigma result
+    # in the lima formula
+    ratio = sensitivity["Sensitivity"][0]/(crab_source_rate(1*u.TeV)).value
+    np.testing.assert_allclose([sigma_lima(ratio*Nsig+Nbgr, Nbgr, alpha)], [5])
 
 
 def test_generate_toy_timestamps():
@@ -188,7 +191,3 @@ def test_draw_events_from_flux_histogram():
     chisquare = scipy.stats.chisquare(target_distribution, hist)[0]
     # the test that the reduced χ² is close to 1 (tollorance of 1)
     np.testing.assert_allclose([chisquare/Nbin], [1], atol=1)
-
-
-if __name__ == "__main__":
-    test_generate_toy_timestamps()
