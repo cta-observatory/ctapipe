@@ -1,5 +1,6 @@
 import numpy as np
 import astropy.units as u
+import scipy.stats
 
 from ctapipe.analysis.sensitivity import SensitivityPointSource
 from ctapipe.analysis.sensitivity import (check_min_N, check_background_contamination,
@@ -82,26 +83,53 @@ def test_SensitivityPointSource_effective_area():
     np.testing.assert_allclose(eff_area_p.value, gen_area_p.value/2)
 
 
-def test_SensitivityPointSource_sensitivity():
+def test_SensitivityPointSource_sensitivity_MC():
 
-    alpha = 1
+    alpha = 1.
     Nsig = 20
     Nbgr = 10
-    energy_bin_edges = np.array([.1, 10])*u.TeV  # one bin with 1 TeV at the bin-centre
+    energy_bin_edges = np.array([.1, 10])*u.TeV  # one bin with the bin-centre at 1 TeV
     energies_sig = np.ones(Nsig)
     energies_bgr = np.ones(Nbgr)
+
     sens = SensitivityPointSource(
             {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
              'b': energies_bgr*u.TeV})  # all events have 1 TeV energy
-
-    sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"),
+    sens.event_weights = {'s': energies_sig, 'b': energies_bgr}
+    sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"), mode="MC",
                                        sensitivity_source_flux=crab_source_rate,
                                        sensitivity_energy_bin_edges=energy_bin_edges)
+
     # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
     # be the scaling factor that needs to be applied on Nsig to produce a 5 sigma result
     # in the lima formula
     ratio = sensitivity["Sensitivity"][0]/(crab_source_rate(1*u.TeV)).value
-    np.testing.assert_allclose([sigma_lima(ratio*Nsig+Nbgr, Nbgr, alpha)], [5])
+    np.testing.assert_allclose([sigma_lima(ratio*Nsig+alpha*Nbgr, Nbgr, alpha)], [5])
+
+
+def test_SensitivityPointSource_sensitivity_data():
+
+    alpha = 1.
+    Non = 30
+    Noff = 10
+    energy_bin_edges = np.array([.1, 10])*u.TeV  # one bin with the bin-centre at 1 TeV
+    energies_sig = np.ones(Non)
+    energies_bgr = np.ones(Noff)
+
+    sens = SensitivityPointSource(
+            {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
+             'b': energies_bgr*u.TeV})  # all events have 1 TeV energy
+
+    sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"), mode="data",
+                                       sensitivity_source_flux=crab_source_rate,
+                                       sensitivity_energy_bin_edges=energy_bin_edges)
+
+    # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
+    # be the scaling factor that needs to be applied on Nsig to produce a 5 sigma result
+    # in the lima formula
+    ratio = sensitivity["Sensitivity"][0]/(crab_source_rate(1*u.TeV)).value
+    np.testing.assert_allclose([sigma_lima(ratio*(Non-Noff*alpha)+Noff,
+                                           Noff, alpha)], [5])
 
 
 def test_generate_toy_timestamps():
@@ -166,8 +194,6 @@ def test_draw_events_with_flux_weight():
 
 
 def test_draw_events_from_flux_histogram():
-    import scipy.stats
-
     Emin = 20
     Emax = 50
     Nbin = 30
