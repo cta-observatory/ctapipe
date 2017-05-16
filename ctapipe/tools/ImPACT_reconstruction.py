@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import scipy
 
@@ -19,6 +19,7 @@ from ctapipe.reco.ImPACT import ImPACTFitter
 from ctapipe.image import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
+from ctapipe import visualization
 
 from ctapipe.reco.FitGammaHillas import FitGammaHillas
 
@@ -64,11 +65,11 @@ class ImPACTReconstruction(Tool):
                         "GCT": 50}
 
         self.dist_cut = {"LSTCam": 2. * u.deg,
-                         "NectarCam": 3. * u.deg,
+                         "NectarCam": 3.3 * u.deg,
                          "FlashCam": 3. * u.deg,
-                         "GCT": 4. * u.deg}
+                         "GCT": 3.8 * u.deg}
 
-        self.tail_cut = {"LSTCam": (7, 14),
+        self.tail_cut = {"LSTCam": (8, 16),
                          "NectarCam": (7, 14),
                          "FlashCam": (7, 14),
                          "GCT": (3, 6)}
@@ -89,16 +90,18 @@ class ImPACTReconstruction(Tool):
                338, 345, 346, 347, 348, 349, 350, 375, 376, 377, 378, 379, 380, 393, 400,
                402, 403, 404, 405, 406, 408, 410,
                411, 412, 413, 414, 415, 416, 417]
+
         self.source = hessio_event_source(self.infile, allowed_tels=HB4)
 
         self.fit = FitGammaHillas()
-        self.ImPACT = ImPACTFitter("")
+        self.ImPACT = ImPACTFitter(fit_xmax=True)
         self.viewer = EventViewer(draw_hillas_planes=True)
 
         self.output = Table(names=['EVENT_ID', 'RECO_ALT', 'RECO_AZ',
-                                   'RECO_ENERGY', 'SIM_ALT', 'SIM_AZ', 'SIM_EN'],
+                                   'RECO_EN', 'SIM_ALT', 'SIM_AZ', 'SIM_EN', 'NTELS'],
                             dtype=[np.int64, np.float64, np.float64,
-                                   np.float64, np.float64, np.float64, np.float64])
+                                   np.float64, np.float64, np.float64, np.float64,
+                                   np.int16])
 
 
 
@@ -109,7 +112,7 @@ class ImPACTReconstruction(Tool):
             self.reconstruct_event(event)
 
     def finish(self):
-        self.output.write("out.fits")
+        self.output.write("Allout.fits")
 
         return True
 
@@ -152,7 +155,8 @@ class ImPACTReconstruction(Tool):
 
         # Cut based on Hillas amplitude and nominal distance
         if hillas.size > self.amp_cut[self.geoms[tel_id].cam_id] and dist < \
-                self.dist_cut[self.geoms[tel_id].cam_id]:
+                self.dist_cut[self.geoms[tel_id].cam_id] and \
+                        hillas.width>0*u.deg:
             return True
 
         return False
@@ -240,12 +244,12 @@ class ImPACTReconstruction(Tool):
             if self.preselect(moments, tel_id):
 
                 # Dialte around edges of image
-                for i in range(5):
+                for i in range(2):
                     dilate(self.geoms[tel_id], mask)
 
                 # Save everything in dicts for reconstruction later
-                pixel_area[tel_id] = self.geoms[tel_id].pix_area
-
+                pixel_area[tel_id] = self.geoms[tel_id].pix_area/(fl*fl)
+                pixel_area[tel_id] *= u.rad*u.rad
                 pixel_x[tel_id] = nom_coord.x[mask]
                 pixel_y[tel_id] = nom_coord.y[mask]
 
@@ -263,10 +267,6 @@ class ImPACTReconstruction(Tool):
 
         # Cut on number of telescopes remaining
         if len(image)>1:
-            #self.viewer.draw_event(event, hillas_nom)
-            #plt.show()
-
-            # Perform Hillas based reconstruction
             fit_result = self.fit.predict(hillas, event.inst, tel_phi, tel_theta)
 
             fit_result.core_x = scipy.random.normal(event.mc.core_x, 25 * u.m) * u.m
@@ -283,10 +283,12 @@ class ImPACTReconstruction(Tool):
                                              tel_type, tel_x, tel_y, array_pointing)
             ImPACT_shower, ImPACT_energy = self.ImPACT.predict(fit_result, energy_result)
 
+            print(ImPACT_shower, ImPACT_energy)
             # insert the row into the table
             self.output.add_row((event.dl0.event_id, ImPACT_shower.alt,
                                  ImPACT_shower.az, ImPACT_energy.energy,
-                                 event.mc.alt, event.mc.az, event.mc.energy))
+                                 event.mc.alt, event.mc.az, event.mc.energy, len(image)))
+
 def main():
     exe = ImPACTReconstruction()
     exe.run()
