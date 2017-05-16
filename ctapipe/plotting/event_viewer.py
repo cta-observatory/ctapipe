@@ -124,6 +124,7 @@ class EventViewer(Component):
 
                 nominal =  NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
                 nominal.draw_array()
+        self.nominal_view = nominal
 
         plt.show()
 
