@@ -21,9 +21,11 @@ from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
+from ctapipe.instrument import get_atmosphere_profile_functions
 
 
 __all__ = ['ImPACTFitter']
+
 
 class ImPACTFitter(RecoShowerGeomAlgorithm):
     """This class is an implementation if the impact_reco Monte Carlo
@@ -54,12 +56,13 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         self.root_dir = root_dir
         self.prediction = dict()
 
-        self.file_names = {"GCT":"SST-GCT.table.gz", "LSTCam":"LST.table.gz",
-                           "NectarCam":"MST.table.gz", "FlashCam":"MST.table.gz"}
+        self.file_names = {"GCT":"GCT.fits", "LSTCam":"LST.fits",
+                           "NectarCam":"MST.fits", "FlashCam":"MST.fits"}
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        #self.shower_max = ShowerMaxEstimator('paranal')
+        self.thickness_profile, self.altitude_profile = \
+            get_atmosphere_profile_functions('paranal')
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
@@ -67,7 +70,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.1, "GCT": 0.75}
+        self.scale = {"LSTCam": 1.4, "NectarCam": 1.4, "FlashCam": 1.4, "GCT": 1.3}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -213,7 +216,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.shower_max.interpolate(mean_height.to(u.km))
+        x_max = self.thickness_profile(mean_height.to(u.km))#self.shower_max.interpolate(mean_height.to(u.km))
+
         # Convert to slant depth
         x_max /= np.cos(zen)
 
@@ -302,7 +306,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         x_max = shower_reco.h_max / np.cos(zenith)
 
         # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = x_max.value - x_max_exp
+        x_max_bin = 0 #x_max.value - x_max_exp
         if x_max_bin > 100:
             x_max_bin = 100
         if x_max_bin < -100:
@@ -329,6 +333,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                            pix_y_rot * (180 / math.pi))
 
         prediction *= self.scale[self.type[tel_id]]
+        #prediction *= self.pixel_area[tel_id]
+
         prediction[prediction < 0] = 0
         prediction[np.isnan(prediction)] = 0
 
@@ -369,18 +375,17 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
-
         if self.fit_xmax:
-            #x_max = self.get_shower_max(source_x, source_y,
-            #                            core_x, core_y,
-            #                            zenith.to(u.rad).value) * x_max_scale
+            x_max = self.get_shower_max(source_x, source_y,
+                                        core_x, core_y,
+                                        zenith.to(u.rad).value) * x_max_scale
 
             # Calculate expected Xmax given this energy
             x_max_exp = 300 + 93 * np.log10(energy)
 
             # Convert to binning of Xmax, addition of 100 can probably be removed
-            #x_max_bin = x_max.value - x_max_exp
-            x_max_bin = 0
+            x_max_bin = x_max.value - x_max_exp
+            #x_max_bin = 0
 
             # Check for range
             if x_max_bin > 100:
@@ -421,6 +426,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
+            #prediction *= self.pixel_area[tel_count]
+
             # Get likelihood that the prediction matched the camera image
             like = poisson_likelihood_gaussian(self.image[tel_count],
                                                prediction,
@@ -501,7 +508,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
             self.tel_pos_x[x] = tel_x[x].value
             self.tel_pos_y[x] = tel_y[x].value
-            self.pixel_area[x] = pixel_area[x].value
+            self.pixel_area[x] = pixel_area[x].to(u.deg*u.deg).value
             # Here look up pedestal value
             self.ped[x] = self.ped_table[type_tel[x]]
 
@@ -614,13 +621,14 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         shower_result.core_uncert = np.nan
 
         zenith = 90*u.deg - self.array_direction.alt
-        #shower_result.h_max = fit_params["x_max_scale"] * \
-        #                      self.get_shower_max(fit_params["source_x"],fit_params[
-        # "source_y"],
-         #                                         fit_params["core_x"],fit_params[
-        # "core_y"],
-         #                                         zenith.to(u.rad).value)
-        #shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
+        shower_result.h_max = fit_params["x_max_scale"] * \
+                              self.get_shower_max(fit_params["source_x"],
+                                                  fit_params["source_y"],
+                                                  fit_params["core_x"],
+                                                  fit_params["core_y"],
+                                                  zenith.to(u.rad).value)
+
+        shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
 
         shower_result.goodness_of_fit = np.nan
         shower_result.tel_ids = list(self.image.keys())
