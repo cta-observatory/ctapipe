@@ -8,24 +8,24 @@ from ctapipe.analysis.sensitivity import (check_min_N, check_background_contamin
                                           make_mock_event_rate, crab_source_rate)
 
 
-def test_check_min_N():
-    N = [2, 2]
+def test_check_min_N(n_1=2, n_2=2):
+    N = [n_1, n_2]
 
     min_N = 10
 
-    scale = check_min_N(N, min_N=min_N)
+    scale = check_min_N(N, alpha=1, min_N=min_N)
 
-    assert sum(N) == min_N
+    assert sum(N) >= min_N
 
 
-def test_check_background_contamination():
-    N = [2, 2]
+def test_check_background_contamination(n_1=2, n_2=2):
+    N = [n_1, n_2]
 
     max_prot_ratio = .1
 
-    scale = check_background_contamination(N, max_prot_ratio=max_prot_ratio)
+    scale = check_background_contamination(N, alpha=1, max_prot_ratio=max_prot_ratio)
 
-    assert N[1] / sum(N) == max_prot_ratio
+    assert N[1] / sum(N) <= max_prot_ratio
 
 
 def test_SensitivityPointSource_effective_area():
@@ -35,37 +35,37 @@ def test_SensitivityPointSource_effective_area():
     gen_area_p = np.pi*(2000*u.m)**2
 
     # energy list of "selected" events
-    energy_sel_gamma  = np.logspace(2, 6, 200, False) * u.TeV
-    energy_sel_elect  = np.logspace(2, 6, 200, False) * u.TeV
+    energy_sel_gammas = np.logspace(2, 6, 200, False) * u.TeV
+    energy_sel_electr = np.logspace(2, 6, 200, False) * u.TeV
     energy_sel_proton = np.logspace(2, 6, 400, False) * u.TeV
 
     # energy list of "generated" events
-    energy_sim_gamma  = np.logspace(2, 6, 400, False) * u.TeV
-    energy_sim_elect  = np.logspace(2, 6, 400, False) * u.TeV
+    energy_sim_gammas = np.logspace(2, 6, 400, False) * u.TeV
+    energy_sim_electr = np.logspace(2, 6, 400, False) * u.TeV
     energy_sim_proton = np.logspace(2, 6, 800, False) * u.TeV
 
     # binning for the energy histograms
     energy_edges = np.logspace(2, 6, 41) * u.TeV
 
     # energy histogram for the generated events
-    energy_sim_hist_gamma = np.histogram(energy_sim_gamma,
+    energy_sim_hist_gamma = np.histogram(energy_sim_gammas,
                                          bins=energy_edges)[0]
-    energy_sim_hist_elect = np.histogram(energy_sim_elect,
+    energy_sim_hist_elect = np.histogram(energy_sim_electr,
                                          bins=energy_edges)[0]
     energy_sim_hist_proton = np.histogram(energy_sim_proton,
                                           bins=energy_edges)[0]
 
-    # constructer gets fed with energy and angular offset lists and desired energy binning
-    Sens = SensitivityPointSource(
-                    mc_energies={'g': energy_sel_gamma,
+    # constructer gets fed with energy lists and desired energy binning
+    sens = SensitivityPointSource(
+                    mc_energies={'g': energy_sel_gammas,
                                  'p': energy_sel_proton,
-                                 'e': energy_sel_elect},
-                    energy_bin_edges={"g": energy_edges,
-                                      "p": energy_edges,
+                                 'e': energy_sel_electr},
+                    energy_bin_edges={'g': energy_edges,
+                                      'p': energy_edges,
                                       'e': energy_edges})
 
     # effective areas
-    Sens.get_effective_areas(
+    sens.get_effective_areas(
                     generator_energy_hists={'g': energy_sim_hist_gamma,
                                             'p': energy_sim_hist_proton,
                                             'e': energy_sim_hist_elect},
@@ -74,7 +74,7 @@ def test_SensitivityPointSource_effective_area():
                                      'e': gen_area_g})
 
     # midway result are the effective areas
-    eff_a = Sens.effective_areas
+    eff_a = sens.effective_areas
     eff_area_g, eff_area_p, eff_area_e = eff_a['g'], eff_a['p'], eff_a['e']
 
     # "selected" events are half of the "generated" events
@@ -86,11 +86,11 @@ def test_SensitivityPointSource_effective_area():
 def test_SensitivityPointSource_sensitivity_MC():
 
     alpha = 1.
-    Nsig = 20
-    Nbgr = 10
+    n_sig = 20
+    n_bgr = 10
     energy_bin_edges = np.array([.1, 10])*u.TeV  # one bin with the bin-centre at 1 TeV
-    energies_sig = np.ones(Nsig)
-    energies_bgr = np.ones(Nbgr)
+    energies_sig = np.ones(n_sig)
+    energies_bgr = np.ones(n_bgr)
 
     sens = SensitivityPointSource(
             {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
@@ -101,20 +101,20 @@ def test_SensitivityPointSource_sensitivity_MC():
                                        sensitivity_energy_bin_edges=energy_bin_edges)
 
     # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
-    # be the scaling factor that needs to be applied on Nsig to produce a 5 sigma result
+    # be the scaling factor that needs to be applied to n_sig to produce a 5 sigma result
     # in the lima formula
     ratio = sensitivity["Sensitivity"][0]/(crab_source_rate(1*u.TeV)).value
-    np.testing.assert_allclose([sigma_lima(ratio*Nsig+alpha*Nbgr, Nbgr, alpha)], [5])
+    np.testing.assert_allclose([sigma_lima(ratio*n_sig+alpha*n_bgr, n_bgr, alpha)], [5])
 
 
 def test_SensitivityPointSource_sensitivity_data():
 
     alpha = 1.
-    Non = 30
-    Noff = 10
+    n_on = 30
+    n_off = 10
     energy_bin_edges = np.array([.1, 10])*u.TeV  # one bin with the bin-centre at 1 TeV
-    energies_sig = np.ones(Non)
-    energies_bgr = np.ones(Noff)
+    energies_sig = np.ones(n_on)
+    energies_bgr = np.ones(n_off)
 
     sens = SensitivityPointSource(
             {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
@@ -125,11 +125,11 @@ def test_SensitivityPointSource_sensitivity_data():
                                        sensitivity_energy_bin_edges=energy_bin_edges)
 
     # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
-    # be the scaling factor that needs to be applied on Nsig to produce a 5 sigma result
-    # in the lima formula
+    # be the scaling factor that needs to be applied to n_sig=n_on-n_off*alpha to produce
+    # a 5 sigma result  in the lima formula
     ratio = sensitivity["Sensitivity"][0]/(crab_source_rate(1*u.TeV)).value
-    np.testing.assert_allclose([sigma_lima(ratio*(Non-Noff*alpha)+Noff,
-                                           Noff, alpha)], [5])
+    np.testing.assert_allclose([sigma_lima(ratio*(n_on-n_off*alpha)+n_off*alpha,
+                                           n_off, alpha)], [5])
 
 
 def test_generate_toy_timestamps():
@@ -138,15 +138,15 @@ def test_generate_toy_timestamps():
 
     tmin, tmax = 0, 5
 
-    Nthrows = 500
+    n_throws = 500
 
     time_stamps = SensitivityPointSource.\
         generate_toy_timestamps(light_curves={'g': gamma_light_curve,
-                                              'p': Nthrows},
+                                              'p': n_throws},
                                 time_window=(tmin, tmax))
 
     assert len(time_stamps['g']) == int(np.sum(gamma_light_curve))
-    assert len(time_stamps['p']) == Nthrows
+    assert len(time_stamps['p']) == n_throws
     for st in time_stamps.values():
         assert (np.min(st) >= tmin) and (np.max(st) <= tmax)
         np.testing.assert_allclose(np.mean(st), 2.5, atol=.25)
@@ -154,66 +154,70 @@ def test_generate_toy_timestamps():
 
 def test_draw_events_with_flux_weight():
 
-    Emin = 20
-    Emax = 50
-    Nbin = 50
-    Ndraws = 10000
+    e_min = 20
+    e_max = 50
+    n_draws = 10000
 
-    def weight_from_energy(e, gamma_new=3, gamma_old=2):
-        """
-        use this to determine event weights (i.e. probabilities to get picked in the
-        random draw
+    energy = np.random.uniform(e_min, e_max, 50000)
 
-        Parameters
-        ----------
-        e : numpy array
-            the energies of the MC events
-        gamma_new : float
-            the spectral index the drawn set of events are supposed to follow
-        gamma_old : float
-            the spectral index the MC events have been generated with
+    gamma_old = 0  # since events are drawn from np.random.uniform
+    gamma_new = 3
 
-        Returns
-        -------
-        weights : numpy array
-            list of event weights normalised to 1
-            to be used as PDF in `np.random.choice`
-        """
-        e_w = e**(gamma_old - gamma_new)
-        return e_w / np.sum(e_w)
-
-    energy_sel_gamma = np.random.uniform(Emin, Emax, 50000)
+    # this is a simple approach on how to determine event weights (i.e. probabilities to
+    # get picked in the  random draw) to generate a set of events with a different energy
+    # spectrum
+    #
+    # Parameters
+    # ----------
+    # energy : numpy array
+    #     the energies of the MC events
+    # gamma_new : float
+    #     the spectral index the drawn set of events is supposed to follow
+    # gamma_old : float
+    #     the spectral index the MC events have been generated with
+    #     this is zero here but usually 2 in MC generators
+    #
+    # Returns
+    # -------
+    # weights : numpy array
+    #     list of event weights normalised to 1
+    #     to be used as PDF in `np.random.choice`
+    energy_weights = energy**(gamma_old - gamma_new)
+    energy_weights /= np.sum(energy_weights)
 
     indices = SensitivityPointSource.draw_events_from_flux_weight(
-                        {'g': energy_sel_gamma},
-                        {'g': weight_from_energy(energy_sel_gamma, 2, 0)},
-                        {'g': Ndraws})
+                        {'g': energy},
+                        {'g': energy_weights},
+                        {'g': n_draws})
 
-    assert len(energy_sel_gamma[indices['g']]) == Ndraws
+    assert len(energy[indices['g']]) == n_draws
     # TODO come up with more tests...
 
 
 def test_draw_events_from_flux_histogram():
-    Emin = 20
-    Emax = 50
-    Nbin = 30
-    Ndraws = 5000
 
-    energy_edges = np.linspace(Emin, Emax, Nbin+1, True) * u.TeV
-    energy_sel_gamma = np.random.uniform(Emin, Emax, 50000) * u.TeV
+    np.random.seed(1)
+
+    e_min = 20
+    e_max = 50
+    n_bins = 30
+    n_draws = 5000
+
+    energy_edges = np.linspace(e_min, e_max, n_bins+1, True) * u.TeV
+    energy = np.random.uniform(e_min, e_max, 50000) * u.TeV
 
     target_distribution = make_mock_event_rate(lambda e: (e/u.TeV)**-3,
                                                energy_edges,
-                                               norm=Ndraws, log_e=False)
+                                               norm=n_draws, log_e=False)
 
     indices = SensitivityPointSource.draw_events_from_flux_histogram(
-                        {'g': energy_sel_gamma},
+                        {'g': energy},
                         {'g': target_distribution},
                         {'g': energy_edges})
 
-    hist, _ = np.histogram(energy_sel_gamma[indices['g']], bins=energy_edges[::])
+    hist, _ = np.histogram(energy[indices['g']], bins=energy_edges[::])
 
     # checking the χ² between `target_distribution` and the drawn one
     chisquare = scipy.stats.chisquare(target_distribution, hist)[0]
     # the test that the reduced χ² is close to 1 (tollorance of 1)
-    np.testing.assert_allclose([chisquare/Nbin], [1], atol=1)
+    np.testing.assert_allclose([chisquare/n_bins], [1], atol=0.1)

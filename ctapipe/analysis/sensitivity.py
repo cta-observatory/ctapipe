@@ -14,8 +14,8 @@ __all__ = ["SensitivityPointSource"]
 
 def crab_source_rate(energy):
     '''
-    function for a pseudo-Crab point-source rate Crab source rate:
-        dN/dE = 3e-7  * (E/TeV)**-2.48 / (TeV * m² * s)
+    function for a pseudo-Crab point-source rate:
+        dN/dE = 3e-7  * (E/TeV)**-2.5 / (TeV * m² * s)
     (watch out: unbroken power law... not really true)
     norm and spectral index reverse engineered from HESS plot...
 
@@ -30,13 +30,12 @@ def crab_source_rate(energy):
         differential flux at E
 
     '''
-    # return 3e-7 * (energy/u.TeV)**-2.52 / (u.TeV * u.m**2 * u.s)
-    return 3e-7 * (energy/u.TeV)**-2.48 / (u.TeV * u.m**2 * u.s)
+    return 3e-7 * (energy/u.TeV)**-2.5 / (u.TeV * u.m**2 * u.s)
 
 
 def CR_background_rate(energy):
     '''
-    function of the cosmic ray spectrum Cosmic Ray background rate:
+    function for the Cosmic Ray background rate:
         dN/dE = 0.215 * (E/TeV)**-8./3 / (TeV * m² * s * sr)
     (simple power law, no knee/ankle)
     norm and spectral index reverse engineered from "random" CR plot...
@@ -146,11 +145,12 @@ def sigma_lima(Non, Noff, alpha=0.2):
     sum = Non + Noff
     arg1 = Non / sum
     arg2 = Noff / sum
-    term1 = Non * np.log((alpha1/alpha)*arg1)
-    if Noff == 0:
-        term2 = 0
-    else:
-        term2 = Noff * np.log(alpha1*arg2)
+    term1 = Non
+    term2 = Noff
+    if Non > 0:
+        term1 *= np.log((alpha1/alpha)*arg1)
+    if Noff > 0:
+        term2 *= np.log(alpha1*arg2)
     sigma = np.sqrt(2.0 * (term1 + term2))
 
     return sigma
@@ -188,7 +188,7 @@ def diff_to_X_sigma(scale, N, alpha, X=5):
         significance of `X` sigma
     """
 
-    Non = N[1]*alpha + N[0] * scale[0]
+    Non = N[1]*alpha + N[0]*scale[0]
     Noff = N[1]
     sigma = sigma_lima(Non, Noff, alpha)
     return (sigma-X)**2
@@ -201,32 +201,31 @@ def diff_to_X_sigma(scale, N, alpha, X=5):
 #  ##       ##       #########       ##       ##
 #  ##    ## ##       ##     ## ##    ## ##    ##
 #   ######  ######## ##     ##  ######   ######
-class SensitivityPointSource():
+class SensitivityPointSource:
     """
-    class to calculate the sensitivity to a known point-source
+    class to calculate effective areas and the sensitivity to a known point-source
     TODO extend sensitvity module
         • add extended source?
         • add pseudo experiment for low exposure times?
+        ✔ add methods for time stamp generation and energy sampling of events
+
+    Parameters
+    ----------
+    mc_energies: dictionary of quantified numpy arrays, optional
+        lists of simulated energies of the selected events for each channel
+        you should provide this at some point if not done here
+    energy_bin_edges : dictionary of numpy arrays, optional
+        lists of the bin edges for the various histograms for each channel;
+        assumes binning in log10(energy)
+        you should provide this at some point if not done here
+    energy_unit : astropy quantity, optional (default: u.TeV)
+        your favourite energy unit
+    flux_unit : astropy quantity, optional (default: 1 / (u.TeV * u.m**2 * u.s))
+        your favourite differential flux unit
     """
+
     def __init__(self, mc_energies=None, energy_bin_edges=None,
                  energy_unit=u.TeV, flux_unit=1/(u.TeV*u.m**2*u.s)):
-        """
-        constructor, simply sets some initial parameters
-
-        Parameters
-        ----------
-        mc_energies: dictionary of quantified numpy arrays, optional
-            lists of simulated energies of the selected events for each channel
-            you should provide this at some point if not done here
-        energy_bin_edges : dictionary of numpy arrays, optional
-            lists of the bin edges for the various histograms for each channel;
-            assumes binning in log10(energy)
-            you should provide this at some point if not done here
-        energy_unit : astropy quantity, optional (default: u.TeV)
-            your favourite energy unit
-        flux_unit : astropy quantity, optional (default: 1 / (u.TeV * u.m**2 * u.s))
-            your favourite differential flux unit
-        """
 
         self.mc_energies = mc_energies
         self.energy_bin_edges = energy_bin_edges
@@ -278,6 +277,9 @@ class SensitivityPointSource():
                                      "generated energy spectrum -- not both")
 
         if not generator_energy_hists:
+            # generate the histograms for the energy distributions of the Monte Carlo
+            # generated events given the generator spectra and the number of generated
+            # events
             for cl in self.class_list:
                 generator_energy_hists[cl] = make_mock_event_rate(
                                     generator_spectra[cl], norm=n_simulated_events[cl],
@@ -292,10 +294,13 @@ class SensitivityPointSource():
         # binning according to .energy_bin_edges[cl]
         self.selected_events = {}
 
+        # generate the histograms for the energy distributions of the selected events
         for cl in self.class_list:
             self.selected_events[cl] = np.histogram(self.mc_energies[cl],
                                                     bins=self.energy_bin_edges[cl])[0]
 
+            # the effective areas are the selection efficiencies per energy bin multiplied
+            # by the area in which the Monte Carlo events have been generated in
             efficiency = self.selected_events[cl] / self.generator_energy_hists[cl]
             self.effective_areas[cl] = efficiency * generator_areas[cl]
 
@@ -329,9 +334,6 @@ class SensitivityPointSource():
             weights for the selected events so that they are scaled to the number of
             expected events in `exp_events_per_energy_bin` for every energy bin
         """
-
-        # for book keeping
-        self.observation_time = observation_time
 
         # an energy-binned histogram of the number of events expected from the given flux
         # binning according to .energy_bin_edges[cl]
@@ -399,8 +401,12 @@ class SensitivityPointSource():
             # the event weight should be unit-less; the call to `dimensionless_unscaled`
             # is an explicit test of this requirement and resolves any possible mixed
             # units to unity
+            # QUESTION use `.si` to resolve mixed units to allow unified weights?
+            # e.g. `observation_time` could be set to `1` -- without unit -- to get
+            # `event_weights` in units of 1/time and be later multiplied by different
+            # observation times
             self.event_weights[cl] = \
-                (e_w * spectra[cl](self.mc_energies[cl])).to(dimensionless_unscaled)
+                (e_w * spectra[cl](self.mc_energies[cl])).to(u.dimensionless_unscaled)
 
             # now, for the fun of it, make an energy-binned histogram of the events
             self.exp_events_per_energy_bin[cl], _ = \
@@ -410,13 +416,13 @@ class SensitivityPointSource():
 
         return self.event_weights
 
-    def get_sensitivity(self, alpha, signal_list=("g"), mode="MC",
-                        sensitivity_energy_bin_edges=None,
+    def get_sensitivity(self, sensitivity_energy_bin_edges,
+                        alpha, signal_list=("g"), mode="MC",
                         sensitivity_source_flux=crab_source_rate,
-                        min_n=10, max_background_ratio=.05,
-                        calc_sens_errors=False):
+                        min_n=10, max_background_ratio=.05):
         """
         finally calculates the sensitivity to a point-source
+        TODO still need to implement statistical error on the sensitivity
 
         Parameters
         ----------
@@ -444,17 +450,12 @@ class SensitivityPointSource():
             is larger than this, scale up the gammas events accordingly
         sensitivity_source_flux : callable, optional (default: `crab_source_rate`)
             function of the flux the sensitivity is calculated with
-        calc_sens_errors : bool, optional (default: False)
-            calculates statistical error for every sensitivity point
 
         Returns
         -------
         sensitivities : astropy.table.Table
             the sensitivity for every energy bin of `sensitivity_energy_bin_edges`
         """
-
-        assert sensitivity_energy_bin_edges is not None, \
-            "sensitivity_energy_bin_edges has to be set"
 
         # sensitivities go in here
         sensitivities = Table(names=("MC Energy", "Sensitivity", "Sensitivity_base"))
@@ -467,10 +468,14 @@ class SensitivityPointSource():
 
         if hasattr(self, "event_weights"):
             # in case we do have event weights, we sum them within the energy bin
+            # count also the square of the weights for the error estimator
             count_events = lambda mask: np.sum(self.event_weights[cl][mask])
+            count_square = lambda mask: np.sum(self.event_weights[cl][mask]**2)
         else:
-            # otherwise we simple check the length of the masked energy array
+            # otherwise we simply check the length of the masked energy array
+            # since the weights are 1 here, `count_square` is the same as `count_events`
             count_events = lambda mask: len(self.mc_energies[cl][mask])
+            count_square = count_events
 
         # loop over all energy bins
         # the bins are spaced logarithmically: use the geometric mean as the bin-centre,
@@ -481,6 +486,7 @@ class SensitivityPointSource():
                                              sensitivity_energy_bin_edges[1:])):
 
             N_events = np.zeros(2)  # [on-signal, off-background]
+            variance = np.zeros(2)  # [on-signal, off-background]
 
             # count the (weights of the) events in the on and off regions for this
             # energy bin
@@ -491,19 +497,23 @@ class SensitivityPointSource():
                 # count the events as the sum of their weights within this energy bin
                 if cl in signal_list:
                     N_events[0] += count_events(e_mask)
+                    variance[0] += count_square(e_mask)
                 else:
                     N_events[1] += count_events(e_mask)
-
-            # if we have no counts in the on-region, there is no sensitivity
-            if N_events[0] == 0:
-                continue
+                    variance[1] += count_square(e_mask)
 
             if mode.lower() == "data":
                 # the background estimate for the on-region is `alpha` times the
-                # background in  the off-region
+                # background in the off-region
                 # if running on data, the signal estimate for the on-region is the counts
                 # in the on-region minus the background estimate for the on-region
                 N_events[0] -= N_events[1]*alpha
+
+            # If we have no counts in the on-region, there is no sensitivity.
+            # If on data the background estimate from the off-region is larger than the
+            # counts in the on-region, `sigma_lima` will break! Skip those cases, too.
+            if N_events[0] <= 0:
+                continue
 
             # find the scaling factor for the gamma events that gives a 5 sigma discovery
             # in this energy bin
@@ -652,6 +662,16 @@ class SensitivityPointSource():
             drawn_energies = energies_lo + (random_draws-cum_sums_lo) * \
                 (energies_up-energies_lo) / (cum_sums_up-cum_sums_lo)
 
+            # here be numpy magic:
+            # `drawn_energies[:, np.newaxis]` enables the broadcast to `mc_energies`
+            #
+            # `np.abs(mc_energies[cl] - drawn_energies[:, np.newaxis])` is a matrix
+            # containing the absolute difference between every drawn energy with every MC
+            # energy
+            #
+            # `np.argmin(X, axis=1)` returns the indices along the `mc_energies` axis of
+            # the elements with the smallest difference, i.e. these are the MC events with
+            # the energy closest to the randomly drawn energies
             drawn_indices[cl] = np.argmin(np.abs(mc_energies[cl] -
                                                  drawn_energies[:, np.newaxis]),
                                           axis=1)
