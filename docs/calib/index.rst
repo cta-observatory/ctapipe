@@ -16,11 +16,11 @@ It consists in four main sub-modules:
 
 * Camera Calibration (see :ref:`calib_camera`)
 
-* Array Calibration (see :ref:`calib_array`)
+* Array Calibration
 
-* Atmosphere Calibration (see :ref:`calib_atmo`)
+* Atmosphere Calibration
 
-* Pointing Calibration (see :ref:`calib_pointing`)
+* Pointing Calibration
 
 For more information on where you should implement your code, please have a look to the README.rst files inside each directory.
 

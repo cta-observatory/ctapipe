@@ -3,7 +3,7 @@
 import sys
 import matplotlib.pyplot as plt
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_datasets_path
+from ctapipe.utils import get_dataset
 from ctapipe.calib import pedestals
 import numpy as np
 
@@ -12,11 +12,11 @@ def plot_peds(peds, pedvars):
     pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
     plt.scatter(pixid, peds)
-    plt.title("Pedestals for event {}".format(event.dl0.event_id))
+    plt.title("Pedestals for event {}".format(event.r0.event_id))
 
     plt.subplot(1, 2, 2)
     plt.scatter(pixid, pedvars)
-    plt.title("Ped Variances for event {}".format(event.dl0.event_id))
+    plt.title("Ped Variances for event {}".format(event.r0.event_id))
 
 
 if __name__ == '__main__':
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_datasets_path("gamma_test.simtel.gz")
+        filename = get_dataset("gamma_test.simtel.gz")
 
     # set a fixed window (for now from samples 20 to the end), which may not
     # be appropriate for all telescopes (this should eventually be
@@ -38,12 +38,13 @@ if __name__ == '__main__':
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
     for event in hessio_event_source(filename):
-        for telid in event.dl0.tels_with_data:
-            for chan in event.dl0.tel[telid].adc_samples.keys():
+        for telid in event.r0.tels_with_data:
+            for chan in range(event.r0.tel[telid].adc_samples.shape[0]):
 
                 print("CT{} chan {}:".format(telid, chan))
 
-                traces = event.dl0.tel[telid].adc_samples[chan]
+                traces = event.r0.tel[telid].adc_samples[chan,...]
+
                 peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
                                                                      start,
                                                                      end)

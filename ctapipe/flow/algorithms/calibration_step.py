@@ -1,4 +1,4 @@
-from ctapipe.calib.camera.calibrators import calibrate_event
+from ctapipe.calib.camera.dl1 import calibrate_event
 from ctapipe.core import Component
 from traitlets import Unicode
 from traitlets import Int
@@ -52,8 +52,8 @@ class CalibrationStep(Component):
             self.log.debug("--- CalibrationStep RUN --- event {}".format(event.dl0.event_id))
             geom_dict = {}
             calibrated_event = calibrate_event(event,self.parameters,geom_dict)
-            #for tel_id in calibrated_event.dl0.tels_with_data:
-            #    signals = calibrated_event.dl1.tel[tel_id].pe_charge
+            #for tel_id in calibrated_event.r0.tels_with_data:
+            #    signals = calibrated_event.dl1.tel[tel_id].calibrated_image
             #    cmaxmin = (max(signals) - min(signals))
             self.log.debug("--- CalibrationStep STOP ---")
             return ([calibrated_event,geom_dict])

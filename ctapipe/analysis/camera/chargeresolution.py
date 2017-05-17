@@ -1,10 +1,17 @@
-from astropy import log
-import numpy as np
+import pickle
 from math import log10, sqrt
-from scipy.stats import binned_statistic
+from os import makedirs
+from os.path import dirname, exists
 
+import numpy as np
+from scipy.stats import binned_statistic as bs
 
-class ChargeResolution:
+from ctapipe.core import Component
+from ctapipe.core.traits import Int, Bool
+
+__all__ = ['ChargeResolutionCalculator',]
+
+class ChargeResolutionCalculator(Component):
     """
     Class to handle the calculation of Charge Resolution.
 
@@ -26,14 +33,40 @@ class ChargeResolution:
     variation_yedges : ndarray
         Edges of the Y bins for the variation histogram.
     """
-    def __init__(self, max_pe):
+    name = 'ChargeResolutionCalculator'
+
+    max_pe = Int(2000, help='Maximum pe to calculate the charge resolution '
+                            'up to').tag(config=True)
+    binning = Int(60, allow_none=True,
+                  help='Number of bins for the Charge Resolution. If None, '
+                       'no binning is performed.').tag(config=True)
+    log_bins = Bool(True, help='Bin the x axis linearly instead of '
+                               'logarithmic.').tag(config=True)
+
+    def __init__(self, config, tool, **kwargs):
         """
+        Calculator of charge resolution.
+
         Parameters
         ----------
-        max_pe : int
-            Maximum pe to calculate the charge resolution up to.
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        reductor : ctapipe.calib.camera.reductors.Reductor
+            The reductor to use to reduce the waveforms in the event.
+            By default no data volume reduction is applied, and the dl0 samples
+            will equal the r1 samples.
+        kwargs
         """
-        self.max_pe = max_pe
+        super().__init__(config=config, parent=tool, **kwargs)
+
+        self.sum_array = np.zeros(self.max_pe)
+        self.n_array = np.zeros(self.max_pe)
         self.sum_dict = {}
         self.n_dict = {}
 
@@ -57,70 +90,25 @@ class ChargeResolution:
         ----------
         true_charge : ndarray
             Array of true (MC) charge.
+            Obtained from event.mc.tel[telid].image[channel]
         measured_charge : ndarray
-               Array of measured (calibrated) charge.
+            Array of measured (dl1 calibrated) charge.
+            Obtained from event.mc.tel[tel_id].photo_electron_image
         """
-        x = true_charge[(measured_charge > 0) & (true_charge > 0)]
-        y = measured_charge[(measured_charge > 0) & (true_charge > 0)]
+        above_0 = (measured_charge > 0) & (true_charge > 0)
+        x = true_charge[above_0]
+        y = measured_charge[above_0]
         h, _, _ = np.histogram2d(np.log10(y),
                                  np.log10(x),
                                  bins=self.variation_hist_nbins,
                                  range=self.variation_hist_range)
         self.variation_hist += h
-        for trueq in np.unique(true_charge):
-            if trueq == 0 or trueq > self.max_pe:
-                continue
-            relevant_q = measured_charge[true_charge == trueq]
-            if trueq not in self.sum_dict:
-                self.sum_dict[trueq] = 0
-                self.n_dict[trueq] = 0
-            self.sum_dict[trueq] += np.sum(np.power(relevant_q - trueq, 2))
-            self.n_dict[trueq] += relevant_q.size
 
-    def add_source(self, calibrated_source, telescopes=None):
-        """
-        Fill the class parameters with a calibrated source.
-
-        Parameters
-        ----------
-        calibrated_source : ndarray
-            `ctapipe.calib.camera.calibrators.calibrate_source` generator.
-        telescopes : list
-               List of telescopes to include into the charge resolution.
-               If None, all telescopes will be included.
-        """
-        log.info('[chargeres] Adding source')
-        for event in calibrated_source:
-            tels = list(event.dl0.tels_with_data)
-            if telescopes is not None:
-                tels = []
-                for tel in telescopes:
-                    if tel in event.dl0.tels_with_data:
-                        tels.append(tel)
-
-            # Check source has required information
-            if event.count == 0:
-                # Check source is calibrated
-                try:
-                    if 'dl1' not in event:
-                        raise KeyError
-                except KeyError:
-                    log.exception('[chargeres] Source has not been calibrated')
-                    raise
-
-                # Check events have true charge included
-                try:
-                    if np.all(event.mc.tel[tels[0]].photo_electrons == 0):
-                        raise KeyError
-                except KeyError:
-                    log.exception('[chargeres] Source does not '
-                                  'contain true charge')
-                    raise
-
-            for telid in tels:
-                true_charge = event.mc.tel[telid].photo_electrons
-                measured_charge = event.dl1.tel[telid].pe_charge
-                self.add_charges(true_charge, measured_charge)
+        in_range = (true_charge > 0) & (true_charge <= self.max_pe)
+        true_q = true_charge[in_range]
+        measured_q = measured_charge[in_range]
+        np.add.at(self.sum_array, true_q - 1, np.power(measured_q - true_q, 2))
+        np.add.at(self.n_array, true_q - 1, 1)
 
     def get_charge_resolution(self):
         """
@@ -139,67 +127,41 @@ class ChargeResolution:
         scaled_chargeres_error : ndarray
             The error on the charge resolution divided by the Goal.
         """
-        log.debug('[chargeres] Calculating charge resolution')
-        true_charge = np.fromiter(iter(self.sum_dict.keys()), dtype=int)
-        summed_charge = np.fromiter(iter(self.sum_dict.values()), dtype=float)
-        num = np.fromiter(iter(self.n_dict.values()), dtype=int)
+        self.log.debug('[chargeres] Calculating charge resolution')
 
-        chargeres = np.sqrt((summed_charge / num) + true_charge) / true_charge
-        chargeres_error = chargeres * (1 / np.sqrt(2 * num))
+        n_1 = self.n_array > 0
+        n = self.n_array[n_1]
+        true = (np.arange(self.max_pe) + 1)[n_1]
+        sum_ = self.sum_array[n_1]
 
-        scale = self.goal(true_charge)
-        scaled_chargeres = chargeres/scale
-        scaled_chargeres_error = chargeres_error/scale
+        res = np.sqrt((sum_ / n) + true) / true
+        res_error = res * (1 / np.sqrt(2 * n))
 
-        return true_charge, chargeres, chargeres_error, \
-            scaled_chargeres, scaled_chargeres_error
+        scale = self.goal(true)
+        scaled_res = res / scale
+        scaled_res_error = res_error / scale
 
-    def get_binned_charge_resolution(self, logarithmic_binning=True):
-        """
-        Calculate and obtain the charge resolution graph arrays, and bin them.
+        if self.binning is not None:
+            x = true
+            if self.log_bins:
+                x = np.log10(true)
 
-        Parameters
-        ----------
-        logarithmic_binning : bool
-            If True, binning is performed in logarithmic space.
+            def binning(array):
+                return bs(x, array, 'mean', bins=self.binning)
 
-        Returns
-        -------
-        bin_true_charge : ndarray
-            The X axis true charges.
-        bin_chargeres : ndarray
-            The Y axis charge resolution values.
-        bin_chargeres_error : ndarray
-            The error on the charge resolution.
-        bin_scaled_chargeres : ndarray
-            The Y axis charge resolution divided by the Goal.
-        bin_scaled_chargeres_error : ndarray
-            The error on the charge resolution divided by the Goal.
-        """
-        true_charge, chargeres, chargeres_error, scaled_chargeres, \
-            scaled_chargeres_error = self.get_charge_resolution()
+            def sum_errors(array):
+                return np.sqrt(np.sum(np.power(array, 2))) / array.size
 
-        x = true_charge
-        if logarithmic_binning:
-            x = np.log10(true_charge)
+            def bin_errors(array):
+                return bs(x, array, sum_errors, bins=self.binning)
 
-        def binning(array):
-            return binned_statistic(x, array, 'mean', bins=60)
+            true, _, _ = binning(true)
+            res, _, _ = binning(res)
+            res_error, _, _ = bin_errors(res_error)
+            scaled_res, _, _ = binning(scaled_res)
+            scaled_res_error, _, _ = bin_errors(scaled_res_error)
 
-        def sum_errors(array):
-            return np.sqrt(np.sum(np.power(array, 2)))/array.size
-
-        def bin_errors(array):
-            return binned_statistic(x, array, sum_errors, bins=60)
-
-        bin_true_charge, _, _ = binning(true_charge)
-        bin_chargeres, _, _ = binning(chargeres)
-        bin_chargeres_error, _, _ = bin_errors(chargeres_error)
-        bin_scaled_chargeres, _, _ = binning(scaled_chargeres)
-        bin_scaled_chargeres_error, _, _ = bin_errors(scaled_chargeres_error)
-
-        return bin_true_charge, bin_chargeres, bin_chargeres_error, \
-            bin_scaled_chargeres, bin_scaled_chargeres_error
+        return true, res, res_error, scaled_res, scaled_res_error
 
     @staticmethod
     def limit_curves(npe, n_nsb, n_add, enf, sigma2):
@@ -223,7 +185,7 @@ class ChargeResolution:
             Percentage ofmultiplicative errors.
         """
         return (np.sqrt((n_nsb + n_add) + np.power(enf, 2) * npe +
-                np.power(sigma2 * npe, 2)) / npe).astype(float)
+                        np.power(sigma2 * npe, 2)) / npe).astype(float)
 
     @staticmethod
     def requirement(npe):
@@ -244,8 +206,8 @@ class ChargeResolution:
         # If npe is not an array, temporarily convert it to one
         npe = np.array([npe])
 
-        requirement = ChargeResolution.limit_curves(npe, n_nsb, n_add, enf,
-                                                    sigma2)
+        lc = ChargeResolutionCalculator.limit_curves
+        requirement = lc(npe, n_nsb, n_add, enf, sigma2)
         requirement[npe > defined_npe] = np.nan
 
         return requirement[0]
@@ -269,7 +231,8 @@ class ChargeResolution:
         # If npe is not an array, temporarily convert it to one
         npe = np.array([npe])
 
-        goal = ChargeResolution.limit_curves(npe, n_nsb, n_add, enf, sigma2)
+        lc = ChargeResolutionCalculator.limit_curves
+        goal = lc(npe, n_nsb, n_add, enf, sigma2)
         goal[npe > defined_npe] = np.nan
 
         return goal[0]
@@ -289,3 +252,35 @@ class ChargeResolution:
         poisson = np.sqrt(npe) / npe
 
         return poisson[0]
+
+    def save(self, path):
+        d = dict(max_pe=self.max_pe,
+                 sum_array=self.sum_array,
+                 n_array=self.n_array,
+                 variation_hist_nbins=self.variation_hist_nbins,
+                 variation_hist_range=self.variation_hist_range,
+                 variation_hist=self.variation_hist,
+                 variation_xedges=self.variation_xedges,
+                 variation_yedges=self.variation_yedges)
+        output_dir = dirname(path)
+        if not exists(output_dir):
+            self.log.info("[output] Creating directory: {}".format(output_dir))
+            makedirs(output_dir)
+        with open(path, 'wb') as f:
+            self.log.info("Saving Charge Resolution file: {}".format(path))
+            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+
+    def load(self, path):
+        if not path.endswith("pickle"):
+            self.log.error("File is not a pickle file: {}".format(path))
+        with open(path, 'rb') as f:
+            self.log.info("Loading Charge Resolution file: {}".format(path))
+            d = pickle.load(f)
+            self.max_pe = d['max_pe']
+            self.sum_array = d['sum_array']
+            self.n_array = d['n_array']
+            self.variation_hist_nbins = d['variation_hist_nbins']
+            self.variation_hist_range = d['variation_hist_range']
+            self.variation_hist = d['variation_hist']
+            self.variation_xedges = d['variation_xedges']
+            self.variation_yedges = d['variation_yedges']

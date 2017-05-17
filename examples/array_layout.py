@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     # load up an example table that has the telescope positions and
     # mirror areas in it:
-    arrayfile = datasets.get_path("PROD2_telconfig.fits.gz")
+    arrayfile = datasets.get_dataset("PROD2_telconfig.fits.gz")
     tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
 
     X = tels['TelX']

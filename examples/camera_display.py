@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Example of drawing a Camera using a mock shower image.
+Example of drawing a Camera using a toymodel shower image.
 """
 
 import matplotlib.pylab as plt
-from ctapipe import io, visualization
-from ctapipe.image import mock
-from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
+from ctapipe.instrument import CameraGeometry
+from ctapipe.visualization import CameraDisplay
+from ctapipe.image import toymodel, hillas_parameters, tailcuts_clean
 
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):
@@ -23,32 +23,36 @@ def draw_neighbors(geom, pixel_index, color='r', **kwargs):
 if __name__ == '__main__':
 
     # Load the camera
-    geom = io.CameraGeometry.from_name("hess", 1)
-    disp = visualization.CameraDisplay(geom)
+    geom = CameraGeometry.from_name("LSTCam")
+    disp = CameraDisplay(geom)
     disp.set_limits_minmax(0, 300)
     disp.add_colorbar()
 
     # Create a fake camera image to display:
-    model = mock.generate_2d_shower_model(centroid=(0.2, 0.0),
-                                          width=0.01,
-                                          length=0.1,
-                                          psi='35d')
+    model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.0),
+                                              width=0.01,
+                                              length=0.1,
+                                              psi='35d')
 
-    image, sig, bg = mock.make_mock_shower_image(geom, model.pdf,
-                                                 intensity=50,
-                                                 nsb_level_pe=1000)
+    image, sig, bg = toymodel.make_toymodel_shower_image(geom, model.pdf,
+                                                         intensity=50,
+                                                         nsb_level_pe=1000)
 
-    # Apply really stupid image cleaning (single threshold):
+    # Apply image cleaning
+    cleanmask = tailcuts_clean(geom, image, picture_thresh=200,
+                               boundary_thresh=100)
     clean = image.copy()
-    clean[image <= 3.0 * image.mean()] = 0.0
+    clean[~cleanmask] = 0.0
 
     # Calculate image parameters
     hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
     print(hillas)
 
-    # Show the camera image and overlay Hillas ellipse
+    # Show the camera image and overlay Hillas ellipse and clean pixels
     disp.image = image
-    disp.overlay_moments(hillas, color='seagreen', linewidth=3)
+    disp.cmap = 'PuOr'
+    disp.highlight_pixels(cleanmask, color='black')
+    disp.overlay_moments(hillas, color='cyan', linewidth=3)
 
     # Draw the neighbors of pixel 100 in red, and the neighbor-neighbors in
     # green

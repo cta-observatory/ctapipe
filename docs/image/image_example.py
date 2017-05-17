@@ -1,19 +1,20 @@
-"""Example how to make a mock shower image and plot it.
+"""Example how to make a toymodel shower image and plot it.
 """
 import matplotlib.pyplot as plt
-from ctapipe.io.camera import make_rectangular_camera_geometry
-from ctapipe.image.mock import generate_2d_shower_model, make_mock_shower_image
+from ctapipe.image.toymodel import generate_2d_shower_model, \
+    make_toymodel_shower_image
+from ctapipe.instrument import CameraGeometry
 
 NX = 40
 NY = 40
 
-geom = make_rectangular_camera_geometry(NX, NY)
+geom = CameraGeometry.make_rectangular(NX, NY)
 
 showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], length=0.1,
                                        width=0.02, psi='40d')
 
-image, signal, noise = make_mock_shower_image(geom, showermodel.pdf,
-                                              intensity=20, nsb_level_pe=30)
+image, signal, noise = make_toymodel_shower_image(geom, showermodel.pdf,
+                                                  intensity=20, nsb_level_pe=30)
 
 # make them into 2D arrays so we can plot them with imshow
 image.shape = (NX, NY)

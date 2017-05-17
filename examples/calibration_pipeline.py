@@ -1,179 +1,200 @@
-#!/usr/bin/env python3
-"""
-Script to demonstrate how to best obtain calibrated data.
-Displays the calibrated charge for each event in the file.
-"""
-import argparse
-from matplotlib import colors, pyplot as plt
+from traitlets import Dict, List, Int, Bool, Unicode
+from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
-from ctapipe.calib.camera.calibrators import calibration_parameters, \
-    calibrate_source
-from astropy import log
-from ctapipe.utils.datasets import get_path
-from ctapipe.plotting.camera import CameraPlotter
-from ctapipe.io.files import InputFile
-import os
+from ctapipe.core import Tool, Component
+from ctapipe.io.eventfilereader import EventFileReaderFactory
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
+from ctapipe.calib.camera import CameraCalibrator
+from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.instrument import CameraGeometry
+from ctapipe.visualization import CameraDisplay
 
 
-def display_telescope(event, tel_id, display, geom_dict, pp, fig):
-    fig.clear()
+class ImagePlotter(Component):
+    name = 'ImagePlotter'
 
-    cam_dimensions = (event.dl0.tel[tel_id].num_pixels,
-                      event.meta.optical_foclen[tel_id])
+    display = Bool(False,
+                   help='Display the photoelectron images on-screen as they '
+                        'are produced.').tag(config=True)
+    output_path = Unicode(None, allow_none=True,
+                          help='Output path for the pdf containing all the '
+                               'images. Set to None for no saved '
+                               'output.').tag(config=True)
 
-    fig.suptitle("EVENT {} {:.1e} @({:.1f},{:.1f}) @{:.1f}"
-                 .format(event.dl1.event_id, event.mc.energy,
-                         event.mc.alt,
-                         event.mc.az,
-                         np.sqrt(pow(event.mc.core_x, 2) +
-                                 pow(event.mc.core_y, 2))))
+    def __init__(self, config, tool, **kwargs):
+        """
+        Plotter for camera images.
 
-    # Select number of pads to display (will depend on the integrator):
-    # charge and/or time of maximum.
-    # This last one is displayed only if the integrator calculates it
-    npads = 1
-    if not event.dl1.tel[tel_id].peakpos[0] is None:
-        npads = 2
-    # Only create two pads if there is timing information extracted
-    # from the calibration
-    ax1 = fig.add_subplot(1, npads, 1)
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
+        super().__init__(config=config, parent=tool, **kwargs)
+        self._geom_dict = {}
+        self._current_tel = None
+        self.c_intensity = None
+        self.c_peakpos = None
+        self.cb_intensity = None
+        self.cb_peakpos = None
+        self.pdf = None
 
-    # If the geometery has not already been added to geom_dict, it will
-    # be added in CameraPlotter
-    plotter = CameraPlotter(event, geom_dict)
-    signals = event.dl1.tel[tel_id].pe_charge
-    camera1 = plotter.draw_camera(tel_id, signals, ax1)
-    cmaxmin = (max(signals) - min(signals))
-    cmap_charge = colors.LinearSegmentedColormap.from_list(
-        'cmap_c', [(0 / cmaxmin, 'darkblue'),
-                   (np.abs(min(signals)) / cmaxmin, 'black'),
-                   (2.0 * np.abs(min(signals)) / cmaxmin, 'blue'),
-                   (2.5 * np.abs(min(signals)) / cmaxmin, 'green'),
-                   (1, 'yellow')])
-    camera1.pixels.set_cmap(cmap_charge)
-    camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
-    ax1.set_title("CT {} ({}) - Mean pixel charge"
-                  .format(tel_id, geom_dict[tel_id].cam_id))
-    if not event.dl1.tel[tel_id].peakpos[0] is None:
-        ax2 = fig.add_subplot(1, npads, npads)
-        times = event.dl1.tel[tel_id].peakpos
-        camera2 = plotter.draw_camera(tel_id, times, ax2)
-        tmaxmin = event.dl0.tel[tel_id].num_samples
-        t_chargemax = times[signals.argmax()]
-        if t_chargemax > 15:
-            t_chargemax = 7
-        cmap_time = colors.LinearSegmentedColormap.from_list(
-            'cmap_t', [(0 / tmaxmin, 'darkgreen'),
-                       (0.6 * t_chargemax / tmaxmin, 'green'),
-                       (t_chargemax / tmaxmin, 'yellow'),
-                       (1.4 * t_chargemax / tmaxmin, 'blue'),
-                       (1, 'darkblue')])
-        camera2.pixels.set_cmap(cmap_time)
-        camera2.add_colorbar(ax=ax2, label="[time slice]")
-        ax2.set_title("CT {} ({}) - Pixel peak position"
-                      .format(tel_id, geom_dict[tel_id].cam_id))
+        self._init_figure()
 
-    if display:
-        plt.pause(0.1)
-    if pp is not None:
-        pp.savefig(fig)
+    def _init_figure(self):
+        self.fig = plt.figure(figsize=(16, 7))
+        self.ax_intensity = self.fig.add_subplot(1, 2, 1)
+        self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
+        if self.output_path:
+            self.log.info("Creating PDF: {}".format(self.output_path))
+            self.pdf = PdfPages(self.output_path)
+
+    def get_geometry(self, event, telid):
+        if telid not in self._geom_dict:
+            geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
+                                        event.inst.optical_foclen[telid])
+            self._geom_dict[telid] = geom
+        return self._geom_dict[telid]
+
+    def plot(self, event, telid):
+        chan = 0
+        image = event.dl1.tel[telid].image[chan]
+        peakpos = event.dl1.tel[telid].peakpos[chan]
+
+        if self._current_tel != telid:
+            self._current_tel = telid
+
+            self.ax_intensity.cla()
+            self.ax_peakpos.cla()
+
+            # Redraw camera
+            geom = self.get_geometry(event, telid)
+            self.c_intensity = CameraDisplay(geom, cmap=plt.cm.viridis,
+                                             ax=self.ax_intensity)
+            self.c_peakpos = CameraDisplay(geom, cmap=plt.cm.viridis,
+                                           ax=self.ax_peakpos)
+
+            tmaxmin = event.dl0.tel[telid].pe_samples.shape[2]
+            t_chargemax = peakpos[image.argmax()]
+            cmap_time = colors.LinearSegmentedColormap.from_list(
+                'cmap_t', [(0 / tmaxmin, 'darkgreen'),
+                           (0.6 * t_chargemax / tmaxmin, 'green'),
+                           (t_chargemax / tmaxmin, 'yellow'),
+                           (1.4 * t_chargemax / tmaxmin, 'blue'),
+                           (1, 'darkblue')])
+            self.c_peakpos.pixels.set_cmap(cmap_time)
+
+            if not self.cb_intensity:
+                self.c_intensity.add_colorbar(ax=self.ax_intensity,
+                                              label='Intensity (p.e.)')
+                self.cb_intensity = self.c_intensity.colorbar
+            else:
+                self.c_intensity.colorbar = self.cb_intensity
+                self.c_intensity.update(True)
+            if not self.cb_peakpos:
+                self.c_peakpos.add_colorbar(ax=self.ax_peakpos,
+                                            label='Peakpos (ns)')
+                self.cb_peakpos = self.c_peakpos.colorbar
+            else:
+                self.c_peakpos.colorbar = self.cb_peakpos
+                self.c_peakpos.update(True)
+
+        self.c_intensity.image = image
+        if peakpos is not None:
+            self.c_peakpos.image = peakpos
+
+        self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
+                          .format(event.count, event.r0.event_id, telid))
 
 
-def main():
-    script = os.path.splitext(os.path.basename(__file__))[0]
-    log.info("[SCRIPT] {}".format(script))
+        if self.display:
+            plt.pause(0.001)
+        if self.pdf is not None:
+            self.pdf.savefig(self.fig)
 
-    parser = argparse.ArgumentParser(
-        description='Display each event in the file',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', dest='input_path', action='store',
-                        default=get_path('gamma_test.simtel.gz'),
-                        help='path to the input file')
-    parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        choices=InputFile.origin_list(),
-                        default='hessio', help='origin of the file')
-    parser.add_argument('-D', dest='display', action='store_true',
-                        default=False, help='display the camera events')
-    parser.add_argument('--pdf', dest='output_path', action='store',
-                        default=None,
-                        help='path to store a pdf output of the plots')
-    parser.add_argument('-t', '--telescope', dest='tel', action='store',
-                        type=int, default=None,
-                        help='telecope to view. Default = All')
-    parser.add_argument('--calib-help', dest='calib_help', action='store_true',
-                        default=False,
-                        help='display the arguments used for the camera '
-                             'calibration')
+    def finish(self):
+        if self.pdf is not None:
+            self.log.info("Closing PDF")
+            self.pdf.close()
 
-    logger_detail = parser.add_mutually_exclusive_group()
-    logger_detail.add_argument('-q', '--quiet', dest='quiet',
-                               action='store_true', default=False,
-                               help='Quiet mode')
-    logger_detail.add_argument('-v', '--verbose', dest='verbose',
-                               action='store_true', default=False,
-                               help='Verbose mode')
-    logger_detail.add_argument('-d', '--debug', dest='debug',
-                               action='store_true', default=False,
-                               help='Debug mode')
 
-    args, excess_args = parser.parse_known_args()
+class DisplayDL1Calib(Tool):
+    name = "DisplayDL1Calib"
+    description = "Calibrate dl0 data to dl1, and plot the photoelectron " \
+                  "images."
 
-    params, unknown_args = calibration_parameters(excess_args,
-                                                  args.origin,
-                                                  args.calib_help)
+    telescope = Int(None, allow_none=True,
+                    help='Telescope to view. Set to None to display all '
+                         'telescopes.').tag(config=True)
 
-    if unknown_args:
-        parser.print_help()
-        calibration_parameters(unknown_args, args.origin, True)
-        msg = 'unrecognized arguments: %s'
-        parser.error(msg % ' '.join(unknown_args))
+    aliases = Dict(dict(f='EventFileReaderFactory.input_path',
+                        r='EventFileReaderFactory.reader',
+                        max_events='EventFileReaderFactory.max_events',
+                        extractor='ChargeExtractorFactory.extractor',
+                        window_width='ChargeExtractorFactory.window_width',
+                        t0='ChargeExtractorFactory.t0',
+                        window_shift='ChargeExtractorFactory.window_shift',
+                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+                        lwt='ChargeExtractorFactory.lwt',
+                        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
+                        T='DisplayDL1Calib.telescope',
+                        O='ImagePlotter.output_path'
+                        ))
+    flags = Dict(dict(D=({'ImagePlotter': {'display': True}},
+                         "Display the photoelectron images on-screen as they "
+                         "are produced.")
+                      ))
+    classes = List([EventFileReaderFactory,
+                    ChargeExtractorFactory,
+                    CameraDL1Calibrator,
+                    ImagePlotter
+                    ])
 
-    if args.quiet:
-        log.setLevel(40)
-    if args.verbose:
-        log.setLevel(20)
-    if args.debug:
-        log.setLevel(10)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.reader = None
+        self.calibrator = None
+        self.plotter = None
 
-    log.debug("[file] Reading file")
-    input_file = InputFile(args.input_path, args.origin)
-    source = input_file.read()
+    def setup(self):
+        self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
+        kwargs = dict(config=self.config, tool=self)
 
-    # geom_dict is a dictionary of CameraGeometry, with keys of
-    # tel_id. By using these keys, the geometry is
-    # calculated only once per telescope, reducing computation
-    # time.
-    # Creating a geom_dict at this point is optional, but is recommended, as
-    # the same geom_dict can then be shared between the calibration and
-    # CameraPlotter, again reducing computation time.
-    # The dictionary becomes filled as a result of a dictionary's mutable
-    # nature.
-    geom_dict = {}
+        reader_factory = EventFileReaderFactory(**kwargs)
+        reader_class = reader_factory.get_class()
+        self.reader = reader_class(**kwargs)
 
-    # Calibrate events and fill geom_dict
+        self.calibrator = CameraCalibrator(origin=self.reader.origin, **kwargs)
 
-    calibrated_source = calibrate_source(source, params, geom_dict)
+        self.plotter = ImagePlotter(**kwargs)
 
-    fig = plt.figure(figsize=(16, 7))
-    if args.display:
-        plt.show(block=False)
-    pp = PdfPages(args.output_path) if args.output_path is not None else None
-    for event in calibrated_source:
-        tels = list(event.dl0.tels_with_data)
-        if args.tel is None:
-            tel_loop = tels
-        else:
-            if args.tel not in tels:
-                continue
-            tel_loop = [args.tel]
-        log.debug(tels)
-        for tel_id in tel_loop:
-            display_telescope(event, tel_id, args.display, geom_dict, pp, fig)
-    if pp is not None:
-        pp.close()
+    def start(self):
+        source = self.reader.read()
+        for event in source:
+            self.calibrator.calibrate(event)
 
-    log.info("[COMPLETE]")
+            tel_list = event.r0.tels_with_data
+
+            if self.telescope:
+                if self.telescope not in tel_list:
+                    continue
+                tel_list = [self.telescope]
+            for telid in tel_list:
+                self.plotter.plot(event, telid)
+
+    def finish(self):
+        self.plotter.finish()
 
 if __name__ == '__main__':
-    main()
+    exe = DisplayDL1Calib()
+    exe.run()

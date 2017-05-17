@@ -5,8 +5,8 @@ Example of drawing a Camera using different norms
 """
 
 import matplotlib.pylab as plt
-from ctapipe.image import mock
-from ctapipe.io import CameraGeometry
+from ctapipe.image import toymodel
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from matplotlib.colors import PowerNorm
 from matplotlib.style import use
@@ -16,18 +16,18 @@ if __name__ == '__main__':
     use('ggplot')
     # load the camera
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    geom = CameraGeometry.from_name("hess", 1)
+    geom = CameraGeometry.from_name("LSTCam")
 
     titles = 'Linear Scale', 'Log-Scale', 'PowerNorm(gamma=2)'
 
-    model = mock.generate_2d_shower_model(
+    model = toymodel.generate_2d_shower_model(
         centroid=(0.2, 0.0),
         width=0.01,
         length=0.1,
         psi='35d',
     )
 
-    image, sig, bg = mock.make_mock_shower_image(
+    image, sig, bg = toymodel.make_toymodel_shower_image(
         geom,
         model.pdf,
         intensity=50,

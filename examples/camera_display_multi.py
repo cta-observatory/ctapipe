@@ -2,15 +2,18 @@
 
 """
 Demo to show multiple shower images on a single figure using
-`CameraDisplay` and really simple mock shower images (not
+`CameraDisplay` and really simple toymodel shower images (not
 simulations). Also shows how to change the color palette.
 """
 
 import matplotlib.pylab as plt
 from astropy import units as u
-from ctapipe import io, visualization
+
+from ctapipe.instrument import CameraGeometry
+from ctapipe.visualization import CameraDisplay
+from ctapipe.image import toymodel
 from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
-from ctapipe.reco import mock
+from ctapipe.image import tailcuts_clean
 
 
 def draw_several_cams(geom, ncams=4):
@@ -19,41 +22,44 @@ def draw_several_cams(geom, ncams=4):
     fig, axs = plt.subplots(1, ncams, figsize=(15, 4), sharey=True, sharex=True)
 
     for ii in range(ncams):
-        disp = visualization.CameraDisplay(
+        disp = CameraDisplay(
             geom,
             ax=axs[ii],
             title="CT{}".format(ii + 1),
         )
         disp.cmap = cmaps[ii]
 
-        model = mock.generate_2d_shower_model(
+        model = toymodel.generate_2d_shower_model(
             centroid=(0.2 - ii * 0.1, -ii * 0.05),
             width=0.005 + 0.001 * ii,
             length=0.1 + 0.05 * ii,
             psi=ii * 20 * u.deg,
         )
 
-        image, sig, bg = mock.make_mock_shower_image(
+        image, sig, bg = toymodel.make_toymodel_shower_image(
             geom,
             model.pdf,
             intensity=50,
             nsb_level_pe=1000,
         )
 
-        clean = image.copy()
-        clean[image <= 3.0 * image.mean()] = 0.0
-        hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
+        mask = tailcuts_clean(geom, image, picture_thresh=6*image.mean(),
+                              boundary_thresh=4*image.mean())
+
+        hillas = hillas_parameters(geom.pix_x[mask], geom.pix_y[mask],
+                                   image[mask])
 
         disp.image = image
         disp.add_colorbar(ax=axs[ii])
+
         disp.set_limits_percent(95)
         disp.overlay_moments(hillas, linewidth=3, color='blue')
 
 
 if __name__ == '__main__':
 
-    hexgeom = io.CameraGeometry.from_name("hess", 1)
-    recgeom = io.make_rectangular_camera_geometry()
+    hexgeom = CameraGeometry.from_name("LSTCam")
+    recgeom = CameraGeometry.make_rectangular()
 
     draw_several_cams(recgeom)
     draw_several_cams(hexgeom)

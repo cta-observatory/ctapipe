@@ -1,12 +1,11 @@
 import numpy as np
-from ctapipe.instrument import CameraDescription as CD
+from ctapipe.instrument import CameraGeometry as CD
 from ctapipe.io.files import get_file_type
 from astropy import units as u
-import pyhessio as h
+from pyhessio import open_hessio, HessioError
 import os
 from astropy.table import Table
 import random
-import imp
 import textwrap
 
 __all__ = ['load','load_fakedata','load_hessio','load_fits','load_config',
@@ -24,11 +23,11 @@ class Atmosphere:
         """
         Load atmosphere profile from file
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         filename: string
             name of file
-        --------
+
         """
         altitude,rho,thickness,n_minus_1 = np.loadtxt(filename,unpack=True,
                                                       delimeter=' ')
@@ -41,11 +40,11 @@ class Atmosphere:
         """
         Load atmosphere extinction profile from file
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         filename: string
             name of file
-        --------
+
         """
         
         # still work to do
@@ -70,8 +69,9 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
         item of the instrument (Telescope,Camera or Optics) whose data
         should be loaded, can be either a list, e.g. ('Camera','Telescope') or
         just one string, e.g. 'Camera'
-    Return
-    ------
+
+    Returns
+    -------
     possibility 0:
     telescope,camera,optics = load_fakedata(filename)
     
@@ -94,7 +94,7 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
         return load_fits(filename)
     elif filetype == 'cfg':
         return load_config(filename)
-    elif filetype == 'simtel':
+    elif filetype == 'simtel' or 'simhess':
         return load_hessio(filename)
     else:
         raise TypeError("File type {} not supported".format(filetype))
@@ -103,8 +103,8 @@ def load_fakedata():
     """
     Function writing faked date into an astropy.table Table
     
-    Return
-    ------
+    Returns
+    -------
     telescope,camera,optics: 3 dictionaries
         all dictionaries contain astropy.table Tables
     """
@@ -188,142 +188,142 @@ def load_hessio(filename):
     filename: string
         name of the file
     """
-    print("Hessio file will be opened.")    
-    h.file_open(filename)
-    next(h.move_to_next_event())
-    #version = h.get...
-    version = 'Feb2016'
-    
-    #Creating 3 dictionaries where the instrument configuration will be stored
-    #The dictionaries themselves contain astropy.table.Table objects
-    telescope = {}
-    camera = {}
-    optics = {}  
-    
-    #--------------------------------------------------------------------------
-    #Telescope configuration
-    tel_table_prime = Table()
-    tel_table_prime.meta = {'VERSION': version}    
-    
-    try: 
-        tel_id = h.get_telescope_ids()
-        tel_table_prime['TelID']= tel_id
-    except: pass    
-    try:
-        tel_posX = [h.get_telescope_position(i)[0] for i in tel_id]
-        tel_table_prime['TelX'] = tel_posX
-        tel_table_prime['TelX'].unit = u.m
-        tel_table_prime.meta['TelX_description'] =\
-        'x-position of the telescope measured by...'
-    except: pass
-    try:
-        tel_posY = [h.get_telescope_position(i)[1] for i in tel_id]
-        tel_table_prime['TelY'] = tel_posY
-        tel_table_prime['TelY'].unit = u.m
-    except: pass
-    try:
-        tel_posZ = [h.get_telescope_position(i)[2] for i in tel_id]
-        tel_table_prime['TelZ'] = tel_posZ
-        tel_table_prime['TelZ'].unit = u.m
-    except: pass
-    try: tel_table_prime['CameraClass'] = [h.get_camera_class(i) for i in tel_id]
-    except: pass
-    try:
-        tel_table_prime['MirA'] = [h.get_mirror_area(i) for i in tel_id]
-        tel_table_prime['MirA'].unit = u.m**2
-    except: pass
-    try:  tel_table_prime['MirN'] = [h.get_mirror_number(i) for i in tel_id]
-    except: pass    
-    try: 
-        tel_table_prime['FL'] = [h.get_optical_foclen(i) for i in tel_id]
-        tel_table_prime['FL'].unit = u.m
-    except: pass
-    try: tel_table_prime.meta['TelNum'] =  len(tel_posX)
-    except: pass
-    
-    #Beside other tables containimng telescope configuration data, the main
-    #telescope table is written into the telescope dictionary.
-    telescope['TelescopeTable_Version%s' % version] = tel_table_prime
-    
-    #--------------------------------------------------------------------------
-    #Camera and Optics configuration
-    try:    
-        for t in range(len(tel_id)):       
-            
-            cam_table_prime = Table()
-            cam_table_prime.meta = {'TELID': tel_id[t], 'VERSION': version}
-            opt_table_prime = Table()
-            opt_table_prime.meta = {'TELID': tel_id[t], 'VERSION': version}
-            
-            try:
-                pix_posX = h.get_pixel_position(tel_id[t])[0]
-                pix_id = np.arange(len(pix_posX))
-                cam_table_prime['PixID'] = pix_id                
-                cam_table_prime['PixX'] = pix_posX
-                cam_table_prime['PixX'].unit = u.m
-                cam_table_prime.meta['PixXDescription'] =\
-                'x-position of the pixel measured by...'
-            except: pass
-            try:
-                pix_posY = h.get_pixel_position(tel_id[t])[1]
-                cam_table_prime['PixY'] = pix_posY
-                cam_table_prime['PixY'].unit = u.m
-            except: pass
-            try:
-                camera_class = CD.guess_camera_geometry(pix_posX*u.m,pix_posY*u.m)
-                pix_area_prime = camera_class.pix_area
-                pix_type_prime = camera_class.pix_type
-                pix_neighbors_prime = camera_class.pix_neighbors
-            except: pass        
-    
-            try:
-                pix_area = h.get_pixel_area(tel_id[t])
-                cam_table_prime['PixA'] = pix_area
-                cam_table_prime['PixA'].unit = u.mm**2
-            except:
+    print("Hessio file will be opened.")
+    with open_hessio(filename) as h:
+        h.fill_next_event()
+        #version = h.get...
+        version = 'Feb2016'
+
+        #Creating 3 dictionaries where the instrument configuration will be stored
+        #The dictionaries themselves contain astropy.table.Table objects
+        telescope = {}
+        camera = {}
+        optics = {}
+
+        #--------------------------------------------------------------------------
+        #Telescope configuration
+        tel_table_prime = Table()
+        tel_table_prime.meta = {'VERSION': version}
+
+        try:
+            tel_id = h.get_telescope_ids()
+            tel_table_prime['TelID']= tel_id
+        except: pass
+        try:
+            tel_posX = [h.get_telescope_position(i)[0] for i in tel_id]
+            tel_table_prime['TelX'] = tel_posX
+            tel_table_prime['TelX'].unit = u.m
+            tel_table_prime.meta['TelX_description'] =\
+            'x-position of the telescope measured by...'
+        except: pass
+        try:
+            tel_posY = [h.get_telescope_position(i)[1] for i in tel_id]
+            tel_table_prime['TelY'] = tel_posY
+            tel_table_prime['TelY'].unit = u.m
+        except: pass
+        try:
+            tel_posZ = [h.get_telescope_position(i)[2] for i in tel_id]
+            tel_table_prime['TelZ'] = tel_posZ
+            tel_table_prime['TelZ'].unit = u.m
+        except: pass
+        try: tel_table_prime['CameraClass'] = [h.get_camera_class(i) for i in tel_id]
+        except: pass
+        try:
+            tel_table_prime['MirA'] = [h.get_mirror_area(i) for i in tel_id]
+            tel_table_prime['MirA'].unit = u.m**2
+        except: pass
+        try:  tel_table_prime['MirN'] = [h.get_mirror_number(i) for i in tel_id]
+        except: pass
+        try:
+            tel_table_prime['FL'] = [h.get_optical_foclen(i) for i in tel_id]
+            tel_table_prime['FL'].unit = u.m
+        except: pass
+        try: tel_table_prime.meta['TelNum'] =  len(tel_posX)
+        except: pass
+
+        #Beside other tables containimng telescope configuration data, the main
+        #telescope table is written into the telescope dictionary.
+        telescope['TelescopeTable_Version%s' % version] = tel_table_prime
+
+        #--------------------------------------------------------------------------
+        #Camera and Optics configuration
+        try:
+            for t in range(len(tel_id)):
+
+                cam_table_prime = Table()
+                cam_table_prime.meta = {'TELID': tel_id[t], 'VERSION': version}
+                opt_table_prime = Table()
+                opt_table_prime.meta = {'TELID': tel_id[t], 'VERSION': version}
+
                 try:
-                    cam_table_prime['PixA'] = pix_area_prime
-                    cam_table_prime['PixA'].unit = u.mm**2
+                    pix_posX = h.get_pixel_position(tel_id[t])[0]
+                    pix_id = np.arange(len(pix_posX))
+                    cam_table_prime['PixID'] = pix_id
+                    cam_table_prime['PixX'] = pix_posX
+                    cam_table_prime['PixX'].unit = u.m
+                    cam_table_prime.meta['PixXDescription'] =\
+                    'x-position of the pixel measured by...'
                 except: pass
-            try: pix_type = h.get_pixel_type(tel_id[t])
-            except:
-                try: pix_type = pix_type_prime
-                except: pix_type = 'unknown'
-            cam_table_prime.meta['PixType'] = pix_type
-            try:
-                pix_neighbors = h.get_pixel_neighbor(tel_id[t])
-                cam_table_prime['PixNeig'] = pix_neighbors
-            except:
-                try: cam_table_prime['PixNeig'] = pix_neighbors_prime
-                except: pass       
-            
-            #as long as no mirror IDs are given, use the following:
-            opt_table_prime['MirrID'] = [1,2]
-            try:
-                opt_table_prime.meta['MirNum'] = h.get_mirror_number(tel_id[t])
-            except: pass
-            try:
-                opt_table_prime['MirArea'] = h.get_mirror_area(tel_id[t])
-                opt_table_prime['MirArea'].unit = u.m**2
-                opt_table_prime.meta['MirAreaDescription'] =\
-                'Area of all mirrors'
-            except: pass
-            try:
-                opt_table_prime['OptFocLen'] = h.get_optical_foclen(tel_id[t])
-                opt_table_prime['OptFocLen'].unit = u.m
-            except: pass
-            
-            #Beside other tables containing camera and optics configuration
-            #data, the main  tables are written into the camera and optics
-            #dictionary.
-            camera['CameraTable_Version%s_TelID%i' % (version,tel_id[t])] \
-            = cam_table_prime
-            optics['OpticsTable_Version%s_TelID%i' % (version,tel_id[t])] \
-            = opt_table_prime
-    except: pass
-        
-    print('Astropy tables have been created.')
-    h.close_file()
+                try:
+                    pix_posY = h.get_pixel_position(tel_id[t])[1]
+                    cam_table_prime['PixY'] = pix_posY
+                    cam_table_prime['PixY'].unit = u.m
+                except: pass
+                try:
+                    camera_class = CD.guess_camera_geometry(pix_posX*u.m,pix_posY*u.m)
+                    pix_area_prime = camera_class.pix_area
+                    pix_type_prime = camera_class.pix_type
+                    pix_neighbors_prime = camera_class.pix_neighbors
+                except: pass
+
+                try:
+                    pix_area = h.get_pixel_area(tel_id[t])
+                    cam_table_prime['PixA'] = pix_area
+                    cam_table_prime['PixA'].unit = u.mm**2
+                except:
+                    try:
+                        cam_table_prime['PixA'] = pix_area_prime
+                        cam_table_prime['PixA'].unit = u.mm**2
+                    except: pass
+                try: pix_type = h.get_pixel_type(tel_id[t])
+                except:
+                    try: pix_type = pix_type_prime
+                    except: pix_type = 'unknown'
+                cam_table_prime.meta['PixType'] = pix_type
+                try:
+                    pix_neighbors = h.get_pixel_neighbor(tel_id[t])
+                    cam_table_prime['PixNeig'] = pix_neighbors
+                except:
+                    try: cam_table_prime['PixNeig'] = pix_neighbors_prime
+                    except: pass
+
+                #as long as no mirror IDs are given, use the following:
+                opt_table_prime['MirrID'] = [1,2]
+                try:
+                    opt_table_prime.meta['MirNum'] = h.get_mirror_number(tel_id[t])
+                except: pass
+                try:
+                    opt_table_prime['MirArea'] = h.get_mirror_area(tel_id[t])
+                    opt_table_prime['MirArea'].unit = u.m**2
+                    opt_table_prime.meta['MirAreaDescription'] =\
+                    'Area of all mirrors'
+                except: pass
+                try:
+                    opt_table_prime['OptFocLen'] = h.get_optical_foclen(tel_id[t])
+                    opt_table_prime['OptFocLen'].unit = u.m
+                except: pass
+
+                #Beside other tables containing camera and optics configuration
+                #data, the main  tables are written into the camera and optics
+                #dictionary.
+                camera['CameraTable_Version%s_TelID%i' % (version,tel_id[t])] \
+                = cam_table_prime
+                optics['OpticsTable_Version%s_TelID%i' % (version,tel_id[t])] \
+                = opt_table_prime
+        except: pass
+
+        print('Astropy tables have been created.')
+    #h.close_file()
     print("Hessio file has been closed.")
     return(telescope,camera,optics)
 
@@ -346,8 +346,9 @@ def load_fits(filename = '',path = None,version = '',instr_item = ''):
         item of the instrument (Telescope,Camera or Optics) whose data
         should be loaded, can be either a list, e.g. ('Camera','Telescope') or
         just one string, e.g. 'Camera'
-    Return
-    ------
+
+    Returns
+    -------
     telescope,camera,optics: 3 dictionaries
         all dictionaries contain astropy.table Tables
     """
@@ -415,8 +416,9 @@ def load_config(filename):
     ----------
     filename: string
         name of the file
-    Return
-    ------
+
+    Returns
+    -------
     telescope,camera,optics: 3 dictionaries
         all dictionaries contain astropy.table Tables
     """
@@ -910,8 +912,8 @@ def get_var_from_file(filename):
     Function to load and initialize a module implemented as a Python source
     file called `filename` and to return its module objects.
     
-    Parameter
-    ---------
+    Parameters
+    ----------
     filename: ASCII file
         file in which the module objects are defined
     """

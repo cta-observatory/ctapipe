@@ -1,12 +1,12 @@
 import numpy as np
 from ctapipe.image import cleaning
 
-from ... import io
+from ctapipe.instrument import CameraGeometry
 
 
 def test_tailcuts_clean():
 
-    geom = io.CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
     pedvar = np.ones_like(geom.pix_id, dtype=np.float)
 
@@ -16,8 +16,7 @@ def test_tailcuts_clean():
     image[some_neighs] = 3.0    # make some boundaries that are neighbors
     image[10] = 3.0             # a boundary that is not a neighbor
 
-    mask = cleaning.tailcuts_clean(geom, image, pedvar,
-                                   picture_thresh=4.5,
+    mask = cleaning.tailcuts_clean(geom, image, picture_thresh=4.5,
                                    boundary_thresh=2.5)
 
     print((mask > 0).sum(), "clean pixels")
@@ -30,20 +29,58 @@ def test_tailcuts_clean():
 
 def test_dilate():
 
-    geom = io.CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     mask = np.zeros_like(geom.pix_id, dtype=bool)
 
     mask[100] = True  # a single pixel far from a border is true.
     assert mask.sum() == 1
 
     # dilate a single row
-    cleaning.dilate(geom, mask)
-    assert mask.sum() == 1 + 6
+    dmask = cleaning.dilate(geom, mask)
+    assert dmask.sum() == 1 + 6
 
     # dilate a second row
-    cleaning.dilate(geom, mask)
-    assert mask.sum() == 1 + 6 + 12
+    dmask = cleaning.dilate(geom, dmask)
+    assert dmask.sum() == 1 + 6 + 12
 
     # dilate a third row
-    cleaning.dilate(geom, mask)
-    assert mask.sum() == 1 + 6 + 12 + 18
+    dmask = cleaning.dilate(geom, dmask)
+    assert dmask.sum() == 1 + 6 + 12 + 18
+
+def test_tailcuts_clean():
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  #picture value
+    b = 7   # boundary value
+
+    # for no isolated pixels:
+    testcases = {(p, p, 0): [True, True, False],
+                 (p, 0, p): [False, False, False],
+                 (p, b, p): [True, True, True],
+                 (p, b, 0): [True, True, False],
+                 (b, b, 0): [False, False, False],
+                 (0, p ,0): [False, False, False]}
+
+    for image, mask in testcases.items():
+        result = cleaning.tailcuts_clean(geom, np.array(image),
+                                         picture_thresh=15,
+                                         boundary_thresh=5,
+                                         keep_isolated_pixels=False)
+        assert (result == mask).all()
+
+    # allowing isolated pixels
+    testcases = {(p, p, 0): [True, True, False],
+                 (p, 0, p): [True, False, True],
+                 (p, b, p): [True, True, True],
+                 (p, b, 0): [True, True, False],
+                 (b, b, 0): [False, False, False],
+                 (0, p, 0): [False, True, False]}
+
+    for image, mask in testcases.items():
+        result = cleaning.tailcuts_clean(geom, np.array(image),
+                                         picture_thresh=15,
+                                         boundary_thresh=5,
+                                         keep_isolated_pixels=True)
+        assert (result == mask).all()
