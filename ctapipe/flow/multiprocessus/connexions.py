@@ -33,12 +33,13 @@ class Connexions():
         If yes, return a destination defined to  the last tuple elem and send
         result without the destination
         If no return None as destination
-        Parameter:
+
+        Parameters
         ----------
         result : any type
             value to send. If type(result) is tuple, it can contain next step name)
-        Return:
-        -------
+        Returns
+        --------
         tulpe conaining two elements: msg and destination
 
         """
@@ -59,8 +60,9 @@ class Connexions():
     def send_msg(self,msg,destination_step_name=None):
         """
         Send a message thanks to ZMQ
-        Parameters:
-        -----------
+
+        Parameters
+        ----------
         msg: a Pickle.dump message
         destination_step_name: str
             msg will be send to corresponding step

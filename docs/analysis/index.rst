@@ -9,20 +9,14 @@ Analysis (`analysis`)
 Introduction
 ============
 
-`ctapipe.analysis` contains functions and classes to ... TODO.
+`ctapipe.analysis` contains functions and classes to analyze outputs of
+the pipeline and perform validation and verification.
 
-TODO: add high-level description.
-
-Getting Started
-===============
-
-TODO: add examples.
+Currently this includes computing charge resolution.
 
 Reference/API
 =============
 
-.. automodapi:: ctapipe.analysis
-
-
 .. automodapi:: ctapipe.analysis.camera
+
 

@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils import get_dataset
 
 from ctapipe.io.hessio import hessio_event_source
 
@@ -27,34 +27,34 @@ def apply_mc_calibration(adcs, gains, peds):
 
 
 def test_convert_geometry():
-    filename = get_path("gamma_test.simtel.gz")
+    filename = get_dataset("gamma_test.simtel.gz")
 
     cam_geom = {}
 
     source = hessio_event_source(filename)
 
-    ''' testing a few images just for the sake of being thorough '''
+    # testing a few images just for the sake of being thorough
     counter = 5
 
     for event in source:
 
-        for tel_id in event.dl0.tels_with_data:
+        for tel_id in event.r0.tels_with_data:
             if tel_id not in cam_geom:
                 cam_geom[tel_id] = CameraGeometry.guess(
                                         event.inst.pixel_pos[tel_id][0],
                                         event.inst.pixel_pos[tel_id][1],
                                         event.inst.optical_foclen[tel_id])
 
-            '''
-            we want to test conversion of hex to rectangular pixel grid '''
+
+            # we want to test conversion of hex to rectangular pixel grid
             if cam_geom[tel_id].pix_type is not "hexagonal":
                 continue
 
             print(tel_id, cam_geom[tel_id].pix_type)
 
             pmt_signal = apply_mc_calibration(
-                        #event.dl0.tel[tel_id].adc_samples[0],
-                        event.dl0.tel[tel_id].adc_sums[0],
+                        #event.r0.tel[tel_id].adc_samples[0],
+                        event.r0.tel[tel_id].adc_sums[0],
                         event.mc.tel[tel_id].dc_to_pe[0],
                         event.mc.tel[tel_id].pedestal[0])
 
@@ -65,7 +65,7 @@ def test_convert_geometry():
                 new_geom, new_signal, cam_geom[tel_id].cam_id,
                 event.inst.optical_foclen[tel_id], add_rot=4)
 
-            ''' if run as main, do some plotting '''
+            # if run as main, do some plotting
             if __name__ == "__main__":
                 fig = plt.figure()
                 plt.style.use('seaborn-talk')
@@ -98,14 +98,12 @@ def test_convert_geometry():
 
                 plt.show()
 
-            '''
-            do some tailcuts cleaning '''
-            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
-                                   picture_thresh=10.,
-                                   boundary_thresh=5.)
 
-            mask2 = tailcuts_clean(unrot_geom, unrot_signal, 1,
-                                   picture_thresh=10.,
+            # do some tailcuts cleaning
+            mask1 = tailcuts_clean(cam_geom[tel_id], pmt_signal,
+                                   picture_thresh=10., boundary_thresh=5.)
+
+            mask2 = tailcuts_clean(unrot_geom, unrot_signal, picture_thresh=10.,
                                    boundary_thresh=5.)
             pmt_signal[mask1==False] = 0
             unrot_signal[mask2==False] = 0
@@ -115,11 +113,11 @@ def test_convert_geometry():
             try:
                 moments1 = hillas_parameters(cam_geom[tel_id].pix_x,
                                              cam_geom[tel_id].pix_y,
-                                             pmt_signal)[0]
+                                             pmt_signal)
 
                 moments2 = hillas_parameters(unrot_geom.pix_x,
                                              unrot_geom.pix_y,
-                                             unrot_signal)[0]
+                                             unrot_signal)
             except (HillasParameterizationError, AssertionError) as e:
                 '''
                 we don't want this test to fail because the hillas code
@@ -134,9 +132,11 @@ def test_convert_geometry():
             '''
             test if the hillas parameters from the original geometry and the
             forth-and-back rotated geometry are close '''
-            np.testing.assert_allclose(
-                [moments1.length, moments1.width, moments1.phi],
-                [moments2.length, moments2.width, moments2.phi],
+            assert np.allclose(
+                [moments1.length.value, moments1.width.value,
+                 moments1.phi.value],
+                [moments2.length.value, moments2.width.value,
+                 moments2.phi.value],
                 rtol=1e-2, atol=1e-2)
             counter -= 1
             if counter < 0:

@@ -1,0 +1,42 @@
+name: ctadev
+channels:
+  - cta-observatory
+  - openastronomy
+  - astropy
+dependencies:
+  - ctapipe-extra=0.2.2
+  - astropy
+  - bokeh
+  - fitsio
+  - gammapy
+  - graphviz
+  - healpy
+  - iminuit
+  - ipython
+  - ipywidgets
+  - jupyter
+  - matplotlib
+  - numba
+  - numpy
+  - numpydoc
+  - pyhessio
+  - pytest
+  - psutil
+  - readline
+  - scikit-learn
+  - scikit-image
+  - scipy
+  - setuptools
+  - sphinx
+  - sphinx_rtd_theme
+  - sphinx-automodapi
+  - traitlets
+  - wheel
+  - xz
+  - yaml
+  - zlib
+  - iminuit
+  - pytables  
+  - tqdm
+  - pip:
+      - pytest_runner

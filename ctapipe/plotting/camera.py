@@ -4,7 +4,7 @@ camera images and waveforms.
 
 from matplotlib import pyplot as plt
 
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 
 from astropy import units as u
@@ -34,14 +34,15 @@ class CameraPlotter:
         geom_dict : dict
             A pre-build geom_dict, or an empty dict to store any geoms
             calculated
-            dict[(num_pixels, focal_length)] = `ctapipe.io.CameraGeometry`
+            dict[(num_pixels, focal_length)] = 
+            `ctapipe.instrument.CameraGeometry`
         """
         self.event = event
         self.geom_dict = {} if geom_dict is None else geom_dict
         self.cameradisplay_dict = {}
 
     def get_geometry(self, tel):
-        npix = len(self.event.dl0.tel[tel].adc_sums[0])
+        npix = len(self.event.r0.tel[tel].adc_sums[0])
         cam_dimensions = (npix, self.event.inst.optical_foclen[tel])
 
         if tel not in self.geom_dict:

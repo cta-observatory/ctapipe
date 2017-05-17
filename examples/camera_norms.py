@@ -6,7 +6,7 @@ Example of drawing a Camera using different norms
 
 import matplotlib.pylab as plt
 from ctapipe.image import toymodel
-from ctapipe.io import CameraGeometry
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from matplotlib.colors import PowerNorm
 from matplotlib.style import use
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     use('ggplot')
     # load the camera
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    geom = CameraGeometry.from_name("hess", 1)
+    geom = CameraGeometry.from_name("LSTCam")
 
     titles = 'Linear Scale', 'Log-Scale', 'PowerNorm(gamma=2)'
 

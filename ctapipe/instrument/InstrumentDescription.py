@@ -1,12 +1,11 @@
 import numpy as np
-from ctapipe.instrument import CameraDescription as CD
+from ctapipe.instrument import CameraGeometry as CD
 from ctapipe.io.files import get_file_type
 from astropy import units as u
 from pyhessio import open_hessio, HessioError
 import os
 from astropy.table import Table
 import random
-import imp
 import textwrap
 
 __all__ = ['load','load_fakedata','load_hessio','load_fits','load_config',

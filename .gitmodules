@@ -1,6 +1,0 @@
-[submodule "ctapipe-extra"]
-	path = ctapipe-extra
-	url = https://github.com/cta-observatory/ctapipe-extra.git
-[submodule "astropy_helpers"]
-	path = astropy_helpers
-	url = https://github.com/astropy/astropy-helpers.git

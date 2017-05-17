@@ -1,48 +1,73 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
 from pathlib import Path
+from astropy.utils.decorators import deprecated
 
-__all__ = ['CTAPipeDatasetsNotFoundError',
-           'get_ctapipe_extra_path',
-           'get_datasets_path',
-           ]
+try:
+    import ctapipe_resources
+except:
+    raise RuntimeError("Please install the 'ctapipe-extra' package, "
+                       "which contains the ctapipe_resources module "
+                       "needed by ctapipe. (conda install ctapipe-extra)")
 
 
-class CTAPipeDatasetsNotFoundError(RuntimeError):
-    """ctapipe datasets not found error.
+__all__ = ['get_dataset', 'find_in_path'  ]
+
+
+def find_in_path(filename, searchpath):
     """
-    def __init__(self, path):
-        message = "Does not exist: '{}'".format(path)
-        super(RuntimeError, self).__init__(message)
+    Search in searchpath for filename
     
+    Parameters
+    ----------
+    searchpath: str
+        colon-separated list of directories (like PATH)
+    filename:
+        filename to find
 
-def get_ctapipe_extra_path(environ_variable_name='CTAPIPE_EXTRA_DIR'):
-    """Get path to `ctapipe-extra`.
+    Returns
+    -------
+    full path to file if found, None otherwise
 
-    First try shell environment variable.
-    Then try git submodule in the right location.
     """
-    try:
-        return Path(os.environ[environ_variable_name])
-    except KeyError:
-        pass
 
-    import ctapipe
-    path = Path(ctapipe.__file__).parent.parent.joinpath('ctapipe-extra')
-    if path.exists():
-        return path
+    for dir in os.path.expandvars(searchpath).split(':'):
+        pathname = os.path.join(dir, filename)
+        if os.path.exists(pathname):
+            return pathname
 
-    raise CTAPipeDatasetsNotFoundError(path)
+    return None
 
 
-def get_datasets_path(file_path):
-    path = Path(get_ctapipe_extra_path(), 'datasets', file_path)
-    return path.as_posix()
+def get_dataset(filename):
+    """
+    Returns the full file path to an auxiliary dataset needed by 
+    ctapipe.
+      
+    This will first search for the file in directories listed in 
+    tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,  
+    will look in the ctapipe_resources module 
+    (installed with the ctapipe-extra package), which contains the defaults.
+    
+    Parameters
+    ----------
+    filename: str
+        name of dataset to fetch
 
+    Returns
+    -------
+    string with full path to the given dataset
+    """
+    searchpath = os.getenv("CTAPIPE_SVC_PATH")
 
-def get_path(file_path):
-    return get_datasets_path(file_path)
+    if searchpath:
+        filepath = find_in_path(filename=filename, searchpath=searchpath)
+        if filepath:
+            return filepath
 
+    return ctapipe_resources.get(filename)
 
-def get_example_simtelarray_file():
-    return get_datasets_path("gamma_test.simtel.gz")
+@deprecated("ctapipe-0.5",alternative='get_dataset()')
+def get_path(filename):
+    return get_dataset(filename)
+
