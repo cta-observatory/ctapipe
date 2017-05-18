@@ -4,6 +4,9 @@ import re
 from pkg_resources import resource_listdir
 from pathlib import Path
 from astropy.utils.decorators import deprecated
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     import ctapipe_resources
@@ -115,6 +118,9 @@ def get_dataset(filename):
         filepath = find_in_path(filename=filename, searchpath=searchpath)
         if filepath:
             return filepath
+
+    logger.debug("Resource '{}' not found in CTAPIPE_SVC_PATH, looking in "
+                 "ctapipe_resources...".format(filename))
 
     return ctapipe_resources.get(filename)
 
