@@ -28,7 +28,10 @@ logger = logging.getLogger(__name__)
 _CAMERA_GEOMETRY_TABLE = {
     (2048, 2.3): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 2.2): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 36.0): ('LST', 'HESS2Cam', 'hexagonal', 0 * u.degree, 0 * u.degree),
+    (2048, 36.0): ('LST', 'HESS-II', 'hexagonal', 0 * u.degree,
+                   0 * u.degree),
+    (960, None): ('MST', 'HESS-I', 'hexagonal', 0 * u.degree,
+                   0 * u.degree),
     (1855, 16.0): ('MST', 'NectarCam', 'hexagonal',
                    0 * u.degree, -100.893 * u.degree),
     (1855, 28.0): ('LST', 'LSTCam', 'hexagonal',
@@ -100,10 +103,6 @@ class CameraGeometry:
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
         self._precalculated_neighbors = neighbors
-        # FIXME the rotation does not work on 2D pixel grids
-        if len(pix_x.shape) == 1:
-            self.rotate(cam_rotation)
-            self.cam_rotation = cam_rotation#Angle(0 * u.deg)
 
     def __eq__(self, other):
         return ( (self.cam_id == other.cam_id)
@@ -256,7 +255,7 @@ class CameraGeometry:
             tab = Table.read(url_or_table, **kwargs)
 
         return cls(
-            cam_id=tab.meta['CAM_ID'],
+            cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
             pix_x=tab['pix_x'].quantity,
             pix_y=tab['pix_y'].quantity,
