@@ -17,7 +17,7 @@ from ctapipe.io.files import get_file_type
 from ctapipe.utils import get_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset, find_all_matching_resources
 
 __all__ = ['CameraGeometry',
            'get_camera_types',
@@ -30,16 +30,17 @@ logger = logging.getLogger(__name__)
 #     Key = (num_pix, focal_length_in_meters)
 #     Value = (type, subtype, pixtype, pixrotation, camrotation)
 _CAMERA_GEOMETRY_TABLE = {
-    (2048, 2.3): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 36.0): ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
-    (1855, 16.0): (
-        'MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
-    (1855, 28.0): (
-        'LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
-    (1296, None): ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (2048, 2.3): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 36.0): ('LST', 'HESS2Cam', 'hexagonal', 0 * u.degree, 0 * u.degree),
+    (1855, 16.0): ('MST', 'NectarCam', 'hexagonal',
+                   0 * u.degree, -100.893 * u.degree),
+    (1855, 28.0): ('LST', 'LSTCam', 'hexagonal',
+                   0. * u.degree, -100.893 * u.degree),
+    (1296, None): ('SST', 'DigiCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None): ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2368, None): ('SST', 'ASTRICam', 'rectangular', 0 * u.degree,
+                   0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
@@ -179,13 +180,9 @@ class CameraGeometry:
         -------
         list(str)
         """
-        names = []
-        pattern = "{}-(.*)\.camgeom.fits".format(array_id)
-        for resource in resource_listdir('ctapipe_resources', ''):
-            match = re.match(pattern, resource)
-            if match:
-                names.append(match.group(1))
-        return names
+
+        pattern = "(.*)\.camgeom.fits"
+        return find_all_matching_resources(pattern, regexp_group=1)
 
 
     @classmethod

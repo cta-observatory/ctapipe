@@ -1,5 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import os
+import re
+from pkg_resources import resource_listdir
 from pathlib import Path
 from astropy.utils.decorators import deprecated
 
@@ -11,12 +13,61 @@ except:
                        "needed by ctapipe. (conda install ctapipe-extra)")
 
 
-__all__ = ['get_dataset', 'find_in_path'  ]
+__all__ = ['get_dataset', 'find_in_path','find_all_matching_resources' ]
+
+def find_all_matching_resources(pattern,
+                                searchpath= os.getenv("CTAPIPE_SVC_PATH"),
+                                regexp_group=None):
+    """
+    Returns a list of filenames (or substrings) matching the given pattern, 
+    searching  first in searchpath (a colon-separated list of directories) and then in the 
+    ctapipe_resources module)
+    
+    Parameters
+    ----------
+    pattern: regexp str
+       regular expression to use for matching
+    searchpath: str
+       colon-seprated list of directories in which to search, defaulting to 
+       CTAPIPE_SVC_PATH environment variable
+    regexp_group: int
+       if not None, return the regular expression group indicated (assuming 
+       pattern has a group specifier in it)
+
+    Returns
+    -------
+    list(str):
+       filenames
+    """
+    results = []
+
+    # first check search path
+    if searchpath is not None:
+        for path in os.path.expandvars(searchpath).split(':'):
+            if os.path.exists(path):
+                for filename in os.listdir(path):
+                    match = re.match(pattern, filename)
+                    if match:
+                        if regexp_group is not None:
+                            results.append(match.group(regexp_group))
+                        else:
+                            results.append(filename)
+
+    # then check resources module
+    for resource in resource_listdir('ctapipe_resources', ''):
+        match = re.match(pattern, resource)
+        if match:
+            if regexp_group is not None:
+                results.append(match.group(regexp_group))
+            else:
+                results.append(resource)
+
+    return results
 
 
 def find_in_path(filename, searchpath):
     """
-    Search in searchpath for filename
+    Search in searchpath for filename, returning full path.
     
     Parameters
     ----------
