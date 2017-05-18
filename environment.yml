@@ -4,7 +4,7 @@ channels:
   - openastronomy
   - astropy
 dependencies:
-  - ctapipe-extra=0.2.3
+  - ctapipe-extra=0.2.6
   - astropy
   - bokeh
   - fitsio
