@@ -154,6 +154,8 @@ def test_generate_toy_timestamps():
 
 def test_draw_events_with_flux_weight():
 
+    np.random.seed(1)
+
     e_min = 20
     e_max = 50
     n_draws = 10000
