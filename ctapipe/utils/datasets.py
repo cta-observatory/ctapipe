@@ -13,19 +13,19 @@ except:
                        "needed by ctapipe. (conda install ctapipe-extra)")
 
 
-__all__ = ['get_dataset', 'find_in_path','find_all_matching_resources' ]
+__all__ = ['get_dataset', 'find_in_path', 'find_all_matching_datasets']
 
-def find_all_matching_resources(pattern,
-                                searchpath= os.getenv("CTAPIPE_SVC_PATH"),
-                                regexp_group=None):
+def find_all_matching_datasets(pattern,
+                               searchpath= os.getenv("CTAPIPE_SVC_PATH"),
+                               regexp_group=None):
     """
-    Returns a list of filenames (or substrings) matching the given pattern, 
-    searching  first in searchpath (a colon-separated list of directories) and then in the 
-    ctapipe_resources module)
+    Returns a list of resource names (or substrings) matching the given 
+    pattern, searching first in searchpath (a colon-separated list of 
+    directories) and then in the ctapipe_resources module)
     
     Parameters
     ----------
-    pattern: regexp str
+    pattern: str
        regular expression to use for matching
     searchpath: str
        colon-seprated list of directories in which to search, defaulting to 
@@ -37,9 +37,9 @@ def find_all_matching_resources(pattern,
     Returns
     -------
     list(str):
-       filenames
+       resources names, use get_dataset() to retrieve the full filename
     """
-    results = []
+    results = set()
 
     # first check search path
     if searchpath is not None:
@@ -49,20 +49,20 @@ def find_all_matching_resources(pattern,
                     match = re.match(pattern, filename)
                     if match:
                         if regexp_group is not None:
-                            results.append(match.group(regexp_group))
+                            results.add(match.group(regexp_group))
                         else:
-                            results.append(filename)
+                            results.add(filename)
 
     # then check resources module
     for resource in resource_listdir('ctapipe_resources', ''):
         match = re.match(pattern, resource)
         if match:
             if regexp_group is not None:
-                results.append(match.group(regexp_group))
+                results.add(match.group(regexp_group))
             else:
-                results.append(resource)
+                results.add(resource)
 
-    return results
+    return list(results)
 
 
 def find_in_path(filename, searchpath):
@@ -93,7 +93,7 @@ def find_in_path(filename, searchpath):
 def get_dataset(filename):
     """
     Returns the full file path to an auxiliary dataset needed by 
-    ctapipe.
+    ctapipe, given the dataset's full name (filename with no directory).
       
     This will first search for the file in directories listed in 
     tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,  

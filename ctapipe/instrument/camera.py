@@ -2,22 +2,18 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+import logging
 from collections import defaultdict
 
 import numpy as np
-import logging
-from pkg_resources import resource_listdir
-import re
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
-
-from ctapipe.io.files import get_file_type
-from ctapipe.utils import get_dataset
-from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-from ctapipe.utils import get_dataset, find_all_matching_resources
+
+from ctapipe.utils import get_dataset, find_all_matching_datasets
+from ctapipe.utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'get_camera_types',
@@ -182,11 +178,11 @@ class CameraGeometry:
         """
 
         pattern = "(.*)\.camgeom.fits"
-        return find_all_matching_resources(pattern, regexp_group=1)
+        return find_all_matching_datasets(pattern, regexp_group=1)
 
 
     @classmethod
-    def from_name(cls, camera_id='NectarCam', array_id='CTA', version=None):
+    def from_name(cls, camera_id='NectarCam', version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
         
@@ -213,9 +209,8 @@ class CameraGeometry:
         else:
             verstr = "-{:03d}".format(version)
 
-        filename = get_dataset("{array_id}-{camera_id}{verstr}.camgeom.fits.gz"
-                               .format(array_id=array_id, camera_id=camera_id,
-                                       verstr=verstr))
+        filename = get_dataset("{camera_id}{verstr}.camgeom.fits.gz"
+                               .format(camera_id=camera_id, verstr=verstr))
         return CameraGeometry.from_table(filename)
 
 

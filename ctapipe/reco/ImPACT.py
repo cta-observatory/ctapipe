@@ -52,9 +52,10 @@ class ImPACTReconstructor(Reconstructor):
         # for each telescope type
         self.root_dir = root_dir
         self.prediction = dict()
-        self.file_names = {"GATE": "SST-GCT.table.gz", "LSTCam":
-                           "LST.table.gz", "NectarCam":
-                           "MST.table.gz", "FlashCam": "MST.table.gz"}
+        self.file_names = {"CHEC": "SST-GCT.table.gz",
+                           "LSTCam": "LST.table.gz",
+                           "NectarCam": "MST.table.gz",
+                           "FlashCam":"MST.table.gz"}
 
         # We also need a conversion function from height above ground
         # to depth of maximum To do this we need the conversion table
@@ -65,13 +66,13 @@ class ImPACTReconstructor(Reconstructor):
         # distribution for each pixel currently this is not availible
         # from the calibration, so for now lets hard code it in a dict
         self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3,
-                          "FlashCam": 2.3, "GATE": 0.5}
+                          "FlashCam": 2.3, "CHEC": 0.5}
         self.spe = 0.5  # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this
         # will be fixed later
         self.scale = {"LSTCam": 1.2, "NectarCam": 1.2,
-                      "FlashCam": 1.1, "GATE": 0.75}
+                      "FlashCam": 1.1, "CHEC": 0.75}
 
         # Next we need the position, area and amplitude from each
         # pixel in the event making this a class member makes passing
