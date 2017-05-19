@@ -19,7 +19,7 @@ class EnergyReconstructorMVA(EnergyReconstructor):
     """
     """
 
-    def __init__(self, root_dir="."):
+    def __init__(self, root_dir="./"):
         """
         
         Parameters
@@ -30,7 +30,7 @@ class EnergyReconstructorMVA(EnergyReconstructor):
         # for each telescope type
         self.root_dir = root_dir
 
-        self.file_names = {"GATE": "GCT_energy.pkl", "LSTCam":
+        self.file_names = {"GCT": "GCT_energy.pkl", "LSTCam":
                            "LST_energy.pkl", "NectarCam":
                            "NectarCam_energy.pkl", "FlashCam": "FlashCam_energy.pkl"}
         self.input_scaler = dict()
@@ -56,43 +56,47 @@ class EnergyReconstructorMVA(EnergyReconstructor):
         -------
 
         """
-        filename = self.root_dir + self.file_names[tel_type]
+        for tel_num in tel_type:
+            if tel_type[tel_num] in self.energy_estimator:
+                continue
+            filename = self.root_dir + self.file_names[tel_type[tel_num]]
 
-        if isfile(filename):
-            estimator = joblib.load(filename)
-            self.energy_estimator[tel_type] = estimator["regression"]
-            if "error" in estimator:
-                self.error_estimator[tel_type] = estimator["error"]
-            if "scale" in estimator:
-                self.input_scaler[tel_type] = estimator["scale"]
-        else:
-            print("OK MVA does not exist, so lets make it")
-            gamma_list = self.root_dir + "gamma_events.fits"
-            mva, scaler, error_mva = \
-                train_energy_mva(gamma_list,tel_type,
-                                 mva=GradientBoostingRegressor(n_estimators=100,
-                                                               learning_rate=0.1,
-                                                               max_depth=10,
-                                                               random_state=0, loss='ls',
-                                                               verbose=True),
-                                 scaler = RobustScaler(),
-                                 error_mva=GradientBoostingRegressor(n_estimators=100,
-                                                                     learning_rate=0.1,
-                                                                     max_depth=10,
-                                                                     random_state=0,
-                                                                     loss='ls',
-                                                                     verbose=True))
-            joblib_output = {"regression":mva}
-            self.energy_estimator[tel_type] = mva
+            if isfile(filename):
+                estimator = joblib.load(filename)
+                self.energy_estimator[tel_type[tel_num]] = estimator["regression"]
+                if "error" in estimator:
+                    self.error_estimator[tel_type[tel_num]] = estimator["error"]
+                if "scale" in estimator:
+                    self.input_scaler[tel_type[tel_num]] = estimator["scale"]
+            else:
+                print("OK MVA does not exist, so lets make it")
+                gamma_list = self.root_dir + "gamma.fits"
+                mva, scaler, error_mva = \
+                   train_energy_mva(gamma_list,tel_type[tel_num],
+                                     mva=GradientBoostingRegressor(n_estimators=100,
+                                                                   learning_rate=0.1,
+                                                                   max_depth=10,
+                                                                   random_state=0,
+                                                                   loss='ls',
+                                                                   verbose=True),
+                                  scaler = RobustScaler(),
+                                     error_mva=GradientBoostingRegressor(n_estimators=100,
+                                                                         learning_rate=0.1,
+                                                                         max_depth=10,
+                                                                         random_state=0,
+                                                                         loss='ls',
+                                                                         verbose=True))
+                joblib_output = {"regression":mva}
+                self.energy_estimator[tel_type[tel_num]] = mva
 
-            if scaler is not None:
-                joblib_output["scaler"] = scaler
-                self.input_scaler[tel_type] = scaler
-            if error_mva is not None:
-                joblib_output["error"] = error_mva
-                self.error_estimator[tel_type] = error_mva
+                if scaler is not None:
+                    joblib_output["scaler"] = scaler
+                    self.input_scaler[tel_type[tel_num]] = scaler
+                if error_mva is not None:
+                    joblib_output["error"] = error_mva
+                    self.error_estimator[tel_type[tel_num]] = error_mva
 
-            joblib.dump(joblib_output, filename)
+                joblib.dump(joblib_output, filename)
 
     def estimate_energy(self, core):
         """
@@ -109,29 +113,34 @@ class EnergyReconstructorMVA(EnergyReconstructor):
         energy = np.zeros(tel_number)
         error = np.ones(tel_number)
 
+        mva_input = np.zeros((1,4))
         for tel, num in zip(self.tel_pos_x, range(tel_number)):
 
             impact = np.sqrt(np.power(self.tel_pos_x[tel] - core.x, 2) +
                              np.power(self.tel_pos_y[tel] - core.y, 2))
 
+
             hill = self.hillas[tel]
 
             tel_type = self.type[tel]
-            mva_input = (hill.size, impact.to(u.m).value,
-                         hill.width.to(u.rad).value,
-                         hill.length.to(u.rad).value)
+            mva_input[0] = np.array((hill.size, impact.to(u.m).value,
+                                                 hill.width.to(u.rad).value,
+                                                 hill.length.to(u.rad).value))
+
 
             if tel_type in self.input_scaler:
                 mva_input = self.input_scaler[tel_type].transform(mva_input)
 
-            energy[num] = self.energy_estimator[tel_type].predict(mva_input)
+            energy[num] = np.power(10,self.energy_estimator[tel_type].predict(mva_input))
 
             if tel_type in self.error_estimator:
                 error[num] = self.error_estimator[tel_type].predict(mva_input)
 
         weight = 1./error
+        average_energy = np.average(energy, weights=weight)
+        variance = np.average((energy - average_energy) ** 2, weights=weight)
 
-        return np.sum(energy*weight)/np.sum(weight)
+        return average_energy * u.TeV, np.sqrt(variance) * u.TeV
 
     def set_event_properties(self, hillas, type_tel, tel_x, tel_y, tilted_frame):
 
@@ -177,14 +186,21 @@ class EnergyReconstructorMVA(EnergyReconstructor):
         ground = GroundFrame(x=shower.core_x,
                              y=shower.core_y, z=0 * u.m)
         tilted = ground.transform_to(
-            TiltedGroundFrame(pointing_direction=self.array_direction)
+            TiltedGroundFrame(pointing_direction=self.tilted_frame)
         )
 
-        energy = self.energy_estimator(tilted)
+        reconstructed_energy, energy_error = self.estimate_energy(tilted)
+        energy_result = ReconstructedEnergyContainer()
+        energy_result.is_valid = True
+        energy_result.energy = reconstructed_energy
+        energy_result.energy_uncert = energy_error
+
+        return energy_result
 
 
 from astropy.io import fits
 from sklearn.model_selection import train_test_split
+
 
 def train_energy_mva(filename, tel_type, mva, error_mva=None, scaler=None):
     """
