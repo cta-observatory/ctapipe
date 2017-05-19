@@ -168,8 +168,11 @@ class CameraDL1Calibrator(Component):
         -------
         `CameraGeometry`
         """
+
+
         return CameraGeometry.guess(*event.inst.pixel_pos[telid],
                                     event.inst.optical_foclen[telid])
+
 
     def get_correction(self, event, telid):
         """

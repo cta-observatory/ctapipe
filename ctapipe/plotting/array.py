@@ -198,6 +198,7 @@ class NominalPlotter:
 
         self.hillas = hillas_parameters
         scale_fac = 57.3 * 5
+
         self.array.overlay_moments(hillas_parameters, (self.cen_x, self.cen_y), scale_fac,
                                    cmap="viridis", alpha=0.5, **kwargs)
 
