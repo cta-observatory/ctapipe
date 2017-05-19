@@ -8,6 +8,7 @@ import numpy as np
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.image.charge_extractors import ChargeExtractorFactory
 
 from ctapipe.coordinates import *
 from ctapipe.core import Tool
@@ -15,6 +16,7 @@ from ctapipe.image import tailcuts_clean, dilate
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
+from ctapipe.image import FullIntegrator
 
 from astropy.table import Table
 
@@ -71,13 +73,14 @@ class GetTrainingParams(Tool):
         # Calibrators set to default for now
         self.r1 = HessioR1Calibrator(None, None)
         self.dl0 = CameraDL0Reducer(None, None)
-        self.calibrator = CameraDL1Calibrator(None, None)
+
+        self.calibrator = CameraDL1Calibrator(None, None, extractor=FullIntegrator(None, None))
 
         # If we don't set this just use everything
         if len(self.telescopes) < 2:
             self.telescopes = None
-        self.source = hessio_event_source(self.infile, allowed_tels=self.telescopes)
-
+        self.source = hessio_event_source(self.infile, allowed_tels=self.telescopes,
+                                          max_events=100)
         self.output = Table(names=['EVENT_ID', 'TEL_TYPE', 'AMP', 'WIDTH', 'LENGTH',
                                    'SIM_EN', 'IMPACT'],
                             dtype=[np.int64, np.str, np.float64, np.float64,
@@ -182,11 +185,6 @@ class GetTrainingParams(Tool):
             nom_coord = camera_coord.transform_to(nom_system)
             tx, ty, tz = event.inst.tel_pos[tel_id]
 
-            # ImPACT reconstruction is performed in the tilted system,
-            # so we need to transform tel positions
-            grd_tel = GroundFrame(x=tx * u.m, y=ty * u.m, z=tz * u.m)
-            tilt_tel = grd_tel.transform_to(tilted_system)
-
             # Clean image using split level cleaning
             mask = tailcuts_clean(self.geoms[tel_id], pmt_signal,
                                   picture_thresh=self.tail_cut[self.geoms[
@@ -194,9 +192,15 @@ class GetTrainingParams(Tool):
                                   boundary_thresh=self.tail_cut[self.geoms[
                                       tel_id].cam_id][0])
 
+            grd_tel = GroundFrame(x=tx, y=ty, z=tz)
+            tilt_tel = grd_tel.transform_to(tilted_system)
             # Perform Hillas parameterisation
             try:
                 moments = hillas_parameters(nom_coord.x, nom_coord.y, pmt_signal * mask)
+
+                # ImPACT reconstruction is performed in the tilted system,
+                # so we need to transform tel positions
+
 
             except HillasParameterizationError as e:
                 print(e)
@@ -204,8 +208,11 @@ class GetTrainingParams(Tool):
 
             # Make cut based on Hillas parameters
             if self.preselect(moments, tel_id):
-                impact_dist = tilt_tel.separation(mc_ground)
-                self.output.add_row((event.dl0.event_id, self.geoms[tel_id].cam_id,
+                mc_tilt = mc_ground.transform_to(tilted_system)
+                impact_dist = np.sqrt(np.power(tilt_tel.x - mc_tilt.x, 2) +
+                                      np.power(tilt_tel.y - mc_tilt.y, 2))
+
+                self.output.add_row((event.dl0.event_id, self.geoms[tel_id].cam_id.upper(),
                                      moments.size, moments.width.value, moments.length.value,
                                      event.mc.energy.value, impact_dist.value))
 
