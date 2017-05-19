@@ -7,14 +7,20 @@ from numpy import median
 import pytest
 
 
+def test_load_by_name():
+    for cam in ['NectarCam', 'LSTCam','GCT', 'SST-1m']:
+        geom = CameraGeometry.from_name(cam)
+    geom = CameraGeometry.from_name('HESSI', array_id='HESS')
+
+
 def test_make_rectangular_camera_geometry():
     geom = CameraGeometry.make_rectangular()
     assert(geom.pix_x.shape == geom.pix_y.shape)
 
 
 def test_load_hess_camera():
-    geom = CameraGeometry.from_name("hess", 1)
-    assert len(geom.pix_x) == 960
+    geom = CameraGeometry.from_name("LSTCam")
+    assert len(geom.pix_x) == 1855
 
 
 def test_guess_camera():
@@ -36,7 +42,7 @@ def test_find_neighbor_pixels():
     assert(set(neigh[11]) == set([16, 6, 10, 12]))
 
 def test_neighbor_pixels():
-    hexgeom = CameraGeometry.from_name("HESS", 1)
+    hexgeom = CameraGeometry.from_name("LSTCam")
     recgeom = CameraGeometry.make_rectangular()
 
     # most pixels should have 4 neighbors for rectangular geometry and 6 for
@@ -45,7 +51,7 @@ def test_neighbor_pixels():
     assert int(median(hexgeom.neighbor_matrix.sum(axis=1))) == 6
 
 def test_to_and_from_table():
-    geom = CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     tab = geom.to_table()
     geom2 = geom.from_table(tab)
 
@@ -60,7 +66,7 @@ def test_write_read(tmpdir):
 
     filename = str(tmpdir.join('testcamera.fits.gz'))
 
-    geom = CameraGeometry.from_name("HESS", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     geom.to_table().write(filename, overwrite=True)
     geom2 = geom.from_table(filename)
 
@@ -69,3 +75,12 @@ def test_write_read(tmpdir):
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
+
+def test_known_cameras():
+    cams = CameraGeometry.get_known_camera_names("CTA")
+    assert 'FlashCam' in cams
+    assert len(cams) > 3
+
+    
+if __name__ == '__main__':
+    test_to_and_from_table()

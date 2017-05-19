@@ -2,18 +2,28 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+from collections import defaultdict
+
 import numpy as np
+import logging
+from pkg_resources import resource_listdir
+import re
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
+
 from ctapipe.io.files import get_file_type
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils import get_dataset
 from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
+from ctapipe.utils import get_dataset
 
 __all__ = ['CameraGeometry',
-           'make_rectangular_camera_geometry']
+           'get_camera_types',
+           'print_camera_types']
+
+logger = logging.getLogger(__name__)
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
@@ -96,7 +106,7 @@ class CameraGeometry:
         # FIXME the rotation does not work on 2D pixel grids
         if len(pix_x.shape) == 1:
             self.rotate(cam_rotation)
-            self.cam_rotation = Angle(0 * u.deg)
+            self.cam_rotation = cam_rotation#Angle(0 * u.deg)
 
     def __eq__(self, other):
         return ( (self.cam_id == other.cam_id)
@@ -154,23 +164,63 @@ class CameraGeometry:
         return instance
 
     @classmethod
-    def from_name(cls, name, tel_id):
+    def get_known_camera_names(cls, array_id='CTA'):
         """
-        Construct a `CameraGeometry` from the name of the instrument and
-        telescope id, if it can be found in a standard database.
+        Returns a list of camera_ids that are registered in 
+        `ctapipe_resources`. These are all the camera-ids that can be 
+        instantiated by the `from_name` method
+     
+        Parameters
+        ----------
+        array_id: str 
+            which array to search (default CTA)
+
+        Returns
+        -------
+        list(str)
         """
-        return get_camera_geometry(name, tel_id)
+        names = []
+        pattern = "{}-(.*)\.camgeom.fits".format(array_id)
+        for resource in resource_listdir('ctapipe_resources', ''):
+            match = re.match(pattern, resource)
+            if match:
+                names.append(match.group(1))
+        return names
+
 
     @classmethod
-    def from_file(cls, filename, tel_id):
+    def from_name(cls, camera_id='NectarCam', array_id='CTA', version=None):
         """
-        Construct a `CameraGeometry` from the a data file
+        Construct a CameraGeometry using the name of the camera and array.
+        
+        This expects that there is a resource in the `ctapipe_resources` module
+        called "[array]-[camera].camgeom.fits.gz" or "[array]-[camera]-[
+        version].camgeom.fits.gz"
+        
+        Parameters
+        ----------
+        camera_id: str
+           name of camera (e.g. 'NectarCam', 'LSTCam', 'GCT', 'SST-1M')
+        array_id: str
+           array identifier (e.g. 'CTA', 'HESS')
+        version:
+           camera version id (currently unused)
+
+        Returns
+        -------
+        new CameraGeometry
         """
-        filetype = get_file_type(filename)
-        if filetype == 'simtel':
-            return _load_camera_geometry_from_hessio_file(tel_id, filename)
+
+        if version is None:
+            verstr = ''
         else:
-            raise TypeError("File type {} not supported".format(filetype))
+            verstr = "-{:03d}".format(version)
+
+        filename = get_dataset("{array_id}-{camera_id}{verstr}.camgeom.fits.gz"
+                               .format(array_id=array_id, camera_id=camera_id,
+                                       verstr=verstr))
+        return CameraGeometry.from_table(filename)
+
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
@@ -395,103 +445,6 @@ def _guess_camera_type(npix, optical_foclen):
                                   0 * u.degree, 0 * u.degree))
 
 
-def get_camera_geometry(instrument_name, cam_id, recalc_neighbors=True):
-    """Helper function to provide the camera geometry definition for a
-    camera by name.
-
-    Parameters
-    ----------
-    instrument_name : {'hess'}
-        name of instrument
-    cam_id : int
-        identifier of camera, in case of multiple versions
-    recalc_neighbors : bool
-        if True, recalculate the neighbor pixel list, otherwise
-        use what is in the file
-
-    Returns
-    -------
-    a `CameraGeometry` object
-
-    Examples
-    --------
-
-    >>> geom_ct1 = get_camera_geometry( "hess", 1 )
-    >>> neighbors_pix_1 = geom_ct1.pix_id[geom_ct1.neighbors[1]]
-    """
-
-    # let's assume the instrument name is encoded in the
-    # filename
-    name = instrument_name.lower()
-    geomfile = get_path('{}_camgeom.fits.gz'.format(name))
-
-    geom = _load_camera_table_from_file(cam_id, geomfile=geomfile)
-    neigh_list = geom['PIX_NEIG'].data
-    neigh = np.ma.masked_array(neigh_list, neigh_list < 0),
-
-    # put them all in units of M (conversions are automatic)
-    xx = u.Quantity(geom['PIX_POSX'], u.m)
-    yy = u.Quantity(geom['PIX_POSY'], u.m)
-    dd = u.Quantity(geom['PIX_DIAM'], u.m)
-    aa = u.Quantity(geom['PIX_AREA'], u.m ** 2)
-
-    if recalc_neighbors is True:
-        neigh = _find_neighbor_pixels(xx.value, yy.value,
-                                      (dd.mean() + 0.01 * u.m).value)
-
-    return CameraGeometry(
-        cam_id="{}:{}".format(instrument_name, cam_id),
-        pix_id=np.array(geom['PIX_ID']),
-        pix_x=xx,
-        pix_y=yy,
-        pix_area=aa,
-        neighbors=neigh,
-        pix_type='hexagonal'
-    )
-
-
-def _load_camera_table_from_file(cam_id, geomfile='chercam.fits.gz'):
-    filetype = get_file_type(geomfile)
-    if filetype == 'fits':
-        return _load_camera_geometry_from_fits_file(cam_id, geomfile)
-    else:
-        raise NameError("file type not supported")
-
-
-def _load_camera_geometry_from_fits_file(cam_id, geomfile='chercam.fits.gz'):
-    """
-    Read camera geometry from a  FITS file with a ``CHERCAM`` extension.
-
-    Parameters
-    ----------
-
-    cam_id : int
-        ID number of camera in the fits file
-    geomfile : str
-        FITS file containing camera geometry in ``CHERCAM`` extension
-
-    Returns
-    -------
-
-    a `CameraGeometry` object
-
-    """
-    camtable = Table.read(geomfile, hdu="CHERCAM")
-    geom = camtable[camtable['CAM_ID'] == cam_id]
-    return geom
-
-
-def _load_camera_geometry_from_hessio_file(tel_id, filename):
-    import hessio  # warning, non-rentrant!
-    hessio.file_open(filename)
-    events = hessio.move_to_next_event()
-    next(events)  # load at least one event to get all the headers
-    pix_x, pix_y = hessio.get_pixel_position(tel_id)
-    optical_foclen = hessio.get_optical_foclen(tel_id)
-
-    hessio.close_file()
-    return CameraGeometry.guess(pix_x * u.m, pix_y * u.m, optical_foclen)
-
 
 def _neighbor_list_to_matrix(neighbors):
     """ 
@@ -507,3 +460,49 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
+
+
+def get_camera_types(inst):
+    """ return dict of camera names mapped to a list of tel_ids
+     that use that camera
+     
+     Parameters
+     ----------
+     inst: instument Container
+     
+     """
+
+    cam_types = defaultdict(list)
+
+    for telid in inst.pixel_pos:
+        x, y = inst.pixel_pos[telid]
+        f = inst.optical_foclen[telid]
+        geom = CameraGeometry.guess(x, y, f)
+
+        cam_types[geom.cam_id].append(telid)
+
+    return cam_types
+
+
+def print_camera_types(inst, printer=print):
+    """
+    Print out a friendly table of which camera types are registered in the 
+    inst dictionary (from a hessio file), along with their starting and 
+    stopping tel_ids.
+    
+    Parameters
+    ----------
+    inst: ctapipe.io.containers.InstrumentContainer
+        input container
+    printer: func
+        function to call to output the text (default is the standard python 
+        print command, but you can give for example logger.info to have it 
+        write to a logger) 
+    """
+    camtypes = get_camera_types(inst)
+
+    printer("              CAMERA  Num IDmin  IDmax")
+    printer("=====================================")
+    for cam, tels in camtypes.items():
+        printer("{:>20s} {:4d} {:4d} ..{:4d}".format(cam, len(tels), min(tels),
+                                                     max(tels)))

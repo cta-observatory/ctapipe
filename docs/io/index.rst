@@ -10,7 +10,8 @@ Introduction
 ============
 
 `ctapipe.io` contains functions and classes related to reading data,
-like `~ctapipe.io.hessio_event_source`. 
+like `~ctapipe.io.hessio_event_source`.
+
 
 Container Classes
 =================
@@ -88,12 +89,14 @@ Serialization of Containers:
 The `serializer` module provide support for storing
 `ctapipe.io.Container` classes in output files (for example FITS
 tables or pickle files)
-   
+
+The `hdftableio` submodule provides an API to write/read Containers to and
+from HDF5 tables using the pytables package.
+
 
 Reference/API
 =============
 
-------------------------------
        
 .. automodapi:: ctapipe.io.hessio
 
@@ -106,4 +109,8 @@ Reference/API
 
 .. automodapi:: ctapipe.io.serializer
     :no-inheritance-diagram:
+
+------------------------------
+
+.. automodapi:: ctapipe.io.hdftableio
 

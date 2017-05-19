@@ -37,7 +37,7 @@ from traitlets import (
 )
 
 from ctapipe.utils.json2fits import traitlets_config_to_fits, json_to_fits
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils import get_dataset
 import tempfile
 
 import sys
@@ -121,7 +121,7 @@ class MyApp(Application):
 
 def test_traitlets_config_to_fits():
     backup = sys.argv
-    full_config_name = get_path('config.json')
+    full_config_name = get_dataset('config.json')
     sys.argv = ['test_json_2_fits.py', '--config_file=' + full_config_name]
     app = MyApp()
     app.initialize()
@@ -134,7 +134,7 @@ def test_traitlets_config_to_fits():
 
 def test_jsonToFits():
     backup = sys.argv
-    full_config_name = get_path('config.json')
+    full_config_name = get_dataset('config.json')
     sys.argv = ['test_json_2_fits.py', '--config_file=' + full_config_name]
     app = MyApp()
     app.initialize()

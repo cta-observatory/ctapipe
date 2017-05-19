@@ -1,29 +1,37 @@
+"""
+Waveform cleaning algorithms (smoothing, filtering, baseline subtraction)
+"""
+
 from traitlets import Int, CaselessStrEnum
 from ctapipe.core import Component, Factory
 import numpy as np
 from scipy.signal import general_gaussian
 from abc import abstractmethod
 
+__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleaner',
+           'NullWaveformCleaner']
+
 
 class WaveformCleaner(Component):
+    """
+    Base component to handle the cleaning of the waveforms in an image.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
     name = 'WaveformCleaner'
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Use a method for filtering the signal
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, parent=tool, **kwargs)
 
     @abstractmethod
@@ -44,9 +52,12 @@ class WaveformCleaner(Component):
             (n_chan, n_pix, n_samples).
 
         """
-
+        pass
 
 class NullWaveformCleaner(WaveformCleaner):
+    """
+    Dummy waveform cleaner that simply returns its input
+    """
     name = 'NullWaveformCleaner'
 
     def apply(self, waveforms):
@@ -54,6 +65,27 @@ class NullWaveformCleaner(WaveformCleaner):
 
 
 class CHECMWaveformCleaner(WaveformCleaner):
+    """
+    Waveform cleaner used by CHEC-M.
+
+    This cleaner performs 2 basline subtractions: a simple subtraction
+    using the average of the first 32 samples in the waveforms, then a 
+    convolved baseline subtraction to remove and low frequency drifts in 
+    the baseline.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+           
+    """
+
     name = 'CHECMWaveformCleaner'
 
     window_width = Int(16, help='Define the width of the pulse '
@@ -64,21 +96,6 @@ class CHECMWaveformCleaner(WaveformCleaner):
              help='Override the value of t0').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Use a method for filtering the signal
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, tool=tool, **kwargs)
 
         # Cleaning steps for plotting
@@ -144,6 +161,9 @@ class CHECMWaveformCleaner(WaveformCleaner):
 
 
 class WaveformCleanerFactory(Factory):
+    """
+    Factory to obtain a WaveformCleaner.
+    """
     name = "WaveformCleanerFactory"
     description = "Obtain WavefromCleaner based on cleaner traitlet"
 

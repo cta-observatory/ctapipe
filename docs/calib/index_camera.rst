@@ -1,34 +1,53 @@
 .. _calib_camera:
 
-===================
- Camera calibration
-===================
+==================
+Camera calibration
+==================
 
 .. currentmodule:: ctapipe.calib.camera
 
-This module contains the functions to calibrate the CTA cameras.
+Introduction
+============
 
-These functions are divided into the different python modules:
+This directory contains all the functions that are used to calibrate the CTA
+Cameras (MC, prototypes and final camera calibration algorithms).
 
-* MC Camera calibration (`mc.py`)
+The calibration is seperated between data level transitions:
+    * R0 -> R1 (Camera precalibration) (r1.py)
+    * R1 -> DL0 (Data volume reduction) (dl0.py)
+    * DL0 -> DL1 (Waveform cleaning and charge extraction) (dl1.py)
 
-* Camera prototypes:
+The routines in these scripts take a ctapipe event container, and fill the
+next data level container with the calibrated information.
+If the container is empty for the source data level then that calibration is
+skipped and the target data level container is unchanged (for example
+performing the calibration in r1.py on data read into the R1 container will
+leave the container unchanged, as there is no data in the R0 container)
 
-    * LST Camera (`lstcam.py`)
-    * MST-NectarCam Camera (`nectarcam.py`)
-    * MST-FlashCam Camera (`flashcam.py`)
-    * SST-GCT Camera (`gctcam.py`)
-    * SST-ASTRI Camera (`astricam.py`) 
-    * SST-1M Camera (`digicam.py`) 
-    * MST-SCT Camera (`sctcam.py`) 
-
-* Camera Calibration (`camera_calibration.py`)
-
-For a more detailed description of each module and where the different developers should include their code, see README.rst in ctapipe/calib/camera/ directory.
-
+See the CTA Data Level Models definiton document for information about the
+different data levels.
 
 Reference/API
 =============
 
 .. automodapi:: ctapipe.calib.camera
+
+------------------------------
+
+.. automodapi:: ctapipe.calib.camera.r1
+
+------------------------------
+
+.. automodapi:: ctapipe.calib.camera.dl0
     :no-inheritance-diagram:
+
+------------------------------
+
+.. automodapi:: ctapipe.calib.camera.dl1
+    :no-inheritance-diagram:
+
+------------------------------
+
+.. automodapi:: ctapipe.calib.camera.calibrator
+    :no-inheritance-diagram:
+

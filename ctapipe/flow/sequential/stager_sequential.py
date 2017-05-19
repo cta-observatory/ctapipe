@@ -2,12 +2,14 @@
 # coding: utf8
 from types import GeneratorType
 
+
 class StagerSequential():
 
     """`StagerSequential` class represents a Stager pipeline Step.
     """
+
     def __init__(
-            self, coroutine, name=None, connexions=list(),main_connexion_name=None):
+            self, coroutine, name=None, connexions=list(), main_connexion_name=None):
         """
         Parameters
         ----------
@@ -25,6 +27,7 @@ class StagerSequential():
     def init(self):
         """
         Initialise coroutine sockets and poller
+
         Returns
         -------
         True if coroutine init method returns True, otherwise False
@@ -37,49 +40,54 @@ class StagerSequential():
             return False
         return True
 
-    def run(self,inputs=None):
+    def run(self, inputs=None):
         """ Executes coroutine run method
-        Parameters:
-        ===========
-        inputs: input for coroutine.run
+
+        Parameters
+        ----------
+        inputs: object
+             input for coroutine.run
         """
         result = self.coroutine.run(inputs)
         if isinstance(result, GeneratorType):
             for val in result:
                 msg, destination = self.get_destination_msg_from_result(val)
-                yield (msg,destination)
+                yield (msg, destination)
         else:
             msg, destination = self.get_destination_msg_from_result(result)
-            yield (msg,destination)
-        self.nb_job_done+=1
+            yield (msg, destination)
+        self.nb_job_done += 1
 
-    def get_destination_msg_from_result(self,result):
-        """
-        If result is a tuple, check if last tuple elem is a valid next step.
-        If yes, return a destination defined to  the last tuple elem and send result without the destination
-        If no return None as destination
-        Parameter:
+    def get_destination_msg_from_result(self, result):
+        """If result is a tuple, check if last tuple elem is a valid next
+        step.  If yes, return a destination defined to the last tuple
+        elem and send result without the destination If no return None
+        as destination
+
+        Parameters
         ----------
         result : any type
             value to send (can contain next step name)
-        Return:
+
+        Returns
         -------
         msg, destination
+
         """
         destination = self.main_connexion_name
-        if isinstance(result,tuple):
+        if isinstance(result, tuple):
             # look is last tuple elem is a valid next step
             if result[-1] in self.connexions.keys():
                 destination = result[-1]
-                if len(result [:-1]) == 1:
-                    msg = result [:-1][0]
+                if len(result[:-1]) == 1:
+                    msg = result[:-1][0]
                 else:
                     msg = result[:-1]
-                return msg,destination
+                return msg, destination
             else:
-                return result,destination
+                return result, destination
         else:
-            return result,destination
+            return result, destination
 
     def finish(self):
         """

@@ -23,7 +23,7 @@ def draw_neighbors(geom, pixel_index, color='r', **kwargs):
 if __name__ == '__main__':
 
     # Load the camera
-    geom = CameraGeometry.from_name("hess", 1)
+    geom = CameraGeometry.from_name("LSTCam")
     disp = CameraDisplay(geom)
     disp.set_limits_minmax(0, 300)
     disp.add_colorbar()

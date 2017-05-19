@@ -17,7 +17,7 @@ import logging
 import numpy as np
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_example_simtelarray_file
+from ctapipe.utils import get_dataset
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='show single telescope')
     parser.add_argument('tel', metavar='TEL_ID', type=int)
     parser.add_argument('filename', metavar='EVENTIO_FILE', nargs='?',
-                        default=get_example_simtelarray_file())
+                        default=get_dataset("gamma_test_large.simtel.gz"))
     parser.add_argument('-m', '--max-events', type=int, default=10)
     parser.add_argument('-c', '--channel', type=int, default=0)
     parser.add_argument('-w', '--write', action='store_true',

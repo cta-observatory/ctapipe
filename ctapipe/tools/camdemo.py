@@ -20,19 +20,24 @@ class CameraDemo(Tool):
     name = u"ctapipe-camdemo"
     description = "Display fake events in a demo camera"
 
-    delay = traits.Int(20, help="Frame delay in ms").tag(config=True)
+    delay = traits.Int(50, help="Frame delay in ms", min=20).tag(config=True)
     cleanframes = traits.Int(100, help="Number of frames between turning on "
-                                      "cleaning").tag(config=True)
+                                      "cleaning", min=0).tag(config=True)
     autoscale = traits.Bool(False, help='scale each frame to max if '
                                         'True').tag(config=True)
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
                                    'much faster but may cause some draw '
                                    'artifacts)').tag(config=True)
+    camera = traits.CaselessStrEnum(
+        CameraGeometry.get_known_camera_names(),
+        default_value='LSTCam',
+        help='Name of camera to display').tag(config=True)
 
     aliases = traits.Dict({'delay': 'CameraDemo.delay',
                            'cleanframes': 'CameraDemo.cleanframes',
                            'autoscale' : 'CameraDemo.autoscale',
-                           'blit': 'CameraDemo.blit'})
+                           'blit': 'CameraDemo.blit',
+                           'camera': 'CameraDemo.camera'})
 
 
     def __init__(self):
@@ -41,7 +46,7 @@ class CameraDemo(Tool):
         self.imclean = False
 
     def start(self):
-        self.log.info("Starting Camera Display")
+        self.log.info("Starting CameraDisplay for {}".format(self.camera))
         self._display_camera_animation()
 
     def _display_camera_animation(self):
@@ -50,7 +55,7 @@ class CameraDemo(Tool):
         ax = plt.subplot(111)
 
         # load the camera
-        geom = CameraGeometry.from_name("hess", 1)
+        geom = CameraGeometry.from_name(self.camera)
         disp = CameraDisplay(geom, ax=ax, autoupdate=True, )
         disp.cmap = plt.cm.terrain
 

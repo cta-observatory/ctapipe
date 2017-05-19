@@ -1,6 +1,7 @@
 from traitlets import Unicode
 from traitlets.config import Application
 from abc import abstractmethod
+from . import Provenance
 import logging
 
 from ctapipe import __version__ as version
@@ -172,13 +173,23 @@ class Tool(Application):
     def run(self, argv=None):
         """Run the tool. This automatically calls `initialize()`,
         `start()` and `finish()`
+
+        Parameters
+        ----------
+
+        argv: list(str)
+            command-line arguments, or None to get them 
+            from sys.argv automatically
         """
         try:
             self.initialize(argv)
             self.log.info("Starting: {}".format(self.name))
             self.log.debug("CONFIG: {}".format(self.config))
+            Provenance().start_activity(self.name)
             self.start()
             self.finish()
+            Provenance().finish_activity(self.name)
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
         except ValueError as err:
             self.log.error('{}'.format(err))
         except RuntimeError as err:

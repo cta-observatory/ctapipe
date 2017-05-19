@@ -1,5 +1,11 @@
+""""
+Line-intersection-based fitting.
+
+Contact: Tino Michael <Tino.Michael@cea.fr>
+"""
+
 from ctapipe.utils import linalg
-from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 
 from astropy.utils.decorators import deprecated
@@ -14,7 +20,7 @@ from astropy import units as u
 u.dimless = u.dimensionless_unscaled
 
 
-__all__ = ['FitGammaHillas',
+__all__ = ['HillasReconstructor',
            'TooFewTelescopesException',
            'dist_to_traces', 'MEst', 'GreatCircle']
 
@@ -30,15 +36,14 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
     calculates the direction vector of corresponding to a
     (x,y) position on the camera
 
+    beta is the pixel's angular distance to the centre
+    according to beta / tel_view = r / maxR
+    alpha is the polar angle between the y-axis and the pixel
+    to find the direction the pixel is looking at:
 
-      beta is the pixel's angular distance to the centre
-      according to beta / tel_view = r / maxR
-      alpha is the polar angle between the y-axis and the pixel
-      to find the direction the pixel is looking at:
-
-      - the pixel direction is set to the telescope direction
-      - offset by beta towards up
-      - rotated around the telescope direction by the angle alpha
+    - the pixel direction is set to the telescope direction
+    - offset by beta towards up
+    - rotated around the telescope direction by the angle alpha
 
 
     Parameters
@@ -83,8 +88,8 @@ def dist_to_traces(core, circles):
     projected perpendicular to the trace.
 
     This is implemented as the scalar product of the connecting vector
-    between the core and the position of the telescope and `{ trace[1],
-    -trace[0] }` as the normal vector of the trace.
+    between the core and the position of the telescope and { trace[1],
+    -trace[0] } as the normal vector of the trace.
 
     Notes
     -----
@@ -93,6 +98,8 @@ def dist_to_traces(core, circles):
     .. math::
 
         M_\\text{Est} = \sum_i{ 2 \cdot \sqrt{1 + d_i^2} - 2}
+
+        
 
     '''
 
@@ -119,6 +126,7 @@ def MEst(origin, circles, weights):
     .. math::
 
         M_\\text{Est} = \sum_i{ 2 \cdot \sqrt{1 + d_i^2} - 2}
+
 
     Notes
     -----
@@ -172,7 +180,7 @@ def neg_angle_sum(origin, circles, weights):
     return -np.sum(weights * sin_ang)
 
 
-class FitGammaHillas(RecoShowerGeomAlgorithm):
+class HillasReconstructor(Reconstructor):
     '''
     class that reconstructs the direction of an atmospheric shower
     using a simple hillas parametrisation of the camera images it
@@ -321,8 +329,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
     def fit_origin_minimise(self, seed=(0, 0, 1), test_function=neg_angle_sum):
         ''' Fits the origin of the gamma with a minimisation procedure this
-        function expects that
-        :func:`get_great_circles<ctapipe.reco.FitGammaHillas.get_great_circles>`
+        function expects that `get_great_circles`
         has been run already. A seed should be given otherwise it defaults to
         "straight up" supperted functions to minimise are an M-estimator and the
         negative sum of the angles to all normal vectors of the great
@@ -368,7 +375,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
 
         Notes
         -----
-        The basis is the "trace" of each telescope's :class:`.GreatCircle` which
+        The basis is the "trace" of each telescope's `GreatCircle` which
         can be determined by the telescope's position P=(Px, Py) and
         the circle's normal vector, projected to the ground n=(nx,
         ny), so that for every r=(x, y) on the trace
@@ -383,6 +390,8 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         form:
 
         .. math::
+            :label: fullmatrix
+            
             \begin{pmatrix}
                 nx_1  &  ny_1  \\
                 \vdots & \vdots \\
@@ -394,7 +403,7 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
                 \vdots \\
                 d_n
             \end{pmatrix}
-            :label: fullmatrix
+            
 
 
         or :math:`\boldsymbol{A} \cdot \vec r = \vec D`.
@@ -404,20 +413,23 @@ class FitGammaHillas(RecoShowerGeomAlgorithm):
         the method of least linear square:
 
         .. math::
+            :label: rchisqr
+            
             \vec{r}_{\chi^2} = (\boldsymbol{A}^\text{T} \cdot \boldsymbol{A})^{-1}
             \boldsymbol{A}^\text{T} \cdot \vec D
-            :label: rchisqr
+            
 
         :math:`\vec{r}_{\chi^2}` minimises the squared difference of
+
 
         .. math::
 
             \vec D - \boldsymbol{A} \cdot \vec r.
 
-        Weights are applied to every line of equation :eq:`fullmatrix` as stored in
-        circle.weight (assuming they have been set in
-        :func:`get_great_circles<ctapipe.reco.FitGammaHillas.get_great_circles>`
-        or elsewhere).
+
+        Weights are applied to every line of equation 
+        :eq:`fullmatrix` as stored in circle.weight (assuming they have been 
+        set in `get_great_circles` or elsewhere).
 
         Returns
         -------

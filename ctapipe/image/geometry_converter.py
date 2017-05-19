@@ -11,8 +11,8 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.d
     """transform the pixel coordinates of a hexagonal image into an
     orthogonal image
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the hexagonal pixel grid
     cam_angle : astropy.Quantity (default: 0 degrees)
@@ -23,8 +23,8 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.d
     base_angle : astropy.Quantity (default: 60 degrees)
         the skewing angle of the hex-grid. should be 60° for regular hexagons
 
-    Returns:
-    --------
+    Returns
+    -------
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the slanted, orthogonal pixel grid
     """
@@ -62,8 +62,8 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.d
 def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.deg):
     """skews the orthogonal coordinates back to the hexagonal ones
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the slanted, orthogonal pixel grid
     cam_angle : astropy.Quantity (default: 0 degrees)
@@ -74,8 +74,8 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg, base_angle=60 * u.d
     base_angle : astropy.Quantity (default: 60 degrees)
         the skewing angle of the hex-grid. should be 60° for regular hexagons
 
-    Returns:
-    --------
+    Returns
+    -------
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the hexagonal pixel grid
 
@@ -119,15 +119,15 @@ def reskew_hex_pixel_from_orthogonal_edges(x_edges, y_edges, square_mask):
     image while selecting only the pixel that are selected by the
     given mask
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     x_edges, y_edges : 1darrays
         the bin edges of the 2D histogram
     square_mask : 2darray
         mask that selects the pixels actually belonging to the camera
 
-    Returns:
-    --------
+    Returns
+    -------
     unrot_x, unrot_y : 1darrays
         pixel coordinated reskewed into the hexagonal camera grid
     """
@@ -144,25 +144,23 @@ def reskew_hex_pixel_from_orthogonal_edges(x_edges, y_edges, square_mask):
 
 @jit
 def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
-    """
-        calculate the bin edges of the slanted, orthogonal pixel grid to resample the
-        pixel signals with np.histogramdd right after.
+    """calculate the bin edges of the slanted, orthogonal pixel grid to
+    resample the pixel signals with np.histogramdd right after.
 
-        Parameters:
-        -----------
-        pix_x, pix_y : 1D numpy arrays
-            the list of x and y coordinates of the slanted, orthogonal pixel grid
+    Parameters
+    ----------
+    pix_x, pix_y : 1D numpy arrays
+        the list of x and y coordinates of the slanted, orthogonal pixel grid
+    scale_aspect : boolean (default: True)
+        if True, rescales the x-coordinates to create square pixels
+        (instead of rectangular ones)
 
-        scale_aspect : boolean (default: True)
-            if True, rescales the x-coordinates to create square pixels (instead of
-            rectangular ones)
-
-        Returns:
-        --------
-        x_edges, y_edges : 1D numpy arrays
-            the bin edges for the slanted, orthogonal pixel grid
-        x_scale : float
-            factor by which the x-coordinates have been scaled
+    Returns
+    --------
+    x_edges, y_edges : 1D numpy arrays
+        the bin edges for the slanted, orthogonal pixel grid
+    x_scale : float
+        factor by which the x-coordinates have been scaled
     """
 
     # finding the size of the square patches
@@ -203,8 +201,8 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
     arrays. If the signal array contains a time-dimension it is
     conserved.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     geom : CameraGeometry object
         geometry object of hexagonal cameras
     signal : ndarray
@@ -214,8 +212,8 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
     add_rot : int/float (default: 0)
         parameter to apply an additional rotation of @add_rot times 60°
 
-    Returns:
-    --------
+    Returns
+    -------
     new_geom : CameraGeometry object
         geometry object of the slanted picture now with a rectangular
         grid and a 2D grid for the pixel positions contains now a 2D
@@ -320,7 +318,7 @@ def convert_geometry_back(geom, signal, key, foc_len, add_rot=0):
     convert_geometry_1d_to_2d back to a hexagonal grid stored in 1D
     arrays
 
-    Parameters:
+    Parameters
     ----------
     geom : CameraGeometry
         geometry object where pixel positions are stored in a 2D
@@ -335,8 +333,8 @@ def convert_geometry_back(geom, signal, key, foc_len, add_rot=0):
     add_rot : int/float (default: 0)
         parameter to apply an additional rotation of @add_rot times 60°
 
-    Returns:
-    --------
+    Returns
+    -------
     unrot_geom : CameraGeometry
         pixel rotated back to a hexagonal grid stored in a 1D array
     signal : ndarray

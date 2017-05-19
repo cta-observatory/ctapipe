@@ -4,6 +4,7 @@ from ctapipe.visualization import ArrayDisplay
 import astropy.units as u
 from ctapipe.coordinates import TiltedGroundFrame, GroundFrame
 
+
 class ArrayPlotter:
     """
     Simple plotter for drawing array level items
@@ -81,11 +82,11 @@ class ArrayPlotter:
             ground = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
             new_sys = ground.transform_to(self.system)
             self.array.overlay_moments(hillas, (new_sys.x, new_sys.y), scale_fac,
-                                       cmap="Greys", alpha=0.5, **kwargs)
+                                       cmap="Viridis", alpha=0.5, **kwargs)
             if draw_axes:
                 self.array.overlay_axis(hillas, (new_sys.x, new_sys.y))
         else:
-            self.array.overlay_moments(hillas, (tel_x, tel_y), scale_fac, cmap="viridis", **kwargs)
+            self.array.overlay_moments(hillas, (tel_x, tel_y), scale_fac, alpha=0.5, cmap="viridis", **kwargs)
 
         self.hillas = hillas
 
@@ -157,9 +158,12 @@ class ArrayPlotter:
         -------
         None
         """
+        ground = GroundFrame(x=np.asarray(core_x) * u.m, y=np.asarray(core_y) * u.m, z=np.asarray(0) * u.m)
+
         if self.system is not None:
-            ground = GroundFrame(x=np.asarray(core_x)*u.m, y=np.asarray(core_y)*u.m, z=np.asarray(0)*u.m)
             new_sys = ground.transform_to(self.system)
+        else:
+            new_sys = ground
 
         self.array.add_polygon(centroid=(new_sys.x.value,new_sys.y.value), radius=10, nsides=3, **kwargs)
         if use_centre:
@@ -194,7 +198,7 @@ class NominalPlotter:
 
         self.hillas = hillas_parameters
         scale_fac = 57.3 * 5
-        print(hillas_parameters)
+
         self.array.overlay_moments(hillas_parameters, (self.cen_x, self.cen_y), scale_fac,
                                    cmap="viridis", alpha=0.5, **kwargs)
 
