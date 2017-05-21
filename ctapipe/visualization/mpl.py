@@ -416,7 +416,7 @@ class CameraDisplay:
         cen_y = u.Quantity(momparams.cen_y).value
         length = u.Quantity(momparams.length).value
         width = u.Quantity(momparams.width).value
-        text = ("({:.02f},{:.02f})\n [w={:.02f},l={:.02f}]")\
+        text = "({:.02f},{:.02f})\n [w={:.03f},l={:.03f}]"\
             .format(momparams.cen_x, momparams.cen_y,
                     momparams.width, momparams.length)
 
