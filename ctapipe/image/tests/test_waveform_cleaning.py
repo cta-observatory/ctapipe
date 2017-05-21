@@ -45,6 +45,7 @@ def test_checm_cleaner_average():
     assert_almost_equal(data_ped[0, 0, 0], -2.8, 1)
     assert_almost_equal(cleaned[0, 0, 0], -6.4, 1)
 
+
 def test_checm_cleaner_local():
     telid = 11
     event = get_test_event()
