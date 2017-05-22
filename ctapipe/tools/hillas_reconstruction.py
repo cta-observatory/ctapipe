@@ -18,15 +18,14 @@ from ctapipe.image import tailcuts_clean, dilate
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.io.containers import ReconstructedShowerContainer, \
-    ReconstructedEnergyContainer
 
-from ctapipe.reco.HillasReconstructor import HillasReconstructor
 from ctapipe.reco.energy_reco_mva import EnergyReconstructorMVA
+from ctapipe.image import FullIntegrator
 
 from ctapipe.plotting.event_viewer import EventViewer
 from astropy.table import Table
 
+from ctapipe.reco.hillas_intersection import HillasIntersection
 
 class EventReconstructionHillas(Tool):
     """
@@ -69,14 +68,15 @@ class EventReconstructionHillas(Tool):
         # Calibrators set to default for now
         self.r1 = HessioR1Calibrator(None, None)
         self.dl0 = CameraDL0Reducer(None, None)
-        self.calibrator = CameraDL1Calibrator(None, None)
+        self.calibrator = CameraDL1Calibrator(None, None,
+                                              extractor=FullIntegrator(None, None))
         print(self.infile)
         # If we don't set this just use everything
         if len(self.telescopes) < 2:
             self.telescopes = None
         self.source = hessio_event_source(self.infile, allowed_tels=self.telescopes)
 
-        self.fit = HillasReconstructor()
+        self.fit = HillasIntersection()
         self.energy_reco = EnergyReconstructorMVA()
 
         self.viewer = EventViewer(draw_hillas_planes=True)
@@ -157,10 +157,6 @@ class EventReconstructionHillas(Tool):
                                       az=event.mcheader.run_array_direction[0] * u.rad)
         tilted_system = TiltedGroundFrame(pointing_direction=array_pointing)
 
-        image = {}
-        pixel_x = {}
-        pixel_y = {}
-        pixel_area = {}
         tel_type = {}
         tel_x = {}
         tel_y = {}
@@ -168,8 +164,6 @@ class EventReconstructionHillas(Tool):
         hillas = {}
         hillas_nom = {}
 
-        tel_phi = {}
-        tel_theta = {}
 
         for tel_id in event.dl0.tels_with_data:
             # Get calibrated image (low gain channel only)
@@ -228,48 +222,26 @@ class EventReconstructionHillas(Tool):
                     dilate(self.geoms[tel_id], mask)
 
                 # Save everything in dicts for reconstruction later
-                pixel_area[tel_id] = self.geoms[tel_id].pix_area / (fl * fl)
-                pixel_area[tel_id] *= u.rad * u.rad
-                pixel_x[tel_id] = nom_coord.x[mask]
-                pixel_y[tel_id] = nom_coord.y[mask]
-
                 tel_x[tel_id] = tilt_tel.x
                 tel_y[tel_id] = tilt_tel.y
 
                 tel_type[tel_id] = self.geoms[tel_id].cam_id
-                image[tel_id] = pmt_signal[mask]
 
                 hillas[tel_id] = moments_cam
                 hillas_nom[tel_id] = moments
 
-                tel_phi[tel_id] = array_pointing.az
-                tel_theta[tel_id] = 90 * u.deg - array_pointing.alt
-
         # Cut on number of telescopes remaining
-        if len(image) > 1:
+        if len(tel_x) > 1:
 
-            fit_result = self.fit.predict(hillas, event.inst, tel_phi, tel_theta)
+            fit_result = self.fit.predict(hillas_nom, tel_x, tel_y, array_pointing)
 
-            # We have to do this here as HillasReconstructor give results in tilted system
-            core_tilt = TiltedGroundFrame(x=fit_result.core_x, y=fit_result.core_y,
-                                     pointing_direction=array_pointing)
-            core = project_to_ground(core_tilt)
-
-            fit_result.core_x = core_tilt.x
-            fit_result.core_y = core_tilt.y
-            fit_result.core_x = scipy.random.normal(event.mc.core_x.value, 25) * u.m
-            fit_result.core_y = scipy.random.normal(event.mc.core_y.value, 25) * u.m
-
-            #print(core_tilt.x, core_tilt.y, core.x, core.y, event.mc.core_x,
-            #      event.mc.core_y)
-            self.energy_reco.set_event_properties(hillas_nom, tel_type, tel_x, tel_y,
-                                                  array_pointing)
-            energy_result = self.energy_reco.predict(fit_result)
+            energy_result = self.energy_reco.predict(fit_result, hillas_nom, tel_type,
+                                                     tel_x, tel_y, array_pointing)
 
             # insert the row into the table
             self.output.add_row((event.dl0.event_id, fit_result.alt,
                                  fit_result.az, energy_result.energy,
-                                 event.mc.alt, event.mc.az, event.mc.energy, len(image)))
+                                 event.mc.alt, event.mc.az, event.mc.energy, len(tel_x)))
 
 
 
