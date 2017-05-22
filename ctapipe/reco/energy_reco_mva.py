@@ -171,7 +171,7 @@ class EnergyReconstructorMVA(EnergyReconstructor):
 
         self.tilted_frame = tilted_frame
 
-    def predict(self, shower):
+    def predict(self, shower, hillas, type_tel, tel_x, tel_y, tilted_frame):
         """
         
         Parameters
@@ -182,6 +182,15 @@ class EnergyReconstructorMVA(EnergyReconstructor):
         -------
 
         """
+
+        self.tel_pos_x = tel_x
+        self.tel_pos_y = tel_y
+        self.hillas = hillas
+        self.type = type_tel
+
+        self.initialise_mva(type_tel)
+
+        self.tilted_frame = tilted_frame
 
         ground = GroundFrame(x=shower.core_x,
                              y=shower.core_y, z=0 * u.m)
@@ -200,7 +209,6 @@ class EnergyReconstructorMVA(EnergyReconstructor):
 
 from astropy.io import fits
 from sklearn.model_selection import train_test_split
-
 
 def train_energy_mva(filename, tel_type, mva, error_mva=None, scaler=None):
     """
