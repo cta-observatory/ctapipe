@@ -21,10 +21,12 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
+from ctapipe.instrument import get_atmosphere_profile_functions
 
 __all__ = ['ImPACTReconstructor']
 
 class ImPACTReconstructor(Reconstructor):
+
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from [parsons14]_.  This method uses a
     comparision of the predicted image from a library of image
@@ -52,30 +54,26 @@ class ImPACTReconstructor(Reconstructor):
         # for each telescope type
         self.root_dir = root_dir
         self.prediction = dict()
-        self.file_names = {"GATE": "SST-GCT.table.gz", "LSTCam":
-                           "LST.table.gz", "NectarCam":
-                           "MST.table.gz", "FlashCam": "MST.table.gz"}
 
-        # We also need a conversion function from height above ground
-        # to depth of maximum To do this we need the conversion table
-        # from CORSIKA
-        self.shower_max = ShowerMaxEstimator('paranal')
+        self.file_names = {"GCT":"GCT.fits", "LSTCam":"LST.fits",
+                           "NectarCam":"MST.fits", "FlashCam":"MST.fits"}
 
-        # For likelihood calculation we need the with of the pedestal
-        # distribution for each pixel currently this is not availible
-        # from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3,
-                          "FlashCam": 2.3, "GATE": 0.5}
-        self.spe = 0.5  # Also hard code single p.e. distribution width
+        # We also need a conversion function from height above ground to depth of maximum
+        # To do this we need the conversion table from CORSIKA
+        self.thickness_profile, self.altitude_profile = \
+            get_atmosphere_profile_functions('paranal')
 
-        # Also we need to scale the impact_reco templates a bit, this
-        # will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2,
-                      "FlashCam": 1.1, "GATE": 0.75}
+        # For likelihood calculation we need the with of the pedestal distribution for each pixel
+        # currently this is not availible from the calibration, so for now lets hard code it in a dict
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GCT": 0.5}
+        self.spe = 0.5 # Also hard code single p.e. distribution width
 
-        # Next we need the position, area and amplitude from each
-        # pixel in the event making this a class member makes passing
-        # them around much easier
+        # Also we need to scale the impact_reco templates a bit, this will be fixed later
+        self.scale = {"LSTCam": 1.4, "NectarCam": 1.4, "FlashCam": 1.4, "GCT": 1.3}
+
+        # Next we need the position, area and amplitude from each pixel in the event
+        # making this a class member makes passing them around much easier
+
         self.pixel_x = 0
         self.pixel_y = 0
         self.pixel_area = 0
@@ -146,9 +144,8 @@ class ImPACTReconstructor(Reconstructor):
 
         tel_num = 0
         for tel in self.image:
-            top_index = self.image[tel].argsort()[-1 * num_pix:][::-1]
-            print(top_index, self.pixel_x[tel][top_index],
-                  self.image[tel][top_index])
+            top_index = self.image[tel].argsort()[-1*num_pix:][::-1]
+
             weight = self.image[tel][top_index]
             weighted_x = self.pixel_x[tel][top_index] * weight
             weighted_y = self.pixel_y[tel][top_index] * weight
@@ -218,7 +215,8 @@ class ImPACTReconstructor(Reconstructor):
 
         mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.shower_max.interpolate(mean_height.to(u.km))
+        x_max = self.thickness_profile(mean_height.to(u.km))#self.shower_max.interpolate(mean_height.to(u.km))
+
         # Convert to slant depth
         x_max /= np.cos(zen)
 
@@ -294,26 +292,20 @@ class ImPACTReconstructor(Reconstructor):
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
-        print(self.array_direction[0])
-        ground = GroundFrame(x=shower_reco.core_x,
-                             y=shower_reco.core_y, z=0 * u.m)
+        ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0*u.m)
         tilted = ground.transform_to(
-            TiltedGroundFrame(
-                pointing_direction=HorizonFrame(alt=self.array_direction[0],
-                                                az=self.array_direction[1])
-            )
-        )
+            TiltedGroundFrame(pointing_direction=self.array_direction))
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
-        zenith = 90 * u.deg - self.array_direction[0]
-        azimuth = self.array_direction[1]
+        zenith = 90*u.deg - self.array_direction.alt
+        azimuth = self.array_direction.az
 
         x_max_exp = 300 + 93 * np.log10(energy_reco.energy.value)
         x_max = shower_reco.h_max / np.cos(zenith)
 
         # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = x_max.value - x_max_exp
+        x_max_bin = 0 #x_max.value - x_max_exp
         if x_max_bin > 100:
             x_max_bin = 100
         if x_max_bin < -100:
@@ -340,6 +332,8 @@ class ImPACTReconstructor(Reconstructor):
                                            pix_y_rot * (180 / math.pi))
 
         prediction *= self.scale[self.type[tel_id]]
+        #prediction *= self.pixel_area[tel_id]
+
         prediction[prediction < 0] = 0
         prediction[np.isnan(prediction)] = 0
 
@@ -376,10 +370,10 @@ class ImPACTReconstructor(Reconstructor):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
-        zenith = 90 * u.deg - self.array_direction[0]
-        azimuth = self.array_direction[1]
-        # Geometrically calculate the depth of maximum given this test position
+        zenith = 90*u.deg - self.array_direction.alt
+        azimuth = self.array_direction.az
 
+        # Geometrically calculate the depth of maximum given this test position
         if self.fit_xmax:
             x_max = self.get_shower_max(source_x, source_y,
                                         core_x, core_y,
@@ -388,9 +382,9 @@ class ImPACTReconstructor(Reconstructor):
             # Calculate expected Xmax given this energy
             x_max_exp = 300 + 93 * np.log10(energy)
 
-            # Convert to binning of Xmax, addition of 100 can probably be
-            # removed
+            # Convert to binning of Xmax, addition of 100 can probably be removed
             x_max_bin = x_max.value - x_max_exp
+            #x_max_bin = 0
 
             # Check for range
             if x_max_bin > 100:
@@ -431,6 +425,8 @@ class ImPACTReconstructor(Reconstructor):
 
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
+            #prediction *= self.pixel_area[tel_count]
+
             # Get likelihood that the prediction matched the camera image
             like = poisson_likelihood_gaussian(self.image[tel_count],
                                                prediction,
@@ -511,7 +507,7 @@ class ImPACTReconstructor(Reconstructor):
 
             self.tel_pos_x[x] = tel_x[x].value
             self.tel_pos_y[x] = tel_y[x].value
-            self.pixel_area[x] = pixel_area[x].value
+            self.pixel_area[x] = pixel_area[x].to(u.deg*u.deg).value
             # Here look up pedestal value
             self.ped[x] = self.ped_table[type_tel[x]]
 
@@ -542,9 +538,10 @@ class ImPACTReconstructor(Reconstructor):
         Shower object with fit results
         """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
-        nominal_seed = horizon_seed.transform_to(
-            NominalFrame(array_direction=self.array_direction)
-        )
+        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
+        print(nominal_seed)
+        print(horizon_seed)
+        print(self.array_direction)
 
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
@@ -621,14 +618,17 @@ class ImPACTReconstructor(Reconstructor):
         shower_result.alt_uncert = np.nan
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
-        zenith = 90 * u.deg - self.array_direction[0]
+
+        zenith = 90*u.deg - self.array_direction.alt
         shower_result.h_max = fit_params["x_max_scale"] * \
-            self.get_shower_max(fit_params["source_x"],
-                                fit_params["source_y"],
-                                fit_params["core_x"],
-                                fit_params["core_y"],
-                                zenith.to(u.rad).value)
+                              self.get_shower_max(fit_params["source_x"],
+                                                  fit_params["source_y"],
+                                                  fit_params["core_x"],
+                                                  fit_params["core_y"],
+                                                  zenith.to(u.rad).value)
+
         shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
+
         shower_result.goodness_of_fit = np.nan
         shower_result.tel_ids = list(self.image.keys())
 

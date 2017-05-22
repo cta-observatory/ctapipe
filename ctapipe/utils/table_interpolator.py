@@ -66,7 +66,8 @@ class TableInterpolator:
 
         self.grid_interp = interpolate.RegularGridInterpolator((x_bins, y_bins),
                                                                np.zeros([x_bins.shape[0],
-                                                                         y_bins.shape[0]]),
+                                                                         y_bins.shape[
+                                                                             0]]),
                                                                method="linear",
                                                                bounds_error=False,
                                                                fill_value=0)
@@ -91,15 +92,12 @@ class TableInterpolator:
 
         primHDU = file[0].header  # We require first HDU to be primary
 
-        if self.verbose:
-            print("File contains")
-            print("Contains a total of", len(file), "tables of size", file[0].shape)
-
         # Below definitions are standard
-        ix, iy = primHDU["CRPIX1"], primHDU["CRPIX2"]
-        val_x, val_y = primHDU["CRVAL1"], primHDU["CRVAL2"]
-        delta_x, delta_y = primHDU["CRDELTA1"], primHDU["CRDELTA2"]
-        nbins_x, nbins_y = primHDU["NAXIS1"], primHDU["NAXIS2"]
+        ix, iy = primHDU["CRPIX2"], primHDU["CRPIX1"]
+        val_x, val_y = primHDU["CRVAL2"], primHDU["CRVAL1"]
+        print(val_x, val_y)
+        delta_x, delta_y = primHDU["CRDELTA2"], primHDU["CRDELTA1"]
+        nbins_x, nbins_y = primHDU["NAXIS2"], primHDU["NAXIS1"]
         ix *= delta_x
         iy *= delta_y
 
@@ -123,7 +121,6 @@ class TableInterpolator:
             grid.append(np.array(hdu_pt))
 
         bins = (x_bins, y_bins)
-
         return grid, bins, template
 
     def interpolate(self, params, pixel_pos_x, pixel_pos_y):
@@ -147,6 +144,7 @@ class TableInterpolator:
 
         image = self.interpolated_image(params)
         self.grid_interp.values = image
+
         points = np.array([pixel_pos_x, pixel_pos_y])
         return self.grid_interp(points.T)
 
