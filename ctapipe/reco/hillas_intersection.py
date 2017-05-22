@@ -1,46 +1,69 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
 
-
+TODO:
+ - Speed tests, need to be certain the looping on all telescopes is not killing 
+performance
+- Introduce new weighting schemes
+- Make intersect_lines code more readable
 
 """
 import numpy as np
 import itertools
 import astropy.units as u
-from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.coordinates import *
-from ctapipe.reco.shower_max import ShowerMaxEstimator
+from ctapipe.instrument import get_atmosphere_profile_functions
 
 __all__ = [
     'HillasIntersection'
 ]
 
 
-class HillasIntersection(RecoShowerGeomAlgorithm):
+class HillasIntersection(Reconstructor):
+    '''
+    This class is a simple re-implementation of Hillas parameter based event 
+    reconstruction.
+    e.g. https://arxiv.org/abs/astro-ph/0607333
+    
+    In this case the Hillas parameters are all constructed in the shared angular (
+    Nominal) system. Direction reconstruction is performed by extrapolation of the 
+    major axes of the Hillas parameters in the nominal system and the weighted average 
+    of the crossing points is taken. Core reconstruction is performed by performing the 
+    same procedure in the tilted ground system.
+    
+    The height of maximum is reconstructed by the projection os the image centroid onto 
+    the shower axis, taking the weighted average of all images.
+    
+    Uncertainties on the positions are provided by taking the spread of the crossing 
+    points, however this means that no uncertainty can be provided for multiplicity 2 
+    events.
+      
     '''
 
+    def __init__(self, atmosphere_profile_name="paranal"):
 
-    '''
-
-    def __init__(self, atmfile=None):
-
-        # We also need a conversion function from height above ground to depth of maximum
+        # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        self.shower_max = None
-
-        if atmfile is not None:
-            self.shower_max = ShowerMaxEstimator(atmfile)
+        self.thickness_profile, self.altitude_profile = get_atmosphere_profile_functions(
+            atmosphere_profile_name)
 
     def predict(self, hillas_parameters, tel_x, tel_y, array_direction):
         """
-
+        
         Parameters
         ----------
-        hillas_parameters
-        tel_x
-        tel_y
-
+        hillas_parameters: dict
+            Dictionary containing Hillas parameters for all telescopes in reconstruction
+        tel_x: dict
+            Dictionary containing telescope position on ground for all telescopes in 
+            reconstruction
+        tel_y: dict
+            Dictionary containing telescope position on ground for all telescopes in 
+            reconstruction
+        array_direction: HorizonFrame
+            Pointing direction of the array
         Returns
         -------
 
@@ -61,7 +84,7 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         result.core_y = grd.y
 
         x_max = self.reconstruct_xmax(nom.x, nom.y, tilt.x, tilt.y, hillas_parameters,
-                                      tel_x, tel_y, 90*u.deg - array_direction[0])
+                                      tel_x, tel_y, 90*u.deg - array_direction.alt)
 
         result.core_uncert = np.sqrt(core_err_x*core_err_x + core_err_y*core_err_y) * u.m
 
@@ -133,17 +156,21 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
 
     def reconstruct_tilted(self, hillas_parameters,tel_x,tel_y,weighting="Konrad"):
         """
-
+        Core position reconstruction by image axis intersection in the tilted system
         Parameters
         ----------
-        hillas_parameters
-        tel_x
-        tel_y
-        weighting
-
+        hillas_parameters: dict
+            Hillas parameter objects
+        tel_x: dict
+            Telescope X positions, tilted system
+        tel_y: dict
+            Telescope Y positions, tilted system
+        weighting: str
+            Weighting scheme for averaging of crossing points
         Returns
         -------
-
+        (float, float, float, float):
+            core position X, core position Y, core uncertainty X, core uncertainty X
         """
         if len(hillas_parameters)<2:
             return None # Throw away events with < 2 images
@@ -187,7 +214,6 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
         c= self.intersect_lines(tel_x[:,0],tel_y[:,0],h1[0],
                                            tel_x[:,1],tel_y[:,1],h2[0])
 
-        print(cx,cy,c)
         if weighting == "Konrad":
             weight_fn = self.weight_konrad
         elif weighting == "HESS":
@@ -206,7 +232,23 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
 
     def reconstruct_xmax(self, source_x, source_y, core_x, core_y,
                          hillas_parameters,tel_x,tel_y, zen):
+        """
+        
+        Parameters
+        ----------
+        source_x
+        source_y
+        core_x
+        core_y
+        hillas_parameters
+        tel_x
+        tel_y
+        zen
 
+        Returns
+        -------
+
+        """
         cog_x = list()
         cog_y = list()
         amp = list()
@@ -239,7 +281,7 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
 
         mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.shower_max.interpolate(mean_height.to(u.km))
+        x_max = self.thickness_profile(mean_height.to(u.km))
         # Convert to slant depth
         x_max /= np.cos(zen)
 
@@ -248,7 +290,7 @@ class HillasIntersection(RecoShowerGeomAlgorithm):
     @staticmethod
     def intersect_lines(xp1,yp1,phi1,xp2,yp2,phi2):
         """
-
+        Perform intersection of two lines. This code is borrowed from read_hess.
         Parameters
         ----------
         xp1: ndarray
