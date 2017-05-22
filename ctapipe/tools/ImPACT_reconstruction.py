@@ -15,13 +15,13 @@ from ctapipe.coordinates import *
 from ctapipe.core import Tool
 from ctapipe.image import tailcuts_clean, dilate
 from ctapipe.instrument import CameraGeometry
-from ctapipe.reco.ImPACT import ImPACTFitter
+from ctapipe.reco.ImPACT import ImPACTReconstructor
 from ctapipe.image import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
-from ctapipe import visualization
 
-from ctapipe.reco.FitGammaHillas import FitGammaHillas
+from ctapipe.reco.hillas_intersection import HillasIntersection
+from ctapipe.reco.energy_reco_mva import EnergyReconstructorMVA
+from ctapipe.image import FullIntegrator
 
 from ctapipe.plotting.event_viewer import EventViewer
 from astropy.table import Table
@@ -42,12 +42,8 @@ class ImPACTReconstruction(Tool):
                       help='Telescopes to include from the event file. '
                            'Default = All telescopes').tag(config=True)
 
-    #amp_cuts = Dict(value_trait=Int(), key_trait=Unicode(), help="Amp cut levels")\
-    #    .tag(config=True)
-
     aliases = Dict(dict(infile='ImPACTReconstruction.infile',
                         outfile='ImPACTReconstruction.outfile',
-#                        cuts='ImPACTReconstruction.cuts',
                         telescopes='ImPACTReconstruction.telescopes'))
 
     def setup(self):
@@ -71,15 +67,17 @@ class ImPACTReconstruction(Tool):
         # Calibrators set to default for now
         self.r1 = HessioR1Calibrator(None, None)
         self.dl0 = CameraDL0Reducer(None, None)
-        self.calibrator = CameraDL1Calibrator(None, None)
+        self.calibrator = CameraDL1Calibrator(None, None,
+                                              extractor=FullIntegrator(None, None))
 
         # If we don't set this just use everything
         if len(self.telescopes) < 2:
             self.telescopes = None
         self.source = hessio_event_source(self.infile, allowed_tels=self.telescopes)
 
-        self.fit = FitGammaHillas()
-        self.ImPACT = ImPACTFitter(fit_xmax=True)
+        self.fit = HillasIntersection()
+        self.energy_reco = EnergyReconstructorMVA()
+        self.ImPACT = ImPACTReconstructor(fit_xmax=True)
         self.viewer = EventViewer(draw_hillas_planes=True)
 
         self.output = Table(names=['EVENT_ID', 'RECO_ALT', 'RECO_AZ',
@@ -200,7 +198,7 @@ class ImPACTReconstruction(Tool):
 
             # ImPACT reconstruction is performed in the tilted system,
             # so we need to transform tel positions
-            grd_tel = GroundFrame(x=tx * u.m, y=ty * u.m, z=tz * u.m)
+            grd_tel = GroundFrame(x=tx, y=ty, z=tz)
             tilt_tel = grd_tel.transform_to(tilted_system)
 
             # Clean image using split level cleaning
@@ -245,21 +243,12 @@ class ImPACTReconstruction(Tool):
                 hillas[tel_id] = moments_cam
                 hillas_nom[tel_id] = moments
 
-                tel_phi[tel_id] = array_pointing.az
-                tel_theta[tel_id] = 90 * u.deg - array_pointing.alt
-
         # Cut on number of telescopes remaining
         if len(image)>1:
-            fit_result = self.fit.predict(hillas, event.inst, tel_phi, tel_theta)
+            fit_result = self.fit.predict(hillas_nom, tel_x, tel_y, array_pointing)
 
-            fit_result.core_x = scipy.random.normal(event.mc.core_x, 25 * u.m) * u.m
-            fit_result.core_y = scipy.random.normal(event.mc.core_y, 25 * u.m) * u.m
-
-            print(fit_result)
-
-            energy_result = ReconstructedEnergyContainer()
-            energy_result.energy = scipy.random.normal(event.mc.energy,
-                                                       event.mc.energy * 0.2) * u.TeV
+            energy_result = self.energy_reco.predict(fit_result, hillas_nom, tel_type,
+                                                     tel_x, tel_y, array_pointing)
 
             # Perform ImPACT reconstruction
             self.ImPACT.set_event_properties(image, pixel_x, pixel_y, pixel_area,
