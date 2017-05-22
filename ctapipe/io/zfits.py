@@ -106,3 +106,4 @@ def zfits_event_source(url, max_events=None, allowed_tels=None, expert_mode = Fa
 
     if max_events is not None and counter > max_events:
         return
+    
