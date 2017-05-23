@@ -19,7 +19,7 @@ except:
 __all__ = ['get_dataset', 'find_in_path', 'find_all_matching_datasets']
 
 def find_all_matching_datasets(pattern,
-                               searchpath= os.getenv("CTAPIPE_SVC_PATH"),
+                               searchpath=None,
                                regexp_group=None):
     """
     Returns a list of resource names (or substrings) matching the given 
@@ -43,6 +43,9 @@ def find_all_matching_datasets(pattern,
        resources names, use get_dataset() to retrieve the full filename
     """
     results = set()
+
+    if searchpath is None:
+        searchpath = os.getenv("CTAPIPE_SVC_PATH")
 
     # first check search path
     if searchpath is not None:
