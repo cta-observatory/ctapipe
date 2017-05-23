@@ -69,7 +69,7 @@ class CameraGeometry:
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
                  pix_rotation=0 * u.degree, cam_rotation=0 * u.degree,
-                 neighbors=None):
+                 neighbors=None, apply_derotation=True):
         """
         Parameters
         ----------
@@ -104,11 +104,12 @@ class CameraGeometry:
         self.cam_rotation = Angle(cam_rotation)
         self._precalculated_neighbors = neighbors
 
-        # todo: this should probably not be done, but need to fix
-        # GeometryConverter and reco algorithms if we change it.
-        if len(pix_x.shape) == 1:
-            self.rotate(cam_rotation)
-            self.cam_rotation -= Angle(0 * u.deg)
+        if apply_derotation:
+            # todo: this should probably not be done, but need to fix
+            # GeometryConverter and reco algorithms if we change it.
+            if len(pix_x.shape) == 1:
+                self.rotate(cam_rotation)
+
 
     def __eq__(self, other):
         return ( (self.cam_id == other.cam_id)
@@ -330,6 +331,7 @@ class CameraGeometry:
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= angle
+        self.cam_rotation -= angle
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
