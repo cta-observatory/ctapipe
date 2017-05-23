@@ -1,21 +1,20 @@
+import numpy as np
+import pytest
 from astropy import units as u
 from astropy.coordinates import SkyCoord, AltAz
-import numpy as np
+
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
+from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.coordinates import NominalFrame, CameraFrame
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.instrument import CameraGeometry
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.plotting.array import NominalPlotter
 from ctapipe.utils import get_dataset
 
-from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.image.cleaning import tailcuts_clean, dilate
-
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.instrument import CameraGeometry
-from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
-from ctapipe.coordinates import TiltedGroundFrame, NominalFrame, CameraFrame
-
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
-
+@pytest.mark.skip
 def test_array_draw():
 
     filename = get_dataset("gamma_test.simtel.gz")
