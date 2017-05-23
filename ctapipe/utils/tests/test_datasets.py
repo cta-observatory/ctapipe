@@ -28,7 +28,7 @@ def test_datasets_in_custom_path(tmpdir_factory):
     # create a dummy dataset to search for:
 
     dataset_name = "test_dataset_1.txt"
-    dataset_path = tmpdir1.join(dataset_name)
+    dataset_path = str(tmpdir1.join(dataset_name))
 
     with open(dataset_path, "w") as fp:
         fp.write("test test test")
