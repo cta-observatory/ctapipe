@@ -530,7 +530,7 @@ class SensitivityPointSource:
             N_events[0] *= scale
 
             # check if there are sufficient events in this energy bin
-            scale *= check_min_N(N_events, min_n=min_n, alpha=alpha)
+            scale *= check_min_n(N_events, min_n=min_n, alpha=alpha)
 
             # check if the relative amount of protons in this bin is sufficiently small
             scale *= check_background_contamination(
@@ -690,7 +690,7 @@ class SensitivityPointSource:
         return drawn_indices
 
 
-def check_min_N(n, alpha=1, min_n=10):
+def check_min_n(n, alpha=1, min_n=10):
     """
     check if there are sufficenly many events in this energy bin and calculates scaling
     parameter if not.

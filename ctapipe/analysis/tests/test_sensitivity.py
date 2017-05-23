@@ -3,29 +3,30 @@ import astropy.units as u
 import scipy.stats
 
 from ctapipe.analysis.sensitivity import SensitivityPointSource
-from ctapipe.analysis.sensitivity import (check_min_N, check_background_contamination,
+from ctapipe.analysis.sensitivity import (check_min_n, check_background_contamination,
                                           CR_background_rate, Eminus2, sigma_lima,
                                           make_mock_event_rate, crab_source_rate)
 
 
-def test_check_min_N(n_1=2, n_2=2):
-    N = [n_1, n_2]
+def test_check_min_n(n_1=2, n_2=2):
+    n = [n_1, n_2]
 
-    min_N = 10
+    min_n = 10
 
-    scale = check_min_N(N, alpha=1, min_N=min_N)
+    scale = check_min_n(n, alpha=1, min_n=min_n)
 
-    assert sum(N) >= min_N
+    assert sum(n) >= min_n
 
 
 def test_check_background_contamination(n_1=2, n_2=2):
-    N = [n_1, n_2]
+    n = [n_1, n_2]
 
-    max_prot_ratio = .1
+    max_background_ratio = .1
 
-    scale = check_background_contamination(N, alpha=1, max_prot_ratio=max_prot_ratio)
+    scale = check_background_contamination(n, alpha=1,
+                                           max_background_ratio=max_background_ratio)
 
-    assert N[1] / sum(N) <= max_prot_ratio
+    assert n[1] / sum(n) <= max_background_ratio
 
 
 def test_SensitivityPointSource_effective_area():
@@ -98,7 +99,8 @@ def test_SensitivityPointSource_sensitivity_MC():
     sens.event_weights = {'s': energies_sig, 'b': energies_bgr}
     sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"), mode="MC",
                                        sensitivity_source_flux=crab_source_rate,
-                                       sensitivity_energy_bin_edges=energy_bin_edges)
+                                       sensitivity_energy_bin_edges=energy_bin_edges,
+                                       min_n=0, max_background_ratio=1)
 
     # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
     # be the scaling factor that needs to be applied to n_sig to produce a 5 sigma result
@@ -122,7 +124,8 @@ def test_SensitivityPointSource_sensitivity_data():
 
     sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"), mode="data",
                                        sensitivity_source_flux=crab_source_rate,
-                                       sensitivity_energy_bin_edges=energy_bin_edges)
+                                       sensitivity_energy_bin_edges=energy_bin_edges,
+                                       min_n=0, max_background_ratio=1)
 
     # the ratio between sensitivity and reference flux (i.e. from the crab nebula) should
     # be the scaling factor that needs to be applied to n_sig=n_on-n_off*alpha to produce
