@@ -12,6 +12,7 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean
 
 from ctapipe.visualization import CameraDisplay
+from copy import deepcopy
 
 
 def apply_mc_calibration(adcs, gains, peds):
@@ -31,12 +32,11 @@ def test_convert_geometry():
 
     cam_geom = {}
 
-    source = hessio_event_source(filename)
+    # load some events
+    source = hessio_event_source(filename, max_events=5)
+    events = [deepcopy(event) for event in source]
 
-    # testing a few images just for the sake of being thorough
-    counter = 5
-
-    for event in source:
+    for event in events:
 
         for tel_id in event.r0.tels_with_data:
             if tel_id not in cam_geom:
