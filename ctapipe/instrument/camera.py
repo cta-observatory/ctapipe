@@ -104,6 +104,12 @@ class CameraGeometry:
         self.cam_rotation = Angle(cam_rotation)
         self._precalculated_neighbors = neighbors
 
+        # todo: this should probably not be done, but need to fix
+        # GeometryConverter and reco algorithms if we change it.
+        if len(pix_x.shape) == 1:
+            self.rotate(cam_rotation)
+            self.cam_rotation -= Angle(0 * u.deg)
+
     def __eq__(self, other):
         return ( (self.cam_id == other.cam_id)
                  and (self.pix_x == other.pix_x).all()
