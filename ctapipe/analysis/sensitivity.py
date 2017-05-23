@@ -128,9 +128,9 @@ def sigma_lima(Non, Noff, alpha=0.2):
 
     Parameters
     ----------
-    Non : integer
+    Non : integer/float
         Number of on counts
-    Noff : integer
+    Noff : integer/float
         Number of off counts
     alpha : float, optional (default: 0.2)
         Ratio of on-to-off exposure
@@ -508,6 +508,7 @@ class SensitivityPointSource:
                 # if running on data, the signal estimate for the on-region is the counts
                 # in the on-region minus the background estimate for the on-region
                 N_events[0] -= N_events[1]*alpha
+                variance[0] -= variance[1]*alpha
 
             # If we have no counts in the on-region, there is no sensitivity.
             # If on data the background estimate from the off-region is larger than the
@@ -529,10 +530,11 @@ class SensitivityPointSource:
             N_events[0] *= scale
 
             # check if there are sufficient events in this energy bin
-            scale *= check_min_N(N_events, min_n)
+            scale *= check_min_N(N_events, min_n=min_n, alpha=alpha)
 
             # check if the relative amount of protons in this bin is sufficiently small
-            scale *= check_background_contamination(N_events, max_background_ratio)
+            scale *= check_background_contamination(
+                    N_events, alpha=alpha, max_background_ratio=max_background_ratio)
 
             # get the flux at the bin centre
             flux = sensitivity_source_flux(emid).to(self.flux_unit)
@@ -688,7 +690,7 @@ class SensitivityPointSource:
         return drawn_indices
 
 
-def check_min_N(N, alpha=1, min_N=10):
+def check_min_N(n, alpha=1, min_n=10):
     """
     check if there are sufficenly many events in this energy bin and calculates scaling
     parameter if not.
@@ -696,10 +698,10 @@ def check_min_N(N, alpha=1, min_N=10):
 
     Parameters
     ----------
-    N = [N_signal, N_backgr] : list
+    n = [n_signal, n_backgr] : list
         the signal in the on-region (index 0) and background in the off-region (index 1)
     alpha : float (default: 1)
-        ratio of the on- to off-region -- `N[1]` times `alpha` is used as background
+        ratio of the on- to off-region -- `n[1]` times `alpha` is used as background
         estimate for the on-region
     min_n : integer (default: 10)
         minimum number of desired events; if too low, scale up to this number
@@ -710,17 +712,17 @@ def check_min_N(N, alpha=1, min_N=10):
         factor to scale up gamma events if insuficently many events present
     """
 
-    N_signal, N_backgr = N[0], N[1]*alpha
+    n_signal, n_backgr = n[0], n[1]*alpha
 
-    if N_signal + N_backgr < min_N:
-        scale_a = (min_N-N_backgr) / N_signal
-        N[0] *= scale_a
+    if n_signal + n_backgr < min_n:
+        scale_a = (min_n-n_backgr) / n_signal
+        n[0] *= scale_a
         return scale_a
     else:
         return 1
 
 
-def check_background_contamination(N, alpha=1, max_prot_ratio=.05):
+def check_background_contamination(n, alpha=1, max_background_ratio=.05):
     """
     check if there are sufficenly few proton events in this energy bin and calculates
     scaling parameter if not
@@ -728,12 +730,12 @@ def check_background_contamination(N, alpha=1, max_prot_ratio=.05):
 
     Parameters
     ----------
-    N = [N_signal, N_backgr] : list
+    n = [n_signal, n_backgr] : list
         the signal in the on-region (index 0) and background in the off-region (index 1)
     alpha : float (default: 1)
-        ratio of the on- to off-region -- `N[1]` times `alpha` is used as background
+        ratio of the on- to off-region -- `n[1]` times `alpha` is used as background
         estimate for the on-region
-    max_prot_ratio : float
+    max_background_ratio : float
         maximum allowed proton contamination
 
     Returns
@@ -742,12 +744,12 @@ def check_background_contamination(N, alpha=1, max_prot_ratio=.05):
         factor to scale up gamma events if too high proton contamination
     """
 
-    N_signal, N_backgr = N[0], N[1]*alpha
+    n_signal, n_backgr = n[0], n[1]*alpha
 
-    N_tot = N_signal + N_backgr
-    if N_backgr / N_tot > max_prot_ratio:
-        scale_r = (1/max_prot_ratio - 1) * N_backgr / N_signal
-        N[0] *= scale_r
+    n_tot = n_signal + n_backgr
+    if n_backgr / n_tot > max_background_ratio:
+        scale_r = (1/max_background_ratio - 1) * n_backgr / n_signal
+        n[0] *= scale_r
         return scale_r
     else:
         return 1
