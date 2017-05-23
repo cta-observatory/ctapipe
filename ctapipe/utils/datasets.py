@@ -18,6 +18,13 @@ except:
 
 __all__ = ['get_dataset', 'find_in_path', 'find_all_matching_datasets']
 
+
+def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
+    """ returns a list of dirs in specified searchpath"""
+    if searchpath == "" or searchpath is None:
+        return []
+    return os.path.expandvars(searchpath).split(':')
+
 def find_all_matching_datasets(pattern,
                                searchpath=None,
                                regexp_group=None):
@@ -49,7 +56,7 @@ def find_all_matching_datasets(pattern,
 
     # first check search path
     if searchpath is not None:
-        for path in os.path.expandvars(searchpath).split(':'):
+        for path in get_searchpath_dirs(searchpath):
             if os.path.exists(path):
                 for filename in os.listdir(path):
                     match = re.match(pattern, filename)
@@ -88,7 +95,7 @@ def find_in_path(filename, searchpath):
 
     """
 
-    for dir in os.path.expandvars(searchpath).split(':'):
+    for dir in get_searchpath_dirs(searchpath):
         pathname = os.path.join(dir, filename)
         if os.path.exists(pathname):
             return pathname
