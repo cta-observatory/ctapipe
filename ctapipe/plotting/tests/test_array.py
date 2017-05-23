@@ -21,7 +21,7 @@ def test_array_draw():
     filename = get_dataset("gamma_test.simtel.gz")
     cam_geom = {}
 
-    source = hessio_event_source(filename)
+    source = hessio_event_source(filename, max_events=2)
     r1 = HessioR1Calibrator(None, None)
     dl0 = CameraDL0Reducer(None, None)
 

@@ -146,7 +146,7 @@ def _info_resources():
     resource_dir = os.path.dirname(datasets.get_dataset(
         "HESS-I.camgeom.fits.gz"))
 
-    fmt = "{name:<30.30s} : {loc:<40.40s}"
+    fmt = "{name:<30.30s} : {loc:<30.30s}"
     print(fmt.format(name="RESOURCE NAME", loc="LOCATION"))
     print("-"*70)
     for name, loc  in zip(all_resources, locations):
