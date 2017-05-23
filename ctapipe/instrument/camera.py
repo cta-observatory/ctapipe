@@ -122,7 +122,8 @@ class CameraGeometry:
 
     @classmethod
     @u.quantity_input
-    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
+    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
+              apply_derotation=True):
         """ 
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions and the focal length. 
@@ -161,6 +162,7 @@ class CameraGeometry:
             pix_type=pix_type,
             pix_rotation=Angle(pix_rotation),
             cam_rotation=Angle(cam_rotation),
+            apply_derotation=apply_derotation
         )
 
         CameraGeometry._geometry_cache[identifier] = instance
