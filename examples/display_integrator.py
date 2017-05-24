@@ -55,7 +55,7 @@ class IntegratorPlotter(Component):
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
         self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
 
-    def plot(self, input_file, event, telid, chan, extractor_name, nei):
+    def plot(self, input_file, event, telid, chan, extractor_name):
         # Extract required images
         dl0 = event.dl0.tel[telid].pe_samples[chan]
 
@@ -68,6 +68,8 @@ class IntegratorPlotter(Component):
 
         geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
                                     event.inst.optical_foclen[telid])
+
+        nei = geom.neighbors
 
         # Get Neighbours
         max_pixel_nei = nei[max_pix]
@@ -276,6 +278,7 @@ class IntegratorPlotter(Component):
         self.log.info("Saving: {}".format(camera_output_path))
         fig_camera.savefig(camera_output_path, format='pdf',
                            bbox_inches='tight')
+        return geom
 
 
 class DisplayIntegrator(Tool):
@@ -299,7 +302,6 @@ class DisplayIntegrator(Tool):
                         max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
-                        window_start='ChargeExtractorFactory.window_start',
                         window_shift='ChargeExtractorFactory.window_shift',
                         sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
                         sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
@@ -371,11 +373,10 @@ class DisplayIntegrator(Tool):
                            "telescopes for this event: {}".format(tels))
             exit()
 
-        neighbour_list = self.dl1.get_neighbours(event, telid)
         extractor_name = self.extractor.name
 
         self.plotter.plot(self.file_reader, event, telid,
-                          self.channel, extractor_name, neighbour_list)
+                          self.channel, extractor_name)
 
     def finish(self):
         pass

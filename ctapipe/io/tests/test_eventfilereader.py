@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join, dirname
 from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
     EventFileReaderFactory, HessioFileReader
@@ -16,9 +16,7 @@ def test_event_file_reader():
 def test_hessio_file_reader():
     dataset = get_dataset("gamma_test.simtel.gz")
     file = HessioFileReader(None, None, input_path=dataset)
-    datasets_path = get_dataset("")
-    assert file.input_path == join(datasets_path, "gamma_test.simtel.gz")
-    assert file.directory == datasets_path
+    assert file.directory == dirname(dataset)
     assert file.extension == ".gz"
     assert file.filename == "gamma_test.simtel"
     source = file.read()
