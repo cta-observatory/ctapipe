@@ -1,3 +1,3 @@
-from EnergyRegressor import *
+from ctapipe.reco.energy_regressor import *
 
 # TODO test things
