@@ -367,7 +367,7 @@ class EnergyRegressor:
         n_cols = np.ceil(np.sqrt(n_tel_types)).astype(int)
         n_rows = np.ceil(n_tel_types / n_cols).astype(int)
 
-        fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols)
+        fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, squeeze=False)
         plt.suptitle("Feature Importances")
         for i, (cam_id, reg) in enumerate(self.reg_dict.items()):
             plt.sca(axs.ravel()[i])
