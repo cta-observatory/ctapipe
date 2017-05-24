@@ -216,7 +216,7 @@ class EnergyRegressor:
 
         return self.reg_dict[cam_id].predict(X)
 
-    def predict_dict(self, X):
+    def predict_by_event(self, X):
         """
         expects a list of events where every "event" is a dictionary mapping telescope
         identifiers to the list of feature-lists by the telescopes of that type in this
@@ -257,7 +257,7 @@ class EnergyRegressor:
 
         return np.array(predict_list)*self.energy_unit
 
-    def predict_dict_dict(self, X):
+    def predict_by_telescope_type(self, X):
         """
         same as `predict_dict` only that it returns a list of dictionaries with an
         estimate for the target quantity for every telescope type separately.
