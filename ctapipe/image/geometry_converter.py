@@ -363,7 +363,8 @@ def convert_geometry_back(geom, signal, key, foc_len, add_rot=0):
                                                  rot_angle)
 
         # TODO: probably should use base constructor, not guess here:
-        unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len)
+        unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len,
+                                          apply_derotation=False)
         unrot_buffer[key] = unrot_geom
 
     return unrot_geom, signal[square_mask, ...]
