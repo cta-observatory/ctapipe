@@ -243,7 +243,8 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
         # the coordinates of the original geometry
 
         # extra_rot is the angle to get back to aligned hexagons
-        extra_rot = (geom.cam_rotation + geom.pix_rotation)
+        extra_rot = (geom.cam_rotation - geom.pix_rotation)
+        extra_rot = geom.cam_rotation
 
         # total rotation angle:
         rot_angle =  (add_rot * 60 * u.deg) - extra_rot
@@ -293,18 +294,18 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(
-            cam_id=geom.cam_id,
+            cam_id=geom.cam_id+"_skewed",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
             pix_x=grid_x * u.m,
             pix_y=grid_y * u.m,
             pix_area=pix_area * u.m ** 2,
             neighbors=geom.neighbors,
-            pix_type='rectangular')
+            cam_rotation=geom.pix_rotation,
+            pix_type='rectangular', apply_derotation=False)
 
         # storing the pixel mask and camera rotation for later use
         new_geom.mask = square_mask
-        new_geom.cam_rotation = geom.cam_rotation
-        new_geom.cam_id = geom.cam_id + "_skewed"
+
 
         if key is not None:
             # if a key is given, store the essential objects in a buffer
