@@ -242,9 +242,11 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
         # otherwise, we have to do the conversion now first, skey all
         # the coordinates of the original geometry
 
-        # extra_rot is the angle to get back to aligned hexagons
-        extra_rot = (geom.cam_rotation - geom.pix_rotation)
-        extra_rot = geom.cam_rotation
+        # extra_rot is the angle to get back to aligned hexagons with flat
+        # tops. Note that the pixel rotation angle brings the camera so that
+        # hexagons have a point at the top, so need to go 30deg past that to
+        # make them flat
+        extra_rot = geom.pix_rotation + 30*u.deg
 
         # total rotation angle:
         rot_angle =  (add_rot * 60 * u.deg) - extra_rot
@@ -300,7 +302,7 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
             pix_y=grid_y * u.m,
             pix_area=pix_area * u.m ** 2,
             neighbors=geom.neighbors,
-            cam_rotation=geom.pix_rotation,
+            cam_rotation=-geom.pix_rotation,
             pix_type='rectangular', apply_derotation=False)
 
         # storing the pixel mask and camera rotation for later use
@@ -374,8 +376,8 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
         grid_x, grid_y = geom.pix_x / x_scale, geom.pix_y
 
         rot_angle = add_rot * 60 * u.deg
-        if geom.cam_id == "NectarCam" or geom.cam_id == "LSTCam":
-            rot_angle += 90 * u.deg
+        # if geom.cam_id == "NectarCam" or geom.cam_id == "LSTCam":
+        #     rot_angle += 90 * u.deg
         unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask],
                                                  grid_y[square_mask],
                                                  rot_angle)
