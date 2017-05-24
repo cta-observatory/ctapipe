@@ -8,9 +8,16 @@ import pytest
 
 
 def test_load_by_name():
-    for cam in ['NectarCam', 'LSTCam','GCT', 'SST-1m']:
+
+    cams = CameraGeometry.get_known_camera_names()
+    assert len(cams) > 4
+    assert 'FlashCam' in cams
+    assert 'NectarCam' in cams
+    
+
+    for cam in cams:
         geom = CameraGeometry.from_name(cam)
-    geom = CameraGeometry.from_name('HESSI', array_id='HESS')
+
 
 
 def test_make_rectangular_camera_geometry():
