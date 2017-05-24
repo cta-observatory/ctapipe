@@ -12,6 +12,7 @@ from ..core import Provenance
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+from astropy.utils.decorators import deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +28,11 @@ except ImportError as err:
     raise err
 
 __all__ = [
-    'hessio_event_source',
+    'simtelarray_event_source',
 ]
 
 
-def hessio_get_list_event_ids(url, max_events=None):
+def build_event_id_list(url, max_events=None):
     """
     Faster method to get a list of all the event ids in the hessio file.
     This list can also be used to find out the number of events that exist
@@ -69,8 +70,14 @@ def hessio_get_list_event_ids(url, max_events=None):
                            .format(url))
 
 
+@deprecated(since='v0.5', alternative='simtelarray_event_source')
 def hessio_event_source(url, max_events=None, allowed_tels=None,
-                        requested_event=None, use_event_id=False):
+                             requested_event=None, use_event_id=False):
+    return simtelarray_event_source(url, max_events, allowed_tels,
+                                    requested_event, use_event_id)
+
+def simtelarray_event_source(url, max_events=None, allowed_tels=None,
+                             requested_event=None, use_event_id=False):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -208,6 +215,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     pyhessio.get_altitude_cor(tel_id)
             yield data
             counter += 1
+
+            if requested_event is not None and current == requested_event:
+                return
 
             if max_events is not None and counter >= max_events:
                 pyhessio.close_file()

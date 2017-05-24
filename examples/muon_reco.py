@@ -1,7 +1,7 @@
 #Rough work - please use muon_reconstruction.py instead
 
 from ctapipe.utils.datasets import get_example_simtelarray_file
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.core import Container
 
 from ctapipe.io.containers import RawData
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                         default=get_example_simtelarray_file())
     args = parser.parse_args()
 
-    source = hessio_event_source(args.filename)
+    source = simtelarray_event_source(args.filename)
 
     container = Container("hessio_container")
     container.meta.add_item('pixel_pos', dict())

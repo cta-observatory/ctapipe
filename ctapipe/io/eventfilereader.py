@@ -8,7 +8,7 @@ from traitlets import Unicode, Int, CaselessStrEnum, observe
 from copy import deepcopy
 from ctapipe.core import Component, Factory
 from ctapipe.utils import get_dataset
-from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
+from ctapipe.io.hessio import simtelarray_event_source, build_event_id_list
 
 
 class EventFileReader(Component):
@@ -268,7 +268,7 @@ class EventFileReader(Component):
         return max_pe
 
 
-class HessioFileReader(EventFileReader):
+class SimTelArrayFileReader(EventFileReader):
     name = 'HessioFileReader'
     origin = 'hessio'
 
@@ -298,8 +298,8 @@ class HessioFileReader(EventFileReader):
             pass
         else:
             self.log.info("Building new list of event ids...")
-            ids = hessio_get_list_event_ids(self.input_path,
-                                            max_events=self.max_events)
+            ids = build_event_id_list(self.input_path,
+                                      max_events=self.max_events)
             self._event_id_list = ids
         self.log.info("List of event ids retrieved.")
         return self._event_id_list
@@ -332,11 +332,11 @@ class HessioFileReader(EventFileReader):
         self.log.debug("Reading file...")
         if self.max_events:
             self.log.info("Max events being read = {}".format(self.max_events))
-        source = hessio_event_source(self.input_path,
-                                     max_events=self.max_events,
-                                     allowed_tels=allowed_tels,
-                                     requested_event=requested_event,
-                                     use_event_id=use_event_id)
+        source = simtelarray_event_source(self.input_path,
+                                          max_events=self.max_events,
+                                          allowed_tels=allowed_tels,
+                                          requested_event=requested_event,
+                                          use_event_id=use_event_id)
         self.log.debug("File reading complete")
         return source
 

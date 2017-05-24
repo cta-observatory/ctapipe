@@ -10,7 +10,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from ctapipe import visualization
 from ctapipe.instrument import InstrumentDescription as ID
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.utils import get_dataset
 from ctapipe.instrument import CameraGeometry
 
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     tel, cam, opt = ID.load(args.filename)
     # Load the DL0 events into the generator source
-    source = hessio_event_source(args.filename)
+    source = simtelarray_event_source(args.filename)
 
     print(args.tel_id)
     # Display the calibrated results into camera displays

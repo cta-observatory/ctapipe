@@ -4,7 +4,7 @@ import os
 import numpy as np
 from astropy import log
 from astropy.table import Table
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 #from calibration_pipeline import display_telescope
 from ctapipe.calib.camera.r1 import HessioR1Calibrator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
@@ -65,7 +65,7 @@ def main():
     log.debug("[file] Reading file")
     #input_file = InputFile(args.input_path, args.origin)
     #source = input_file.read()
-    source = hessio_event_source(args.input_path)
+    source = simtelarray_event_source(args.input_path)
     
     geom_dict = {}
 

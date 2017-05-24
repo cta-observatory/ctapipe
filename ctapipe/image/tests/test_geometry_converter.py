@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 from ctapipe.utils import get_dataset
 
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 
 from ctapipe.image.geometry_converter import CameraGeometry, \
                                              convert_geometry_1d_to_2d, \
@@ -31,7 +31,7 @@ def test_convert_geometry():
 
     cam_geom = {}
 
-    source = hessio_event_source(filename)
+    source = simtelarray_event_source(filename)
 
     # testing a few images just for the sake of being thorough
     counter = 5

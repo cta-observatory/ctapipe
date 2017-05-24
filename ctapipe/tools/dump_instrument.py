@@ -7,7 +7,7 @@ automatically generated.
 
 from ctapipe.core.traits import (Unicode, Dict, Bool, Enum)
 from ctapipe.core import Tool
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.instrument import CameraGeometry, get_camera_types, print_camera_types
 
 
@@ -27,7 +27,7 @@ class DumpInstrumentTool(Tool):
 
 
     def setup(self):
-        source = hessio_event_source(self.infile)
+        source = simtelarray_event_source(self.infile)
         data = next(source)  # get one event, so the instrument table is
                              # filled in
         self.inst = data.inst # keep a pointer to the instrument stuff

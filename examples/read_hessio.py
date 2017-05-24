@@ -8,7 +8,7 @@
 # containing ~10 events
 
 from ctapipe.utils.datasets import get_example_simtelarray_file
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     plt.show(block=False)
 
     # loop over events and display menu at each event:
-    source = hessio_event_source(filename)
+    source = simtelarray_event_source(filename)
 
     for event in source:
 

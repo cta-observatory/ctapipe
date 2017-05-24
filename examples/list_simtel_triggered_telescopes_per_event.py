@@ -6,7 +6,7 @@ Print the list triggered telescopes per event of the given simtel file.
 """
 
 import argparse
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 
 
 def list_simtel_triggered_telescopes_per_event(simtel_file_path):
@@ -24,7 +24,7 @@ def list_simtel_triggered_telescopes_per_event(simtel_file_path):
     file (for each item: key=event id, value=the list of triggered telescopes).
     """
 
-    source = hessio_event_source(simtel_file_path, allowed_tels=None, max_events=None)
+    source = simtelarray_event_source(simtel_file_path, allowed_tels=None, max_events=None)
 
     tels_per_event_dict = {}   # List of events per telescope
 

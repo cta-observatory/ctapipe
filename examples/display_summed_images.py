@@ -9,7 +9,7 @@ from astropy.table import Table
 from ctapipe.core import Tool
 from ctapipe.core.traits import *
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io.hessio import simtelarray_event_source
 from ctapipe.visualization import CameraDisplay
 from ctapipe.instrument.camera import _guess_camera_type
 from matplotlib import pyplot as plt
@@ -62,7 +62,7 @@ class ImageSumDisplayerTool(Tool):
         # load up the telescope types table (need to first open a file, a bit of
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
-        data = next(hessio_event_source(self.infile, max_events=1))
+        data = next(simtelarray_event_source(self.infile, max_events=1))
         camtypes = get_camera_types(data.inst)
         group = camtypes.groups[self.telgroup]
         self._selected_tels = group['tel_id'].data
@@ -77,9 +77,9 @@ class ImageSumDisplayerTool(Tool):
         imsum = None
         disp = None
 
-        for data in hessio_event_source(self.infile,
-                                        allowed_tels=self._selected_tels,
-                                        max_events=self.max_events):
+        for data in simtelarray_event_source(self.infile,
+                                             allowed_tels=self._selected_tels,
+                                             max_events=self.max_events):
 
             self.calibrator.calibrate(data)
 
