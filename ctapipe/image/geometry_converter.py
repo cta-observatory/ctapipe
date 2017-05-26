@@ -296,7 +296,7 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(
-            cam_id=geom.cam_id+"_skewed",
+            cam_id=geom.cam_id+"_rect",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
             pix_x=grid_x * u.m,
             pix_y=grid_y * u.m,
@@ -385,7 +385,7 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
         # TODO: probably should use base constructor, not guess here:
         # unrot_geom = CameraGeometry.guess(unrot_x, unrot_y, foc_len,
         #                                  apply_derotation=False)
-        unrot_geom = CameraGeometry(cam_id=geom.cam_id + "_unskewed",
+        unrot_geom = CameraGeometry(cam_id=geom.cam_id + "_hex",
                                     pix_id=np.arange(len(unrot_x)),
                                     pix_x=unrot_x,
                                     pix_y=unrot_y,
