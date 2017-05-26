@@ -41,12 +41,13 @@ def test_convert_geometry():
         hillas_1 = hillas_parameters(geom1d.pix_x, geom1d.pix_y, image1d)
 
         if __name__ == "__main__":
-            plt.figure(figsize=(10,5))
-            plt.subplot(1,3,1)
+            plt.viridis()
+            plt.figure(figsize=(12,3))
+            ax = plt.subplot(1,3,1)
             CameraDisplay(geom, image=image)
-            plt.subplot(1,3,2)
+            plt.subplot(1,3,2, sharex=ax, sharey=ax)
             CameraDisplay(geom2d, image=image2d)
-            plt.subplot(1,3,3)
+            plt.subplot(1,3,3, sharex=ax, sharey=ax)
             CameraDisplay(geom1d, image=image1d)
         else:
             assert np.abs(hillas_1.width - hillas_0.width).value < 1e-4
