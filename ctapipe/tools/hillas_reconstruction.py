@@ -237,6 +237,7 @@ class EventReconstructionHillas(Tool):
 
             energy_result = self.energy_reco.predict(fit_result, hillas_nom, tel_type,
                                                      tel_x, tel_y, array_pointing)
+            print(fit_result, energy_result)
 
             # insert the row into the table
             self.output.add_row((event.dl0.event_id, fit_result.alt,

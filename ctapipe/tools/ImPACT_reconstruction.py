@@ -22,6 +22,7 @@ from ctapipe.io.hessio import hessio_event_source
 from ctapipe.reco.hillas_intersection import HillasIntersection
 from ctapipe.reco.energy_reco_mva import EnergyReconstructorMVA
 from ctapipe.image import FullIntegrator
+import ctapipe.visualization as visualization
 
 from ctapipe.plotting.event_viewer import EventViewer
 from astropy.table import Table
@@ -169,9 +170,8 @@ class ImPACTReconstruction(Tool):
 
         hillas = {}
         hillas_nom = {}
-
-        tel_phi = {}
-        tel_theta = {}
+        image_pred = {}
+        mask_dict = {}
 
         for tel_id in event.dl0.tels_with_data:
             # Get calibrated image (low gain channel only)
@@ -225,8 +225,8 @@ class ImPACTReconstruction(Tool):
             if self.preselect(moments, tel_id):
 
                 # Dialte around edges of image
-                for i in range(2):
-                    dilate(self.geoms[tel_id], mask)
+                for i in range(3):
+                    mask = dilate(self.geoms[tel_id], mask)
 
                 # Save everything in dicts for reconstruction later
                 pixel_area[tel_id] = self.geoms[tel_id].pix_area/(fl*fl)
@@ -239,9 +239,11 @@ class ImPACTReconstruction(Tool):
 
                 tel_type[tel_id] = self.geoms[tel_id].cam_id
                 image[tel_id] = pmt_signal[mask]
+                image_pred[tel_id] = np.zeros(pmt_signal.shape)
 
                 hillas[tel_id] = moments_cam
                 hillas_nom[tel_id] = moments
+                mask_dict[tel_id] = mask
 
         # Cut on number of telescopes remaining
         if len(image)>1:
@@ -250,6 +252,7 @@ class ImPACTReconstruction(Tool):
             energy_result = self.energy_reco.predict(fit_result, hillas_nom, tel_type,
                                                      tel_x, tel_y, array_pointing)
 
+            print(fit_result, energy_result)
             # Perform ImPACT reconstruction
             self.ImPACT.set_event_properties(image, pixel_x, pixel_y, pixel_area,
                                              tel_type, tel_x, tel_y, array_pointing)
@@ -260,7 +263,32 @@ class ImPACTReconstruction(Tool):
             self.output.add_row((event.dl0.event_id, ImPACT_shower.alt,
                                  ImPACT_shower.az, ImPACT_energy.energy,
                                  event.mc.alt, event.mc.az, event.mc.energy, len(image)))
+            if False:
+                for tel_num in hillas_nom:
+                    fig, axs = plt.subplots(1, 3, figsize=(24, 8), sharey=True, sharex=True)
 
+                    prediction = self.ImPACT.get_prediction(tel_num, ImPACT_shower,
+                                                         ImPACT_energy)
+
+                    image_pred[tel_num][mask_dict[tel_num]] = prediction
+                    img = np.zeros(image_pred[tel_num].shape)
+                    img[mask_dict[tel_num]] = image[tel_num]
+
+                    disp = visualization.CameraDisplay(self.geoms[tel_num], ax=axs[0],
+                                                       title="Image")
+                    disp.image = img
+                    disp.add_colorbar(ax=axs[0])
+
+                    disp_pred = visualization.CameraDisplay(self.geoms[tel_num], ax=axs[1],
+                                                            title="Prediction")
+                    disp_pred.image = image_pred[tel_num]
+                    disp_pred.add_colorbar(ax=axs[1])
+
+                    disp_resid = visualization.CameraDisplay(self.geoms[tel_num], ax=axs[2],
+                                                             title="Prediction")
+                    disp_resid.image = img - image_pred[tel_num]
+                    disp_resid.add_colorbar(ax=axs[2])
+                    plt.show()
 def main():
     exe = ImPACTReconstruction()
     exe.run()

@@ -120,6 +120,7 @@ class TableInterpolator:
                 hdu_pt.append(hdu.header[p])
             grid.append(np.array(hdu_pt))
 
+        print(np.array(grid))
         bins = (x_bins, y_bins)
         return grid, bins, template
 

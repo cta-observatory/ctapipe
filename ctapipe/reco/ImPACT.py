@@ -69,7 +69,7 @@ class ImPACTReconstructor(Reconstructor):
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.4, "NectarCam": 1.4, "FlashCam": 1.4, "GCT": 1.3}
+        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.4, "GCT": 1.0}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
@@ -207,6 +207,7 @@ class ImPACTReconstructor(Reconstructor):
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
         mean_height *= np.cos(zen)
+
         # Add on the height of the detector above sea level
         mean_height += 2100
 
@@ -511,7 +512,7 @@ class ImPACTReconstructor(Reconstructor):
             # Here look up pedestal value
             self.ped[x] = self.ped_table[type_tel[x]]
 
-        self.get_brightest_mean(num_pix=5)
+        self.get_brightest_mean(num_pix=3)
         self.type = type_tel
         self.initialise_templates(type_tel)
 
@@ -555,8 +556,11 @@ class ImPACTReconstructor(Reconstructor):
         tilt_y = tilted.y.to(u.m).value
 
         lower_en_limit = energy_seed.energy * 0.1
+        en_seed =  energy_seed.energy
         if lower_en_limit < 0.04 * u.TeV:
             lower_en_limit = 0.04 * u.TeV
+            en_seed = 0.041 * u.TeV
+
         # Create Minuit object with first guesses at parameters, strip away the
         # units as Minuit doesnt like them
         min = Minuit(self.get_likelihood,
@@ -577,10 +581,10 @@ class ImPACTReconstructor(Reconstructor):
                      core_y=tilt_y,
                      error_core_y=10,
                      limit_core_y=(tilt_y - 200, tilt_y + 200),
-                     energy=energy_seed.energy.value,
-                     error_energy=energy_seed.energy.value * 0.05,
+                     energy=en_seed.value,
+                     error_energy=en_seed.value * 0.05,
                      limit_energy=(lower_en_limit.value,
-                                   energy_seed.energy.value * 10.),
+                                   en_seed.value * 10.),
                      x_max_scale=1, error_x_max_scale=0.1,
                      limit_x_max_scale=(0.5, 2),
                      fix_x_max_scale=False,
