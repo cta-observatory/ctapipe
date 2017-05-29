@@ -181,7 +181,7 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
         Set to None if no Tool to pass.
            
     """
-    name = 'CHECMWaveformCleanerAveragePeak'
+    name = 'CHECMWaveformCleanerAverage'
 
     def get_extractor(self):
         return AverageWfPeakIntegrator(None, self.parent,
