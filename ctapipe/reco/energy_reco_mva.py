@@ -301,7 +301,7 @@ def fit_mva(input_vals, target, mva, error_mva, scaler):
     if scaler is not None:
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
-    
+
     mva.fit(X_train, y_train)
     predicted_energy = mva.predict(X_test, y_test)
 
