@@ -141,7 +141,9 @@ class HillasIntersection(Reconstructor):
         elif weighting == "HESS":
             weight_fn = self.weight_HESS
 
+        # Weight by chosen method
         weight = weight_fn(h1[3],h2[3])
+        # And sin of interception angle
         weight *= self.weight_sin(h1[0],h2[0])
 
         # Make weighted average of all possible pairs
@@ -178,6 +180,7 @@ class HillasIntersection(Reconstructor):
         tx = list()
         ty = list()
 
+        # Need to loop here as dict is unordered
         for tel in hillas_parameters.keys():
             h.append(hillas_parameters[tel])
             tx.append(tel_x[tel])
@@ -219,7 +222,9 @@ class HillasIntersection(Reconstructor):
         elif weighting == "HESS":
             weight_fn = self.weight_HESS
 
+        # Weight by chosen method
         weight = weight_fn(h1[1],h2[1])
+        # And sin of interception angle
         weight *= self.weight_sin(h1[0],h2[0])
 
         # Make weighted average of all possible pairs
@@ -233,21 +238,31 @@ class HillasIntersection(Reconstructor):
     def reconstruct_xmax(self, source_x, source_y, core_x, core_y,
                          hillas_parameters,tel_x,tel_y, zen):
         """
+        Geometrical depth of shower maximum reconstruction, assuming the shower 
+        maximum lies at the image centroid
         
         Parameters
         ----------
-        source_x
-        source_y
-        core_x
-        core_y
-        hillas_parameters
-        tel_x
-        tel_y
-        zen
-
+        source_x: float
+            Source X position in nominal system
+        source_y: float
+            Source Y position in nominal system
+        core_x: float
+            Core X position in nominal system
+        core_y: float
+            Core Y position in nominal system
+        hillas_parameters: dict
+            Dictionary of hillas parameters objects
+        tel_x: dict
+            Dictionary of telescope X positions
+        tel_y: dict
+            Dictionary of telescope X positions
+        zen: float
+            Zenith angle of shower
+            
         Returns
         -------
-
+        Estimated depth of shower maximum
         """
         cog_x = list()
         cog_y = list()
@@ -256,6 +271,7 @@ class HillasIntersection(Reconstructor):
         tx = list()
         ty = list()
 
+        # Loops over telescopes in event
         for tel in hillas_parameters.keys():
             cog_x.append(hillas_parameters[tel].cen_x.to(u.rad).value)
             cog_y.append(hillas_parameters[tel].cen_y.to(u.rad).value)
