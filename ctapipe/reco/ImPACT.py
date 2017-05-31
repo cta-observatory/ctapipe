@@ -306,7 +306,7 @@ class ImPACTReconstructor(Reconstructor):
         x_max = shower_reco.h_max / np.cos(zenith)
 
         # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = 0 #x_max.value - x_max_exp
+        x_max_bin = x_max.value - x_max_exp
         if x_max_bin > 100:
             x_max_bin = 100
         if x_max_bin < -100:
@@ -325,8 +325,8 @@ class ImPACTReconstructor(Reconstructor):
                                                      source_y, phi)
 
         prediction = self.image_prediction(self.type[tel_id],
-                                           20 * u.deg,
-                                           0 * u.deg,
+                                           shower_reco.alt - (90 * u.deg),
+                                           shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
                                            pix_x_rot * (180 / math.pi),
