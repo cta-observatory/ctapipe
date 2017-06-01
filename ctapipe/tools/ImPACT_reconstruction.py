@@ -42,28 +42,42 @@ class ImPACTReconstruction(Tool):
     telescopes = List(Int, None, allow_none=True,
                       help='Telescopes to include from the event file. '
                            'Default = All telescopes').tag(config=True)
+    amp_cut = Dict().tag(config=True)
+    dist_cut = Dict().tag(config=True)
+    tail_cut = Dict().tag(config=True)
+    pix_cut = Dict().tag(config=True)
 
     aliases = Dict(dict(infile='ImPACTReconstruction.infile',
                         outfile='ImPACTReconstruction.outfile',
-                        telescopes='ImPACTReconstruction.telescopes'))
+                        telescopes='ImPACTReconstruction.telescopes',
+                        amp_cut='ImPACTReconstruction.amp_cut',
+                        dist_cut='ImPACTReconstruction.dist_cut',
+                        tail_cut='ImPACTReconstruction.tail_cut',
+                        pix_cut='ImPACTReconstruction.pix_cut'))
 
     def setup(self):
 
         self.geoms = dict()
-        self.amp_cut = {"LSTCam": 100,
-                        "NectarCam": 100,
-                        "FlashCam": 100,
-                        "GCT": 50}
-
-        self.dist_cut = {"LSTCam": 2. * u.deg,
-                         "NectarCam": 3.3 * u.deg,
-                         "FlashCam": 3. * u.deg,
-                         "GCT": 3.8 * u.deg}
-
-        self.tail_cut = {"LSTCam": (8, 16),
-                         "NectarCam": (7, 14),
-                         "FlashCam": (7, 14),
-                         "GCT": (3, 6)}
+        if len(self.amp_cut) == 0:
+            self.amp_cut = {"LSTCam": 92.7,
+                            "NectarCam": 90.6,
+                            "FlashCam": 90.6,
+                            "GCT": 29.3}
+        if len(self.dist_cut) == 0:
+            self.dist_cut = {"LSTCam": 1.74 * u.deg,
+                             "NectarCam": 3. * u.deg,
+                             "FlashCam": 3. * u.deg,
+                             "GCT": 3.55 * u.deg}
+        if len(self.tail_cut) == 0:
+            self.tail_cut = {"LSTCam": (8, 16),
+                             "NectarCam": (7, 14),
+                             "FlashCam": (7, 14),
+                             "GCT": (3, 6)}
+        if len(self.pix_cut) == 0:
+            self.pix_cut = {"LSTCam": 5,
+                             "NectarCam": 4,
+                             "FlashCam": 4,
+                             "GCT": 4}
 
         # Calibrators set to default for now
         self.r1 = HessioR1Calibrator(None, None)
@@ -114,7 +128,7 @@ class ImPACTReconstruction(Tool):
         self.dl0.reduce(event)
         self.calibrator.calibrate(event)  # calibrate the events
 
-    def preselect(self, hillas, tel_id):
+    def preselect(self, hillas, npix, tel_id):
         """
         Perform pre-selection of telescopes (before reconstruction) based on Hillas
         Parameters
@@ -138,7 +152,8 @@ class ImPACTReconstruction(Tool):
         # Cut based on Hillas amplitude and nominal distance
         if hillas.size > self.amp_cut[self.geoms[tel_id].cam_id] and dist < \
                 self.dist_cut[self.geoms[tel_id].cam_id] and \
-                        hillas.width>0*u.deg:
+                        hillas.width>0*u.deg and \
+                        npix>self.pix_cut[self.geoms[tel_id].cam_id]:
             return True
 
         return False
@@ -222,7 +237,7 @@ class ImPACTReconstruction(Tool):
                 continue
 
             # Make cut based on Hillas parameters
-            if self.preselect(moments, tel_id):
+            if self.preselect(moments, np.sum(mask), tel_id):
 
                 # Dialte around edges of image
                 for i in range(3):
