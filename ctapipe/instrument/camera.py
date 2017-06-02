@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 #     Key = (num_pix, focal_length_in_meters)
 #     Value = (type, subtype, pixtype, pixrotation, camrotation)
 _CAMERA_GEOMETRY_TABLE = {
-    (2048, 2.3): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.3): ('SST', 'CHEC', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2): ('SST', 'CHEC', 'rectangular', 0 * u.degree, 0 * u.degree),
     (2048, 36.0): ('LST', 'HESS-II', 'hexagonal', 0 * u.degree,
                    0 * u.degree),
     (960, None): ('MST', 'HESS-I', 'hexagonal', 0 * u.degree,
