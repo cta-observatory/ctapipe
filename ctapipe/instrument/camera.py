@@ -2,22 +2,18 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+import logging
 from collections import defaultdict
 
 import numpy as np
-import logging
-from pkg_resources import resource_listdir
-import re
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
-
-from ctapipe.io.files import get_file_type
-from ctapipe.utils import get_dataset
-from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-from ctapipe.utils import get_dataset
+
+from ctapipe.utils import get_dataset, find_all_matching_datasets
+from ctapipe.utils.linalg import rotation_matrix_2d
 
 __all__ = ['CameraGeometry',
            'get_camera_types',
@@ -30,16 +26,20 @@ logger = logging.getLogger(__name__)
 #     Key = (num_pix, focal_length_in_meters)
 #     Value = (type, subtype, pixtype, pixrotation, camrotation)
 _CAMERA_GEOMETRY_TABLE = {
-    (2048, 2.3): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 36.0): ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
-    (1855, 16.0): (
-        'MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
-    (1855, 28.0): (
-        'LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
-    (1296, None): ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (2048, 2.3): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2): ('SST', 'GATE', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 36.0): ('LST', 'HESS-II', 'hexagonal', 0 * u.degree,
+                   0 * u.degree),
+    (960, None): ('MST', 'HESS-I', 'hexagonal', 0 * u.degree,
+                   0 * u.degree),
+    (1855, 16.0): ('MST', 'NectarCam', 'hexagonal',
+                   0 * u.degree, -100.893 * u.degree),
+    (1855, 28.0): ('LST', 'LSTCam', 'hexagonal',
+                   0. * u.degree, -100.893 * u.degree),
+    (1296, None): ('SST', 'DigiCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None): ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2368, None): ('SST', 'ASTRICam', 'rectangular', 0 * u.degree,
+                   0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
@@ -69,7 +69,7 @@ class CameraGeometry:
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
                  pix_rotation=0 * u.degree, cam_rotation=0 * u.degree,
-                 neighbors=None):
+                 neighbors=None, apply_derotation=True):
         """
         Parameters
         ----------
@@ -103,10 +103,13 @@ class CameraGeometry:
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
         self._precalculated_neighbors = neighbors
-        # FIXME the rotation does not work on 2D pixel grids
-        if len(pix_x.shape) == 1:
-            self.rotate(cam_rotation)
-            self.cam_rotation = cam_rotation#Angle(0 * u.deg)
+
+        if apply_derotation:
+            # todo: this should probably not be done, but need to fix
+            # GeometryConverter and reco algorithms if we change it.
+            if len(pix_x.shape) == 1:
+                self.rotate(cam_rotation)
+
 
     def __eq__(self, other):
         return ( (self.cam_id == other.cam_id)
@@ -119,7 +122,8 @@ class CameraGeometry:
 
     @classmethod
     @u.quantity_input
-    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
+    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
+              apply_derotation=True):
         """ 
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions and the focal length. 
@@ -158,6 +162,7 @@ class CameraGeometry:
             pix_type=pix_type,
             pix_rotation=Angle(pix_rotation),
             cam_rotation=Angle(cam_rotation),
+            apply_derotation=apply_derotation
         )
 
         CameraGeometry._geometry_cache[identifier] = instance
@@ -179,17 +184,13 @@ class CameraGeometry:
         -------
         list(str)
         """
-        names = []
-        pattern = "{}-(.*)\.camgeom.fits".format(array_id)
-        for resource in resource_listdir('ctapipe_resources', ''):
-            match = re.match(pattern, resource)
-            if match:
-                names.append(match.group(1))
-        return names
+
+        pattern = "(.*)\.camgeom\.fits(\.gz)?"
+        return find_all_matching_datasets(pattern, regexp_group=1)
 
 
     @classmethod
-    def from_name(cls, camera_id='NectarCam', array_id='CTA', version=None):
+    def from_name(cls, camera_id='NectarCam', version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
         
@@ -216,9 +217,8 @@ class CameraGeometry:
         else:
             verstr = "-{:03d}".format(version)
 
-        filename = get_dataset("{array_id}-{camera_id}{verstr}.camgeom.fits.gz"
-                               .format(array_id=array_id, camera_id=camera_id,
-                                       verstr=verstr))
+        filename = get_dataset("{camera_id}{verstr}.camgeom.fits.gz"
+                               .format(camera_id=camera_id, verstr=verstr))
         return CameraGeometry.from_table(filename)
 
 
@@ -264,7 +264,7 @@ class CameraGeometry:
             tab = Table.read(url_or_table, **kwargs)
 
         return cls(
-            cam_id=tab.meta['CAM_ID'],
+            cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
             pix_x=tab['pix_x'].quantity,
             pix_y=tab['pix_y'].quantity,
@@ -333,6 +333,7 @@ class CameraGeometry:
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= angle
+        self.cam_rotation -= angle
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
