@@ -325,7 +325,7 @@ class ImPACTReconstructor(Reconstructor):
                                                      source_y, phi)
 
         prediction = self.image_prediction(self.type[tel_id],
-                                           shower_reco.alt - (90 * u.deg),
+                                           (90 * u.deg) - shower_reco.alt,
                                            shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
