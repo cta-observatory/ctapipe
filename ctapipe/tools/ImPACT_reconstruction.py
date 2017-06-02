@@ -42,10 +42,17 @@ class ImPACTReconstruction(Tool):
     telescopes = List(Int, None, allow_none=True,
                       help='Telescopes to include from the event file. '
                            'Default = All telescopes').tag(config=True)
+
+    max_events = Int(default_value=1000000000,
+                     help="Max number of events to include in analysis").tag(config=True)
+
     amp_cut = Dict().tag(config=True)
     dist_cut = Dict().tag(config=True)
     tail_cut = Dict().tag(config=True)
     pix_cut = Dict().tag(config=True)
+
+    minimiser = Unicode(default_value="minuit",
+                        help='minimiser used for ImPACTReconstruction').tag(config=True)
 
     aliases = Dict(dict(infile='ImPACTReconstruction.infile',
                         outfile='ImPACTReconstruction.outfile',
@@ -53,7 +60,9 @@ class ImPACTReconstruction(Tool):
                         amp_cut='ImPACTReconstruction.amp_cut',
                         dist_cut='ImPACTReconstruction.dist_cut',
                         tail_cut='ImPACTReconstruction.tail_cut',
-                        pix_cut='ImPACTReconstruction.pix_cut'))
+                        pix_cut='ImPACTReconstruction.pix_cut',
+                        minimiser='ImPACTReconstruction.minimiser',
+                        max_events='ImPACTReconstruction.max_events'))
 
     def setup(self):
 
@@ -88,11 +97,13 @@ class ImPACTReconstruction(Tool):
         # If we don't set this just use everything
         if len(self.telescopes) < 2:
             self.telescopes = None
-        self.source = hessio_event_source(self.infile, allowed_tels=self.telescopes)
+
+        self.source = hessio_event_source(self.infile, allowed_tels=self.telescopes,
+                                          max_events=self.max_events)
 
         self.fit = HillasIntersection()
         self.energy_reco = EnergyReconstructorMVA()
-        self.ImPACT = ImPACTReconstructor(fit_xmax=True)
+        self.ImPACT = ImPACTReconstructor(fit_xmax=True, minimiser=self.minimiser)
         self.viewer = EventViewer(draw_hillas_planes=True)
 
         self.output = Table(names=['EVENT_ID', 'RECO_ALT', 'RECO_AZ',

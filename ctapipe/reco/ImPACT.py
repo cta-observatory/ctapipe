@@ -22,6 +22,7 @@ from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
 from ctapipe.instrument import get_atmosphere_profile_functions
+from scipy.optimize import minimize
 
 __all__ = ['ImPACTReconstructor']
 
@@ -48,7 +49,7 @@ class ImPACTReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, fit_xmax=True, root_dir="."):
+    def __init__(self, fit_xmax=True, root_dir=".", minimiser="minuit"):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -71,6 +72,9 @@ class ImPACTReconstructor(Reconstructor):
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
         self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.4, "GATE": 1.0}
 
+        self.last_image = dict()
+        self.last_point = dict()
+
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier
 
@@ -91,6 +95,7 @@ class ImPACTReconstructor(Reconstructor):
         self.ped = dict()
 
         self.array_direction = 0
+        self.minimiser_name = minimiser
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -388,10 +393,10 @@ class ImPACTReconstructor(Reconstructor):
             #x_max_bin = 0
 
             # Check for range
-            if x_max_bin > 100:
-                x_max_bin = 100
-            if x_max_bin < -100:
-                x_max_bin = -100
+            if x_max_bin > 150:
+                x_max_bin = 150
+            if x_max_bin < -150:
+                x_max_bin = -150
         else:
             x_max_bin = x_max_scale * 37.8
             if x_max_bin < 13:
@@ -517,6 +522,8 @@ class ImPACTReconstructor(Reconstructor):
         self.initialise_templates(type_tel)
 
         self.array_direction = array_direction
+        self.last_image = 0
+        self.last_point = 0
 
     def predict(self, shower_seed, energy_seed):
         """
@@ -544,8 +551,8 @@ class ImPACTReconstructor(Reconstructor):
         print(horizon_seed)
         print(self.array_direction)
 
-        source_x = nominal_seed.x.to(u.rad).value
-        source_y = nominal_seed.y.to(u.rad).value
+        source_x = nominal_seed.x[0].to(u.rad).value
+        source_y = nominal_seed.y[0].to(u.rad).value
 
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
@@ -555,62 +562,36 @@ class ImPACTReconstructor(Reconstructor):
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
-        lower_en_limit = energy_seed.energy * 0.1
+        lower_en_limit = energy_seed.energy * 0.5
         en_seed =  energy_seed.energy
         if lower_en_limit < 0.04 * u.TeV:
             lower_en_limit = 0.04 * u.TeV
             en_seed = 0.041 * u.TeV
 
-        # Create Minuit object with first guesses at parameters, strip away the
-        # units as Minuit doesnt like them
-        min = Minuit(self.get_likelihood,
-                     print_level=1,
-                     source_x=source_x,
-                     error_source_x=0.01 / 57.3,
-                     fix_source_x=False,
-                     limit_source_x=(source_x - 0.5 / 57.3,
-                                     source_x + 0.5 / 57.3),
-                     source_y=source_y,
-                     error_source_y=0.01 / 57.3,
-                     fix_source_y=False,
-                     limit_source_y=(source_y - 0.5 / 57.3,
-                                     source_y + 0.5 / 57.3),
-                     core_x=tilt_x,
-                     error_core_x=10,
-                     limit_core_x=(tilt_x - 200, tilt_x + 200),
-                     core_y=tilt_y,
-                     error_core_y=10,
-                     limit_core_y=(tilt_y - 200, tilt_y + 200),
-                     energy=en_seed.value,
-                     error_energy=en_seed.value * 0.05,
-                     limit_energy=(lower_en_limit.value,
-                                   en_seed.value * 10.),
-                     x_max_scale=1, error_x_max_scale=0.1,
-                     limit_x_max_scale=(0.5, 2),
-                     fix_x_max_scale=False,
-                     errordef=1)
+        seed = (source_x, source_y, tilt_x,
+                tilt_y, en_seed.value, 1)
+        step = (0.001, 0.001, 10, 10, en_seed.value*0.1, 0.1)
+        limits = ((source_x-0.01, source_x+0.01),
+                  (source_y-0.01, source_y+0.01),
+                  (tilt_x-100, tilt_x+100),
+                  (tilt_y-100, tilt_y+100),
+                  (lower_en_limit.value, en_seed.value*2),
+                  (0.5,2))
 
-        min.tol *= 1000
-        min.strategy = 0
-
-        # Perform minimisation
-        migrad = min.migrad()
-        fit_params = min.values
-        errors = min.errors
-    #    print(migrad)
-    #    print(min.minos())
+        fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
+                                             minimiser_name=self.minimiser_name)
 
         # container class for reconstructed showers '''
         shower_result = ReconstructedShowerContainer()
 
-        nominal = NominalFrame(x=fit_params["source_x"] * u.rad,
-                               y=fit_params["source_y"] * u.rad,
+        nominal = NominalFrame(x=fit_params[0] * u.rad,
+                               y=fit_params[1] * u.rad,
                                array_direction=self.array_direction)
         horizon = nominal.transform_to(HorizonFrame())
 
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
-        tilted = TiltedGroundFrame(x=fit_params["core_x"] * u.m,
-                                   y=fit_params["core_y"] * u.m,
+        tilted = TiltedGroundFrame(x=fit_params[2] * u.m,
+                                   y=fit_params[3] * u.m,
                                    pointing_direction=self.array_direction)
         ground = project_to_ground(tilted)
 
@@ -624,26 +605,83 @@ class ImPACTReconstructor(Reconstructor):
         shower_result.core_uncert = np.nan
 
         zenith = 90*u.deg - self.array_direction.alt
-        shower_result.h_max = fit_params["x_max_scale"] * \
-                              self.get_shower_max(fit_params["source_x"],
-                                                  fit_params["source_y"],
-                                                  fit_params["core_x"],
-                                                  fit_params["core_y"],
+        shower_result.h_max = fit_params[5] * \
+                              self.get_shower_max(fit_params[0],
+                                                  fit_params[1],
+                                                  fit_params[2],
+                                                  fit_params[3],
                                                   zenith.to(u.rad).value)
 
-        shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
+        shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
         shower_result.goodness_of_fit = np.nan
         shower_result.tel_ids = list(self.image.keys())
 
         energy_result = ReconstructedEnergyContainer()
-        energy_result.energy = fit_params["energy"] * u.TeV
-        energy_result.energy_uncert = errors["energy"] * u.TeV
+        energy_result.energy = fit_params[4] * u.TeV
+        energy_result.energy_uncert = errors[4] * u.TeV
         energy_result.is_valid = True
         energy_result.tel_ids = list(self.image.keys())
         # Return interesting stuff
 
         return shower_result, energy_result
+
+    def minimise(self, params, step, limits, minimiser_name="minuit"):
+        """
+        
+        Parameters
+        ----------
+        params
+        step
+        limits
+        minimiser_name
+
+        Returns
+        -------
+
+        """
+        if minimiser_name is "minuit":
+
+            min = Minuit(self.get_likelihood,
+                         print_level=1,
+                         source_x=params[0],
+                         error_source_x=step[0],
+                         limit_source_x=limits[0],
+                         source_y=params[1],
+                         error_source_y=step[1],
+                         limit_source_y=limits[1],
+                         core_x=params[2],
+                         error_core_x=step[2],
+                         limit_core_x=limits[2],
+                         core_y=params[3],
+                         error_core_y=step[3],
+                         limit_core_y=limits[3],
+                         energy=params[4],
+                         error_energy=step[4],
+                         limit_energy=limits[4],
+                         x_max_scale=params[5], error_x_max_scale=step[5],
+                         limit_x_max_scale=limits[5],
+                         fix_x_max_scale=False,
+                         errordef=1)
+
+            min.tol *= 100
+
+            # Perform minimisation
+            migrad = min.migrad()
+            fit_params = min.values
+            errors = min.errors
+
+            return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
+                    fit_params["core_x"], fit_params["energy"],fit_params["x_max_scale"]),\
+                   (errors["source_x"], errors["source_y"], errors["core_x"],
+                    errors["core_x"], errors["energy"],errors["x_max_scale"])
+
+        else:
+            min = minimize(self.get_likelihood_min,params,
+                           method=minimiser_name,
+                           bounds=limits)
+
+            return min.x, (0,0,0,0,0,0)
 
     # These drawing functions should really be moved elsewhere, as
     # drawing a 2D map of the array is quite generic and should
