@@ -62,22 +62,22 @@ class ImPACTReconstruction(Tool):
             self.amp_cut = {"LSTCam": 92.7,
                             "NectarCam": 90.6,
                             "FlashCam": 90.6,
-                            "GCT": 29.3}
+                            "GATE": 29.3}
         if len(self.dist_cut) == 0:
             self.dist_cut = {"LSTCam": 1.74 * u.deg,
                              "NectarCam": 3. * u.deg,
                              "FlashCam": 3. * u.deg,
-                             "GCT": 3.55 * u.deg}
+                             "GATE": 3.55 * u.deg}
         if len(self.tail_cut) == 0:
             self.tail_cut = {"LSTCam": (8, 16),
                              "NectarCam": (7, 14),
                              "FlashCam": (7, 14),
-                             "GCT": (3, 6)}
+                             "GATE": (3, 6)}
         if len(self.pix_cut) == 0:
             self.pix_cut = {"LSTCam": 5,
                              "NectarCam": 4,
                              "FlashCam": 4,
-                             "GCT": 4}
+                             "GATE": 4}
 
         # Calibrators set to default for now
         self.r1 = HessioR1Calibrator(None, None)

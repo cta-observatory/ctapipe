@@ -55,7 +55,7 @@ class ImPACTReconstructor(Reconstructor):
         self.root_dir = root_dir
         self.prediction = dict()
 
-        self.file_names = {"GCT":"GCT.fits", "LSTCam":"LST.fits",
+        self.file_names = {"GATE":"GCT.fits", "LSTCam":"LST.fits",
                            "NectarCam":"MST.fits", "FlashCam":"MST.fits"}
 
         # We also need a conversion function from height above ground to depth of maximum
@@ -65,11 +65,11 @@ class ImPACTReconstructor(Reconstructor):
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GCT": 0.5}
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 0.5}
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.4, "GCT": 1.0}
+        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.4, "GATE": 1.0}
 
         # Next we need the position, area and amplitude from each pixel in the event
         # making this a class member makes passing them around much easier

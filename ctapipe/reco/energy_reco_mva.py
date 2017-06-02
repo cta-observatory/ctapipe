@@ -45,7 +45,7 @@ class EnergyReconstructorMVA(EnergyReconstructor):
         # for each telescope type
         self.root_dir = root_dir
 
-        self.file_names = {"GCT": "GCT_energy.pkl", "LSTCam":
+        self.file_names = {"GATE": "GCT_energy.pkl", "LSTCam":
                            "LST_energy.pkl", "NectarCam":
                            "NectarCam_energy.pkl", "FlashCam": "FlashCam_energy.pkl"}
 
