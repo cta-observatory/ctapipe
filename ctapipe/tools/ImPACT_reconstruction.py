@@ -213,12 +213,15 @@ class ImPACTReconstruction(Tool):
             fl = event.inst.optical_foclen[tel_id]
             if tel_id not in self.geoms:
                 self.geoms[tel_id] = CameraGeometry.guess(pix_x, pix_y,
-                                        event.inst.optical_foclen[tel_id])
+                                                          event.inst.optical_foclen[
+                                                             tel_id],
+                                                          apply_derotation=False)
 
             # Transform the pixels positions into nominal coordinates
             camera_coord = CameraFrame(x=pix_x, y=pix_y, z=np.zeros(pix_x.shape) * u.m,
                                        focal_length=fl,
                                        rotation= -1* self.geoms[tel_id].cam_rotation)
+
             nom_coord = camera_coord.transform_to(nom_system)
             tx, ty, tz = event.inst.tel_pos[tel_id]
 
@@ -283,6 +286,13 @@ class ImPACTReconstruction(Tool):
             self.ImPACT.set_event_properties(image, pixel_x, pixel_y, pixel_area,
                                              tel_type, tel_x, tel_y, array_pointing)
             ImPACT_shower, ImPACT_energy = self.ImPACT.predict(fit_result, energy_result)
+
+            #cont_plot = self.ImPACT.draw_nominal_surface(ImPACT_shower, ImPACT_energy)
+
+            #if np.sum(cont_plot[2]) != 0 and False:
+            #    plt.contour(*cont_plot)
+                #plt.imshow(cont_plot[2])
+            #    plt.show()
 
             print(ImPACT_shower, ImPACT_energy)
             # insert the row into the table

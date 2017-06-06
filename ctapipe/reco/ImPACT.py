@@ -23,6 +23,7 @@ from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
 from ctapipe.instrument import get_atmosphere_profile_functions
 from scipy.optimize import minimize
+from scipy.stats import norm
 
 __all__ = ['ImPACTReconstructor']
 
@@ -56,8 +57,8 @@ class ImPACTReconstructor(Reconstructor):
         self.root_dir = root_dir
         self.prediction = dict()
 
-        self.file_names = {"GATE":"GCT.fits", "LSTCam":"LST.fits",
-                           "NectarCam":"MST.fits", "FlashCam":"MST.fits"}
+        self.file_names = {"GATE":"GCT_xm_full.fits", "LSTCam":"LST_xm_full.fits",
+                           "NectarCam":"MST_xm_full.fits", "FlashCam":"MST_xm_full.fits"}
 
         # We also need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
@@ -203,9 +204,12 @@ class ImPACTReconstructor(Reconstructor):
                          np.power(np.array(list(self.tel_pos_y.values()))
                                   - core_y, 2))
 
-        # Distance above telescope is ration of these two (small angle)
+        # Distance above telescope is ratio of these two (small angle)
+
         height = impact / disp
         weight = np.sqrt(self.peak_amp)  # weight average by amplitude
+        hm = height*u.m
+        hm[hm>99*u.km] = 99*u.km
 
         # Take weighted mean of esimates
         mean_height = np.sum(height * weight) / np.sum(weight)
@@ -225,7 +229,6 @@ class ImPACTReconstructor(Reconstructor):
 
         # Convert to slant depth
         x_max /= np.cos(zen)
-
         return x_max
 
     @staticmethod
@@ -384,7 +387,6 @@ class ImPACTReconstructor(Reconstructor):
             x_max = self.get_shower_max(source_x, source_y,
                                         core_x, core_y,
                                         zenith.to(u.rad).value) * x_max_scale
-
             # Calculate expected Xmax given this energy
             x_max_exp = 300 + 93 * np.log10(energy)
 
@@ -672,7 +674,8 @@ class ImPACTReconstructor(Reconstructor):
             errors = min.errors
 
             return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
-                    fit_params["core_x"], fit_params["energy"],fit_params["x_max_scale"]),\
+                    fit_params["core_y"], fit_params["energy"],fit_params[
+                        "x_max_scale"]),\
                    (errors["source_x"], errors["source_y"], errors["core_x"],
                     errors["core_x"], errors["energy"],errors["x_max_scale"])
 
@@ -707,110 +710,95 @@ class ImPACTReconstructor(Reconstructor):
         fig = plt.figure(figsize=(12, 6))
         nom1 = fig.add_subplot(121)
         self.draw_nominal_surface(x_src, y_src, x_grd, y_grd, energy,
-                                  xmax, nom1, bins=30, range=0.5 * u.deg)
+                                  xmax, nom1, bins=30, nominal_range=0.5 * u.deg)
         nom1.plot(x_src, y_src, "wo")
 
         tilt1 = fig.add_subplot(122)
         self.draw_tilted_surface(x_src, y_src, x_grd, y_grd, energy,
-                                 xmax, tilt1, bins=30, range=100 * u.m)
+                                 xmax, tilt1, bins=30, core_range=100 * u.m)
         tilt1.plot(x_grd, y_grd, "wo")
 
         plt.show()
 
         return
 
-    def draw_nominal_surface(self, x_src, y_src, x_grd, y_grd,
-                             energy, xmax, plot_name, bins=30, range=1):
-        """
-        Function for creating test statistic surface in nominal plane
+    def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
+                             nominal_range=2.5*u.deg):
 
-        Parameters
-        ----------
-        x_src: float
-            Source position in nominal coordinates (centre of map)
-        y_src: float
-            Source position in nominal coordinates (centre of map)
-        x_grd: float
-            Ground position in tilted coordinates (centre of map)
-        y_grd: float
-            Ground position in tilted coordinates (centre of map)
-        plot_name: matplotlib axis
-            Subplot in which to include this plot
-        bins: int
-            Number of bins in each axis
-        range: float
-            Size of map
+        horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
+        nominal_seed = horizon_seed.transform_to(
+            NominalFrame(array_direction=self.array_direction))
 
-        Returns
-        -------
-            None
-        """
-        import matplotlib.pyplot as plt
-        x_dir = np.linspace(x_src - range, x_src + range, num=bins)
-        y_dir = np.linspace(y_src - range, y_src + range, num=bins)
+        source_x = nominal_seed.x[0].to(u.rad)
+        source_y = nominal_seed.y[0].to(u.rad)
+
+        ground = GroundFrame(x=shower_seed.core_x,
+                             y=shower_seed.core_y, z=0 * u.m)
+        tilted = ground.transform_to(
+            TiltedGroundFrame(pointing_direction=self.array_direction)
+        )
+        tilt_x = tilted.x.to(u.m)
+        tilt_y = tilted.y.to(u.m)
+
+        x_dir = np.linspace(source_x - nominal_range, source_x + nominal_range, num=bins)
+        y_dir = np.linspace(source_y - nominal_range, source_y + nominal_range, num=bins)
         w = np.zeros([bins, bins])
+        zenith = 90*u.deg - self.array_direction.alt
 
-        i = 0
-        for xb in x_dir:
-            j = 0
-            for yb in y_dir:
-                w[i][j] = self.get_likelihood(xb.to(u.rad).value,
-                                              yb.to(u.rad).value,
-                                              x_grd.value,
-                                              y_grd.value,
-                                              energy.value, xmax)
-                j += 1
-            i += 1
+        for xb in range(bins):
+            for yb in range(bins):
+                x_max_scale = shower_seed.h_max / \
+                              self.get_shower_max(x_dir[xb].to(u.rad).value,
+                                                  y_dir[yb].to(u.rad).value,
+                                                  tilt_x.value,
+                                                  tilt_y.value,
+                                                  zenith.to(u.rad).value)
 
-        return plot_name.imshow(w, interpolation="nearest",
-                                cmap=plt.cm.viridis_r,
-                                extent=(x_src.value - range.value,
-                                        x_src.value + range.value, y_src.value
-                                        - range.value, y_src.value +
-                                        range.value))
+                w[xb][yb] = self.get_likelihood(x_dir[xb].to(u.rad).value,
+                                                y_dir[yb].to(u.rad).value,
+                                                tilt_x.value,
+                                                tilt_y.value,
+                                                energy_seed.energy.value, x_max_scale)
 
-    def draw_tilted_surface(self, x_src, y_src, x_grd, y_grd, energy,
-                            xmax, bins=50, range=100 * u.m):
-        """
-        Function for creating test statistic surface in tilted plane
+        w = w - np.min(w)
 
-        Parameters
-        ----------
-        x_src: float
-            Source position in nominal coordinates (centre of map)
-        y_src: float
-            Source position in nominal coordinates (centre of map)
-        x_grd: float
-            Ground position in tilted coordinates (centre of map)
-        y_grd: float
-            Ground position in tilted coordinates (centre of map)
-        plot_name: matplotlib axis
-            Subplot in which to include this plot
-        bins: int
-            Number of bins in each axis
-        range: float
-            Size of map
+        return x_dir, y_dir, w
 
-        Returns
-        -------
-            None
-        """
-        import matplotlib.pyplot as plt
-        x_ground_list = np.linspace(x_grd - range, x_grd + range, num=bins)
-        y_ground_list = np.linspace(y_grd - range, y_grd + range, num=bins)
+    def draw_tilted_surface(self, shower_seed, energy_seed,
+                            bins=50, core_range=100 * u.m):
+
+        horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
+        nominal_seed = horizon_seed.transform_to(
+            NominalFrame(array_direction=self.array_direction))
+
+        source_x = nominal_seed.x[0].to(u.rad).value
+        source_y = nominal_seed.y[0].to(u.rad).value
+
+        ground = GroundFrame(x=shower_seed.core_x,
+                             y=shower_seed.core_y, z=0 * u.m)
+        tilted = ground.transform_to(
+            TiltedGroundFrame(pointing_direction=self.array_direction)
+        )
+        tilt_x = tilted.x.to(u.m)
+        tilt_y = tilted.y.to(u.m)
+
+        x_ground_list = np.linspace(tilt_x - core_range, tilt_x + core_range, num=bins)
+        y_ground_list = np.linspace(tilt_y - core_range, tilt_y + core_range, num=bins)
         w = np.zeros([bins, bins])
+        zenith = 90*u.deg - self.array_direction.alt
 
-        i = 0
-        for xb in x_ground_list:
-            j = 0
-            for yb in y_ground_list:
-                w[i][j] = self.get_likelihood(x_src.to(u.rad).value,
-                                              y_src.to(u.rad).value,
-                                              xb.value, yb.value,
-                                              energy.value, xmax)
-                j += 1
+        for xb in range(bins):
+            for yb in range(bins):
+                x_max_scale = shower_seed.h_max / \
+                              self.get_shower_max(source_x,
+                                                  source_y,
+                                                  x_ground_list[xb].value,
+                                                  y_ground_list[yb].value,
+                                                  zenith.to(u.rad).value)
 
-            i += 1
-
-        X, Y = np.meshgrid(x_ground_list, y_ground_list)
-        return X, Y, w
+                w[xb][yb] =  self.get_likelihood(source_x,
+                                                 source_y,
+                                                 x_ground_list[xb].value,
+                                                 y_ground_list[yb].value,
+                                                 energy_seed.energy.value, x_max_scale)
+        return x_ground_list, y_ground_list, w
