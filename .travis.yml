@@ -34,7 +34,6 @@ install:
 
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION conda
     - source activate cta-dev
-    - conda update conda
     - conda env update -n cta-dev --quiet --file environment.yml
     - ulimit -s 16000  # increase stack size limit, for libhessio
 
