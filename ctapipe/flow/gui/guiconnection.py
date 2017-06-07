@@ -181,7 +181,7 @@ class GuiConnexion(Thread, QtCore.QObject):
         Return: PipeStep if found, otherwise None
         '''
         for step in self.steps:
-            if step.name == name or step.name.split('$$processus')[0] == name:
+            if step.name == name or step.name.split('$$process')[0] == name:
                 return step
         return None
 
@@ -199,7 +199,7 @@ class GuiConnexion(Thread, QtCore.QObject):
         self.message.emit(self.steps)
 
     def send_mode(self,msg):
-        """ Flow can run in sequetial or multiprocessus mode.
+        """ Flow can run in sequetial or multiprocess mode.
         This will informs InfoLabel of Flow MODE
 
         Parameters

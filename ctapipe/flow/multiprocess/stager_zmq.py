@@ -8,10 +8,10 @@ from zmq import POLLIN
 from zmq import REQ
 from zmq import Poller
 from zmq import Context
-from ctapipe.flow.multiprocessus.connexions import Connexions
+from ctapipe.flow.multiprocess.connections import Connections
 from ctapipe.core import Component
 
-class StagerZmq(Component, Process, Connexions):
+class StagerZmq(Component, Process, Connections):
 
     """`StagerZmq` class represents a Stager pipeline Step.
     It is derived from Process class.
@@ -19,13 +19,13 @@ class StagerZmq(Component, Process, Connexions):
     and executes its coroutine objet's run method by passing
     input as parameter. Finaly it sends coroutine returned value to its next
     stage, thanks to its ZMQ REQ socket,
-    The processus is launched by calling run method.
+    The process is launched by calling run method.
     init() method is call by run method.
-    The processus is stopped by setting share data stop to True
+    The process is stopped by setting share data stop to True
     """
     def __init__(
             self, coroutine, sock_job_for_me_port,
-            name=None, connexions=dict(),main_connexion_name=None):
+            name=None, connections=None, main_connection_name=None):
         """
         Parameters
         ----------
@@ -34,15 +34,15 @@ class StagerZmq(Component, Process, Connexions):
             Port number for input socket url
         name: str
             Stage name
-        main_connexion_name : str
+        main_connection_name : str
             Default next step name. Used to send data when destination is not provided
-        connexions: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
+        connections: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
             Port number for socket for each next steps
         """
         Process.__init__(self)
         Component.__init__(self,parent=None)
         self.name = name
-        Connexions.__init__(self,main_connexion_name,connexions)
+        Connections.__init__(self, main_connection_name, connections)
         self.coroutine = coroutine
         self.sock_job_for_me_url = 'tcp://localhost:' + sock_job_for_me_port
         self.done = False
@@ -56,7 +56,7 @@ class StagerZmq(Component, Process, Connexions):
         Initialise coroutine sockets and poller
         Returns
         -------
-        True if coroutine init and init_connexions methods returns True,
+        True if coroutine init and init_connections methods returns True,
          otherwise False
         """
         if self.name is None:
@@ -65,11 +65,14 @@ class StagerZmq(Component, Process, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        return self.init_connexions()
+
+        self.coroutine.connections = list(self.connections)
+
+        return self.init_connections()
 
     def run(self):
         """
-        Method representing the processus's activity.
+        Method representing the process's activity.
         It polls its socket and when received new input from it,
         it executes coroutine run method by passing new input.
         Then it sends coroutine return value to its next stage,
@@ -111,13 +114,13 @@ class StagerZmq(Component, Process, Connexions):
     def finish(self):
         self.coroutine.finish()
 
-    def init_connexions(self):
+    def init_connections(self):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
-        Connexions.init_connexions(self)
+        Connections.init_connections(self)
         context = Context()
         self.sock_for_me = context.socket(REQ)
         self.sock_for_me.connect(self.sock_job_for_me_url)
