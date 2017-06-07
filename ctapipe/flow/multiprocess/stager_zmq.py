@@ -65,6 +65,9 @@ class StagerZmq(Component, Process, Connections):
             return False
         if self.coroutine.init() == False:
             return False
+
+        self.coroutine.connections = list(self.connections)
+
         return self.init_connections()
 
     def run(self):
