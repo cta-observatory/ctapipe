@@ -10,10 +10,12 @@ import logging
 import platform
 import sys
 import uuid
+import os
 from os.path import abspath
 from contextlib import contextmanager
 
 import ctapipe
+import ctapipe_resources
 import numpy as np
 import psutil
 from astropy.time import Time
@@ -191,6 +193,8 @@ def _get_system_provenance():
 
     return dict(
         ctapipe_version=ctapipe.__version__,
+        ctapipe_resources_version=ctapipe_resources.__version__,
+        ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
         executable=sys.executable,
         platform=dict(
             architecture_bits=bits,

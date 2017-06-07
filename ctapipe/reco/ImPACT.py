@@ -17,15 +17,16 @@ from ctapipe.coordinates import (HorizonFrame,
 from ctapipe.image import poisson_likelihood_gaussian
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
-from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
 
+__all__ = ['ImPACTReconstructor']
 
-class ImPACTFitter(RecoShowerGeomAlgorithm):
+class ImPACTReconstructor(Reconstructor):
     """This class is an implementation if the impact_reco Monte Carlo
-    Template based image fitting method from [1]_.  This method uses a
+    Template based image fitting method from [parsons14]_.  This method uses a
     comparision of the predicted image from a library of image
     templates to perform a maximum likelihood fit for the shower axis,
     energy and height of maximum.
@@ -41,7 +42,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     References
     ----------
-    .. [1] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
+    .. [parsons14] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
 
     """
 
@@ -51,9 +52,10 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # for each telescope type
         self.root_dir = root_dir
         self.prediction = dict()
-        self.file_names = {"GATE": "SST-GCT.table.gz", "LSTCam":
-                           "LST.table.gz", "NectarCam":
-                           "MST.table.gz", "FlashCam": "MST.table.gz"}
+        self.file_names = {"CHEC": "SST-GCT.table.gz",
+                           "LSTCam": "LST.table.gz",
+                           "NectarCam": "MST.table.gz",
+                           "FlashCam":"MST.table.gz"}
 
         # We also need a conversion function from height above ground
         # to depth of maximum To do this we need the conversion table
@@ -64,13 +66,13 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # distribution for each pixel currently this is not availible
         # from the calibration, so for now lets hard code it in a dict
         self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3,
-                          "FlashCam": 2.3, "GATE": 0.5}
+                          "FlashCam": 2.3, "CHEC": 0.5}
         self.spe = 0.5  # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this
         # will be fixed later
         self.scale = {"LSTCam": 1.2, "NectarCam": 1.2,
-                      "FlashCam": 1.1, "GATE": 0.75}
+                      "FlashCam": 1.1, "CHEC": 0.75}
 
         # Next we need the position, area and amplitude from each
         # pixel in the event making this a class member makes passing

@@ -45,7 +45,7 @@ General documentation
   tools/index
   */index
   FAQ
-
+  bibliography
 
 Module API Status (relative to next release)
 ============================================

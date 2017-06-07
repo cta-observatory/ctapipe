@@ -5,7 +5,7 @@ from ctapipe.instrument.InstrumentDescription import load_hessio
 
 from ctapipe.utils import get_dataset
 
-from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
+from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.image.cleaning import tailcuts_clean, dilate
 
@@ -36,7 +36,7 @@ def test_fit_core():
     circle4.trace = [0, 1, 0]
 
     # creating the fit class and setting the the great circle member
-    fit = FitGammaHillas()
+    fit = HillasReconstructor()
     fit.circles = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
 
     # performing the position fit with the minimisation algorithm
@@ -79,7 +79,7 @@ def test_fit_origin():
     circle4.trace = [0, 1, 0]
 
     # creating the fit class and setting the the great circle member
-    fit = FitGammaHillas()
+    fit = HillasReconstructor()
     fit.circles = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
 
     # performing the direction fit with the minimisation algorithm
@@ -111,7 +111,7 @@ def test_FitGammaHillas():
 
     filename = get_dataset("gamma_test.simtel.gz")
 
-    fit = FitGammaHillas()
+    fit = HillasReconstructor()
 
     cam_geom = {}
     tel_phi = {}

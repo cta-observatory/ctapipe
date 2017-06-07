@@ -1,5 +1,5 @@
 import numpy as np
-from ctapipe.reco.ImPACT import ImPACTFitter
+from ctapipe.reco.ImPACT import ImPACTReconstructor
 from ctapipe.utils import get_dataset
 import astropy.units as u
 from numpy.testing import assert_allclose
@@ -10,7 +10,7 @@ class TestImPACT():
 
     @classmethod
     def setup_class(self):
-        self.impact_reco = ImPACTFitter(root_dir=".", fit_xmax=True)
+        self.impact_reco = ImPACTReconstructor(root_dir=".", fit_xmax=True)
 
     @pytest.mark.skip('need a dataset for this to work')
     def test_brightest_mean_average(self):
@@ -24,7 +24,7 @@ class TestImPACT():
 
         self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
                                               {1:pixel_y}, {1:pixel_area},
-                                              {1:"GATE"}, {1:0*u.m},
+                                              {1:"CHEC"}, {1:0*u.m},
                                               {1:0*u.m}, {1:0*u.m})
 
         self.impact_reco.get_brightest_mean(num_pix=pixel_x.shape[0])
@@ -43,7 +43,7 @@ class TestImPACT():
         pixel_area = np.array([0,0,0,0])*u.deg*u.deg
 
         self.impact_reco.set_event_properties({1:image}, {1:pixel_x}, {1:pixel_y}, {1:pixel_area},
-                                              {1:"GATE"}, {1:0*u.m}, {1:0*u.m}, {1:0*u.m})
+                                              {1:"CHEC"}, {1:0*u.m}, {1:0*u.m}, {1:0*u.m})
         self.impact_reco.get_brightest_mean(num_pix=3)
 
         assert_allclose(self.impact_reco.peak_x[0], 1, rtol=0, atol=0.001)
@@ -54,11 +54,11 @@ class TestImPACT():
         x = np.array([1])
         y = np.array([0])
 
-        xt, yt = ImPACTFitter.rotate_translate(x,y,0,0,np.deg2rad(90))
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(90))
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = ImPACTFitter.rotate_translate(x,y,0,0,np.deg2rad(180))
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(180))
         assert_allclose(xt, -1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -67,7 +67,7 @@ class TestImPACT():
         x = np.array([0])
         y = np.array([0])
 
-        xt, yt = ImPACTFitter.rotate_translate(x, y, 1, 1, 0)
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 1, 1, 0)
         assert_allclose(xt, -1, rtol=0, atol=0.001)
         assert_allclose(yt, -1, rtol=0, atol=0.001)
 
@@ -82,7 +82,7 @@ class TestImPACT():
 
         self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
                                               {1:pixel_y}, {1:pixel_area},
-                                              {1:"GATE"}, {1:0*u.m},
+                                              {1:"CHEC"}, {1:0*u.m},
                                               {1:0*u.m},
                                               array_direction=[0*u.deg,0*u.deg])
 
@@ -101,11 +101,11 @@ class TestImPACT():
 
         self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
                                               {1:pixel_y}, {1:pixel_area},
-                                              {1:"GATE"}, {1:0*u.m}, {1:0*u.m},
+                                              {1:"CHEC"}, {1:0*u.m}, {1:0*u.m},
                                               array_direction=[0*u.deg,0*u.deg])
 
         """First check image prediction by directly accessing the function"""
-        pred = self.impact_reco.image_prediction("GATE", zenith=0, azimuth=0,
+        pred = self.impact_reco.image_prediction("CHEC", zenith=0, azimuth=0,
                                                  energy=1, impact=50, x_max=0,
                                                  pix_x=pixel_x, pix_y=pixel_y)
 
@@ -139,7 +139,7 @@ class TestImPACT():
 
         self.impact_reco.set_event_properties({1:image}, {1:pixel_x},
                                               {1:pixel_y}, {1:pixel_area},
-                                              {1:"GATE"}, {1:0*u.m}, {1:0*u.m},
+                                              {1:"CHEC"}, {1:0*u.m}, {1:0*u.m},
                                               array_direction=[0*u.deg,0*u.deg])
 
         like = self.impact_reco.get_likelihood(0, 0, 0, 100, 1, 0)

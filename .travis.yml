@@ -1,49 +1,22 @@
 language: python
 
 python:
-    - 3.4
-    # This is just for "egg_info".  All other builds are explicitly given in the matrix
-env:
-    global:
-        # The following versions are the 'default' for tests, unless
-        # overidden underneath. They are defined here in order to save having
-        # to repeat them for all configurations.
-        - ASTROPY_VERSION=stable
-        - CONDA_INSTALL='conda install --yes'
-        - PIP_INSTALL='pip install'
-        - INSTALL_OPTIONAL=true
-    matrix:
-        - SETUP_CMD='egg_info'
-
-matrix:
-    include:
-
-        # Try with optional dependencies disabled
-        - python: 3.5
-          env: SETUP_CMD='test' INSTALL_OPTIONAL=false
-                  #
-        # Normal tests
-        - python: 3.5
-          env: SETUP_CMD='test'
-
-        # Do a coverage test in Python 3.
-        - python: 3.5
-          env: SETUP_CMD='test --coverage'
-
-        # Check for sphinx doc build warnings
-        - python: 3.5
-          env: SETUP_CMD='build_sphinx -w'
-
+    - 3.5  # not really used, since the anaconda one supercedes it
 
 before_install:
 
     # UPDATE APT-GET LISTINGS
+
     - sudo apt-get update
 
-    # Use utf8 encoding. Should be default, but this is insurance against future changes
+    # Use utf8 encoding. Should be default, but this is insurance
+    # against future changes
+
     - export PYTHONIOENCODING=UTF8
 
-    # Install miniconda following instructions at http://conda.pydata.org/docs/travis.html
+    # Install miniconda following instructions at
+    # http://conda.pydata.org/docs/travis.html
+    
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
@@ -62,35 +35,14 @@ before_install:
 
 install:
 
-    # CONDA
-    - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
-    - source activate test
-    - conda config --add channels cta-observatory
-    - conda config --add channels astropy-ci-extras
+    - conda env create --quiet --force --name cta-dev --file environment.yml
+    - source activate cta-dev
+    - ulimit -s 16000  # increase stack size limit, for libhessio
 
-    # CORE DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]]; then $CONDA_INSTALL numpy scipy pytest pip Cython jinja2 traitlets matplotlib; fi
-    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL pytest-xdist; fi
-    - if [[ $SETUP_CMD != egg_info ]]; then $PIP_INSTALL https://github.com/cta-observatory/pyhessio/archive/v2.0.0.tar.gz; fi
+script: make test
 
-    # ASTROPY
-    - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == development ]]; then $PIP_INSTALL git+http://github.com/astropy/astropy.git#egg=astropy; fi
-    - if [[ $SETUP_CMD != egg_info ]] && [[ $ASTROPY_VERSION == stable ]]; then $CONDA_INSTALL astropy; fi
+after_script:
+  - source deactivate
 
-    # OPTIONAL DEPENDENCIES
-    - if [[ $SETUP_CMD != egg_info ]] && $INSTALL_OPTIONAL; then $CONDA_INSTALL h5py scikit-image scikit-learn pandas; fi
+  
 
-    # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then $CONDA_INSTALL sphinx sphinx_rtd_theme matplotlib; fi
-
-    # COVERAGE DEPENDENCIES
-    - if [[ $SETUP_CMD == 'test --coverage' ]]; then $PIP_INSTALL coverage coveralls;  fi
-
-
-script:
-   - export CTAPIPE_EXTRA_DIR=$PWD/ctapipe-extra
-   - if [[ $SETUP_CMD == build_sphinx* ]]; then python -c 'import matplotlib.pyplot as plt'; fi
-   - python setup.py $SETUP_CMD
-
-after_success:
-     - if [[ $SETUP_CMD == 'test --coverage' ]]; then coveralls --rcfile='ctapipe/tests/coveragerc'; fi

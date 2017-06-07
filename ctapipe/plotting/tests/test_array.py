@@ -1,33 +1,35 @@
-from astropy import units as u
 import numpy as np
+import pytest
+from astropy import units as u
+from astropy.coordinates import SkyCoord, AltAz
+
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
+from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.coordinates import NominalFrame, CameraFrame
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.instrument import CameraGeometry
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.plotting.array import NominalPlotter
 from ctapipe.utils import get_dataset
 
-from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.image.cleaning import tailcuts_clean, dilate
-
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.instrument import CameraGeometry
-from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
-from ctapipe.coordinates import TiltedGroundFrame, NominalFrame, CameraFrame
-
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
-
+@pytest.mark.skip
 def test_array_draw():
 
     filename = get_dataset("gamma_test.simtel.gz")
     cam_geom = {}
 
-    source = hessio_event_source(filename)
+    source = hessio_event_source(filename, max_events=2)
     r1 = HessioR1Calibrator(None, None)
     dl0 = CameraDL0Reducer(None, None)
 
     calibrator = CameraDL1Calibrator(None, None)
 
     for event in source:
-        array_pointing =(event.mcheader.run_array_direction[1]*u.rad, event.mcheader.run_array_direction[0]*u.rad)
+        array_pointing=SkyCoord(event.mcheader.run_array_direction[1]*u.rad,
+                                event.mcheader.run_array_direction[0]*u.rad,
+                                frame=AltAz )
         #array_view = ArrayPlotter(instrument=event.inst,
         #                          system=TiltedGroundFrame(pointing_direction=array_pointing))
 
@@ -60,7 +62,7 @@ def test_array_draw():
             nom_coord = camera_coord.transform_to(NominalFrame(array_direction=array_pointing,
                                                                pointing_direction=array_pointing))
 
-            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal, 1,
+            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
 
             try:
@@ -68,12 +70,13 @@ def test_array_draw():
                                             nom_coord.y,
                                             pmt_signal*mask)
                 hillas_dict[tel_id] = moments
+                nom_coord = NominalPlotter(hillas_parameters=hillas_dict, draw_axes=True)
+                nom_coord.draw_array()
+
             except HillasParameterizationError as e:
                 print(e)
                 continue
 
-        nom_coord = NominalPlotter(hillas_parameters=hillas_dict, draw_axes=True)
-        nom_coord.draw_array()
         #array_view.background_image(np.ones((4,4)), ((-1500,1500),(-1500,1500)))
         #array_view.overlay_hillas(hillas_dict, draw_axes=True)
         #array_view.draw_array(range=((-1000,1000),(-1000,1000)))

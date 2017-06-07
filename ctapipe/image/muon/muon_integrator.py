@@ -1,4 +1,4 @@
-'''
+"""
 Class for performing a HESS style 2D fit of muon images
 
 To do:
@@ -6,7 +6,7 @@ To do:
     - unit tests
     - create container class for output
 
-'''
+"""
 import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
@@ -15,13 +15,12 @@ from astropy import units as u
 from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
 from scipy.stats import norm
-from IPython import embed
 
 __all__ = ['MuonLineIntegrate']
 
 
 class MuonLineIntegrate:
-    '''
+    """
     Object for calculating the expected 2D shape of muon image for a given
     mirror geometry. Geometry is passed to the class as
     a series of points defining the outer edge of the array
@@ -31,36 +30,32 @@ class MuonLineIntegrate:
 
     Expected 2D images can then be generated when the pixel geometry
     is passed to the class.
-    '''
-    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2, oversample_bins=3,sct_flag=False,secondary_radius=1.):
-        '''
-        Class initialisation funtion
-        Parameters
-        ----------
-        mirror_radius: float
-            Radius of telescope mirror (circular approx)
-        hole_radius: float
-            Radius of telescope mirror hole (circular approx)
-        pixel_width: float
-            width of pixel in camera
-        oversample_bins: int
-            number of angular bins to evaluate for each pixel width
-        sct_flag: bool
-            flags whether the telescope uses Schwarzschild-Couder Optics
-        secondary_radius: float
-            Radius of the secondary mirror (circular approx) for dual mirror telescopes
-        
-        minlambda: float
-            minimum wavelength for integration (300nm typical)
-        maxlambda: float
-            maximum wavelength for integration (600nm typical)
-        photemit: float
-            1/lambda^2 integrated over the above defined wavelength range
-            multiplied by the fine structure constant (1/137)
-        Returns
-        -------
-            None
-        '''
+
+    Parameters
+    ----------
+    mirror_radius: float
+        Radius of telescope mirror (circular approx)
+    hole_radius: float
+        Radius of telescope mirror hole (circular approx)
+    pixel_width: float
+        width of pixel in camera
+    oversample_bins: int
+        number of angular bins to evaluate for each pixel width
+    sct_flag: bool
+        flags whether the telescope uses Schwarzschild-Couder Optics
+    secondary_radius: float
+        Radius of the secondary mirror (circular approx) for dual
+        mirror telescopes
+    minlambda: float
+        minimum wavelength for integration (300nm typical)
+    maxlambda: float
+        maximum wavelength for integration (600nm typical)
+    photemit: float
+        1/lambda^2 integrated over the above defined wavelength range
+        multiplied by the fine structure constant (1/137)
+    """
+    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2,
+                 oversample_bins=3,sct_flag=False,secondary_radius=1.):
 
         self.mirror_radius = mirror_radius
         self.hole_radius = hole_radius
@@ -79,7 +74,7 @@ class MuonLineIntegrate:
 
     @staticmethod
     def chord_length(radius, rho, phi):
-        '''
+        """
         Function for integrating the length of a chord across a circle
 
         Parameters
@@ -94,7 +89,7 @@ class MuonLineIntegrate:
         Returns
         -------
         ndarray: chord length
-        '''
+        """
         chord = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
 
         if rho <= 1:
@@ -108,18 +103,23 @@ class MuonLineIntegrate:
         return chord
 
     def intersect_circle(self, r, angle):
-        '''
-        Perform line integration along a given axis in the mirror frame given an impact
-        point on the mirrot
-        :param impact_x: float
+        """Perform line integration along a given axis in the mirror frame
+        given an impact point on the mirrot
+
+        Parameters
+        ----------
+        impact_x: float
             Impact position on mirror (tilted telescope system)
-        :param impact_y: float
+        impact_y: float
             Impact position on mirror (tilted telescope system)
-        :param angle: float
+        angle: float
             Angle along which to integrate mirror
-        :return: float
-            length from impact point to mirror edge
-        '''
+
+        Returns
+        --------
+        float: length from impact point to mirror edge
+
+        """
         mirror_length = self.chord_length(
             self.mirror_radius, r / self.mirror_radius.value, angle
         )
@@ -146,17 +146,23 @@ class MuonLineIntegrate:
             return (mirror_length - hole_length + secondary_length)
 
     def plot_pos(self, impact_parameter, radius, phi):
-        '''
+        """
         Perform intersection over all angles and return length
-        :param impact_parameter: float
+
+        Parameters
+        ----------
+        impact_parameter: float
             Impact distance from mirror centre
-        :param ang: ndarray
+        ang: ndarray
             Angles over which to integrate
-        :param phi: float
+        phi: float
             Rotation angle of muon image
-        :return: ndarray
+        
+        Returns
+        -------
+        ndarray
             Chord length for each angle
-        '''
+        """
         bins = int((2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
         #ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
         #embed()
@@ -168,19 +174,26 @@ class MuonLineIntegrate:
         return ang, l
 
     def pos_to_angle(self, centre_x, centre_y, pixel_x, pixel_y):
-        '''
+        """
         Convert pixel positions from x,y coordinates to rotation angle
-        :param centre_x: float
+
+        Parameters
+        ----------
+        centre_x: float
             Reconstructed image centre
-        :param centre_y: float
+        centre_y: float
             Reconstructed image centre
-        :param pixel_x: ndarray
+        pixel_x: ndarray
             Pixel x position
-        :param pixel_y: ndarray
+        pixel_y: ndarray
             Pixel y position
-        :return: ndarray
+
+        Returns
+        -------
+         ndarray:
             Pixel rotation angle
-        '''
+
+        """
         #embed()
         del_x = pixel_x - centre_x
         del_y = pixel_y - centre_y
@@ -188,37 +201,34 @@ class MuonLineIntegrate:
         ang = np.arctan2(del_x, del_y)
         return ang
 
-    def image_prediction(
-            self,
-            impact_parameter,
-            phi,
-            centre_x,
-            centre_y,
-            radius,
-            ring_width,
-            pixel_x,
-            pixel_y,
-            ):
-        '''
-        Function for producing the expected image for a given set of trial muon parameters
+    def image_prediction( self, impact_parameter, phi, centre_x,
+                          centre_y, radius, ring_width, pixel_x, pixel_y, ):
+        """Function for producing the expected image for a given set of trial
+        muon parameters
 
-        :param impact_parameter: float
+        Parameters
+        ----------
+        impact_parameter: float
             Impact distance of muon
-        :param centre_x: float
+        centre_x: float
             Muon ring centre in field of view
-        :param centre_y: float
+        centre_y: float
             Muon ring centre in field of view
-        :param radius: float
+        radius: float
             Radius of muon ring
-        :param ring_width: float
+        ring_width: float
             Gaussian width of muon ring
-        :param pixel_x: ndarray
+        pixel_x: ndarray
             Pixel x coordinate
-        :param pixel_y: ndarray
+        pixel_y: ndarray
             Pixel y coordinate
-        :return: ndarray
+
+        Returns
+        -------
+        ndarray:
             Predicted signal
-        '''
+
+        """
 
         # First produce angular position of each pixel w.r.t muon centre
         ang = self.pos_to_angle(centre_x, centre_y, pixel_x, pixel_y)
@@ -244,17 +254,9 @@ class MuonLineIntegrate:
 
         return pred
 
-    def likelihood(
-            self,
-            impact_parameter,
-            phi,
-            centre_x,
-            centre_y,
-            radius,
-            ring_width,
-            optical_efficiency_muon,
-            ):
-        '''
+    def likelihood(self, impact_parameter, phi, centre_x, centre_y,
+                   radius, ring_width, optical_efficiency_muon, ):
+        """
         Likelihood function to be called by minimiser
 
         Parameters
@@ -271,10 +273,11 @@ class MuonLineIntegrate:
             Gaussian width of muon ring
         optical_efficiency_muon: float
             Efficiency of the optical system
+
         Returns
         -------
         float: Likelihood that model matches data
-        '''
+        """
         #embed()
         #centre_x *= self.unit
         #centre_y *= self.unit
@@ -307,9 +310,8 @@ class MuonLineIntegrate:
 
     @staticmethod
     def calc_likelihood(image, pred, spe_width, ped):
-        '''
-        Calculate likelihood of prediction given the measured signal, gaussian approx from
-        de Naurois et al 2009
+        """Calculate likelihood of prediction given the measured signal,
+        gaussian approx from [denaurois2009]_
 
         Parameters
         ----------
@@ -325,7 +327,8 @@ class MuonLineIntegrate:
         Returns
         -------
         ndarray: likelihood for each pixel
-        '''
+
+        """
         sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2)))
         diff = (image - pred)**2
         denom = 2 * (ped**2 + pred * (1 + spe_width**2))
@@ -335,7 +338,7 @@ class MuonLineIntegrate:
         return np.log(sq * expo)
 
     def fit_muon(self, centre_x, centre_y, radius, pixel_x, pixel_y, image):
-        '''
+        """
 
         Parameters
         ----------
@@ -355,7 +358,7 @@ class MuonLineIntegrate:
         Returns
         -------
         MuonIntensityParameters
-        '''
+        """
 
         # First store these parameters in the class so we can use them in minimisation
         self.image = image
