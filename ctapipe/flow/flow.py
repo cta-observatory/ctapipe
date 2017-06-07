@@ -45,7 +45,7 @@ class PipeStep():
         Maximum number of element the router can queue
 '''
     def __init__(self, name,
-                 next_steps_name=list(),
+                 next_steps_name=None,
                  port_in=None,
                  main_connection_name=None,
                  nb_processes=1, level=0,
@@ -53,7 +53,7 @@ class PipeStep():
 
         self.name = name
         self.port_in = port_in
-        self.next_steps_name = next_steps_name
+        self.next_steps_name = next_steps_name or []
         self.nb_process = nb_processes
         self.level = level
         self.connections = dict()

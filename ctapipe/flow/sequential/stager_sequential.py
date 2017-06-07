@@ -9,7 +9,7 @@ class StagerSequential():
     """
 
     def __init__(
-            self, coroutine, name=None, connections=list(), main_connection_name=None):
+            self, coroutine, name=None, connections=None, main_connection_name=None):
         """
         Parameters
         ----------
@@ -20,7 +20,7 @@ class StagerSequential():
         self.name = name
         self.coroutine = coroutine
         self.main_connection_name = main_connection_name
-        self.connections = connections
+        self.connections = connections or []
         self.running = 0
         self.nb_job_done = 0
 

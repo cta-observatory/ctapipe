@@ -5,7 +5,7 @@ class Connections():
     """
     implements ZMQ connections between process for PRODUCER and STAGER and CONSUMER
     """
-    def __init__(self, main_connection_name, connections=dict()):
+    def __init__(self, main_connection_name, connections=None):
         """
         Parameters
         ----------
@@ -13,7 +13,7 @@ class Connections():
         main_connection_name : str
             Default next step name. Used to send data when destination is not provided
         """
-        self.connections = connections
+        self.connections = connections or {}
         self.sockets=dict()
         self.context = zmq.Context()
         self.main_out_socket = None
