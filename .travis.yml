@@ -8,7 +8,7 @@ python:
 
 os:
     - linux
-    - osx
+    # - osx   # currently osx python projects are not supported in Travis
 
 before_install:
 
