@@ -1,13 +1,13 @@
 language: python
 
 python:
-    - 3.5  # not really used, since the anaconda one supercedes it
+    # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
+    # in anaconda as well
+    - 3.4
+    - 3.5
+    - 3.6
 
 before_install:
-
-    # UPDATE APT-GET LISTINGS
-
-    - sudo apt-get update
 
     # Use utf8 encoding. Should be default, but this is insurance
     # against future changes
@@ -26,17 +26,16 @@ before_install:
     # Useful for debugging any issues with conda
     - conda info -a
 
-    # DOCUMENTATION DEPENDENCIES
-    - if [[ $SETUP_CMD == build_sphinx* ]]; then sudo apt-get install graphviz texlive-latex-extra dvipng; fi
-
     # Make sure that interactive matplotlib backends work
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
 
 install:
 
-    - conda env create --quiet --force --name cta-dev --file environment.yml
+    - conda create --name cta-dev --python=$TRAVIS_PYTHON_VERSION
     - source activate cta-dev
+    - conda update conda
+    - conda env update -n cta-dev --quiet --file environment.yml
     - ulimit -s 16000  # increase stack size limit, for libhessio
 
 script: make test
