@@ -106,7 +106,55 @@ Logging and debugging
   common logging failities of `ctapipe`.  Log messages should be
   simple, and no not include the filename, function name, time, or any
   other metadata (which can be attached automatically by the logging
-  system)
+  system). See `https://docs.python.org/3/howto/logging.html`_ for more info
+
+* Logging within a `Tool` or `Component` subclass: use the `self.log` logger
+  instance
+
+* logging in a library file that is not part of Tool or Component: define a
+  logger at the top of the python file, and name it by using `__name__` as
+  follows:
+
+
+.. code-block:: python
+
+    # at the top of your file:
+
+    import logging
+    logger = logging.getLogger(__name__)
+
+
+Python logging works as follows:
+
+.. code-block:: python
+
+    logger.warning("this might be a problem")
+    logger.info("basic status")
+    logger.debug("debugging message")
+    logger.error("a serious problem")
+    logger.critical("this should never happen!")
+
+And which messages print out and in what logging format can be defined at
+run-time, along with filtering capabilities (e.g. only show log messages from
+a particular file or class).
+
+Some logging guidelines:
+
+* you should **not** include the name of your function/class, line number, name
+  of the file, or similar info in a log message. That information can be added
+  automatically by the logger by changing the log format if needed (all log
+  messages come with an attached `LogRecord` which contains all of the
+  necessary metadata: name, level, pathname, filename, line number, message,
+  arguments,exc_info (for exceptions), function name, stack info, process name, and
+  optinal user-defined fields.
+
+* the log message should be human-readable and explain to a user not fully
+  familiar with the code what is happening.
+
+* if the message refers to a value, you can insert it into the message using
+  format `logger.debug("some message: {}".format(val)")` or the log syntax
+  `logger.debug("some message: %d", val)`
+
 
 Function or method Input/Output
 -------------------------------
