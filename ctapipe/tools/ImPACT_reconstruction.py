@@ -103,7 +103,8 @@ class ImPACTReconstruction(Tool):
 
         self.fit = HillasIntersection()
         self.energy_reco = EnergyReconstructorMVA()
-        self.ImPACT = ImPACTReconstructor(fit_xmax=True, minimiser=self.minimiser)
+        self.ImPACT = ImPACTReconstructor(fit_xmax=True, minimiser=self.minimiser,
+                                          prior="energy, xmax")
         self.viewer = EventViewer(draw_hillas_planes=True)
 
         self.output = Table(names=['EVENT_ID', 'RECO_ALT', 'RECO_AZ',

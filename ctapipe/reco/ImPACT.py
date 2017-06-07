@@ -17,14 +17,25 @@ from ctapipe.image import poisson_likelihood_gaussian
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
-from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
-from ctapipe import instrument
 from ctapipe.instrument import get_atmosphere_profile_functions
 from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
 
-__all__ = ['ImPACTReconstructor']
+__all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
+
+
+def energy_prior(energy, index=-1):
+
+    return -2 * np.log(np.power(energy, index))
+
+
+def xmax_prior(energy, xmax, width=30):
+    x_max_exp = 300 + 93 * np.log10(energy)
+    diff = xmax.value - x_max_exp
+
+    return -2 * np.log(norm.pdf(diff/width))
+
 
 class ImPACTReconstructor(Reconstructor):
 
@@ -49,7 +60,7 @@ class ImPACTReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, fit_xmax=True, root_dir=".", minimiser="minuit"):
+    def __init__(self, fit_xmax=True, root_dir=".", minimiser="minuit", prior=""):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -98,6 +109,7 @@ class ImPACTReconstructor(Reconstructor):
         self.minimiser_name = minimiser
 
         self.array_return = False
+        self.priors = prior
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -452,11 +464,16 @@ class ImPACTReconstructor(Reconstructor):
             else:
                 array_like = np.append(array_like,like)
 
-            #sum_like += np.sum(like)
-            #if np.sum(prediction) is 0:
-            #    sum_like += 1e9
+        prior_pen = 0
+        # Add prior penalities if we have them
         array_like += 1e-8
+        if "energy" in self.priors:
+            prior_pen += energy_prior(energy)
+        if "xmax" in self.priors:
+            prior_pen += xmax_prior(energy, x_max)
+        print(prior_pen)
 
+        array_like += prior_pen/float(len(array_like))
         if self.array_return:
             return array_like
         return np.sum(array_like)
@@ -541,23 +558,19 @@ class ImPACTReconstructor(Reconstructor):
 
     def predict(self, shower_seed, energy_seed):
         """
-
+        
         Parameters
         ----------
-        source_x: float
-            Initial guess of source position in the nominal frame
-        source_y: float
-            Initial guess of source position in the nominal frame
-        core_x: float
-            Initial guess of the core position in the tilted system
-        core_y: float
-            Initial guess of the core position in the tilted system
-        energy: float
-            Initial guess of energy
+        shower_seed: ReconstructedShowerContainer
+            Seed shower geometry to be used in the fit
+        energy_seed: ReconstructedEnergyContainer
+            Seed energy to be used in fit
 
         Returns
         -------
-        Shower object with fit results
+        ReconstructedShowerContainer, ReconstructedEnergyContainer:
+        Reconstructed ImPACT shower geometry and energy
+        
         """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
@@ -678,7 +691,8 @@ class ImPACTReconstructor(Reconstructor):
                          fix_x_max_scale=False,
                          errordef=1)
 
-            min.tol *= 100
+            min.tol *= 1000
+            min.set_strategy(0)
 
             # Perform minimisation
             migrad = min.migrad()
@@ -706,46 +720,30 @@ class ImPACTReconstructor(Reconstructor):
             print(min.x)
             return min.x, (0,0,0,0,0,0)
 
-    # These drawing functions should really be moved elsewhere, as
-    # drawing a 2D map of the array is quite generic and should
-    # probably live in plotting
-    def draw_surfaces(self, x_src, y_src, x_grd, y_grd, energy, xmax):
-        """Simple function to draw the surface of the test statistic in both
-        the nominal and tilted planes while keeping the values in the
-        other plane fixed at the best fit value.
-
-        Parameters
-        ----------
-        x_src: float
-            Source position in nominal coordinates (centre of map)
-        y_src: float
-            Source position in nominal coordinates (centre of map)
-        x_grd: float
-            Ground position in tilted coordinates (centre of map)
-        y_grd: float
-            Ground position in tilted coordinates (centre of map)
-
-        """
-        import matplotlib.pyplot as plt 
-        fig = plt.figure(figsize=(12, 6))
-        nom1 = fig.add_subplot(121)
-        self.draw_nominal_surface(x_src, y_src, x_grd, y_grd, energy,
-                                  xmax, nom1, bins=30, nominal_range=0.5 * u.deg)
-        nom1.plot(x_src, y_src, "wo")
-
-        tilt1 = fig.add_subplot(122)
-        
-        self.draw_tilted_surface(x_src, y_src, x_grd, y_grd, energy,
-                                 xmax, tilt1, bins=30, core_range=100 * u.m)
-        tilt1.plot(x_grd, y_grd, "wo")
-
-        plt.show()
-
-        return
-
     def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
                              nominal_range=2.5*u.deg):
+        """
+        Simple reconstruction for evaluating the likelihood in a grid across the 
+        nominal system, fixing all values but the source position of the gamma rays. 
+        Useful for checking the reconstruction performance of the algorithm
+        
+        Parameters
+        ----------
+        shower_seed: ReconstructedShowerContainer
+            Best fit ImPACT shower geometry 
+        energy_seed: ReconstructedEnergyContainer
+            Best fit ImPACT energy
+        bins: int
+            Number of bins in surface evaluation
+        nominal_range: Quantity
+            Range over which to create likelihood surface
 
+        Returns
+        -------
+        ndarray, ndarray, ndarray: 
+        Bin centres in X and Y coordinates and the values of the likelihood at each 
+        position
+        """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(
             NominalFrame(array_direction=self.array_direction))
@@ -787,7 +785,28 @@ class ImPACTReconstructor(Reconstructor):
 
     def draw_tilted_surface(self, shower_seed, energy_seed,
                             bins=50, core_range=100 * u.m):
+        """
+        Simple reconstruction for evaluating the likelihood in a grid across the 
+        nominal system, fixing all values but the core position of the gamma rays. 
+        Useful for checking the reconstruction performance of the algorithm
+        
+        Parameters
+        ----------
+        shower_seed: ReconstructedShowerContainer
+            Best fit ImPACT shower geometry 
+        energy_seed: ReconstructedEnergyContainer
+            Best fit ImPACT energy
+        bins: int
+            Number of bins in surface evaluation
+        nominal_range: Quantity
+            Range over which to create likelihood surface
 
+        Returns
+        -------
+        ndarray, ndarray, ndarray: 
+        Bin centres in X and Y coordinates and the values of the likelihood at each 
+        position
+        """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(
             NominalFrame(array_direction=self.array_direction))
