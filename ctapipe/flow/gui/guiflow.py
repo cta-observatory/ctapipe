@@ -17,7 +17,7 @@ class PipeGui(Tool):
      to this GUI
     """
     description = "run stages in multiprocessus pipeline"
-    port = Integer(5565, help='GUI port for pipelien connexion').tag(
+    port = Integer(5565, help='GUI port for pipelien connection').tag(
         config=True, allow_none=True)
     def start(self):
         ModuleApplication(sys.argv, self.port)

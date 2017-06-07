@@ -25,11 +25,11 @@ class RouterQueue(Process, Component):
     later.
     """
     def __init__(
-        self, connexions=dict(), gui_address=None):
+        self, connections=dict(), gui_address=None):
         """
         Parameters
         ----------
-        connexions: dict {'STEP_NANE' : (STEP port in, STEP port out,
+        connections: dict {'STEP_NANE' : (STEP port in, STEP port out,
                                             STEP queue lengh max )}
             Port in, port out  for socket for each next steps.
             Max queue lengh (-1 menans no maximum)
@@ -48,7 +48,7 @@ class RouterQueue(Process, Component):
         self.router_sockets = dict()
         self.dealer_sockets = dict()
         self.queue_limit = dict()
-        self.connexions = connexions
+        self.connections = connections
         self.done = False
         self._stop = Value('i',0)
         self._total_queue_size = Value('i',0)
@@ -63,10 +63,10 @@ class RouterQueue(Process, Component):
         When received a signal from its output socket, it append sender
         (a pipeline step) to availble stagers list
         """
-        if self.init_connexions():
+        if self.init_connections():
             nb_job_remains = 0
             while not self.stop or nb_job_remains > 0:
-                for name in self.connexions:
+                for name in self.connections:
                     queue = self.queue_jobs[name]
                     next_available = self.next_available_stages[name]
                     if queue and next_available:
@@ -149,7 +149,7 @@ class RouterQueue(Process, Component):
                     return False
             return True
 
-    def init_connexions(self):
+    def init_connections(self):
         """
         Initialise zmq sockets, poller and queues.
         Because this class is s Process, This method must be call in the run
@@ -158,23 +158,23 @@ class RouterQueue(Process, Component):
         # Prepare our context and sockets
         context = Context()
         # Socket to talk to prev_stages
-        for name,connexions in self.connexions.items():
-            self.queue_limit[name] = connexions[2]
+        for name,connections in self.connections.items():
+            self.queue_limit[name] = connections[2]
             sock_router = context.socket(ROUTER)
             try:
-                sock_router.bind('tcp://*:' + connexions[0])
+                sock_router.bind('tcp://*:' + connections[0])
             except ZMQError as e:
                 self.log.error('{} : tcp://localhost:{}'
-                               .format(e,  connexions[0]))
+                               .format(e,  connections[0]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
             sock_dealer = context.socket(ROUTER)
             try:
-                sock_dealer.bind("tcp://*:" + connexions[1] )
+                sock_dealer.bind("tcp://*:" + connections[1] )
             except ZMQError as e:
                 self.log.error('{} : tcp://localhost:{}'
-                               .format(e,  connexions[1]))
+                               .format(e,  connections[1]))
                 return False
             self.dealer_sockets[name] = sock_dealer
             self.next_available_stages[name] = list()

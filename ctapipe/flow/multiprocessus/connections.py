@@ -1,28 +1,28 @@
 from time import sleep
 import zmq
 
-class Connexions():
+class Connections():
     """
-    implements ZMQ connexions between processus for PRODUCER and STAGER and CONSUMER
+    implements ZMQ connections between processus for PRODUCER and STAGER and CONSUMER
     """
-    def __init__(self, main_connexion_name, connexions=dict()):
+    def __init__(self, main_connection_name, connections=dict()):
         """
         Parameters
         ----------
-        connexions : dict
-        main_connexion_name : str
+        connections : dict
+        main_connection_name : str
             Default next step name. Used to send data when destination is not provided
         """
-        self.connexions = connexions
+        self.connections = connections
         self.sockets=dict()
         self.context = zmq.Context()
         self.main_out_socket = None
-        self.main_connexion_name = main_connexion_name
+        self.main_connection_name = main_connection_name
         return True
 
-    def close_connexions(self):
+    def close_connections(self):
         """
-        Close all zmq socket connexions
+        Close all zmq socket connections
         """
         for sock in self.sockets.values():
             sock.close()
@@ -45,7 +45,7 @@ class Connexions():
         """
         if isinstance(result,tuple):
             # look is last tuple elem is a valid next step
-            if result[-1] in self.connexions.keys():
+            if result[-1] in self.connections.keys():
                 destination = result[-1]
                 if len(result [:-1]) == 1:
                     msg = result [:-1][0]
@@ -80,20 +80,20 @@ class Connexions():
             else:
                 sleep(0.1)
 
-    def init_connexions(self):
+    def init_connections(self):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
          method to be hold by the correct processus.
         """
-        for name,connexion in self.connexions.items():
+        for name,connection in self.connections.items():
             self.sockets[name] = self.context.socket(zmq.REQ)
             try:
-                self.sockets[name].connect('tcp://localhost:' + connexion)
-                if self.main_connexion_name == name:
+                self.sockets[name].connect('tcp://localhost:' + connection)
+                if self.main_connection_name == name:
                     self.main_out_socket = self.sockets[name]
             except zmq.error.ZMQError as e:
                 print(' {} : tcp://localhost:{}'
-                               .format(e,  connexion))
+                               .format(e,  connection))
                 return False
         return True

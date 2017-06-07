@@ -47,7 +47,7 @@ class ConsumerZMQ(Process, Component):
         if self.coroutine.init() == False:
             return False
         self.done = False
-        return  self.init_connexions()
+        return  self.init_connections()
 
     def run(self):
         """
@@ -83,7 +83,7 @@ class ConsumerZMQ(Process, Component):
     def finish(self):
         self.coroutine.finish()
 
-    def init_connexions(self):
+    def init_connections(self):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
