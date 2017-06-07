@@ -5,16 +5,6 @@ from astropy import units as u
 from sklearn.ensemble import RandomForestRegressor
 
 
-def pick_any(my_dict):
-    """
-    I want an arbitrary element of the dictionary but cannot access it with
-    `next(my_dict)` or `my_dict.values()[0]`... So, loop over the keys and immediately
-    return the value of the first key...
-    """
-    for key in my_dict:
-        return my_dict[key]
-
-
 class EnergyRegressor:
     """
     This class collects one regressor for every camera type -- given by `cam_id_list` --
@@ -60,11 +50,11 @@ class EnergyRegressor:
         in the scikit-learn classes right from this class and we only have to overwrite
         the high-level interface functions.
         """
-        return getattr(pick_any(self.reg_dict), attr)
+        return getattr(next(iter(self.reg_dict.values())), attr)
 
     def __str__(self):
         """ return the class name of the used regressor """
-        return str(pick_any(self.reg_dict)).split("(")[0]
+        return str(next(iter(self.reg_dict.values()))).split("(")[0]
 
     def reshuffle_event_list(self, X, y):
         """
@@ -230,8 +220,9 @@ class EnergyRegressor:
 
         Returns
         -------
-        predict : quantified numpy array of shape 1
-            predictions for the target quantity for every "event" given in `X`
+        dict : dictionary quantified numpy arrays
+            dictionary that contains various statistical modes (mean, median, standard
+            deviation) of the predicted quantity of every telescope for all events.
 
         Raises
         ------
@@ -240,7 +231,9 @@ class EnergyRegressor:
             dictionary
         """
 
-        predict_list = []
+        predict_mean = []
+        predict_median = []
+        predict_std = []
         for evt in X:
             res = []
             for cam_id, tels in evt.items():
@@ -253,9 +246,13 @@ class EnergyRegressor:
                     raise KeyError("cam_id '{}' in X but no regressor defined: {}"
                                    .format(cam_id, [k for k in self.reg_dict]))
 
-            predict_list.append(np.mean(res))
+            predict_mean.append(np.mean(res))
+            predict_median.append(np.median(res))
+            predict_std.append(np.std(res))
 
-        return np.array(predict_list)*self.energy_unit
+        return {"mean": np.array(predict_mean)*self.energy_unit,
+                "median": np.array(predict_median)*self.energy_unit,
+                "std": np.array(predict_std)*self.energy_unit}
 
     def predict_by_telescope_type(self, X):
         """
