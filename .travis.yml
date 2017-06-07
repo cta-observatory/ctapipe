@@ -49,7 +49,7 @@ install:
 
 script:
     - make test
-    - ctapipe-info --all
+    - ctapipe-info --version # print out the version string
 
 after_script:
   - source deactivate
