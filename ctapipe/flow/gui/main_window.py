@@ -114,7 +114,7 @@ class MainWindow(QMainWindow, object):
         QObject.connect(
             self.actionReset, SIGNAL("triggered()"), self.guiconnection.reset)
         QMetaObject.connectSlotsByName(self)
-        # start the processus
+        # start the process
         self.guiconnection.start()
 
     def retranslateUi(self):
@@ -129,7 +129,7 @@ class MainWindow(QMainWindow, object):
 
     def stop(self):
         """Method connect (via Qt slot) to exit button
-        Stops self.guiconnection (for ZMQ communication) processus.
+        Stops self.guiconnection (for ZMQ communication) process.
         Close main_windows
         """
         self.guiconnection.finish()

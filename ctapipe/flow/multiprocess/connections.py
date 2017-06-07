@@ -3,7 +3,7 @@ import zmq
 
 class Connections():
     """
-    implements ZMQ connections between processus for PRODUCER and STAGER and CONSUMER
+    implements ZMQ connections between process for PRODUCER and STAGER and CONSUMER
     """
     def __init__(self, main_connection_name, connections=dict()):
         """
@@ -84,7 +84,7 @@ class Connections():
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
         for name,connection in self.connections.items():
             self.sockets[name] = self.context.socket(zmq.REQ)

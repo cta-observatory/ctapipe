@@ -12,9 +12,9 @@ class ConsumerZMQ(Process, Component):
     new input from its prev stage, thanks to its ZMQ REQ socket,
     and executes its coroutine objet's run method by passing
     input as parameter.
-    The processus is launched by calling run method.
+    The process is launched by calling run method.
     init() method is call by run method.
-    The processus is stopped by setting share data stop to True
+    The process is stopped by setting share data stop to True
     """
     def __init__(
             self, coroutine, sock_consumer_port, _name=""):
@@ -51,7 +51,7 @@ class ConsumerZMQ(Process, Component):
 
     def run(self):
         """
-        Method representing the processus's activity.
+        Method representing the process's activity.
         It polls its socket and when received new input from it,
         it executes coroutine run method by passing new input
         The poll method's timeout is 100 ms in case of self.stop flag
@@ -87,7 +87,7 @@ class ConsumerZMQ(Process, Component):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
         context = zmq.Context()
         self.sock_reply = context.socket(zmq.REQ)

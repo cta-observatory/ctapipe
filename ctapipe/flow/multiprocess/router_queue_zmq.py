@@ -55,7 +55,7 @@ class RouterQueue(Process, Component):
 
     def run(self):
         """
-        Method representing the processus’s activity.
+        Method representing the process’s activity.
         It sends a job present in its queue (FIFO) to an available stager
         (if exist). Then it polls its sockets (in and out).
         When received new input from input socket, it appends contains to
@@ -130,7 +130,7 @@ class RouterQueue(Process, Component):
         If stage_name = None it returns True if sum of all queues is 0
         """
         if stage_name:
-            val = stage_name.find("$$processus_number$$")
+            val = stage_name.find("$$process_number$$")
             if val != -1:
                 name_to_search = stage_name[0:val]
             else:
@@ -153,7 +153,7 @@ class RouterQueue(Process, Component):
         """
         Initialise zmq sockets, poller and queues.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
         # Prepare our context and sockets
         context = Context()
@@ -194,7 +194,7 @@ class RouterQueue(Process, Component):
             except ZMQError as e:
                 self.log.error("".format(e, self.gui_address))
                 return False
-        # This flag stop this current processus
+        # This flag stop this current process
         return True
 
     def update_gui(self, name):

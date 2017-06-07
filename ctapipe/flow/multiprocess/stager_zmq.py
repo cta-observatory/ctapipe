@@ -8,7 +8,7 @@ from zmq import POLLIN
 from zmq import REQ
 from zmq import Poller
 from zmq import Context
-from ctapipe.flow.multiprocessus.connections import Connections
+from ctapipe.flow.multiprocess.connections import Connections
 from ctapipe.core import Component
 
 class StagerZmq(Component, Process, Connections):
@@ -19,9 +19,9 @@ class StagerZmq(Component, Process, Connections):
     and executes its coroutine objet's run method by passing
     input as parameter. Finaly it sends coroutine returned value to its next
     stage, thanks to its ZMQ REQ socket,
-    The processus is launched by calling run method.
+    The process is launched by calling run method.
     init() method is call by run method.
-    The processus is stopped by setting share data stop to True
+    The process is stopped by setting share data stop to True
     """
     def __init__(
             self, coroutine, sock_job_for_me_port,
@@ -69,7 +69,7 @@ class StagerZmq(Component, Process, Connections):
 
     def run(self):
         """
-        Method representing the processus's activity.
+        Method representing the process's activity.
         It polls its socket and when received new input from it,
         it executes coroutine run method by passing new input.
         Then it sends coroutine return value to its next stage,
@@ -115,7 +115,7 @@ class StagerZmq(Component, Process, Connections):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
         Connections.init_connections(self)
         context = Context()

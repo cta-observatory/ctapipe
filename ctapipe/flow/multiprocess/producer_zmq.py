@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from ctapipe.core import Component
-from ctapipe.flow.multiprocessus.connections import Connections
+from ctapipe.flow.multiprocess.connections import Connections
 from multiprocessing import Process
 from multiprocessing import Value
 from types import GeneratorType
@@ -12,7 +12,7 @@ class ProducerZmq(Process, Component, Connections):
     It gets a Python generator from its coroutine run method.
     It loops overs its generator and sends input to its next stage,
     thanks to its ZMQ REQ socket,
-    The processus is launched by calling run method.
+    The process is launched by calling run method.
     init() method is call by run method.
     """
     def __init__(self, coroutine, name, main_connection_name,
@@ -54,7 +54,7 @@ class ProducerZmq(Process, Component, Connections):
 
     def run(self):
         """
-        Method representing the processus’s activity.
+        Method representing the process’s activity.
         It gets a Python generator from its coroutine run method.
         It loops overs its generator and sends new input to its next stage,
         thanks to its ZMQ REQ socket.
@@ -87,7 +87,7 @@ class ProducerZmq(Process, Component, Connections):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
         self.context = zmq.Context()
         Connections.init_connections(self)
