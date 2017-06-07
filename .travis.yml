@@ -32,7 +32,7 @@ before_install:
 
 install:
 
-    - conda create --name cta-dev --python=$TRAVIS_PYTHON_VERSION
+    - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
     - source activate cta-dev
     - conda update conda
     - conda env update -n cta-dev --quiet --file environment.yml
