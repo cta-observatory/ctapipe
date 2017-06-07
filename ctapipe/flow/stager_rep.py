@@ -14,7 +14,8 @@ class StagerRep():
     CONSUMER = 3
 
     def __init__(self,name,next_steps=None,running=0,
-                nb_job_done=0, queue_length = 0, nb_process = 1, step_type=STAGER):
+                 nb_job_done=0, queue_length = 0, 
+                 nb_process = 1, step_type=STAGER):
         self.type = step_type
         self.name = name
         self.next_steps = next_steps or []

@@ -8,8 +8,7 @@ class StagerSequential():
     """`StagerSequential` class represents a Stager pipeline Step.
     """
 
-    def __init__(
-            self, coroutine, name=None, connections=None, main_connection_name=None):
+    def __init__(self, coroutine, name=None, connections=None, main_connection_name=None):
         """
         Parameters
         ----------

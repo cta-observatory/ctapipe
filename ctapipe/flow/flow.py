@@ -54,6 +54,7 @@ class PipeStep():
         self.name = name
         self.port_in = port_in
         self.next_steps_name = next_steps_name or []
+
         self.nb_process = nb_processes
         self.level = level
         self.connections = dict()
