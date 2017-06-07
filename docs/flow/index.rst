@@ -178,6 +178,17 @@ the default next_step.
     >>>             elif tel in mst_list
     >>>                 yield(tel,'MST_CALIBRATION')
 
+The `connections` member variable can be used by Producers and stagers in their `run()`
+member method to get the list of connections names.
+For instance, to broadcast an event to all linked stagers:
+
+.. code-block:: python
+
+    >>> def run(self, event):
+    >>>    if event != None:
+    >>>        for connection in self.connections:
+    >>>            yield event, connection
+
 Running the ctapipe-flow
 ========================
 

@@ -38,6 +38,7 @@ class StagerSequential():
             return False
         if self.coroutine.init() == False:
             return False
+        self.coroutine.connections = self.connections
         return True
 
     def run(self, inputs=None):
