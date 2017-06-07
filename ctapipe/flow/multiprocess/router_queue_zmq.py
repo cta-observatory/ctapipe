@@ -25,7 +25,7 @@ class RouterQueue(Process, Component):
     later.
     """
     def __init__(
-        self, connections=dict(), gui_address=None):
+        self, connections=None, gui_address=None):
         """
         Parameters
         ----------
@@ -48,7 +48,7 @@ class RouterQueue(Process, Component):
         self.router_sockets = dict()
         self.dealer_sockets = dict()
         self.queue_limit = dict()
-        self.connections = connections
+        self.connections = connections or {}
         self.done = False
         self._stop = Value('i',0)
         self._total_queue_size = Value('i',0)

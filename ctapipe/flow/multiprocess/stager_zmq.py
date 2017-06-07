@@ -25,7 +25,7 @@ class StagerZmq(Component, Process, Connections):
     """
     def __init__(
             self, coroutine, sock_job_for_me_port,
-            name=None, connections=dict(),main_connection_name=None):
+            name=None, connections=None, main_connection_name=None):
         """
         Parameters
         ----------

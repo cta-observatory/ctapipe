@@ -16,7 +16,7 @@ class ProducerZmq(Process, Component, Connections):
     init() method is call by run method.
     """
     def __init__(self, coroutine, name, main_connection_name,
-                 connections=dict()):
+                 connections=None):
         """
         Parameters
         ----------
