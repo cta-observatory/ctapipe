@@ -4,7 +4,6 @@
 """
 import math
 
-
 import numpy as np
 from astropy import units as u
 from iminuit import Minuit
@@ -22,7 +21,7 @@ from ctapipe.reco.shower_max import ShowerMaxEstimator
 from ctapipe.utils import TableInterpolator
 from ctapipe import instrument
 from ctapipe.instrument import get_atmosphere_profile_functions
-from scipy.optimize import minimize
+from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
 
 __all__ = ['ImPACTReconstructor']
@@ -97,6 +96,8 @@ class ImPACTReconstructor(Reconstructor):
 
         self.array_direction = 0
         self.minimiser_name = minimiser
+
+        self.array_return = False
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -405,6 +406,8 @@ class ImPACTReconstructor(Reconstructor):
                 x_max_bin = 13
 
         sum_like = 0
+        array_like = None
+
         for tel_count in self.image:  # Loop over all telescopes
             # Calculate impact distance for all telescopes
             impact = np.sqrt(pow(self.tel_pos_x[tel_count] - core_x, 2)
@@ -444,11 +447,20 @@ class ImPACTReconstructor(Reconstructor):
                 print("inf found at ", self.type[tel_count], zenith,
                       azimuth, energy, impact, x_max_bin)
             like[np.isnan(like)] = 1e9
-            sum_like += np.sum(like)
-            if np.sum(prediction) is 0:
-                sum_like += 1e9
+            if array_like is None:
+                array_like = like
+            else:
+                array_like = np.append(array_like,like)
 
-        return sum_like
+            #sum_like += np.sum(like)
+            #if np.sum(prediction) is 0:
+            #    sum_like += 1e9
+        array_like += 1e-8
+
+        if self.array_return:
+            return array_like
+        return np.sum(array_like)
+
 
     def get_likelihood_min(self, x):
         """Wrapper class around likelihood function for use with scipy
@@ -642,7 +654,7 @@ class ImPACTReconstructor(Reconstructor):
         -------
 
         """
-        if minimiser_name is "minuit":
+        if minimiser_name == "minuit":
 
             min = Minuit(self.get_likelihood,
                          print_level=1,
@@ -679,11 +691,19 @@ class ImPACTReconstructor(Reconstructor):
                    (errors["source_x"], errors["source_y"], errors["core_x"],
                     errors["core_x"], errors["energy"],errors["x_max_scale"])
 
+        elif minimiser_name == "lm":
+            self.array_return = True
+
+            min = least_squares(self.get_likelihood_min,params,
+                                method=minimiser_name)
+            print(min.x)
+            return min.x, (0,0,0,0,0,0)
+
         else:
             min = minimize(self.get_likelihood_min,params,
                            method=minimiser_name,
                            bounds=limits)
-
+            print(min.x)
             return min.x, (0,0,0,0,0,0)
 
     # These drawing functions should really be moved elsewhere, as
@@ -714,6 +734,7 @@ class ImPACTReconstructor(Reconstructor):
         nom1.plot(x_src, y_src, "wo")
 
         tilt1 = fig.add_subplot(122)
+        
         self.draw_tilted_surface(x_src, y_src, x_grd, y_grd, energy,
                                  xmax, tilt1, bins=30, core_range=100 * u.m)
         tilt1.plot(x_grd, y_grd, "wo")
