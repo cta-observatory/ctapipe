@@ -87,7 +87,7 @@ class CameraDisplay:
             ax=None,
             title=None,
             norm="lin",
-            cmap="hot",
+            cmap=None,
             allow_pick=False,
             autoupdate=True,
             autoscale=True,
