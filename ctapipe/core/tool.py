@@ -154,14 +154,17 @@ class Tool(Application):
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
             self.start()
-            self.finish()
-            Provenance().finish_activity(self.name)
-            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
         except ValueError as err:
             self.log.error('{}'.format(err))
         except RuntimeError as err:
             self.log.error('Caught unexpected exception: {}'.format(err))
-
+        except KeyboardInterrupt as err:
+            self.log.error("WAS INTERRUPTED BY CTRL-C")
+        finally:
+            self.finish()
+            Provenance().finish_activity(self.name)
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
+            
     @property
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
