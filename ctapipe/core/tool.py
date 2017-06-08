@@ -7,6 +7,10 @@ from ctapipe import __version__ as version
 from .logging import ColoredFormatter
 from . import Provenance
 
+class ToolConfigurationError(Exception):
+    def __init__(self, message):
+        # Call the base class constructor with the parameters it needs
+        self.message = message
 
 class Tool(Application):
     """A base class for all executable tools (applications) that handles
@@ -154,17 +158,24 @@ class Tool(Application):
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
             self.start()
-        except ValueError as err:
-            self.log.error('{}'.format(err))
+            self.finish()
+            Provenance().finish_activity(activity_name=self.name)
+        except ToolConfigurationError as err:
+            self.log.error('{}.  Use --help for more info'.format(err))
         except RuntimeError as err:
             self.log.error('Caught unexpected exception: {}'.format(err))
-        except KeyboardInterrupt as err:
-            self.log.error("WAS INTERRUPTED BY CTRL-C")
-        finally:
             self.finish()
-            Provenance().finish_activity(self.name)
+            Provenance().finish_activity(activity_name=self.name,
+                                         status='error')
+        except KeyboardInterrupt as err:
+            self.log.warning("WAS INTERRUPTED BY CTRL-C")
+            self.finish()
+            Provenance().finish_activity(activity_name=self.name,
+                                         status='interrupted')
+        finally:
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
-            
+
+
     @property
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
