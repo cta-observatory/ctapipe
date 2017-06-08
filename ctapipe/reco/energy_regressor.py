@@ -36,7 +36,7 @@ class EnergyRegressor:
         arguments to be passed on to the constructor of the regressors
     """
     def __init__(self, regressor=RandomForestRegressor,
-                 cam_id_list=["cam"], energy_unit=u.TeV, **kwargs):
+                 cam_id_list=("cam"), energy_unit=u.TeV, **kwargs):
 
         self.reg_dict = {}
         self.energy_unit = energy_unit
@@ -204,7 +204,7 @@ class EnergyRegressor:
             else:
                 raise ValueError("you need to provide a cam_id")
 
-        return self.reg_dict[cam_id].predict(X)
+        return self.reg_dict[cam_id].predict(X)*self.energy_unit
 
     def predict_by_event(self, X):
         """
