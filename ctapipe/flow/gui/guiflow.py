@@ -16,8 +16,8 @@ class PipeGui(Tool):
      Each time a producer, stager , consumer or router changes, it send its status
      to this GUI
     """
-    description = "run stages in multiprocessus pipeline"
-    port = Integer(5565, help='GUI port for pipelien connexion').tag(
+    description = "run stages in multiprocess pipeline"
+    port = Integer(5565, help='GUI port for pipelien connection').tag(
         config=True, allow_none=True)
     def start(self):
         ModuleApplication(sys.argv, self.port)
