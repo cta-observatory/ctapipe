@@ -2,17 +2,17 @@
 ctapipe
 =======
 
-Low-level data processing pipeline software for `CTA <www.cta-observatory
-.org>`_ (the Cherenkov Telescope
-Array)
+Low-level data processing pipeline software for
+`CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
 
 This is code is a prototype data processing framework and is under rapid
-development. It is not recommended for production use unless you are an expert
- or developer!
+development. It is not recommended for production use unless you are an
+expert or developer!
 
 * .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.org/cta-observatory/ctapipe
     :alt: Test Status
+* .. image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
 * Example notebooks: https://github.com/cta-observatory/ctapipe/tree/master/examples/notebooks
@@ -39,5 +39,3 @@ Developers should follow the development install instructions found in the
 `documentation <https://cta-observatory.github
 .io/ctapipe/getting_started_for_developers>`_.
 
-
-.. image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
