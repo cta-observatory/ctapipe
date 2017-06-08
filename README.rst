@@ -38,5 +38,5 @@ file *environment.yml* can be found in this repo.
 
 Developers should follow the development install instructions found in the
 `documentation <https://cta-observatory.github
-.io/ctapipe/getting_started_for_developers>`_.
+.io/ctapipe/getting_started>`_.
 
