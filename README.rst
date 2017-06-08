@@ -27,7 +27,8 @@ environment (this is optional).
 
 
 The following command will set up a conda virtual environment, add the
-necessary package channels, and download ctapipe and its dependencies.
+necessary package channels, and download ctapipe and its dependencies. The
+file *environment.yml* can be found in this repo.
 
 ::
 
