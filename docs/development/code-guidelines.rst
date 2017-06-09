@@ -106,7 +106,7 @@ Logging and debugging
   common logging failities of `ctapipe`.  Log messages should be
   simple, and no not include the filename, function name, time, or any
   other metadata (which can be attached automatically by the logging
-  system). See `https://docs.python.org/3/howto/logging.html`_ for more info
+  system). See https://docs.python.org/3/howto/logging.html for more info
 
 * Logging within a `Tool` or `Component` subclass: use the `self.log` logger
   instance

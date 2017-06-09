@@ -123,7 +123,7 @@ html_theme = 'default'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 
 # -- Options for HTMLHelp output ------------------------------------------
@@ -188,10 +188,15 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/3.5', None),
+    'python': ('http://docs.python.org/3.6', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/latest/', None),
+    'pytables':('http://www.pytables.org/', None),
+    'pandas' :('http://pandas.pydata.org/pandas-docs/stable/', None),
+    'matplotlib':('http://matplotlib.org/', None),
+    'cython':('http://docs.cython.org/en/latest/', None),
+    'iminuit':('http://iminuit.readthedocs.io/en/latest/', None)
     }
 
 # on_rtd is whether we are on readthedocs.org
