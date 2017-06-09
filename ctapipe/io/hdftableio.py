@@ -10,7 +10,9 @@ from astropy.time import Time
 from astropy.units import Quantity
 from ctapipe.core import Component
 
-__all__ = ['SimpleHDF5TableWriter',
+__all__ = ['TableWriter',
+           'HDF5TableWriter',
+           'HDF5TableReader',
            'tr_convert_and_strip_unit',
            'tr_list_to_mask']
 
@@ -97,7 +99,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         return value
 
 
-class SimpleHDF5TableWriter(TableWriter):
+class HDF5TableWriter(TableWriter):
     """
     A very basic table writer that can take a container (or more than one) 
     and write it to an HDF5 file. It does _not_ recursively write the 
@@ -274,10 +276,10 @@ class SimpleHDF5TableWriter(TableWriter):
         self._append_row(table_name, container)
 
 
-class SimpleHDF5TableReader(Component):
+class HDF5TableReader(Component):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
-    Simply construct a `SimpleHDF5TableReader` with an input HDF5 file, 
+    Simply construct a `HDF5TableReader` with an input HDF5 file,
     and call the `read(path, container)` method to get a generator that fills 
     the given container with a new row of the table on each access.
      
