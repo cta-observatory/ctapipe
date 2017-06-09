@@ -30,16 +30,15 @@ class EnergyRegressor(RegressorClassifierBase):
         list of identifiers to differentiate the various sources of the images; could be
         the camera IDs or even telescope IDs. We will train one regressor for each of the
         identifiers.
-    energy_unit : astropy quantity, optional (default: u.TeV)
+    unit : astropy quantity, optional (default: u.TeV)
         scikit-learn regressors don't work with astropy unit. so, tell in advance in which
         unit we want to deal here.
     kwargs
         arguments to be passed on to the constructor of the regressors
     """
     def __init__(self, regressor=RandomForestRegressor,
-                 cam_id_list=("cam"), energy_unit=u.TeV, **kwargs):
-        super().__init__(model=regressor, cam_id_list=cam_id_list, unit=energy_unit,
-                         **kwargs)
+                 cam_id_list=("cam"), unit=u.TeV, **kwargs):
+        super().__init__(model=regressor, cam_id_list=cam_id_list, unit=unit, **kwargs)
 
     def predict_by_event(self, X):
         """
@@ -109,3 +108,29 @@ class EnergyRegressor(RegressorClassifierBase):
             predict_list_dict.append(res_dict)
 
         return predict_list_dict
+
+    @classmethod
+    def load(cls, path, cam_id_list, unit=u.TeV):
+        """
+        this is only here to overwrite the unit argument with an astropy quantity
+
+        Parameters
+        ----------
+        path : string
+            the path where the pre-trained, pickled regressors are stored
+            `path` is assumed to contain a `{cam_id}` keyword to be replaced by each
+            camera identifier in `cam_id_list` (or at least a naked `{}`).
+        cam_id_list : list
+            list of camera identifiers like telescope ID or camera ID and the assumed
+            distinguishing feature in the filenames of the various pickled regressors.
+        unit : astropy quantity, optional (default: u.TeV)
+            scikit-learn regressor do not work with units. so append this one to the
+            predictions. assuming that the models where trained with consistent units.
+
+        Returns
+        -------
+        self : EnergyRegressor
+            a ready-to-use instance of this class to predict any quantity you have trained
+            for
+        """
+        return super().load(path, cam_id_list, unit)

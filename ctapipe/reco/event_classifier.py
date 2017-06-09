@@ -24,7 +24,7 @@ def proba_drifting(x):
 class EventClassifier(RegressorClassifierBase):
     def __init__(self, classifier=RandomForestClassifier,
                  cam_id_list=("cam"), **kwargs):
-        super().__init__(model=classifier, cam_id_list=cam_id_list, unit=1, **kwargs)
+        super().__init__(model=classifier, cam_id_list=cam_id_list, **kwargs)
 
     def predict_proba_by_event(self, X):
         predict_proba = []
@@ -42,8 +42,5 @@ class EventClassifier(RegressorClassifierBase):
 
     def predict_by_event(self, X):
         proba = self.predict_proba_by_event(X)
-        predictions = np.zeros((X.shape[0], self.n_outputs_))
-        for k in range(self.n_outputs_):
-            predictions[:, k] = self.classes_[k].take(
-                np.argmax(proba[:, k], axis=1),
-                axis=0)
+        predictions = self.classes_[np.argmax(proba, axis=1)]
+        return predictions

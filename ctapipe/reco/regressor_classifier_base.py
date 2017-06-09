@@ -5,10 +5,10 @@ from astropy import units as u
 
 class RegressorClassifierBase:
     """
-    This class collects one regressor for every camera type -- given by `cam_id_list` --
+    This class collects one model for every camera type -- given by `cam_id_list` --
     to get an estimate for the energy of an air-shower.
     The class interfaces with `scikit-learn` in that it relays all function calls not
-    exeplicitly defined here through `.__getattr__` to any regressor in its collection.
+    exeplicitly defined here through `.__getattr__` to any model in its collection.
     This gives us the full power and convenience of scikit-learn and we only have to
     bother about the high-level interface.
 
@@ -21,31 +21,31 @@ class RegressorClassifierBase:
 
     Parameters
     ----------
-    regressor : scikit-learn regressor, optional (default: RandomForestRegressor)
-        the regressor you want to use to estimate the shower energies
+    model : scikit-learn model, optional (default: RandomForestRegressor)
+        the model you want to use to estimate the shower energies
     cam_id_list : list of strings
         list of identifiers to differentiate the various sources of the images; could be
-        the camera IDs or even telescope IDs. We will train one regressor for each of the
+        the camera IDs or even telescope IDs. We will train one model for each of the
         identifiers.
-    energy_unit : astropy quantity, optional (default: u.TeV)
+    unit : 1 or astropy unit, optional (default: 1)
         scikit-learn regressors don't work with astropy unit. so, tell in advance in which
-        unit we want to deal here.
+        unit we want to deal here in case we need one.
     kwargs
         arguments to be passed on to the constructor of the regressors
     """
-    def __init__(self, model, cam_id_list, unit, **kwargs):
+    def __init__(self, model, cam_id_list, unit=1, **kwargs):
 
         self.model_dict = {}
         self.unit = unit
-        for cam_id in cam_id_list:
+        for cam_id in cam_id_list or []:
             self.model_dict[cam_id] = model(**kwargs)
 
     def __getattr__(self, attr):
         """
-        We interface this class with the "first" regressor in `.reg_dict` and relay all
-        function calls over to it. This gives us access to all the fancy implementations
-        in the scikit-learn classes right from this class and we only have to overwrite
-        the high-level interface functions.
+        We interface this class with the "first" model in `.model_dict` and relay all
+        function calls over to it. This gives access to all the fancy implementations in
+        the scikit-learn classes right from this class and we only have to overwrite the
+        high-level interface functions we want to adapt to our use-case.
         """
         return getattr(next(iter(self.model_dict.values())), attr)
 
@@ -153,14 +153,14 @@ class RegressorClassifierBase:
         Raises
         ------
         KeyError
-            in case `X` contains keys that are either not in `y` were not provided before
-            with `cam_id_list`.
+            in case `X` contains keys that are either not in `y` or were not provided
+            before with `cam_id_list`.
 
         """
         for cam_id in X:
             if cam_id not in y:
                 raise KeyError("cam_id '{}' in X but not in y: {}"
-                               .format([k for k in y]))
+                               .format(cam_id, [k for k in y]))
 
             if cam_id not in self.model_dict:
                 raise KeyError("cam_id '{}' in X but no model defined: {}"
@@ -192,7 +192,7 @@ class RegressorClassifierBase:
     #     Raises
     #     ------
     #     ValueError
-    #         if `cam_id is None` and the number of registered regressors is not 1
+    #         if `cam_id is None` and the number of registered models is not 1
     #     """
     #
     #     if cam_id is None:
@@ -205,33 +205,35 @@ class RegressorClassifierBase:
 
     def save(self, path):
         """
-        saves the regressors in `.reg_dict` each in a separate pickle to disk
+        saves the models in `.reg_dict` each in a separate pickle to disk
+
+        TODO: investigate more stable containers to write out models than joblib dumps
 
         Parameters
         ----------
         path : string
-            Path to store the different regressor models as.
+            Path to store the different models.
             Expects to contain `{cam_id}` or at least an empty `{}` to replace it with the
             keys in `.reg_dict`.
 
         """
 
         from sklearn.externals import joblib
-        for cam_id, reg in self.model_dict.items():
+        for cam_id, model in self.model_dict.items():
             try:
                 # assume that there is a `{cam_id}` keyword to replace in the string
-                joblib.dump(reg, path.format(cam_id=cam_id))
+                joblib.dump(model, path.format(cam_id=cam_id))
             except IndexError:
                 # if not, assume there is a naked `{}` somewhere left
                 # if not, format won't do anything, so it doesn't break but will overwrite
                 # every pickle with the following one
-                joblib.dump(reg, path.format(cam_id))
+                joblib.dump(model, path.format(cam_id))
 
     @classmethod
-    def load(cls, path, cam_id_list, energy_unit=u.TeV):
+    def load(cls, path, cam_id_list, unit=1):
         """
-        Load the pickled dictionary of energy regressor from disk, create a husk
-        `cls` instance and fill the regressor dictionary.
+        Load the pickled dictionary of model from disk, create a husk
+        `cls` instance and fill the model dictionary.
 
         Parameters
         ----------
@@ -242,44 +244,43 @@ class RegressorClassifierBase:
         cam_id_list : list
             list of camera identifiers like telescope ID or camera ID and the assumed
             distinguishing feature in the filenames of the various pickled regressors.
-        energy_unit : astropy quantity, optional (default: u.TeV)
-            scikit-learn regressor do not work with units. so append this one to the
-            predictions. assuming that the models where trained with consistent units.
-
-        Returns
-        -------
-        self : EnergyRegressor
-            a ready-to-use instance of this class to predict any quantity you have trained
-            for
+        unit : 1 or astropy unit, optional (default: 1)
+            scikit-learn regressor/classifier do not work with units. so append this one
+            to the predictions in case you deal with unified targets (like energy).
+            assuming that the models where trained with consistent units.
+clf
+        self : RegressorClassifierBase
+            in derived classes, this will return a ready-to-use instance of that class to
+            predict any problem you have trained for
         """
         from sklearn.externals import joblib
 
         # need to get an instance of this class
-        # `cam_id_list=[]` prevents `.__init__` to initialise `.reg_dict` itself,
+        # `cam_id_list=None` prevents `.__init__` to initialise `.model_dict` itself,
         # since we are going to set it with the pickled models manually
-        self = cls(cam_id_list=[], energy_unit=energy_unit)
+        self = cls(cam_id_list=None, unit=unit)
         for key in cam_id_list:
             try:
                 # assume that there is a `{cam_id}` keyword to replace in the string
-                self.reg_dict[key] = joblib.load(path.format(cam_id=key))
+                self.model_dict[key] = joblib.load(path.format(cam_id=key))
             except IndexError:
                 # if not, assume there is a naked `{}` somewhere left
                 # if not, format won't do anything, so it doesn't matter
                 # though this will load the same model for every `key`
-                self.reg_dict[key] = joblib.load(path.format(key))
+                self.model_dict[key] = joblib.load(path.format(key))
 
         return self
 
     def show_importances(self, feature_labels=None):
         """
         Creates a matplotlib figure that shows the importances of the different features
-        for the various trained regressors in a grid of barplots.
+        for the various trained models in a grid of barplots.
         The features are sorted by descending importance.
 
         Parameters
         ----------
         feature_labels : list of strings, optional
-            a list of the feature names in proper ordr
+            a list of the feature names in proper order
             to be used as x-axis tick-labels
 
         Returns
@@ -294,9 +295,9 @@ class RegressorClassifierBase:
 
         fig, axs = plt.subplots(nrows=n_rows, ncols=n_cols, squeeze=False)
         plt.suptitle("Feature Importances")
-        for i, (cam_id, reg) in enumerate(self.model_dict.items()):
+        for i, (cam_id, model) in enumerate(self.model_dict.items()):
             plt.sca(axs.ravel()[i])
-            importances = reg.feature_importances_
+            importances = model.feature_importances_
             bins = range(importances.shape[0])
             plt.title(cam_id)
             if feature_labels:
