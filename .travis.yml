@@ -44,15 +44,20 @@ install:
     - conda env update -n cta-dev --quiet --file environment.yml
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
+    - pip install travis-sphinx
     - python setup.py install
 
 
 script:
     - make test
     - ctapipe-info --version # print out the version string
+    - travis-sphinx --nowarn --source=docs/ build
 
 after_script:
-  - source deactivate
+    - source deactivate
+
+after_success:
+    - travis-sphinx deploy
 
   
 
