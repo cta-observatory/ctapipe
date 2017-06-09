@@ -3,18 +3,17 @@ from abc import abstractmethod, ABCMeta
 from collections import defaultdict
 from functools import partial
 
-import ctapipe
 import numpy as np
 import tables
 from astropy.time import Time
 from astropy.units import Quantity
+
+import ctapipe
 from ctapipe.core import Component
 
 __all__ = ['TableWriter',
            'HDF5TableWriter',
-           'HDF5TableReader',
-           'tr_convert_and_strip_unit',
-           'tr_list_to_mask']
+           'HDF5TableReader']
 
 PYTABLES_TYPE_MAP = {
     'float': tables.Float64Col,
@@ -276,7 +275,53 @@ class HDF5TableWriter(TableWriter):
         self._append_row(table_name, container)
 
 
-class HDF5TableReader(Component):
+class TableReader(Component, metaclass=ABCMeta):
+
+    def __init__(self):
+        super().__init__()
+        self._cols_to_read = defaultdict(list)
+        self._transforms = defaultdict(dict)
+
+    def add_column_transform(self, table_name, col_name, transform):
+        """
+        Add a transformation function for a column. This function will be
+        called on the value in the container before it is written to the
+        output file.
+
+        Parameters
+        ----------
+        table_name: str
+            identifier of table being written
+        col_name: str
+            name of column in the table (or item in the Container)
+        transform: callable
+            function that take a value and returns a new one
+        """
+        self._transforms[table_name][col_name] = transform
+        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
+                                                             col_name,
+                                                             transform))
+
+    def _apply_col_transform(self, table_name, col_name, value):
+        """
+        apply value transform function if it exists for this column
+        """
+        if col_name in self._transforms[table_name]:
+            tr = self._transforms[table_name][col_name]
+            value = tr(value)
+        return value
+
+    @abstractmethod
+    def read(self, table_name, container):
+        """
+        Returns a generator that reads the next row from the table into the
+        given container.  The generator returns the same container. Note that
+        no containers are copied, the data are overwritten inside.
+        """
+        pass
+
+
+class HDF5TableReader(TableReader):
     """
     Reader that reads a single row of an HDF5 table at once into a Container.
     Simply construct a `HDF5TableReader` with an input HDF5 file,
@@ -311,10 +356,8 @@ class HDF5TableReader(Component):
         group_name: str
             HDF5 path to group where tables are  to be found
         """
-        super().__init__(None)
+        super().__init__()
         self._tables = {}
-        self._transforms = defaultdict(dict)
-        self._cols_to_read = defaultdict(list)
         self._h5file = tables.open_file(filename)
         pass
 
@@ -357,36 +400,6 @@ class HDF5TableReader(Component):
                               "in container {}. It will be skipped"
                               .format(table_name, colname,
                                       container.__class__.__name__))
-
-
-    def add_column_transform(self, table_name, col_name, transform):
-        """
-        Add a transformation function for a column. This function will be 
-        called on the value in the container before it is written to the 
-        output file. 
-
-        Parameters
-        ----------
-        table_name: str
-            identifier of table being written
-        col_name: str
-            name of column in the table (or item in the Container)
-        transform: callable
-            function that take a value and returns a new one 
-        """
-        self._transforms[table_name][col_name] = transform
-        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
-                                                             col_name,
-                                                             transform))
-
-    def _apply_col_transform(self, table_name, col_name, value):
-        """ 
-        apply value transform function if it exists for this column
-        """
-        if col_name in self._transforms[table_name]:
-            tr = self._transforms[table_name][col_name]
-            value = tr(value)
-        return value
 
     def read(self, table_name, container):
         """
