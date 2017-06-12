@@ -31,6 +31,7 @@ def energy_prior(energy, index=-1):
 
 
 def xmax_prior(energy, xmax, width=30):
+
     x_max_exp = 300 + 93 * np.log10(energy)
     diff = xmax.value - x_max_exp
 
@@ -81,7 +82,7 @@ class ImPACTReconstructor(Reconstructor):
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2, "FlashCam": 1.4, "GATE": 1.0}
+        self.scale = {"LSTCam": 1.4, "NectarCam": 1.3, "FlashCam": 1.4, "GATE": 1.0}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -468,7 +469,7 @@ class ImPACTReconstructor(Reconstructor):
         # Add prior penalities if we have them
         array_like += 1e-8
         if "energy" in self.priors:
-            prior_pen += energy_prior(energy)
+            prior_pen += energy_prior(energy, index=-2)
         if "xmax" in self.priors:
             prior_pen += xmax_prior(energy, x_max)
         print(prior_pen)
