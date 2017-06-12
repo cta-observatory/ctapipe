@@ -395,12 +395,15 @@ class MuonIntensityParameter(Container):
 class HillasParametersContainer(Container):
 
     intensity = Item(0.0, 'total intensity (size)')
-    cen_x = Item(0.0, 'centroid x coordinate (1st order moment)')
-    cen_y = Item(0.0, 'centroid x coordinate (1st order moment)')
-    length = Item(0.0, 'length of ellipse (2nd order moment)')
-    width = Item(0.0, 'width of ellipse (2nd order moment)')
-    phi = Item(0.0, 'rotation angle of ellipse', unit=u.deg)
-    psi = Item(0.0, '?')
-    miss = Item(0.0, '?')
-    skewness = Item(0.0, 'skewness 3rd order moment')
-    kurtosis = Item(0.0, 'kurtosis 3rd order moment')
+
+    x = Item(0.0, 'centroid x coordinate')
+    y = Item(0.0, 'centroid x coordinate')
+    r = Item(0.0, 'radial coordinate of centroid')
+    phi = Item(0.0, 'polar coordinate of centroid', unit=u.deg)
+
+    length = Item(0.0, 'RMS spread along the major-axis')
+    width = Item(0.0, 'RMS spread along the minor-axis')
+    psi = Item(0.0, 'rotation angle of ellipse', unit=u.deg)
+
+    skewness = Item(0.0, 'measure of the asymmetry')
+    kurtosis = Item(0.0, 'measure of the tailedness')
