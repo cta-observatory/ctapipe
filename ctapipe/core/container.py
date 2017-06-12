@@ -218,9 +218,11 @@ class Item:
         Help text associated with the item
     unit: `astropy.units.Quantity`
         unit to convert to when writing output, or None for no conversion
+    ucd: str
+        universal content descriptor (see Virtual Observatory standards)
     """
 
-    def __init__(self, default, description="", unit=None):
+    def __init__(self, default, description="", unit=None, ucd=None):
         self.default = default
         self.description = description
         self.unit = unit
