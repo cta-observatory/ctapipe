@@ -12,6 +12,7 @@ import ctapipe
 from ctapipe.core import Component
 
 __all__ = ['TableWriter',
+           'TableReader',
            'HDF5TableWriter',
            'HDF5TableReader']
 
@@ -276,6 +277,12 @@ class HDF5TableWriter(TableWriter):
 
 
 class TableReader(Component, metaclass=ABCMeta):
+    """
+    Base class for row-wise table readers. Generally methods that read a
+    full table at once are preferred to this method, since they are faster,
+    but this can be used to re-play a table row by row into a
+    `ctapipe.core.Container` class (the opposite of TableWriter)
+    """
 
     def __init__(self):
         super().__init__()
@@ -344,7 +351,10 @@ class HDF5TableReader(TableReader):
     
     Todo: 
     - add ability to synchronize reading of multiple tables on a key
-    
+
+    - add ability (also with TableWriter) to read a row into n containers at
+        once, assuming no naming conflicts (so we can add e.g. event_id)
+
     """
 
     def __init__(self, filename):
