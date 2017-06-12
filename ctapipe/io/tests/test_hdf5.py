@@ -1,5 +1,5 @@
 from ctapipe.io.containers import R0CameraContainer, MCEventContainer
-from ctapipe.io.hdftableio import SimpleHDF5TableWriter, SimpleHDF5TableReader
+from ctapipe.io.hdftableio import HDF5TableWriter, HDF5TableReader
 import numpy as np
 from astropy import units as u
 import tables
@@ -23,8 +23,8 @@ def test_write_container(temp_h5_file):
     r0tel.meta['test_attribute'] = 3.14159
     r0tel.meta['date'] = "2020-10-10"
 
-    writer = SimpleHDF5TableWriter(str(temp_h5_file), group_name='R0',
-                                   filters=tables.Filters(
+    writer = HDF5TableWriter(str(temp_h5_file), group_name='R0',
+                             filters=tables.Filters(
         complevel=7))
     writer.exclude("tel_002",".*samples")  # test exclusion of columns
 
@@ -46,7 +46,7 @@ def test_read_container(temp_h5_file):
     r0tel2 = R0CameraContainer()
     mc = MCEventContainer()
 
-    reader = SimpleHDF5TableReader(str(temp_h5_file))
+    reader = HDF5TableReader(str(temp_h5_file))
 
     # get the generators for each table
     mctab = reader.read('/R0/MC', mc)
@@ -64,7 +64,7 @@ def test_read_whole_table(temp_h5_file):
 
     mc = MCEventContainer()
 
-    reader = SimpleHDF5TableReader(str(temp_h5_file))
+    reader = HDF5TableReader(str(temp_h5_file))
 
     for cont in reader.read('/R0/MC', mc):
         print(cont)

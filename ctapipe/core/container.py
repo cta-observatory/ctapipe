@@ -57,9 +57,11 @@ class Container:
 
     """
 
-    def __init__(self):
+    def __init__(self, **values):
         object.__setattr__(self, "_metadata", dict())
         self.reset()
+        for key in values:
+            self[key] = values[key]
 
     def __setattr__(self, name, value):
         """Prevent new attributes that aren't in the class definition"""
@@ -148,6 +150,15 @@ class Container:
             if recursive and isinstance(value, Container):
                 value.reset()
 
+    def update(self, **values):
+        """
+        update more than one parameter at once (e.g. `update(x=3,y=4)`
+        or `update(**dict_of_values)`)
+        """
+        for key in values:
+            self[key] = values[key]
+
+
     def __str__(self):
         return pformat(self.as_dict(recursive=True))
 
@@ -207,10 +218,11 @@ class Item:
         Help text associated with the item
     unit: `astropy.units.Quantity`
         unit to convert to when writing output, or None for no conversion
-
+    ucd: str
+        universal content descriptor (see Virtual Observatory standards)
     """
 
-    def __init__(self, default, description="", unit=None):
+    def __init__(self, default, description="", unit=None, ucd=None):
         self.default = default
         self.description = description
         self.unit = unit

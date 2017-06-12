@@ -46,14 +46,11 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
-              'sphinx.ext.mathjax']
-
-
-extensions += ['sphinx_automodapi.automodapi',
-#               'matplotlib.sphinxext.mathmpl',
-               'matplotlib.sphinxext.only_directives',
-               'matplotlib.sphinxext.plot_directive',
-               'numpydoc']
+              'sphinx.ext.mathjax',
+              'sphinx_automodapi.automodapi',
+              'matplotlib.sphinxext.only_directives',
+              'matplotlib.sphinxext.plot_directive',
+              'numpydoc']
 
 numpydoc_show_class_members = False
 
@@ -190,7 +187,7 @@ texinfo_documents = [
 intersphinx_mapping = {
     'python': ('http://docs.python.org/3.6', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/latest/', None),
     'pytables':('http://www.pytables.org/', None),
     'pandas' :('http://pandas.pydata.org/pandas-docs/stable/', None),
