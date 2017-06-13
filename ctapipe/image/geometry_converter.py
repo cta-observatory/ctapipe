@@ -1,5 +1,5 @@
 import logging
-
+from collections import namedtuple
 import numpy as np
 from astropy import units as u
 from numba import jit
@@ -7,6 +7,10 @@ from numba import jit
 from ctapipe.instrument import CameraGeometry
 
 logger = logging.getLogger(__name__)
+
+RotBuffer = namedtuple("RotBuffer",
+                       "rot_x,rot_y,x_edges,y_edges,new_geom,rot_angle,pix_rotation,"
+                       "x_scale")
 
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
@@ -236,20 +240,21 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
 
         # if the conversion with this key was done and stored before,
         # just read it in
-        (rot_x, rot_y, x_edges, y_edges, new_geom, x_scale) = rot_buffer[key]
+        (rot_x, rot_y, x_edges, y_edges, new_geom,
+         rot_angle, pix_rotation, x_scale) = rot_buffer[key]
     else:
 
-        # otherwise, we have to do the conversion now first, skey all
+        # otherwise, we have to do the conversion now first, skew all
         # the coordinates of the original geometry
 
         # extra_rot is the angle to get back to aligned hexagons with flat
         # tops. Note that the pixel rotation angle brings the camera so that
-        # hexagons have a point at the top, so need to go 30deg past that to
+        # hexagons have a point at the top, so need to go 30deg back to
         # make them flat
-        extra_rot = geom.pix_rotation + 30*u.deg
+        extra_rot = geom.pix_rotation - 30*u.deg
 
         # total rotation angle:
-        rot_angle =  (add_rot * 60 * u.deg) - extra_rot
+        rot_angle = (add_rot * 60 * u.deg) - extra_rot
         # if geom.cam_id.startswith("NectarCam")\
         #         or geom.cam_id.startswith("LSTCam"):
         #     rot_angle += geom.cam_rotation + 90 * u.deg
@@ -257,9 +262,8 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
         logger.debug("geom={}".format(geom))
         logger.debug("rot={}, extra={}".format(rot_angle, extra_rot))
 
-
         rot_x, rot_y = unskew_hex_pixel_grid(geom.pix_x, geom.pix_y,
-                                             rot_angle)
+                                             cam_angle=rot_angle)
 
         # with all the coordinate points, we can define the bin edges
         # of a 2D histogram
@@ -302,17 +306,15 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
             pix_y=grid_y * u.m,
             pix_area=pix_area * u.m ** 2,
             neighbors=geom.neighbors,
-            cam_rotation=-geom.pix_rotation,
             pix_type='rectangular', apply_derotation=False)
 
         # storing the pixel mask and camera rotation for later use
         new_geom.mask = square_mask
 
-
         if key is not None:
             # if a key is given, store the essential objects in a buffer
-            rot_buffer[key] = (rot_x, rot_y, x_edges,
-                               y_edges, new_geom, x_scale)
+            rot_buffer[key] = RotBuffer(rot_x, rot_y, x_edges, y_edges, new_geom,
+                                        rot_angle, geom.pix_rotation, x_scale)
 
     # resample the signal array to correspond to the square grid --
     #  for signal arrays containing time slices (ndim > 1) or not
@@ -369,15 +371,14 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
         unrot_geom = unrot_buffer[key]
     else:
         if key in rot_buffer:
-            x_scale = rot_buffer[key][-1]
+            x_scale = rot_buffer[key].x_scale
+            rot_angle = rot_buffer[key].rot_angle
+            pix_rotation = rot_buffer[key].pix_rotation
         else:
             raise KeyError("key '{}' not found in the buffer".format(key))
 
         grid_x, grid_y = geom.pix_x / x_scale, geom.pix_y
 
-        rot_angle = add_rot * 60 * u.deg
-        # if geom.cam_id == "NectarCam" or geom.cam_id == "LSTCam":
-        #     rot_angle += 90 * u.deg
         unrot_x, unrot_y = reskew_hex_pixel_grid(grid_x[square_mask],
                                                  grid_y[square_mask],
                                                  rot_angle)
@@ -391,7 +392,8 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
                                     pix_y=unrot_y,
                                     pix_area=None,  # recalc
                                     pix_type='hexagonal',
-                                    pix_rotation=rot_angle
+                                    pix_rotation=pix_rotation,
+                                    # apply_derotation=False
                                     )
 
         unrot_buffer[key] = unrot_geom
