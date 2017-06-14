@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 """
-Example of extracting data for single telescope from a merged/interleaved
-simtelarray data file and displaying it.
+Loops over events in a data file and displays them, with optional image
+cleaning and hillas parameter overlays.
 
 Only events that contain the specified telescope are read and
 displayed. Other telescopes and events are skipped over (EventIO data
@@ -63,13 +63,6 @@ class SingleTelEventDisplay(Tool):
 
         self.calibrator = CameraCalibrator(config=None, tool=self,
                                            origin=self.reader.origin)
-
-
-#        if self.infile == '':
-#            raise ToolConfigurationError("Need to specify --infile <filename>")
-
-        self.calib = CameraCalibrator(config=None, tool=self)
-
         self.source = self.reader.read(allowed_tels=[self.tel, ])
 
         self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
@@ -87,7 +80,7 @@ class SingleTelEventDisplay(Tool):
             self.log.debug(event.mc)
             self.log.debug(event.dl0)
 
-            self.calib.calibrate(event)
+            self.calibrator.calibrate(event)
 
             if disp is None:
                 x, y = event.inst.pixel_pos[self.tel]
