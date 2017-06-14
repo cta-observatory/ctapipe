@@ -2,6 +2,8 @@ from abc import abstractmethod
 
 from traitlets import Unicode
 from traitlets.config import Application
+import logging
+logging.basicConfig(level=logging.WARNING)
 
 from ctapipe import __version__ as version
 from .logging import ColoredFormatter
@@ -110,6 +112,7 @@ class Tool(Application):
         self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
+
 
 
     def initialize(self, argv=None):
