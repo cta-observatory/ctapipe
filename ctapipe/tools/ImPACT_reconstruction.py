@@ -199,11 +199,18 @@ class ImPACTReconstruction(Tool):
         hillas_nom = {}
         image_pred = {}
         mask_dict = {}
+        print("Event energy", event.mc.energy)
+        #if event.mc.energy < 1 * u.TeV:
+        #    return
 
         for tel_id in event.dl0.tels_with_data:
+
             # Get calibrated image (low gain channel only)
             pmt_signal = event.dl1.tel[tel_id].image[0]
-
+            if len(event.dl1.tel[tel_id].image) >1:
+                print(event.dl1.tel[tel_id].image[1][pmt_signal>100])
+                pmt_signal[pmt_signal > 100] = \
+                    event.dl1.tel[tel_id].image[1][pmt_signal > 100]
             # Create nominal system for the telescope (this should later used telescope
             # pointing)
             nom_system = NominalFrame(array_direction=array_pointing,
@@ -255,7 +262,7 @@ class ImPACTReconstruction(Tool):
             if self.preselect(moments, np.sum(mask), tel_id):
 
                 # Dialte around edges of image
-                for i in range(3):
+                for i in range(5):
                     mask = dilate(self.geoms[tel_id], mask)
 
                 # Save everything in dicts for reconstruction later
@@ -285,7 +292,8 @@ class ImPACTReconstruction(Tool):
             print(fit_result, energy_result)
             # Perform ImPACT reconstruction
             self.ImPACT.set_event_properties(image, pixel_x, pixel_y, pixel_area,
-                                             tel_type, tel_x, tel_y, array_pointing)
+                                             tel_type, tel_x, tel_y, array_pointing,
+                                                               hillas_nom)
             ImPACT_shower, ImPACT_energy = self.ImPACT.predict(fit_result, energy_result)
 
             #cont_plot = self.ImPACT.draw_nominal_surface(ImPACT_shower, ImPACT_energy)

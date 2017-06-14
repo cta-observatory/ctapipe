@@ -78,11 +78,11 @@ class ImPACTReconstructor(Reconstructor):
 
         # For likelihood calculation we need the with of the pedestal distribution for each pixel
         # currently this is not availible from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3, "FlashCam": 2.3,"GATE": 0.5}
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 2.0, "FlashCam": 2.3,"GATE": 1.3}
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.4, "NectarCam": 1.3, "FlashCam": 1.4, "GATE": 1.0}
+        self.scale = {"LSTCam": 1.2, "NectarCam": 1.0, "FlashCam": 1.4, "GATE": 1.0}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -102,6 +102,7 @@ class ImPACTReconstructor(Reconstructor):
         self.peak_x = 0
         self.peak_y = 0
         self.peak_amp = 0
+        self.hillas = 0
 
         self.fit_xmax = fit_xmax
         self.ped = dict()
@@ -163,12 +164,12 @@ class ImPACTReconstructor(Reconstructor):
         # operation by a numpy wizard
 
         tel_num = 0
-        for tel in self.image:
+        for tel in self.hillas:
             top_index = self.image[tel].argsort()[-1*num_pix:][::-1]
 
-            weight = self.image[tel][top_index]
-            weighted_x = self.pixel_x[tel][top_index] * weight
-            weighted_y = self.pixel_y[tel][top_index] * weight
+            weight = self.hillas[tel].size
+            weighted_x = self.hillas[tel].cen_x.to(u.rad).value * weight
+            weighted_y = self.hillas[tel].cen_y.to(u.rad).value * weight
 
             ppx = np.sum(weighted_x) / np.sum(weight)
             ppy = np.sum(weighted_y) / np.sum(weight)
@@ -221,7 +222,7 @@ class ImPACTReconstructor(Reconstructor):
         # Distance above telescope is ratio of these two (small angle)
 
         height = impact / disp
-        weight = np.sqrt(self.peak_amp)  # weight average by amplitude
+        weight = np.power(self.peak_amp,0.)  # weight average by amplitude
         hm = height*u.m
         hm[hm>99*u.km] = 99*u.km
 
@@ -409,16 +410,15 @@ class ImPACTReconstructor(Reconstructor):
             #x_max_bin = 0
 
             # Check for range
-            if x_max_bin > 150:
-                x_max_bin = 150
-            if x_max_bin < -150:
-                x_max_bin = -150
+            if x_max_bin > 250:
+                x_max_bin = 250
+            if x_max_bin < -250:
+                x_max_bin = -250
         else:
             x_max_bin = x_max_scale * 37.8
             if x_max_bin < 13:
                 x_max_bin = 13
 
-        sum_like = 0
         array_like = None
 
         for tel_count in self.image:  # Loop over all telescopes
@@ -472,7 +472,6 @@ class ImPACTReconstructor(Reconstructor):
             prior_pen += energy_prior(energy, index=-2)
         if "xmax" in self.priors:
             prior_pen += xmax_prior(energy, x_max)
-        print(prior_pen)
 
         array_like += prior_pen/float(len(array_like))
         if self.array_return:
@@ -498,7 +497,7 @@ class ImPACTReconstructor(Reconstructor):
 
     def set_event_properties(self, image, pixel_x, pixel_y,
                              pixel_area, type_tel, tel_x, tel_y,
-                             array_direction):
+                             array_direction, hillas):
         """The setter class is used to set the event properties within this
         class before minimisation can take place. This simply copies a
         bunch of useful properties to class members, so that we can
@@ -549,6 +548,8 @@ class ImPACTReconstructor(Reconstructor):
             # Here look up pedestal value
             self.ped[x] = self.ped_table[type_tel[x]]
 
+        self.hillas = hillas
+
         self.get_brightest_mean(num_pix=3)
         self.type = type_tel
         self.initialise_templates(type_tel)
@@ -597,7 +598,7 @@ class ImPACTReconstructor(Reconstructor):
             en_seed = 0.041 * u.TeV
 
         seed = (source_x, source_y, tilt_x,
-                tilt_y, en_seed.value, 1)
+                tilt_y, en_seed.value, 0.8)
         step = (0.001, 0.001, 10, 10, en_seed.value*0.1, 0.1)
         limits = ((source_x-0.01, source_x+0.01),
                   (source_y-0.01, source_y+0.01),
