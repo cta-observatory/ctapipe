@@ -2,3 +2,4 @@
 from .HillasReconstructor import *
 from .reco_algorithms import *
 from .ImPACT import *
+from .energy_regressor import *

@@ -285,10 +285,35 @@ class Integrator(ChargeExtractor):
         charge = windowed.sum(2).data
         return charge
 
-    def extract_charge(self, waveforms):
+    def get_window_from_waveforms(self, waveforms):
+        """
+        Consolidating function to obtain the window and peakpos given 
+        a waveform.
+        
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        window : ndarray
+            Numpy array containing True where the samples lay within the
+            integration window, and False where the samples lay outside. Has
+            shape of (n_chan, n_pix, n_samples).
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel. 
+            Has shape of (n_chan, n_pix).
+
+        """
         peakpos = self.get_peakpos(waveforms)
         start, width = self.get_start_and_width(waveforms, peakpos)
         window = self.get_window(waveforms, start, width)
+        return window, peakpos
+
+    def extract_charge(self, waveforms):
+        window, peakpos = self.get_window_from_waveforms(waveforms)
         charge = self.extract_from_window(waveforms, window)
         return charge, peakpos, window
 

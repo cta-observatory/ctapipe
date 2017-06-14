@@ -65,7 +65,7 @@ class DumpInstrumentTool(Tool):
             geom = CameraGeometry.guess(*pix, flen)
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
-            table.write("CTA-{}.camgeom.{}".format(cam_name, ext), **args)
+            table.write("{}.camgeom.{}".format(cam_name, ext), **args)
 
 
 def main():

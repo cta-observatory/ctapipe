@@ -60,7 +60,7 @@ def hessio_get_list_event_ids(url, max_events=None):
             for event_id in eventstream:
                 event_id_list.append(event_id)
                 counter += 1
-                if max_events is not None and counter >= max_events:
+                if max_events and counter >= max_events:
                     pyhessio.close_file()
                     break
             return event_id_list
@@ -209,7 +209,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             yield data
             counter += 1
 
-            if max_events is not None and counter >= max_events:
+            if max_events  and counter >= max_events:
                 pyhessio.close_file()
                 return
 

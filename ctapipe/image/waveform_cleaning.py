@@ -7,8 +7,11 @@ from ctapipe.core import Component, Factory
 import numpy as np
 from scipy.signal import general_gaussian
 from abc import abstractmethod
+from ctapipe.image.charge_extractors import AverageWfPeakIntegrator,\
+    LocalPeakIntegrator
 
-__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleaner',
+__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
+           'CHECMWaveformCleanerLocal',
            'NullWaveformCleaner']
 
 
@@ -54,6 +57,7 @@ class WaveformCleaner(Component):
         """
         pass
 
+
 class NullWaveformCleaner(WaveformCleaner):
     """
     Dummy waveform cleaner that simply returns its input
@@ -83,7 +87,7 @@ class CHECMWaveformCleaner(WaveformCleaner):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
-           
+
     """
 
     name = 'CHECMWaveformCleaner'
@@ -92,8 +96,6 @@ class CHECMWaveformCleaner(WaveformCleaner):
                                 'window').tag(config=True)
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
-    t0 = Int(None, allow_none=True,
-             help='Override the value of t0').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
@@ -101,44 +103,42 @@ class CHECMWaveformCleaner(WaveformCleaner):
         # Cleaning steps for plotting
         self.stages = {}
 
-        if self.t0:
-            self.log.info("User has set t0, extracted t0 will be overridden")
-
         self.kernel = general_gaussian(10, p=1.0, sig=32)
+
+        self.extractor = self.get_extractor()
+
+    @abstractmethod
+    def get_extractor(self):
+        """
+        Get the extractor to be used to define a window used to mask out the
+        pulse.
+        
+        Returns
+        -------
+        `ChargeExtractor`
+
+        """
 
     def apply(self, waveforms):
         samples = waveforms[0]
-        npix, nsamples = samples.shape
 
         # Subtract initial baseline
         baseline_sub = samples - np.mean(samples[:, :32], axis=1)[:, None]
 
-        # Get average waveform and define t0 for pulse window
-        avg_wf = np.mean(baseline_sub, axis=0)
-        t0 = np.argmax(avg_wf)
-        if self.t0:
-            t0 = self.t0
-
-        # Set Windows
-        pw_l = t0 - self.window_shift
-        pw_r = pw_l + self.window_width
-        if pw_l < 0:
-            pw_l = 0
-        if pw_r >= nsamples:
-            pw_r = nsamples - 1
-        pulse_window = np.s_[pw_l:pw_r]
-
-        # Define the waveform without the pulse
-        no_pulse = np.ma.array(baseline_sub, mask=False, fill_value=0)
-        no_pulse.mask[:, pulse_window] = True
-        no_pulse = np.ma.filled(no_pulse)
+        # Obtain waveform with pulse masked
+        baseline_sub_b = baseline_sub[None, ...]
+        window, _ = self.extractor.get_window_from_waveforms(waveforms)
+        windowed = np.ma.array(baseline_sub_b, mask=window[0])
+        no_pulse = np.ma.filled(windowed, 0)[0]
 
         # Get smooth baseline (no pulse)
         smooth_flat = np.convolve(no_pulse.ravel(), self.kernel, "same")
         smooth_baseline = np.reshape(smooth_flat, samples.shape)
         no_pulse_std = np.std(no_pulse, axis=1)
         smooth_baseline_std = np.std(smooth_baseline, axis=1)
-        smooth_baseline *= (no_pulse_std / smooth_baseline_std)[:, None]
+        with np.errstate(divide='ignore', invalid='ignore'):
+            smooth_baseline *= (no_pulse_std / smooth_baseline_std)[:, None]
+            smooth_baseline[~np.isfinite(smooth_baseline)] = 0
 
         # Get smooth waveform
         smooth_wf = baseline_sub  # self.wf_smoother.apply(baseline_sub)
@@ -148,16 +148,77 @@ class CHECMWaveformCleaner(WaveformCleaner):
 
         self.stages['0: raw'] = samples
         self.stages['1: baseline_sub'] = baseline_sub
-        self.stages['2: avg_wf'] = avg_wf
-        self.stages['t0'] = t0
-        self.stages['window_start'] = pw_l
-        self.stages['window_end'] = pw_r
-        self.stages['3: no_pulse'] = no_pulse
-        self.stages['4: smooth_baseline'] = smooth_baseline
-        self.stages['5: smooth_wf'] = smooth_wf
-        self.stages['6: cleaned'] = cleaned
+        self.stages['window'] = window
+        self.stages['2: no_pulse'] = no_pulse
+        self.stages['3: smooth_baseline'] = smooth_baseline
+        self.stages['4: smooth_wf'] = smooth_wf
+        self.stages['5: cleaned'] = cleaned
 
         return cleaned[None, :]
+
+
+class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
+    """
+    Waveform cleaner used by CHEC-M.
+
+    This cleaner performs 2 basline subtractions: a simple subtraction
+    using the average of the first 32 samples in the waveforms, then a 
+    convolved baseline subtraction to remove and low frequency drifts in 
+    the baseline.
+    
+    This particular cleaner obtains the peak position using an 
+    `AverageWfPeakIntegrator`.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+           
+    """
+    name = 'CHECMWaveformCleanerAverage'
+
+    def get_extractor(self):
+        return AverageWfPeakIntegrator(None, self.parent,
+                                       window_width=self.window_width,
+                                       window_shift=self.window_shift)
+
+
+class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
+    """
+    Waveform cleaner used by CHEC-M.
+
+    This cleaner performs 2 basline subtractions: a simple subtraction
+    using the average of the first 32 samples in the waveforms, then a 
+    convolved baseline subtraction to remove and low frequency drifts in 
+    the baseline.
+
+    This particular cleaner obtains the peak position using an 
+    `LocalPeakIntegrator`.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+
+    """
+    name = 'CHECMWaveformCleanerLocal'
+
+    def get_extractor(self):
+        return LocalPeakIntegrator(None, self.parent,
+                                   window_width=self.window_width,
+                                   window_shift=self.window_shift)
 
 
 class WaveformCleanerFactory(Factory):
@@ -179,8 +240,6 @@ class WaveformCleanerFactory(Factory):
                                 'window').tag(config=True)
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
-    t0 = Int(None, allow_none=True,
-             help='Override the value of t0').tag(config=True)
 
     def get_factory_name(self):
         return self.name

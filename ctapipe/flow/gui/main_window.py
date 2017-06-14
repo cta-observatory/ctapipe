@@ -5,7 +5,7 @@ This requires the pyside python library to be installed
 """
 from ctapipe.flow.gui.graphwidget import GraphWidget
 from ctapipe.flow.gui.infolabel import InfoLabel
-from ctapipe.flow.gui.guiconnexion import GuiConnexion
+from ctapipe.flow.gui.guiconnection import GuiConnexion
 import ctapipe.flow.gui.images_rc
 from PyQt4.QtGui import QMainWindow
 from PyQt4.QtGui import QPushButton
@@ -105,17 +105,17 @@ class MainWindow(QMainWindow, object):
             self.actionQuit, SIGNAL("triggered()"), self.close)
         QMetaObject.connectSlotsByName(self)
         # Create GuiConnexion for ZMQ comminucation with pipeline
-        self.guiconnexion = GuiConnexion(gui_port=port, statusBar=self.statusbar)
-        self.guiconnexion.message.connect(self.graph_widget.pipechange)
-        self.guiconnexion.message.connect(self.info_label.pipechange)
-        self.guiconnexion.reset_message.connect(self.graph_widget.reset)
-        self.guiconnexion.reset_message.connect(self.info_label.reset)
-        self.guiconnexion.mode_message.connect(self.info_label.mode_receive)
+        self.guiconnection = GuiConnexion(gui_port=port, statusBar=self.statusbar)
+        self.guiconnection.message.connect(self.graph_widget.pipechange)
+        self.guiconnection.message.connect(self.info_label.pipechange)
+        self.guiconnection.reset_message.connect(self.graph_widget.reset)
+        self.guiconnection.reset_message.connect(self.info_label.reset)
+        self.guiconnection.mode_message.connect(self.info_label.mode_receive)
         QObject.connect(
-            self.actionReset, SIGNAL("triggered()"), self.guiconnexion.reset)
+            self.actionReset, SIGNAL("triggered()"), self.guiconnection.reset)
         QMetaObject.connectSlotsByName(self)
-        # start the processus
-        self.guiconnexion.start()
+        # start the process
+        self.guiconnection.start()
 
     def retranslateUi(self):
         self.setWindowTitle(QApplication.translate(
@@ -129,16 +129,16 @@ class MainWindow(QMainWindow, object):
 
     def stop(self):
         """Method connect (via Qt slot) to exit button
-        Stops self.guiconnexion (for ZMQ communication) processus.
+        Stops self.guiconnection (for ZMQ communication) process.
         Close main_windows
         """
-        self.guiconnexion.finish()
-        self.guiconnexion.join()
+        self.guiconnection.finish()
+        self.guiconnection.join()
         self.close()
 
     def closeEvent(self, event):
-            self.guiconnexion.finish()
-            self.guiconnexion.join()
+            self.guiconnection.finish()
+            self.guiconnection.join()
             event.accept()  # let the window close
 
 class ModuleApplication(QApplication):

@@ -11,7 +11,7 @@ from ctapipe.core.traits import *
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.visualization import CameraDisplay
-from ctapipe.instrument.camera import _guess_camera_type
+from ctapipe.instrument.camera import _guess_camera_type, print_camera_types
 from matplotlib import pyplot as plt
 from ctapipe.calib import CameraCalibrator
 
@@ -64,6 +64,7 @@ class ImageSumDisplayerTool(Tool):
         # telescopes with the same camera type
         data = next(hessio_event_source(self.infile, max_events=1))
         camtypes = get_camera_types(data.inst)
+        print_camera_types(data.inst, printer=self.log.info)
         group = camtypes.groups[self.telgroup]
         self._selected_tels = group['tel_id'].data
         self._base_tel = self._selected_tels[0]
