@@ -25,6 +25,7 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core.traits import *
+from ctapipe.io.eventfilereader import EventFileReaderFactory
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -35,10 +36,7 @@ class SingleTelEventDisplay(Tool):
     
     infile = Unicode(help="input file to read", default='').tag(config=True)
     tel = Int(help='Telescope ID to display', default=0).tag(config=True)
-    max_events = Integer(help='stop after this many events if non-zero',
-                         default_value=0, min=0).tag(config=True)
-    channel = Integer(help="channel number to display", min=0, max=1).tag(
-        config=True)
+    channel = Integer(help="channel number to display", min=0, max=1).tag(config=True)
     write = Bool(help="Write out images to PNG files", default=False).tag(
         config=True)
     clean = Bool(help="Apply image cleaning", default=False).tag(config=True)
@@ -46,28 +44,37 @@ class SingleTelEventDisplay(Tool):
                   default=False).tag(config=True)
     samples =Bool(help="Show each sample", default=False).tag(config=True)
     
-    aliases = Dict({'infile': 'SingleTelEventDisplay.infile',
+    aliases = Dict({'infile': 'EventFileReaderFactory.input_path',
                     'tel':'SingleTelEventDisplay.tel',
-                    'max-events': 'SingleTelEventDisplay.max_events',
+                    'max-events': 'EventFileReaderFactory.max_events',
                     'channel' : 'SingleTelEventDisplay.channel',
                     'write' : 'SingleTelEventDisplay.write',
                     'clean' : 'SingleTelEventDisplay.clean',
                     'hillas' : 'SingleTelEventDisplay.hillas',
                     'samples' : 'SingleTelEventDisplay.samples'})
-    
+
+    classes =  List([EventFileReaderFactory, CameraCalibrator])
     
     def setup(self):
 
-        if self.infile == '':
-            raise ToolConfigurationError("Need to specify --infile <filename>")
+        reader_factory = EventFileReaderFactory(None, self)
+        reader_class = reader_factory.get_class()
+        self.reader = reader_class(None,self)
 
-        self.calib = CameraCalibrator(None, self)
+        self.calibrator = CameraCalibrator(config=None, tool=self,
+                                           origin=self.reader.origin)
 
-        self.source = hessio_event_source(self.infile,
-                                     allowed_tels=[self.tel, ],
-                                     max_events=self.max_events)
+
+#        if self.infile == '':
+#            raise ToolConfigurationError("Need to specify --infile <filename>")
+
+        self.calib = CameraCalibrator(config=None, tool=self)
+
+        self.source = self.reader.read(allowed_tels=[self.tel, ])
 
         self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
+
+
     
     def start(self):
 
