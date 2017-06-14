@@ -157,6 +157,7 @@ class Tool(Application):
             self.log.info("Starting: {}".format(self.name))
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
+            Provenance().add_config(self.config)
             self.start()
             self.finish()
             Provenance().finish_activity(activity_name=self.name)
