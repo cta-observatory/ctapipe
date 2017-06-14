@@ -63,6 +63,17 @@ class Provenance(metaclass=Singleton):
         log.debug("added output entity '{}' to activity: '{}'".format(
             filename, self.current_activity.name))
 
+    def add_config(self, config):
+        """
+        add configuration parameters to the current activity
+
+        Parameters
+        ----------
+        config: dict
+            configuration paramters
+        """
+        self.current_activity.register_config(config)
+
     def finish_activity(self, status='completed', activity_name=None):
         """ end the current activity """
         activity = self._activities.pop()
@@ -162,6 +173,10 @@ class _ActivityProvenance:
             filename or url of output file
         """
         self._prov['output'].append(url)
+
+    def register_config(self, config):
+        """ add a dictionary of configuration parameters to this activity"""
+        self._prov['config'] = config
 
     def finish(self, status='completed'):
         """ record final provenance information, normally called at shutdown."""
