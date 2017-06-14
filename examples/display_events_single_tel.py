@@ -26,6 +26,7 @@ from matplotlib.patches import Ellipse
 from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core.traits import *
 from ctapipe.io.eventfilereader import EventFileReaderFactory
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -43,6 +44,10 @@ class SingleTelEventDisplay(Tool):
     hillas = Bool(help="Apply and display Hillas parametrization", 
                   default=False).tag(config=True)
     samples =Bool(help="Show each sample", default=False).tag(config=True)
+    display = Bool(help="Display results in interactive window",
+                   default_value=True).tag(config=True)
+    delay = Float(help='delay between events in s', default_value=0.01,
+                  min=0.001).tag(config=True)
     
     aliases = Dict({'infile': 'EventFileReaderFactory.input_path',
                     'tel':'SingleTelEventDisplay.tel',
@@ -51,7 +56,10 @@ class SingleTelEventDisplay(Tool):
                     'write' : 'SingleTelEventDisplay.write',
                     'clean' : 'SingleTelEventDisplay.clean',
                     'hillas' : 'SingleTelEventDisplay.hillas',
-                    'samples' : 'SingleTelEventDisplay.samples'})
+                    'samples' : 'SingleTelEventDisplay.samples',
+                    'display' : 'SingleTelEventDisplay.display',
+                    'delay' : 'SingleTelEventDisplay.delay'
+                    })
 
     classes =  List([EventFileReaderFactory, CameraCalibrator])
     
@@ -73,12 +81,12 @@ class SingleTelEventDisplay(Tool):
 
         disp = None
 
-        for event in self.source:
+        for event in tqdm(self.source,
+                          desc='Tel{}'.format(self.tel),
+                          total=self.reader.max_events):
 
-            self.log.info('Scanning input file... count = {}'.format(event.count))
             self.log.debug(event.trig)
-            self.log.debug(event.mc)
-            self.log.debug(event.dl0)
+            self.log.debug("Energy: {}".format(event.mc.energy))
 
             self.calibrator.calibrate(event)
 
@@ -86,11 +94,12 @@ class SingleTelEventDisplay(Tool):
                 x, y = event.inst.pixel_pos[self.tel]
                 focal_len = event.inst.optical_foclen[self.tel]
                 geom = CameraGeometry.guess(x, y, focal_len)
-                self.log.info(geom.pix_x)
+                self.log.info(geom)
                 disp = CameraDisplay(geom)
                 # disp.enable_pixel_picker()
                 disp.add_colorbar()
-                plt.show(block=False)
+                if self.display:
+                    plt.show(block=False)
 
             # display the event
             disp.axes.set_title('CT{:03d} ({}), event {:010d}'.format(
@@ -104,7 +113,8 @@ class SingleTelEventDisplay(Tool):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)
                     plt.suptitle("Sample {:03d}".format(ii))
-                    plt.pause(0.01)
+                    if self.display:
+                        plt.pause(self.delay)
                     if self.write:
                         plt.savefig('CT{:03d}_EV{:010d}_S{:02d}.png'
                                     .format(self.tel, event.r0.event_id, ii))
@@ -128,7 +138,8 @@ class SingleTelEventDisplay(Tool):
                     disp.overlay_moments(params, color='pink', lw=3,
                                          with_label=False)
 
-                plt.pause(1.0)
+                if self.display:
+                    plt.pause(self.delay)
                 if self.write:
                     plt.savefig('CT{:03d}_EV{:010d}.png'
                                 .format(self.tel, event.r0.event_id))
