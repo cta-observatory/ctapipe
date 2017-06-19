@@ -58,7 +58,7 @@ class ArrayPlotter:
 
         self.hillas = None
 
-    def overlay_hillas(self, hillas, scale_fac=20000, draw_axes=False, **kwargs):
+    def overlay_hillas(self, hillas, scale_fac=10000, draw_axes=False, **kwargs):
         """
         Overlay hillas parameters on top of the array map
 
@@ -82,11 +82,12 @@ class ArrayPlotter:
             ground = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
             new_sys = ground.transform_to(self.system)
             self.array.overlay_moments(hillas, (new_sys.x, new_sys.y), scale_fac,
-                                       cmap="Viridis", alpha=0.5, **kwargs)
+                                       cmap="Greys", alpha=0.5, **kwargs)
             if draw_axes:
                 self.array.overlay_axis(hillas, (new_sys.x, new_sys.y))
         else:
-            self.array.overlay_moments(hillas, (tel_x, tel_y), scale_fac, alpha=0.5, cmap="viridis", **kwargs)
+            self.array.overlay_moments(hillas, (tel_x, tel_y), scale_fac, alpha=0.5,
+                                       cmap="Greys", **kwargs)
 
         self.hillas = hillas
 
@@ -197,10 +198,10 @@ class NominalPlotter:
                                   tel_type=np.ones(len(self.cen_y)), axes=self.axes)
 
         self.hillas = hillas_parameters
-        scale_fac = 57.3 * 5
+        scale_fac = 57.3 * 2
 
         self.array.overlay_moments(hillas_parameters, (self.cen_x, self.cen_y), scale_fac,
-                                   cmap="viridis", alpha=0.5, **kwargs)
+                                   cmap="Greys", alpha=0.5, **kwargs)
 
         if draw_axes:
             self.array.overlay_axis(hillas_parameters, (self.cen_x, self.cen_y))
@@ -228,7 +229,8 @@ class NominalPlotter:
         self.axes.contour(x, y, background, **kwargs)
 
         # Annoyingly we need to redraw everything
-        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y))
+        self.array = ArrayDisplay(telx=np.asarray(self.cen_x), tely=np.asarray(self.cen_y),
+                                  tel_type=np.ones(len(self.cen_y)), axes=self.axes)
 
     def draw_array(self, range=((-4,4),(-4,4))):
         """
