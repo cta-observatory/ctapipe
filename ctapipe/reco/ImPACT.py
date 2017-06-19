@@ -82,7 +82,7 @@ class ImPACTReconstructor(Reconstructor):
         self.spe = 0.5 # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.0, "FlashCam": 1.4, "GATE": 1.0}
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "GATE": 1.0}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -783,7 +783,7 @@ class ImPACTReconstructor(Reconstructor):
 
         w = w - np.min(w)
 
-        return x_dir, y_dir, w
+        return x_dir.to(u.deg), y_dir.to(u.deg), w
 
     def draw_tilted_surface(self, shower_seed, energy_seed,
                             bins=50, core_range=100 * u.m):
