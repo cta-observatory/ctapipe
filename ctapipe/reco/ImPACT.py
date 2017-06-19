@@ -707,18 +707,24 @@ class ImPACTReconstructor(Reconstructor):
                    (errors["source_x"], errors["source_y"], errors["core_x"],
                     errors["core_x"], errors["energy"],errors["x_max_scale"])
 
-        elif minimiser_name == "lm":
+        elif minimiser_name == "lm" or minimiser_name == "trf" or\
+                        minimiser_name == "dogleg":
             self.array_return = True
+            limits = np.array(limits)
 
             min = least_squares(self.get_likelihood_min,params,
-                                method=minimiser_name)
+                                method=minimiser_name,
+                                x_scale=step,
+                                bounds=limits.T
+                                )
             print(min.x)
             return min.x, (0,0,0,0,0,0)
 
         else:
             min = minimize(self.get_likelihood_min,params,
                            method=minimiser_name,
-                           bounds=limits)
+                           bounds=limits
+                           )
             print(min.x)
             return min.x, (0,0,0,0,0,0)
 
