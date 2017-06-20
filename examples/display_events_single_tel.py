@@ -43,6 +43,8 @@ class SingleTelEventDisplay(Tool):
                    default_value=True).tag(config=True)
     delay = Float(help='delay between events in s', default_value=0.01,
                   min=0.001).tag(config=True)
+    progress = Bool(help='display progress bar', default_value=True).tag(
+        config=True)
 
     aliases = Dict({'infile': 'EventFileReaderFactory.input_path',
                     'tel': 'SingleTelEventDisplay.tel',
@@ -53,7 +55,8 @@ class SingleTelEventDisplay(Tool):
                     'hillas': 'SingleTelEventDisplay.hillas',
                     'samples': 'SingleTelEventDisplay.samples',
                     'display': 'SingleTelEventDisplay.display',
-                    'delay': 'SingleTelEventDisplay.delay'
+                    'delay': 'SingleTelEventDisplay.delay',
+                    'progress': 'SingleTelEventDisplay.progress'
                     })
 
     classes = List([EventFileReaderFactory, CameraCalibrator])
@@ -76,7 +79,8 @@ class SingleTelEventDisplay(Tool):
 
         for event in tqdm(self.source,
                           desc='Tel{}'.format(self.tel),
-                          total=self.reader.max_events):
+                          total=self.reader.max_events,
+                          disable=~self.progress):
 
             self.log.debug(event.trig)
             self.log.debug("Energy: {}".format(event.mc.energy))
