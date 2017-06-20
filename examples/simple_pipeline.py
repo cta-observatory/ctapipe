@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     source = hessio_event_source(filename, max_events=None)
 
-    cal = CameraCalibrator(None,None)
+    cal = CameraCalibrator(None, None)
 
     for data in source:
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
               .format(data.r0.event_id,
                       data.mc.energy,
                       len(data.dl0.tels_with_data))
-        )
+              )
 
         cal.calibrate(data)
 
