@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "Flow": {
+      "producer_conf": { "name" : "ListEnergyRecoFiles", "module": "ctapipe.flow.algorithms.list_energy_reco_files",
+           "class": "ListEnergyRecoFiles","next_steps" : "EnergyReco"},
+      "consumer_conf": { "name" : "StringWriter", "module": "ctapipe.flow.algorithms.string_writer",
+                "class": "StringWriter"},
+      "stagers_conf" : [ {"name": "EnergyReco", "class": "EnergyReco",
+                                        "module": "ctapipe.flow.algorithms.energy_reco",
+                                        "next_steps" : "StringWriter", "nb_process" : 1}
+                       ]
+  },
+
+  "ListEnergyRecoFiles": { "source_dir": "/Data/CTA/Analysis"},
+  "StringWriter": { "filename": "/tmp/string_writter.txt"}
+
+}
