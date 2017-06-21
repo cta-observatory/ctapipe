@@ -715,9 +715,9 @@ class ImPACTReconstructor(Reconstructor):
             min = least_squares(self.get_likelihood_min,params,
                                 method=minimiser_name,
                                 x_scale=step,
-                                bounds=limits.T
+                                xtol=1e-10,
+                                ftol=1e-10
                                 )
-            print(min.x)
             return min.x, (0,0,0,0,0,0)
 
         else:
