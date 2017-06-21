@@ -11,7 +11,11 @@ class EnergyReco(Component):
 
     def run(self, _input):
         if input:
-            self.log.info("EnergyReco receive {}".format(_input))
+            #self.log.info("EnergyReco receive {}".format(_input))
+            hillas_file = _input[0]
+            reco_event_file = _input[1]
+            self.log.info("EnergyReco receive hillas_file {}".format(hillas_file))
+            self.log.info("EnergyReco receive reco_event_file {}".format(reco_event_file))
             return _input
 
     def finish(self):
