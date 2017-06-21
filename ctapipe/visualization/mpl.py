@@ -87,7 +87,7 @@ class CameraDisplay:
             ax=None,
             title=None,
             norm="lin",
-            cmap="hot",
+            cmap=None,
             allow_pick=False,
             autoupdate=True,
             autoscale=True,
@@ -365,7 +365,7 @@ class CameraDisplay:
         self.update()
         return ellipse
 
-    def overlay_moments(self, momparams, **kwargs):
+    def overlay_moments(self, momparams, with_label=True, **kwargs):
         """helper to overlay ellipse from a `reco.MomentParameters` structure
 
         Parameters
@@ -388,13 +388,14 @@ class CameraDisplay:
                               length=length*2,
                               width=width*2, angle=momparams.psi.rad,
                               **kwargs)
-        self.axes.text(cen_x, cen_y,
-                       ("({:.02f},{:.02f})\n"
-                        "[w={:.02f},l={:.02f}]")
-                       .format(momparams.cen_x,
-                               momparams.cen_y,
-                               momparams.width, momparams.length),
-                       color=el.get_edgecolor())
+        if with_label:
+            self.axes.text(cen_x, cen_y,
+                           ("({:.02f},{:.02f})\n"
+                            "[w={:.02f},l={:.02f}]")
+                           .format(momparams.cen_x,
+                                   momparams.cen_y,
+                                   momparams.width, momparams.length),
+                           color=el.get_edgecolor())
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """

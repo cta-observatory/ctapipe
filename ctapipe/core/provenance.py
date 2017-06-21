@@ -63,14 +63,25 @@ class Provenance(metaclass=Singleton):
         log.debug("added output entity '{}' to activity: '{}'".format(
             filename, self.current_activity.name))
 
-    def finish_activity(self, activity_name=None):
+    def add_config(self, config):
+        """
+        add configuration parameters to the current activity
+
+        Parameters
+        ----------
+        config: dict
+            configuration paramters
+        """
+        self.current_activity.register_config(config)
+
+    def finish_activity(self, status='completed', activity_name=None):
         """ end the current activity """
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError("Tried to end activity '{}', but '{}' is current "
                              "activity".format(activity_name, activity.name))
 
-        activity.finish()
+        activity.finish(status)
         self._finished_activities.append(activity)
         log.debug("finished activity: {}".format(activity.name))
 
@@ -163,13 +174,18 @@ class _ActivityProvenance:
         """
         self._prov['output'].append(url)
 
-    def finish(self):
+    def register_config(self, config):
+        """ add a dictionary of configuration parameters to this activity"""
+        self._prov['config'] = config
+
+    def finish(self, status='completed'):
         """ record final provenance information, normally called at shutdown."""
         self._prov['stop'].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
         t_start = Time(self._prov['start']['time_utc'], format='isot')
         t_stop = Time(self._prov['stop']['time_utc'], format='isot')
+        self._prov['status'] = status
         self._prov['duration_min'] = (t_stop - t_start).to('min').value
 
     def sample_cpu_and_memory(self):

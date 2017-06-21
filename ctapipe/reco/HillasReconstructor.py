@@ -380,7 +380,7 @@ class HillasReconstructor(Reconstructor):
         the circle's normal vector, projected to the ground n=(nx,
         ny), so that for every r=(x, y) on the trace
 
-        :math:`\vec n \cdot \vec r = \vec n \cdot \vec P`
+        :math:`\vec n \cdot \vec r = \vec n \cdot \vec P` ,
 
         :math:`n_x \cdot x + n_y \cdot y = d`
 
@@ -406,7 +406,7 @@ class HillasReconstructor(Reconstructor):
             
 
 
-        or :math:`\boldsymbol{A} \cdot \vec r = \vec D`.
+        or :math:`\boldsymbol{A} \cdot \vec r = \vec D` .
 
         Since we do not live in a perfect world and there probably is
         no point r that fulfils this equation system, it is solved by
@@ -424,7 +424,7 @@ class HillasReconstructor(Reconstructor):
 
         .. math::
 
-            \vec D - \boldsymbol{A} \cdot \vec r.
+            \vec D - \boldsymbol{A} \cdot \vec r
 
 
         Weights are applied to every line of equation 

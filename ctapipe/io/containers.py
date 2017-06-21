@@ -26,7 +26,8 @@ __all__ = ['InstrumentContainer',
            'ReconstructedShowerContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
-           'DataContainer']
+           'DataContainer',
+           'HillasParametersContainer']
 
 # todo: change some of these Maps to be just 3D NDarrays?
 
@@ -390,3 +391,19 @@ class MuonIntensityParameter(Container):
     optical_efficiency_muon = Item(0.,'optical efficiency muon')
     intensity_fit_method = Item("",'intensity fit method')
     inputfile = Item("",'input file')
+
+class HillasParametersContainer(Container):
+
+    intensity = Item(0.0, 'total intensity (size)')
+
+    x = Item(0.0, 'centroid x coordinate')
+    y = Item(0.0, 'centroid x coordinate')
+    r = Item(0.0, 'radial coordinate of centroid')
+    phi = Item(0.0, 'polar coordinate of centroid', unit=u.deg)
+
+    length = Item(0.0, 'RMS spread along the major-axis')
+    width = Item(0.0, 'RMS spread along the minor-axis')
+    psi = Item(0.0, 'rotation angle of ellipse', unit=u.deg)
+
+    skewness = Item(0.0, 'measure of the asymmetry')
+    kurtosis = Item(0.0, 'measure of the tailedness')

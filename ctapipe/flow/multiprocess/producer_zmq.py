@@ -1,22 +1,22 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from ctapipe.core import Component
-from ctapipe.flow.multiprocessus.connexions import Connexions
+from ctapipe.flow.multiprocess.connections import Connections
 from multiprocessing import Process
 from multiprocessing import Value
 from types import GeneratorType
 import zmq
 
-class ProducerZmq(Process, Component, Connexions):
+class ProducerZmq(Process, Component, Connections):
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Process class.
     It gets a Python generator from its coroutine run method.
     It loops overs its generator and sends input to its next stage,
     thanks to its ZMQ REQ socket,
-    The processus is launched by calling run method.
+    The process is launched by calling run method.
     init() method is call by run method.
     """
-    def __init__(self, coroutine, name,main_connexion_name,
-                connexions=dict()):
+    def __init__(self, coroutine, name, main_connection_name,
+                 connections=None):
         """
         Parameters
         ----------
@@ -24,15 +24,15 @@ class ProducerZmq(Process, Component, Connexions):
             It contains init, run and finish methods
         name: str
             Producer name
-        main_connexion_name : str
+        main_connection_name : str
             Default next step name. Used to send data when destination is not provided
-        connexions: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
+        connections: dict {'STEP_NANE' : (zmq STEP_NANE port in)}
             Port number for socket for each next steps
         """
         Process.__init__(self)
         Component.__init__(self,parent=None)
         self.name = name
-        Connexions.__init__(self,main_connexion_name,connexions)
+        Connections.__init__(self, main_connection_name, connections)
         self.coroutine = coroutine
         self.other_requests=dict()
         self._nb_job_done = Value('i',0)
@@ -50,11 +50,12 @@ class ProducerZmq(Process, Component, Connexions):
             return False
         if self.coroutine.init() == False:
             return False
-        return self.init_connexions()
+        self.coroutine.connections = list(self.connections)
+        return self.init_connections()
 
     def run(self):
         """
-        Method representing the processus’s activity.
+        Method representing the process’s activity.
         It gets a Python generator from its coroutine run method.
         It loops overs its generator and sends new input to its next stage,
         thanks to its ZMQ REQ socket.
@@ -83,14 +84,14 @@ class ProducerZmq(Process, Component, Connexions):
         self.coroutine.finish()
         return True
 
-    def init_connexions(self):
+    def init_connections(self):
         """
         Initialise zmq sockets.
         Because this class is s Process, This method must be call in the run
-         method to be hold by the correct processus.
+         method to be hold by the correct process.
         """
         self.context = zmq.Context()
-        Connexions.init_connexions(self)
+        Connections.init_connections(self)
         return True
 
     @property

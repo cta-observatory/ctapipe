@@ -8,7 +8,8 @@ supported packages. All packages chosen have large developer
 bases, and a wide community of users, ensuring long-term support.
 
 The following are support libraries that are
-recommended when developing CTA Pipeline algorithms:
+allowed when developing CTA Pipeline algorithms.  Any new dependencies must
+be discussed with the software manager.
 
 
 
@@ -79,8 +80,21 @@ list can be found on the astropy documentation page, under the list
 *current status of subpackages*
 
 
-FITS Table Access
-=================
+Tabular Data Processing
+=======================
+
+We support the following systems to process and manipulate tabular data (e.g.
+ an event list):
+
+* `astropy.table`: for small table manipulations
+* `pandas`: for more complex manipulations (note it does not support columns
+  that contain array-values, unlike `astropy.table`, but the two are otherwise
+  cross-convertable)
+* `pytables`: for direct manipulation of tables in HDF5 files (faster than
+  other systems for large on-disk files)
+
+low-level FITS Table Access
+---------------------------
 
 FITS Tables can be read via `astropy.table`, or `astropy.io.fits`
 (formerly called `pyfits`), however these implementations are not
@@ -94,3 +108,77 @@ installed via pip
 .. code-block:: bash
 
    pip install --user fitsio
+
+low-level HDF5 Table Access
+---------------------------
+
+For HDF5 input/output we support only `pytables` (which is generally used
+inside other systems like pandas.
+
+
+Model Fitting
+=============
+
+We support only `scipy.optimize`,  `iminuit`, and `scikit-learn` fitting
+systems.
+
+Graphics and Plotting
+=====================
+
+We support the following:
+
+* `matplotlib` (recommended for most cases)
+* `bokeh` (for web-guis)
+
+Parallelization and Speed-ups
+=============================
+
+Since execution speed is important in some algorithms (particularly those
+called per-event), the speed of python can be a hindrance to performance.
+The following methods to improve speed are allowed in `ctapipe`:
+
+Use NumPy operations
+--------------------
+
+One of the easiest way to speed up code is to attempt to avoid *for-loops*
+(which are slow) by using `numpy` vector and matrix operations instead, as
+well as libraries that use them internally (like `scipy` and `astropy`). This
+requires no special support, but can sometimes be conceptually difficult to
+achieve. If it is not possible, use one of the following supported methods.
+
+Use Cython
+----------
+
+`cython` is a meta-language that allows you to write c-code in python (with
+some extra syntax), and also access all features of C/C++ as well as
+automatic python bindings.  In cython code, for-loops are fast, and there is
+even support for parallelism (e.g. OpenMP) via `cython.parallel` for even
+faster code.   Cython code is allowed in `ctapipe`, and must be stored in `*
+.pyx` files that need to be added to `setup.py` using `cythonize` (then you
+always need to run `setup.py build` to make sure they are compiled whenever
+they change)
+
+Use Numba
+---------
+
+`numba` allows you to automatically compile a python function via the LLVM
+compiler backend the first time a funciton is called ("just in time
+compilation"). The advantage over cython is that there is no special syntax,
+and no compilation step ,however as a somewhat "black-box" it does not always
+improve your code without some help. See the `numba` documentation for more
+info.
+
+Use C/C++ code and wrap it
+--------------------------
+
+This is only recommended if the other methods fail, or if there is existing
+code that is shared with other non-python-based systems, as it is the most
+complex. We support *only* the following c-binding systems:
+
+* `ctypes` (built into python, but only good for simple cases)
+* `pybind11 <https://pybind11.readthedocs.io/en/stable/>`_ (for more complex
+  C++ code, like that including classes, etc
+
+We do *not* recommend *swig*, as it introduces yet another language binding
+(the swig definition file) that includes both C and Python code, and is thus
+difficult to track and debug.

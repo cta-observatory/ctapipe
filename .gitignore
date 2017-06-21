@@ -71,3 +71,6 @@ distribute-*.tar.gz
 .sonarlint
 
 
+
+*.pstats
+target
