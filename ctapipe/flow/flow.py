@@ -99,7 +99,7 @@ class Flow(Tool):
     gui = Bool(False, help='send status to GUI').tag( config=True)
     gui_address = Unicode('localhost:5565', help='GUI adress and port')\
                                                   .tag(config=True)
-    mode = Enum(['sequential','multiprocess'], default_vallue='sequential',
+    mode = Enum(['sequential', 'multiprocess'], default_value='sequential',
                 help='Flow mode', allow_none=True).tag(config=True)
     producer_conf = Dict(help='producer description: name , module, class',
                          allow_none=False).tag(config=True)
@@ -132,6 +132,7 @@ class Flow(Tool):
     step_process = list()
     router_process = None
     ports = dict()
+    start_time = 0
 
     def setup(self):
         if self.init() == False:
@@ -201,6 +202,7 @@ class Flow(Tool):
         True if every initialisation are correct
         Otherwise False
         """
+        self.start_time = time()
         self.configure_ports()
         self.sequential_instances = dict()
         # set coroutines
@@ -625,8 +627,8 @@ class Flow(Tool):
         if self.gui :
             self.socket_pub.send_multipart(
             [b'MODE', dumps('sequential')])
-        start_time = time()
-        #self.producer.running = 0
+
+
         # Get producer instance's generator
         self.producer = self.sequential_instances[self.producer_step.name]
         #execute producer run coroutine
@@ -652,11 +654,12 @@ class Flow(Tool):
             self.consumer.running=0
             self.send_status_to_gui()
             # execute finish method for all steps
+
         for step in self.sequential_instances.values():
             step.finish()
         end_time = time()
         self.log.info('=== SEQUENTIAL MODE END ===')
-        self.log.info('Compute time {} sec'.format(end_time - start_time))
+        self.log.info('Compute time {} sec'.format(end_time - self.start_time))
         self.display_statistics()
         # send finish to GUI and close connections
         if self.gui :
@@ -665,6 +668,15 @@ class Flow(Tool):
             self.socket_pub.close()
             self.context.destroy()
             self.context.term()
+        self.log.info("")
+        self.log.info("=== Timing summary=== ")
+        self.log.info("Producer {0} time {1:.3} sec".format(self.producer.name,
+                                                            self.producer.total_time))
+        for step in self.stagers:
+            self.log.info("Stager {0} time {1:.3} sec".format(step.name, step.total_time))
+        self.log.info("consumer {0} time {1:.3} sec".format(self.consumer.name,
+                                                                self.consumer.total_time))
+
 
     def run_generator(self, destination ,msg):
         """ Get step for destination. Create a genetor from its run method.
