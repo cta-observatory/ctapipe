@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
 from types import GeneratorType
+from time import time
 
 
 class StagerSequential():
@@ -22,6 +23,7 @@ class StagerSequential():
         self.connections = connections or []
         self.running = 0
         self.nb_job_done = 0
+        self.total_time = 0
 
     def init(self):
         """
@@ -31,6 +33,7 @@ class StagerSequential():
         -------
         True if coroutine init method returns True, otherwise False
         """
+        start_time = time()
         if self.name is None:
             self.name = "STAGER"
         if self.coroutine is None:
@@ -38,6 +41,8 @@ class StagerSequential():
         if self.coroutine.init() == False:
             return False
         self.coroutine.connections = self.connections
+        end_time = time()
+        self.total_time += (end_time - start_time)
         return True
 
     def run(self, inputs=None):
@@ -48,7 +53,11 @@ class StagerSequential():
         inputs: object
              input for coroutine.run
         """
+        start_time = time()
         result = self.coroutine.run(inputs)
+        end_time = time()
+        self.total_time += (end_time - start_time)
+
         if isinstance(result, GeneratorType):
             for val in result:
                 msg, destination = self.get_destination_msg_from_result(val)
@@ -57,6 +66,7 @@ class StagerSequential():
             msg, destination = self.get_destination_msg_from_result(result)
             yield (msg, destination)
         self.nb_job_done += 1
+
 
     def get_destination_msg_from_result(self, result):
         """If result is a tuple, check if last tuple elem is a valid next
@@ -93,5 +103,8 @@ class StagerSequential():
         """
         Call coroutine finish method
         """
+        start_time = time()
         self.coroutine.finish()
+        end_time = time()
+        self.total_time += (end_time - start_time)
         return True
