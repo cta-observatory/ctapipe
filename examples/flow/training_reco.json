@@ -22,6 +22,10 @@
                           "module": "ctapipe.flow.algorithms.list_energy_reco_files",
                           "next_steps" : "EnergyReco"},
 
+                        { "name" : "Merge", "class": "MergeTimeRecoSimu",
+                          "module": "ctapipe.flow.algorithms.merge_time_reco_simu",
+                          "next_steps" : "Training"},
+
                         {"name": "EnergyReco", "class": "EnergyReco",
                           "module": "ctapipe.flow.algorithms.energy_reco",
                           "next_steps" : "StringWriter", "nb_process" : 1}
@@ -35,6 +39,8 @@
 
   "PtimeHillas2PRecoEvent": {"exe": "ptimehillas2precoevent",
     "config_file" : "/lapp_data/cta/Data/MC/Prod/prod_23_june.ini"},
+
+  "MergeTimeRecoSimu": {"exe": "ptimehillasrecosimu2pmergedrecosimu"},
 
   "ListEnergyRecoFiles": { "source_dir": "/lapp_data/cta/Data/CTA/Analysis"},
 
