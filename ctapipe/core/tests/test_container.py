@@ -46,6 +46,7 @@ def test_child_containers():
     cont = ParentContainer()
     assert cont.child.z == 1
 
+
 def test_map_containers():
 
     class ChildContainer(Container):

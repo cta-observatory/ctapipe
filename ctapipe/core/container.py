@@ -4,7 +4,6 @@ from pprint import pformat
 from textwrap import wrap
 
 
-
 class Item:
     """
     Defines the metadata associated with a value in a Container
@@ -28,11 +27,10 @@ class Item:
         self.unit = unit
 
     def __repr__(self):
-        desc= '{}'.format(self.description)
+        desc = '{}'.format(self.description)
         if self.unit is not None:
             desc += ' [{}]'.format(self.unit)
         return desc
-
 
 
 class ContainerMeta(type):
@@ -111,7 +109,7 @@ class Container(metaclass=ContainerMeta):
 
         self.meta = {}
         for k, v in self._items.items():
-            setattr(self, k, v.default)
+            setattr(self, k, deepcopy(v.default))
             self.meta[k] = v
 
         for k, v in items.items():
@@ -169,9 +167,11 @@ class Container(metaclass=ContainerMeta):
     def reset(self, recursive=True):
         """ set all values back to their default values"""
         for name, value in self.meta.items():
-            setattr(self, name, deepcopy(value.default))
-            if recursive and isinstance(value, Container):
-                value.reset()
+            if isinstance(value, Container):
+                if recursive:
+                    getattr(self, name).reset()
+            else:
+                setattr(self, name, deepcopy(self.meta[name].default))
 
     def update(self, **values):
         """
@@ -186,16 +186,23 @@ class Container(metaclass=ContainerMeta):
 
     def __repr__(self):
         text = ["{}.{}:".format(type(self).__module__, type(self).__name__)]
-        for name, item in self.attributes.items():
+        for name, item in self._items.items():
             extra = ""
-            if isinstance(self.__dict__[name], Container):
+            if isinstance(item, Container):
                 extra = ".*"
-            if isinstance(self.__dict__[name], Map):
+            if isinstance(item, Map):
                 extra = "[*]"
             desc = "{:>30s}: {}".format(name+extra, repr(item))
             lines = wrap(desc, 80, subsequent_indent=' '*32)
             text.extend(lines)
         return "\n".join(text)
+
+    def __getstate__(self):
+        return dict(self.items())
+
+    def __setstate__(self, state):
+        for k, v in state.items():
+            setattr(self, k, v)
 
 
 class Map(defaultdict):
