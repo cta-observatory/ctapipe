@@ -77,7 +77,7 @@ class Container(metaclass=ContainerMeta):
     columns in a flat table without naming conflicts (the name of the
     parent Item is pre-pended).
 
-    To only members of instance `Item` will be used as output.
+    Only members of instance `Item` will be used as output.
     For hierarchical data structures, Items can use `Container`
     subclasses or a `Map` as the default value.
 
