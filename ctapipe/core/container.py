@@ -91,7 +91,7 @@ class Container(metaclass=ContainerMeta):
     >>>    cont = MyContainer()
     >>>    print(cont.x)
     100
-    >>>    # metsdata will become header keywords in an output file:
+    >>>    # metadata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
     `Items` inside `Containers` can contain instances of other
