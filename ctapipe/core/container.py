@@ -38,7 +38,7 @@ class ContainerMeta(type):
     The MetaClass for the Containers
 
     It reserves __slots__ for every class variable,
-    that is of instance items and sets all other class variables
+    that is of instance `Item` and sets all other class variables
     as read-only for the instances.
 
     This makes sure, that the metadata is immutable,
