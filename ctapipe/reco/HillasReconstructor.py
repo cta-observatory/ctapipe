@@ -10,7 +10,7 @@ from ctapipe.io.containers import ReconstructedShowerContainer
 
 from astropy.utils.decorators import deprecated
 
-from itertools import combinations, permutations
+from itertools import combinations
 
 import numpy as np
 
@@ -31,7 +31,7 @@ class TooFewTelescopesException(Exception):
 
 @deprecated(0.1, "will be replaced with real coord transform")
 def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
-    '''
+    """
     TODO replace with proper implementation
     calculates the direction vector of corresponding to a
     (x,y) position on the camera
@@ -61,7 +61,7 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
         shape (n,3) list of "direction vectors"
         corresponding to a position on the camera
 
-    '''
+    """
 
     pix_alpha = np.arctan2(pix_y, pix_x)
     pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
@@ -81,7 +81,7 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
 
 
 def dist_to_traces(core, circles):
-    '''This function calculates the M-Estimator from the distances of the
+    """This function calculates the M-Estimator from the distances of the
     suggested core position to all traces of the given GreatCircles.
     The distance of the core to the trace line is the length of the
     vector between the core and an arbitrary point on the trace
@@ -99,9 +99,8 @@ def dist_to_traces(core, circles):
 
         M_\\text{Est} = \sum_i{ 2 \cdot \sqrt{1 + d_i^2} - 2}
 
-        
 
-    '''
+    """
 
     mest = 0.
     for circle in circles.values():
@@ -116,7 +115,7 @@ def dist_to_traces(core, circles):
 
 
 def MEst(origin, circles, weights):
-    '''calculates the M-Estimator: a modified χ² that becomes
+    """calculates the M-Estimator: a modified χ² that becomes
     asymptotically linear for high values and is therefore less
     sensitive to outliers
 
@@ -147,7 +146,7 @@ def MEst(origin, circles, weights):
     MEstimator : float
 
 
-    '''
+    """
 
     sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
                         for circ in circles.values()])
@@ -155,7 +154,7 @@ def MEst(origin, circles, weights):
 
 
 def neg_angle_sum(origin, circles, weights):
-    '''calculates the negative sum of the angle between the fit direction
+    """calculates the negative sum of the angle between the fit direction
     and all the normal vectors of the great circles
 
     Parameters
@@ -173,7 +172,7 @@ def neg_angle_sum(origin, circles, weights):
         negative of the sum of the angles between the test direction
         and all normal vectors of the given great circles
 
-    '''
+    """
 
     sin_ang = np.array([linalg.length(np.cross(origin, circ.norm))
                         for circ in circles.values()])
@@ -181,7 +180,7 @@ def neg_angle_sum(origin, circles, weights):
 
 
 class HillasReconstructor(Reconstructor):
-    '''
+    """
     class that reconstructs the direction of an atmospheric shower
     using a simple hillas parametrisation of the camera images it
     provides a direction estimate in two steps and an estimate for the
@@ -190,14 +189,14 @@ class HillasReconstructor(Reconstructor):
     so far, it does neither provide an energy estimator nor an
     uncertainty on the reconstructed parameters
 
-    '''
+    """
 
     def __init__(self, configurable=None):
         super().__init__(configurable)
         self.circles = {}
 
     def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):
-        '''The function you want to call for the reconstruction of the
+        """The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
         calls the functions for the direction and core position
         reconstruction.  Shower parameters not reconstructed by this
@@ -217,7 +216,7 @@ class HillasReconstructor(Reconstructor):
         TooFewTelescopesException
             if len(hillas_dict) < 2
 
-        '''
+        """
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
@@ -240,7 +239,7 @@ class HillasReconstructor(Reconstructor):
         # core position estimate using numerical minimisation
         # pos = self.fit_core_minimise(seed_pos)
 
-        # container class for reconstructed showers '''
+        # container class for reconstructed showers
         result = ReconstructedShowerContainer()
         phi, theta = linalg.get_phi_theta(dir).to(u.deg)
 
@@ -297,7 +296,7 @@ class HillasReconstructor(Reconstructor):
             self.circles[tel_id] = circle
 
     def fit_origin_crosses(self):
-        '''calculates the origin of the gamma as the weighted average
+        """calculates the origin of the gamma as the weighted average
         direction of the intersections of all great circles
 
         Returns
@@ -305,8 +304,8 @@ class HillasReconstructor(Reconstructor):
         gamma : shape (3) numpy array
             direction of origin of the reconstructed shower as a 3D vector
         crossings : shape (n,3) list
-            list of all the crossings of the `GreatCircle`s
-        '''
+            list of all the crossings of the `GreatCircle` list
+        """
 
         crossings = []
         for perm in combinations(self.circles.values(), 2):
@@ -328,7 +327,7 @@ class HillasReconstructor(Reconstructor):
         return linalg.normalise(np.sum(crossings, axis=0)) * u.dimless, crossings
 
     def fit_origin_minimise(self, seed=(0, 0, 1), test_function=neg_angle_sum):
-        ''' Fits the origin of the gamma with a minimisation procedure this
+        """ Fits the origin of the gamma with a minimisation procedure this
         function expects that `get_great_circles`
         has been run already. A seed should be given otherwise it defaults to
         "straight up" supperted functions to minimise are an M-estimator and the
@@ -349,7 +348,7 @@ class HillasReconstructor(Reconstructor):
             best fit for the origin of the gamma from
             the minimisation process
 
-        '''
+        """
 
         # using the sum of the cosines of each direction with every
         # other direction as weight; don't use the product -- with many
@@ -391,7 +390,7 @@ class HillasReconstructor(Reconstructor):
 
         .. math::
             :label: fullmatrix
-            
+
             \begin{pmatrix}
                 nx_1  &  ny_1  \\
                 \vdots & \vdots \\
@@ -403,7 +402,7 @@ class HillasReconstructor(Reconstructor):
                 \vdots \\
                 d_n
             \end{pmatrix}
-            
+
 
 
         or :math:`\boldsymbol{A} \cdot \vec r = \vec D` .
@@ -414,10 +413,10 @@ class HillasReconstructor(Reconstructor):
 
         .. math::
             :label: rchisqr
-            
+
             \vec{r}_{\chi^2} = (\boldsymbol{A}^\text{T} \cdot \boldsymbol{A})^{-1}
             \boldsymbol{A}^\text{T} \cdot \vec D
-            
+
 
         :math:`\vec{r}_{\chi^2}` minimises the squared difference of
 
@@ -427,16 +426,17 @@ class HillasReconstructor(Reconstructor):
             \vec D - \boldsymbol{A} \cdot \vec r
 
 
-        Weights are applied to every line of equation 
-        :eq:`fullmatrix` as stored in circle.weight (assuming they have been 
-        set in `get_great_circles` or elsewhere).
+        Weights are applied to every line of equation :eq:`fullmatrix`
+        as stored in circle.weight (assuming they have been set in
+        `get_great_circles` or elsewhere).
 
         Returns
         -------
-        r_chisqr : shape (2) numpy array
+        r_chisqr: numpy.ndarray(2)
             the minimum :math:`\chi^2` solution for the shower impact position
-        pos_uncert : astropy length quantity
+        pos_uncert: astropy length quantity
             error estimate on the reconstructed core position
+
         """
 
         A = np.zeros((len(self.circles), 2))
@@ -462,7 +462,7 @@ class HillasReconstructor(Reconstructor):
         # speed is the same, just handles already "SingularMatrixError"
         pos = np.linalg.lstsq(A, D)[0] * u.m
 
-        weighted_sum_dist = np.sum([np.dot(pos[:2]-c.pos[:2], c.norm[:2]) * c.weight
+        weighted_sum_dist = np.sum([np.dot(pos[:2] - c.pos[:2], c.norm[:2]) * c.weight
                                     for c in self.circles.values()]) * pos.unit
         norm_sum_dist = np.sum([c.weight * linalg.length(c.norm[:2])
                                 for c in self.circles.values()])
@@ -471,25 +471,28 @@ class HillasReconstructor(Reconstructor):
         return pos, pos_uncert
 
     def fit_core_minimise(self, seed=(0, 0), test_function=dist_to_traces):
-        '''reconstructs the shower core position from the already set up great circles
+        """
+        reconstructs the shower core position from the already set up
+        great circles
 
         Notes
         -----
-        The core of the shower lies on the cross section of the great circle with
-        the horizontal plane. The direction of this cross section is the cross-product of
-        the circle's normal vector and the horizontal plane.
-        Here, we only care about the direction; not the orientation...
+        The core of the shower lies on the cross section of the great
+        circle with the horizontal plane. The direction of this cross
+        section is the cross-product of the circle's normal vector and
+        the horizontal plane.  Here, we only care about the direction;
+        not the orientation...
 
 
         Parameters
         ----------
-        seed : tuple, optional (default: (0, 0))
+        seed : tuple
             shape (2) tuple with optional starting coordinates
             tuple of floats or astropy.length -- if floats, assume metres
         test_function : function object, optional (default: dist_to_traces)
             function to be used by the minimiser
 
-        '''
+        """
 
         if type(seed) == u.Quantity:
             unit = seed.unit
@@ -517,11 +520,13 @@ class HillasReconstructor(Reconstructor):
 
 
 class GreatCircle:
-    '''a tiny helper class to collect some parameters for each great great circle
-    '''
+    """
+    a tiny helper class to collect some parameters for each great great
+    circle
+    """
 
     def __init__(self, dirs, weight=1):
-        '''the constructor takes two directions on the circle and creates the
+        """the constructor takes two directions on the circle and creates the
         normal vector belonging to that plane
 
         Parameters
@@ -534,14 +539,15 @@ class GreatCircle:
 
         Notes
         -----
-        c : length 3 ndarray
+        c: numpy.ndarray(3)
             :math:`\vec c = (\vec a \times \vec b) \times \vec a`
-            :math:`\rightarrow` a and c form an orthogonal base for the great circle
+            :math:`\rightarrow` a and c form an orthogonal base for the 
+            great circle
             (only orthonormal if a and b are of unit-length)
-        norm : length 3 ndarray
+        norm: numpy.ndarray(3)
             normal vector of the circle's plane,
             perpendicular to a, b and c
-        '''
+        """
 
         self.a = dirs[0]
         self.b = dirs[1]
