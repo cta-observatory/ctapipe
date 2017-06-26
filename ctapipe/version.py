@@ -72,7 +72,7 @@ if name == "nt":
     GIT_COMMAND = find_git_on_windows()
 
 
-def call_git_describe(abbrev=7):
+def get_git_describe_version(abbrev=7):
     """return the string output of git desribe"""
     try:
         with open(devnull, "w") as fnull:
@@ -111,14 +111,15 @@ def read_release_version():
         if len(version) == 0:
             version = None
         return version
-    except IOError:
-        return None
+    except ModuleNotFoundError:
+        return "unknown"
 
 
 def update_release_version(pep440=False):
     """Release versions are stored in a file called VERSION.
     This method updates the version stored in the file.
     This function should be called when creating new releases.
+    It is called by setup.py when building a package.
 
 
     pep440: bool
@@ -152,7 +153,7 @@ def get_version(pep440=False):
     The file VERSION will need to be changed manually.
     """
 
-    raw_git_version = call_git_describe()
+    raw_git_version = get_git_describe_version()
     if not raw_git_version:  # not a git repository
         return  read_release_version()
 
