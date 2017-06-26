@@ -9,7 +9,6 @@ from pickle import dump
 import numpy as np
 from astropy import log
 from astropy.table import Table, Column
-from traitlets import Unicode
 
 from ctapipe.core import Container
 
@@ -95,7 +94,6 @@ class Serializer:
         Add a container to serializer
         """
         self._writer.add_container(container)
-
 
     def close(self):
         """

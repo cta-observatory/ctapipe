@@ -136,7 +136,7 @@ class Container(metaclass=ContainerMeta):
 
     def items(self):
         """Generator over (key, value) pairs for the items"""
-        return ((k, getattr(self, k)) for k in self.__slots__)
+        return ((k, getattr(self, k)) for k in self._items.keys())
 
     def as_dict(self, recursive=False, flatten=False):
         """
@@ -204,7 +204,9 @@ class Container(metaclass=ContainerMeta):
         return "\n".join(text)
 
     def __getstate__(self):
-        return dict(self.items())
+        state = dict(self.items())
+        state['meta'] = getattr(self, 'meta')
+        return state
 
     def __setstate__(self, state):
         for k, v in state.items():
