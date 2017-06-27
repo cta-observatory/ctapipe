@@ -43,8 +43,10 @@ def cam_to_nom():
     pix = [np.ones(2048),np.ones(2048),np.zeros(2048)] * u.m
     camera_coord = CameraFrame(pix,focal_length = 15*u.m)
     # In this case we bypass the telescope system
-    nom_coord = camera_coord.transform_to(NominalFrame(pointing_direction=[70*u.deg,180*u.deg],array_direction=[75*u.deg,180*u.deg]))
-    alt_az = camera_coord.transform_to(HorizonFrame(pointing_direction=[70*u.deg,180*u.deg],array_direction=[75*u.deg,180*u.deg]))
+    nom_coord = camera_coord.transform_to(NominalFrame(pointing_direction=HorizonFrame(alt=70*u.deg,az=180*u.deg),
+                                                       array_direction=HorizonFrame(alt=75*u.deg,az=180*u.deg)))
+    alt_az = camera_coord.transform_to(HorizonFrame(pointing_direction=HorizonFrame(alt=70*u.deg,az=180*u.deg),
+                                                    array_direction=HorizonFrame(alt=75*u.deg,az=180*u.deg)))
 
     print("Nominal Coordinate",nom_coord)
 
@@ -54,7 +56,7 @@ def cam_to_nom():
 def nominal_to_altaz():
     t = np.zeros(10)
     t[5] = 1
-    nom = NominalFrame(x=t*u.deg,y=t*u.deg,array_direction = [75*u.deg,180*u.deg])
+    nom = NominalFrame(x=t*u.deg,y=t*u.deg,array_direction = HorizonFrame(alt=75*u.deg,az=180*u.deg))
     alt_az = nom.transform_to(HorizonFrame)
     print("AltAz Coordinate",alt_az)
     # Provided we know when and where the AltAz was measured we can them convert this to any astronomical
@@ -63,7 +65,7 @@ def nominal_to_altaz():
 # We also have the ground and tilted ground systems needed for core reconstruction
 def grd_to_tilt():
     grd_coord = GroundFrame(x=1*u.m, y=2*u.m, z=0*u.m)
-    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction = [90*u.deg,180*u.deg]))
+    tilt_coord = grd_coord.transform_to(TiltedGroundFrame(pointing_direction = HorizonFrame(alt=90*u.deg,az=180*u.deg)))
     print(project_to_ground(tilt_coord))
     print("Tilted Coordinate",tilt_coord)
 

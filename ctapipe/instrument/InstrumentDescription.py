@@ -1,12 +1,11 @@
 import numpy as np
-from ctapipe.instrument import CameraDescription as CD
+from ctapipe.instrument import CameraGeometry as CD
 from ctapipe.io.files import get_file_type
 from astropy import units as u
 from pyhessio import open_hessio, HessioError
 import os
 from astropy.table import Table
 import random
-import imp
 import textwrap
 
 __all__ = ['load','load_fakedata','load_hessio','load_fits','load_config',
@@ -95,7 +94,7 @@ def load(filename = '', path = None,version = '',instr_item = '',telID = ''):
         return load_fits(filename)
     elif filetype == 'cfg':
         return load_config(filename)
-    elif filetype == 'simtel':
+    elif filetype == 'simtel' or 'simhess':
         return load_hessio(filename)
     else:
         raise TypeError("File type {} not supported".format(filetype))

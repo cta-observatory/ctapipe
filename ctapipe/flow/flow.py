@@ -4,14 +4,12 @@ from os import path
 from time import time
 from time import sleep
 from pickle import dumps
-from traitlets import Bool
-from traitlets import List
-from traitlets import Dict
-from traitlets import Unicode
-from ctapipe.flow.multiprocessus.producer_zmq import ProducerZmq
-from ctapipe.flow.multiprocessus.stager_zmq import StagerZmq
-from ctapipe.flow.multiprocessus.consumer_zmq import ConsumerZMQ
-from ctapipe.flow.multiprocessus.router_queue_zmq import RouterQueue
+from traitlets import Bool, List, Dict, Unicode, Enum
+
+from ctapipe.flow.multiprocess.producer_zmq import ProducerZmq
+from ctapipe.flow.multiprocess.stager_zmq import StagerZmq
+from ctapipe.flow.multiprocess.consumer_zmq import ConsumerZMQ
+from ctapipe.flow.multiprocess.router_queue_zmq import RouterQueue
 from ctapipe.flow.sequential.producer_sequential import ProducerSequential
 from ctapipe.flow.sequential.stager_sequential import StagerSequential
 from ctapipe.flow.sequential.consumer_sequential import ConsumerSequential
@@ -25,41 +23,43 @@ __all__ = ['Flow', 'FlowError']
 class PipeStep():
 
     '''
-PipeStep reprensents a Flow step. One or several processus can be attach
+    PipeStep represents a Flow step. One or several processes can be attach
     to this step.
-Parameters
-----------
+    
+    Parameters
+    ----------
     name : str
-            Flow based framework configuration name
+        Flow based framework configuration name
     next_steps_name: list(str)
     port_in : str
-            port number to connect prev Router
-    connexions : dict {'str : 'str'}
-            key: connexion name(step name) , value port name
-    main_connexion_name: str
-            First step in next_steps configuration
-    nb_processus : int
-            mumber of processus to instantiate for this step
+        port number to connect prev Router
+    connections : dict {'str : 'str'}
+        key: connection name(step name) , value port name
+    main_connection_name: str
+        First step in next_steps configuration
+    nb_process : int
+        number of processes to instantiate for this step
     level : step level in Flow based framework. Producer is level 0.
-            Used to start/stop processus in correct order
+        Used to start/stop processes in correct order
     queue_limit: int
-            Maximum number of element the router can queue
+        Maximum number of element the router can queue
 '''
     def __init__(self, name,
-                 next_steps_name=list(),
+                 next_steps_name=None,
                  port_in=None,
-                 main_connexion_name=None,
-                 nb_processus=1, level=0,
+                 main_connection_name=None,
+                 nb_processes=1, level=0,
                  queue_limit = 0):
 
         self.name = name
         self.port_in = port_in
-        self.next_steps_name = next_steps_name
-        self.nb_processus = nb_processus
+        self.next_steps_name = next_steps_name or []
+
+        self.nb_process = nb_processes
         self.level = level
-        self.connexions = dict()
-        self.processus = list()
-        self.main_connexion_name = main_connexion_name
+        self.connections = dict()
+        self.process = list()
+        self.main_connection_name = main_connection_name
         self.queue_limit = queue_limit
         self.order_defined = False
         self.coroutine = None
@@ -70,9 +70,9 @@ Parameters
         return ('Name[ ' + str(self.name)
                 + '], next_steps_name[' + str(self.next_steps_name)
                 + '], port in[ ' + str(self.port_in)
-                + '], main connexion name  [ ' + str(self.main_connexion_name) + ' ]'
+                + '], main connection name  [ ' + str(self.main_connection_name) + ' ]'
                 + '], port in[ ' + str(self.port_in)
-                + '], nb processus[ ' + str(self.nb_processus)
+                + '], nb process[ ' + str(self.nb_process)
                 + '], level[ ' + str(self.level)
                 + '], queue_limit[ ' + str(self.queue_limit) + ']')
 
@@ -85,37 +85,33 @@ class FlowError(Exception):
 class Flow(Tool):
     '''
     A Flow-based framework. It executes steps in a sequential or
-    multiprocessus environment.
+    multiprocess environment.
     User defined steps thanks to Python classes, and configuration in a json file
-    The multiprocessus mode is based on ZeroMQ library (http://zeromq.org) to
-    pass messages between processus. ZMQ library allows to stay away from class
+    The multiprocess mode is based on ZeroMQ library (http://zeromq.org) to
+    pass messages between process. ZMQ library allows to stay away from class
     concurrency mechanisms like mutexes, critical sections semaphores,
-    while being processus safe. Passing data between steps is managed by the router.
-    If a step is executed by several processus, the router uses LRU pattern
+    while being process safe. Passing data between steps is managed by the router.
+    If a step is executed by several process, the router uses LRU pattern
     (least recently used ) to choose the step that will receive next data.
     The router also manage Queue for each step.
     '''
-    description = 'run stages in multiprocessus Flow based framework'
-    gui = Bool(False, help='send status to GUI').tag(
-        config=True, allow_none=True)
-    gui_address = Unicode('localhost:5565', help='GUI adress and port').tag(
-        config=True, allow_none=True)
-    mode = Unicode('sequential', help='Flow mode [sequential | multiprocessus]').tag(
-        config=True, allow_none=True)
-    producer_conf = Dict(
-        help='producer description: name , module, class',
-                                            allow_none=False).tag(config=True)
-    stagers_conf = List(
-        help='stagers list description in a set order:',
-         allow_none=False).tag(config=True)
+    description = 'run stages in multiprocess Flow based framework'
+    gui = Bool(False, help='send status to GUI').tag( config=True)
+    gui_address = Unicode('localhost:5565', help='GUI adress and port')\
+                                                  .tag(config=True)
+    mode = Enum(['sequential','multiprocess'], default_vallue='sequential',
+                help='Flow mode', allow_none=True).tag(config=True)
+    producer_conf = Dict(help='producer description: name , module, class',
+                         allow_none=False).tag(config=True)
+    stagers_conf = List( help='stagers list description in a set order:',
+                         allow_none=False).tag(config=True)
     consumer_conf = Dict(
         default_value={'name': 'CONSUMER', 'class': 'Producer',
                        'module': 'producer',  'prev': 'STAGE1'},
         help='producer description: name , module, class',
                 allow_none=False).tag(config=True)
     ports_list = list(range(5555,5600,1))
-    zmq_ports = List(ports_list, help='ZMQ ports').tag(
-        config=True, allow_none=True)
+    zmq_ports = List(ports_list, help='ZMQ ports').tag(config=True)
     aliases = Dict({'gui_address': 'Flow.gui_address',
                     'mode':'Flow.mode','gui': 'Flow.gui'})
     examples = ('prompt%> ctapipe-flow \
@@ -133,8 +129,8 @@ class Flow(Tool):
     producer_step = None
     stager_steps = None
     consumer_step = None
-    step_processus = list()
-    router_processus = None
+    step_process = list()
+    router_process = None
     ports = dict()
 
     def setup(self):
@@ -146,8 +142,9 @@ class Flow(Tool):
         '''
         Create producers, stagers and consumers instance according to
          configuration
-        Returns:
-        --------
+
+        Returns
+        -------
         bool : True if Flow based framework is correctly setup and all producer,stager
          and consumer initialised Otherwise False
         '''
@@ -165,16 +162,17 @@ class Flow(Tool):
             if not self.connect_gui():  return False
         if self.mode == 'sequential':
             return self.init_sequential()
-        elif self.mode == 'multiprocessus':
-            return self.init_multiprocessus()
+        elif self.mode == 'multiprocess':
+            return self.init_multiprocess()
         else:
             self.log.error("{} is not a valid mode for Flow based framework".format(self.mode))
 
-    def init_multiprocessus(self):
+    def init_multiprocess(self):
         """
-        Initialise Flow for multiprocessus mode
-        Returns:
-        ========
+        Initialise Flow for multiprocess mode
+
+        Returns
+        -------
         True if every initialisation are correct
         Otherwise False
         """
@@ -186,19 +184,20 @@ class Flow(Tool):
         gui_address = None
         if self.gui:
             gui_address = self.gui_address
-        self.router = RouterQueue(connexions=router_names,
-                             gui_address=gui_address)
+        self.router = RouterQueue(connections=router_names,
+                                  gui_address=gui_address)
         for step in self.stager_steps:
-            for t in step.processus:
-                self.step_processus.append(t)
+            for t in step.process:
+                self.step_process.append(t)
         self.display_conf()
         return True
 
     def init_sequential(self):
         """
         Initialise Flow for sequential mode
-        Returns:
-        ========
+
+        Returns
+        -------
         True if every initialisation are correct
         Otherwise False
         """
@@ -216,10 +215,10 @@ class Flow(Tool):
             return False
 
         self.producer = ProducerSequential(coroutine, name=self.producer_step.name,
-                                  connexions=self.producer_step.connexions,
-                                  main_connexion_name = self.producer_step.main_connexion_name)
+                                  connections=self.producer_step.connections,
+                                  main_connection_name = self.producer_step.main_connection_name)
         self.producer.init()
-        self.producer_step.processus.append(self.producer)
+        self.producer_step.process.append(self.producer)
         self.sequential_instances[self.producer_step.name] = self.producer
         #stages
         for step in (self.stager_steps ):
@@ -232,9 +231,9 @@ class Flow(Tool):
                 self.log.error('{}'.format(e))
                 return False
 
-            stage = StagerSequential(coroutine,name = step.name, connexions=step.connexions,
-                                     main_connexion_name=step.main_connexion_name)
-            step.processus.append(stage)
+            stage = StagerSequential(coroutine,name = step.name, connections=step.connections,
+                                     main_connection_name=step.main_connection_name)
+            step.process.append(stage)
             self.sequential_instances[step.name] = stage
             self.stagers.append(stage)
             stage.init()
@@ -248,21 +247,23 @@ class Flow(Tool):
             self.log.error('{}'.format(e))
             return False
         self.consumer = ConsumerSequential(coroutine, name =  conf['name'])
-        self.consumer_step.processus.append(self.consumer)
+        self.consumer_step.process.append(self.consumer)
         self.consumer.init()
         self.sequential_instances[self.consumer_step.name] = self.consumer
         self.display_conf()
         return True
 
     def configure_stagers(self,router_names):
-        """ Creates Processus with users's coroutines for all stages
-        Parameters:
-        ===========
+        """ Creates Processes with users's coroutines for all stages
+        
+        Parameters
+        ----------
         router_names: List
             List to fill with routers name
-        Returns:
-        ========
-        True if every instantialtion are correct
+        
+        Returns
+        -------
+        True if every instantiation is correct
         Otherwise False
         """
         #STAGERS
@@ -273,39 +274,40 @@ class Flow(Tool):
                                   self.ports[stager_step.name+'_out'],
                                   stager_step.queue_limit]
 
-            for i in range(stager_step.nb_processus):
+            for i in range(stager_step.nb_process):
                 conf = self.get_step_conf(stager_step.name)
                 try:
-                    stager_zmq = self.instantiation(
-                        stager_step.name ,
-                        self.STAGER,
-                        processus_name = stager_step.name
-                            +'$$processus_number$$'
-                            + str(i),
-                        port_in=stager_step.port_in,
-                        connexions = stager_step.connexions,
-                        main_connexion_name = stager_step.main_connexion_name,
-                        config=conf)
+                    stager_zmq = self.instantiation(stager_step.name,
+                                                    self.STAGER,
+                                                    process_name=stager_step.name
+                                                                 +
+                                                                 '$$process_number$$'
+                                                                 + str(i),
+                                                    port_in=stager_step.port_in,
+                                                    connections=stager_step.connections,
+                                                    main_connection_name=stager_step.main_connection_name,
+                                                    config=conf)
                 except FlowError as e:
                     self.log.error(e)
                     return False
                 self.stagers.append(stager_zmq)
-                stager_step.processus.append(stager_zmq)
+                stager_step.process.append(stager_zmq)
         return True
 
 
     def configure_consumer(self):
-        """ Creates consumer Processus with users's coroutines
-        Returns:
-        ========
-        True if every instantialtion are correct
+        """ Creates consumer Processes with users's coroutines
+        
+        Returns
+        -------
+        True if every instantiation is correct
         Otherwise False
         """
         try:
             consumer_zmq = self.instantiation(self.consumer_step.name,
-                                      self.CONSUMER,
-                                      port_in=self.consumer_step.port_in,
-                                      config=self.consumer_conf)
+                                              self.CONSUMER,
+                                              port_in=self.consumer_step.port_in,
+                                              config=self.consumer_conf)
         except FlowError as e:
             self.log.error(e)
             return False
@@ -315,8 +317,9 @@ class Flow(Tool):
     def add_consumer_to_router(self):
         """ Create router_names dictionary and
         Add consumer router ports
-        Returns:
-        ========
+        
+        Returns
+        -------
         The new router_names dictionary
         """
         # ROUTER
@@ -329,19 +332,20 @@ class Flow(Tool):
         return router_names
 
     def configure_producer(self):
-        """ Creates producer Processus with users's coroutines
-        Returns:
-        ========
-        True if every instantialtion are correct
+        """ Creates producer Process with users's coroutines
+        
+        Returns
+        -------
+        True if every instatiation is correct
         Otherwise False
         """
         #PRODUCER
         try:
-            producer_zmq = self.instantiation(
-                self.producer_step.name, self.PRODUCER,
-                connexions = self.producer_step.connexions,
-                main_connexion_name = self.producer_step.main_connexion_name,
-                config= self.producer_conf)
+            producer_zmq = self.instantiation(self.producer_step.name,
+                                              self.PRODUCER,
+                                              connections=self.producer_step.connections,
+                                              main_connection_name=self.producer_step.main_connection_name,
+                                              config=self.producer_conf)
         except FlowError as e:
             self.log.error(e)
             return False
@@ -349,9 +353,10 @@ class Flow(Tool):
         return True
 
     def connect_gui(self):
-        """ Connect ZMQ socket to send informations to GUI
-        Returns:
-        ========
+        """ Connect ZMQ socket to send information to GUI
+        
+        Returns
+        -------
         True if everything correct
         Otherwise False
         """
@@ -367,8 +372,9 @@ class Flow(Tool):
 
     def generate_steps(self):
         """ Generate Flow based framework steps from configuration
-        Returns:
-        ========
+
+        Returns
+        -------
         True if everything correct
         Otherwise False
         """
@@ -386,20 +392,21 @@ class Flow(Tool):
     def configure_ports(self):
         """
         Configures producer, stagers and consumer ZMQ ports
-        Returns:
-        ========
+        
+        Returns
+        -------
         True if everything correct
         Otherwise False
         """
-        #configure connexions (zmq port) for producer (one per next step)
+        #configure connections (zmq port) for producer (one per next step)
         try:
             for next_step_name in self.producer_step.next_steps_name:
                 if not next_step_name+'_in' in self.ports:
                     self.ports[next_step_name+'_in'] = str(self.zmq_ports.pop())
-                self.producer_step.connexions[next_step_name]=self.ports[next_step_name+'_in']
-            self.producer_step.main_connexion_name = self.producer_step.next_steps_name[0]
+                self.producer_step.connections[next_step_name]=self.ports[next_step_name+'_in']
+            self.producer_step.main_connection_name = self.producer_step.next_steps_name[0]
 
-            #configure port_in and connexions (zmq port)  for all stages (one per next step)
+            #configure port_in and connections (zmq port)  for all stages (one per next step)
             for stage in self.stager_steps:
                 if not stage.name+'_out' in self.ports:
                     self.ports[stage.name+'_out'] = str(self.zmq_ports.pop())
@@ -407,8 +414,8 @@ class Flow(Tool):
                 for next_step_name in stage.next_steps_name:
                     if not next_step_name+'_in' in self.ports:
                         self.ports[next_step_name+'_in'] = str(self.zmq_ports.pop())
-                    stage.connexions[next_step_name]=self.ports[next_step_name+'_in']
-                stage.main_connexion_name = stage.next_steps_name[0]
+                    stage.connections[next_step_name]=self.ports[next_step_name+'_in']
+                stage.main_connection_name = stage.next_steps_name[0]
 
             #configure port-in  (zmq port) for consumer
             if not  self.consumer_step.name+'_out' in self.ports:
@@ -416,7 +423,8 @@ class Flow(Tool):
             self.consumer_step.port_in = self.ports[ self.consumer_step.name+'_out']
             return True
         except IndexError as e:
-            self.log.error("Not enough ZMQ ports. Consider adding some port to configuration.")
+            self.log.error("Not enough ZMQ ports. Consider adding some port "
+                           "to configuration.")
         except Exception as e:
             self.log.error("Could not configure ZMQ ports. {}".format(e))
             return False
@@ -424,33 +432,37 @@ class Flow(Tool):
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or
         self.consumer_step
-        Parameters:
-        ===========
+        
+        Parameters
+        ----------
         name : str
             step name
-        Return: PipeStep if found, otherwise None
+            
+        Returns
+        -------
+        PipeStep if found, otherwise None
         '''
         for step in (self.stager_steps+[self.producer_step,self.consumer_step]):
             if step.name == name:
                 return step
         return None
 
-    def instantiation(
-            self, name, stage_type, processus_name=None,
-            port_in=None, connexions=None, main_connexion_name=None, config=None):
+    def instantiation(self, name, stage_type, process_name=None, port_in=None,
+                      connections=None, main_connection_name=None, config=None):
         '''
         Instantiate on Python object from name found in configuration
+        
         Parameters
         ----------
         name : str
                 stage name
         stage_type	: str
-        processus_name : str
+        process_name : str
         port_in : str
                 step ZMQ port in
-        connexions : dict
-                key: StepName, value" connexion ZMQ ports
-        main_connexion_name : str
+        connections : dict
+                key: StepName, value" connection ZMQ ports
+        main_connection_name : str
             main ZMQ connection name. Connexion to use when user not precise
         '''
         stage = self.get_step_conf(name)
@@ -461,16 +473,16 @@ class Flow(Tool):
             raise FlowError('Cannot create instance of ' + name)
         obj.name = name
         if stage_type == self.STAGER:
-            processus = StagerZmq(
-                obj, port_in, processus_name,
-                connexions=connexions,
-                main_connexion_name = main_connexion_name)
+            process = StagerZmq(
+                obj, port_in, process_name,
+                connections=connections,
+                main_connection_name = main_connection_name)
         elif stage_type == self.PRODUCER:
-            processus = ProducerZmq(
-                obj, name, connexions=connexions,
-                main_connexion_name = main_connexion_name)
+            process = ProducerZmq(
+                obj, name, connections=connections,
+                main_connection_name= main_connection_name)
         elif stage_type == self.CONSUMER:
-            processus = ConsumerZMQ(
+            process = ConsumerZMQ(
                 obj,port_in,
                 name)
         else:
@@ -478,18 +490,21 @@ class Flow(Tool):
                 'Cannot create instance of', name, '. Type',
                  stage_type, 'does not exist.')
         # set coroutine socket to it's stager or producer socket .
-        return processus
+        return process
 
     def get_pipe_steps(self, role):
         '''
-        Create a list of Flow based framework steps from configuration and filter by role
+        Create a list of Flow based framework steps from configuration and 
+        filter by role
+        
         Parameters
         ----------
         role: str
                 filter with role for step to be add in result list
                 Accepted values: self.PRODUCER - self.STAGER  - self.CONSUMER
-        Returns:
-        --------
+                
+        Returns
+        -------
         PRODUCER,CONSUMER: a step name filter by specific role (PRODUCER,CONSUMER)
         STAGER: List of steps name filter by specific role
         '''
@@ -505,15 +520,16 @@ class Flow(Tool):
                 result = list()
                 for stage_conf in self.stagers_conf:
                     try:
-                        nb_processus = int(stage_conf['nb_process'])
+                        nb_process = int(stage_conf['nb_process'])
                     except Exception as e:
-                        nb_processus = 1
+                        nb_process = 1
                     next_steps_name = stage_conf['next_steps'].split(',')
                     try: queue_limit = stage_conf['queue_limit']
                     except Exception: queue_limit = -1
-                    stage_step = PipeStep(  stage_conf['name'],
-                        next_steps_name=next_steps_name,nb_processus=nb_processus,
-                        queue_limit = queue_limit)
+                    stage_step = PipeStep(stage_conf['name'],
+                                          next_steps_name=next_steps_name,
+                                          nb_processes=nb_process,
+                                          queue_limit = queue_limit)
                     stage_step.type = self.STAGER
                     result.append(stage_step)
                 return result
@@ -529,8 +545,12 @@ class Flow(Tool):
             return None
 
     def def_step_for_gui(self):
-        ''' Create a list (levels_for_gui) containing all steps
-        Returns: the created list and actual time
+        ''' 
+        Create a list (levels_for_gui) containing all steps
+
+        Returns
+        -------
+        the created list and actual time
         '''
         levels_for_gui = list()
 
@@ -543,21 +563,21 @@ class Flow(Tool):
             nb_job_done = 0
             running = 0
             if self.mode == 'sequential':
-                running = step.processus[0].running
-                nb_job_done = step.processus[0].nb_job_done
+                running = step.process[0].running
+                nb_job_done = step.process[0].nb_job_done
                 levels_for_gui.append(StagerRep(step.name,step.next_steps_name,
                                       nb_job_done=nb_job_done,
                                       running=running,
-                                      nb_processus = len(step.processus)))
+                                      nb_process = len(step.process)))
 
-            elif self.mode == 'multiprocessus':
-                for processus in step.processus:
-                    nb_job_done+=processus.nb_job_done
-                    running += processus.running
-                levels_for_gui.append(StagerRep(processus.name,step.next_steps_name,
+            elif self.mode == 'multiprocess':
+                for process in step.process:
+                    nb_job_done+=process.nb_job_done
+                    running += process.running
+                levels_for_gui.append(StagerRep(process.name,step.next_steps_name,
                                       nb_job_done=nb_job_done,
                                       running=running,
-                                      nb_processus = len(step.processus)))
+                                      nb_process = len(step.process)))
 
         levels_for_gui.append(StagerRep(self.consumer_step.name,
                                 nb_job_done=self.consumer.nb_job_done,
@@ -574,8 +594,8 @@ class Flow(Tool):
         self.log.info('------------------ Flow configuration ------------------')
         for step in  ([self.producer_step ] + self.stager_steps
             + [self.consumer_step]):
-            if self.mode == 'multiprocessus':
-                self.log.info('step {} (nb processus {}) '.format(step.name,str(step.nb_processus)))
+            if self.mode == 'multiprocess':
+                self.log.info('step {} (nb process {}) '.format(step.name,str(step.nb_process)))
             else:
                 self.log.info('step {}'.format(step.name))
             for next_step_name in step.next_steps_name:
@@ -594,8 +614,8 @@ class Flow(Tool):
     def start(self):
         """ run the Flow based framework steps
         """
-        if self.mode == 'multiprocessus':
-            self.start_multiprocessus()
+        if self.mode == 'multiprocess':
+            self.start_multiprocess()
         elif self.mode == 'sequential':
             self.start_sequential()
 
@@ -638,7 +658,7 @@ class Flow(Tool):
         self.log.info('=== SEQUENTIAL MODE END ===')
         self.log.info('Compute time {} sec'.format(end_time - start_time))
         self.display_statistics()
-        # send finish to GUI and close connexions
+        # send finish to GUI and close connections
         if self.gui :
             self.socket_pub.send_multipart(
             [b'FINISH', dumps('finish')])
@@ -649,13 +669,15 @@ class Flow(Tool):
     def run_generator(self, destination ,msg):
         """ Get step for destination. Create a genetor from its run method.
         re-enter in run_generator until Generator send values
-        Parameters:
-        ===========
+        
+        Parameters
+        ----------
         destination: str
             Next step name
         msg: a Pickle dumped msg
-        Returns:
-        ========
+        
+        Returns
+        -------
         Next destination and msg
         """
         stage = self.sequential_instances[destination]
@@ -685,17 +707,17 @@ class Flow(Tool):
             [b'GUI_GRAPH', dumps([conf_time,
             levels_gui])])
 
-    def start_multiprocessus(self):
-        ''' Start all Flow based framework processus.
+    def start_multiprocess(self):
+        ''' Start all Flow based framework processes.
         Regularly inform GUI of Flow based framework configuration in case of a new GUI
         instance was lunch
-        Stop all processus without loosing data
+        Stop all processes without loosing data
         '''
         # send Flow based framework cofiguration to an optinal GUI instance
         if self.gui :
             self.send_status_to_gui()
         start_time = time()
-        # Start all processus
+        # Start all process
         self.consumer.start()
         self.router.start()
         for stage in self.stagers:
@@ -704,17 +726,17 @@ class Flow(Tool):
         # Wait producer end of run method
         self.wait_and_send_levels(self.producer)
 
-        # Ensure that all queues are empty and all processus are waiting for
+        # Ensure that all queues are empty and all process are waiting for
         # new data since more that a specific tine
         while not self.wait_all_stagers(1000): # 1000 ms
             if self.gui :
                 self.send_status_to_gui()
             sleep(1)
 
-        # Now send stop to stage processus and wait they join
-        for worker in self.step_processus:
+        # Now send stop to stage process and wait they join
+        for worker in self.step_process:
             self.wait_and_send_levels(worker)
-        # Stop consumer and router processus
+        # Stop consumer and router process
         self.wait_and_send_levels(self.consumer)
         self.wait_and_send_levels(self.router)
         if self.gui :
@@ -735,16 +757,17 @@ class Flow(Tool):
 
 
     def wait_all_stagers(self,mintime):
-        """ Verify id all steps (stage + consumers) are finised their
+        """ Verify id all steps (stage + consumers) are finished their
         jobs and waiting
-        Returns:
-        ========
-        True if all stages queue are empty and all Processus
+        
+        Returns
+        -------
+        True if all stages queue are empty and all Processes
         wait since mintime
         Otherwise False
         """
         if self.router.total_queue_size == 0 :
-            for worker in self.step_processus:
+            for worker in self.step_process:
                 if worker.wait_since < mintime: # 5000ms
                     return False
             return True
@@ -754,36 +777,40 @@ class Flow(Tool):
     def finish(self):
         self.log.info('===== Flow END ======')
 
-    def wait_and_send_levels(self, processus_to_wait):
+    def wait_and_send_levels(self, processes_to_wait):
         '''
-        Wait for a processus to join and regularly send Flow based framework state to GUI
+        Wait for a process to join and regularly send Flow based framework 
+        state to GUI
         in case of a GUI will connect later
-        Parameters:
-        -----------
-        processus_to_wait : processus
-                processus to join
+        
+        Parameters
+        ----------
+        processes_to_wait : process
+                process to join
         conf_time : str
                 represents time at which configuration has been built
         '''
-        processus_to_wait.stop = 1
+        processes_to_wait.stop = 1
 
         while True:
-            processus_to_wait.join(timeout=.1)
+            processes_to_wait.join(timeout=.1)
             if self.gui :
                 self.send_status_to_gui()
-            if not processus_to_wait.is_alive():
+            if not processes_to_wait.is_alive():
                 return
 
     def get_step_conf(self, name):
         '''
         Search step by its name in self.stage_conf list,
         self.producer_conf and self.consumer_conf
-        Parameters:
-        -----------
+        
+        Parameters
+        ----------
         name : str
                 stage name
-        Returns:
-        --------
+
+        Returns
+        -------
         Step name matching instance, or None is not found
         '''
         if self.producer_conf['name'] == name:
@@ -798,12 +825,14 @@ class Flow(Tool):
     def get_stager_indice(self, name):
         '''
         Search step by its name in self.stage_conf list
-        Parameters:
-        -----------
+        
+        Parameters
+        ----------
         name : str
                 stage name
-        Returns:
-        --------
+                
+        Returns
+        -------
         indice in list, -1 if not found
         '''
         for index, step in enumerate(self.stagers_conf):

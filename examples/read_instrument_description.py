@@ -11,15 +11,15 @@ fits, and a sim_telarray-config file.
 """
 
 from ctapipe.instrument import InstrumentDescription as ID
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils import get_dataset
 import matplotlib.pyplot as plt
 import os
 
 if __name__ == '__main__':
     
-    filename1 = get_path('PROD2_telconfig.fits.gz')
-    filename2 = get_path('gamma_test.simtel.gz')
-    filename3 = get_path('CTA-ULTRA6-SCT.cfg')
+    filename1 = get_dataset('PROD2_telconfig.fits.gz')
+    filename2 = get_dataset('gamma_test.simtel.gz')
+    filename3 = get_dataset('CTA-ULTRA6-SCT.cfg')
     
     tel1,cam1,opt1 = ID.load(filename1)
     tel2,cam2,opt2 = ID.load(filename2)

@@ -4,9 +4,10 @@ Image Cleaning Algorithms (identification of noisy pixels)
 
 __all__ = ['tailcuts_clean', 'dilate']
 
+import numpy as np
 
-def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
-                   boundary_thresh=2.25):
+def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
+                   keep_isolated_pixels=False):
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
     defined with respect to the pedestal dispersion. All pixels that
@@ -19,19 +20,19 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
 
     Parameters
     ----------
-    geom: `ctapipe.io.CameraGeometry`
+    geom: `ctapipe.instrument.CameraGeometry`
         Camera geometry information
     image: array
-        pedestal-subtracted, flat-fielded pixel values
-    pedvars: array or scalar
-        pedestal dispersion of all pixels, or any other
-        multiplicative factor that one wants to use to normalize the
-        thresholds (e.g. if your image is already in PE units, this could
-        simply be set to 1, and the thresholds defined in PE)
-    picture_thresh: float
-        high threshold as multiple of the pedvar
-    boundary_thresh: float
-        low-threshold as mutiple of pedvar (+ nearest neighbor)
+        pixel values
+    picture_thresh: float or array
+        threshold above which all pixels are retained
+    boundary_thresh: float or array
+        threshold above which pixels are retained if they have a neighbor 
+        already above the picture_thresh
+    keep_isolated_pixels: bool
+        If True, pixels above the picture threshold will be included always, 
+        if not they are only included if a neighbor is in the picture or 
+        boundary
 
     Returns
     -------
@@ -39,29 +40,43 @@ def tailcuts_clean(geom, image, pedvars, picture_thresh=4.25,
     A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
     list, use `image[mask], geom.pix_id[mask]`, or to keep the same
     image size and just set unclean pixels to 0 or similar, use
-    `image[mask] = 0`
+    `image[~mask] = 0`
 
     """
 
-    clean_mask = image >= picture_thresh * pedvars  # starts as picture pixels
+    pixels_in_picture = image >= picture_thresh
 
-    # good boundary pixels are those that have any picture pixel as a
-    # neighbor
-    boundary_mask = image >= boundary_thresh * pedvars
-    boundary_ids = [pix_id for pix_id in geom.pix_id[boundary_mask]
-                    if clean_mask[geom.neighbors[pix_id]].any()]
+    # by broadcasting together pixels_in_picture (1d) with the neighbor
+    # matrix (2d), we find all pixels that are above the boundary threshold
+    # AND have any neighbor that is in the picture
+    pixels_above_boundary = image >= boundary_thresh
+    pixels_with_picture_neighbors = (pixels_in_picture &
+                                     geom.neighbor_matrix).any(axis=1)
 
-    clean_mask[boundary_ids] = True
-    return clean_mask
+    if keep_isolated_pixels:
+        return (pixels_above_boundary
+                & pixels_with_picture_neighbors) | pixels_in_picture
+    else:
+        pixels_with_boundary_neighbors = (pixels_above_boundary &
+                                         geom.neighbor_matrix).any(axis=1)
+        return ((pixels_above_boundary & pixels_with_picture_neighbors) |
+                (pixels_in_picture &  pixels_with_boundary_neighbors))
+
+
 
 
 def dilate(geom, mask):
-    """Add one row of neighbors to the True values of a pixel mask.  This
-    can be used to include extra rows of pixels in a mask that was
-    pre-computed, e.g. via `tailcuts_clean`.
-
-    Modifies mask in-place by default (pass `mask.copy()` if you want
-    to maintain a copy of the undialated data)
     """
-    for pixid in geom.pix_id[mask]:
-        mask[geom.neighbors[pixid]] = True
+    Add one row of neighbors to the True values of a pixel mask and return 
+    the new mask.
+    This can be used to include extra rows of pixels in a mask that was
+    pre-computed, e.g. via `tailcuts_clean`.
+    
+    Parameters
+    ----------
+    geom: `~ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    mask: ndarray 
+        input mask (array of booleans) to be dilated
+    """
+    return mask | (mask & geom.neighbor_matrix).any(axis=1)
