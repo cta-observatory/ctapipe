@@ -93,10 +93,10 @@ def test_SensitivityPointSource_sensitivity_MC():
     energies_sig = np.ones(n_sig)
     energies_bgr = np.ones(n_bgr)
 
-    sens = SensitivityPointSource(
-            {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
-             'b': energies_bgr*u.TeV})  # all events have 1 TeV energy
-    sens.event_weights = {'s': energies_sig, 'b': energies_bgr}
+    sens = SensitivityPointSource(reco_energies={'s': energies_sig*u.TeV,
+                                                 'b': energies_bgr*u.TeV})
+
+    # sens.event_weights = {'s': energies_sig, 'b': energies_bgr}
     sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"), mode="MC",
                                        sensitivity_source_flux=crab_source_rate,
                                        sensitivity_energy_bin_edges=energy_bin_edges,
@@ -118,9 +118,8 @@ def test_SensitivityPointSource_sensitivity_data():
     energies_sig = np.ones(n_on)
     energies_bgr = np.ones(n_off)
 
-    sens = SensitivityPointSource(
-            {'s': energies_sig*u.TeV,   # all events have 1 TeV energy
-             'b': energies_bgr*u.TeV})  # all events have 1 TeV energy
+    sens = SensitivityPointSource(reco_energies={'s': energies_sig*u.TeV,
+                                                 'b': energies_bgr*u.TeV})
 
     sensitivity = sens.get_sensitivity(alpha=alpha, signal_list=("s"), mode="data",
                                        sensitivity_source_flux=crab_source_rate,

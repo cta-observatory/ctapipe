@@ -211,9 +211,10 @@ class SensitivityPointSource:
 
     Parameters
     ----------
+    reco_energies: dictionary of quantified numpy arrays, optional
+        lists of reconstructed of the selected events for each channel
     mc_energies: dictionary of quantified numpy arrays, optional
         lists of simulated energies of the selected events for each channel
-        you should provide this at some point if not done here
     energy_bin_edges : dictionary of numpy arrays, optional
         lists of the bin edges for the various histograms for each channel;
         assumes binning in log10(energy)
@@ -224,13 +225,17 @@ class SensitivityPointSource:
         your favourite differential flux unit
     """
 
-    def __init__(self, mc_energies=None, energy_bin_edges=None,
+    def __init__(self, reco_energies=None, mc_energies=None, energy_bin_edges=None,
                  energy_unit=u.TeV, flux_unit=1/(u.TeV*u.m**2*u.s)):
 
+        self.reco_energies = reco_energies
         self.mc_energies = mc_energies
         self.energy_bin_edges = energy_bin_edges
 
-        self.class_list = mc_energies.keys()
+        try:
+            self.class_list = reco_energies.keys()
+        except AttributeError:
+            self.class_list = mc_energies.keys()
 
         self.energy_unit = energy_unit
         self.flux_unit = flux_unit
@@ -458,11 +463,11 @@ class SensitivityPointSource:
         """
 
         # sensitivities go in here
-        sensitivities = Table(names=("MC Energy", "Sensitivity", "Sensitivity_base"))
+        sensitivities = Table(names=("Energy", "Sensitivity", "Sensitivity_base"))
         try:
-            sensitivities["MC Energy"].unit = sensitivity_energy_bin_edges.unit
+            sensitivities["Energy"].unit = sensitivity_energy_bin_edges.unit
         except AttributeError:
-            sensitivities["MC Energy"].unit = self.energy_unit
+            sensitivities["Energy"].unit = self.energy_unit
         sensitivities["Sensitivity"].unit = self.flux_unit
         sensitivities["Sensitivity_base"].unit = self.flux_unit
 
@@ -474,7 +479,7 @@ class SensitivityPointSource:
         else:
             # otherwise we simply check the length of the masked energy array
             # since the weights are 1 here, `count_square` is the same as `count_events`
-            count_events = lambda mask: len(self.mc_energies[cl][mask])
+            count_events = lambda mask: len(self.reco_energies[cl][mask])
             count_square = count_events
 
         # loop over all energy bins
@@ -492,7 +497,8 @@ class SensitivityPointSource:
             # energy bin
             for cl in self.class_list:
                 # single out the events in this energy bin
-                e_mask = (self.mc_energies[cl] > elow) & (self.mc_energies[cl] < ehigh)
+                e_mask = (self.reco_energies[cl] > elow) & \
+                         (self.reco_energies[cl] < ehigh)
 
                 # count the events as the sum of their weights within this energy bin
                 if cl in signal_list:
@@ -563,8 +569,9 @@ class SensitivityPointSource:
                                 spectra=None,
 
                                 # arguments for `get_sensitivity`
+                                reco_energies=None,
+                                sensitivity_energy_bin_edges=np.logspace(-1, 3, 17)*u.TeV,
                                 alpha=1, min_n=10, max_background_ratio=.05,
-                                sensitivity_energy_bin_edges=np.logspace(-1, 3, 17)*u.TeV
                                 ):
         """
         wrapper that calls all functions to calculate the point-source sensitivity
