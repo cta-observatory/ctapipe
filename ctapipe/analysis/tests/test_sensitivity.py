@@ -200,12 +200,12 @@ def test_draw_events_with_flux_weight():
 
 def test_draw_events_from_flux_histogram():
 
-    np.random.seed(1)
+    np.random.seed(2)
 
     e_min = 20
     e_max = 50
     n_bins = 30
-    n_draws = 5000
+    n_draws = 1000
 
     energy_edges = np.linspace(e_min, e_max, n_bins+1, True) * u.TeV
     energy = np.random.uniform(e_min, e_max, 50000) * u.TeV
