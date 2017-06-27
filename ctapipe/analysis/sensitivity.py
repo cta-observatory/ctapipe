@@ -195,13 +195,6 @@ def diff_to_X_sigma(scale, N, alpha, X=5):
     return (sigma - X)**2
 
 
-#   ######  ##          ###     ######   ######
-#  ##    ## ##         ## ##   ##    ## ##    ##
-#  ##       ##        ##   ##  ##       ##
-#  ##       ##       ##     ##  ######   ######
-#  ##       ##       #########       ##       ##
-#  ##    ## ##       ##     ## ##    ## ##    ##
-#   ######  ######## ##     ##  ######   ######
 class SensitivityPointSource:
     """
     class to calculate effective areas and the sensitivity to a known point-source
