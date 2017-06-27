@@ -287,7 +287,6 @@ class CameraGeometry:
         )
 
     def __str__(self):
-        tab = self.to_table()
         return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
                "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})".format(
                    cam_id=self.cam_id,
