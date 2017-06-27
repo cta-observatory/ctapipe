@@ -1,33 +1,42 @@
 """
-Module that applies the data volume reduction to the r1 container, and stores
-it inside the dl0 container.
+Calibrator for the R1 -> DL0 data level transition.
+
+This module handles the calibration from the R1 data level to DL0. This
+transition exists as a conveniance in the pipepline and can be used to test
+data volume reduction methods inside the pipeline. By default, no data volume
+reduction is applied, and the DL0 samples are identical to the R1. However,
+if a reductor from `ctapipe.image.reductors` is passed to the
+`CameraDL0Reducer`, then the reduction will be applied.
 """
 from ctapipe.core import Component
 
+__all__ = ['CameraDL0Reducer']
+
 
 class CameraDL0Reducer(Component):
+    """
+    Parent class for the dl0 data volume reducers. Fills the dl0 container.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    reductor : ctapipe.calib.camera.reductors.Reductor
+        The reductor to use to reduce the waveforms in the event.
+        By default no data volume reduction is applied, and the dl0 samples
+        will equal the r1 samples.
+    kwargs
+    """
+
     name = 'CameraDL0Reducer'
 
     def __init__(self, config, tool, reductor=None, **kwargs):
-        """
-        Parent class for the dl0 data volume reducers. Fills the dl0 container.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        reductor : ctapipe.calib.camera.reductors.Reductor
-            The reductor to use to reduce the waveforms in the event.
-            By default no data volume reduction is applied, and the dl0 samples
-            will equal the r1 samples.
-        kwargs
-        """
         super().__init__(config=config, parent=tool, **kwargs)
         if reductor is None:
             self.log.info("Applying no data volume reduction in the "
@@ -66,8 +75,6 @@ class CameraDL0Reducer(Component):
 
     def reduce(self, event):
         """
-        Abstract method to be defined in child class.
-
         Perform the conversion from raw R1 data to dl0 data
         (PE Samples -> Reduced PE Samples), and fill the dl0 container.
 

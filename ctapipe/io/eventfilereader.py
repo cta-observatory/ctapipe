@@ -7,7 +7,7 @@ import numpy as np
 from traitlets import Unicode, Int, CaselessStrEnum, observe
 from copy import deepcopy
 from ctapipe.core import Component, Factory
-from ctapipe.utils.datasets import get_path
+from ctapipe.utils import get_dataset
 from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
 
 
@@ -32,7 +32,7 @@ class EventFileReader(Component):
     name = 'EventFileReader'
     origin = None
 
-    input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
+    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,
@@ -298,7 +298,7 @@ class HessioFileReader(EventFileReader):
             pass
         else:
             self.log.info("Building new list of event ids...")
-            ids = hessio_get_list_event_ids(get_path(self.input_path),
+            ids = hessio_get_list_event_ids(self.input_path,
                                             max_events=self.max_events)
             self._event_id_list = ids
         self.log.info("List of event ids retrieved.")
@@ -332,7 +332,7 @@ class HessioFileReader(EventFileReader):
         self.log.debug("Reading file...")
         if self.max_events:
             self.log.info("Max events being read = {}".format(self.max_events))
-        source = hessio_event_source(get_path(self.input_path),
+        source = hessio_event_source(self.input_path,
                                      max_events=self.max_events,
                                      allowed_tels=allowed_tels,
                                      requested_event=requested_event,
@@ -363,7 +363,7 @@ class EventFileReaderFactory(Factory):
 
     # Product classes traits
     # Would be nice to have these automatically set...!
-    input_path = Unicode(get_path('gamma_test.simtel.gz'), allow_none=True,
+    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,

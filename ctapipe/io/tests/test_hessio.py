@@ -1,9 +1,9 @@
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_datasets_path
+from ctapipe.utils import get_dataset
 
 
 def test_get_run_id():
-    filename = get_datasets_path("gamma_test.simtel.gz")
+    filename = get_dataset("gamma_test.simtel.gz")
     print(filename)
     gen = hessio_event_source(filename)
     event = next(gen)
@@ -13,7 +13,7 @@ def test_get_run_id():
 
 
 def test_get_specific_event():
-    dataset = get_datasets_path("gamma_test.simtel.gz")
+    dataset = get_dataset("gamma_test.simtel.gz")
     source = hessio_event_source(dataset, requested_event=2)
     event = next(source)
     assert event.count == 2

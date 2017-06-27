@@ -3,7 +3,7 @@
 import sys
 import matplotlib.pyplot as plt
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils.datasets import get_datasets_path
+from ctapipe.utils import get_dataset
 from ctapipe.calib import pedestals
 import numpy as np
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_datasets_path("gamma_test.simtel.gz")
+        filename = get_dataset("gamma_test.simtel.gz")
 
     # set a fixed window (for now from samples 20 to the end), which may not
     # be appropriate for all telescopes (this should eventually be

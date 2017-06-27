@@ -1,10 +1,10 @@
 from ctapipe.core import Component
 from ctapipe.io.containers import ReconstructedShowerContainer
 
-__all__ = ['RecoShowerGeomAlgorithm']
+__all__ = ['Reconstructor']
 
 
-class RecoShowerGeomAlgorithm(Component):
+class Reconstructor(Component):
     """This is the base class from which all direction reconstruction
 algorithms should inherit from"""
 

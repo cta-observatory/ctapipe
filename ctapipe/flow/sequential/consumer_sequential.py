@@ -36,8 +36,9 @@ class ConsumerSequential():
 
     def run(self,inputs=None):
         """ Executes coroutine run method
-        Parameters:
-        ===========
+
+        Parameters
+        ----------
         inputs: input for coroutine.run
         """
         self.coroutine.run(inputs)

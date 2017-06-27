@@ -14,10 +14,10 @@ is a Python implementation of the flow-based programming paradigm.
 In flow-based programming, applications are defined as networks of black-box components
 that exchange data across predefined connections.
 These components can be reconnected to form different applications.
-ctapipe-flow executes ctapipe processing modules in a sequantial or multiprocessus environment.
+ctapipe-flow executes ctapipe processing modules in a sequantial or multiprocess environment.
 User implements steps in Python class.
 
-The multiprocessus mode is based on ZeroMQ library (http:queue//zeromq.org) for messages passing between process.
+The multiprocess mode is based on ZeroMQ library (http:queue//zeromq.org) for messages passing between process.
 ZMQ library allows to stay away from class concurrency mechanisms like mutexes,
 critical sections semaphores, while being thread safe.
 Passing data between steps is managed by the router thanks to Pickle serialization.
@@ -178,13 +178,24 @@ the default next_step.
     >>>             elif tel in mst_list
     >>>                 yield(tel,'MST_CALIBRATION')
 
+The `connections` member variable can be used by Producers and stagers in their `run()`
+member method to get the list of connections names.
+For instance, to broadcast an event to all linked stagers:
+
+.. code-block:: python
+
+    >>> def run(self, event):
+    >>>    if event != None:
+    >>>        for connection in self.connections:
+    >>>            yield event, connection
+
 Running the ctapipe-flow
 ========================
 
    *prompt$> ctapipe-flow --config=mypipeconfig.json*
 
 By default it will run the flow based framework in sequential mode.
-Use `--mode=multiprocessus` to run it in a multiprocessus mode.
+Use `--mode=multiprocess` to run it in a multiprocess mode.
 By default it does not send any data to gui. To activate data transmition to gui,
 add `--gui=True` option.
 flow based framework  send its activity to a GUI  on tcp://localhost:5565.
@@ -198,10 +209,10 @@ Execution examples
 
 flow based framework end
 ========================
-In multiprocessus mode ,the main challenge is how to stop all Threads without loosing an inputs.
+In multiprocess mode ,the main challenge is how to stop all Threads without loosing an inputs.
 Indeed, we must ensure that all queues are empty and all processed are waiting for a new entry (not active).
 Because Python Process can not be paused, we can not check that all the queues are empty and at the same time check that all processes are inactive
-So there is a risk that a queue is filled again when we control state of processus.
+So there is a risk that a queue is filled again when we control state of process.
 the choosen solution is:
 1 check that all queues are empty.
 2 check that all processes are waiting for a new job since more that a definied time (5 seconds by default)

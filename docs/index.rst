@@ -44,7 +44,8 @@ General documentation
   development/index
   tools/index
   */index
-
+  FAQ
+  bibliography
 
 Module API Status (relative to next release)
 ============================================
@@ -70,6 +71,37 @@ Module API Status (relative to next release)
 `utils`           **stable**
 `visualization`   **stable**
 ================  ===============
+
+
+Authors (as of 2017-04-28)
+==========================
+(computed from the list of GIT commits)
+
+- Karl Kosack (project lead)
+- Abelardo Moralejo Olaizola
+- Alison Mitchell
+- Christoph Deil              
+- Dan Parsons                 
+- David Landriu               
+- Gernot Maier                 
+- Jason Watson                
+- Jean Jacquemier             
+- Jeremie Decock              
+- Justus Zorn
+- Kai Bruegge                 
+- Maximilian Noethe
+- Markus Gaug
+- Michael Punch               
+- Michele Mastropietro        
+- Miguel Nievas
+- Paulo Cumani
+- Pierre Aubert
+- Raquel de los Reyes         
+- Tarek Hassan                
+- Tino Michael                
+- Wrijupan Bhattacharyya      
+- Raquel de los Reyes
+
 
 
 Development Help

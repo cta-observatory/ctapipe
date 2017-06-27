@@ -6,8 +6,9 @@ from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.charge_extractors import ChargeExtractorFactory
-from ctapipe.io import CameraGeometry
+from ctapipe.calib.camera import CameraCalibrator
+from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 
 
@@ -140,7 +141,7 @@ class DisplayDL1Calib(Tool):
                         max_events='EventFileReaderFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
-                        window_start='ChargeExtractorFactory.window_start',
+                        t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
                         sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
                         sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
@@ -161,10 +162,8 @@ class DisplayDL1Calib(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.file_reader = None
-        self.r1 = None
-        self.dl0 = None
-        self.dl1 = None
+        self.reader = None
+        self.calibrator = None
         self.plotter = None
 
     def setup(self):
@@ -173,29 +172,16 @@ class DisplayDL1Calib(Tool):
 
         reader_factory = EventFileReaderFactory(**kwargs)
         reader_class = reader_factory.get_class()
-        self.file_reader = reader_class(**kwargs)
+        self.reader = reader_class(**kwargs)
 
-        extractor_factory = ChargeExtractorFactory(**kwargs)
-        extractor_class = extractor_factory.get_class()
-        extractor = extractor_class(**kwargs)
-
-        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
-                                               **kwargs)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(**kwargs)
-
-        self.dl0 = CameraDL0Reducer(**kwargs)
-
-        self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
+        self.calibrator = CameraCalibrator(origin=self.reader.origin, **kwargs)
 
         self.plotter = ImagePlotter(**kwargs)
 
     def start(self):
-        source = self.file_reader.read()
+        source = self.reader.read()
         for event in source:
-            self.r1.calibrate(event)
-            self.dl0.reduce(event)
-            self.dl1.calibrate(event)
+            self.calibrator.calibrate(event)
 
             tel_list = event.r0.tels_with_data
 

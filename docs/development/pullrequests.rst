@@ -32,6 +32,15 @@ Note that you can include syntax-highlighted code examples by using 3 back-tics:
    
    ```
 
+Keep in mind
+------------
+
+* make sure you remember to update the **documentation** as well as the code!
+  (see the `docs/` directory), and make sure it builds with no errors (`make
+  doc`)
+
+* Pull requests that cause tests to fail on *Travis* (the continuous
+  integration system) will not be accepted until those tests pass.
 
 
 Accepting a Pull Request
