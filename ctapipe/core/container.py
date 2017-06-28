@@ -1,5 +1,5 @@
 from collections import defaultdict
-from copy import copy
+from copy import deepcopy
 from pprint import pformat
 from textwrap import wrap
 
@@ -119,25 +119,11 @@ class Container(metaclass=ContainerMeta):
         for k, v in fields.items():
             setattr(self, k, v)
 
-    def __getitem__(self, item):
-        return self.__dict__[item]
+    def __getitem__(self, key):
+        return getattr(self, key)
 
     def __setitem__(self, key, value):
-        if hasattr(self.__class__, key):
-            self.__dict__[key] = value
-        else:
-            raise AttributeError("{} has no attribute '{}'"
-                                 .format(self.__class__, key))
-
-    @property
-    def meta(self):
-        """metadata key/values associated with this Container.
-
-        When written to an output file, these will become headers, so
-        should represent data that does not change after the
-        `Container` is constructed.
-        """
-        return self._metadata
+        return setattr(self, key, value)
 
     def items(self):
         """Generator over (key, value) pairs for the items"""
