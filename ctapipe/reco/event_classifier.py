@@ -18,7 +18,7 @@ def proba_drifting(x):
     • f'(0.5) = 1
     • f'(1) = 0
     """
-    return 10*x**3 - 15*x**4 + 6*x**5
+    return 10 * x**3 - 15 * x**4 + 6 * x**5
 
 
 class EventClassifier(RegressorClassifierBase):
@@ -29,14 +29,19 @@ class EventClassifier(RegressorClassifierBase):
     def predict_proba_by_event(self, X):
         predict_proba = []
         for evt in X:
-            tel_probas = []
+            tel_probas = None
+            tel_weights = []
             for cam_id, tels in evt.items():
-                tel_probas = np.append(tel_probas,
-                                       self.model_dict[cam_id].predict_proba(tels),
-                                       axis=0) if tel_probas else \
-                             self.model_dict[cam_id].predict_proba(tels)
+                these_probas = self.model_dict[cam_id].predict_proba(tels)
+                tel_probas = np.append(these_probas, tel_probas, axis=0) \
+                    if tel_probas is not None else these_probas
+                try:
+                    tel_weights += [t.sum_signal_cam / t.impact_dist for t in tels]
+                except:
+                    tel_weights += np.ones_like(tels)
 
-            predict_proba.append(np.mean(proba_drifting(tel_probas), axis=0))
+            predict_proba.append(
+                np.average(proba_drifting(tel_probas), weights=tel_weights, axis=0))
 
         return np.array(predict_proba)
 

@@ -57,7 +57,7 @@ class EnergyRegressor(RegressorClassifierBase):
 
         Returns
         -------
-        dict : 
+        dict :
             dictionary that contains various statistical modes (mean,
             median, standard deviation) of the predicted quantity of
             every telescope for all events.
@@ -74,11 +74,12 @@ class EnergyRegressor(RegressorClassifierBase):
         predict_median = []
         predict_std = []
         for evt in X:
-            res = []
+            predicts = []
+            weights = []
             for cam_id, tels in evt.items():
                 try:
                     t_res = self.model_dict[cam_id].predict(tels).tolist()
-                    res += t_res
+                    predicts += t_res
                 except KeyError:
                     # QUESTION if there is no trained classifier for
                     # `cam_id`, raise an error or just pass this
@@ -86,9 +87,14 @@ class EnergyRegressor(RegressorClassifierBase):
                     raise KeyError("cam_id '{}' in X but no model defined: {}"
                                    .format(cam_id, [k for k in self.model_dict]))
 
-            predict_mean.append(np.mean(res))
-            predict_median.append(np.median(res))
-            predict_std.append(np.std(res))
+                try:
+                    weights += [t.sum_signal_cam / t.impact_dist for t in tels]
+                except:
+                    weights += np.ones_like(tels)
+
+            predict_mean.append(np.average(predicts, weights=weights))
+            predict_median.append(np.median(predicts))
+            predict_std.append(np.std(predicts))
 
         return {"mean": np.array(predict_mean) * self.unit,
                 "median": np.array(predict_median) * self.unit,
