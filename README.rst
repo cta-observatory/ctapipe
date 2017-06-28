@@ -1,6 +1,14 @@
 =======
-ctapipe
+ctapipe |teststatus| |healthstatus| |conda|
 =======
+.. |teststatus| image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
+    :target: https://travis-ci.org/cta-observatory/ctapipe
+    :alt: Test Status
+.. |conda| image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
+.. |healthstatus| image:: https://landscape.io/github/cta-observatory/ctapipe/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/cta-observatory/ctapipe/master
+   :alt: Code Health
+
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
@@ -9,10 +17,6 @@ This is code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an
 expert or developer!
 
-* .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
-    :target: https://travis-ci.org/cta-observatory/ctapipe
-    :alt: Test Status
-* .. image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
 * Example notebooks: https://github.com/cta-observatory/ctapipe/tree/master/examples/notebooks
