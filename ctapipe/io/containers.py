@@ -217,7 +217,7 @@ class ReconstructedShowerContainer(Container):
                        unit=u.m)
     h_max = Item(0.0, 'reconstructed height of the shower maximum')
     h_max_uncert = Item(0.0, 'uncertainty of h_max')
-    is_valid = Item(False, ('direction validity flag. True if the shower direction'
+    is_valid = (False, ('direction validity flag. True if the shower direction'
                         'was properly reconstructed by the algorithm'))
     tel_ids = Item([], ('list of the telescope ids used in the'
                         ' reconstruction of the shower'))
