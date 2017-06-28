@@ -6,8 +6,8 @@ from ctapipe.core import Container, Item, Map
 def test_container():
 
     class ExampleContainer(Container):
-        x = Item(-1,"x value")
-        y = Item(-1,"y value")
+        x = Item(-1, "x value")
+        y = Item(-1, "y value")
 
     cont = ExampleContainer()
     cont2 = ExampleContainer()
@@ -45,6 +45,7 @@ def test_child_containers():
 
     cont = ParentContainer()
     assert cont.child.z == 1
+
 
 def test_map_containers():
 
@@ -84,5 +85,14 @@ def test_container_as_dict():
     assert 'child' in the_dict and 'z' in the_dict['child']
 
 
+def test_container_brackets():
 
+    class TestContainer(Container):
+        answer = Item(-1, "The answer to all questions")
 
+    t = TestContainer()
+
+    t['answer'] = 42
+
+    with pytest.raises(AttributeError):
+        t['foo'] = 5

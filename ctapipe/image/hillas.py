@@ -99,7 +99,6 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
 
     d0 = S_yy - S_xx
     d1 = 2 * S_xy
-    # temp = d * d + 4 * S_xy * S_xy
     d2 = d0 + np.sqrt(d0 * d0 + d1 * d1)
     a = d2 / d1
     # Angle between ellipse major ax. and x-axis of camera.
@@ -255,11 +254,7 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
     # moment) However, this doesn't avoid a temporary created for the
     # 2D array
 
-    # momdata = np.row_stack([pix_x,
-    #                         pix_y,
-    #                         pix_x * pix_x,
-    #                         pix_y * pix_y,
-    #                         pix_x * pix_y]) * image
+
     momdata = static_pix.pixdata * image
     moms = momdata.sum(axis=1) / size
     momdataHO = static_pix.pixdataHO * image
@@ -298,10 +293,6 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
 
     length = np.sqrt((vx2 + vy2 + zz)/ 2.0)
     width  = np.sqrt((vx2 + vy2 - zz)/2.0)
-    # azwidth = np.sqrt(x2m + y2m - zz) #Hillas Azwidth not used anymore
-    # d = y2m - x2m
-    # z = np.sqrt(d * d + 4 * xym * xym)
-    # akwidth = np.sqrt((x2m + y2m - z) / 2.0) # Akerlof azwidth (910112) not used anymore either
 
     # miss, simpler formula for miss introduced CA, 901101; revised MP 910112
 
@@ -502,8 +493,6 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     size = sumsig
     m_x = xm
     m_y = ym
-    length = length
-    width = width
     r = dist
 
     psi = np.arctan2((d + z) * ym + 2.0 * vxy * xm, 2.0 * vxy * ym - (d - z) * xm)
@@ -715,9 +704,8 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     m_x = xm
     m_y = ym
     length = length
-    width = width
     r = dist
-    psi = psi
+
 
     # Note, "skewness" is the same as the Whipple/MP "asymmetry^3", which is fine.
     # ... and also, Whipple/MP "asymmetry" * "length" = MAGIC "asymmetry"
@@ -734,13 +722,7 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
         vxy3 = xy3m - 3.0 * ym * xy2m + 3.0 * ym2 * xym - y3m * xm \
                   + 3.0 * y2m * xmym - 3.0 * ym2 * ym * xm
         vy4 = y4m - 4.0 * ym * y3m + 6.0 * ym2 * y2m - 3.0 * ym2 * ym2
-        # print("vs 4th: x4, x3y, x2y2, xy3, y4", vx4, vx3y, vx2y2, vxy3, vy4)
-        # print("cross check vx4",(image*(pix_x-xm)**4).sum()/sumsig)
-        # print("cross check vx3y",(image*(pix_x-xm)**3*(pix_y-ym)).sum()/sumsig)
-        # print("cross check vx2y2",(image*(pix_x-xm)**2*(pix_y-ym)**2).sum()/sumsig)
-        # print("cross check vxy3",(image*(pix_x-xm)*(pix_y-ym)**3).sum()/sumsig)
-        # print("cross check vy4",(image*(pix_y-ym)**4).sum()/sumsig)
-
+        
         hyp = np.hypot(tanpsi_numer, tanpsi_denom)
         if hyp != 0.:
             cpsi = tanpsi_denom / hyp

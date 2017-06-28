@@ -102,7 +102,8 @@ def make_mock_event_rate(spectrum, bin_edges, log_e=False, norm=None):
     if log_e:
         bin_edges = 10**bin_edges
     for l_edge, h_edge in zip(bin_edges[:-1], bin_edges[1:]):
-        bin_events = integrate.quad(spectrum_value, l_edge.value, h_edge.value)[0]
+        bin_events = integrate.quad(
+            spectrum_value, l_edge.value, h_edge.value)[0]
         rates.append(bin_events)
 
     # units have been strip for the integration. the unit of the result is the unit of the
@@ -265,9 +266,9 @@ class SensitivityPointSource:
 
         if (n_simulated_events is not None and generator_spectra is not None) == \
                 (generator_energy_hists):
-                    raise ValueError("use either (n_simulated_events and generator"
-                                     "_spectra) or generator_energy_hists to set the MC "
-                                     "generated energy spectrum -- not both")
+            raise ValueError("use either (n_simulated_events and generator"
+                             "_spectra) or generator_energy_hists to set the MC "
+                             "generated energy spectrum -- not both")
 
         if not generator_energy_hists:
             generator_energy_hists = {}
@@ -288,14 +289,17 @@ class SensitivityPointSource:
         # binning according to .energy_bin_edges[cl]
         self.selected_events = {}
 
-        # generate the histograms for the energy distributions of the selected events
+        # generate the histograms for the energy distributions of the selected
+        # events
         for cl in self.class_list:
             self.selected_events[cl] = np.histogram(self.mc_energies[cl],
                                                     bins=self.energy_bin_edges[cl])[0]
 
             # the effective areas are the selection efficiencies per energy bin multiplied
-            # by the area in which the Monte Carlo events have been generated in
-            efficiency = self.selected_events[cl] / self.generator_energy_hists[cl]
+            # by the area in which the Monte Carlo events have been generated
+            # in
+            efficiency = self.selected_events[
+                cl] / self.generator_energy_hists[cl]
             self.effective_areas[cl] = efficiency * generator_areas[cl]
 
         return self.effective_areas
@@ -346,7 +350,8 @@ class SensitivityPointSource:
 
         self.event_weights = {}
         for cl in self.class_list:
-            weights = (self.exp_events_per_energy_bin[cl] / self.selected_events[cl]).si
+            weights = (self.exp_events_per_energy_bin[
+                       cl] / self.selected_events[cl]).si
             self.event_weights[cl] = weights[np.clip(
                                 np.digitize(self.mc_energies[cl],
                                             self.energy_bin_edges[cl]) - 1,
@@ -361,7 +366,6 @@ class SensitivityPointSource:
                                observation_time=50 * u.h,
                                generator_gamma=None,
                                extensions=None):
-
         """
         generates a weight for every event
 
@@ -405,9 +409,11 @@ class SensitivityPointSource:
             # `event_weights` in units of 1/time and be later multiplied by different
             # observation times
             self.event_weights[cl] = \
-                (e_w * spectra[cl](self.mc_energies[cl])).to(u.dimensionless_unscaled)
+                (e_w * spectra[cl](self.mc_energies[cl])
+                 ).to(u.dimensionless_unscaled)
 
-            # now, for the fun of it, make an energy-binned histogram of the events
+            # now, for the fun of it, make an energy-binned histogram of the
+            # events
             self.exp_events_per_energy_bin[cl], _ = \
                 np.histogram(self.mc_energies[cl],
                              bins=self.energy_bin_edges[cl],
@@ -457,7 +463,8 @@ class SensitivityPointSource:
         """
 
         # sensitivities go in here
-        sensitivities = Table(names=("Energy", "Sensitivity", "Sensitivity_base"))
+        sensitivities = Table(
+            names=("Energy", "Sensitivity", "Sensitivity_base"))
         try:
             sensitivities["Energy"].unit = sensitivity_energy_bin_edges.unit
         except AttributeError:
@@ -472,13 +479,15 @@ class SensitivityPointSource:
             count_square = lambda mask: np.sum(self.event_weights[cl][mask]**2)
         else:
             # otherwise we simply check the length of the masked energy array
-            # since the weights are 1 here, `count_square` is the same as `count_events`
+            # since the weights are 1 here, `count_square` is the same as
+            # `count_events`
             count_events = lambda mask: len(self.reco_energies[cl][mask])
             count_square = count_events
 
         # loop over all energy bins
         # the bins are spaced logarithmically: use the geometric mean as the bin-centre,
-        # so when plotted logarithmically, they appear at the middle between the bin-edges
+        # so when plotted logarithmically, they appear at the middle between
+        # the bin-edges
         for elow, ehigh, emid in zip(sensitivity_energy_bin_edges[:-1],
                                      sensitivity_energy_bin_edges[1:],
                                      np.sqrt(sensitivity_energy_bin_edges[:-1] *
@@ -494,7 +503,8 @@ class SensitivityPointSource:
                 e_mask = (self.reco_energies[cl] > elow) & \
                          (self.reco_energies[cl] < ehigh)
 
-                # count the events as the sum of their weights within this energy bin
+                # count the events as the sum of their weights within this
+                # energy bin
                 if cl in signal_list:
                     N_events[0] += count_events(e_mask)
                     variance[0] += count_square(e_mask)
@@ -512,7 +522,8 @@ class SensitivityPointSource:
 
             # If we have no counts in the on-region, there is no sensitivity.
             # If on data the background estimate from the off-region is larger than the
-            # counts in the on-region, `sigma_lima` will break! Skip those cases, too.
+            # counts in the on-region, `sigma_lima` will break! Skip those
+            # cases, too.
             if N_events[0] <= 0:
                 continue
 
@@ -532,7 +543,8 @@ class SensitivityPointSource:
             # check if there are sufficient events in this energy bin
             scale *= check_min_n(N_events, min_n=min_n, alpha=alpha)
 
-            # check if the relative amount of protons in this bin is sufficiently small
+            # check if the relative amount of protons in this bin is
+            # sufficiently small
             scale *= check_background_contamination(
                 N_events, alpha=alpha, max_background_ratio=max_background_ratio)
 
@@ -604,9 +616,9 @@ class SensitivityPointSource:
                                     generator_areas=generator_areas)
 
         return self.get_sensitivity(
-                        alpha=alpha, min_n=min_n,
-                        max_background_ratio=max_background_ratio,
-                        sensitivity_energy_bin_edges=sensitivity_energy_bin_edges)
+            alpha=alpha, min_n=min_n,
+            max_background_ratio=max_background_ratio,
+            sensitivity_energy_bin_edges=sensitivity_energy_bin_edges)
 
     @staticmethod
     def generate_toy_timestamps(light_curves, time_window):
@@ -636,7 +648,8 @@ class SensitivityPointSource:
                 # distribution, draw  randomly from it, and sample time stamps within the
                 # `time_window`  accordingly
                 cum_sum = np.cumsum(f)
-                random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
+                random_draws = np.random.uniform(
+                    0, cum_sum[-1], int(cum_sum[-1]))
                 indices = np.digitize(random_draws, cum_sum)
                 time_stamps[cl] = time_window[0] + indices * (time_window[1] -
                                                               time_window[0]) / len(f)
