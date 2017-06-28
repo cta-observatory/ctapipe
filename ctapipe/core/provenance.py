@@ -7,19 +7,18 @@ TODO: have this register whenever ctapipe is loaded
 
 import json
 import logging
+import os
 import platform
 import sys
 import uuid
-import os
-from os.path import abspath
 from contextlib import contextmanager
+from os.path import abspath
 
-import ctapipe
 import ctapipe_resources
-import numpy as np
 import psutil
 from astropy.time import Time
 
+import ctapipe
 from .support import Singleton
 
 log = logging.getLogger(__name__)

@@ -6,8 +6,8 @@ from ctapipe.core import Container, Item, Map
 def test_container():
 
     class ExampleContainer(Container):
-        x = Item(-1,"x value")
-        y = Item(-1,"y value")
+        x = Item(-1, "x value")
+        y = Item(-1, "y value")
 
     cont = ExampleContainer()
     cont2 = ExampleContainer()
@@ -46,6 +46,7 @@ def test_child_containers():
     cont = ParentContainer()
     assert cont.child.z == 1
 
+
 def test_map_containers():
 
     class ChildContainer(Container):
@@ -82,7 +83,3 @@ def test_container_as_dict():
 
     assert 'child_z' in the_flat_dict
     assert 'child' in the_dict and 'z' in the_dict['child']
-
-
-
-

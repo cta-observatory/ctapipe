@@ -30,7 +30,7 @@ def crab_source_rate(energy):
         differential flux at E
 
     '''
-    return 3e-7 * (energy/u.TeV)**-2.5 / (u.TeV * u.m**2 * u.s)
+    return 3e-7 * (energy / u.TeV)**-2.5 / (u.TeV * u.m**2 * u.s)
 
 
 def CR_background_rate(energy):
@@ -51,7 +51,7 @@ def CR_background_rate(energy):
         differential flux at E
 
     '''
-    return 100 * 0.1**(8./3) * (energy/u.TeV)**(-8./3) / (u.TeV * u.m**2 * u.s * u.sr)
+    return 100 * 0.1**(8. / 3) * (energy / u.TeV)**(-8. / 3) / (u.TeV * u.m**2 * u.s * u.sr)
 
 
 def Eminus2(energy, unit=u.TeV):
@@ -69,7 +69,7 @@ def Eminus2(energy, unit=u.TeV):
         differential flux at E
 
     '''
-    return (energy/unit)**(-2) / (unit * u.s * u.m**2)
+    return (energy / unit)**(-2) / (unit * u.s * u.m**2)
 
 
 def make_mock_event_rate(spectrum, bin_edges, e_unit=u.TeV, log_e=False, norm=None):
@@ -107,17 +107,18 @@ def make_mock_event_rate(spectrum, bin_edges, e_unit=u.TeV, log_e=False, norm=No
     if log_e:
         bin_edges = 10**bin_edges
     for l_edge, h_edge in zip(bin_edges[:-1], bin_edges[1:]):
-        bin_events = integrate.quad(spectrum_value, l_edge.value, h_edge.value)[0]
+        bin_events = integrate.quad(
+            spectrum_value, l_edge.value, h_edge.value)[0]
         rates.append(bin_events)
 
     # units have been strip for the integration. the unit of the result is the unit of the
     # function: spectrum(e) times the unit of the integrant: e -- for the latter use the
     # first entry in `bin_edges`
-    rates = np.array(rates)*spectrum(bin_edges[0]).unit * bin_edges[0].unit
+    rates = np.array(rates) * spectrum(bin_edges[0]).unit * bin_edges[0].unit
 
     # if `norm` is given renormalise the sum of the `rates`-bins to this value
     if norm:
-        rates *= norm/np.sum(rates)
+        rates *= norm / np.sum(rates)
 
     return rates
 
@@ -148,9 +149,9 @@ def sigma_lima(Non, Noff, alpha=0.2):
     term1 = Non
     term2 = Noff
     if Non > 0:
-        term1 *= np.log((alpha1/alpha)*arg1)
+        term1 *= np.log((alpha1 / alpha) * arg1)
     if Noff > 0:
-        term2 *= np.log(alpha1*arg2)
+        term2 *= np.log(alpha1 * arg2)
     sigma = np.sqrt(2.0 * (term1 + term2))
 
     return sigma
@@ -188,19 +189,12 @@ def diff_to_X_sigma(scale, N, alpha, X=5):
         significance of `X` sigma
     """
 
-    Non = N[1]*alpha + N[0]*scale[0]
+    Non = N[1] * alpha + N[0] * scale[0]
     Noff = N[1]
     sigma = sigma_lima(Non, Noff, alpha)
-    return (sigma-X)**2
+    return (sigma - X)**2
 
 
-#   ######  ##          ###     ######   ######
-#  ##    ## ##         ## ##   ##    ## ##    ##
-#  ##       ##        ##   ##  ##       ##
-#  ##       ##       ##     ##  ######   ######
-#  ##       ##       #########       ##       ##
-#  ##    ## ##       ##     ## ##    ## ##    ##
-#   ######  ######## ##     ##  ######   ######
 class SensitivityPointSource:
     """
     class to calculate effective areas and the sensitivity to a known point-source
@@ -226,7 +220,7 @@ class SensitivityPointSource:
     """
 
     def __init__(self, reco_energies=None, mc_energies=None, energy_bin_edges=None,
-                 energy_unit=u.TeV, flux_unit=1/(u.TeV*u.m**2*u.s)):
+                 energy_unit=u.TeV, flux_unit=1 / (u.TeV * u.m**2 * u.s)):
 
         self.reco_energies = reco_energies
         self.mc_energies = mc_energies
@@ -277,9 +271,9 @@ class SensitivityPointSource:
 
         if (n_simulated_events is not None and generator_spectra is not None) == \
                 (generator_energy_hists):
-                    raise ValueError("use either (n_simulated_events and generator"
-                                     "_spectra) or generator_energy_hists to set the MC "
-                                     "generated energy spectrum -- not both")
+            raise ValueError("use either (n_simulated_events and generator"
+                             "_spectra) or generator_energy_hists to set the MC "
+                             "generated energy spectrum -- not both")
 
         if not generator_energy_hists:
             # generate the histograms for the energy distributions of the Monte Carlo
@@ -287,8 +281,8 @@ class SensitivityPointSource:
             # events
             for cl in self.class_list:
                 generator_energy_hists[cl] = make_mock_event_rate(
-                                    generator_spectra[cl], norm=n_simulated_events[cl],
-                                    bin_edges=self.energy_bin_edges[cl], log_e=False)
+                    generator_spectra[cl], norm=n_simulated_events[cl],
+                    bin_edges=self.energy_bin_edges[cl], log_e=False)
         self.generator_energy_hists = generator_energy_hists
 
         # an energy-binned histogram of the effective areas
@@ -299,22 +293,25 @@ class SensitivityPointSource:
         # binning according to .energy_bin_edges[cl]
         self.selected_events = {}
 
-        # generate the histograms for the energy distributions of the selected events
+        # generate the histograms for the energy distributions of the selected
+        # events
         for cl in self.class_list:
             self.selected_events[cl] = np.histogram(self.mc_energies[cl],
                                                     bins=self.energy_bin_edges[cl])[0]
 
             # the effective areas are the selection efficiencies per energy bin multiplied
-            # by the area in which the Monte Carlo events have been generated in
-            efficiency = self.selected_events[cl] / self.generator_energy_hists[cl]
+            # by the area in which the Monte Carlo events have been generated
+            # in
+            efficiency = self.selected_events[
+                cl] / self.generator_energy_hists[cl]
             self.effective_areas[cl] = efficiency * generator_areas[cl]
 
         return self.effective_areas
 
     def generate_event_weights_histogram(self, spectra={'g': crab_source_rate,
                                                         'p': CR_background_rate},
-                                         extensions={'p': 6*u.deg},
-                                         observation_time=50*u.h):
+                                         extensions={'p': 6 * u.deg},
+                                         observation_time=50 * u.h):
         """
         given a source rate and the effective area, calculates the number of expected
         events within a given observation time
@@ -347,7 +344,7 @@ class SensitivityPointSource:
             event_rate = make_mock_event_rate(spectra[cl], log_e=False,
                                               bin_edges=self.energy_bin_edges[cl])
             if cl in extensions:
-                omega = 2*np.pi*(1 - np.cos(extensions[cl]))*u.rad**2
+                omega = 2 * np.pi * (1 - np.cos(extensions[cl])) * u.rad**2
                 event_rate *= omega
 
             self.exp_events_per_energy_bin[cl] = (event_rate * observation_time *
@@ -355,11 +352,12 @@ class SensitivityPointSource:
 
         self.event_weights = {}
         for cl in self.class_list:
-            weights = (self.exp_events_per_energy_bin[cl] / self.selected_events[cl]).si
+            weights = (self.exp_events_per_energy_bin[
+                       cl] / self.selected_events[cl]).si
             self.event_weights[cl] = weights[np.clip(
-                                np.digitize(self.mc_energies[cl],
-                                            self.energy_bin_edges[cl])-1,
-                                0, len(self.energy_bin_edges[cl])-2)]
+                np.digitize(self.mc_energies[cl],
+                            self.energy_bin_edges[cl]) - 1,
+                0, len(self.energy_bin_edges[cl]) - 2)]
 
             self.event_weights[cl] = np.array(self.event_weights[cl])
 
@@ -367,10 +365,9 @@ class SensitivityPointSource:
 
     def generate_event_weights(self, n_simulated_events, e_min_max, spectra,
                                generator_areas,
-                               extensions={'p': 6*u.deg},
-                               observation_time=50*u.h,
+                               extensions={'p': 6 * u.deg},
+                               observation_time=50 * u.h,
                                generator_gamma={"g": 2, "p": 2}):
-
         """
         generates a weight for every event
 
@@ -392,14 +389,14 @@ class SensitivityPointSource:
         for cl in self.class_list:
             # event weights for a flat energy distribution
             e_w = (self.mc_energies[cl])**generator_gamma[cl] \
-                  * (e_min_max[cl][1]**(1-generator_gamma[cl]) -
-                     e_min_max[cl][0]**(1-generator_gamma[cl])) / \
-                    (1-generator_gamma[cl]) \
-                  * generator_areas[cl] \
-                  * (1 if (cl not in extensions) else
-                     2*np.pi*(1-np.cos(extensions[cl]))*u.rad**2) \
-                  * observation_time \
-                  / n_simulated_events[cl]
+                * (e_min_max[cl][1]**(1 - generator_gamma[cl]) -
+                   e_min_max[cl][0]**(1 - generator_gamma[cl])) / \
+                (1 - generator_gamma[cl]) \
+                * generator_areas[cl] \
+                * (1 if (cl not in extensions) else
+                   2 * np.pi * (1 - np.cos(extensions[cl])) * u.rad**2) \
+                * observation_time \
+                / n_simulated_events[cl]
 
             # multiply these flat event weights by the flux to get weights corresponding
             # to the number of expected events from that flux
@@ -411,9 +408,11 @@ class SensitivityPointSource:
             # `event_weights` in units of 1/time and be later multiplied by different
             # observation times
             self.event_weights[cl] = \
-                (e_w * spectra[cl](self.mc_energies[cl])).to(u.dimensionless_unscaled)
+                (e_w * spectra[cl](self.mc_energies[cl])
+                 ).to(u.dimensionless_unscaled)
 
-            # now, for the fun of it, make an energy-binned histogram of the events
+            # now, for the fun of it, make an energy-binned histogram of the
+            # events
             self.exp_events_per_energy_bin[cl], _ = \
                 np.histogram(self.mc_energies[cl],
                              bins=self.energy_bin_edges[cl],
@@ -463,7 +462,8 @@ class SensitivityPointSource:
         """
 
         # sensitivities go in here
-        sensitivities = Table(names=("Energy", "Sensitivity", "Sensitivity_base"))
+        sensitivities = Table(
+            names=("Energy", "Sensitivity", "Sensitivity_base"))
         try:
             sensitivities["Energy"].unit = sensitivity_energy_bin_edges.unit
         except AttributeError:
@@ -478,13 +478,15 @@ class SensitivityPointSource:
             count_square = lambda mask: np.sum(self.event_weights[cl][mask]**2)
         else:
             # otherwise we simply check the length of the masked energy array
-            # since the weights are 1 here, `count_square` is the same as `count_events`
+            # since the weights are 1 here, `count_square` is the same as
+            # `count_events`
             count_events = lambda mask: len(self.reco_energies[cl][mask])
             count_square = count_events
 
         # loop over all energy bins
         # the bins are spaced logarithmically: use the geometric mean as the bin-centre,
-        # so when plotted logarithmically, they appear at the middle between the bin-edges
+        # so when plotted logarithmically, they appear at the middle between
+        # the bin-edges
         for elow, ehigh, emid in zip(sensitivity_energy_bin_edges[:-1],
                                      sensitivity_energy_bin_edges[1:],
                                      np.sqrt(sensitivity_energy_bin_edges[:-1] *
@@ -500,7 +502,8 @@ class SensitivityPointSource:
                 e_mask = (self.reco_energies[cl] > elow) & \
                          (self.reco_energies[cl] < ehigh)
 
-                # count the events as the sum of their weights within this energy bin
+                # count the events as the sum of their weights within this
+                # energy bin
                 if cl in signal_list:
                     N_events[0] += count_events(e_mask)
                     variance[0] += count_square(e_mask)
@@ -512,13 +515,15 @@ class SensitivityPointSource:
                 # the background estimate for the on-region is `alpha` times the
                 # background in the off-region
                 # if running on data, the signal estimate for the on-region is the counts
-                # in the on-region minus the background estimate for the on-region
-                N_events[0] -= N_events[1]*alpha
-                variance[0] -= variance[1]*alpha
+                # in the on-region minus the background estimate for the
+                # on-region
+                N_events[0] -= N_events[1] * alpha
+                variance[0] -= variance[1] * alpha
 
             # If we have no counts in the on-region, there is no sensitivity.
             # If on data the background estimate from the off-region is larger than the
-            # counts in the on-region, `sigma_lima` will break! Skip those cases, too.
+            # counts in the on-region, `sigma_lima` will break! Skip those
+            # cases, too.
             if N_events[0] <= 0:
                 continue
 
@@ -538,16 +543,17 @@ class SensitivityPointSource:
             # check if there are sufficient events in this energy bin
             scale *= check_min_n(N_events, min_n=min_n, alpha=alpha)
 
-            # check if the relative amount of protons in this bin is sufficiently small
+            # check if the relative amount of protons in this bin is
+            # sufficiently small
             scale *= check_background_contamination(
-                    N_events, alpha=alpha, max_background_ratio=max_background_ratio)
+                N_events, alpha=alpha, max_background_ratio=max_background_ratio)
 
             # get the flux at the bin centre
             flux = sensitivity_source_flux(emid).to(self.flux_unit)
 
             # and scale it up by the determined factor
-            sensitivity = flux*scale
-            sensitivity_base = flux*scale_base
+            sensitivity = flux * scale
+            sensitivity_base = flux * scale_base
 
             # store results in table
             sensitivities.add_row([emid, sensitivity, sensitivity_base])
@@ -562,15 +568,16 @@ class SensitivityPointSource:
                                 generator_energy_hists={},
 
                                 # arguments for `generate_event_weights`
-                                extensions={'p': 6*u.deg},
-                                observation_time=50*u.h,
+                                extensions={'p': 6 * u.deg},
+                                observation_time=50 * u.h,
                                 generator_gamma=None,
                                 e_min_max=None,
                                 spectra=None,
 
                                 # arguments for `get_sensitivity`
                                 reco_energies=None,
-                                sensitivity_energy_bin_edges=np.logspace(-1, 3, 17)*u.TeV,
+                                sensitivity_energy_bin_edges=np.logspace(
+                                    -1, 3, 17) * u.TeV,
                                 alpha=1, min_n=10, max_background_ratio=.05,
                                 ):
         """
@@ -606,9 +613,9 @@ class SensitivityPointSource:
                                     generator_areas=generator_areas)
 
         return self.get_sensitivity(
-                        alpha=alpha, min_n=min_n,
-                        max_background_ratio=max_background_ratio,
-                        sensitivity_energy_bin_edges=sensitivity_energy_bin_edges)
+            alpha=alpha, min_n=min_n,
+            max_background_ratio=max_background_ratio,
+            sensitivity_energy_bin_edges=sensitivity_energy_bin_edges)
 
     @staticmethod
     def generate_toy_timestamps(light_curves, time_window):
@@ -638,7 +645,8 @@ class SensitivityPointSource:
                 # distribution, draw  randomly from it, and sample time stamps within the
                 # `time_window`  accordingly
                 cum_sum = np.cumsum(f)
-                random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]))
+                random_draws = np.random.uniform(
+                    0, cum_sum[-1], int(cum_sum[-1]))
                 indices = np.digitize(random_draws, cum_sum)
                 time_stamps[cl] = time_window[0] + indices * (time_window[1] -
                                                               time_window[0]) / len(f)
@@ -658,18 +666,19 @@ class SensitivityPointSource:
 
             # rounding errors can make the sum slightly smaller than intended
             # add a small epsilon to push above that number
-            random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]+1e-5))
+            random_draws = np.random.uniform(
+                0, cum_sum[-1], int(cum_sum[-1] + 1e-5))
 
             cumsum_indices = np.digitize(random_draws, cum_sum)
 
             cum_sums_up = cum_sum[cumsum_indices]
-            cum_sums_lo = cum_sum[cumsum_indices-1]
+            cum_sums_lo = cum_sum[cumsum_indices - 1]
 
             energies_up = energy_bin_edges[cl][cumsum_indices]
-            energies_lo = energy_bin_edges[cl][cumsum_indices-1]
+            energies_lo = energy_bin_edges[cl][cumsum_indices - 1]
 
-            drawn_energies = energies_lo + (random_draws-cum_sums_lo) * \
-                (energies_up-energies_lo) / (cum_sums_up-cum_sums_lo)
+            drawn_energies = energies_lo + (random_draws - cum_sums_lo) * \
+                (energies_up - energies_lo) / (cum_sums_up - cum_sums_lo)
 
             # here be numpy magic:
             # `drawn_energies[:, np.newaxis]` enables the broadcast to `mc_energies`
@@ -719,10 +728,10 @@ def check_min_n(n, alpha=1, min_n=10):
         factor to scale up gamma events if insuficently many events present
     """
 
-    n_signal, n_backgr = n[0], n[1]*alpha
+    n_signal, n_backgr = n[0], n[1] * alpha
 
     if n_signal + n_backgr < min_n:
-        scale_a = (min_n-n_backgr) / n_signal
+        scale_a = (min_n - n_backgr) / n_signal
         n[0] *= scale_a
         return scale_a
     else:
@@ -751,11 +760,11 @@ def check_background_contamination(n, alpha=1, max_background_ratio=.05):
         factor to scale up gamma events if too high proton contamination
     """
 
-    n_signal, n_backgr = n[0], n[1]*alpha
+    n_signal, n_backgr = n[0], n[1] * alpha
 
     n_tot = n_signal + n_backgr
     if n_backgr / n_tot > max_background_ratio:
-        scale_r = (1/max_background_ratio - 1) * n_backgr / n_signal
+        scale_r = (1 / max_background_ratio - 1) * n_backgr / n_signal
         n[0] *= scale_r
         return scale_r
     else:
