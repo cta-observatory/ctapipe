@@ -4,7 +4,7 @@ import scipy.stats
 
 from ctapipe.analysis.sensitivity import SensitivityPointSource
 from ctapipe.analysis.sensitivity import (check_min_n, check_background_contamination,
-                                          CR_background_rate, Eminus2, sigma_lima,
+                                          cr_background_rate, e_minus_2, sigma_lima,
                                           make_mock_event_rate, crab_source_rate)
 
 
