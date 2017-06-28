@@ -31,7 +31,7 @@ _CAMERA_GEOMETRY_TABLE = {
     (2048, 36.0): ('LST', 'HESS-II', 'hexagonal', 0 * u.degree,
                    0 * u.degree),
     (960, None): ('MST', 'HESS-I', 'hexagonal', 0 * u.degree,
-                   0 * u.degree),
+                  0 * u.degree),
     (1855, 16.0): ('MST', 'NectarCam', 'hexagonal',
                    0 * u.degree, -100.893 * u.degree),
     (1855, 28.0): ('LST', 'LSTCam', 'hexagonal',
@@ -56,13 +56,13 @@ class CameraGeometry:
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
-    
+
     You can construct a CameraGeometry either by specifying all data, 
     or using the `CameraGeometry.guess()` constructor, which takes metadata 
     like the pixel positions and telescope focal length to look up the rest 
     of the data. Note that this function is memoized, so calling it multiple 
     times with the same inputs will give back the same object (for speed).
-    
+
     """
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
@@ -114,14 +114,13 @@ class CameraGeometry:
             if len(pix_x.shape) == 1:
                 self.rotate(cam_rotation)
 
-
     def __eq__(self, other):
-        return ( (self.cam_id == other.cam_id)
-                 and (self.pix_x == other.pix_x).all()
-                 and (self.pix_y == other.pix_y).all()
-                 and (self.pix_type == other.pix_type)
-                 and (self.pix_rotation == other.pix_rotation)
-                 and (self.pix_type == other.pix_type)
+        return ((self.cam_id == other.cam_id)
+                and (self.pix_x == other.pix_x).all()
+                and (self.pix_y == other.pix_y).all()
+                and (self.pix_type == other.pix_type)
+                and (self.pix_rotation == other.pix_rotation)
+                and (self.pix_type == other.pix_type)
                 )
 
     @classmethod
@@ -168,7 +167,7 @@ class CameraGeometry:
     @staticmethod
     def _calc_pixel_area(pix_x, pix_y, pix_type):
         """ recalculate pixel area based on the pixel type and layout
-        
+
         Note this will not work on cameras with varying pixel sizes.
         """
 
@@ -190,7 +189,7 @@ class CameraGeometry:
         Returns a list of camera_ids that are registered in 
         `ctapipe_resources`. These are all the camera-ids that can be 
         instantiated by the `from_name` method
-     
+
         Parameters
         ----------
         array_id: str 
@@ -204,16 +203,15 @@ class CameraGeometry:
         pattern = "(.*)\.camgeom\.fits(\.gz)?"
         return find_all_matching_datasets(pattern, regexp_group=1)
 
-
     @classmethod
     def from_name(cls, camera_id='NectarCam', version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
-        
+
         This expects that there is a resource in the `ctapipe_resources` module
         called "[array]-[camera].camgeom.fits.gz" or "[array]-[camera]-[
         version].camgeom.fits.gz"
-        
+
         Parameters
         ----------
         camera_id: str
@@ -237,7 +235,6 @@ class CameraGeometry:
                                .format(camera_id=camera_id, verstr=verstr))
         return CameraGeometry.from_table(filename)
 
-
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
         # currently the neighbor list is not supported, since
@@ -250,24 +247,23 @@ class CameraGeometry:
                                CAM_ID=self.cam_id,
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
-                ))
-
+                               ))
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
         Load a CameraGeometry from an `astropy.table.Table` instance or a 
         file that is readable by `astropy.table.Table.read()`
-         
+
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
-        
+
         format: str
             astropy.table format string (e.g. 'ascii.ecsv') in case the 
             format cannot be determined from the file extension
-            
+
         kwargs: extra keyword arguments
             extra arguments passed to `astropy.table.read()`, depending on 
             file type (e.g. format, hdu, path)
@@ -291,15 +287,14 @@ class CameraGeometry:
         )
 
     def __str__(self):
-        tab = self.to_table()
         return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
                "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})".format(
-            cam_id=self.cam_id,
-            pix_type=self.pix_type,
-            npix=len(self.pix_id),
-            pixrot=self.pix_rotation,
-            camrot=self.cam_rotation
-        )
+                   cam_id=self.cam_id,
+                   pix_type=self.pix_type,
+                   npix=len(self.pix_id),
+                   pixrot=self.pix_rotation,
+                   camrot=self.cam_rotation
+               )
 
     @lazyproperty
     def neighbors(self):
@@ -463,8 +458,7 @@ def _guess_camera_type(npix, optical_foclen):
     except KeyError:
         return _CAMERA_GEOMETRY_TABLE.get((npix, round(optical_foclen.value, 1)),
                                           ('unknown', 'unknown', 'hexagonal',
-                                  0 * u.degree, 0 * u.degree))
-
+                                           0 * u.degree, 0 * u.degree))
 
 
 def _neighbor_list_to_matrix(neighbors):
@@ -486,11 +480,11 @@ def _neighbor_list_to_matrix(neighbors):
 def get_camera_types(inst):
     """ return dict of camera names mapped to a list of tel_ids
      that use that camera
-     
+
      Parameters
      ----------
      inst: instument Container
-     
+
      """
 
     cam_types = defaultdict(list)
@@ -510,7 +504,7 @@ def print_camera_types(inst, printer=print):
     Print out a friendly table of which camera types are registered in the 
     inst dictionary (from a hessio file), along with their starting and 
     stopping tel_ids.
-    
+
     Parameters
     ----------
     inst: ctapipe.io.containers.InstrumentContainer

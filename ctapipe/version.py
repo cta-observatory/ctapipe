@@ -104,6 +104,7 @@ def format_git_describe(git_str, pep440=False):
 
     return formatted_str
 
+
 def read_release_version():
     """Read version information from VERSION file"""
     try:
@@ -111,7 +112,7 @@ def read_release_version():
         if len(version) == 0:
             version = None
         return version
-    except ModuleNotFoundError:
+    except ImportError:
         return "unknown"
 
 

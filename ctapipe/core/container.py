@@ -79,7 +79,7 @@ class Container:
             self.__dict__[key] = value
         else:
             raise AttributeError("{} has no attribute '{}'"
-                .format(self.__class__,key))
+                                 .format(self.__class__, key))
 
     @property
     def meta(self):
@@ -101,8 +101,8 @@ class Container:
 
     def items(self):
         """dict-like access, but skip any hidden items like _metadata"""
-        return ( (k,v) for k,v in self.__dict__.items()
-                 if not k.startswith('_') )
+        return ((k, v) for k, v in self.__dict__.items()
+                if not k.startswith('_'))
 
     def as_dict(self, recursive=False, flatten=False):
         """
@@ -121,7 +121,8 @@ class Container:
         else:
             d = dict()
             for key, val in self.items():
-                if key.startswith("_"): continue
+                if key.startswith("_"):
+                    continue
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({"{}_{}".format(key, k): v
@@ -158,22 +159,21 @@ class Container:
         for key in values:
             self[key] = values[key]
 
-
     def __str__(self):
         return pformat(self.as_dict(recursive=True))
 
     def __repr__(self):
-        text = ["{}.{}:".format(type(self).__module__,type(self).__name__),]
+        text = ["{}.{}:".format(type(self).__module__, type(self).__name__), ]
         for name, item in self.attributes.items():
             extra = ""
             if isinstance(self.__dict__[name], Container):
                 extra = ".*"
             if isinstance(self.__dict__[name], Map):
                 extra = "[*]"
-            desc = "{:>30s}: {}".format(name+extra, repr(item))
-            lines = wrap(desc, 80, subsequent_indent=' '*32)
+            desc = "{:>30s}: {}".format(name + extra, repr(item))
+            lines = wrap(desc, 80, subsequent_indent=' ' * 32)
             text.extend(lines)
-        return  "\n".join(text)
+        return "\n".join(text)
 
 
 class Map(defaultdict):
@@ -228,8 +228,7 @@ class Item:
         self.unit = unit
 
     def __repr__(self):
-        desc= '{}'.format(self.description)
+        desc = '{}'.format(self.description)
         if self.unit is not None:
             desc += ' [{}]'.format(self.unit)
         return desc
-

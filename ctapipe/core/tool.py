@@ -1,18 +1,22 @@
+import logging
 from abc import abstractmethod
 
 from traitlets import Unicode
 from traitlets.config import Application
-import logging
+
 logging.basicConfig(level=logging.WARNING)
 
 from ctapipe import __version__ as version
 from .logging import ColoredFormatter
 from . import Provenance
 
+
 class ToolConfigurationError(Exception):
+
     def __init__(self, message):
         # Call the base class constructor with the parameters it needs
         self.message = message
+
 
 class Tool(Application):
     """A base class for all executable tools (applications) that handles
@@ -97,8 +101,8 @@ class Tool(Application):
     """
 
     config_file = Unicode(u'', help=("name of a configuration file with "
-                                "parameters to load in addition to "
-                                "command-line parameters")).tag(config=True)
+                                     "parameters to load in addition to "
+                                     "command-line parameters")).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -112,8 +116,6 @@ class Tool(Application):
         self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
-
-
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
@@ -178,7 +180,6 @@ class Tool(Application):
                                          status='interrupted')
         finally:
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
-
 
     @property
     def version_string(self):
