@@ -1,7 +1,7 @@
 doc-warnings: false
 test-warnings: false
 strictness: medium
-max-line-length: 110
+max-line-length: 90
 autodetect: true
 ignore-paths:
   - docs
@@ -10,3 +10,13 @@ ignore-patterns:
   - (^|/)docs(/|$)
 python-targets:
   - 3
+pep8:
+  disable:
+    - W291,
+    - E303
+    - W391
+    - F403
+    - F401
+    - W503
+  options:
+    max-line-length: 90
