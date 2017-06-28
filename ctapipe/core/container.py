@@ -31,8 +31,8 @@ class Container:
     subclass the Container base class
 
     >>>    class MyContainer(Container):
-    >>>        x = Item(100,"The X value")
-    >>>        energy = Item(-1, "Energy measurement", unit=u.TeV)
+    >>>        x = Field(100,"The X value")
+    >>>        energy = Field(-1, "Energy measurement", unit=u.TeV)
     >>>
     >>>    cont = MyContainer()
     >>>    print(cont.x)
@@ -92,12 +92,12 @@ class Container:
         return self._metadata
 
     @property
-    def attributes(self):
+    def fields(self):
         """
-        a dict of the Item metadata of each attribute.
+        a dict of the Field metadata of each attribute.
         """
         return {key: val for key, val in self.__class__.__dict__.items()
-                if isinstance(val, Item)}
+                if isinstance(val, Field)}
 
     def items(self):
         """dict-like access, but skip any hidden items like _metadata"""
@@ -146,7 +146,7 @@ class Container:
     def reset(self, recursive=True):
         """ set all values back to their default values"""
         for name, value in self.__class__.__dict__.items():
-            if isinstance(value, Item):
+            if isinstance(value, Field):
                 self.__dict__[name] = copy(value.default)
             if recursive and isinstance(value, Container):
                 value.reset()
@@ -164,7 +164,7 @@ class Container:
 
     def __repr__(self):
         text = ["{}.{}:".format(type(self).__module__, type(self).__name__), ]
-        for name, item in self.attributes.items():
+        for name, item in self.fields.items():
             extra = ""
             if isinstance(self.__dict__[name], Container):
                 extra = ".*"
@@ -205,7 +205,7 @@ class Map(defaultdict):
                 val.reset(recursive=True)
 
 
-class Item:
+class Field:
     """
     Defines the metadata associated with a value in a Container
 
