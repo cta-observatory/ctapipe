@@ -1,13 +1,13 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import pytest
-from ctapipe.core import Container, Item, Map
+from ctapipe.core import Container, Field, Map
 
 
 def test_container():
 
     class ExampleContainer(Container):
-        x = Item(-1, "x value")
-        y = Item(-1, "y value")
+        x = Field(-1, "x value")
+        y = Field(-1, "y value")
 
     cont = ExampleContainer()
     cont2 = ExampleContainer()
@@ -37,11 +37,11 @@ def test_container():
 
 def test_child_containers():
     class ChildContainer(Container):
-        z = Item(1, "sub-item")
+        z = Field(1, "sub-item")
 
     class ParentContainer(Container):
-        x = Item(0, "some value")
-        child = Item(ChildContainer(), "a child")
+        x = Field(0, "some value")
+        child = Field(ChildContainer(), "a child")
 
     cont = ParentContainer()
     assert cont.child.z == 1
@@ -50,11 +50,11 @@ def test_child_containers():
 def test_map_containers():
 
     class ChildContainer(Container):
-        z = Item(1, "sub-item")
+        z = Field(1, "sub-item")
 
     class ParentContainer(Container):
-        x = Item(0, "some value")
-        children = Item(Map(), "map of tel_id to child")
+        x = Field(0, "some value")
+        children = Field(Map(), "map of tel_id to child")
 
     cont = ParentContainer()
     cont.children[10] = ChildContainer()
@@ -70,11 +70,11 @@ def test_map_containers():
 def test_container_as_dict():
 
     class ChildContainer(Container):
-        z = Item(1, "sub-item")
+        z = Field(1, "sub-item")
 
     class ParentContainer(Container):
-        x = Item(0, "some value")
-        child = Item(ChildContainer(), "a child")
+        x = Field(0, "some value")
+        child = Field(ChildContainer(), "a child")
 
     cont = ParentContainer()
 
@@ -88,7 +88,7 @@ def test_container_as_dict():
 def test_container_brackets():
 
     class TestContainer(Container):
-        answer = Item(-1, "The answer to all questions")
+        answer = Field(-1, "The answer to all questions")
 
     t = TestContainer()
 

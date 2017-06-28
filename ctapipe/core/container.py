@@ -158,12 +158,12 @@ class Container(metaclass=ContainerMeta):
 
     def reset(self, recursive=True):
         """ set all values back to their default values"""
-        for name, value in self.meta.items():
+        for name, value in self.fields.items():
             if isinstance(value, Container):
                 if recursive:
                     getattr(self, name).reset()
             else:
-                setattr(self, name, deepcopy(self.meta[name].default))
+                setattr(self, name, deepcopy(self.fields[name].default))
 
     def update(self, **values):
         """
@@ -178,7 +178,7 @@ class Container(metaclass=ContainerMeta):
 
     def __repr__(self):
         text = ["{}.{}:".format(type(self).__module__, type(self).__name__)]
-        for name, item in self._items.items():
+        for name, item in self.fields.items():
             extra = ""
             if isinstance(item, Container):
                 extra = ".*"
