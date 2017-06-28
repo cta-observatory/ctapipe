@@ -83,3 +83,16 @@ def test_container_as_dict():
 
     assert 'child_z' in the_flat_dict
     assert 'child' in the_dict and 'z' in the_dict['child']
+
+
+def test_container_brackets():
+
+    class TestContainer(Container):
+        answer = Item(-1, "The answer to all questions")
+
+    t = TestContainer()
+
+    t['answer'] = 42
+
+    with pytest.raises(AttributeError):
+        t['foo'] = 5
