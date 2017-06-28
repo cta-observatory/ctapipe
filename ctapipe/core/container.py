@@ -101,7 +101,7 @@ class Container(metaclass=ContainerMeta):
     of this can be found in `ctapipe.io.containers`
 
     `Containers` work by shadowing all class variables (which must be
-    instances of `Item`) with instance variables of the same name the
+    instances of `Field`) with instance variables of the same name the
     hold the value expected. If `Container.reset()` is called, all
     instance variables are reset to their default values as defined in
     the class.
@@ -192,9 +192,9 @@ class Container(metaclass=ContainerMeta):
         text = ["{}.{}:".format(type(self).__module__, type(self).__name__)]
         for name, item in self.fields.items():
             extra = ""
-            if isinstance(self.__dict__[name], Container):
+            if isinstance(getattr(self, name), Container):
                 extra = ".*"
-            if isinstance(self.__dict__[name], Map):
+            if isinstance(getattr(self, name), Map):
                 extra = "[*]"
             desc = "{:>30s}: {}".format(name + extra, repr(item))
             lines = wrap(desc, 80, subsequent_indent=' ' * 32)
@@ -229,32 +229,3 @@ class Map(defaultdict):
         for key, val in self.items():
             if isinstance(val, Container):
                 val.reset(recursive=True)
-
-
-class Item:
-    """
-    Defines the metadata associated with a value in a Container
-
-    Parameters
-    ----------
-    default:
-        default value of the item (this will be set when the `Container`
-        is constructed, as well as when  `Container.reset()` is called
-    description: str
-        Help text associated with the item
-    unit: `astropy.units.Quantity`
-        unit to convert to when writing output, or None for no conversion
-    ucd: str
-        universal content descriptor (see Virtual Observatory standards)
-    """
-
-    def __init__(self, default, description="", unit=None, ucd=None):
-        self.default = default
-        self.description = description
-        self.unit = unit
-
-    def __repr__(self):
-        desc = '{}'.format(self.description)
-        if self.unit is not None:
-            desc += ' [{}]'.format(self.unit)
-        return desc
