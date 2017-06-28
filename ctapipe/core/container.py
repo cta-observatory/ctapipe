@@ -4,9 +4,9 @@ from pprint import pformat
 from textwrap import wrap
 
 
-class Item:
+class Field:
     """
-    Defines the metadata associated with a value in a Container
+    Class for storing data in `Containers`.
 
     Parameters
     ----------
@@ -38,7 +38,7 @@ class ContainerMeta(type):
     The MetaClass for the Containers
 
     It reserves __slots__ for every class variable,
-    that is of instance `Item` and sets all other class variables
+    that is of instance `Field` and sets all other class variables
     as read-only for the instances.
 
     This makes sure, that the metadata is immutable,
@@ -47,13 +47,13 @@ class ContainerMeta(type):
     def __new__(cls, name, bases, dct):
         items = [
             k for k, v in dct.items()
-            if isinstance(v, Item)
+            if isinstance(v, Field)
         ]
         dct['__slots__'] = tuple(items + ['meta'])
-        dct['_items'] = {}
+        dct['fields'] = {}
 
         for k in items:
-            dct['_items'][k] = dct.pop(k)
+            dct['fields'][k] = dct.pop(k)
 
         return type.__new__(cls, name, bases, dct)
 
@@ -71,22 +71,22 @@ class Container(metaclass=ContainerMeta):
 
     Containers can transform the data into a `dict` using the `
     Container.as_dict()` method.  This allows them to be written to an
-    output table for example, where each Item defines a column. The
+    output table for example, where each Field defines a column. The
     `dict` conversion can be made recursively and even flattened so
     that a nested set of `Containers` can be translated into a set of
     columns in a flat table without naming conflicts (the name of the
-    parent Item is pre-pended).
+    parent Field is pre-pended).
 
-    Only members of instance `Item` will be used as output.
-    For hierarchical data structures, Items can use `Container`
+    Only members of instance `Field` will be used as output.
+    For hierarchical data structures, Field can use `Container`
     subclasses or a `Map` as the default value.
 
     You should not make class hierarchies of Containers and only ever
     subclass the Container base class
 
     >>>    class MyContainer(Container):
-    >>>        x = Item(100,"The X value")
-    >>>        energy = Item(-1, "Energy measurement", unit=u.TeV)
+    >>>        x = Field(100,"The X value")
+    >>>        energy = Field(-1, "Energy measurement", unit=u.TeV)
     >>>
     >>>    cont = MyContainer()
     >>>    print(cont.x)
@@ -94,7 +94,7 @@ class Container(metaclass=ContainerMeta):
     >>>    # metadata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
-    `Items` inside `Containers` can contain instances of other
+    `Field`s inside `Containers` can contain instances of other
     `Containers`, to allow for a hierarchy of containers, and can also
     contain a `Map` for the case where one wants e.g. a set of
     sub-classes indexed by a value like the `telescope_id`. Examples
@@ -105,14 +105,13 @@ class Container(metaclass=ContainerMeta):
 
     """
 
-    def __init__(self, **items):
+    def __init__(self, **fields):
 
         self.meta = {}
-        for k, v in self._items.items():
+        for k, v in self.fields.items():
             setattr(self, k, deepcopy(v.default))
-            self.meta[k] = v
 
-        for k, v in items.items():
+        for k, v in fields.items():
             setattr(self, k, v)
 
     def __getitem__(self, item):
@@ -121,16 +120,9 @@ class Container(metaclass=ContainerMeta):
     def __setitem__(self, item, value):
         return setattr(self, item, value)
 
-    @property
-    def attributes(self):
-        """
-        a dict of the Item metadata of each attribute.
-        """
-        return self.meta
-
     def items(self):
         """Generator over (key, value) pairs for the items"""
-        return ((k, getattr(self, k)) for k in self._items.keys())
+        return ((k, getattr(self, k)) for k in self.fields.keys())
 
     def as_dict(self, recursive=False, flatten=False):
         """
@@ -141,7 +133,7 @@ class Container(metaclass=ContainerMeta):
         recursive: bool
             sub-Containers should also be converted to dicts
         flatten: type
-            return a flat dictionary, with any sub-item keys generated
+            return a flat dictionary, with any sub-field keys generated
             by appending the sub-Container name.
         """
         if not recursive:
