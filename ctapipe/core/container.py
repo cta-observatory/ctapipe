@@ -192,8 +192,8 @@ class Container(metaclass=ContainerMeta):
                 extra = ".*"
             if isinstance(item, Map):
                 extra = "[*]"
-            desc = "{:>30s}: {}".format(name+extra, repr(item))
-            lines = wrap(desc, 80, subsequent_indent=' '*32)
+            desc = "{:>30s}: {}".format(name + extra, repr(item))
+            lines = wrap(desc, 80, subsequent_indent=' ' * 32)
             text.extend(lines)
         return "\n".join(text)
 

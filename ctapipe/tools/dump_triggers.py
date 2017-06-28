@@ -4,13 +4,12 @@ simtelarray input file.
 """
 
 import numpy as np
-import ctapipe.io.hessio as hessio
 from astropy import units as u
 from astropy.table import Table
-from astropy.time import Time
-from ctapipe.core.traits import (Unicode, Dict, Bool)
-from ctapipe.core import Provenance, ToolConfigurationError
 
+import ctapipe.io.hessio as hessio
+from ctapipe.core import Provenance, ToolConfigurationError
+from ctapipe.core.traits import (Unicode, Dict, Bool)
 from ..core import Tool
 
 MAX_TELS = 1000
