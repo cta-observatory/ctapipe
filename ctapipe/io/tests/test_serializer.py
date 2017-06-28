@@ -25,20 +25,18 @@ def generate_input_containers():
         input_containers.append(deepcopy(event))
     return input_containers
 
-
 # Setup
 input_containers = generate_input_containers()
-
 
 @pytest.fixture(scope='session')
 def binary_filename(tmpdir_factory):
     return str(tmpdir_factory.mktemp('data')
                .join('pickle_data.pickle.gz'))
 
-
 @pytest.fixture(scope='session')
 def fits_file_name(tmpdir_factory):
     return str(tmpdir_factory.mktemp('data').join('output.fits'))
+
 
 
 def test_pickle_serializer(binary_filename):
@@ -102,12 +100,13 @@ def test_pickle_iterator(binary_filename):
     remove(binary_filename)
 
 
+
+
+
 def test_fits_dl0(fits_file_name):
     serial = Serializer(filename=fits_file_name, format='fits', mode='w')
-
     for container in input_containers:
         serial.add_container(container.dl0)
-
     serial.close()
     hdu = fits.open(fits_file_name)[1]
     assert hdu.data["event_id"][0] == 408
