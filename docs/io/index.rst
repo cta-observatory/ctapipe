@@ -19,7 +19,7 @@ Container Classes
 Event data that is intended to be read or written from files is stored
 in subclasses of `ctapipe.core.Container`, the structre of which is
 defined in the `containers` module (See reference API below). Each
-element in the container is a `ctapipe.core.Item`, containing the
+element in the container is a `ctapipe.core.Field`, containing the
 default value, a description, and default unit if necessary. The
 following rules should be followed when creating a `Container` for new
 data:
@@ -43,7 +43,7 @@ data:
 * Algorithms should not update values in a container that have already
   been filled in by another algorithm. Instead, prefer a new data
   item, or a second copy of the Container with the updated values.
-* Items in a container should be one of the following:
+* Fields in a container should be one of the following:
   
  * scalar values (`int`, `float`, `bool`)
  * `numpy.NDarray` if the data are not scalar (use only simple dtypes that can be written to output files)
@@ -53,7 +53,7 @@ data:
    organized by some variable-length index (e.g. by `tel_id` or
    algorithm name)
    
-* Items that should *not* be in a container class:
+* Fields that should *not* be in a container class:
   
  * `dicts`
  * classes that are not a subclass of `ctapipe.core.Container`
