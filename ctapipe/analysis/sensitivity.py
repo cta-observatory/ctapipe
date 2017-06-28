@@ -26,7 +26,7 @@ def crab_source_rate(energy):
         differential flux at E
 
     '''
-    return 3e-7 * (energy/u.TeV)**-2.5 / (u.TeV * u.m**2 * u.s)
+    return 3e-7 * (energy / u.TeV)**-2.5 / (u.TeV * u.m**2 * u.s)
 
 
 def cr_background_rate(energy):
@@ -66,7 +66,7 @@ def e_minus_2(energy, unit=u.TeV):
         differential flux at E
 
     '''
-    return (energy/unit)**(-2) / (unit * u.s * u.m**2)
+    return (energy / unit)**(-2) / (unit * u.s * u.m**2)
 
 
 def make_mock_event_rate(spectrum, bin_edges, log_e=False, norm=None):
@@ -214,7 +214,7 @@ class SensitivityPointSource:
     """
 
     def __init__(self, reco_energies=None, mc_energies=None, energy_bin_edges=None,
-                 energy_unit=u.TeV, flux_unit=1/(u.TeV*u.m**2*u.s)):
+                 energy_unit=u.TeV, flux_unit=1 / (u.TeV * u.m**2 * u.s)):
 
         self.reco_energies = reco_energies
         self.mc_energies = mc_energies
@@ -349,8 +349,8 @@ class SensitivityPointSource:
             weights = (self.exp_events_per_energy_bin[cl] / self.selected_events[cl]).si
             self.event_weights[cl] = weights[np.clip(
                                 np.digitize(self.mc_energies[cl],
-                                            self.energy_bin_edges[cl])-1,
-                                0, len(self.energy_bin_edges[cl])-2)]
+                                            self.energy_bin_edges[cl]) - 1,
+                                0, len(self.energy_bin_edges[cl]) - 2)]
 
             self.event_weights[cl] = np.array(self.event_weights[cl])
 
@@ -557,7 +557,7 @@ class SensitivityPointSource:
 
                                 # arguments for `generate_event_weights`
                                 extensions=None,
-                                observation_time=50*u.h,
+                                observation_time=50 * u.h,
                                 generator_gamma=None,
                                 e_min_max=None,
                                 spectra=None,
@@ -584,7 +584,7 @@ class SensitivityPointSource:
         """
 
         generator_energy_hists = generator_energy_hists or {}
-        extensions = extensions or {'p': 6*u.deg}
+        extensions = extensions or {'p': 6 * u.deg}
 
 
 
@@ -656,18 +656,18 @@ class SensitivityPointSource:
 
             # rounding errors can make the sum slightly smaller than intended
             # add a small epsilon to push above that number
-            random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1]+1e-5))
+            random_draws = np.random.uniform(0, cum_sum[-1], int(cum_sum[-1] + 1e-5))
 
             cumsum_indices = np.digitize(random_draws, cum_sum)
 
             cum_sums_up = cum_sum[cumsum_indices]
-            cum_sums_lo = cum_sum[cumsum_indices-1]
+            cum_sums_lo = cum_sum[cumsum_indices - 1]
 
             energies_up = energy_bin_edges[cl][cumsum_indices]
-            energies_lo = energy_bin_edges[cl][cumsum_indices-1]
+            energies_lo = energy_bin_edges[cl][cumsum_indices - 1]
 
-            drawn_energies = energies_lo + (random_draws-cum_sums_lo) * \
-                (energies_up-energies_lo) / (cum_sums_up-cum_sums_lo)
+            drawn_energies = energies_lo + (random_draws - cum_sums_lo) * \
+                (energies_up - energies_lo) / (cum_sums_up - cum_sums_lo)
 
             # here be numpy magic:
             # `drawn_energies[:, np.newaxis]` enables the broadcast to `mc_energies`
@@ -717,10 +717,10 @@ def check_min_n(n, alpha=1, min_n=10):
         factor to scale up gamma events if insuficently many events present
     """
 
-    n_signal, n_backgr = n[0], n[1]*alpha
+    n_signal, n_backgr = n[0], n[1] * alpha
 
     if n_signal + n_backgr < min_n:
-        scale_a = (min_n-n_backgr) / n_signal
+        scale_a = (min_n - n_backgr) / n_signal
         n[0] *= scale_a
         return scale_a
     else:
@@ -749,11 +749,11 @@ def check_background_contamination(n, alpha=1, max_background_ratio=.05):
         factor to scale up gamma events if too high proton contamination
     """
 
-    n_signal, n_backgr = n[0], n[1]*alpha
+    n_signal, n_backgr = n[0], n[1] * alpha
 
     n_tot = n_signal + n_backgr
     if n_backgr / n_tot > max_background_ratio:
-        scale_r = (1/max_background_ratio - 1) * n_backgr / n_signal
+        scale_r = (1 / max_background_ratio - 1) * n_backgr / n_signal
         n[0] *= scale_r
         return scale_r
     else:
