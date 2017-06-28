@@ -411,6 +411,10 @@ class HDF5TableReader(TableReader):
                               .format(table_name, colname,
                                       container.__class__.__name__))
 
+        # copy all user-defined attributes back to Container.mets
+        for key in tab.attrs._f_list():
+            container.meta[key] = tab.attrs[key]
+
     def read(self, table_name, container):
         """
         Returns a generator that reads the next row from the table into the

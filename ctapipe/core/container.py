@@ -1,5 +1,5 @@
 from collections import defaultdict
-from copy import deepcopy
+from copy import copy
 from pprint import pformat
 from textwrap import wrap
 
@@ -65,7 +65,7 @@ class Container(metaclass=ContainerMeta):
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
     the user from accessing members that have not been defined a
-    priori (more like a C struct), and also keeps metadata information
+    priori (more like a C struct), and also keeps metdata information
     such as a description, defaults, and units for each item in the
     container.
 
@@ -91,7 +91,7 @@ class Container(metaclass=ContainerMeta):
     >>>    cont = MyContainer()
     >>>    print(cont.x)
     100
-    >>>    # metadata will become header keywords in an output file:
+    >>>    # metdata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
     `Field`s inside `Containers` can contain instances of other
@@ -100,11 +100,16 @@ class Container(metaclass=ContainerMeta):
     sub-classes indexed by a value like the `telescope_id`. Examples
     of this can be found in `ctapipe.io.containers`
 
+    `Containers` work by shadowing all class variables (which must be
+    instances of `Item`) with instance variables of the same name the
+    hold the value expected. If `Container.reset()` is called, all
+    instance variables are reset to their default values as defined in
+    the class.
+
     Finally, `Containers` can have associated metadata via their
     `meta` attribute, which is a `dict` of keywords to values.
 
     """
-
     def __init__(self, **fields):
 
         self.meta = {}
@@ -115,10 +120,24 @@ class Container(metaclass=ContainerMeta):
             setattr(self, k, v)
 
     def __getitem__(self, item):
-        return getattr(self, item)
+        return self.__dict__[item]
 
-    def __setitem__(self, item, value):
-        return setattr(self, item, value)
+    def __setitem__(self, key, value):
+        if hasattr(self.__class__, key):
+            self.__dict__[key] = value
+        else:
+            raise AttributeError("{} has no attribute '{}'"
+                                 .format(self.__class__, key))
+
+    @property
+    def meta(self):
+        """metadata key/values associated with this Container.
+
+        When written to an output file, these will become headers, so
+        should represent data that does not change after the
+        `Container` is constructed.
+        """
+        return self._metadata
 
     def items(self):
         """Generator over (key, value) pairs for the items"""
@@ -145,16 +164,23 @@ class Container(metaclass=ContainerMeta):
                     continue
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
-                        d.update({
-                            "{}_{}".format(key, k): v
-                            for k, v in val.as_dict(recursive).items()
-                        })
+                        d.update({"{}_{}".format(key, k): v
+                                  for k, v in val.as_dict(recursive).items()})
                     else:
                         d[key] = val.as_dict(recursive=recursive,
                                              flatten=flatten)
                     continue
                 d[key] = val
             return d
+
+    @classmethod
+    def disable_attribute_check(cls):
+        """
+        Globally turn off attribute checking for all Containers,
+        which provides a ~5-10x speed up for setting attributes.
+        This may be used e.g. after code is tested to speed up operation.
+        """
+        cls.__setattr__ = object.__setattr__
 
     def reset(self, recursive=True):
         """ set all values back to their default values"""
@@ -180,23 +206,14 @@ class Container(metaclass=ContainerMeta):
         text = ["{}.{}:".format(type(self).__module__, type(self).__name__)]
         for name, item in self.fields.items():
             extra = ""
-            if isinstance(item, Container):
+            if isinstance(self.__dict__[name], Container):
                 extra = ".*"
-            if isinstance(item, Map):
+            if isinstance(self.__dict__[name], Map):
                 extra = "[*]"
             desc = "{:>30s}: {}".format(name + extra, repr(item))
             lines = wrap(desc, 80, subsequent_indent=' ' * 32)
             text.extend(lines)
         return "\n".join(text)
-
-    def __getstate__(self):
-        state = dict(self.items())
-        state['meta'] = getattr(self, 'meta')
-        return state
-
-    def __setstate__(self, state):
-        for k, v in state.items():
-            setattr(self, k, v)
 
 
 class Map(defaultdict):
@@ -226,3 +243,32 @@ class Map(defaultdict):
         for key, val in self.items():
             if isinstance(val, Container):
                 val.reset(recursive=True)
+
+
+class Item:
+    """
+    Defines the metadata associated with a value in a Container
+
+    Parameters
+    ----------
+    default:
+        default value of the item (this will be set when the `Container`
+        is constructed, as well as when  `Container.reset()` is called
+    description: str
+        Help text associated with the item
+    unit: `astropy.units.Quantity`
+        unit to convert to when writing output, or None for no conversion
+    ucd: str
+        universal content descriptor (see Virtual Observatory standards)
+    """
+
+    def __init__(self, default, description="", unit=None, ucd=None):
+        self.default = default
+        self.description = description
+        self.unit = unit
+
+    def __repr__(self):
+        desc = '{}'.format(self.description)
+        if self.unit is not None:
+            desc += ' [{}]'.format(self.unit)
+        return desc
