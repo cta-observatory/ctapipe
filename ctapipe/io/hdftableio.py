@@ -114,7 +114,7 @@ class HDF5TableWriter(TableWriter):
     Each item in the container can also have an optional transform function 
     that is called before writing to transform the value.  For example, 
     unit quantities always have their units removed, or converted to a 
-    common unit if specified in the `Item`. 
+    common unit if specified in the `Field`.
     
     Any metadata in the `Container` (stored in `Container.meta`) will be 
     written to the table's header on the first call to write() 
@@ -187,7 +187,7 @@ class HDF5TableWriter(TableWriter):
                 continue
 
             if isinstance(value, Quantity):
-                req_unit = container.attributes[col_name].unit
+                req_unit = container.fields[col_name].unit
                 if req_unit is not None:
                     tr = partial(tr_convert_and_strip_unit, unit=req_unit)
                     meta['{}_UNIT'.format(col_name)] = str(req_unit)
@@ -394,7 +394,7 @@ class HDF5TableReader(TableReader):
         by comparing their names."""
         tab = self._tables[table_name]
         for colname in tab.colnames:
-            if colname in container.attributes:
+            if colname in container.fields:
                 self._cols_to_read[table_name].append(colname)
             else:
                 self.log.warn("Table '{}' has column '{}' that is not in "
@@ -404,7 +404,7 @@ class HDF5TableReader(TableReader):
 
         # also check that the container doesn't have attributes that are not
         # in the table:
-        for colname in container.attributes:
+        for colname in container.fields:
             if colname not in self._cols_to_read[table_name]:
                 self.log.warn("Table '{}' is missing column '{}' that is "
                               "in container {}. It will be skipped"
