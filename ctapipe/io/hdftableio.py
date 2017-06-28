@@ -106,7 +106,7 @@ class HDF5TableWriter(TableWriter):
     container. This is intended as a building block to create a more complex
     I/O system.
 
-    It works by creating a HDF5 Table description from the `Items` inside a
+    It works by creating a HDF5 Table description from the `Field`s inside a
     container, where each item becomes a column in the table. The first time
     `SimpleHDF5TableWriter.write()` is called, the container is registered
     and the table created in the output file.
@@ -114,7 +114,7 @@ class HDF5TableWriter(TableWriter):
     Each item in the container can also have an optional transform function
     that is called before writing to transform the value.  For example,
     unit quantities always have their units removed, or converted to a
-    common unit if specified in the `Item`.
+    common unit if specified in the `Field`.
 
     Any metadata in the `Container` (stored in `Container.meta`) will be
     written to the table's header on the first call to write()
