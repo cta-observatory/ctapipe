@@ -116,16 +116,10 @@ class Container(metaclass=ContainerMeta):
             setattr(self, k, v)
 
     def __getitem__(self, item):
-        if item in self.__slots__:
-            return getattr(self, item)
-        else:
-            raise KeyError('No such Item: "{}"'.format(item))
+        return getattr(self, item)
 
     def __setitem__(self, item, value):
-        if item in self.__slots__:
-            return setattr(self, item, value)
-        else:
-            raise KeyError('No such Item: "{}"'.format(item))
+        return setattr(self, item, value)
 
     @property
     def attributes(self):
