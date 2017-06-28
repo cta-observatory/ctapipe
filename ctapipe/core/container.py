@@ -192,9 +192,9 @@ class Container(metaclass=ContainerMeta):
         text = ["{}.{}:".format(type(self).__module__, type(self).__name__)]
         for name, item in self.fields.items():
             extra = ""
-            if isinstance(self.__dict__[name], Container):
+            if isinstance(getattr(self, name), Container):
                 extra = ".*"
-            if isinstance(self.__dict__[name], Map):
+            if isinstance(getattr(self, name), Map):
                 extra = "[*]"
             desc = "{:>30s}: {}".format(name + extra, repr(item))
             lines = wrap(desc, 80, subsequent_indent=' ' * 32)
