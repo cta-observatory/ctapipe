@@ -8,6 +8,7 @@ import logging
 
 from .containers import DataContainer
 from ..core import Provenance
+from ..instrument import TelescopeDescription
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -229,19 +230,29 @@ def _fill_instrument_info(data, pyhessio):
 
         for tel_id in data.inst.telescope_ids:
             try:
-                data.inst.pixel_pos[tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m
-                data.inst.optical_foclen[tel_id] \
-                    = pyhessio.get_optical_foclen(tel_id) * u.m
+
+                pix_pos =  pyhessio.get_pixel_position(tel_id) * u.m
+                foclen  =  pyhessio.get_optical_foclen(tel_id) * u.m
+                mirror_area = pyhessio.get_mirror_area(tel_id) * u.m ** 2
+                num_tiles = pyhessio.get_mirror_number(tel_id)
+
+
+                data.inst.tel[tel_id] = TelescopeDescription.guess(*pix_pos,foclen)
+                data.inst.tel[tel_id].mirror_area = mirror_area
+                data.inst.tel[tel_id].num_mirror_tiles = num_tiles
+
+                # deprecated fields that will become part of
+                # TelescopeDescription or SubrrayDescription
+                data.inst.optical_foclen[tel_id] = foclen
+                data.inst.pixel_pos[tel_id] = pix_pos
                 data.inst.tel_pos[tel_id] \
                     = pyhessio.get_telescope_position(tel_id) * u.m
                 nchans = pyhessio.get_num_channel(tel_id)
                 npix = pyhessio.get_num_pixels(tel_id)
                 data.inst.num_channels[tel_id] = nchans
                 data.inst.num_pixels[tel_id] = npix
-                data.inst.mirror_dish_area[tel_id] = \
-                    pyhessio.get_mirror_area(tel_id) * u.m ** 2
-                data.inst.mirror_numtiles[tel_id] = \
-                    pyhessio.get_mirror_number(tel_id)
+                data.inst.mirror_dish_area[tel_id] = mirror_area
+                data.inst.mirror_numtiles[tel_id] = num_tiles
+
             except HessioGeneralError:
                 pass

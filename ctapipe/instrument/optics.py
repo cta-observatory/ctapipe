@@ -41,7 +41,8 @@ class OpticsDescription:
     """
 
     def __init__(self, mirror_type, tel_type,
-                 tel_subtype, effective_focal_length):
+                 tel_subtype, effective_focal_length,
+                 mirror_area=None, num_mirror_tiles=None):
 
         if tel_type not in ['LST', 'MST', 'SST']:
             raise ValueError("Unknown tel_type %s", tel_type)
@@ -50,6 +51,8 @@ class OpticsDescription:
         self.tel_type = tel_type
         self.tel_subtype = tel_subtype
         self.effective_focal_length = effective_focal_length
+        self.mirror_area = mirror_area
+        self.num_mirror_tiles = num_mirror_tiles
 
 
     @classmethod
