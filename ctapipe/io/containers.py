@@ -7,7 +7,7 @@ from astropy.time import Time
 
 from ..core import Container, Field, Map
 from numpy import ndarray
-from ..instrument import TelescopeDescription
+from ..instrument import TelescopeDescription, SubarrayDescription
 
 __all__ = ['InstrumentContainer',
            'R0Container',
@@ -42,9 +42,9 @@ class InstrumentContainer(Container):
 
     """
 
-    tel = Field(Map(TelescopeDescription), "TelescopeDescription for each "
-                                           "telescope")
-
+    subarray = Field(SubarrayDescription(dict(),dict()), "SubarrayDescription "
+                                                     "from the instrument "
+                                                     "module")
     telescope_ids = Field([], "list of IDs of telescopes used in the run")
     pixel_pos = Field(Map(ndarray), "map of tel_id to pixel positions")
     optical_foclen = Field(Map(ndarray), "map of tel_id to focal length")

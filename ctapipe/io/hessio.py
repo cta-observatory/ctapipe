@@ -8,7 +8,7 @@ import logging
 
 from .containers import DataContainer
 from ..core import Provenance
-from ..instrument import TelescopeDescription
+from ..instrument import TelescopeDescription, SubarrayDescription
 
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -227,6 +227,7 @@ def _fill_instrument_info(data, pyhessio):
     """
     if not data.inst.telescope_ids:
         data.inst.telescope_ids = list(pyhessio.get_telescope_ids())
+        data.inst.subarray = SubarrayDescription("MonteCarloArray")
 
         for tel_id in data.inst.telescope_ids:
             try:
@@ -237,9 +238,11 @@ def _fill_instrument_info(data, pyhessio):
                 num_tiles = pyhessio.get_mirror_number(tel_id)
 
 
-                data.inst.tel[tel_id] = TelescopeDescription.guess(*pix_pos,foclen)
-                data.inst.tel[tel_id].mirror_area = mirror_area
-                data.inst.tel[tel_id].num_mirror_tiles = num_tiles
+                tel = TelescopeDescription.guess(*pix_pos, foclen)
+                tel.mirror_area = mirror_area
+                tel.num_mirror_tiles = num_tiles
+                data.inst.subarray.tels[tel_id] = tel
+
 
                 # deprecated fields that will become part of
                 # TelescopeDescription or SubrrayDescription
