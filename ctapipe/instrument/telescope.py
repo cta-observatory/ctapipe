@@ -1,3 +1,19 @@
+"""
+Classes pertaining to the description of a Cherenkov Telescope
+
+Todo:
+-----
+
+- add more info in OpticsDescription (mirror area, facets, etc). How to guess
+  this?
+- add ability to write to/from tables (like that written by
+  ctapipe-dump-instrument)
+- add ability to construct by names TelescopeDescription.from_name(
+  camera='LSTCam', optics=('SST','1M')) (which would create a very unbalanced
+  telescope :-))
+
+"""
+
 from .optics import OpticsDescription
 from .camera import CameraGeometry
 
