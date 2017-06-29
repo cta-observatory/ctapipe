@@ -19,10 +19,26 @@ _FOCLEN_TO_TEL_INFO = {
 class OpticsDescription:
     """
     Describes the optics of a Cherenkov Telescope mirror
+
+    Parameters
+    ----------
+    mirror_type: str
+        'SC' or 'DC'
+    tel_type: str
+        'SST', 'MST','LST'
+    tel_subtype: str
+        subtype of telescope, e.g. '1M' or 'ASTRI'
+    effective_focal_length: Quantity(float)
+        effective focal-length of telescope, independent of which type of
+        optics (as in the Monte-Carlo)
     """
 
     def __init__(self, mirror_type, tel_type,
                  tel_subtype, effective_focal_length):
+
+        if tel_type not in ['LST', 'MST', 'SST']:
+            raise ValueError("Unknown tel_type %s", tel_type)
+
         self.mirror_type = mirror_type
         self.tel_type = tel_type
         self.tel_subtype = tel_subtype
@@ -61,6 +77,7 @@ class OpticsDescription:
 
 def telescope_info_from_metadata(focal_length):
     """
+    helper func to return telescope and mirror info based on metadata
 
     Parameters
     ----------

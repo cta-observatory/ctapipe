@@ -3,7 +3,16 @@ from .camera import CameraGeometry
 
 
 class TelescopeDescription:
-    """ Describes a Cherenkov Telescope """
+    """
+    Describes a Cherenkov Telescope
+
+    Parameters
+    ----------
+    optics: OpticsDescription
+       the optics associated with this telescope
+    camera: CameraGeometry
+       the camera associated with this telescope
+    """
 
 
     def __init__(self,
