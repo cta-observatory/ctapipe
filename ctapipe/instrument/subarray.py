@@ -9,7 +9,7 @@ import numpy as np
 
 class SubarrayDescription:
     """
-    Collects the `TelescopeDescription`s of all telescope along with their
+    Collects the `TelescopeDescription` of all telescopes along with their
     positions on the ground.
 
     Parameters
@@ -70,7 +70,7 @@ class SubarrayDescription:
                                                          min(tels),
                                                          max(tels)))
     def to_table(self):
-        """ convert to `astropy.table.Table"""
+        """ convert to `astropy.table.Table` """
         ids = [x for x in self.tels.keys()]
         descs = [str(x) for x in self.tels.values()]
         pos_x = [x[0].to('m').value for x in self.positions.values()]
