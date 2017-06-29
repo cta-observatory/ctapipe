@@ -110,8 +110,12 @@ def telescope_info_from_metadata(focal_length):
         tel_type ('LST', 'MST' or 'SST'),
         tel_subtype (model),
         mirror_type ('SC' or 'DC')
+
+    Raises:
+    -------
+    KeyError:
+       if unable to find optics type
     """
     global _FOCLEN_TO_TEL_INFO
-
     return _FOCLEN_TO_TEL_INFO[round(focal_length.to('m').value, 2)]
 
