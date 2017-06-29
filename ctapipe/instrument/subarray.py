@@ -5,17 +5,21 @@ Description of Arrays or Subarrays of telescopes
 from collections import defaultdict
 
 class SubarrayDescription:
+    """
+    Collects the `TelescopeDescription`s of all telescope along with their
+    positions on the ground.
+
+    Parameters
+    ----------
+    name: str
+        name of this subarray
+    tel_positions: dict(float)
+        dict of telescope positions by tel_id
+    tel_descriptions: dict(TelescopeDescription)
+        array of TelescopeDescriptions by tel_id
+    """
 
     def __init__(self, name, tel_positions=None, tel_descriptions=None):
-        """
-
-        Parameters
-        ----------
-        tel_positions: dict(float)
-           dict of telescope positions by tel_id
-        tel_descriptions: dict(TelescopeDescription)
-           array of TelescopeDescriptions by tel_id
-        """
 
         self.name = name
         self.positions = tel_positions or dict()
@@ -34,12 +38,17 @@ class SubarrayDescription:
             self.num_tels)
 
     @property
+    def tel(self):
+        """ for backward compatibility"""
+        return self.tels
+
+    @property
     def num_tels(self):
         return len(self.tels)
 
     def info(self, printer=print):
         """
-        print info about subarray
+        print descriptive info about subarray
         """
 
         teltypes = defaultdict(list)
