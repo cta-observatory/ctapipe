@@ -10,9 +10,12 @@ _FOCLEN_TO_TEL_INFO = {
     # foclen: tel_type, tel_subtype, mirror_type
     28.0: ('LST', '', 'DC'),
     16.0: ('MST', '', 'DC'),
-    2.28: ('SST', '1m', 'DC'),
-    2.15: ('SST', 'GATE', 'SC'),
-    5.58: ('MST', 'SCT', 'SC')
+    2.28: ('SST', 'GCT', 'SC'),
+    2.15: ('SST', 'ASTRI', 'SC'),
+    5.6: ('SST', '1M', 'SC'),
+    5.58: ('MST', 'SCT', 'SC'),
+    5.59: ('MST', 'SCT', 'SC')
+
 }
 
 
@@ -71,6 +74,19 @@ class OpticsDescription:
                    tel_subtype=tel_subtype,
                    effective_focal_length=effective_focal_length)
 
+    @property
+    def identifier(self):
+        return (self.tel_type, self.tel_subtype)
+
+    def __repr__(self):
+        return "{}(tel_type='{}', tel_subtype='{}')".format(
+            str(self.__class__.__name__), self.tel_type, self.tel_subtype)
+
+    def __str__(self):
+        if self.tel_subtype != '':
+            return "{}-{}".format(self.tel_type, self.tel_subtype)
+        else:
+            return self.tel_type
 
 
 
@@ -92,5 +108,6 @@ def telescope_info_from_metadata(focal_length):
         mirror_type ('SC' or 'DC')
     """
     global _FOCLEN_TO_TEL_INFO
-    return _FOCLEN_TO_TEL_INFO.get(round(focal_length.to('m').value, 2),
-                                   ('unknown', 'unknown', 'unknown'))
+
+    return _FOCLEN_TO_TEL_INFO[round(focal_length.to('m').value, 2)]
+
