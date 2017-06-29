@@ -236,20 +236,22 @@ def _fill_instrument_info(data, pyhessio):
                 foclen  =  pyhessio.get_optical_foclen(tel_id) * u.m
                 mirror_area = pyhessio.get_mirror_area(tel_id) * u.m ** 2
                 num_tiles = pyhessio.get_mirror_number(tel_id)
+                tel_pos = pyhessio.get_telescope_position(tel_id) * u.m
 
 
                 tel = TelescopeDescription.guess(*pix_pos, foclen)
                 tel.mirror_area = mirror_area
                 tel.num_mirror_tiles = num_tiles
                 data.inst.subarray.tels[tel_id] = tel
+                data.inst.subarray.positions[tel_id] = tel_pos
 
 
                 # deprecated fields that will become part of
                 # TelescopeDescription or SubrrayDescription
                 data.inst.optical_foclen[tel_id] = foclen
                 data.inst.pixel_pos[tel_id] = pix_pos
-                data.inst.tel_pos[tel_id] \
-                    = pyhessio.get_telescope_position(tel_id) * u.m
+                data.inst.tel_pos[tel_id] = tel_pos
+
                 nchans = pyhessio.get_num_channel(tel_id)
                 npix = pyhessio.get_num_pixels(tel_id)
                 data.inst.num_channels[tel_id] = nchans
