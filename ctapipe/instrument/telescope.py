@@ -43,4 +43,10 @@ class TelescopeDescription:
         return cls(optics=optics, camera=camera)
 
 
+    def __str__(self):
+        return str(self.optics) + ":" + str(self.camera)
 
+    def __repr__(self):
+        return "{}(optics={}, camera={})".format(self.__class__.__name__,
+                                                 str(self.optics),
+                                                 str(self.camera))
