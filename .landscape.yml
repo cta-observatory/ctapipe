@@ -18,5 +18,6 @@ pep8:
     - F403
     - F401
     - W503
+    - W1202 # log-format interpolation (perhaps re-enable later)
   options:
     max-line-length: 90
