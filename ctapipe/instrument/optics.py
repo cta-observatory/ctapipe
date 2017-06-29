@@ -23,6 +23,10 @@ class OpticsDescription:
     """
     Describes the optics of a Cherenkov Telescope mirror
 
+    The string representation of an `OpticsDescription` will be a combination
+    of the telescope-type and sub-type as follows: "type-subtype". You can
+    also get each individually.
+
     Parameters
     ----------
     mirror_type: str

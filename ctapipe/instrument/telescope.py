@@ -4,7 +4,11 @@ from .camera import CameraGeometry
 
 class TelescopeDescription:
     """
-    Describes a Cherenkov Telescope
+    Describes a Cherenkov Telescope and it's associated `OpticsDescription` and
+    `CameraGeometry`
+
+    The string representation is a combination of the optics and
+    camera, separated by a colon: "optics:camera" (e.g. "SST-1m:DigiCam")
 
     Parameters
     ----------
