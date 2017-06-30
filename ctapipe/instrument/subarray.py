@@ -30,7 +30,7 @@ class SubarrayDescription:
         self.positions = tel_positions or dict()
         self.tels = tel_descriptions or dict()
 
-        assert len(self.positions) == len(self.tels)
+        assert set(self.positions.keys()) == set(self.tels.keys())
 
     def __str__(self):
         return self.name
@@ -60,8 +60,9 @@ class SubarrayDescription:
         for tel_id, desc in self.tels.items():
             teltypes[str(desc)].append(tel_id)
 
-        printer("Subarray: {}".format(self.name))
-        printer("Num Tels: {}".format(self.num_tels))
+        printer("Subarray : {}".format(self.name))
+        printer("Num Tels : {}".format(self.num_tels))
+        printer("Footprint: {:.2f}".format(self.footprint))
         printer("")
         printer("                TYPE  Num IDmin  IDmax")
         printer("=====================================")
@@ -71,16 +72,44 @@ class SubarrayDescription:
                                                          min(tels),
                                                          max(tels)))
 
+    @property
+    def pos_x(self):
+        """ telescope x position as array """
+        return np.array([p[0].to('m').value for p in self.positions.values()]) * u.m
+
+    @property
+    def pos_y(self):
+        """ telescope y positions as an array"""
+        return np.array([p[1].to('m').value for p in self.positions.values()]) * u.m
+
+    @property
+    def tel_id(self):
+        """ telescope IDs as an array"""
+        return np.array(self.tel.keys())
+
+    @property
+    def footprint(self):
+        """area of smallest circle containing array on ground"""
+        x = self.pos_x
+        y = self.pos_y
+        return (np.hypot(x, y).max() ** 2 * np.pi).to('km^2')
+
     def to_table(self):
         """ convert to `astropy.table.Table` """
         ids = [x for x in self.tels.keys()]
         descs = [str(x) for x in self.tels.values()]
-        pos_x = [x[0].to('m').value for x in self.positions.values()]
-        pos_y = [x[1].to('m').value for x in self.positions.values()]
+        mirror_types = [x.optics.mirror_type for x in self.tels.values()]
+        tel_types = [x.optics.tel_type for x in self.tels.values()]
+        tel_subtypes = [x.optics.tel_subtype for x in self.tels.values()]
+        cam_types = [x.camera.cam_id for x in self.tels.values()]
 
         tab = Table(dict(tel_id=np.array(ids, dtype=np.short),
-                         tel_pos_x=np.array(pos_x, dtype=np.float) * u.m,
-                         tel_pos_y=np.array(pos_y, dtype=np.float) * u.m,
+                         tel_pos_x=self.pos_x,
+                         tel_pos_y=self.pos_y,
+                         tel_type=tel_types,
+                         tel_subtype=tel_subtypes,
+                         mirror_type=mirror_types,
+                         camera_type=cam_types,
                          tel_description=descs))
         return tab
 
@@ -106,3 +135,29 @@ class SubarrayDescription:
         newsub = SubarrayDescription(name, tel_positions=tel_positions,
                                      tel_descriptions=tel_descriptions)
         return newsub
+
+    def peek(self):
+        """
+        Draw a quick matplotlib plot of the array
+        """
+        from matplotlib import pyplot as plt
+        from astropy.visualization import quantity_support
+
+        types = {str(tel) for tel in self.tels.values()}
+        tab = self.to_table()
+
+        plt.figure(figsize=(8, 8))
+
+        with quantity_support():
+            for teltype in types:
+                tels = tab[tab['tel_description'] == teltype]['tel_id']
+                sub = self.select_subarray(teltype, tels)
+                radius = np.array([np.sqrt(tel.optics.mirror_area / np.pi).value
+                                   for tel in sub.tels.values()])
+
+                plt.scatter(sub.pos_x, sub.pos_y, s=radius * 8, alpha=0.5,
+                            label=teltype)
+
+            plt.legend(loc='best')
+            plt.title(self.name)
+            plt.tight_layout()

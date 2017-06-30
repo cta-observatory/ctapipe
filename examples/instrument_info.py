@@ -17,4 +17,4 @@ if __name__ == '__main__':
     subarray.info()
     print(subarray.to_table())
 
-
+    print(subarray.tel[1].optics.mirror_area)
