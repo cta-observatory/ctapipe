@@ -3,9 +3,11 @@ Description of Arrays or Subarrays of telescopes
 """
 
 from collections import defaultdict
-from astropy.table import Table
-from astropy import units as u
+
 import numpy as np
+from astropy import units as u
+from astropy.table import Table
+
 
 class SubarrayDescription:
     """
@@ -29,7 +31,6 @@ class SubarrayDescription:
         self.tels = tel_descriptions or dict()
 
         assert len(self.positions) == len(self.tels)
-
 
     def __str__(self):
         return self.name
@@ -69,6 +70,7 @@ class SubarrayDescription:
                                                          len(tels),
                                                          min(tels),
                                                          max(tels)))
+
     def to_table(self):
         """ convert to `astropy.table.Table` """
         ids = [x for x in self.tels.keys()]
@@ -76,8 +78,8 @@ class SubarrayDescription:
         pos_x = [x[0].to('m').value for x in self.positions.values()]
         pos_y = [x[1].to('m').value for x in self.positions.values()]
 
-        tab = Table(dict(tel_id=np.array(ids,dtype=np.short),
-                         tel_pos_x=np.array(pos_x, dtype=np.float)*u.m,
-                         tel_pos_y=np.array(pos_y, dtype=np.float)*u.m,
+        tab = Table(dict(tel_id=np.array(ids, dtype=np.short),
+                         tel_pos_x=np.array(pos_x, dtype=np.float) * u.m,
+                         tel_pos_y=np.array(pos_y, dtype=np.float) * u.m,
                          tel_description=descs))
         return tab

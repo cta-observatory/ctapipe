@@ -54,7 +54,6 @@ class OpticsDescription:
         self.mirror_area = mirror_area
         self.num_mirror_tiles = num_mirror_tiles
 
-
     @classmethod
     def guess(cls, effective_focal_length):
         """
@@ -72,8 +71,8 @@ class OpticsDescription:
             telescope_info_from_metadata(effective_focal_length)
 
         if tel_type == "unknown":
-            logger.warning(("No OpticsDescription found for focal-length " 
-                            "%s, setting to 'unknown'") ,
+            logger.warning(("No OpticsDescription found for focal-length "
+                            "%s, setting to 'unknown'"),
                            effective_focal_length)
 
         return cls(mirror_type=mir_type,
@@ -94,8 +93,6 @@ class OpticsDescription:
             return "{}-{}".format(self.tel_type, self.tel_subtype)
         else:
             return self.tel_type
-
-
 
 
 def telescope_info_from_metadata(focal_length):
@@ -121,4 +118,3 @@ def telescope_info_from_metadata(focal_length):
     """
     global _FOCLEN_TO_TEL_INFO
     return _FOCLEN_TO_TEL_INFO[round(focal_length.to('m').value, 2)]
-
