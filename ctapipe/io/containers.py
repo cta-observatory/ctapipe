@@ -42,8 +42,8 @@ class InstrumentContainer(Container):
 
     """
 
-    subarray = Field(SubarrayDescription(), "SubarrayDescription "
-                                            "from the instrument module")
+    subarray = Field(SubarrayDescription("MonteCarloArray"),
+                     "SubarrayDescription from the instrument module")
 
     telescope_ids = Field([], "list of IDs of telescopes used in the run")
     pixel_pos = Field(Map(ndarray), "map of tel_id to pixel positions")
