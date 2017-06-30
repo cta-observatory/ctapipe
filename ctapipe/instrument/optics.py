@@ -27,6 +27,9 @@ class OpticsDescription:
     of the telescope-type and sub-type as follows: "type-subtype". You can
     also get each individually.
 
+    The `OpticsDescription.guess()` constructor can be used to fill in info
+    from metadata, e.g. for Monte-Carlo files.
+
     Parameters
     ----------
     mirror_type: str
@@ -82,6 +85,8 @@ class OpticsDescription:
 
     @property
     def identifier(self):
+        """ returns a tuple of (tel_type, tel_subtype).  Use str(optics) to
+        get a text-based identifier."""
         return (self.tel_type, self.tel_subtype)
 
     def __repr__(self):
@@ -116,5 +121,4 @@ def telescope_info_from_metadata(focal_length):
     KeyError:
        if unable to find optics type
     """
-    global _FOCLEN_TO_TEL_INFO
     return _FOCLEN_TO_TEL_INFO[round(focal_length.to('m').value, 2)]

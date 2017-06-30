@@ -26,6 +26,9 @@ class TelescopeDescription:
     The string representation is a combination of the optics and
     camera, separated by a colon: "optics:camera" (e.g. "SST-1m:DigiCam")
 
+    The `TelescopeDescription.guess()` constructor can be used to fill in
+    info from metadata, e.g. for Monte-Carlo files.
+
     Parameters
     ----------
     optics: OpticsDescription
