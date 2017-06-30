@@ -6,13 +6,13 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import DataContainer
-from ..core import Provenance
-from ..instrument import TelescopeDescription, SubarrayDescription
-
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+
+from .containers import DataContainer
+from ..core import Provenance
+from ..instrument import TelescopeDescription, SubarrayDescription
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ try:
 except ImportError as err:
     logger.fatal(
         "the `pyhessio` python module is required to access MC data: {}"
-        .format(err))
+            .format(err))
     raise err
 
 __all__ = [
@@ -210,7 +210,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             yield data
             counter += 1
 
-            if max_events  and counter >= max_events:
+            if max_events and counter >= max_events:
                 pyhessio.close_file()
                 return
 
@@ -232,19 +232,17 @@ def _fill_instrument_info(data, pyhessio):
         for tel_id in data.inst.telescope_ids:
             try:
 
-                pix_pos =  pyhessio.get_pixel_position(tel_id) * u.m
-                foclen  =  pyhessio.get_optical_foclen(tel_id) * u.m
+                pix_pos = pyhessio.get_pixel_position(tel_id) * u.m
+                foclen = pyhessio.get_optical_foclen(tel_id) * u.m
                 mirror_area = pyhessio.get_mirror_area(tel_id) * u.m ** 2
                 num_tiles = pyhessio.get_mirror_number(tel_id)
                 tel_pos = pyhessio.get_telescope_position(tel_id) * u.m
-
 
                 tel = TelescopeDescription.guess(*pix_pos, foclen)
                 tel.mirror_area = mirror_area
                 tel.num_mirror_tiles = num_tiles
                 data.inst.subarray.tels[tel_id] = tel
                 data.inst.subarray.positions[tel_id] = tel_pos
-
 
                 # deprecated fields that will become part of
                 # TelescopeDescription or SubrrayDescription

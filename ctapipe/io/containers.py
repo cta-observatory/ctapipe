@@ -4,10 +4,10 @@ Container structures for data that should be read or written to disk
 
 from astropy import units as u
 from astropy.time import Time
+from numpy import ndarray
 
 from ..core import Container, Field, Map
-from numpy import ndarray
-from ..instrument import TelescopeDescription, SubarrayDescription
+from ..instrument import SubarrayDescription
 
 __all__ = ['InstrumentContainer',
            'R0Container',
@@ -42,9 +42,9 @@ class InstrumentContainer(Container):
 
     """
 
-    subarray = Field(SubarrayDescription(dict(),dict()), "SubarrayDescription "
-                                                     "from the instrument "
-                                                     "module")
+    subarray = Field(SubarrayDescription(), "SubarrayDescription "
+                                            "from the instrument module")
+
     telescope_ids = Field([], "list of IDs of telescopes used in the run")
     pixel_pos = Field(Map(ndarray), "map of tel_id to pixel positions")
     optical_foclen = Field(Map(ndarray), "map of tel_id to focal length")
@@ -53,6 +53,8 @@ class InstrumentContainer(Container):
     tel_pos = Field(Map(ndarray), "map of tel_id to telescope position")
     num_pixels = Field(Map(int), "map of tel_id to number of pixels in camera")
     num_channels = Field(Map(int), "map of tel_id to number of channels")
+
+
 
 
 class DL1CameraContainer(Container):
