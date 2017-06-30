@@ -239,8 +239,8 @@ def _fill_instrument_info(data, pyhessio):
                 tel_pos = pyhessio.get_telescope_position(tel_id) * u.m
 
                 tel = TelescopeDescription.guess(*pix_pos, foclen)
-                tel.mirror_area = mirror_area
-                tel.num_mirror_tiles = num_tiles
+                tel.optics.mirror_area = mirror_area
+                tel.optics.num_mirror_tiles = num_tiles
                 data.inst.subarray.tels[tel_id] = tel
                 data.inst.subarray.positions[tel_id] = tel_pos
 
