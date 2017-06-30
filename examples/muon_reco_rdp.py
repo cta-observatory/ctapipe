@@ -8,7 +8,7 @@ from ctapipe.reco.cleaning import tailcuts_clean
 from ctapipe import io
 from astropy.coordinates import Angle, AltAz
 from astropy.time import Time
-from ctapipe.instrument import InstrumentDescription as ID
+from ctapipe.instrument import mc_config as ID
 from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.calib.array.muon_ring_finder import chaudhuri_kundu_circle_fit
 from ctapipe.calib.array.muon_integrator import *

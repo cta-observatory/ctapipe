@@ -8,7 +8,7 @@ Created on Wed Nov 18 17:37:19 2015
 import os
 
 import astropy.units as u
-import ctapipe.instrument.InstrumentDescription as ID
+import ctapipe.instrument.mc_config as ID
 import numpy as np
 from ctapipe.instrument import CameraGeometry
 from ctapipe.utils import get_dataset

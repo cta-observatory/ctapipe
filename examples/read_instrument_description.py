@@ -10,7 +10,7 @@ Example of using the instrument module and reading data from a hessio, a
 fits, and a sim_telarray-config file.
 """
 
-from ctapipe.instrument import InstrumentDescription as ID
+from ctapipe.instrument import mc_config as ID
 from ctapipe.utils import get_dataset
 import matplotlib.pyplot as plt
 import os
