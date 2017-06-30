@@ -5,3 +5,6 @@ from .optics import OpticsDescription
 from .subarray import SubarrayDescription
 
 
+__all__ = ['CameraGeometry', 'get_camera_types','print_camera_types',
+           'get_atmosphere_profile_functions', 'TelescopeDescription',
+           'OpticsDescription','SubarrayDescription']
