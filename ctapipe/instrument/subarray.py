@@ -83,3 +83,26 @@ class SubarrayDescription:
                          tel_pos_y=np.array(pos_y, dtype=np.float) * u.m,
                          tel_description=descs))
         return tab
+
+    def select_subarray(self, name, tel_ids):
+        """
+        return a new SubarrayDescription that is a sub-array of this one
+
+        Parameters
+        ----------
+        name: str
+            name of new sub-selection
+        tel_ids: list(int)
+            list of telescope IDs to include in the new subarray
+
+        Returns
+        -------
+        SubarrayDescription
+        """
+
+        tel_positions = {tid: self.positions[tid] for tid in tel_ids}
+        tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
+
+        newsub = SubarrayDescription(name, tel_positions=tel_positions,
+                                     tel_descriptions=tel_descriptions)
+        return newsub
