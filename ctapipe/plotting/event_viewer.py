@@ -50,7 +50,7 @@ class EventViewer(Component):
 
         return
 
-    def draw_event(self, event, hillas_parameters=None):
+    def draw_event(self, event, hillas_parameters=None, tilted_system=None):
         """
         Draw display for a given event
 
@@ -112,8 +112,8 @@ class EventViewer(Component):
             # Split the second sub figure into two further figures
             reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_grid[1])
             # Create plot of telescope positions at ground level
-            array = ArrayPlotter(telescopes=tel_list, instrument=event.inst,# system=tilted_system,
-                                ax=plt.subplot(reco_grid[0]))
+
+
             # Draw MC position (this should change later)
             array.draw_position(event.mc.core_x, event.mc.core_y, use_centre=True)
             array.draw_array(((-300,300),(-300,300)))
@@ -124,6 +124,8 @@ class EventViewer(Component):
 
                 nominal =  NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
                 nominal.draw_array()
+        self.nominal_view = nominal
+        self.array_view = array
 
         plt.show()
 
