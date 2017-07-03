@@ -1,16 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """Utils to create scripts and command-line tools"""
 import argparse
-from collections import OrderedDict
 import importlib
-import os
-import glob
 import re
+from collections import OrderedDict
 
 __all__ = ['ArgparseFormatter',
            'get_parser',
            'get_installed_tools',
-           'get_all_main_functions',
+           'get_all_descriptions',
            ]
 
 

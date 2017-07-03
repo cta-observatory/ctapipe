@@ -51,7 +51,7 @@ install:
 script:
     - make test
     - ctapipe-info --version # print out the version string
-    - travis-sphinx --nowarn --source=docs/ build
+    - travis-sphinx --source=docs/ build
 
 after_script:
     - source deactivate

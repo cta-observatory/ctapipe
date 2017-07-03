@@ -2,17 +2,18 @@
 """
 Visualization routines using matplotlib
 """
-import matplotlib
-from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection, LineCollection
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from matplotlib.lines import Line2D
-from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from numpy import sqrt
-import numpy as np
-import logging
 import copy
+import logging
+
+import matplotlib
+import numpy as np
 from astropy import units as u
+from matplotlib import pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+from matplotlib.lines import Line2D
+from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from numpy import sqrt
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -569,8 +570,6 @@ class ArrayDisplay:
             or linewidth=6)
         """
         # strip off any units
-        line_list = list()
-        size_list = list()
         i = 0
         for h in momparams:
             tel_x = u.Quantity(tel_position[0][i]).value

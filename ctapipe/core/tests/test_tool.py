@@ -30,4 +30,4 @@ def test_tool_version():
         userparam = Float(5.0, help="parameter").tag(config=True)
 
     tool = MyTool()
-    assert tool.version_string !=  ""
+    assert tool.version_string != ""

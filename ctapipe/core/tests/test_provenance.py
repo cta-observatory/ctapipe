@@ -19,6 +19,7 @@ def test_Provenance():
 
     return prov
 
+
 def test_ActivityProvenance():
     prov = _ActivityProvenance()
     prov.start()
@@ -38,6 +39,7 @@ def test_provenence_contextmanager():
 
     assert 'myactivity' in prov.finished_activity_names
     assert 'myactivity' not in prov.active_activity_names
+
 
 if __name__ == '__main__':
 

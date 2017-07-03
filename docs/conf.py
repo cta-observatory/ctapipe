@@ -185,9 +185,9 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/3.6', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'python': ('https://docs.python.org/3.6', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/latest/', None),
     'pytables':('http://www.pytables.org/', None),
     'pandas' :('http://pandas.pydata.org/pandas-docs/stable/', None),
@@ -209,4 +209,4 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
                           "first. For example, pip install sphinx_rtd_theme")
     html_theme = 'sphinx_rtd_theme'
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    html_use_smartypants = False
+
