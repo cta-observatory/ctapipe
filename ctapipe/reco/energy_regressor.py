@@ -5,7 +5,6 @@ from astropy import units as u
 from ctapipe.reco.regressor_classifier_base import RegressorClassifierBase
 from sklearn.ensemble import RandomForestRegressor
 
-__all__ = ['EnergyRegressor']
 
 class EnergyRegressor(RegressorClassifierBase):
     """This class collects one regressor for every camera type -- given
