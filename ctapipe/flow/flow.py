@@ -667,12 +667,12 @@ class Flow(Tool):
             self.context.term()
         self.log.info("")
         self.log.info("=== Timing summary=== ")
-        self.log.info("Producer {0} time {1:.3} sec".format(self.producer.name,
-                                                            self.producer.total_time))
+        self.log.info("Producer {0} time {1:.2f} sec".format(self.producer.name,
+                                                             self.producer.total_time))
         for step in self.stagers:
-            self.log.info("Stager {0} time {1:.3} sec".format(step.name, step.total_time))
-        self.log.info("consumer {0} time {1:.3} sec".format(self.consumer.name,
-                                                                self.consumer.total_time))
+            self.log.info("Stager {0} time {1:.2f} sec".format(step.name, step.total_time))
+        self.log.info("consumer {0} time {1:.2f} sec".format(self.consumer.name,
+                                                             self.consumer.total_time))
 
 
     def run_generator(self, destination ,msg):
@@ -755,6 +755,21 @@ class Flow(Tool):
         self.log.info('=== MULTUPROCESSUS MODE END ===')
         self.log.info('Compute time {} sec'.format(end_time - start_time))
         self.display_statistics()
+        self.log.info("Producer {0} time {1:.2f} sec".format(self.producer.name,
+                                                            self.producer.get_total_time))
+        steps_timing = {}
+        for step in self.stagers:
+            step_name = step.name.split("$$process_number$$")[0]
+            try:
+                steps_timing[step_name] += step.get_total_time
+            except KeyError:
+                steps_timing[step_name] = step.get_total_time
+
+        for step_name, step_timing in steps_timing.items():
+            self.log.info("Stager {0} time {1:.2f} sec".format(step_name,
+                                                              step_timing))
+        self.log.info("Consumer {0} time {1:.2f} sec".format(self.consumer.name,
+                                                             self.consumer.get_total_time))
 
         sleep(1)
         if self.gui :

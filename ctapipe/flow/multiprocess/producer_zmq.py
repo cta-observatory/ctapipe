@@ -4,6 +4,7 @@ from ctapipe.flow.multiprocess.connections import Connections
 from multiprocessing import Process
 from multiprocessing import Value
 from types import GeneratorType
+from time import time
 import zmq
 
 class ProducerZmq(Process, Component, Connections):
@@ -35,8 +36,9 @@ class ProducerZmq(Process, Component, Connections):
         Connections.__init__(self, main_connection_name, connections)
         self.coroutine = coroutine
         self.other_requests=dict()
-        self._nb_job_done = Value('i',0)
-        self._running = Value('i',0)
+        self._nb_job_done = Value('i', 0)
+        self._running = Value('i', 0)
+        self.total_time = Value('f', 0.)
         self.done = False
 
     def init(self):
@@ -48,8 +50,10 @@ class ProducerZmq(Process, Component, Connections):
         """
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        start_time = time()
+        if not self.coroutine.init():
             return False
+        self.total_time.value += (time() - start_time)
         self.coroutine.connections = list(self.connections)
         return self.init_connections()
 
@@ -60,18 +64,21 @@ class ProducerZmq(Process, Component, Connections):
         It loops overs its generator and sends new input to its next stage,
         thanks to its ZMQ REQ socket.
         """
-        if self.init() :
+        if self.init():
             generator = self.coroutine.run()
-            if isinstance(generator,GeneratorType):
+
+            if isinstance(generator, GeneratorType):
                 for result in generator:
                     self.running = 1
+                    start_time = time()
                     self.nb_job_done += 1
-                    if isinstance(result,tuple):
-                        msg,destination = self.get_destination_msg_from_result(result)
-                        self.send_msg(msg,destination)
+                    if isinstance(result, tuple):
+                        msg, destination = self.get_destination_msg_from_result(result)
+                        self.send_msg(msg, destination)
                     else:
                         self.send_msg(result)
                 self.running = 0
+                self.total_time.value += (time() - start_time)
             else:
                 self.log.warning("Warning: Productor run method was not a python generator.")
         self.finish()
@@ -81,7 +88,9 @@ class ProducerZmq(Process, Component, Connections):
         """
         Executes coroutine method
         """
+        start_time = time()
         self.coroutine.finish()
+        self.total_time.value += (time() - start_time)
         return True
 
     def init_connections(self):
@@ -101,6 +110,10 @@ class ProducerZmq(Process, Component, Connections):
     @nb_job_done.setter
     def nb_job_done(self, value):
         self._nb_job_done.value = value
+
+    @property
+    def get_total_time(self):
+        return self.total_time.value
 
     @property
     def running(self):

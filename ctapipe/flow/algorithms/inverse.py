@@ -10,7 +10,7 @@ class Inverse(Component):
         return True
 
     def run(self, input):
-        sleep(.5)
+        sleep(.01)
         if input:
             self.log.debug("Inverse receive {}".format(input))
             return int(input) * -1

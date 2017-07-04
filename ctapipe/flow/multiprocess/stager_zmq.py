@@ -10,6 +10,7 @@ from zmq import Poller
 from zmq import Context
 from ctapipe.flow.multiprocess.connections import Connections
 from ctapipe.core import Component
+from time import time
 
 class StagerZmq(Component, Process, Connections):
 
@@ -46,10 +47,11 @@ class StagerZmq(Component, Process, Connections):
         self.coroutine = coroutine
         self.sock_job_for_me_url = 'tcp://localhost:' + sock_job_for_me_port
         self.done = False
-        self.waiting_since = Value('i',0)
-        self._nb_job_done = Value('i',0)
-        self._stop = Value('i',0)
-        self._running = Value('i',0)
+        self.waiting_since = Value('i', 0)
+        self._nb_job_done = Value('i', 0)
+        self._stop = Value('i', 0)
+        self._running = Value('i', 0)
+        self.total_time = Value('f', 0.)
 
     def init(self):
         """
@@ -63,9 +65,10 @@ class StagerZmq(Component, Process, Connections):
             self.name = "STAGER"
         if self.coroutine is None:
             return False
+        start_time = time()
         if self.coroutine.init() == False:
             return False
-
+        self.total_time.value += (time() - start_time)
         self.coroutine.connections = list(self.connections)
 
         return self.init_connections()
@@ -81,7 +84,7 @@ class StagerZmq(Component, Process, Connections):
         has been set to False.
         Atfer the main while loop, coroutine.finish method is called
         """
-        if self.init()  :
+        if self.init():
             while not self.stop:
                 sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
                 if (self.sock_for_me in sockets and
@@ -89,22 +92,24 @@ class StagerZmq(Component, Process, Connections):
                     #  Get the input from prev_stage
                     self.waiting_since.value = 0
                     self.running = 1
+                    start_time = time()
                     request = self.sock_for_me.recv_multipart()
                     receiv_input = loads(request[0])
                     # do the job
                     results = self.coroutine.run(receiv_input)
                     if isinstance(results, GeneratorType):
                         for val in results:
-                            msg,destination = self.get_destination_msg_from_result(val)
-                            self.send_msg(msg,destination)
+                            msg, destination = self.get_destination_msg_from_result(val)
+                            self.send_msg(msg, destination)
                     else:
-                        msg,destination = self.get_destination_msg_from_result(results)
-                        self.send_msg(msg,destination)
+                        msg, destination = self.get_destination_msg_from_result(results)
+                        self.send_msg(msg, destination)
                     # send acknoledgement to prev router/queue to inform it that I
                     # am available
                     self.sock_for_me.send_multipart(request)
                     self._nb_job_done.value = self._nb_job_done.value + 1
                     self.running = 0
+                    self.total_time.value += (time() - start_time)
                 else:
                     self.waiting_since.value = self.waiting_since.value+100 # 100 ms
             self.sock_for_me.close()
@@ -112,7 +117,9 @@ class StagerZmq(Component, Process, Connections):
         self.done = True
 
     def finish(self):
+        start_time = time()
         self.coroutine.finish()
+        self.total_time.value += (time() - start_time)
 
     def init_connections(self):
         """
@@ -148,6 +155,11 @@ class StagerZmq(Component, Process, Connections):
     @property
     def nb_job_done(self):
         return self._nb_job_done.value
+
+    @property
+    def get_total_time(self):
+        return self.total_time.value
+
 
     @nb_job_done.setter
     def nb_job_done(self, value):
