@@ -10,7 +10,7 @@ class SimTelArrayReader(Component):
         It opens simtelarray file and yields even to the next stage
     """
     filename = Unicode('gamma_test.simtel.gz', help='simtel MC input file').tag(
-        config=True, allow_none=True)
+        config=True)
     source = None
 
     def init(self):

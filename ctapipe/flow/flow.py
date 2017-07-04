@@ -100,16 +100,13 @@ class Flow(Tool):
     gui_address = Unicode('localhost:5565', help='GUI adress and port')\
                                                   .tag(config=True)
     mode = Enum(['sequential', 'multiprocess'], default_value='sequential',
-                help='Flow mode', allow_none=True).tag(config=True)
-    producer_conf = Dict(help='producer description: name , module, class',
-                         allow_none=False).tag(config=True)
-    stagers_conf = List( help='stagers list description in a set order:',
-                         allow_none=False).tag(config=True)
+                help='Flow mode').tag(config=True)
+    producer_conf = Dict(help='producer description: name , module, class').tag(config=True)
+    stagers_conf = List( help='stagers list description in a set order:').tag(config=True)
     consumer_conf = Dict(
         default_value={'name': 'CONSUMER', 'class': 'Producer',
                        'module': 'producer',  'prev': 'STAGE1'},
-        help='producer description: name , module, class',
-                allow_none=False).tag(config=True)
+        help='producer description: name , module, class').tag(config=True)
     ports_list = list(range(5555,5600,1))
     zmq_ports = List(ports_list, help='ZMQ ports').tag(config=True)
     aliases = Dict({'gui_address': 'Flow.gui_address',

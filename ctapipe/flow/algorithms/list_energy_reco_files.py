@@ -11,7 +11,7 @@ class ListEnergyRecoFiles(Component):
         - 'TimeHillas'
     """
     source_dir = Unicode(help='directory containing data files').tag(
-        config=True, allow_none=True)
+        config=True,)
 
 
     #hillas_list = []

@@ -7,7 +7,7 @@ from traitlets import Unicode
 class ListProducerProcess(Component):
 
     source_dir = Unicode('/tmp', help='directory containing data files').tag(
-        config=True, allow_none=True)
+        config=True)
 
     def init(self):
         self.log.info('----- ListProducerProcess init  source_dir {}'.format(self.source_dir))

@@ -20,7 +20,7 @@ class CalibrationStep(Component):
         pedestal at which a signal is considered as significant, and used \
         for peak finding. (separate for high gain/low gain)').tag(
         config=True)
-    integration_clip_amp = Int(default_value=None,allow_none=True, help = 'Amplitude in p.e. above which \
+    integration_clip_amp = Int(default_value=None, help='Amplitude in p.e. above which \
         the signal is clipped').tag(config=True)
     integration_lwt = Int(0, help='Weight of the local pixel (0: peak from \
         neighbours only, 1: local pixel counts as much as any neighbour').tag(

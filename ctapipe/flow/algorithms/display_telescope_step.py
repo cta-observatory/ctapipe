@@ -11,8 +11,8 @@ class DisplayTelescopeStep(Component):
     """
     display = Bool(default_value=False, help='Display the camera events') \
      .tag(config=True)
-    pdf_path = Unicode(default_value=None,allow_none=True,
-        help='Path to store a pdf output of the plots').tag(config=True)
+    pdf_path = Unicode(default_value=None,
+                       help='Path to store a pdf output of the plots').tag(config=True)
 
     def init(self):
         self.log.debug("--- DisplayTelescopeStep init ---")

@@ -8,10 +8,10 @@ from ctapipe.flow.algorithms.build_command import build_command
 class Prun2PtimeHillas(Component):
 
     exe = Unicode(help='executable').tag(
-        config=True, allow_none=False)
+        config=True)
 
     config_file = Unicode(help='configuration file').tag(
-        config=True, allow_none=False)
+        config=True)
 
     """CalibrationStep` class represents a Stage for pipeline.
         it executes prun2pcalibrun

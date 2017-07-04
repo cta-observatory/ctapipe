@@ -8,7 +8,7 @@ class StringWriter(Component):
         It writes received objects to file
     """
     filename = Unicode('/tmp/test.txt', help='output filename').tag(
-        config=True, allow_none=True)
+        config=True)
 
     def init(self):
         self.file = open(self.filename, 'w')
