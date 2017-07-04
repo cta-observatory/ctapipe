@@ -88,9 +88,7 @@ class SingleTelEventDisplay(Tool):
             self.calibrator.calibrate(event)
 
             if disp is None:
-                x, y = event.inst.pixel_pos[self.tel]
-                focal_len = event.inst.optical_foclen[self.tel]
-                geom = CameraGeometry.guess(x, y, focal_len)
+                geom = event.inst.subarray.tel[self.tel].camera
                 self.log.info(geom)
                 disp = CameraDisplay(geom)
                 # disp.enable_pixel_picker()

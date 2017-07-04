@@ -9,7 +9,9 @@ from ctapipe.core.traits import (Unicode, Dict, Bool, Enum)
 from ctapipe.core import Tool
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.instrument import CameraGeometry, get_camera_types, print_camera_types
-
+from astropy.table import Table
+from astropy import units as u
+import numpy as np
 
 class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)
@@ -35,6 +37,7 @@ class DumpInstrumentTool(Tool):
 
     def start(self):
         self.write_camera_geometries()
+        self.write_optics_descriptions()
 
     def finish(self):
         pass
@@ -66,6 +69,30 @@ class DumpInstrumentTool(Tool):
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
             table.write("{}.camgeom.{}".format(cam_name, ext), **args)
+
+    def write_optics_descriptions(self):
+        # we'll use the camera names for the optics names...
+        cam_types = get_camera_types(self.inst)
+        cam_names = list(cam_types.keys())
+        optical_foclens = []
+        mirror_dish_areas = []
+        mirror_num_tiles = []
+
+        for cam_name in cam_names:
+            tel_id = cam_types[cam_name].pop()
+            optical_foclens.append(self.inst.optical_foclen[tel_id].to(
+                'm').value)
+            mirror_dish_areas.append(self.inst.mirror_dish_area[tel_id].to(
+                'm^2').value)
+            mirror_num_tiles.append(self.inst.mirror_numtiles[tel_id])
+
+        table = Table()
+        table['cam_id'] = cam_names
+        table['focal_length'] = np.array(optical_foclens) * u.m
+        table['dish_area'] = np.array(mirror_dish_areas) * u.m**2
+        table['num_mirror_tiles'] = np.array(mirror_num_tiles, dtype=int)
+        table.meta['SOURCE'] = self.infile
+        table.write("optics_descriptions.{}".format(self.format))
 
 
 def main():
