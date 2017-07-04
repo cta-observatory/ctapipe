@@ -66,9 +66,7 @@ class IntegratorPlotter(Component):
         max_pix = int(np.argmax(max_charges))
         min_pix = int(np.argmin(max_charges))
 
-        geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                    event.inst.optical_foclen[telid])
-
+        geom = event.inst.subarray.tel[telid]
         nei = geom.neighbors
 
         # Get Neighbours
