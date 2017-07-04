@@ -1,5 +1,6 @@
 from tempfile import TemporaryDirectory
 from ctapipe.reco.event_classifier import *
+from sklearn.neural_network import MLPClassifier
 
 def test_prepare_model_MLP():
     cam_id_list = ["FlashCam", "ASTRICam"]
@@ -10,12 +11,11 @@ def test_prepare_model_MLP():
     target_list = {"FlashCam": ["a", "a", "a", "a", "b", "b", "b", "b"],
                    "ASTRICam": ["a", "a", "a", "a", "b", "b", "b", "b"]}
 
-    clf = EventClassifier(classifier=MLPClassifier, cam_id_list=cam_id_list, hidden_layer_sizes=(20,))
-    # scaler = StandardScaler()
-    # scaler.fit(feature_list)
-    # f = scaler.transform(feature_list)
+    clf = EventClassifier(classifier=MLPClassifier, cam_id_list=cam_id_list, max_iter=400)
+    scaled_features = EventClassifier.scale_features(cam_id_list, feature_list)
 
-    clf.fit(feature_list, target_list)
+    # clf.fit(feature_list, target_list)
+    clf.fit(scaled_features, target_list)
     return clf, cam_id_list
 
 def test_fit_save_load_MLP():

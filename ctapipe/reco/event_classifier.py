@@ -3,8 +3,6 @@ import numpy as np
 from astropy import units as u
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import StandardScaler
 
 from ctapipe.reco.regressor_classifier_base import RegressorClassifierBase
 

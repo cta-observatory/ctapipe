@@ -1,6 +1,7 @@
 import numpy as np
 
 from astropy import units as u
+from sklearn.preprocessing import scale
 
 
 class RegressorClassifierBase:
@@ -294,6 +295,36 @@ class RegressorClassifierBase:
                 self.model_dict[key] = joblib.load(path.format(key))
 
         return self
+
+    @staticmethod
+    def scale_features(cam_id_list, feature_list):
+        """Scales features before training with any ML method.
+
+        Parameters
+        ----------
+        cam_id_list : list
+            list of camera identifiers like telescope ID or camera ID
+            and the assumed distinguishing feature in the filenames of
+            the various pickled regressors.
+        feature_list : dictionary of lists of lists
+            Dictionary that maps the telescope identifiers to lists of
+            feature-lists.  The values of the dictionary are the lists
+            `scikit-learn` regressors train on and are supposed to
+            comply to their format requirements e.g. each feature-list
+            has to contain the same features at the same position
+
+        Returns
+        -------
+        f_dict : dictionary of lists of lists
+            a copy of feature_list input, with scaled values
+
+        """
+        f_dict = {}
+
+        for cam_id in cam_id_list or []:
+            f_dict[cam_id] = scale(feature_list[cam_id])
+
+        return f_dict
 
     def show_importances(self, feature_labels=None):
         """Creates a matplotlib figure that shows the importances of the
