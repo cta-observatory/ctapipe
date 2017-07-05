@@ -63,6 +63,27 @@ class CameraGeometry:
     of the data. Note that this function is memoized, so calling it multiple 
     times with the same inputs will give back the same object (for speed).
 
+    Parameters
+    ----------
+    self: type
+        description
+    cam_id: camera id name or number
+        camera identification string
+    pix_id: array(int)
+        pixels id numbers
+    pix_x: array with units
+        position of each pixel (x-coordinate)
+    pix_y: array with units
+        position of each pixel (y-coordinate)
+    pix_area: array(float)
+        surface area of each pixel, if None will be calculated
+    neighbors: list(arrays)
+        adjacency list for each pixel
+    pix_type: string
+        either 'rectangular' or 'hexagonal'
+    pix_rotation: value convertable to an `astropy.coordinates.Angle`
+        rotation angle with unit (e.g. 12 * u.deg), or "12d"
+    cam_rotation: overall camera rotation with units
     """
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
@@ -70,30 +91,7 @@ class CameraGeometry:
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True):
-        """
-        Parameters
-        ----------
-        self: type
-            description
-        cam_id: camera id name or number
-            camera identification string
-        pix_id: array(int)
-            pixels id numbers
-        pix_x: array with units
-            position of each pixel (x-coordinate)
-        pix_y: array with units
-            position of each pixel (y-coordinate)
-        pix_area: array(float)
-            surface area of each pixel, if None will be calculated
-        neighbors: list(arrays)
-            adjacency list for each pixel
-        pix_type: string
-            either 'rectangular' or 'hexagonal'
-        pix_rotation: value convertable to an `astropy.coordinates.Angle`
-            rotation angle with unit (e.g. 12 * u.deg), or "12d"
-        cam_rotation: overall camera rotation with units
 
-        """
         self.cam_id = cam_id
         self.pix_id = pix_id
         self.pix_x = pix_x
