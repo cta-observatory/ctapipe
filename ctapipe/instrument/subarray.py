@@ -22,11 +22,20 @@ class SubarrayDescription:
         dict of telescope positions by tel_id
     tel_descriptions: dict(TelescopeDescription)
         array of TelescopeDescriptions by tel_id
+
+    Attributes
+    ----------
+    name
+       name of subarray
+    positions
+       x,y position of each telescope as length-2 arrays of unit quantities
+    tels
+       dict of TelescopeDescription for each telescope in the subarray
     """
 
     def __init__(self, name, tel_positions=None, tel_descriptions=None):
 
-        self.name = name
+        self.name = name #: name of telescope
         self.positions = tel_positions or dict()
         self.tels = tel_descriptions or dict()
 

@@ -8,17 +8,10 @@ import numpy as np
 from astropy.table import Table
 from ctapipe.core import Tool
 from ctapipe.core.traits import *
-from ctapipe.instrument import CameraGeometry, SubarrayDescription
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 from ctapipe.calib import CameraCalibrator
-
-
-def get_camera_types(subarray: SubarrayDescription):
-    """ return dict of group_id to list of telescopes in group,
-    where a group is defined as similar telescopes"""
-    return
 
 
 class ImageSumDisplayerTool(Tool):
