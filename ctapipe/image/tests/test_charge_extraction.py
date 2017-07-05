@@ -1,12 +1,11 @@
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
-from ctapipe.instrument import CameraGeometry
 import numpy as np
 from numpy.testing import assert_almost_equal
 
 from ctapipe.image.charge_extractors import FullIntegrator, \
     SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
     NeighbourPeakIntegrator, ChargeExtractorFactory, AverageWfPeakIntegrator
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils import get_dataset
 
 
 def get_test_event():
