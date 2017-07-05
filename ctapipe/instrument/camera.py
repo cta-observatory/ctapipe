@@ -15,9 +15,7 @@ from scipy.spatial import cKDTree as KDTree
 from ctapipe.utils import get_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
 
-__all__ = ['CameraGeometry',
-           'get_camera_types',
-           'print_camera_types']
+__all__ = ['CameraGeometry',]
 
 logger = logging.getLogger(__name__)
 
@@ -478,47 +476,4 @@ def _neighbor_list_to_matrix(neighbors):
     return neigh2d
 
 
-def get_camera_types(inst):
-    """ return dict of camera names mapped to a list of tel_ids
-     that use that camera
 
-     Parameters
-     ----------
-     inst: instument Container
-
-     """
-
-    cam_types = defaultdict(list)
-
-    for telid in inst.pixel_pos:
-        x, y = inst.pixel_pos[telid]
-        f = inst.optical_foclen[telid]
-        geom = CameraGeometry.guess(x, y, f)
-
-        cam_types[geom.cam_id].append(telid)
-
-    return cam_types
-
-
-def print_camera_types(inst, printer=print):
-    """
-    Print out a friendly table of which camera types are registered in the 
-    inst dictionary (from a hessio file), along with their starting and 
-    stopping tel_ids.
-
-    Parameters
-    ----------
-    inst: ctapipe.io.containers.InstrumentContainer
-        input container
-    printer: func
-        function to call to output the text (default is the standard python 
-        print command, but you can give for example logger.info to have it 
-        write to a logger) 
-    """
-    camtypes = get_camera_types(inst)
-
-    printer("              CAMERA  Num IDmin  IDmax")
-    printer("=====================================")
-    for cam, tels in camtypes.items():
-        printer("{:>20s} {:4d} {:4d} ..{:4d}".format(cam, len(tels), min(tels),
-                                                     max(tels)))
