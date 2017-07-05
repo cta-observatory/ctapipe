@@ -97,8 +97,7 @@ def test_nb_peak_integration():
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
-    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                event.inst.optical_foclen[telid])
+    geom = event.inst.subarray.tel[telid].camera
     nei = geom.neighbors
 
     integrator = NeighbourPeakIntegrator(None, None)
