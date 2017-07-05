@@ -37,6 +37,7 @@ before_install:
     # Make sure that interactive matplotlib backends work
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
+    - git fetch --tags
 
 install:
 
