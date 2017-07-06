@@ -29,30 +29,40 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     """
     # Declare a dict to define the muon cuts (ASTRI and SCT missing)
     muon_cuts = {}
-    names = ['LSTCam','NectarCam','FlashCam','SST-1m','CHEC']
-    TailCuts = [(5,7),(5,7),(75,80),(30,35),(5,7)] #10,12?
-    impact = [(0.2,0.9),(0.2,0.9),(0.2,0.9),(0.2,0.9),(0.2,0.9)]
-    ringwidth = [(0.04,0.08),(0.04,0.08),(0.01,0.5),(0.01,0.5),(0.04,0.08)]
-    TotalPix = [1855.,1855.,1764.,1296.,2048.]#8% (or 6%) as limit
-    MinPix = [148.,148.,141.,104.,164.]
+    #names = ['LSTCam','NectarCam','FlashCam','SCTCam','SST-1m','CHEC','ASTRICam']
+    names = ['LSTCam', 'NectarCam', 'FlashCam', 'SCTCam', 'DigiCam', 'CHEC', 'ASTRICam']
+    TailCuts = [(5,7),(5,7),(10,12),(5,7),(5,7),(5,7),(5,7)] #10,12?
+    impact = [(0.2,0.9),(0.1,0.95),(0.2,0.9),(0.2,0.9),(0.1,0.95),(0.1,0.95),(0.1,0.95)]
+    ringwidth = [(0.04,0.08),(0.02,0.1),(0.01,0.1),(0.02,0.1),(0.01,0.5),(0.02,0.2),(0.02,0.2)]
+    TotalPix = [1855.,1855.,1764.,11328.,1296.,2048.,2368.]#8% (or 6%) as limit
+    MinPix = [148.,148.,141.,680.,104.,164.,142.]
     #Need to either convert from the pixel area in m^2 or check the camera specs
-    AngPixelWidth = [0.1,0.2,0.18,0.24,0.2] #Found from TDRs (or the pixel area)
+    AngPixelWidth = [0.1,0.2,0.18,0.067,0.24,0.2,0.17] #Found from TDRs (or the pixel area)
     hole_rad = []#Need to check and implement
-    cam_rad = [2.26,3.96,3.87,4.45,2.86]#Found from the field of view calculation
-    sec_rad = [0.*u.m,0.*u.m,0.*u.m,0.*u.m,1.*u.m]
-    sct = [False,False,False,False,True]
+    cam_rad = [2.26,3.96,3.87,4.,4.45,2.86,5.25]#Found from the field of view calculation
+    sec_rad = [0.*u.m,0.*u.m,0.*u.m,2.7*u.m,0.*u.m,1.*u.m,1.8*u.m]
+    sct = [False,False,False,True,False,True,True]
 
 
     muon_cuts = {'Name':names,'TailCuts':TailCuts,'Impact':impact,'RingWidth':ringwidth,'TotalPix':TotalPix,'MinPix':MinPix,'CamRad':cam_rad,'SecRad':sec_rad,'SCT':sct,'AngPixW':AngPixelWidth}
     #print(muon_cuts)
 
-    muonringparam = None
-    muonintensityparam = None
+    muonringlist = []#[None] * len(event.dl0.tels_with_data)
+    muonintensitylist = []#[None] * len(event.dl0.tels_with_data)
+    tellist = []
+    #for tid in event.dl0.tels_with_data:
+    #    tellist.append(tid)
+    muon_event_param = {'TelIds':tellist,'MuonRingParams':muonringlist,'MuonIntensityParams':muonintensitylist}
+    #muonringparam = None
+    #muonintensityparam = None
 
     for telid in event.dl0.tels_with_data:
 
-        print("Analysing muon event for tel",telid)
-        
+        #print("Analysing muon event for tel",telid)
+        muonringparam = None
+        muonintensityparam = None
+        #idx = muon_event_param['TelIds'].index(telid)
+
         x, y = event.inst.pixel_pos[telid]
 
         #image = event.dl1.tel[telid].calibrated_image
@@ -150,6 +160,13 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             #    sec_rad = 1.*u.m
             #    sct = True
 
+            #Store muon ring parameters (passing cuts stage 1)
+            #muonringlist[idx] = muonringparam
+            tellist.append(telid)
+            muonringlist.append(muonringparam)
+            muonintensitylist.append(None)
+            #embed()
+
             ctel = MuonLineIntegrate(mir_rad,0.2*u.m,pixel_width=muon_cuts['AngPixW'][dict_index]*u.deg,sct_flag=muon_cuts['SCT'][dict_index], secondary_radius=muon_cuts['SecRad'][dict_index])
           
             if (image.shape[0] == muon_cuts['TotalPix'][dict_index]):
@@ -159,18 +176,27 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muonintensityoutput.run_id = event.dl0.run_id
                 muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask
-                print("Impact parameter = ",muonintensityoutput.impact_parameter,"mir_rad",mir_rad,"ring_width=",muonintensityoutput.ring_width)
+
+                print("Tel",telid,"Impact parameter = ",muonintensityoutput.impact_parameter,"mir_rad",mir_rad,"ring_width=",muonintensityoutput.ring_width)
+
+                #if(muonintensityoutput.impact_parameter > muon_cuts['Impact'][dict_index][1]*mir_rad or muonintensityoutput.impact_parameter < muon_cuts['Impact'][dict_index][0]*mir_rad):
+                #    print("Failed on impact parameter low cut",muon_cuts['Impact'][dict_index][0]*mir_rad,"high cut",muon_cuts['Impact'][dict_index][1]*mir_rad,"for",geom.cam_id)
+                #if(muonintensityoutput.ring_width > muon_cuts['RingWidth'][dict_index][1]*u.deg or muonintensityoutput.ring_width < muon_cuts['RingWidth'][dict_index][0]*u.deg):
+                #    print("Failed on ring width low cut",muon_cuts['RingWidth'][dict_index][0]*u.deg,"high cut",muon_cuts['RingWidth'][dict_index][1]*u.deg,"for ",geom.cam_id)
 
                 #print("Cuts <",muon_cuts["Impact"][dict_index][1]*mir_rad,"cuts >",muon_cuts['Impact'][dict_index][0]*u.m,'ring_width < ',muon_cuts['RingWidth'][dict_index][1]*u.deg,'ring_width >',muon_cuts['RingWidth'][dict_index][0]*u.deg)
                 if( muonintensityoutput.impact_parameter < muon_cuts['Impact'][dict_index][1]*mir_rad and muonintensityoutput.impact_parameter > muon_cuts['Impact'][dict_index][0]*u.m and muonintensityoutput.ring_width < muon_cuts['RingWidth'][dict_index][1]*u.deg and muonintensityoutput.ring_width > muon_cuts['RingWidth'][dict_index][0]*u.deg ):
                     muonintensityparam = muonintensityoutput
+                    idx = tellist.index(telid)
+                    muonintensitylist[idx] = muonintensityparam
+                    print("Muon in tel",telid,"# tels in event=",len(event.dl0.tels_with_data))
                 else:
                     continue
 
         #print("Fitted ring centre (2):",muonringparam.ring_center_x,muonringparam.ring_center_y)
 
-
-    return muonringparam, muonintensityparam
+    #return muonringparam, muonintensityparam
+    return muon_event_param
 
 def analyze_muon_source(source, params=None, geom_dict=None, args=None):
     """

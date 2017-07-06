@@ -1,5 +1,3 @@
-mport
-argparse
 # from calibration_pipeline import display_telescope
 
 import argparse
@@ -86,36 +84,40 @@ def main():
         r1.calibrate(event)
         dl0.reduce(event)
         dl1.calibrate(event)
+
         muon_evt = analyze_muon_event(event)
 
         numev += 1
         # Test display #Flag 1 for true (wish to display)
         # plot_muon_event(event,muon_evt)
         # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)
-        if muon_evt[0] is not None and muon_evt[1] is not None:
+        #if muon_evt[0] is not None and muon_evt[1] is not None:
+        if not muon_evt['MuonIntensityParams']: #No telescopes contained a good muon
+            continue
+        else:
             plot_muon_event(event, muon_evt, None, args)
 
-            plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
-            plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
-            plot_dict['RingWidth'].append(muon_evt[1].ring_width.value)
+            #plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
+            #plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
+            #plot_dict['RingWidth'].append(muon_evt[1].ring_width.value)
 
-            display_muon_plot(muon_evt)
+            #display_muon_plot(muon_evt)
             # Store and or Plot muon parameters here
 
             # if numev > 50: #for testing purposes - kill early
             #    break
 
-    t = Table([muoneff, impactp, ringwidth],
-              names=('MuonEff', 'ImpactP', 'RingWidth'),
-              meta={'name': 'muon analysis results'})
-    t['ImpactP'].unit = 'm'
-    t['RingWidth'].unit = 'deg'
+    #t = Table([muoneff, impactp, ringwidth],
+    #          names=('MuonEff', 'ImpactP', 'RingWidth'),
+    #          meta={'name': 'muon analysis results'})
+    #t['ImpactP'].unit = 'm'
+    #t['RingWidth'].unit = 'deg'
     #    print('plotdict',plot_dict)
 
-    t.write(str(args.output_path) + '_muontable.fits', overwrite=True)  # NEED
+    #t.write(str(args.output_path) + '_muontable.fits', overwrite=True)  # NEED
     # this to overwrite
 
-    plot_muon_efficiency(args.output_path)
+    #plot_muon_efficiency(args.output_path)
 
     log.info("[COMPLETE]")
 
