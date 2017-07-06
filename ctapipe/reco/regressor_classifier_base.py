@@ -1,7 +1,7 @@
 import numpy as np
 
 from astropy import units as u
-from sklearn.preprocessing import scale
+from sklearn.preprocessing import StandardScaler
 
 
 class RegressorClassifierBase:
@@ -320,11 +320,14 @@ class RegressorClassifierBase:
 
         """
         f_dict = {}
+        scaler = {}
 
         for cam_id in cam_id_list or []:
-            f_dict[cam_id] = scale(feature_list[cam_id])
+            scaler[cam_id] = StandardScaler()
+            scaler[cam_id].fit(feature_list[cam_id])
+            f_dict[cam_id] = scaler[cam_id].transform(feature_list[cam_id])
 
-        return f_dict
+        return f_dict, scaler
 
     def show_importances(self, feature_labels=None):
         """Creates a matplotlib figure that shows the importances of the
