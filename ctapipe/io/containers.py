@@ -327,7 +327,7 @@ class DataContainer(Container):
     dl1 = Field(DL1Container(), "DL1 Calibrated image")
     dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
     mc = Field(MCEventContainer(), "Monte-Carlo data")
-    mcheader = Field(MCHeaderContainer, "Monte-Carlo run header data")
+    mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
