@@ -11,7 +11,7 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ctapipe.core import Tool
+from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import (Unicode, Dict, Enum)
 from ctapipe.io.hessio import hessio_event_source
 
@@ -54,6 +54,7 @@ class DumpInstrumentTool(Tool):
         source = hessio_event_source(self.infile)
         data = next(source)  # get one event, so the instrument table is
                              # filled in
+        del source
         self.inst = data.inst # keep a pointer to the instrument stuff
         pass
 
@@ -90,7 +91,9 @@ class DumpInstrumentTool(Tool):
             geom = self.inst.subarray.tel[tel_id].camera
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
-            table.write("{}.camgeom.{}".format(cam_name, ext), **args)
+            filename = "{}.camgeom.{}".format(cam_name, ext)
+            table.write(filename, **args)
+            Provenance().add_output_file(filename)
 
     def write_optics_descriptions(self):
         sub = self.inst.subarray
@@ -98,7 +101,9 @@ class DumpInstrumentTool(Tool):
 
         tab = sub.to_table(kind='optics')
         tab.meta['SOURCE'] = self.infile
-        tab.write('{}.optics.{}'.format(sub.name, ext), **args)
+        filename = '{}.optics.{}'.format(sub.name, ext)
+        tab.write(filename, **args)
+        Provenance().add_output_file(filename)
 
     def write_subarray_description(self):
         sub = self.inst.subarray
@@ -106,7 +111,10 @@ class DumpInstrumentTool(Tool):
                                                'subarray')
         tab = sub.to_table(kind='subarray')
         tab.meta['SOURCE'] = self.infile
-        tab.write('{}.subarray.{}'.format(sub.name, ext), **args)
+        filename = '{}.subarray.{}'.format(sub.name, ext)
+        tab.write(filename, **args)
+        Provenance().add_output_file(filename)
+
 
 
 def main():
