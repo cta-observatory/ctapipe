@@ -292,7 +292,7 @@ def plot_muon_event(event, muonparams, geom_dict=None, args=None):
             # plt.pause(0.1)
             # if pp is not None:
             #    pp.savefig(fig)
-            fig.savefig(str(args.output_path) + "_" +
-                        str(event.dl0.event_id) + '.png')
+            #fig.savefig(str(args.output_path) + "_" +
+            #            str(event.dl0.event_id) + '.png')
 
             plt.close()

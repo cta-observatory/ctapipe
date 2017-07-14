@@ -116,8 +116,9 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         muonring = ChaudhuriKunduRingFitter(None)
 
         #print("img:",np.sum(image),"mask:",np.sum(clean_mask), "x=",x,"y=",y)
+        if not sum(img):#Nothing left after tail cuts
+            continue
         muonringparam = muonring.fit(x,y,image*clean_mask)
-
         #muonringparam = muonring.fit(x,y,weight)
         dist = np.sqrt(np.power(x-muonringparam.ring_center_x,2) + np.power(y-muonringparam.ring_center_y,2))
         ring_dist = np.abs(dist-muonringparam.ring_radius)

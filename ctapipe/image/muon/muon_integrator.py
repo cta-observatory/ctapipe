@@ -255,7 +255,7 @@ class MuonLineIntegrate:
         return pred
 
     def likelihood(self, impact_parameter, phi, centre_x, centre_y,
-                   radius, ring_width, optical_efficiency_muon, ):
+                   radius, ring_width, optical_efficiency_muon):
         """
         Likelihood function to be called by minimiser
 
@@ -373,37 +373,41 @@ class MuonLineIntegrate:
         # Return interesting stuff
         fitoutput = MuonIntensityParameter()
 
+        init_params = {}
+        init_errs = {}
+        init_constrain = {}
+        init_params['impact_parameter'] = 4.
+        init_params['phi'] = 0.
+        init_params['radius'] = radius.value
+        init_params['centre_x'] = centre_x.value
+        init_params['centre_y'] = centre_y.value
+        init_params['ring_width'] = 0.1
+        init_params['optical_efficiency_muon'] = 0.1
+        init_errs['error_impact_parameter'] = 2.
+        init_constrain['limit_impact_parameter'] = (0.,25.)
+        init_errs['error_phi'] = 0.1
+        init_errs['error_ring_width'] = 0.001 * radius.value
+        init_errs['error_optical_efficiency_muon'] = 0.05
+        init_constrain['limit_phi'] = (-np.pi,np.pi)
+        init_constrain['fix_radius'] = True
+        init_constrain['fix_centre_x'] = True
+        init_constrain['fix_centre_y'] = True
+        init_constrain['limit_ring_width'] = (0.,1.)
+        init_constrain['limit_optical_efficiency_muon'] = (0.,1.)
 
+        parameter_names = init_params.keys()
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
         minuit = Minuit(
             self.likelihood,
-            impact_parameter=4,
-            limit_impact_parameter=(0, 25),
-            error_impact_parameter=5,
-            phi=0,
-            limit_phi=(-np.pi, np.pi),
-            error_phi=0.1,
-            radius=radius.value,
-            fix_radius=True,
-            error_radius=0.,
-            centre_x=centre_x.value,
-            fix_centre_x=True,
-            error_centre_x=0.,
-            centre_y=centre_y.value,
-            fix_centre_y=True,
-            error_centre_y=0.,
-            ring_width=0.1,
-            error_ring_width=0.001*radius.value,
-            limit_ring_width=(0, 1),
-            optical_efficiency_muon=0.1,
-            error_optical_efficiency_muon=0.05,
-            limit_optical_efficiency_muon=(0, 1),
-            throw_nan=False,
-            print_level=0,
-            pedantic=False,
-            errordef=1,
+            forced_parameters=parameter_names,
+            **init_params,
+            **init_errs,
+            **init_constrain,
+            errordef=1.,
+            print_level=0
+            #pedantic=False,
         )
 
         # Perform minimisation
@@ -413,6 +417,8 @@ class MuonLineIntegrate:
         fit_params = minuit.values
         fitoutput.impact_parameter = fit_params['impact_parameter']*u.m
         #fitoutput.phi = fit_params['phi']*u.rad
+        fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(fit_params['phi'] * u.rad) * u.m
+        fitoutput.impact_parameter_pos_y = fit_params['impact_parameter'] * np.sin(fit_params['phi'] * u.rad) * u.m
         fitoutput.ring_width = fit_params['ring_width']*self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
 

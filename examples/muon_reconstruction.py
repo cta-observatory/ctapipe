@@ -24,9 +24,12 @@ parameters
 
 
 def display_muon_plot(event):
-    print("MUON:", event[0].run_id, event[0].event_id,
-          event[1].impact_parameter, event[1].ring_width, "mu_eff=",
-          event[1].optical_efficiency_muon)
+    for tid in event['TelIds']:
+        idx = event['TelIds'].index(tid)
+        if event['MuonIntensityParams'][idx]:
+            print("MUON:", event['MuonRingParams'][idx].run_id, event['MuonRingParams'][idx].event_id,
+                  event['MuonIntensityParams'][idx].impact_parameter, event['MuonIntensityParams'][idx].ring_width, "mu_eff=",
+                  event['MuonIntensityParams'][idx].optical_efficiency_muon)
     pass
 
 
@@ -97,21 +100,26 @@ def main():
         else:
             plot_muon_event(event, muon_evt, None, args)
 
-            #plot_dict['MuonEff'].append(muon_evt[1].optical_efficiency_muon)
-            #plot_dict['ImpactP'].append(muon_evt[1].impact_parameter.value)
-            #plot_dict['RingWidth'].append(muon_evt[1].ring_width.value)
+            for tid in muon_evt['TelIds']:
+                idx = muon_evt['TelIds'].index(tid)
+                if not muon_evt['MuonIntensityParams'][idx]:
+                    continue
 
-            #display_muon_plot(muon_evt)
+                plot_dict['MuonEff'].append(muon_evt['MuonIntensityParams'][idx].optical_efficiency_muon)
+                plot_dict['ImpactP'].append(muon_evt['MuonIntensityParams'][idx].impact_parameter.value)
+                plot_dict['RingWidth'].append(muon_evt['MuonIntensityParams'][idx].ring_width.value)
+
+            display_muon_plot(muon_evt)
             # Store and or Plot muon parameters here
 
             # if numev > 50: #for testing purposes - kill early
             #    break
 
-    #t = Table([muoneff, impactp, ringwidth],
-    #          names=('MuonEff', 'ImpactP', 'RingWidth'),
-    #          meta={'name': 'muon analysis results'})
-    #t['ImpactP'].unit = 'm'
-    #t['RingWidth'].unit = 'deg'
+    t = Table([muoneff, impactp, ringwidth],
+              names=('MuonEff', 'ImpactP', 'RingWidth'),
+              meta={'name': 'muon analysis results'})
+    t['ImpactP'].unit = 'm'
+    t['RingWidth'].unit = 'deg'
     #    print('plotdict',plot_dict)
 
     #t.write(str(args.output_path) + '_muontable.fits', overwrite=True)  # NEED
