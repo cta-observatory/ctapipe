@@ -19,11 +19,32 @@ from ctapipe.io.containers import (ReconstructedShowerContainer,
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils import TableInterpolator
 from ctapipe.instrument import get_atmosphere_profile_functions
+from ctapipe.reco.shower_max import ShowerMaxEstimator
+
 from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
 
 __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
 
+
+def guess_shower_depth(energy):
+    """
+    Simple estimation of depth of shower max based on the expected gamma-ray elongation 
+    rate.
+    
+    Parameters
+    ----------
+    energy: float
+        Energy of the shower in TeV
+        
+    Returns
+    -------
+    float: Expected depth of shower maximum
+    """
+    x_max_exp = 300 * (u.g*u.cm**-2) + \
+                93 * (u.g*u.cm**-2) * np.log10(energy.to(u.TeV))
+
+    return x_max_exp
 
 def energy_prior(energy, index=-1):
 
@@ -32,7 +53,7 @@ def energy_prior(energy, index=-1):
 
 def xmax_prior(energy, xmax, width=30):
 
-    x_max_exp = 300 + 93 * np.log10(energy)
+    x_max_exp = guess_shower_depth(energy)
     diff = xmax.value - x_max_exp
 
     return -2 * np.log(norm.pdf(diff/width))
@@ -61,7 +82,7 @@ class ImPACTReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, fit_xmax=True, root_dir=".", minimiser="minuit", prior=""):
+    def __init__(self, root_dir=".", minimiser="minuit", prior=""):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -104,7 +125,6 @@ class ImPACTReconstructor(Reconstructor):
         self.peak_amp = 0
         self.hillas = 0
 
-        self.fit_xmax = fit_xmax
         self.ped = dict()
 
         self.array_direction = 0
@@ -325,15 +345,21 @@ class ImPACTReconstructor(Reconstructor):
         zenith = 90*u.deg - self.array_direction.alt
         azimuth = self.array_direction.az
 
-        x_max_exp = 300 + 93 * np.log10(energy_reco.energy.value)
         x_max = shower_reco.h_max / np.cos(zenith)
 
+        # Calculate expected Xmax given this energy
+        x_max_exp = guess_shower_depth(energy_reco.energy)
+
         # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = x_max.value - x_max_exp
-        if x_max_bin > 100:
-            x_max_bin = 100
-        if x_max_bin < -100:
-            x_max_bin = -100
+        x_max_bin = x_max - x_max_exp
+
+        # Check for range
+        if x_max_bin > 250 * (u.g*u.cm**-2):
+            x_max_bin = 250 * (u.g*u.cm**-2)
+        if x_max_bin < -250 * (u.g*u.cm**-2):
+            x_max_bin = -250 * (u.g*u.cm**-2)
+
+        x_max_bin = x_max_bin.value
 
         impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) +
                          pow(self.tel_pos_y[tel_id] - tilt_y, 2))
@@ -398,26 +424,22 @@ class ImPACTReconstructor(Reconstructor):
         azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
-        if self.fit_xmax:
-            x_max = self.get_shower_max(source_x, source_y,
-                                        core_x, core_y,
-                                        zenith.to(u.rad).value) * x_max_scale
-            # Calculate expected Xmax given this energy
-            x_max_exp = 300 + 93 * np.log10(energy)
+        x_max = self.get_shower_max(source_x, source_y,
+                                    core_x, core_y,
+                                    zenith.to(u.rad).value) * x_max_scale
+        # Calculate expected Xmax given this energy
+        x_max_exp = guess_shower_depth(energy*u.TeV)
 
-            # Convert to binning of Xmax, addition of 100 can probably be removed
-            x_max_bin = x_max.value - x_max_exp
-            #x_max_bin = 0
+        # Convert to binning of Xmax, addition of 100 can probably be removed
+        x_max_bin = x_max - x_max_exp
 
-            # Check for range
-            if x_max_bin > 250:
-                x_max_bin = 250
-            if x_max_bin < -250:
-                x_max_bin = -250
-        else:
-            x_max_bin = x_max_scale * 37.8
-            if x_max_bin < 13:
-                x_max_bin = 13
+        # Check for range
+        if x_max_bin > 250 * (u.g*u.cm**-2):
+            x_max_bin = 250 * (u.g*u.cm**-2)
+        if x_max_bin < -250 * (u.g*u.cm**-2):
+            x_max_bin = -250 * (u.g*u.cm**-2)
+
+        x_max_bin = x_max_bin.value
 
         array_like = None
 
