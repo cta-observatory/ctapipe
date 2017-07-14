@@ -15,6 +15,7 @@ from astropy import units as u
 from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
 from scipy.stats import norm
+from IPython import embed
 
 __all__ = ['MuonLineIntegrate']
 
@@ -163,9 +164,9 @@ class MuonLineIntegrate:
         ndarray
             Chord length for each angle
         """
+
         bins = int((2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
         #ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
-        #embed()
         ang = np.linspace(-np.pi + phi, np.pi + phi, bins)
         l = self.intersect_circle(impact_parameter, ang)
         l = correlate1d(l, np.ones(self.oversample_bins), mode='wrap', axis=0)
@@ -235,6 +236,7 @@ class MuonLineIntegrate:
         # Add muon rotation angle
         ang += phi
         # Produce smoothed muon profile
+
         ang_prof, profile = self.plot_pos(impact_parameter, radius, phi)
         # Produce gaussian weight for each pixel give ring width
         radial_dist = np.sqrt((pixel_x - centre_x)**2 + (pixel_y - centre_y)**2)
@@ -395,19 +397,21 @@ class MuonLineIntegrate:
         init_constrain['limit_ring_width'] = (0.,1.)
         init_constrain['limit_optical_efficiency_muon'] = (0.,1.)
 
+        print("radius =",radius," pre migrad")
+
         parameter_names = init_params.keys()
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
         minuit = Minuit(
             self.likelihood,
-            forced_parameters=parameter_names,
+            #forced_parameters=parameter_names,
             **init_params,
             **init_errs,
             **init_constrain,
             errordef=1.,
-            print_level=0
-            #pedantic=False,
+            print_level=1
+            #pedantic=False
         )
 
         # Perform minimisation
