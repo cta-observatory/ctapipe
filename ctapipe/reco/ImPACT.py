@@ -42,7 +42,7 @@ def guess_shower_depth(energy):
     float: Expected depth of shower maximum
     """
     x_max_exp = 300 * (u.g*u.cm**-2) + \
-                93 * (u.g*u.cm**-2) * np.log10(energy.to(u.TeV))
+                93 * (u.g*u.cm**-2) * np.log10(energy.to(u.TeV).value)
 
     return x_max_exp
 
