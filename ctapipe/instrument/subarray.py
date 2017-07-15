@@ -4,6 +4,7 @@ Description of Arrays or Subarrays of telescopes
 
 from collections import defaultdict
 
+import ctapipe
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
@@ -22,11 +23,20 @@ class SubarrayDescription:
         dict of telescope positions by tel_id
     tel_descriptions: dict(TelescopeDescription)
         array of TelescopeDescriptions by tel_id
+
+    Attributes
+    ----------
+    name
+       name of subarray
+    positions
+       x,y position of each telescope as length-2 arrays of unit quantities
+    tels
+       dict of TelescopeDescription for each telescope in the subarray
     """
 
     def __init__(self, name, tel_positions=None, tel_descriptions=None):
 
-        self.name = name
+        self.name = name #: name of telescope
         self.positions = tel_positions or dict()
         self.tels = tel_descriptions or dict()
 
@@ -94,24 +104,72 @@ class SubarrayDescription:
         y = self.pos_y
         return (np.hypot(x, y).max() ** 2 * np.pi).to('km^2')
 
-    def to_table(self):
-        """ convert to `astropy.table.Table` """
-        ids = [x for x in self.tels.keys()]
-        descs = [str(x) for x in self.tels.values()]
-        mirror_types = [x.optics.mirror_type for x in self.tels.values()]
-        tel_types = [x.optics.tel_type for x in self.tels.values()]
-        tel_subtypes = [x.optics.tel_subtype for x in self.tels.values()]
-        cam_types = [x.camera.cam_id for x in self.tels.values()]
+    def to_table(self, kind="subarray"):
+        """
+        export SubarrayDescription information as an `astropy.table.Table`
 
-        tab = Table(dict(tel_id=np.array(ids, dtype=np.short),
-                         tel_pos_x=self.pos_x,
-                         tel_pos_y=self.pos_y,
-                         tel_type=tel_types,
-                         tel_subtype=tel_subtypes,
-                         mirror_type=mirror_types,
-                         camera_type=cam_types,
-                         tel_description=descs))
+        Parameters
+        ----------
+        kind: str
+            which table to generate (subarray or optics)
+        """
+
+        meta = {}
+        meta['ORIGIN']='ctapipe.inst.SubarrayDescription'
+        meta['SUBARRAY'] = self.name
+        meta['SOFT_VER'] = ctapipe.__version__
+        meta['TAB_TYPE'] = kind
+
+        if kind == 'subarray':
+
+            ids = [x for x in self.tels]
+            descs = [str(x) for x in self.tels.values()]
+            mirror_types = [x.optics.mirror_type for x in self.tels.values()]
+            tel_types = [x.optics.tel_type for x in self.tels.values()]
+            tel_subtypes = [x.optics.tel_subtype for x in self.tels.values()]
+            cam_types = [x.camera.cam_id for x in self.tels.values()]
+
+            tab = Table(dict(tel_id=np.array(ids, dtype=np.short),
+                             tel_pos_x=self.pos_x,
+                             tel_pos_y=self.pos_y,
+                             tel_type=tel_types,
+                             tel_subtype=tel_subtypes,
+                             mirror_type=mirror_types,
+                             camera_type=cam_types,
+                             tel_description=descs))
+
+        elif kind == 'optics':
+
+            optics_ids = {x.optics.identifier for x in self.tels.values()}
+            optics_list = []
+
+            # get one example of each OpticsDescription
+            for oid in optics_ids:
+                optics_list.append(next(x.optics for x in self.tels.values() if
+                                   x.optics.identifier == oid))
+
+            cols = {}
+            cols['tel_type'] = [x.tel_type for x in optics_list]
+            cols['tel_subtype'] = [x.tel_subtype for x in optics_list]
+            cols['mirror_area'] = np.array([x.mirror_area.to('m2').value for x
+                                            in optics_list]) * u.m**2
+            cols['mirror_type'] = [x.mirror_type for x in optics_list]
+            cols['num_mirror_tiles'] = [x.num_mirror_tiles for x in optics_list]
+            cols['effective_focal_length'] = [
+                x.effective_focal_length.to('m').value
+                for x in optics_list
+            ] * u.m
+
+            tab = Table(cols)
+
+        else:
+            raise ValueError("Table type '{}' not known".format(kind))
+
+        tab.meta.update(meta)
         return tab
+
+
+
 
     def select_subarray(self, name, tel_ids):
         """

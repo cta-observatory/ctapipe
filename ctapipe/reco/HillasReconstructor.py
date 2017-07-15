@@ -224,7 +224,7 @@ class HillasReconstructor(Reconstructor):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
-        self.get_great_circles(hillas_dict, inst, tel_phi, tel_theta)
+        self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
         # algebraic direction estimate
         dir = self.fit_origin_crosses()[0]
@@ -261,17 +261,18 @@ class HillasReconstructor(Reconstructor):
 
         return result
 
-    def get_great_circles(self, hillas_dict, inst, tel_phi, tel_theta):
+    def get_great_circles(self, hillas_dict, subarray, tel_phi, tel_theta):
         """
-        creates a dictionary of :class:`.GreatCircle` from a dictionary of hillas
+        creates a dictionary of :class:`.GreatCircle` from a dictionary of
+        hillas
         parameters
 
         Parameters
         ----------
         hillas_dict : dictionary
             dictionary of hillas moments
-        inst : ctapipe instrument container
-            the container you get from event.inst
+        subarray : ctapipe.instrument.SubarrayDescription
+            subarray information
         tel_phi, tel_theta : dictionaries
             dictionaries of the orientation angles of the telescopes
             needs to contain at least the same keys as in `hillas_dict`
@@ -282,6 +283,7 @@ class HillasReconstructor(Reconstructor):
 
             p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
             p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
+            foclen = subarray.tel[tel_id].optics.effective_focal_length
 
             circle = GreatCircle(
                 guess_pix_direction(np.array([moments.cen_x / u.m,
@@ -289,10 +291,10 @@ class HillasReconstructor(Reconstructor):
                                     np.array([moments.cen_y / u.m,
                                               p2_y / u.m]) * u.m,
                                     tel_phi[tel_id], tel_theta[tel_id],
-                                    inst.optical_foclen[tel_id]),
+                                    foclen),
                 moments.size * (moments.length / moments.width)
             )
-            circle.pos = inst.tel_pos[tel_id]
+            circle.pos = subarray.positions[tel_id]
             self.circles[tel_id] = circle
 
     def fit_origin_crosses(self):

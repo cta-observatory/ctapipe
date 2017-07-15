@@ -42,9 +42,18 @@ class TelescopeDescription:
                  optics: OpticsDescription,
                  camera: CameraGeometry):
 
-        self.optics = optics
-        self.camera = camera
+        self._optics = optics
+        self._camera = camera
 
+    @property
+    def optics(self):
+        """ OpticsDescription for this telescope """
+        return self._optics
+
+    @property
+    def camera(self):
+        """ CameraGeometry for this telescope"""
+        return self._camera
 
     @classmethod
     def guess(cls, pix_x, pix_y, effective_focal_length):
