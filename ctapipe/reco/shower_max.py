@@ -70,6 +70,4 @@ class ShowerMaxEstimator:
 
         # now find the height with the wanted thickness by solving for the
         # desired thickness
-        #Modifying - was height. Return shower max depth now.
-        #return self.altitude_profile(t_shower_max)
-        return t_shower_max
+        return self.altitude_profile(t_shower_max)
