@@ -5,8 +5,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 import pytest
 
-@pytest.mark.xfail(run=False, reason="Can't pass Pipeline as a classifier "
-                                     "to actual implementation of RegressorClassifierBase")
+
 def test_pipeline_classifier():
     cam_id_list = ["FlashCam", "ASTRICam"]
     feature_list = {"FlashCam": [[1, 10], [2, 20], [3, 30], [0.9, 9],
@@ -16,10 +15,11 @@ def test_pipeline_classifier():
     target_list = {"FlashCam": ["a", "a", "a", "a", "b", "b", "b", "b"],
                    "ASTRICam": ["a", "a", "a", "a", "b", "b", "b", "b"]}
 
-    estimators = [('scaler', StandardScaler()), ('clf', MLPClassifier())]
+    estimators = [('scaler', StandardScaler()),
+                  ('clf', MLPClassifier(max_iter=400))]
 
-    clf = EventClassifier(classifier=Pipeline(estimators), cam_id_list=cam_id_list,
-                          clf__max_iter=400)
+    clf = EventClassifier(classifier=Pipeline, steps=estimators,
+                          cam_id_list=cam_id_list)
     clf.fit(feature_list, target_list)
 
     prediction = clf.predict_by_event([{"ASTRICam": [[10, 1]]},
@@ -31,6 +31,7 @@ def test_pipeline_classifier():
                                        {"FlashCam": [[2, 20]]},
                                        {"FlashCam": [[3, 30]]}])
     assert (prediction == ["b", "a", "a"]).all()
+
 
 def test_prepare_model_MLP():
     cam_id_list = ["FlashCam", "ASTRICam"]
