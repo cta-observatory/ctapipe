@@ -8,29 +8,10 @@ import numpy as np
 from astropy.table import Table
 from ctapipe.core import Tool
 from ctapipe.core.traits import *
-from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.visualization import CameraDisplay
-from ctapipe.instrument.camera import _guess_camera_type, print_camera_types
 from matplotlib import pyplot as plt
 from ctapipe.calib import CameraCalibrator
-
-
-def get_camera_types(inst):
-    """ return dict of group_id to list of telescopes in group,
-    where a group is defined as similar telescopes"""
-    data = dict(tel_id=[], tel_type=[], cam_type=[])
-    for telid in inst.pixel_pos:
-        x, y = inst.pixel_pos[telid]
-        f = inst.optical_foclen[telid]
-        tel_type, cam_type, pix_type, pix_rot, cam_rot = \
-            _guess_camera_type(len(x), f)
-
-        data['tel_type'].append(tel_type)
-        data['tel_id'].append(int(telid))
-        data['cam_type'].append(cam_type)
-
-    return Table(data).group_by("cam_type")
 
 
 class ImageSumDisplayerTool(Tool):
@@ -63,13 +44,14 @@ class ImageSumDisplayerTool(Tool):
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
         data = next(hessio_event_source(self.infile, max_events=1))
-        camtypes = get_camera_types(data.inst)
-        print_camera_types(data.inst, printer=self.log.info)
+        data.inst.subarray.info(printer=self.log.info)
+        camtypes = data.inst.subarray.to_table().group_by('camera_type')
         group = camtypes.groups[self.telgroup]
         self._selected_tels = group['tel_id'].data
         self._base_tel = self._selected_tels[0]
-        self.log.info("Telescope group %d: %s with %s camera", self.telgroup,
-                      group[0]['tel_type'], group[0]['cam_type'])
+        self.log.info("Telescope group %d: %s",
+                      self.telgroup,
+                      str(data.inst.subarray.tel[self._selected_tels[0]]))
         self.log.info("SELECTED TELESCOPES:{}".format(self._selected_tels))
         self.calibrator = CameraCalibrator(self.config, self)
 
@@ -85,10 +67,8 @@ class ImageSumDisplayerTool(Tool):
             self.calibrator.calibrate(data)
 
             if geom is None:
-                x, y = data.inst.pixel_pos[self._base_tel]
-                flen = data.inst.optical_foclen[self._base_tel]
-                geom = CameraGeometry.guess(x, y, flen)
-                imsum = np.zeros(shape=x.shape, dtype=np.float)
+                geom = data.inst.subarray.tel[self._base_tel].camera
+                imsum = np.zeros(shape=geom.pix_x.shape, dtype=np.float)
                 disp = CameraDisplay(geom, title=geom.cam_id)
                 disp.add_colorbar()
                 disp.cmap = 'viridis'

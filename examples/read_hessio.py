@@ -45,8 +45,7 @@ def display_event(event):
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
-        x, y = event.inst.pixel_pos[tel_id]
-        geom = CameraGeometry.guess(x, y, event.inst.optical_foclen[tel_id])
+        geom = event.inst.subarray.tel[tel_id].camera
         disp = CameraDisplay(geom, ax=ax, title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False

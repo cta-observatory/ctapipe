@@ -1,6 +1,9 @@
+from copy import deepcopy
+
 import numpy as np
 
 from astropy import units as u
+from sklearn.preprocessing import StandardScaler
 
 
 class RegressorClassifierBase:
@@ -42,7 +45,7 @@ class RegressorClassifierBase:
         self.model_dict = {}
         self.unit = unit
         for cam_id in cam_id_list or []:
-            self.model_dict[cam_id] = model(**kwargs)
+            self.model_dict[cam_id] = model(**deepcopy(kwargs))
 
     def __getattr__(self, attr):
         """We interface this class with the "first" model in `.model_dict`
@@ -264,7 +267,7 @@ class RegressorClassifierBase:
             list of camera identifiers like telescope ID or camera ID
             and the assumed distinguishing feature in the filenames of
             the various pickled regressors.
-        unit : 1 or astropy unit, optional 
+        unit : 1 or astropy unit, optional
             scikit-learn regressor/classifier do not work with
             units. so append this one to the predictions in case you
             deal with unified targets (like energy).  assuming that
@@ -294,6 +297,39 @@ class RegressorClassifierBase:
                 self.model_dict[key] = joblib.load(path.format(key))
 
         return self
+
+    @staticmethod
+    def scale_features(cam_id_list, feature_list):
+        """Scales features before training with any ML method.
+
+        Parameters
+        ----------
+        cam_id_list : list
+            list of camera identifiers like telescope ID or camera ID
+            and the assumed distinguishing feature in the filenames of
+            the various pickled regressors.
+        feature_list : dictionary of lists of lists
+            Dictionary that maps the telescope identifiers to lists of
+            feature-lists.  The values of the dictionary are the lists
+            `scikit-learn` regressors train on and are supposed to
+            comply to their format requirements e.g. each feature-list
+            has to contain the same features at the same position
+
+        Returns
+        -------
+        f_dict : dictionary of lists of lists
+            a copy of feature_list input, with scaled values
+
+        """
+        f_dict = {}
+        scaler = {}
+
+        for cam_id in cam_id_list or []:
+            scaler[cam_id] = StandardScaler()
+            scaler[cam_id].fit(feature_list[cam_id])
+            f_dict[cam_id] = scaler[cam_id].transform(feature_list[cam_id])
+
+        return f_dict, scaler
 
     def show_importances(self, feature_labels=None):
         """Creates a matplotlib figure that shows the importances of the
