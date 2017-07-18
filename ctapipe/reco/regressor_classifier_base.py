@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import numpy as np
 
 from astropy import units as u
@@ -43,7 +45,7 @@ class RegressorClassifierBase:
         self.model_dict = {}
         self.unit = unit
         for cam_id in cam_id_list or []:
-            self.model_dict[cam_id] = model(**kwargs)
+            self.model_dict[cam_id] = model(**deepcopy(kwargs))
 
     def __getattr__(self, attr):
         """We interface this class with the "first" model in `.model_dict`
@@ -265,7 +267,7 @@ class RegressorClassifierBase:
             list of camera identifiers like telescope ID or camera ID
             and the assumed distinguishing feature in the filenames of
             the various pickled regressors.
-        unit : 1 or astropy unit, optional 
+        unit : 1 or astropy unit, optional
             scikit-learn regressor/classifier do not work with
             units. so append this one to the predictions in case you
             deal with unified targets (like energy).  assuming that
