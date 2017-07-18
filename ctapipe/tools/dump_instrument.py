@@ -11,7 +11,7 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ctapipe.core import Tool
+from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import (Unicode, Dict, Enum)
 from ctapipe.io.hessio import hessio_event_source
 
@@ -54,17 +54,19 @@ class DumpInstrumentTool(Tool):
         source = hessio_event_source(self.infile)
         data = next(source)  # get one event, so the instrument table is
                              # filled in
+        del source
         self.inst = data.inst # keep a pointer to the instrument stuff
         pass
 
     def start(self):
         self.write_camera_geometries()
         self.write_optics_descriptions()
+        self.write_subarray_description()
 
     def finish(self):
         pass
 
-    def _get_file_format_info(self, format_name, table_type, cam_name):
+    def _get_file_format_info(self, format_name, table_type, table_name):
         """ returns file extension + dict of required parameters for 
         Table.write"""
         if format_name == 'fits':
@@ -72,7 +74,7 @@ class DumpInstrumentTool(Tool):
         elif format_name == 'ecsv':
             return 'ecsv.txt', dict(format='ascii.ecsv')
         elif format_name == 'hdf5':
-            return 'h5', dict(path="/"+table_type+"/"+cam_name)
+            return 'h5', dict(path="/"+table_type+"/" + table_name)
         else:
             raise NameError("format not supported")
 
@@ -83,36 +85,36 @@ class DumpInstrumentTool(Tool):
             ext, args = self._get_file_format_info(self.format,
                                                    'CAMGEOM',
                                                    cam_name)
+
             self.log.debug("writing {}".format(cam_name))
             tel_id = cam_types[cam_name].pop()
             geom = self.inst.subarray.tel[tel_id].camera
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
-            table.write("{}.camgeom.{}".format(cam_name, ext), **args)
+            filename = "{}.camgeom.{}".format(cam_name, ext)
+            table.write(filename, **args)
+            Provenance().add_output_file(filename)
 
     def write_optics_descriptions(self):
-        # we'll use the camera names for the optics names...
-        cam_types = get_camera_types(self.inst.subarray)
-        cam_names = list(cam_types.keys())
-        optical_foclens = []
-        mirror_dish_areas = []
-        mirror_num_tiles = []
+        sub = self.inst.subarray
+        ext, args = self._get_file_format_info(self.format, sub.name, 'optics')
 
-        for cam_name in cam_names:
-            tel_id = cam_types[cam_name].pop()
-            optical_foclens.append(self.inst.optical_foclen[tel_id].to(
-                'm').value)
-            mirror_dish_areas.append(self.inst.mirror_dish_area[tel_id].to(
-                'm^2').value)
-            mirror_num_tiles.append(self.inst.mirror_numtiles[tel_id])
+        tab = sub.to_table(kind='optics')
+        tab.meta['SOURCE'] = self.infile
+        filename = '{}.optics.{}'.format(sub.name, ext)
+        tab.write(filename, **args)
+        Provenance().add_output_file(filename)
 
-        table = Table()
-        table['cam_id'] = cam_names
-        table['focal_length'] = np.array(optical_foclens) * u.m
-        table['dish_area'] = np.array(mirror_dish_areas) * u.m**2
-        table['num_mirror_tiles'] = np.array(mirror_num_tiles, dtype=int)
-        table.meta['SOURCE'] = self.infile
-        table.write("optics_descriptions.{}".format(self.format))
+    def write_subarray_description(self):
+        sub = self.inst.subarray
+        ext, args = self._get_file_format_info(self.format, sub.name,
+                                               'subarray')
+        tab = sub.to_table(kind='subarray')
+        tab.meta['SOURCE'] = self.infile
+        filename = '{}.subarray.{}'.format(sub.name, ext)
+        tab.write(filename, **args)
+        Provenance().add_output_file(filename)
+
 
 
 def main():
