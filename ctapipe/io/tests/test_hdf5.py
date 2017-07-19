@@ -55,10 +55,19 @@ def test_read_container(temp_h5_file):
 
     # read all 3 tables in sync
     for ii in range(3):
-        print("MC:", next(mctab))
-        print("t0:", next(r0tab1).adc_sums)
-        print("t1:", next(r0tab2).adc_sums)
+
+        m = next(mctab)
+        r0_1 = next(r0tab1)
+        r0_2 = next(r0tab2)
+
+        print("MC:", m)
+        print("t0:", r0_1.adc_sums)
+        print("t1:", r0_2.adc_sums)
         print("---------------------------")
+
+    assert 'test_attribute' in r0_1.meta
+    assert r0_1.meta['date'] == "2020-10-10"
+
 
 def test_read_whole_table(temp_h5_file):
 

@@ -18,7 +18,7 @@ class Connections():
         self.context = zmq.Context()
         self.main_out_socket = None
         self.main_connection_name = main_connection_name
-        return True
+
 
     def close_connections(self):
         """

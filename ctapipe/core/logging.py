@@ -24,7 +24,7 @@ class ColoredFormatter(logging.Formatter):
         levelname = record.levelname
         if levelname in colors:
             levelname_color = color_seq % (30 + colors[levelname]) \
-                              + levelname + reset_seq
+                + levelname + reset_seq
             record.levelname = levelname_color
 
         if record.levelno >= self.highlevel_limit:

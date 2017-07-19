@@ -6,12 +6,13 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .containers import DataContainer
-from ..core import Provenance
-
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
+
+from .containers import DataContainer
+from ..core import Provenance
+from ..instrument import TelescopeDescription, SubarrayDescription
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ try:
 except ImportError as err:
     logger.fatal(
         "the `pyhessio` python module is required to access MC data: {}"
-        .format(err))
+            .format(err))
     raise err
 
 __all__ = [
@@ -209,7 +210,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             yield data
             counter += 1
 
-            if max_events  and counter >= max_events:
+            if max_events and counter >= max_events:
                 pyhessio.close_file()
                 return
 
@@ -226,22 +227,35 @@ def _fill_instrument_info(data, pyhessio):
     """
     if not data.inst.telescope_ids:
         data.inst.telescope_ids = list(pyhessio.get_telescope_ids())
+        data.inst.subarray = SubarrayDescription("MonteCarloArray")
 
         for tel_id in data.inst.telescope_ids:
             try:
-                data.inst.pixel_pos[tel_id] \
-                    = pyhessio.get_pixel_position(tel_id) * u.m
-                data.inst.optical_foclen[tel_id] \
-                    = pyhessio.get_optical_foclen(tel_id) * u.m
-                data.inst.tel_pos[tel_id] \
-                    = pyhessio.get_telescope_position(tel_id) * u.m
+
+                pix_pos = pyhessio.get_pixel_position(tel_id) * u.m
+                foclen = pyhessio.get_optical_foclen(tel_id) * u.m
+                mirror_area = pyhessio.get_mirror_area(tel_id) * u.m ** 2
+                num_tiles = pyhessio.get_mirror_number(tel_id)
+                tel_pos = pyhessio.get_telescope_position(tel_id) * u.m
+
+                tel = TelescopeDescription.guess(*pix_pos, foclen)
+                tel.optics.mirror_area = mirror_area
+                tel.optics.num_mirror_tiles = num_tiles
+                data.inst.subarray.tels[tel_id] = tel
+                data.inst.subarray.positions[tel_id] = tel_pos
+
+                # deprecated fields that will become part of
+                # TelescopeDescription or SubrrayDescription
+                data.inst.optical_foclen[tel_id] = foclen
+                data.inst.pixel_pos[tel_id] = pix_pos
+                data.inst.tel_pos[tel_id] = tel_pos
+
                 nchans = pyhessio.get_num_channel(tel_id)
                 npix = pyhessio.get_num_pixels(tel_id)
                 data.inst.num_channels[tel_id] = nchans
                 data.inst.num_pixels[tel_id] = npix
-                data.inst.mirror_dish_area[tel_id] = \
-                    pyhessio.get_mirror_area(tel_id) * u.m ** 2
-                data.inst.mirror_numtiles[tel_id] = \
-                    pyhessio.get_mirror_number(tel_id)
+                data.inst.mirror_dish_area[tel_id] = mirror_area
+                data.inst.mirror_numtiles[tel_id] = num_tiles
+
             except HessioGeneralError:
                 pass
