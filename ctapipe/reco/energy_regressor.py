@@ -2,7 +2,7 @@ import numpy as np
 
 from astropy import units as u
 
-from ctapipe.reco.regressor_classifier_base import RegressorClassifierBase
+from .regressor_classifier_base import RegressorClassifierBase
 from sklearn.ensemble import RandomForestRegressor
 
 
@@ -87,8 +87,11 @@ class EnergyRegressor(RegressorClassifierBase):
                                    .format(cam_id, [k for k in self.model_dict]))
 
                 try:
+                    # if a `namedtuple` is provided, we can weight the different images
+                    # using some of the provided features
                     weights += [t.sum_signal_cam / t.impact_dist for t in tels]
                 except:
+                    # otherwise give every image the same weight
                     weights += np.ones_like(tels)
 
             predict_mean.append(np.average(predicts, weights=weights))

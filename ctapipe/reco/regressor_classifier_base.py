@@ -64,7 +64,7 @@ class RegressorClassifierBase:
         """I collect the data event-wise as dictionaries of the different
         camera identifiers but for the training it is more convenient
         to have a dictionary containing flat arrays of the
-        images. This function flattens the `X` and `y` arrays
+        feature lists. This function flattens the `X` and `y` arrays
         accordingly.
 
         This is only for convenience during the training and testing
@@ -139,13 +139,13 @@ class RegressorClassifierBase:
                                    .format(cam_id, [k for k in self.model_dict]))
 
                 try:
-                    # add an energy-entry for every feature-list
-                    trainTarget[
-                        cam_id] += [target.to(self.unit).value] * len(tels)
+                    # add a target-entry for every feature-list
+                    trainTarget[cam_id] += \
+                        [target.to(self.unit).value] * len(tels)
                 except AttributeError:
-                    # in case the energy is not given as an astropy
+                    # in case the target is not given as an astropy
                     # quantity let's hope that the user keeps proper
-                    # track of the unit themself
+                    # track of the unit themself (might be just `1` anyway)
                     trainTarget[cam_id] += [target] * len(tels)
         return trainFeatures, trainTarget
 
@@ -323,13 +323,22 @@ class RegressorClassifierBase:
         plt.suptitle("Feature Importances")
         for i, (cam_id, model) in enumerate(self.model_dict.items()):
             plt.sca(axs.ravel()[i])
-            importances = model.feature_importances_
-            bins = range(importances.shape[0])
             plt.title(cam_id)
+            try:
+                importances = model.feature_importances_
+            except:
+                plt.gca().axis('off')
+                continue
+            bins = range(importances.shape[0])
             if feature_labels:
                 importances, s_feature_labels = \
                     zip(*sorted(zip(importances, feature_labels), reverse=True))
                 plt.xticks(bins, s_feature_labels, rotation=17)
             plt.bar(bins, importances,
                     color='r', align='center')
+
+        # switch off superfluous axes
+        for j in range(i + 1, n_rows * n_cols):
+            axs.ravel()[j].axis('off')
+
         return fig

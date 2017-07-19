@@ -4,7 +4,7 @@ from astropy import units as u
 
 from sklearn.ensemble import RandomForestClassifier
 
-from ctapipe.reco.regressor_classifier_base import RegressorClassifierBase
+from .regressor_classifier_base import RegressorClassifierBase
 
 
 def proba_drifting(x):
@@ -36,12 +36,15 @@ class EventClassifier(RegressorClassifierBase):
                 tel_probas = np.append(these_probas, tel_probas, axis=0) \
                     if tel_probas is not None else these_probas
                 try:
+                    # if a `namedtuple` is provided, we can weight the different images
+                    # using some of the provided features
                     tel_weights += [t.sum_signal_cam / t.impact_dist for t in tels]
                 except:
+                    # otherwise give every image the same weight
                     tel_weights += np.ones_like(tels)
 
-            predict_proba.append(
-                np.average(proba_drifting(tel_probas), weights=tel_weights, axis=0))
+            predict_proba.append(np.average(proba_drifting(tel_probas),
+                                            weights=tel_weights, axis=0))
 
         return np.array(predict_proba)
 
