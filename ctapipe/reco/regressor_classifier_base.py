@@ -186,7 +186,7 @@ class RegressorClassifierBase:
                                .format(cam_id, [k for k in self.model_dict]))
 
             # for every `cam_id` train one model (as long as there are events in `X`)
-            if X[cam_id]:
+            if len(X[cam_id]):
                 self.model_dict[cam_id].fit(X[cam_id], y[cam_id])
 
         return self

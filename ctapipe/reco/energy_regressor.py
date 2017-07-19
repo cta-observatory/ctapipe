@@ -90,9 +90,9 @@ class EnergyRegressor(RegressorClassifierBase):
                     # if a `namedtuple` is provided, we can weight the different images
                     # using some of the provided features
                     weights += [t.sum_signal_cam / t.impact_dist for t in tels]
-                except:
+                except AttributeError:
                     # otherwise give every image the same weight
-                    weights += np.ones_like(tels)
+                    weights += [1] * len(tels)
 
             predict_mean.append(np.average(predicts, weights=weights))
             predict_median.append(np.median(predicts))

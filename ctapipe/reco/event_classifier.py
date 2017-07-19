@@ -39,9 +39,9 @@ class EventClassifier(RegressorClassifierBase):
                     # if a `namedtuple` is provided, we can weight the different images
                     # using some of the provided features
                     tel_weights += [t.sum_signal_cam / t.impact_dist for t in tels]
-                except:
+                except AttributeError:
                     # otherwise give every image the same weight
-                    tel_weights += np.ones_like(tels)
+                    tel_weights += [1] * len(tels)
 
             predict_proba.append(np.average(proba_drifting(tel_probas),
                                             weights=tel_weights, axis=0))
