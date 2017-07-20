@@ -29,7 +29,6 @@ class PlanarRepresentation(BaseRepresentation):
 
     def __init__(self, x, y, copy=True, **kwargs):
 
-        super().__init__(x,y, copy=copy, **kwargs)
 
         if x is None or y is None:
             raise ValueError("x and y are required to instantiate CartesianRepresentation")
@@ -53,7 +52,7 @@ class PlanarRepresentation(BaseRepresentation):
 
         self._x = x
         self._y = y
-
+        self._differentials = {}
 
 
     @property
