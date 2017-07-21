@@ -29,7 +29,7 @@ try:
     # FrameAttribute was renamed Attribute in astropy 2.0
     # TODO: should really use subclasses like QuantityAttribute
     from astropy.coordinates import FrameAttribute as Attribute
-except:
+except ImportError:
     from astropy.coordinates import Attribute
 
 from astropy.coordinates import frame_transform_graph
