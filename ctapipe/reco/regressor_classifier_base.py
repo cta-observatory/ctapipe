@@ -1,6 +1,9 @@
+from copy import deepcopy
+
 import numpy as np
 
 from astropy import units as u
+from sklearn.preprocessing import StandardScaler
 
 
 class RegressorClassifierBase:
@@ -38,11 +41,10 @@ class RegressorClassifierBase:
     """
 
     def __init__(self, model, cam_id_list, unit=1, **kwargs):
-
         self.model_dict = {}
         self.unit = unit
         for cam_id in cam_id_list or []:
-            self.model_dict[cam_id] = model(**kwargs)
+            self.model_dict[cam_id] = model(**deepcopy(kwargs))
 
     def __getattr__(self, attr):
         """We interface this class with the "first" model in `.model_dict`
@@ -63,7 +65,7 @@ class RegressorClassifierBase:
         """I collect the data event-wise as dictionaries of the different
         camera identifiers but for the training it is more convenient
         to have a dictionary containing flat arrays of the
-        images. This function flattens the `X` and `y` arrays
+        feature lists. This function flattens the `X` and `y` arrays
         accordingly.
 
         This is only for convenience during the training and testing
@@ -138,13 +140,13 @@ class RegressorClassifierBase:
                                    .format(cam_id, [k for k in self.model_dict]))
 
                 try:
-                    # add an energy-entry for every feature-list
-                    trainTarget[
-                        cam_id] += [target.to(self.unit).value] * len(tels)
+                    # add a target-entry for every feature-list
+                    trainTarget[cam_id] += \
+                        [target.to(self.unit).value] * len(tels)
                 except AttributeError:
-                    # in case the energy is not given as an astropy
+                    # in case the target is not given as an astropy
                     # quantity let's hope that the user keeps proper
-                    # track of the unit themself
+                    # track of the unit themself (might be just `1` anyway)
                     trainTarget[cam_id] += [target] * len(tels)
         return trainFeatures, trainTarget
 
@@ -183,8 +185,9 @@ class RegressorClassifierBase:
                 raise KeyError("cam_id '{}' in X but no model defined: {}"
                                .format(cam_id, [k for k in self.model_dict]))
 
-            # for every `cam_id` train one model
-            self.model_dict[cam_id].fit(X[cam_id], y[cam_id])
+            # for every `cam_id` train one model (as long as there are events in `X`)
+            if len(X[cam_id]):
+                self.model_dict[cam_id].fit(X[cam_id], y[cam_id])
 
         return self
 
@@ -264,7 +267,7 @@ class RegressorClassifierBase:
             list of camera identifiers like telescope ID or camera ID
             and the assumed distinguishing feature in the filenames of
             the various pickled regressors.
-        unit : 1 or astropy unit, optional 
+        unit : 1 or astropy unit, optional
             scikit-learn regressor/classifier do not work with
             units. so append this one to the predictions in case you
             deal with unified targets (like energy).  assuming that
@@ -295,6 +298,39 @@ class RegressorClassifierBase:
 
         return self
 
+    @staticmethod
+    def scale_features(cam_id_list, feature_list):
+        """Scales features before training with any ML method.
+
+        Parameters
+        ----------
+        cam_id_list : list
+            list of camera identifiers like telescope ID or camera ID
+            and the assumed distinguishing feature in the filenames of
+            the various pickled regressors.
+        feature_list : dictionary of lists of lists
+            Dictionary that maps the telescope identifiers to lists of
+            feature-lists.  The values of the dictionary are the lists
+            `scikit-learn` regressors train on and are supposed to
+            comply to their format requirements e.g. each feature-list
+            has to contain the same features at the same position
+
+        Returns
+        -------
+        f_dict : dictionary of lists of lists
+            a copy of feature_list input, with scaled values
+
+        """
+        f_dict = {}
+        scaler = {}
+
+        for cam_id in cam_id_list or []:
+            scaler[cam_id] = StandardScaler()
+            scaler[cam_id].fit(feature_list[cam_id])
+            f_dict[cam_id] = scaler[cam_id].transform(feature_list[cam_id])
+
+        return f_dict, scaler
+
     def show_importances(self, feature_labels=None):
         """Creates a matplotlib figure that shows the importances of the
         different features for the various trained models in a grid of
@@ -321,13 +357,22 @@ class RegressorClassifierBase:
         plt.suptitle("Feature Importances")
         for i, (cam_id, model) in enumerate(self.model_dict.items()):
             plt.sca(axs.ravel()[i])
-            importances = model.feature_importances_
-            bins = range(importances.shape[0])
             plt.title(cam_id)
+            try:
+                importances = model.feature_importances_
+            except:
+                plt.gca().axis('off')
+                continue
+            bins = range(importances.shape[0])
             if feature_labels:
                 importances, s_feature_labels = \
                     zip(*sorted(zip(importances, feature_labels), reverse=True))
                 plt.xticks(bins, s_feature_labels, rotation=17)
             plt.bar(bins, importances,
                     color='r', align='center')
+
+        # switch off superfluous axes
+        for j in range(i + 1, n_rows * n_cols):
+            axs.ravel()[j].axis('off')
+
         return fig
