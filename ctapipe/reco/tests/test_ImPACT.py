@@ -10,7 +10,7 @@ class TestImPACT():
 
     @classmethod
     def setup_class(self):
-        self.impact_reco = ImPACTReconstructor(root_dir=".", fit_xmax=True)
+        self.impact_reco = ImPACTReconstructor(root_dir=".")
 
     @pytest.mark.skip('need a dataset for this to work')
     def test_brightest_mean_average(self):
