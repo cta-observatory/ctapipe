@@ -16,9 +16,17 @@ TODO:
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute,
+from astropy.coordinates import (BaseCoordinateFrame,
                                  CartesianRepresentation,
                                  FunctionTransform)
+
+try:
+    # FrameAttribute was renamed Attribute in astropy 2.0
+    # TODO: should really use subclasses like QuantityAttribute
+    from astropy.coordinates import FrameAttribute as Attribute
+except ImportError:
+    from astropy.coordinates import Attribute
+
 
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
@@ -45,7 +53,7 @@ class GroundFrame(BaseCoordinateFrame):
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
-    pointing_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
@@ -65,7 +73,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
-    pointing_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
 
 # Transformations defined below this point
 
