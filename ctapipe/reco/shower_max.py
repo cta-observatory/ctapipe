@@ -69,4 +69,3 @@ class ShowerMaxEstimator:
         # desired thickness
         return self.altitude_profile(t_shower_max)
 
-
