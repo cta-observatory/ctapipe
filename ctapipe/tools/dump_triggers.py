@@ -17,7 +17,7 @@ MAX_TELS = 1000
 
 class DumpTriggersTool(Tool):
     description = Unicode(__doc__)
-    name='ctapipe-dump-triggers'
+    name = 'ctapipe-dump-triggers'
 
     # =============================================
     # configuration parameters:
