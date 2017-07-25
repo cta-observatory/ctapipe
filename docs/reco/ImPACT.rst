@@ -45,7 +45,7 @@ class.
 
 
 Calculating Image Likelihood
-++++++++++++++++++++++
+++++++++++++++++++++++++++++
 
 Once a prediction of the image expectation can be made it should be compared to the
 data to assess the likelihood that the model represents the data. Several likelihood
