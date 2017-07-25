@@ -69,7 +69,7 @@ telescopes passing selection cuts to find an event likelihood for a given set of
 shower parameters.
 
 Maximum Likelihood Fitting
-++++++++++++++++++++++
+++++++++++++++++++++++++++
 
 This event likelihood must then be minimised in a 6-dimensional fit over direction,
 impact point, Xmax and primary energy. In order to simplify the reconstruction of Xmax
