@@ -113,7 +113,8 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = '%(levelname)8s [%(name)s] %(funcName)s: %(message)s'
+        self.log_format = ('%(levelname)8s [%(name)s] '                           
+                           '(%(module)s/%(funcName)s): %(message)s')
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
 
@@ -166,7 +167,6 @@ class Tool(Application):
             self.start()
             self.finish()
             self.log.info("Finished: {}".format(self.name))
-            self.log.info("Output: %s", Provenance().current_activity.output)
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
             self.log.error('{}.  Use --help for more info'.format(err))
@@ -181,6 +181,9 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name,
                                          status='interrupted')
         finally:
+            self.log.info("Output: %s",
+                          ' '.join([str(x.output) for x
+                                    in Provenance()._finished_activities]))
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
 
     @property

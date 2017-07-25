@@ -100,6 +100,10 @@ class Provenance(metaclass=Singleton):
         return self._activities[-1]  # current activity as at the top of stack
 
     @property
+    def finished_activities(self):
+        return self._finished_activities
+
+    @property
     def provenance(self):
         """ returns provenence for full list of activities """
         return [x.provenance for x in self._finished_activities]
