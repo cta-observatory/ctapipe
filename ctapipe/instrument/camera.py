@@ -14,10 +14,13 @@ from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.utils import get_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
+from ctapipe.core import Provenance
+
 
 __all__ = ['CameraGeometry',]
 
 logger = logging.getLogger(__name__)
+
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
@@ -229,6 +232,7 @@ class CameraGeometry:
 
         filename = get_dataset("{camera_id}{verstr}.camgeom.fits.gz"
                                .format(camera_id=camera_id, verstr=verstr))
+        Provenance().add_input_file(filename)
         return CameraGeometry.from_table(filename)
 
     def to_table(self):
