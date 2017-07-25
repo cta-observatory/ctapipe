@@ -117,16 +117,19 @@ class DumpTriggersTool(Tool):
         `start()`)
         """
         # write out the final table
-        if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
-            self.events.write(self.outfile, overwrite=self.overwrite)
-        elif self.outfile.endswith('h5'):
-            self.events.write(self.outfile, path='/events',
-                              overwrite=self.overwrite)
-        else:
-            self.events.write(self.outfile)
-        Provenance().add_output_file(self.outfile)
+        try:
+            if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
+                self.events.write(self.outfile, overwrite=self.overwrite)
+            elif self.outfile.endswith('h5'):
+                self.events.write(self.outfile, path='/events',
+                                  overwrite=self.overwrite)
+            else:
+                self.events.write(self.outfile)
 
-        self.log.info("Table written to '{}'".format(self.outfile))
+            Provenance().add_output_file(self.outfile)
+        except IOError as err:
+            self.log.warn("Couldn't write output (%s)", self.outfile, err)
+
         self.log.info('\n %s', self.events)
 
 
