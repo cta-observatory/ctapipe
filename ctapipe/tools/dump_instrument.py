@@ -92,8 +92,13 @@ class DumpInstrumentTool(Tool):
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
             filename = "{}.camgeom.{}".format(cam_name, ext)
-            table.write(filename, **args)
-            Provenance().add_output_file(filename)
+
+            try:
+                table.write(filename, **args)
+                Provenance().add_output_file(filename)
+            except IOError as err:
+                self.log.warn("couldn't write camera definition '%s' because: "
+                              "%s", filename, err)
 
     def write_optics_descriptions(self):
         sub = self.inst.subarray
@@ -102,8 +107,12 @@ class DumpInstrumentTool(Tool):
         tab = sub.to_table(kind='optics')
         tab.meta['SOURCE'] = self.infile
         filename = '{}.optics.{}'.format(sub.name, ext)
-        tab.write(filename, **args)
-        Provenance().add_output_file(filename)
+        try:
+            tab.write(filename, **args)
+            Provenance().add_output_file(filename)
+        except IOError as err:
+            self.log.warn("couldn't write optics description '%s' because: "
+                            "%s", filename, err)
 
     def write_subarray_description(self):
         sub = self.inst.subarray
@@ -112,8 +121,13 @@ class DumpInstrumentTool(Tool):
         tab = sub.to_table(kind='subarray')
         tab.meta['SOURCE'] = self.infile
         filename = '{}.subarray.{}'.format(sub.name, ext)
-        tab.write(filename, **args)
-        Provenance().add_output_file(filename)
+        try:
+            tab.write(filename, **args)
+            Provenance().add_output_file(filename)
+        except IOError as err:
+            self.log.warn("couldn't write subarray description '%s' because: "
+                          "%s", filename, err)
+
 
 
 
