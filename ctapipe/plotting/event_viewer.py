@@ -2,7 +2,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 
 from ctapipe import visualization
-from ctapipe.instrument import CameraGeometry
 from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
 from numpy import ceil, sqrt
 from ctapipe.core import Component
@@ -11,9 +10,10 @@ from ctapipe.core.traits import Bool
 
 class EventViewer(Component):
     """
-    Event viewer class built on top of the other plotters to allow a single view of both the camera images
-    and the projected Hillas parameters for a single event. Can be further modified to show the reconstructed
-    shower direction and core position if needed. Plus further info
+    Event viewer class built on top of the other plotters to allow a single
+    view of both the camera images and the projected Hillas parameters for a
+    single event. Can be further modified to show the reconstructed shower
+    direction and core position if needed. Plus further info
     """
     name = 'EventViewer'
     test = Bool(True, help='').tag(config=True)
@@ -29,7 +29,6 @@ class EventViewer(Component):
         self.array_view = None
         self.nominal_view = None
 
-        self.geom = dict()
         self.cam_display = dict()
         self.draw_hillas_planes = draw_hillas_planes
 
@@ -97,15 +96,12 @@ class EventViewer(Component):
         # Loop over camera images of all telescopes and create plots
         for ii, tel_id in zip(range(ntels), tel_list):
 
-            # Cache of camera geometries, this may go away soon
-            if tel_id not in self.geom:
-                self.geom[tel_id] = CameraGeometry.guess(
-                    event.inst.pixel_pos[tel_id][0],
-                    event.inst.pixel_pos[tel_id][1],
-                    event.inst.optical_foclen[tel_id])
-
             ax = plt.subplot(camera_grid[ii])
-            self.get_camera_view(tel_id, images.tel[tel_id].image[0], ax)
+            geom = event.inst.subarray.tel[tel_id].camera
+            self.get_camera_view(tel_id,
+                                 image=images.tel[tel_id].image[0],
+                                 ax=ax,
+                                 geom=geom)
 
         # If we want to draw the Hillas parameters in different planes we need to make a couple more viewers
         if self.draw_hillas_planes:
@@ -131,7 +127,7 @@ class EventViewer(Component):
 
         return
 
-    def get_camera_view(self, tel_id, image, axis):
+    def get_camera_view(self, tel_id, image, axis, geom):
         """
         Create camera viewer for a given camera image
 
@@ -143,6 +139,8 @@ class EventViewer(Component):
             Array of calibrated pixel intensities
         axis: matplotlib axis
             Axis on which to draw plot
+        geom: ctapipe.instrument.CameraGeometry
+            Camera geometry for this tel_id
 
         Returns
         -------
@@ -150,7 +148,8 @@ class EventViewer(Component):
         """
         #if tel_id not in self.cam_display:
         # Argh this is annoying, for some reason we cannot cahe the displays
-        self.cam_display[tel_id] = visualization.CameraDisplay(self.geom[tel_id], title="CT{0}".format(tel_id))
+        self.cam_display[tel_id] = visualization.CameraDisplay(geom, title="CT{"
+                                                                        "0}".format(tel_id))
         self.cam_display[tel_id].add_colorbar()
         self.cam_display[tel_id].pixels.set_antialiaseds(False)
         self.cam_display[tel_id].autoupdate = True
