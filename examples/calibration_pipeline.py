@@ -159,7 +159,6 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
         reader_factory = EventFileReaderFactory(**kwargs)

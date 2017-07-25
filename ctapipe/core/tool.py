@@ -113,7 +113,7 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
+        self.log_format = '%(levelname)8s [%(name)s] %(funcName)s: %(message)s'
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
 
@@ -165,6 +165,8 @@ class Tool(Application):
             self.is_setup = True
             self.start()
             self.finish()
+            self.log.info("Finished: {}".format(self.name))
+            self.log.info("Output: %s", Provenance().current_activity.output)
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
             self.log.error('{}.  Use --help for more info'.format(err))
