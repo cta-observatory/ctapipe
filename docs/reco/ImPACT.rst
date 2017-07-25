@@ -1,4 +1,4 @@
-.. _reco:
+.. _ImPACT:
 
 Analysis with ImPACT
 ==================================
