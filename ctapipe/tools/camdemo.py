@@ -22,7 +22,7 @@ class CameraDemo(Tool):
 
     delay = traits.Int(50, help="Frame delay in ms", min=20).tag(config=True)
     cleanframes = traits.Int(100, help="Number of frames between turning on "
-                                      "cleaning", min=0).tag(config=True)
+                             "cleaning", min=0).tag(config=True)
     autoscale = traits.Bool(False, help='scale each frame to max if '
                                         'True').tag(config=True)
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
@@ -35,7 +35,7 @@ class CameraDemo(Tool):
 
     aliases = traits.Dict({'delay': 'CameraDemo.delay',
                            'cleanframes': 'CameraDemo.cleanframes',
-                           'autoscale' : 'CameraDemo.autoscale',
+                           'autoscale': 'CameraDemo.autoscale',
                            'blit': 'CameraDemo.blit',
                            'camera': 'CameraDemo.camera'})
 
@@ -50,7 +50,7 @@ class CameraDemo(Tool):
         self._display_camera_animation()
 
     def _display_camera_animation(self):
-        #plt.style.use("ggplot")
+        # plt.style.use("ggplot")
         fig = plt.figure(num="ctapipe Camera Demo", figsize=(7, 7))
         ax = plt.subplot(111)
 
@@ -78,19 +78,19 @@ class CameraDemo(Tool):
             if self._counter == self.cleanframes:
                 plt.suptitle("Image Cleaning ON")
                 self.imclean = True
-            if self._counter == self.cleanframes*2:
+            if self._counter == self.cleanframes * 2:
                 plt.suptitle("Image Cleaning OFF")
                 self.imclean = False
                 self._counter = 0
 
             if self.imclean:
-                cleanmask = tailcuts_clean(geom, image/80.0)
+                cleanmask = tailcuts_clean(geom, image / 80.0)
                 for ii in range(3):
                     dilate(geom, cleanmask)
                 image[cleanmask == 0] = 0  # zero noise pixels
 
             self.log.debug("count = {}, image sum={} max={}"
-                .format(self._counter, image.sum(), image.max()))
+                           .format(self._counter, image.sum(), image.max()))
             disp.image = image
 
             if self.autoscale:
@@ -100,7 +100,7 @@ class CameraDemo(Tool):
 
             disp.axes.figure.canvas.draw()
             self._counter += 1
-            return [ax,]
+            return [ax, ]
 
         self.anim = FuncAnimation(fig, update, interval=self.delay,
                                   blit=self.blit)

@@ -37,13 +37,12 @@ def get_camera_types(subarray):
 
 class DumpInstrumentTool(Tool):
     description = Unicode(__doc__)
-    name='ctapipe-dump-instrument'
+    name = 'ctapipe-dump-instrument'
 
     infile = Unicode(help='input simtelarray file').tag(config=True)
-    format = Enum(['fits', 'ecsv', 'hdf5'], default_value='fits', help='Format '
-                                                                       'of '
-                                                                       'output '
-                                                                       'file',
+    format = Enum(['fits', 'ecsv', 'hdf5'],
+                  default_value='fits',
+                  help='Format of output file',
                   config=True)
 
     aliases = Dict(dict(infile='DumpInstrumentTool.infile',
@@ -52,10 +51,9 @@ class DumpInstrumentTool(Tool):
 
     def setup(self):
         source = hessio_event_source(self.infile)
-        data = next(source)  # get one event, so the instrument table is
-                             # filled in
+        data = next(source)  # get one event, so the instrument table is there
         del source
-        self.inst = data.inst # keep a pointer to the instrument stuff
+        self.inst = data.inst  # keep a pointer to the instrument stuff
         pass
 
     def start(self):
@@ -74,7 +72,7 @@ class DumpInstrumentTool(Tool):
         elif format_name == 'ecsv':
             return 'ecsv.txt', dict(format='ascii.ecsv')
         elif format_name == 'hdf5':
-            return 'h5', dict(path="/"+table_type+"/" + table_name)
+            return 'h5', dict(path="/" + table_type + "/" + table_name)
         else:
             raise NameError("format not supported")
 
@@ -112,7 +110,7 @@ class DumpInstrumentTool(Tool):
             Provenance().add_output_file(filename)
         except IOError as err:
             self.log.warn("couldn't write optics description '%s' because: "
-                            "%s", filename, err)
+                          "%s", filename, err)
 
     def write_subarray_description(self):
         sub = self.inst.subarray
