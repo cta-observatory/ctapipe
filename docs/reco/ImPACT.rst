@@ -89,7 +89,7 @@ Performance
 Coming soon...?
 
 Running an ImPACT analysis
----------------------
+--------------------------
 
 Simple pseudocode example of using ImPACT is shown below. Full example will be added to
 examples directory soon.
