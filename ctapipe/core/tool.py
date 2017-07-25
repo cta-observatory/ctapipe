@@ -124,8 +124,6 @@ class Tool(Application):
             self.log.debug("Loading config from '{}'".format(self.config_file))
             self.load_config_file(self.config_file)
         self.log.info("ctapipe version {}".format(self.version_string))
-        self.setup()
-        self.is_setup = True
 
     @abstractmethod
     def setup(self):
@@ -163,6 +161,8 @@ class Tool(Application):
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
             Provenance().add_config(self.config)
+            self.setup()
+            self.is_setup = True
             self.start()
             self.finish()
             Provenance().finish_activity(activity_name=self.name)
@@ -179,7 +179,7 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name,
                                          status='interrupted')
         finally:
-            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
 
     @property
     def version_string(self):
