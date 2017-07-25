@@ -187,6 +187,14 @@ class _ActivityProvenance:
         self._prov['status'] = status
         self._prov['duration_min'] = (t_stop - t_start).to('min').value
 
+    @property
+    def output(self):
+        return self._prov.get('output', None)
+
+    @property
+    def input(self):
+        return self._prov.get('input', None)
+
     def sample_cpu_and_memory(self):
         """
         Record a snapshot of current CPU and memory information.
