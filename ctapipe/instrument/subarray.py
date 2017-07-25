@@ -149,6 +149,7 @@ class SubarrayDescription:
                                    x.optics.identifier == oid))
 
             cols = {}
+            cols['tel_description'] = [str(x) for x in optics_list]
             cols['tel_type'] = [x.tel_type for x in optics_list]
             cols['tel_subtype'] = [x.tel_subtype for x in optics_list]
             cols['mirror_area'] = np.array([x.mirror_area.to('m2').value for x
@@ -167,9 +168,6 @@ class SubarrayDescription:
 
         tab.meta.update(meta)
         return tab
-
-
-
 
     def select_subarray(self, name, tel_ids):
         """
