@@ -14,11 +14,11 @@ __all__ = ['info']
 # TODO: this list should be global (or generated at install time)
 _dependencies = sorted(['astropy', 'matplotlib',
                         'numpy', 'traitlets',
-                        'sklearn','scipy',
+                        'sklearn', 'scipy',
                         'pytest', 'ctapipe_resources'])
 
-_optional_dependencies = sorted(['pytest','graphviz','pyzmq','iminuit',
-                                 'fitsio','pyhessio','targetio'])
+_optional_dependencies = sorted(['pytest', 'graphviz', 'pyzmq', 'iminuit',
+                                 'fitsio', 'pyhessio', 'targetio'])
 
 
 def main(args=None):
@@ -63,6 +63,7 @@ def info(version=False, tools=False, dependencies=False,
     if resources or all:
         _info_resources()
 
+
 def _info_version():
     """Print version info."""
     import ctapipe
@@ -86,11 +87,11 @@ def _info_tools():
     from ctapipe.tools.utils import get_all_descriptions
     from textwrap import TextWrapper
     wrapper = TextWrapper(width=80,
-                          subsequent_indent=" "*35 )
-                          
+                          subsequent_indent=" " * 35)
+
     scripts = get_all_descriptions()
     for name, desc in sorted(scripts.items()):
-        text ="{:<30s}  - {}".format(name, desc) 
+        text = "{:<30s}  - {}".format(name, desc) 
         print(wrapper.fill(text))
         print('')
     print('')
@@ -148,8 +149,8 @@ def _info_resources():
 
     fmt = "{name:<30.30s} : {loc:<30.30s}"
     print(fmt.format(name="RESOURCE NAME", loc="LOCATION"))
-    print("-"*70)
-    for name, loc  in zip(all_resources, locations):
+    print("-" * 70)
+    for name, loc in zip(all_resources, locations):
         if name.endswith(".py") or name.startswith("_"):
             continue
         loc = loc.replace(resource_dir, "[ctapipe_resources]")

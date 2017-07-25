@@ -113,7 +113,8 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
+        self.log_format = ('%(levelname)8s [%(name)s] '                           
+                           '(%(module)s/%(funcName)s): %(message)s')
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
 
@@ -124,8 +125,6 @@ class Tool(Application):
             self.log.debug("Loading config from '{}'".format(self.config_file))
             self.load_config_file(self.config_file)
         self.log.info("ctapipe version {}".format(self.version_string))
-        self.setup()
-        self.is_setup = True
 
     @abstractmethod
     def setup(self):
@@ -163,8 +162,11 @@ class Tool(Application):
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
             Provenance().add_config(self.config)
+            self.setup()
+            self.is_setup = True
             self.start()
             self.finish()
+            self.log.info("Finished: {}".format(self.name))
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
             self.log.error('{}.  Use --help for more info'.format(err))
@@ -179,7 +181,10 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name,
                                          status='interrupted')
         finally:
-            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
+            self.log.info("Output: %s",
+                          ' '.join([str(x.output) for x
+                                    in Provenance()._finished_activities]))
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
 
     @property
     def version_string(self):

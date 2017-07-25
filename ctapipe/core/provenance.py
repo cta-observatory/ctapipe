@@ -100,6 +100,10 @@ class Provenance(metaclass=Singleton):
         return self._activities[-1]  # current activity as at the top of stack
 
     @property
+    def finished_activities(self):
+        return self._finished_activities
+
+    @property
     def provenance(self):
         """ returns provenence for full list of activities """
         return [x.provenance for x in self._finished_activities]
@@ -186,6 +190,14 @@ class _ActivityProvenance:
         t_stop = Time(self._prov['stop']['time_utc'], format='isot')
         self._prov['status'] = status
         self._prov['duration_min'] = (t_stop - t_start).to('min').value
+
+    @property
+    def output(self):
+        return self._prov.get('output', None)
+
+    @property
+    def input(self):
+        return self._prov.get('input', None)
 
     def sample_cpu_and_memory(self):
         """
