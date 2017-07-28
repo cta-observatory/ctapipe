@@ -93,7 +93,7 @@ class DumpInstrumentTool(Tool):
 
             try:
                 table.write(filename, **args)
-                Provenance().add_output_file(filename)
+                Provenance().add_output_file(filename, 'dl0.tel.svc.camera')
             except IOError as err:
                 self.log.warn("couldn't write camera definition '%s' because: "
                               "%s", filename, err)
@@ -107,7 +107,7 @@ class DumpInstrumentTool(Tool):
         filename = '{}.optics.{}'.format(sub.name, ext)
         try:
             tab.write(filename, **args)
-            Provenance().add_output_file(filename)
+            Provenance().add_output_file(filename, 'dl0.sub.svc.optics')
         except IOError as err:
             self.log.warn("couldn't write optics description '%s' because: "
                           "%s", filename, err)
@@ -121,7 +121,7 @@ class DumpInstrumentTool(Tool):
         filename = '{}.subarray.{}'.format(sub.name, ext)
         try:
             tab.write(filename, **args)
-            Provenance().add_output_file(filename)
+            Provenance().add_output_file(filename, 'dl0.sub.svc.subarray')
         except IOError as err:
             self.log.warn("couldn't write subarray description '%s' because: "
                           "%s", filename, err)

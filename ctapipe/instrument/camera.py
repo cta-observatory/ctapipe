@@ -232,7 +232,7 @@ class CameraGeometry:
 
         filename = get_dataset("{camera_id}{verstr}.camgeom.fits.gz"
                                .format(camera_id=camera_id, verstr=verstr))
-        Provenance().add_input_file(filename)
+        Provenance().add_input_file(filename, role='dl0.tel.svc.camera')
         return CameraGeometry.from_table(filename)
 
     def to_table(self):
