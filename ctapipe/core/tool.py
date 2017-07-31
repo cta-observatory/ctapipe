@@ -181,9 +181,10 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name,
                                          status='interrupted')
         finally:
-            self.log.info("Output: %s",
-                          ' '.join([str(x.output) for x
-                                    in Provenance()._finished_activities]))
+            for activity in Provenance().finished_activities:
+                output_str = ' '.join([x['url'] for x in  activity.output])
+                self.log.info("Output: %s", output_str)
+
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
 
     @property
