@@ -3,6 +3,9 @@ Classes and functions related to telescope Optics
 """
 
 import logging
+from ..utils import get_dataset
+from astropy.table import Table
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +85,44 @@ class OpticsDescription:
                    tel_type=tel_type,
                    tel_subtype=tel_subtype,
                    effective_focal_length=effective_focal_length)
+
+    @classmethod
+    def from_name(cls, name, optics_table='optics.fits.gz'):
+        """
+        Construct an OpticsDescription from the name. This is loaded from
+        `optics.fits.gz`, which should be in `ctapipe_resources` or in a
+        directory listed in `CTAPIPE_SVC_PATH`.
+
+        Parameters
+        ----------
+        name: str
+            string representation of optics (MST, LST, SST-1M, SST-ASTRI,...)
+
+
+        Returns
+        -------
+        OpticsDescription
+
+        """
+        table = Table.read(get_dataset(optics_table))
+        mask = table['tel_description'] == name
+
+        optics = cls(
+            mirror_type=table['mirror_type'][mask][0],
+            tel_type=table['tel_type'][mask][0],
+            tel_subtype=table['tel_subtype'][mask][0],
+            effective_focal_length=table['effective_focal_length'][
+                                       mask].quantity[0],
+            mirror_area=table['mirror_area'][mask].quantity[0],
+            num_mirror_tiles=table['num_mirror_tiles'][mask][0],
+        )
+        return optics
+
+    @classmethod
+    def get_known_optics_names(cls, optics_table='optics.fits.gz'):
+        table = Table.read(get_dataset(optics_table))
+        return np.array(table['tel_description'])
+
 
     @property
     def identifier(self):
