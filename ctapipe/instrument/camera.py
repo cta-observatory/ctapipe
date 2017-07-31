@@ -183,7 +183,7 @@ class CameraGeometry:
         return np.ones(pix_x.shape) * area
 
     @classmethod
-    def get_known_camera_names(cls, array_id='CTA'):
+    def get_known_camera_names(cls):
         """
         Returns a list of camera_ids that are registered in 
         `ctapipe_resources`. These are all the camera-ids that can be 
