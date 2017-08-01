@@ -3,8 +3,7 @@ Classes and functions related to telescope Optics
 """
 
 import logging
-from ..utils import get_dataset
-from astropy.table import Table
+from ..utils import get_table_dataset
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -87,7 +86,7 @@ class OpticsDescription:
                    effective_focal_length=effective_focal_length)
 
     @classmethod
-    def from_name(cls, name, optics_table='optics.fits.gz'):
+    def from_name(cls, name, optics_table='optics'):
         """
         Construct an OpticsDescription from the name. This is loaded from
         `optics.fits.gz`, which should be in `ctapipe_resources` or in a
@@ -104,7 +103,8 @@ class OpticsDescription:
         OpticsDescription
 
         """
-        table = Table.read(get_dataset(optics_table))
+        table = get_table_dataset(optics_table,
+                                  role='dl0.tel.svc.optics')
         mask = table['tel_description'] == name
 
         optics = cls(
@@ -119,8 +119,8 @@ class OpticsDescription:
         return optics
 
     @classmethod
-    def get_known_optics_names(cls, optics_table='optics.fits.gz'):
-        table = Table.read(get_dataset(optics_table))
+    def get_known_optics_names(cls, optics_table='optics'):
+        table = get_table_dataset(optics_table,'get_known_optics')
         return np.array(table['tel_description'])
 
 
