@@ -75,7 +75,9 @@ class CameraDemo(Tool):
         maxwid = np.deg2rad(0.01)
         maxlen = np.deg2rad(0.03)
 
-        disp = CameraDisplay(geom, ax=ax, autoupdate=True, title=str(tel))
+        disp = CameraDisplay(geom, ax=ax, autoupdate=True,
+                             title="{}, f={}".format(tel,
+                             tel.optics.effective_focal_length))
         disp.cmap = plt.cm.terrain
 
         def update(frame):
