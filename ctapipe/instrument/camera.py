@@ -12,7 +12,7 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
 
-from ctapipe.utils import get_dataset, find_all_matching_datasets
+from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
 from ctapipe.core import Provenance
 
@@ -183,7 +183,7 @@ class CameraGeometry:
         return np.ones(pix_x.shape) * area
 
     @classmethod
-    def get_known_camera_names(cls, array_id='CTA'):
+    def get_known_camera_names(cls):
         """
         Returns a list of camera_ids that are registered in 
         `ctapipe_resources`. These are all the camera-ids that can be 
@@ -230,10 +230,10 @@ class CameraGeometry:
         else:
             verstr = "-{:03d}".format(version)
 
-        filename = get_dataset("{camera_id}{verstr}.camgeom.fits.gz"
-                               .format(camera_id=camera_id, verstr=verstr))
-        Provenance().add_input_file(filename, role='dl0.tel.svc.camera')
-        return CameraGeometry.from_table(filename)
+        tabname = "{camera_id}{verstr}.camgeom".format(camera_id=camera_id,
+                                                       verstr=verstr)
+        table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
+        return CameraGeometry.from_table(table)
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
