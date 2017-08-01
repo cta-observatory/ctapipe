@@ -157,14 +157,23 @@ def get_table_dataset(table_name, role='resource', **kwargs):
     Table
     """
 
-    types_to_try = ['.fits.gz','.fits','.ecsv']
+    # a mapping of types (keys) to any extra keyword args needed for
+    # table.read()
+    types_to_try = {
+        '.fits.gz' : {},
+        '.fits': {},
+        '.ecsv': dict(format='ascii.ecsv'),
+        '.ecsv.txt': dict(format='ascii.ecsv'),
+    }
 
     for table_type in types_to_try:
         filename = table_name + table_type
         try:
             fullname = get_dataset(filename)
             if fullname:
-                table = Table.read(fullname, **kwargs)
+                args = types_to_try[table_type]
+                args.update(kwargs)
+                table = Table.read(fullname, **args)
                 Provenance().add_input_file(fullname, role)
                 return table
         except FileNotFoundError:
