@@ -202,7 +202,7 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
     return x_edges, y_edges, x_scale
 
 
-add_angle = 180 * u.deg
+# add_angle = 180 * u.deg
 rot_buffer = {}
 
 
@@ -399,3 +399,115 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
         unrot_buffer[key] = unrot_geom
 
     return unrot_geom, signal[square_mask, ...]
+
+
+def convert_geometry_hexe1d_to_rect_2d(geom, signal, key=None, add_rot=0):
+
+    if key in rot_buffer:
+
+        # if the conversion with this key was done and stored before,
+        # just read it in
+        (geom, new_geom, hex_square_map) = rot_buffer[key]
+    else:
+
+        # otherwise, we have to do the conversion now first, skew all
+        # the coordinates of the original geometry
+
+        # extra_rot is the angle to get back to aligned hexagons with flat
+        # tops. Note that the pixel rotation angle brings the camera so that
+        # hexagons have a point at the top, so need to go 30deg back to
+        # make them flat
+        extra_rot = geom.pix_rotation - 30*u.deg
+
+        # total rotation angle:
+        rot_angle = (add_rot * 60 * u.deg) - extra_rot
+        # if geom.cam_id.startswith("NectarCam")\
+        #         or geom.cam_id.startswith("LSTCam"):
+        #     rot_angle += geom.cam_rotation + 90 * u.deg
+
+        logger.debug("geom={}".format(geom))
+        logger.debug("rot={}, extra={}".format(rot_angle, extra_rot))
+
+        rot_x, rot_y = unskew_hex_pixel_grid(geom.pix_x, geom.pix_y,
+                                             cam_angle=rot_angle)
+
+        # with all the coordinate points, we can define the bin edges
+        # of a 2D histogram
+        x_edges, y_edges, x_scale = get_orthogonal_grid_edges(rot_x, rot_y)
+
+        # this histogram will introduce bins that do not correspond to
+        # any pixel from the original geometry. so we create a mask to
+        # remember the true camera pixels by simply throwing all pixel
+        # positions into numpy.histogramdd: proper pixels contain the
+        # value 1, false pixels the value 0.
+        square_mask = np.histogramdd([rot_y, rot_x],
+                                     bins=(y_edges, x_edges))[0].astype(bool)
+
+        # to be consistent with the pixel intensity, instead of saving
+        # only the rotated positions of the true pixels (rot_x and
+        # rot_y), create 2D arrays of all x and y positions (also the
+        # false ones).
+        grid_x, grid_y = np.meshgrid((x_edges[:-1] + x_edges[1:]) / 2.,
+                                     (y_edges[:-1] + y_edges[1:]) / 2.)
+
+        ids = []
+        # instead of blindly enumerating all pixels, let's instead
+        # store a list of all valid -- i.e. picked by the mask -- 2D
+        # indices
+        for i, row in enumerate(square_mask):
+            for j, val in enumerate(row):
+                if val is True:
+                    ids.append((i, j))
+
+        # the area of the pixels (note that this is still a deformed
+        # image)
+        pix_area = np.ones_like(grid_x) \
+            * (x_edges[1] - x_edges[0]) * (y_edges[1] - y_edges[0])
+
+        # creating a new geometry object with the attributes we just determined
+        new_geom = CameraGeometry(
+            cam_id=geom.cam_id + "_rect",
+            pix_id=ids,  # this is a list of all the valid coordinate pairs now
+            pix_x=grid_x * u.m,
+            pix_y=grid_y * u.m,
+            pix_area=pix_area * u.m ** 2,
+            neighbors=geom.neighbors,
+            pix_type='rectangular', apply_derotation=False)
+
+        # storing the pixel mask and camera rotation for later use
+        new_geom.mask = square_mask
+
+        hex_square_map = np.histogramdd([rot_y, rot_x],
+                                        bins=(y_edges, x_edges),
+                                        weights=np.arange(len(signal)))[0].astype(int)
+        hex_square_map[~square_mask] = -1
+
+        if key is not None:
+            # if a key is given, store the essential objects in a buffer
+            rot_buffer[key] = (geom, new_geom, hex_square_map)
+
+    # done if key in rot_buffer
+
+    input_img_ext = np.full(signal.shape[0] + 1, np.nan)
+    input_img_ext[:-1] = signal[:]
+
+    new_img = input_img_ext[[hex_square_map.ravel()]].reshape(hex_square_map.shape)
+
+    return new_geom, new_img
+
+
+def convert_geometry_rect_2d_back_to_hexe1d(geom, signal, key=None):
+    if key in rot_buffer:
+        (old_geom, new_geom, hex_square_map) = rot_buffer[key]
+    else:
+        raise KeyError("key '{}' not found in the buffer".format(key))
+
+    unrot_img = np.zeros(np.count_nonzero(new_geom.mask))
+
+    unrot_img[hex_square_map[new_geom.mask]] = signal[new_geom.mask]
+
+    return old_geom, unrot_img
+
+
+convert_geometry_1d_to_2d = convert_geometry_hexe1d_to_rect_2d
+convert_geometry_back = convert_geometry_rect_2d_back_to_hexe1d
