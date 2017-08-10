@@ -405,25 +405,22 @@ def convert_geometry_hexe1d_to_rect_2d(geom, signal, key=None, add_rot=0):
 
     if key in rot_buffer:
 
-        # if the conversion with this key was done and stored before,
+        # if the conversion with this key was done before and stored,
         # just read it in
-        (geom, new_geom, hex_square_map) = rot_buffer[key]
+        (geom, new_geom, hex_to_rect_map) = rot_buffer[key]
     else:
 
-        # otherwise, we have to do the conversion now first, skew all
-        # the coordinates of the original geometry
+        # otherwise, we have to do the conversion now first,
+        # skew all the coordinates of the original geometry
 
         # extra_rot is the angle to get back to aligned hexagons with flat
         # tops. Note that the pixel rotation angle brings the camera so that
         # hexagons have a point at the top, so need to go 30deg back to
         # make them flat
-        extra_rot = geom.pix_rotation - 30*u.deg
+        extra_rot = geom.pix_rotation - 30 * u.deg
 
         # total rotation angle:
         rot_angle = (add_rot * 60 * u.deg) - extra_rot
-        # if geom.cam_id.startswith("NectarCam")\
-        #         or geom.cam_id.startswith("LSTCam"):
-        #     rot_angle += geom.cam_rotation + 90 * u.deg
 
         logger.debug("geom={}".format(geom))
         logger.debug("rot={}, extra={}".format(rot_angle, extra_rot))
@@ -474,37 +471,50 @@ def convert_geometry_hexe1d_to_rect_2d(geom, signal, key=None, add_rot=0):
             neighbors=geom.neighbors,
             pix_type='rectangular', apply_derotation=False)
 
-        # storing the pixel mask and camera rotation for later use
+        # storing the pixel mask for later use
         new_geom.mask = square_mask
 
-        hex_square_map = np.histogramdd([rot_y, rot_x],
-                                        bins=(y_edges, x_edges),
-                                        weights=np.arange(len(signal)))[0].astype(int)
-        hex_square_map[~square_mask] = -1
+        hex_to_rect_map = np.histogramdd([rot_y, rot_x],
+                                         bins=(y_edges, x_edges),
+                                         weights=np.arange(len(signal)))[0].astype(int)
+        hex_to_rect_map[~square_mask] = -1
 
         if key is not None:
             # if a key is given, store the essential objects in a buffer
-            rot_buffer[key] = (geom, new_geom, hex_square_map)
+            rot_buffer[key] = (geom, new_geom, hex_to_rect_map)
 
-    # done if key in rot_buffer
+    # done `if key in rot_buffer`
 
-    input_img_ext = np.full(signal.shape[0] + 1, np.nan)
-    input_img_ext[:-1] = signal[:]
 
-    new_img = input_img_ext[[hex_square_map.ravel()]].reshape(hex_square_map.shape)
+    if signal.ndim == 1:
+        input_img_ext = np.full(np.prod(signal.shape) + 1, np.nan)
+        input_img_ext[:-1] = signal.ravel()
+        rot_img = input_img_ext[hex_to_rect_map]
+    else:
+        rot_img = []
+        for i in range(signal.shape[-1]):
+            rot_img.append(signal[hex_to_rect_map, i])
+        rot_img = np.array(rot_img)
 
-    return new_geom, new_img
+    return new_geom, rot_img
 
 
 def convert_geometry_rect_2d_back_to_hexe1d(geom, signal, key=None):
     if key in rot_buffer:
         (old_geom, new_geom, hex_square_map) = rot_buffer[key]
     else:
-        raise KeyError("key '{}' not found in the buffer".format(key))
+        raise KeyError("key '{}' not found in the buffer".format(key)
+                       + " -- don't know how to undo rotation")
 
-    unrot_img = np.zeros(np.count_nonzero(new_geom.mask))
-
-    unrot_img[hex_square_map[new_geom.mask]] = signal[new_geom.mask]
+    if signal.ndim == 2:
+        unrot_img = np.zeros(np.count_nonzero(new_geom.mask))
+        unrot_img[hex_square_map[new_geom.mask]] = signal[new_geom.mask]
+    else:
+        unrot_img = []
+        for i in range(signal.shape[0]):
+            temp_img = np.zeros(np.count_nonzero(new_geom.mask))
+            temp_img[hex_square_map[new_geom.mask]] = signal[i, new_geom.mask]
+            unrot_img.append(temp_img)
 
     return old_geom, unrot_img
 
