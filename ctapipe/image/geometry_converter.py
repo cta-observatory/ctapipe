@@ -402,6 +402,35 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
 
 
 def convert_geometry_hexe1d_to_rect_2d(geom, signal, key=None, add_rot=0):
+    """converts the geometry object of a camera with a hexagonal grid into
+    a square grid by slanting and stretching the 1D arrays of pixel x
+    and y positions and signal intensities are converted to 2D
+    arrays. If the signal array contains a time-dimension it is
+    conserved.
+
+    Parameters
+    ----------
+    geom : CameraGeometry object
+        geometry object of hexagonal cameras
+    signal : ndarray
+        1D (no timing) or 2D (with timing) array of the pmt signals
+    key : (default: None)
+        arbitrary key to store the transformed geometry in a buffer
+    add_rot : int/float (default: 0)
+        parameter to apply an additional rotation of @add_rot times 60°
+
+    Returns
+    -------
+    new_geom : CameraGeometry object
+        geometry object of the slanted picture now with a rectangular
+        grid and a 2D grid for the pixel positions contains now a 2D
+        masking array signifying which of the pixels came from the
+        original geometry and which are simply fillers from the
+        rectangular grid square_img : ndarray 2D (no timing) or 3D
+        (with timing) array of the pmt signals
+    rot_img : nDarray
+        the rectangular signal image
+    """
 
     if key in rot_buffer:
 
@@ -474,10 +503,20 @@ def convert_geometry_hexe1d_to_rect_2d(geom, signal, key=None, add_rot=0):
         # storing the pixel mask for later use
         new_geom.mask = square_mask
 
+        # create a transfer map by enumerating all pixel positions in a 2D histogram
         hex_to_rect_map = np.histogramdd([rot_y, rot_x],
                                          bins=(y_edges, x_edges),
                                          weights=np.arange(len(signal)))[0].astype(int)
+        # bins that do not correspond to the original image get an entry of `-1`
         hex_to_rect_map[~square_mask] = -1
+
+        if signal.ndim > 1:
+            long_map = []
+            for i in range(signal.shape[-1]):
+                tmp_map = hex_to_rect_map + i * (np.max(hex_to_rect_map) + 1)
+                tmp_map[~square_mask] = -1
+                long_map.append(tmp_map)
+            hex_to_rect_map = np.array(long_map)
 
         if key is not None:
             # if a key is given, store the essential objects in a buffer
@@ -485,36 +524,72 @@ def convert_geometry_hexe1d_to_rect_2d(geom, signal, key=None, add_rot=0):
 
     # done `if key in rot_buffer`
 
+    # create the rotated rectangular image by applying `hex_to_rect_map` to the flat,
+    # extended input image
+    # `input_img_ext` is the flattened input image extended by one entry that contains NaN
+    # since `hex_to_rect_map` contains `-1` for "fake" pixels, it maps this extra NaN
+    # value at the last array position to any bin that does not correspond to a pixel of
+    # the original image
+    input_img_ext = np.full(np.prod(signal.shape) + 1, np.nan)
 
-    if signal.ndim == 1:
-        input_img_ext = np.full(np.prod(signal.shape) + 1, np.nan)
-        input_img_ext[:-1] = signal.ravel()
+    # the way the map is produced, it has the time dimension as axis=0;
+    # but `signal` has it as axis=-1, so we need to roll the axes back and forth a bit
+    input_img_ext[:-1] = np.rollaxis(signal, axis=-1, start=0).ravel()
+
+    try:
+        rot_img = np.rollaxis(input_img_ext[hex_to_rect_map], 0, 3)
+    except:
         rot_img = input_img_ext[hex_to_rect_map]
-    else:
-        rot_img = []
-        for i in range(signal.shape[-1]):
-            rot_img.append(signal[hex_to_rect_map, i])
-        rot_img = np.array(rot_img)
-
     return new_geom, rot_img
 
 
 def convert_geometry_rect_2d_back_to_hexe1d(geom, signal, key=None):
+    """reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d
+    back to a hexagonal grid stored in 1D arrays
+
+    Parameters
+    ----------
+    geom : CameraGeometry
+        geometry object where pixel positions are stored in a 2D
+        rectangular camera grid
+    signal : ndarray
+        pixel intensity stored in a 2D rectangular camera grid
+    key:
+        key to retrieve buffered geometry information
+
+    Returns
+    -------
+    old_geom : CameraGeometry
+        the original geometry of the image
+    signal : ndarray
+        1D (no timing) or 2D (with timing) array of the pmt signals
+    """
+
     if key in rot_buffer:
         (old_geom, new_geom, hex_square_map) = rot_buffer[key]
     else:
         raise KeyError("key '{}' not found in the buffer".format(key)
                        + " -- don't know how to undo rotation")
 
-    if signal.ndim == 2:
-        unrot_img = np.zeros(np.count_nonzero(new_geom.mask))
-        unrot_img[hex_square_map[new_geom.mask]] = signal[new_geom.mask]
-    else:
-        unrot_img = []
-        for i in range(signal.shape[0]):
-            temp_img = np.zeros(np.count_nonzero(new_geom.mask))
-            temp_img[hex_square_map[new_geom.mask]] = signal[i, new_geom.mask]
-            unrot_img.append(temp_img)
+    # the output image has as many entries as there are non-negative values in the
+    # transfer map (this accounts for time as well)
+    unrot_img = np.zeros(np.count_nonzero(hex_square_map >= 0))
+
+    # rearrange input `signal` according to the mask and map
+    # (the dots in the brackets expand the mask to account for a possible time dimension)
+    unrot_img[hex_square_map[..., new_geom.mask]] = \
+        np.rollaxis(signal, -1, 0)[..., new_geom.mask]
+
+    # if `signal` has a third dimension, that is the time
+    # and we need to roll some axes again...
+    try:
+        # reshape the image so that the time is the first axis
+        # and then roll the time to the back
+        unrot_img = unrot_img.reshape((signal.shape[2],
+                                       np.count_nonzero(new_geom.mask)))
+        unrot_img = np.rollaxis(unrot_img, -1, 0)
+    except:
+        pass
 
     return old_geom, unrot_img
 
