@@ -48,10 +48,9 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
         # rotation R around one angle and a sheer S along a certain axis:
         #
         #  r'  = S * R * r
-        # (x') = (   1    0) * (cos -sin) * (x) = (    cos         -sin    )
-        # * (x)
-        # (y')   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan+cos)
-        #   (y)
+        # (x') = (   1    0) * (cos -sin) * (x) = (    cos         -sin    ) * (x)
+        # (y')   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan+cos) * (y)
+        #
         # TODO put that in latex...
 
         rot_mat = np.array(
@@ -423,12 +422,11 @@ def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
     -------
     new_geom : CameraGeometry object
         geometry object of the slanted picture now with a rectangular
-        grid and a 2D grid for the pixel positions contains now a 2D
+        grid and a 2D grid for the pixel positions. contains now a 2D
         masking array signifying which of the pixels came from the
         original geometry and which are simply fillers from the
-        rectangular grid square_img : ndarray 2D (no timing) or 3D
-        (with timing) array of the pmt signals
-    rot_img : nDarray
+        rectangular grid
+    rot_img : ndarray 2D (no timing) or 3D (with timing)
         the rectangular signal image
     """
 
