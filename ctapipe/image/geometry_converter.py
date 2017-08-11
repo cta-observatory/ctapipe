@@ -548,7 +548,7 @@ def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
     return new_geom, rot_img
 
 
-def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None):
+def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None):
     """reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d
     back to a hexagonal grid stored in 1D arrays
 
@@ -561,6 +561,8 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None):
         pixel intensity stored in a 2D rectangular camera grid
     key:
         key to retrieve buffered geometry information
+    add_rot:
+        not used -- only here for backwards compatibility
 
     Returns
     -------
