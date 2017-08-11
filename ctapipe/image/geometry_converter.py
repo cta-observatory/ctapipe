@@ -531,7 +531,8 @@ def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
     input_img_ext = np.full(np.prod(signal.shape) + 1, np.nan)
 
     # the way the map is produced, it has the time dimension as axis=0;
-    # but `signal` has it as axis=-1, so we need to roll the axes back and forth a bit
+    # but `signal` has it as axis=-1, so we need to roll the axes back and forth a bit.
+    # if there is no time dimension, `signal` is a 1d array and `rollaxis` has no effect.
     input_img_ext[:-1] = np.rollaxis(signal, axis=-1, start=0).ravel()
 
     # now apply the transfer map
@@ -582,24 +583,28 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
 
     # rearrange input `signal` according to the mask and map
     # (the dots in the brackets expand the mask to account for a possible time dimension)
-    # unrot_img[hex_square_map[..., new_geom.mask]] = \
-    #     np.rollaxis(signal, -1, 0)[..., new_geom.mask]
+    # `atleast_3d` ensures that there is a third axis that we can roll to the front
+    # even if there is no time; if we'd use `axis=-1` instead, in cas of no time
+    # dimensions, we would rotate the x and y axes, resulting in a mirrored image
+    # `squeeze` reduces the added axis again in the no-time-slices cases
+    unrot_img[hex_square_map[..., new_geom.mask]] = \
+        np.squeeze(np.rollaxis(np.atleast_3d(signal), 2, 0))[..., new_geom.mask]
 
     # if `signal` has a third dimension, that is the time
     # and we need to roll some axes again...
     if signal.ndim == 3:
 
-        unrot_img[hex_square_map[..., new_geom.mask]] = \
-            np.rollaxis(signal, -1, 0)[..., new_geom.mask]
+        # unrot_img[hex_square_map[..., new_geom.mask]] = \
+            # np.rollaxis(signal, -1, 0)[..., new_geom.mask]
 
         # reshape the image so that the time is the first axis
         # and then roll the time to the back
         unrot_img = unrot_img.reshape((signal.shape[2],
                                        np.count_nonzero(new_geom.mask)))
         unrot_img = np.rollaxis(unrot_img, -1, 0)
-    else:
-        unrot_img[hex_square_map[new_geom.mask]] = \
-            signal[new_geom.mask]
+    # else:
+    #     unrot_img[hex_square_map[new_geom.mask]] = \
+    #         signal[new_geom.mask]
 
 
     return old_geom, unrot_img
