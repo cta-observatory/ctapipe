@@ -582,19 +582,25 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
 
     # rearrange input `signal` according to the mask and map
     # (the dots in the brackets expand the mask to account for a possible time dimension)
-    unrot_img[hex_square_map[..., new_geom.mask]] = \
-        np.rollaxis(signal, -1, 0)[..., new_geom.mask]
+    # unrot_img[hex_square_map[..., new_geom.mask]] = \
+    #     np.rollaxis(signal, -1, 0)[..., new_geom.mask]
 
     # if `signal` has a third dimension, that is the time
     # and we need to roll some axes again...
-    try:
+    if signal.ndim == 3:
+
+        unrot_img[hex_square_map[..., new_geom.mask]] = \
+            np.rollaxis(signal, -1, 0)[..., new_geom.mask]
+
         # reshape the image so that the time is the first axis
         # and then roll the time to the back
         unrot_img = unrot_img.reshape((signal.shape[2],
                                        np.count_nonzero(new_geom.mask)))
         unrot_img = np.rollaxis(unrot_img, -1, 0)
-    except IndexError:
-        pass
+    else:
+        unrot_img[hex_square_map[new_geom.mask]] = \
+            signal[new_geom.mask]
+
 
     return old_geom, unrot_img
 
