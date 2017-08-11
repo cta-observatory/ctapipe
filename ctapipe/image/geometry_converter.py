@@ -251,7 +251,7 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
         # tops. Note that the pixel rotation angle brings the camera so that
         # hexagons have a point at the top, so need to go 30deg back to
         # make them flat
-        extra_rot = geom.pix_rotation - 30*u.deg
+        extra_rot = geom.pix_rotation - 30 * u.deg
 
         # total rotation angle:
         rot_angle = (add_rot * 60 * u.deg) - extra_rot
@@ -296,11 +296,11 @@ def convert_geometry_1d_to_2d(geom, signal, key=None, add_rot=0):
         # the area of the pixels (note that this is still a deformed
         # image)
         pix_area = np.ones_like(grid_x) \
-                   * (x_edges[1] - x_edges[0]) * (y_edges[1] - y_edges[0])
+            * (x_edges[1] - x_edges[0]) * (y_edges[1] - y_edges[0])
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(
-            cam_id=geom.cam_id+"_rect",
+            cam_id=geom.cam_id + "_rect",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
             pix_x=grid_x * u.m,
             pix_y=grid_y * u.m,
@@ -417,7 +417,7 @@ def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
     key : (default: None)
         arbitrary key to store the transformed geometry in a buffer
     add_rot : int/float (default: 0)
-        parameter to apply an additional rotation of @add_rot times 60°
+        parameter to apply an additional rotation of `add_rot` times 60°
 
     Returns
     -------
@@ -439,7 +439,7 @@ def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
         (geom, new_geom, hex_to_rect_map) = rot_buffer[key]
     else:
 
-        # otherwise, we have to do the conversion now first,
+        # otherwise, we have to do the conversion first now,
         # skew all the coordinates of the original geometry
 
         # extra_rot is the angle to get back to aligned hexagons with flat
@@ -536,10 +536,15 @@ def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
     # but `signal` has it as axis=-1, so we need to roll the axes back and forth a bit
     input_img_ext[:-1] = np.rollaxis(signal, axis=-1, start=0).ravel()
 
+    # now apply the transfer map
+    rot_img = input_img_ext[hex_to_rect_map]
+
+    # if there is a time dimension, roll the time axis back to the last position
     try:
-        rot_img = np.rollaxis(input_img_ext[hex_to_rect_map], 0, 3)
-    except:
-        rot_img = input_img_ext[hex_to_rect_map]
+        rot_img = np.rollaxis(rot_img, 0, 3)
+    except np.core._internal.AxisError:
+        pass
+
     return new_geom, rot_img
 
 
@@ -588,7 +593,7 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None):
         unrot_img = unrot_img.reshape((signal.shape[2],
                                        np.count_nonzero(new_geom.mask)))
         unrot_img = np.rollaxis(unrot_img, -1, 0)
-    except:
+    except IndexError:
         pass
 
     return old_geom, unrot_img
