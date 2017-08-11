@@ -37,6 +37,7 @@ before_install:
     # Make sure that interactive matplotlib backends work
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
+    - git fetch --tags
 
 install:
 
@@ -51,7 +52,7 @@ install:
 script:
     - make test
     - ctapipe-info --version # print out the version string
-    - travis-sphinx --nowarn --source=docs/ build
+    - travis-sphinx --source=docs/ build
 
 after_script:
     - source deactivate

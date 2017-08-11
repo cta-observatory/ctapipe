@@ -1,18 +1,22 @@
+import logging
 from abc import abstractmethod
 
 from traitlets import Unicode
 from traitlets.config import Application
-import logging
+
 logging.basicConfig(level=logging.WARNING)
 
 from ctapipe import __version__ as version
 from .logging import ColoredFormatter
 from . import Provenance
 
+
 class ToolConfigurationError(Exception):
+
     def __init__(self, message):
         # Call the base class constructor with the parameters it needs
         self.message = message
+
 
 class Tool(Application):
     """A base class for all executable tools (applications) that handles
@@ -97,8 +101,8 @@ class Tool(Application):
     """
 
     config_file = Unicode(u'', help=("name of a configuration file with "
-                                "parameters to load in addition to "
-                                "command-line parameters")).tag(config=True)
+                                     "parameters to load in addition to "
+                                     "command-line parameters")).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -109,11 +113,10 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
+        self.log_format = ('%(levelname)8s [%(name)s] '                           
+                           '(%(module)s/%(funcName)s): %(message)s')
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
-
-
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
@@ -122,8 +125,6 @@ class Tool(Application):
             self.log.debug("Loading config from '{}'".format(self.config_file))
             self.load_config_file(self.config_file)
         self.log.info("ctapipe version {}".format(self.version_string))
-        self.setup()
-        self.is_setup = True
 
     @abstractmethod
     def setup(self):
@@ -161,8 +162,11 @@ class Tool(Application):
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
             Provenance().add_config(self.config)
+            self.setup()
+            self.is_setup = True
             self.start()
             self.finish()
+            self.log.info("Finished: {}".format(self.name))
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
             self.log.error('{}.  Use --help for more info'.format(err))
@@ -177,8 +181,11 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name,
                                          status='interrupted')
         finally:
-            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
+            for activity in Provenance().finished_activities:
+                output_str = ' '.join([x['url'] for x in  activity.output])
+                self.log.info("Output: %s", output_str)
 
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
 
     @property
     def version_string(self):
