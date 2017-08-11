@@ -2,17 +2,18 @@
 """
 Visualization routines using matplotlib
 """
-import matplotlib
-from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection, LineCollection
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from matplotlib.lines import Line2D
-from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from numpy import sqrt
-import numpy as np
-import logging
 import copy
+import logging
+
+import matplotlib
+import numpy as np
 from astropy import units as u
+from matplotlib import pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+from matplotlib.lines import Line2D
+from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from numpy import sqrt
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -87,7 +88,7 @@ class CameraDisplay:
             ax=None,
             title=None,
             norm="lin",
-            cmap="hot",
+            cmap=None,
             allow_pick=False,
             autoupdate=True,
             autoscale=True,
@@ -365,7 +366,7 @@ class CameraDisplay:
         self.update()
         return ellipse
 
-    def overlay_moments(self, momparams, **kwargs):
+    def overlay_moments(self, momparams, with_label=True, **kwargs):
         """helper to overlay ellipse from a `reco.MomentParameters` structure
 
         Parameters
@@ -388,13 +389,14 @@ class CameraDisplay:
                               length=length*2,
                               width=width*2, angle=momparams.psi.rad,
                               **kwargs)
-        self.axes.text(cen_x, cen_y,
-                       ("({:.02f},{:.02f})\n"
-                        "[w={:.02f},l={:.02f}]")
-                       .format(momparams.cen_x,
-                               momparams.cen_y,
-                               momparams.width, momparams.length),
-                       color=el.get_edgecolor())
+        if with_label:
+            self.axes.text(cen_x, cen_y,
+                           ("({:.02f},{:.02f})\n"
+                            "[w={:.02f},l={:.02f}]")
+                           .format(momparams.cen_x,
+                                   momparams.cen_y,
+                                   momparams.width, momparams.length),
+                           color=el.get_edgecolor())
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
@@ -568,8 +570,6 @@ class ArrayDisplay:
             or linewidth=6)
         """
         # strip off any units
-        line_list = list()
-        size_list = list()
         i = 0
         for h in momparams:
             tel_x = u.Quantity(tel_position[0][i]).value

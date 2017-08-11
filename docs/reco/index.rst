@@ -28,6 +28,16 @@ combines them geometrically to estimate the true shower direction.
 
 The implementation is in the `HillasReconstructor` class.
 
+Template-Based Stereo Reconstruction
+------------------------------------
+
+Moment-base reconstruction uses the a fit of the full camera images to an expected
+image model to find the best fit shower axis, energy and depth of maximum.
+The implementation is in the `ImPACTReconstructor` class.
+
+
+.. toctree::
+    ImPACT
 
 Reference/API
 =============

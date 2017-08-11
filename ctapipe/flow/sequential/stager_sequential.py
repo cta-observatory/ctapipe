@@ -8,19 +8,18 @@ class StagerSequential():
     """`StagerSequential` class represents a Stager pipeline Step.
     """
 
-    def __init__(
-            self, coroutine, name=None, connexions=list(), main_connexion_name=None):
+    def __init__(self, coroutine, name=None, connections=None, main_connection_name=None):
         """
         Parameters
         ----------
         coroutine : Class instance that contains init, run and finish methods
-        connexions: list(str)
+        connections: list(str)
             define next available steps
         """
         self.name = name
         self.coroutine = coroutine
-        self.main_connexion_name = main_connexion_name
-        self.connexions = connexions
+        self.main_connection_name = main_connection_name
+        self.connections = connections or []
         self.running = 0
         self.nb_job_done = 0
 
@@ -38,6 +37,7 @@ class StagerSequential():
             return False
         if self.coroutine.init() == False:
             return False
+        self.coroutine.connections = self.connections
         return True
 
     def run(self, inputs=None):
@@ -74,10 +74,10 @@ class StagerSequential():
         msg, destination
 
         """
-        destination = self.main_connexion_name
+        destination = self.main_connection_name
         if isinstance(result, tuple):
             # look is last tuple elem is a valid next step
-            if result[-1] in self.connexions.keys():
+            if result[-1] in self.connections.keys():
                 destination = result[-1]
                 if len(result[:-1]) == 1:
                     msg = result[:-1][0]

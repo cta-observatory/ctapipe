@@ -46,14 +46,11 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
-              'sphinx.ext.mathjax']
-
-
-extensions += ['sphinx_automodapi.automodapi',
-#               'matplotlib.sphinxext.mathmpl',
-               'matplotlib.sphinxext.only_directives',
-               'matplotlib.sphinxext.plot_directive',
-               'numpydoc']
+              'sphinx.ext.mathjax',
+              'sphinx_automodapi.automodapi',
+              'matplotlib.sphinxext.only_directives',
+              'matplotlib.sphinxext.plot_directive',
+              'numpydoc']
 
 numpydoc_show_class_members = False
 
@@ -123,7 +120,7 @@ html_theme = 'default'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+#html_static_path = ['_static']
 
 
 # -- Options for HTMLHelp output ------------------------------------------
@@ -188,10 +185,15 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('http://docs.python.org/3.5', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+    'python': ('https://docs.python.org/3.6', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'astropy': ('http://docs.astropy.org/en/latest/', None),
+    'pytables':('http://www.pytables.org/', None),
+    'pandas' :('http://pandas.pydata.org/pandas-docs/stable/', None),
+    'matplotlib':('http://matplotlib.org/', None),
+    'cython':('http://docs.cython.org/en/latest/', None),
+    'iminuit':('http://iminuit.readthedocs.io/en/latest/', None)
     }
 
 # on_rtd is whether we are on readthedocs.org
@@ -207,4 +209,4 @@ if not on_rtd:  # only import and set the theme if we're building docs locally
                           "first. For example, pip install sphinx_rtd_theme")
     html_theme = 'sphinx_rtd_theme'
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    html_use_smartypants = False
+

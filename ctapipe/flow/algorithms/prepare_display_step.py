@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 class PrepareDisplayStep(Component):
     """PrepareDisplayStep` class represents a Stage for pipeline.
         it prepares Display for the next stage
-        This stage is time comsuming, so in multiprocessus mode you should
+        This stage is time comsuming, so in multiprocess mode you should
         activate several process for it i.e.("nb_process" : 4)
     """
     def init(self):

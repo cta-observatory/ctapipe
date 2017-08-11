@@ -7,19 +7,18 @@ TODO: have this register whenever ctapipe is loaded
 
 import json
 import logging
+import os
 import platform
 import sys
 import uuid
-import os
-from os.path import abspath
 from contextlib import contextmanager
+from os.path import abspath
 
-import ctapipe
 import ctapipe_resources
-import numpy as np
 import psutil
 from astropy.time import Time
 
+import ctapipe
 from .support import Singleton
 
 log = logging.getLogger(__name__)
@@ -51,26 +50,55 @@ class Provenance(metaclass=Singleton):
         self._activities.append(activity)
         log.debug("started activity: {}".format(activity_name))
 
-    def add_input_file(self, filename):
-        """ register an input to the current activity """
-        self.current_activity.register_input(abspath(filename))
+    def add_input_file(self, filename, role=None):
+        """ register an input to the current activity
+
+        Parameters
+        ----------
+        filename: str
+            name or url of file
+        role: str
+            role this input file satisfies (optional)
+        """
+        self.current_activity.register_input(abspath(filename), role=role)
         log.debug("added input entity '{}' to activity: '{}'".format(
             filename, self.current_activity.name))
 
-    def add_output_file(self, filename):
-        """ register an output to the current activity """
-        self.current_activity.register_output(abspath(filename))
+    def add_output_file(self, filename, role=None):
+        """
+        register an output to the current activity
+
+        Parameters
+        ----------
+        filename: str
+            name or url of file
+        role: str
+            role this output file satisfies (optional)
+
+        """
+        self.current_activity.register_output(abspath(filename), role=role)
         log.debug("added output entity '{}' to activity: '{}'".format(
             filename, self.current_activity.name))
 
-    def finish_activity(self, activity_name=None):
+    def add_config(self, config):
+        """
+        add configuration parameters to the current activity
+
+        Parameters
+        ----------
+        config: dict
+            configuration paramters
+        """
+        self.current_activity.register_config(config)
+
+    def finish_activity(self, status='completed', activity_name=None):
         """ end the current activity """
         activity = self._activities.pop()
         if activity_name is not None and activity_name != activity.name:
             raise ValueError("Tried to end activity '{}', but '{}' is current "
                              "activity".format(activity_name, activity.name))
 
-        activity.finish()
+        activity.finish(status)
         self._finished_activities.append(activity)
         log.debug("finished activity: {}".format(activity.name))
 
@@ -84,10 +112,13 @@ class Provenance(metaclass=Singleton):
     @property
     def current_activity(self):
         if len(self._activities) == 0:
-            log.warning("No activity has been started... starting a default "
-                        "one")
+            log.debug("No activity has been started... starting a default one")
             self.start_activity()
         return self._activities[-1]  # current activity as at the top of stack
+
+    @property
+    def finished_activities(self):
+        return self._finished_activities
 
     @property
     def provenance(self):
@@ -139,7 +170,7 @@ class _ActivityProvenance:
         self._prov['start'].update(_sample_cpu_and_memory())
         self._prov['system'].update(_get_system_provenance())
 
-    def register_input(self, url):
+    def register_input(self, url, role=None):
         """
         Add a URL of a file to the list of inputs (can be a filename or full
         url, if no URL specifier is given, assume 'file://')
@@ -148,10 +179,12 @@ class _ActivityProvenance:
         ----------
         url: str
             filename or url of input file
+        role: str
+            role name that this output satisfies
         """
-        self._prov['input'].append(url)
+        self._prov['input'].append(dict(url=url,role=role))
 
-    def register_output(self, url):
+    def register_output(self, url, role=None):
         """
         Add a URL of a file to the list of outputs (can be a filename or full
         url, if no URL specifier is given, assume 'file://')
@@ -160,17 +193,32 @@ class _ActivityProvenance:
         ----------
         url: str
             filename or url of output file
+        role: str
+            role name that this output satisfies
         """
-        self._prov['output'].append(url)
+        self._prov['output'].append(dict(url=url,role=role))
 
-    def finish(self):
+    def register_config(self, config):
+        """ add a dictionary of configuration parameters to this activity"""
+        self._prov['config'] = config
+
+    def finish(self, status='completed'):
         """ record final provenance information, normally called at shutdown."""
         self._prov['stop'].update(_sample_cpu_and_memory())
 
         # record the duration (wall-clock) for this activity
         t_start = Time(self._prov['start']['time_utc'], format='isot')
         t_stop = Time(self._prov['stop']['time_utc'], format='isot')
+        self._prov['status'] = status
         self._prov['duration_min'] = (t_stop - t_start).to('min').value
+
+    @property
+    def output(self):
+        return self._prov.get('output', None)
+
+    @property
+    def input(self):
+        return self._prov.get('input', None)
 
     def sample_cpu_and_memory(self):
         """

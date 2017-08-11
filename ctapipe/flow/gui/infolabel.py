@@ -42,7 +42,7 @@ class InfoLabel(QLabel):
         A str containg sdtep state
         """
         text = str()
-        step_name = step.name.split('$$processus')[0]
+        step_name = step.name.split('$$process')[0]
         if len(step_name) < 18:
             name = ' ' + step_name + ((18-len(step_name))*2)*' '
         elif len(step_name) > 18:
@@ -51,7 +51,7 @@ class InfoLabel(QLabel):
             name =  ' ' + step_name
         queue = step.queue_length
         done = step.nb_job_done
-        nb_proc = step.nb_processus
+        nb_proc = step.nb_process
         running = step.running
         if self.mode == 'sequential':
             text = name+ '\t' + str(done)
@@ -66,6 +66,6 @@ class InfoLabel(QLabel):
         """
         Parameters
         ----------
-        Flow mode (sequential or multiprocessus)
+        Flow mode (sequential or multiprocess)
         """
         self.mode = mode

@@ -4,13 +4,12 @@ channels:
   - openastronomy
   - astropy
 dependencies:
-  - ctapipe-extra=0.2.2
+  - ctapipe-extra=0.2.11
   - astropy
   - bokeh
   - fitsio
   - gammapy
   - graphviz
-  - healpy
   - iminuit
   - ipython
   - ipywidgets

@@ -5,7 +5,6 @@ Extract data necessary to calcualte charge resolution from raw data files.
 import os
 
 import numpy as np
-from astropy.utils.console import ProgressBarOrSpinner
 from traitlets import Dict, List, Int, Unicode
 
 from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
@@ -16,6 +15,7 @@ from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.io.eventfilereader import HessioFileReader
 
+from tqdm import tqdm
 
 class ChargeResolutionGenerator(Tool):
     name = "ChargeResolutionGenerator"
@@ -81,7 +81,7 @@ class ChargeResolutionGenerator(Tool):
 
     def start(self):
         desc = "Filling Charge Resolution"
-        with ProgressBarOrSpinner(None, message=desc) as pbar:
+        with tqdm(None, message=desc) as pbar:
             source = self.file_reader.read()
             for event in source:
                 pbar.update(event.count)
@@ -90,8 +90,8 @@ class ChargeResolutionGenerator(Tool):
                 # Check events have true charge included
                 if event.count == 0:
                     try:
-                        if np.all(event.mc.tel[
-                                      tels[0]].photo_electron_image == 0):
+                        tel = event.mc.tel[tels[0]]
+                        if np.all(tel.photo_electron_image == 0):
                             raise KeyError
                     except KeyError:
                         self.log.exception('Source does not contain '
