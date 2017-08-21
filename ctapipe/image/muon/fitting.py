@@ -23,7 +23,7 @@ def cherenkov_integral(lambda1, lambda2):
 def kundu_chaudhuri_circle_fit(x, y, weights):
     '''
     Fast, analytic calculation of circle center and radius for 
-    weighted data using method given in [1]_
+    weighted data using method given in [chaudhuri93]_
 
     Parameters
     ----------
@@ -34,12 +34,6 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     weights: array-like
         weights of the points
 
-    
-    References
-    ----------
-    .. [1] B. B. Chaudhuri und P. Kundu. "Optimum circular fit to weighted 
-           data in multi-dimensional space". Pattern Recognition Letters 14.1 
-           (1993), S. 1–6
     '''
 
     weights_sum = np.sum(weights)
@@ -257,7 +251,7 @@ def radial_light_intensity(
         ):
     '''
     Amount of photons per azimuthal angle phi on the muon ring as given in
-    formula (5) of [2]_ 
+    formula (5) of [vacanti94]_ 
 
     Parameters
     ----------
@@ -279,11 +273,7 @@ def radial_light_intensity(
     Returns
     -------
     light_density: float or array-like
-    
-    References
-    ----------
-    .. [2] G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11
-    
+        
     '''
 
     return (
@@ -377,7 +367,7 @@ def efficiency_fit(
         lambda2=900e-9,
         ):
     '''
-    Estimate optical efficiency for a muon ring using method of [3]_.
+    Estimate optical efficiency for a muon ring using method of [mitchell15]_.
     This is performing several steps:
     
     1. fit r, x, y and width with the psf_likelihood_fit
@@ -387,11 +377,6 @@ def efficiency_fit(
     4. calculate the ratio between the observed and the expected number
        of photons.
         
-    References
-    ----------
-    .. [3] A Generic Algorithm for IACT Optical Efficiency Calibration 
-           using Muons, Allison Mitchell et al. arXiv: 1509.04258v1
-
     Parameters
     ----------
     pe_charge: array-like

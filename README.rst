@@ -1,24 +1,25 @@
 =======
-ctapipe
+ctapipe |teststatus| |healthstatus| |conda|
 =======
+.. |teststatus| image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
+    :target: https://travis-ci.org/cta-observatory/ctapipe
+    :alt: Test Status
+.. |conda| image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
+.. |healthstatus| image:: https://landscape.io/github/cta-observatory/ctapipe/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/cta-observatory/ctapipe/master
+   :alt: Code Health
 
-CTA Python pipeline experimental version.
 
-This is code for exploring a CTA data processing framework. It is not
-official and not recommended for use unless you are an expert or developer!
+Low-level data processing pipeline software for
+`CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
+
+This is code is a prototype data processing framework and is under rapid
+development. It is not recommended for production use unless you are an
+expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
 * Example notebooks: https://github.com/cta-observatory/ctapipe/tree/master/examples/notebooks
-
-* .. image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
-    :target: https://travis-ci.org/cta-observatory/ctapipe
-    :alt: Test Status
-
-
-Examples can be found in ~ctapipe/examples~ and also the notebooks in
- ~ctapipe/examples/notebooks/~ The README file in that directory will
-help you run the notebook examples.
 
 Installation for Users
 ----------------------
@@ -29,21 +30,18 @@ first, to isolate the installed version and dependencies from your master
 environment (this is optional).
 
 
-Optionally create the virtual env:
+The following command will set up a conda virtual environment, add the
+necessary package channels, and download ctapipe and its dependencies. The
+file *environment.yml* can be found in this repo.
 
 ::
 
-  conda create -n cta ipython ipython-notebook
+  conda env create -n cta -f environment.yml
   source activate cta
+  conda install ctapipe
 
-Then, install the packages via:
-
-::
-
-  conda install -c cta-observatory ctapipe  
 
 Developers should follow the development install instructions found in the
-documentation above.
+`documentation <https://cta-observatory.github
+.io/ctapipe/getting_started>`_.
 
-
-.. image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg

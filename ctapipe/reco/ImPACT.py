@@ -4,7 +4,6 @@
 """
 import math
 
-
 import numpy as np
 from astropy import units as u
 from iminuit import Minuit
@@ -17,15 +16,53 @@ from ctapipe.coordinates import (HorizonFrame,
 from ctapipe.image import poisson_likelihood_gaussian
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
-from ctapipe.reco.reco_algorithms import RecoShowerGeomAlgorithm
-from ctapipe.reco.shower_max import ShowerMaxEstimator
+from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils import TableInterpolator
-from ctapipe import instrument
+from ctapipe.instrument import get_atmosphere_profile_functions
+from ctapipe.reco.shower_max import ShowerMaxEstimator
+
+from scipy.optimize import minimize, least_squares
+from scipy.stats import norm
+
+__all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
 
 
-class ImPACTFitter(RecoShowerGeomAlgorithm):
+def guess_shower_depth(energy):
+    """
+    Simple estimation of depth of shower max based on the expected gamma-ray elongation 
+    rate.
+    
+    Parameters
+    ----------
+    energy: float
+        Energy of the shower in TeV
+        
+    Returns
+    -------
+    float: Expected depth of shower maximum
+    """
+    x_max_exp = 300 * (u.g*u.cm**-2) + \
+                93 * (u.g*u.cm**-2) * np.log10(energy.to(u.TeV).value)
+
+    return x_max_exp
+
+def energy_prior(energy, index=-1):
+
+    return -2 * np.log(np.power(energy, index))
+
+
+def xmax_prior(energy, xmax, width=30):
+
+    x_max_exp = guess_shower_depth(energy)
+    diff = xmax.value - x_max_exp
+
+    return -2 * np.log(norm.pdf(diff/width))
+
+
+class ImPACTReconstructor(Reconstructor):
+
     """This class is an implementation if the impact_reco Monte Carlo
-    Template based image fitting method from [1]_.  This method uses a
+    Template based image fitting method from [parsons14]_.  This method uses a
     comparision of the predicted image from a library of image
     templates to perform a maximum likelihood fit for the shower axis,
     energy and height of maximum.
@@ -41,40 +78,39 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     References
     ----------
-    .. [1] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
+    .. [parsons14] Parsons & Hinton, Astroparticle Physics 56 (2014), pp. 26-34
 
     """
 
-    def __init__(self, fit_xmax=True, root_dir="."):
+    def __init__(self, root_dir=".", minimiser="minuit", prior=""):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
         self.root_dir = root_dir
         self.prediction = dict()
-        self.file_names = {"GATE": "SST-GCT.table.gz", "LSTCam":
-                           "LST.table.gz", "NectarCam":
-                           "MST.table.gz", "FlashCam": "MST.table.gz"}
 
-        # We also need a conversion function from height above ground
-        # to depth of maximum To do this we need the conversion table
-        # from CORSIKA
-        self.shower_max = ShowerMaxEstimator('paranal')
+        self.file_names = {"GATE":"GCT_xm_full.fits", "LSTCam":"LST_xm_full.fits",
+                           "NectarCam":"MST_xm_full.fits", "FlashCam":"MST_xm_full.fits"}
 
-        # For likelihood calculation we need the with of the pedestal
-        # distribution for each pixel currently this is not availible
-        # from the calibration, so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 1.3,
-                          "FlashCam": 2.3, "GATE": 0.5}
-        self.spe = 0.5  # Also hard code single p.e. distribution width
+        # We also need a conversion function from height above ground to depth of maximum
+        # To do this we need the conversion table from CORSIKA
+        self.thickness_profile, self.altitude_profile = \
+            get_atmosphere_profile_functions('paranal')
 
-        # Also we need to scale the impact_reco templates a bit, this
-        # will be fixed later
-        self.scale = {"LSTCam": 1.2, "NectarCam": 1.2,
-                      "FlashCam": 1.1, "GATE": 0.75}
+        # For likelihood calculation we need the with of the pedestal distribution for each pixel
+        # currently this is not availible from the calibration, so for now lets hard code it in a dict
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 2.0, "FlashCam": 2.3,"GATE": 1.3}
+        self.spe = 0.5 # Also hard code single p.e. distribution width
 
-        # Next we need the position, area and amplitude from each
-        # pixel in the event making this a class member makes passing
-        # them around much easier
+        # Also we need to scale the impact_reco templates a bit, this will be fixed later
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "GATE": 1.0}
+
+        self.last_image = dict()
+        self.last_point = dict()
+
+        # Next we need the position, area and amplitude from each pixel in the event
+        # making this a class member makes passing them around much easier
+
         self.pixel_x = 0
         self.pixel_y = 0
         self.pixel_area = 0
@@ -87,11 +123,15 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         self.peak_x = 0
         self.peak_y = 0
         self.peak_amp = 0
+        self.hillas = 0
 
-        self.fit_xmax = fit_xmax
         self.ped = dict()
 
         self.array_direction = 0
+        self.minimiser_name = minimiser
+
+        self.array_return = False
+        self.priors = prior
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -144,13 +184,12 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # operation by a numpy wizard
 
         tel_num = 0
-        for tel in self.image:
-            top_index = self.image[tel].argsort()[-1 * num_pix:][::-1]
-            print(top_index, self.pixel_x[tel][top_index],
-                  self.image[tel][top_index])
-            weight = self.image[tel][top_index]
-            weighted_x = self.pixel_x[tel][top_index] * weight
-            weighted_y = self.pixel_y[tel][top_index] * weight
+        for tel in self.hillas:
+            top_index = self.image[tel].argsort()[-1*num_pix:][::-1]
+
+            weight = self.hillas[tel].size
+            weighted_x = self.hillas[tel].cen_x.to(u.rad).value * weight
+            weighted_y = self.hillas[tel].cen_y.to(u.rad).value * weight
 
             ppx = np.sum(weighted_x) / np.sum(weight)
             ppy = np.sum(weighted_y) / np.sum(weight)
@@ -200,15 +239,19 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                          np.power(np.array(list(self.tel_pos_y.values()))
                                   - core_y, 2))
 
-        # Distance above telescope is ration of these two (small angle)
+        # Distance above telescope is ratio of these two (small angle)
+
         height = impact / disp
-        weight = np.sqrt(self.peak_amp)  # weight average by amplitude
+        weight = np.power(self.peak_amp,0.)  # weight average by amplitude
+        hm = height*u.m
+        hm[hm>99*u.km] = 99*u.km
 
         # Take weighted mean of esimates
         mean_height = np.sum(height * weight) / np.sum(weight)
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
         mean_height *= np.cos(zen)
+
         # Add on the height of the detector above sea level
         mean_height += 2100
 
@@ -217,10 +260,10 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
         mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.shower_max.interpolate(mean_height.to(u.km))
+        x_max = self.thickness_profile(mean_height.to(u.km))#self.shower_max.interpolate(mean_height.to(u.km))
+
         # Convert to slant depth
         x_max /= np.cos(zen)
-
         return x_max
 
     @staticmethod
@@ -293,30 +336,30 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
-        print(self.array_direction[0])
-        ground = GroundFrame(x=shower_reco.core_x,
-                             y=shower_reco.core_y, z=0 * u.m)
+        ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0*u.m)
         tilted = ground.transform_to(
-            TiltedGroundFrame(
-                pointing_direction=HorizonFrame(alt=self.array_direction[0],
-                                                az=self.array_direction[1])
-            )
-        )
+            TiltedGroundFrame(pointing_direction=self.array_direction))
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
-        zenith = 90 * u.deg - self.array_direction[0]
-        azimuth = self.array_direction[1]
+        zenith = 90*u.deg - self.array_direction.alt
+        azimuth = self.array_direction.az
 
-        x_max_exp = 300 + 93 * np.log10(energy_reco.energy.value)
         x_max = shower_reco.h_max / np.cos(zenith)
 
+        # Calculate expected Xmax given this energy
+        x_max_exp = guess_shower_depth(energy_reco.energy)
+
         # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = x_max.value - x_max_exp
-        if x_max_bin > 100:
-            x_max_bin = 100
-        if x_max_bin < -100:
-            x_max_bin = -100
+        x_max_bin = x_max - x_max_exp
+
+        # Check for range
+        if x_max_bin > 250 * (u.g*u.cm**-2):
+            x_max_bin = 250 * (u.g*u.cm**-2)
+        if x_max_bin < -250 * (u.g*u.cm**-2):
+            x_max_bin = -250 * (u.g*u.cm**-2)
+
+        x_max_bin = x_max_bin.value
 
         impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) +
                          pow(self.tel_pos_y[tel_id] - tilt_y, 2))
@@ -331,14 +374,16 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                                                      source_y, phi)
 
         prediction = self.image_prediction(self.type[tel_id],
-                                           20 * u.deg,
-                                           0 * u.deg,
+                                           (90 * u.deg) - shower_reco.alt,
+                                           shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
                                            pix_x_rot * (180 / math.pi),
                                            pix_y_rot * (180 / math.pi))
 
         prediction *= self.scale[self.type[tel_id]]
+        #prediction *= self.pixel_area[tel_id]
+
         prediction[prediction < 0] = 0
         prediction[np.isnan(prediction)] = 0
 
@@ -375,33 +420,29 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
-        zenith = 90 * u.deg - self.array_direction[0]
-        azimuth = self.array_direction[1]
+        zenith = 90*u.deg - self.array_direction.alt
+        azimuth = self.array_direction.az
+
         # Geometrically calculate the depth of maximum given this test position
+        x_max = self.get_shower_max(source_x, source_y,
+                                    core_x, core_y,
+                                    zenith.to(u.rad).value) * x_max_scale
+        # Calculate expected Xmax given this energy
+        x_max_exp = guess_shower_depth(energy*u.TeV)
 
-        if self.fit_xmax:
-            x_max = self.get_shower_max(source_x, source_y,
-                                        core_x, core_y,
-                                        zenith.to(u.rad).value) * x_max_scale
+        # Convert to binning of Xmax, addition of 100 can probably be removed
+        x_max_bin = x_max - x_max_exp
 
-            # Calculate expected Xmax given this energy
-            x_max_exp = 300 + 93 * np.log10(energy)
+        # Check for range
+        if x_max_bin > 250 * (u.g*u.cm**-2):
+            x_max_bin = 250 * (u.g*u.cm**-2)
+        if x_max_bin < -250 * (u.g*u.cm**-2):
+            x_max_bin = -250 * (u.g*u.cm**-2)
 
-            # Convert to binning of Xmax, addition of 100 can probably be
-            # removed
-            x_max_bin = x_max.value - x_max_exp
+        x_max_bin = x_max_bin.value
 
-            # Check for range
-            if x_max_bin > 100:
-                x_max_bin = 100
-            if x_max_bin < -100:
-                x_max_bin = -100
-        else:
-            x_max_bin = x_max_scale * 37.8
-            if x_max_bin < 13:
-                x_max_bin = 13
+        array_like = None
 
-        sum_like = 0
         for tel_count in self.image:  # Loop over all telescopes
             # Calculate impact distance for all telescopes
             impact = np.sqrt(pow(self.tel_pos_x[tel_count] - core_x, 2)
@@ -430,6 +471,8 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
             # Scale templates to match simulations
             prediction *= self.scale[self.type[tel_count]]
+            #prediction *= self.pixel_area[tel_count]
+
             # Get likelihood that the prediction matched the camera image
             like = poisson_likelihood_gaussian(self.image[tel_count],
                                                prediction,
@@ -439,11 +482,24 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
                 print("inf found at ", self.type[tel_count], zenith,
                       azimuth, energy, impact, x_max_bin)
             like[np.isnan(like)] = 1e9
-            sum_like += np.sum(like)
-            if np.sum(prediction) is 0:
-                sum_like += 1e9
+            if array_like is None:
+                array_like = like
+            else:
+                array_like = np.append(array_like,like)
 
-        return sum_like
+        prior_pen = 0
+        # Add prior penalities if we have them
+        array_like += 1e-8
+        if "energy" in self.priors:
+            prior_pen += energy_prior(energy, index=-2)
+        if "xmax" in self.priors:
+            prior_pen += xmax_prior(energy, x_max)
+
+        array_like += prior_pen/float(len(array_like))
+        if self.array_return:
+            return array_like
+        return np.sum(array_like)
+
 
     def get_likelihood_min(self, x):
         """Wrapper class around likelihood function for use with scipy
@@ -463,7 +519,7 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
     def set_event_properties(self, image, pixel_x, pixel_y,
                              pixel_area, type_tel, tel_x, tel_y,
-                             array_direction):
+                             array_direction, hillas):
         """The setter class is used to set the event properties within this
         class before minimisation can take place. This simply copies a
         bunch of useful properties to class members, so that we can
@@ -510,43 +566,44 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
 
             self.tel_pos_x[x] = tel_x[x].value
             self.tel_pos_y[x] = tel_y[x].value
-            self.pixel_area[x] = pixel_area[x].value
+            self.pixel_area[x] = pixel_area[x].to(u.deg*u.deg).value
             # Here look up pedestal value
             self.ped[x] = self.ped_table[type_tel[x]]
 
-        self.get_brightest_mean(num_pix=5)
+        self.hillas = hillas
+
+        self.get_brightest_mean(num_pix=3)
         self.type = type_tel
         self.initialise_templates(type_tel)
 
         self.array_direction = array_direction
+        self.last_image = 0
+        self.last_point = 0
 
     def predict(self, shower_seed, energy_seed):
         """
-
+        
         Parameters
         ----------
-        source_x: float
-            Initial guess of source position in the nominal frame
-        source_y: float
-            Initial guess of source position in the nominal frame
-        core_x: float
-            Initial guess of the core position in the tilted system
-        core_y: float
-            Initial guess of the core position in the tilted system
-        energy: float
-            Initial guess of energy
+        shower_seed: ReconstructedShowerContainer
+            Seed shower geometry to be used in the fit
+        energy_seed: ReconstructedEnergyContainer
+            Seed energy to be used in fit
 
         Returns
         -------
-        Shower object with fit results
+        ReconstructedShowerContainer, ReconstructedEnergyContainer:
+        Reconstructed ImPACT shower geometry and energy
+        
         """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
-        nominal_seed = horizon_seed.transform_to(
-            NominalFrame(array_direction=self.array_direction)
-        )
+        nominal_seed = horizon_seed.transform_to(NominalFrame(array_direction=self.array_direction))
+        print(nominal_seed)
+        print(horizon_seed)
+        print(self.array_direction)
 
-        source_x = nominal_seed.x.to(u.rad).value
-        source_y = nominal_seed.y.to(u.rad).value
+        source_x = nominal_seed.x[0].to(u.rad).value
+        source_y = nominal_seed.y[0].to(u.rad).value
 
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
@@ -556,59 +613,36 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
 
-        lower_en_limit = energy_seed.energy * 0.1
+        lower_en_limit = energy_seed.energy * 0.5
+        en_seed =  energy_seed.energy
         if lower_en_limit < 0.04 * u.TeV:
             lower_en_limit = 0.04 * u.TeV
-        # Create Minuit object with first guesses at parameters, strip away the
-        # units as Minuit doesnt like them
-        min = Minuit(self.get_likelihood,
-                     print_level=1,
-                     source_x=source_x,
-                     error_source_x=0.01 / 57.3,
-                     fix_source_x=False,
-                     limit_source_x=(source_x - 0.5 / 57.3,
-                                     source_x + 0.5 / 57.3),
-                     source_y=source_y,
-                     error_source_y=0.01 / 57.3,
-                     fix_source_y=False,
-                     limit_source_y=(source_y - 0.5 / 57.3,
-                                     source_y + 0.5 / 57.3),
-                     core_x=tilt_x,
-                     error_core_x=10,
-                     limit_core_x=(tilt_x - 200, tilt_x + 200),
-                     core_y=tilt_y,
-                     error_core_y=10,
-                     limit_core_y=(tilt_y - 200, tilt_y + 200),
-                     energy=energy_seed.energy.value,
-                     error_energy=energy_seed.energy.value * 0.05,
-                     limit_energy=(lower_en_limit.value,
-                                   energy_seed.energy.value * 10.),
-                     x_max_scale=1, error_x_max_scale=0.1,
-                     limit_x_max_scale=(0.5, 2),
-                     fix_x_max_scale=False,
-                     errordef=1)
+            en_seed = 0.041 * u.TeV
 
-        min.tol *= 1000
-        min.strategy = 0
+        seed = (source_x, source_y, tilt_x,
+                tilt_y, en_seed.value, 0.8)
+        step = (0.001, 0.001, 10, 10, en_seed.value*0.1, 0.1)
+        limits = ((source_x-0.01, source_x+0.01),
+                  (source_y-0.01, source_y+0.01),
+                  (tilt_x-100, tilt_x+100),
+                  (tilt_y-100, tilt_y+100),
+                  (lower_en_limit.value, en_seed.value*2),
+                  (0.5,2))
 
-        # Perform minimisation
-        migrad = min.migrad()
-        fit_params = min.values
-        errors = min.errors
-    #    print(migrad)
-    #    print(min.minos())
+        fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
+                                             minimiser_name=self.minimiser_name)
 
         # container class for reconstructed showers '''
         shower_result = ReconstructedShowerContainer()
 
-        nominal = NominalFrame(x=fit_params["source_x"] * u.rad,
-                               y=fit_params["source_y"] * u.rad,
+        nominal = NominalFrame(x=fit_params[0] * u.rad,
+                               y=fit_params[1] * u.rad,
                                array_direction=self.array_direction)
         horizon = nominal.transform_to(HorizonFrame())
 
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
-        tilted = TiltedGroundFrame(x=fit_params["core_x"] * u.m,
-                                   y=fit_params["core_y"] * u.m,
+        tilted = TiltedGroundFrame(x=fit_params[2] * u.m,
+                                   y=fit_params[3] * u.m,
                                    pointing_direction=self.array_direction)
         ground = project_to_ground(tilted)
 
@@ -620,154 +654,221 @@ class ImPACTFitter(RecoShowerGeomAlgorithm):
         shower_result.alt_uncert = np.nan
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
-        zenith = 90 * u.deg - self.array_direction[0]
-        shower_result.h_max = fit_params["x_max_scale"] * \
-            self.get_shower_max(fit_params["source_x"],
-                                fit_params["source_y"],
-                                fit_params["core_x"],
-                                fit_params["core_y"],
-                                zenith.to(u.rad).value)
-        shower_result.h_max_uncert = errors["x_max_scale"] * shower_result.h_max
+
+        zenith = 90*u.deg - self.array_direction.alt
+        shower_result.h_max = fit_params[5] * \
+                              self.get_shower_max(fit_params[0],
+                                                  fit_params[1],
+                                                  fit_params[2],
+                                                  fit_params[3],
+                                                  zenith.to(u.rad).value)
+
+        shower_result.h_max_uncert = errors[5] * shower_result.h_max
+
         shower_result.goodness_of_fit = np.nan
         shower_result.tel_ids = list(self.image.keys())
 
         energy_result = ReconstructedEnergyContainer()
-        energy_result.energy = fit_params["energy"] * u.TeV
-        energy_result.energy_uncert = errors["energy"] * u.TeV
+        energy_result.energy = fit_params[4] * u.TeV
+        energy_result.energy_uncert = errors[4] * u.TeV
         energy_result.is_valid = True
         energy_result.tel_ids = list(self.image.keys())
         # Return interesting stuff
 
         return shower_result, energy_result
 
-    # These drawing functions should really be moved elsewhere, as
-    # drawing a 2D map of the array is quite generic and should
-    # probably live in plotting
-    def draw_surfaces(self, x_src, y_src, x_grd, y_grd, energy, xmax):
-        """Simple function to draw the surface of the test statistic in both
-        the nominal and tilted planes while keeping the values in the
-        other plane fixed at the best fit value.
-
+    def minimise(self, params, step, limits, minimiser_name="minuit"):
+        """
+        
         Parameters
         ----------
-        x_src: float
-            Source position in nominal coordinates (centre of map)
-        y_src: float
-            Source position in nominal coordinates (centre of map)
-        x_grd: float
-            Ground position in tilted coordinates (centre of map)
-        y_grd: float
-            Ground position in tilted coordinates (centre of map)
-
-        """
-        import matplotlib.pyplot as plt 
-        fig = plt.figure(figsize=(12, 6))
-        nom1 = fig.add_subplot(121)
-        self.draw_nominal_surface(x_src, y_src, x_grd, y_grd, energy,
-                                  xmax, nom1, bins=30, range=0.5 * u.deg)
-        nom1.plot(x_src, y_src, "wo")
-
-        tilt1 = fig.add_subplot(122)
-        self.draw_tilted_surface(x_src, y_src, x_grd, y_grd, energy,
-                                 xmax, tilt1, bins=30, range=100 * u.m)
-        tilt1.plot(x_grd, y_grd, "wo")
-
-        plt.show()
-
-        return
-
-    def draw_nominal_surface(self, x_src, y_src, x_grd, y_grd,
-                             energy, xmax, plot_name, bins=30, range=1):
-        """
-        Function for creating test statistic surface in nominal plane
-
-        Parameters
-        ----------
-        x_src: float
-            Source position in nominal coordinates (centre of map)
-        y_src: float
-            Source position in nominal coordinates (centre of map)
-        x_grd: float
-            Ground position in tilted coordinates (centre of map)
-        y_grd: float
-            Ground position in tilted coordinates (centre of map)
-        plot_name: matplotlib axis
-            Subplot in which to include this plot
-        bins: int
-            Number of bins in each axis
-        range: float
-            Size of map
+        params
+        step
+        limits
+        minimiser_name
 
         Returns
         -------
-            None
+
         """
-        import matplotlib.pyplot as plt
-        x_dir = np.linspace(x_src - range, x_src + range, num=bins)
-        y_dir = np.linspace(y_src - range, y_src + range, num=bins)
-        w = np.zeros([bins, bins])
+        if minimiser_name == "minuit":
 
-        i = 0
-        for xb in x_dir:
-            j = 0
-            for yb in y_dir:
-                w[i][j] = self.get_likelihood(xb.to(u.rad).value,
-                                              yb.to(u.rad).value,
-                                              x_grd.value,
-                                              y_grd.value,
-                                              energy.value, xmax)
-                j += 1
-            i += 1
+            min = Minuit(self.get_likelihood,
+                         print_level=1,
+                         source_x=params[0],
+                         error_source_x=step[0],
+                         limit_source_x=limits[0],
+                         source_y=params[1],
+                         error_source_y=step[1],
+                         limit_source_y=limits[1],
+                         core_x=params[2],
+                         error_core_x=step[2],
+                         limit_core_x=limits[2],
+                         core_y=params[3],
+                         error_core_y=step[3],
+                         limit_core_y=limits[3],
+                         energy=params[4],
+                         error_energy=step[4],
+                         limit_energy=limits[4],
+                         x_max_scale=params[5], error_x_max_scale=step[5],
+                         limit_x_max_scale=limits[5],
+                         fix_x_max_scale=False,
+                         errordef=1)
 
-        return plot_name.imshow(w, interpolation="nearest",
-                                cmap=plt.cm.viridis_r,
-                                extent=(x_src.value - range.value,
-                                        x_src.value + range.value, y_src.value
-                                        - range.value, y_src.value +
-                                        range.value))
+            min.tol *= 1000
+            min.set_strategy(0)
 
-    def draw_tilted_surface(self, x_src, y_src, x_grd, y_grd, energy,
-                            xmax, bins=50, range=100 * u.m):
+            # Perform minimisation
+            migrad = min.migrad()
+            fit_params = min.values
+            errors = min.errors
+
+            return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
+                    fit_params["core_y"], fit_params["energy"],fit_params[
+                        "x_max_scale"]),\
+                   (errors["source_x"], errors["source_y"], errors["core_x"],
+                    errors["core_x"], errors["energy"],errors["x_max_scale"])
+
+        elif minimiser_name == "lm" or minimiser_name == "trf" or\
+                        minimiser_name == "dogleg":
+            self.array_return = True
+            limits = np.array(limits)
+
+            min = least_squares(self.get_likelihood_min,params,
+                                method=minimiser_name,
+                                x_scale=step,
+                                xtol=1e-10,
+                                ftol=1e-10
+                                )
+            return min.x, (0,0,0,0,0,0)
+
+        else:
+            min = minimize(self.get_likelihood_min,params,
+                           method=minimiser_name,
+                           bounds=limits
+                           )
+            print(min.x)
+            return min.x, (0,0,0,0,0,0)
+
+    def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
+                             nominal_range=2.5*u.deg):
         """
-        Function for creating test statistic surface in tilted plane
-
+        Simple reconstruction for evaluating the likelihood in a grid across the 
+        nominal system, fixing all values but the source position of the gamma rays. 
+        Useful for checking the reconstruction performance of the algorithm
+        
         Parameters
         ----------
-        x_src: float
-            Source position in nominal coordinates (centre of map)
-        y_src: float
-            Source position in nominal coordinates (centre of map)
-        x_grd: float
-            Ground position in tilted coordinates (centre of map)
-        y_grd: float
-            Ground position in tilted coordinates (centre of map)
-        plot_name: matplotlib axis
-            Subplot in which to include this plot
+        shower_seed: ReconstructedShowerContainer
+            Best fit ImPACT shower geometry 
+        energy_seed: ReconstructedEnergyContainer
+            Best fit ImPACT energy
         bins: int
-            Number of bins in each axis
-        range: float
-            Size of map
+            Number of bins in surface evaluation
+        nominal_range: Quantity
+            Range over which to create likelihood surface
 
         Returns
         -------
-            None
+        ndarray, ndarray, ndarray: 
+        Bin centres in X and Y coordinates and the values of the likelihood at each 
+        position
         """
-        import matplotlib.pyplot as plt
-        x_ground_list = np.linspace(x_grd - range, x_grd + range, num=bins)
-        y_ground_list = np.linspace(y_grd - range, y_grd + range, num=bins)
+        horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
+        nominal_seed = horizon_seed.transform_to(
+            NominalFrame(array_direction=self.array_direction))
+
+        source_x = nominal_seed.x[0].to(u.rad)
+        source_y = nominal_seed.y[0].to(u.rad)
+
+        ground = GroundFrame(x=shower_seed.core_x,
+                             y=shower_seed.core_y, z=0 * u.m)
+        tilted = ground.transform_to(
+            TiltedGroundFrame(pointing_direction=self.array_direction)
+        )
+        tilt_x = tilted.x.to(u.m)
+        tilt_y = tilted.y.to(u.m)
+
+        x_dir = np.linspace(source_x - nominal_range, source_x + nominal_range, num=bins)
+        y_dir = np.linspace(source_y - nominal_range, source_y + nominal_range, num=bins)
         w = np.zeros([bins, bins])
+        zenith = 90*u.deg - self.array_direction.alt
 
-        i = 0
-        for xb in x_ground_list:
-            j = 0
-            for yb in y_ground_list:
-                w[i][j] = self.get_likelihood(x_src.to(u.rad).value,
-                                              y_src.to(u.rad).value,
-                                              xb.value, yb.value,
-                                              energy.value, xmax)
-                j += 1
+        for xb in range(bins):
+            for yb in range(bins):
+                x_max_scale = shower_seed.h_max / \
+                              self.get_shower_max(x_dir[xb].to(u.rad).value,
+                                                  y_dir[yb].to(u.rad).value,
+                                                  tilt_x.value,
+                                                  tilt_y.value,
+                                                  zenith.to(u.rad).value)
 
-            i += 1
+                w[xb][yb] = self.get_likelihood(x_dir[xb].to(u.rad).value,
+                                                y_dir[yb].to(u.rad).value,
+                                                tilt_x.value,
+                                                tilt_y.value,
+                                                energy_seed.energy.value, x_max_scale)
 
-        X, Y = np.meshgrid(x_ground_list, y_ground_list)
-        return X, Y, w
+        w = w - np.min(w)
+
+        return x_dir.to(u.deg), y_dir.to(u.deg), w
+
+    def draw_tilted_surface(self, shower_seed, energy_seed,
+                            bins=50, core_range=100 * u.m):
+        """
+        Simple reconstruction for evaluating the likelihood in a grid across the 
+        nominal system, fixing all values but the core position of the gamma rays. 
+        Useful for checking the reconstruction performance of the algorithm
+        
+        Parameters
+        ----------
+        shower_seed: ReconstructedShowerContainer
+            Best fit ImPACT shower geometry 
+        energy_seed: ReconstructedEnergyContainer
+            Best fit ImPACT energy
+        bins: int
+            Number of bins in surface evaluation
+        nominal_range: Quantity
+            Range over which to create likelihood surface
+
+        Returns
+        -------
+        ndarray, ndarray, ndarray: 
+        Bin centres in X and Y coordinates and the values of the likelihood at each 
+        position
+        """
+        horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
+        nominal_seed = horizon_seed.transform_to(
+            NominalFrame(array_direction=self.array_direction))
+
+        source_x = nominal_seed.x[0].to(u.rad).value
+        source_y = nominal_seed.y[0].to(u.rad).value
+
+        ground = GroundFrame(x=shower_seed.core_x,
+                             y=shower_seed.core_y, z=0 * u.m)
+        tilted = ground.transform_to(
+            TiltedGroundFrame(pointing_direction=self.array_direction)
+        )
+        tilt_x = tilted.x.to(u.m)
+        tilt_y = tilted.y.to(u.m)
+
+        x_ground_list = np.linspace(tilt_x - core_range, tilt_x + core_range, num=bins)
+        y_ground_list = np.linspace(tilt_y - core_range, tilt_y + core_range, num=bins)
+        w = np.zeros([bins, bins])
+        zenith = 90*u.deg - self.array_direction.alt
+
+        for xb in range(bins):
+            for yb in range(bins):
+                x_max_scale = shower_seed.h_max / \
+                              self.get_shower_max(source_x,
+                                                  source_y,
+                                                  x_ground_list[xb].value,
+                                                  y_ground_list[yb].value,
+                                                  zenith.to(u.rad).value)
+
+                w[xb][yb] =  self.get_likelihood(source_x,
+                                                 source_y,
+                                                 x_ground_list[xb].value,
+                                                 y_ground_list[yb].value,
+                                                 energy_seed.energy.value, x_max_scale)
+        return x_ground_list, y_ground_list, w

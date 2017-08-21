@@ -2,44 +2,45 @@
 """
 Utilities for reading or working with Camera geometry files
 """
+import logging
 from collections import defaultdict
 
 import numpy as np
-import logging
-from pkg_resources import resource_listdir
-import re
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
-
-from ctapipe.io.files import get_file_type
-from ctapipe.utils import get_dataset
-from ctapipe.utils.linalg import rotation_matrix_2d
 from scipy.spatial import cKDTree as KDTree
-from ctapipe.utils import get_dataset
 
-__all__ = ['CameraGeometry',
-           'get_camera_types',
-           'print_camera_types']
+from ctapipe.utils import get_table_dataset, find_all_matching_datasets
+from ctapipe.utils.linalg import rotation_matrix_2d
+from ctapipe.core import Provenance
+
+
+__all__ = ['CameraGeometry',]
 
 logger = logging.getLogger(__name__)
+
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
 #     Key = (num_pix, focal_length_in_meters)
 #     Value = (type, subtype, pixtype, pixrotation, camrotation)
 _CAMERA_GEOMETRY_TABLE = {
-    (2048, 2.3): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2): ('SST', 'GCT', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 36.0): ('LST', 'HESSII', 'hexagonal', 0 * u.degree, 0 * u.degree),
-    (1855, 16.0): (
-        'MST', 'NectarCam', 'hexagonal', 0 * u.degree, -100.893 * u.degree),
-    (1855, 28.0): (
-        'LST', 'LSTCam', 'hexagonal', 0. * u.degree, -100.893 * u.degree),
-    (1296, None): ('SST', 'SST-1m', 'hexagonal', 30 * u.degree, 0 * u.degree),
+    (2048, 2.3): ('SST', 'CHEC', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 2.2): ('SST', 'CHEC', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2048, 36.0): ('LST', 'HESS-II', 'hexagonal', 0 * u.degree,
+                   0 * u.degree),
+    (960, None): ('MST', 'HESS-I', 'hexagonal', 0 * u.degree,
+                  0 * u.degree),
+    (1855, 16.0): ('MST', 'NectarCam', 'hexagonal',
+                   0 * u.degree, -100.893 * u.degree),
+    (1855, 28.0): ('LST', 'LSTCam', 'hexagonal',
+                   0. * u.degree, -100.893 * u.degree),
+    (1296, None): ('SST', 'DigiCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
     (1764, None): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None): ('SST', 'ASTRI', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (2368, None): ('SST', 'ASTRICam', 'rectangular', 0 * u.degree,
+                   0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
 }
 
@@ -56,44 +57,42 @@ class CameraGeometry:
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
-    
+
     You can construct a CameraGeometry either by specifying all data, 
     or using the `CameraGeometry.guess()` constructor, which takes metadata 
     like the pixel positions and telescope focal length to look up the rest 
     of the data. Note that this function is memoized, so calling it multiple 
     times with the same inputs will give back the same object (for speed).
-    
+
+    Parameters
+    ----------
+    self: type
+        description
+    cam_id: camera id name or number
+        camera identification string
+    pix_id: array(int)
+        pixels id numbers
+    pix_x: array with units
+        position of each pixel (x-coordinate)
+    pix_y: array with units
+        position of each pixel (y-coordinate)
+    pix_area: array(float)
+        surface area of each pixel, if None will be calculated
+    neighbors: list(arrays)
+        adjacency list for each pixel
+    pix_type: string
+        either 'rectangular' or 'hexagonal'
+    pix_rotation: value convertable to an `astropy.coordinates.Angle`
+        rotation angle with unit (e.g. 12 * u.deg), or "12d"
+    cam_rotation: overall camera rotation with units
     """
 
     _geometry_cache = {}  # dictionary CameraGeometry instances for speed
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
-                 pix_rotation=0 * u.degree, cam_rotation=0 * u.degree,
-                 neighbors=None):
-        """
-        Parameters
-        ----------
-        self: type
-            description
-        cam_id: camera id name or number
-            camera identification string
-        pix_id: array(int)
-            pixels id numbers
-        pix_x: array with units
-            position of each pixel (x-coordinate)
-        pix_y: array with units
-            position of each pixel (y-coordinate)
-        pix_area: array(float)
-            surface area of each pixe
-        neighbors: list(arrays)
-            adjacency list for each pixel
-        pix_type: string
-            either 'rectangular' or 'hexagonal'
-        pix_rotation: value convertable to an `astropy.coordinates.Angle`
-            rotation angle with unit (e.g. 12 * u.deg), or "12d"
-        cam_rotation: overall camera rotation with units
+                 pix_rotation="0d", cam_rotation="0d",
+                 neighbors=None, apply_derotation=True):
 
-        """
         self.cam_id = cam_id
         self.pix_id = pix_id
         self.pix_x = pix_x
@@ -103,23 +102,30 @@ class CameraGeometry:
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
         self._precalculated_neighbors = neighbors
-        # FIXME the rotation does not work on 2D pixel grids
-        if len(pix_x.shape) == 1:
-            self.rotate(cam_rotation)
-            self.cam_rotation = cam_rotation#Angle(0 * u.deg)
+
+        if self.pix_area is None:
+            self.pix_area = CameraGeometry._calc_pixel_area(pix_x, pix_y,
+                                                            pix_type)
+
+        if apply_derotation:
+            # todo: this should probably not be done, but need to fix
+            # GeometryConverter and reco algorithms if we change it.
+            if len(pix_x.shape) == 1:
+                self.rotate(cam_rotation)
 
     def __eq__(self, other):
-        return ( (self.cam_id == other.cam_id)
-                 and (self.pix_x == other.pix_x).all()
-                 and (self.pix_y == other.pix_y).all()
-                 and (self.pix_type == other.pix_type)
-                 and (self.pix_rotation == other.pix_rotation)
-                 and (self.pix_type == other.pix_type)
+        return ((self.cam_id == other.cam_id)
+                and (self.pix_x == other.pix_x).all()
+                and (self.pix_y == other.pix_y).all()
+                and (self.pix_type == other.pix_type)
+                and (self.pix_rotation == other.pix_rotation)
+                and (self.pix_type == other.pix_type)
                 )
 
     @classmethod
     @u.quantity_input
-    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m):
+    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
+              apply_derotation=True):
         """ 
         Construct a `CameraGeometry` by guessing the appropriate quantities
         from a list of pixel positions and the focal length. 
@@ -135,18 +141,11 @@ class CameraGeometry:
 
         # now try to determine the camera type using the map defined at the
         # top of this file.
-        dist = _get_min_pixel_seperation(pix_x, pix_y)
 
         tel_type, cam_id, pix_type, pix_rotation, cam_rotation = \
             _guess_camera_type(len(pix_x), optical_foclen)
 
-        if pix_type.startswith('hex'):
-            rad = dist / np.sqrt(3)  # radius to vertex of hexagon
-            area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
-        elif pix_type.startswith('rect'):
-            area = dist ** 2
-        else:
-            raise KeyError("unsupported pixel type")
+        area = cls._calc_pixel_area(pix_x, pix_y, pix_type)
 
         instance = cls(
             cam_id=cam_id,
@@ -158,18 +157,38 @@ class CameraGeometry:
             pix_type=pix_type,
             pix_rotation=Angle(pix_rotation),
             cam_rotation=Angle(cam_rotation),
+            apply_derotation=apply_derotation
         )
 
         CameraGeometry._geometry_cache[identifier] = instance
         return instance
 
+    @staticmethod
+    def _calc_pixel_area(pix_x, pix_y, pix_type):
+        """ recalculate pixel area based on the pixel type and layout
+
+        Note this will not work on cameras with varying pixel sizes.
+        """
+
+        dist = _get_min_pixel_seperation(pix_x, pix_y)
+
+        if pix_type.startswith('hex'):
+            rad = dist / np.sqrt(3)  # radius to vertex of hexagon
+            area = rad ** 2 * (3 * np.sqrt(3) / 2.0)  # area of hexagon
+        elif pix_type.startswith('rect'):
+            area = dist ** 2
+        else:
+            raise KeyError("unsupported pixel type")
+
+        return np.ones(pix_x.shape) * area
+
     @classmethod
-    def get_known_camera_names(cls, array_id='CTA'):
+    def get_known_camera_names(cls):
         """
         Returns a list of camera_ids that are registered in 
         `ctapipe_resources`. These are all the camera-ids that can be 
         instantiated by the `from_name` method
-     
+
         Parameters
         ----------
         array_id: str 
@@ -179,24 +198,19 @@ class CameraGeometry:
         -------
         list(str)
         """
-        names = []
-        pattern = "{}-(.*)\.camgeom.fits".format(array_id)
-        for resource in resource_listdir('ctapipe_resources', '/'):
-            match = re.match(pattern, resource)
-            if match:
-                names.append(match[1])
-        return names
 
+        pattern = "(.*)\.camgeom\.fits(\.gz)?"
+        return find_all_matching_datasets(pattern, regexp_group=1)
 
     @classmethod
-    def from_name(cls, camera_id='NectarCam', array_id='CTA', version=None):
+    def from_name(cls, camera_id='NectarCam', version=None):
         """
         Construct a CameraGeometry using the name of the camera and array.
-        
+
         This expects that there is a resource in the `ctapipe_resources` module
         called "[array]-[camera].camgeom.fits.gz" or "[array]-[camera]-[
         version].camgeom.fits.gz"
-        
+
         Parameters
         ----------
         camera_id: str
@@ -216,11 +230,10 @@ class CameraGeometry:
         else:
             verstr = "-{:03d}".format(version)
 
-        filename = get_dataset("{array_id}-{camera_id}{verstr}.camgeom.fits.gz"
-                               .format(array_id=array_id, camera_id=camera_id,
-                                       verstr=verstr))
-        return CameraGeometry.from_table(filename)
-
+        tabname = "{camera_id}{verstr}.camgeom".format(camera_id=camera_id,
+                                                       verstr=verstr)
+        table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
+        return CameraGeometry.from_table(table)
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
@@ -234,24 +247,23 @@ class CameraGeometry:
                                CAM_ID=self.cam_id,
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
-                ))
-
+                               ))
 
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
         Load a CameraGeometry from an `astropy.table.Table` instance or a 
         file that is readable by `astropy.table.Table.read()`
-         
+
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
-        
+
         format: str
             astropy.table format string (e.g. 'ascii.ecsv') in case the 
             format cannot be determined from the file extension
-            
+
         kwargs: extra keyword arguments
             extra arguments passed to `astropy.table.read()`, depending on 
             file type (e.g. format, hdu, path)
@@ -264,7 +276,7 @@ class CameraGeometry:
             tab = Table.read(url_or_table, **kwargs)
 
         return cls(
-            cam_id=tab.meta['CAM_ID'],
+            cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
             pix_x=tab['pix_x'].quantity,
             pix_y=tab['pix_y'].quantity,
@@ -274,12 +286,18 @@ class CameraGeometry:
             cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
         )
 
-    def __str__(self):
-        tab = self.to_table()
+    def __repr__(self):
         return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
-               "npix={npix})".format(cam_id=self.cam_id,
-                                     pix_type=self.pix_type,
-                                     npix=len(self.pix_id))
+               "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})".format(
+                   cam_id=self.cam_id,
+                   pix_type=self.pix_type,
+                   npix=len(self.pix_id),
+                   pixrot=self.pix_rotation,
+                   camrot=self.cam_rotation
+               )
+
+    def __str__(self):
+        return self.cam_id
 
     @lazyproperty
     def neighbors(self):
@@ -332,7 +350,8 @@ class CameraGeometry:
         rotated = np.dot(rotmat.T, [self.pix_x.value, self.pix_y.value])
         self.pix_x = rotated[0] * self.pix_x.unit
         self.pix_y = rotated[1] * self.pix_x.unit
-        self.pix_rotation -= angle
+        self.pix_rotation -= Angle(angle)
+        self.cam_rotation -= Angle(angle)
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
@@ -442,8 +461,7 @@ def _guess_camera_type(npix, optical_foclen):
     except KeyError:
         return _CAMERA_GEOMETRY_TABLE.get((npix, round(optical_foclen.value, 1)),
                                           ('unknown', 'unknown', 'hexagonal',
-                                  0 * u.degree, 0 * u.degree))
-
+                                           0 * u.degree, 0 * u.degree))
 
 
 def _neighbor_list_to_matrix(neighbors):
@@ -462,47 +480,4 @@ def _neighbor_list_to_matrix(neighbors):
     return neigh2d
 
 
-def get_camera_types(inst):
-    """ return dict of camera names mapped to a list of tel_ids
-     that use that camera
-     
-     Parameters
-     ----------
-     inst: instument Container
-     
-     """
 
-    cam_types = defaultdict(list)
-
-    for telid in inst.pixel_pos:
-        x, y = inst.pixel_pos[telid]
-        f = inst.optical_foclen[telid]
-        geom = CameraGeometry.guess(x, y, f)
-
-        cam_types[geom.cam_id].append(telid)
-
-    return cam_types
-
-
-def print_camera_types(inst, printer=print):
-    """
-    Print out a friendly table of which camera types are registered in the 
-    inst dictionary (from a hessio file), along with their starting and 
-    stopping tel_ids.
-    
-    Parameters
-    ----------
-    inst: ctapipe.io.containers.InstrumentContainer
-        input container
-    printer: func
-        function to call to output the text (default is the standard python 
-        print command, but you can give for example logger.info to have it 
-        write to a logger) 
-    """
-    camtypes = get_camera_types(inst)
-
-    printer("              CAMERA  Num IDmin  IDmax")
-    printer("=====================================")
-    for cam, tels in camtypes.items():
-        printer("{:>20s} {:4d} {:4d} ..{:4d}".format(cam, len(tels), min(tels),
-                                                     max(tels)))

@@ -9,23 +9,20 @@ from scipy.optimize import fsolve
 
 
 class ShowerMaxEstimator:
+    """
+    Class that calculates the height of the shower maximum
+    given a parametrisation of the atmosphere
+    and certain parameters of the shower itself
 
-    def __init__(self, atmosphere_profile_name, col_altitude=0, col_thickness=2):
-        """
-        small class that calculates the height of the shower maximum
-        given a parametrisation of the atmosphere
-        and certain parameters of the shower itself
+    Parameters
+    ----------
+    atmosphere_profile_name : string
+       path to text file that contains a table of the
+       atmosphere parameters
+    """
 
-        Parameters
-        ----------
-        atmosphere_profile_name : string
-            path to text file that contains a table of the
-            atmosphere parameters
-        col_altitude : int
-            column in the text file that contains the altitude/height
-        col_thickness : int
-            column in the text file that contains the thickness
-        """
+
+    def __init__(self, atmosphere_profile_name):
 
         self.thickness_profile, self.altitude_profile = \
             get_atmosphere_profile_functions(atmosphere_profile_name)
@@ -71,5 +68,4 @@ class ShowerMaxEstimator:
         # now find the height with the wanted thickness by solving for the
         # desired thickness
         return self.altitude_profile(t_shower_max)
-
 

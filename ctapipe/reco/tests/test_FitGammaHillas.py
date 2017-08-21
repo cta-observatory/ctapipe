@@ -1,26 +1,23 @@
-from astropy import units as u
 import numpy as np
+from astropy import units as u
 
-from ctapipe.instrument.InstrumentDescription import load_hessio
-
-from ctapipe.utils import get_dataset
-
-from ctapipe.reco.FitGammaHillas import FitGammaHillas, GreatCircle
+from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.image.cleaning import tailcuts_clean, dilate
-
-from ctapipe.io.hessio import hessio_event_source
 from ctapipe.instrument import CameraGeometry
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
+from ctapipe.utils import get_dataset
 
 
 def test_fit_core():
-
     '''
-    creating some great circles pointing in different directions (two north-south,
-    two east-west) and that have a slight position errors (+- 0.1 m in one of the four
+    creating some great circles pointing in different directions (two
+    north-south,
+    two east-west) and that have a slight position errors (+- 0.1 m in one of
+    the four
     cardinal directions '''
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle1.pos = [0, 0.1]*u.m
+    circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
 
     circle2 = GreatCircle([[0, 1, 0], [0, 0, 1]])
@@ -36,12 +33,12 @@ def test_fit_core():
     circle4.trace = [0, 1, 0]
 
     # creating the fit class and setting the the great circle member
-    fit = FitGammaHillas()
+    fit = HillasReconstructor()
     fit.circles = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
 
     # performing the position fit with the minimisation algorithm
     # and a seed that is quite far away
-    pos_fit_minimise = fit.fit_core_minimise([100, 1000]*u.m)
+    pos_fit_minimise = fit.fit_core_minimise([100, 1000] * u.m)
     print("position fit test minimise:", pos_fit_minimise)
     print()
 
@@ -52,18 +49,19 @@ def test_fit_core():
     print()
 
     # the results should be close to the origin of the coordinate system
-    np.testing.assert_allclose(pos_fit_minimise/u.m, [0, 0], atol=1e-3)
-    np.testing.assert_allclose(pos_fit_crosses/u.m, [0, 0], atol=1e-3)
+    np.testing.assert_allclose(pos_fit_minimise / u.m, [0, 0], atol=1e-3)
+    np.testing.assert_allclose(pos_fit_crosses / u.m, [0, 0], atol=1e-3)
 
 
 def test_fit_origin():
-
     '''
-    creating some great circles pointing in different directions (two north-south,
-    two east-west) and that have a slight position errors (+- 0.1 m in one of the four
+    creating some great circles pointing in different directions (two
+    north-south,
+    two east-west) and that have a slight position errors (+- 0.1 m in one of
+    the four
     cardinal directions '''
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle1.pos = [0, 0.1]*u.m
+    circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
 
     circle2 = GreatCircle([[0, 1, 0], [0, 0, 1]])
@@ -79,7 +77,7 @@ def test_fit_origin():
     circle4.trace = [0, 1, 0]
 
     # creating the fit class and setting the the great circle member
-    fit = FitGammaHillas()
+    fit = HillasReconstructor()
     fit.circles = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
 
     # performing the direction fit with the minimisation algorithm
@@ -111,7 +109,7 @@ def test_FitGammaHillas():
 
     filename = get_dataset("gamma_test.simtel.gz")
 
-    fit = FitGammaHillas()
+    fit = HillasReconstructor()
 
     cam_geom = {}
     tel_phi = {}
@@ -126,12 +124,13 @@ def test_FitGammaHillas():
 
             if tel_id not in cam_geom:
                 cam_geom[tel_id] = CameraGeometry.guess(
-                                        event.inst.pixel_pos[tel_id][0],
-                                        event.inst.pixel_pos[tel_id][1],
-                                        event.inst.optical_foclen[tel_id])
+                    event.inst.pixel_pos[tel_id][0],
+                    event.inst.pixel_pos[tel_id][1],
+                    event.inst.optical_foclen[tel_id])
 
                 tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-                tel_theta[tel_id] = (np.pi/2-event.mc.tel[tel_id].altitude_raw)*u.rad
+                tel_theta[tel_id] = (np.pi / 2 - event.mc.tel[
+                    tel_id].altitude_raw) * u.rad
 
             pmt_signal = event.r0.tel[tel_id].adc_sums[0]
 

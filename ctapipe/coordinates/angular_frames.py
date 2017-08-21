@@ -20,10 +20,17 @@ TODO:
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute,
+from astropy.coordinates import (BaseCoordinateFrame,
                                  CartesianRepresentation,
                                  UnitSphericalRepresentation,
                                  FunctionTransform, RepresentationMapping)
+
+try:
+    # FrameAttribute was renamed Attribute in astropy 2.0
+    # TODO: should really use subclasses like QuantityAttribute
+    from astropy.coordinates import FrameAttribute as Attribute
+except ImportError:
+    from astropy.coordinates import Attribute
 
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
@@ -51,10 +58,10 @@ class CameraFrame(BaseCoordinateFrame):
         Rotation angle of the camera (0 deg in most cases)
     """
     default_representation = CartesianRepresentation
-    focal_length = FrameAttribute(default=None)
-    rotation = FrameAttribute(default=0 * u.deg)
-    pointing_direction = FrameAttribute(default=None)
-    array_direction = FrameAttribute(default=None)
+    focal_length = Attribute(default=None)
+    rotation = Attribute(default=0 * u.deg)
+    pointing_direction = Attribute(default=None)
+    array_direction = Attribute(default=None)
 
 
 class TelescopeFrame(BaseCoordinateFrame):
@@ -75,7 +82,7 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     """
     default_representation = PlanarRepresentation
-    pointing_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
 
 
 class NominalFrame(BaseCoordinateFrame):
@@ -95,8 +102,8 @@ class NominalFrame(BaseCoordinateFrame):
 
     """
     default_representation = PlanarRepresentation
-    pointing_direction = FrameAttribute(default=None)
-    array_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
+    array_direction = Attribute(default=None)
 
 
 class HorizonFrame(BaseCoordinateFrame):
@@ -125,8 +132,8 @@ class HorizonFrame(BaseCoordinateFrame):
 
     frame_specific_representation_info['unitspherical'] = frame_specific_representation_info['spherical']
 
-    pointing_direction = FrameAttribute(default=None)
-    array_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
+    array_direction = Attribute(default=None)
 
 
 # Transformations defined below this point

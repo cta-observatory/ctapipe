@@ -1,21 +1,27 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """ print information about ctapipe and its command-line tools. """
-import sys
-import logging
 import importlib
+import logging
+import os
+import sys
+
+import ctapipe_resources
+
+from ..utils import datasets
+from ..core import Provenance
 from .utils import get_parser
 
 __all__ = ['info']
 
-
 # TODO: this list should be global (or generated at install time)
 _dependencies = sorted(['astropy', 'matplotlib',
                         'numpy', 'traitlets',
-                        'sklearn','scipy',
-                        'pytest'])
+                        'sklearn', 'scipy', 'numba',
+                        'pytest', 'ctapipe_resources', 'iminuit', 'tables'])
 
-_optional_dependencies = sorted(['pytest','graphviz','pyzmq','iminuit',
-                                 'fitsio','pyhessio','targetio'])
+_optional_dependencies = sorted(['pytest', 'graphviz', 'pyzmq',
+                                 'fitsio', 'pyhessio', 'targetio',
+                                 'matplotlib'])
 
 
 def main(args=None):
@@ -26,6 +32,10 @@ def main(args=None):
                         help='Print available command line tools')
     parser.add_argument('--dependencies', action='store_true',
                         help='Print available versions of dependencies')
+    parser.add_argument('--resources', action='store_true',
+                        help='Print available versions of dependencies')
+    parser.add_argument('--system', action='store_true',
+                        help='Print system info')
     parser.add_argument('--all', action='store_true',
                         help='show all info')
     args = parser.parse_args(args)
@@ -37,12 +47,13 @@ def main(args=None):
     info(**vars(args))
 
 
-def info(version=False, tools=False, dependencies=False, all=False):
+def info(version=False, tools=False, dependencies=False,
+         resources=False, system=False, all=False):
     """Print various info to the console.
 
     TODO: explain.
     """
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                         format='%(levelname)s - %(message)s')
 
     if version or all:
@@ -54,14 +65,20 @@ def info(version=False, tools=False, dependencies=False, all=False):
     if dependencies or all:
         _info_dependencies()
 
+    if resources or all:
+        _info_resources()
+
+    if system or all:
+        _info_system()
+
 
 def _info_version():
     """Print version info."""
     import ctapipe
     print('\n*** ctapipe version info ***\n')
     print('version: {0}'.format(ctapipe.__version__))
-    #print('release: {0}'.format(version.release))
-    #print('githash: {0}'.format(version.githash))
+    # print('release: {0}'.format(version.release))
+    # print('githash: {0}'.format(version.githash))
     print('')
 
 
@@ -78,15 +95,14 @@ def _info_tools():
     from ctapipe.tools.utils import get_all_descriptions
     from textwrap import TextWrapper
     wrapper = TextWrapper(width=80,
-                          subsequent_indent=" "*35 )
-                          
+                          subsequent_indent=" " * 35)
+
     scripts = get_all_descriptions()
     for name, desc in sorted(scripts.items()):
-        text ="{:<30s}  - {}".format(name, desc) 
+        text = "{:<30s}  - {}".format(name, desc)
         print(wrapper.fill(text))
         print('')
     print('')
-
 
 
 def _info_dependencies():
@@ -115,3 +131,52 @@ def _info_dependencies():
 
         print('{:>20s} -- {}'.format(name, version))
 
+
+def _info_resources():
+    """ display all known resources """
+
+    print('\n*** ctapipe resources ***\n')
+
+    print("ctapipe_resources version: {}".format(ctapipe_resources.__version__))
+
+    print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
+    if os.getenv('CTAPIPE_SVC_PATH') is not None:
+        for dir in datasets.get_searchpath_dirs():
+            print("\t * {}".format(dir))
+    else:
+        print("\t no path is set")
+    print("")
+
+    all_resources = sorted(datasets.find_all_matching_datasets("\w.*"))
+    locations = [os.path.dirname(datasets.get_dataset(name))
+                 for name in all_resources]
+    home = os.path.expanduser("~")
+    resource_dir = os.path.dirname(datasets.get_dataset(
+        "HESS-I.camgeom.fits.gz"))
+
+    fmt = "{name:<30.30s} : {loc:<30.30s}"
+    print(fmt.format(name="RESOURCE NAME", loc="LOCATION"))
+    print("-" * 70)
+    for name, loc in zip(all_resources, locations):
+        if name.endswith(".py") or name.startswith("_"):
+            continue
+        loc = loc.replace(resource_dir, "[ctapipe_resources]")
+        loc = loc.replace(home, "~")
+        print(fmt.format(name=name, loc=loc))
+
+
+def _info_system():
+    # collect system info using the ctapipe provenance system :
+
+    print('\n*** ctapipe system environment ***\n')
+
+    prov = Provenance()
+    system_prov = prov.current_activity.provenance['system']
+
+    for section in ['platform','python']:
+
+        print('\n====== ',section," ======== \n")
+        sysinfo = system_prov[section]
+
+        for name, val in sysinfo.items():
+            print("{:>20.20s} -- {:<60.60s}".format(name, str(val)))

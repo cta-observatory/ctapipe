@@ -2,8 +2,8 @@ import numpy as np
 import astropy.units as u
 from ctapipe.image.muon.ring_fitter import RingFitter
 from ctapipe.io.containers import MuonRingParameter
-from IPython import embed
 
+__all__ =['ChaudhuriKunduRingFitter']
 
 class ChaudhuriKunduRingFitter(RingFitter):
 
@@ -12,9 +12,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
         """Fast and reliable analytical circle fitting method previously used
         in the H.E.S.S.  experiment for muon identification
 
-        Implementation based on: *Chaudhuri/Kundu "Optimum circular fit
-        to weighted data in multi-dimensional space" Pattern
-        Recognition Letters 14 (1993) pp.1-6*
+        Implementation based on [chaudhuri93]_
 
         Parameters
         ----------

@@ -8,6 +8,7 @@ help:
 	@echo '$(PROJECT) available make targets:'
 	@echo ''
 	@echo '  help         Print this help message (the default)'
+	@echo '  env          Create a conda environment for ctapipe development'
 	@echo '  develop      make symlinks to this package in python install dir'
 	@echo '  clean        Remove temp files'
 	@echo '  test         Run tests'
@@ -48,6 +49,9 @@ analyze:
 pep8:
 	@pep8 --statistics
 
+env:
+	conda env create -n cta-dev -f environment.yml
+	source activate cta-dev
 
 trailing-spaces:
 	find $(PROJECT) examples docs -name "*.py" -exec perl -pi -e 's/[ \t]*$$//' {} \;
