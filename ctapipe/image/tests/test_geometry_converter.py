@@ -48,7 +48,8 @@ def test_convert_geometry(cam_id, rot):
 
     if __name__ == "__main__":
         plot_cam(geom, geom2d, geom1d, image, image2d, image1d)
-        plt.show()
+        plt.tight_layout()
+        plt.pause(.1)
 
     assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
     # TODO: test other parameters
@@ -68,4 +69,6 @@ def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
 if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.DEBUG)
-    test_convert_geometry("FlashCam", 3)
+    for cam_id in CameraGeometry.get_known_camera_names():
+        test_convert_geometry(cam_id, 3)
+    plt.show()
