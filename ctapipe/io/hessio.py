@@ -181,6 +181,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
 
                 data.r0.tel[tel_id].adc_samples = \
                     pyhessio.get_adc_sample(tel_id)
+                if not data.r0.tel[tel_id].adc_samples:
+                    # To handle ASTRI and dst files
+                    data.r0.tel[tel_id].adc_samples = \
+                        pyhessio.get_adc_sum(tel_id)[..., None]
                 data.r0.tel[tel_id].adc_sums = \
                     pyhessio.get_adc_sum(tel_id)
                 data.mc.tel[tel_id].reference_pulse_shape = \

@@ -217,24 +217,33 @@ class CameraDL1Calibrator(Component):
 
             if self.check_dl0_exists(event, telid):
                 waveforms = event.dl0.tel[telid].pe_samples
+                n_samples = waveforms.shape[2]
+                if n_samples == 1:
+                    # To handle ASTRI and dst
+                    corrected = waveforms
+                    window = np.ones(waveforms.shape)
+                    peakpos = np.zeros(waveforms.shape[0:2])
+                    cleaned = waveforms
+                else:
+                    # Clean waveforms
+                    cleaned = self.cleaner.apply(waveforms)
 
-                # Clean waveforms
-                cleaned = self.cleaner.apply(waveforms)
+                    # Extract charge
+                    if self.extractor.requires_neighbours():
+                        e = self.extractor
+                        geom = self.get_geometry(event, telid)
+                        e.neighbours = geom.neighbors
+                    extract = self.extractor.extract_charge
+                    charge, peakpos, window = extract(cleaned)
 
-                # Extract charge
-                if self.extractor.requires_neighbours():
-                    e = self.extractor
-                    e.neighbours = self.get_geometry(event, telid).neighbors
-                extract = self.extractor.extract_charge
-                charge, peakpos, window = extract(cleaned)
+                    # Apply integration correction
+                    correction = self.get_correction(event, telid)[:, None]
+                    corrected = charge * correction
 
-                # Apply integration correction
-                corrected = charge * self.get_correction(event, telid)[:, None]
-
-                # Clip amplitude
-                if self.clip_amplitude:
-                    corrected[corrected > self.clip_amplitude] = \
-                        self.clip_amplitude
+                    # Clip amplitude
+                    if self.clip_amplitude:
+                        corrected[corrected > self.clip_amplitude] = \
+                            self.clip_amplitude
 
                 # Store into event container
                 event.dl1.tel[telid].image = corrected

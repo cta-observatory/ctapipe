@@ -154,13 +154,8 @@ class HessioR1Calibrator(CameraR1Calibrator):
 
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
-                try:
-                    samples = event.r0.tel[telid].adc_samples
-                    n_samples = samples.shape[2]
-                except IndexError:
-                    # To handle ASTRI
-                    samples = event.r0.tel[telid].adc_sums[..., None]
-                    n_samples = samples.shape[2]
+                samples = event.r0.tel[telid].adc_samples
+                n_samples = samples.shape[2]
                 ped = event.mc.tel[telid].pedestal / n_samples
                 gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
                 calibrated = (samples - ped[..., None]) * gain[..., None]
