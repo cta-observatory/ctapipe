@@ -224,7 +224,8 @@ class CameraDL1Calibrator(Component):
                 # Extract charge
                 if self.extractor.requires_neighbours():
                     e = self.extractor
-                    e.neighbours = self.get_geometry(event, telid).neighbors
+                    g = self.get_geometry(event, telid)
+                    e.neighbours = g.neighbor_matrix
                 extract = self.extractor.extract_charge
                 charge, peakpos, window = extract(cleaned)
 

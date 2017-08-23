@@ -6,6 +6,7 @@ from abc import abstractmethod
 import numpy as np
 from traitlets import Int, CaselessStrEnum
 from ctapipe.core import Component, Factory
+from ctapipe.utils.neighbour_sum import get_sum_array
 
 __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
            'GlobalPeakIntegrator', 'LocalPeakIntegrator',
@@ -21,8 +22,12 @@ class ChargeExtractor(Component):
         
         Attributes
         ----------
-        neighbours : list
-            List of neighbours for each pixel. Changes per telescope.
+        neighbours : ndarray
+            Boolean numpy array of shape (npix, npix).
+            Entry equals True if neighbour for the pixel.
+            Changes per telescope.
+            Can be obtained from
+            `ctapipe.instrument.CameraGeometry.neighbor_matrix`.
 
         Parameters
         ----------
@@ -141,6 +146,8 @@ class Integrator(ChargeExtractor):
 
         Parameters
         ----------
+        n_samples : int
+            Number of samples in the waveform
         start : ndarray
             Numpy array containing the window start for each pixel. Shape =
             (n_chan, n_pix)
@@ -603,7 +610,7 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
     name = 'LocalPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
-         super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
         nchan, npix, nsamples = waveforms.shape
@@ -653,17 +660,12 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         return True
 
     def _obtain_peak_position(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
+        shape = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
-        sig_sam = significant_samples
-        max_num_nei = len(max(self.neighbours, key=len))
-        allvals = np.zeros((nchan, npix, max_num_nei + 1, nsamples))
-        for ipix, neighbours in enumerate(self.neighbours):
-            num_nei = len(neighbours)
-            allvals[:, ipix, :num_nei, :] = sig_sam[:, neighbours]
-            allvals[:, ipix, num_nei, :] = sig_sam[:, ipix] * self.lwt
-        sum_data = allvals.sum(2)
-        return np.full((nchan, npix), sum_data.argmax(2), dtype=np.int)
+        sig_sam = significant_samples.astype(np.float32)
+        sum_data = np.zeros_like(sig_sam)
+        get_sum_array(sig_sam, self.neighbours, sum_data, *shape, self.lwt)
+        return sum_data.argmax(2).astype(np.int)
 
 
 class AverageWfPeakIntegrator(PeakFindingIntegrator):
