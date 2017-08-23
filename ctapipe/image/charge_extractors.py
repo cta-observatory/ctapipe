@@ -508,7 +508,7 @@ class PeakFindingIntegrator(WindowIntegrator):
 
         """
         nchan, npix, nsamples = waveforms.shape
-        if self.sig_amp_cut_HG or self.sig_amp_cut_HG:
+        if self.sig_amp_cut_LG or self.sig_amp_cut_HG:
             sig_entries = np.ones(waveforms.shape, dtype=bool)
             if self.sig_amp_cut_HG:
                 sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
