@@ -181,7 +181,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
 
                 data.r0.tel[tel_id].adc_samples = \
                     pyhessio.get_adc_sample(tel_id)
-                if not data.r0.tel[tel_id].adc_samples:
+                if data.r0.tel[tel_id].adc_samples.size == 0:
                     # To handle ASTRI and dst files
                     data.r0.tel[tel_id].adc_samples = \
                         pyhessio.get_adc_sum(tel_id)[..., None]
