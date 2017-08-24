@@ -23,11 +23,11 @@ class ChargeExtractor(Component):
         Attributes
         ----------
         neighbours : ndarray
-            Boolean numpy array of shape (npix, npix).
-            Entry equals True if neighbour for the pixel.
+            2D array where each row is [pixel index, one neighbour
+            of that pixel].
             Changes per telescope.
             Can be obtained from
-            `ctapipe.instrument.CameraGeometry.neighbor_matrix`.
+            `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
 
         Parameters
         ----------
@@ -664,7 +664,8 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         significant_samples = self._extract_significant_entries(waveforms)
         sig_sam = significant_samples.astype(np.float32)
         sum_data = np.zeros_like(sig_sam)
-        get_sum_array(sig_sam, self.neighbours, sum_data, *shape, self.lwt)
+        n = self.neighbours.astype(np.uint16)
+        get_sum_array(sig_sam, sum_data, *shape, n, n.shape[0], self.lwt)
         return sum_data.argmax(2).astype(np.int)
 
 
