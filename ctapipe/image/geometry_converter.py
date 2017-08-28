@@ -15,7 +15,7 @@ RotBuffer = namedtuple("RotBuffer",
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
                           base_angle=60 * u.deg):
-    """transform the pixel coordinates of a hexagonal image into an
+    r"""transform the pixel coordinates of a hexagonal image into an
     orthogonal image
 
     Parameters
@@ -34,6 +34,52 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
     -------
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the slanted, orthogonal pixel grid
+
+    Notes
+    -----
+    The correction on the pixel position r can be described by a rotation R around
+    one angle and a sheer S along a certain axis:
+
+    .. math::
+        r' = S \cdot R \cdot r
+
+    .. math::
+        \begin{pmatrix}
+            x' \\
+            y'
+        \end{pmatrix}
+        =
+        \begin{pmatrix}
+            1        &  0 \\
+            -1/\tan  &  1
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            \cos  & -\sin \\
+            \sin  &  \cos
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            x \\
+            y
+        \end{pmatrix}
+
+    .. math::
+        \begin{pmatrix}
+            x' \\
+            y'
+        \end{pmatrix}
+        =
+        \begin{pmatrix}
+                 \cos      &     -\sin      \\
+            \sin-\cos/\tan & \sin/\tan+\cos
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            x \\
+            y
+        \end{pmatrix}
+
     """
 
     tan_angle = np.tan(base_angle)
@@ -50,9 +96,6 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
         #  r'  = S * R * r
         # (x') = (   1    0) * (cos -sin) * (x) = (    cos         -sin    ) * (x)
         # (y')   (-1/tan  1)   (sin  cos)   (y)   (sin-cos/tan  sin/tan+cos) * (y)
-        #
-        # TODO put that in latex...
-
         rot_mat = np.array(
             [[cos_angle, -sin_angle],
              [sin_angle - cos_angle / tan_angle,
@@ -70,7 +113,7 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
 
 def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
                           base_angle=60 * u.deg):
-    """skews the orthogonal coordinates back to the hexagonal ones
+    r"""skews the orthogonal coordinates back to the hexagonal ones
 
     Parameters
     ----------
@@ -89,6 +132,49 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
     pix_x, pix_y : 1D numpy arrays
         the list of x and y coordinates of the hexagonal pixel grid
 
+    Notes
+    -----
+    To revert the rotation, we need to find matrices S' and R' with
+    :math:`S' \cdot S = 1` and :math:`R' \cdot R = 1`,
+    so that :math:`r = R' \cdot S' \cdot S \cdot R \cdot r = R' \cdot S' \cdot  r'`:
+
+    .. math::
+        \begin{pmatrix}
+            x \\
+            y
+        \end{pmatrix}
+        =
+        \begin{pmatrix}
+            \cos  &  \sin \\
+            -\sin &  \cos
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            1       &  0 \\
+            1/\tan  &  1
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            x' \\
+            y'
+        \end{pmatrix}
+
+    .. math::
+        \begin{pmatrix}
+            x \\
+            y
+        \end{pmatrix}
+        =
+        \begin{pmatrix}
+            \cos+\sin/\tan  &  \sin \\
+            \cos/\tan-\sin  &  \cos
+        \end{pmatrix}
+        \cdot
+        \begin{pmatrix}
+            x' \\
+            y'
+        \end{pmatrix}
+
     """
 
     tan_angle = np.tan(base_angle)
@@ -102,11 +188,10 @@ def reskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
         # to revert the rotation, we need to find matrices S' and R'
         # S' * S = 1 and R' * R = 1
         # so that
-        # r = R' * S' * S * R * r = R' * S'*  r'
+        # r = R' * S' * S * R * r = R' * S' *  r'
         #
         # (x) = ( cos sin) * (  1    0) * (x') = (cos+sin/tan  sin) * (x')
         # (y)   (-sin cos)   (1/tan  1)   (y')   (cos/tan-sin  cos)   (y')
-        # TODO put that in latex...
 
         rot_mat = np.array(
             [[cos_angle + sin_angle / tan_angle, sin_angle],
