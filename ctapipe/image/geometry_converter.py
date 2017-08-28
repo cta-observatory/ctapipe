@@ -400,7 +400,7 @@ def convert_geometry_back(geom, signal, key, add_rot=0):
     return unrot_geom, signal[square_mask, ...]
 
 
-def convert_geometry_hexe1d_to_rect2d(geom, signal, key=None, add_rot=0):
+def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     """converts the geometry object of a camera with a hexagonal grid into
     a square grid by slanting and stretching the 1D arrays of pixel x
     and y positions and signal intensities are converted to 2D
@@ -610,5 +610,5 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     return old_geom, unrot_img
 
 
-convert_geometry_1d_to_2d = convert_geometry_hexe1d_to_rect2d
+convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
 convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
