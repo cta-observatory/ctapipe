@@ -15,7 +15,6 @@ from astropy import units as u
 from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
 from scipy.stats import norm
-from IPython import embed
 
 __all__ = ['MuonLineIntegrate']
 
@@ -195,7 +194,6 @@ class MuonLineIntegrate:
             Pixel rotation angle
 
         """
-        #embed()
         del_x = pixel_x - centre_x
         del_y = pixel_y - centre_y
 
@@ -280,7 +278,6 @@ class MuonLineIntegrate:
         -------
         float: Likelihood that model matches data
         """
-        #embed()
         #centre_x *= self.unit
         #centre_y *= self.unit
         #radius *= self.unit
@@ -426,8 +423,6 @@ class MuonLineIntegrate:
         fitoutput.ring_width = fit_params['ring_width']*self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
 
-        #embed()
-        #
         fitoutput.prediction = self.prediction
 
         return fitoutput
