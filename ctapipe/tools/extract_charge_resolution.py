@@ -5,6 +5,7 @@ Extract data necessary to calcualte charge resolution from raw data files.
 import os
 
 import numpy as np
+from tqdm import tqdm
 from traitlets import Dict, List, Int, Unicode
 
 from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
@@ -15,7 +16,6 @@ from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.io.eventfilereader import HessioFileReader
 
-from tqdm import tqdm
 
 class ChargeResolutionGenerator(Tool):
     name = "ChargeResolutionGenerator"
@@ -33,7 +33,7 @@ class ChargeResolutionGenerator(Tool):
                         max_events='HessioFileReader.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
-                        window_start='ChargeExtractorFactory.window_start',
+                        t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
                         sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
                         sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
@@ -81,41 +81,39 @@ class ChargeResolutionGenerator(Tool):
 
     def start(self):
         desc = "Filling Charge Resolution"
-        with tqdm(None, message=desc) as pbar:
-            source = self.file_reader.read()
-            for event in source:
-                pbar.update(event.count)
-                tels = list(event.dl0.tels_with_data)
+        source = self.file_reader.read()
+        for event in tqdm(source, desc=desc):
+            tels = list(event.dl0.tels_with_data)
 
-                # Check events have true charge included
-                if event.count == 0:
-                    try:
-                        tel = event.mc.tel[tels[0]]
-                        if np.all(tel.photo_electron_image == 0):
-                            raise KeyError
-                    except KeyError:
-                        self.log.exception('Source does not contain '
-                                           'true charge!')
-                        raise
+            # Check events have true charge included
+            if event.count == 0:
+                try:
+                    if np.all(event.mc.tel[
+                                  tels[0]].photo_electron_image == 0):
+                        raise KeyError
+                except KeyError:
+                    self.log.exception('Source does not contain '
+                                       'true charge!')
+                    raise
 
-                self.r1.calibrate(event)
-                self.dl0.reduce(event)
-                self.dl1.calibrate(event)
+            self.r1.calibrate(event)
+            self.dl0.reduce(event)
+            self.dl1.calibrate(event)
 
-                if self.telescopes:
-                    tels = []
-                    for tel in self.telescopes:
-                        if tel in event.dl0.tels_with_data:
-                            tels.append(tel)
+            if self.telescopes:
+                tels = []
+                for tel in self.telescopes:
+                    if tel in event.dl0.tels_with_data:
+                        tels.append(tel)
 
-                for telid in tels:
-                    true_charge = event.mc.tel[telid].photo_electron_image
-                    measured_charge = event.dl1.tel[telid].image[0]
-                    self.calculator.add_charges(true_charge, measured_charge)
+            for telid in tels:
+                true_charge = event.mc.tel[telid].photo_electron_image
+                measured_charge = event.dl1.tel[telid].image[0]
+                self.calculator.add_charges(true_charge, measured_charge)
 
     def finish(self):
         directory = self.file_reader.output_directory
-        name = "{}.pickle".format(self.output_name)
+        name = "{}.h5".format(self.output_name)
         ouput_path = os.path.join(directory, name)
         self.calculator.save(ouput_path)
 
