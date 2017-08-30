@@ -152,7 +152,7 @@ class ChargeResolutionViewer(Tool):
                   "pickled dictionaries."
 
     input_files = List(Unicode, None,
-                       help='Input pickle files that are produced from '
+                       help='Input hdf5 files that are produced from '
                             'ChargeResolutionCalculator.save().'
                             '').tag(config=True)
 

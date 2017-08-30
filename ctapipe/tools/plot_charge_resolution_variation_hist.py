@@ -111,7 +111,7 @@ class ChargeResolutionVariationViewer(Tool):
                   "pickled dictionaries."
 
     input_path = Unicode(None, allow_none=True,
-                         help='Path to the pickle file produced from'
+                         help='Path to the hdf5 file produced from'
                               'ChargeResolutionCalculator.save()'
                               '').tag(config=True)
 
