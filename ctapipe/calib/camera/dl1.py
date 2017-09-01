@@ -228,22 +228,22 @@ class CameraDL1Calibrator(Component):
                     # Clean waveforms
                     cleaned = self.cleaner.apply(waveforms)
 
-                # Extract charge
-                if self.extractor.requires_neighbours():
-                    e = self.extractor
-                    g = self.get_geometry(event, telid)
-                    e.neighbours = g.neighbor_matrix_where
-                extract = self.extractor.extract_charge
-                charge, peakpos, window = extract(cleaned)
+                    # Extract charge
+                    if self.extractor.requires_neighbours():
+                        e = self.extractor
+                        g = self.get_geometry(event, telid)
+                        e.neighbours = g.neighbor_matrix_where
+                    extract = self.extractor.extract_charge
+                    charge, peakpos, window = extract(cleaned)
 
                     # Apply integration correction
                     correction = self.get_correction(event, telid)[:, None]
                     corrected = charge * correction
 
-                    # Clip amplitude
-                    if self.clip_amplitude:
-                        corrected[corrected > self.clip_amplitude] = \
-                            self.clip_amplitude
+                # Clip amplitude
+                if self.clip_amplitude:
+                    corrected[corrected > self.clip_amplitude] = \
+                        self.clip_amplitude
 
                 # Store into event container
                 event.dl1.tel[telid].image = corrected
