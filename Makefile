@@ -30,7 +30,7 @@ clean:
 	find . -name __pycache__ | xargs rm -fr
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) setup.py test
 
 doc:
 	cd docs && $(MAKE) html
