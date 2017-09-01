@@ -626,7 +626,7 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     # if there is a time dimension, roll the time axis back to the last position
     try:
         rot_img = np.rollaxis(rot_img, 0, 3)
-    except np.core._internal.AxisError:
+    except ValueError:
         pass
 
     return new_geom, rot_img

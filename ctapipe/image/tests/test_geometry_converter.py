@@ -15,8 +15,7 @@ from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_showe
 from astropy import units as u
 
 
-# cam_ids = CameraGeometry.get_known_camera_names()
-cam_ids = ['FlashCam', ]
+cam_ids = CameraGeometry.get_known_camera_names()
 
 
 @pytest.mark.parametrize("rot", [3, ])
