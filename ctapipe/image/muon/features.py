@@ -105,11 +105,6 @@ def ring_completeness(
     -------
     ring_completeness: float
         the ratio of bins above threshold
-
-    Returns
-    -------
-    ring_completeness: float
-        the ratio of bins above threshold
     '''
 
     angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
