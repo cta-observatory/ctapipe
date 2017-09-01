@@ -4,7 +4,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 
 from abc import abstractmethod
 import numpy as np
-from traitlets import Int, CaselessStrEnum
+from traitlets import Int, CaselessStrEnum, Float
 from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
 
@@ -461,14 +461,14 @@ class SimpleIntegrator(WindowIntegrator):
 
 class PeakFindingIntegrator(WindowIntegrator):
     name = 'PeakFindingIntegrator'
-    sig_amp_cut_HG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the HG channel').tag(config=True)
-    sig_amp_cut_LG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the LG channel').tag(config=True)
+    sig_amp_cut_HG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the HG channel').tag(config=True)
+    sig_amp_cut_LG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the LG channel').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -515,7 +515,7 @@ class PeakFindingIntegrator(WindowIntegrator):
 
         """
         nchan, npix, nsamples = waveforms.shape
-        if self.sig_amp_cut_HG or self.sig_amp_cut_HG:
+        if self.sig_amp_cut_LG or self.sig_amp_cut_HG:
             sig_entries = np.ones(waveforms.shape, dtype=bool)
             if self.sig_amp_cut_HG:
                 sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
@@ -731,16 +731,16 @@ class ChargeExtractorFactory(Factory):
                                'PeakFindingIntegrators.').tag(config=True)
     t0 = Int(0, help='Define the peak position for all pixels. '
                      'Only applicable to SimpleIntegrators.').tag(config=True)
-    sig_amp_cut_HG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the HG channel. Only applicable to '
-                              'PeakFindingIntegrators.').tag(config=True)
-    sig_amp_cut_LG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the LG channel. Only applicable to '
-                              'PeakFindingIntegrators.').tag(config=True)
+    sig_amp_cut_HG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the HG channel. Only applicable to '
+                                'PeakFindingIntegrators.').tag(config=True)
+    sig_amp_cut_LG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the LG channel. Only applicable to '
+                                'PeakFindingIntegrators.').tag(config=True)
     lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
                       'only, 1: local pixel counts as much as any neighbour). '
                       'Only applicable to '
