@@ -46,11 +46,11 @@ install:
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
-    - python setup.py install
+    - python setup.py develop
 
 
 script:
-    - python setup.py test
+    - python -m pytest
     - ctapipe-info --version # print out the version string
     - travis-sphinx --source=docs/ build
 
