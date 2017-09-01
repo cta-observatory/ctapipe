@@ -50,7 +50,7 @@ install:
 
 
 script:
-    - make test
+    - python setup.py test
     - ctapipe-info --version # print out the version string
     - travis-sphinx --source=docs/ build
 
