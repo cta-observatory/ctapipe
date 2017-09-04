@@ -6,8 +6,9 @@ import numpy as np
 from astropy.table import Table
 from astropy.units import Quantity
 from scipy.interpolate import interp1d
+from ctapipe.core.provenance import Provenance
 
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_table_dataset
 
 __all__ = ['get_atmosphere_profile_table', 'get_atmosphere_profile_functions']
 
@@ -27,7 +28,10 @@ def get_atmosphere_profile_table(atmosphere_name='paranal'):
     'altitude' (m), and 'thickness' (g cm-2) as well as others.
 
     """
-    return Table.read(get_dataset('{}.atmprof.fits.gz'.format(atmosphere_name)))
+    table_name = '{}.atmprof'.format(atmosphere_name)
+    table = get_table_dataset(table_name=table_name,
+                              role='dl0.arr.svc.atmosphere')
+    return table
 
 
 def get_atmosphere_profile_functions(atmosphere_name="paranal",
