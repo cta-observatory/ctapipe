@@ -197,7 +197,7 @@ class CameraDL1Calibrator(Component):
             correction = integration_correction(n_chan, shape, step,
                                                 time_slice, width, shift)
             return correction
-        except AttributeError:
+        except (AttributeError, KeyError):
             # Don't apply correction when window_shift or window_width
             # does not exist in extractor, or when container does not have
             # a reference pulse shape
