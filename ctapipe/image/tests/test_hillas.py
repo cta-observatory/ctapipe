@@ -2,7 +2,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
                                   hillas_parameters_3, hillas_parameters_4,
-                                  HillasParameterizationError)
+                                  hillas_parameters_5, HillasParameterizationError)
 from ctapipe.io.containers import HillasParametersContainer
 from astropy import units as u
 from numpy import isclose, zeros_like, arange
@@ -79,6 +79,7 @@ def test_hillas():
         results['v2'] = hillas_parameters_2(geom, image)
         results['v3'] = hillas_parameters_3(geom, image)
         results['v4'] = hillas_parameters_4(geom, image)
+        results['v5'] = hillas_parameters_5(geom, image)
         # compare each method's output
         for aa in results:
             for bb in results:
@@ -132,9 +133,12 @@ def test_hillas_failure():
     with pytest.raises(HillasParameterizationError):
         hillas_parameters_4(geom, blank_image)
 
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters_5(geom, blank_image)
+
+
 
 def test_hillas_api_change():
-    import numpy as np
     with pytest.raises(ValueError):
         hillas_parameters_4(arange(10), arange(10), arange(10))
 
