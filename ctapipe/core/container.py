@@ -97,7 +97,6 @@ class Container(metaclass=ContainerMeta):
             setattr(self, k, v)
 
     def __setattr__(self, name, value):
-        print(name, value)
         if name in self.fields:
             try:
                 value = self.fields[name].coerce(value)
