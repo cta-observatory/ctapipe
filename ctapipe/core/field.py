@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.units.core import UnitBase
+from astropy.time import Time
 
 
 class Field:
@@ -159,3 +160,11 @@ class QuantityField(ArrayField):
         if self.unit is not None:
             desc += ' [{}]'.format(self.unit)
         return desc
+
+
+class TimeField(Field):
+
+    def coerce(self, value):
+        super().coerce(value)
+
+        return Time(value)

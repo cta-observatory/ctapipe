@@ -81,3 +81,17 @@ def test_quantity():
     with raises(ValueError):
         t = TestContainer(x=[1, 2, 3] * u.m)
 
+
+def test_time():
+    from ctapipe.core import Container, TimeField
+    from astropy.time import Time
+
+    class TestContainer(Container):
+        time = TimeField('observation time')
+
+    t = TestContainer(time=Time.now())
+
+    t.time = '2017-01-01 20:00'
+
+    with raises(ValueError):
+        t.time = 5

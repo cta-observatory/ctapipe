@@ -5,7 +5,7 @@ from .container import Container, Map
 from .factory import Factory
 from .provenance import Provenance
 from .tool import Tool, ToolConfigurationError
-from .field import Field, QuantityField, ArrayField
+from .field import Field, QuantityField, ArrayField, TimeField
 
 
 __all__ = [
@@ -19,4 +19,5 @@ __all__ = [
     'Field',
     'ArrayField',
     'QuantityField',
+    'TimeField',
 ]
