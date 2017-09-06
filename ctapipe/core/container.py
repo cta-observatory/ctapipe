@@ -3,34 +3,7 @@ from copy import deepcopy
 from pprint import pformat
 from textwrap import wrap
 
-
-class Field:
-    """
-    Class for storing data in `Containers`.
-
-    Parameters
-    ----------
-    default:
-        default value of the item (this will be set when the `Container`
-        is constructed, as well as when  `Container.reset()` is called
-    description: str
-        Help text associated with the item
-    unit: `astropy.units.Quantity`
-        unit to convert to when writing output, or None for no conversion
-    ucd: str
-        universal content descriptor (see Virtual Observatory standards)
-    """
-
-    def __init__(self, default, description="", unit=None, ucd=None):
-        self.default = default
-        self.description = description
-        self.unit = unit
-
-    def __repr__(self):
-        desc = '{}'.format(self.description)
-        if self.unit is not None:
-            desc += ' [{}]'.format(self.unit)
-        return desc
+from .field import Field
 
 
 class ContainerMeta(type):
@@ -114,10 +87,25 @@ class Container(metaclass=ContainerMeta):
 
         self.meta = {}
         for k, v in self.fields.items():
-            setattr(self, k, deepcopy(v.default))
+            if k not in fields:
+                if not v.allow_none and v.default is None:
+                    raise ValueError('Setting {} is required'.format(k))
+                else:
+                    setattr(self, k, deepcopy(v.default))
 
         for k, v in fields.items():
             setattr(self, k, v)
+
+    def __setattr__(self, name, value):
+        print(name, value)
+        if name in self.fields:
+            try:
+                value = self.fields[name].coerce(value)
+            except ValueError as e:
+                raise ValueError('Setting {} failed: {}'.format(name, e)) from e
+        super().__setattr__(name, value)
+
+
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -158,15 +146,6 @@ class Container(metaclass=ContainerMeta):
                     continue
                 d[key] = val
             return d
-
-    @classmethod
-    def disable_attribute_check(cls):
-        """
-        Globally turn off attribute checking for all Containers,
-        which provides a ~5-10x speed up for setting attributes.
-        This may be used e.g. after code is tested to speed up operation.
-        """
-        cls.__setattr__ = object.__setattr__
 
     def reset(self, recursive=True):
         """ set all values back to their default values"""
