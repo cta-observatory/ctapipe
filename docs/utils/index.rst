@@ -45,13 +45,16 @@ when the file is found it will be opened and read as an
 `astropy.table.Table` object.  For example:
 
 ```python
+
 from ctapipe.utils import get_table_dataset
 
 optics = get_table_dataset('optics')
 print(optics)
+
 ```
 
 ```
+
 <Table masked=True length=7>
 tel_description tel_type tel_subtype  mirror_area  mirror_type num_mirror_tiles effective_focal_length
                                            m2                                             m           
@@ -64,6 +67,7 @@ tel_description tel_type tel_subtype  mirror_area  mirror_type num_mirror_tiles 
             MST      MST          -- 103.830558777          DC               84                   16.0
          SST-1M      SST          1M 9.41809272766          SC               18          5.59999990463
  MST-Whipple10m      MST  Whipple10m          75.0          DC              248                    7.3
+
 ```
 
 
