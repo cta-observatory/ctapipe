@@ -57,7 +57,7 @@ class CameraFrame(BaseCoordinateFrame):
     * ``rotation``
         Rotation angle of the camera (0 deg in most cases)
     """
-    default_representation = CartesianRepresentation
+    default_representation = PlanarRepresentation
     focal_length = Attribute(default=None)
     rotation = Attribute(default=0 * u.deg)
     pointing_direction = Attribute(default=None)
@@ -94,7 +94,7 @@ class NominalFrame(BaseCoordinateFrame):
     performed in this system
 
     Frame attributes:
-    
+
     * ``array_direction``
         Alt,Az direction of the array pointing
     * ``pointing_direction``
