@@ -319,15 +319,14 @@ class ReconstructedContainer(Container):
 
 
 class TelescopePointingContainer(Container):
-    ''' Container holding pointing information for a single telescope '''
+    '''
+    Container holding pointing information for a single telescope
+    after all necessary correction and calibration steps.
+    These values should be used in the reconstruction to transform
+    between camera and sky coordinates.
+    '''
     azimuth = Field(nan * u.rad, 'Azimuth, measured N->E', unit=u.rad)
     altitude = Field(nan * u.rad, 'Altitude', unit=u.rad)
-
-
-class SourceContainer(Container):
-    source_name = Field(None, 'Name of the source observed')
-    ra = Field(nan, 'Right ascension of the observed source', unit=u.rad)
-    dec = Field(nan, 'Declination of the observed source', unit=u.rad)
 
 
 class DataContainer(Container):
@@ -344,8 +343,6 @@ class DataContainer(Container):
     count = Field(0, "number of events processed")
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
-    source = Field(SourceContainer())
-
 
 
 class MuonRingParameter(Container):
