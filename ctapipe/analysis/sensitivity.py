@@ -424,7 +424,8 @@ class SensitivityPointSource:
     def get_sensitivity(self, sensitivity_energy_bin_edges,
                         alpha, signal_list=("g"), mode="MC",
                         sensitivity_source_flux=crab_source_rate,
-                        min_n=10, max_background_ratio=.05):
+                        min_n=10, max_background_ratio=.05,
+                        n_draws=1000):
         """
         finally calculates the sensitivity to a point-source
         TODO still need to implement statistical error on the sensitivity
@@ -457,6 +458,8 @@ class SensitivityPointSource:
             is larger than this, scale up the gammas events accordingly
         sensitivity_source_flux : callable, optional (default: `crab_source_rate`)
             function of the flux the sensitivity is calculated with
+        n_draws : int, optional (default: 1000)
+            number of random draws to calculate uncertainties on the sensitivity
 
         Returns
         -------
@@ -466,13 +469,16 @@ class SensitivityPointSource:
 
         # sensitivities go in here
         sensitivities = Table(
-            names=("Energy", "Sensitivity", "Sensitivity_base"))
+            names=("Energy", "Sensitivity_base", "Sensitivity",
+                   "Sensitivity_low", "Sensitivity_up"))
         try:
             sensitivities["Energy"].unit = sensitivity_energy_bin_edges.unit
         except AttributeError:
             sensitivities["Energy"].unit = self.energy_unit
-        sensitivities["Sensitivity"].unit = self.flux_unit
         sensitivities["Sensitivity_base"].unit = self.flux_unit
+        sensitivities["Sensitivity"].unit = self.flux_unit
+        sensitivities["Sensitivity_up"].unit = self.flux_unit
+        sensitivities["Sensitivity_low"].unit = self.flux_unit
 
         if hasattr(self, "event_weights"):
             # in case we do have event weights, we sum them within the energy bin
@@ -529,36 +535,46 @@ class SensitivityPointSource:
             if N_events[0] <= 0:
                 continue
 
-            # find the scaling factor for the gamma events that gives a 5 sigma discovery
-            # in this energy bin
-            scale = minimize(diff_to_x_sigma, [1e-3],
-                             args=(N_events, alpha),
-                             method='L-BFGS-B', bounds=[(1e-4, None)],
-                             options={'disp': False}
-                             ).x[0]
+            scales = []
+            for this_N_events in np.random.poisson(N_events, size=(n_draws, 2)):
 
-            scale_base = scale
+                # find the scaling factor for the gamma events that gives a 5 sigma
+                # discovery in this energy bin
+                scale = minimize(diff_to_x_sigma, [1e-3],
+                                 args=(this_N_events, alpha),
+                                 method='L-BFGS-B', bounds=[(1e-4, None)],
+                                 options={'disp': False}
+                                 ).x[0]
 
-            # scale up the gamma events by this factor
-            N_events[0] *= scale
+                scale_base = scale
 
-            # check if there are sufficient signal events in this energy bin
-            scale *= check_min_n_signal(N_events, min_n_signal=min_n, alpha=alpha)
+                # scale up the gamma events by this factor
+                this_N_events[0] *= scale
 
-            # check if the relative amount of protons in this bin is
-            # sufficiently small
-            scale *= check_background_contamination(
-                N_events, alpha=alpha, max_background_ratio=max_background_ratio)
+                # check if there are sufficient signal events in this energy bin
+                scale *= check_min_n_signal(this_N_events,
+                                            min_n_signal=min_n, alpha=alpha)
+
+                # check if the relative amount of protons in this bin is
+                # sufficiently small
+                scale *= check_background_contamination(
+                    this_N_events, alpha=alpha, max_background_ratio=max_background_ratio)
+
+                # print(scale_base, scale)
+                scales.append(scale)
+
+            # get the scaling factors for the median and the 1sigma containment region
+            scale = np.percentile(scales, (50, 32, 68))
 
             # get the flux at the bin centre
             flux = sensitivity_source_flux(emid).to(self.flux_unit)
 
-            # and scale it up by the determined factor
+            # and scale it up by the determined factors
             sensitivity = flux * scale
             sensitivity_base = flux * scale_base
 
             # store results in table
-            sensitivities.add_row([emid, sensitivity, sensitivity_base])
+            sensitivities.add_row([emid, sensitivity_base, *sensitivity])
 
         return sensitivities
 
