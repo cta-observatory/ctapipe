@@ -34,6 +34,26 @@ should be applied using a SPE sim_telarray run with an artificial light source.
 
 
 class CameraR1Calibrator(Component):
+    """
+    The base R1-level calibrator. Fills the r1 container.
+
+    The R1 calibrator performs the camera-specific R1 calibration that is
+    usually performed on the raw data by the camera server. This calibrator
+    exists in ctapipe for testing and prototyping purposes.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
     name = 'CameraR1Calibrator'
     origin = None
 
@@ -105,6 +125,25 @@ class CameraR1Calibrator(Component):
 
 
 class HessioR1Calibrator(CameraR1Calibrator):
+    """
+    The R1 calibrator for hessio files. Fills the r1 container.
+
+    This calibrator correctly applies the pedestal subtraction and conversion
+    from counts to photoelectrons for the Monte-Carlo data.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
     name = 'HessioR1Calibrator'
     origin = 'hessio'
 
@@ -115,13 +154,8 @@ class HessioR1Calibrator(CameraR1Calibrator):
 
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
-                try:
-                    samples = event.r0.tel[telid].adc_samples
-                    n_samples = samples.shape[2]
-                except IndexError:
-                    # To handle ASTRI
-                    samples = event.r0.tel[telid].adc_sums[..., None]
-                    n_samples = samples.shape[2]
+                samples = event.r0.tel[telid].adc_samples
+                n_samples = samples.shape[2]
                 ped = event.mc.tel[telid].pedestal / n_samples
                 gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
                 calibrated = (samples - ped[..., None]) * gain[..., None]
@@ -136,6 +170,63 @@ except ImportError:
 
 
 class CameraR1CalibratorFactory(Factory):
+    """
+    The R1 calibrator `ctapipe.core.factory.Factory`. This
+    `ctapipe.core.factory.Factory` allows the correct
+    `CameraR1Calibrator` to be obtained for the data investigated. The
+    discriminator used by this factory is the "origin" of the file, a string
+    obtainable from `ctapipe.io.eventfilereader.EventFileReader.origin`.
+
+    Additional filepaths are required by some cameras for R1 calibration. Due
+    to the current inplementation of `ctapipe.core.factory.Factory`, every
+    trait that could
+    possibly be required for a child `ctapipe.core.component.Component` of
+    `CameraR1Calibrator` must
+    be included in this `ctapipe.core.factory.Factory`. The
+    `CameraR1Calibrator` specific to a
+    camera type should then define how/if that filepath should be used. The
+    format of the file is not restricted, and the file can be read from inside
+    ctapipe, or can call a different library created by the camera teams for
+    the calibration of their camera.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+
+    Attributes
+    ----------
+    origin : traitlets.CaselessStrEnum
+        A string describing the origin of the event file being calibrated.
+        Should be obtained from the
+        `ctapipe.io.eventfilereader.EventFileReader.origin` attribute of the
+        correct `ctapipe.io.eventfilereader.EventFileReader` for the file.
+    pedestal_path : traitlets.Unicode
+        A string containing the path to a file containing the electronic
+        pedestal to be subtracted from the waveforms. How/if this file is used
+        is defined by the `CameraR1Calibrator` specific to the camera.
+    tf_path : traitlets.Unicode
+        A string containing the path to a file containing the transfer
+        function to be applied to the waveforms to fix the non-linearity of
+        the digitiser. How/if this file is used is defined by the
+        `CameraR1Calibrator` specific to the camera.
+    pe_path : traitlets.Unicode
+        A string containing the path to a file containing the conversion
+        coefficients into photoelectrons. How/if this file is used is defined
+        by the `CameraR1Calibrator` specific to the camera.
+    ff_path : traitlets.Unicode
+        A string containing the path to a file containing the flat-field
+        conversion coefficients. How/if this file is used is defined by the
+        `CameraR1Calibrator` specific to the camera.
+    """
+
     name = "CameraR1CalibratorFactory"
     description = "Obtain CameraR1Calibrator based on file origin"
 
@@ -151,8 +242,10 @@ class CameraR1CalibratorFactory(Factory):
                             help='Path to a pedestal file').tag(config=True)
     tf_path = Unicode('', allow_none=True,
                       help='Path to a Transfer Function file').tag(config=True)
-    adc2pe_path = Unicode('', allow_none=True,
-                          help='Path to an adc2pe file').tag(config=True)
+    pe_path = Unicode('', allow_none=True,
+                          help='Path to an pe conversion file').tag(config=True)
+    ff_path = Unicode('', allow_none=True,
+                      help='Path to a flat field file').tag(config=True)
 
     def get_factory_name(self):
         return self.name

@@ -12,12 +12,15 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
 
-from ctapipe.utils import get_dataset, find_all_matching_datasets
+from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
+from ctapipe.core import Provenance
+
 
 __all__ = ['CameraGeometry',]
 
 logger = logging.getLogger(__name__)
+
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
@@ -180,7 +183,7 @@ class CameraGeometry:
         return np.ones(pix_x.shape) * area
 
     @classmethod
-    def get_known_camera_names(cls, array_id='CTA'):
+    def get_known_camera_names(cls):
         """
         Returns a list of camera_ids that are registered in 
         `ctapipe_resources`. These are all the camera-ids that can be 
@@ -227,9 +230,10 @@ class CameraGeometry:
         else:
             verstr = "-{:03d}".format(version)
 
-        filename = get_dataset("{camera_id}{verstr}.camgeom.fits.gz"
-                               .format(camera_id=camera_id, verstr=verstr))
-        return CameraGeometry.from_table(filename)
+        tabname = "{camera_id}{verstr}.camgeom".format(camera_id=camera_id,
+                                                       verstr=verstr)
+        table = get_table_dataset(tabname, role='dl0.tel.svc.camera')
+        return CameraGeometry.from_table(table)
 
     def to_table(self):
         """ convert this to an `astropy.table.Table` """
@@ -319,6 +323,18 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return _neighbor_list_to_matrix(self.neighbors)
+
+    @lazyproperty
+    def neighbor_matrix_where(self):
+        """
+        Obtain a 2D array, where each row is [pixel index, one neighbour
+        of that pixel].
+
+        Returns
+        -------
+        ndarray
+        """
+        return np.ascontiguousarray(np.array(np.where(self.neighbor_matrix)).T)
 
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by

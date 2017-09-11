@@ -54,7 +54,7 @@ def hessio_get_list_event_ids(url, max_events=None):
     logger.warning("This method is slow. Need to find faster method.")
     try:
         with open_hessio(url) as pyhessio:
-            Provenance().add_input_file(url)
+            Provenance().add_input_file(url, role='r0.sub.evt')
             counter = 0
             event_id_list = []
             eventstream = pyhessio.move_to_next_event()
@@ -96,7 +96,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
     with open_hessio(url) as pyhessio:
         # the container is initialized once, and data is replaced within
         # it after each yield
-        Provenance().add_input_file(url)
+        Provenance().add_input_file(url, role='dl0.sub.evt')
         counter = 0
         eventstream = pyhessio.move_to_next_event()
         if allowed_tels is not None:
@@ -181,6 +181,10 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
 
                 data.r0.tel[tel_id].adc_samples = \
                     pyhessio.get_adc_sample(tel_id)
+                if data.r0.tel[tel_id].adc_samples.size == 0:
+                    # To handle ASTRI and dst files
+                    data.r0.tel[tel_id].adc_samples = \
+                        pyhessio.get_adc_sum(tel_id)[..., None]
                 data.r0.tel[tel_id].adc_sums = \
                     pyhessio.get_adc_sum(tel_id)
                 data.mc.tel[tel_id].reference_pulse_shape = \
