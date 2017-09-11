@@ -435,6 +435,8 @@ class SensitivityPointSource:
             area-ratio of the on- over the off-region
         sensitivity_energy_bin_edges : numpy array
             array of the bin edges for the sensitivity calculation
+        signal_list : iterable of strings, optional (default: ("g"))
+            list of keys to consider as signal channels
         mode : string ["MC", "Data"] (default: "MC")
             interprete the signal/not-signal channels in all the dictionaries as
             gamma/background ("MC") or as on-region/off-region ("Data")
@@ -540,8 +542,8 @@ class SensitivityPointSource:
             # scale up the gamma events by this factor
             N_events[0] *= scale
 
-            # check if there are sufficient events in this energy bin
-            scale *= check_min_n(N_events, min_n=min_n, alpha=alpha)
+            # check if there are sufficient signal events in this energy bin
+            scale *= check_min_n_signal(N_events, min_n_signal=min_n, alpha=alpha)
 
             # check if the relative amount of protons in this bin is
             # sufficiently small
@@ -708,7 +710,7 @@ class SensitivityPointSource:
         return drawn_indices
 
 
-def check_min_n(n, alpha=1, min_n=10):
+def check_min_n_signal(n, alpha=1, min_n_signal=10):
     """
     check if there are sufficenly many events in this energy bin and calculates scaling
     parameter if not.
@@ -721,8 +723,8 @@ def check_min_n(n, alpha=1, min_n=10):
     alpha : float (default: 1)
         ratio of the on- to off-region -- `n[1]` times `alpha` is used as background
         estimate for the on-region
-    min_n : integer (default: 10)
-        minimum number of desired events; if too low, scale up to this number
+    min_n_signal : integer (default: 10)
+        minimum number of signal events; if too low, scale up to this number
 
     Returns
     -------
@@ -732,8 +734,8 @@ def check_min_n(n, alpha=1, min_n=10):
 
     n_signal, n_backgr = n[0], n[1] * alpha
 
-    if n_signal + n_backgr < min_n:
-        scale_a = (min_n - n_backgr) / n_signal
+    if n_signal < min_n_signal:
+        scale_a = min_n_signal / n_signal
         n[0] *= scale_a
         return scale_a
     else:
@@ -765,8 +767,8 @@ def check_background_contamination(n, alpha=1, max_background_ratio=.05):
     n_signal, n_backgr = n[0], n[1] * alpha
 
     n_tot = n_signal + n_backgr
-    if n_backgr / n_tot > max_background_ratio:
-        scale_r = (1 / max_background_ratio - 1) * n_backgr / n_signal
+    if n_signal < n_backgr * max_background_ratio:
+        scale_r = (n_backgr * max_background_ratio) / n_signal
         n[0] *= scale_r
         return scale_r
     else:
