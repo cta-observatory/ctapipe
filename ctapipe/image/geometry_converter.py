@@ -16,7 +16,8 @@ RotBuffer = namedtuple("RotBuffer",
 __all__ = [
     "convert_geometry_hex1d_to_rect2d",
     "convert_geometry_rect2d_back_to_hexe1d"
-    ]
+]
+
 
 def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
                           base_angle=60 * u.deg):
