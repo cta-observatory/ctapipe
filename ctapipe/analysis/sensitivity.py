@@ -482,15 +482,14 @@ class SensitivityPointSource:
 
         if hasattr(self, "event_weights"):
             # in case we do have event weights, we sum them within the energy bin
-            # count also the square of the weights for the error estimator
-            count_events = lambda mask: np.sum(self.event_weights[cl][mask])
-            count_square = lambda mask: np.sum(self.event_weights[cl][mask]**2)
+            # we also need the actual number of events to estimate the statistical error
+            sum_events = lambda mask: np.sum(self.event_weights[cl][mask])
+            len_events = lambda mask: len(self.reco_energies[cl][mask])
         else:
             # otherwise we simply check the length of the masked energy array
-            # since the weights are 1 here, `count_square` is the same as
-            # `count_events`
-            count_events = lambda mask: len(self.reco_energies[cl][mask])
-            count_square = count_events
+            # since the weights are 1 here, `len_events` is the same as `sum_events`
+            sum_events = lambda mask: len(self.reco_energies[cl][mask])
+            len_events = sum_events
 
         # loop over all energy bins
         # the bins are spaced logarithmically: use the geometric mean as the bin-centre,
@@ -501,8 +500,8 @@ class SensitivityPointSource:
                                      np.sqrt(sensitivity_energy_bin_edges[:-1] *
                                              sensitivity_energy_bin_edges[1:])):
 
+            S_events = np.zeros(2)  # [on-signal, off-background]
             N_events = np.zeros(2)  # [on-signal, off-background]
-            variance = np.zeros(2)  # [on-signal, off-background]
 
             # count the (weights of the) events in the on and off regions for this
             # energy bin
@@ -511,22 +510,12 @@ class SensitivityPointSource:
                 e_mask = (self.reco_energies[cl] > elow) & \
                          (self.reco_energies[cl] < ehigh)
 
-                # count the events as the sum of their weights within this
-                # energy bin
                 if cl in signal_list:
-                    N_events[0] += count_events(e_mask)
-                    variance[0] += count_square(e_mask)
+                    S_events[0] += sum_events(e_mask)
+                    N_events[0] += len_events(e_mask)
                 else:
-                    N_events[1] += count_events(e_mask)
-                    variance[1] += count_square(e_mask)
-
-            if mode.lower() == "data":
-                # the background estimate for the on-region is `alpha` times the
-                # background in the off-region
-                # if running on data, the signal estimate for the on-region is the counts
-                # in the on-region minus the background estimate for the on-region
-                N_events[0] -= N_events[1] * alpha
-                variance[0] -= variance[1] * alpha
+                    S_events[1] += sum_events(e_mask)
+                    N_events[1] += len_events(e_mask)
 
             # If we have no counts in the on-region, there is no sensitivity.
             # If on data the background estimate from the off-region is larger than the
@@ -535,13 +524,26 @@ class SensitivityPointSource:
             if N_events[0] <= 0:
                 continue
 
-            scales = []
-            for this_N_events in np.random.poisson(N_events, size=(n_draws, 2)):
+            if mode.lower() == "data":
+                # the background estimate for the on-region is `alpha` times the
+                # background in the off-region
+                # if running on data, the signal estimate for the on-region is the counts
+                # in the on-region minus the background estimate for the on-region
+                S_events[0] -= S_events[1] * alpha
+                N_events[0] -= N_events[1] * alpha
 
+            MC_scale = S_events / N_events
+
+            scales = []
+            # to get the proper Poisson fluctuation in MC, draw the events with
+            # `N_events` as lambda and then scale the result to the weighted number
+            # of expected events
+            poisson_draws = np.random.poisson(N_events, size=(n_draws, 2))
+            for drawn_events in poisson_draws * MC_scale:
                 # find the scaling factor for the gamma events that gives a 5 sigma
                 # discovery in this energy bin
                 scale = minimize(diff_to_x_sigma, [1e-3],
-                                 args=(this_N_events, alpha),
+                                 args=(drawn_events, alpha),
                                  method='L-BFGS-B', bounds=[(1e-4, None)],
                                  options={'disp': False}
                                  ).x[0]
@@ -549,18 +551,18 @@ class SensitivityPointSource:
                 scale_base = scale
 
                 # scale up the gamma events by this factor
-                this_N_events[0] *= scale
+                drawn_events[0] *= scale
 
                 # check if there are sufficient signal events in this energy bin
-                scale *= check_min_n_signal(this_N_events,
+                scale *= check_min_n_signal(drawn_events,
                                             min_n_signal=min_n, alpha=alpha)
 
                 # check if the relative amount of protons in this bin is
                 # sufficiently small
                 scale *= check_background_contamination(
-                    this_N_events, alpha=alpha, max_background_ratio=max_background_ratio)
+                    drawn_events, alpha=alpha,
+                    max_background_ratio=max_background_ratio)
 
-                # print(scale_base, scale)
                 scales.append(scale)
 
             # get the scaling factors for the median and the 1sigma containment region
