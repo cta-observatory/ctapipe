@@ -255,7 +255,7 @@ class HillasReconstructor(Reconstructor):
 
         result.alt_uncert = np.nan
         result.az_uncert = np.nan
-        result.h_max = np.nan
+        result.h_max = self.fit_h_max(hillas_dict, inst.subarray, tel_phi, tel_theta)
         result.h_max_uncert = np.nan
         result.goodness_of_fit = np.nan
 
@@ -520,6 +520,36 @@ class HillasReconstructor(Reconstructor):
 
         return np.array(self.fit_result_core.x) * unit
 
+    def fit_h_max(self, hillas_dict, subarray, tel_phi, tel_theta):
+
+        weights = []
+        tels = []
+        dirs = []
+        for tel_id, hillas in hillas_dict.items():
+            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            [max_dir] = \
+                guess_pix_direction(np.array([hillas.cen_x / u.m]) * u.m,
+                                    np.array([hillas.cen_y / u.m]) * u.m,
+                                    tel_phi[tel_id], tel_theta[tel_id],
+                                    foclen)
+            weights.append(self.circles[tel_id].weight)
+            tels.append(self.circles[tel_id].pos)
+            dirs.append(max_dir)
+
+        # minimising the test function
+        pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
+                           args=(np.array(tels), np.array(dirs), np.array(weights)),
+                           method='BFGS',
+                           options={'disp': False}
+                           ).x
+        return pos_max[2] * u.m
+
+
+def dist_to_line3d(pos, tels, dirs, weights):
+    result = np.average(np.linalg.norm(np.cross((pos - tels), dirs), axis=1),
+                        weights=weights)
+    return result
+
 
 class GreatCircle:
     """
@@ -543,7 +573,7 @@ class GreatCircle:
         -----
         c: numpy.ndarray(3)
             :math:`\vec c = (\vec a \times \vec b) \times \vec a`
-            :math:`\rightarrow` a and c form an orthogonal base for the 
+            :math:`\rightarrow` a and c form an orthogonal base for the
             great circle
             (only orthonormal if a and b are of unit-length)
         norm: numpy.ndarray(3)
