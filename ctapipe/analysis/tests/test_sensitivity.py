@@ -3,7 +3,8 @@ import astropy.units as u
 import scipy.stats
 
 from ctapipe.analysis.sensitivity import SensitivityPointSource
-from ctapipe.analysis.sensitivity import (check_min_n, check_background_contamination,
+from ctapipe.analysis.sensitivity import (check_min_n_signal as check_min_n,
+                                          check_background_contamination,
                                           cr_background_rate, e_minus_2, sigma_lima,
                                           make_mock_event_rate, crab_source_rate)
 
@@ -13,7 +14,7 @@ def test_check_min_n(n_1=2, n_2=2):
 
     min_n = 10
 
-    scale = check_min_n(n, alpha=1, min_n=min_n)
+    scale = check_min_n(n, alpha=1, min_n_signal=min_n)
 
     assert sum(n) >= min_n
 
@@ -23,10 +24,10 @@ def test_check_background_contamination(n_1=2, n_2=2):
 
     max_background_ratio = .1
 
-    scale = check_background_contamination(n, alpha=1,
-                                           max_background_ratio=max_background_ratio)
+    scale = check_background_contamination(
+        n, alpha=1, max_background_ratio=max_background_ratio)
 
-    assert n[1] / sum(n) <= max_background_ratio
+    assert n[0] >= n[1] * max_background_ratio
 
 
 def test_SensitivityPointSource_effective_area():
@@ -86,6 +87,8 @@ def test_SensitivityPointSource_effective_area():
 
 def test_SensitivityPointSource_sensitivity_MC():
 
+    np.random.seed(314159)
+
     alpha = 1.
     n_sig = 20
     n_bgr = 10
@@ -108,10 +111,12 @@ def test_SensitivityPointSource_sensitivity_MC():
     # in the lima formula
     ratio = sensitivity["Sensitivity"][0] / (crab_source_rate(1 * u.TeV)).value
     np.testing.assert_allclose(
-        [sigma_lima(ratio * n_sig + alpha * n_bgr, n_bgr, alpha)], [5])
+        [sigma_lima(ratio * n_sig + alpha * n_bgr, n_bgr, alpha)], [5], atol=0.0066)
 
 
 def test_SensitivityPointSource_sensitivity_data():
+
+    np.random.seed(314159)
 
     alpha = 1.
     n_on = 30
@@ -134,7 +139,7 @@ def test_SensitivityPointSource_sensitivity_data():
     # a 5 sigma result  in the lima formula
     ratio = sensitivity["Sensitivity"][0] / (crab_source_rate(1 * u.TeV)).value
     np.testing.assert_allclose([sigma_lima(ratio * (n_on - n_off * alpha) + n_off * alpha,
-                                           n_off, alpha)], [5])
+                                           n_off, alpha)], [5], atol=0.0066)
 
 
 def test_generate_toy_timestamps():

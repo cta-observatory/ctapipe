@@ -424,7 +424,8 @@ class SensitivityPointSource:
     def get_sensitivity(self, sensitivity_energy_bin_edges,
                         alpha, signal_list=("g"), mode="MC",
                         sensitivity_source_flux=crab_source_rate,
-                        min_n=10, max_background_ratio=.05):
+                        min_n=10, max_background_ratio=.05,
+                        n_draws=1000):
         """
         finally calculates the sensitivity to a point-source
         TODO still need to implement statistical error on the sensitivity
@@ -435,6 +436,8 @@ class SensitivityPointSource:
             area-ratio of the on- over the off-region
         sensitivity_energy_bin_edges : numpy array
             array of the bin edges for the sensitivity calculation
+        signal_list : iterable of strings, optional (default: ("g"))
+            list of keys to consider as signal channels
         mode : string ["MC", "Data"] (default: "MC")
             interprete the signal/not-signal channels in all the dictionaries as
             gamma/background ("MC") or as on-region/off-region ("Data")
@@ -455,6 +458,8 @@ class SensitivityPointSource:
             is larger than this, scale up the gammas events accordingly
         sensitivity_source_flux : callable, optional (default: `crab_source_rate`)
             function of the flux the sensitivity is calculated with
+        n_draws : int, optional (default: 1000)
+            number of random draws to calculate uncertainties on the sensitivity
 
         Returns
         -------
@@ -464,25 +469,27 @@ class SensitivityPointSource:
 
         # sensitivities go in here
         sensitivities = Table(
-            names=("Energy", "Sensitivity", "Sensitivity_base"))
+            names=("Energy", "Sensitivity_base", "Sensitivity",
+                   "Sensitivity_low", "Sensitivity_up"))
         try:
             sensitivities["Energy"].unit = sensitivity_energy_bin_edges.unit
         except AttributeError:
             sensitivities["Energy"].unit = self.energy_unit
-        sensitivities["Sensitivity"].unit = self.flux_unit
         sensitivities["Sensitivity_base"].unit = self.flux_unit
+        sensitivities["Sensitivity"].unit = self.flux_unit
+        sensitivities["Sensitivity_up"].unit = self.flux_unit
+        sensitivities["Sensitivity_low"].unit = self.flux_unit
 
         if hasattr(self, "event_weights"):
             # in case we do have event weights, we sum them within the energy bin
-            # count also the square of the weights for the error estimator
-            count_events = lambda mask: np.sum(self.event_weights[cl][mask])
-            count_square = lambda mask: np.sum(self.event_weights[cl][mask]**2)
+            # we also need the actual number of events to estimate the statistical error
+            sum_events = lambda mask: np.sum(self.event_weights[cl][mask])
+            len_events = lambda mask: len(self.reco_energies[cl][mask])
         else:
             # otherwise we simply check the length of the masked energy array
-            # since the weights are 1 here, `count_square` is the same as
-            # `count_events`
-            count_events = lambda mask: len(self.reco_energies[cl][mask])
-            count_square = count_events
+            # since the weights are 1 here, `len_events` is the same as `sum_events`
+            sum_events = lambda mask: len(self.reco_energies[cl][mask])
+            len_events = sum_events
 
         # loop over all energy bins
         # the bins are spaced logarithmically: use the geometric mean as the bin-centre,
@@ -493,8 +500,8 @@ class SensitivityPointSource:
                                      np.sqrt(sensitivity_energy_bin_edges[:-1] *
                                              sensitivity_energy_bin_edges[1:])):
 
+            S_events = np.zeros(2)  # [on-signal, off-background]
             N_events = np.zeros(2)  # [on-signal, off-background]
-            variance = np.zeros(2)  # [on-signal, off-background]
 
             # count the (weights of the) events in the on and off regions for this
             # energy bin
@@ -503,22 +510,12 @@ class SensitivityPointSource:
                 e_mask = (self.reco_energies[cl] > elow) & \
                          (self.reco_energies[cl] < ehigh)
 
-                # count the events as the sum of their weights within this
-                # energy bin
                 if cl in signal_list:
-                    N_events[0] += count_events(e_mask)
-                    variance[0] += count_square(e_mask)
+                    S_events[0] += sum_events(e_mask)
+                    N_events[0] += len_events(e_mask)
                 else:
-                    N_events[1] += count_events(e_mask)
-                    variance[1] += count_square(e_mask)
-
-            if mode.lower() == "data":
-                # the background estimate for the on-region is `alpha` times the
-                # background in the off-region
-                # if running on data, the signal estimate for the on-region is the counts
-                # in the on-region minus the background estimate for the on-region
-                N_events[0] -= N_events[1] * alpha
-                variance[0] -= variance[1] * alpha
+                    S_events[1] += sum_events(e_mask)
+                    N_events[1] += len_events(e_mask)
 
             # If we have no counts in the on-region, there is no sensitivity.
             # If on data the background estimate from the off-region is larger than the
@@ -527,36 +524,59 @@ class SensitivityPointSource:
             if N_events[0] <= 0:
                 continue
 
-            # find the scaling factor for the gamma events that gives a 5 sigma discovery
-            # in this energy bin
-            scale = minimize(diff_to_x_sigma, [1e-3],
-                             args=(N_events, alpha),
-                             method='L-BFGS-B', bounds=[(1e-4, None)],
-                             options={'disp': False}
-                             ).x[0]
+            if mode.lower() == "data":
+                # the background estimate for the on-region is `alpha` times the
+                # background in the off-region
+                # if running on data, the signal estimate for the on-region is the counts
+                # in the on-region minus the background estimate for the on-region
+                S_events[0] -= S_events[1] * alpha
+                N_events[0] -= N_events[1] * alpha
 
-            scale_base = scale
+            MC_scale = S_events / N_events
 
-            # scale up the gamma events by this factor
-            N_events[0] *= scale
+            scales = []
+            # to get the proper Poisson fluctuation in MC, draw the events with
+            # `N_events` as lambda and then scale the result to the weighted number
+            # of expected events
+            poisson_draws = np.random.poisson(N_events, size=(n_draws, 2))
+            for drawn_events in poisson_draws * MC_scale:
+                # find the scaling factor for the gamma events that gives a 5 sigma
+                # discovery in this energy bin
+                scale = minimize(diff_to_x_sigma, [1e-3],
+                                 args=(drawn_events, alpha),
+                                 method='L-BFGS-B', bounds=[(1e-4, None)],
+                                 options={'disp': False}
+                                 ).x[0]
 
-            # check if there are sufficient events in this energy bin
-            scale *= check_min_n(N_events, min_n=min_n, alpha=alpha)
+                scale_base = scale
 
-            # check if the relative amount of protons in this bin is
-            # sufficiently small
-            scale *= check_background_contamination(
-                N_events, alpha=alpha, max_background_ratio=max_background_ratio)
+                # scale up the gamma events by this factor
+                drawn_events[0] *= scale
+
+                # check if there are sufficient signal events in this energy bin
+                scale *= check_min_n_signal(drawn_events,
+                                            min_n_signal=min_n, alpha=alpha)
+
+                # check if the relative amount of protons in this bin is
+                # sufficiently small
+                scale *= check_background_contamination(
+                    drawn_events, alpha=alpha,
+                    max_background_ratio=max_background_ratio)
+
+                scales.append(scale)
+
+            # get the scaling factors for the median and the 1sigma containment region
+            scale = np.percentile(scales, (50, 32, 68))
 
             # get the flux at the bin centre
             flux = sensitivity_source_flux(emid).to(self.flux_unit)
 
-            # and scale it up by the determined factor
+            # and scale it up by the determined factors
             sensitivity = flux * scale
             sensitivity_base = flux * scale_base
 
             # store results in table
-            sensitivities.add_row([emid, sensitivity, sensitivity_base])
+            sensitivities.add_row([emid, sensitivity_base, *sensitivity])
 
         return sensitivities
 
@@ -708,7 +728,7 @@ class SensitivityPointSource:
         return drawn_indices
 
 
-def check_min_n(n, alpha=1, min_n=10):
+def check_min_n_signal(n, alpha=1, min_n_signal=10):
     """
     check if there are sufficenly many events in this energy bin and calculates scaling
     parameter if not.
@@ -721,8 +741,8 @@ def check_min_n(n, alpha=1, min_n=10):
     alpha : float (default: 1)
         ratio of the on- to off-region -- `n[1]` times `alpha` is used as background
         estimate for the on-region
-    min_n : integer (default: 10)
-        minimum number of desired events; if too low, scale up to this number
+    min_n_signal : integer (default: 10)
+        minimum number of signal events; if too low, scale up to this number
 
     Returns
     -------
@@ -732,8 +752,8 @@ def check_min_n(n, alpha=1, min_n=10):
 
     n_signal, n_backgr = n[0], n[1] * alpha
 
-    if n_signal + n_backgr < min_n:
-        scale_a = (min_n - n_backgr) / n_signal
+    if n_signal < min_n_signal:
+        scale_a = min_n_signal / n_signal
         n[0] *= scale_a
         return scale_a
     else:
@@ -765,8 +785,8 @@ def check_background_contamination(n, alpha=1, max_background_ratio=.05):
     n_signal, n_backgr = n[0], n[1] * alpha
 
     n_tot = n_signal + n_backgr
-    if n_backgr / n_tot > max_background_ratio:
-        scale_r = (1 / max_background_ratio - 1) * n_backgr / n_signal
+    if n_signal < n_backgr * max_background_ratio:
+        scale_r = (n_backgr * max_background_ratio) / n_signal
         n[0] *= scale_r
         return scale_r
     else:
