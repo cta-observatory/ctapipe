@@ -228,10 +228,10 @@ class HillasReconstructor(Reconstructor):
         self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
         # algebraic direction estimate
-        dir = self.fit_origin_crosses()[0]
+        dir, err_est_dir = self.fit_origin_crosses()
 
         # core position estimate using a geometric approach
-        pos, pos_uncert = self.fit_core_crosses()
+        pos, err_est_pos = self.fit_core_crosses()
 
         # numerical minimisations do not really improve the fit
         # direction estimate using numerical minimisation
@@ -248,13 +248,13 @@ class HillasReconstructor(Reconstructor):
         result.alt, result.az = 90 * u.deg - theta, 90 * u.deg - phi
         result.core_x = pos[0]
         result.core_y = pos[1]
-        result.core_uncert = pos_uncert
+        result.core_uncert = err_est_pos
 
         result.tel_ids = [h for h in hillas_dict.keys()]
         result.average_size = np.mean([h.size for h in hillas_dict.values()])
         result.is_valid = True
 
-        result.alt_uncert = np.nan
+        result.alt_uncert = err_est_dir
         result.az_uncert = np.nan
         result.h_max = self.fit_h_max(hillas_dict, inst.subarray, tel_phi, tel_theta)
         result.h_max_uncert = np.nan
@@ -325,8 +325,12 @@ class HillasReconstructor(Reconstructor):
                 crossing *= -1
             crossings.append(crossing * perm[0].weight * perm[1].weight)
 
+        result = linalg.normalise(np.sum(crossings, axis=0)) * u.dimless
+        off_angles = [linalg.angle(result, cross) / u.rad for cross in crossings]
+        err_est_dir = np.mean(off_angles) * u.rad
+
         # averaging over the solutions of all permutations
-        return linalg.normalise(np.sum(crossings, axis=0)) * u.dimless, crossings
+        return result, err_est_dir
 
     def fit_origin_minimise(self, seed=(0, 0, 1), test_function=neg_angle_sum):
         """ Fits the origin of the gamma with a minimisation procedure this
