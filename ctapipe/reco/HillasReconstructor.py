@@ -64,6 +64,7 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
     """
 
     pix_alpha = np.arctan2(pix_y, pix_x)
+
     pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
 
     pix_beta = pix_rho / tel_foclen * u.rad
@@ -72,9 +73,9 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
 
     pix_dirs = []
     for a, b in zip(pix_alpha, pix_beta):
-        pix_dir = linalg.set_phi_theta(tel_phi, tel_theta + b)
+        pix_dir = linalg.set_phi_theta(tel_phi, tel_theta - b)
 
-        pix_dir = linalg.rotate_around_axis(pix_dir, tel_dir, -a)
+        pix_dir = linalg.rotate_around_axis(pix_dir, tel_dir, 90 * u.deg - a)
         pix_dirs.append(pix_dir * u.dimless)
 
     return pix_dirs
@@ -244,7 +245,7 @@ class HillasReconstructor(Reconstructor):
         phi, theta = linalg.get_phi_theta(dir).to(u.deg)
 
         # TODO make sure az and phi turn in same direction...
-        result.alt, result.az = 90 * u.deg - theta, phi
+        result.alt, result.az = 90 * u.deg - theta, 90 * u.deg - phi
         result.core_x = pos[0]
         result.core_y = pos[1]
         result.core_uncert = err_est_pos
@@ -255,7 +256,7 @@ class HillasReconstructor(Reconstructor):
 
         result.alt_uncert = err_est_dir
         result.az_uncert = np.nan
-        result.h_max = np.nan
+        result.h_max = self.fit_h_max(hillas_dict, inst.subarray, tel_phi, tel_theta)
         result.h_max_uncert = np.nan
         result.goodness_of_fit = np.nan
 
@@ -281,17 +282,16 @@ class HillasReconstructor(Reconstructor):
         self.circles = {}
         for tel_id, moments in hillas_dict.items():
 
+            # NOTE this is correct: +cos(psi) ; +sin(psi)
             p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
             p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
             foclen = subarray.tel[tel_id].optics.effective_focal_length
 
             circle = GreatCircle(
-                guess_pix_direction(np.array([moments.cen_x / u.m,
-                                              p2_x / u.m]) * u.m,
-                                    np.array([moments.cen_y / u.m,
-                                              p2_y / u.m]) * u.m,
-                                    tel_phi[tel_id], tel_theta[tel_id],
-                                    foclen),
+                guess_pix_direction(
+                    np.array([moments.cen_x / u.m, p2_x / u.m]) * u.m,
+                    np.array([moments.cen_y / u.m, p2_y / u.m]) * u.m,
+                    tel_phi[tel_id], tel_theta[tel_id], foclen),
                 moments.size * (moments.length / moments.width)
             )
             circle.pos = subarray.positions[tel_id]
@@ -523,6 +523,35 @@ class HillasReconstructor(Reconstructor):
             print("fit_core: fit no success")
 
         return np.array(self.fit_result_core.x) * unit
+
+    def fit_h_max(self, hillas_dict, subarray, tel_phi, tel_theta):
+
+        weights = []
+        tels = []
+        dirs = []
+        for tel_id, hillas in hillas_dict.items():
+            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            max_dir, = guess_pix_direction(
+                np.array([hillas.cen_x / u.m]) * u.m,
+                np.array([hillas.cen_y / u.m]) * u.m,
+                tel_phi[tel_id], tel_theta[tel_id], foclen)
+            weights.append(self.circles[tel_id].weight)
+            tels.append(self.circles[tel_id].pos)
+            dirs.append(max_dir)
+
+        # minimising the test function
+        pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
+                           args=(np.array(tels), np.array(dirs), np.array(weights)),
+                           method='BFGS',
+                           options={'disp': False}
+                           ).x
+        return pos_max[2] * u.m
+
+
+def dist_to_line3d(pos, tels, dirs, weights):
+    result = np.average(np.linalg.norm(np.cross((pos - tels), dirs), axis=1),
+                        weights=weights)
+    return result
 
 
 class GreatCircle:
