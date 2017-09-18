@@ -150,7 +150,7 @@ class RegressorClassifierBase:
                     trainTarget[cam_id] += [target] * len(tels)
         return trainFeatures, trainTarget
 
-    def fit(self, X, y):
+    def fit(self, X, y, sample_weight=None):
         """This function fits a model against the collected features;
         separately for every telescope identifier.
 
@@ -164,6 +164,8 @@ class RegressorClassifierBase:
             has to contain the same features at the same position
         y : dictionary of lists
             the energies corresponding to all the feature-lists of `X`
+        sample_weight : dictionary of lists, optional (default: None)
+            lists of weights for the various telescope identifiers
 
         Returns
         -------
@@ -176,6 +178,9 @@ class RegressorClassifierBase:
             were not provided before with `cam_id_list`.
 
         """
+
+        sample_weight = sample_weight or {}
+
         for cam_id in X:
             if cam_id not in y:
                 raise KeyError("cam_id '{}' in X but not in y: {}"
@@ -185,9 +190,13 @@ class RegressorClassifierBase:
                 raise KeyError("cam_id '{}' in X but no model defined: {}"
                                .format(cam_id, [k for k in self.model_dict]))
 
+            # add a `None` entry in the weights dictionary in case there is no entry yet
+            if cam_id not in sample_weight:
+                sample_weight[cam_id] = None
+
             # for every `cam_id` train one model (as long as there are events in `X`)
             if len(X[cam_id]):
-                self.model_dict[cam_id].fit(X[cam_id], y[cam_id])
+                self.model_dict[cam_id].fit(X[cam_id], y[cam_id], sample_weight[cam_id])
 
         return self
 
