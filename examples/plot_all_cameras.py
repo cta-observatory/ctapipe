@@ -8,9 +8,9 @@ if __name__ == '__main__':
 
     plt.style.use("bmh")
 
-    N = 2
-    M = 7
-    plt.figure(figsize=(15, 6))
+    N = 3
+    M = 6
+    plt.figure(figsize=(15, 10))
 
     camera_names = CameraGeometry.get_known_camera_names()
 
