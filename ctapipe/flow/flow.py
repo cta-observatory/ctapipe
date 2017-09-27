@@ -1,3 +1,9 @@
+"""
+A Python implementation of the flow-based programming paradigm,
+In flow-based programming, applications are defined as networks of black-box components
+ that exchange data across predefined connections.
+"""
+
 import zmq
 from sys import exit
 from os import path
