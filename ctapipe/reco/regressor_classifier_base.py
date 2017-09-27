@@ -196,7 +196,13 @@ class RegressorClassifierBase:
 
             # for every `cam_id` train one model (as long as there are events in `X`)
             if len(X[cam_id]):
-                self.model_dict[cam_id].fit(X[cam_id], y[cam_id], sample_weight[cam_id])
+                try:
+                    self.model_dict[cam_id].fit(X[cam_id], y[cam_id],
+                                                sample_weight=sample_weight[cam_id])
+                except (TypeError, ValueError):
+                    # some models do not like `sample_weight` in the `fit` call...
+                    # catch the exception and try again without the weights
+                    self.model_dict[cam_id].fit(X[cam_id], y[cam_id])
 
         return self
 
