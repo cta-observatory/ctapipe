@@ -166,6 +166,8 @@ class RegressorClassifierBase:
             the energies corresponding to all the feature-lists of `X`
         sample_weight : dictionary of lists, optional (default: None)
             lists of weights for the various telescope identifiers
+            Note: Not all models support this; e.g. RandomForests do
+            (Regressor and Classifier)
 
         Returns
         -------
