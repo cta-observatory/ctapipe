@@ -6,7 +6,7 @@ import matplotlib.animation as animation
 from astropy import convolution as conv
 from itertools import tee, repeat
 
-TIMESTEP = 0.1
+global TIMESTEP
 
 
 def gen_static_model(nmax=None):
@@ -25,7 +25,7 @@ def gen_static_model(nmax=None):
 
 
 def gen_timevar_model(nmax=None):
-    global TIMESTEP
+    TIMESTEP = 0.1
     count = 0
     tt = 0
     X, Y = np.meshgrid(np.linspace(-5, 5, 100), np.linspace(-5, 5, 100))
@@ -109,11 +109,11 @@ if __name__ == '__main__':
 
     plt.spectral()
 
-    #mod = gen_static_model()
+    '#mod = gen_static_model()'
     mod = gen_timevar_model()
 
     img = sample_from_model(mod)
-    #img = smooth_image(sample_from_model(mod))
+    '#img = smooth_image(sample_from_model(mod))'
 
     cum = sum_image(img)
 
