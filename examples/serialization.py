@@ -7,8 +7,9 @@ import gzip
 
 log.setLevel('DEBUG')
 
+
 def write_dl0_example(filename, data):
-    S = Serializer(filename, overwrite=True)
+    S = Serializer(filename, mode='w')
 
     # Create table
     for container in data:
@@ -26,24 +27,26 @@ def write_dl1_tel_example(filename, data):
 
     t38 = data[0].dl1.tel[38]
 
-    S_cal = Serializer(filename, overwrite=True)
+    S_cal = Serializer(filename, mode='w')
     S_cal.write(t38)
 
     print(S_cal._writer.table)
 
     # t11_1 = data[1].dl1.tel[11]
-    # S_cal.write(t11_1) # This will not work because shape of data is different from tel to tel.
+    # S_cal.write(t11_1)
+    # This will not work because shape of data is different from tel to tel.
 
     S_cal.save()
     return S_cal
 
 
 def context_manager_example(filename, data):
-    with Serializer(filename, overwrite=True) as writer:
+    with Serializer(filename, mode='w') as writer:
         for container in data:
             print(container.dl0)
             writer.write(container.dl0)
             print(writer._writer.table)
+    return 0
 
 
 if __name__ == "__main__":
