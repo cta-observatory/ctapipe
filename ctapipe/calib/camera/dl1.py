@@ -220,7 +220,7 @@ class CameraDL1Calibrator(Component):
                 n_samples = waveforms.shape[2]
                 if n_samples == 1:
                     # To handle ASTRI and dst
-                    corrected = np.squeeze(waveforms)
+                    corrected = waveforms[..., 0]
                     window = np.ones(waveforms.shape)
                     peakpos = np.zeros(waveforms.shape[0:2])
                     cleaned = waveforms
