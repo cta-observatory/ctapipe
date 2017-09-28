@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import sys
@@ -87,3 +88,17 @@ setup(name=PACKAGENAME,
       entry_points=entry_points,
       ext_modules=[neighboursum_module]
       )
+=======
+from setuptools import setup, find_packages
+
+version = {}
+with open("./ctapipe_resources/VERSION.py") as fp:
+    exec(fp.read(), version)
+
+setup(
+    name='ctapipe-extra',
+    version=version['__version__'],
+    packages=find_packages(),
+    package_data={'ctapipe_resources': '*'},
+)
+>>>>>>> c0531f7008a8b89b0288f770451bd2ec5bb1f1a3

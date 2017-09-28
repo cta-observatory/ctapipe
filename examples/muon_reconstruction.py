@@ -98,7 +98,7 @@ def main():
         if not muon_evt['MuonIntensityParams']: #No telescopes contained a good muon
             continue
         else:
-            plot_muon_event(event, muon_evt, None, args)
+            plot_muon_event(event, muon_evt, args)
 
             for tid in muon_evt['TelIds']:
                 idx = muon_evt['TelIds'].index(tid)

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "MyApp": {
+  	"running": true,
+  	"config_file": "config.json",
+  	"log_level": 20
+  },
+  "Foo": {
+  	"j": 4}
+}

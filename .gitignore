@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Compiled files
 *.py[co]
 *.a
@@ -74,3 +75,9 @@ distribute-*.tar.gz
 
 *.pstats
 target
+=======
+build
+*.egg-info
+__pycache__
+*.egg
+>>>>>>> c0531f7008a8b89b0288f770451bd2ec5bb1f1a3
