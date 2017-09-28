@@ -8,7 +8,7 @@ from astropy import convolution as conv
 TIMESTEP = 0.1
 
 
-def gen_static_model(nmax=None):
+def Gen_Static_Model(nmax=None):
 
     count = 0
     X, Y = np.meshgrid(np.linspace(-5, 5, 100), np.linspace(-5, 5, 100))
@@ -111,7 +111,6 @@ def lightcurve_binner(image_stream, dt=10):
     """
 
     pos = 0
-    x = arange(dt)
     lc = np.zeros(dt)
 
     for image in image_stream:
@@ -168,7 +167,7 @@ if __name__ == '__main__':
 
     plt.spectral()
 
-    #mod = gen_static_model()
+    '''mod = gen_static_model()'''
     mod = gen_timevar_model()
 
     img = sample_from_model(mod)
@@ -201,7 +200,7 @@ if __name__ == '__main__':
             lightcurve_binner(
                 smooth_image(
                     sample_from_model(
-                        gen_static_model(nmax=1000)
+                        Gen_Static_Model(nmax=1000)
                     ))))
         plt.plot(lc[0], lc[1])
         return lc

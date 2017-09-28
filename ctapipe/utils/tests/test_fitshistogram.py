@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 from ctapipe.utils.fitshistogram import Histogram
 
+
 def compare_histograms(hist1: Histogram, hist2: Histogram):
     """ check that 2 histograms are identical in value """
     assert hist1.ndims == hist2.ndims
@@ -90,7 +91,7 @@ def test_histogram_fits(histogram_file):
     hist.fill(np.array([[0, 0],
                         [0, 0.5]]))
 
-    hist.to_fits().writeto(histogram_file, clobber=True)
+    hist.to_fits().writeto(histogram_file, overwrite=True)
     newhist = Histogram.from_fits(histogram_file)
 
     # check that the values are the same
@@ -100,12 +101,11 @@ def test_histogram_fits(histogram_file):
 def test_histogram_resample_inplace():
     hist = Histogram(nbins=[5, 11], ranges=[[-2.5, 2.5], [-1, 1]])
     hist.fill(np.array([[0, 0],
-                     [0,0.5]]))
+                        [0, 0.5]]))
 
-    for testpoint in [(0,0), (0,1), (1,0), (3,3)]:
+    for testpoint in [(0, 0), (0, 1), (1, 0), (3, 3)]:
         val0 = hist.get_value(testpoint)
         hist.resample_inplace((10, 22))
-        val1 = hist.get_value(testpoint)
         hist.resample_inplace((5, 11))
         val2 = hist.get_value(testpoint)
 

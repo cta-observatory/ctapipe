@@ -13,7 +13,9 @@ from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
 
 class EventFileReader(Component):
     """
-    Parent class for specific FileReaders
+    Parent class for EventFileReaders of different sources. A new
+    EventFileReader should be created for each type of event file read into
+    ctapipe, e.g. simtelarray files are read by the `HessioFileReader`.
 
     Attributes
     ----------
@@ -350,6 +352,34 @@ except ImportError:
 
 
 class EventFileReaderFactory(Factory):
+    """
+    The `EventFileReader` `ctapipe.core.factory.Factory`. This
+    `ctapipe.core.factory.Factory` allows the correct
+    `EventFileReader` to be obtained for the event file being read. This
+    factory tests each EventFileReader by calling
+    `EventFileReader.check_file_compatibility` to see which `EventFileReader`
+    is compatible with the file.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+
+    Attributes
+    ----------
+    reader : traitlets.CaselessStrEnum
+        A string with the `EventFileReader.name` of the reader you want to
+        use. If left blank, `EventFileReader.check_file_compatibility` will be
+        used to find a compatible reader.
+    """
+
     name = "EventFileReaderFactory"
     description = "Obtain EventFileReader based on file type"
 

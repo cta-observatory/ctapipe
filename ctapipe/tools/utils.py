@@ -41,6 +41,7 @@ def get_installed_tools():
     console_tools = get_entry_map('ctapipe')['console_scripts']
     return console_tools
 
+
 def get_all_descriptions():
 
     tools = get_installed_tools()
@@ -60,4 +61,4 @@ def get_all_descriptions():
             descriptions[name] = "[no documentation. Please add a docstring]"
 
     return descriptions
-    
+

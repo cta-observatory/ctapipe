@@ -14,6 +14,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from ctapipe.image import toymodel
 from matplotlib.animation import FuncAnimation
+from ctapipe.instrument import TelescopeDescription
 
 if __name__ == '__main__':
 
@@ -21,15 +22,25 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     # load the camera
-    geom = CameraGeometry.from_name("LSTCam")
+    tel = TelescopeDescription.from_name("SST-1M","DigiCam")
+    print(tel, tel.optics.effective_focal_length)
+    geom = tel.camera
+
+    # poor-man's coordinate transform from telscope to camera frame (it's
+    # better to use ctapipe.coordiantes when they are stable)
+    scale = tel.optics.effective_focal_length.to(geom.pix_x.unit).value
+    fov = np.deg2rad(4.0)
+    maxwid = np.deg2rad(0.01)
+    maxlen = np.deg2rad(0.03)
+
     disp = CameraDisplay(geom, ax=ax)
     disp.cmap = plt.cm.terrain
     disp.add_colorbar(ax=ax)
 
     def update(frame):
-        centroid = np.random.uniform(-0.5, 0.5, size=2)
-        width = np.random.uniform(0, 0.01)
-        length = np.random.uniform(0, 0.03) + width
+        centroid = np.random.uniform(-fov, fov, size=2) * scale
+        width = np.random.uniform(0, maxwid) * scale
+        length = np.random.uniform(0, maxlen) * scale + width
         angle = np.random.uniform(0, 360)
         intens = np.random.exponential(2) * 50
         model = toymodel.generate_2d_shower_model(
