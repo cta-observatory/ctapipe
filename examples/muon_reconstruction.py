@@ -1,4 +1,9 @@
-# from calibration_pipeline import display_telescope
+"""
+Example to load raw data (hessio format), calibrate and reconstruct muon
+ring parameters
+"""
+
+
 
 import argparse
 import os
@@ -6,24 +11,18 @@ import os
 from astropy import log
 from astropy.table import Table
 
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-# from calibration_pipeline import display_telescope
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency, \
     plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils import get_dataset
-
-"""
-Example to load raw data (hessio format),
-calibrate and reconstruct muon ring
-parameters
-"""
+from ctapipe.core import Tool
+from ctapipe.core import traits as t
 
 
-def display_muon_plot(event):
+
+def print_muon(event):
     for tid in event['TelIds']:
         idx = event['TelIds'].index(tid)
         if event['MuonIntensityParams'][idx]:
@@ -33,102 +32,85 @@ def display_muon_plot(event):
     pass
 
 
-def main():
-    script = os.path.splitext(os.path.basename(__file__))[0]
-    log.info("[SCRIPT] {}".format(script))
+class MuonDisplayerTool(Tool):
+    name = 'ctapipe-display-muons'
+    description = t.Unicode(__doc__)
 
-    parser = argparse.ArgumentParser(
-        description='Display each event in the file',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-f', '--file', dest='input_path', action='store',
-                        default=get_dataset('gamma_test.simtel.gz'),
-                        help='path to the input file')
+    infile = t.Unicode(
+        help='input file name',
+        default=get_dataset('gamma_test_large.simtel.gz')
+    ).tag(config=True)
 
-    parser.add_argument('-O', '--origin', dest='origin', action='store',
-                        # was .origin_list()
-                        default='hessio', help='origin of the file')
-    parser.add_argument('-D', dest='display', action='store_true',
-                        default=False, help='display the camera events')
-    parser.add_argument('-t', '--telescope', dest='tel_FIXME', action='store',
-                        type=int, default=None,
-                        help='telecope to view. Default = All')
-    parser.add_argument('--pdf', dest='output_path', action='store',
-                        default=None,
-                        help='path to store a pdf output of the plots')
-    parser.add_argument('--calib-help', dest='calib_help', action='store_true',
-                        default=False,
-                        help='display the arguments used for the camera '
-                             'calibration')
+    outfile = t.Unicode(help='output file name',
+                        default=None)).tag(config=True)
 
-    args, excess_args = parser.parse_known_args()
+    display = t.Bool(
+        help='display the camera events', default=False
+    ).tag(config=True)
 
-    # params, unknown_args = calibration_parameters(excess_args,
-    #                                              args.origin,
-    #                                              args.calib_help)
-    r1 = HessioR1Calibrator(None, None)
-    dl0 = CameraDL0Reducer(None, None)
-    dl1 = CameraDL1Calibrator(None, None)
+    classes = t.List([CameraCalibrator,])
 
-    log.debug("[file] Reading file")
-    # input_file = InputFile(args.input_path, args.origin)
-    # source = input_file.read()
-    source = hessio_event_source(args.input_path)
+    aliases = t.Dict({'infile': 'MuonDisplayerTool.infile',
+                      'outfile': 'MuonDisplayerTool.outfile',
+                      'display' : 'MuonDisplayerTool.display'
+                      })
 
 
-    muoneff = []
-    impactp = []
-    ringwidth = []
-    plot_dict = {'MuonEff': muoneff, 'ImpactP': impactp, 'RingWidth': ringwidth}
+    def setup(self):
+        self.calib = CameraCalibrator(config=self.config, tool=self)
 
-    numev = 0
+    def start(self):
 
-    for event in source:
-        print("Event Number", numev)
-        r1.calibrate(event)
-        dl0.reduce(event)
-        dl1.calibrate(event)
+        muoneff = []
+        impactp = []
+        ringwidth = []
+        plot_dict = {'MuonEff': muoneff, 'ImpactP': impactp,
+                     'RingWidth': ringwidth}
 
-        muon_evt = analyze_muon_event(event)
+        numev = 0
 
-        numev += 1
-        # Test display #Flag 1 for true (wish to display)
-        # plot_muon_event(event,muon_evt)
-        # display_telescope(muon_evt, muon_evt[0].tel_id, 1, geom_dict, pp, fig)
-        #if muon_evt[0] is not None and muon_evt[1] is not None:
-        if not muon_evt['MuonIntensityParams']: #No telescopes contained a good muon
-            continue
-        else:
-            plot_muon_event(event, muon_evt, args)
+        source = hessio_event_source(self.infile)
 
-            for tid in muon_evt['TelIds']:
-                idx = muon_evt['TelIds'].index(tid)
-                if not muon_evt['MuonIntensityParams'][idx]:
-                    continue
+        for event in source:
+            self.log.info("Event Number: %d", numev)
 
-                plot_dict['MuonEff'].append(muon_evt['MuonIntensityParams'][idx].optical_efficiency_muon)
-                plot_dict['ImpactP'].append(muon_evt['MuonIntensityParams'][idx].impact_parameter.value)
-                plot_dict['RingWidth'].append(muon_evt['MuonIntensityParams'][idx].ring_width.value)
+            self.calib.calibrate(event)
+            muon_evt = analyze_muon_event(event)
 
-            display_muon_plot(muon_evt)
-            # Store and or Plot muon parameters here
+            numev += 1
 
-            # if numev > 50: #for testing purposes - kill early
-            #    break
+            if not muon_evt['MuonIntensityParams']:  # No telescopes contained a good muon
+                continue
+            else:
+                if self.display:
+                    plot_muon_event(event, muon_evt)
 
-    t = Table([muoneff, impactp, ringwidth],
-              names=('MuonEff', 'ImpactP', 'RingWidth'),
-              meta={'name': 'muon analysis results'})
-    t['ImpactP'].unit = 'm'
-    t['RingWidth'].unit = 'deg'
-    #    print('plotdict',plot_dict)
+                for tid in muon_evt['TelIds']:
+                    idx = muon_evt['TelIds'].index(tid)
+                    if not muon_evt['MuonIntensityParams'][idx]:
+                        continue
 
-    #t.write(str(args.output_path) + '_muontable.fits', overwrite=True)  # NEED
-    # this to overwrite
+                    self.log.info("** Muon params: %s", muon_evt[idx])
 
-    #plot_muon_efficiency(args.output_path)
+                    plot_dict['MuonEff'].append(
+                        muon_evt['MuonIntensityParams'][idx].optical_efficiency_muon
+                    )
+                    plot_dict['ImpactP'].append(
+                        muon_evt['MuonIntensityParams'][idx].impact_parameter.value
+                    )
+                    plot_dict['RingWidth'].append(
+                        muon_evt['MuonIntensityParams'][idx].ring_width.value
+                    )
 
-    log.info("[COMPLETE]")
+                    print_muon(muon_evt)
 
+
+        t = Table(plot_dict)
+        t['ImpactP'].unit = 'm'
+        t['RingWidth'].unit = 'deg'
+        if self.outfile:
+            t.write(self.outfile)
 
 if __name__ == '__main__':
-    main()
+    tool = MuonDisplayerTool()
+    tool.run()
