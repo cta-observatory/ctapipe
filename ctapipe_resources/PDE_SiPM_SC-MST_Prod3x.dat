@@ -1,0 +1,84 @@
+# Photon Detection Efficiency
+# Estimated from Hamamatsu MPPC advertized Quantum Efficiency scaled to 40.0% peak
+# Author: A. Bouvier, apbouvie@ucsc.edu
+# Date: 2-5-2013
+# Extension beyond 300-700 nm w.l. range by KB 2015-06-25, based on scaled ASTRI PDE
+# Column 1: Wavelength [nm]
+# Column 2: Photon Detection Efficiency
+240         0.       # Extrapolation
+254         0.03573  # Extrapolation (0.45 * ASTRI)
+270         0.03528  # Extrapolation (0.45 * ASTRI)
+280         0.04923  # Extrapolation (0.45 * ASTRI)
+289         0.07128  # Extrapolation (0.45 * ASTRI)
+296         0.0936   # Extrapolation (0.45 * ASTRI)
+300	0.10764  # First data point in original file
+310	0.16933
+320	0.23518
+330	0.26953
+340	0.28949
+350	0.29856
+360	0.31044
+370	0.32754
+380	0.34961
+390	0.38263
+400	0.39403
+410	0.39712
+420	0.39925
+430	0.40000
+440	0.39954
+450	0.39735
+460	0.39111
+470	0.38278
+480	0.37281
+490	0.36169
+500	0.34973
+510	0.33510
+520	0.31901
+530	0.30324
+540	0.28904
+550	0.27559
+560	0.26198
+570	0.24930
+580	0.23683
+590	0.22481
+600	0.21259
+610	0.20068
+620	0.18969
+630	0.17992
+640	0.17042
+650	0.16133
+660	0.15243
+670	0.14441
+680	0.13643
+690	0.12896
+700	0.12148  # Last data point in original file.
+ 710        0.111936   # Extended with values from ASTRI PDE,
+ 720        0.104896   # scaled by a factor of 0.64 in order to
+ 730        0.102208   # match up at 700 nm.
+ 740        0.093056
+ 750        0.089472
+ 760        0.085312
+ 770        0.075776
+ 780        0.070528
+ 790        0.063616
+ 800        0.059456
+ 810        0.054336
+ 820        0.050624
+ 830         0.04576
+ 840        0.042624
+ 850          0.0384
+ 860        0.034048
+ 870        0.030976
+ 880        0.028736
+ 890         0.02656
+ 900        0.022784
+ 910        0.020736
+ 920         0.01856
+ 930        0.015936
+ 940        0.014464
+ 950        0.012544
+ 960        0.010432
+ 970         0.00896
+ 980        0.007872
+ 990        0.006528
+1000        0.006272
