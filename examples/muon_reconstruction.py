@@ -22,13 +22,17 @@ from ctapipe.core import traits as t
 
 
 
-def print_muon(event):
+def print_muon(event, printer=print):
     for tid in event['TelIds']:
         idx = event['TelIds'].index(tid)
         if event['MuonIntensityParams'][idx]:
-            print("MUON:", event['MuonRingParams'][idx].run_id, event['MuonRingParams'][idx].event_id,
-                  event['MuonIntensityParams'][idx].impact_parameter, event['MuonIntensityParams'][idx].ring_width, "mu_eff=",
-                  event['MuonIntensityParams'][idx].optical_efficiency_muon)
+            printer("MUON: {} {} {} {} {}".format(
+                event['MuonRingParams'][idx].run_id,
+                event['MuonRingParams'][idx].event_id,
+                event['MuonIntensityParams'][idx].impact_parameter,
+                event['MuonIntensityParams'][idx].ring_width, "mu_eff=",
+                event['MuonIntensityParams'][idx].optical_efficiency_muon)
+            )
     pass
 
 
@@ -61,11 +65,9 @@ class MuonDisplayerTool(Tool):
 
     def start(self):
 
-        muoneff = []
-        impactp = []
-        ringwidth = []
-        plot_dict = {'MuonEff': muoneff, 'ImpactP': impactp,
-                     'RingWidth': ringwidth}
+        output_parameters = {'MuonEff': [],
+                             'ImpactP': [],
+                             'RingWidth': []}
 
         numev = 0
 
@@ -92,20 +94,21 @@ class MuonDisplayerTool(Tool):
 
                     self.log.info("** Muon params: %s", muon_evt[idx])
 
-                    plot_dict['MuonEff'].append(
+                    output_parameters['MuonEff'].append(
                         muon_evt['MuonIntensityParams'][idx].optical_efficiency_muon
                     )
-                    plot_dict['ImpactP'].append(
+                    output_parameters['ImpactP'].append(
                         muon_evt['MuonIntensityParams'][idx].impact_parameter.value
                     )
-                    plot_dict['RingWidth'].append(
+                    output_parameters['RingWidth'].append(
                         muon_evt['MuonIntensityParams'][idx].ring_width.value
                     )
 
-                    print_muon(muon_evt)
+                    print_muon(muon_evt, printer=self.log.info)
 
 
-        t = Table(plot_dict)
+
+        t = Table(output_parameters)
         t['ImpactP'].unit = 'm'
         t['RingWidth'].unit = 'deg'
         if self.outfile:
