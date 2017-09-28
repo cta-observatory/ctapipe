@@ -57,7 +57,7 @@ class Serializer:
         """
         self.filename = filename
         self.format = format
-        self._stat = None # TODO collect statistics about serialized contents
+        self._stat = None  # TODO collect statistics about serialized contents
         if mode not in ('x', 'w', 'a'):
             raise ValueError('{} is not a valid write mode. Use x, w or a'.
                              format(mode))
