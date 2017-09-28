@@ -88,7 +88,7 @@ def plot_muon_efficiency(outputpath):
         plt.show()
 
 
-def plot_muon_event(event, muonparams, args=None):
+def plot_muon_event(event, muonparams):
 
     if muonparams['MuonRingParams'] is not None:
 
