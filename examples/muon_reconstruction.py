@@ -1,25 +1,17 @@
 """
 Example to load raw data (hessio format), calibrate and reconstruct muon
-ring parameters
+ring parameters, and write some parameters to an output table
 """
 
-
-
-import argparse
-import os
-
-from astropy import log
 from astropy.table import Table
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_efficiency, \
-    plot_muon_event
+from ctapipe.core import Tool
+from ctapipe.core import traits as t
+from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils import get_dataset
-from ctapipe.core import Tool
-from ctapipe.core import traits as t
-
 
 
 def print_muon(event, printer=print):
@@ -71,9 +63,7 @@ class MuonDisplayerTool(Tool):
 
         numev = 0
 
-        source = hessio_event_source(self.infile)
-
-        for event in source:
+        for event in hessio_event_source(self.infile):
             self.log.info("Event Number: %d", numev)
 
             self.calib.calibrate(event)
