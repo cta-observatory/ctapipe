@@ -10,6 +10,7 @@ if __name__ == '__main__':
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(1, 1, 1)
 
+
     geom = CameraGeometry.from_name('NectarCam')
     disp = CameraDisplay(geom, ax=ax)
     disp.add_colorbar()
