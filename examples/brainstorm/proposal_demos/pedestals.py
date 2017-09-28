@@ -12,9 +12,13 @@ import numpy as np
 
 def make_fake_pedestal_images(nevents=100, npix=1024, ped_variance=50,
                               ped_offset=-1000,
-                              noisy_pix=[10, 100, 740],
-                              dead_pix=[6, 17, 45, 900]):
+                              noisy_pix=None,
+                              dead_pix=None):
     """ generate fake raw data images """
+    if noisy_pix is None:
+        noisy_pix = [10, 100, 740]
+    if dead_pix is None:
+        dead_pix = [6, 17, 45, 900]
     noise_pe = np.ones(shape=(npix), dtype=np.int64) * 30
     noise_pe[noisy_pix] = 80   # noisy pixels
     noise_pe[dead_pix] = 0     # dead pixels
@@ -96,7 +100,7 @@ if __name__ == '__main__':
 
     # mark noisy and dead pixels that were detected:
     ax[3].scatter(pixids[noisy], pedvars[noisy], color='blue', label="noisy")
-    ax[3].scatter(pixids[dead],  pedvars[dead], color='cyan', label="dead")
+    ax[3].scatter(pixids[dead], pedvars[dead], color='cyan', label="dead")
     ax[3].legend()
 
     fig2 = plt.figure()
