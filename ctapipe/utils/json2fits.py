@@ -51,8 +51,8 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
         table_0 = fits.TableHDU(data=None, header=header, name=section)
         hduList.append(table_0)
     try:
-        hduList.writeto(fits_filename, clobber=clobber)
-    except OSError as e:
+        hduList.writeto(fits_filename, overwrite=True)
+    except OSError:
         logging.exception('Could not do save {}'.format(fits_filename))
         raise
 
@@ -120,8 +120,8 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         hduList.append(table_0)
         # write hduList to FITS file
         try:
-            hduList.writeto(fits_filename, clobber=clobber)
-        except OSError as e:
+            hduList.writeto(fits_filename, overwrite=True)
+        except OSError:
             logging.exception('Could not do save {}'.format(fits_filename))
             raise
 
