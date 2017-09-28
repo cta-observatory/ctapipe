@@ -250,9 +250,9 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
     size = image.sum()
 
     if size == 0.0:
-        raise (HillasParameterizationError("Empty pixels!" +
-                                           "Cannot calculate image parameters." +
-                                           "Exiting..."))
+        raise (HillasParameterizationError(("Empty pixels!"
+                                            "Cannot calculate image parameters."
+                                            "Exiting...")))
 
     '''call static_xy to initialize the "static variables"
     actually, would be nice to just call this if we know 
@@ -460,8 +460,8 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
             sumy3sig += wydeg[i] * wydeg[i] * wybyev
 
     if sumsig == 0.0:
-        raise (HillasParameterizationError("Empty pixels! Cannot calculate image" +
-                                           "parameters. Exiting..."))
+        raise (HillasParameterizationError(("Empty pixels! Cannot calculate image"
+                                            "parameters. Exiting...")))
 
     xm = sumxsig / sumsig
     x2m = sumx2sig / sumsig
@@ -655,9 +655,9 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     sumy4sig = (image * static_xy.pix_y4).sum()
 
     if sumsig == 0.0:
-        raise (HillasParameterizationError("Empty pixels!" +
-                                           "Cannot calculate image parameters." +
-                                           "Exiting..."))
+        raise (HillasParameterizationError(("Empty pixels!"
+                                            "Cannot calculate image parameters."
+                                            "Exiting...")))
 
     xm = sumxsig / sumsig
     ym = sumysig / sumsig
