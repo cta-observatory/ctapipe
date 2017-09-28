@@ -1,6 +1,5 @@
 include README.rst
 include CHANGES.rst
-include ctapipe/VERSION
 
 include setup.cfg
 

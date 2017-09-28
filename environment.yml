@@ -4,9 +4,10 @@ channels:
   - openastronomy
   - astropy
 dependencies:
-  - ctapipe-extra=0.2.9
+  - ctapipe-extra=0.2.11
   - astropy
   - bokeh
+  - cython
   - fitsio
   - gammapy
   - graphviz

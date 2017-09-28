@@ -204,6 +204,7 @@ def poisson_likelihood(image, prediction, spe_width, ped,
     # Calculate photoelectron resolution
 
     width = ped * ped + image * spe_width * spe_width
+    width=np.asarray(width)
     width[width < 0] = 0  # Set width to 0 for negative pixel amplitudes
     width = np.sqrt(width)
 
@@ -254,7 +255,7 @@ def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
     """
     Wrapper function around likelihood calculation, used in numerical integration.
     """
-    like = poisson_likelihood_full(s, prediction, spe_width, ped)
+    like = poisson_likelihood(s, prediction, spe_width, ped)
     return like * np.exp(-0.5 * like)
 
 
@@ -293,7 +294,7 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
         int_range = (prediction[p] - 10 * width[p],
                      prediction[p] + 10 * width[p])
         mean_like[p] = quad(_integral_poisson_likelihood_full, int_range[0], int_range[1],
-                            args=(prediction[p], spe_width[p], ped[p]), epsrel=0.01)[0]
+                            args=(prediction[p], spe_width[p], ped[p]), epsrel=0.05)[0]
     return mean_like
 
 

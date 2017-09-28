@@ -16,6 +16,7 @@ Todo:
 
 from .optics import OpticsDescription
 from .camera import CameraGeometry
+from ..utils import get_dataset
 
 
 class TelescopeDescription:
@@ -74,6 +75,28 @@ class TelescopeDescription:
         optics = OpticsDescription.guess(effective_focal_length)
         return cls(optics=optics, camera=camera)
 
+    @classmethod
+    def from_name(cls, optics_name, camera_name):
+        """
+        construct a TelescopeDescription from a name (telescope description
+        string)
+
+        Parameters
+        ----------
+        camera_name: str
+           camera name
+        optics_name: str
+           optics name (e.g. LST, or SST-ASTRI), also called
+           telescope_description
+
+        Returns
+        -------
+        TelescopeDescription
+
+        """
+        camera = CameraGeometry.from_name(camera_name)
+        optics = OpticsDescription.from_name(optics_name)
+        return cls(optics=optics, camera=camera)
 
     def __str__(self):
         return str(self.optics) + ":" + str(self.camera)

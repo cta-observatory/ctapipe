@@ -19,18 +19,22 @@ before_install:
 
     # Install miniconda following instructions at
     # http://conda.pydata.org/docs/travis.html
+
+    # note: a fixed anaconda version is being used below due to a bug
+    # in the latest, but if solved this can change back to
+    # Miniconda3-Latest-Linux-x86_64.sh
     
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+        wget https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh -O miniconda.sh;
       fi
     - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+        wget https://repo.continuum.io/miniconda/Miniconda3-4.3.21-MacOSX-x86_64.sh -O miniconda.sh;
       fi
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda  # get latest conda version
+    ### - conda update -q conda  # get latest conda version
     # Useful for debugging any issues with conda
     - conda info -a
 
@@ -46,11 +50,11 @@ install:
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
-    - python setup.py install
+    - python setup.py develop
 
 
 script:
-    - make test
+    - python -m pytest
     - ctapipe-info --version # print out the version string
     - travis-sphinx --source=docs/ build
 

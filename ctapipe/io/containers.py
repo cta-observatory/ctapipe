@@ -4,7 +4,7 @@ Container structures for data that should be read or written to disk
 
 from astropy import units as u
 from astropy.time import Time
-from numpy import ndarray
+from numpy import ndarray, nan
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -318,6 +318,17 @@ class ReconstructedContainer(Container):
     )
 
 
+class TelescopePointingContainer(Container):
+    '''
+    Container holding pointing information for a single telescope
+    after all necessary correction and calibration steps.
+    These values should be used in the reconstruction to transform
+    between camera and sky coordinates.
+    '''
+    azimuth = Field(nan * u.rad, 'Azimuth, measured N->E', unit=u.rad)
+    altitude = Field(nan * u.rad, 'Altitude', unit=u.rad)
+
+
 class DataContainer(Container):
     """ Top-level container for all event information """
 
@@ -331,6 +342,7 @@ class DataContainer(Container):
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
+    pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
 
 
 class MuonRingParameter(Container):
