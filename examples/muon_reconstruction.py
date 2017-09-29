@@ -38,7 +38,7 @@ class MuonDisplayerTool(Tool):
     ).tag(config=True)
 
     outfile = t.Unicode(help='output file name',
-                        default=None)).tag(config=True)
+                        default=None).tag(config=True)
 
     display = t.Bool(
         help='display the camera events', default=False
@@ -62,9 +62,10 @@ class MuonDisplayerTool(Tool):
                              'RingWidth': []}
 
         numev = 0
+        num_muons_found = 0
 
         for event in hessio_event_source(self.infile):
-            self.log.info("Event Number: %d", numev)
+            self.log.info("Event Number: %d, found %d muons", numev, num_muons_found)
 
             self.calib.calibrate(event)
             muon_evt = analyze_muon_event(event)
@@ -95,6 +96,7 @@ class MuonDisplayerTool(Tool):
                     )
 
                     print_muon(muon_evt, printer=self.log.info)
+                    num_muons_found += 1
 
 
 
