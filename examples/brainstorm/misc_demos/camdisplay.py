@@ -131,10 +131,8 @@ class CameraPanel(wx.Panel):
 if __name__ == '__main__':
 
     def update_data(wxevent):
-        global eventnum, tevents
+        global eventnum
         eventnum = 0
-        tevents = fitsio.FITS(opts.televentsfile, iter_row_buffer=1000)['TEVENTS']
-
 
         event = tevents[eventnum]
 
@@ -179,6 +177,9 @@ if __name__ == '__main__':
     header = fitsio.read_header(opts.televentsfile, ext="TEVENTS")
     global max_events
     max_events = header["NAXIS2"]
+    global tevents
+    tevents = fitsio.FITS(opts.televentsfile, iter_row_buffer=1000)['TEVENTS']
+
     print(" --> found {}  events".format(max_events))
 
 
