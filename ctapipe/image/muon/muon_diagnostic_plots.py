@@ -1,25 +1,24 @@
-
 """
 Set of diagnostic plots relating to muons 
 For generic use with all muon algorithms
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
-from matplotlib import colors
-from scipy.stats import norm
+import matplotlib.pyplot as plt
+import numpy as np
 from astropy import units as u
 from astropy.table import Table
-from ctapipe.instrument import CameraGeometry
-from ctapipe.coordinates import (CameraFrame, NominalFrame, HorizonFrame,
-                                 TelescopeFrame)
-from ctapipe.image.cleaning import tailcuts_clean
-from IPython import embed
+from matplotlib import colors
+from scipy.stats import norm
 
+from ctapipe.coordinates import (CameraFrame, NominalFrame, HorizonFrame)
+from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.plotting.camera import CameraPlotter
 from ctapipe.utils.fitshistogram import Histogram
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 def plot_muon_efficiency(outputpath):
     """
@@ -31,24 +30,24 @@ def plot_muon_efficiency(outputpath):
 
     nbins = 16
     t = Table.read(str(outputpath) + '_muontable.fits')
-    print('Reading muon efficiency from table', outputpath, t['MuonEff'])
+    logger.info('Reading muon efficiency from table "%s"', outputpath)
 
     if len(t['MuonEff']) < 1:
-        print("No muon events to plot")
+        logger.warning("No muon events to plot")
         return
     else:
-        print("Found", len(t['MuonEff']), "muon events")
+        logger.info("Found %d muon events", len(t['MuonEff']))
 
     (mu, sigma) = norm.fit(t['MuonEff'])
 
-    print('Gaussian fit with mu=', mu, 'sigma=', sigma)
+    logger.debug('Gaussian fit with mu=%f, sigma=%f', mu, sigma)
 
     conteff = ax.hist(t['MuonEff'], nbins)
     ax.set_xlim(0.2 * min(t['MuonEff']), 1.2 * max(t['MuonEff']))
 
     xtest = np.linspace(min(t['MuonEff']), max(t['MuonEff']), nbins)
     yg = mlab.normpdf(xtest, mu, sigma)
-    print('mu', mu, 'sigma', sigma, 'yg', yg)
+    logger.debug('mu=%f sigma=%f yg=%f', mu, sigma, yg)
     ax.plot(xtest, yg, 'r', linewidth=2)
 
     ax.set_ylim(0., 1.2 * max(conteff[0]))
@@ -65,7 +64,9 @@ def plot_muon_efficiency(outputpath):
 
     heffimp = Histogram(nbins=[16, 16],
                         ranges=[(min(t['MuonEff']), max(t['MuonEff'])),
-                                (min(t['ImpactP']), max(t['ImpactP']))])  # ,axisNames=["MuonEfficiency","ImpactParameter"])
+                                (min(t['ImpactP']), max(t[
+                                                            'ImpactP']))])  #
+    #  ,axisNames=["MuonEfficiency","ImpactParameter"])
 
     heffimp.fill([t['MuonEff'], t['ImpactP']])
     heffimp.draw_2d()
@@ -79,17 +80,16 @@ def plot_muon_efficiency(outputpath):
     plt.draw()
 
     if outputpath is not None:
-        print("saving figure at", outputpath)
+        logger.info("saving figure to '%s'", outputpath)
         fig.savefig(str(outputpath) + '_MuonEff.png')
         figip.savefig(str(outputpath) + '_ImpactParameter.png')
         figrw.savefig(str(outputpath) + '_RingWidth.png')
     else:
-        print("Not saving figure, no outputpath")
+        logger.info("Not saving figure, no outputpath")
         plt.show()
 
 
-def plot_muon_event(event, muonparams, args=None):
-
+def plot_muon_event(event, muonparams):
     if muonparams['MuonRingParams'] is not None:
 
         # Plot the muon event and overlay muon parameters
@@ -98,14 +98,14 @@ def plot_muon_event(event, muonparams, args=None):
         colorbar = None
         colorbar2 = None
 
-        #for tel_id in event.dl0.tels_with_data:
+        # for tel_id in event.dl0.tels_with_data:
         for tel_id in muonparams['TelIds']:
             idx = muonparams['TelIds'].index(tel_id)
 
             if not muonparams['MuonRingParams'][idx]:
                 continue
 
-            #otherwise...
+            # otherwise...
             npads = 2
             # Only create two pads if there is timing information extracted
             # from the calibration
@@ -125,38 +125,38 @@ def plot_muon_event(event, muonparams, args=None):
 
             signals = image * clean_mask
 
-            #print("Ring Centre in Nominal Coords:",muonparams[0].ring_center_x,muonparams[0].ring_center_y)
-            muon_incl = np.sqrt(muonparams['MuonRingParams'][idx].ring_center_x**2. +
-                                muonparams['MuonRingParams'][idx].ring_center_y**2.)
+            muon_incl = np.sqrt(
+                muonparams['MuonRingParams'][idx].ring_center_x ** 2. +
+                muonparams['MuonRingParams'][idx].ring_center_y ** 2.)
 
-            muon_phi = np.arctan(muonparams['MuonRingParams'][idx].ring_center_y /
-                                 muonparams['MuonRingParams'][idx].ring_center_x)
+            muon_phi = np.arctan(
+                muonparams['MuonRingParams'][idx].ring_center_y /
+                muonparams['MuonRingParams'][idx].ring_center_x)
 
             rotr_angle = geom.pix_rotation
-            # if event.inst.optical_foclen[tel_id] > 10.*u.m and
-            # event.dl0.tel[tel_id].num_pixels != 1764:
+
             if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
-                #print("Resetting the rotation angle")
+
                 rotr_angle = 0. * u.deg
 
             # Convert to camera frame (centre & radius)
             altaz = HorizonFrame(alt=event.mc.alt, az=event.mc.az)
 
-            ring_nominal = NominalFrame(x=muonparams['MuonRingParams'][idx].ring_center_x,
-                                        y=muonparams['MuonRingParams'][idx].ring_center_y,
-                                        array_direction=altaz,
-                                        pointing_direction=altaz)
+            ring_nominal = NominalFrame(
+                x=muonparams['MuonRingParams'][idx].ring_center_x,
+                y=muonparams['MuonRingParams'][idx].ring_center_y,
+                array_direction=altaz,
+                pointing_direction=altaz)
 
-            # embed()
             ring_camcoord = ring_nominal.transform_to(CameraFrame(
                 pointing_direction=altaz,
                 focal_length=event.inst.optical_foclen[tel_id],
                 rotation=rotr_angle))
 
-            centroid_rad = np.sqrt(ring_camcoord.y**2 + ring_camcoord.x**2)
             centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
 
-            ringrad_camcoord = muonparams['MuonRingParams'][idx].ring_radius.to(u.rad) \
+            ringrad_camcoord = muonparams['MuonRingParams'][idx].ring_radius.to(
+                u.rad) \
                                * event.inst.optical_foclen[tel_id] * 2.  # But not FC?
 
             px, py = event.inst.pixel_pos[tel_id]
@@ -173,12 +173,19 @@ def plot_muon_event(event, muonparams, args=None):
             px = nom_coord.x.to(u.deg)
             py = nom_coord.y.to(u.deg)
 
-            dist = np.sqrt(np.power( px - muonparams['MuonRingParams'][idx].ring_center_x, 2)
-                           + np.power(py - muonparams['MuonRingParams'][idx].ring_center_y, 2))
-            ring_dist = np.abs(dist - muonparams['MuonRingParams'][idx].ring_radius)
-            pixRmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
+            dist = np.sqrt(
+                np.power(px - muonparams['MuonRingParams'][idx].ring_center_x,
+                         2)
+                + np.power(py - muonparams['MuonRingParams'][idx].ring_center_y,
+                           2)
+            )
+            ring_dist = np.abs(
+                dist - muonparams['MuonRingParams'][idx].ring_radius
+            )
+            pixRmask = ring_dist < muonparams['MuonRingParams'][
+                                       idx].ring_radius * 0.4
 
-            #if muonparams[1] is not None:
+
             if muonparams['MuonIntensityParams'][idx] is not None:
                 signals *= muonparams['MuonIntensityParams'][idx].mask
 
@@ -209,35 +216,37 @@ def plot_muon_event(event, muonparams, args=None):
             camera1.add_ellipse(centroid, ringrad_camcoord.value,
                                 ringrad_camcoord.value, 0., 0., color="red")
 
-
             if muonparams['MuonIntensityParams'][idx] is not None:
-                # continue #Comment this...(should ringwidthfrac also be *0.5?)
 
-                ringwidthfrac = muonparams['MuonIntensityParams'][idx].ring_width / muonparams['MuonRingParams'][idx].ring_radius
+                ringwidthfrac = muonparams['MuonIntensityParams'][idx].ring_width / \
+                                muonparams['MuonRingParams'][idx].ring_radius
                 ringrad_inner = ringrad_camcoord * (1. - ringwidthfrac)
                 ringrad_outer = ringrad_camcoord * (1. + ringwidthfrac)
                 camera1.add_ellipse(centroid, ringrad_inner.value,
-                                     ringrad_inner.value, 0., 0.,
-                                     color="magenta")
+                                    ringrad_inner.value, 0., 0.,
+                                    color="magenta")
                 camera1.add_ellipse(centroid, ringrad_outer.value,
-                                    ringrad_outer.value, 0., 0., color="magenta")
+                                    ringrad_outer.value, 0., 0.,
+                                    color="magenta")
                 npads = 2
                 ax2 = fig.add_subplot(1, npads, npads)
                 pred = muonparams['MuonIntensityParams'][idx].prediction
 
-
-                if len(pred) != np.sum(muonparams['MuonIntensityParams'][idx].mask):
-                    print("Warning! Lengths do not match...len(pred)=",
-                          len(pred), "len(mask)=", np.sum(muonparams['MuonIntensityParams'][idx].mask))
+                if len(pred) != np.sum(
+                        muonparams['MuonIntensityParams'][idx].mask):
+                logger.warning("Lengths do not match...len(pred)=%s len("
+                               "mask)=",len(pred),
+                               np.sum(muonparams['MuonIntensityParams'][idx].mask))
 
                 # Numpy broadcasting - fill in the shape
                 plotpred = np.zeros(image.shape)
-                plotpred[muonparams['MuonIntensityParams'][idx].mask == True] = pred
+                plotpred[
+                    muonparams['MuonIntensityParams'][idx].mask == True] = pred
 
                 camera2 = plotter.draw_camera(tel_id, plotpred, ax2)
 
                 if np.isnan(max(plotpred)) or np.isnan(min(plotpred)):
-                    print("nan prediction, skipping...")
+                    logger.debug("nan prediction, skipping...")
                     continue
 
                 c2maxmin = (max(plotpred) - min(plotpred))
@@ -247,8 +256,10 @@ def plot_muon_event(event, muonparams, args=None):
                 c2map_charge = colors.LinearSegmentedColormap.from_list(
                     'c2map_c', [(0 / c2maxmin, 'darkblue'),
                                 (np.abs(min(plotpred)) / c2maxmin, 'black'),
-                                (2.0 * np.abs(min(plotpred)) / c2maxmin, 'blue'),
-                                (2.5 * np.abs(min(plotpred)) / c2maxmin, 'green'),
+                                (
+                                2.0 * np.abs(min(plotpred)) / c2maxmin, 'blue'),
+                                (2.5 * np.abs(min(plotpred)) / c2maxmin,
+                                 'green'),
                                 (1, 'yellow')]
                 )
                 camera2.pixels.set_cmap(c2map_charge)
@@ -260,11 +271,10 @@ def plot_muon_event(event, muonparams, args=None):
                 camera2.update(True)
                 plt.pause(1.)  # make shorter
 
-
             # plt.pause(0.1)
             # if pp is not None:
             #    pp.savefig(fig)
-            #fig.savefig(str(args.output_path) + "_" +
+            # fig.savefig(str(args.output_path) + "_" +
             #            str(event.dl0.event_id) + '.png')
 
 
