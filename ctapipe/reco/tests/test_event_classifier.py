@@ -49,6 +49,7 @@ def test_prepare_model_MLP():
     clf.fit(scaled_features, target_list)
     return clf, cam_id_list, scaler
 
+
 def test_fit_save_load_MLP():
     clf, cam_id_list, scaler = test_prepare_model_MLP()
     with TemporaryDirectory() as d:
@@ -56,6 +57,7 @@ def test_fit_save_load_MLP():
         clf.save(temp_path)
         clf = EventClassifier.load(temp_path, cam_id_list)
         return clf, cam_id_list, scaler
+
 
 def test_predict_by_event_MLP():
     clf, cam_id_list, scaler = test_fit_save_load_MLP()
@@ -77,6 +79,7 @@ def test_predict_by_event_MLP():
     z = {'FlashCam': z}
     prediction = clf.predict_by_event([x, y, z])
     assert (prediction == ["b", "a", "a"]).all()
+
 
 def test_prepare_model():
     cam_id_list = ["FlashCam", "ASTRICam"]

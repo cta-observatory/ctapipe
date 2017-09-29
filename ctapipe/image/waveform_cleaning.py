@@ -102,6 +102,12 @@ class CHECMWaveformCleaner(WaveformCleaner):
 
         # Cleaning steps for plotting
         self.stages = {}
+        self.stage_names = ['0: raw',
+                            '1: baseline_sub',
+                            '2: no_pulse',
+                            '3: smooth_baseline',
+                            '4: smooth_wf',
+                            '5: cleaned']
 
         self.kernel = general_gaussian(10, p=1.0, sig=32)
 

@@ -46,6 +46,7 @@ General documentation
   */index
   FAQ
   bibliography
+  changelog
 
 Module API Status (relative to next release)
 ============================================

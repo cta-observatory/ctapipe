@@ -197,7 +197,7 @@ class CameraDL1Calibrator(Component):
             correction = integration_correction(n_chan, shape, step,
                                                 time_slice, width, shift)
             return correction
-        except AttributeError:
+        except (AttributeError, KeyError):
             # Don't apply correction when window_shift or window_width
             # does not exist in extractor, or when container does not have
             # a reference pulse shape
@@ -217,19 +217,28 @@ class CameraDL1Calibrator(Component):
 
             if self.check_dl0_exists(event, telid):
                 waveforms = event.dl0.tel[telid].pe_samples
+                n_samples = waveforms.shape[2]
+                if n_samples == 1:
+                    # To handle ASTRI and dst
+                    corrected = waveforms[..., 0]
+                    window = np.ones(waveforms.shape)
+                    peakpos = np.zeros(waveforms.shape[0:2])
+                    cleaned = waveforms
+                else:
+                    # Clean waveforms
+                    cleaned = self.cleaner.apply(waveforms)
 
-                # Clean waveforms
-                cleaned = self.cleaner.apply(waveforms)
+                    # Extract charge
+                    if self.extractor.requires_neighbours():
+                        e = self.extractor
+                        g = self.get_geometry(event, telid)
+                        e.neighbours = g.neighbor_matrix_where
+                    extract = self.extractor.extract_charge
+                    charge, peakpos, window = extract(cleaned)
 
-                # Extract charge
-                if self.extractor.requires_neighbours():
-                    e = self.extractor
-                    e.neighbours = self.get_geometry(event, telid).neighbors
-                extract = self.extractor.extract_charge
-                charge, peakpos, window = extract(cleaned)
-
-                # Apply integration correction
-                corrected = charge * self.get_correction(event, telid)[:, None]
+                    # Apply integration correction
+                    correction = self.get_correction(event, telid)[:, None]
+                    corrected = charge * correction
 
                 # Clip amplitude
                 if self.clip_amplitude:

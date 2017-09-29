@@ -114,12 +114,15 @@ class ArrayPlotter:
         self.axes.contour(x, y, background, **kwargs)
 
         # Annoyingly we need to redraw everything
-        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y), tel_type=self.tel_type)
+        self.array = ArrayDisplay(telx=np.asarray(self.tel_x),
+                                  tely=np.asarray(self.tel_y),
+                                  tel_type=self.tel_type)
 
         if self.hillas is not None:
             self.overlay_hillas(self.hillas)
 
-    def draw_array(self, range=((-2000,2000),(-2000,2000))):
+    def draw_array(self, range=((-2000, 2000), (-2000, 2000)),
+                   annotate=False):
         """
         Draw the array plotter (including any overlayed elements)
 
@@ -135,6 +138,11 @@ class ArrayPlotter:
 
         self.array.axes.set_xlim((self.centre[0]+range[0][0], range[0][1]+self.centre[0]))
         self.array.axes.set_ylim((self.centre[1]+range[1][0], range[1][1]+self.centre[1]))
+
+        if annotate:
+            for txt, x, y in zip(self.telescopes,
+                                 self.tel_x.value, self.tel_y.value):
+                self.axes.annotate(txt, (x, y))
 
         #self.axes.tight_layout()
         #self.axes.show()

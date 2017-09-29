@@ -324,6 +324,18 @@ class CameraGeometry:
     def neighbor_matrix(self):
         return _neighbor_list_to_matrix(self.neighbors)
 
+    @lazyproperty
+    def neighbor_matrix_where(self):
+        """
+        Obtain a 2D array, where each row is [pixel index, one neighbour
+        of that pixel].
+
+        Returns
+        -------
+        ndarray
+        """
+        return np.ascontiguousarray(np.array(np.where(self.neighbor_matrix)).T)
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so

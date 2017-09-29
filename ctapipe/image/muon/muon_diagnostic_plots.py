@@ -162,7 +162,6 @@ def plot_muon_event(event, muonparams, args=None):
             px, py = event.inst.pixel_pos[tel_id]
             flen = event.inst.optical_foclen[tel_id]
             camera_coord = CameraFrame(x=px, y=py,
-                                       z=np.zeros(px.shape) * u.m,
                                        focal_length=flen,
                                        rotation=geom.pix_rotation)
 
