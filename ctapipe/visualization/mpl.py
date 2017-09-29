@@ -52,8 +52,6 @@ class CameraDisplay:
         rescale the vmin/vmax values when the image changes.
         This is set to False if `set_limits_*` is called to explicity
         set data limits.
-    antialiased : bool  (default True)
-        whether to draw in antialiased mode or not.
 
     Notes
     -----
@@ -92,9 +90,8 @@ class CameraDisplay:
             cmap=None,
             allow_pick=False,
             autoupdate=True,
-            autoscale=True,
-            antialiased=True,
-            ):
+            autoscale=True
+    ):
         self.axes = ax if ax is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
@@ -117,12 +114,12 @@ class CameraDisplay:
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
         for xx, yy, aa in zip(
-            u.Quantity(self.geom.pix_x[self.geom.mask]).value,
-            u.Quantity(self.geom.pix_y[self.geom.mask]).value,
-            u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
+                u.Quantity(self.geom.pix_x[self.geom.mask]).value,
+                u.Quantity(self.geom.pix_y[self.geom.mask]).value,
+                u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
 
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2*PIXEL_EPSILON
+                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
                     (xx, yy), 6, radius=rr,
                     orientation=self.geom.pix_rotation.rad,
@@ -131,7 +128,7 @@ class CameraDisplay:
             else:
                 rr = sqrt(aa) + PIXEL_EPSILON
                 poly = Rectangle(
-                    (xx-rr/2., yy-rr/2.),
+                    (xx - rr / 2., yy - rr / 2.),
                     width=rr,
                     height=rr,
                     angle=self.geom.pix_rotation.deg,
@@ -328,7 +325,7 @@ class CameraDisplay:
 
     def add_colorbar(self, **kwargs):
         """
-        add a colobar to the camera plot
+        add a colorbar to the camera plot
         kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
@@ -394,20 +391,20 @@ class CameraDisplay:
 
 
         el = self.add_ellipse(centroid=(cen_x, cen_y),
-                              length=length*2,
-                              width=width*2, angle=momparams.psi.rad,
+                              length=length * 2,
+                              width=width * 2, angle=momparams.psi.rad,
                               **kwargs)
 
         self._axes_overlays.append(el)
 
         if with_label:
             text = self.axes.text(cen_x, cen_y,
-                           ("({:.02f},{:.02f})\n"
-                            "[w={:.02f},l={:.02f}]")
-                           .format(momparams.cen_x,
-                                   momparams.cen_y,
-                                   momparams.width, momparams.length),
-                           color=el.get_edgecolor())
+                                  ("({:.02f},{:.02f})\n"
+                                   "[w={:.02f},l={:.02f}]")
+                                  .format(momparams.cen_x,
+                                          momparams.cen_y,
+                                          momparams.width, momparams.length),
+                                  color=el.get_edgecolor())
 
             self._axes_overlays.append(text)
 
@@ -457,13 +454,14 @@ class ArrayDisplay:
 
         if tel_type is None:
             tel_type = np.ones(len(telx))
-        patches = [Rectangle(xy=(x-radius/2, y-radius/2), width=radius, height=radius, fill=False)
+        patches = [Rectangle(xy=(x - radius / 2, y - radius / 2),
+                             width=radius, height=radius, fill=False)
                    for x, y in zip(telx, tely)]
 
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
         self.telescopes.set_clim(1, 9)
-        rgb = matplotlib.cm.Set1((tel_type-1)/9)
+        rgb = matplotlib.cm.Set1((tel_type - 1) / 9)
         self.telescopes.set_edgecolor(rgb)
         self.telescopes.set_linewidth(2.0)
 
@@ -514,7 +512,7 @@ class ArrayDisplay:
 
         """
         ellipse = Ellipse(xy=centroid, width=length, height=width,
-                          angle=np.degrees(angle), fill=True,  **kwargs)
+                          angle=np.degrees(angle), fill=True, **kwargs)
 
         self.axes.add_patch(ellipse)
         return ellipse
@@ -567,12 +565,12 @@ class ArrayDisplay:
             tel_y = u.Quantity(tel_position[1][i]).value
             i += 1
 
-            ellipse = Ellipse(xy=(tel_x,tel_y), width=length, height=width,
+            ellipse = Ellipse(xy=(tel_x, tel_y), width=length, height=width,
                               angle=np.degrees(momparams[h].psi.rad))
             ellipse_list.append(ellipse)
 
         patches = PatchCollection(ellipse_list, **kwargs)
-        patches.set_clim(0, 1000) # Set ellipse colour based on image size
+        patches.set_clim(0, 1000)  # Set ellipse colour based on image size
         patches.set_array(np.asarray(size_list))
         self.axes_hillas.add_collection(patches)
 
@@ -599,4 +597,5 @@ class ArrayDisplay:
             y_sc = [tel_y - np.sin(psi) * 10000, tel_y + np.sin(psi) * 10000]
 
             i += 1
-            self.axes_hillas.add_line(Line2D(x_sc, y_sc, linestyle='dashed', color='black'))
+            self.axes_hillas.add_line(Line2D(x_sc, y_sc,
+                                             linestyle='dashed', color='black'))
