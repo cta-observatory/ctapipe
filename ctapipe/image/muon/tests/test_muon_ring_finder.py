@@ -48,7 +48,7 @@ def test_ChaudhuriKunduRingFitterHline():
     # TODO in muon_ring_fitter decide what to do if unreconstructable
     # ... add Status Flag?
     assert output.ring_radius is not np.NaN
-    assert output.ring_phi is not np.Nan
+    assert output.ring_phi is not np.NaN
     assert output.ring_inclination is not np.Nan
 
 
