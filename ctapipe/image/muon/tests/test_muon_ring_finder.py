@@ -49,7 +49,7 @@ def test_ChaudhuriKunduRingFitterHline():
     # ... add Status Flag?
     assert output.ring_radius is not np.NaN
     assert output.ring_phi is not np.NaN
-    assert output.ring_inclination is not np.Nan
+    assert output.ring_inclination is not np.NaN
 
 
 def test_ChaudhuriKunduRingFitter():
