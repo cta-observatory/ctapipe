@@ -163,9 +163,16 @@ def plot_muon_event(event, muonparams):
 
             px = nom_coord.x.to(u.deg)
             py = nom_coord.y.to(u.deg)
+            dist = np.sqrt(np.power(px - muonparams['MuonRingParams'][idx].ring_center_x,
+                                    2) + np.power(py - muonparams['MuonRingParams'][idx].
+                                                  ring_center_y, 2))
+            ring_dist = np.abs(dist - muonparams['MuonRingParams'][idx].ring_radius)
+            pixRmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
 
             if muonparams['MuonIntensityParams'][idx] is not None:
                 signals *= muonparams['MuonIntensityParams'][idx].mask
+            elif muonparams['MuonIntensityParams'][idx] is None:
+                signals *= pixRmask
 
             camera1 = plotter.draw_camera(tel_id, signals, ax1)
 
