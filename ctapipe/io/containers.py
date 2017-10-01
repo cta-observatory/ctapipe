@@ -48,8 +48,10 @@ class InstrumentContainer(Container):
     telescope_ids = Field([], "list of IDs of telescopes used in the run")
     pixel_pos = Field(Map(ndarray), "map of tel_id to pixel positions")
     optical_foclen = Field(Map(ndarray), "map of tel_id to focal length")
-    mirror_dish_area = Field(Map(float), "map of tel_id to the area of the mirror dish", unit=u.m**2)
-    mirror_numtiles = Field(Map(int), "map of tel_id to the number of tiles for the mirror")
+    mirror_dish_area = Field(Map(float),
+                             "map of tel_id to the area of the mirror dish", unit=u.m**2)
+    mirror_numtiles = Field(Map(int),
+                            "map of tel_id to the number of tiles for the mirror")
     tel_pos = Field(Map(ndarray), "map of tel_id to telescope position")
     num_pixels = Field(Map(int), "map of tel_id to number of pixels in camera")
     num_channels = Field(Map(int), "map of tel_id to number of channels")
@@ -358,8 +360,8 @@ class MuonRingParameter(Container):
         event number
     tel_id : int
         telescope ID
-    ring_center_x, ring_center_y, ring_radius:
-        center position and radius of the fitted ring
+    ring_center_x, ring_center_y, ring_radius, ring_phi, ring_inlination:
+        center position, radius, angle and inlination of the fitted ring
     ring_chi2_fit:
         chi squared of the ring fit
     ring_cov_matrix:
@@ -372,6 +374,8 @@ class MuonRingParameter(Container):
     ring_center_x = Field(0.0, 'centre (x) of the fitted muon ring')
     ring_center_y = Field(0.0, 'centre (y) of the fitted muon ring')
     ring_radius = Field(0.0, 'radius of the fitted muon ring')
+    ring_phi = Field(0.0, 'Arctan of centre (y) / centre(x))')
+    ring_inclination = Field(0.0, 'Inclination of fitted ring')
     ring_chi2_fit = Field(0.0, 'chisquare of the muon ring fit')
     ring_cov_matrix = Field(0.0, 'covariance matrix of the muon ring fit')
     ring_fit_method = Field("", 'fitting method used for the muon ring')
