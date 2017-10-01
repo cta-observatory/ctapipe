@@ -361,7 +361,7 @@ class MuonRingParameter(Container):
     tel_id : int
         telescope ID
     ring_center_x, ring_center_y, ring_radius, ring_phi, ring_inclination:
-        center position, radius, angle and inlination of the fitted ring
+        center position, radius, orientation and inlination of the fitted ring
     ring_chi2_fit:
         chi squared of the ring fit
     ring_cov_matrix:
@@ -374,7 +374,7 @@ class MuonRingParameter(Container):
     ring_center_x = Field(0.0, 'centre (x) of the fitted muon ring')
     ring_center_y = Field(0.0, 'centre (y) of the fitted muon ring')
     ring_radius = Field(0.0, 'radius of the fitted muon ring')
-    ring_phi = Field(0.0, 'Arctan of centre (y) / centre(x))')
+    ring_phi = Field(0.0, 'Orientation of fitted ring')
     ring_inclination = Field(0.0, 'Inclination of fitted ring')
     ring_chi2_fit = Field(0.0, 'chisquare of the muon ring fit')
     ring_cov_matrix = Field(0.0, 'covariance matrix of the muon ring fit')
