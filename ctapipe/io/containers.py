@@ -360,7 +360,7 @@ class MuonRingParameter(Container):
         event number
     tel_id : int
         telescope ID
-    ring_center_x, ring_center_y, ring_radius, ring_phi, ring_inlination:
+    ring_center_x, ring_center_y, ring_radius, ring_phi, ring_inclination:
         center position, radius, angle and inlination of the fitted ring
     ring_chi2_fit:
         chi squared of the ring fit
