@@ -64,7 +64,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
         output.ring_center_y = centre_y  # *u.deg
         output.ring_radius = radius  # *u.deg
         output.ring_phi = np.arctan(centre_y / centre_x)
-        output.muon_inclination = np.sqrt(centre_x ** 2. + centre_y ** 2.)
+        output.ring_inclination = np.sqrt(centre_x ** 2. + centre_y ** 2.)
         # output.meta.ring_fit_method = "ChaudhuriKundu"
         output.ring_fit_method = "ChaudhuriKundu"
 
