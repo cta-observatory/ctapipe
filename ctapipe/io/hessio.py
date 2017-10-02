@@ -168,7 +168,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             data.dl1.tel.clear()
             data.mc.tel.clear()  # clear the previous telescopes
 
-            _fill_instrument_info(data, pyhessio)
+            data.inst.subarray = _build_subarray_info(data, pyhessio)
 
             for tel_id in data.r0.tels_with_data:
 
@@ -219,47 +219,40 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                 return
 
 
-def _fill_instrument_info(data, pyhessio):
+def _build_subarray_info(data, pyhessio):
     """
-    fill the data.inst structure with instrumental information.
+    constructs a SubarrayDescription object from the info in an
+    EventIO/HESSSIO file
 
     Parameters
     ----------
     data: DataContainer
         data container to fill in
 
+    Returns
+    -------
+    SubarrayDescription :
+        instrumental information
     """
-    if not data.inst.telescope_ids:
-        data.inst.telescope_ids = list(pyhessio.get_telescope_ids())
-        data.inst.subarray = SubarrayDescription("MonteCarloArray")
+    telescope_ids = list(pyhessio.get_telescope_ids())
+    subarray =  SubarrayDescription("MonteCarloArray")
 
-        for tel_id in data.inst.telescope_ids:
-            try:
+    for tel_id in telescope_ids:
+        try:
 
-                pix_pos = pyhessio.get_pixel_position(tel_id) * u.m
-                foclen = pyhessio.get_optical_foclen(tel_id) * u.m
-                mirror_area = pyhessio.get_mirror_area(tel_id) * u.m ** 2
-                num_tiles = pyhessio.get_mirror_number(tel_id)
-                tel_pos = pyhessio.get_telescope_position(tel_id) * u.m
+            pix_pos = pyhessio.get_pixel_position(tel_id) * u.m
+            foclen = pyhessio.get_optical_foclen(tel_id) * u.m
+            mirror_area = pyhessio.get_mirror_area(tel_id) * u.m ** 2
+            num_tiles = pyhessio.get_mirror_number(tel_id)
+            tel_pos = pyhessio.get_telescope_position(tel_id) * u.m
 
-                tel = TelescopeDescription.guess(*pix_pos, foclen)
-                tel.optics.mirror_area = mirror_area
-                tel.optics.num_mirror_tiles = num_tiles
-                data.inst.subarray.tels[tel_id] = tel
-                data.inst.subarray.positions[tel_id] = tel_pos
+            tel = TelescopeDescription.guess(*pix_pos, foclen)
+            tel.optics.mirror_area = mirror_area
+            tel.optics.num_mirror_tiles = num_tiles
+            subarray.tels[tel_id] = tel
+            subarray.positions[tel_id] = tel_pos
 
-                # deprecated fields that will become part of
-                # TelescopeDescription or SubrrayDescription
-                data.inst.optical_foclen[tel_id] = foclen
-                data.inst.pixel_pos[tel_id] = pix_pos
-                data.inst.tel_pos[tel_id] = tel_pos
+        except HessioGeneralError:
+            pass
 
-                nchans = pyhessio.get_num_channel(tel_id)
-                npix = pyhessio.get_num_pixels(tel_id)
-                data.inst.num_channels[tel_id] = nchans
-                data.inst.num_pixels[tel_id] = npix
-                data.inst.mirror_dish_area[tel_id] = mirror_area
-                data.inst.mirror_numtiles[tel_id] = num_tiles
-
-            except HessioGeneralError:
-                pass
+    return subarray
