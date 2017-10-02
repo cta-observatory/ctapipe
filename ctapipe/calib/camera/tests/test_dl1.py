@@ -27,8 +27,8 @@ def test_integration_correction():
     telid = 11
     width = 7
     shift = 3
-    n_chan = event.inst.num_channels[telid]
     shape = event.mc.tel[telid].reference_pulse_shape
+    n_chan = shape.shape[0]
     step = event.mc.tel[telid].meta['refstep']
     time_slice = event.mc.tel[telid].time_slice
     correction = integration_correction(n_chan, shape, step,
