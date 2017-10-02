@@ -45,16 +45,6 @@ class InstrumentContainer(Container):
     subarray = Field(SubarrayDescription("MonteCarloArray"),
                      "SubarrayDescription from the instrument module")
 
-    telescope_ids = Field([], "list of IDs of telescopes used in the run")
-    pixel_pos = Field(Map(ndarray), "map of tel_id to pixel positions")
-    optical_foclen = Field(Map(ndarray), "map of tel_id to focal length")
-    mirror_dish_area = Field(Map(float), "map of tel_id to the area of the mirror dish", unit=u.m**2)
-    mirror_numtiles = Field(Map(int), "map of tel_id to the number of tiles for the mirror")
-    tel_pos = Field(Map(ndarray), "map of tel_id to telescope position")
-    num_pixels = Field(Map(int), "map of tel_id to number of pixels in camera")
-    num_channels = Field(Map(int), "map of tel_id to number of channels")
-
-
 
 
 class DL1CameraContainer(Container):
