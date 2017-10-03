@@ -12,7 +12,8 @@ at high signals due to the factorial which mst be calculated). At high signal th
 simplifies to a gaussian approximation.
 
 The full and gaussian approximations are implemented, in addition to a general purpose
-implementation, which tries to intellegently switch between the two. Speed tests are below:
+implementation, which tries to intellegently switch 
+between the two. Speed tests are below:
 
 poisson_likelihood_gaussian(image, prediction, spe, ped)
 29.8 µs per loop
@@ -92,10 +93,13 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
 def poisson_likelihood_full(
         image, prediction, spe_width, ped, width_fac=3, dtype=np.float32):
     """
-    Calculate likelihood of prediction given the measured signal, full numerical integration from
-    de Naurois et al 2009. The width factor included here defines the range over which photo electron contributions
-    are summed, and is defined as a multiple of the expected resolution of the highest amplitude pixel. For
-    most applications the defult of 3 is sufficient.
+    Calculate likelihood of prediction given the measured signal,
+    full numerical integration from de Naurois et al 2009.
+    The width factor included here defines  the range over
+    which photo electron contributions are summed, and is
+    defined as a multiple of the expected resolution of
+    the highest amplitude pixel. For most applications
+    the defult of 3 is sufficient.
 
     Parameters
     ----------
@@ -123,8 +127,11 @@ def poisson_likelihood_full(
     ped = np.asarray(ped, dtype=dtype)
 
     if image.shape != prediction.shape:
-        raise PixelLikelihoodError("Image and prediction arrays have different dimensions",
-                                   "Image shape: ", image.shape[0], "Prediction shape: ", prediction.shape[0])
+        raise PixelLikelihoodError(("Image and prediction arrays"
+                                    " have different dimensions"),
+                                   "Image shape: ", image.shape[0],
+                                   "Prediction shape: ",
+                                   prediction.shape[0])
     max_val = np.max(image)
     width = ped * ped + max_val * spe_width * spe_width
     width = np.sqrt(np.abs(width))  # take abs of width if negative
@@ -144,9 +151,12 @@ def poisson_likelihood_full(
 
     # Throw error if we get NaN in likelihood
     if np.any(np.isnan(first_term)):
-        raise PixelLikelihoodError("Likelihood returning NaN, likely due to extremely high signal"
-                                   " deviation. Switch to poisson_likelihood_safe implementation or"
-                                   " increase floating point precision e.g. dtype=float64")
+        raise PixelLikelihoodError("Likelihood returning NaN,"
+                                   "likely due to extremely high signal"
+                                   " deviation. Switch to poisson_likelihood_safe"
+                                   " implementation or"
+                                   " increase floating point precision"
+                                   " e.g. dtype=float64")
 
     # Should not have any porblems here with NaN that have not bee seens
     second_term = (image - pe_summed[:, np.newaxis]) * \
@@ -169,10 +179,13 @@ def poisson_likelihood_full(
 def poisson_likelihood(image, prediction, spe_width, ped,
                        pedestal_safety=1.5, width_fac=3, dtype=np.float32):
     """
-    Safe implementation of the poissonian likelihood implementation , adaptively switches between the full
-    solution and the gaussian approx depending on the signal. Pedestal safety parameter determines cross
-    over point between the two solutions, based on the expected p.e. resolution of the image pixels. Therefore
-    the cross over point will change dependent on the single p.e. resolution and pedestal levels.
+    Safe implementation of the poissonian likelihood implementation,
+    adaptively switches between the full solution and the gaussian
+    approx depending on the signal. Pedestal safety parameter 
+    determines cross over point between the two solutions,
+    based on the expected p.e. resolution of the image pixels.
+    Therefore the cross over point will change dependent on 
+    the single p.e. resolution and pedestal levels.
 
     Parameters
     ----------
@@ -185,7 +198,8 @@ def poisson_likelihood(image, prediction, spe_width, ped,
     ped: ndarray
         width of pedestal
     pedestal_safety: float
-        Decision point to choose between poissonian likelihood and gaussian approximation (p.e. resolution)
+        Decision point to choose between poissonian likelihood 
+        and gaussian approximation (p.e. resolution)
     width_fac: float
         Factor to determine range of summation on integral
     dtype: datatype
@@ -204,7 +218,7 @@ def poisson_likelihood(image, prediction, spe_width, ped,
     # Calculate photoelectron resolution
 
     width = ped * ped + image * spe_width * spe_width
-    width=np.asarray(width)
+    width = np.asarray(width)
     width[width < 0] = 0  # Set width to 0 for negative pixel amplitudes
     width = np.sqrt(width)
 
@@ -214,10 +228,12 @@ def poisson_likelihood(image, prediction, spe_width, ped,
     gaus_pix = width > pedestal_safety
 
     if np.any(poisson_pix):
-        like[poisson_pix] = poisson_likelihood_full(image[poisson_pix], prediction[poisson_pix],
+        like[poisson_pix] = poisson_likelihood_full(image[poisson_pix],
+                                                    prediction[poisson_pix],
                                                     spe_width, ped, width_fac, dtype)
     if np.any(gaus_pix):
-        like[gaus_pix] = poisson_likelihood_gaussian(image[gaus_pix], prediction[gaus_pix],
+        like[gaus_pix] = poisson_likelihood_gaussian(image[gaus_pix],
+                                                     prediction[gaus_pix],
                                                      spe_width, ped)
 
     return like
@@ -225,7 +241,8 @@ def poisson_likelihood(image, prediction, spe_width, ped,
 
 def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
     """
-    Calculation of the mean  likelihood for a give expectation value of pixel intensity in the gaussian approximation.
+    Calculation of the mean  likelihood for a give expectation
+    value of pixel intensity in the gaussian approximation.
     This is useful in the calculation of the goodness of fit.
 
     Parameters
@@ -261,9 +278,11 @@ def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
 
 def mean_poisson_likelihood_full(prediction, spe_width, ped):
     """
-    Calculation of the mean  likelihood for a give expectation value of pixel intensity using the full
-    numerical integration. This is useful in the calculation of the goodness of fit. This numerical integration
-    is very slow and really doesn't make a large difference in the goodness of fit in most cases.
+    Calculation of the mean  likelihood for a give expectation value
+    of pixel intensity using the full numerical integration.
+    This is useful in the calculation of the goodness of fit.
+    This numerical integration is very slow and really doesn't
+    make a large difference in the goodness of fit in most cases.
 
     Parameters
     ----------
@@ -324,7 +343,8 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
 
     if image.shape is not prediction.shape:
         PixelLikelihoodError("Image and prediction arrays have different dimensions",
-                             "Image shape: ", image.shape, "Prediction shape: ", prediction.shape)
+                             "Image shape: ", image.shape,
+                             "Prediction shape: ", prediction.shape)
 
     chi_square = (image - prediction) * (image - prediction)
     chi_square /= ped + 0.5 * (image - prediction)

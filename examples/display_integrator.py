@@ -66,7 +66,7 @@ class IntegratorPlotter(Component):
         max_pix = int(np.argmax(max_charges))
         min_pix = int(np.argmin(max_charges))
 
-        geom = event.inst.subarray.tel[telid]
+        geom = event.inst.subarray.tel[telid].camera
         nei = geom.neighbors
 
         # Get Neighbours

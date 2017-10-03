@@ -226,6 +226,6 @@ class Map(defaultdict):
             return d
 
     def reset(self, recursive=True):
-        for key, val in self.items():
+        for val in self.values():
             if isinstance(val, Container):
-                val.reset(recursive=True)
+                val.reset(recursive=recursive)
