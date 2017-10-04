@@ -14,3 +14,9 @@ This directory contains all the functions aimed to provide the calibration of th
   * Data selection: data_selection.py
   * Data correction: data_correction.py
 
+* To be implemented
+  * https://github.com/bregeon/HESSLidarTools/blob/master/src/AtmoAbsorption.C
+  * https://github.com/bregeon/HESSLidarTools/blob/master/src/AtmoPlotter.C
+  * https://github.com/bregeon/HESSLidarTools/blob/master/src/AtmoProfile.C
+  * https://github.com/bregeon/HESSLidarTools/blob/master/src/RayleighScattering.C
+
