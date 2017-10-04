@@ -9,6 +9,7 @@ This directory contains all the functions aimed to provide the calibration of th
   * Satellite data: satellite_atmo.py
   * Radio sonde : read radio sonde data in fsl format - radiosonde_reader.py
   * Cherenkov Transparency Coefficient: ctc.py
+  * Rayleigh scattering analytical calculator: scattering_rayleigh.py
 
 * Application of atmospheric parameters on CTA data:
   * Data selection: data_selection.py
