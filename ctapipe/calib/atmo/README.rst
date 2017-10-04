@@ -7,6 +7,7 @@ This directory contains all the functions aimed to provide the calibration of th
   * LIDAR: lidar.py
   * GDAS, WRF and SENES: gdas_wrf_senes.py
   * Satellite data: satellite_atmo.py
+  * Radio sonde : read radio sonde data in fsl format - radiosonde_reader.py
   * Cherenkov Transparency Coefficient: ctc.py
 
 * Application of atmospheric parameters on CTA data:
