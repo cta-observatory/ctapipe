@@ -11,11 +11,12 @@ class DL1Writer(Component):
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
+
+        filters = None # tables.Filters(complevel=5, complib='blosc')
+
         self.writer = HDF5TableWriter(self.outfile,
                                       group_name=self.groupname,
-                                      num_rows_expected=1000,
-                                      filters=tables.Filters(complevel=5,
-                                                             complib='blosc'))
+                                      num_rows_expected=1000,filters=filters )
 
     @lru_cache(512)
     def get_table_name(self, tel_id):
