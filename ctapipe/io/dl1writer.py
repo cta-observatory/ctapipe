@@ -2,6 +2,7 @@ from ..core import Component
 from ..core import traits as tr
 from .hdftableio import HDF5TableWriter
 from functools import lru_cache
+import tables
 
 class DL1Writer(Component):
 
@@ -10,7 +11,11 @@ class DL1Writer(Component):
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
-        self.writer = HDF5TableWriter(self.outfile, group_name=self.groupname)
+        self.writer = HDF5TableWriter(self.outfile,
+                                      group_name=self.groupname,
+                                      num_rows_expected=1000,
+                                      filters=tables.Filters(complevel=5,
+                                                             complib='blosc'))
 
     @lru_cache(512)
     def get_table_name(self, tel_id):
@@ -23,4 +28,5 @@ class DL1Writer(Component):
         for tel_id, cont in event.dl1.tel.items():
             table_name = self.get_table_name(tel_id)
             self.writer.write(table_name=table_name, container=cont)
+
 
