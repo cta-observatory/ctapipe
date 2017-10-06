@@ -336,6 +336,21 @@ class CameraGeometry:
         """
         return np.ascontiguousarray(np.array(np.where(self.neighbor_matrix)).T)
 
+    @lazyproperty
+    def pix_x2(self):
+        """ squared x position (for faster Hillas calculation)"""
+        return self.pix_x**2
+
+    @lazyproperty
+    def pix_xy(self):
+        """ x * y position (for faster Hillas calculation)"""
+        return self.pix_x * self.pix_y
+
+    @lazyproperty
+    def pix_y2(self):
+        """ squared y position (for faster Hillas calculation)"""
+        return self.pix_y**2
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
