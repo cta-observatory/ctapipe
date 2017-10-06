@@ -114,3 +114,32 @@ def test_predict_by_event():
                                        {"FlashCam": [[2, 20]]},
                                        {"FlashCam": [[3, 30]]}])
     assert (prediction == ["b", "a", "a"]).all()
+
+
+def test_Qfactor():
+    """
+    TODO: how to test validity of Q-factor values?
+    """
+    cam_id = ["ASTRICam"]
+    features = {"ASTRICam": [[10, 1], [20, 2], [30, 3], [9, 0.9],
+                             [1, 10], [2, 20], [3, 30], [0.9, 9]]}
+    target = {"ASTRICam": [1, 1, 1, 1, 0, 0, 0, 0]}
+    clf = EventClassifier(cam_id_list=cam_id)
+    clf.fit(features, target)
+
+    # Now predict
+    ev_feat = [{"ASTRICam": [[10, 1]]}, {"ASTRICam": [[2, 20]]}, {"ASTRICam": [[3, 30]]},
+               {"ASTRICam": [[100, 10]]}, {"ASTRICam": [[4, 40]]}, {"ASTRICam": [[0.5, 5]]}]
+    true_labels = np.array([1, 0, 0, 1, 0, 0], dtype=np.int8)
+    prediction = clf.predict_proba_by_event(X=ev_feat)
+
+    # prediction is a two columns array
+    # first  column is the probability to belong to class "0" --> hadron
+    # second column is the probability to belong to class "1" --> gamma
+    # we are interested in the probability to be gamma
+    proba_to_be_gamma = prediction[:, 1]
+
+    Q, gammaness = clf.compute_Qfactor(proba=proba_to_be_gamma, labels=true_labels, nbins=2)
+
+    assert Q.size != 0
+    assert Q.size == gammaness.size

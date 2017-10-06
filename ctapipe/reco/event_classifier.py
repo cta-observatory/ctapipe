@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from astropy import units as u
 
@@ -52,3 +53,55 @@ class EventClassifier(RegressorClassifierBase):
         proba = self.predict_proba_by_event(X)
         predictions = self.classes_[np.argmax(proba, axis=1)]
         return predictions
+
+    def compute_Qfactor(self, proba, labels: int, nbins):
+        """
+        Compute Q-factor for each gammaness (bin edges are 0 - 1)
+
+        Parameters
+        ----------
+
+        proba: predicted probabilities to be a gamma!
+        labels: true labels
+        nbins: number of bins for gammaness
+
+        Returns
+        -------
+
+        Q-factor array
+        """
+        bins = np.linspace(0, 1, nbins)
+
+        # assuming labels are 0 for protons, 1 for gammas
+        # np.nonzero function return indexes
+        gammas_idx = np.nonzero(proba * labels)
+        gammas = proba[gammas_idx]
+
+        hadrons_idx = np.nonzero(proba * np.logical_not(labels))
+        hadrons = proba[hadrons_idx]
+
+        # tot number of gammas
+        Ng = len(gammas)
+        # of protons
+        Nh = len(hadrons)
+
+        # binning and cumsum for gammas
+        gbins = pd.cut(gammas, bins)
+        gcount = gbins.value_counts()
+        # reverse array
+        gcount[:] = gcount.values[::-1].copy()
+        g_cumsum = np.cumsum(gcount.values)
+        eps_g = g_cumsum / Ng
+
+        # binning and cumsum for protons
+        hbins = pd.cut(hadrons, bins)
+        hcount = hbins.value_counts()
+        # reverse array
+        hcount[:] = hcount.values[::-1].copy()
+        h_cumsum = np.cumsum(hcount.values)
+        eps_h = h_cumsum / Nh
+
+        Q = eps_g / np.sqrt(eps_h)
+        Q[:] = Q[::-1].copy()
+
+        return Q, bins[1:]  # , eps_g[::-1], eps_h[::-1]
