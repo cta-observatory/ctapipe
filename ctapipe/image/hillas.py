@@ -790,7 +790,7 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
     # azwidth = np.sqrt((x2m + y2m - z) / 2.0)
 
     if container:
-        return HillasParametersContainer(x=m_x*unit, y=m_y*unit,r=r,
+        return HillasParametersContainer(x=m_x*unit, y=m_y*unit,r=r*unit,
                                          phi=Angle(phi*u.rad),
                                          intensity=size,
                                          length=length*unit,
