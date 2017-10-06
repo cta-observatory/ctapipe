@@ -234,7 +234,7 @@ def plot_muon_event(event, muonparams):
 
                 if len(pred) != np.sum(
                         muonparams['MuonIntensityParams'][idx].mask):
-                logger.warning("Lengths do not match...len(pred)=%s len("
+                    logger.warning("Lengths do not match...len(pred)=%s len("
                                "mask)=",len(pred),
                                np.sum(muonparams['MuonIntensityParams'][idx].mask))
 
