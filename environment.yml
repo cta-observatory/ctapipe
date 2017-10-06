@@ -19,6 +19,7 @@ dependencies:
   - numba
   - numpy
   - numpydoc
+  - pandas
   - pyhessio
   - pytest
   - psutil
