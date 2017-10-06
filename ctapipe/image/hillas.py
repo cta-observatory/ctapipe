@@ -31,7 +31,7 @@ class HillasParameterizationError(RuntimeError):
     pass
 
 
-def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
+def hillas_parameters_1(pix_x, pix_y, image):
     """Compute Hillas parameters for a given shower image.
 
     Reference: Appendix of the Whipple Crab paper Weekes et al. (1998) /
@@ -49,9 +49,6 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    recalculate_pixels : Boolean (default True)
-        Recalculate the pixel higher multiples (e.g., if pixels move (!) or
-        pixel list changes between calls)
 
 
     Returns
@@ -164,54 +161,9 @@ def hillas_parameters_1(pix_x, pix_y, image, recalculate_pixels=True):
                             kurtosis=kurtosis)
 
 
-def static_pix(pix_x, pix_y, recalculate_pixels):
-    """Hold static variables for a given camera's pixel positions,
-    #if the camera's pixel positions haven't changed since last call, and otherwise or
-    if first call initializes them to the right values.
-
-    Parameters
-    ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
-    recalculate_pixels : Boolean
-        Recalculate the pixel higher multiples (e.g., if pixels move (!) 
-        or pixel list changes between calls)
-
-    Returns
-    -------
-    Nothing, but keeps variables as attributes to the function,
-    so acts like a static variable holder."""
-
-    # If not called before or recalculate_pixels
-    if (not hasattr(static_pix, "pixdata") or recalculate_pixels):  # \
-        '''or not (np.array_equal(pix_x,static_xy.pix_x) and np.array_equal(pix_y,
-        static_xy.pix_y)):, or if the pixel positions have changed,
-        but this adds 15% calculation time'''
-        static_pix.pixdata = np.row_stack([pix_x,
-                                           pix_y,
-                                           pix_x * pix_x,
-                                           pix_x * pix_y,
-                                           pix_y * pix_y])
-
-        static_pix.pixdataHO = np.row_stack([pix_x * static_pix.pixdata[2],
-                                             static_pix.pixdata[2] * pix_y,
-                                             pix_x * static_pix.pixdata[4],
-                                             pix_y * static_pix.pixdata[4],
-                                             static_pix.pixdata[2] *
-                                             static_pix.pixdata[2],
-                                             static_pix.pixdata[2] *
-                                             static_pix.pixdata[3],
-                                             static_pix.pixdata[2] *
-                                             static_pix.pixdata[4],
-                                             static_pix.pixdata[3] *
-                                             static_pix.pixdata[4],
-                                             static_pix.pixdata[4] *
-                                             static_pix.pixdata[4]])
 
 
-def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
+def hillas_parameters_2(pix_x, pix_y, image):
     """Compute Hillas parameters for a given shower image.
 
     Alternate implementation of `hillas_parameters` ...
@@ -226,9 +178,7 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    recalculate_pixels : Boolean (default True)
-        Recalculate the pixel higher multiples (e.g., if pixels move (!)
-        or pixel list changes between calls)
+
 
     Returns
     -------
@@ -255,10 +205,22 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
                                             "Cannot calculate image parameters."
                                             "Exiting...")))
 
-    '''call static_xy to initialize the "static variables"
-    actually, would be nice to just call this if we know 
-    the pixel positions have changed'''
-    static_pix(pix_x, pix_y, recalculate_pixels)
+
+    pixdata = np.row_stack([pix_x,
+                            pix_y,
+                            pix_x * pix_x,
+                            pix_x * pix_y,
+                            pix_y * pix_y])
+
+    pixdataHO = np.row_stack([pix_x * pixdata[2],
+                              pixdata[2] * pix_y,
+                              pix_x * pixdata[4],
+                              pix_y * pixdata[4],
+                              pixdata[2] * pixdata[2],
+                              pixdata[2] * pixdata[3],
+                              pixdata[2] * pixdata[4],
+                              pixdata[3] * pixdata[4],
+                              pixdata[4] * pixdata[4]])
 
     # Compute image moments (done in a bit faster way, but putting all
     # into one 2D array, where each row will be summed to calculate a
@@ -266,9 +228,9 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
     # 2D array
 
 
-    momdata = static_pix.pixdata * image
+    momdata = pixdata * image
     moms = momdata.sum(axis=1) / size
-    momdataHO = static_pix.pixdataHO * image
+    momdataHO = pixdataHO * image
     momsHO = momdataHO.sum(axis=1) / size
 
     # give the moms values comprehensible names
@@ -368,7 +330,7 @@ def hillas_parameters_2(pix_x, pix_y, image, recalculate_pixels=True):
                             kurtosis=kurtosis)
 
 
-def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
+def hillas_parameters_3(pix_x, pix_y, image):
     """Compute Hillas parameters for a given shower image.
 
     MP: probably better to use Whipple Reynolds et al 1993 paper:
@@ -383,9 +345,6 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
         Pixel y-coordinate
     image : array_like
         Pixel values corresponding
-    recalculate_pixels : Boolean (default True)
-        Recalculate the pixel higher multiples (e.g., if pixels move (!)
-        or pixel list changes between calls)
 
     Returns
     -------
@@ -401,9 +360,7 @@ def hillas_parameters_3(pix_x, pix_y, image, recalculate_pixels=True):
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
 
-    ''' make sure they are numpy arrays so we can use numpy operations
-        pix_x = np.asanyarray(pix_x)
-        pix_y = np.asanyarray(pix_y)'''
+    # make sure they are numpy arrays so we can use numpy operations
     image = np.asanyarray(image, dtype=np.float64)
 
     assert pix_x.shape == image.shape
@@ -620,8 +577,8 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
         assert pix_x.unit == pix_y.unit
     else:
         unit = 1.0
-    ''' MP: Actually, I don't know why we need to strip the units...
-    shouldn' the calculations all work with them?'''
+    # MP: Actually, I don't know why we need to strip the units... shouldn'
+    # the calculations all work with them?'''
 
     pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
@@ -657,9 +614,7 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
     sumy4sig = (image * static_xy.pix_y4).sum()
 
     if sumsig == 0.0:
-        raise (HillasParameterizationError(("Empty pixels!"
-                                            "Cannot calculate image parameters."
-                                            "Exiting...")))
+        raise HillasParameterizationError("no signal to parametrize")
 
     xm = sumxsig / sumsig
     ym = sumysig / sumsig
@@ -679,10 +634,10 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
     xy3m = sumxy3sig / sumsig
     y4m = sumy4sig / sumsig
 
-    '''Doing this should be same as above, but its 4us slower !?
-    (xm, ym, x2m, y2m, xym, x3m, x2ym, xy2m, y3m) = \
-    (sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig,
-    sumx2ysig, sumxy2sig, sumy3sig) / sumsig'''
+    # Doing this should be same as above, but its 4us slower !?
+    # (xm, ym, x2m, y2m, xym, x3m, x2ym, xy2m, y3m) = \
+    # (sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig,
+    # sumx2ysig, sumxy2sig, sumy3sig) / sumsig
 
     xm2 = xm * xm
     ym2 = ym * ym
@@ -715,14 +670,6 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
         vv = 2 - uu
         miss = np.sqrt((uu * xm2 + vv * ym2) / 2.0 - xmym * (2.0 * vxy / z))
 
-    '''Change to faster caluclation of psi and avoid inaccuracy for hyp
-    psi = np.arctan2((d + z) * ym + 2.0 * vxy * xm, 2.0 *vxy * ym - (d - z) * xm)
-    hyp = np.sqrt(2 * z * (z + d))  #! should be simplification of sqrt((d+z)
-    **2+(2*vxy)**2 ... but not accurate!
-    hyp = np.hypot(d + z,2 * vxy)
-    psi = np.arctan2(d + z, 2 * vxy)
-    cpsi = np.cos(psi)
-    spsi = np.sin(psi)'''
     tanpsi_numer = (d + z) * ym + 2.0 * vxy * xm
     tanpsi_denom = 2.0 * vxy * ym - (d - z) * xm
     psi = np.arctan2(tanpsi_numer, tanpsi_denom)
@@ -782,12 +729,6 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
         psi = 0.0
         skewness = 0.0
         kurtosis = 0.0
-
-    # Azwidth not used anymore
-    # # -- Akerlof azwidth now used, 910112
-    # d = y2m - x2m
-    # z = np.sqrt(d * d + 4 * xym * xym)
-    # azwidth = np.sqrt((x2m + y2m - z) / 2.0)
 
     if container:
         return HillasParametersContainer(x=m_x*unit, y=m_y*unit,r=r*unit,
