@@ -217,10 +217,11 @@ def plot_muon_event(event, muonparams):
                 ax2 = fig.add_subplot(1, npads, npads)
                 pred = muonparams['MuonIntensityParams'][idx].prediction
 
-                if len(pred) != np.sum(muonparams['MuonIntensityParams'][idx].mask):
-                    logger.warning(("Lengths do not match...len(pred)"
-                                   "=%s len(mask)="), len(pred),
-                                   np.sum(muonparams['MuonIntensityParams'][idx].mask))
+                if len(pred) != np.sum(
+                        muonparams['MuonIntensityParams'][idx].mask):
+                    logger.warning("Lengths do not match...len(pred)=%s len("
+                               "mask)=",len(pred),
+                               np.sum(muonparams['MuonIntensityParams'][idx].mask))
 
                 # Numpy broadcasting - fill in the shape
                 plotpred = np.zeros(image.shape)
