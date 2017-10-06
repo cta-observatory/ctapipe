@@ -9,6 +9,7 @@ import numpy as np
 from astropy.units import Quantity
 from astropy.coordinates import Angle
 import astropy.units as u
+from ..io.containers import HillasParametersContainer
 
 __all__ = [
     'MomentParameters',
@@ -586,7 +587,8 @@ def static_xy(pix_x, pix_y, recalculate_pixels):
         static_xy.pix_y4 = static_xy.pix_y3 * pix_y
 
 
-def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
+def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
+                        container=False):
     """Compute Hillas parameters for a given shower image.
 
     As for hillas_parameters_3 (old Whipple Fortran code), but more Pythonized
@@ -787,12 +789,23 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True):
     # z = np.sqrt(d * d + 4 * xym * xym)
     # azwidth = np.sqrt((x2m + y2m - z) / 2.0)
 
-    return MomentParameters(size=size, cen_x=m_x * unit, cen_y=m_y * unit,
-                            length=length * unit, width=width * unit, r=r * unit,
-                            phi=Angle(phi * u.rad),
-                            psi=Angle(psi * u.rad),
-                            miss=miss * unit,
-                            skewness=skewness, kurtosis=kurtosis)
+    if container:
+        return HillasParametersContainer(x=m_x*unit, y=m_y*unit,r=r,
+                                         phi=Angle(phi*u.rad),
+                                         intensity=size,
+                                         length=length*unit,
+                                         width=width*unit,
+                                         psi=Angle(psi*u.rad),
+                                         skewness=skewness,
+                                         kurtosis=kurtosis)
+    else:
+        return MomentParameters(size=size, cen_x=m_x * unit, cen_y=m_y * unit,
+                                length=length * unit, width=width * unit,
+                                r=r * unit,
+                                phi=Angle(phi * u.rad),
+                                psi=Angle(psi * u.rad),
+                                miss=miss * unit,
+                                skewness=skewness, kurtosis=kurtosis)
 
 # use the 4 version by default.
 hillas_parameters = hillas_parameters_4
