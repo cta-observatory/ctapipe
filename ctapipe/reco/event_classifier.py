@@ -154,9 +154,9 @@ class EventClassifier(RegressorClassifierBase):
 
         return groups
 
-    def level_populations(self, group_gamma, group_hadron, gamma_evts, hadron_evts):
+    def level_populations(self, group_signal, group_bgd, signal_evts, bgd_evts):
         """Equalize number of entries in each bin.
-        When doing gamma hadron separation, it is common to wrangle input data equalizing
+        When doing signal - background separation, it is common to wrangle input data equalizing
         the number of entries for gammas and hadron in all the requested hyper-bins,
         before training the classifier.
         This is different from the sklearn train_test_split in the sense that this level
@@ -164,13 +164,13 @@ class EventClassifier(RegressorClassifierBase):
 
         Parameters
         ----------
-        group_gamma: (multi dimension) histogram of gammas population in pandas groups format
+        group_signal: (multi dimension) histogram of signal population in pandas groups format
 
-        group_hadron: (multi dimension) histogram of hadrons population in pandas groups format
+        group_bgd: (multi dimension) histogram of background population in pandas groups format
 
-        gamma_evts: array of gamma events, to be equalized
+        signal_evts: array of signal events, to be equalized
 
-        hadron_evts: array of hadron events, to be equalized
+        bgd_evts: array of background events, to be equalized
 
 
         Output
@@ -182,48 +182,49 @@ class EventClassifier(RegressorClassifierBase):
         logging.basicConfig(level=logging.DEBUG)
 
         try:
-            type(group_gamma) is pd.core.groupby.DataFrameGroupBy
+            type(group_signal) is pd.core.groupby.DataFrameGroupBy
         except TypeError:
             raise TypeError("This function wants pandas DataFrameGroupBy objects as group_* inputs")
         try:
-            type(group_hadron) is pd.core.groupby.DataFrameGroupBy
+            type(group_bgd) is pd.core.groupby.DataFrameGroupBy
         except TypeError:
             raise TypeError("This function wants pandas DataFrameGroupBy objects as group_* inputs")
 
         # convert to pandas to use .drop()
-        dfg = pd.DataFrame(gamma_evts)
-        dfh = pd.DataFrame(hadron_evts)
+        # dataframe names follow the original use case gamma (dfg) vs hadrons (dfh)
+        dfg = pd.DataFrame(signal_evts)
+        dfh = pd.DataFrame(bgd_evts)
 
         # have a unique set of keys in the histograms
-        s = set(group_gamma.indices)
-        s.update(group_hadron.indices)
+        s = set(group_signal.indices)
+        s.update(group_bgd.indices)
 
         for key in s:
-            if key in group_gamma.indices and key in group_hadron.indices:
+            if key in group_signal.indices and key in group_bgd.indices:
                 # count exceeding records
-                exceeding = len(group_hadron.indices[key]) - len(group_gamma.indices[key])
+                exceeding = len(group_bgd.indices[key]) - len(group_signal.indices[key])
 
                 # drop records from dataset picking exceeding number of indices
                 # among those in group.indices[key]
                 if exceeding > 0:
                     logger.debug('bin: {} - g: {}\th: {}\t - '
-                                 'Removing {} protons'.format(key, len(group_gamma.indices[key]),
-                                                                   len(group_hadron.indices[key]),
+                                 'Removing {} protons'.format(key, len(group_signal.indices[key]),
+                                                                   len(group_bgd.indices[key]),
                                                                    np.abs(exceeding)))
-                    r_ind_list = list(np.random.choice(group_hadron.indices[key], size=exceeding, replace=False))
+                    r_ind_list = list(np.random.choice(group_bgd.indices[key], size=exceeding, replace=False))
                     dfh.drop(r_ind_list, inplace=True)
                 elif exceeding < 0:
                     logger.debug('bin: {} - g: {}\th: {}\t - '
-                                 'Removing {} gammas'.format(key, len(group_gamma.indices[key]),
-                                                                  len(group_hadron.indices[key]),
+                                 'Removing {} gammas'.format(key, len(group_signal.indices[key]),
+                                                                  len(group_bgd.indices[key]),
                                                                   np.abs(exceeding)))
-                    r_ind_list = list(np.random.choice(group_gamma.indices[key], size=-exceeding, replace=False))
+                    r_ind_list = list(np.random.choice(group_signal.indices[key], size=-exceeding, replace=False))
                     dfg.drop(r_ind_list, inplace=True)
 
-            elif key in group_hadron.indices and key not in group_gamma.indices:
-                dfh.drop(group_hadron.indices[key], inplace=True)
+            elif key in group_bgd.indices and key not in group_signal.indices:
+                dfh.drop(group_bgd.indices[key], inplace=True)
 
-            elif key in group_gamma.indices and key not in group_hadron.indices:
-                dfg.drop(group_gamma.indices[key], inplace=True)
+            elif key in group_signal.indices and key not in group_bgd.indices:
+                dfg.drop(group_signal.indices[key], inplace=True)
 
         return np.array(dfg), np.array(dfh)
