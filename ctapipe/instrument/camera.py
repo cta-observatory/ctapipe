@@ -351,6 +351,34 @@ class CameraGeometry:
         """ squared y position (for faster Hillas calculation)"""
         return self.pix_y**2
 
+    @lazyproperty
+    def pixel_moment_matrix(self):
+        """
+        Pre-calculated matrix needed for higher-order moment calculation.
+        Note this is *not* recalculated if the CameraGeometry is modified.
+
+        this matrix M can be multiplied by an image and normalized by the sum to
+        get the moments:
+
+        .. code-block:: python
+        
+            M = geom.pixel_moment_matrix()
+            moms = (M @ image)/image.sum()
+
+
+        Returns
+        -------
+        array:
+            x, y, x**2, x*y, y^2, x^3, x^2*y,x*y^2, y^3
+
+        """
+
+        x = self.pix_x.value
+        y = self.pix_y.value
+
+        return np.row_stack([x, y, x**2, x*y, x**3, x**2*y, x*y**2, y**3])
+
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
@@ -379,6 +407,7 @@ class CameraGeometry:
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= Angle(angle)
         self.cam_rotation -= Angle(angle)
+
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
