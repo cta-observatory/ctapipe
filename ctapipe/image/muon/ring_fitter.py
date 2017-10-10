@@ -20,7 +20,7 @@ class RingFitter(Component):
 
         Returns
         -------
-        tuple of centre_x, centre_y, radius  as astropy quantities
+        tuple of centre_x, centre_y, radius, angle, inclination as astropy quantities
 
         """
         pass

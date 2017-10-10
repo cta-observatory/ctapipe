@@ -70,7 +70,19 @@ def test_tailcuts_clean():
                                          keep_isolated_pixels=False)
         assert (result == mask).all()
 
-# requiring that picture pixels have at least one neighbor above picture_thres:
+
+def test_tailcuts_clean_min_neighbors_1():
+    """
+    requiring that picture pixels have at least one neighbor above picture_thres:
+    """
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  # picture value
+    b = 7  # boundary value
+
+
     testcases = {(p, p, 0): [True,  True,  False],
                  (p, 0, p): [False, False, False],
                  (p, b, p): [False, False, False],
@@ -87,7 +99,16 @@ def test_tailcuts_clean():
                                          keep_isolated_pixels=False)
         assert (result == mask).all()
 
-# requiring that picture pixels have at least two neighbors above picture_thres:
+def test_tailcuts_clean_min_neighbors_2():
+    """ requiring that picture pixels have at least two neighbors above 
+    picture_thresh"""
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  #picture value
+    b = 7   # boundary value
+
     testcases = {(p, p, 0): [False, False, False],
                  (p, 0, p): [False, False, False],
                  (p, b, p): [False, False, False],
@@ -104,7 +125,14 @@ def test_tailcuts_clean():
         assert (result == mask).all()
 
 
-    # allowing isolated pixels
+def test_tailcuts_clean_with_isolated_pixels():
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  #picture value
+    b = 7   # boundary value
+
     testcases = {(p, p, 0): [True, True, False],
                  (p, 0, p): [True, False, True],
                  (p, b, p): [True, True, True],

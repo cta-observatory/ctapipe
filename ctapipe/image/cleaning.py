@@ -53,9 +53,13 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
     if keep_isolated_pixels or min_number_picture_neighbors == 0:
        pixels_in_picture = pixels_above_picture
     else:
-        # Require at least min_number_picture_neighbors. Otherwise, the pixel is not selected
-        number_of_neighbors_above_picture = np.count_nonzero(pixels_above_picture & geom.neighbor_matrix, axis=1)
-        pixels_in_picture = pixels_above_picture & (number_of_neighbors_above_picture >= min_number_picture_neighbors)
+        # Require at least min_number_picture_neighbors. Otherwise, the pixel
+        #  is not selected
+        number_of_neighbors_above_picture = np.sum(pixels_above_picture &
+                                                   geom.neighbor_matrix, axis=1)
+        pixels_in_picture = pixels_above_picture & (
+            number_of_neighbors_above_picture >= min_number_picture_neighbors
+        )
 
 
     # by broadcasting together pixels_in_picture (1d) with the neighbor
