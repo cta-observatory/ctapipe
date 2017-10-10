@@ -299,6 +299,7 @@ class CameraGeometry:
     def __str__(self):
         return self.cam_id
 
+
     @lazyproperty
     def neighbors(self):
         """" only calculate neighbors when needed or if not already 
@@ -362,7 +363,7 @@ class CameraGeometry:
         this matrix M can be multiplied by an image and normalized by the sum to
         get the moments:
 
-        .. code-block:: python
+        .. code-block:: python3
 
             M = geom.pixel_moment_matrix()
             moms = (M @ image)/image.sum()
