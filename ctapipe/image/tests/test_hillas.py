@@ -1,10 +1,13 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
-                                  hillas_parameters_3, hillas_parameters_4)
+                                  hillas_parameters_3, hillas_parameters_4,
+                                  HillasParameterizationError)
+from ctapipe.io.containers import HillasParametersContainer
 from astropy import units as u
-from numpy import isclose
+from numpy import isclose, zeros_like
 from numpy.random import seed
+import pytest
 
 def create_sample_image(psi='-30d'):
 
@@ -39,7 +42,7 @@ def compare_result(x,y):
     assert ux.unit == uy.unit
 
 
-def do_test_hillas(withunits=True):
+def test_hillas(withunits=True):
     """
     test all Hillas-parameter routines on a sample image and see if they
     agree with eachother and with the toy model (assuming the toy model code
@@ -75,8 +78,21 @@ def do_test_hillas(withunits=True):
                     #compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
 
-def test_hillas_with_units():
-    do_test_hillas(withunits=True)
+def test_hillas_failure():
+    geom, image = create_sample_image(psi='0d')
+    blank_image = zeros_like(image)
+
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters_1(geom, blank_image)
+        hillas_parameters_2(geom, blank_image)
+        hillas_parameters_3(geom, blank_image)
+        hillas_parameters_4(geom, blank_image)
+
+
+def test_hillas_container():
+    geom, image = create_sample_image(psi='0d')
+    params = hillas_parameters_4(geom, image, container=True)
+    assert type(params) is HillasParametersContainer
 
 
 
