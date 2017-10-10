@@ -9,6 +9,7 @@ import numpy as np
 from astropy.units import Quantity
 from astropy.coordinates import Angle
 import astropy.units as u
+from ctapipe.instrument import CameraGeometry
 from ..io.containers import HillasParametersContainer
 
 __all__ = [
@@ -31,7 +32,7 @@ class HillasParameterizationError(RuntimeError):
     pass
 
 
-def hillas_parameters_1(pix_x, pix_y, image):
+def hillas_parameters_1(geom: CameraGeometry, image):
     """Compute Hillas parameters for a given shower image.
 
     Reference: Appendix of the Whipple Crab paper Weekes et al. (1998) /
@@ -43,21 +44,18 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
     Parameters
     ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
+    geom: ctapipe.instrument.CameraGeometry
+        Camera corresponding to the image
     image : array_like
-        Pixel values corresponding
-
+        Pixel values
 
     Returns
     -------
     hillas_parameters : `MomentParameters`
     """
-    unit = Quantity(pix_x).unit
-    pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
-    pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+    unit = Quantity(geom.pix_x).unit
+    pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
+    pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
@@ -163,7 +161,7 @@ def hillas_parameters_1(pix_x, pix_y, image):
 
 
 
-def hillas_parameters_2(pix_x, pix_y, image):
+def hillas_parameters_2(geom: CameraGeometry, image):
     """Compute Hillas parameters for a given shower image.
 
     Alternate implementation of `hillas_parameters` ...
@@ -172,12 +170,10 @@ def hillas_parameters_2(pix_x, pix_y, image):
 
     Parameters
     ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
+    geom: ctapipe.instrument.CameraGeometry
+        Camera corresponding to the image
     image : array_like
-        Pixel values corresponding
+        Pixel values
 
 
     Returns
@@ -185,14 +181,14 @@ def hillas_parameters_2(pix_x, pix_y, image):
     hillas_parameters : `MomentParameters`
     """
 
-    if type(pix_x) == Quantity:
-        unit = pix_x.unit
-        assert pix_x.unit == pix_y.unit
+    if type(geom.pix_x) == Quantity:
+        unit = geom.pix_x.unit
+        assert geom.pix_x.unit == geom.pix_y.unit
     else:
         unit = 1.0
 
-    pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
-    pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+    pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
+    pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image)
 
     assert pix_x.shape == image.shape
@@ -330,7 +326,7 @@ def hillas_parameters_2(pix_x, pix_y, image):
                             kurtosis=kurtosis)
 
 
-def hillas_parameters_3(pix_x, pix_y, image):
+def hillas_parameters_3(geom: CameraGeometry, image):
     """Compute Hillas parameters for a given shower image.
 
     MP: probably better to use Whipple Reynolds et al 1993 paper:
@@ -351,14 +347,14 @@ def hillas_parameters_3(pix_x, pix_y, image):
     hillas_parameters : `MomentParameters`
     """
 
-    if type(pix_x) == Quantity:
-        unit = pix_x.unit
-        assert pix_x.unit == pix_y.unit
+    if type(geom.pix_x) == Quantity:
+        unit = geom.pix_x.unit
+        assert geom.pix_x.unit == geom.pix_y.unit
     else:
         unit = 1.0
 
-    pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
-    pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+    pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
+    pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
 
     # make sure they are numpy arrays so we can use numpy operations
     image = np.asanyarray(image, dtype=np.float64)
@@ -502,50 +498,8 @@ def hillas_parameters_3(pix_x, pix_y, image):
                             skewness=skewness, kurtosis=kurtosis)
 
 
-def static_xy(pix_x, pix_y, recalculate_pixels):
-    """Hold static variables for a given camera's pixel positions,
-    #if the camera's pixel positions haven't changed since last call, and otherwise or
-    if first call initializes them to the right values.
 
-    Parameters
-    ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
-    recalculate_pixels : Boolean
-        Recalculate the pixel higher multiples (e.g., if pixels move (!)
-    or pixel list changes between calls)
-
-    Returns
-    -------
-    Nothing, but keeps variables as attributes to the function,
-    so acts like a static variable holder."""
-
-    # If not called before or recalculate_pixels
-    if (not hasattr(static_xy, "pix_x") or recalculate_pixels):  # \
-        '''or not (np.array_equal(pix_x,static_xy.pix_x) and np.array_equal
-        (pix_y,static_xy.pix_y)):, or if the pixel positions have changed, 
-        but this adds 15% calculation time'''
-        static_xy.pix_x = pix_x
-        static_xy.pix_y = pix_y
-        static_xy.pix_x2 = pix_x * pix_x
-        static_xy.pix_y2 = pix_y * pix_y
-        static_xy.pix_xy = pix_x * pix_y
-        static_xy.pix_x3 = static_xy.pix_x2 * pix_x
-        static_xy.pix_x2y = static_xy.pix_x2 * pix_y
-        static_xy.pix_xy2 = pix_x * static_xy.pix_y2
-
-        static_xy.pix_y3 = pix_y * static_xy.pix_y2
-        static_xy.pix_x4 = static_xy.pix_x3 * pix_x
-        static_xy.pix_x3y = static_xy.pix_x3 * pix_y
-        static_xy.pix_x2y2 = static_xy.pix_x2 * static_xy.pix_y2
-        static_xy.pix_xy3 = pix_x * static_xy.pix_y3
-        static_xy.pix_y4 = static_xy.pix_y3 * pix_y
-
-
-def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
-                        container=False):
+def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     """Compute Hillas parameters for a given shower image.
 
     As for hillas_parameters_3 (old Whipple Fortran code), but more Pythonized
@@ -556,15 +510,10 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
 
     Parameters
     ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
+    geom: ctapipe.instrument.CameraGeometry
+        Camera geometry
     image : array_like
-        Pixel values corresponding
-    recalculate_pixels : Boolean (default True)
-        Recalculate the pixel higher multiples (e.g., if pixels move
-        (!) or pixel list changes between calls)
+        Pixel values
 
     Returns
     -------
@@ -572,16 +521,13 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
     """
 
 
-    if type(pix_x) == Quantity:
-        unit = pix_x.unit
-        assert pix_x.unit == pix_y.unit
-    else:
-        unit = 1.0
+    unit = geom.pix_x.unit
+
     # MP: Actually, I don't know why we need to strip the units... shouldn'
     # the calculations all work with them?'''
 
-    pix_x = Quantity(np.asanyarray(pix_x, dtype=np.float64)).value
-    pix_y = Quantity(np.asanyarray(pix_y, dtype=np.float64)).value
+    pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
+    pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
@@ -592,47 +538,17 @@ def hillas_parameters_4(pix_x, pix_y, image, recalculate_pixels=True,
     # Call static_xy to initialize the "static variables"
     # Actually, would be nice to just call this if we
     # know the pixel positions have changed
-    static_xy(pix_x, pix_y, recalculate_pixels)
 
     sumsig = image.sum()
-    sumxsig = (image * pix_x).sum()
-    sumysig = (image * pix_y).sum()
-    sumx2sig = (image * static_xy.pix_x2).sum()
-    sumy2sig = (image * static_xy.pix_y2).sum()
-    sumxysig = (image * static_xy.pix_xy).sum()
-
-
-    sumx3sig = (image * static_xy.pix_x3).sum()
-    sumx2ysig = (image * static_xy.pix_x2y).sum()
-    sumxy2sig = (image * static_xy.pix_xy2).sum()
-    sumy3sig = (image * static_xy.pix_y3).sum()
-
-    sumx4sig = (image * static_xy.pix_x4).sum()
-    sumx3ysig = (image * static_xy.pix_x3y).sum()
-    sumx2y2sig = (image * static_xy.pix_x2y2).sum()
-    sumxy3sig = (image * static_xy.pix_xy3).sum()
-    sumy4sig = (image * static_xy.pix_y4).sum()
 
     if sumsig == 0.0:
         raise HillasParameterizationError("no signal to parametrize")
 
-    xm = sumxsig / sumsig
-    ym = sumysig / sumsig
-    x2m = sumx2sig / sumsig
-    y2m = sumy2sig / sumsig
-    xym = sumxysig / sumsig
+    M = geom.pixel_moment_matrix
+    moms = (M * image).sum(axis=1)/sumsig
 
-
-    x3m = sumx3sig / sumsig
-    x2ym = sumx2ysig / sumsig
-    xy2m = sumxy2sig / sumsig
-    y3m = sumy3sig / sumsig
-
-    x4m = sumx4sig / sumsig
-    x3ym = sumx3ysig / sumsig
-    x2y2m = sumx2y2sig / sumsig
-    xy3m = sumxy3sig / sumsig
-    y4m = sumy4sig / sumsig
+    (xm, ym , x2m, xym, y2m, x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m,
+     y4m) = moms
 
     # Doing this should be same as above, but its 4us slower !?
     # (xm, ym, x2m, y2m, xym, x3m, x2ym, xy2m, y3m) = \

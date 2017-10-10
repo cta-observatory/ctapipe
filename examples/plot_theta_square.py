@@ -74,7 +74,7 @@ for event in source:
         # Calulate hillas parameters
         # It fails for empty pixels   
         try:
-           hillas_params[tel_id] = hillas_parameters(camgeom.pix_x,camgeom.pix_y,cleaned_image)
+           hillas_params[tel_id] = hillas_parameters(camgeom, cleaned_image)
         except:
            pass
 

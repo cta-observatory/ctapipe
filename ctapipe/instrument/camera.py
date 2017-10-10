@@ -354,14 +354,16 @@ class CameraGeometry:
     @lazyproperty
     def pixel_moment_matrix(self):
         """
-        Pre-calculated matrix needed for higher-order moment calculation.
+        Pre-calculated matrix needed for higher-order moment calculation,
+        up to 4th order.
+
         Note this is *not* recalculated if the CameraGeometry is modified.
 
         this matrix M can be multiplied by an image and normalized by the sum to
         get the moments:
 
         .. code-block:: python
-        
+
             M = geom.pixel_moment_matrix()
             moms = (M @ image)/image.sum()
 
@@ -369,14 +371,18 @@ class CameraGeometry:
         Returns
         -------
         array:
-            x, y, x**2, x*y, y^2, x^3, x^2*y,x*y^2, y^3
+            x, y, x**2, x*y, y^2, x^3, x^2*y,x*y^2, y^3, x^4, x^3*y, x^2*y2,
+            x*y^3, y^4
 
         """
 
         x = self.pix_x.value
         y = self.pix_y.value
 
-        return np.row_stack([x, y, x**2, x*y, x**3, x**2*y, x*y**2, y**3])
+        return np.row_stack([x, y,
+                             x**2, x*y, y**2,
+                             x**3, x**2*y, x*y**2, y**3,
+                             x**4, x**3*y, x**2*y**2, x*y**3, y**4])
 
 
     def rotate(self, angle):

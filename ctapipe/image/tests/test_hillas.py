@@ -30,11 +30,7 @@ def create_sample_image(psi='-30d'):
     # threshold in pe
     image[~clean_mask] = 0
 
-    # Pixel values in the camera
-    pix_x = geom.pix_x.value
-    pix_y = geom.pix_y.value
-
-    return pix_x, pix_y, image
+    return geom,  image
 
 def compare_result(x,y):
     ux = u.Quantity(x)
@@ -53,17 +49,17 @@ def do_test_hillas(withunits=True):
     # try all quadrants
     for psi_angle in ['30d','120d','-30d','-120d']:
 
-        px, py, image = create_sample_image(psi_angle)
+        geom, image = create_sample_image(psi_angle)
         results = {}
 
-        if withunits:
-            px = px * u.cm
-            py = py * u.cm
+        if not withunits:
+            geom.pix_x = geom.pix_x.value
+            geom.pix_y = geom.pix_y.value
 
-        results['v1'] = hillas_parameters_1(px, py, image)
-        results['v2'] = hillas_parameters_2(px, py, image)
-        results['v3'] = hillas_parameters_3(px, py, image)
-        results['v4'] = hillas_parameters_4(px, py, image)
+        results['v1'] = hillas_parameters_1(geom, image)
+        results['v2'] = hillas_parameters_2(geom, image)
+        results['v3'] = hillas_parameters_3(geom, image)
+        results['v4'] = hillas_parameters_4(geom, image)
         # compare each method's output
         for aa in results:
             for bb in results:
@@ -82,6 +78,4 @@ def do_test_hillas(withunits=True):
 def test_hillas_with_units():
     do_test_hillas(withunits=True)
 
-def test_hillas_unitless():
-    do_test_hillas(withunits=False)
 

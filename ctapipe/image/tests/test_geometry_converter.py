@@ -34,7 +34,7 @@ def test_convert_geometry(cam_id, rot):
                                              intensity=50,
                                              nsb_level_pe=100)
 
-    hillas_0 = hillas_parameters(geom.pix_x, geom.pix_y, image)
+    hillas_0 = hillas_parameters(geom, image)
 
     geom2d, image2d = convert_geometry_1d_to_2d(geom, image,
                                                 geom.cam_id + str(rot),
@@ -43,7 +43,7 @@ def test_convert_geometry(cam_id, rot):
                                             geom.cam_id + str(rot),
                                             add_rot=rot)
 
-    hillas_1 = hillas_parameters(geom1d.pix_x, geom1d.pix_y, image1d)
+    hillas_1 = hillas_parameters(geom, image1d)
 
     if __name__ == "__main__":
         plot_cam(geom, geom2d, geom1d, image, image2d, image1d)
