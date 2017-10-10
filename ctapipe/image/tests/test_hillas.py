@@ -79,3 +79,6 @@ def test_hillas_with_units():
     do_test_hillas(withunits=True)
 
 
+
+if __name__ == '__main__':
+    test_hillas_with_units()

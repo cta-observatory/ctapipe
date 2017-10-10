@@ -223,15 +223,15 @@ def hillas_parameters_2(geom: CameraGeometry, image):
     # moment) However, this doesn't avoid a temporary created for the
     # 2D array
 
+    M = geom.pixel_moment_matrix
 
-    momdata = pixdata * image
-    moms = momdata.sum(axis=1) / size
-    momdataHO = pixdataHO * image
-    momsHO = momdataHO.sum(axis=1) / size
+    momdata = (M @ image)/size
+
 
     # give the moms values comprehensible names
-    xm, ym, x2m, xym, y2m = moms
-    x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m, y4m = momsHO
+
+    (xm, ym, x2m, xym, y2m, x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m,
+     y4m) = momdata
 
     # intermediate variables (could be avoided if compiler which understands powers, etc)
     xm2 = xm * xm
@@ -545,7 +545,7 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         raise HillasParameterizationError("no signal to parametrize")
 
     M = geom.pixel_moment_matrix
-    moms = (M * image).sum(axis=1)/sumsig
+    moms = (M @ image)/sumsig
 
     (xm, ym , x2m, xym, y2m, x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m,
      y4m) = moms
