@@ -18,6 +18,11 @@ class DL1Writer(Component):
                                       group_name=self.groupname,
                                       num_rows_expected=1000,filters=filters )
 
+        # exclude the extracted_samples and cleaned columns from all tables
+        for ii in range(100):
+            self.writer.exclude(self.get_table_name(ii), 'extracted_samples')
+            self.writer.exclude(self.get_table_name(ii), 'cleaned')
+
     @lru_cache(512)
     def get_table_name(self, tel_id):
         return "tel_{:03d}".format(tel_id)
