@@ -42,7 +42,7 @@ def compare_result(x,y):
     assert ux.unit == uy.unit
 
 
-def test_hillas(withunits=True):
+def test_hillas():
     """
     test all Hillas-parameter routines on a sample image and see if they
     agree with eachother and with the toy model (assuming the toy model code
@@ -54,10 +54,6 @@ def test_hillas(withunits=True):
 
         geom, image = create_sample_image(psi_angle)
         results = {}
-
-        if not withunits:
-            geom.pix_x = geom.pix_x.value
-            geom.pix_y = geom.pix_y.value
 
         results['v1'] = hillas_parameters_1(geom, image)
         results['v2'] = hillas_parameters_2(geom, image)
@@ -84,8 +80,14 @@ def test_hillas_failure():
 
     with pytest.raises(HillasParameterizationError):
         hillas_parameters_1(geom, blank_image)
+
+    with pytest.raises(HillasParameterizationError):
         hillas_parameters_2(geom, blank_image)
+
+    with pytest.raises(HillasParameterizationError):
         hillas_parameters_3(geom, blank_image)
+
+    with pytest.raises(HillasParameterizationError):
         hillas_parameters_4(geom, blank_image)
 
 
@@ -93,8 +95,3 @@ def test_hillas_container():
     geom, image = create_sample_image(psi='0d')
     params = hillas_parameters_4(geom, image, container=True)
     assert type(params) is HillasParametersContainer
-
-
-
-if __name__ == '__main__':
-    test_hillas_with_units()

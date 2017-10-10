@@ -4,7 +4,7 @@ from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
 
 
-def test_tailcuts_clean():
+def test_tailcuts_clean_simple():
 
     geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
