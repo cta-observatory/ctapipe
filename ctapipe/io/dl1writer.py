@@ -1,22 +1,24 @@
+from functools import lru_cache
+
+from .hdftableio import HDF5TableWriter
 from ..core import Component
 from ..core import traits as tr
-from .hdftableio import HDF5TableWriter
-from functools import lru_cache
-import tables
+
 
 class DL1Writer(Component):
-
     outfile = tr.Unicode('dl1.h5', help='output HDF5 file').tag(config=True)
     groupname = tr.Unicode('DL1', help='HDF5 group name')
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent, **kwargs)
 
-        filters = None # tables.Filters(complevel=5, complib='blosc')
+        # alternativelly, tables.Filters(complevel=5, complib='blosc')
+        filters = None
 
         self.writer = HDF5TableWriter(self.outfile,
                                       group_name=self.groupname,
-                                      num_rows_expected=1000,filters=filters )
+                                      num_rows_expected=1000,
+                                      filters=filters)
 
         # exclude the extracted_samples and cleaned columns from all tables
         for ii in range(100):
@@ -34,5 +36,3 @@ class DL1Writer(Component):
         for tel_id, cont in event.dl1.tel.items():
             table_name = self.get_table_name(tel_id)
             self.writer.write(table_name=table_name, container=cont)
-
-
