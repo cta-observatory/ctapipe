@@ -1,6 +1,8 @@
 from ctapipe.utils import datasets
 import os
 import pytest
+from astropy.table import Table
+import pytest
 
 def test_find_datasets():
 
@@ -46,3 +48,15 @@ def test_datasets_in_custom_path(tmpdir_factory):
     ds = datasets.find_all_matching_datasets("test.*",
                                              searchpath=os.environ['CTAPIPE_SVC_PATH'])
     assert dataset_name in ds
+
+
+def test_get_table_dataset():
+    table = datasets.get_table_dataset("paranal.atmprof")
+    assert isinstance(table, Table)
+
+    table = datasets.get_table_dataset("optics")
+    assert isinstance(table, Table)
+
+def test_fail_to_find_table():
+    with pytest.raises(FileNotFoundError):
+        table = datasets.get_table_dataset("missingdataset")
