@@ -1,8 +1,9 @@
-from ctapipe.io.dl1writer import DL1Writer
+from tqdm import tqdm
+
 from ctapipe.calib import CameraCalibrator
+from ctapipe.io.dl1writer import DL1Writer
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils import get_dataset
-from tqdm import tqdm
 
 if __name__ == '__main__':
 
