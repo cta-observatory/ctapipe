@@ -91,6 +91,11 @@ def test_hillas_failure():
         hillas_parameters_4(geom, blank_image)
 
 
+def test_hillas_api_change():
+    import numpy as np
+    with pytest.raises(ValueError):
+        hillas_parameters_4(np.arange(10), np.arange(10), np.arange(10))
+
 def test_hillas_container():
     geom, image = create_sample_image(psi='0d')
     params = hillas_parameters_4(geom, image, container=True)

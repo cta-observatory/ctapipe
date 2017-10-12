@@ -520,6 +520,9 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     hillas_parameters : `MomentParameters`
     """
 
+    if not isinstance(geom, CameraGeometry):
+        raise ValueError("Hillas Parameters API has changed: hillas_parameters("
+                         "geom, image). Please update your code")
 
     unit = geom.pix_x.unit
 
