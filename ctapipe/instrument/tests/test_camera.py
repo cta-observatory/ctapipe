@@ -108,7 +108,18 @@ def test_precal_neighbors():
 
 
 
+def test_slicing():
+    geom = CameraGeometry.from_name("NectarCam")
+    sliced1 = geom[100:200]
 
+    assert len(sliced1.pix_x) == 100
+    assert len(sliced1.pix_y) == 100
+    assert len(sliced1.pix_area) == 100
+    assert len(sliced1.pix_id) == 100
 
+    sliced2 = geom[[5,7,8,9,10]]
+    assert sliced2.pix_id[0] == 5
+    assert sliced2.pix_id[1] == 7
+    assert len(sliced2.pix_x) == 5
 if __name__ == '__main__':
     pass

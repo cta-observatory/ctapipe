@@ -122,6 +122,17 @@ class CameraGeometry:
                 and (self.pix_type == other.pix_type)
                 )
 
+    def __getitem__(self, slice):
+        return CameraGeometry(cam_id=" ".join([self.cam_id," sliced"]),
+                              pix_id=self.pix_id[slice],
+                              pix_x=self.pix_x[slice],
+                              pix_y=self.pix_y[slice],
+                              pix_area=self.pix_area[slice],
+                              pix_type=self.pix_type,
+                              pix_rotation=self.pix_rotation,
+                              cam_rotation=self.cam_rotation,
+                              neighbors=None)
+
     @classmethod
     @u.quantity_input
     def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
