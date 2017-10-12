@@ -89,5 +89,37 @@ def test_known_cameras():
     assert len(cams) > 3
 
 
+def test_precal_neighbors():
+    geom = CameraGeometry(cam_id="TestCam",
+                          pix_id=np.arange(3),
+                          pix_x=np.arange(3)*u.deg,
+                          pix_y=np.arange(3)*u.deg,
+                          pix_area=np.ones(3)*u.deg**2,
+                          neighbors=[[1,],[0,2],[1,]],
+                          pix_type='rectangular',
+                          pix_rotation="0deg",
+                          cam_rotation="0deg" )
+
+    neigh = geom.neighbors
+    assert len(neigh) == len(geom.pix_x)
+
+    nmat = geom.neighbor_matrix
+    assert nmat.shape == (len(geom.pix_x), len(geom.pix_x))
+
+
+
+def test_slicing():
+    geom = CameraGeometry.from_name("NectarCam")
+    sliced1 = geom[100:200]
+
+    assert len(sliced1.pix_x) == 100
+    assert len(sliced1.pix_y) == 100
+    assert len(sliced1.pix_area) == 100
+    assert len(sliced1.pix_id) == 100
+
+    sliced2 = geom[[5,7,8,9,10]]
+    assert sliced2.pix_id[0] == 5
+    assert sliced2.pix_id[1] == 7
+    assert len(sliced2.pix_x) == 5
 if __name__ == '__main__':
     pass
