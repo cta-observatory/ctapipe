@@ -40,5 +40,6 @@ def test_dump_instrument(tmpdir):
 def test_camdemo():
     tool = CameraDemo()
     tool.num_events = 10
+    tool.cleanframes = 2
     tool.display = False
     tool.run(argv=[])

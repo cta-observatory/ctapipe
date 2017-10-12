@@ -65,4 +65,3 @@ def test_array_display():
     ad = ArrayDisplay(X, Y, A, title="HESS")
     ad.intensities = ones(len(X))
 
-    
