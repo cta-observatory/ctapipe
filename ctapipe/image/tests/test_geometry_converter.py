@@ -45,29 +45,29 @@ def test_convert_geometry(cam_id, rot):
 
     hillas_1 = hillas_parameters(geom, image1d)
 
-    if __name__ == "__main__":
-        plot_cam(geom, geom2d, geom1d, image, image2d, image1d)
-        plt.tight_layout()
-        plt.pause(.1)
+    # if __name__ == "__main__":
+    #     plot_cam(geom, geom2d, geom1d, image, image2d, image1d)
+    #     plt.tight_layout()
+    #     plt.pause(.1)
 
     assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
     # TODO: test other parameters
 
 
-def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
-    # plt.viridis()
-    plt.figure(figsize=(12, 4))
-    ax = plt.subplot(1, 3, 1)
-    CameraDisplay(geom, image=image).add_colorbar()
-    plt.subplot(1, 3, 2, sharex=ax, sharey=ax)
-    CameraDisplay(geom2d, image=image2d).add_colorbar()
-    plt.subplot(1, 3, 3, sharex=ax, sharey=ax)
-    CameraDisplay(geom1d, image=image1d).add_colorbar()
-
-
-if __name__ == "__main__":
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
-    for cam_id in CameraGeometry.get_known_camera_names():
-        test_convert_geometry(cam_id, 3)
-    plt.show()
+# def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
+#     # plt.viridis()
+#     plt.figure(figsize=(12, 4))
+#     ax = plt.subplot(1, 3, 1)
+#     CameraDisplay(geom, image=image).add_colorbar()
+#     plt.subplot(1, 3, 2, sharex=ax, sharey=ax)
+#     CameraDisplay(geom2d, image=image2d).add_colorbar()
+#     plt.subplot(1, 3, 3, sharex=ax, sharey=ax)
+#     CameraDisplay(geom1d, image=image1d).add_colorbar()
+#
+#
+# if __name__ == "__main__":
+#     import logging
+#     logging.basicConfig(level=logging.DEBUG)
+#     for cam_id in CameraGeometry.get_known_camera_names():
+#         test_convert_geometry(cam_id, 3)
+#     plt.show()
