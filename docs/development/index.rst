@@ -10,3 +10,4 @@ Development Guidelines
    support-libraries
    pullrequests
    maintainer-info
+   rootmigration
