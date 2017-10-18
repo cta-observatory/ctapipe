@@ -3,7 +3,7 @@
 import sys
 
 # import ah_bootstrap
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 # Get some values from the setup.cfg
 from configparser import RawConfigParser
@@ -41,6 +41,10 @@ entry_points['console_scripts'] = [
 
 package.version.update_release_version()
 
+# C Extensions
+neighboursum_module = Extension('ctapipe.utils.neighbour_sum_c',
+                                sources=['ctapipe/utils/neighbour_sum_c.cc'])
+
 setup(name=PACKAGENAME,
       packages=find_packages(),
       version=package.version.get_version(pep440=True),
@@ -61,8 +65,9 @@ setup(name=PACKAGENAME,
           'pyhessio',
           'matplotlib>=2.0',
           'numba',
+          'pandas',
       ],
-      tests_require=['pytest', 'ctapipe_resources>=0.2.11'],
+      tests_require=['pytest', 'ctapipe-extra>=0.2.11'],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
@@ -81,4 +86,5 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=False,
       entry_points=entry_points,
+      ext_modules=[neighboursum_module]
       )

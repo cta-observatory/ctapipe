@@ -4,7 +4,7 @@ from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
 
 
-def test_tailcuts_clean():
+def test_tailcuts_clean_simple():
 
     geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
@@ -70,13 +70,75 @@ def test_tailcuts_clean():
                                          keep_isolated_pixels=False)
         assert (result == mask).all()
 
-    # allowing isolated pixels
+
+def test_tailcuts_clean_min_neighbors_1():
+    """
+    requiring that picture pixels have at least one neighbor above picture_thres:
+    """
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  # picture value
+    b = 7  # boundary value
+
+
+    testcases = {(p, p, 0): [True,  True,  False],
+                 (p, 0, p): [False, False, False],
+                 (p, b, p): [False, False, False],
+                 (p, b, 0): [False, False, False],
+                 (b, b, 0): [False, False, False],
+                 (0, p ,0): [False, False, False],
+                 (p, p, p): [True,  True,  True]}
+
+    for image, mask in testcases.items():
+        result = cleaning.tailcuts_clean(geom, np.array(image),
+                                         picture_thresh=15,
+                                         boundary_thresh=5,
+                                         min_number_picture_neighbors=1,
+                                         keep_isolated_pixels=False)
+        assert (result == mask).all()
+
+def test_tailcuts_clean_min_neighbors_2():
+    """ requiring that picture pixels have at least two neighbors above 
+    picture_thresh"""
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  #picture value
+    b = 7   # boundary value
+
+    testcases = {(p, p, 0): [False, False, False],
+                 (p, 0, p): [False, False, False],
+                 (p, b, p): [False, False, False],
+                 (p, b, 0): [False, False, False],
+                 (b, b, 0): [False, False, False],
+                 (p, p ,p): [True, True, True]}
+
+    for image, mask in testcases.items():
+        result = cleaning.tailcuts_clean(geom, np.array(image),
+                                         picture_thresh=15,
+                                         boundary_thresh=5,
+                                         min_number_picture_neighbors=2,
+                                         keep_isolated_pixels=False)
+        assert (result == mask).all()
+
+
+def test_tailcuts_clean_with_isolated_pixels():
+
+    # start with simple 3-pixel camera
+    geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
+
+    p = 15  #picture value
+    b = 7   # boundary value
+
     testcases = {(p, p, 0): [True, True, False],
                  (p, 0, p): [True, False, True],
                  (p, b, p): [True, True, True],
                  (p, b, 0): [True, True, False],
-                 (b, b, 0): [False, False, False],
-                 (0, p, 0): [False, True, False]}
+                 (0, p, 0): [False, True, False],
+                 (b, b, 0): [False, False, False]}
 
     for image, mask in testcases.items():
         result = cleaning.tailcuts_clean(geom, np.array(image),

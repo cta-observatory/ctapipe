@@ -5,9 +5,10 @@ Example of drawing a Camera using a toymodel shower image.
 """
 
 import matplotlib.pylab as plt
+
+from ctapipe.image import toymodel, hillas_parameters, tailcuts_clean
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-from ctapipe.image import toymodel, hillas_parameters, tailcuts_clean
 
 
 def draw_neighbors(geom, pixel_index, color='r', **kwargs):
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     clean[~cleanmask] = 0.0
 
     # Calculate image parameters
-    hillas = hillas_parameters(geom.pix_x, geom.pix_y, clean)
+    hillas = hillas_parameters(geom, clean)
     print(hillas)
 
     # Show the camera image and overlay Hillas ellipse and clean pixels

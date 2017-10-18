@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from ctapipe.visualization import ArrayDisplay
 import astropy.units as u
-from ctapipe.coordinates import TiltedGroundFrame, GroundFrame
+from ctapipe.coordinates import GroundFrame
 
 
 class ArrayPlotter:
@@ -40,20 +40,23 @@ class ArrayPlotter:
 
         self.axes = ax if ax is not None else plt.gca()
 
-        tel_type = np.asarray([type_dict[self.instrument.optical_foclen[i].to(u.m).value] for i in self.telescopes])
+        tel_type = np.asarray([type_dict[self.instrument.optical_foclen[i].
+                                         to(u.m).value] for i in self.telescopes])
         self.tel_type = tel_type
 
         if system is not None:
-            ground = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
+            ground = GroundFrame(x=np.asarray(tel_x) * u.m, y=np.asarray(tel_y)
+                                 * u.m, z=np.asarray(tel_z) * u.m)
             new_sys = ground.transform_to(system)
             self.tel_x = new_sys.x
             self.tel_y = new_sys.y
         else:
-            self.tel_x = tel_x*u.m
-            self.tel_y = tel_y*u.m
+            self.tel_x = tel_x * u.m
+            self.tel_y = tel_y * u.m
 
-        self.centre = (0,0)
-        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y), tel_type=tel_type,
+        self.centre = (0, 0)
+        self.array = ArrayDisplay(telx=np.asarray(self.tel_x),
+                                  tely=np.asarray(self.tel_y), tel_type=tel_type,
                                   axes=self.axes)
 
         self.hillas = None
@@ -79,7 +82,9 @@ class ArrayPlotter:
         tel_y = [self.instrument.tel_pos[i][1].to(u.m).value for i in hillas]
         tel_z = [self.instrument.tel_pos[i][2].to(u.m).value for i in hillas]
         if self.system is not None:
-            ground = GroundFrame(x=np.asarray(tel_x)*u.m, y=np.asarray(tel_y)*u.m, z=np.asarray(tel_z)*u.m)
+            ground = GroundFrame(x=np.asarray(tel_x) * u.m,
+                                 y=np.asarray(tel_y) * u.m,
+                                 z=np.asarray(tel_z) * u.m)
             new_sys = ground.transform_to(self.system)
             self.array.overlay_moments(hillas, (new_sys.x, new_sys.y), scale_fac,
                                        cmap="Greys", alpha=0.5, **kwargs)
@@ -114,18 +119,21 @@ class ArrayPlotter:
         self.axes.contour(x, y, background, **kwargs)
 
         # Annoyingly we need to redraw everything
-        self.array = ArrayDisplay(telx=np.asarray(self.tel_x), tely=np.asarray(self.tel_y), tel_type=self.tel_type)
+        self.array = ArrayDisplay(telx=np.asarray(self.tel_x),
+                                  tely=np.asarray(self.tel_y),
+                                  tel_type=self.tel_type)
 
         if self.hillas is not None:
             self.overlay_hillas(self.hillas)
 
-    def draw_array(self, range=((-2000,2000),(-2000,2000))):
+    def draw_array(self, coord_range=((-2000, 2000), (-2000, 2000)),
+                   annotate=False):
         """
         Draw the array plotter (including any overlayed elements)
 
         Parameters
         ----------
-        range: tuple
+        coord_range: tuple
             XY range in which to draw plotter
 
         Returns
@@ -133,11 +141,18 @@ class ArrayPlotter:
         None
         """
 
-        self.array.axes.set_xlim((self.centre[0]+range[0][0], range[0][1]+self.centre[0]))
-        self.array.axes.set_ylim((self.centre[1]+range[1][0], range[1][1]+self.centre[1]))
+        self.array.axes.set_xlim((self.centre[0] + coord_range[0][0],
+                                  coord_range[0][1] + self.centre[0]))
+        self.array.axes.set_ylim((self.centre[1] + coord_range[1][0],
+                                  coord_range[1][1] + self.centre[1]))
 
-        #self.axes.tight_layout()
-        #self.axes.show()
+        if annotate:
+            for txt, x, y in zip(self.telescopes,
+                                 self.tel_x.value, self.tel_y.value):
+                self.axes.annotate(txt, (x, y))
+
+        # self.axes.tight_layout()
+        # self.axes.show()
 
     def draw_position(self, core_x, core_y, use_centre=False, **kwargs):
         """
@@ -159,16 +174,19 @@ class ArrayPlotter:
         -------
         None
         """
-        ground = GroundFrame(x=np.asarray(core_x) * u.m, y=np.asarray(core_y) * u.m, z=np.asarray(0) * u.m)
+        ground = GroundFrame(x=np.asarray(core_x) * u.m,
+                             y=np.asarray(core_y) * u.m,
+                             z=np.asarray(0) * u.m)
 
         if self.system is not None:
             new_sys = ground.transform_to(self.system)
         else:
             new_sys = ground
 
-        self.array.add_polygon(centroid=(new_sys.x.value,new_sys.y.value), radius=10, nsides=3, **kwargs)
+        self.array.add_polygon(centroid=(new_sys.x.value, new_sys.y.value),
+                               radius=10, nsides=3, **kwargs)
         if use_centre:
-            self.centre = (new_sys.x.value,new_sys.y.value)
+            self.centre = (new_sys.x.value, new_sys.y.value)
 
 
 class NominalPlotter:
@@ -193,9 +211,11 @@ class NominalPlotter:
         self.cen_x = [i.cen_x.to(u.deg).value for i in hillas_parameters.values()]
         self.cen_y = [i.cen_y.to(u.deg).value for i in hillas_parameters.values()]
 
-        self.centre = (0,0)
-        self.array = ArrayDisplay(telx=np.asarray(self.cen_x), tely=np.asarray(self.cen_y),
-                                  tel_type=np.ones(len(self.cen_y)), axes=self.axes)
+        self.centre = (0, 0)
+        self.array = ArrayDisplay(telx=np.asarray(self.cen_x),
+                                  tely=np.asarray(self.cen_y),
+                                  tel_type=np.ones(len(self.cen_y)),
+                                  axes=self.axes)
 
         self.hillas = hillas_parameters
         scale_fac = 57.3 * 2
@@ -229,16 +249,18 @@ class NominalPlotter:
         self.axes.contour(x, y, background, **kwargs)
 
         # Annoyingly we need to redraw everything
-        self.array = ArrayDisplay(telx=np.asarray(self.cen_x), tely=np.asarray(self.cen_y),
-                                  tel_type=np.ones(len(self.cen_y)), axes=self.axes)
+        self.array = ArrayDisplay(telx=np.asarray(self.cen_x),
+                                  tely=np.asarray(self.cen_y),
+                                  tel_type=np.ones(len(self.cen_y)),
+                                  axes=self.axes)
 
-    def draw_array(self, range=((-4,4),(-4,4))):
+    def draw_array(self, coord_range=((-4, 4), (-4, 4))):
         """
         Draw the array plotter (including any overlayed elements)
 
         Parameters
         ----------
-        range: tuple
+        coord_range: tuple
             XY range in which to draw plotter
 
         Returns
@@ -246,11 +268,13 @@ class NominalPlotter:
         None
         """
 
-        self.array.axes.set_xlim((self.centre[0]+range[0][0], range[0][1]+self.centre[0]))
-        self.array.axes.set_ylim((self.centre[1]+range[1][0], range[1][1]+self.centre[1]))
+        self.array.axes.set_xlim((self.centre[0] + coord_range[0][0],
+                                  coord_range[0][1] + self.centre[0]))
+        self.array.axes.set_ylim((self.centre[1] + coord_range[1][0],
+                                  coord_range[1][1] + self.centre[1]))
 
-        #self.axes.tight_layout()
-        #self.axes.show()
+        # self.axes.tight_layout()
+        # self.axes.show()
 
     def draw_position(self, source_x, source_y, use_centre=False, **kwargs):
         """
@@ -272,6 +296,8 @@ class NominalPlotter:
         -------
         None
         """
-        self.array.add_polygon(centroid=(source_x.to(u.deg).value,source_y.to(u.deg).value), radius=0.1, nsides=3, **kwargs)
+        self.array.add_polygon(centroid=(source_x.to(u.deg).value,
+                                         source_y.to(u.deg).value),
+                               radius=0.1, nsides=3, **kwargs)
         if use_centre:
-            self.centre = (source_x.value,source_y.value)
+            self.centre = (source_x.value, source_y.value)

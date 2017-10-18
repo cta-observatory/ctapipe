@@ -69,7 +69,7 @@ class MyApp(Application):
 
     aliases = Dict(dict(
         i='Foo.i', j='Foo.j', name='Foo.name', running='MyApp.running',
-        enabled='Bar.enabled', log_level='MyApp.log_level',
+        enabled='Bar.enabled', log_level='MyApp.log_lev',
         config_file='MyApp.config_file',
     ))
 
@@ -122,7 +122,7 @@ class MyApp(Application):
 def test_traitlets_config_to_fits():
     backup = sys.argv
     full_config_name = get_dataset('config.json')
-    sys.argv = ['test_json_2_fits.py', '--config_file=' + full_config_name]
+    sys.argv = ['test_json_2_fits.py', '--config_f=' + full_config_name]
     app = MyApp()
     app.initialize()
     app.start()
@@ -135,7 +135,7 @@ def test_traitlets_config_to_fits():
 def test_jsonToFits():
     backup = sys.argv
     full_config_name = get_dataset('config.json')
-    sys.argv = ['test_json_2_fits.py', '--config_file=' + full_config_name]
+    sys.argv = ['test_json_2_fits.py', '--config_f=' + full_config_name]
     app = MyApp()
     app.initialize()
     app.start()

@@ -14,22 +14,22 @@ class SimTelArrayReader(Component):
     source = None
 
     def init(self):
-        self.log.debug("--- SimTelArrayReader init {}---".format(self.filename))
+        self.log.debug('%self.filename' % "--- SimTelArrayReader init {}---")
         try:
             in_file = get_dataset(self.filename)
-            self.source = hessio_event_source(in_file,max_events=3)
-            self.log.debug('{} successfully opened {}'.format(self.filename,self.source))
-        except:
+            self.source = hessio_event_source(in_file, max_events=3)
+            self.log.debug('%self.filename %self.source' % '{} successfully opened {}')
+        except Exception:
             self.log.error('could not open ' + in_file)
             return False
         return True
 
     def run(self):
         for event in self.source:
-            self.log.debug('\n--- SimTelArrayReader send event {}'.format(event.dl0.event_id))
+            self.log.debug('%event.dl0.event_id' %
+                           '\n--- SimTelArrayReader send event {}')
             yield (event)
         self.log.debug("\n--- SimTelArrayReader Done ---")
 
     def finish(self):
         self.log.debug("--- SimTelArrayReader finish ---")
-        pass

@@ -10,7 +10,6 @@ To do:
 import numpy as np
 from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
-from scipy.optimize import minimize
 from astropy import units as u
 from astropy.constants import alpha
 from ctapipe.io.containers import MuonIntensityParameter
@@ -55,7 +54,7 @@ class MuonLineIntegrate:
         multiplied by the fine structure constant (1/137)
     """
     def __init__(self, mirror_radius, hole_radius, pixel_width=0.2,
-                 oversample_bins=3,sct_flag=False,secondary_radius=1.):
+                 oversample_bins=3, sct_flag=False, secondary_radius=1.):
 
         self.mirror_radius = mirror_radius
         self.hole_radius = hole_radius
@@ -69,7 +68,7 @@ class MuonLineIntegrate:
         self.prediction = 0
         self.minlambda = 300.e-9
         self.maxlambda = 600.e-9
-        self.photemit = alpha*(self.minlambda**-1 - self.maxlambda**-1)#12165.45
+        self.photemit = alpha * (self.minlambda**-1 - self.maxlambda**-1)  # 12165.45
         self.unit = u.deg
 
     @staticmethod
@@ -123,25 +122,25 @@ class MuonLineIntegrate:
         mirror_length = self.chord_length(
             self.mirror_radius, r / self.mirror_radius.value, angle
         )
-        hole_length = 0 * mirror_length#.unit
+        hole_length = 0 * mirror_length  # .unit
         if self.hole_radius > 0:
             hole_length = self.chord_length(
                 self.hole_radius, r / self.hole_radius.value, angle
             )
 
         if self.sct_flag:
-            self.sct_flag = False #Do not treat differently for now...work in progress
+            self.sct_flag = False  # Do not treat differently for now...work in progress
 
         if self.sct_flag:
             secondary_length = self.chord_length(
                 self.secondary_radius, r / self.secondary_radius, angle
             )
-            #Should be areas not lengths here?
+            # Should be areas not lengths here?
             factor = mirror_length - (secondary_length)
             factor /= (mirror_length - hole_length)
 
         if not self.sct_flag:
-            return mirror_length-hole_length
+            return mirror_length - hole_length
         else:
             return (mirror_length - hole_length + secondary_length)
 
@@ -157,7 +156,7 @@ class MuonLineIntegrate:
             Angles over which to integrate
         phi: float
             Rotation angle of muon image
-        
+
         Returns
         -------
         ndarray
@@ -165,7 +164,7 @@ class MuonLineIntegrate:
         """
 
         bins = int((2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
-        #ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
+        # ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
         ang = np.linspace(-np.pi + phi, np.pi + phi, bins)
         l = self.intersect_circle(impact_parameter, ang)
         l = correlate1d(l, np.ones(self.oversample_bins), mode='wrap', axis=0)
@@ -200,8 +199,8 @@ class MuonLineIntegrate:
         ang = np.arctan2(del_x, del_y)
         return ang
 
-    def image_prediction( self, impact_parameter, phi, centre_x,
-                          centre_y, radius, ring_width, pixel_x, pixel_y, ):
+    def image_prediction(self, impact_parameter, phi, centre_x,
+                         centre_y, radius, ring_width, pixel_x, pixel_y, ):
         """Function for producing the expected image for a given set of trial
         muon parameters
 
@@ -250,7 +249,7 @@ class MuonLineIntegrate:
         pred *= (self.pixel_width / radius)
         pred *= np.sin(2 * radius)
         # weight by gaussian width
-        pred *= self.pixel_width*gauss
+        pred *= self.pixel_width * gauss
 
         return pred
 
@@ -278,12 +277,12 @@ class MuonLineIntegrate:
         -------
         float: Likelihood that model matches data
         """
-        #centre_x *= self.unit
-        #centre_y *= self.unit
-        #radius *= self.unit
-        #ring_width *= self.unit
-        #impact_parameter *= u.m
-        #phi *= u.rad
+        # centre_x *= self.unit
+        # centre_y *= self.unit
+        # radius *= self.unit
+        # ring_width *= self.unit
+        # impact_parameter *= u.m
+        # phi *= u.rad
 
         # Generate model prediction
         self.prediction = self.image_prediction(
@@ -296,10 +295,10 @@ class MuonLineIntegrate:
             self.pixel_x.value,
             self.pixel_y.value,
         )
-        #TEST: extra scaling factor, HESS style (ang pix size squared/2piR)
-        #Not including bins atm
-        #HESSscale = self.pixel_width*self.pixel_width / (2.*np.pi() * radius)
-        #prediction *= HESSscale
+        # TEST: extra scaling factor, HESS style (ang pix size squared/2piR)
+        # Not including bins atm
+        # HESSscale = self.pixel_width*self.pixel_width / (2.*np.pi() * radius)
+        # prediction *= HESSscale
 
         # scale prediction by optical efficiency of array
         self.prediction *= optical_efficiency_muon
@@ -383,44 +382,45 @@ class MuonLineIntegrate:
         init_params['ring_width'] = 0.1
         init_params['optical_efficiency_muon'] = 0.1
         init_errs['error_impact_parameter'] = 2.
-        init_constrain['limit_impact_parameter'] = (0.,25.)
+        init_constrain['limit_impact_parameter'] = (0., 25.)
         init_errs['error_phi'] = 0.1
         init_errs['error_ring_width'] = 0.001 * radius.value
         init_errs['error_optical_efficiency_muon'] = 0.05
-        init_constrain['limit_phi'] = (-np.pi,np.pi)
+        init_constrain['limit_phi'] = (-np.pi, np.pi)
         init_constrain['fix_radius'] = True
         init_constrain['fix_centre_x'] = True
         init_constrain['fix_centre_y'] = True
-        init_constrain['limit_ring_width'] = (0.,1.)
-        init_constrain['limit_optical_efficiency_muon'] = (0.,1.)
+        init_constrain['limit_ring_width'] = (0., 1.)
+        init_constrain['limit_optical_efficiency_muon'] = (0., 1.)
 
-        print("radius =",radius," pre migrad")
+        print("radius =", radius, " pre migrad")
 
-        parameter_names = init_params.keys()
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
         minuit = Minuit(
             self.likelihood,
-            #forced_parameters=parameter_names,
+            # forced_parameters=parameter_names,
             **init_params,
             **init_errs,
             **init_constrain,
             errordef=1.,
             print_level=1
-            #pedantic=False
+            # pedantic=False
         )
 
         # Perform minimisation
         minuit.migrad()
-            
+
         # Get fitted values
         fit_params = minuit.values
-        fitoutput.impact_parameter = fit_params['impact_parameter']*u.m
-        #fitoutput.phi = fit_params['phi']*u.rad
-        fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(fit_params['phi'] * u.rad) * u.m
-        fitoutput.impact_parameter_pos_y = fit_params['impact_parameter'] * np.sin(fit_params['phi'] * u.rad) * u.m
-        fitoutput.ring_width = fit_params['ring_width']*self.unit
+        fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
+        # fitoutput.phi = fit_params['phi']*u.rad
+        fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
+            fit_params['phi'] * u.rad) * u.m
+        fitoutput.impact_parameter_pos_y = fit_params['impact_parameter'] * np.sin(
+            fit_params['phi'] * u.rad) * u.m
+        fitoutput.ring_width = fit_params['ring_width'] * self.unit
         fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
 
         fitoutput.prediction = self.prediction

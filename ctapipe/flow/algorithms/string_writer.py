@@ -2,6 +2,7 @@ from ctapipe.core import Component
 from traitlets import Unicode
 from time import sleep
 
+
 class StringWriter(Component):
 
     """`StringWriter` class represents a Stage or a Consumer for pipeline.
@@ -18,7 +19,7 @@ class StringWriter(Component):
     def run(self, object):
         self.file.write(str(object) + "\n")
         sleep(.5)
-        self.log.debug('StringWriter write {}'.format( object))
+        self.log.debug('%object' % 'StringWriter write {}')
 
     def finish(self):
         self.file.close()

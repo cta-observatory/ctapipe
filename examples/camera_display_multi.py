@@ -12,7 +12,7 @@ from astropy import units as u
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from ctapipe.image import toymodel
-from ctapipe.image.hillas import hillas_parameters_2 as hillas_parameters
+from ctapipe.image import hillas_parameters
 from ctapipe.image import tailcuts_clean
 
 
@@ -45,9 +45,10 @@ def draw_several_cams(geom, ncams=4):
 
         mask = tailcuts_clean(geom, image, picture_thresh=6*image.mean(),
                               boundary_thresh=4*image.mean())
+        cleaned = image.copy()
+        cleaned[~mask] = 0
 
-        hillas = hillas_parameters(geom.pix_x[mask], geom.pix_y[mask],
-                                   image[mask])
+        hillas = hillas_parameters(geom, cleaned)
 
         disp.image = image
         disp.add_colorbar(ax=axs[ii])
