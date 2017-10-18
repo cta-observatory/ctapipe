@@ -7,7 +7,10 @@ plot atmo trans table
 """
 
 # @TODO plot wavelenght line in RGB colors
-# https://stackoverflow.com/questions/44959955/matplotlib-color-under-curve-based-on-spectral-color
+# * https://stackoverflow.com/questions/44959955/matplotlib-color-under-curve-based-on-spectral-color
+# * make similar to ctapipe/tools/plot_charge_resolution.py
+#
+
 ATM_TRANS_FILEPATH='atm_trans_2150_1_10_0_0_2150.dat'
 
 from matplotlib import pyplot as plt
