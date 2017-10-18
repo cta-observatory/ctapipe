@@ -8,10 +8,10 @@ import numpy
 import os
 from scipy import interpolate
 
-def readAtmoTrans(fname='../data/atm_trans_1800_1_10_0_0_1800.dat'):
+def readAtmoTrans(filepath='../data/atm_trans_1800_1_10_0_0_1800.dat'):
     ''' Read atmospheric transmission table
     '''
-    content=open(absName).readlines()
+    content=open(filepath).readlines()
 
     opt_depth={}
     extinction={}
