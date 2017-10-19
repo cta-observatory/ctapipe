@@ -96,7 +96,7 @@ class pSounding(object):
             txt+='%.1f %.1f %.1f\n'%(self.Height[i], 
                                    self.Pressure[i],
                                    self.Temperature[i])
-        print txt
+        print(txt)
         print('-'*60)
         return txt
             
@@ -154,9 +154,9 @@ class pRadioSondeReader(object):
     def getSounding(self, datestr):
         date=datetime.strptime(datestr,'%Y-%m-%d')
         keys=self.SoundingDict.keys()
-        keys.sort()
-        index=bisect.bisect_left(keys, date)
-        return self.SoundingDict[keys[index]]
+        sk=sorted(keys)
+        index=bisect.bisect_left(sk, date)
+        return self.SoundingDict[sk[index]]
 
 if __name__ == '__main__':
     s=pRadioSondeReader()
