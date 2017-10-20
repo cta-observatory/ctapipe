@@ -1,8 +1,8 @@
 .. _atmosphere:
 
-======================
+==========================
  Atmosphere (`atmosphere`)
-======================
+==========================
 
 .. currentmodule:: ctapipe.atmosphere
 
