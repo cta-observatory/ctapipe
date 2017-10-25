@@ -151,6 +151,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             data.mc.core_y = pyhessio.get_mc_event_ycore() * u.m
             first_int = pyhessio.get_mc_shower_h_first_int() * u.m
             data.mc.h_first_int = first_int
+            data.mc.shower_primary_id = \
+                pyhessio.get_mc_shower_primary_id()
 
             # mc run header data
             data.mcheader.run_array_direction = \
