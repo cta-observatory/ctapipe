@@ -5,7 +5,6 @@
 #
 
 import numpy
-import os
 from scipy import interpolate
 
 def readAtmoTrans(filepath='../data/atm_trans_1800_1_10_0_0_1800.dat'):
