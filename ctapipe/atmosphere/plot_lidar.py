@@ -11,10 +11,9 @@ from matplotlib import pyplot as plt
 
 from ctapipe.atmosphere.lidar_processor import pLidarRun
 
-BASE_DIR='/home/bregeon/CTA/Data/Pipelines/ctasoft'
-CTAPIPEEXTRA_DIR='ctapipe-extra/ctapipe_resources'
+CTAPIPEEXTRA_DIR='../ctapipe-extra/ctapipe_resources'
 
-lidar_file_path=os.path.join(BASE_DIR, CTAPIPEEXTRA_DIR,\
+lidar_file_path=os.path.join(CTAPIPEEXTRA_DIR,\
                          'hess_elastic_lidar_data.txt')
 
 r=pLidarRun()
