@@ -11,7 +11,9 @@ plot atmo trans table
 # * make similar to ctapipe/tools/plot_charge_resolution.py
 #
 
-ATM_TRANS_FILEPATH='atm_trans_2150_1_10_0_0_2150.dat'
+import os
+BASE_PATH='../ctapipe-extra/ctapipe_resources/'
+ATM_TRANS_FILEPATH=os.path.join(BASE_PATH,'atm_trans_2150_1_10_0_0_2150.dat')
 
 from matplotlib import pyplot as plt
 
