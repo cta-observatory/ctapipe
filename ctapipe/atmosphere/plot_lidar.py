@@ -6,15 +6,19 @@ Simple plot of reconstructed extinction profile
 @author: Johan Bregeon
 """
 
-import os
+from traitlets import Unicode
+from ctapipe.utils import get_dataset
+
 from matplotlib import pyplot as plt
 
 from ctapipe.atmosphere.lidar_processor import pLidarRun
 
-CTAPIPEEXTRA_DIR='../ctapipe-extra/ctapipe_resources'
-
-lidar_file_path=os.path.join(CTAPIPEEXTRA_DIR,\
-                         'hess_elastic_lidar_data.txt')
+# JB - doesn't understand traitlets...
+# set CTAPIPE_SVC_PATH to a path containing the file below
+#lidar_file_path = Unicode(get_dataset('hess_elastic_lidar_data.txt'), allow_none=True,
+#                          help='Path to the atmospheric profile file, e.g.'
+#                               'hess_elastic_lidar_data.txt').tag(config=True)
+lidar_file_path = get_dataset('hess_elastic_lidar_data.txt')
 
 r=pLidarRun()
 r.readFile(lidar_file_path)

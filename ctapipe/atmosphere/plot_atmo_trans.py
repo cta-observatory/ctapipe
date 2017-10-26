@@ -11,16 +11,20 @@ plot atmo trans table
 # * make similar to ctapipe/tools/plot_charge_resolution.py
 #
 
-import os
-BASE_PATH='../ctapipe-extra/ctapipe_resources/'
-ATM_TRANS_FILEPATH=os.path.join(BASE_PATH,'atm_trans_2150_1_10_0_0_2150.dat')
-
+from traitlets import Unicode
+from ctapipe.utils import get_dataset
 from matplotlib import pyplot as plt
-
 from ctapipe.atmosphere.atmo_trans import readAtmoTrans
 
+# JB - doesn't understand traitlets...
+# set CTAPIPE_SVC_PATH to a path containing the file below
+#input_path = Unicode(get_dataset('atm_trans_2150_1_10_0_0_2150.dat'), allow_none=True,
+#                     help='Path to the atmospheric profile file, e.g.'
+#                          'atm_trans_2150_1_10_0_0_2150.dat').tag(config=True)
+
+input_path = get_dataset('atm_trans_2150_1_10_0_0_2150.dat')
 header, obs_alt, altitudes, opt_depth, extinction =\
-        readAtmoTrans(ATM_TRANS_FILEPATH)
+        readAtmoTrans(input_path)
 
 fig = plt.figure(figsize=(20, 8))
 ax  = fig.add_subplot(111)

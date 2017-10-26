@@ -33,7 +33,6 @@ def read_atmo_prof(fpath):
             temperature.append(all_el[4])
             pressure.append(all_el[5])
             pw_p.append(all_el[6])
-            
     return altitude, rho, thick, index, temperature, pressure, pw_p
     
     
@@ -41,5 +40,14 @@ def read_atmo_prof(fpath):
 if __name__=="__main__":
     ''' Write up an example of reading a file
     '''
+    from traitlets import Unicode
+    from ctapipe.utils import get_dataset
+    # set CTAPIPE_SVC_PATH to a path containing the file below
+    input_path=get_dataset('atmprof26.dat')
+    
+    # can't make this work...
+    #input_path = Unicode(get_dataset('atmprof26.dat'), allow_none=True,
+    #                     help='Path to the atmospheric profile file, e.g. '
+    #                          'atmprof26.dat').tag(config=True)    
     altitudes, rho, thick, index, temperature, pressure, pw_p = \
-       read_atmo_prof(fpath='../ctapipe-extra/ctapipe_resources/atmprof26.dat')
+       read_atmo_prof(input_path)

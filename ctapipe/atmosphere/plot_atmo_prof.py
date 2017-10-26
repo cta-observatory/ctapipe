@@ -9,15 +9,22 @@ plot Atmospheric profile table
 # @TODO 
 #
 
-import os
+from traitlets import Unicode
+from ctapipe.utils import get_dataset
+
 from matplotlib import pyplot as plt
 from ctapipe.atmosphere.atmo_prof import read_atmo_prof
 
-BASE_PATH='../ctapipe-extra/ctapipe_resources/'
-ATM_TRANS_FILEPATH=os.path.join(BASE_PATH,'atmprof26.dat')
+# set CTAPIPE_SVC_PATH to a path containing the file below
+input_path=get_dataset('atmprof26.dat')
+
+# can't make this work...
+#input_path = Unicode(get_dataset('atmprof26.dat'), allow_none=True,
+#                     help='Path to the atmospheric profile file, e.g. '
+#                          'atmprof26.dat').tag(config=True)    
 
 altitudes, rho, thick, index, temperature, pressure, pw_p = \
-       read_atmo_prof(ATM_TRANS_FILEPATH)
+       read_atmo_prof(input_path)
        
 fig = plt.figure(figsize=(6, 8))
 ax  = fig.add_subplot(111)

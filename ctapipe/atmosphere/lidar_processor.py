@@ -310,11 +310,17 @@ class pLidarRun(object):
         return stringDict
         
 if __name__ == '__main__':
-    BASE_DIR='/home/bregeon/CTA/Data/Pipelines/ctasoft'
-    CTAPIPEEXTRA_DIR='ctapipe-extra/ctapipe_resources'
 
-    lidar_file_path=os.path.join(BASE_DIR, CTAPIPEEXTRA_DIR,\
-                             'hess_elastic_lidar_data.txt')
+    # set CTAPIPE_SVC_PATH to a path containing the file below
+    from traitlets import Unicode
+    from ctapipe.utils import get_dataset
+    lidar_file_path = get_dataset('hess_elastic_lidar_data.txt')
+    
+    # JB - can't make this work...
+    #input_path = Unicode(get_dataset('atmprof26.dat'), allow_none=True,
+    #                     help='Path to the atmospheric profile file, e.g. '
+    #                          'atmprof26.dat').tag(config=True)    
+
     r=pLidarRun()
     r.readFile(lidar_file_path)
     alpha_wl1, alpha_wl2=r.process()
