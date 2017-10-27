@@ -1,15 +1,16 @@
-import pickle
 from math import log10, sqrt
 from os import makedirs
 from os.path import dirname, exists
 
 import numpy as np
 from scipy.stats import binned_statistic as bs
+from tables import open_file
 
 from ctapipe.core import Component
 from ctapipe.core.traits import Int, Bool
 
-__all__ = ['ChargeResolutionCalculator',]
+__all__ = ['ChargeResolutionCalculator']
+
 
 class ChargeResolutionCalculator(Component):
     """
@@ -79,6 +80,11 @@ class ChargeResolutionCalculator(Component):
         self.variation_hist = h
         self.variation_xedges = xedges
         self.variation_yedges = yedges
+
+        self.storage_arrays = ['max_pe', 'sum_array', 'n_array',
+                               'variation_hist_nbins', 'variation_hist_range',
+                               'variation_hist', 'variation_xedges',
+                               'variation_yedges']
 
     def add_charges(self, true_charge, measured_charge):
         """
@@ -254,33 +260,19 @@ class ChargeResolutionCalculator(Component):
         return poisson[0]
 
     def save(self, path):
-        d = dict(max_pe=self.max_pe,
-                 sum_array=self.sum_array,
-                 n_array=self.n_array,
-                 variation_hist_nbins=self.variation_hist_nbins,
-                 variation_hist_range=self.variation_hist_range,
-                 variation_hist=self.variation_hist,
-                 variation_xedges=self.variation_xedges,
-                 variation_yedges=self.variation_yedges)
         output_dir = dirname(path)
         if not exists(output_dir):
             self.log.info("[output] Creating directory: {}".format(output_dir))
             makedirs(output_dir)
-        with open(path, 'wb') as f:
-            self.log.info("Saving Charge Resolution file: {}".format(path))
-            pickle.dump(d, f, pickle.HIGHEST_PROTOCOL)
+        self.log.info("Saving Charge Resolution file: {}".format(path))
+
+        with open_file(path, mode="w", title="ChargeResolutionFile") as f:
+            group = f.create_group("/", 'ChargeResolution', '')
+            for arr in self.storage_arrays:
+                f.create_array(group, arr, getattr(self, arr), arr)
 
     def load(self, path):
-        if not path.endswith("pickle"):
-            self.log.error("File is not a pickle file: {}".format(path))
-        with open(path, 'rb') as f:
-            self.log.info("Loading Charge Resolution file: {}".format(path))
-            d = pickle.load(f)
-            self.max_pe = d['max_pe']
-            self.sum_array = d['sum_array']
-            self.n_array = d['n_array']
-            self.variation_hist_nbins = d['variation_hist_nbins']
-            self.variation_hist_range = d['variation_hist_range']
-            self.variation_hist = d['variation_hist']
-            self.variation_xedges = d['variation_xedges']
-            self.variation_yedges = d['variation_yedges']
+        self.log.info("Loading Charge Resolution file: {}".format(path))
+        with open_file(path, mode="r") as f:
+            for arr in self.storage_arrays:
+                setattr(self, arr, f.get_node("/ChargeResolution", arr).read())

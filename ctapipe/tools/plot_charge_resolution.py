@@ -93,7 +93,7 @@ class ChargeResolutionPlotter(Component):
         g_p, = self.ax_l.plot(x, goal, 'g', ls='--')
         p_p, = self.ax_l.plot(x, poisson, c='0.75', ls='--')
         self.ax_r.plot(x, requirement / goal, 'r')
-        self.ax_r.plot(x, goal / goal, 'g')
+        self.ax_r.plot(x, np.ones_like(x), 'g')
         self.ax_r.plot(x, poisson / goal, c='0.75', ls='--')
 
         self.legend_handles.append(r_p)
@@ -152,7 +152,7 @@ class ChargeResolutionViewer(Tool):
                   "pickled dictionaries."
 
     input_files = List(Unicode, None,
-                       help='Input pickle files that are produced from '
+                       help='Input hdf5 files that are produced from '
                             'ChargeResolutionCalculator.save().'
                             '').tag(config=True)
 

@@ -3,7 +3,7 @@
 import sys
 
 # import ah_bootstrap
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 
 # Get some values from the setup.cfg
 from configparser import RawConfigParser
@@ -41,6 +41,10 @@ entry_points['console_scripts'] = [
 
 package.version.update_release_version()
 
+# C Extensions
+neighboursum_module = Extension('ctapipe.utils.neighbour_sum_c',
+                                sources=['ctapipe/utils/neighbour_sum_c.cc'])
+
 setup(name=PACKAGENAME,
       packages=find_packages(),
       version=package.version.get_version(pep440=True),
@@ -48,24 +52,22 @@ setup(name=PACKAGENAME,
       # these should be minimum list of what is needed to run (note
       # don't need to list the sub-dependencies like numpy, since
       # astropy already depends on it)
-      install_requires=['astropy', 'scipy',
-                        'traitlets', 'numpy',
-                        'tables', 'tqdm','iminuit',
-                        'tables'],
-      tests_require=['pytest', 'ctapipe-extra'],
-      extras_require={
-        'dev': [
-            'pytest',
-            'pytest-pep8',
-            'pytest-cov',
-            'sphinx',
-            'sphinx_rtd_theme',
-            'sphinx-automodapi',
-            'graphviz',
-            'numpydoc',
-            
-        ]
-      },
+      install_requires=[
+          'astropy>=1.3',
+          'iminuit',
+          'numpy',
+          'pytest_runner',
+          'scipy>=0.19',
+          'tables',
+          'tqdm',
+          'traitlets',
+          'psutil',
+          'pyhessio',
+          'matplotlib>=2.0',
+          'numba',
+          'pandas',
+      ],
+      tests_require=['pytest', 'ctapipe-extra>=0.2.11'],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
       license=LICENSE,
@@ -84,4 +86,5 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=False,
       entry_points=entry_points,
+      ext_modules=[neighboursum_module]
       )

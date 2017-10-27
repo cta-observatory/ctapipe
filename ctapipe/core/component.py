@@ -12,6 +12,7 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     '''
     pass
 
+
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called
     workers, makers, etc).  Components are are classes that do some sort

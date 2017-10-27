@@ -7,7 +7,7 @@
 # if no filename is given, a default example file will be used
 # containing ~10 events
 
-from ctapipe.utils.datasets import get_example_simtelarray_file
+from ctapipe.utils.datasets import get_dataset
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
@@ -45,8 +45,7 @@ def display_event(event):
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
-        x, y = event.inst.pixel_pos[tel_id]
-        geom = CameraGeometry.guess(x, y, event.inst.optical_foclen[tel_id])
+        geom = event.inst.subarray.tel[tel_id].camera
         disp = CameraDisplay(geom, ax=ax, title="CT{0}".format(tel_id))
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
@@ -77,7 +76,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_example_simtelarray_file()
+        filename = get_dataset("gamma_test_large.simtel.gz")
 
     plt.style.use("ggplot")
     plt.show(block=False)

@@ -1,14 +1,11 @@
-from traitlets import Dict, List, Int, Bool, Unicode
 from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
+from traitlets import Dict, List, Int, Bool, Unicode
+
+from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
-from ctapipe.io.eventfilereader import EventFileReaderFactory
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera import CameraCalibrator
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.instrument import CameraGeometry
+from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.visualization import CameraDisplay
 
 
@@ -40,7 +37,6 @@ class ImagePlotter(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self._geom_dict = {}
         self._current_tel = None
         self.c_intensity = None
         self.c_peakpos = None
@@ -59,11 +55,7 @@ class ImagePlotter(Component):
             self.pdf = PdfPages(self.output_path)
 
     def get_geometry(self, event, telid):
-        if telid not in self._geom_dict:
-            geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                        event.inst.optical_foclen[telid])
-            self._geom_dict[telid] = geom
-        return self._geom_dict[telid]
+        return event.inst.subarray.tel[telid].camera
 
     def plot(self, event, telid):
         chan = 0
@@ -167,7 +159,6 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
         reader_factory = EventFileReaderFactory(**kwargs)

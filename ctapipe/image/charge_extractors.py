@@ -2,14 +2,17 @@
 Charge extraction algorithms to reduce the image to one value per pixel
 """
 
-from abc import abstractmethod
-import numpy as np
-from traitlets import Int, CaselessStrEnum
-from ctapipe.core import Component, Factory
-
 __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
            'GlobalPeakIntegrator', 'LocalPeakIntegrator',
            'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
+
+
+from abc import abstractmethod
+import numpy as np
+from traitlets import Int, CaselessStrEnum, Float
+from ctapipe.core import Component, Factory
+from ctapipe.utils.neighbour_sum import get_sum_array
+
 
 
 class ChargeExtractor(Component):
@@ -21,8 +24,12 @@ class ChargeExtractor(Component):
         
         Attributes
         ----------
-        neighbours : list
-            List of neighbours for each pixel. Changes per telescope.
+        neighbours : ndarray
+            2D array where each row is [pixel index, one neighbour
+            of that pixel].
+            Changes per telescope.
+            Can be obtained from
+            `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
 
         Parameters
         ----------
@@ -141,6 +148,8 @@ class Integrator(ChargeExtractor):
 
         Parameters
         ----------
+        n_samples : int
+            Number of samples in the waveform
         start : ndarray
             Numpy array containing the window start for each pixel. Shape =
             (n_chan, n_pix)
@@ -285,10 +294,35 @@ class Integrator(ChargeExtractor):
         charge = windowed.sum(2).data
         return charge
 
-    def extract_charge(self, waveforms):
+    def get_window_from_waveforms(self, waveforms):
+        """
+        Consolidating function to obtain the window and peakpos given 
+        a waveform.
+        
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        window : ndarray
+            Numpy array containing True where the samples lay within the
+            integration window, and False where the samples lay outside. Has
+            shape of (n_chan, n_pix, n_samples).
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel. 
+            Has shape of (n_chan, n_pix).
+
+        """
         peakpos = self.get_peakpos(waveforms)
         start, width = self.get_start_and_width(waveforms, peakpos)
         window = self.get_window(waveforms, start, width)
+        return window, peakpos
+
+    def extract_charge(self, waveforms):
+        window, peakpos = self.get_window_from_waveforms(waveforms)
         charge = self.extract_from_window(waveforms, window)
         return charge, peakpos, window
 
@@ -429,14 +463,14 @@ class SimpleIntegrator(WindowIntegrator):
 
 class PeakFindingIntegrator(WindowIntegrator):
     name = 'PeakFindingIntegrator'
-    sig_amp_cut_HG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the HG channel').tag(config=True)
-    sig_amp_cut_LG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the LG channel').tag(config=True)
+    sig_amp_cut_HG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the HG channel').tag(config=True)
+    sig_amp_cut_LG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the LG channel').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -483,7 +517,7 @@ class PeakFindingIntegrator(WindowIntegrator):
 
         """
         nchan, npix, nsamples = waveforms.shape
-        if self.sig_amp_cut_HG or self.sig_amp_cut_HG:
+        if self.sig_amp_cut_LG or self.sig_amp_cut_HG:
             sig_entries = np.ones(waveforms.shape, dtype=bool)
             if self.sig_amp_cut_HG:
                 sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
@@ -505,30 +539,32 @@ class PeakFindingIntegrator(WindowIntegrator):
 
 
 class GlobalPeakIntegrator(PeakFindingIntegrator):
+    """
+    Charge extractor that defines an integration window about the global
+    peak in the image.
+
+    Attributes
+    ----------
+    neighbours : list
+        List of neighbours for each pixel. Changes per telescope.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
     name = 'GlobalPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Charge extractor that defines an integration window about the global
-        peak in the image.
 
-        Attributes
-        ----------
-        neighbours : list
-            List of neighbours for each pixel. Changes per telescope.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -551,30 +587,31 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
 
 
 class LocalPeakIntegrator(PeakFindingIntegrator):
+    """
+     Charge extractor that defines an integration window about the local
+     peak in each pixel.
+
+     Attributes
+     ----------
+     neighbours : list
+         List of neighbours for each pixel. Changes per telescope.
+
+     Parameters
+     ----------
+     config : traitlets.loader.Config
+         Configuration specified by config file or cmdline arguments.
+         Used to set traitlet values.
+         Set to None if no configuration to pass.
+     tool : ctapipe.core.Tool
+         Tool executable that is calling this component.
+         Passes the correct logger to the component.
+         Set to None if no Tool to pass.
+     kwargs
+     """
+
     name = 'LocalPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Charge extractor that defines an integration window about the local
-        peak in each pixel.
-
-        Attributes
-        ----------
-        neighbours : list
-            List of neighbours for each pixel. Changes per telescope.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -590,33 +627,34 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
 
 
 class NeighbourPeakIntegrator(PeakFindingIntegrator):
+    """
+    Charge extractor that defines an integration window defined by the 
+    peaks in the neighbouring pixels.
+
+    Attributes
+    ----------
+    neighbours : list
+        List of neighbours for each pixel. Changes per telescope.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
     name = 'NeighbourPeakIntegrator'
     lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
                       'only, 1: local pixel counts as much '
                       'as any neighbour').tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Charge extractor that defines an integration window defined by the 
-        peaks in the neighbouring pixels.
-
-        Attributes
-        ----------
-        neighbours : list
-            List of neighbours for each pixel. Changes per telescope.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     @staticmethod
@@ -624,44 +662,41 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         return True
 
     def _obtain_peak_position(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
+        shape = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
-        sig_sam = significant_samples
-        max_num_nei = len(max(self.neighbours, key=len))
-        allvals = np.zeros((nchan, npix, max_num_nei + 1, nsamples))
-        for ipix, neighbours in enumerate(self.neighbours):
-            num_nei = len(neighbours)
-            allvals[:, ipix, :num_nei, :] = sig_sam[:, neighbours]
-            allvals[:, ipix, num_nei, :] = sig_sam[:, ipix] * self.lwt
-        sum_data = allvals.sum(2)
-        return np.full((nchan, npix), sum_data.argmax(2), dtype=np.int)
+        sig_sam = significant_samples.astype(np.float32)
+        sum_data = np.zeros_like(sig_sam)
+        n = self.neighbours.astype(np.uint16)
+        get_sum_array(sig_sam, sum_data, *shape, n, n.shape[0], self.lwt)
+        return sum_data.argmax(2).astype(np.int)
 
 
 class AverageWfPeakIntegrator(PeakFindingIntegrator):
+    """
+    Charge extractor that defines an integration window defined by the 
+    average waveform across all pixels.
+
+    Attributes
+    ----------
+    neighbours : list
+        List of neighbours for each pixel. Changes per telescope.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
     name = 'AverageWfPeakIntegrator'
 
     def __init__(self, config, tool, **kwargs):
-        """
-        Charge extractor that defines an integration window defined by the 
-        average waveform across all pixels.
-
-        Attributes
-        ----------
-        neighbours : list
-            List of neighbours for each pixel. Changes per telescope.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-        """
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -698,16 +733,16 @@ class ChargeExtractorFactory(Factory):
                                'PeakFindingIntegrators.').tag(config=True)
     t0 = Int(0, help='Define the peak position for all pixels. '
                      'Only applicable to SimpleIntegrators.').tag(config=True)
-    sig_amp_cut_HG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the HG channel. Only applicable to '
-                              'PeakFindingIntegrators.').tag(config=True)
-    sig_amp_cut_LG = Int(None, allow_none=True,
-                         help='Define the cut above which a sample is '
-                              'considered as significant for PeakFinding '
-                              'in the LG channel. Only applicable to '
-                              'PeakFindingIntegrators.').tag(config=True)
+    sig_amp_cut_HG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the HG channel. Only applicable to '
+                                'PeakFindingIntegrators.').tag(config=True)
+    sig_amp_cut_LG = Float(None, allow_none=True,
+                           help='Define the cut above which a sample is '
+                                'considered as significant for PeakFinding '
+                                'in the LG channel. Only applicable to '
+                                'PeakFindingIntegrators.').tag(config=True)
     lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
                       'only, 1: local pixel counts as much as any neighbour). '
                       'Only applicable to '

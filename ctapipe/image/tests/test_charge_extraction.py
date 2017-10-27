@@ -1,12 +1,11 @@
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
-from ctapipe.instrument import CameraGeometry
 import numpy as np
 from numpy.testing import assert_almost_equal
 
 from ctapipe.image.charge_extractors import FullIntegrator, \
     SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
     NeighbourPeakIntegrator, ChargeExtractorFactory, AverageWfPeakIntegrator
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils import get_dataset
 
 
 def get_test_event():
@@ -97,9 +96,8 @@ def test_nb_peak_integration():
     ped = event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
-    geom = CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                event.inst.optical_foclen[telid])
-    nei = geom.neighbors
+    geom = event.inst.subarray.tel[telid].camera
+    nei = geom.neighbor_matrix_where
 
     integrator = NeighbourPeakIntegrator(None, None)
     integrator.neighbours = nei

@@ -2,7 +2,8 @@ import numpy as np
 import astropy.units as u
 from ctapipe.image.muon.ring_fitter import RingFitter
 from ctapipe.io.containers import MuonRingParameter
-from IPython import embed
+
+__all__ = ['ChaudhuriKunduRingFitter']
 
 
 class ChaudhuriKunduRingFitter(RingFitter):
@@ -12,9 +13,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
         """Fast and reliable analytical circle fitting method previously used
         in the H.E.S.S.  experiment for muon identification
 
-        Implementation based on: *Chaudhuri/Kundu "Optimum circular fit
-        to weighted data in multi-dimensional space" Pattern
-        Recognition Letters 14 (1993) pp.1-6*
+        Implementation based on [chaudhuri93]_
 
         Parameters
         ----------
@@ -27,7 +26,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
 
         Returns
         -------
-        X position, Y position and radius of circle
+        X position, Y position, radius, orientation and inclination of circle
         """
         # First calculate the weighted average positions of the pixels
         sum_weight = np.sum(weight)
@@ -54,16 +53,19 @@ class ChaudhuriKunduRingFitter(RingFitter):
         centre_y = ((a_prime * c) - (a * c_prime)) / nom_1
 
         radius = np.sqrt(
-            #np.sum(weight * ((x - centre_x*u.deg)**2 + (y - centre_y*u.deg)**2)) / # centre * u.deg ???
+            # np.sum(weight * ((x - centre_x*u.deg)**2 +
+            # (y - centre_y*u.deg)**2)) / # centre * u.deg ???
             np.sum(weight * ((x - centre_x)**2 + (y - centre_y)**2)) /
             sum_weight
         )
 
         output = MuonRingParameter()
-        output.ring_center_x = centre_x#*u.deg
-        output.ring_center_y = centre_y#*u.deg
-        output.ring_radius = radius#*u.deg
-        #output.meta.ring_fit_method = "ChaudhuriKundu"
+        output.ring_center_x = centre_x  # *u.deg
+        output.ring_center_y = centre_y  # *u.deg
+        output.ring_radius = radius  # *u.deg
+        output.ring_phi = np.arctan(centre_y / centre_x)
+        output.ring_inclination = np.sqrt(centre_x ** 2. + centre_y ** 2.)
+        # output.meta.ring_fit_method = "ChaudhuriKundu"
         output.ring_fit_method = "ChaudhuriKundu"
 
         return output
