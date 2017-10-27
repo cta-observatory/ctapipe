@@ -6,30 +6,30 @@ Simple Lidar data file reader (HESS txt file format)
 
 @author: Johan Bregeon
 """
-import os, sys
+import os
+import sys
 import numpy
 import math
-from datetime          import datetime
+from datetime import datetime
 
 import logging
 logger = logging.getLogger(__name__)
 
-####################################
-## @brief Class to manage a LIDAR run
-#
+
 class pLidarRun(object):
-    ####################################
-    ## @brief Constructor for a Lidar run
-    #
-    ## @param self
-    #  the object instance
-    ## @param filename
-    #  a text file name with Lidar data
-    def __init__(self):        
-        self.FileName=None
-        self.NBins=None
-        self.RunNumber=None
-        self.DateTime=None
+    """ Class to manage Lidar run
+
+    Parameters
+    ----------
+    filepath : a txt file name with Lidar data
+               as a ctapipe "dataset"
+
+    """
+    def __init__(self):
+        self.FileName = None
+        self.NBins = None
+        self.RunNumber = None
+        self.DateTime = None
 
     ####################################
     ## @brief Wrapper to choose which method to use to read the input file
