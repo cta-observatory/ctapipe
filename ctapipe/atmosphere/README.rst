@@ -17,3 +17,6 @@ This directory contains all the functions aimed to provide the calibration of th
    * Data selection: data_selection.py
    * Data correction: data_correction.py
 
+* @TODO
+   * pylint, pep8
+   * add unit test
