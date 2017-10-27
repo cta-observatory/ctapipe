@@ -18,7 +18,8 @@ def read_atmo_prof(filepath):
 
     Parameters
     ----------
-    fpath : filepath
+    filepath : atmospheric profile file name, shall be available
+               as a ctapipe "dataset"
 
     Returns
     ----------
