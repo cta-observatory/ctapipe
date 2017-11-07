@@ -7,7 +7,6 @@ dependencies:
   - astropy
   - bokeh
   - cython
-  - fitsio
   - gammapy
   - graphviz
   - iminuit
