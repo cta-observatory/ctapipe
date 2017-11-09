@@ -18,6 +18,7 @@ def test_load_by_name():
 
     for cam in cams:
         geom = CameraGeometry.from_name(cam)
+        geom.info()
 
 
 
@@ -139,5 +140,6 @@ def test_slicing():
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
+    
 if __name__ == '__main__':
     pass
