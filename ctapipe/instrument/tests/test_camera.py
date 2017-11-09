@@ -6,6 +6,7 @@ from ctapipe.instrument.camera import _find_neighbor_pixels, \
 from numpy import median
 import pytest
 
+cam_ids = CameraGeometry.get_known_camera_names()
 
 def test_load_by_name():
 
@@ -17,6 +18,7 @@ def test_load_by_name():
 
     for cam in cams:
         geom = CameraGeometry.from_name(cam)
+        geom.info()
 
 
 
@@ -48,14 +50,31 @@ def test_find_neighbor_pixels():
     neigh = _find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
     assert(set(neigh[11]) == set([16, 6, 10, 12]))
 
-def test_neighbor_pixels():
-    hexgeom = CameraGeometry.from_name("LSTCam")
-    recgeom = CameraGeometry.make_rectangular()
 
-    # most pixels should have 4 neighbors for rectangular geometry and 6 for
-    # hexagonal
-    assert int(median(recgeom.neighbor_matrix.sum(axis=1))) == 4
-    assert int(median(hexgeom.neighbor_matrix.sum(axis=1))) == 6
+@pytest.mark.parametrize("cam_id", cam_ids)
+def test_neighbor_pixels(cam_id):
+    """
+    test if each camera has a reasonable number of neighbor pixels (4 for
+    rectangular, and 6 for hexagonal.  Other than edge pixels, the majority
+    should have the same value
+    """
+
+    geom = CameraGeometry.from_name(cam_id)
+    n_pix = len(geom.pix_id)
+    n_neighbors = [len(x) for x in geom.neighbors]
+
+    if geom.pix_type.startswith('hex'):
+        assert n_neighbors.count(6) > 0.5 * n_pix
+        assert n_neighbors.count(6) > n_neighbors.count(4)
+
+    if geom.pix_type.startswith('rect'):
+        assert n_neighbors.count(4) > 0.5 * n_pix
+        assert n_neighbors.count(5) == 0
+        assert n_neighbors.count(6) == 0
+
+    assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
+
+
 
 def test_to_and_from_table():
     geom = CameraGeometry.from_name("LSTCam")
@@ -121,5 +140,6 @@ def test_slicing():
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
+
 if __name__ == '__main__':
     pass

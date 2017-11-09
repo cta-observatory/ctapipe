@@ -411,6 +411,16 @@ class CameraGeometry:
         self.pix_rotation -= Angle(angle)
         self.cam_rotation -= Angle(angle)
 
+    def info(self, printer=print):
+        """ print detailed info about this camera """
+        printer('CameraGeometry: "{}"'.format(self))
+        printer('   - num-pixels: {}'.format(len(self.pix_id)))
+        printer('   - pixel-type: {}'.format(self.pix_type))
+        printer('   - sensitive-area: {}'.format(self.pix_area.sum()))
+        printer('   - pix-rotation: {}'.format(self.pix_rotation))
+        printer('   - cam-rotation: {}'.format(self.cam_rotation))
+
+
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
