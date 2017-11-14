@@ -66,7 +66,6 @@ setup(name=PACKAGENAME,
           'matplotlib>=2.0',
           'numba',
           'pandas',
-          'ctapipe-extra>=0.2.11'
       ],
       tests_require=['pytest', 'ctapipe-extra>=0.2.11'],
       author=AUTHOR,
