@@ -20,7 +20,7 @@ def test_CutFlow():
     flow = CutFlow("TestFlow")
     # set_cut and add_cut a aliases
     flow.set_cut("smaller5", smaller5)
-    flow.add_cut("smaller3", smaller3)
+    flow.add_cut("smaller3", lambda x: x < 3)
 
     for i in range(2, 6):
         flow.count("noCuts")
