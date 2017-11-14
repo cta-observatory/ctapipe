@@ -3,11 +3,11 @@ from astropy.table import Table
 from collections import OrderedDict
 
 
-class UndefinedCutException(Exception):
+class UndefinedCut(Exception):
     pass
 
 
-class PureCountingCutException(Exception):
+class PureCountingCut(Exception):
     pass
 
 
@@ -78,7 +78,7 @@ class CutFlow():
         cut_dict : {string: functor} dictionary
             dictionary of {name: function} of cuts to add as your selection criteria
         clear : bool, optional (default: False)
-            if set to `True`, clear the cut-dictionary before applying the new cuts
+            if set to `True`, clear the cut-dictionary before adding the new cuts
 
         Notes
         -----
@@ -102,17 +102,17 @@ class CutFlow():
 
         Raises
         ------
-        UndefinedCutException if `cut` is not known
-        PureCountingCutException if `cut` has no associated function
+        UndefinedCut if `cut` is not known
+        PureCountingCut if `cut` has no associated function
         (i.e. manual counting mode)
         """
 
         if cut not in self.cuts:
-            raise UndefinedCutException(
+            raise UndefinedCut(
                 "unknown cut '{}' -- only know: {}"
                 .format(cut, [a for a in self.cuts.keys()]))
         elif self.cuts[cut][0] is None:
-            raise PureCountingCutException(
+            raise PureCountingCut(
                 "'{}' has no function associated".format(cut))
 
     def cut(self, cut, *args, weight=1, **kwargs):
@@ -137,8 +137,8 @@ class CutFlow():
 
         Raises
         ------
-        UndefinedCutException if `cut` is not known
-        PureCountingCutException if `cut` has no associated function
+        UndefinedCut if `cut` is not known
+        PureCountingCut if `cut` has no associated function
         (i.e. manual counting mode)
         '''
 
@@ -172,8 +172,8 @@ class CutFlow():
 
         Raises
         ------
-        UndefinedCutException if `cut` is not known
-        PureCountingCutException if `cut` has no associated function
+        UndefinedCut if `cut` is not known
+        PureCountingCut if `cut` has no associated function
         (i.e. manual counting mode)
         '''
 
@@ -240,7 +240,7 @@ class CutFlow():
         if base_cut is None:
             base_value = max([a[1] for a in self.cuts.values()])
         elif base_cut not in self.cuts:
-            raise UndefinedCutException(
+            raise UndefinedCut(
                 "unknown cut '{}' -- only know: {}"
                 .format(base_cut, [a for a in self.cuts.keys()]))
         else:
@@ -248,7 +248,7 @@ class CutFlow():
 
         t = Table([[cut for cut in self.cuts.keys()],
                    [self.cuts[cut][1] for cut in self.cuts.keys()],
-                   [self.cuts[cut][1]/base_value for cut in self.cuts.keys()]],
+                   [self.cuts[cut][1] / base_value for cut in self.cuts.keys()]],
                   names=['Cut Name', 'selected Events', 'Efficiency'])
         t['Efficiency'].format = format
 
