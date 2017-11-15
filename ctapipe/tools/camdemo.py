@@ -78,14 +78,14 @@ class CameraDemo(Tool):
 
         # poor-man's coordinate transform from telscope to camera frame (it's
         # better to use ctapipe.coordiantes when they are stable)
-        scale = tel.optics.effective_focal_length.to(geom.pix_x.unit).value
+        scale = tel.optics.equivalent_focal_length.to(geom.pix_x.unit).value
         fov = np.deg2rad(4.0)
         maxwid = np.deg2rad(0.01)
         maxlen = np.deg2rad(0.03)
 
         disp = CameraDisplay(geom, ax=ax, autoupdate=True,
                              title="{}, f={}".format(tel,
-                             tel.optics.effective_focal_length))
+                             tel.optics.equivalent_focal_length))
         disp.cmap = plt.cm.terrain
 
         def update(frame):

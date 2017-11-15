@@ -40,13 +40,13 @@ class OpticsDescription:
         'SST', 'MST','LST'
     tel_subtype: str
         subtype of telescope, e.g. '1M' or 'ASTRI'
-    effective_focal_length: Quantity(float)
+    equivalent_focal_length: Quantity(float)
         effective focal-length of telescope, independent of which type of
         optics (as in the Monte-Carlo)
     """
 
     def __init__(self, mirror_type, tel_type,
-                 tel_subtype, effective_focal_length,
+                 tel_subtype, equivalent_focal_length,
                  mirror_area=None, num_mirror_tiles=None):
 
         if tel_type not in ['LST', 'MST', 'SST']:
@@ -55,35 +55,35 @@ class OpticsDescription:
         self.mirror_type = mirror_type
         self.tel_type = tel_type
         self.tel_subtype = tel_subtype
-        self.effective_focal_length = effective_focal_length
+        self.equivalent_focal_length = equivalent_focal_length
         self.mirror_area = mirror_area
         self.num_mirror_tiles = num_mirror_tiles
 
     @classmethod
-    def guess(cls, effective_focal_length):
+    def guess(cls, equivalent_focal_length):
         """
         Construct an OpticsDescription by guessing from metadata (e.g. when
         using a simulation where the exact type is not known)
 
         Parameters
         ----------
-        effective_focal_length: Quantity('m')
+        equivalent_focal_length: Quantity('m')
             effective optical focal-length in meters
 
         """
 
         tel_type, tel_subtype, mir_type = \
-            telescope_info_from_metadata(effective_focal_length)
+            telescope_info_from_metadata(equivalent_focal_length)
 
         if tel_type == "unknown":
             logger.warning(("No OpticsDescription found for focal-length "
                             "%s, setting to 'unknown'"),
-                           effective_focal_length)
+                           equivalent_focal_length)
 
         return cls(mirror_type=mir_type,
                    tel_type=tel_type,
                    tel_subtype=tel_subtype,
-                   effective_focal_length=effective_focal_length)
+                   equivalent_focal_length=equivalent_focal_length)
 
     @classmethod
     def from_name(cls, name, optics_table='optics'):
@@ -107,12 +107,20 @@ class OpticsDescription:
                                   role='dl0.tel.svc.optics')
         mask = table['tel_description'] == name
 
+
+        if 'equivalent_focal_length' in table.colnames:
+            flen = table['equivalent_focal_length'][mask].quantity[0]
+        else:
+            flen = table['effective_focal_length'][mask].quantity[0]
+            logger.warning("Optics table format out of date: "
+                           "'effective_focal_length' "
+                           "should be 'equivalent_focal_length'")
+
         optics = cls(
             mirror_type=table['mirror_type'][mask][0],
             tel_type=table['tel_type'][mask][0],
             tel_subtype=table['tel_subtype'][mask][0],
-            effective_focal_length=table['effective_focal_length'][
-                                       mask].quantity[0],
+            equivalent_focal_length=flen,
             mirror_area=table['mirror_area'][mask].quantity[0],
             num_mirror_tiles=table['num_mirror_tiles'][mask][0],
         )
@@ -129,6 +137,12 @@ class OpticsDescription:
         """ returns a tuple of (tel_type, tel_subtype).  Use str(optics) to
         get a text-based identifier."""
         return (self.tel_type, self.tel_subtype)
+
+    def info(self, printer=print):
+        printer('OpticsDescription: "{}"'.format(self))
+        printer('    - mirror_type: {}'.format(self.mirror_type))
+        printer('    - num_mirror_tiles: {}'.format(self.num_mirror_tiles))
+        printer('    - mirror_area: {}'.format(self.mirror_area))
 
     def __repr__(self):
         return "{}(tel_type='{}', tel_subtype='{}')".format(

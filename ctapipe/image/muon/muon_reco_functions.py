@@ -87,7 +87,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                                     boundary_thresh=tailcuts[1])
         camera_coord = CameraFrame(
             x=x, y=y,
-            focal_length=teldes.optics.effective_focal_length,
+            focal_length=teldes.optics.equivalent_focal_length,
             rotation=geom.pix_rotation
         )
 

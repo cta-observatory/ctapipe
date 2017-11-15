@@ -5,6 +5,7 @@ import pytest
 def test_guess_optics():
 
     od = OpticsDescription.guess(28.0*u.m)
+    od.info()
 
     assert od.tel_type == 'LST'
     assert od.tel_subtype == ''
@@ -12,4 +13,5 @@ def test_guess_optics():
 
     with pytest.raises(KeyError):
         od2 = OpticsDescription.guess(0*u.m)
+
 
