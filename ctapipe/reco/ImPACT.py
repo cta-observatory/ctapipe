@@ -89,7 +89,7 @@ class ImPACTReconstructor(Reconstructor):
         self.root_dir = root_dir
         self.prediction = dict()
 
-        self.file_names = {"GATE": "GCT_xm_full.fits", "LSTCam": "LST_xm_full.fits",
+        self.file_names = {"CHEC": "GCT_xm_full.fits", "LSTCam": "LST_xm_full.fits",
                            "NectarCam": "MST_xm_full.fits",
                            "FlashCam": "MST_xm_full.fits"}
 
@@ -102,11 +102,11 @@ class ImPACTReconstructor(Reconstructor):
         # pedestal distribution for each pixel
         # currently this is not availible from the calibration,
         # so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 2.0, "FlashCam": 2.3, "GATE": 1.3}
+        self.ped_table = {"LSTCam": 1.3, "NectarCam": 2.0, "FlashCam": 2.3, "CHEC": 1.3}
         self.spe = 0.5  # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "GATE": 1.0}
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "CHEC": 1.0}# * 1.36}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -372,8 +372,8 @@ class ImPACTReconstructor(Reconstructor):
                                                      source_y, phi)
 
         prediction = self.image_prediction(self.type[tel_id],
-                                           (90 * u.deg) - shower_reco.alt,
-                                           shower_reco.az,
+                                          # (90 * u.deg) - shower_reco.alt,
+                                          # shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
                                            pix_x_rot * (180 / math.pi),
@@ -460,7 +460,8 @@ class ImPACTReconstructor(Reconstructor):
             # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(
                 self.type[tel_count],
-                zenith, azimuth, energy, impact, x_max_bin,
+                #zenith, azimuth, 
+                energy, impact, x_max_bin,
                 pix_x_rot * (180 / math.pi),
                 pix_y_rot * (180 / math.pi)
             )
@@ -596,10 +597,7 @@ class ImPACTReconstructor(Reconstructor):
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(NominalFrame(
             array_direction=self.array_direction))
-        print(nominal_seed)
-        print(horizon_seed)
-        print(self.array_direction)
-
+        
         source_x = nominal_seed.x[0].to(u.rad).value
         source_y = nominal_seed.y[0].to(u.rad).value
 
@@ -626,7 +624,7 @@ class ImPACTReconstructor(Reconstructor):
                   (tilt_y - 100, tilt_y + 100),
                   (lower_en_limit.value, en_seed.value * 2),
                   (0.5, 2))
-
+        
         fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
                                            minimiser_name=self.minimiser_name)
 
@@ -713,6 +711,8 @@ class ImPACTReconstructor(Reconstructor):
                          fix_x_max_scale=False,
                          errordef=1)
 
+            min.migrad()
+
             min.tol *= 1000
             min.set_strategy(0)
 
@@ -743,7 +743,6 @@ class ImPACTReconstructor(Reconstructor):
                                    method=minimiser_name,
                                    bounds=limits
                                    )
-                    print(min.x)
                     return min.x, (0, 0, 0, 0, 0, 0)
 
     def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,

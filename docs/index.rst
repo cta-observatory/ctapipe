@@ -60,49 +60,56 @@ Module API Status (relative to next release)
 ================  ===============
  Module           Status
 ================  ===============
-`analysis`        empty
-`calib`           caution
-`coordinates`     **stable**
+`analysis`        **stable**
+`calib`           **stable**
+`coordinates`     caution
 `core`            **stable**
 `flow`            experimental
-`instrument`      unstable
-`pipeline`        deprecated
+`instrument`      **stable**
 `plotting`        caution
-`reco`            caution
+`reco`            **stable**
 `utils`           **stable**
 `visualization`   **stable**
 ================  ===============
 
 
-Authors (as of 2017-04-28)
+Authors (as of 2017-10-11)
 ==========================
 (computed from the list of GIT commits)
 
-- Karl Kosack (project lead)
-- Abelardo Moralejo Olaizola
+- Karl Kosack
+- Jason Watson
+- Dan Parsons
+- Jacquemier
+- Tino Michael
+- Maximilian Nöthe
+- Christoph Deil
 - Alison Mitchell
-- Christoph Deil              
-- Dan Parsons                 
-- David Landriu               
-- Gernot Maier                 
-- Jason Watson                
-- Jean Jacquemier             
-- Jeremie Decock              
-- Justus Zorn
-- Kai Bruegge                 
-- Maximilian Noethe
-- Markus Gaug
-- Michael Punch               
-- Michele Mastropietro        
-- Miguel Nievas
-- Paulo Cumani
-- Pierre Aubert
-- Raquel de los Reyes         
-- Tarek Hassan                
-- Tino Michael                
-- Wrijupan Bhattacharyya      
+- justuszorn
+- Samuel Timothy Spencer
+- AMWMitchell
 - Raquel de los Reyes
-
+- Michele Mastropietro
+- Jeremie DECOCK
+- Kai Brügge
+- tino-michael
+- Abelardo Moralejo Olaizola
+- Markus Gaug
+- tialis
+- fvisconti
+- Wrijupan Bhattacharyya
+- bultako
+- Paolo Cumani
+- Tristan Carel
+- Michael Punch
+- Miguel Nievas
+- Orel Gueta
+- Tarek Hassan
+- Daniel Parsons
+- GernotMaier
+- David Landriu
+- labsaha
+- Pierre Aubert
 
 
 Development Help

@@ -156,8 +156,8 @@ class SubarrayDescription:
                                             in optics_list]) * u.m**2
             cols['mirror_type'] = [x.mirror_type for x in optics_list]
             cols['num_mirror_tiles'] = [x.num_mirror_tiles for x in optics_list]
-            cols['effective_focal_length'] = [
-                x.effective_focal_length.to('m').value
+            cols['equivalent_focal_length'] = [
+                x.equivalent_focal_length.to('m').value
                 for x in optics_list
             ] * u.m
 

@@ -46,7 +46,6 @@ class InstrumentContainer(Container):
                      "SubarrayDescription from the instrument module")
 
 
-
 class DL1CameraContainer(Container):
     """Storage of output of camera calibration e.g the final calibrated
     image in intensity units and other per-event calculated
@@ -188,6 +187,9 @@ class MCEventContainer(Container):
     core_x = Field(0.0, "MC core position", unit=u.m)
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
+    shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
+                              "2(mu-), 100*A+Z for nucleons and nuclei," 
+                              "negative for antimatter.")
     tel = Field(
         Map(MCCameraEventContainer), "map of tel_id to MCCameraEventContainer"
     )
@@ -348,8 +350,8 @@ class MuonRingParameter(Container):
         event number
     tel_id : int
         telescope ID
-    ring_center_x, ring_center_y, ring_radius:
-        center position and radius of the fitted ring
+    ring_center_x, ring_center_y, ring_radius, ring_phi, ring_inclination:
+        center position, radius, orientation and inlination of the fitted ring
     ring_chi2_fit:
         chi squared of the ring fit
     ring_cov_matrix:
@@ -362,6 +364,8 @@ class MuonRingParameter(Container):
     ring_center_x = Field(0.0, 'centre (x) of the fitted muon ring')
     ring_center_y = Field(0.0, 'centre (y) of the fitted muon ring')
     ring_radius = Field(0.0, 'radius of the fitted muon ring')
+    ring_phi = Field(0.0, 'Orientation of fitted ring')
+    ring_inclination = Field(0.0, 'Inclination of fitted ring')
     ring_chi2_fit = Field(0.0, 'chisquare of the muon ring fit')
     ring_cov_matrix = Field(0.0, 'covariance matrix of the muon ring fit')
     ring_fit_method = Field("", 'fitting method used for the muon ring')

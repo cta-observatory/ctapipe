@@ -30,7 +30,7 @@ The following shows the conceptual difference between `Tools` and
 `Components` with overall pipelines and stages.  Serialization and
 Deserialization are simply specialized Components that perform data access.
 
-.. image:: tool-component.pdf
+.. image:: tool-component.png
 
 	      
 Reference/API

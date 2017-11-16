@@ -122,6 +122,17 @@ class CameraGeometry:
                 and (self.pix_type == other.pix_type)
                 )
 
+    def __getitem__(self, slice):
+        return CameraGeometry(cam_id=" ".join([self.cam_id," sliced"]),
+                              pix_id=self.pix_id[slice],
+                              pix_x=self.pix_x[slice],
+                              pix_y=self.pix_y[slice],
+                              pix_area=self.pix_area[slice],
+                              pix_type=self.pix_type,
+                              pix_rotation=self.pix_rotation,
+                              cam_rotation=self.cam_rotation,
+                              neighbors=None)
+
     @classmethod
     @u.quantity_input
     def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
@@ -299,6 +310,7 @@ class CameraGeometry:
     def __str__(self):
         return self.cam_id
 
+
     @lazyproperty
     def neighbors(self):
         """" only calculate neighbors when needed or if not already 
@@ -336,6 +348,40 @@ class CameraGeometry:
         """
         return np.ascontiguousarray(np.array(np.where(self.neighbor_matrix)).T)
 
+    @lazyproperty
+    def pixel_moment_matrix(self):
+        """
+        Pre-calculated matrix needed for higher-order moment calculation,
+        up to 4th order.
+
+        Note this is *not* recalculated if the CameraGeometry is modified.
+
+        this matrix M can be multiplied by an image and normalized by the sum to
+        get the moments:
+
+        .. code-block:: python3
+
+            M = geom.pixel_moment_matrix()
+            moms = (M @ image)/image.sum()
+
+
+        Returns
+        -------
+        array:
+            x, y, x**2, x*y, y^2, x^3, x^2*y,x*y^2, y^3, x^4, x^3*y, x^2*y2,
+            x*y^3, y^4
+
+        """
+
+        x = self.pix_x.value
+        y = self.pix_y.value
+
+        return np.row_stack([x, y,
+                             x**2, x*y, y**2,
+                             x**3, x**2*y, x*y**2, y**3,
+                             x**4, x**3*y, x**2*y**2, x*y**3, y**4])
+
+
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
         specified angle. Modifies the CameraGeometry in-place (so
@@ -364,6 +410,17 @@ class CameraGeometry:
         self.pix_y = rotated[1] * self.pix_x.unit
         self.pix_rotation -= Angle(angle)
         self.cam_rotation -= Angle(angle)
+
+    def info(self, printer=print):
+        """ print detailed info about this camera """
+        printer('CameraGeometry: "{}"'.format(self))
+        printer('   - num-pixels: {}'.format(len(self.pix_id)))
+        printer('   - pixel-type: {}'.format(self.pix_type))
+        printer('   - sensitive-area: {}'.format(self.pix_area.sum()))
+        printer('   - pix-rotation: {}'.format(self.pix_rotation))
+        printer('   - cam-rotation: {}'.format(self.cam_rotation))
+
+
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),

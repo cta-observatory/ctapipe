@@ -1,14 +1,12 @@
 name: ctadev
 channels:
   - cta-observatory
-  - openastronomy
-  - astropy
+  - conda-forge
 dependencies:
-  - ctapipe-extra=0.2.11
+  - ctapipe-extra=0.2.*
   - astropy
   - bokeh
   - cython
-  - fitsio
   - gammapy
   - graphviz
   - iminuit
@@ -19,8 +17,10 @@ dependencies:
   - numba
   - numpy
   - numpydoc
+  - pandas
   - pyhessio
   - pytest
+  - pytest-cov
   - psutil
   - readline
   - scikit-learn

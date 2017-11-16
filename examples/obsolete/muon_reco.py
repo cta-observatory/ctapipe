@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
             camera_coord = CameraFrame(x=x, y=y, z=np.zeros(x.shape) * u.m)
             optics = event.inst.subarray.tel[tel_id].optics
-            foclen = optics.effective_focal_length
+            foclen = optics.equivalent_focal_length
             frame = NominalFrame(array_direction=[container.mc.alt,
                                                   container.mc.az],
                                  pointing_direction=[container.mc.alt,

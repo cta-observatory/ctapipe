@@ -12,6 +12,7 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.plotting.array import NominalPlotter
 from ctapipe.utils import get_dataset
+from copy import deepcopy
 
 
 @pytest.mark.skip
@@ -43,25 +44,27 @@ def test_array_draw():
         for tel_id in event.dl0.tels_with_data:
 
             pmt_signal = event.dl1.tel[tel_id].image[0]
-            geom = event.inst.subarray.tel[tel_id].camera
-            fl = event.inst.subarray.tel[tel_id].optics.effective_focal_length
+            geom = deepcopy(event.inst.subarray.tel[tel_id].camera)
+            fl = event.inst.subarray.tel[tel_id].optics.equivalent_focal_length
 
             # Transform the pixels positions into nominal coordinates
             camera_coord = CameraFrame(x=geom.pix_x, y=geom.pix_y,
                                        z=np.zeros(geom.pix_x.shape) * u.m,
                                        focal_length=fl,
                                        rotation=90 * u.deg - geom.cam_rotation)
-
             nom_coord = camera_coord.transform_to(
                 NominalFrame(array_direction=array_pointing,
                              pointing_direction=array_pointing))
+
+            geom.pix_x = nom_coord.x
+            geom.pix_y = nom_coord.y
+
 
             mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
 
             try:
-                moments = hillas_parameters(nom_coord.x,
-                                            nom_coord.y,
+                moments = hillas_parameters(geom,
                                             pmt_signal * mask)
                 hillas_dict[tel_id] = moments
                 nom_coord = NominalPlotter(hillas_parameters=hillas_dict,

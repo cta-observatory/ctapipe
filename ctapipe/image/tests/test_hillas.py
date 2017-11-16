@@ -1,10 +1,13 @@
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
-                                  hillas_parameters_3, hillas_parameters_4)
+                                  hillas_parameters_3, hillas_parameters_4,
+                                  HillasParameterizationError)
+from ctapipe.io.containers import HillasParametersContainer
 from astropy import units as u
-from numpy import isclose
+from numpy import isclose, zeros_like
 from numpy.random import seed
+import pytest
 
 def create_sample_image(psi='-30d'):
 
@@ -30,11 +33,7 @@ def create_sample_image(psi='-30d'):
     # threshold in pe
     image[~clean_mask] = 0
 
-    # Pixel values in the camera
-    pix_x = geom.pix_x.value
-    pix_y = geom.pix_y.value
-
-    return pix_x, pix_y, image
+    return geom,  image
 
 def compare_result(x,y):
     ux = u.Quantity(x)
@@ -43,7 +42,7 @@ def compare_result(x,y):
     assert ux.unit == uy.unit
 
 
-def do_test_hillas(withunits=True):
+def test_hillas():
     """
     test all Hillas-parameter routines on a sample image and see if they
     agree with eachother and with the toy model (assuming the toy model code
@@ -53,17 +52,13 @@ def do_test_hillas(withunits=True):
     # try all quadrants
     for psi_angle in ['30d','120d','-30d','-120d']:
 
-        px, py, image = create_sample_image(psi_angle)
+        geom, image = create_sample_image(psi_angle)
         results = {}
 
-        if withunits:
-            px = px * u.cm
-            py = py * u.cm
-
-        results['v1'] = hillas_parameters_1(px, py, image)
-        results['v2'] = hillas_parameters_2(px, py, image)
-        results['v3'] = hillas_parameters_3(px, py, image)
-        results['v4'] = hillas_parameters_4(px, py, image)
+        results['v1'] = hillas_parameters_1(geom, image)
+        results['v2'] = hillas_parameters_2(geom, image)
+        results['v3'] = hillas_parameters_3(geom, image)
+        results['v4'] = hillas_parameters_4(geom, image)
         # compare each method's output
         for aa in results:
             for bb in results:
@@ -79,9 +74,29 @@ def do_test_hillas(withunits=True):
                     #compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
 
-def test_hillas_with_units():
-    do_test_hillas(withunits=True)
+def test_hillas_failure():
+    geom, image = create_sample_image(psi='0d')
+    blank_image = zeros_like(image)
 
-def test_hillas_unitless():
-    do_test_hillas(withunits=False)
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters_1(geom, blank_image)
 
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters_2(geom, blank_image)
+
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters_3(geom, blank_image)
+
+    with pytest.raises(HillasParameterizationError):
+        hillas_parameters_4(geom, blank_image)
+
+
+def test_hillas_api_change():
+    import numpy as np
+    with pytest.raises(ValueError):
+        hillas_parameters_4(np.arange(10), np.arange(10), np.arange(10))
+
+def test_hillas_container():
+    geom, image = create_sample_image(psi='0d')
+    params = hillas_parameters_4(geom, image, container=True)
+    assert type(params) is HillasParametersContainer
