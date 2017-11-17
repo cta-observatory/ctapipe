@@ -4,6 +4,7 @@ import numpy as np
 from astropy.utils.decorators import deprecated
 from astropy import units as u
 
+from ctapipe import utils
 from ctapipe.utils import linalg
 
 
@@ -77,28 +78,28 @@ def transf_pixel_position(x, y):
 
 
 # functions to play through the different transformations
-# set environment variables to control which transformation to use
+# set variables to control which transformation to use
 # e.g. loop over the indices to bruteforce the correct set of transformations
 def az_to_phi_debug(az):
     """azimuth is counted from north but phi from the x-axis.
     figure out where x is pointing by adding +-90° / 180° to `az`
 
-    `az_deg` determines whether increases clock- or counter-clock-wise
+    `az_dir` determines whether increases clock- or counter-clock-wise
     """
-    az_deg = int(os.environ["AZDEG"])
+    az_dir = coordinate_transformations.az_dir
 
     i = 0
-    if int(os.environ["AZ"]) == i:
-        return az_deg * az + 0 * u.deg
+    if coordinate_transformations.azimu == i:
+        return az_dir * az + 0 * u.deg
     i += 1
-    if int(os.environ["AZ"]) == i:
-        return az_deg * az + 90 * u.deg
+    if coordinate_transformations.azimu == i:
+        return az_dir * az + 90 * u.deg
     i += 1
-    if int(os.environ["AZ"]) == i:
-        return az_deg * az - 90 * u.deg
+    if coordinate_transformations.azimu == i:
+        return az_dir * az - 90 * u.deg
     i += 1
-    if int(os.environ["AZ"]) == i:
-        return az_deg * az + 180 * u.deg
+    if coordinate_transformations.azimu == i:
+        return az_dir * az + 180 * u.deg
 
 
 def transf_array_position_debug(x, y):
@@ -107,29 +108,29 @@ def transf_array_position_debug(x, y):
     """
 
     i = 0
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return x, y
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return -x, y
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return x, -y
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return -x, -y
 
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return y, x
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return -y, -x
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return y, -x
     i += 1
-    if int(os.environ["PO"]) == i:
+    if utils.coordinate_transformations.array == i:
         return -y, x
 
 
@@ -138,27 +139,27 @@ def transf_pixel_position_debug(x, y):
     the coordinates of the pixel positions
     """
     i = 0
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return x, y
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return -x, y
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return x, -y
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return -x, -y
 
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return y, x
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return -y, -x
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return y, -x
     i += 1
-    if int(os.environ["PI"]) == i:
+    if utils.coordinate_transformations.pixel == i:
         return -y, x
