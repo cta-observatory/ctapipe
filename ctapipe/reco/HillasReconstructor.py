@@ -480,7 +480,7 @@ class HillasReconstructor(Reconstructor):
         tels = []
         dirs = []
         for tel_id, hillas in hillas_dict.items():
-            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            foclen = subarray.tel[tel_id].optics.equivalent_focal_length
             max_dir, = trafo.pixel_position_to_direction(
                 np.array([hillas.cen_x / u.m]) * u.m,
                 np.array([hillas.cen_y / u.m]) * u.m,
