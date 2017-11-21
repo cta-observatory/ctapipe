@@ -9,7 +9,7 @@ from ctapipe.utils import linalg
 
 
 @deprecated(0.1, "will be replaced with proper coord transform")
-def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
+def pixel_position_to_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
     """
     TODO replace with proper implementation
     calculates the direction vector of corresponding to a
@@ -41,8 +41,6 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
         corresponding to a position on the camera
     """
 
-    # the orientation of the camera (i.e. the pixel positions) needs to be corrected
-    pix_x, pix_y = transf_pixel_position(pix_x, pix_y)
     pix_alpha = np.arctan2(pix_y, pix_x)
 
     pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
@@ -62,104 +60,23 @@ def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
 
 
 def alt_to_theta(alt):
+    """transforms altitude (angle from the horizon upwards) to theta (angle from z-axis)
+    for simtel array coordinate systems
+    """
     return (90 * u.deg - alt).to(alt.unit)
 
 
 def az_to_phi(az):
+    """transforms azimuth (angle from north towards east)
+    to phi (angle from x-axis towards y-axis)
+    for simtel array coordinate systems
+    """
     return -az
 
 
-def transf_array_position(x, y):
-    return x, y
-
-
-def transf_pixel_position(x, y):
+def transform_pixel_position(x, y):
+    """transforms the x and y coordinates on the camera plane so that they correspond to
+    the view as if looked along the pointing direction of the telescope, i.e. y->up and
+    x->right
+    """
     return x, -y
-
-
-# functions to play through the different transformations
-# set variables to control which transformation to use
-# e.g. loop over the indices to bruteforce the correct set of transformations
-def az_to_phi_debug(az):
-    """azimuth is counted from north but phi from the x-axis.
-    figure out where x is pointing by adding +-90° / 180° to `az`
-
-    `az_dir` determines whether increases clock- or counter-clock-wise
-    """
-    az_dir = coordinate_transformations.az_dir
-
-    i = 0
-    if coordinate_transformations.azimu == i:
-        return az_dir * az + 0 * u.deg
-    i += 1
-    if coordinate_transformations.azimu == i:
-        return az_dir * az + 90 * u.deg
-    i += 1
-    if coordinate_transformations.azimu == i:
-        return az_dir * az - 90 * u.deg
-    i += 1
-    if coordinate_transformations.azimu == i:
-        return az_dir * az + 180 * u.deg
-
-
-def transf_array_position_debug(x, y):
-    """find out where the x- and y-axes of the array are pointing by switching/flipping
-    the coordinates of the telescope positions
-    """
-
-    i = 0
-    if utils.coordinate_transformations.array == i:
-        return x, y
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return -x, y
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return x, -y
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return -x, -y
-
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return y, x
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return -y, -x
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return y, -x
-    i += 1
-    if utils.coordinate_transformations.array == i:
-        return -y, x
-
-
-def transf_pixel_position_debug(x, y):
-    """find out where the x- and y-axes of the camera are pointing by switching/flipping
-    the coordinates of the pixel positions
-    """
-    i = 0
-    if utils.coordinate_transformations.pixel == i:
-        return x, y
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return -x, y
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return x, -y
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return -x, -y
-
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return y, x
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return -y, -x
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return y, -x
-    i += 1
-    if utils.coordinate_transformations.pixel == i:
-        return -y, x
