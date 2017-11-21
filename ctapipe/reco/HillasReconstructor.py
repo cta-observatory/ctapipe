@@ -233,7 +233,7 @@ class HillasReconstructor(Reconstructor):
             # NOTE this is correct: +cos(psi) ; +sin(psi)
             p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
             p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
-            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            foclen = subarray.tel[tel_id].optics.equivalent_focal_length
 
             circle = GreatCircle(
                 trafo.pixel_position_to_direction(
