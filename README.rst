@@ -39,7 +39,7 @@ file *environment.yml* can be found in this repo.
 
   conda env create -n cta -f environment.yml
   source activate cta
-  conda install ctapipe
+  conda install -c cta-observatory ctapipe
 
 
 Developers should follow the development install instructions found in the
