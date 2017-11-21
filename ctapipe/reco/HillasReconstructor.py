@@ -193,7 +193,7 @@ class HillasReconstructor(Reconstructor):
         phi, theta = linalg.get_phi_theta(dir).to(u.deg)
 
         # TODO fix coordinates!
-        result.alt, result.az = 90 * u.deg - theta, 90 * u.deg - phi
+        result.alt, result.az = 90 * u.deg - theta, -phi
         result.core_x = pos[0]
         result.core_y = pos[1]
         result.core_uncert = err_est_pos
