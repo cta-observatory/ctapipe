@@ -20,3 +20,4 @@ This directory contains all the functions aimed to provide the calibration of th
 * @TODO
    * pylint, pep8
    * add unit test
+   * use numpy ndarray instead of list for data structure
