@@ -39,6 +39,12 @@ class CameraDemo(Tool):
         help='Telescope optics description name'
     ).tag(config=True)
 
+    num_events = traits.Int(0, help='events to show before exiting (0 for '
+                                    'unlimited)').tag(config=True)
+
+    display = traits.Bool(True, "enable or disable display (for "
+                                "testing)").tag(config=True)
+
     aliases = traits.Dict({
         'delay': 'CameraDemo.delay',
         'cleanframes': 'CameraDemo.cleanframes',
@@ -46,7 +52,9 @@ class CameraDemo(Tool):
         'blit': 'CameraDemo.blit',
         'camera': 'CameraDemo.camera',
         'optics' : 'CameraDemo.optics',
+        'num-events': 'CameraDemo.num_events'
     })
+
 
 
     def __init__(self):
@@ -70,18 +78,19 @@ class CameraDemo(Tool):
 
         # poor-man's coordinate transform from telscope to camera frame (it's
         # better to use ctapipe.coordiantes when they are stable)
-        scale = tel.optics.effective_focal_length.to(geom.pix_x.unit).value
+        scale = tel.optics.equivalent_focal_length.to(geom.pix_x.unit).value
         fov = np.deg2rad(4.0)
         maxwid = np.deg2rad(0.01)
         maxlen = np.deg2rad(0.03)
 
         disp = CameraDisplay(geom, ax=ax, autoupdate=True,
                              title="{}, f={}".format(tel,
-                             tel.optics.effective_focal_length))
+                             tel.optics.equivalent_focal_length))
         disp.cmap = plt.cm.terrain
 
         def update(frame):
 
+            self.log.debug("Frame=", frame)
             centroid = np.random.uniform(-fov, fov, size=2) * scale
             width = np.random.uniform(0, maxwid) * scale
             length = np.random.uniform(0, maxlen) * scale + width
@@ -123,9 +132,19 @@ class CameraDemo(Tool):
             self._counter += 1
             return [ax, ]
 
-        self.anim = FuncAnimation(fig, update, interval=self.delay,
+
+        frames = None if self.num_events==0 else self.num_events
+        repeat = True if self.num_events==0 else False
+
+        self.log.info("Running for {} frames".format(frames))
+        self.anim = FuncAnimation(fig, update,
+                                  interval=self.delay,
+                                  frames=frames,
+                                  repeat=repeat,
                                   blit=self.blit)
-        plt.show()
+
+        if self.display:
+            plt.show()
 
 
 def main(args=None):

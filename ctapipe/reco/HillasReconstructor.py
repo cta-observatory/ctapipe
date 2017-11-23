@@ -285,7 +285,7 @@ class HillasReconstructor(Reconstructor):
             # NOTE this is correct: +cos(psi) ; +sin(psi)
             p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
             p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
-            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            foclen = subarray.tel[tel_id].optics.equivalent_focal_length
 
             circle = GreatCircle(
                 guess_pix_direction(
@@ -530,7 +530,7 @@ class HillasReconstructor(Reconstructor):
         tels = []
         dirs = []
         for tel_id, hillas in hillas_dict.items():
-            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            foclen = subarray.tel[tel_id].optics.equivalent_focal_length
             max_dir, = guess_pix_direction(
                 np.array([hillas.cen_x / u.m]) * u.m,
                 np.array([hillas.cen_y / u.m]) * u.m,

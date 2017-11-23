@@ -2,15 +2,17 @@
 Charge extraction algorithms to reduce the image to one value per pixel
 """
 
+__all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
+           'GlobalPeakIntegrator', 'LocalPeakIntegrator',
+           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
+
+
 from abc import abstractmethod
 import numpy as np
 from traitlets import Int, CaselessStrEnum, Float
 from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
 
-__all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
-           'GlobalPeakIntegrator', 'LocalPeakIntegrator',
-           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
 
 
 class ChargeExtractor(Component):

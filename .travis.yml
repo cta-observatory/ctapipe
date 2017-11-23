@@ -46,23 +46,25 @@ before_install:
 install:
 
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
-    - conda env update -n cta-dev --quiet --file environment.yml
+    - conda env update -n cta-dev --file environment.yml
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
+    - pip install codecov
     - python setup.py develop
 
-
 script:
-    - python -m pytest
+    - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
-    - travis-sphinx --source=docs/ build
+    - travis-sphinx build --source=docs/ 
 
 after_script:
     - source deactivate
 
 after_success:
     - travis-sphinx deploy
+    - codecov 
+
 
   
 

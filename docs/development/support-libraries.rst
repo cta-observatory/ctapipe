@@ -12,6 +12,9 @@ allowed when developing CTA Pipeline algorithms.  Any new dependencies must
 be discussed with the software manager.
 
 
+.. image:: ./py-pipe-dependencies.png
+   :align: center
+
 
 Math/Stats
 ==========
