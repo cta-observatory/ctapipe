@@ -6,7 +6,7 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 
 
 from ctapipe.utils import linalg
-from ctapipe.utils import coordinate_transformations as trafo
+from ctapipe.coordinates import coordinate_transformations as trafo
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 
