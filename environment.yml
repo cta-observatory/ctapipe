@@ -3,7 +3,7 @@ channels:
   - cta-observatory
   - conda-forge
 dependencies:
-  - ctapipe-extra=0.2.11
+  - ctapipe-extra=0.2.*
   - astropy
   - bokeh
   - cython

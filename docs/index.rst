@@ -60,6 +60,7 @@ Module API Status (relative to next release)
 ================  ===============
  Module           Status
 ================  ===============
+`atmosphere`      experimental
 `analysis`        **stable**
 `calib`           **stable**
 `coordinates`     caution
