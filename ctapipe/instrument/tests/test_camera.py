@@ -72,7 +72,6 @@ def test_neighbor_pixels(cam_id):
     assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
 
-
 def test_to_and_from_table():
     geom = CameraGeometry.from_name("LSTCam")
     tab = geom.to_table()
