@@ -99,7 +99,6 @@ def test_write_read(tmpdir):
     assert geom.pix_type == geom2.pix_type
 
 
-
 def test_precal_neighbors():
     geom = CameraGeometry(cam_id="TestCam",
                           pix_id=np.arange(3),
@@ -116,7 +115,6 @@ def test_precal_neighbors():
 
     nmat = geom.neighbor_matrix
     assert nmat.shape == (len(geom.pix_x), len(geom.pix_x))
-
 
 
 def test_slicing():
