@@ -128,7 +128,7 @@ def test_slicing():
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
 
-    sliced2 = geom[[5,7,8,9,10]]
+    sliced2 = geom[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
