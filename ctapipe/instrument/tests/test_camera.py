@@ -3,7 +3,6 @@ from astropy import units as u
 from ctapipe.instrument import CameraGeometry
 from ctapipe.instrument.camera import _find_neighbor_pixels, \
     _get_min_pixel_seperation
-from numpy import median
 import pytest
 
 cam_ids = CameraGeometry.get_known_camera_names()
