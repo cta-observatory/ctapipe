@@ -8,18 +8,22 @@ import pytest
 
 cam_ids = CameraGeometry.get_known_camera_names()
 
-def test_load_by_name():
 
+def test_known_cameras():
+    cams = CameraGeometry.get_known_camera_names()
+    assert len(cams) > 3
+    assert 'FlashCam' in cams
+
+
+def test_load_by_name():
     cams = CameraGeometry.get_known_camera_names()
     assert len(cams) > 4
     assert 'FlashCam' in cams
     assert 'NectarCam' in cams
-    
 
     for cam in cams:
         geom = CameraGeometry.from_name(cam)
         geom.info()
-
 
 
 def test_make_rectangular_camera_geometry():
@@ -102,10 +106,6 @@ def test_write_read(tmpdir):
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
 
-def test_known_cameras():
-    cams = CameraGeometry.get_known_camera_names()
-    assert 'FlashCam' in cams
-    assert len(cams) > 3
 
 
 def test_precal_neighbors():
