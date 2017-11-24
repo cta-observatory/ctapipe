@@ -9,13 +9,7 @@ import pytest
 cam_ids = CameraGeometry.get_known_camera_names()
 
 
-def test_known_cameras():
-    cams = CameraGeometry.get_known_camera_names()
-    assert len(cams) > 3
-    assert 'FlashCam' in cams
-
-
-def test_load_by_name():
+def test_known_camera_names():
     cams = CameraGeometry.get_known_camera_names()
     assert len(cams) > 4
     assert 'FlashCam' in cams
