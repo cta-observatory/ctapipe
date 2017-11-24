@@ -105,10 +105,12 @@ def test_precal_neighbors():
                           pix_x=np.arange(3)*u.deg,
                           pix_y=np.arange(3)*u.deg,
                           pix_area=np.ones(3)*u.deg**2,
-                          neighbors=[[1,],[0,2],[1,]],
+                          neighbors=[
+                            [1, ], [0, 2], [1, ]
+                          ],
                           pix_type='rectangular',
                           pix_rotation="0deg",
-                          cam_rotation="0deg" )
+                          cam_rotation="0deg")
 
     neigh = geom.neighbors
     assert len(neigh) == len(geom.pix_x)
