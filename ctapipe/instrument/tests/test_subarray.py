@@ -1,6 +1,10 @@
-from ctapipe.instrument import SubarrayDescription, TelescopeDescription, CameraGeometry
+from ctapipe.instrument import (
+    SubarrayDescription,
+    TelescopeDescription,
+)
 import numpy as np
 from astropy import units as u
+
 
 def test_subarray_description():
 
@@ -15,8 +19,6 @@ def test_subarray_description():
         tel[ii] = TelescopeDescription.guess(pix_x, pix_y, foclen)
         pos[ii] = (np.random.uniform(200, size=2)-100) * u.m
 
-
-
     sub = SubarrayDescription("test array",
                               tel_positions=pos,
                               tel_descriptions=tel)
@@ -27,6 +29,6 @@ def test_subarray_description():
     assert sub.tel[0].camera is not None
     assert len(sub.to_table()) == 10
 
-    subsub = sub.select_subarray("newsub", [1,2,3,4])
+    subsub = sub.select_subarray("newsub", [1, 2, 3, 4])
     assert subsub.num_tels == 4
-    assert set(subsub.tels.keys()) == {1,2,3,4}
+    assert set(subsub.tels.keys()) == {1, 2, 3, 4}
