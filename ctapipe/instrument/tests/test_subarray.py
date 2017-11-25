@@ -15,9 +15,8 @@ def test_subarray_description():
     pix_y = np.arange(1764, dtype=np.float) * u.m
 
     for ii in range(10):
-
         tel[ii] = TelescopeDescription.guess(pix_x, pix_y, foclen)
-        pos[ii] = (np.random.uniform(200, size=2)-100) * u.m
+        pos[ii] = np.random.uniform(-100, 100, size=2) * u.m
 
     sub = SubarrayDescription("test array",
                               tel_positions=pos,
