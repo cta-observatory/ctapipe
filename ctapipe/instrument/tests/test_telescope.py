@@ -2,6 +2,7 @@ from ctapipe.instrument import TelescopeDescription
 from astropy import units as u
 import numpy as np
 
+
 def test_telescope_description():
 
     # setup a dummy telescope that look like an MST with FlashCam
