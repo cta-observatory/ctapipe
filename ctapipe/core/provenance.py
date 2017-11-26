@@ -182,7 +182,7 @@ class _ActivityProvenance:
         role: str
             role name that this input satisfies
         """
-        self._prov['input'].append(dict(url=url,role=role))
+        self._prov['input'].append(dict(url=url, role=role))
 
     def register_output(self, url, role=None):
         """
