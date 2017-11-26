@@ -147,7 +147,7 @@ class Provenance(metaclass=Singleton):
 class _ActivityProvenance:
     """
     Low-level helper class to collect provenance information for a given
-    *activity*.  Users should use `Provenance` as a top-level API, 
+    *activity*.  Users should use `Provenance` as a top-level API,
     not this class directly.
     """
 
