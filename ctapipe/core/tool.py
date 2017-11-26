@@ -113,7 +113,7 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = ('%(levelname)8s [%(name)s] '                           
+        self.log_format = ('%(levelname)8s [%(name)s] '
                            '(%(module)s/%(funcName)s): %(message)s')
         self.log_level = 20  # default to INFO and above
         self.is_setup = False
@@ -153,7 +153,7 @@ class Tool(Application):
         ----------
 
         argv: list(str)
-            command-line arguments, or None to get them 
+            command-line arguments, or None to get them
             from sys.argv automatically
         """
         try:
