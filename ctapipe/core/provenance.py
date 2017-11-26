@@ -196,7 +196,7 @@ class _ActivityProvenance:
         role: str
             role name that this output satisfies
         """
-        self._prov['output'].append(dict(url=url,role=role))
+        self._prov['output'].append(dict(url=url, role=role))
 
     def register_config(self, config):
         """ add a dictionary of configuration parameters to this activity"""
