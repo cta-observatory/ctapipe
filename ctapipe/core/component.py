@@ -15,7 +15,7 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
 
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called
-    workers, makers, etc).  Components are are classes that do some sort
+    workers, makers, etc).  Components are classes that do some sort
     of processing and contain user-configurable parameters, which are
     implemented using `traitlets`.
 
