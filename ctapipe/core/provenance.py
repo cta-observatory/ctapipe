@@ -180,7 +180,7 @@ class _ActivityProvenance:
         url: str
             filename or url of input file
         role: str
-            role name that this output satisfies
+            role name that this input satisfies
         """
         self._prov['input'].append(dict(url=url,role=role))
 
