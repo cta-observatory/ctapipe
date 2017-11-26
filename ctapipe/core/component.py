@@ -61,7 +61,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         parent: Tool or Component
             Tool or component that is the Parent of this one
         kwargs: type
-            other paremeters
+            other parameters
 
         """
 
