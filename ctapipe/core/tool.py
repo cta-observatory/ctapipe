@@ -4,11 +4,11 @@ from abc import abstractmethod
 from traitlets import Unicode
 from traitlets.config import Application
 
-logging.basicConfig(level=logging.WARNING)
-
 from ctapipe import __version__ as version
 from .logging import ColoredFormatter
 from . import Provenance
+
+logging.basicConfig(level=logging.WARNING)
 
 
 class ToolConfigurationError(Exception):
