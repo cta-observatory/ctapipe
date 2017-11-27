@@ -73,14 +73,15 @@ class PipeStep():
     def __repr__(self):
         '''standard representation
         '''
-        return ('Name[ ' + str(self.name)
-                + '], next_steps_name[' + str(self.next_steps_name)
-                + '], port in[ ' + str(self.port_in)
-                + '], main connection name  [ ' + str(self.main_connection_name) + ' ]'
-                + '], port in[ ' + str(self.port_in)
-                + '], nb process[ ' + str(self.nb_process)
-                + '], level[ ' + str(self.level)
-                + '], queue_limit[ ' + str(self.queue_limit) + ']')
+        return (
+            'Name[{self.name}], '
+            'next_steps_name[{self.next_steps_name}], '
+            'port in[{self.port_in}], '
+            'main connection name  [{self.main_connection_name} ], '
+            'nb_process [{self.nb_process}], '
+            'level [{self.level}]'
+            'queue_limit [{self.queue_limit}]'
+        ).format(self=self)
 
 
 class FlowError(Exception):
