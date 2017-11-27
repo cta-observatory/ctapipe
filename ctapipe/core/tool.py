@@ -115,7 +115,7 @@ class Tool(Application):
         super().__init__(**kwargs)
         self.log_format = ('%(levelname)8s [%(name)s] '
                            '(%(module)s/%(funcName)s): %(message)s')
-        self.log_level = 20  # default to INFO and above
+        self.log_level = logging.INFO
         self.is_setup = False
 
     def initialize(self, argv=None):
