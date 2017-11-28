@@ -4,7 +4,7 @@ import numpy as np
 
 
 def chec_transformation_map():
-    # By default, pixels maps to the last element of input_img_ext (i.e. NaN)
+    # By default, pixels map to the last element of input_img_ext (i.e. NaN)
     img_map = np.full([8 * 6, 8 * 6], -1, dtype=int)
 
     # Map values
