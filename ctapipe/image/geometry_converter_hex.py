@@ -10,10 +10,6 @@ from ctapipe.instrument import CameraGeometry
 
 logger = logging.getLogger(__name__)
 
-RotBuffer = namedtuple("RotBuffer",
-                       "rot_x,rot_y,x_edges,y_edges,new_geom,rot_angle,pix_rotation,"
-                       "x_scale")
-
 
 __all__ = [
     "convert_geometry_hex1d_to_rect2d",
