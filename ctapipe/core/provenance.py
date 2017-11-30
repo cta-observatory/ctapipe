@@ -147,7 +147,7 @@ class Provenance(metaclass=Singleton):
 class _ActivityProvenance:
     """
     Low-level helper class to collect provenance information for a given
-    *activity*.  Users should use `Provenance` as a top-level API, 
+    *activity*.  Users should use `Provenance` as a top-level API,
     not this class directly.
     """
 
@@ -180,9 +180,9 @@ class _ActivityProvenance:
         url: str
             filename or url of input file
         role: str
-            role name that this output satisfies
+            role name that this input satisfies
         """
-        self._prov['input'].append(dict(url=url,role=role))
+        self._prov['input'].append(dict(url=url, role=role))
 
     def register_output(self, url, role=None):
         """
@@ -196,7 +196,7 @@ class _ActivityProvenance:
         role: str
             role name that this output satisfies
         """
-        self._prov['output'].append(dict(url=url,role=role))
+        self._prov['output'].append(dict(url=url, role=role))
 
     def register_config(self, config):
         """ add a dictionary of configuration parameters to this activity"""

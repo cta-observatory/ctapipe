@@ -3,23 +3,20 @@ from astropy import units as u
 from ctapipe.instrument import CameraGeometry
 from ctapipe.instrument.camera import _find_neighbor_pixels, \
     _get_min_pixel_seperation
-from numpy import median
 import pytest
 
 cam_ids = CameraGeometry.get_known_camera_names()
 
-def test_load_by_name():
 
+def test_known_camera_names():
     cams = CameraGeometry.get_known_camera_names()
     assert len(cams) > 4
     assert 'FlashCam' in cams
     assert 'NectarCam' in cams
-    
 
     for cam in cams:
         geom = CameraGeometry.from_name(cam)
         geom.info()
-
 
 
 def test_make_rectangular_camera_geometry():
@@ -35,7 +32,7 @@ def test_load_hess_camera():
 def test_guess_camera():
     px = np.linspace(-10, 10, 11328) * u.m
     py = np.linspace(-10, 10, 11328) * u.m
-    geom = CameraGeometry.guess(px, py,0 * u.m)
+    geom = CameraGeometry.guess(px, py, 0 * u.m)
     assert geom.pix_type.startswith('rect')
 
 
@@ -75,7 +72,6 @@ def test_neighbor_pixels(cam_id):
     assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
 
-
 def test_to_and_from_table():
     geom = CameraGeometry.from_name("LSTCam")
     tab = geom.to_table()
@@ -102,11 +98,6 @@ def test_write_read(tmpdir):
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
 
-def test_known_cameras():
-    cams = CameraGeometry.get_known_camera_names()
-    assert 'FlashCam' in cams
-    assert len(cams) > 3
-
 
 def test_precal_neighbors():
     geom = CameraGeometry(cam_id="TestCam",
@@ -114,17 +105,18 @@ def test_precal_neighbors():
                           pix_x=np.arange(3)*u.deg,
                           pix_y=np.arange(3)*u.deg,
                           pix_area=np.ones(3)*u.deg**2,
-                          neighbors=[[1,],[0,2],[1,]],
+                          neighbors=[
+                            [1, ], [0, 2], [1, ]
+                          ],
                           pix_type='rectangular',
                           pix_rotation="0deg",
-                          cam_rotation="0deg" )
+                          cam_rotation="0deg")
 
     neigh = geom.neighbors
     assert len(neigh) == len(geom.pix_x)
 
     nmat = geom.neighbor_matrix
     assert nmat.shape == (len(geom.pix_x), len(geom.pix_x))
-
 
 
 def test_slicing():
@@ -136,7 +128,7 @@ def test_slicing():
     assert len(sliced1.pix_area) == 100
     assert len(sliced1.pix_id) == 100
 
-    sliced2 = geom[[5,7,8,9,10]]
+    sliced2 = geom[[5, 7, 8, 9, 10]]
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5

@@ -1,4 +1,4 @@
-name: ctadev
+name: cta-dev
 channels:
   - cta-observatory
   - conda-forge

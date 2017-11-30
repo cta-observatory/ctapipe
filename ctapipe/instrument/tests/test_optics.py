@@ -1,6 +1,7 @@
-from ctapipe.instrument.optics import  OpticsDescription
+from ctapipe.instrument.optics import OpticsDescription
 from astropy import units as u
 import pytest
+
 
 def test_guess_optics():
 
@@ -12,6 +13,4 @@ def test_guess_optics():
     assert od.mirror_type == 'DC'
 
     with pytest.raises(KeyError):
-        od2 = OpticsDescription.guess(0*u.m)
-
-
+        OpticsDescription.guess(0*u.m)
