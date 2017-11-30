@@ -464,11 +464,16 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
         1D (no timing) or 2D (with timing) array of the pmt signals
     """
 
-    if key in rot_buffer:
-        (old_geom, new_geom, hex_square_map) = rot_buffer[key]
-    else:
-        raise KeyError("key '{}' not found in the buffer".format(key)
-                       + " -- don't know how to undo rotation")
+
+    if key not in rot_buffer:
+        # if the key is not in the buffer from the initial conversion (maybe because you
+        # did it in another process?), perform a mock conversion here
+        orig_geom = CameraGeometry.from_name(geom.cam_id)
+        orig_signal = np.zeroes(len(orig_geom.pix_x))
+        convert_geometry_hex1d_to_rect2d(geom=orig_geom, signal=orig_signal,
+                                         key=key, add_rot=add_rot)
+
+    (old_geom, new_geom, hex_square_map) = rot_buffer[key]
 
     # the output image has as many entries as there are non-negative values in the
     # transfer map (this accounts for time as well)
