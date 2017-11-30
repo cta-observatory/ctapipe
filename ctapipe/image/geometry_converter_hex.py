@@ -462,14 +462,25 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
         the original geometry of the image
     signal : ndarray
         1D (no timing) or 2D (with timing) array of the pmt signals
+
+    Note
+    ----
+    The back-conversion works with an internal buffer to store the transfer map (which
+    was produced in the first conversion). If `key` is not found in said buffer, this
+    function tries to perform a mock conversion. For this, it needs a `CameraGeometry`
+    instance of the original camera layout, which it tries to load by name (i.e.
+    the `cam_id`). The function assumes the original `cam_id` can be inferred from the
+    given, modified one by: `geom.cam_id.split('_')[0]`.
     """
 
 
     if key not in rot_buffer:
         # if the key is not in the buffer from the initial conversion (maybe because you
         # did it in another process?), perform a mock conversion here
-        orig_geom = CameraGeometry.from_name(geom.cam_id)
-        orig_signal = np.zeroes(len(orig_geom.pix_x))
+        # ATTENTION assumes the original cam_id can be inferred from the given, modified
+        # one by by `geom.cam_id.split('_')[0]`
+        orig_geom = CameraGeometry.from_name(geom.cam_id.split('_')[0])
+        orig_signal = np.zeros(len(orig_geom.pix_x))
         convert_geometry_hex1d_to_rect2d(geom=orig_geom, signal=orig_signal,
                                          key=key, add_rot=add_rot)
 

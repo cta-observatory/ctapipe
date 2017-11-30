@@ -71,6 +71,43 @@ def test_convert_geometry(cam_id, rot):
     # TODO: test other parameters
 
 
+@pytest.mark.parametrize("rot", [3, ])
+@pytest.mark.parametrize("cam_id", cam_ids)
+def test_convert_geometry_mock(cam_id, rot):
+    """here we use a different key for the back conversion to trigger the mock conversion
+    """
+
+    geom = CameraGeometry.from_name(cam_id)
+
+    model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
+                                     psi="25d")
+
+    _, image, _ = make_toymodel_shower_image(geom, model.pdf,
+                                             intensity=50,
+                                             nsb_level_pe=100)
+
+    hillas_0 = hillas_parameters(geom, image)
+
+    if geom.pix_type == 'hexagonal':
+        convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
+        convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
+
+        geom2d, image2d = convert_geometry_1d_to_2d(geom, image,
+                                                    "_".join([geom.cam_id, str(rot)]),
+                                                    add_rot=rot)
+        geom1d, image1d = convert_geometry_back(geom2d, image2d,
+                                                "_".join([geom.cam_id,
+                                                          str(rot), "mock"]),
+                                                add_rot=rot)
+    else:
+        # originally rectangular geometries don't need a buffer and therefore no mock
+        # conversion
+        return
+
+    hillas_1 = hillas_parameters(geom, image1d)
+    assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
+
+
 # def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
 #     # plt.viridis()
 #     plt.figure(figsize=(12, 4))
