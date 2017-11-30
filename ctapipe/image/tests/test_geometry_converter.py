@@ -92,8 +92,7 @@ def test_convert_geometry_mock(cam_id, rot):
         convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
         convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
 
-        geom2d, image2d = convert_geometry_1d_to_2d(geom, image,
-                                                    "_".join([geom.cam_id, str(rot)]),
+        geom2d, image2d = convert_geometry_1d_to_2d(geom, image, key=None,
                                                     add_rot=rot)
         geom1d, image1d = convert_geometry_back(geom2d, image2d,
                                                 "_".join([geom.cam_id,

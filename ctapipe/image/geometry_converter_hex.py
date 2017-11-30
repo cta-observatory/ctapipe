@@ -479,7 +479,13 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
         # did it in another process?), perform a mock conversion here
         # ATTENTION assumes the original cam_id can be inferred from the given, modified
         # one by by `geom.cam_id.split('_')[0]`
-        orig_geom = CameraGeometry.from_name(geom.cam_id.split('_')[0])
+        try:
+            orig_geom = CameraGeometry.from_name(geom.cam_id.split('_')[0])
+        except:
+            raise ValueError("could not deduce `CameraGeometry` from given `geom`...\n"
+                             "please provide a `geom`, so that "
+                             "`geom.cam_id.split('_')[0]` is a known `cam_id`")
+
         orig_signal = np.zeros(len(orig_geom.pix_x))
         convert_geometry_hex1d_to_rect2d(geom=orig_geom, signal=orig_signal,
                                          key=key, add_rot=add_rot)
