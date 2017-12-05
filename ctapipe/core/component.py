@@ -15,7 +15,7 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
 
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called
-    workers, makers, etc).  Components are are classes that do some sort
+    workers, makers, etc).  Components are classes that do some sort
     of processing and contain user-configurable parameters, which are
     implemented using `traitlets`.
 
@@ -61,7 +61,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         parent: Tool or Component
             Tool or component that is the Parent of this one
         kwargs: type
-            other paremeters
+            other parameters
 
         """
 
@@ -71,4 +71,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         if self.parent:
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
-            self.log = getLogger(self.__class__.__name__)
+            self.log = getLogger(
+                self.__class__.__module__ + '.' + self.__class__.__name__
+            )
