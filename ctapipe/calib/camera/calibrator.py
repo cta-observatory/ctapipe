@@ -42,8 +42,6 @@ class CameraCalibrator(Component):
         ))
 
     """
-    name = 'CameraCalibrator'
-
     def __init__(self, config, tool, origin='hessio', **kwargs):
         """
         Parameters

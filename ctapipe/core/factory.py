@@ -33,7 +33,6 @@ class Factory(Component):
         from traitlets import (Integer, Float, List, Dict, Unicode)
 
         class MyFactory(Factory):
-            name = "myfactory"
             description = "do some things and stuff"
 
             subclasses = Factory.child_subclasses(ParentClass)
@@ -49,7 +48,7 @@ class Factory(Component):
             product_trait2 = Int(7, help="").tag(config=True)
 
             def get_factory_name(self):
-                return self.name
+                return self.__class__.__name__
 
             def get_product_name(self):
                 return self.discriminator
@@ -134,13 +133,13 @@ class Factory(Component):
 
         # Copy factory traits to product
         c = self.__dict__['_trait_values']['config']
-        c[product.name] = deepcopy(c[self.get_factory_name()])
+        c[product.__name__] = deepcopy(c[self.get_factory_name()])
         items = self.__dict__['_trait_values'].items()
         for key, values in items:
             if key != 'config' and key != 'parent':
-                c[product.name][key] = values
-        keys = list(c[product.name].keys())
+                c[product.__name__][key] = values
+        keys = list(c[product.__name__].keys())
         for key in keys:
             if key not in product.class_trait_names():
-                del c[product.name][key]
+                del c[product.__name__][key]
         return product
