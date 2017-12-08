@@ -16,5 +16,5 @@ def test_loop_over_events():
             evt_num = event.r0.tel[telid].camera_event_number
             assert i == evt_num
             adcs = np.array(list(event.r0.tel[telid].adc_samples.values()))
-            assert adcs.shape == (1296,20,)
+            assert adcs.shape == (1296, 20)
 
