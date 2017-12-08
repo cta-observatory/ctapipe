@@ -201,7 +201,7 @@ class MCEventContainer(Container):
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
     shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
-                              "2(mu-), 100*A+Z for nucleons and nuclei," 
+                              "2(mu-), 100*A+Z for nucleons and nuclei,"
                               "negative for antimatter.")
     tel = Field(
         Map(MCCameraEventContainer), "map of tel_id to MCCameraEventContainer"
@@ -351,20 +351,20 @@ class DataContainer(Container):
 
 class DigiCamCameraContainer(R0CameraContainer):
     """ DigiCam specific information """
-    camera_event_number =  Item(-1, "camera event number")
-    pixel_flags  = Item(None, ("pixel status flags","(n_channels x n_pixels)"))
-    local_camera_clock  = Item(-1, "camera timestamp")
-    timestamp  = Item(-1, "precise white rabbit based timestamp")
-    event_type =  Item(-1, "internal trigger type")
-    eventType =  Item(-1, "Event Type (PEDESTALS, PHYSICS, FLASHER, MUONS)")
+    camera_event_number =  Field(-1, "camera event number")
+    pixel_flags  = Field(None, ("pixel status flags","(n_channels x n_pixels)"))
+    local_camera_clock  = Field(-1, "camera timestamp")
+    timestamp  = Field(-1, "precise white rabbit based timestamp")
+    event_type =  Field(-1, "internal trigger type")
+    eventType =  Field(-1, "Event Type (PEDESTALS, PHYSICS, FLASHER, MUONS)")
 
 class DigiCamExpertCameraContainer(DigiCamCameraContainer):
     """ DigiCam specific information
         for debugging and engeneering runs
     """
-    trigger_input_traces  = Item(None, ("trigger patch trace","(n_patches)"))
-    trigger_output_patch7  = Item(None, ("trigger 7 patch cluster trace","(n_clusters)"))
-    trigger_output_patch19 = Item(None, ("trigger 19 patch cluster trace","(n_clusters)"))
+    trigger_input_traces  = Field(None, ("trigger patch trace","(n_patches)"))
+    trigger_output_patch7  = Field(None, ("trigger 7 patch cluster trace","(n_clusters)"))
+    trigger_output_patch19 = Field(None, ("trigger 19 patch cluster trace","(n_clusters)"))
 
 class MuonRingParameter(Container):
     """
