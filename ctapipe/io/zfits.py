@@ -26,7 +26,12 @@ __all__ = [
     'zfits_event_source',
 ]
 
-def zfits_event_source(url, max_events=None, allowed_tels=None, expert_mode = False):
+def zfits_event_source(
+    url,
+    max_events=None,
+    allowed_tels=None,
+    expert_mode=False
+):
     """A generator that streams data from an ZFITs data file
 
 
