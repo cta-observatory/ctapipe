@@ -6,7 +6,10 @@ This requires the protozfitsreader python library to be installed
 """
 import logging
 from .containers import DataContainer
-from .containers import DigiCamCameraContainer,DigiCamExpertCameraContainer
+from .containers import (
+    DigiCamCameraContainer,
+    DigiCamExpertCameraContainer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,4 +109,4 @@ def zfits_event_source(url, max_events=None, allowed_tels=None, expert_mode = Fa
 
     if max_events is not None and counter > max_events:
         return
-    
+
