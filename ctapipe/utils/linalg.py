@@ -20,7 +20,7 @@ def rotation_matrix_2d(angle):
 
 def rotate_around_axis(vec, axis, angle):
     """ rotates a vector around an axis by an angle
-        creates a rotation matrix and multiplies 
+        creates a rotation matrix and multiplies
         the initial vector with it
 
     Parameters
@@ -107,8 +107,10 @@ def set_phi_theta_r(phi, theta, r=1):
     return np.array([sin(theta) * cos(phi),
                      sin(theta) * sin(phi),
                      cos(theta)]) * r
-""" simple alias for set_phi_theta_r with default (unitless) r argument """
-set_phi_theta = lambda x, y: set_phi_theta_r(x, y)
+
+
+""" simple alias for set_phi_theta_r """
+set_phi_theta = set_phi_theta_r
 
 
 def get_phi_theta(vec):

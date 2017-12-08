@@ -45,7 +45,7 @@ def test_array_draw():
 
             pmt_signal = event.dl1.tel[tel_id].image[0]
             geom = deepcopy(event.inst.subarray.tel[tel_id].camera)
-            fl = event.inst.subarray.tel[tel_id].optics.effective_focal_length
+            fl = event.inst.subarray.tel[tel_id].optics.equivalent_focal_length
 
             # Transform the pixels positions into nominal coordinates
             camera_coord = CameraFrame(x=geom.pix_x, y=geom.pix_y,

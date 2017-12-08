@@ -33,13 +33,14 @@ environment (this is optional).
 
 The following command will set up a conda virtual environment, add the
 necessary package channels, and download ctapipe and its dependencies. The
-file *environment.yml* can be found in this repo.
+file *environment.yml* can be found in this repo. 
+Note this is *pre-alpha* software and is not yet stable enough for end-users (expect large API changes until the first stable 1.0 release).
 
 ::
 
   conda env create -n cta -f environment.yml
   source activate cta
-  conda install ctapipe
+  conda install -c cta-observatory ctapipe
 
 
 Developers should follow the development install instructions found in the

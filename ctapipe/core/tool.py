@@ -4,11 +4,11 @@ from abc import abstractmethod
 from traitlets import Unicode
 from traitlets.config import Application
 
-logging.basicConfig(level=logging.WARNING)
-
 from ctapipe import __version__ as version
 from .logging import ColoredFormatter
 from . import Provenance
+
+logging.basicConfig(level=logging.WARNING)
 
 
 class ToolConfigurationError(Exception):
@@ -113,9 +113,9 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = ('%(levelname)8s [%(name)s] '                           
+        self.log_format = ('%(levelname)8s [%(name)s] '
                            '(%(module)s/%(funcName)s): %(message)s')
-        self.log_level = 20  # default to INFO and above
+        self.log_level = logging.INFO
         self.is_setup = False
 
     def initialize(self, argv=None):
@@ -153,7 +153,7 @@ class Tool(Application):
         ----------
 
         argv: list(str)
-            command-line arguments, or None to get them 
+            command-line arguments, or None to get them
             from sys.argv automatically
         """
         try:
@@ -182,7 +182,7 @@ class Tool(Application):
                                          status='interrupted')
         finally:
             for activity in Provenance().finished_activities:
-                output_str = ' '.join([x['url'] for x in  activity.output])
+                output_str = ' '.join([x['url'] for x in activity.output])
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))

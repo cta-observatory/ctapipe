@@ -24,7 +24,8 @@ skipped and the target data level container is unchanged (for example
 performing the calibration in r1.py on data read into the R1 container will
 leave the container unchanged, as there is no data in the R0 container)
 
-See the CTA Data Level Models definition document for information about the
+See the `CTA High-Level Data Model Definitions SYS-QA/160517
+<https://jama.cta-observatory.org/perspective.req?projectId=6&docId=26528>`_ document (CTA internal) for information about the
 different data levels.
 
 Reference/API
