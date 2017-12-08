@@ -16,8 +16,10 @@ logger = logging.getLogger(__name__)
 try:
     import protozfitsreader
 except ImportError as err:
-    logger.fatal("the `protozfitsreader` python module is required to access MC data: {}"
-                 .format(err))
+    logger.fatal(
+        "the `protozfitsreader` python module is required: {}"
+        .format(err)
+    )
     raise err
 
 __all__ = [
