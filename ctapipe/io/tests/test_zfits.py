@@ -1,9 +1,9 @@
-from ctapipe.utils.datasets import get_datasets_path
+from ctapipe.utils.datasets import get_dataset
 from ctapipe.io.zfits import zfits_event_source
 import numpy as np
 
 def test_loop_over_events():
-    _url = get_datasets_path("sst-1m_5evts.fits.fz")
+    _url = get_dataset("sst-1m_5evts.fits.fz")
     inputfile_reader = zfits_event_source(url=_url, max_events= 5 )
     i=0
     for event in inputfile_reader:
