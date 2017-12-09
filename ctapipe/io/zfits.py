@@ -77,27 +77,14 @@ def zfits_event_source(
             data.inst.num_channels[tel_id] = file.event.num_gains
             data.inst.num_pixels[tel_id] = number_of_pixels(file)
 
-            data.r0.tel[tel_id] = ContainerFactory(expert_mode)()
-
-            data.r0.tel[tel_id].camera_event_number = file.event.eventNumber
-            data.r0.tel[tel_id].pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
-
-            seconds, nano_seconds = file.get_local_time()
-            data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
-
-            data.r0.tel[tel_id].event_type = file.get_event_type()
-            data.r0.tel[tel_id].eventType = file.get_eventType()
-
+            container = ContainerFactory(expert_mode)()
+            container = fill_container_somehow(
+                container, file, tel_id)
             if expert_mode:
-                data.r0.tel[tel_id].trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
-                data.r0.tel[tel_id].trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
-                data.r0.tel[tel_id].trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
+                container = fill_container_if_expert_mode(
+                    container, file, tel_id)
 
-            data.r0.tel[tel_id].num_samples = (
-                file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
-                file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
-            )
-            data.r0.tel[tel_id].adc_samples = file.get_adcs_samples(telescope_id=tel_id)
+            data.r0.tel[tel_id] = container
         yield data
 
     if max_events is not None and counter > max_events:
@@ -130,3 +117,30 @@ def ContainerFactory(expert_mode):
         return DigiCamCameraContainer
     else:
         return DigiCamExpertCameraContainer
+
+
+def fill_container_somehow(container, file, tel_id):
+
+    container.camera_event_number = file.event.eventNumber
+    container.pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
+
+    seconds, nano_seconds = file.get_local_time()
+    container.local_camera_clock = seconds * 1e9 + nano_seconds
+
+    container.event_type = file.get_event_type()
+    container.eventType = file.get_eventType()
+
+    container.num_samples = (
+        file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
+        file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
+    )
+    container.adc_samples = file.get_adcs_samples(telescope_id=tel_id)
+    return container
+
+
+def fill_container_if_expert_mode(container, file, tel_id):
+    ''' if expert_mode: '''
+    container.trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
+    container.trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
+    container.trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
+    return container
