@@ -58,6 +58,7 @@ def zfits_event_source(
 
     eventstream = file.move_to_next_event()
     for counter, (run_id, event_id) in enumerate(eventstream):
+        assert number_of_pixels(file) == 1296
         # define the main container and fill some metadata
         data = DataContainer()
         data.meta['zfits__input'] = url
@@ -71,20 +72,11 @@ def zfits_event_source(
             allowed_tels
         )
 
-        assert number_of_pixels(file) == 1296
-
         for tel_id in data.r0.tels_with_data:
             data.inst.num_channels[tel_id] = file.event.num_gains
             data.inst.num_pixels[tel_id] = number_of_pixels(file)
-
-            container = ContainerFactory(expert_mode)()
-            container = fill_container_somehow(
-                container, file, tel_id)
-            if expert_mode:
-                container = fill_container_if_expert_mode(
-                    container, file, tel_id)
-
-            data.r0.tel[tel_id] = container
+            data.r0.tel[tel_id] = make_telescope_camera_container(
+                file, tel_id, expert_mode)
         yield data
 
     if max_events is not None and counter > max_events:
@@ -112,14 +104,18 @@ def remove_forbidden_telescopes(tels_with_data, allowed_tels):
         return tels_with_data
 
 
-def ContainerFactory(expert_mode):
+def make_telescope_camera_container(file, tel_id, expert_mode):
     if not expert_mode:
-        return DigiCamCameraContainer
+        container = DigiCamCameraContainer()
+        container = fill_camera_container(container, file, tel_id)
     else:
-        return DigiCamExpertCameraContainer
+        container = DigiCamExpertCameraContainer()
+        container = fill_camera_container(container, file, tel_id)
+        container = fill_expert_contianer(container, file, tel_id)
+    return container
 
 
-def fill_container_somehow(container, file, tel_id):
+def fill_camera_container(container, file, tel_id):
 
     container.camera_event_number = file.event.eventNumber
 
@@ -138,7 +134,7 @@ def fill_container_somehow(container, file, tel_id):
     return container
 
 
-def fill_container_if_expert_mode(container, file, tel_id):
+def fill_expert_contianer(container, file, tel_id):
     container.trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
     container.trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
     container.trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
