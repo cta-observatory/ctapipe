@@ -75,7 +75,7 @@ def zfits_event_source(
             data.inst.num_channels[tel_id] = file.event.num_gains
             data.inst.num_pixels[tel_id] = number_of_pixels(file)
             if data.inst.num_pixels[tel_id] == 1296:
-                data.r0.tel[tel_id] = DigiCamCameraContainer() if not expert_mode else DigiCamExpertCameraContainer()
+                data.r0.tel[tel_id] = ContainerFactory(expert_mode)()
 
                 data.r0.tel[tel_id].camera_event_number = file.event.eventNumber
                 data.r0.tel[tel_id].pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
@@ -121,3 +121,9 @@ def remove_forbidden_telescopes(tels_with_data, allowed_tels):
         ]
     else:
         return tels_with_data
+
+def ContainerFactory(expert_mode):
+    if not expert_mode:
+        return DigiCamCameraContainer
+    else:
+        return DigiCamExpertCameraContainer
