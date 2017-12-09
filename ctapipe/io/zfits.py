@@ -57,8 +57,6 @@ def zfits_event_source(
                            .format(url))
 
     eventstream = file.move_to_next_event()
-
-    # loop over the events
     for counter, (run_id, event_id) in enumerate(eventstream):
         # define the main container and fill some metadata
         data = DataContainer()
@@ -66,15 +64,12 @@ def zfits_event_source(
         data.meta['zfits__max_events'] = max_events
         data.r0.run_id = run_id
         data.r0.event_id = event_id
-        data.r0.tels_with_data = [file.event.telescopeID, ]
         data.count = counter
 
-        # remove forbidden telescopes
-        if allowed_tels:
-            data.r0.tels_with_data = [
-                list(filter(lambda x: x in data.r0.tels_with_data, sublist))
-                for sublist in allowed_tels
-            ]
+        data.r0.tels_with_data = remove_forbidden_telescopes(
+            [file.event.telescopeID, ],
+            allowed_tels
+        )
 
         for tel_id in data.r0.tels_with_data:
             data.inst.num_channels[tel_id] = file.event.num_gains
@@ -116,3 +111,16 @@ def number_of_pixels(file):
             file.event.hiGain.waveforms.pixelsIndices
         )
     )
+
+
+def remove_forbidden_telescopes(tels_with_data, allowed_tels):
+    if allowed_tels:
+        return [
+            [
+                tel_id for tel_id in tels_with_data
+                if tel_id in sublist
+            ]
+            for sublist in allowed_tels
+        ]
+    else:
+        return tels_with_data
