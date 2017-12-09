@@ -122,11 +122,7 @@ def fill_camera_container(container, file, tel_id):
     container.eventType = file.get_eventType()
     container.adc_samples = file.get_adcs_samples(telescope_id=tel_id)
     container.pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
-
-    container.num_samples = (
-        file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
-        file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
-    )
+    container.num_samples = num_samples(file)
     return container
 
 
@@ -140,3 +136,10 @@ def fill_expert_contianer(container, file, tel_id):
 def camera_clock(file):
     seconds, nano_seconds = file.get_local_time()
     return seconds * 1e9 + nano_seconds
+
+
+def num_samples(file):
+    return (
+        file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
+        file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
+    )
