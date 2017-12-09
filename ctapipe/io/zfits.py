@@ -101,11 +101,6 @@ def zfits_event_source(
                     data.r0.tel[tel_id].trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
                     data.r0.tel[tel_id].trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
 
-
-            # elif data.inst.num_pixels ==  N :
-            #    data.dl0.tel[tel_id] = OtherCameraNameRawCameraContainer()
-            # if no specific OtherCameraNameRawCameraContainer() it satys by default a RawCameraContainer
-
             data.r0.tel[tel_id].num_samples = (
                 file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
                 file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
