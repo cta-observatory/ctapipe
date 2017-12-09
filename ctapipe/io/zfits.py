@@ -75,9 +75,6 @@ def zfits_event_source(
             data.inst.num_channels[tel_id] = file.event.num_gains
             data.inst.num_pixels[tel_id] = number_of_pixels(file)
             if data.inst.num_pixels[tel_id] == 1296:
-                # Note, I'll add in the data model of the zfits a camera identifier, just need some time
-                # to be released and to have some data containing this new field to test.
-                # In the future telescopeID will allow to know which camera it is
                 data.r0.tel[tel_id] = DigiCamCameraContainer() if not expert_mode else DigiCamExpertCameraContainer()
 
                 data.r0.tel[tel_id].camera_event_number = file.event.eventNumber
