@@ -116,12 +116,8 @@ def make_telescope_camera_container(file, tel_id, expert_mode):
 
 
 def fill_camera_container(container, file, tel_id):
-
     container.camera_event_number = file.event.eventNumber
-
-    seconds, nano_seconds = file.get_local_time()
-    container.local_camera_clock = seconds * 1e9 + nano_seconds
-
+    container.local_camera_clock = camera_clock(file)
     container.event_type = file.get_event_type()
     container.eventType = file.get_eventType()
     container.adc_samples = file.get_adcs_samples(telescope_id=tel_id)
@@ -139,3 +135,8 @@ def fill_expert_contianer(container, file, tel_id):
     container.trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
     container.trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
     return container
+
+
+def camera_clock(file):
+    seconds, nano_seconds = file.get_local_time()
+    return seconds * 1e9 + nano_seconds
