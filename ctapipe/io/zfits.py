@@ -56,12 +56,10 @@ def zfits_event_source(
         raise RuntimeError("zfits_event_source failed to open '{}'"
                            .format(url))
 
-    # intialise counter and event generator
-    counter = 0
     eventstream = file.move_to_next_event()
 
     # loop over the events
-    for run_id, event_id in eventstream:
+    for counter, (run_id, event_id) in enumerate(eventstream):
         # define the main container and fill some metadata
         data = DataContainer()
         data.meta['zfits__input'] = url
@@ -106,12 +104,7 @@ def zfits_event_source(
                 file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
             )
             data.r0.tel[tel_id].adc_samples = file.get_adcs_samples(telescope_id=tel_id)
-
-            # nchans = file.get_num_channels(tel_id)
-            # data.inst.num_channels[tel_id] = nchans
-
         yield data
-        counter += 1
 
     if max_events is not None and counter > max_events:
         return
