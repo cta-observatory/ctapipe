@@ -80,7 +80,7 @@ def zfits_event_source(
 
         for tel_id in data.r0.tels_with_data:
             data.inst.num_channels[tel_id] = file.event.num_gains
-            data.inst.num_pixels[tel_id] = file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
+            data.inst.num_pixels[tel_id] = number_of_pixels(file)
             if data.inst.num_pixels[tel_id] == 1296:
                 # Note, I'll add in the data model of the zfits a camera identifier, just need some time
                 # to be released and to have some data containing this new field to test.
@@ -120,3 +120,11 @@ def zfits_event_source(
 
     if max_events is not None and counter > max_events:
         return
+
+
+def number_of_pixels(file):
+    return len(
+        file._get_numpyfield(
+            file.event.hiGain.waveforms.pixelsIndices
+        )
+    )
