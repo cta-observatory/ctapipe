@@ -26,6 +26,7 @@ __all__ = [
     'zfits_event_source',
 ]
 
+
 def zfits_event_source(
     url,
     max_events=None,
@@ -73,8 +74,10 @@ def zfits_event_source(
 
         # remove forbidden telescopes
         if allowed_tels:
-            data.r0.tels_with_data = \
-                [list(filter(lambda x: x in data.r0.tels_with_data, sublist)) for sublist in allowed_tels]
+            data.r0.tels_with_data = [
+                list(filter(lambda x: x in data.r0.tels_with_data, sublist))
+                for sublist in allowed_tels
+            ]
 
         for tel_id in data.r0.tels_with_data :
             data.inst.num_channels[tel_id] = zfits.event.num_gains
