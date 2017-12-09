@@ -122,19 +122,19 @@ def ContainerFactory(expert_mode):
 def fill_container_somehow(container, file, tel_id):
 
     container.camera_event_number = file.event.eventNumber
-    container.pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
 
     seconds, nano_seconds = file.get_local_time()
     container.local_camera_clock = seconds * 1e9 + nano_seconds
 
     container.event_type = file.get_event_type()
     container.eventType = file.get_eventType()
+    container.adc_samples = file.get_adcs_samples(telescope_id=tel_id)
+    container.pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
 
     container.num_samples = (
         file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
         file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
     )
-    container.adc_samples = file.get_adcs_samples(telescope_id=tel_id)
     return container
 
 
