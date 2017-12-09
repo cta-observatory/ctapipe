@@ -71,25 +71,28 @@ def zfits_event_source(
             allowed_tels
         )
 
+
         for tel_id in data.r0.tels_with_data:
             data.inst.num_channels[tel_id] = file.event.num_gains
             data.inst.num_pixels[tel_id] = number_of_pixels(file)
-            if data.inst.num_pixels[tel_id] == 1296:
-                data.r0.tel[tel_id] = ContainerFactory(expert_mode)()
 
-                data.r0.tel[tel_id].camera_event_number = file.event.eventNumber
-                data.r0.tel[tel_id].pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
+            assert data.inst.num_pixels[tel_id] == 1296
 
-                seconds, nano_seconds = file.get_local_time()
-                data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
+            data.r0.tel[tel_id] = ContainerFactory(expert_mode)()
 
-                data.r0.tel[tel_id].event_type = file.get_event_type()
-                data.r0.tel[tel_id].eventType = file.get_eventType()
+            data.r0.tel[tel_id].camera_event_number = file.event.eventNumber
+            data.r0.tel[tel_id].pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
 
-                if expert_mode:
-                    data.r0.tel[tel_id].trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
-                    data.r0.tel[tel_id].trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
-                    data.r0.tel[tel_id].trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
+            seconds, nano_seconds = file.get_local_time()
+            data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
+
+            data.r0.tel[tel_id].event_type = file.get_event_type()
+            data.r0.tel[tel_id].eventType = file.get_eventType()
+
+            if expert_mode:
+                data.r0.tel[tel_id].trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
+                data.r0.tel[tel_id].trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
+                data.r0.tel[tel_id].trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
 
             data.r0.tel[tel_id].num_samples = (
                 file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
