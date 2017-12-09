@@ -28,11 +28,10 @@ __all__ = [
 
 
 def zfits_event_source(
-    url,
-    max_events=None,
-    allowed_tels=None,
-    expert_mode=False
-):
+        url,
+        max_events=None,
+        allowed_tels=None,
+        expert_mode=False):
     """A generator that streams data from an ZFITs data file
 
 
@@ -79,7 +78,7 @@ def zfits_event_source(
                 for sublist in allowed_tels
             ]
 
-        for tel_id in data.r0.tels_with_data :
+        for tel_id in data.r0.tels_with_data:
             data.inst.num_channels[tel_id] = zfits.event.num_gains
             data.inst.num_pixels[tel_id] = zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
             if data.inst.num_pixels[tel_id] == 1296:
@@ -91,11 +90,11 @@ def zfits_event_source(
                 data.r0.tel[tel_id].camera_event_number = zfits.event.eventNumber
                 data.r0.tel[tel_id].pixel_flags = zfits.get_pixel_flags(telescope_id=tel_id)
 
-                seconds,nano_seconds = zfits.get_local_time()
+                seconds, nano_seconds = zfits.get_local_time()
                 data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
 
-                data.r0.tel[tel_id].event_type =zfits.get_event_type()
-                data.r0.tel[tel_id].eventType =zfits.get_eventType()
+                data.r0.tel[tel_id].event_type = zfits.get_event_type()
+                data.r0.tel[tel_id].eventType = zfits.get_eventType()
 
                 if expert_mode:
                     data.r0.tel[tel_id].trigger_input_traces = zfits.get_trigger_input_traces(telescope_id=tel_id)
@@ -107,16 +106,17 @@ def zfits_event_source(
             #    data.dl0.tel[tel_id] = OtherCameraNameRawCameraContainer()
             # if no specific OtherCameraNameRawCameraContainer() it satys by default a RawCameraContainer
 
-            data.r0.tel[tel_id].num_samples = zfits._get_numpyfield(zfits.event.hiGain.waveforms.samples).shape[0] //\
-                                               zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
+            data.r0.tel[tel_id].num_samples = (
+                zfits._get_numpyfield(zfits.event.hiGain.waveforms.samples).shape[0] //
+                zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
+            )
             data.r0.tel[tel_id].adc_samples = zfits.get_adcs_samples(telescope_id=tel_id)
 
-            #nchans = zfits.get_num_channels(tel_id)
-            #data.inst.num_channels[tel_id] = nchans
+            # nchans = zfits.get_num_channels(tel_id)
+            # data.inst.num_channels[tel_id] = nchans
 
         yield data
         counter += 1
 
     if max_events is not None and counter > max_events:
         return
-
