@@ -71,12 +71,11 @@ def zfits_event_source(
             allowed_tels
         )
 
+        assert number_of_pixels(file) == 1296
 
         for tel_id in data.r0.tels_with_data:
             data.inst.num_channels[tel_id] = file.event.num_gains
             data.inst.num_pixels[tel_id] = number_of_pixels(file)
-
-            assert data.inst.num_pixels[tel_id] == 1296
 
             data.r0.tel[tel_id] = ContainerFactory(expert_mode)()
 
@@ -124,6 +123,7 @@ def remove_forbidden_telescopes(tels_with_data, allowed_tels):
         ]
     else:
         return tels_with_data
+
 
 def ContainerFactory(expert_mode):
     if not expert_mode:
