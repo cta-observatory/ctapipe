@@ -139,7 +139,6 @@ def fill_container_somehow(container, file, tel_id):
 
 
 def fill_container_if_expert_mode(container, file, tel_id):
-    ''' if expert_mode: '''
     container.trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
     container.trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
     container.trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
