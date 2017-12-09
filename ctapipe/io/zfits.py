@@ -51,14 +51,14 @@ def zfits_event_source(
 
     # load the zfits file
     try:
-        zfits = protozfitsreader.ZFile(url)
+        file = protozfitsreader.ZFile(url)
     except:
         raise RuntimeError("zfits_event_source failed to open '{}'"
                            .format(url))
 
     # intialise counter and event generator
     counter = 0
-    eventstream = zfits.move_to_next_event()
+    eventstream = file.move_to_next_event()
 
     # loop over the events
     for run_id, event_id in eventstream:
@@ -68,7 +68,7 @@ def zfits_event_source(
         data.meta['zfits__max_events'] = max_events
         data.r0.run_id = run_id
         data.r0.event_id = event_id
-        data.r0.tels_with_data = [zfits.event.telescopeID, ]
+        data.r0.tels_with_data = [file.event.telescopeID, ]
         data.count = counter
 
         # remove forbidden telescopes
@@ -79,27 +79,27 @@ def zfits_event_source(
             ]
 
         for tel_id in data.r0.tels_with_data:
-            data.inst.num_channels[tel_id] = zfits.event.num_gains
-            data.inst.num_pixels[tel_id] = zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
+            data.inst.num_channels[tel_id] = file.event.num_gains
+            data.inst.num_pixels[tel_id] = file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
             if data.inst.num_pixels[tel_id] == 1296:
                 # Note, I'll add in the data model of the zfits a camera identifier, just need some time
                 # to be released and to have some data containing this new field to test.
                 # In the future telescopeID will allow to know which camera it is
                 data.r0.tel[tel_id] = DigiCamCameraContainer() if not expert_mode else DigiCamExpertCameraContainer()
 
-                data.r0.tel[tel_id].camera_event_number = zfits.event.eventNumber
-                data.r0.tel[tel_id].pixel_flags = zfits.get_pixel_flags(telescope_id=tel_id)
+                data.r0.tel[tel_id].camera_event_number = file.event.eventNumber
+                data.r0.tel[tel_id].pixel_flags = file.get_pixel_flags(telescope_id=tel_id)
 
-                seconds, nano_seconds = zfits.get_local_time()
+                seconds, nano_seconds = file.get_local_time()
                 data.r0.tel[tel_id].local_camera_clock = seconds * 1e9 + nano_seconds
 
-                data.r0.tel[tel_id].event_type = zfits.get_event_type()
-                data.r0.tel[tel_id].eventType = zfits.get_eventType()
+                data.r0.tel[tel_id].event_type = file.get_event_type()
+                data.r0.tel[tel_id].eventType = file.get_eventType()
 
                 if expert_mode:
-                    data.r0.tel[tel_id].trigger_input_traces = zfits.get_trigger_input_traces(telescope_id=tel_id)
-                    data.r0.tel[tel_id].trigger_output_patch7 = zfits.get_trigger_output_patch7(telescope_id=tel_id)
-                    data.r0.tel[tel_id].trigger_output_patch19 = zfits.get_trigger_output_patch19(telescope_id=tel_id)
+                    data.r0.tel[tel_id].trigger_input_traces = file.get_trigger_input_traces(telescope_id=tel_id)
+                    data.r0.tel[tel_id].trigger_output_patch7 = file.get_trigger_output_patch7(telescope_id=tel_id)
+                    data.r0.tel[tel_id].trigger_output_patch19 = file.get_trigger_output_patch19(telescope_id=tel_id)
 
 
             # elif data.inst.num_pixels ==  N :
@@ -107,12 +107,12 @@ def zfits_event_source(
             # if no specific OtherCameraNameRawCameraContainer() it satys by default a RawCameraContainer
 
             data.r0.tel[tel_id].num_samples = (
-                zfits._get_numpyfield(zfits.event.hiGain.waveforms.samples).shape[0] //
-                zfits._get_numpyfield(zfits.event.hiGain.waveforms.pixelsIndices).shape[0]
+                file._get_numpyfield(file.event.hiGain.waveforms.samples).shape[0] //
+                file._get_numpyfield(file.event.hiGain.waveforms.pixelsIndices).shape[0]
             )
-            data.r0.tel[tel_id].adc_samples = zfits.get_adcs_samples(telescope_id=tel_id)
+            data.r0.tel[tel_id].adc_samples = file.get_adcs_samples(telescope_id=tel_id)
 
-            # nchans = zfits.get_num_channels(tel_id)
+            # nchans = file.get_num_channels(tel_id)
             # data.inst.num_channels[tel_id] = nchans
 
         yield data
