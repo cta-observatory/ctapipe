@@ -274,6 +274,10 @@ class HessioFileReader(EventFileReader):
         return deepcopy(event)
 
 
+# Import the unofficial EventFileReaders so they can be found by the factory
+import ctapipe.io.unofficial.eventfilereader
+
+
 class EventFileReaderFactory(Factory):
     """
     The `EventFileReader` `ctapipe.core.factory.Factory`. This
