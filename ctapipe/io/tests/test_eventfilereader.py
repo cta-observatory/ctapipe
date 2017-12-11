@@ -1,4 +1,4 @@
-from os.path import join, dirname
+from os.path import dirname
 from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
     EventFileReaderFactory, HessioFileReader
@@ -52,5 +52,5 @@ def test_event_file_reader_factory():
     factory.input_path = dataset
     cls = factory.get_class()
     file = cls(None, None)
-    num_events = file.num_events
-    assert(num_events == 9)
+    assert(file.origin == 'hessio')
+    assert(file.num_events == 9)
