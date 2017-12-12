@@ -23,7 +23,7 @@ def test_known_camera_names():
 
 def test_make_rectangular_camera_geometry():
     geom = CameraGeometry.make_rectangular()
-    assert(geom.pix_x.shape == geom.pix_y.shape)
+    assert geom.pix_x.shape == geom.pix_y.shape
 
 
 def test_load_hess_camera():
