@@ -66,4 +66,4 @@ def get_atmosphere_profile_functions(atmosphere_name="paranal",
 
         return thickness, altitude
 
-    return  alt_to_thickness, thickness_to_alt
+    return alt_to_thickness, thickness_to_alt
