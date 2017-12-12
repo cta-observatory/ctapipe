@@ -119,7 +119,7 @@ class CameraGeometry:
                 )
 
     def __getitem__(self, slice):
-        return CameraGeometry(cam_id=" ".join([self.cam_id," sliced"]),
+        return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
                               pix_id=self.pix_id[slice],
                               pix_x=self.pix_x[slice],
                               pix_y=self.pix_y[slice],
@@ -306,7 +306,6 @@ class CameraGeometry:
     def __str__(self):
         return self.cam_id
 
-
     @lazyproperty
     def neighbors(self):
         """" only calculate neighbors when needed or if not already
@@ -376,7 +375,6 @@ class CameraGeometry:
                              x**2, x*y, y**2,
                              x**3, x**2*y, x*y**2, y**3,
                              x**4, x**3*y, x**2*y**2, x*y**3, y**4])
-
 
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
@@ -543,6 +541,3 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
-
-
-
