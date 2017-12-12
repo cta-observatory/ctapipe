@@ -107,7 +107,6 @@ class OpticsDescription:
                                   role='dl0.tel.svc.optics')
         mask = table['tel_description'] == name
 
-
         if 'equivalent_focal_length' in table.colnames:
             flen = table['equivalent_focal_length'][mask].quantity[0]
         else:
@@ -128,9 +127,8 @@ class OpticsDescription:
 
     @classmethod
     def get_known_optics_names(cls, optics_table='optics'):
-        table = get_table_dataset(optics_table,'get_known_optics')
+        table = get_table_dataset(optics_table, 'get_known_optics')
         return np.array(table['tel_description'])
-
 
     @property
     def identifier(self):
