@@ -20,6 +20,9 @@ class Borg:
 
 
 class Config(Borg):
+    default = 'checs'
+    # default = 'checm'
+
     def __init__(self, camera_id=None):
         """
         Class for handling the camera specific information (such as pixel
@@ -78,11 +81,15 @@ class Config(Borg):
             )
 
             if not camera_id:
-                self.id = 'checs'
-                # self.id = 'checm'
+                self.id = self.default
 
         if camera_id:
             self.id = camera_id
+
+    @classmethod
+    def reset(cls):
+        config = Config(cls.default)
+        return config
 
     @property
     def id(self):

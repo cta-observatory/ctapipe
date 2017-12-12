@@ -6,6 +6,7 @@ from importlib.util import find_spec
 from copy import deepcopy
 from traitlets import Unicode, observe
 from ctapipe.io.eventfilereader import EventFileReader
+from ctapipe.utils import get_dataset
 
 
 def check_modules_installed(module_name_list):
@@ -24,7 +25,7 @@ if check_modules_installed(targetio_modules):
         name = 'TargetioFileReader'
         origin = 'targetio'
 
-        input_path = Unicode(None, allow_none=True,
+        input_path = Unicode(get_dataset("chec_r1.tio"), allow_none=True,
                              help='Path to the input file containing '
                                   'events.').tag(config=True)
 

@@ -120,12 +120,12 @@ class TargetioExtractor:
         # in the file's header)
         is_r1 = self.tio_reader.fR1
         if is_r1:
-            self.get_event = self.tio_reader.GetR1Event
+            self._get_event = self.tio_reader.GetR1Event
             self.samples = self.r1_samples[0]
         else:
             self.r0_samples = np.zeros((self.n_pix, self.n_samples),
                                        dtype=np.uint16)[None, ...]
-            self.get_event = self.tio_reader.GetR0Event
+            self._get_event = self.tio_reader.GetR0Event
             self.samples = self.r0_samples[0]
 
         self.data = None
@@ -144,7 +144,7 @@ class TargetioExtractor:
         with this new event's information.
         """
         self._event_index = val
-        self.get_event(self.event_index, self.samples, self.first_cell_ids)
+        self._get_event(self.event_index, self.samples, self.first_cell_ids)
         self.event_id = self.tio_reader.fCurrentEventID
         self.time_tack = self.tio_reader.fCurrentTimeTack
         self.time_sec = self.tio_reader.fCurrentTimeSec
