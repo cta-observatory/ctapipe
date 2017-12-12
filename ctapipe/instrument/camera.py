@@ -3,8 +3,6 @@
 Utilities for reading or working with Camera geometry files
 """
 import logging
-from collections import defaultdict
-
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -14,10 +12,8 @@ from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
-from ctapipe.core import Provenance
 
-
-__all__ = ['CameraGeometry',]
+__all__ = ['CameraGeometry']
 
 logger = logging.getLogger(__name__)
 
@@ -49,19 +45,19 @@ class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
     Cherenkov Camera that us useful for imaging algorithms and
     displays. It contains lists of pixel positions, areas, pixel
-    shapes, as well as a neighbor (adjacency) list and matrix for each pixel. 
-    In general the neighbor_matrix attribute should be used in any algorithm 
-    needing pixel neighbors, since it is much faster. See for example 
-    `ctapipe.image.tailcuts_clean` 
+    shapes, as well as a neighbor (adjacency) list and matrix for each pixel.
+    In general the neighbor_matrix attribute should be used in any algorithm
+    needing pixel neighbors, since it is much faster. See for example
+    `ctapipe.image.tailcuts_clean`
 
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
 
-    You can construct a CameraGeometry either by specifying all data, 
-    or using the `CameraGeometry.guess()` constructor, which takes metadata 
-    like the pixel positions and telescope focal length to look up the rest 
-    of the data. Note that this function is memoized, so calling it multiple 
+    You can construct a CameraGeometry either by specifying all data,
+    or using the `CameraGeometry.guess()` constructor, which takes metadata
+    like the pixel positions and telescope focal length to look up the rest
+    of the data. Note that this function is memoized, so calling it multiple
     times with the same inputs will give back the same object (for speed).
 
     Parameters
@@ -137,9 +133,9 @@ class CameraGeometry:
     @u.quantity_input
     def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
               apply_derotation=True):
-        """ 
+        """
         Construct a `CameraGeometry` by guessing the appropriate quantities
-        from a list of pixel positions and the focal length. 
+        from a list of pixel positions and the focal length.
         """
         # only construct a new one if it has never been constructed before,
         # to speed up access. Otherwise return the already constructed instance
@@ -196,13 +192,13 @@ class CameraGeometry:
     @classmethod
     def get_known_camera_names(cls):
         """
-        Returns a list of camera_ids that are registered in 
-        `ctapipe_resources`. These are all the camera-ids that can be 
+        Returns a list of camera_ids that are registered in
+        `ctapipe_resources`. These are all the camera-ids that can be
         instantiated by the `from_name` method
 
         Parameters
         ----------
-        array_id: str 
+        array_id: str
             which array to search (default CTA)
 
         Returns
@@ -263,7 +259,7 @@ class CameraGeometry:
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
-        Load a CameraGeometry from an `astropy.table.Table` instance or a 
+        Load a CameraGeometry from an `astropy.table.Table` instance or a
         file that is readable by `astropy.table.Table.read()`
 
         Parameters
@@ -272,11 +268,11 @@ class CameraGeometry:
             either input filename/url or a Table instance
 
         format: str
-            astropy.table format string (e.g. 'ascii.ecsv') in case the 
+            astropy.table format string (e.g. 'ascii.ecsv') in case the
             format cannot be determined from the file extension
 
         kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.read()`, depending on 
+            extra arguments passed to `astropy.table.read()`, depending on
             file type (e.g. format, hdu, path)
 
 
@@ -313,7 +309,7 @@ class CameraGeometry:
 
     @lazyproperty
     def neighbors(self):
-        """" only calculate neighbors when needed or if not already 
+        """" only calculate neighbors when needed or if not already
         calculated"""
 
         # return pre-calculated ones (e.g. those that were passed in during
@@ -534,8 +530,8 @@ def _guess_camera_type(npix, optical_foclen):
 
 
 def _neighbor_list_to_matrix(neighbors):
-    """ 
-    convert a neighbor adjacency list (list of list of neighbors) to a 2D 
+    """
+    convert a neighbor adjacency list (list of list of neighbors) to a 2D
     numpy array, which is much faster (and can simply be multiplied)
     """
 
