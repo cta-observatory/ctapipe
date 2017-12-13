@@ -111,6 +111,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
         for event_id in eventstream:
 
             if counter == 0:
+                # subarray info is only available when an event is loaded,
+                # so load it on the first event.
                 data.inst.subarray = _build_subarray_info(data, pyhessio)
 
             # Seek to requested event
