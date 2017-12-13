@@ -342,8 +342,8 @@ class DisplayIntegrator(Tool):
 
         self.extractor = ChargeExtractorFactory.produce(**kwargs)
 
-        self.r1 = CameraR1CalibratorFactory.produce(origin=self.reader.origin,
-                                                    **kwargs)
+        c = self.reader.r1_calibrator
+        self.r1 = CameraR1CalibratorFactory.produce(calibrator=c, **kwargs)
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 

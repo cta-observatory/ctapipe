@@ -138,15 +138,15 @@ class Factory(Component):
 
         # Copy factory traits to product
         c = self.__dict__['_trait_values']['config']
-        c[product.name] = deepcopy(c[self.get_factory_name()])
+        c[product.__name__] = deepcopy(c[self.get_factory_name()])
         items = self.__dict__['_trait_values'].items()
         for key, values in items:
             if key != 'config' and key != 'parent':
-                c[product.name][key] = values
-        keys = list(c[product.name].keys())
+                c[product.__name__][key] = values
+        keys = list(c[product.__name__].keys())
         for key in keys:
             if key not in product.class_trait_names():
-                del c[product.name][key]
+                del c[product.__name__][key]
         return product
 
     @classmethod

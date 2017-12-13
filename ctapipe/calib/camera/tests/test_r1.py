@@ -35,7 +35,8 @@ def test_check_r0_exists():
 
 
 def test_factory():
-    factory = CameraR1CalibratorFactory(None, None)
+    factory = CameraR1CalibratorFactory(None, None,
+                                        calibrator='HessioR1Calibrator')
     cls = factory.get_class()
     calibrator = cls(None, None)
 
@@ -58,7 +59,8 @@ def test_targetio_calibrator():
     reader_r0 = reader_class(None, None, input_path=url_r0)
     reader_r1 = reader_class(None, None, input_path=url_r1)
 
-    r1_factory = CameraR1CalibratorFactory(None, None, origin=reader_r0.origin)
+    r1_factory = CameraR1CalibratorFactory(None, None,
+                                           calibrator=reader_r0.r1_calibrator)
     r1_class = r1_factory.get_class()
     r1 = r1_class(None, None)
 

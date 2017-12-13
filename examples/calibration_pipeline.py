@@ -163,7 +163,8 @@ class DisplayDL1Calib(Tool):
 
         self.reader = EventFileReaderFactory.produce(**kwargs)
 
-        self.calibrator = CameraCalibrator(origin=self.reader.origin, **kwargs)
+        c = self.reader.r1_calibrator
+        self.calibrator = CameraCalibrator(r1=c, **kwargs)
 
         self.plotter = ImagePlotter(**kwargs)
 

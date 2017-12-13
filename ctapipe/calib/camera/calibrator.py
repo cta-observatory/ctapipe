@@ -44,7 +44,7 @@ class CameraCalibrator(Component):
     """
     name = 'CameraCalibrator'
 
-    def __init__(self, config, tool, origin='hessio', **kwargs):
+    def __init__(self, config, tool, r1="NullR1Calibrator", **kwargs):
         """
         Parameters
         ----------
@@ -56,30 +56,23 @@ class CameraCalibrator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        origin : str
-            The origin of the event file (default: hessio) to choose the 
-            correct `CameraR1Calibrator`. Usually given from 
-            `EventFileReader.origin`.
+        r1 : str
+            The `CameraR1Calibrator` to use for the R1 calibration. Usually
+            given from `EventFileReader.r1_calibrator`.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
+        kwargs = dict(config=self.config, tool=self)
 
-        extractor_factory = ChargeExtractorFactory(config=config, tool=tool)
-        extractor_class = extractor_factory.get_class()
-        extractor = extractor_class(config=config, tool=tool)
+        extractor = ChargeExtractorFactory.produce(**kwargs)
 
-        cleaner_factory = WaveformCleanerFactory(config=config, tool=tool)
-        cleaner_class = cleaner_factory.get_class()
-        cleaner = cleaner_class(config=config, tool=tool)
+        cleaner = WaveformCleanerFactory.produce(**kwargs)
 
-        r1_factory = CameraR1CalibratorFactory(config=config, tool=tool,
-                                               origin=origin)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(config=config, tool=tool)
+        self.r1 = CameraR1CalibratorFactory.produce(**kwargs, calibrator=r1)
 
-        self.dl0 = CameraDL0Reducer(config=config, tool=tool)
+        self.dl0 = CameraDL0Reducer(**kwargs)
 
-        self.dl1 = CameraDL1Calibrator(config=config, tool=tool,
+        self.dl1 = CameraDL1Calibrator(**kwargs,
                                        extractor=extractor, cleaner=cleaner)
 
     def calibrate(self, event):
