@@ -12,9 +12,15 @@ from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
 
 class EventFileReader(Component):
     """
-    Parent class for EventFileReaders of different sources. A new
-    EventFileReader should be created for each type of event file read into
-    ctapipe, e.g. simtelarray files are read by the `HessioFileReader`.
+    Parent class for EventFileReaders of different sources.
+
+    A new EventFileReader should be created for each type of event file read
+    into ctapipe, e.g. simtelarray files are read by the `HessioFileReader`.
+
+    EventFileReader provides a common high-level interface for accessing data
+    from different data sources. Creating an EventFileReader for a new data
+    source ensures that data can be accessed in a common way, irregardless of
+    the data source.
 
     Attributes
     ----------
@@ -33,7 +39,6 @@ class EventFileReader(Component):
         Directory to save outputs for this file
 
     """
-    name = 'EventFileReader'
 
     input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
                          help='Path to the input file containing '
@@ -61,10 +66,6 @@ class EventFileReader(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-
-        if self.origin is None:
-            raise ValueError("Subclass of EventFileReader should specify "
-                             "an origin")
 
         self._num_events = None
 
@@ -107,11 +108,21 @@ class EventFileReader(Component):
 
     @property
     @abstractmethod
-    def origin(self):
+    def r1_calibrator(self):
         """
         Abstract property to be defined in child class.
 
-        Get the name for the origin of the file. E.g. 'hessio'.
+        Name of the `ctapipe.calib.camera.r1.CameraR1Calibrator` to use for
+        this `EventFileReader`.
+
+        If the event format has different
+        `ctapipe.calib.camera.r1.CameraR1Calibrator` it should use, depending
+        on which camera's data is stored in the file, then this should be a
+        method to define the correct CameraR1Calibrator to use.
+
+        If the data source is from data level R1 or above,
+        return None or 'NullR1Calibrator'.
+
 
         Returns
         -------
@@ -196,8 +207,10 @@ class EventFileReader(Component):
 
 
 class HessioFileReader(EventFileReader):
-    name = 'HessioFileReader'
-    origin = 'hessio'
+
+    @property
+    def r1_calibrator(self):
+        return 'HessioR1Calibrator'
 
     @staticmethod
     def check_file_compatibility(file_path):
@@ -282,10 +295,18 @@ class EventFileReaderFactory(Factory):
     """
     The `EventFileReader` `ctapipe.core.factory.Factory`. This
     `ctapipe.core.factory.Factory` allows the correct
-    `EventFileReader` to be obtained for the event file being read. This
-    factory tests each EventFileReader by calling
+    `EventFileReader` to be obtained for the event file being read.
+
+    This factory tests each EventFileReader by calling
     `EventFileReader.check_file_compatibility` to see which `EventFileReader`
     is compatible with the file.
+
+    Using `EventFileReaderFactory` in a script allows it to be compatible with
+    any data source that has an `EventFileReader` defined.
+
+    To use within a `ctapipe.core.tool.Tool`:
+
+    >>> reader = EventFileReaderFactory.produce(config=self.config, tool=self)
 
     Parameters
     ----------
@@ -306,8 +327,6 @@ class EventFileReaderFactory(Factory):
         use. If left blank, `EventFileReader.check_file_compatibility` will be
         used to find a compatible reader.
     """
-
-    name = "EventFileReaderFactory"
     description = "Obtain EventFileReader based on file type"
 
     subclasses = Factory.child_subclasses(EventFileReader)

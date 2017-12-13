@@ -13,8 +13,6 @@ if check_modules_installed(targetio_modules):
     from ctapipe.io.unofficial.targetio.targetio import TargetioExtractor
 
     class TargetioFileReader(EventFileReader):
-        name = 'TargetioFileReader'
-        origin = 'targetio'
 
         input_path = Unicode(get_dataset("chec_r1.tio"), allow_none=True,
                              help='Path to the input file containing '
@@ -43,6 +41,10 @@ if check_modules_installed(targetio_modules):
             # event containers from the external libraries
             self.extractor = TargetioExtractor(self.input_path,
                                                self.max_events)
+
+        @property
+        def r1_calibrator(self):
+            return 'TargetioR1Calibrator'
 
         @observe('input_path')
         def on_input_path_changed(self, change):
