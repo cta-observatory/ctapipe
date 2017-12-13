@@ -63,9 +63,7 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
 
-        reader_factory = EventFileReaderFactory(None, self)
-        reader_class = reader_factory.get_class()
-        self.reader = reader_class(None, self)
+        self.reader = EventFileReaderFactory.produce(config=None, tool=self)
 
         self.calibrator = CameraCalibrator(config=None, tool=self,
                                            origin=self.reader.origin)
