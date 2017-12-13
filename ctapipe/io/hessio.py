@@ -110,6 +110,9 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
 
         for event_id in eventstream:
 
+            if counter == 0:
+                data.inst.subarray = _build_subarray_info(data, pyhessio)
+
             # Seek to requested event
             if requested_event is not None:
                 current = counter
@@ -169,8 +172,6 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             data.dl0.tel.clear()
             data.dl1.tel.clear()
             data.mc.tel.clear()  # clear the previous telescopes
-
-            data.inst.subarray = _build_subarray_info(data, pyhessio)
 
             for tel_id in data.r0.tels_with_data:
 
