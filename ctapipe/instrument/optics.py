@@ -44,11 +44,17 @@ class OpticsDescription:
     equivalent_focal_length: Quantity(float)
         effective focal-length of telescope, independent of which type of
         optics (as in the Monte-Carlo)
+    mirror_area: u.Quantity('m')
+        total reflective surface area of the optical system
+    num_mirror_tiles: int
+        number of mirror facets
 
     Raises
     ------
     ValueError:
         if tel_type or mirror_type are not one of the accepted values
+    TypeError, astropy.units.UnitsError:
+        if the units of one of the inputs are missing or incompatible
     """
 
     @u.quantity_input
