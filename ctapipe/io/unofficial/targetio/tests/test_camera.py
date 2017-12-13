@@ -4,11 +4,6 @@ pytest.importorskip("target_calib")
 from ctapipe.io.unofficial.targetio import camera
 
 
-def test_default_config():
-    config = camera.Config()
-    assert(config.id == 'checs')
-
-
 def test_checm():
     config = camera.Config('checm')
     assert(config.id == 'checm')
