@@ -16,7 +16,6 @@ Todo:
 
 from .optics import OpticsDescription
 from .camera import CameraGeometry
-from ..utils import get_dataset
 
 
 class TelescopeDescription:
