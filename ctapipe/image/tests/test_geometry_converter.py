@@ -4,8 +4,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.image.geometry_converter import convert_geometry_1d_to_2d, \
-    convert_geometry_back
+from ctapipe.image.geometry_converter import (convert_geometry_hex1d_to_rect2d,
+                                              convert_geometry_rect2d_back_to_hexe1d,
+                                              astri_to_2d_array, array_2d_to_astri,
+                                              chec_to_2d_array, array_2d_to_chec)
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
@@ -24,9 +26,6 @@ def test_convert_geometry(cam_id, rot):
 
     geom = CameraGeometry.from_name(cam_id)
 
-    if geom.pix_type == 'rectangular':
-        return  # skip non-hexagonal cameras, since they don't need conversion
-
     model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
                                      psi="25d")
 
@@ -36,12 +35,30 @@ def test_convert_geometry(cam_id, rot):
 
     hillas_0 = hillas_parameters(geom, image)
 
-    geom2d, image2d = convert_geometry_1d_to_2d(geom, image,
+    if geom.pix_type == 'hexagonal':
+        convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
+        convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
+
+        geom2d, image2d = convert_geometry_1d_to_2d(geom, image,
+                                                    geom.cam_id + str(rot),
+                                                    add_rot=rot)
+        geom1d, image1d = convert_geometry_back(geom2d, image2d,
                                                 geom.cam_id + str(rot),
                                                 add_rot=rot)
-    geom1d, image1d = convert_geometry_back(geom2d, image2d,
-                                            geom.cam_id + str(rot),
-                                            add_rot=rot)
+
+    else:
+        if geom.cam_id == "ASTRICam":
+            convert_geometry_1d_to_2d = astri_to_2d_array
+            convert_geometry_back = array_2d_to_astri
+        elif geom.cam_id == "CHEC":
+            convert_geometry_1d_to_2d = chec_to_2d_array
+            convert_geometry_back = array_2d_to_chec
+        else:
+            print("camera {geom.cam_id} not implemented")
+            return
+
+        image2d = convert_geometry_1d_to_2d(image)
+        image1d = convert_geometry_back(image2d)
 
     hillas_1 = hillas_parameters(geom, image1d)
 
@@ -52,6 +69,42 @@ def test_convert_geometry(cam_id, rot):
 
     assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
     # TODO: test other parameters
+
+
+@pytest.mark.parametrize("rot", [3, ])
+@pytest.mark.parametrize("cam_id", cam_ids)
+def test_convert_geometry_mock(cam_id, rot):
+    """here we use a different key for the back conversion to trigger the mock conversion
+    """
+
+    geom = CameraGeometry.from_name(cam_id)
+
+    model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
+                                     psi="25d")
+
+    _, image, _ = make_toymodel_shower_image(geom, model.pdf,
+                                             intensity=50,
+                                             nsb_level_pe=100)
+
+    hillas_0 = hillas_parameters(geom, image)
+
+    if geom.pix_type == 'hexagonal':
+        convert_geometry_1d_to_2d = convert_geometry_hex1d_to_rect2d
+        convert_geometry_back = convert_geometry_rect2d_back_to_hexe1d
+
+        geom2d, image2d = convert_geometry_1d_to_2d(geom, image, key=None,
+                                                    add_rot=rot)
+        geom1d, image1d = convert_geometry_back(geom2d, image2d,
+                                                "_".join([geom.cam_id,
+                                                          str(rot), "mock"]),
+                                                add_rot=rot)
+    else:
+        # originally rectangular geometries don't need a buffer and therefore no mock
+        # conversion
+        return
+
+    hillas_1 = hillas_parameters(geom, image1d)
+    assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
 
 
 # def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
