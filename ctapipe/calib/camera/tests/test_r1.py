@@ -1,6 +1,9 @@
-from numpy.testing import assert_almost_equal
+import pytest
+from numpy.testing import assert_almost_equal, assert_array_equal, \
+    assert_array_almost_equal
+from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset, check_modules_installed
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory, \
     HessioR1Calibrator
 
@@ -41,3 +44,33 @@ def test_factory():
     calibrator.calibrate(event)
     r1 = event.r1.tel[telid].pe_samples
     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
+
+
+@pytest.mark.skipif(not check_modules_installed(["target_calib"]),
+                    reason="Requires targetio specific modules")
+def test_targetio_calibrator():
+    url_r0 = get_dataset("targetmodule_r0.tio")
+    url_r1 = get_dataset("targetmodule_r1.tio")
+    pedpath = get_dataset("targetmodule_ped.tcal")
+
+    reader_factory = EventFileReaderFactory(None, None, input_path=url_r0)
+    reader_class = reader_factory.get_class()
+    reader_r0 = reader_class(None, None, input_path=url_r0)
+    reader_r1 = reader_class(None, None, input_path=url_r1)
+
+    r1_factory = CameraR1CalibratorFactory(None, None, origin=reader_r0.origin)
+    r1_class = r1_factory.get_class()
+    r1 = r1_class(None, None)
+
+    event_r0 = reader_r0.get_event(0)
+    event_r1 = reader_r1.get_event(0)
+
+    r1.calibrate(event_r0)
+    assert_array_equal(event_r0.r0.tel[0].adc_samples,
+                       event_r0.r1.tel[0].pe_samples)
+
+    r1 = r1_class(None, None, pedestal_path=pedpath)
+    r1.calibrate(event_r0)
+    assert_array_almost_equal(event_r1.r1.tel[0].pe_samples,
+                              event_r1.r1.tel[0].pe_samples)
+
