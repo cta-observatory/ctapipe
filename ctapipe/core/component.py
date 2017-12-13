@@ -71,4 +71,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         if self.parent:
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
-            self.log = getLogger(self.__class__.__name__)
+            self.log = getLogger(
+                self.__class__.__module__ + '.' + self.__class__.__name__
+            )
