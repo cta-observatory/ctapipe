@@ -323,7 +323,7 @@ class EventFileReaderFactory(Factory):
     Attributes
     ----------
     reader : traitlets.CaselessStrEnum
-        A string with the `EventFileReader.name` of the reader you want to
+        A string with the `EventFileReader.__name__` of the reader you want to
         use. If left blank, `EventFileReader.check_file_compatibility` will be
         used to find a compatible reader.
     """
@@ -347,7 +347,7 @@ class EventFileReaderFactory(Factory):
                           'the file').tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return EventFileReaderFactory.__name__
 
     def get_product_name(self):
         if self.reader is not None:

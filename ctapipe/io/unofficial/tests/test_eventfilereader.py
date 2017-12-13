@@ -9,7 +9,6 @@ def test_targetiofilereader():
     url = get_dataset("chec_r1.tio")
     assert(uefr.TargetioFileReader.check_file_compatibility(url))
     reader = uefr.TargetioFileReader(None, None, input_path=url)
-    assert(reader.origin == 'targetio')
     assert(reader.num_events == 5)
     reader.max_events = 3
     assert(reader.num_events == 3)

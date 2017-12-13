@@ -365,8 +365,6 @@ class CameraR1CalibratorFactory(Factory):
         conversion coefficients. How/if this file is used is defined by the
         `CameraR1Calibrator` specific to the camera.
     """
-
-    name = "CameraR1CalibratorFactory"
     description = "Obtain CameraR1Calibrator based on file origin"
 
     subclasses = Factory.child_subclasses(CameraR1Calibrator)
@@ -388,7 +386,7 @@ class CameraR1CalibratorFactory(Factory):
                       help='Path to a flat field file').tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return CameraR1CalibratorFactory.__name__
 
     def get_product_name(self):
         return self.calibrator

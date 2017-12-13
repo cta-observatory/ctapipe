@@ -20,8 +20,14 @@ if check_modules_installed(targetio_modules):
 
         def __init__(self, config, tool, **kwargs):
             """
-            Class to handle targetio input files. Enables obtaining the
-            "source" generator.
+            EventFileReader for the targetio unofficial data format, the data
+            format used by cameras containing TARGET modules, such as CHEC for
+            the GCT SST. It provides a template for how to create an
+            EventFileReader for other unofficial data formats.
+
+            External Software Installation:
+            Refer to
+            https://forge.in2p3.fr/projects/gct/wiki/Installing_CHEC_Software
 
             Parameters
             ----------
