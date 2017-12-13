@@ -62,9 +62,8 @@ def test_event_file_reader_factory_hessio():
                     reason="Requires targetio specific modules")
 def test_event_file_reader_factory_targetio():
     dataset = get_dataset("chec_r1.tio")
-    factory = EventFileReaderFactory(None, None)
-    factory.input_path = dataset
+    factory = EventFileReaderFactory(None, None, input_path=dataset)
     cls = factory.get_class()
-    file = cls(None, None)
+    file = cls(None, None, input_path=dataset)
     assert(file.origin == 'targetio')
     assert(file.num_events == 5)

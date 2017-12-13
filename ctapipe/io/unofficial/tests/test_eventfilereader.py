@@ -1,15 +1,9 @@
 import pytest
 from ctapipe.io.unofficial import eventfilereader as uefr
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset, check_modules_installed
 
 
-def test_check_modules_installed():
-    assert(not uefr.check_modules_installed(["unlikely_module_name"]))
-    assert(not uefr.check_modules_installed(["unlikely_module_name", 'numpy']))
-    assert(uefr.check_modules_installed(["numpy"]))
-
-
-@pytest.mark.skipif(not uefr.check_modules_installed(uefr.targetio_modules),
+@pytest.mark.skipif(not check_modules_installed(uefr.targetio_modules),
                     reason="Requires targetio specific modules")
 def test_targetiofilereader():
     url = get_dataset("chec_r1.tio")

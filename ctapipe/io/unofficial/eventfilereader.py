@@ -2,19 +2,10 @@
 Location for unofficial-data-format EventFileReaders
 """
 
-from importlib.util import find_spec
 from copy import deepcopy
 from traitlets import Unicode, observe
 from ctapipe.io.eventfilereader import EventFileReader
-from ctapipe.utils import get_dataset
-
-
-def check_modules_installed(module_name_list):
-    for module_name in module_name_list:
-        found = find_spec(module_name)
-        if found is None:
-            return False
-    return True
+from ctapipe.utils import get_dataset, check_modules_installed
 
 
 targetio_modules = ["target_driver", "target_io", "target_calib"]
