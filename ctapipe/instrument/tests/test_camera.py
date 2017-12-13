@@ -1,8 +1,10 @@
 import numpy as np
 from astropy import units as u
 from ctapipe.instrument import CameraGeometry
-from ctapipe.instrument.camera import _find_neighbor_pixels, \
-    _get_min_pixel_seperation
+from ctapipe.instrument.camera import (
+    _find_neighbor_pixels,
+    _get_min_pixel_seperation,
+)
 import pytest
 
 cam_ids = CameraGeometry.get_known_camera_names()
@@ -21,7 +23,7 @@ def test_known_camera_names():
 
 def test_make_rectangular_camera_geometry():
     geom = CameraGeometry.make_rectangular()
-    assert(geom.pix_x.shape == geom.pix_y.shape)
+    assert geom.pix_x.shape == geom.pix_y.shape
 
 
 def test_load_hess_camera():
@@ -39,13 +41,13 @@ def test_guess_camera():
 def test_get_min_pixel_seperation():
     x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
     pixsep = _get_min_pixel_seperation(x.ravel(), y.ravel())
-    assert(pixsep == 2.5)
+    assert pixsep == 2.5
 
 
 def test_find_neighbor_pixels():
     x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
     neigh = _find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
-    assert(set(neigh[11]) == set([16, 6, 10, 12]))
+    assert set(neigh[11]) == set([16, 6, 10, 12])
 
 
 @pytest.mark.parametrize("cam_id", cam_ids)
@@ -132,6 +134,3 @@ def test_slicing():
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
-
-if __name__ == '__main__':
-    pass
