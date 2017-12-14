@@ -37,7 +37,6 @@ class Factory(Component):
         from traitlets import (Integer, Float, List, Dict, Unicode)
 
         class MyFactory(Factory):
-            name = "myfactory"
             description = "do some things and stuff"
 
             subclasses = Factory.child_subclasses(ParentClass)
@@ -53,7 +52,7 @@ class Factory(Component):
             product_trait2 = Int(7, help="").tag(config=True)
 
             def get_factory_name(self):
-                return self.name
+                return self.__class__.__name__
 
             def get_product_name(self):
                 return self.discriminator

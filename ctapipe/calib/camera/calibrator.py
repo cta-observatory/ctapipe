@@ -16,14 +16,14 @@ class CameraCalibrator(Component):
     """
     Conveniance calibrator to handle the full camera calibration.
 
-    This calibrator will apply the calibrations found in r1.py, dl0.py and 
+    This calibrator will apply the calibrations found in r1.py, dl0.py and
     dl1.py.
-    
-    The following traitlet alias configuration is suggestion for configuring 
+
+    The following traitlet alias configuration is suggestion for configuring
     the calibration inside a `ctapipe.core.Tool`:
-    
+
     .. code-block:: python
-    
+
         aliases = Dict(dict(
         ped='CameraR1CalibratorFactory.pedestal_path',
         tf='CameraR1CalibratorFactory.tf_path',
@@ -40,10 +40,8 @@ class CameraCalibrator(Component):
         cleaner='WaveformCleanerFactory.cleaner',
         cleaner_t0='WaveformCleanerFactory.t0',
         ))
-    
-    """
-    name = 'CameraCalibrator'
 
+    """
     def __init__(self, config, tool, r1="NullR1Calibrator", **kwargs):
         """
         Parameters

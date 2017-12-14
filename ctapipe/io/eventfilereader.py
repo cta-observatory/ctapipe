@@ -347,7 +347,7 @@ class EventFileReaderFactory(Factory):
                           'the file').tag(config=True)
 
     def get_factory_name(self):
-        return EventFileReaderFactory.__name__
+        return self.__class__.__name__
 
     def get_product_name(self):
         if self.reader is not None:
