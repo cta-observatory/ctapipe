@@ -10,6 +10,16 @@ import pytest
 cam_ids = CameraGeometry.get_known_camera_names()
 
 
+def test_construct():
+    x = np.linspace(-10, 10, 100)
+    y = np.linspace(-10, 10, 100)
+    geom = CameraGeometry(cam_id=0, pix_id=np.arange(100),
+                          pix_x=x*u.m, pix_y=y*u.m ,
+                          pix_area=x*u.m**2,
+                          pix_type='rectangular',
+                          pix_rotation = "10d",
+                          cam_rotation = "12d")
+
 def test_known_camera_names():
     cams = CameraGeometry.get_known_camera_names()
     assert len(cams) > 4

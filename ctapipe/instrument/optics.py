@@ -5,6 +5,7 @@ Classes and functions related to telescope Optics
 import logging
 from ..utils import get_table_dataset
 import numpy as np
+import astropy.units as u
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +44,29 @@ class OpticsDescription:
     equivalent_focal_length: Quantity(float)
         effective focal-length of telescope, independent of which type of
         optics (as in the Monte-Carlo)
+    mirror_area: u.Quantity('m')
+        total reflective surface area of the optical system
+    num_mirror_tiles: int
+        number of mirror facets
+
+    Raises
+    ------
+    ValueError:
+        if tel_type or mirror_type are not one of the accepted values
+    TypeError, astropy.units.UnitsError:
+        if the units of one of the inputs are missing or incompatible
     """
 
+    @u.quantity_input
     def __init__(self, mirror_type, tel_type,
-                 tel_subtype, equivalent_focal_length,
-                 mirror_area=None, num_mirror_tiles=None):
+                 tel_subtype, equivalent_focal_length : u.m,
+                 mirror_area : u.m**2=None, num_mirror_tiles=None):
 
         if tel_type not in ['LST', 'MST', 'SST']:
             raise ValueError("Unknown tel_type %s", tel_type)
+
+        if mirror_type not in ['SC', 'DC']:
+            raise ValueError("Unknown mirror_type: %s", mirror_type)
 
         self.mirror_type = mirror_type
         self.tel_type = tel_type
@@ -60,7 +76,8 @@ class OpticsDescription:
         self.num_mirror_tiles = num_mirror_tiles
 
     @classmethod
-    def guess(cls, equivalent_focal_length):
+    @u.quantity_input
+    def guess(cls, equivalent_focal_length : u.m):
         """
         Construct an OpticsDescription by guessing from metadata (e.g. when
         using a simulation where the exact type is not known)
@@ -70,15 +87,14 @@ class OpticsDescription:
         equivalent_focal_length: Quantity('m')
             effective optical focal-length in meters
 
+        Raises
+        ------
+        KeyError:
+            on unknown focal length
         """
 
         tel_type, tel_subtype, mir_type = \
             telescope_info_from_metadata(equivalent_focal_length)
-
-        if tel_type == "unknown":
-            logger.warning(("No OpticsDescription found for focal-length "
-                            "%s, setting to 'unknown'"),
-                           equivalent_focal_length)
 
         return cls(mirror_type=mir_type,
                    tel_type=tel_type,
