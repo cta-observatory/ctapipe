@@ -31,7 +31,6 @@ class EventFileReader(Component):
         Directory to save outputs for this file
 
     """
-    name = 'EventFileReader'
     origin = None
 
     input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
@@ -271,7 +270,6 @@ class EventFileReader(Component):
 
 
 class HessioFileReader(EventFileReader):
-    name = 'HessioFileReader'
     origin = 'hessio'
 
     @staticmethod
@@ -379,8 +377,6 @@ class EventFileReaderFactory(Factory):
         use. If left blank, `EventFileReader.check_file_compatibility` will be
         used to find a compatible reader.
     """
-
-    name = "EventFileReaderFactory"
     description = "Obtain EventFileReader based on file type"
 
     subclasses = Factory.child_subclasses(EventFileReader)
@@ -401,7 +397,7 @@ class EventFileReaderFactory(Factory):
                           'the file').tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return self.__class__.__name__
 
     def get_product_name(self):
         if self.reader is not None:
