@@ -548,7 +548,8 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         raise HillasParameterizationError("no signal to parametrize")
 
     M = geom.pixel_moment_matrix
-    moms = (M @ image)/sumsig
+    # Use a dot matrix approach that still supports masked arrays (@ does not)
+    moms = np.ma.dot(M, image)/sumsig
 
     (xm, ym , x2m, xym, y2m, x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m,
      y4m) = moms
