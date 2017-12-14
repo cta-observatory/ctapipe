@@ -151,26 +151,6 @@ class CameraDL1Calibrator(Component):
                 self._dl0_empty_warn = True
             return False
 
-    @staticmethod
-    def get_geometry(event, telid):
-        """
-        Obtain the geometry for this telescope.
-
-        Parameters
-        ----------
-        event : container
-            A `ctapipe` event container
-        telid : int
-            The telescope id.
-            The neighbours are calculated once per telescope.
-
-        Returns
-        -------
-        `CameraGeometry`
-        """
-        return CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                    event.inst.optical_foclen[telid])
-
     def get_correction(self, event, telid):
         """
         Obtain the integration correction for this telescope.
@@ -190,8 +170,8 @@ class CameraDL1Calibrator(Component):
         try:
             shift = self.extractor.window_shift
             width = self.extractor.window_width
-            n_chan = event.inst.num_channels[telid]
             shape = event.mc.tel[telid].reference_pulse_shape
+            n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta['refstep']
             time_slice = event.mc.tel[telid].time_slice
             correction = integration_correction(n_chan, shape, step,
@@ -231,7 +211,7 @@ class CameraDL1Calibrator(Component):
                     # Extract charge
                     if self.extractor.requires_neighbours():
                         e = self.extractor
-                        g = self.get_geometry(event, telid)
+                        g = event.inst.subarray.tel[telid].camera
                         e.neighbours = g.neighbor_matrix_where
                     extract = self.extractor.extract_charge
                     charge, peakpos, window = extract(cleaned)
