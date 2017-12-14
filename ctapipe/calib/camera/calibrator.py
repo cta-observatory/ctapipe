@@ -16,14 +16,14 @@ class CameraCalibrator(Component):
     """
     Conveniance calibrator to handle the full camera calibration.
 
-    This calibrator will apply the calibrations found in r1.py, dl0.py and 
+    This calibrator will apply the calibrations found in r1.py, dl0.py and
     dl1.py.
-    
-    The following traitlet alias configuration is suggestion for configuring 
+
+    The following traitlet alias configuration is suggestion for configuring
     the calibration inside a `ctapipe.core.Tool`:
-    
+
     .. code-block:: python
-    
+
         aliases = Dict(dict(
         ped='CameraR1CalibratorFactory.pedestal_path',
         tf='CameraR1CalibratorFactory.tf_path',
@@ -40,10 +40,8 @@ class CameraCalibrator(Component):
         cleaner='WaveformCleanerFactory.cleaner',
         cleaner_t0='WaveformCleanerFactory.t0',
         ))
-    
-    """
-    name = 'CameraCalibrator'
 
+    """
     def __init__(self, config, tool, origin='hessio', **kwargs):
         """
         Parameters
@@ -57,8 +55,8 @@ class CameraCalibrator(Component):
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
         origin : str
-            The origin of the event file (default: hessio) to choose the 
-            correct `CameraR1Calibrator`. Usually given from 
+            The origin of the event file (default: hessio) to choose the
+            correct `CameraR1Calibrator`. Usually given from
             `EventFileReader.origin`.
         kwargs
         """
@@ -85,7 +83,7 @@ class CameraCalibrator(Component):
     def calibrate(self, event):
         """
         Perform the full camera calibration from R0 to DL1. Any calibration
-        relating to data levels before the data level the file is read into 
+        relating to data levels before the data level the file is read into
         will be skipped.
 
         Parameters

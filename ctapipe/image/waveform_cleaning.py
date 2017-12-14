@@ -31,9 +31,6 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-
-    name = 'WaveformCleaner'
-
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 
@@ -62,8 +59,6 @@ class NullWaveformCleaner(WaveformCleaner):
     """
     Dummy waveform cleaner that simply returns its input
     """
-    name = 'NullWaveformCleaner'
-
     def apply(self, waveforms):
         return waveforms
 
@@ -89,9 +84,6 @@ class CHECMWaveformCleaner(WaveformCleaner):
         Set to None if no Tool to pass.
 
     """
-
-    name = 'CHECMWaveformCleaner'
-
     window_width = Int(16, help='Define the width of the pulse '
                                 'window').tag(config=True)
     window_shift = Int(8, help='Define the shift of the pulse window from the '
@@ -187,8 +179,6 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
         Set to None if no Tool to pass.
            
     """
-    name = 'CHECMWaveformCleanerAverage'
-
     def get_extractor(self):
         return AverageWfPeakIntegrator(None, self.parent,
                                        window_width=self.window_width,
@@ -219,8 +209,6 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
         Set to None if no Tool to pass.
 
     """
-    name = 'CHECMWaveformCleanerLocal'
-
     def get_extractor(self):
         return LocalPeakIntegrator(None, self.parent,
                                    window_width=self.window_width,
@@ -231,7 +219,6 @@ class WaveformCleanerFactory(Factory):
     """
     Factory to obtain a WaveformCleaner.
     """
-    name = "WaveformCleanerFactory"
     description = "Obtain WavefromCleaner based on cleaner traitlet"
 
     subclasses = Factory.child_subclasses(WaveformCleaner)
@@ -248,7 +235,7 @@ class WaveformCleanerFactory(Factory):
                                'peakpos (peakpos - shift).').tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return self.__class__.__name__
 
     def get_product_name(self):
         return self.cleaner

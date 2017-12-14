@@ -10,8 +10,6 @@ from ctapipe.visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
-    name = 'ImagePlotter'
-
     display = Bool(False,
                    help='Display the photoelectron images on-screen as they '
                         'are produced.').tag(config=True)

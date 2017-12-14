@@ -14,8 +14,6 @@ from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 
 
 class ChargeResolutionPlotter(Component):
-    name = 'ChargeResolutionPlotter'
-
     output_path = Unicode(None, allow_none=True,
                           help='Output path to save the '
                                'plot.').tag(config=True)

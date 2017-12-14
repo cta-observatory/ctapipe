@@ -38,8 +38,6 @@ class DataVolumeReductor(Component):
         List of neighbours for each pixel. Changes per telescope.
 
     """
-    name = 'DataVolumeReductor'
-
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 
@@ -101,7 +99,6 @@ class DataVolumeReductorFactory(Factory):
     """
     Factory class for creating a DataVolumeReductor
     """
-    name = "DataVolumeReductorFactory"
     description = "Obtain DataVolumeReductor based on reductor traitlet"
 
     subclasses = Factory.child_subclasses(DataVolumeReductor)
@@ -114,7 +111,7 @@ class DataVolumeReductorFactory(Factory):
     # Product classes traits
 
     def get_factory_name(self):
-        return self.name
+        return self.__class__.__name__
 
     def get_product_name(self):
         return self.reductor

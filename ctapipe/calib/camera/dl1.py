@@ -101,8 +101,6 @@ class CameraDL1Calibrator(Component):
         applied to the waveforms.
     kwargs
     """
-
-    name = 'CameraCalibrator'
     radius = Float(None, allow_none=True,
                    help='Pixels within radius from a pixel are considered '
                         'neighbours to the pixel. Set to None for the default '

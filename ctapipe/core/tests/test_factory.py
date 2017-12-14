@@ -4,22 +4,18 @@ from traitlets import Unicode, Int
 
 
 class ExampleComponentParent(Component):
-    name = 'ExampleComponentParent'
     value = Int(123, help="").tag(config=True)
 
 
 class ExampleComponent1(ExampleComponentParent):
-    name = 'ExampleComponent1'
     value = Int(123111, help="").tag(config=True)
 
 
 class ExampleComponent2(ExampleComponentParent):
-    name = 'ExampleComponent2'
     value = Int(123222, help="").tag(config=True)
 
 
 class ExampleFactory(Factory):
-    name = 'ExampleFactory'
     description = "Test Factory class"
 
     subclasses = Factory.child_subclasses(ExampleComponentParent)
@@ -33,7 +29,7 @@ class ExampleFactory(Factory):
     value = Int(555, help="").tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return self.__class__.__name__
 
     def get_product_name(self):
         return self.discriminator
@@ -45,5 +41,5 @@ def test_factory():
     factory.value = 111
     cls = factory.get_class()
     obj = cls(config=factory.config, parent=None)
-    assert(obj.name == 'ExampleComponent2')
+    assert(obj.__class__.__name__ == 'ExampleComponent2')
     assert(obj.value == 111)
