@@ -58,8 +58,6 @@ install:
     - python setup.py develop
 
 script:
-    - LD_DEBUG=libs python -c "import protozfitsreader"
-    - ls -larth /home/travis/miniconda/envs/cta-dev/lib/libstd*
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx build --source=docs/
