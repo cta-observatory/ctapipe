@@ -5,8 +5,9 @@ from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
                                   HillasParameterizationError)
 from ctapipe.io.containers import HillasParametersContainer
 from astropy import units as u
-from numpy import isclose, zeros_like
+from numpy import isclose, zeros_like, arange
 from numpy.random import seed
+from numpy.ma import masked_array
 import pytest
 
 def create_sample_image(psi='-30d'):
@@ -30,10 +31,27 @@ def create_sample_image(psi='-30d'):
     # denoise the image, so we can calculate hillas params
     clean_mask = tailcuts_clean(geom, image, 10,
                                 5)  # pedvars = 1 and core and boundary
+
+    return geom,  image, clean_mask
+
+def create_sample_image_zeros(psi='-30d'):
+
+    geom, image, clean_mask = create_sample_image(psi)
+
     # threshold in pe
     image[~clean_mask] = 0
 
     return geom,  image
+
+
+def create_sample_image_masked(psi='-30d'):
+    geom, image, clean_mask = create_sample_image(psi)
+
+    # threshold in pe
+    image = masked_array(image, mask=~clean_mask)
+
+    return geom, image
+
 
 def compare_result(x,y):
     ux = u.Quantity(x)
@@ -52,7 +70,7 @@ def test_hillas():
     # try all quadrants
     for psi_angle in ['30d','120d','-30d','-120d']:
 
-        geom, image = create_sample_image(psi_angle)
+        geom, image = create_sample_image_zeros(psi_angle)
         results = {}
 
         results['v1'] = hillas_parameters_1(geom, image)
@@ -74,8 +92,30 @@ def test_hillas():
                     #compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
 
+def test_hillas_masked():
+    """
+    test Hillas-parameter routines on a sample image with masked values set to
+    zero against a sample image with values masked with a numpy.ma.masked_array
+    """
+
+    geom, image = create_sample_image_zeros()
+    geom, image_ma = create_sample_image_masked()
+
+    results = hillas_parameters_4(geom, image)
+    results_ma = hillas_parameters_4(geom, image_ma)
+
+    compare_result(results.length, results_ma.length)
+    compare_result(results.width, results_ma.width)
+    compare_result(results.r, results_ma.r)
+    compare_result(results.phi.deg, results_ma.phi.deg)
+    compare_result(results.psi.deg, results_ma.psi.deg)
+    compare_result(results.miss, results_ma.miss)
+    compare_result(results.skewness, results_ma.skewness)
+    # compare_result(results.kurtosis, results_ma.kurtosis)
+
+
 def test_hillas_failure():
-    geom, image = create_sample_image(psi='0d')
+    geom, image = create_sample_image_zeros(psi='0d')
     blank_image = zeros_like(image)
 
     with pytest.raises(HillasParameterizationError):
@@ -94,9 +134,9 @@ def test_hillas_failure():
 def test_hillas_api_change():
     import numpy as np
     with pytest.raises(ValueError):
-        hillas_parameters_4(np.arange(10), np.arange(10), np.arange(10))
+        hillas_parameters_4(arange(10), arange(10), arange(10))
 
 def test_hillas_container():
-    geom, image = create_sample_image(psi='0d')
+    geom, image = create_sample_image_zeros(psi='0d')
     params = hillas_parameters_4(geom, image, container=True)
     assert type(params) is HillasParametersContainer

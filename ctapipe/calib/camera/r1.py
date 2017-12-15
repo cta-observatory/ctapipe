@@ -53,8 +53,6 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-
-    name = 'CameraR1Calibrator'
     origin = None
 
     def __init__(self, config, tool, **kwargs):
@@ -143,8 +141,6 @@ class HessioR1Calibrator(CameraR1Calibrator):
         Set to None if no Tool to pass.
     kwargs
     """
-
-    name = 'HessioR1Calibrator'
     origin = 'hessio'
 
     def calibrate(self, event):
@@ -226,8 +222,6 @@ class CameraR1CalibratorFactory(Factory):
         conversion coefficients. How/if this file is used is defined by the
         `CameraR1Calibrator` specific to the camera.
     """
-
-    name = "CameraR1CalibratorFactory"
     description = "Obtain CameraR1Calibrator based on file origin"
 
     subclasses = Factory.child_subclasses(CameraR1Calibrator)
@@ -248,7 +242,7 @@ class CameraR1CalibratorFactory(Factory):
                       help='Path to a flat field file').tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return self.__class__.__name__
 
     def get_product_name(self):
         return self.origin

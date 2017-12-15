@@ -23,8 +23,6 @@ from ctapipe.visualization import CameraDisplay
 
 
 class IntegratorPlotter(Component):
-    name = 'IntegratorPlotter'
-
     output_dir = Unicode(None, allow_none=True,
                          help='Output path to the directory where the plots '
                               'will be saved. If None, a directory is created '
