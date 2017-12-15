@@ -19,8 +19,7 @@ def test_loop_over_events():
     inputfile_reader = zfits_event_source(url=example_file_path, max_events=5)
 
     for i, event in enumerate(inputfile_reader):
-        tels = event.r0.tels_with_data
-        assert tels == [3]
+        assert event.r0.tels_with_data == 1
         for telid in event.r0.tels_with_data:
             evt_num = event.r0.tel[telid].camera_event_number
             assert i == evt_num
