@@ -18,6 +18,7 @@ dependencies:
   - numpy
   - numpydoc
   - pandas
+  - protobuf
   - pyhessio
   - pytest
   - pytest-cov
@@ -36,7 +37,7 @@ dependencies:
   - yaml
   - zlib
   - iminuit
-  - pytables  
+  - pytables
   - tqdm
   - pip:
       - pytest_runner
