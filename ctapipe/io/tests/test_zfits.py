@@ -1,13 +1,12 @@
-import pytest
 from ctapipe.utils.datasets import get_dataset
 import numpy as np
 
-@pytest.mark.skip
+
 def test_loop_over_events():
     from ctapipe.io.zfits import zfits_event_source
 
     _url = get_dataset("sst-1m_5evts.fits.fz")
-    inputfile_reader = zfits_event_source(url=_url, max_events= 5 )
+    inputfile_reader = zfits_event_source(url=_url, max_events=5)
 
     for i, event in enumerate(inputfile_reader):
         tels = event.r0.tels_with_data
@@ -17,4 +16,3 @@ def test_loop_over_events():
             assert i == evt_num
             adcs = np.array(list(event.r0.tel[telid].adc_samples.values()))
             assert adcs.shape == (1296, 20)
-
