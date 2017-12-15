@@ -51,8 +51,10 @@ install:
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
     - pip install codecov
-    # This is a low level file reader for SST1M
+    # ----- SST1M:
+    - conda install numpy protobuf
     - pip install https://github.com/dneise/protozfitsreader/archive/v0.43.1.tar.gz
+    # ----- end of SST1M
     - python setup.py develop
 
 script:

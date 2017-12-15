@@ -18,7 +18,6 @@ dependencies:
   - numpy
   - numpydoc
   - pandas
-  - protobuf
   - pyhessio
   - pytest
   - pytest-cov
