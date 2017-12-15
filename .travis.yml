@@ -58,6 +58,7 @@ install:
     - python setup.py develop
 
 script:
+    - LD_DEBUG=libs python -c "import protozfitsreader"
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx build --source=docs/
