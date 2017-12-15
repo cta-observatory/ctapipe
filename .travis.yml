@@ -52,7 +52,7 @@ install:
     - pip install travis-sphinx
     - pip install codecov
     # ----- SST1M:
-    - conda install numpy protobuf libgcc libgcc-ng
+    - conda install numpy protobuf libgcc
     - pip install https://github.com/dneise/protozfitsreader/archive/v0.43.1.tar.gz
     # ----- end of SST1M
     - python setup.py develop
