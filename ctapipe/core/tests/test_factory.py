@@ -49,5 +49,5 @@ def test_factory_produce():
     obj = ExampleFactory.produce(config=None, tool=None,
                                  discriminator='ExampleComponent2',
                                  value=111)
-    assert (obj.name == 'ExampleComponent2')
+    assert (obj.__class__.__name__ == 'ExampleComponent2')
     assert (obj.value == 111)

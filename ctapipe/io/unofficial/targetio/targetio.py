@@ -182,10 +182,6 @@ class TargetioExtractor:
         foclen = self.optical_foclen * u.m
         teldesc = TelescopeDescription.guess(*pix_pos, foclen)
         data.inst.subarray.tels[chec_tel] = teldesc
-        data.inst.pixel_pos[chec_tel] = pix_pos
-        data.inst.optical_foclen[chec_tel] = foclen
-        data.inst.num_channels[chec_tel] = 1
-        data.inst.num_pixels[chec_tel] = self.n_pix
 
         self.data = data
 
