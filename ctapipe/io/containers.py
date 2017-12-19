@@ -336,22 +336,6 @@ class DataContainer(Container):
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
 
-class DigiCamCameraContainer(R0CameraContainer):
-    """ DigiCam specific information """
-    camera_event_number =  Field(-1, "camera event number")
-    pixel_flags  = Field(None, ("pixel status flags","(n_channels x n_pixels)"))
-    local_camera_clock  = Field(-1, "camera timestamp")
-    timestamp  = Field(-1, "precise white rabbit based timestamp")
-    event_type =  Field(-1, "internal trigger type")
-    eventType =  Field(-1, "Event Type (PEDESTALS, PHYSICS, FLASHER, MUONS)")
-
-class DigiCamExpertCameraContainer(DigiCamCameraContainer):
-    """ DigiCam specific information
-        for debugging and engeneering runs
-    """
-    trigger_input_traces  = Field(None, ("trigger patch trace","(n_patches)"))
-    trigger_output_patch7  = Field(None, ("trigger 7 patch cluster trace","(n_clusters)"))
-    trigger_output_patch19 = Field(None, ("trigger 19 patch cluster trace","(n_clusters)"))
 
 class MuonRingParameter(Container):
     """
