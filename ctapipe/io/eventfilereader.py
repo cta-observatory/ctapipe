@@ -107,11 +107,8 @@ class EventFileReader(Component):
             pass
 
     @property
-    @abstractmethod
     def r1_calibrator(self):
         """
-        Abstract property to be defined in child class.
-
         Name of the `ctapipe.calib.camera.r1.CameraR1Calibrator` to use for
         this `EventFileReader`.
 
@@ -123,11 +120,11 @@ class EventFileReader(Component):
         If the data source is from data level R1 or above,
         return None or 'NullR1Calibrator'.
 
-
         Returns
         -------
-        origin : str
+        str
         """
+        return 'NullR1Calibrator'
 
     @staticmethod
     @abstractmethod
