@@ -47,7 +47,7 @@ class Config(Borg):
         ----------
         camera_id
         """
-        Borg.__init__(self)
+        super().__init__()
         if not self.__dict__:
             self._id = None
 

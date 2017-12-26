@@ -3,7 +3,7 @@ from numpy.testing import assert_almost_equal, assert_array_equal, \
     assert_array_almost_equal
 from ctapipe.io.eventfilereader import EventFileReaderFactory
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset, check_modules_installed
+from ctapipe.utils import get_dataset
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory, \
     HessioR1Calibrator
 
@@ -47,9 +47,8 @@ def test_factory():
     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
 
 
-@pytest.mark.skipif(not check_modules_installed(["target_calib"]),
-                    reason="Requires targetio specific modules")
 def test_targetio_calibrator():
+    pytest.importorskip("target_calib")
     url_r0 = get_dataset("targetmodule_r0.tio")
     url_r1 = get_dataset("targetmodule_r1.tio")
     pedpath = get_dataset("targetmodule_ped.tcal")

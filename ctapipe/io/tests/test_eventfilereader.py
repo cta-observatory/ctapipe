@@ -57,9 +57,10 @@ def test_event_file_reader_factory_hessio():
     assert(file.num_events == 9)
 
 
-@pytest.mark.skipif(not uefr.check_modules_installed(uefr.targetio_modules),
-                    reason="Requires targetio specific modules")
 def test_event_file_reader_factory_targetio():
+    pytest.importorskip("target_driver")
+    pytest.importorskip("target_io")
+    pytest.importorskip("target_calib")
     dataset = get_dataset("chec_r1.tio")
     factory = EventFileReaderFactory(None, None, input_path=dataset)
     cls = factory.get_class()

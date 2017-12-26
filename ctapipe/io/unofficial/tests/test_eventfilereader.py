@@ -1,11 +1,12 @@
 import pytest
 from ctapipe.io.unofficial import eventfilereader as uefr
-from ctapipe.utils import get_dataset, check_modules_installed
+from ctapipe.utils import get_dataset
 
 
-@pytest.mark.skipif(not check_modules_installed(uefr.targetio_modules),
-                    reason="Requires targetio specific modules")
 def test_targetiofilereader():
+    pytest.importorskip("target_driver")
+    pytest.importorskip("target_io")
+    pytest.importorskip("target_calib")
     url = get_dataset("chec_r1.tio")
     assert(uefr.TargetioFileReader.check_file_compatibility(url))
     reader = uefr.TargetioFileReader(None, None, input_path=url)
