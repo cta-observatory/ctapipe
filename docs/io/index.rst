@@ -24,7 +24,7 @@ Container Classes
 =================
 
 Event data that is intended to be read or written from files is stored
-in subclasses of `ctapipe.core.Container`, the structre of which is
+in subclasses of `ctapipe.core.Container`, the structure of which is
 defined in the `ctapipe.io.containers` module (See reference API below). Each
 element in the container is a `ctapipe.core.Field`, containing the
 default value, a description, and default unit if necessary. The
