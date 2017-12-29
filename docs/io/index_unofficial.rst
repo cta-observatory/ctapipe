@@ -40,14 +40,42 @@ followed. These guidelines can be summarised as:
   unofficial readers.
 
 
+How to use my reader in ctapipe?
+================================
+
+Presumably you already have some software that exists to read in your data
+format. What form that reader exists in dictates how easy it is to incorporate
+into ctapipe. Some of the possible forms and appropriate inplementations are:
+
+* **Your reader can be entirely programmed in Python**, in which case your
+  reader does not depend on any external packages, and you can include that
+  code in your reader's :ref:`Low-Level Reader-Specific Modules`.
+* **Your reader exists as an external Python module**, in which case it could
+  be made available on conda for easy (optional) installion.
+* **You have a C/C++ inplementation of your reader in a simple script**,
+  therefore you could provide an interface to that functionality by using
+  "ctypes". The C/C++ scripts can exist inside your reader module, and are
+  compiled as part of the ctapipe installation. See
+  `ctapipe.utils.neighbour_sum` as an example of how to interface Python with
+  C code, and remember to add your extension to ext_modules in setup.py.
+* **Your reader exists as an external C/C++ library**, therefore software such
+  as SWIG can be used to provide a Python wrapper to the library,
+  automatically creating interfaces to the functions in the library.
+
+
 EventFileReaders (`ctapipe.io.unofficial.eventfilereader`)
 ==========================================================
 
+This class provides the high-level interface for reading data from each data
+format. Read about the purpose of EventFileReaders at
+:ref:`EventFileReaderClasses`.
+
 Location for every unofficial `ctapipe.io.eventfilereader.EventFileReader`.
 
-Each reader is required to import their "low-level reader-specific modules"
-inside their `__init__` method, therefore bypassing the need for the external
-reader software to be installed unless someone has chosen to use this specific
+Each reader is required to import their
+:ref:`Low-Level Reader-Specific Modules` inside their `__init__` method,
+therefore bypassing the need for the external reader software to be installed
+unless someone has chosen to use this specific
 `ctapipe.io.eventfilereader.EventFileReader`, in which case a
 `ModuleNotFoundError` will be raised if the external software has not been
 found.

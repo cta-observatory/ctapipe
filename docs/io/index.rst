@@ -68,6 +68,7 @@ for new data:
  * any other type that cannot be translated automatically into the
    column of an output table.
 
+.. _EventFileReaderClasses:
 
 EventFileReader Classes
 =======================
