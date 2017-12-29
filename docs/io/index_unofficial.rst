@@ -164,7 +164,9 @@ still usually obtained from inside the hessio file.
 Data formats other than hessio are unlikely to contain the camera
 configuration, therefore until the `ctapipe.instrument` module and the
 "instrument database" are completed, the unofficial readers must contain other
-methods to load the instrument information into the container.
+methods to load the instrument information into the container. This can
+involve loading data from additional files, as long as these data files are
+added to the `data_files` dictionary in setup.py.
 
 For an example of one approach to achieve this, see
 `ctapipe.io.unofficial.targetio.camera`.

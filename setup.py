@@ -45,6 +45,14 @@ package.version.update_release_version()
 neighboursum_module = Extension('ctapipe.utils.neighbour_sum_c',
                                 sources=['ctapipe/utils/neighbour_sum_c.cc'])
 
+# Data files
+data_files = {
+    'ctapipe': [
+        'io/unofficial/targetio/checm_pixel_pos.npy',
+        'io/unofficial/targetio/checm_reference_pulse.npz',
+    ]
+}
+
 setup(name=PACKAGENAME,
       packages=find_packages(),
       version=package.version.get_version(pep440=True),
@@ -86,5 +94,6 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=False,
       entry_points=entry_points,
-      ext_modules=[neighboursum_module]
+      ext_modules=[neighboursum_module],
+      package_data=data_files
       )
