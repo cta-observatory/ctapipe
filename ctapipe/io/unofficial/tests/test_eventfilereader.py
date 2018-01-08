@@ -8,7 +8,7 @@ def test_targetiofilereader():
     pytest.importorskip("target_io")
     pytest.importorskip("target_calib")
     url = get_dataset("chec_r1.tio")
-    assert(uefr.TargetioFileReader.check_file_compatibility(url))
+    assert(uefr.TargetioFileReader.is_compatible(url))
     reader = uefr.TargetioFileReader(None, None, input_path=url)
     assert(reader.num_events == 5)
     reader.max_events = 3

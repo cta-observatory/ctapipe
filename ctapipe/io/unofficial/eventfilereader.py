@@ -69,7 +69,7 @@ class TargetioFileReader(EventFileReader):
             pass
 
     @staticmethod
-    def check_file_compatibility(file_path):
+    def is_compatible(file_path):
         # Fast method to check if reader can be used for file
         return file_path.endswith('.tio')
 

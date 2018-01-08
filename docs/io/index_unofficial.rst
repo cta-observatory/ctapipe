@@ -34,10 +34,12 @@ followed. These guidelines can be summarised as:
 * Each reader should have a corresponding
   `ctapipe.io.eventfilereader.EventFileReader` in
   `ctapipe.io.unofficial.eventfilereader` to ensure the common high-level
-  interface for reading data is maintained.
+  interface for reading data is maintained. This is explained in
+  `EventFileReaders`_.
 * Care should be taken in the imports of external modules. There should be no
   dependencies added to ctapipe on the external libraries required for these
-  unofficial readers.
+  unofficial readers. The correct approach to achieve this is
+  explained in `EventFileReaders`_.
 
 
 How to use my reader in ctapipe?
@@ -49,9 +51,9 @@ into ctapipe. Some of the possible forms and appropriate inplementations are:
 
 * **Your reader can be entirely programmed in Python**, in which case your
   reader does not depend on any external packages, and you can include that
-  code in your reader's :ref:`Low-Level Reader-Specific Modules`.
+  code in your reader's `Low-Level Reader-Specific Modules`_.
 * **Your reader exists as an external Python module**, in which case it could
-  be made available on conda for easy (optional) installion.
+  be made available on conda for easy (optional) installation.
 * **You have a C/C++ inplementation of your reader in a simple script**,
   therefore you could provide an interface to that functionality by using
   "ctypes". The C/C++ scripts can exist inside your reader module, and are
@@ -63,17 +65,17 @@ into ctapipe. Some of the possible forms and appropriate inplementations are:
   automatically creating interfaces to the functions in the library.
 
 
-EventFileReaders (`ctapipe.io.unofficial.eventfilereader`)
-==========================================================
+EventFileReaders
+================
 
-This class provides the high-level interface for reading data from each data
-format. Read about the purpose of EventFileReaders at
+The module `ctapipe.io.unofficial.eventfilereader` contains the
+`ctapipe.io.eventfilereader.EventFileReader` classes for the unofficial
+readers. These classes provides the high-level interface for reading data
+from each data format. Read about the purpose of EventFileReaders at
 :ref:`EventFileReaderClasses`.
 
-Location for every unofficial `ctapipe.io.eventfilereader.EventFileReader`.
-
 Each reader is required to import their
-:ref:`Low-Level Reader-Specific Modules` inside their `__init__` method,
+`Low-Level Reader-Specific Modules`_ inside their `__init__` method,
 therefore bypassing the need for the external reader software to be installed
 unless someone has chosen to use this specific
 `ctapipe.io.eventfilereader.EventFileReader`, in which case a
@@ -81,7 +83,7 @@ unless someone has chosen to use this specific
 found.
 
 The reader must also implement a fast method for
-`ctapipe.io.eventfilereader.EventFileReader.check_file_compatibility`. This
+`ctapipe.io.eventfilereader.EventFileReader.is_compatible`. This
 method attempts to find a reader which *may* be compatible with the input
 file, and can be as simple as looking for a unique file extension in the file
 path or attempting to find a header keyword in the file. It is strongly
@@ -119,8 +121,9 @@ as these rules are followed:
   waveforms of data level R0, see the next section for an explanation of data
   levels and see `ctapipe.io.hessio` and
   `ctapipe.io.unofficial.targetio.targetio` for examples)
-* The unique 'origin' string is added to the meta dictionary of the container
-  so the data source of the events can be obtained by other algorithms, e.g.
+* The unique 'origin' string, containing the name of the data format, is
+  added to the meta dictionary of the container so the data source of the
+  events can be obtained by other algorithms, e.g.
 
   >>> data.meta['origin'] = "targetio"
 
@@ -132,15 +135,16 @@ It is important to read your events into the correct corresponding event
 container:
 
 * If the file contains raw events, that still require low-level calibration
-  to be useful for offline analysis, then they should be read into the r0
+  to be useful for offline analysis, then they should be read into the `r0`
   container.
 * If the file contains events which have their low-level calibration fully
-  applied to them, then they should be read into the r1 container.
+  applied to them, then they should be read into the `r1` container.
 * If the file contains events which have their low-level calibration fully
-  applied to them AND they are in a proposed format of DL0 (perhaps including
-  a data reduction approach), then they should be stored in the dl0 container.
+  applied to them AND the file format is being proposed to CTA as a solution
+  for storing Data-Level-0 information (perhaps including a data reduction
+  approach) to disk, then they should be stored in the `dl0` container.
 * If the file contains events which are already reduced into an extracted
-  charge per pixel, then they should be stored in the dl1 container.
+  charge per pixel, then they should be stored in the `dl1` container.
 
 See this link for more details about the `CTA High-Level Data Model
 Definitions SYS-QA/160517
@@ -254,7 +258,7 @@ is determined by looking at a flag in the file header.
 
 The files that are compatible with this reader are stored with the extension
 ".tio", which is checked for by
-`ctapipe.io.eventfilereader.EventFileReader.check_file_compatibility`.
+`ctapipe.io.eventfilereader.EventFileReader.is_compatible`.
 
 The installation instructions for the external libraries required for
 TargetioFileReader can be found at the following link:

@@ -128,7 +128,7 @@ class EventFileReader(Component):
 
     @staticmethod
     @abstractmethod
-    def check_file_compatibility(file_path):
+    def is_compatible(file_path):
         """
         Abstract method to be defined in child class.
 
@@ -210,12 +210,8 @@ class HessioFileReader(EventFileReader):
         return 'HessioR1Calibrator'
 
     @staticmethod
-    def check_file_compatibility(file_path):
-        compatible = True
-        # TODO: Change check to be a try of hessio_event_source?
-        if not file_path.endswith('.gz'):
-            compatible = False
-        return compatible
+    def is_compatible(file_path):
+        return file_path.endswith('.gz')
 
     @property
     def num_events(self):
@@ -354,7 +350,7 @@ class EventFileReaderFactory(Factory):
                 raise ValueError("Please specify an input_path for event file")
             try:
                 for subclass in self.subclasses:
-                    if subclass.check_file_compatibility(self.input_path):
+                    if subclass.is_compatible(self.input_path):
                         return subclass.__name__
                 raise ValueError
             except ValueError:
