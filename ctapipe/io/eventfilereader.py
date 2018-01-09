@@ -71,6 +71,9 @@ class EventFileReader(Component):
 
         Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
 
+        self.source = self._generator()
+        self.current_event = None
+
     @staticmethod
     @abstractmethod
     def is_compatible(file_path):
@@ -109,7 +112,7 @@ class EventFileReader(Component):
         """
 
     @abstractmethod
-    def __iter__(self):
+    def _generator(self):
         """
         Abstract method to be defined in child class.
 
@@ -119,6 +122,20 @@ class EventFileReader(Component):
         -------
         generator
         """
+
+    def reset(self):
+        """
+        Recreate the generator so it starts from the beginning
+        """
+        self.source = self._generator()
+        self.current_event = None
+
+    def __iter__(self):
+        # Always reset generator when starting a new iteration
+        self.reset()
+        for event in self.source:
+            self.current_event = event
+            yield event
 
     def __getitem__(self, item):
         """
@@ -133,33 +150,91 @@ class EventFileReader(Component):
 
         Returns
         -------
-        data : ctapipe.io.container
+        event : ctapipe.io.container
             The event container filled with the requested event's information
 
         """
-        # self.reset()
+        current = None
+
+        # Handling of different input types (int, string, slice, list)
         use_event_id = False
-        msg = "Event index {} not found in file".format(item)
-        if isinstance(item, str):
+        if isinstance(item, int):
+            if self.current_event:
+                current = self.current_event.count
+            if item < 0:
+                item = len(self) + item
+                if item < 0 or item >= len(self):
+                    msg = "Event index {} out of range [0, {}]"\
+                        .format(item, len(self))
+                    raise IndexError(msg)
+        elif isinstance(item, str):
             item = int(item)
             use_event_id = True
-            msg = "Event id {} not found in file".format(item)
+            if self.current_event:
+                current = self.current_event.r0.event_id
+        elif isinstance(item, slice):
+            it = range(item.start or 0, item.stop or len(self), item.step or 1)
+            events = [self[i] for i in it]
+            return events
+        elif isinstance(item, list):
+            events = [self[i] for i in item]
+            return events
+        else:
+            raise TypeError("{} indexing is not supported".format(type(item)))
 
+        # Return a copy of the current event if we have already reached it
+        if current is not None and item == current:
+            return deepcopy(self.current_event)
+
+        # If requested event is less than the current event position: reset
+        if current is not None and item < current:
+            self.reset()
+
+        # Check we are within max_events range
         if not use_event_id and self.max_events and item >= self.max_events:
             msg = "Event index {} outside of specified max_events {}"\
                 .format(item, self.max_events)
-        elif not use_event_id:
-            for event in self:
-                if event.count == item:
+            raise IndexError(msg)
+
+        return self._get_event(item, use_event_id)
+
+    def _get_event(self, ev, use_event_id):
+        """
+        Method for extracting a paritcular event for this data format.
+        If a data format allows random event access, this function can be
+        overrided for a more efficient method.
+
+        Parameters
+        ----------
+        ev : int or str
+            The event_index or event_id to seek.
+        use_event_id : bool
+            Whether ev is event_id or event_index.
+
+        Returns
+        -------
+        event : ctapipe.io.container
+            The event container filled with the requested event's information
+
+        """
+        if not use_event_id:
+            msg = "Event index {} not found in file".format(ev)
+            for event in self.source:
+                if event.count == ev:
+                    self.current_event = deepcopy(event)
                     return deepcopy(event)
         else:
-            for event in self:
-                if event.r0.event_id == item:
+            msg = "Event id {} not found in file".format(ev)
+            for event in self:  # Event Ids may not be in order
+                if event.r0.event_id == ev:
+                    self.current_event = deepcopy(event)
                     return deepcopy(event)
-        raise KeyError(msg)
+        raise IndexError(msg)
 
     def __len__(self):
+        # Only need to calculate once
         if not self._num_events:
+            self.reset()
             self.log.info("Obtaining number of events in file...")
             count = 0
             for _ in self:

@@ -7,6 +7,9 @@ from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 
 
+COUNT = 0
+
+
 class HessioFileReader(EventFileReader):
 
     def __init__(self, config, tool, **kwargs):
@@ -14,6 +17,7 @@ class HessioFileReader(EventFileReader):
 
         try:
             from pyhessio import open_hessio
+            from pyhessio import close_file
             from pyhessio import HessioError
             from pyhessio import HessioTelescopeIndexError
             from pyhessio import HessioGeneralError
@@ -23,11 +27,19 @@ class HessioFileReader(EventFileReader):
             raise
 
         self.open_hessio = open_hessio
+        self.close_hessio = close_file
         self.HessioError = HessioError
         self.HessioTelescopeIndexError = HessioTelescopeIndexError
         self.HessioGeneralError = HessioGeneralError
 
         self.allowed_tels = None
+
+        global COUNT
+        if COUNT > 0:
+            self.log.warn("Only one pyhessio reader allowed at a time. "
+                          "Previous hessio file will be closed.")
+            self.close_hessio()
+        COUNT += 1
 
     @staticmethod
     def is_compatible(file_path):
@@ -37,9 +49,8 @@ class HessioFileReader(EventFileReader):
     def camera(self):
         return 'hessio'
 
-    def __iter__(self):
+    def _generator(self):
         with self.open_hessio(self.input_path) as pyhessio:
-            self.pyhessio = pyhessio
             # the container is initialized once, and data is replaced within
             # it after each yield
             Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
