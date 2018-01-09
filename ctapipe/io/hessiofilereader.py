@@ -28,11 +28,6 @@ class HessioFileReader(EventFileReader):
         self.HessioGeneralError = HessioGeneralError
 
         self.allowed_tels = None
-        self.pyhessio = None
-
-    def __del__(self):
-        if self.pyhessio:
-            self.pyhessio.close_file()
 
     @staticmethod
     def is_compatible(file_path):
@@ -165,7 +160,6 @@ class HessioFileReader(EventFileReader):
                 if self.max_events and counter >= self.max_events:
                     self.reset()
                     raise StopIteration
-        self.pyhessio = None
         self.reset()
         raise StopIteration
 
