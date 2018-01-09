@@ -225,13 +225,13 @@ class EventFileReader(Component):
             msg = "Event index {} not found in file".format(ev)
             for event in self.source:
                 if event.count == ev:
-                    self.current_event = deepcopy(event)
+                    self.current_event = event
                     return deepcopy(event)
         else:
             msg = "Event id {} not found in file".format(ev)
             for event in self:  # Event Ids may not be in order
                 if event.r0.event_id == ev:
-                    self.current_event = deepcopy(event)
+                    self.current_event = event
                     return deepcopy(event)
         raise IndexError(msg)
 
