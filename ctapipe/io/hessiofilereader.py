@@ -28,6 +28,11 @@ class HessioFileReader(EventFileReader):
         self.HessioGeneralError = HessioGeneralError
 
         self.allowed_tels = None
+        self.pyhessio = None
+
+    def __del__(self):
+        if self.pyhessio:
+            self.pyhessio.close_file()
 
     @staticmethod
     def is_compatible(file_path):
@@ -39,6 +44,7 @@ class HessioFileReader(EventFileReader):
 
     def _generator(self):
         with self.open_hessio(self.input_path) as pyhessio:
+            self.pyhessio = pyhessio
             # the container is initialized once, and data is replaced within
             # it after each yield
             Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
@@ -157,10 +163,9 @@ class HessioFileReader(EventFileReader):
                 counter += 1
 
                 if self.max_events and counter >= self.max_events:
-                    pyhessio.close_file()
                     self.reset()
                     raise StopIteration
-        pyhessio.close_file()
+        self.pyhessio = None
         self.reset()
         raise StopIteration
 

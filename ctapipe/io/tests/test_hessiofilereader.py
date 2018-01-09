@@ -19,3 +19,4 @@ def test_hessio_file_reader():
         pass
     event = next(reader)
     assert event.r0.tels_with_data == {38, 47}
+    reader.__del__()
