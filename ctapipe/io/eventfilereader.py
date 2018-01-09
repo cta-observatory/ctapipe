@@ -219,7 +219,7 @@ class EventFileReader(Component):
 
         """
         if self.getevent_warn:
-            self.log.warning("Seeking to event... (long process)")
+            self.log.warning("Seeking to event... (potentially long process)")
             self.getevent_warn = False
         if not use_event_id:
             msg = "Event index {} not found in file".format(ev)
@@ -239,7 +239,8 @@ class EventFileReader(Component):
         # Only need to calculate once
         if not self._num_events:
             self.reset()
-            self.log.warning("Obtaining length of file... (long process)")
+            self.log.warning("Obtaining length of file... "
+                             "(potentially long process)")
             count = 0
             for _ in self:
                 if self.max_events and count >= self.max_events:
