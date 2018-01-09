@@ -71,8 +71,6 @@ class EventFileReader(Component):
 
         Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
 
-        self.source = self._generator()
-
     @staticmethod
     @abstractmethod
     def is_compatible(file_path):
@@ -111,7 +109,7 @@ class EventFileReader(Component):
         """
 
     @abstractmethod
-    def _generator(self):
+    def __iter__(self):
         """
         Abstract method to be defined in child class.
 
@@ -121,25 +119,6 @@ class EventFileReader(Component):
         -------
         generator
         """
-
-    def reset(self):
-        """
-        Reset the generator such that it seeks from the beginning again.
-        """
-        self.source = self._generator()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        """
-        Returns
-        -------
-        data : ctapipe.io.container
-            The event container filled with the event information
-        """
-        event = next(self.source)
-        return event
 
     def __getitem__(self, item):
         """
@@ -158,7 +137,7 @@ class EventFileReader(Component):
             The event container filled with the requested event's information
 
         """
-        self.reset()
+        # self.reset()
         use_event_id = False
         msg = "Event index {} not found in file".format(item)
         if isinstance(item, str):
@@ -172,32 +151,28 @@ class EventFileReader(Component):
         elif not use_event_id:
             for event in self:
                 if event.count == item:
-                    self.reset()
                     return deepcopy(event)
         else:
             for event in self:
                 if event.r0.event_id == item:
-                    self.reset()
                     return deepcopy(event)
-        self.reset()
         raise KeyError(msg)
 
     def __len__(self):
         if not self._num_events:
             self.log.info("Obtaining number of events in file...")
-            self.reset()
             count = 0
             for _ in self:
                 if self.max_events and count >= self.max_events:
                     break
                 count += 1
-            self.reset()
             self._num_events = count
         return self._num_events
 
 
 # EventFileReader imports so that EventFileReaderFactory can see them
 import ctapipe.io.hessiofilereader
+
 
 class EventFileReaderFactory(Factory):
     """

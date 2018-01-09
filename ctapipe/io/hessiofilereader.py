@@ -37,7 +37,7 @@ class HessioFileReader(EventFileReader):
     def camera(self):
         return 'hessio'
 
-    def _generator(self):
+    def __iter__(self):
         with self.open_hessio(self.input_path) as pyhessio:
             self.pyhessio = pyhessio
             # the container is initialized once, and data is replaced within
@@ -158,10 +158,8 @@ class HessioFileReader(EventFileReader):
                 counter += 1
 
                 if self.max_events and counter >= self.max_events:
-                    self.reset()
-                    raise StopIteration
-        self.reset()
-        raise StopIteration
+                    return
+        return
 
     def _build_subarray_info(self, pyhessio):
         """
