@@ -23,9 +23,13 @@ class Factory(Component):
     You must also return the factory name in get_factory_name(), and the
     discriminator in get_product_name() in your custom Factory class.
 
-    To then obtain the product class from the factory, use 'get_class()",
-    which can be used to then initialise the class. The correct traits
-    from the correspoding product are set automatically from the factory.
+    To then obtain the product class from the factory, use 'produce()".
+    The correct traits from the correspoding product are set automatically
+    from the factory.
+
+    To a factory from within a `ctapipe.core.tool.Tool`:
+
+    >>> cls = FactoryChild.produce(config=self.config, tool=self)
 
     .. code:: python
 
@@ -142,4 +146,33 @@ class Factory(Component):
         for key in keys:
             if key not in product.class_trait_names():
                 del c[product.__name__][key]
+        return product
+
+    @classmethod
+    def produce(cls, config, tool, **kwargs):
+        """
+        Produce an instance of the product class
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+
+        Returns
+        -------
+        product
+            Instance of the product class that is the purpose of the factory
+            to produce.
+
+        """
+        factory = cls(config=config, tool=tool, **kwargs)
+        class_instance = factory.get_class()
+        product = class_instance(config=config, tool=tool, **kwargs)
         return product
