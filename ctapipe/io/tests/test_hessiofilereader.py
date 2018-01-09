@@ -19,3 +19,5 @@ def test_hessio_file_reader():
     assert event.r0.tels_with_data == {38, 47}
     event = reader[0]
     assert event.r0.tels_with_data == {38, 47}
+    event = reader['409']
+    assert event.r0.tels_with_data == {11, 21, 24, 26, 61, 63, 118, 119}
