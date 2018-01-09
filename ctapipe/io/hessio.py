@@ -129,18 +129,25 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
                     counter += 1
                     continue
 
-            data.index = counter
-            data.id = event_id
-            data.run_id = pyhessio.get_run_number()
-            data.tels_with_data = set(pyhessio.get_teldata_list())
+            data.r0.run_id = pyhessio.get_run_number()
+            data.r0.event_id = event_id
+            data.r0.tels_with_data = set(pyhessio.get_teldata_list())
+            data.r1.run_id = pyhessio.get_run_number()
+            data.r1.event_id = event_id
+            data.r1.tels_with_data = set(pyhessio.get_teldata_list())
+            data.dl0.run_id = pyhessio.get_run_number()
+            data.dl0.event_id = event_id
+            data.dl0.tels_with_data = set(pyhessio.get_teldata_list())
 
             # handle telescope filtering by taking the intersection of
             # tels_with_data and allowed_tels
             if allowed_tels is not None:
-                selected = data.tels_with_data & allowed_tels
+                selected = data.r0.tels_with_data & allowed_tels
                 if len(selected) == 0:
                     continue  # skip event
-                data.tels_with_data = selected
+                data.r0.tels_with_data = selected
+                data.r1.tels_with_data = selected
+                data.dl0.tels_with_data = selected
 
             data.trig.tels_with_trigger \
                 = pyhessio.get_central_event_teltrg_list()
@@ -160,6 +167,8 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
             # mc run header data
             data.mcheader.run_array_direction = \
                 pyhessio.get_mc_run_array_direction()
+
+            data.count = counter
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
