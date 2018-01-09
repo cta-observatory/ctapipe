@@ -100,9 +100,6 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    run_id = Field(-1, "run id number")
-    event_id = Field(-1, "event id number")
-    tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
 
@@ -121,9 +118,6 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    run_id = Field(-1, "run id number")
-    event_id = Field(-1, "event id number")
-    tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
 
@@ -143,9 +137,6 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    run_id = Field(-1, "run id number")
-    event_id = Field(-1, "event id number")
-    tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
 
@@ -324,6 +315,11 @@ class TelescopePointingContainer(Container):
 class DataContainer(Container):
     """ Top-level container for all event information """
 
+    index = Field(0, "number of events processed")
+    event_id = Field(-1, "event id number")
+    run_id = Field(-1, "run id number")
+    tels_with_data = Field([], "list of telescopes with data")
+
     r0 = Field(R0Container(), "Raw Data")
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
@@ -332,7 +328,6 @@ class DataContainer(Container):
     mc = Field(MCEventContainer(), "Monte-Carlo data")
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
-    count = Field(0, "number of events processed")
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
 
