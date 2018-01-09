@@ -73,6 +73,7 @@ class EventFileReader(Component):
 
         self.source = self._generator()
         self.current_event = None
+        self.getevent_warn = True
 
     @staticmethod
     @abstractmethod
@@ -217,6 +218,9 @@ class EventFileReader(Component):
             The event container filled with the requested event's information
 
         """
+        if self.getevent_warn:
+            self.log.warning("Seeking to event... (long process)")
+            self.getevent_warn = False
         if not use_event_id:
             msg = "Event index {} not found in file".format(ev)
             for event in self.source:
@@ -235,7 +239,7 @@ class EventFileReader(Component):
         # Only need to calculate once
         if not self._num_events:
             self.reset()
-            self.log.info("Obtaining number of events in file...")
+            self.log.warning("Obtaining length of file... (long process)")
             count = 0
             for _ in self:
                 if self.max_events and count >= self.max_events:
