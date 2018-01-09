@@ -37,7 +37,7 @@ class HessioFileReader(EventFileReader):
     def camera(self):
         return 'hessio'
 
-    def __next__(self):
+    def _generator(self):
         with self.open_hessio(self.input_path) as pyhessio:
             # the container is initialized once, and data is replaced within
             # it after each yield
@@ -60,18 +60,28 @@ class HessioFileReader(EventFileReader):
                     # so load it on the first event.
                     data.inst.subarray = self._build_subarray_info(pyhessio)
 
-                data.index = counter
-                data.id = event_id
-                data.run_id = pyhessio.get_run_number()
-                data.tels_with_data = set(pyhessio.get_teldata_list())
+                run_id = pyhessio.get_run_number()
+                tels_with_data = set(pyhessio.get_teldata_list())
+                data.count = counter
+                data.r0.run_id = run_id
+                data.r0.event_id = event_id
+                data.r0.tels_with_data = tels_with_data
+                data.r1.run_id = run_id
+                data.r1.event_id = event_id
+                data.r1.tels_with_data = tels_with_data
+                data.dl0.run_id = run_id
+                data.dl0.event_id = event_id
+                data.dl0.tels_with_data = tels_with_data
 
                 # handle telescope filtering by taking the intersection of
                 # tels_with_data and allowed_tels
                 if self.allowed_tels is not None:
-                    selected = data.tels_with_data & self.allowed_tels
+                    selected = tels_with_data & self.allowed_tels
                     if len(selected) == 0:
                         continue  # skip event
-                    data.tels_with_data = selected
+                    data.r0.tels_with_data = selected
+                    data.r1.tels_with_data = selected
+                    data.dl0.tels_with_data = selected
 
                 data.trig.tels_with_trigger \
                     = pyhessio.get_central_event_teltrg_list()
@@ -102,7 +112,7 @@ class HessioFileReader(EventFileReader):
                 data.dl1.tel.clear()
                 data.mc.tel.clear()  # clear the previous telescopes
 
-                for tel_id in data.r0.tels_with_data:
+                for tel_id in tels_with_data:
 
                     # event.mc.tel[tel_id] = MCCameraContainer()
 
@@ -148,7 +158,10 @@ class HessioFileReader(EventFileReader):
 
                 if self.max_events and counter >= self.max_events:
                     pyhessio.close_file()
+                    self.reset()
                     raise StopIteration
+        pyhessio.close_file()
+        self.reset()
         raise StopIteration
 
     def _build_subarray_info(self, pyhessio):

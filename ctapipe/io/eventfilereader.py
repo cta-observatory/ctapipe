@@ -7,6 +7,7 @@ from traitlets import Unicode, Int, CaselessStrEnum
 from copy import deepcopy
 from ctapipe.core import Component, Factory
 from ctapipe.utils import get_dataset
+from ctapipe.core import Provenance
 
 
 class EventFileReader(Component):
@@ -68,6 +69,10 @@ class EventFileReader(Component):
         if self.max_events:
             self.log.info("Max events being read = {}".format(self.max_events))
 
+        Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
+
+        self.source = self._generator()
+
     @staticmethod
     @abstractmethod
     def is_compatible(file_path):
@@ -105,21 +110,36 @@ class EventFileReader(Component):
         camera_name : str
         """
 
-    def __iter__(self):
-        return self
-
     @abstractmethod
-    def __next__(self):
+    def _generator(self):
         """
         Abstract method to be defined in child class.
 
-        Method where the filling of the `ctapipe.io.containers` occurs.
+        Generator where the filling of the `ctapipe.io.containers` occurs.
 
+        Returns
+        -------
+        generator
+        """
+
+    def reset(self):
+        """
+        Reset the generator such that it seeks from the beginning again.
+        """
+        self.source = self._generator()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """
         Returns
         -------
         data : ctapipe.io.container
             The event container filled with the event information
         """
+        event = next(self.source)
+        return event
 
     def __getitem__(self, item):
         """
@@ -138,42 +158,46 @@ class EventFileReader(Component):
             The event container filled with the requested event's information
 
         """
+        self.reset()
         use_event_id = False
-        msg = "Event index {} not found in reader".format(item)
+        msg = "Event index {} not found in file".format(item)
         if isinstance(item, str):
             item = int(item)
             use_event_id = True
-            msg = "Event id {} not found in reader".format(item)
+            msg = "Event id {} not found in file".format(item)
 
         if not use_event_id and self.max_events and item >= self.max_events:
             msg = "Event index {} outside of specified max_events {}"\
                 .format(item, self.max_events)
         elif not use_event_id:
             for event in self:
-                if event.index == item:
+                if event.count == item:
+                    self.reset()
                     return deepcopy(event)
         else:
             for event in self:
-                if event.id == item:
+                if event.r0.event_id == item:
+                    self.reset()
                     return deepcopy(event)
-
+        self.reset()
         raise KeyError(msg)
 
     def __len__(self):
         if not self._num_events:
             self.log.info("Obtaining number of events in file...")
+            self.reset()
             count = 0
             for _ in self:
-                if count >= self.max_events:
+                if self.max_events and count >= self.max_events:
                     break
                 count += 1
+            self.reset()
             self._num_events = count
         return self._num_events
 
 
 # EventFileReader imports so that EventFileReaderFactory can see them
-from ctapipe.io.hessiofilereader import HessioFileReader
-
+import ctapipe.io.hessiofilereader
 
 class EventFileReaderFactory(Factory):
     """
