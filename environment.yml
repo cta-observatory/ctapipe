@@ -3,7 +3,7 @@ channels:
   - cta-observatory
   - conda-forge
 dependencies:
-  - zeromq=4.2.2  # frozen since 4.2.3 has packaging problem
+  - zeromq=4.2.2 
   - ctapipe-extra=0.2.*
   - astropy
   - bokeh
