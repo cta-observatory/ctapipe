@@ -1,8 +1,10 @@
 name: cta-dev
 channels:
+  - anaconda
   - cta-observatory
   - conda-forge
 dependencies:
+  - zeromq=4.2.2 
   - ctapipe-extra=0.2.*
   - astropy
   - bokeh
