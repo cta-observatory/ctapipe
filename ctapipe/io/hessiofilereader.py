@@ -7,10 +7,14 @@ from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 
 
-COUNT = 0
-
-
 class HessioFileReader(EventFileReader):
+    """
+    EventFileReader for the hessio data format.
+
+    This class utilises `pyhessio` to read the hessio file, and stores the
+    information into the event containers.
+    """
+    _count = 0
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
@@ -18,9 +22,6 @@ class HessioFileReader(EventFileReader):
         try:
             from pyhessio import open_hessio
             from pyhessio import close_file
-            from pyhessio import HessioError
-            from pyhessio import HessioTelescopeIndexError
-            from pyhessio import HessioGeneralError
         except ImportError:
             msg = "The `pyhessio` python module is required to access MC data"
             self.log.error(msg)
@@ -28,26 +29,23 @@ class HessioFileReader(EventFileReader):
 
         self.open_hessio = open_hessio
         self.close_hessio = close_file
-        self.HessioError = HessioError
-        self.HessioTelescopeIndexError = HessioTelescopeIndexError
-        self.HessioGeneralError = HessioGeneralError
 
         self.allowed_tels = None
 
-        global COUNT
-        if COUNT > 0:
+        if HessioFileReader._count > 0:
             self.log.warn("Only one pyhessio reader allowed at a time. "
                           "Previous hessio file will be closed.")
             self.close_hessio()
-        COUNT += 1
+        HessioFileReader._count += 1
+
+        self._metadata['is_simulation'] = True
 
     @staticmethod
     def is_compatible(file_path):
         return file_path.endswith('.gz')
 
-    @property
-    def camera(self):
-        return 'hessio'
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close_hessio()
 
     def _generator(self):
         with self.open_hessio(self.input_path) as pyhessio:

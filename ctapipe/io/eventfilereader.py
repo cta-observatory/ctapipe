@@ -17,10 +17,60 @@ class EventFileReader(Component):
     A new EventFileReader should be created for each type of event file read
     into ctapipe, e.g. sim_telarray files are read by the `HessioFileReader`.
 
-    EventFileReader provides a common high-level interface for accessing data
-    from different data sources. Creating an EventFileReader for a new data
-    source ensures that data can be accessed in a common way, irregardless of
-    the data source.
+    EventFileReader provides a common high-level interface for accessing event
+    data from different data sources. Creating an EventFileReader for a new
+    data source ensures that data can be accessed in a common way,
+    irregardless of the data source.
+
+    EventFileReader itself is an abstract class. To use an EventFileReader you
+    must use a subclass that is relevant for the data format for the file you
+    are reader (for example you must use
+    `ctapipe.io.hessiofilereader.HessioFileReader` to read a hessio format
+    file). Alternatively you can use
+    `ctapipe.io.eventfilereader.EventFileReaderFactory` to automatically
+    select the correct EventFileReader subclass for the data format you wish
+    to read.
+
+    To loop through the events in a file:
+
+    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> for event in reader:
+    >>>    print(event.count)
+
+    **NOTE**: Every time a new loop is started through the reader, it restarts
+    from the first event.
+
+    To obtain a particular event in a file:
+
+    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> event = reader[event_index]
+    >>> print(event.count)
+
+    To obtain a particular event in a file from its event_id:
+
+    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> event = reader["event_id"]
+    >>> print(event.count)
+
+    To obtain a slice of events in a file:
+
+    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> event_list = reader[3:6]
+    >>> print([event.count for event in event_list])
+
+    To obtain a list of events in a file:
+
+    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> event_indicis = [2, 6, 8]
+    >>> event_list = reader[event_indicis]
+    >>> print([event.count for event in event_list])
+
+    Alternatively one can use EventFileReader in a `with` statement to ensure
+    the correct cleanups are performed when you are finished with the reader:
+
+    >>> with EventFileReader(None, None, input_path=path) as reader:
+    >>>    for event in reader:
+    >>>       print(event.count)
 
     Attributes
     ----------
@@ -58,6 +108,7 @@ class EventFileReader(Component):
         super().__init__(config=config, parent=tool, **kwargs)
 
         self._num_events = None
+        self._metadata = dict(is_simulation=False)
 
         if self.input_path is None:
             raise ValueError("Please specify an input_path for event file")
@@ -97,27 +148,25 @@ class EventFileReader(Component):
         """
 
     @property
-    @abstractmethod
-    def camera(self):
+    def metadata(self):
         """
-        Name of the camera contained in the file. Read from the file or
-        inferred from the EventFileReader class if the data format is only
-        used by one camera.
-
-        This property is used to choose the correct algorithms to process the
-        waveforms, as some cameras require different algorithms to others
-        (such as with R1 calibration and charge extraction).
+        A dictionary containing the metadata of the file. This could include:
+        * is_simulation (bool indicating if the file contains simulated events)
+        * Telescope:Camera names (list if file contains multiple)
+        * Information in the file header
+        * Observation ID
 
         Returns
         -------
-        camera_name : str
+        dict
         """
+        return self._metadata
 
     @property
     def is_stream(self):
         """
-        Bool indicating if input is a stream. If it is then `__getitem__` is
-        disabled.
+        Bool indicating if input is a stream. If it is then `__getitem__` and
+        `__len__` are disabled.
 
         TODO: Define a method to detect if it is a stream
 
@@ -153,6 +202,12 @@ class EventFileReader(Component):
         for event in self.source:
             self.current_event = event
             yield event
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     def __getitem__(self, item):
         """
