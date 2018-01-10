@@ -7,7 +7,6 @@ def test_hessio_file_reader():
     kwargs = dict(config=None, tool=None, input_path=dataset)
     with HessioFileReader(**kwargs) as reader:
         assert reader.is_compatible(dataset)
-        assert reader.camera == 'hessio'
         assert len(reader) == 9
         for event in reader:
             if event.count == 0:
