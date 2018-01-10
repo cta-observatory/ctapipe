@@ -73,6 +73,7 @@ class EventFileReader(Component):
 
         self.source = self._generator()
         self.current_event = None
+        self.has_fast_seek = False  # By default seeking iterates through
         self.getevent_warn = True
 
     @staticmethod
@@ -111,6 +112,21 @@ class EventFileReader(Component):
         -------
         camera_name : str
         """
+
+    @property
+    def is_stream(self):
+        """
+        Bool indicating if input is a stream. If it is then `__getitem__` is
+        disabled.
+
+        TODO: Define a method to detect if it is a stream
+
+        Returns
+        -------
+        bool
+            If True, then input is a stream.
+        """
+        return False
 
     @abstractmethod
     def _generator(self):
@@ -155,7 +171,14 @@ class EventFileReader(Component):
             The event container filled with the requested event's information
 
         """
+        if self.is_stream:
+            raise IOError("Input is a stream, __getitem__ is disabled")
+
         current = None
+
+        if not self.has_fast_seek and self.getevent_warn:
+            self.log.warning("Seeking to event... (potentially long process)")
+            self.getevent_warn = False
 
         # Handling of different input types (int, string, slice, list)
         use_event_id = False
@@ -218,9 +241,6 @@ class EventFileReader(Component):
             The event container filled with the requested event's information
 
         """
-        if self.getevent_warn:
-            self.log.warning("Seeking to event... (potentially long process)")
-            self.getevent_warn = False
         if not use_event_id:
             msg = "Event index {} not found in file".format(ev)
             for event in self.source:
@@ -236,6 +256,9 @@ class EventFileReader(Component):
         raise IndexError(msg)
 
     def __len__(self):
+        if self.is_stream:
+            raise IOError("Input is a stream, __len__ is disabled")
+
         # Only need to calculate once
         if not self._num_events:
             self.reset()
