@@ -64,14 +64,10 @@ class ChargeResolutionGenerator(Tool):
 
         self.file_reader = HessioFileReader(**kwargs)
 
-        extractor_factory = ChargeExtractorFactory(**kwargs)
-        extractor_class = extractor_factory.get_class()
-        extractor = extractor_class(**kwargs)
+        extractor = ChargeExtractorFactory.produce(**kwargs)
 
-        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
-                                               **kwargs)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(**kwargs)
+        c = self.file_reader.r1_calibrator
+        self.r1 = CameraR1CalibratorFactory.produce(calibrator=c, **kwargs)
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 

@@ -1,7 +1,9 @@
-from os.path import join, dirname
+import pytest
+from os.path import dirname
 from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
     EventFileReaderFactory, HessioFileReader
+from ctapipe.io.unofficial import eventfilereader as uefr
 
 
 def test_event_file_reader():
@@ -46,11 +48,21 @@ def test_get_num_events():
     assert (num_events == 2)
 
 
-def test_event_file_reader_factory():
+def test_event_file_reader_factory_hessio():
     dataset = get_dataset("gamma_test.simtel.gz")
     factory = EventFileReaderFactory(None, None)
     factory.input_path = dataset
     cls = factory.get_class()
     file = cls(None, None)
-    num_events = file.num_events
-    assert(num_events == 9)
+    assert(file.num_events == 9)
+
+
+def test_event_file_reader_factory_targetio():
+    pytest.importorskip("target_driver")
+    pytest.importorskip("target_io")
+    pytest.importorskip("target_calib")
+    dataset = get_dataset("chec_r1.tio")
+    factory = EventFileReaderFactory(None, None, input_path=dataset)
+    cls = factory.get_class()
+    file = cls(None, None, input_path=dataset)
+    assert(file.num_events == 5)

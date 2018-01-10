@@ -321,7 +321,7 @@ class DisplayIntegrator(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.file_reader = None
+        self.reader = None
         self.r1 = None
         self.dl0 = None
         self.extractor = None
@@ -334,16 +334,14 @@ class DisplayIntegrator(Tool):
 
         reader_factory = EventFileReaderFactory(**kwargs)
         reader_class = reader_factory.get_class()
-        self.file_reader = reader_class(**kwargs)
+        self.reader = reader_class(**kwargs)
 
-        extractor_factory = ChargeExtractorFactory(**kwargs)
-        extractor_class = extractor_factory.get_class()
-        self.extractor = extractor_class(**kwargs)
+        self.reader = EventFileReaderFactory.produce(**kwargs)
 
-        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
-                                               **kwargs)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(**kwargs)
+        self.extractor = ChargeExtractorFactory.produce(**kwargs)
+
+        c = self.reader.r1_calibrator
+        self.r1 = CameraR1CalibratorFactory.produce(calibrator=c, **kwargs)
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 
@@ -352,7 +350,7 @@ class DisplayIntegrator(Tool):
         self.plotter = IntegratorPlotter(**kwargs)
 
     def start(self):
-        event = self.file_reader.get_event(self.event_index, self.use_event_id)
+        event = self.reader.get_event(self.event_index, self.use_event_id)
 
         # Calibrate
         self.r1.calibrate(event)
@@ -371,7 +369,7 @@ class DisplayIntegrator(Tool):
 
         extractor_name = self.extractor.name
 
-        self.plotter.plot(self.file_reader, event, telid,
+        self.plotter.plot(self.reader, event, telid,
                           self.channel, extractor_name)
 
     def finish(self):

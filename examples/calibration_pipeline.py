@@ -159,11 +159,10 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        reader_factory = EventFileReaderFactory(**kwargs)
-        reader_class = reader_factory.get_class()
-        self.reader = reader_class(**kwargs)
+        self.reader = EventFileReaderFactory.produce(**kwargs)
 
-        self.calibrator = CameraCalibrator(origin=self.reader.origin, **kwargs)
+        c = self.reader.r1_calibrator
+        self.calibrator = CameraCalibrator(r1=c, **kwargs)
 
         self.plotter = ImagePlotter(**kwargs)
 

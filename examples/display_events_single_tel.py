@@ -63,12 +63,11 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
 
-        reader_factory = EventFileReaderFactory(None, self)
-        reader_class = reader_factory.get_class()
-        self.reader = reader_class(None, self)
+        self.reader = EventFileReaderFactory.produce(config=None, tool=self)
 
-        self.calibrator = CameraCalibrator(config=None, tool=self,
-                                           origin=self.reader.origin)
+        c = self.reader.r1_calibrator
+        self.calibrator = CameraCalibrator(config=None, tool=self, r1=c)
+
         self.source = self.reader.read(allowed_tels=[self.tel, ])
 
         self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))

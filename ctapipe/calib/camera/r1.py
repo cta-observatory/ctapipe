@@ -13,7 +13,7 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
-from traitlets import CaselessStrEnum, Unicode
+from traitlets import CaselessStrEnum as CSE, Unicode, observe
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
 
@@ -53,7 +53,6 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    origin = None
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -72,10 +71,6 @@ class CameraR1Calibrator(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        if self.origin is None:
-            raise ValueError("Subclass of CameraR1Calibrator should specify "
-                             "an origin")
-
         self._r0_empty_warn = False
 
     @abstractmethod
@@ -122,6 +117,36 @@ class CameraR1Calibrator(Component):
             return False
 
 
+class NullR1Calibrator(CameraR1Calibrator):
+    """
+    A dummy R1 calibrator that simply fills the r1 container with the samples
+    from the r0 container.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
+    def __init__(self, config, tool, **kwargs):
+        super().__init__(config, tool, **kwargs)
+        self.log.warning("Using NullR1Calibrator, if data source is at the R0 "
+                         "level, then r1 samples will equal r0 samples")
+
+    def calibrate(self, event):
+        for telid in event.r0.tels_with_data:
+            if self.check_r0_exists(event, telid):
+                samples = event.r0.tel[telid].adc_samples
+                event.r1.tel[telid].pe_samples = samples.astype('float32')
+
+
 class HessioR1Calibrator(CameraR1Calibrator):
     """
     The R1 calibrator for hessio files. Fills the r1 container.
@@ -141,7 +166,6 @@ class HessioR1Calibrator(CameraR1Calibrator):
         Set to None if no Tool to pass.
     kwargs
     """
-    origin = 'hessio'
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
@@ -158,11 +182,132 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 event.r1.tel[telid].pe_samples = calibrated
 
 
-# External Children
-try:
-    from targetpipe.calib.camera.r1 import TargetioR1Calibrator
-except ImportError:
-    pass
+class TargetioR1Calibrator(CameraR1Calibrator):
+
+    pedestal_path = Unicode('', allow_none=True,
+                            help='Path to the TargetCalib pedestal '
+                                 'file').tag(config=True)
+    tf_path = Unicode('', allow_none=True,
+                      help='Path to the TargetCalib Transfer Function '
+                           'file').tag(config=True)
+    pe_path = Unicode('', allow_none=True,
+                      help='Path to the TargetCalib pe conversion '
+                           'file').tag(config=True)
+    ff_path = Unicode('', allow_none=True,
+                      help='Path to a TargetCalib flat field '
+                           'file').tag(config=True)
+
+    def __init__(self, config, tool, **kwargs):
+        """
+        The R1 calibrator for targetio files (i.e. files containing data
+        taken with a TARGET module, such as with CHEC)
+
+        Fills the r1 container.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+        """
+        super().__init__(config=config, tool=tool, **kwargs)
+        try:
+            import target_calib
+        except ModuleNotFoundError:
+            err = "Cannot find target_calib module, please follow " \
+                  "installation instructions from " \
+                  "ctapipe.io.unofficial.eventfilereader.TargetioFileReader"
+            self.log.error(err)
+            raise
+
+        self.tc = target_calib
+        self.calibrator = None
+        self.telid = 0
+
+        self._load_calib()
+
+    def calibrate(self, event):
+        """
+        Fake function to satisfy abstract parent, this is overloaded by
+        either fake_calibrate or real_calibrate.
+        """
+        pass
+
+    def _load_calib(self):
+        """
+        If a pedestal file has been supplied, create a target_calib
+        Calibrator object. If it hasn't then point calibrate to
+        fake_calibrate, where nothing is done to the waveform.
+        """
+        if self.pedestal_path:
+            self.calibrator = self.tc.Calibrator(self.pedestal_path,
+                                                 self.tf_path,
+                                                 [self.pe_path, self.ff_path])
+            self.calibrate = self.real_calibrate
+        else:
+            self.log.warning("No pedestal path supplied, "
+                             "r1 samples will equal r0 samples.")
+            self.calibrate = self.fake_calibrate
+
+    @observe('pedestal_path')
+    def on_input_path_changed(self, change):
+        new = change['new']
+        try:
+            self.log.warning("Change: pedestal_path={}".format(new))
+            self._load_calib()
+        except AttributeError:
+            pass
+
+    @observe('tf_path')
+    def on_tf_path_changed(self, change):
+        new = change['new']
+        try:
+            self.log.warning("Change: tf_path={}".format(new))
+            self._load_calib()
+        except AttributeError:
+            pass
+
+    def fake_calibrate(self, event):
+        """
+        Don't perform any calibration on the waveforms, just fill the
+        R1 container.
+
+        Parameters
+        ----------
+        event : `ctapipe` event-container
+        """
+        if event.meta['origin'] != 'targetio':
+            raise ValueError('Using TargetioR1Calibrator to calibrate a '
+                             'non-targetio event.')
+
+        if self.check_r0_exists(event, self.telid):
+            samples = event.r0.tel[self.telid].adc_samples
+            event.r1.tel[self.telid].pe_samples = samples.astype('float32')
+
+    def real_calibrate(self, event):
+        """
+        Apply the R1 calibration defined in target_calib and fill the
+        R1 container.
+
+        Parameters
+        ----------
+        event : `ctapipe` event-container
+        """
+        if event.meta['origin'] != 'targetio':
+            raise ValueError('Using TargetioR1Calibrator to calibrate a '
+                             'non-targetio event.')
+
+        if self.check_r0_exists(event, self.telid):
+            samples = event.r0.tel[self.telid].adc_samples[0]
+            fci = event.r0.tel[self.telid].first_cell_ids
+            r1 = event.r1.tel[self.telid].pe_samples[0]
+            self.calibrator.ApplyEvent(samples, fci, r1)
 
 
 class CameraR1CalibratorFactory(Factory):
@@ -199,11 +344,12 @@ class CameraR1CalibratorFactory(Factory):
 
     Attributes
     ----------
-    origin : traitlets.CaselessStrEnum
-        A string describing the origin of the event file being calibrated.
+    calibrator : traitlets.CaselessStrEnum
+        The name of the `CameraR1Calibrator` to use as a string.
         Should be obtained from the
-        `ctapipe.io.eventfilereader.EventFileReader.origin` attribute of the
-        correct `ctapipe.io.eventfilereader.EventFileReader` for the file.
+        `ctapipe.io.eventfilereader.EventFileReader.r1_calibrator` attribute
+        of the correct `ctapipe.io.eventfilereader.EventFileReader` for
+        the file.
     pedestal_path : traitlets.Unicode
         A string containing the path to a file containing the electronic
         pedestal to be subtracted from the waveforms. How/if this file is used
@@ -225,11 +371,12 @@ class CameraR1CalibratorFactory(Factory):
     description = "Obtain CameraR1Calibrator based on file origin"
 
     subclasses = Factory.child_subclasses(CameraR1Calibrator)
-    subclass_names = [c.origin for c in subclasses]
+    subclass_names = [c.__name__ for c in subclasses]
 
-    origin = CaselessStrEnum(subclass_names, 'hessio',
-                             help='Origin of events to be '
-                                  'calibration.').tag(config=True)
+    calibrator = CSE(subclass_names, "NullR1Calibrator",
+                     help='Name of the CameraR1Calibrator to use. Can be '
+                          'chosen by '
+                          '`EventFileReader.r1_calibrator`').tag(config=True)
 
     # Product classes traits
     pedestal_path = Unicode('', allow_none=True,
@@ -237,7 +384,7 @@ class CameraR1CalibratorFactory(Factory):
     tf_path = Unicode('', allow_none=True,
                       help='Path to a Transfer Function file').tag(config=True)
     pe_path = Unicode('', allow_none=True,
-                          help='Path to an pe conversion file').tag(config=True)
+                      help='Path to an pe conversion file').tag(config=True)
     ff_path = Unicode('', allow_none=True,
                       help='Path to a flat field file').tag(config=True)
 
@@ -245,4 +392,4 @@ class CameraR1CalibratorFactory(Factory):
         return self.__class__.__name__
 
     def get_product_name(self):
-        return self.origin
+        return self.calibrator

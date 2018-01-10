@@ -16,7 +16,7 @@ def test_camera_calibrator():
     event = get_test_event()
     telid = 11
 
-    calibrator = CameraCalibrator(None, None)
+    calibrator = CameraCalibrator(None, None, r1='HessioR1Calibrator')
 
     calibrator.calibrate(event)
     image = event.dl1.tel[telid].image
