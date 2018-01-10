@@ -22,6 +22,7 @@ class HessioFileReader(EventFileReader):
         try:
             from pyhessio import open_hessio
             from pyhessio import close_file
+            from pyhessio import HessioGeneralError
         except ImportError:
             msg = "The `pyhessio` python module is required to access MC data"
             self.log.error(msg)
@@ -29,6 +30,7 @@ class HessioFileReader(EventFileReader):
 
         self.open_hessio = open_hessio
         self.close_hessio = close_file
+        self.HessioGeneralError = HessioGeneralError
 
         self.allowed_tels = None
 
