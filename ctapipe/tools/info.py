@@ -19,7 +19,7 @@ _dependencies = sorted(['astropy', 'matplotlib',
                         'sklearn', 'scipy', 'numba',
                         'pytest', 'ctapipe_resources', 'iminuit', 'tables'])
 
-_optional_dependencies = sorted(['pytest', 'graphviz', 'pyzmq',
+_optional_dependencies = sorted(['pytest', 'graphviz', #'pyzmq',
                                  'fitsio', 'pyhessio', 'targetio',
                                  'matplotlib'])
 
