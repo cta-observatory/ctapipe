@@ -132,8 +132,6 @@ class EventFileReader(Component):
         self._num_events = None
         self._metadata = dict(is_simulation=False)
 
-        # if self.input_path is None:
-        #     raise ValueError("Please specify an input_path for event file")
         if not exists(self.input_path):
             raise FileNotFoundError("file path does not exist: '{}'"
                                     .format(self.input_path))
