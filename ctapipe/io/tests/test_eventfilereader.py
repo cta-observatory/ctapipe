@@ -19,4 +19,4 @@ def test_event_file_reader_factory():
     factory.input_path = dataset
     cls = factory.get_class()
     reader = cls(None, None)
-    assert(len(reader) == 9)
+    assert reader.__class__.__name__ == "HessioFileReader"

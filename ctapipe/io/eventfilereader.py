@@ -4,7 +4,6 @@ Handles reading of different event/waveform containing files
 from abc import abstractmethod
 from os.path import exists
 from traitlets import Unicode, Int, CaselessStrEnum
-from copy import deepcopy
 from ctapipe.core import Component, Factory
 from ctapipe.utils import get_dataset
 from ctapipe.core import Provenance
@@ -45,52 +44,21 @@ class EventFileReader(Component):
     However if you are not inside a Tool, you can still create an instance and
     supply an input_path via:
 
-    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> reader = EventFileReader(None, None, input_path="/path/to/file")
 
     To loop through the events in a file:
 
-    >>> reader = EventFileReader(None, None, input_path=path)
+    >>> reader = EventFileReader(None, None, input_path="/path/to/file")
     >>> for event in reader:
     >>>    print(event.count)
 
     **NOTE**: Every time a new loop is started through the reader, it restarts
     from the first event.
 
-    To obtain a particular event in a file:
-
-    >>> reader = EventFileReader(None, None, input_path=path)
-    >>> event = reader[event_index]
-    >>> print(event.count)
-
-    To obtain a particular event in a file from its event_id:
-
-    >>> reader = EventFileReader(None, None, input_path=path)
-    >>> event = reader["event_id"]
-    >>> print(event.count)
-
-    **NOTE**: Event_index refers to the number associated to the event
-    assigned by ctapipe (`event.count`), based on the order the events are
-    read from the file.
-    Whereas the event_id refers to the ID attatched to the event from the
-    external source of the file (software or camera or CTA array).
-
-    To obtain a slice of events in a file:
-
-    >>> reader = EventFileReader(None, None, input_path=path)
-    >>> event_list = reader[3:6]
-    >>> print([event.count for event in event_list])
-
-    To obtain a list of events in a file:
-
-    >>> reader = EventFileReader(None, None, input_path=path)
-    >>> event_indicis = [2, 6, 8]
-    >>> event_list = reader[event_indicis]
-    >>> print([event.count for event in event_list])
-
     Alternatively one can use EventFileReader in a `with` statement to ensure
     the correct cleanups are performed when you are finished with the reader:
 
-    >>> with EventFileReader(None, None, input_path=path) as reader:
+    >>> with EventFileReader(None, None, input_path="/path/to/file") as reader:
     >>>    for event in reader:
     >>>       print(event.count)
 
@@ -129,7 +97,6 @@ class EventFileReader(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        self._num_events = None
         self._metadata = dict(is_simulation=False)
 
         if not exists(self.input_path):
@@ -141,11 +108,6 @@ class EventFileReader(Component):
             self.log.info("Max events being read = {}".format(self.max_events))
 
         Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
-
-        self._source = self._generator()
-        self._current_event = None
-        self._has_fast_seek = False  # By default seeking iterates through
-        self._getevent_warn = True
 
     @staticmethod
     @abstractmethod
@@ -209,20 +171,19 @@ class EventFileReader(Component):
         generator
         """
 
-    def reset(self):
-        """
-        Recreate the generator so it starts from the beginning
-        """
-        self._source = self._generator()
-        self._current_event = None
-
     def __iter__(self):
-        # Always reset generator when starting a new iteration
-        self.reset()
-        for event in self._source:
+        """
+        Abstract method to be defined in child class.
+
+        Generator where the filling of the `ctapipe.io.containers` occurs.
+
+        Returns
+        -------
+        generator
+        """
+        for event in self._generator():
             if self.max_events and event.count >= self.max_events:
                 break
-            self._current_event = event
             yield event
 
     def __enter__(self):
@@ -230,144 +191,6 @@ class EventFileReader(Component):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
-
-    def __getitem__(self, item):
-        """
-        Obtain a particular event
-
-        Parameters
-        ----------
-        item : int or str
-            If `item` is an int, then this is the event_index for the event
-            obtained. If `item` is a str, then this is the event_id for the
-            event obtained.
-
-        Returns
-        -------
-        event : ctapipe.io.container
-            The event container filled with the requested event's information
-
-        """
-        if self.is_stream:
-            raise IOError("Input is a stream, __getitem__ is disabled")
-
-        current = None
-
-        if not self._has_fast_seek and self._getevent_warn:
-            self.log.warning("Seeking to event... (potentially long process)")
-            self._getevent_warn = False
-
-        # Handling of different input types (int, string, slice, list)
-        use_event_id = False
-        if isinstance(item, int):
-            if self._current_event:
-                current = self._current_event.count
-            if item < 0:
-                item = len(self) + item
-                if item < 0 or item >= len(self):
-                    msg = ("Event index {} out of range [0, {}]"
-                        .format(item, len(self)))
-                    raise IndexError(msg)
-        elif isinstance(item, str):
-            item = int(item)
-            use_event_id = True
-            if self._current_event:
-                current = self._current_event.r0.event_id
-        elif isinstance(item, slice):
-            it = range(item.start or 0, item.stop or len(self), item.step or 1)
-            events = [self[i] for i in it]
-            return events
-        elif isinstance(item, list):
-            events = [self[i] for i in item]
-            return events
-        else:
-            raise TypeError("{} indexing is not supported".format(type(item)))
-
-        # Return a copy of the current event if we have already reached it
-        if current is not None and item == current:
-            return deepcopy(self._current_event)
-
-        # If requested event is less than the current event position: reset
-        if current is not None and item < current:
-            self.reset()
-
-        # Check we are within max_events range
-        if not use_event_id and self.max_events and item >= self.max_events:
-            msg = ("Event index {} outside of specified max_events {}"
-                .format(item, self.max_events))
-            raise IndexError(msg)
-
-        if not use_event_id:
-            return self._get_event_by_index(item)
-        else:
-            return self._get_event_by_id(item)
-
-    def _get_event_by_index(self, index):
-        """
-        Method for extracting a particular event for this file format by
-        event index.
-        If a file format allows random event access, this function can be
-        overrided for a more efficient method.
-
-        Parameters
-        ----------
-        index : int
-            The event_index to seek.
-
-        Returns
-        -------
-        event : ctapipe.io.container
-            The event container filled with the requested event's information
-
-        """
-        for event in self._source:
-            if event.count == index:
-                self._current_event = event
-                return deepcopy(event)
-        raise IndexError("Event index {} not found in file".format(index))
-
-    def _get_event_by_id(self, event_id):
-        """
-        Method for extracting a particular event for this file format by
-        event id.
-        If a file format allows random event access, this function can be
-        overrided for a more efficient method.
-
-        Parameters
-        ----------
-        event_id : int
-            The event_id to seek.
-
-        Returns
-        -------
-        event : ctapipe.io.container
-            The event container filled with the requested event's information
-
-        """
-        for event in self:  # Event Ids may not be in order
-            if self.max_events and event.count >= self.max_events:
-                break
-            if event.r0.event_id == event_id:
-                self._current_event = event
-                return deepcopy(event)
-        raise IndexError("Event id {} not found in file".format(event_id))
-
-    def __len__(self):
-        if self.is_stream:
-            raise IOError("Input is a stream, __len__ is disabled")
-
-        # Only need to calculate once
-        if not self._num_events:
-            self.reset()
-            self.log.warning("Obtaining length of file... "
-                             "(potentially long process)")
-            count = 0
-            for _ in self:
-                if self.max_events and count >= self.max_events:
-                    break
-                count += 1
-            self._num_events = count
-        return self._num_events
 
 
 # EventFileReader imports so that EventFileReaderFactory can see them
