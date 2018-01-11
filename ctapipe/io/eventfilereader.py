@@ -18,18 +18,34 @@ class EventFileReader(Component):
     into ctapipe, e.g. sim_telarray files are read by the `HessioFileReader`.
 
     EventFileReader provides a common high-level interface for accessing event
-    data from different data sources. Creating an EventFileReader for a new
-    data source ensures that data can be accessed in a common way,
-    irregardless of the data source.
+    information from different data sources (simulation or different camera
+    file formats). Creating an EventFileReader for a new
+    file format ensures that data can be accessed in a common way,
+    irregardless of the file format.
 
     EventFileReader itself is an abstract class. To use an EventFileReader you
-    must use a subclass that is relevant for the data format for the file you
-    are reader (for example you must use
+    must use a subclass that is relevant for the file format you
+    are reading (for example you must use
     `ctapipe.io.hessiofilereader.HessioFileReader` to read a hessio format
     file). Alternatively you can use
     `ctapipe.io.eventfilereader.EventFileReaderFactory` to automatically
-    select the correct EventFileReader subclass for the data format you wish
+    select the correct EventFileReader subclass for the file format you wish
     to read.
+
+    To create an instance of an EventFileReader you must pass the traitlet
+    configuration (containing the input_path) and the
+    `ctapipe.core.tool.Tool`. Therefore from inside a Tool you would do:
+
+    >>> reader = EventFileReader(self.config, self)
+
+    An example of how to use `ctapipe.core.tool.Tool` and
+    `ctapipe.io.eventfilereader.EventFileReaderFactory` can be found in
+    ctapipe/examples/calibration_pipeline.py.
+
+    However if you are not inside a Tool, you can still create an instance and
+    supply an input_path via:
+
+    >>> reader = EventFileReader(None, None, input_path=path)
 
     To loop through the events in a file:
 
@@ -51,6 +67,12 @@ class EventFileReader(Component):
     >>> reader = EventFileReader(None, None, input_path=path)
     >>> event = reader["event_id"]
     >>> print(event.count)
+
+    **NOTE**: Event_index refers to the number associated to the event
+    assigned by ctapipe (`event.count`), based on the order the events are
+    read from the file.
+    Whereas the event_id refers to the ID attatched to the event from the
+    external source of the file (software or camera or CTA array).
 
     To obtain a slice of events in a file:
 
@@ -80,7 +102,7 @@ class EventFileReader(Component):
         Maximum number of events to loop through in generator
     """
 
-    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
+    input_path = Unicode('', allow_none=False,
                          help='Path to the input file containing '
                               'events.').tag(config=True)
     max_events = Int(None, allow_none=True,
@@ -110,8 +132,8 @@ class EventFileReader(Component):
         self._num_events = None
         self._metadata = dict(is_simulation=False)
 
-        if self.input_path is None:
-            raise ValueError("Please specify an input_path for event file")
+        # if self.input_path is None:
+        #     raise ValueError("Please specify an input_path for event file")
         if not exists(self.input_path):
             raise FileNotFoundError("file path does not exist: '{}'"
                                     .format(self.input_path))
@@ -122,10 +144,10 @@ class EventFileReader(Component):
 
         Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
 
-        self.source = self._generator()
-        self.current_event = None
-        self.has_fast_seek = False  # By default seeking iterates through
-        self.getevent_warn = True
+        self._source = self._generator()
+        self._current_event = None
+        self._has_fast_seek = False  # By default seeking iterates through
+        self._getevent_warn = True
 
     @staticmethod
     @abstractmethod
@@ -193,14 +215,16 @@ class EventFileReader(Component):
         """
         Recreate the generator so it starts from the beginning
         """
-        self.source = self._generator()
-        self.current_event = None
+        self._source = self._generator()
+        self._current_event = None
 
     def __iter__(self):
         # Always reset generator when starting a new iteration
         self.reset()
-        for event in self.source:
-            self.current_event = event
+        for event in self._source:
+            if self.max_events and event.count >= self.max_events:
+                break
+            self._current_event = event
             yield event
 
     def __enter__(self):
@@ -231,26 +255,26 @@ class EventFileReader(Component):
 
         current = None
 
-        if not self.has_fast_seek and self.getevent_warn:
+        if not self._has_fast_seek and self._getevent_warn:
             self.log.warning("Seeking to event... (potentially long process)")
-            self.getevent_warn = False
+            self._getevent_warn = False
 
         # Handling of different input types (int, string, slice, list)
         use_event_id = False
         if isinstance(item, int):
-            if self.current_event:
-                current = self.current_event.count
+            if self._current_event:
+                current = self._current_event.count
             if item < 0:
                 item = len(self) + item
                 if item < 0 or item >= len(self):
-                    msg = "Event index {} out of range [0, {}]"\
-                        .format(item, len(self))
+                    msg = ("Event index {} out of range [0, {}]"
+                        .format(item, len(self)))
                     raise IndexError(msg)
         elif isinstance(item, str):
             item = int(item)
             use_event_id = True
-            if self.current_event:
-                current = self.current_event.r0.event_id
+            if self._current_event:
+                current = self._current_event.r0.event_id
         elif isinstance(item, slice):
             it = range(item.start or 0, item.stop or len(self), item.step or 1)
             events = [self[i] for i in it]
@@ -263,7 +287,7 @@ class EventFileReader(Component):
 
         # Return a copy of the current event if we have already reached it
         if current is not None and item == current:
-            return deepcopy(self.current_event)
+            return deepcopy(self._current_event)
 
         # If requested event is less than the current event position: reset
         if current is not None and item < current:
@@ -271,24 +295,26 @@ class EventFileReader(Component):
 
         # Check we are within max_events range
         if not use_event_id and self.max_events and item >= self.max_events:
-            msg = "Event index {} outside of specified max_events {}"\
-                .format(item, self.max_events)
+            msg = ("Event index {} outside of specified max_events {}"
+                .format(item, self.max_events))
             raise IndexError(msg)
 
-        return self._get_event(item, use_event_id)
+        if not use_event_id:
+            return self._get_event_by_index(item)
+        else:
+            return self._get_event_by_id(item)
 
-    def _get_event(self, ev, use_event_id):
+    def _get_event_by_index(self, index):
         """
-        Method for extracting a paritcular event for this data format.
-        If a data format allows random event access, this function can be
+        Method for extracting a particular event for this file format by
+        event index.
+        If a file format allows random event access, this function can be
         overrided for a more efficient method.
 
         Parameters
         ----------
-        ev : int or str
-            The event_index or event_id to seek.
-        use_event_id : bool
-            Whether ev is event_id or event_index.
+        index : int
+            The event_index to seek.
 
         Returns
         -------
@@ -296,19 +322,37 @@ class EventFileReader(Component):
             The event container filled with the requested event's information
 
         """
-        if not use_event_id:
-            msg = "Event index {} not found in file".format(ev)
-            for event in self.source:
-                if event.count == ev:
-                    self.current_event = event
-                    return deepcopy(event)
-        else:
-            msg = "Event id {} not found in file".format(ev)
-            for event in self:  # Event Ids may not be in order
-                if event.r0.event_id == ev:
-                    self.current_event = event
-                    return deepcopy(event)
-        raise IndexError(msg)
+        for event in self._source:
+            if event.count == index:
+                self._current_event = event
+                return deepcopy(event)
+        raise IndexError("Event index {} not found in file".format(index))
+
+    def _get_event_by_id(self, event_id):
+        """
+        Method for extracting a particular event for this file format by
+        event id.
+        If a file format allows random event access, this function can be
+        overrided for a more efficient method.
+
+        Parameters
+        ----------
+        event_id : int
+            The event_id to seek.
+
+        Returns
+        -------
+        event : ctapipe.io.container
+            The event container filled with the requested event's information
+
+        """
+        for event in self:  # Event Ids may not be in order
+            if self.max_events and event.count >= self.max_events:
+                break
+            if event.r0.event_id == event_id:
+                self._current_event = event
+                return deepcopy(event)
+        raise IndexError("Event id {} not found in file".format(event_id))
 
     def __len__(self):
         if self.is_stream:
@@ -343,7 +387,7 @@ class EventFileReaderFactory(Factory):
     is compatible with the file.
 
     Using `EventFileReaderFactory` in a script allows it to be compatible with
-    any data source that has an `EventFileReader` defined.
+    any file format that has an `EventFileReader` defined.
 
     To use within a `ctapipe.core.tool.Tool`:
 
