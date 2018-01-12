@@ -38,3 +38,10 @@ def test_eventseeker():
         seeker = EventSeeker(None, None, reader=reader)
         with pytest.raises(IndexError):
             event = seeker[5]
+
+    class StreamFileReader(HessioFileReader):
+        def is_stream(self):
+            return True
+    with StreamFileReader(**kwargs) as reader:
+        with pytest.raises(IOError):
+            seeker = EventSeeker(None, None, reader=reader)
