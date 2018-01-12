@@ -68,14 +68,23 @@ class EventFileReader(Component):
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
+    metadata : dict
+        A dictionary containing the metadata of the file. This could include:
+        * is_simulation (bool indicating if the file contains simulated events)
+        * Telescope:Camera names (list if file contains multiple)
+        * Information in the file header
+        * Observation ID
     """
 
-    input_path = Unicode('', allow_none=False,
-                         help='Path to the input file containing '
-                              'events.').tag(config=True)
-    max_events = Int(None, allow_none=True,
-                     help='Maximum number of events that will be read from'
-                          'the file').tag(config=True)
+    input_path = Unicode(
+        '',
+        help='Path to the input file containing events.'
+    ).tag(config=True)
+    max_events = Int(
+        None,
+        allow_none=True,
+        help='Maximum number of events that will be read from the file'
+    ).tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -97,7 +106,7 @@ class EventFileReader(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        self._metadata = dict(is_simulation=False)
+        self.metadata = dict(is_simulation=False)
 
         if not exists(self.input_path):
             raise FileNotFoundError("file path does not exist: '{}'"
@@ -130,25 +139,10 @@ class EventFileReader(Component):
         """
 
     @property
-    def metadata(self):
-        """
-        A dictionary containing the metadata of the file. This could include:
-        * is_simulation (bool indicating if the file contains simulated events)
-        * Telescope:Camera names (list if file contains multiple)
-        * Information in the file header
-        * Observation ID
-
-        Returns
-        -------
-        dict
-        """
-        return self._metadata
-
-    @property
     def is_stream(self):
         """
-        Bool indicating if input is a stream. If it is then `__getitem__` and
-        `__len__` are disabled.
+        Bool indicating if input is a stream. If it is then it is incompatible
+        with `ctapipe.io.eventseeker.EventSeeker`.
 
         TODO: Define a method to detect if it is a stream
 
@@ -173,9 +167,8 @@ class EventFileReader(Component):
 
     def __iter__(self):
         """
-        Abstract method to be defined in child class.
-
-        Generator where the filling of the `ctapipe.io.containers` occurs.
+        Generator that iterates through `_generator`, but keeps track of
+        `self.max_events`.
 
         Returns
         -------
@@ -238,19 +231,25 @@ class EventFileReaderFactory(Factory):
     subclasses = Factory.child_subclasses(EventFileReader)
     subclass_names = [c.__name__ for c in subclasses]
 
-    reader = CaselessStrEnum(subclass_names, None, allow_none=True,
-                             help='Event file reader to use. If None then '
-                                  'a reader will be chosen based on file '
-                                  'extension').tag(config=True)
+    reader = CaselessStrEnum(
+        subclass_names,
+        None,
+        allow_none=True,
+        help='Event file reader to use. If None then a reader will be chosen '
+             'based on file extension'
+    ).tag(config=True)
 
     # Product classes traits
     # Would be nice to have these automatically set...!
-    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
-                         help='Path to the input file containing '
-                              'events.').tag(config=True)
-    max_events = Int(None, allow_none=True,
-                     help='Maximum number of events that will be read from'
-                          'the file').tag(config=True)
+    input_path = Unicode(
+        get_dataset('gamma_test.simtel.gz'),
+        help='Path to the input file containing events.'
+    ).tag(config=True)
+    max_events = Int(
+        None,
+        allow_none=True,
+        help='Maximum number of events that will be read from the file'
+    ).tag(config=True)
 
     def get_factory_name(self):
         return self.__class__.__name__

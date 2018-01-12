@@ -20,9 +20,10 @@ class HessioFileReader(EventFileReader):
     """
     _count = 0
 
-    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=False,
-                         help='Path to the input file containing '
-                              'events.').tag(config=True)
+    input_path = Unicode(
+        get_dataset('gamma_test.simtel.gz'),
+        help='Path to the input file containing events.'
+    ).tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
@@ -44,7 +45,7 @@ class HessioFileReader(EventFileReader):
             self.pyhessio.close_file()
         HessioFileReader._count += 1
 
-        self._metadata['is_simulation'] = True
+        self.metadata['is_simulation'] = True
 
     @staticmethod
     def is_compatible(file_path):
