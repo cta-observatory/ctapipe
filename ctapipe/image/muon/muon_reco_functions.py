@@ -42,7 +42,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     # Need to either convert from the pixel area in m^2 or check the camera specs
     AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17]
     # Found from TDRs (or the pixel area)
-    # hole_rad = []   Need to check and implement
+    hole_rad = [0.308 * u.m,0.244*u.m,0.244*u.m,4.3866*u.m,0.160*u.m,0.130*u.m,0.171*u.m] # Assuming approximately spherical hole
     cam_rad = [2.26, 3.96, 3.87, 4., 4.45, 2.86, 5.25]
     # Above found from the field of view calculation
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
@@ -53,7 +53,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     muon_cuts = {'Name': names, 'TailCuts': TailCuts, 'Impact': impact,
                  'RingWidth': ringwidth, 'TotalPix': TotalPix,
                  'MinPix': MinPix, 'CamRad': cam_rad, 'SecRad': sec_rad,
-                 'SCT': sct, 'AngPixW': AngPixelWidth}
+                 'SCT': sct, 'AngPixW': AngPixelWidth, 'HoleRad': hole_rad}
     logger.debug(muon_cuts)
 
     muonringlist = []  # [None] * len(event.dl0.tels_with_data)
@@ -80,7 +80,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                      dict_index, geom.cam_id)
 
         tailcuts = muon_cuts['TailCuts'][dict_index]
-
         logger.debug("Tailcuts are %s", tailcuts)
 
         clean_mask = tailcuts_clean(geom, image, picture_thresh=tailcuts[0],
@@ -170,7 +169,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
             muonintensitylist.append(None)
 
             ctel = MuonLineIntegrate(
-                mir_rad, 0.2 * u.m,
+                mir_rad, hole_radius=muon_cuts['HoleRad'][dict_index],
                 pixel_width=muon_cuts['AngPixW'][dict_index] * u.deg,
                 sct_flag=muon_cuts['SCT'][dict_index],
                 secondary_radius=muon_cuts['SecRad'][dict_index]
