@@ -18,57 +18,62 @@ from ctapipe.io.containers import(
     DL1Container,
     ReconstructedContainer,
 )
+from ctapipe.io.eventfilereader import EventFileReader
+
 
 logger = logging.getLogger(__name__)
 
 __all__ = ['zfits_event_source', 'ZFile', 'SST1M_Event']
 
+class ZFitsFileReader(EventFileReader):
 
-def zfits_event_source(
-    url,
-    max_events=None,
-    allowed_tels=None,
-):
-    """A generator that streams data from an ZFITs data file
-    Parameters
-    ----------
-    url : str
-        path to file to open
-    max_events : int, optional
-        maximum number of events to read
-    """
+    def _generator(self):
+        for event in ZFile(self.input_url):
+            if max_events is not None and event.event_id > self.max_events:
+                break
 
-    for event in ZFile(url):
-        if max_events is not None and event.event_id > max_events:
-            break
+            data = SST1M_DataContainer()
+            data.r0.event_id = event.event_id
+            data.r0.tels_with_data = [event.telescope_id, ]
 
-        data = SST1M_DataContainer()
-        data.r0.event_id = event.event_id
-        data.r0.tels_with_data = [event.telescope_id, ]
+            for tel_id in data.r0.tels_with_data:
+                data.inst.num_channels[tel_id] = event.num_channels
+                data.inst.num_pixels[tel_id] = event.n_pixels
 
-        for tel_id in data.r0.tels_with_data:
+                r0 = data.r0.tel[tel_id]
+                r0.camera_event_number = event.event_number
+                r0.pixel_flags = event.pixel_flags
+                r0.local_camera_clock = event.local_time
+                r0.gps_time = event.central_event_gps_time
+                r0.camera_event_type = event.camera_event_type
+                r0.array_event_type = event.array_event_type
+                r0.adc_samples = event.adc_samples
 
-            data.inst.num_channels[tel_id] = event.num_channels
-            data.inst.num_pixels[tel_id] = event.n_pixels
+                r0.trigger_input_traces = event.trigger_input_traces
+                r0.trigger_output_patch7 = event.trigger_output_patch7
+                r0.trigger_output_patch19 = event.trigger_output_patch19
+                r0.digicam_baseline = event.baseline
 
-            r0 = data.r0.tel[tel_id]
-            r0.camera_event_number = event.event_number
-            r0.pixel_flags = event.pixel_flags
-            r0.local_camera_clock = event.local_time
-            r0.gps_time = event.central_event_gps_time
-            r0.camera_event_type = event.camera_event_type
-            r0.array_event_type = event.array_event_type
-            r0.adc_samples = event.adc_samples
+                data.inst.num_samples[tel_id] = event.num_samples
 
-            r0.trigger_input_traces = event.trigger_input_traces
-            r0.trigger_output_patch7 = event.trigger_output_patch7
-            r0.trigger_output_patch19 = event.trigger_output_patch19
-            r0.digicam_baseline = event.baseline
+            yield data
 
-            data.inst.num_samples[tel_id] = event.num_samples
+    def is_compatible(self, path):
+        from astropy.io import fits
+        try:
+            h = fits.open(path)[1].header
+        except:
+            # not even a fits file
+            return False
 
-        yield data
-
+        # is it really a proto-zfits-file?
+        return (
+            h['XTENSION'] == 'BINTABLE' and
+            h['EXTNAME'] == 'Events' and
+            h['ZTABLE'] == True and
+            h['ORIGIN'] == 'CTA' and
+            h['PBFHEAD'] == 'DataModel.CameraEvent'
+        )
 
 pixel_remap = [
     425, 461, 353, 389, 352, 388, 424, 460, 315, 351, 387, 423,
