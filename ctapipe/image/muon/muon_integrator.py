@@ -64,10 +64,10 @@ class MuonLineIntegrate:
         self.secondary_radius = secondary_radius
         self.pixel_x = 0
         self.pixel_y = 0
-        self.image = 0
+        self.image = 0 * u.deg
         self.prediction = 0
-        self.minlambda = 300.e-9
-        self.maxlambda = 600.e-9
+        self.minlambda = 300.e-9 * u.m
+        self.maxlambda = 600.e-9 * u.m
         self.photemit = alpha * (self.minlambda**-1 -
                                        self.maxlambda**-1)  # 12165.45
         self.unit = u.deg
@@ -240,10 +240,10 @@ class MuonLineIntegrate:
         gauss = norm.pdf(radial_dist, radius, ring_width)
 
         # interpolate profile to find prediction for each pixel
-        pred = u.Quantity(np.interp(ang, ang_prof, profile))
+        pred = np.interp(ang, ang_prof, profile) * u.m
 
         # Multiply by integrated emissivity between 300 and 600 nm
-        photval = self.photemit
+        photval = self.photemit / u.deg
         pred *= 0.5 * photval
 
         # weight by pixel width
@@ -328,14 +328,16 @@ class MuonLineIntegrate:
         ndarray: likelihood for each pixel
 
         """
-        pred = pred / u.deg**2
-        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2)))
+        ped = ped * u.deg
+        image = image * u.deg
+        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) * u.deg))
         diff = (image - pred)**2
-        denom = 2 * (ped**2 + pred * (1 + spe_width**2))
-        expo = np.exp(-diff / denom)
-        sm = expo < 1e-300
-        expo[sm] = 1e-300
-        likelihood_value = -2 * np.log(sq * expo)
+        denom = 2 * (ped**2 + pred * (1 + spe_width**2) * u.deg)
+        expo = np.exp(-diff / denom) * u.m
+        sm = expo < 1e-300 * u.m
+        expo[sm] = 1e-300 * u.m
+        log_value = sq * expo / u.m * u.deg
+        likelihood_value = -2 * np.log(log_value)
         return likelihood_value
 
     def fit_muon(self, centre_x, centre_y, radius, pixel_x, pixel_y, image):
