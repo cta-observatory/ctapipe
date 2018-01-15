@@ -68,7 +68,7 @@ class MuonLineIntegrate:
         self.prediction = 0
         self.minlambda = 300.e-9
         self.maxlambda = 600.e-9
-        self.photemit = 1.0 / 137.0 * (self.minlambda**-1 -
+        self.photemit = alpha * (self.minlambda**-1 -
                                        self.maxlambda**-1)  # 12165.45
         self.unit = u.deg
 
