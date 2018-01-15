@@ -20,7 +20,7 @@ def print_muon(event, printer=print):
     for tid in event['TelIds']:
         idx = event['TelIds'].index(tid)
         if event['MuonIntensityParams'][idx]:
-            printer("MUON: Run ID {} Event ID {} 
+            printer("MUON: Run ID {} Event ID {} \
                     Impact Parameter {} Ring Width {} Optical Efficiency {}".format(
                 event['MuonRingParams'][idx].run_id,
                 event['MuonRingParams'][idx].event_id,
