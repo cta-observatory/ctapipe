@@ -15,9 +15,14 @@ ADC_SAMPLES_SHAPE = (1296, 50)
 
 
 def test_loop_over_events():
-    from ctapipe.io.zfits import zfits_event_source
+    from ctapipe.io.zfits import ZFitsFileReader
 
-    inputfile_reader = zfits_event_source(url=example_file_path, max_events=5)
+    inputfile_reader = ZFitsFileReader(
+        config=None,
+        tool=None,
+        input_url=example_file_path,
+        max_events=5
+    )
 
     for i, event in enumerate(inputfile_reader):
         assert event.r0.tels_with_data == [1]
