@@ -42,7 +42,9 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     # Need to either convert from the pixel area in m^2 or check the camera specs
     AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17]
     # Found from TDRs (or the pixel area)
-    hole_rad = [0.308 * u.m,0.244*u.m,0.244*u.m,4.3866*u.m,0.160*u.m,0.130*u.m,0.171*u.m] # Assuming approximately spherical hole
+    hole_rad = [0.308 * u.m, 0.244 * u.m, 0.244 * u.m,
+                4.3866 * u.m, 0.160 * u.m, 0.130 * u.m,
+                0.171 * u.m]  # Assuming approximately spherical hole
     cam_rad = [2.26, 3.96, 3.87, 4., 4.45, 2.86, 5.25]
     # Above found from the field of view calculation
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
@@ -106,7 +108,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         img = image * clean_mask
         muonring = ChaudhuriKunduRingFitter(None)
 
-        logger.debug("img: %s mask: %s, x=%s y= %s",np.sum(image),
+        logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
                      np.sum(clean_mask), x, y)
 
         if not sum(img):  # Nothing left after tail cuts
@@ -154,15 +156,15 @@ def analyze_muon_event(event, params=None, geom_dict=None):
            and muonringparam.ring_radius < 1.5 * u.deg
            and muonringparam.ring_radius > 1. * u.deg):
 
-            #Guess HESS is 0.16
-            #sec_rad = 0.*u.m
-            #sct = False
-            #if numpix == 2048 and mir_rad > 2.*u.m and mir_rad < 2.1*u.m:
-            #    sec_rad = 1.*u.m
-            #    sct = True
+            # Guess HESS is 0.16
+            # sec_rad = 0.*u.m
+            # sct = False
+            # if numpix == 2048 and mir_rad > 2.*u.m and mir_rad < 2.1*u.m:
+            #     sec_rad = 1.*u.m
+            #     sct = True
             #
-            #Store muon ring parameters (passing cuts stage 1)
-            #muonringlist[idx] = muonringparam
+            # Store muon ring parameters (passing cuts stage 1)
+            # muonringlist[idx] = muonringparam
 
             tellist.append(telid)
             muonringlist.append(muonringparam)
@@ -200,7 +202,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                     > muon_cuts['Impact'][dict_index][0] * u.m,
 
                     muonintensityoutput.ring_width
-                    <muon_cuts['RingWidth'][dict_index][1] * u.deg,
+                    < muon_cuts['RingWidth'][dict_index][1] * u.deg,
 
                     muonintensityoutput.ring_width
                     > muon_cuts['RingWidth'][dict_index][0] * u.deg
