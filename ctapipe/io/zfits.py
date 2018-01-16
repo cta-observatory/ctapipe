@@ -392,7 +392,9 @@ class SST1M_InstrumentContainer(InstrumentContainer):
     cam = Field(Map(None), 'map of tel_id to Camera')
     optics = Field(Map(None), 'map of tel_id to CameraOptics')
     cluster_matrix_7 = Field(Map(ndarray), 'map of tel_id of cluster 7 matrix')
-    cluster_matrix_19 = Field(Map(ndarray), 'map of tel_id of cluster 19 matrix')
+    cluster_matrix_19 = Field(
+        Map(ndarray),
+        'map of tel_id of cluster 19 matrix')
     patch_matrix = Field(Map(ndarray), 'map of tel_id of patch matrix')
 
 
@@ -416,28 +418,40 @@ class SST1M_R0CameraContainer(R0CameraContainer):
     array_event_type = Field(int, "array event type")
     trigger_input_traces = Field(ndarray, "trigger patch trace (n_patches)")
     trigger_input_offline = Field(ndarray, "trigger patch trace (n_patches)")
-    trigger_output_patch7 = Field(ndarray, "trigger 7 patch cluster trace (n_clusters)")
-    trigger_output_patch19 = Field(ndarray, "trigger 19 patch cluster trace (n_clusters)")
+    trigger_output_patch7 = Field(
+        ndarray,
+        "trigger 7 patch cluster trace (n_clusters)")
+    trigger_output_patch19 = Field(
+        ndarray,
+        "trigger 19 patch cluster trace (n_clusters)")
     trigger_input_7 = Field(ndarray, 'trigger input CLUSTER7')
     trigger_input_19 = Field(ndarray, 'trigger input CLUSTER19')
 
 
 class SST1M_R0Container(R0Container):
-    tel = Field(Map(SST1M_R0CameraContainer), "map of tel_id to SST1M_R0CameraContainer")
+    tel = Field(
+        Map(SST1M_R0CameraContainer),
+        "map of tel_id to SST1M_R0CameraContainer")
 
 
 class SST1M_R1CameraContainer(R1CameraContainer):
-    adc_samples = Field(ndarray, "baseline subtracted ADCs, (n_pixels, n_samples)")
+    adc_samples = Field(
+        ndarray,
+        "baseline subtracted ADCs, (n_pixels, n_samples)")
     nsb = Field(ndarray, "nsb rate in GHz")
     pde = Field(ndarray, "Photo Detection Efficiency at given NSB")
     gain_drop = Field(ndarray, "gain drop")
 
 
 class SST1M_R1Container(R1Container):
-    tel = Field(Map(SST1M_R1CameraContainer), "map of tel_id to SST1M_R1CameraContainer")
+    tel = Field(
+        Map(SST1M_R1CameraContainer),
+        "map of tel_id to SST1M_R1CameraContainer")
 
 
 class SST1M_DataContainer(DataContainer):
     r0 = Field(SST1M_R0Container(), "Raw Data")
     r1 = Field(SST1M_R1Container(), "R1 Calibrated Data")
-    inst = Field(SST1M_InstrumentContainer(), "instrumental information (deprecated)")
+    inst = Field(
+        SST1M_InstrumentContainer(),
+        "instrumental information (deprecated)")
