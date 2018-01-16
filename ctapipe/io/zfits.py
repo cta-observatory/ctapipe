@@ -235,7 +235,6 @@ PATCH_ID_OUTPUT = [
 class ZFile:
     def __init__(self, fname):
         from protozfitsreader import rawzfitsreader
-        from protozfitsreader import L0_pb2
 
         if not isfile(fname):
             raise FileNotFoundError(fname)
