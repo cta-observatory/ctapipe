@@ -6,7 +6,7 @@ import pytest
 
 def test_eventseeker():
     dataset = get_dataset("gamma_test.simtel.gz")
-    kwargs = dict(config=None, tool=None, input_path=dataset)
+    kwargs = dict(config=None, tool=None, input_url=dataset)
     with HessioFileReader(**kwargs) as reader:
         seeker = EventSeeker(None, None, reader=reader)
         event = seeker[1]

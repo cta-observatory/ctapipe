@@ -32,7 +32,7 @@ class EventFileReader(Component):
     to read.
 
     To create an instance of an EventFileReader you must pass the traitlet
-    configuration (containing the input_path) and the
+    configuration (containing the input_url) and the
     `ctapipe.core.tool.Tool`. Therefore from inside a Tool you would do:
 
     >>> reader = EventFileReader(self.config, self)
@@ -42,13 +42,13 @@ class EventFileReader(Component):
     ctapipe/examples/calibration_pipeline.py.
 
     However if you are not inside a Tool, you can still create an instance and
-    supply an input_path via:
+    supply an input_url via:
 
-    >>> reader = EventFileReader(None, None, input_path="/path/to/file")
+    >>> reader = EventFileReader(None, None, input_url="/path/to/file")
 
     To loop through the events in a file:
 
-    >>> reader = EventFileReader(None, None, input_path="/path/to/file")
+    >>> reader = EventFileReader(None, None, input_url="/path/to/file")
     >>> for event in reader:
     >>>    print(event.count)
 
@@ -58,13 +58,13 @@ class EventFileReader(Component):
     Alternatively one can use EventFileReader in a `with` statement to ensure
     the correct cleanups are performed when you are finished with the reader:
 
-    >>> with EventFileReader(None, None, input_path="/path/to/file") as reader:
+    >>> with EventFileReader(None, None, input_url="/path/to/file") as reader:
     >>>    for event in reader:
     >>>       print(event.count)
 
     Attributes
     ----------
-    input_path : str
+    input_url : str
         Path to the input event file.
     max_events : int
         Maximum number of events to loop through in generator
@@ -76,7 +76,7 @@ class EventFileReader(Component):
         * Observation ID
     """
 
-    input_path = Unicode(
+    input_url = Unicode(
         '',
         help='Path to the input file containing events.'
     ).tag(config=True)
@@ -108,15 +108,15 @@ class EventFileReader(Component):
 
         self.metadata = dict(is_simulation=False)
 
-        if not exists(self.input_path):
+        if not exists(self.input_url):
             raise FileNotFoundError("file path does not exist: '{}'"
-                                    .format(self.input_path))
-        self.log.info("INPUT PATH = {}".format(self.input_path))
+                                    .format(self.input_url))
+        self.log.info("INPUT PATH = {}".format(self.input_url))
 
         if self.max_events:
             self.log.info("Max events being read = {}".format(self.max_events))
 
-        Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
+        Provenance().add_input_file(self.input_url, role='dl0.sub.evt')
 
     @staticmethod
     @abstractmethod
@@ -241,7 +241,7 @@ class EventFileReaderFactory(Factory):
 
     # Product classes traits
     # Would be nice to have these automatically set...!
-    input_path = Unicode(
+    input_url = Unicode(
         get_dataset('gamma_test.simtel.gz'),
         help='Path to the input file containing events.'
     ).tag(config=True)
@@ -258,14 +258,14 @@ class EventFileReaderFactory(Factory):
         if self.reader is not None:
             return self.reader
         else:
-            if self.input_path is None:
-                raise ValueError("Please specify an input_path for event file")
+            if self.input_url is None:
+                raise ValueError("Please specify an input_url for event file")
             try:
                 for subclass in self.subclasses:
-                    if subclass.is_compatible(self.input_path):
+                    if subclass.is_compatible(self.input_url):
                         return subclass.__name__
                 raise ValueError
             except ValueError:
                 self.log.exception("Cannot find compatible EventFileReader "
-                                   "for: {}".format(self.input_path))
+                                   "for: {}".format(self.input_url))
                 raise

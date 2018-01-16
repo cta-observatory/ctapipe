@@ -20,7 +20,7 @@ class HessioFileReader(EventFileReader):
     """
     _count = 0
 
-    input_path = Unicode(
+    input_url = Unicode(
         get_dataset('gamma_test.simtel.gz'),
         help='Path to the input file containing events.'
     ).tag(config=True)
@@ -64,7 +64,7 @@ class HessioFileReader(EventFileReader):
         self.pyhessio.close_file()
 
     def _generator(self):
-        with self.pyhessio.open_hessio(self.input_path) as file:
+        with self.pyhessio.open_hessio(self.input_url) as file:
             # the container is initialized once, and data is replaced within
             # it after each yield
             Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
@@ -76,7 +76,7 @@ class HessioFileReader(EventFileReader):
             data.meta['origin'] = "hessio"
 
             # some hessio_event_source specific parameters
-            data.meta['input_url'] = self.input_path
+            data.meta['input_url'] = self.input_url
             data.meta['max_events'] = self.max_events
 
             for event_id in eventstream:
