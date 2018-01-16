@@ -23,14 +23,13 @@ from ctapipe.io.eventfilereader import EventFileReader
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['zfits_event_source', 'ZFile', 'SST1M_Event']
+__all__ = ['ZFitsFileReader', 'ZFile', 'SST1M_Event']
+
 
 class ZFitsFileReader(EventFileReader):
 
     def _generator(self):
         for event in ZFile(self.input_url):
-            if max_events is not None and event.event_id > self.max_events:
-                break
 
             data = SST1M_DataContainer()
             data.r0.event_id = event.event_id
@@ -68,11 +67,11 @@ class ZFitsFileReader(EventFileReader):
 
         # is it really a proto-zfits-file?
         return (
-            h['XTENSION'] == 'BINTABLE' and
-            h['EXTNAME'] == 'Events' and
-            h['ZTABLE'] == True and
-            h['ORIGIN'] == 'CTA' and
-            h['PBFHEAD'] == 'DataModel.CameraEvent'
+            (h['XTENSION'] == 'BINTABLE') and
+            (h['EXTNAME'] == 'Events') and
+            (h['ZTABLE'] is True) and
+            (h['ORIGIN'] == 'CTA') and
+            (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
 
 pixel_remap = [
