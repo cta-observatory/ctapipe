@@ -62,6 +62,12 @@ class EventFileReader(Component):
     >>>    for event in reader:
     >>>       print(event.count)
 
+    **NOTE**: The "event" that is returned from the generator is a pointer.
+    Any operation that progresses that instance of the generator further will
+    change the data pointed to by "event". If you wish to ensure a particular
+    event is kept, you should perform a `event_copy = copy.deepcopy(event)`.
+
+
     Attributes
     ----------
     input_url : str
