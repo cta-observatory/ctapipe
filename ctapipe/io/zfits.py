@@ -6,9 +6,7 @@ This requires the protozfitsreader python library to be installed
 """
 from os.path import isfile
 import numpy as np
-from astropy import units as u
-from astropy.time import Time
-from numpy import ndarray, nan
+from numpy import ndarray
 
 import warnings
 import logging
