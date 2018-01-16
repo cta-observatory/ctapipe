@@ -67,7 +67,6 @@ class HessioFileReader(EventFileReader):
         with self.pyhessio.open_hessio(self.input_url) as file:
             # the container is initialized once, and data is replaced within
             # it after each yield
-            Provenance().add_input_file(self.input_path, role='dl0.sub.evt')
             counter = 0
             eventstream = file.move_to_next_event()
             if self.allowed_tels is not None:
