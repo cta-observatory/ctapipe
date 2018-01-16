@@ -10,11 +10,14 @@ from numpy import ndarray
 
 import warnings
 import logging
-from ctapipe.core import Container, Map, Field
+from ctapipe.core import Map, Field
 from ctapipe.io.containers import(
-    DL0Container,
-    DL1Container,
-    ReconstructedContainer,
+    InstrumentContainer,
+    R0CameraContainer,
+    R0Container,
+    R1CameraContainer,
+    R1Container,
+    DataContainer
 )
 from ctapipe.io.eventfilereader import EventFileReader
 
@@ -374,7 +377,7 @@ def to_numpy(a):
             any_array_type_cannot_convert_exception_text[a.type])
 
 
-class SST1M_InstrumentContainer(Container):
+class SST1M_InstrumentContainer(InstrumentContainer):
     """Storage of header info that does not change with event. This is a
     temporary hack until the Instrument module and database is fully
     implemented.  Eventually static information like this will not be
@@ -394,13 +397,11 @@ class SST1M_InstrumentContainer(Container):
     patch_matrix = Field(Map(ndarray), 'map of tel_id of patch matrix')
 
 
-class SST1M_R0CameraContainer(Container):
+class SST1M_R0CameraContainer(R0CameraContainer):
     """
     Storage of raw data from a single telescope
     """
     pixel_flags = Field(ndarray, 'numpy array containing pixel flags')
-    adc_samples = Field(ndarray, "numpy array containing ADC samples (n_channels x n_pixels, n_samples)")
-    num_samples = Field(int, "number of time samples for telescope")
     num_pixels = Field(int, "number of pixels in camera")
     baseline = Field(ndarray, "number of time samples for telescope")
     digicam_baseline = Field(ndarray, 'Baseline computed by DigiCam')
@@ -422,42 +423,22 @@ class SST1M_R0CameraContainer(Container):
     trigger_input_19 = Field(ndarray, 'trigger input CLUSTER19')
 
 
-class SST1M_R0Container(Container):
-    """
-    Storage of a Merged Raw Data Event
-    """
-
-    run_id = Field(-1, "run id number")
-    event_id = Field(-1, "event id number")
-    tels_with_data = Field([], "list of telescopes with data")
+class SST1M_R0Container(R0Container):
     tel = Field(Map(SST1M_R0CameraContainer), "map of tel_id to SST1M_R0CameraContainer")
 
 
-class SST1M_R1CameraContainer(Container):
-    """
-    Storage of r1 calibrated data from a single telescope
-    """
-
+class SST1M_R1CameraContainer(R1CameraContainer):
     adc_samples = Field(ndarray, "baseline subtracted ADCs, (n_pixels, n_samples)")
     nsb = Field(ndarray, "nsb rate in GHz")
     pde = Field(ndarray, "Photo Detection Efficiency at given NSB")
     gain_drop = Field(ndarray, "gain drop")
 
 
-class SST1M_R1Container(Container):
-    """
-    Storage of a r1 calibrated Data Event
-    """
-
-    tels_with_data = Field([], "list of telescopes with data")
+class SST1M_R1Container(R1Container):
     tel = Field(Map(SST1M_R1CameraContainer), "map of tel_id to SST1M_R1CameraContainer")
 
 
-class SST1M_DataContainer(Container):
-    """ Top-level container for all event information """
+class SST1M_DataContainer(DataContainer):
     r0 = Field(SST1M_R0Container(), "Raw Data")
     r1 = Field(SST1M_R1Container(), "R1 Calibrated Data")
-    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
-    dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
     inst = Field(SST1M_InstrumentContainer(), "instrumental information (deprecated)")
