@@ -32,12 +32,14 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
              'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
-    TailCuts = [(5, 7), (5, 7), (10, 12), (5, 7), (5, 7), (5, 7), (5, 7), (5,7)]  # 10,12?
+    TailCuts = [(5, 7), (5, 7), (10, 12), (5, 7),
+                (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
-              (0.1, 0.95), (0.1, 0.95), (0.1, 0.95), (0.1,0.95)] * u.m
+              (0.1, 0.95), (0.1, 0.95), (0.1, 0.95), (0.1, 0.95)] * u.m
     ringwidth = [(0.04, 0.08), (0.02, 0.1), (0.01, 0.1), (0.02, 0.1),
                  (0.01, 0.5), (0.02, 0.2), (0.02, 0.2), (0.02, 0.2)] * u.deg
-    TotalPix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]  # 8% (or 6%) as limit
+    TotalPix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]
+    # 8% (or 6%) as limit
     MinPix = [148., 148., 141., 680., 104., 164., 142., 164]
     # Need to either convert from the pixel area in m^2 or check the camera specs
     AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
