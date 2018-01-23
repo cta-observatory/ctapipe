@@ -14,7 +14,7 @@ from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventfilereader import HessioFileReader
+from ctapipe.io.hessiofilereader import HessioFileReader
 
 
 class ChargeResolutionGenerator(Tool):

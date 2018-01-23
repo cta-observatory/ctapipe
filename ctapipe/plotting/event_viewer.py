@@ -15,7 +15,6 @@ class EventViewer(Component):
     single event. Can be further modified to show the reconstructed shower
     direction and core position if needed. Plus further info
     """
-    name = 'EventViewer'
     test = Bool(True, help='').tag(config=True)
 
     def __init__(self, draw_hillas_planes=False):

@@ -1,7 +1,7 @@
 from os.path import join, dirname
 from ctapipe.utils import get_dataset
 from ctapipe.io.eventfilereader import EventFileReader, \
-    EventFileReaderFactory, HessioFileReader
+    EventFileReaderFactory
 
 
 def test_event_file_reader():
@@ -13,44 +13,33 @@ def test_event_file_reader():
                     "instantiated due to its abstract methods")
 
 
-def test_hessio_file_reader():
+class TestReader(EventFileReader):
+    """
+    Simple working EventFileReader
+    """
+    def _generator(self):
+        return range(len(self.input_url))
+
+    def is_compatible(self, path):
+        return False
+
+
+def test_can_be_implemented():
     dataset = get_dataset("gamma_test.simtel.gz")
-    file = HessioFileReader(None, None, input_path=dataset)
-    assert file.directory == dirname(dataset)
-    assert file.extension == ".gz"
-    assert file.filename == "gamma_test.simtel"
-    source = file.read()
-    event = next(source)
-    assert event.r0.tels_with_data == {38, 47}
+    test_reader = TestReader(None, None, input_url=dataset)
 
 
-def test_get_event():
+def test_is_iterable():
     dataset = get_dataset("gamma_test.simtel.gz")
-    file = HessioFileReader(None, None, input_path=dataset)
-    event = file.get_event(2)
-    assert event.count == 2
-    assert event.r0.event_id == 803
-    event = file.get_event(803, True)
-    assert event.count == 2
-    assert event.r0.event_id == 803
-
-
-def test_get_num_events():
-    dataset = get_dataset("gamma_test.simtel.gz")
-    file = HessioFileReader(None, None, input_path=dataset)
-    num_events = file.num_events
-    assert(num_events == 9)
-
-    file.max_events = 2
-    num_events = file.num_events
-    assert (num_events == 2)
+    test_reader = TestReader(None, None, input_url=dataset)
+    for _ in test_reader:
+        pass
 
 
 def test_event_file_reader_factory():
     dataset = get_dataset("gamma_test.simtel.gz")
     factory = EventFileReaderFactory(None, None)
-    factory.input_path = dataset
+    factory.input_url = dataset
     cls = factory.get_class()
-    file = cls(None, None)
-    num_events = file.num_events
-    assert(num_events == 9)
+    reader = cls(None, None)
+    assert reader.__class__.__name__ == "HessioFileReader"

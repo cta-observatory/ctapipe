@@ -16,8 +16,6 @@ from ctapipe.utils.neighbour_sum import get_sum_array
 
 
 class ChargeExtractor(Component):
-    name = 'ChargeExtractor'
-
     def __init__(self, config, tool, **kwargs):
         """
         Base component to handle the extraction of charge from an image cube.
@@ -115,8 +113,6 @@ class ChargeExtractor(Component):
 
 
 class Integrator(ChargeExtractor):
-    name = 'Integrator'
-
     def __init__(self, config, tool, **kwargs):
         """
         Base component for charge extractors that perform integration.
@@ -328,8 +324,6 @@ class Integrator(ChargeExtractor):
 
 
 class FullIntegrator(Integrator):
-    name = 'FullIntegrator'
-
     def __init__(self, config, tool, **kwargs):
         """
         Charge extractor that integrates the entire waveform.
@@ -367,7 +361,6 @@ class FullIntegrator(Integrator):
 
 
 class WindowIntegrator(Integrator):
-    name = 'WindowIntegrator'
     window_shift = Int(3, help='Define the shift of the integration window '
                                'from the peakpos '
                                '(peakpos - shift)').tag(config=True)
@@ -429,7 +422,6 @@ class WindowIntegrator(Integrator):
 
 
 class SimpleIntegrator(WindowIntegrator):
-    name = 'SimpleIntegrator'
     t0 = Int(0, help='Define the peak position for all '
                      'pixels').tag(config=True)
 
@@ -462,7 +454,6 @@ class SimpleIntegrator(WindowIntegrator):
 
 
 class PeakFindingIntegrator(WindowIntegrator):
-    name = 'PeakFindingIntegrator'
     sig_amp_cut_HG = Float(None, allow_none=True,
                            help='Define the cut above which a sample is '
                                 'considered as significant for PeakFinding '
@@ -560,9 +551,6 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
-
-    name = 'GlobalPeakIntegrator'
-
     def __init__(self, config, tool, **kwargs):
 
         super().__init__(config=config, tool=tool, **kwargs)
@@ -608,9 +596,6 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
          Set to None if no Tool to pass.
      kwargs
      """
-
-    name = 'LocalPeakIntegrator'
-
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
@@ -648,8 +633,6 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
-
-    name = 'NeighbourPeakIntegrator'
     lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
                       'only, 1: local pixel counts as much '
                       'as any neighbour').tag(config=True)
@@ -693,9 +676,6 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
-
-    name = 'AverageWfPeakIntegrator'
-
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
@@ -712,7 +692,6 @@ class ChargeExtractorFactory(Factory):
     """
     Factory to obtain a ChargeExtractor.
     """
-    name = "ChargeExtractorFactory"
     description = "Obtain ChargeExtractor based on extractor traitlet"
 
     subclasses = Factory.child_subclasses(ChargeExtractor)
@@ -749,7 +728,7 @@ class ChargeExtractorFactory(Factory):
                       'NeighbourPeakIntegrator').tag(config=True)
 
     def get_factory_name(self):
-        return self.name
+        return self.__class__.__name__
 
     def get_product_name(self):
         return self.extractor
