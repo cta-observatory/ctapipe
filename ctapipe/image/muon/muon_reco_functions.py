@@ -31,25 +31,25 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     muon_cuts = {}
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
-             'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam']
-    TailCuts = [(5, 7), (5, 7), (10, 12), (5, 7), (5, 7), (5, 7), (5, 7)]  # 10,12?
+             'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
+    TailCuts = [(5, 7), (5, 7), (10, 12), (5, 7), (5, 7), (5, 7), (5, 7), (5,7)]  # 10,12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
-              (0.1, 0.95), (0.1, 0.95), (0.1, 0.95)]
+              (0.1, 0.95), (0.1, 0.95), (0.1, 0.95), (0.1,0.95)] * u.m
     ringwidth = [(0.04, 0.08), (0.02, 0.1), (0.01, 0.1), (0.02, 0.1),
-                 (0.01, 0.5), (0.02, 0.2), (0.02, 0.2)]
-    TotalPix = [1855., 1855., 1764., 11328., 1296., 2048., 2368.]  # 8% (or 6%) as limit
-    MinPix = [148., 148., 141., 680., 104., 164., 142.]
+                 (0.01, 0.5), (0.02, 0.2), (0.02, 0.2), (0.02, 0.2)] * u.deg
+    TotalPix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]  # 8% (or 6%) as limit
+    MinPix = [148., 148., 141., 680., 104., 164., 142., 164]
     # Need to either convert from the pixel area in m^2 or check the camera specs
-    AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17]
+    AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
     # Found from TDRs (or the pixel area)
     hole_rad = [0.308 * u.m, 0.244 * u.m, 0.244 * u.m,
                 4.3866 * u.m, 0.160 * u.m, 0.130 * u.m,
-                0.171 * u.m]  # Assuming approximately spherical hole
-    cam_rad = [2.26, 3.96, 3.87, 4., 4.45, 2.86, 5.25]
+                0.171 * u.m, 0.171 * u.m]  # Assuming approximately spherical hole
+    cam_rad = [2.26, 3.96, 3.87, 4., 4.45, 2.86, 5.25, 2.86] * u.deg
     # Above found from the field of view calculation
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
-               0. * u.m, 1. * u.m, 1.8 * u.m]
-    sct = [False, False, False, True, False, True, True]
+               0. * u.m, 1. * u.m, 1.8 * u.m, 1.8 * u.m]
+    sct = [False, False, False, True, False, True, True, True]
 
 
     muon_cuts = {'Name': names, 'TailCuts': TailCuts, 'Impact': impact,
@@ -152,7 +152,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         if(np.sum(pix_im > tailcuts[0]) > 0.1 * minpix
            and np.sum(pix_im) > minpix
-           and nom_dist < muon_cuts['CamRad'][dict_index] * u.deg
+           and nom_dist < muon_cuts['CamRad'][dict_index]
            and muonringparam.ring_radius < 1.5 * u.deg
            and muonringparam.ring_radius > 1. * u.deg):
 
@@ -172,7 +172,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
             ctel = MuonLineIntegrate(
                 mir_rad, hole_radius=muon_cuts['HoleRad'][dict_index],
-                pixel_width=muon_cuts['AngPixW'][dict_index] * u.deg,
+                pixel_width=muon_cuts['AngPixW'][dict_index],
                 sct_flag=muon_cuts['SCT'][dict_index],
                 secondary_radius=muon_cuts['SecRad'][dict_index]
             )
@@ -193,19 +193,18 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                              "ring_width=%s", telid,
                              muonintensityoutput.impact_parameter, mir_rad,
                              muonintensityoutput.ring_width)
-
                 conditions = [
-                    muonintensityoutput.impact_parameter <
+                    muonintensityoutput.impact_parameter * u.m <
                     muon_cuts['Impact'][dict_index][1] * mir_rad,
 
                     muonintensityoutput.impact_parameter
-                    > muon_cuts['Impact'][dict_index][0] * u.m,
+                    > muon_cuts['Impact'][dict_index][0],
 
                     muonintensityoutput.ring_width
-                    < muon_cuts['RingWidth'][dict_index][1] * u.deg,
+                    < muon_cuts['RingWidth'][dict_index][1],
 
                     muonintensityoutput.ring_width
-                    > muon_cuts['RingWidth'][dict_index][0] * u.deg
+                    > muon_cuts['RingWidth'][dict_index][0]
                 ]
 
                 if all(conditions):
