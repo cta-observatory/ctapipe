@@ -5,7 +5,7 @@ Components to read HESSIO data.
 This requires the hessio python library to be installed
 """
 import logging
-
+import warnings
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
@@ -92,6 +92,11 @@ def hessio_event_source(url, max_events=None, allowed_tels=None,
         If True ,'requested_event' now seeks for a particular event id instead
         of index
     """
+
+    warnings.warn("hessio_event_source has been deprecated. "
+                  "Please trasition to using "
+                  "ctapipe.io.hessiofilereader.HessioFileReader",
+                  DeprecationWarning)
 
     with open_hessio(url) as pyhessio:
         # the container is initialized once, and data is replaced within

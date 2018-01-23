@@ -2,43 +2,95 @@
 Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
-from os.path import basename, splitext, dirname, join, exists
-import numpy as np
-from traitlets import Unicode, Int, CaselessStrEnum, observe
-from copy import deepcopy
+from os.path import exists
+from traitlets import Unicode, Int, CaselessStrEnum
 from ctapipe.core import Component, Factory
 from ctapipe.utils import get_dataset
-from ctapipe.io.hessio import hessio_event_source, hessio_get_list_event_ids
+from ctapipe.core import Provenance
 
 
 class EventFileReader(Component):
     """
-    Parent class for EventFileReaders of different sources. A new
-    EventFileReader should be created for each type of event file read into
-    ctapipe, e.g. simtelarray files are read by the `HessioFileReader`.
+    Parent class for EventFileReaders of different sources.
+
+    A new EventFileReader should be created for each type of event file read
+    into ctapipe, e.g. sim_telarray files are read by the `HessioFileReader`.
+
+    EventFileReader provides a common high-level interface for accessing event
+    information from different data sources (simulation or different camera
+    file formats). Creating an EventFileReader for a new
+    file format ensures that data can be accessed in a common way,
+    irregardless of the file format.
+
+    EventFileReader itself is an abstract class. To use an EventFileReader you
+    must use a subclass that is relevant for the file format you
+    are reading (for example you must use
+    `ctapipe.io.hessiofilereader.HessioFileReader` to read a hessio format
+    file). Alternatively you can use
+    `ctapipe.io.eventfilereader.EventFileReaderFactory` to automatically
+    select the correct EventFileReader subclass for the file format you wish
+    to read.
+
+    To create an instance of an EventFileReader you must pass the traitlet
+    configuration (containing the input_url) and the
+    `ctapipe.core.tool.Tool`. Therefore from inside a Tool you would do:
+
+    >>> reader = EventFileReader(self.config, self)
+
+    An example of how to use `ctapipe.core.tool.Tool` and
+    `ctapipe.io.eventfilereader.EventFileReaderFactory` can be found in
+    ctapipe/examples/calibration_pipeline.py.
+
+    However if you are not inside a Tool, you can still create an instance and
+    supply an input_url via:
+
+    >>> reader = EventFileReader(None, None, input_url="/path/to/file")
+
+    To loop through the events in a file:
+
+    >>> reader = EventFileReader(None, None, input_url="/path/to/file")
+    >>> for event in reader:
+    >>>    print(event.count)
+
+    **NOTE**: Every time a new loop is started through the reader, it restarts
+    from the first event.
+
+    Alternatively one can use EventFileReader in a `with` statement to ensure
+    the correct cleanups are performed when you are finished with the reader:
+
+    >>> with EventFileReader(None, None, input_url="/path/to/file") as reader:
+    >>>    for event in reader:
+    >>>       print(event.count)
+
+    **NOTE**: The "event" that is returned from the generator is a pointer.
+    Any operation that progresses that instance of the generator further will
+    change the data pointed to by "event". If you wish to ensure a particular
+    event is kept, you should perform a `event_copy = copy.deepcopy(event)`.
+
 
     Attributes
     ----------
-    input_path : str
-    directory : str
-        Automatically set from `input_path`.
-    filename : str
-        Name of the file without the extension.
-        Automatically set from `input_path`.
-    extension : str
-        Automatically set from `input_path`.
-    output_directory : str
-        Directory to save outputs for this file
-
+    input_url : str
+        Path to the input event file.
+    max_events : int
+        Maximum number of events to loop through in generator
+    metadata : dict
+        A dictionary containing the metadata of the file. This could include:
+        * is_simulation (bool indicating if the file contains simulated events)
+        * Telescope:Camera names (list if file contains multiple)
+        * Information in the file header
+        * Observation ID
     """
-    origin = None
 
-    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
-                         help='Path to the input file containing '
-                              'events.').tag(config=True)
-    max_events = Int(None, allow_none=True,
-                     help='Maximum number of events that will be read from'
-                          'the file').tag(config=True)
+    input_url = Unicode(
+        '',
+        help='Path to the input file containing events.'
+    ).tag(config=True)
+    max_events = Int(
+        None,
+        allow_none=True,
+        help='Maximum number of events that will be read from the file'
+    ).tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -60,76 +112,21 @@ class EventFileReader(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        if self.origin is None:
-            raise ValueError("Subclass of EventFileReader should specify "
-                             "an origin")
+        self.metadata = dict(is_simulation=False)
 
-        self._num_events = None
-        self._event_id_list = []
-
-        if self.input_path is None:
-            raise ValueError("Please specify an input_path for event file")
-        self._init_path(self.input_path)
-
-    def _init_path(self, input_path):
-        if not exists(input_path):
+        if not exists(self.input_url):
             raise FileNotFoundError("file path does not exist: '{}'"
-                                    .format(input_path))
+                                    .format(self.input_url))
+        self.log.info("INPUT PATH = {}".format(self.input_url))
 
-        self.input_path = input_path
-        self.directory = dirname(input_path)
-        self.filename = splitext(basename(input_path))[0]
-        self.extension = splitext(input_path)[1]
-        self.output_directory = join(self.directory, self.filename)
+        if self.max_events:
+            self.log.info("Max events being read = {}".format(self.max_events))
 
-        if self.log:
-            self.log.info("INPUT PATH = {}".format(self.input_path))
-
-    @observe('input_path')
-    def on_input_path_changed(self, change):
-        new = change['new']
-        try:
-            self.log.warning("Change: input_path={}".format(new))
-            self._num_events = None
-            self._event_id_list = []
-            self._init_path(new)
-        except AttributeError:
-            pass
-
-    @observe('origin')
-    def on_origin_changed(self, change):
-        new = change['new']
-        try:
-            self.log.warning("Change: origin={}".format(new))
-        except AttributeError:
-            pass
-
-    @observe('max_events')
-    def on_max_events_changed(self, change):
-        new = change['new']
-        try:
-            self.log.warning("Change: max_events={}".format(new))
-            self._num_events = None
-            self._event_id_list = []
-        except AttributeError:
-            pass
-
-    @property
-    @abstractmethod
-    def origin(self):
-        """
-        Abstract property to be defined in child class.
-
-        Get the name for the origin of the file. E.g. 'hessio'.
-
-        Returns
-        -------
-        origin : str
-        """
+        Provenance().add_input_file(self.input_url, role='dl0.sub.evt')
 
     @staticmethod
     @abstractmethod
-    def check_file_compatibility(file_path):
+    def is_compatible(file_path):
         """
         Abstract method to be defined in child class.
 
@@ -148,215 +145,73 @@ class EventFileReader(Component):
         """
 
     @property
-    @abstractmethod
-    def num_events(self):
+    def is_stream(self):
         """
-        Abstract property to be defined in child class.
+        Bool indicating if input is a stream. If it is then it is incompatible
+        with `ctapipe.io.eventseeker.EventSeeker`.
 
-        Obtain the number of events from the file, store it inside
-        self._num_events, and return the value.
+        TODO: Define a method to detect if it is a stream
 
         Returns
         -------
-        self._num_events : int
+        bool
+            If True, then input is a stream.
         """
-
-    @property
-    @abstractmethod
-    def event_id_list(self):
-        """
-        Abstract property to be defined in child class.
-
-        Obtain the number of events from the file, store it as
-        self._event_id_list, and return the value.
-
-        Returns
-        -------
-        self._event_id_list : list[self._num_events]
-        """
+        return False
 
     @abstractmethod
-    def read(self, allowed_tels=None, requested_event=None,
-             use_event_id=False):
+    def _generator(self):
         """
         Abstract method to be defined in child class.
 
-        Read the file using the processes required by the readers file-type.
-
-        Parameters
-        ----------
-        allowed_tels : list[int]
-            select only a subset of telescope, if None, all are read. This can
-            be used for example emulate the final CTA data format, where there
-            would be 1 telescope per file (whereas in current monte-carlo,
-            they are all interleaved into one file)
-        requested_event : int
-            Seek to a paricular event index
-        use_event_id : bool
-            If True ,'requested_event' now seeks for a particular event id
-            instead of index
+        Generator where the filling of the `ctapipe.io.containers` occurs.
 
         Returns
         -------
-        source : generator
-            A generator that can be iterated over to obtain events
+        generator
         """
 
-    def get_event(self, requested_event, use_event_id=False):
+    def __iter__(self):
         """
-        Loop through events until the requested event is found
-
-        Parameters
-        ----------
-        requested_event : int
-            Seek to a paricular event index
-        use_event_id : bool
-            If True ,'requested_event' now seeks for a particular event id
-            instead of index
+        Generator that iterates through `_generator`, but keeps track of
+        `self.max_events`.
 
         Returns
         -------
-        event : `ctapipe` event-container
-
+        generator
         """
-        source = self.read(requested_event=requested_event,
-                           use_event_id=use_event_id)
-        event = next(source)
-        return deepcopy(event)
+        for event in self._generator():
+            if self.max_events and event.count >= self.max_events:
+                break
+            yield event
 
-    def find_max_true_npe(self, telescopes=None):
-        """
-        Loop through events to find the maximum true npe
+    def __enter__(self):
+        return self
 
-        Parameters
-        ----------
-        telescopes : list
-            List of telecopes to include. If None, then all telescopes
-            are included.
-
-        Returns
-        -------
-        max_pe : int
-
-        """
-        # TODO: Find an alternate method so this can be removed
-        self.log.info("Finding maximum true npe inside file...")
-        source = self.read()
-        max_pe = 0
-        for event in source:
-            tels = list(event.dl0.tels_with_data)
-            if telescopes is not None:
-                tels = []
-                for tel in telescopes:
-                    if tel in event.dl0.tels_with_data:
-                        tels.append(tel)
-            if event.count == 0:
-                # Check events have true charge included
-                try:
-                    if np.all(event.mc.tel[tels[0]].photo_electron_image == 0):
-                        raise KeyError
-                except KeyError:
-                    self.log.exception('[chargeres] Source does not contain '
-                                       'true charge')
-                    raise
-            for telid in tels:
-                pe = event.mc.tel[telid].photo_electron_image
-                this_max = np.max(pe)
-                if this_max > max_pe:
-                    max_pe = this_max
-        self.log.info("Maximum true npe inside file = {}".format(max_pe))
-
-        return max_pe
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
-class HessioFileReader(EventFileReader):
-    origin = 'hessio'
-
-    @staticmethod
-    def check_file_compatibility(file_path):
-        compatible = True
-        # TODO: Change check to be a try of hessio_event_source?
-        if not file_path.endswith('.gz'):
-            compatible = False
-        return compatible
-
-    @property
-    def num_events(self):
-        self.log.info("Obtaining number of events in file...")
-        if self._num_events:
-            pass
-        else:
-            self._num_events = len(self.event_id_list)
-        self.log.info("Number of events inside file = {}"
-                      .format(self._num_events))
-        return self._num_events
-
-    @property
-    def event_id_list(self):
-        self.log.info("Retrieving list of event ids...")
-        if self._event_id_list:
-            pass
-        else:
-            self.log.info("Building new list of event ids...")
-            ids = hessio_get_list_event_ids(self.input_path,
-                                            max_events=self.max_events)
-            self._event_id_list = ids
-        self.log.info("List of event ids retrieved.")
-        return self._event_id_list
-
-    def read(self, allowed_tels=None, requested_event=None,
-             use_event_id=False):
-        """
-        Read the file using the appropriate method depending on the file origin
-
-        Parameters
-        ----------
-        allowed_tels : list[int]
-            select only a subset of telescope, if None, all are read. This can
-            be used for example emulate the final CTA data format, where there
-            would be 1 telescope per file (whereas in current monte-carlo,
-            they are all interleaved into one file)
-        requested_event : int
-            Seek to a paricular event index
-        use_event_id : bool
-            If True ,'requested_event' now seeks for a particular event id
-            instead of index
-
-        Returns
-        -------
-        source : generator
-            A generator that can be iterated over to obtain events
-        """
-
-        # Obtain relevent source
-        self.log.debug("Reading file...")
-        if self.max_events:
-            self.log.info("Max events being read = {}".format(self.max_events))
-        source = hessio_event_source(self.input_path,
-                                     max_events=self.max_events,
-                                     allowed_tels=allowed_tels,
-                                     requested_event=requested_event,
-                                     use_event_id=use_event_id)
-        self.log.debug("File reading complete")
-        return source
-
-
-# External Children
-try:
-    from targetpipe.io.eventfilereader import TargetioFileReader, \
-        ToyioFileReader
-except ImportError:
-    pass
+# EventFileReader imports so that EventFileReaderFactory can see them
+import ctapipe.io.hessiofilereader
 
 
 class EventFileReaderFactory(Factory):
     """
     The `EventFileReader` `ctapipe.core.factory.Factory`. This
     `ctapipe.core.factory.Factory` allows the correct
-    `EventFileReader` to be obtained for the event file being read. This
-    factory tests each EventFileReader by calling
+    `EventFileReader` to be obtained for the event file being read.
+
+    This factory tests each EventFileReader by calling
     `EventFileReader.check_file_compatibility` to see which `EventFileReader`
     is compatible with the file.
+
+    Using `EventFileReaderFactory` in a script allows it to be compatible with
+    any file format that has an `EventFileReader` defined.
+
+    To use within a `ctapipe.core.tool.Tool`:
+
+    >>> reader = EventFileReaderFactory.produce(config=self.config, tool=self)
 
     Parameters
     ----------
@@ -373,7 +228,7 @@ class EventFileReaderFactory(Factory):
     Attributes
     ----------
     reader : traitlets.CaselessStrEnum
-        A string with the `EventFileReader.name` of the reader you want to
+        A string with the `EventFileReader.__name__` of the reader you want to
         use. If left blank, `EventFileReader.check_file_compatibility` will be
         used to find a compatible reader.
     """
@@ -382,19 +237,25 @@ class EventFileReaderFactory(Factory):
     subclasses = Factory.child_subclasses(EventFileReader)
     subclass_names = [c.__name__ for c in subclasses]
 
-    reader = CaselessStrEnum(subclass_names, None, allow_none=True,
-                             help='Event file reader to use. If None then '
-                                  'a reader will be chosen based on file '
-                                  'extension').tag(config=True)
+    reader = CaselessStrEnum(
+        subclass_names,
+        None,
+        allow_none=True,
+        help='Event file reader to use. If None then a reader will be chosen '
+             'based on file extension'
+    ).tag(config=True)
 
     # Product classes traits
     # Would be nice to have these automatically set...!
-    input_path = Unicode(get_dataset('gamma_test.simtel.gz'), allow_none=True,
-                         help='Path to the input file containing '
-                              'events.').tag(config=True)
-    max_events = Int(None, allow_none=True,
-                     help='Maximum number of events that will be read from'
-                          'the file').tag(config=True)
+    input_url = Unicode(
+        get_dataset('gamma_test.simtel.gz'),
+        help='Path to the input file containing events.'
+    ).tag(config=True)
+    max_events = Int(
+        None,
+        allow_none=True,
+        help='Maximum number of events that will be read from the file'
+    ).tag(config=True)
 
     def get_factory_name(self):
         return self.__class__.__name__
@@ -403,14 +264,14 @@ class EventFileReaderFactory(Factory):
         if self.reader is not None:
             return self.reader
         else:
-            if self.input_path is None:
-                raise ValueError("Please specify an input_path for event file")
+            if self.input_url is None:
+                raise ValueError("Please specify an input_url for event file")
             try:
                 for subclass in self.subclasses:
-                    if subclass.check_file_compatibility(self.input_path):
+                    if subclass.is_compatible(self.input_url):
                         return subclass.__name__
                 raise ValueError
             except ValueError:
                 self.log.exception("Cannot find compatible EventFileReader "
-                                   "for: {}".format(self.input_path))
+                                   "for: {}".format(self.input_url))
                 raise
