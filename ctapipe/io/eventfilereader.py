@@ -3,7 +3,7 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from os.path import exists
-from traitlets import Unicode, Int, CaselessStrEnum
+from traitlets import Unicode, Int, CaselessStrEnum, Set
 from ctapipe.core import Component, Factory
 from ctapipe.utils import get_dataset
 from ctapipe.core import Provenance
@@ -91,6 +91,13 @@ class EventFileReader(Component):
         allow_none=True,
         help='Maximum number of events that will be read from the file'
     ).tag(config=True)
+
+    allowed_tels = Set(
+        help=('list of allowed tel_ids, others will be ignored. '
+             'If left empty, all telescopes in the input stream '
+             'will be included')
+    ).tag(config=True)
+
 
     def __init__(self, config, tool, **kwargs):
         """
