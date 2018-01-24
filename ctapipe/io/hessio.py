@@ -22,7 +22,7 @@ __all__ = [
     'hessio_event_source',
 ]
 
-def hessio_event_source(url, max_events=None, allowed_tels=None):
+def hessio_event_source(url, **params):
     """ emulate the old hessio_event_source generator, using the new
     HessioFileReader.  It is preferred to use HessioFileReader, this is only
     for backward compatibility.
@@ -48,11 +48,7 @@ def hessio_event_source(url, max_events=None, allowed_tels=None):
     """
 
     reader = HessioFileReader(None, None,
-                              input_url=url )
+                              input_url=url, **params )
 
-    reader.allowed_tels = allowed_tels
 
-    if max_events is not None:
-        return (x for ii,x in enumerate(reader) if ii <= max_events)
-    else:
-        return (x for x in reader)
+    return (x for x in reader)
