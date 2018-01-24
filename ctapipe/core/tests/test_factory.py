@@ -1,10 +1,14 @@
 from ctapipe.core.factory import Factory
 from ctapipe.core.component import Component
 from traitlets import Unicode, Int
+import pytest
 
 
 class ExampleComponentParent(Component):
     value = Int(123, help="").tag(config=True)
+
+    def __init__(self, config, parent, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
 
 class ExampleComponent1(ExampleComponentParent):
@@ -28,19 +32,21 @@ class ExampleFactory(Factory):
     # Product classes traits
     value = Int(555, help="").tag(config=True)
 
-    def get_factory_name(self):
-        return self.__class__.__name__
-
     def get_product_name(self):
         return self.discriminator
 
 
+class IncorrectExampleFactory(ExampleFactory):
+    def get_product_name(self):
+        return "NonExistantClass"
+
+
 def test_factory():
-    factory = ExampleFactory(config=None, tool=None)
-    factory.discriminator = 'ExampleComponent2'
-    factory.value = 111
-    cls = factory.get_class()
-    obj = cls(config=factory.config, parent=None)
+    obj = ExampleFactory.produce(
+        config=None, tool=None,
+        discriminator='ExampleComponent2',
+        value=111
+    )
     assert(obj.__class__.__name__ == 'ExampleComponent2')
     assert(obj.value == 111)
 
@@ -51,3 +57,12 @@ def test_factory_produce():
                                  value=111)
     assert (obj.__class__.__name__ == 'ExampleComponent2')
     assert (obj.value == 111)
+
+
+def test_false_product_name():
+    with pytest.raises(KeyError):
+        obj = IncorrectExampleFactory.produce(
+            config=None, tool=None,
+            discriminator='ExampleComponent2',
+            value=111
+        )
