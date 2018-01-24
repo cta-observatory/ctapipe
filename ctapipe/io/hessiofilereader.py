@@ -6,7 +6,6 @@ from ctapipe.io.eventfilereader import EventFileReader
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 from ctapipe.utils import get_dataset
-from traitlets import Unicode
 import gzip
 import struct
 
@@ -20,10 +19,6 @@ class HessioFileReader(EventFileReader):
     """
     _count = 0
 
-    input_url = Unicode(
-        get_dataset('gamma_test.simtel.gz'),
-        help='Path to the input file containing events.'
-    ).tag(config=True)
 
     def __init__(self, config, tool, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
@@ -36,8 +31,6 @@ class HessioFileReader(EventFileReader):
             raise
 
         self.pyhessio = pyhessio
-
-        self.allowed_tels = None
 
         if HessioFileReader._count > 0:
             self.log.warn("Only one pyhessio reader allowed at a time. "
@@ -69,8 +62,6 @@ class HessioFileReader(EventFileReader):
             # it after each yield
             counter = 0
             eventstream = file.move_to_next_event()
-            if self.allowed_tels is not None:
-                self.allowed_tels = set(self.allowed_tels)
             data = DataContainer()
             data.meta['origin'] = "hessio"
 
@@ -100,7 +91,7 @@ class HessioFileReader(EventFileReader):
 
                 # handle telescope filtering by taking the intersection of
                 # tels_with_data and allowed_tels
-                if self.allowed_tels is not None:
+                if len(self.allowed_tels) > 0:
                     selected = tels_with_data & self.allowed_tels
                     if len(selected) == 0:
                         continue  # skip event
