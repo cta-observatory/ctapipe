@@ -21,9 +21,16 @@ def test_hessio_file_reader():
             assert event.count == 0
             break
 
+    # test that max_events works:
     max_events = 5
     with HessioFileReader(**kwargs, max_events=max_events) as reader:
         count = 0
         for _ in reader:
             count += 1
         assert count == max_events
+
+    # test that the allowed_tels mask works:
+    with HessioFileReader(**kwargs, allowed_tels={3,4}) as  reader:
+        for event in reader:
+            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+
