@@ -3,6 +3,7 @@ from copy import deepcopy
 from ctapipe.core.component import Component
 from abc import abstractmethod
 from inspect import isabstract
+from traitlets.config.loader import Config
 
 
 class Factory(Component):
@@ -79,7 +80,7 @@ class Factory(Component):
 
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self.product = None
+        self.kwargs = deepcopy(kwargs)
 
     @staticmethod
     def child_subclasses(cls):
@@ -146,24 +147,25 @@ class Factory(Component):
         """
         product = self._product
         product_traits = product.class_trait_names()
+        product_args = list(product.__init__.__code__.co_varnames)
         config = deepcopy(self.__dict__['_trait_values']['config'])
         parent = deepcopy(self.__dict__['_trait_values']['parent'])
 
-        # If Product config does not exist, create new Config instance
-        # Note: `config[product.__name__]` requires Config, not dict
-        if not config[product.__name__]:
-            config[product.__name__] = config[self.__class__.__name__]
+        if config[self.__class__.__name__]:
+            # If Product config does not exist, create new Config instance
+            # Note: `config[product.__name__]` requires Config, not dict
+            if not config[product.__name__]:
+                config[product.__name__] = Config()
 
-        # Copy Factory config to Product config
-        for key, value in config[self.__class__.__name__].items():
-            config[product.__name__][key] = value
+            # Copy Factory config to Product config
+            for key, value in config[self.__class__.__name__].items():
+                if key in product_traits:
+                    config[product.__name__][key] = value
 
         # Copy valid arguments to kwargs
-        kwargs = deepcopy(self.__dict__['_trait_values'])
-        del kwargs['config']
-        del kwargs['parent']
+        kwargs = deepcopy(self.kwargs)
         for key in list(kwargs.keys()):
-            if key not in product_traits:
+            if key not in product_traits + product_args:
                 del kwargs[key]
 
         instance = product(config, parent, **kwargs)
