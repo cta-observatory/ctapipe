@@ -234,8 +234,5 @@ class WaveformCleanerFactory(Factory):
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
 
-    def get_factory_name(self):
-        return self.__class__.__name__
-
     def get_product_name(self):
         return self.cleaner

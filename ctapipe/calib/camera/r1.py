@@ -241,8 +241,5 @@ class CameraR1CalibratorFactory(Factory):
     ff_path = Unicode('', allow_none=True,
                       help='Path to a flat field file').tag(config=True)
 
-    def get_factory_name(self):
-        return self.__class__.__name__
-
     def get_product_name(self):
         return self.origin
