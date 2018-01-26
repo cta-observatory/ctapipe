@@ -8,7 +8,7 @@ import numpy as np
 from astropy.table import Table
 from ctapipe.core import Tool
 from ctapipe.core.traits import *
-from ctapipe.io.hessiofilereader import HessioFileReader
+from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
 from ctapipe.calib import CameraCalibrator
@@ -37,15 +37,15 @@ class ImageSumDisplayerTool(Tool):
                     'telgroup': 'ImageSumDisplayerTool.telgroup',
                     'max-events': 'ImageSumDisplayerTool.max_events',
                     'output-suffix': 'ImageSumDisplayerTool.output_suffix'})
-    classes = List([CameraCalibrator,HessioFileReader])
+    classes = List([CameraCalibrator, HESSIOEventSource])
 
     def setup(self):
         # load up the telescope types table (need to first open a file, a bit of
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
 
-        self.reader = HessioFileReader(None, None, input_url=self.infile,
-                                       max_events=self.max_events)
+        self.reader = HESSIOEventSource(None, None, input_url=self.infile,
+                                        max_events=self.max_events)
 
 
         for event in self.reader:

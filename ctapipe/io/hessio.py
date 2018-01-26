@@ -6,7 +6,7 @@ This requires the hessio python library to be installed
 """
 import logging
 
-from .hessiofilereader import HessioFileReader
+from .hessioeventsource import HESSIOEventSource
 from astropy.utils.decorators import deprecated
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,11 @@ __all__ = [
     'hessio_event_source',
 ]
 
-@deprecated(0.5, message="prefer the use of an EventFileReader or "
-                         "EventFileReaderFactory")
+@deprecated(0.5, message="prefer the use of an EventSource or "
+                         "EventSourceFactory")
 def hessio_event_source(url, **params):
     """ emulate the old hessio_event_source generator, using the new
-    HessioFileReader.  It is preferred to use HessioFileReader, this is only
+    HESSIOEventSource.  It is preferred to use HESSIOEventSource, this is only
     for backward compatibility.
 
     Parameters
@@ -43,8 +43,8 @@ def hessio_event_source(url, **params):
 
     """
 
-    reader = HessioFileReader(None, None,
-                              input_url=url, **params )
+    reader = HESSIOEventSource(None, None,
+                               input_url=url, **params)
 
 
     return (x for x in reader)

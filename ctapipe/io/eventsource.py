@@ -9,12 +9,12 @@ from ctapipe.utils import get_dataset
 from ctapipe.core import Provenance
 
 
-class EventFileReader(Component):
+class EventSource(Component):
     """
     Parent class for EventFileReaders of different sources.
 
     A new EventFileReader should be created for each type of event file read
-    into ctapipe, e.g. sim_telarray files are read by the `HessioFileReader`.
+    into ctapipe, e.g. sim_telarray files are read by the `HESSIOEventSource`.
 
     EventFileReader provides a common high-level interface for accessing event
     information from different data sources (simulation or different camera
@@ -25,9 +25,9 @@ class EventFileReader(Component):
     EventFileReader itself is an abstract class. To use an EventFileReader you
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
-    `ctapipe.io.hessiofilereader.HessioFileReader` to read a hessio format
+    `ctapipe.io.hessiofilereader.HESSIOEventSource` to read a hessio format
     file). Alternatively you can use
-    `ctapipe.io.eventfilereader.EventFileReaderFactory` to automatically
+    `ctapipe.io.eventfilereader.EventSourceFactory` to automatically
     select the correct EventFileReader subclass for the file format you wish
     to read.
 
@@ -35,20 +35,20 @@ class EventFileReader(Component):
     configuration (containing the input_url) and the
     `ctapipe.core.tool.Tool`. Therefore from inside a Tool you would do:
 
-    >>> reader = EventFileReader(self.config, self)
+    >>> reader = EventSource(self.config, self)
 
     An example of how to use `ctapipe.core.tool.Tool` and
-    `ctapipe.io.eventfilereader.EventFileReaderFactory` can be found in
+    `ctapipe.io.eventfilereader.EventSourceFactory` can be found in
     ctapipe/examples/calibration_pipeline.py.
 
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:
 
-    >>> reader = EventFileReader(None, None, input_url="/path/to/file")
+    >>> reader = EventSource(None, None, input_url="/path/to/file")
 
     To loop through the events in a file:
 
-    >>> reader = EventFileReader(None, None, input_url="/path/to/file")
+    >>> reader = EventSource(None, None, input_url="/path/to/file")
     >>> for event in reader:
     >>>    print(event.count)
 
@@ -58,7 +58,7 @@ class EventFileReader(Component):
     Alternatively one can use EventFileReader in a `with` statement to ensure
     the correct cleanups are performed when you are finished with the reader:
 
-    >>> with EventFileReader(None, None, input_url="/path/to/file") as reader:
+    >>> with EventSource(None, None, input_url="/path/to/file") as reader:
     >>>    for event in reader:
     >>>       print(event.count)
 
@@ -199,26 +199,26 @@ class EventFileReader(Component):
         pass
 
 
-# EventFileReader imports so that EventFileReaderFactory can see them
-import ctapipe.io.hessiofilereader
+# EventSource imports so that EventSourceFactory can see them
+import ctapipe.io.hessioeventsource
 
 
-class EventFileReaderFactory(Factory):
+class EventSourceFactory(Factory):
     """
-    The `EventFileReader` `ctapipe.core.factory.Factory`. This
+    The `EventSource` `ctapipe.core.factory.Factory`. This
     `ctapipe.core.factory.Factory` allows the correct
-    `EventFileReader` to be obtained for the event file being read.
+    `EventSource` to be obtained for the event file being read.
 
-    This factory tests each EventFileReader by calling
-    `EventFileReader.check_file_compatibility` to see which `EventFileReader`
+    This factory tests each EventSource by calling
+    `EventSource.check_file_compatibility` to see which `EventSource`
     is compatible with the file.
 
     Using `EventFileReaderFactory` in a script allows it to be compatible with
-    any file format that has an `EventFileReader` defined.
+    any file format that has an `EventSource` defined.
 
     To use within a `ctapipe.core.tool.Tool`:
 
-    >>> reader = EventFileReaderFactory.produce(config=self.config, tool=self)
+    >>> reader = EventSourceFactory.produce(config=self.config, tool=self)
 
     Parameters
     ----------
@@ -235,13 +235,13 @@ class EventFileReaderFactory(Factory):
     Attributes
     ----------
     reader : traitlets.CaselessStrEnum
-        A string with the `EventFileReader.__name__` of the reader you want to
-        use. If left blank, `EventFileReader.check_file_compatibility` will be
+        A string with the `EventSource.__name__` of the reader you want to
+        use. If left blank, `EventSource.check_file_compatibility` will be
         used to find a compatible reader.
     """
-    description = "Obtain EventFileReader based on file type"
+    description = "Obtain EventSource based on file type"
 
-    subclasses = Factory.child_subclasses(EventFileReader)
+    subclasses = Factory.child_subclasses(EventSource)
     subclass_names = [c.__name__ for c in subclasses]
 
     reader = CaselessStrEnum(
@@ -276,6 +276,6 @@ class EventFileReaderFactory(Factory):
                         return subclass.__name__
                 raise ValueError
             except ValueError:
-                self.log.exception("Cannot find compatible EventFileReader "
+                self.log.exception("Cannot find compatible EventSource "
                                    "for: {}".format(self.input_url))
                 raise

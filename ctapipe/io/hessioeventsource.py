@@ -2,7 +2,7 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.core import Provenance
-from ctapipe.io.eventfilereader import EventFileReader
+from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 from ctapipe.utils import get_dataset
@@ -10,9 +10,9 @@ import gzip
 import struct
 
 
-class HessioFileReader(EventFileReader):
+class HESSIOEventSource(EventSource):
     """
-    EventFileReader for the hessio file format.
+    EventSource for the hessio file format.
 
     This class utilises `pyhessio` to read the hessio file, and stores the
     information into the event containers.
@@ -32,11 +32,11 @@ class HessioFileReader(EventFileReader):
 
         self.pyhessio = pyhessio
 
-        if HessioFileReader._count > 0:
+        if HESSIOEventSource._count > 0:
             self.log.warn("Only one pyhessio reader allowed at a time. "
                           "Previous hessio file will be closed.")
             self.pyhessio.close_file()
-        HessioFileReader._count += 1
+        HESSIOEventSource._count += 1
 
         self.metadata['is_simulation'] = True
 

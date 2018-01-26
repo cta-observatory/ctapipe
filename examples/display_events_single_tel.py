@@ -21,7 +21,7 @@ from ctapipe.core.traits import *
 from ctapipe.image import (tailcuts_clean, hillas_parameters,
                            HillasParameterizationError)
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io.eventfilereader import EventFileReaderFactory
+from ctapipe.io.eventsource import EventSourceFactory
 from ctapipe.visualization import CameraDisplay
 
 
@@ -46,9 +46,9 @@ class SingleTelEventDisplay(Tool):
     progress = Bool(help='display progress bar', default_value=True).tag(
         config=True)
 
-    aliases = Dict({'infile': 'EventFileReaderFactory.input_url',
+    aliases = Dict({'infile': 'EventSourceFactory.input_url',
                     'tel': 'SingleTelEventDisplay.tel',
-                    'max-events': 'EventFileReaderFactory.max_events',
+                    'max-events': 'EventSourceFactory.max_events',
                     'channel': 'SingleTelEventDisplay.channel',
                     'write': 'SingleTelEventDisplay.write',
                     'clean': 'SingleTelEventDisplay.clean',
@@ -59,11 +59,11 @@ class SingleTelEventDisplay(Tool):
                     'progress': 'SingleTelEventDisplay.progress'
                     })
 
-    classes = List([EventFileReaderFactory, CameraCalibrator])
+    classes = List([EventSourceFactory, CameraCalibrator])
 
     def setup(self):
 
-        reader_factory = EventFileReaderFactory(None, self)
+        reader_factory = EventSourceFactory(None, self)
         reader_class = reader_factory.get_class()
         self.reader = reader_class(None, self)
         self.reader.allowed_tels = [self.tel,]
