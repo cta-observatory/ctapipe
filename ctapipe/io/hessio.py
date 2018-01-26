@@ -5,15 +5,9 @@ Components to read HESSIO data.
 This requires the hessio python library to be installed
 """
 import logging
-import warnings
-from astropy import units as u
-from astropy.coordinates import Angle
-from astropy.time import Time
 
-from .containers import DataContainer
-from ..core import Provenance
-from ..instrument import TelescopeDescription, SubarrayDescription
 from .hessiofilereader import HessioFileReader
+from astropy.utils.decorators import deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +16,8 @@ __all__ = [
     'hessio_event_source',
 ]
 
+@deprecated(0.5, message="prefer the use of an EventFileReader or "
+                         "EventFileReaderFactory")
 def hessio_event_source(url, **params):
     """ emulate the old hessio_event_source generator, using the new
     HessioFileReader.  It is preferred to use HessioFileReader, this is only
