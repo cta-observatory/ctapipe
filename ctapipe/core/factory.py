@@ -2,6 +2,8 @@ from copy import deepcopy
 
 from ctapipe.core.component import Component
 from abc import abstractmethod
+from inspect import isabstract
+from traitlets.config.loader import Config
 
 
 class Factory(Component):
@@ -78,13 +80,12 @@ class Factory(Component):
 
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self.product = None
+        self.kwargs = deepcopy(kwargs)
 
     @staticmethod
     def child_subclasses(cls):
         """
-        Return all base subclasses of a parent class. Finds the bottom level
-        subclasses that have no further children.
+        Return all non-abstract subclasses of a parent class.
 
         Parameters
         ----------
@@ -99,24 +100,20 @@ class Factory(Component):
         """
         family = cls.__subclasses__() + [g for s in cls.__subclasses__()
                                          for g in Factory.child_subclasses(s)]
-        children = [g for g in family if not g.__subclasses__()]
+        children = [g for g in family if not isabstract(g)]
+
         return children
 
     @abstractmethod
     def get_product_name(self):
         """
         Abstract method to be implemented in child factory.
-        Simply return the discriminator traitlet.
+
+        Method to obtain the correct name for the product.
         """
 
-    @abstractmethod
-    def get_factory_name(self):
-        """
-        Abstract method to be implemented in child factory.
-        Simply return the name of the factory.
-        """
-
-    def get_class(self):
+    @property
+    def _product(self):
         """
         Obtain the class constructor for the specified product name.
 
@@ -127,26 +124,52 @@ class Factory(Component):
         """
         subclass_dict = dict(zip(self.subclass_names, self.subclasses))
         self.log.info("Obtaining {} from {}".format(self.get_product_name(),
-                                                    self.get_factory_name()))
+                                                    self.__class__.__name__))
         try:
             product = subclass_dict[self.get_product_name()]
+            return product
         except KeyError:
             self.log.exception('No product found with name "{}" for '
                                'factory.'.format(self.get_product_name()))
             raise
 
-        # Copy factory traits to product
-        c = self.__dict__['_trait_values']['config']
-        c[product.__name__] = deepcopy(c[self.get_factory_name()])
-        items = self.__dict__['_trait_values'].items()
-        for key, values in items:
-            if key != 'config' and key != 'parent':
-                c[product.__name__][key] = values
-        keys = list(c[product.__name__].keys())
-        for key in keys:
-            if key not in product.class_trait_names():
-                del c[product.__name__][key]
-        return product
+    @property
+    def _instance(self):
+        """
+        Obtain an instance of the product class with the config and arguments
+        correctly copied from the Factory to the product.
+
+        Returns
+        -------
+        instance
+            Instance of the product class that is the purpose of the factory
+            to produce.
+        """
+        product = self._product
+        product_traits = product.class_trait_names()
+        product_args = list(product.__init__.__code__.co_varnames)
+        config = deepcopy(self.__dict__['_trait_values']['config'])
+        parent = deepcopy(self.__dict__['_trait_values']['parent'])
+
+        if config[self.__class__.__name__]:
+            # If Product config does not exist, create new Config instance
+            # Note: `config[product.__name__]` requires Config, not dict
+            if not config[product.__name__]:
+                config[product.__name__] = Config()
+
+            # Copy Factory config to Product config
+            for key, value in config[self.__class__.__name__].items():
+                if key in product_traits:
+                    config[product.__name__][key] = value
+
+        # Copy valid arguments to kwargs
+        kwargs = deepcopy(self.kwargs)
+        for key in list(kwargs.keys()):
+            if key not in product_traits + product_args:
+                del kwargs[key]
+
+        instance = product(config, parent, **kwargs)
+        return instance
 
     @classmethod
     def produce(cls, config, tool, **kwargs):
@@ -167,12 +190,11 @@ class Factory(Component):
 
         Returns
         -------
-        product
+        instance
             Instance of the product class that is the purpose of the factory
             to produce.
 
         """
         factory = cls(config=config, tool=tool, **kwargs)
-        class_instance = factory.get_class()
-        product = class_instance(config=config, tool=tool, **kwargs)
-        return product
+        instance = factory._instance
+        return instance
