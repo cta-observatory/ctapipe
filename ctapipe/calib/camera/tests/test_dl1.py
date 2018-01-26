@@ -1,18 +1,11 @@
-from ctapipe.calib.camera.dl1 import integration_correction, \
-    CameraDL1Calibrator
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
+from copy import deepcopy
+
 from numpy.testing import assert_allclose
 
-
-def get_test_event():
-    filename = get_dataset('gamma_test.simtel.gz')
-    source = hessio_event_source(filename, requested_event=409,
-                                 use_event_id=True)
-    event = next(source)
-    return event
+from ctapipe.calib.camera.dl0 import CameraDL0Reducer
+from ctapipe.calib.camera.dl1 import integration_correction, \
+    CameraDL1Calibrator
+from ctapipe.calib.camera.r1 import HessioR1Calibrator
 
 
 def previous_calibration(event):
@@ -22,8 +15,8 @@ def previous_calibration(event):
     dl0.reduce(event)
 
 
-def test_integration_correction():
-    event = get_test_event()
+def test_integration_correction(test_event):
+    event = deepcopy(test_event)
     telid = 11
     width = 7
     shift = 3
@@ -36,8 +29,8 @@ def test_integration_correction():
     assert_allclose(correction[0], 1.077, 1e-3)
 
 
-def test_camera_dl1_calibrator():
-    event = get_test_event()
+def test_camera_dl1_calibrator(test_event):
+    event = deepcopy(test_event)
     previous_calibration(event)
     telid = 11
 
@@ -51,9 +44,9 @@ def test_camera_dl1_calibrator():
     assert_allclose(image[0, 0], -2.216, 1e-3)
 
 
-def test_check_dl0_exists():
+def test_check_dl0_exists(test_event):
+    event = deepcopy(test_event)
     telid = 11
-    event = get_test_event()
     previous_calibration(event)
     calibrator = CameraDL1Calibrator(None, None)
     assert(calibrator.check_dl0_exists(event, telid) is True)
