@@ -5,6 +5,7 @@ Handles seeking to a particular event in a
 from copy import deepcopy
 from ctapipe.core import Component
 
+__all__ = ['EventSeeker',]
 
 class EventSeeker(Component):
     """
