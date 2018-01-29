@@ -64,11 +64,12 @@ class MuonLineIntegrate:
         self.secondary_radius = secondary_radius
         self.pixel_x = 0
         self.pixel_y = 0
-        self.image = 0
+        self.image = 0 * u.deg
         self.prediction = 0
-        self.minlambda = 300.e-9
-        self.maxlambda = 600.e-9
-        self.photemit = alpha * (self.minlambda**-1 - self.maxlambda**-1)  # 12165.45
+        self.minlambda = 300.e-9 * u.m
+        self.maxlambda = 600.e-9 * u.m
+        self.photemit = alpha * (self.minlambda**-1 -
+                                       self.maxlambda**-1)  # 12165.45
         self.unit = u.deg
 
     @staticmethod
@@ -90,10 +91,9 @@ class MuonLineIntegrate:
         ndarray: chord length
         """
         chord = 1 - (rho * rho * np.sin(phi) * np.sin(phi))
-
-        if rho <= 1:
+        if rho <= 1.0:
             chord = radius * (np.sqrt(chord) + rho * np.cos(phi))
-        elif rho > 1:
+        elif rho > 1.0:
             chord = 2. * radius * np.sqrt(chord)
 
         chord[np.isnan(chord)] = 0
@@ -240,17 +240,17 @@ class MuonLineIntegrate:
         gauss = norm.pdf(radial_dist, radius, ring_width)
 
         # interpolate profile to find prediction for each pixel
-        pred = np.interp(ang, ang_prof, profile)
+        pred = np.interp(ang, ang_prof, profile) * u.m
 
         # Multiply by integrated emissivity between 300 and 600 nm
-        pred *= 0.5 * self.photemit
+        photval = self.photemit / u.deg
+        pred *= 0.5 * photval
 
         # weight by pixel width
         pred *= (self.pixel_width / radius)
         pred *= np.sin(2 * radius)
         # weight by gaussian width
         pred *= self.pixel_width * gauss
-
         return pred
 
     def likelihood(self, impact_parameter, phi, centre_x, centre_y,
@@ -304,7 +304,8 @@ class MuonLineIntegrate:
         self.prediction *= optical_efficiency_muon
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
-        return -2 * np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
+        like_value = np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
+        return like_value
 
     @staticmethod
     def calc_likelihood(image, pred, spe_width, ped):
@@ -327,13 +328,17 @@ class MuonLineIntegrate:
         ndarray: likelihood for each pixel
 
         """
-        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2)))
+        ped = ped * u.deg
+        image = image * u.deg
+        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) * u.deg))
         diff = (image - pred)**2
-        denom = 2 * (ped**2 + pred * (1 + spe_width**2))
-        expo = np.exp(-diff / denom)
-        sm = expo < 1e-300
-        expo[sm] = 1e-300
-        return np.log(sq * expo)
+        denom = 2 * (ped**2 + pred * (1 + spe_width**2) * u.deg)
+        expo = np.exp(-diff / denom) * u.m
+        sm = expo < 1e-300 * u.m
+        expo[sm] = 1e-300 * u.m
+        log_value = sq * expo / u.m * u.deg
+        likelihood_value = -2 * np.log(log_value)
+        return likelihood_value
 
     def fit_muon(self, centre_x, centre_y, radius, pixel_x, pixel_y, image):
         """
@@ -395,18 +400,18 @@ class MuonLineIntegrate:
 
         print("radius =", radius, " pre migrad")
 
-
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
+
         minuit = Minuit(
             self.likelihood,
             # forced_parameters=parameter_names,
             **init_params,
             **init_errs,
             **init_constrain,
-            errordef=1.,
-            print_level=1
-            # pedantic=False
+            errordef=0.,
+            print_level=0,
+            pedantic=False
         )
 
         # Perform minimisation

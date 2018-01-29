@@ -1,6 +1,6 @@
 from ctapipe.core.factory import Factory
 from ctapipe.core.component import Component
-from traitlets import Unicode, Int
+from traitlets import Int
 import pytest
 from traitlets.config.loader import Config
 
@@ -34,40 +34,67 @@ class ExampleComponent4(ExampleComponentParent):
 
 
 class ExampleFactory(Factory):
-    description = "Test Factory class"
-
-    subclasses = Factory.child_subclasses(ExampleComponentParent)
-    subclass_names = [c.__name__ for c in subclasses]
-
-    discriminator = Unicode('ExampleComponent1',
-                            help='Product to obtain: {}'
-                            .format(subclass_names)).tag(config=True)
-
-    # Product classes traits
-    value = Int(555, help="").tag(config=True)
-
-    def get_product_name(self):
-        return self.discriminator
+    base = ExampleComponentParent
+    default = 'ExampleComponent1'
 
 
-class IncorrectExampleFactory(ExampleFactory):
-    def get_product_name(self):
+class IncorrectExampleFactory(Factory):
+    base = ExampleComponentParent
+    default = 'ExampleComponent1'
+
+    def _get_product_name(self):
         return "NonExistantClass"
 
 
 def test_factory():
     obj = ExampleFactory.produce(
         config=None, tool=None,
-        discriminator='ExampleComponent2',
+        product='ExampleComponent2',
         value=111
     )
     assert(obj.__class__.__name__ == 'ExampleComponent2')
     assert(obj.value == 111)
 
 
+def test_factory_subclass_detection():
+    subclasses = [
+        ExampleComponent1,
+        ExampleComponent2,
+        ExampleComponent3,
+        ExampleComponent4
+    ]
+    subclass_names = [
+        "ExampleComponent1",
+        "ExampleComponent2",
+        "ExampleComponent3",
+        "ExampleComponent4"
+    ]
+    factory_subclasses_str = [str(i) for i in ExampleFactory.subclasses]
+    subclasses_str = [str(i) for i in subclasses]
+    assert sorted(factory_subclasses_str) == sorted(subclasses_str)
+    assert sorted(ExampleFactory.subclass_names) == sorted(subclass_names)
+
+
+def test_factory_automatic_traits():
+    traits = sorted(list(ExampleFactory.class_own_traits().keys()))
+    assert traits == sorted(['extra', 'product', 'value'])
+
+
+def test_factory_traits_compatible_help():
+    msg = [
+        "Compatible Components:",
+        "ExampleComponent1",
+        "ExampleComponent2",
+        "ExampleComponent3",
+        "ExampleComponent4"
+        ]
+    for m in msg:
+        assert m in ExampleFactory.class_own_traits()['value'].help
+
+
 def test_factory_produce():
     obj = ExampleFactory.produce(config=None, tool=None,
-                                 discriminator='ExampleComponent2',
+                                 product='ExampleComponent2',
                                  value=111)
     assert (obj.__class__.__name__ == 'ExampleComponent2')
     assert (obj.value == 111)
@@ -77,14 +104,14 @@ def test_false_product_name():
     with pytest.raises(KeyError):
         obj = IncorrectExampleFactory.produce(
             config=None, tool=None,
-            discriminator='ExampleComponent2',
+            product='ExampleComponent2',
             value=111
         )
 
 
 def test_expected_args():
     kwargs = dict(
-        discriminator='ExampleComponent2',
+        product='ExampleComponent2',
         value=111,
         extra=4,
         nonexistant=5
@@ -95,13 +122,13 @@ def test_expected_args():
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
 
-    kwargs['discriminator'] = 'ExampleComponent3'
+    kwargs['product'] = 'ExampleComponent3'
     obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
     assert obj.extra == 4
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
 
-    kwargs['discriminator'] = 'ExampleComponent4'
+    kwargs['product'] = 'ExampleComponent4'
     obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
     assert obj.extra == 4
     with pytest.raises(AttributeError):
@@ -111,7 +138,7 @@ def test_expected_args():
 def test_expected_config():
     config = Config()
     config['ExampleFactory'] = Config()
-    config['ExampleFactory']['discriminator'] = 'ExampleComponent2'
+    config['ExampleFactory']['product'] = 'ExampleComponent2'
     config['ExampleFactory']['value'] = 111
     config['ExampleFactory']['extra'] = 4
     obj = ExampleFactory.produce(config=config, tool=None)
@@ -121,7 +148,7 @@ def test_expected_config():
 
     config = Config()
     config['ExampleFactory'] = Config()
-    config['ExampleFactory']['discriminator'] = 'ExampleComponent2'
+    config['ExampleFactory']['product'] = 'ExampleComponent2'
     config['ExampleComponent2'] = Config()
     config['ExampleComponent2']['value'] = 111
     config['ExampleComponent2']['extra'] = 4
@@ -132,7 +159,7 @@ def test_expected_config():
 
     config = Config()
     config['ExampleFactory'] = Config()
-    config['ExampleFactory']['discriminator'] = 'ExampleComponent4'
+    config['ExampleFactory']['product'] = 'ExampleComponent4'
     config['ExampleFactory']['value'] = 111
     config['ExampleFactory']['extra'] = 4
     obj = ExampleFactory.produce(config=config, tool=None)
@@ -140,7 +167,7 @@ def test_expected_config():
     assert obj.extra == 4
 
     config['ExampleFactory'] = Config()
-    config['ExampleFactory']['discriminator'] = 'ExampleComponent4'
+    config['ExampleFactory']['product'] = 'ExampleComponent4'
     config['ExampleComponent4'] = Config()
     config['ExampleComponent4']['value'] = 111
     config['ExampleComponent4']['extra'] = 4
