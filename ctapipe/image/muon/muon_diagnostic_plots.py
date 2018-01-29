@@ -125,10 +125,10 @@ def plot_muon_event(event, muonparams):
             signals = image * clean_mask
 
             rotr_angle = geom.pix_rotation
+# The following two lines have been commented out to avoid a rotation error.
+#            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
 
-            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
-
-                rotr_angle = 0. * u.deg
+#                rotr_angle = 0. * u.deg
 
             # Convert to camera frame (centre & radius)
             altaz = HorizonFrame(alt=event.mc.alt, az=event.mc.az)
@@ -220,13 +220,13 @@ def plot_muon_event(event, muonparams):
                 if len(pred) != np.sum(
                         muonparams['MuonIntensityParams'][idx].mask):
                     logger.warning("Lengths do not match...len(pred)=%s len("
-                               "mask)=",len(pred),
-                               np.sum(muonparams['MuonIntensityParams'][idx].mask))
+                                   "mask)=", len(pred),
+                                   np.sum(muonparams['MuonIntensityParams'][idx].mask))
 
                 # Numpy broadcasting - fill in the shape
                 plotpred = np.zeros(image.shape)
-                plotpred[
-                    muonparams['MuonIntensityParams'][idx].mask == True] = pred
+                truelocs = np.where(muonparams['MuonIntensityParams'][idx].mask==True)
+                plotpred[truelocs] = pred
 
                 camera2 = plotter.draw_camera(tel_id, plotpred, ax2)
 
