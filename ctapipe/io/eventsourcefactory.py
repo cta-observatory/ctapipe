@@ -1,12 +1,9 @@
-from traitlets import Unicode, Int, CaselessStrEnum
-
 from ctapipe.core.factory import Factory
 from ctapipe.io.eventsource import EventSource
-from ctapipe.utils import get_dataset
-
 
 # EventFileReader imports so that EventFileReaderFactory can see them
 # (they need to exist in the global namespace)
+import ctapipe.io.hessioeventsource
 
 
 class EventSourceFactory(Factory):
@@ -40,40 +37,20 @@ class EventSourceFactory(Factory):
 
     Attributes
     ----------
-    reader : traitlets.CaselessStrEnum
+    product : traitlets.CaselessStrEnum
         A string with the `EventSource.__name__` of the reader you want to
         use. If left blank, `EventSource.check_file_compatibility` will be
         used to find a compatible reader.
     """
-    description = "Obtain EventSource based on file type"
+    base = EventSource
+    custom_product_help = ('EventSource to use. If None then a reader will '
+                           'be chosen based on the input_url')
+    input_url = None  # Instanced as a traitlet by FactoryMeta
 
-    subclasses = Factory.child_subclasses(EventSource)
-    subclass_names = [c.__name__ for c in subclasses]
-
-    reader = CaselessStrEnum(
-        subclass_names,
-        None,
-        allow_none=True,
-        help='EventSource to use. If None then a reader will be chosen '
-             'based on file extension'
-    ).tag(config=True)
-
-    # Product classes traits
-    # Would be nice to have these automatically set...!
-    input_url = Unicode(
-        get_dataset('gamma_test.simtel.gz'),
-        help='Path to the input file containing events.'
-    ).tag(config=True)
-    max_events = Int(
-        None,
-        allow_none=True,
-        help='Maximum number of events that will be read from the file'
-    ).tag(config=True)
-
-    def get_product_name(self):
-        if self.reader is not None:
-            return self.reader
-        else:
+    def _get_product_name(self):
+        try:
+            return super()._get_product_name()
+        except AttributeError:
             if self.input_url is None:
                 raise ValueError("Please specify an input_url for event file")
             try:
