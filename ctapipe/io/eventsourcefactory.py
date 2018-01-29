@@ -5,6 +5,8 @@ from ctapipe.io.eventsource import EventSource
 # (they need to exist in the global namespace)
 import ctapipe.io.hessioeventsource
 
+__all__ = ['EventSourceFactory', 'event_source']
+
 
 class EventSourceFactory(Factory):
     """
