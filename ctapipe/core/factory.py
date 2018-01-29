@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy
 
 from ctapipe.core.component import Component
 from abc import abstractmethod
@@ -80,7 +80,7 @@ class Factory(Component):
 
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        self.kwargs = deepcopy(kwargs)
+        self.kwargs = copy(kwargs)
 
     @staticmethod
     def child_subclasses(cls):
@@ -148,8 +148,8 @@ class Factory(Component):
         product = self._product
         product_traits = product.class_trait_names()
         product_args = list(product.__init__.__code__.co_varnames)
-        config = deepcopy(self.__dict__['_trait_values']['config'])
-        parent = deepcopy(self.__dict__['_trait_values']['parent'])
+        config = copy(self.__dict__['_trait_values']['config'])
+        parent = copy(self.__dict__['_trait_values']['parent'])
 
         if config[self.__class__.__name__]:
             # If Product config does not exist, create new Config instance
@@ -163,7 +163,7 @@ class Factory(Component):
                     config[product.__name__][key] = value
 
         # Copy valid arguments to kwargs
-        kwargs = deepcopy(self.kwargs)
+        kwargs = copy(self.kwargs)
         for key in list(kwargs.keys()):
             if key not in product_traits + product_args:
                 del kwargs[key]
