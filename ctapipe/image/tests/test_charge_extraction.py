@@ -1,24 +1,20 @@
+from copy import deepcopy
+
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from ctapipe.image.charge_extractors import FullIntegrator, \
-    SimpleIntegrator, GlobalPeakIntegrator, LocalPeakIntegrator, \
-    NeighbourPeakIntegrator, ChargeExtractorFactory, AverageWfPeakIntegrator
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
+from ctapipe.image.charge_extractors import (FullIntegrator,
+                                             SimpleIntegrator,
+                                             GlobalPeakIntegrator,
+                                             LocalPeakIntegrator,
+                                             NeighbourPeakIntegrator,
+                                             ChargeExtractorFactory,
+                                             AverageWfPeakIntegrator)
 
 
-def get_test_event():
-    filename = get_dataset('gamma_test.simtel.gz')
-    source = hessio_event_source(filename, requested_event=409,
-                                 use_event_id=True)
-    event = next(source)
-    return event
-
-
-def test_full_integration():
+def test_full_integration(test_event):
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -34,9 +30,9 @@ def test_full_integration():
     assert peakpos[1][0] == 0
 
 
-def test_simple_integration():
+def test_simple_integration(test_event):
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -52,9 +48,9 @@ def test_simple_integration():
     assert peakpos[1][0] == 0
 
 
-def test_global_peak_integration():
+def test_global_peak_integration(test_event):
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -70,9 +66,9 @@ def test_global_peak_integration():
     assert peakpos[1][0] == 14
 
 
-def test_local_peak_integration():
+def test_local_peak_integration(test_event):
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -88,9 +84,9 @@ def test_local_peak_integration():
     assert peakpos[1][0] == 13
 
 
-def test_nb_peak_integration():
+def test_nb_peak_integration(test_event):
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -109,9 +105,9 @@ def test_nb_peak_integration():
     assert peakpos[1][0] == 20
 
 
-def test_averagewf_peak_integration():
+def test_averagewf_peak_integration(test_event):
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -127,14 +123,14 @@ def test_averagewf_peak_integration():
     assert peakpos[1][0] == 10
 
 
-def test_charge_extractor_factory():
+def test_charge_extractor_factory(test_event):
     extractor = ChargeExtractorFactory.produce(
         None, None,
         extractor='LocalPeakIntegrator'
     )
 
     telid = 11
-    event = get_test_event()
+    event = deepcopy(test_event)
     data = event.r0.tel[telid].adc_samples
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal

@@ -1,5 +1,5 @@
 from ctapipe.utils import get_dataset
-from ctapipe.io.hessiofilereader import HessioFileReader
+from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.eventseeker import EventSeeker
 import pytest
 
@@ -7,7 +7,7 @@ import pytest
 def test_eventseeker():
     dataset = get_dataset("gamma_test.simtel.gz")
     kwargs = dict(config=None, tool=None, input_url=dataset)
-    with HessioFileReader(**kwargs) as reader:
+    with HESSIOEventSource(**kwargs) as reader:
         seeker = EventSeeker(None, None, reader=reader)
         event = seeker[1]
         assert event.r0.tels_with_data == {11, 21, 24, 26, 61, 63, 118, 119}
@@ -34,12 +34,12 @@ def test_eventseeker():
         with pytest.raises(TypeError):
             event = seeker[dict()]
 
-    with HessioFileReader(**kwargs, max_events=5) as reader:
+    with HESSIOEventSource(**kwargs, max_events=5) as reader:
         seeker = EventSeeker(None, None, reader=reader)
         with pytest.raises(IndexError):
             event = seeker[5]
 
-    class StreamFileReader(HessioFileReader):
+    class StreamFileReader(HESSIOEventSource):
         def is_stream(self):
             return True
     with StreamFileReader(**kwargs) as reader:

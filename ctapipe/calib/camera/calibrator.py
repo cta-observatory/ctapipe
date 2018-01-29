@@ -57,7 +57,7 @@ class CameraCalibrator(Component):
         origin : str
             The origin of the event file (default: hessio) to choose the
             correct `CameraR1Calibrator`. Usually given from
-            `EventFileReader.origin`.
+            `EventSource.origin`.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
