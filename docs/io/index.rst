@@ -9,8 +9,7 @@
 Introduction
 ============
 
-`ctapipe.io` contains functions and classes related to reading data,
-like `~ctapipe.io.hessio_event_source`.
+`ctapipe.io` contains functions and classes related to reading data
 
 
 Container Classes
@@ -66,21 +65,12 @@ Access to Raw Data
 
 This module provides a set of *event sources* that are python
 generators that loop through a file and fill in the `Container`
-classes. These include:
+classes.
 
-`hessio.hessio_event_source`: provides a convenient wrapper to
-reading *simtelarray* data files, like those used in CTA monte-carlo
-productions. It requires the `pyhessio` package to be installed (see
-:ref:`getting_started` for instructions installing `pyhessio`).
-
-`toymodel.toymodel_event_source`: generates toy-monte-carlo dummy images for
-  testing purposes
-
-`zfits.zfits_event_source`: reads zfits raw event files
-
-.. figure:: shower.png
-	    
-   an image read from a *simtelarray* data file.
+A set of `EventSource` classes are provided to read data in various formats,
+these are generally constructed by using `EventSourceFactory.produce()` or by
+using the helper function `event_source(file_or_url)`, both of which will
+construct the appropriate `EventSource` subclass based on the input file's type.
 
 
 Serialization of Containers:
@@ -98,7 +88,9 @@ Reference/API
 =============
 
        
-.. automodapi:: ctapipe.io.hessio
+.. automodapi:: ctapipe.io.eventsource
+
+.. automodapi:: ctapipe.io.eventsourcefactory
 
 ------------------------------
 		
