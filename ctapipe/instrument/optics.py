@@ -71,7 +71,8 @@ class OpticsDescription:
         self.tel_type = tel_type
         self.tel_subtype = tel_subtype
         self.equivalent_focal_length = equivalent_focal_length.to(u.m)
-        self.mirror_area = mirror_area.to(u.m**2)
+        self.mirror_area = mirror_area
+
         self.num_mirror_tiles = num_mirror_tiles
 
     @classmethod
