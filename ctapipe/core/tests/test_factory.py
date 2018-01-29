@@ -74,8 +74,8 @@ def test_factory_subclass_detection():
 
 
 def test_factory_automatic_traits():
-    traits = list(ExampleFactory.class_own_traits().keys())
-    assert traits == ['extra', 'product', 'value']
+    traits = sorted(list(ExampleFactory.class_own_traits().keys()))
+    assert traits == sorted(['extra', 'product', 'value'])
 
 
 def test_factory_traits_compatible_help():
