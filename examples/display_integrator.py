@@ -18,7 +18,7 @@ from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool, Component
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io.eventsource import EventSourceFactory
+from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.visualization import CameraDisplay
 
 
@@ -332,9 +332,7 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        reader_factory = EventSourceFactory(**kwargs)
-        reader_class = reader_factory.get_class()
-        self.file_reader = reader_class(**kwargs)
+        self.file_reader = EventSourceFactory.produce(**kwargs)
 
         extractor_factory = ChargeExtractorFactory(**kwargs)
         extractor_class = extractor_factory.get_class()
