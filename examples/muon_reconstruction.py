@@ -10,7 +10,7 @@ from ctapipe.core import Tool
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io import event_source
 from ctapipe.utils import get_dataset
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
@@ -67,10 +67,9 @@ class MuonDisplayerTool(Tool):
         numev = 0
         num_muons_found = 0
 
-        for event in hessio_event_source(self.infile):
-            self.log.info("Event Number: %d, found %d muons across all events",
-                          numev, num_muons_found)
 
+        for event in event_source(self.infile):
+            self.log.info("Event Number: %d, found %d muons", numev, num_muons_found)
             self.calib.calibrate(event)
             muon_evt = analyze_muon_event(event)
 

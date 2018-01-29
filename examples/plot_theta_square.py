@@ -7,7 +7,7 @@
 from astropy import units as u
 import matplotlib.pyplot as plt
 import numpy as np
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io import event_source
 from ctapipe.visualization import CameraDisplay
 from ctapipe.instrument.camera import CameraGeometry
 from ctapipe.calib import CameraCalibrator
@@ -26,7 +26,7 @@ filename=datasets.get_dataset("gamma_test_large.simtel.gz")
 #filename
 
 # reading the Monte Carlo file for LST 
-source = hessio_event_source(filename,allowed_tels={1,2,3,4})
+source = event_source(filename,allowed_tels={1,2,3,4})
 
 #pointing direction of the telescopes
 point_azimuth = {}

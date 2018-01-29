@@ -2,13 +2,13 @@
 
 # run this example with:
 #
-# python read_hessio.py <filename>
+# python display_event.py <filename>
 #
 # if no filename is given, a default example file will be used
 # containing ~10 events
 
 from ctapipe.utils.datasets import get_dataset
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io import event_source
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     plt.show(block=False)
 
     # loop over events and display menu at each event:
-    source = hessio_event_source(filename)
+    source = event_source(filename)
 
     for event in source:
 

@@ -8,13 +8,13 @@ import sys
 import numpy as np
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io import event_source
 
 if __name__ == '__main__':
 
     filename = sys.argv[1]
 
-    source = hessio_event_source(filename, max_events=None)
+    source = event_source(filename, max_events=None)
 
     cal = CameraCalibrator(None, None)
 
