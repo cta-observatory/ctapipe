@@ -169,77 +169,19 @@ class CameraR1CalibratorFactory(Factory):
     """
     The R1 calibrator `ctapipe.core.factory.Factory`. This
     `ctapipe.core.factory.Factory` allows the correct
-    `CameraR1Calibrator` to be obtained for the data investigated. The
-    discriminator used by this factory is the "origin" of the file, a string
-    obtainable from `ctapipe.io.eventfilereader.EventSource.origin`.
+    `CameraR1Calibrator` to be obtained for the data investigated.
 
     Additional filepaths are required by some cameras for R1 calibration. Due
     to the current inplementation of `ctapipe.core.factory.Factory`, every
     trait that could
     possibly be required for a child `ctapipe.core.component.Component` of
-    `CameraR1Calibrator` must
-    be included in this `ctapipe.core.factory.Factory`. The
+    `CameraR1Calibrator` is
+    included in this `ctapipe.core.factory.Factory`. The
     `CameraR1Calibrator` specific to a
     camera type should then define how/if that filepath should be used. The
     format of the file is not restricted, and the file can be read from inside
     ctapipe, or can call a different library created by the camera teams for
     the calibration of their camera.
-
-    Parameters
-    ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool or None
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
-    kwargs
-
-    Attributes
-    ----------
-    origin : traitlets.CaselessStrEnum
-        A string describing the origin of the event file being calibrated.
-        Should be obtained from the
-        `ctapipe.io.eventfilereader.EventSource.origin` attribute of the
-        correct `ctapipe.io.eventfilereader.EventSource` for the file.
-    pedestal_path : traitlets.Unicode
-        A string containing the path to a file containing the electronic
-        pedestal to be subtracted from the waveforms. How/if this file is used
-        is defined by the `CameraR1Calibrator` specific to the camera.
-    tf_path : traitlets.Unicode
-        A string containing the path to a file containing the transfer
-        function to be applied to the waveforms to fix the non-linearity of
-        the digitiser. How/if this file is used is defined by the
-        `CameraR1Calibrator` specific to the camera.
-    pe_path : traitlets.Unicode
-        A string containing the path to a file containing the conversion
-        coefficients into photoelectrons. How/if this file is used is defined
-        by the `CameraR1Calibrator` specific to the camera.
-    ff_path : traitlets.Unicode
-        A string containing the path to a file containing the flat-field
-        conversion coefficients. How/if this file is used is defined by the
-        `CameraR1Calibrator` specific to the camera.
     """
-    description = "Obtain CameraR1Calibrator based on file origin"
-
-    subclasses = Factory.child_subclasses(CameraR1Calibrator)
-    subclass_names = [c.origin for c in subclasses]
-
-    origin = CaselessStrEnum(subclass_names, 'hessio',
-                             help='Origin of events to be '
-                                  'calibration.').tag(config=True)
-
-    # Product classes traits
-    pedestal_path = Unicode('', allow_none=True,
-                            help='Path to a pedestal file').tag(config=True)
-    tf_path = Unicode('', allow_none=True,
-                      help='Path to a Transfer Function file').tag(config=True)
-    pe_path = Unicode('', allow_none=True,
-                          help='Path to an pe conversion file').tag(config=True)
-    ff_path = Unicode('', allow_none=True,
-                      help='Path to a flat field file').tag(config=True)
-
-    def get_product_name(self):
-        return self.origin
+    base = CameraR1Calibrator
+    default = 'HessioR1Calibrator'

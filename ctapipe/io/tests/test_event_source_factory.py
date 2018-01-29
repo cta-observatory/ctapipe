@@ -27,7 +27,7 @@ def test_factory_from_reader():
     dataset = get_dataset("gamma_test.simtel.gz")
     reader = EventSourceFactory.produce(
         None, None,
-        reader='HESSIOEventSource',
+        product='HESSIOEventSource',
         input_url=dataset
     )
     assert reader.__class__.__name__ == "HESSIOEventSource"
@@ -45,7 +45,7 @@ def test_factory_unknown_reader():
         dataset = get_dataset("gamma_test.simtel.gz")
         reader = EventSourceFactory.produce(
             None, None,
-            reader='UnknownFileReader',
+            product='UnknownFileReader',
             input_url=dataset
         )
 
@@ -54,7 +54,7 @@ def test_factory_incompatible_file():
     dataset = get_dataset("optics.ecsv.txt")
     reader = EventSourceFactory.produce(
         None, None,
-        reader='HESSIOEventSource',
+        product='HESSIOEventSource',
         input_url=dataset
     )
     event_list = [event for event in reader]
@@ -67,7 +67,7 @@ def test_factory_nonexistant_file():
         dataset = "/fake_path/fake_file.fake_extension"
         reader = EventSourceFactory.produce(
             None, None,
-            reader='HESSIOEventSource',
+            product='HESSIOEventSource',
             input_url=dataset
         )
 

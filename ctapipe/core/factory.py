@@ -1,66 +1,123 @@
-from copy import copy
-
+from copy import copy, deepcopy
 from ctapipe.core.component import Component
-from abc import abstractmethod
 from inspect import isabstract
 from traitlets.config.loader import Config
+from traitlets import CaselessStrEnum
 
 
-class Factory(Component):
-    # TODO: obtain traits automatically for the classes that can be produced
+class FactoryMeta(type(Component), type):
+    def __new__(mcs, name, bases, dct):
+
+        # Setup class lookup
+        base = dct['base']
+        dct['subclasses'] = None
+        dct['subclass_names'] = None
+        if base:
+            if not isinstance(base, type) or not issubclass(base, Component):
+                raise AttributeError("Factory.base must be set to a Component")
+
+            dct['subclasses'] = mcs.child_subclasses(base)
+            dct['subclass_names'] = [c.__name__ for c in dct['subclasses']]
+
+            default = None if 'default' not in dct else dct['default']
+            help_msg = 'Product class to obtain from the Factory.'
+            if 'custom_product_help' in dct and dct['custom_product_help']:
+                help_msg = dct['custom_product_help']
+            dct['product'] = CaselessStrEnum(
+                dct['subclass_names'],
+                default,
+                allow_none=True,
+                help=help_msg
+            ).tag(config=True)
+
+            # Gather a record of which traits are valid for which subclasses
+            # and copy subclass traits
+            traits = dict()
+            record = dict()
+            for sub in dct['subclasses']:
+                for key, trait in sub.class_traits().items():
+                    if key in ['config', 'parent']:
+                        continue
+                    record.setdefault(key, []).append(sub.__name__)
+                    if key not in traits:
+                        traits[key] = deepcopy(trait)
+
+            # Add subclass traits to Factory and include a list of valid
+            # sublasses for the trait help message
+            for key, trait in traits.items():
+                trait.help += "\n\nCompatible Components: " + str(record[key])
+                dct[key] = trait
+
+        return type.__new__(mcs, name, bases, dct)
+
+    @staticmethod
+    def child_subclasses(base):
+        """
+        Return all non-abstract subclasses of a base class.
+
+        Parameters
+        ----------
+        base : class
+            high level class object that is inherited by the
+            desired subclasses
+
+        Returns
+        -------
+        children : list
+            list of non-abstract subclasses
+
+        """
+        family = base.__subclasses__() + [
+            g for s in base.__subclasses__()
+            for g in FactoryMeta.child_subclasses(s)
+        ]
+        children = [g for g in family if not isabstract(g)]
+
+        return children
+
+
+class Factory(Component, metaclass=FactoryMeta):
     """
     A base class for all class factories that exist in the `Tools`/`Components`
     frameworks.
 
-    Either maunally set "subclasses" as a list of the classes that you wish
-    to be inside the factory, or set it to
-    Factory.child_subclasses(ParentClass). Using that static method will
-    obtain all the lowest-level child classes from the parent class.
+    To create a Factory, inherit this class and set `base` to the
+    base-class of the Factory.
 
-    You must manually specify the discriminator trait (which is what you
-    set at run-time to choose the product you wish to obtain from the factory)
-    and the traits of all the classes that are possible to obtain from the
-    factory. Perhaps in the future these can be obtained automatically.
+    The traits of the sub-classes are automatically added to the Factory
+    (and are included in the help message).
 
-    You must also return the factory name in get_factory_name(), and the
-    discriminator in get_product_name() in your custom Factory class.
+    The traits and kwargsthat correctly correspond to the product are passed
+    onto the product.
 
-    To then obtain the product class from the factory, use 'produce()".
-    The correct traits from the correspoding product are set automatically
-    from the factory.
+    To use a factory from within a `ctapipe.core.tool.Tool`:
 
-    To a factory from within a `ctapipe.core.tool.Tool`:
+    >>> cls = Factory.produce(config=self.config, tool=self)
 
-    >>> cls = FactoryChild.produce(config=self.config, tool=self)
-
-    .. code:: python
-
-        from ctapipe.core import Factory
-        from traitlets import (Integer, Float, List, Dict, Unicode)
-
-        class MyFactory(Factory):
-            description = "do some things and stuff"
-
-            subclasses = Factory.child_subclasses(ParentClass)
-            subclass_names = [c.__name__ for c in subclasses]
-
-            discriminator = Unicode('DefaultProduct',
-                             help='Product to obtain: {}'
-                             .format(subclass_names)).tag(config=True)
-
-            # Product classes traits
-            # Would be nice to have these automatically set...!
-            product_trait1 = Int(7, help="").tag(config=True)
-            product_trait2 = Int(7, help="").tag(config=True)
-
-            def get_factory_name(self):
-                return self.__class__.__name__
-
-            def get_product_name(self):
-                return self.discriminator
+    Attributes
+    ----------
+    base : type
+        The base-class for the different classes that could be returned from
+        the factory
+    product : traitlets.CaselessStrEnum
+        The traitlet allowing the manual specification of which class is
+        returned from the factory. This is created in `FactoryMeta`.
+    subclasses : list
+        A list of the subclasses for the base-class specified in `base`
+    subclass_names : list
+        The names of the classes in `subclasses`
+    default : str
+        The default product to return. If None, then there is no default.
+    custom_product_help : None or str
+        If set, then this text will be displayed for the help message for the
+        product traitlet.
     """
-    subclasses = None  # Set to all_subclasses(ParentClass) in factory
-    subclass_names = None  # Set to [c.__name__ for c in subclasses] in factory
+    base = None
+    product = None  # Instanced as a traitlet by FactoryMeta
+    subclasses = None  # Filled by FactoryMeta
+    subclass_names = None  # Filled by FactoryMeta
+    default = None
+    custom_product_help = None
 
     def __init__(self, config, tool, **kwargs):
         """
@@ -79,38 +136,26 @@ class Factory(Component):
         kwargs
 
         """
+        if not self.base:
+            raise AttributeError("Factory.base must be set to a Component")
+
         super().__init__(config=config, parent=tool, **kwargs)
         self.kwargs = copy(kwargs)
 
-    @staticmethod
-    def child_subclasses(cls):
+    def _get_product_name(self):
         """
-        Return all non-abstract subclasses of a parent class.
-
-        Parameters
-        ----------
-        cls : class
-            high level class object that contains the desired children classes
+        Method to obtain the correct name for the product.
 
         Returns
         -------
-        list
-            list of bottom level subclasses
-
+        str
+            The name of the product to return from the Factory.
         """
-        family = cls.__subclasses__() + [g for s in cls.__subclasses__()
-                                         for g in Factory.child_subclasses(s)]
-        children = [g for g in family if not isabstract(g)]
-
-        return children
-
-    @abstractmethod
-    def get_product_name(self):
-        """
-        Abstract method to be implemented in child factory.
-
-        Method to obtain the correct name for the product.
-        """
+        if self.product:
+            return self.product
+        else:
+            raise AttributeError("The user has not specified a product for {}"
+                                 .format(self.__class__.__name__))
 
     @property
     def _product(self):
@@ -123,14 +168,15 @@ class Factory(Component):
 
         """
         subclass_dict = dict(zip(self.subclass_names, self.subclasses))
-        self.log.info("Obtaining {} from {}".format(self.get_product_name(),
+        product_name = self._get_product_name()
+        self.log.info("Obtaining {} from {}".format(product_name,
                                                     self.__class__.__name__))
         try:
-            product = subclass_dict[self.get_product_name()]
+            product = subclass_dict[product_name]
             return product
         except KeyError:
             self.log.exception('No product found with name "{}" for '
-                               'factory.'.format(self.get_product_name()))
+                               'factory.'.format(product_name))
             raise
 
     @property
