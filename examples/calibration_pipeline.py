@@ -5,7 +5,7 @@ from traitlets import Dict, List, Int, Bool, Unicode
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventfilereader import EventFileReaderFactory
+from ctapipe.io.eventsource import EventSourceFactory
 from ctapipe.visualization import CameraDisplay
 
 
@@ -126,9 +126,9 @@ class DisplayDL1Calib(Tool):
                     help='Telescope to view. Set to None to display all '
                          'telescopes.').tag(config=True)
 
-    aliases = Dict(dict(f='EventFileReaderFactory.input_path',
-                        r='EventFileReaderFactory.reader',
-                        max_events='EventFileReaderFactory.max_events',
+    aliases = Dict(dict(f='EventSourceFactory.input_path',
+                        r='EventSourceFactory.reader',
+                        max_events='EventSourceFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
                         t0='ChargeExtractorFactory.t0',
@@ -144,7 +144,7 @@ class DisplayDL1Calib(Tool):
                          "Display the photoelectron images on-screen as they "
                          "are produced.")
                       ))
-    classes = List([EventFileReaderFactory,
+    classes = List([EventSourceFactory,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
                     ImagePlotter
@@ -159,7 +159,7 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        reader_factory = EventFileReaderFactory(**kwargs)
+        reader_factory = EventSourceFactory(**kwargs)
         reader_class = reader_factory.get_class()
         self.reader = reader_class(**kwargs)
 
