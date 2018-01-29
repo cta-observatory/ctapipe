@@ -7,6 +7,8 @@ from traitlets import Unicode, Int, Set
 from ctapipe.core import Component
 from ctapipe.core import Provenance
 
+__all__ = ['EventSource', ]
+
 
 class EventSource(Component):
     """

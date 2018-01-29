@@ -9,6 +9,7 @@ from ctapipe.utils import get_dataset
 import gzip
 import struct
 
+__all__=['HESSIOEventSource',]
 
 class HESSIOEventSource(EventSource):
     """
