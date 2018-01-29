@@ -23,7 +23,7 @@ class EventSourceFactory(Factory):
 
     To use within a `ctapipe.core.tool.Tool`:
 
-    >>> reader = EventSourceFactory.produce(config=self.config, tool=self)
+    >>> event_source = EventSourceFactory.produce(config=self.config, tool=self)
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ class EventSourceFactory(Factory):
     product : traitlets.CaselessStrEnum
         A string with the `EventSource.__name__` of the reader you want to
         use. If left blank, `EventSource.check_file_compatibility` will be
-        used to find a compatible reader.
+        used to find a compatible event_source.
     """
     base = EventSource
     custom_product_help = ('EventSource to use. If None then a reader will '

@@ -36,7 +36,7 @@ class EventSource(Component):
     configuration (containing the input_url) and the
     `ctapipe.core.tool.Tool`. Therefore from inside a Tool you would do:
 
-    >>> reader = EventSource(self.config, self)
+    >>> event_source = EventSource(self.config, self)
 
     An example of how to use `ctapipe.core.tool.Tool` and
     `ctapipe.io.eventfilereader.EventSourceFactory` can be found in
@@ -45,22 +45,22 @@ class EventSource(Component):
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:
 
-    >>> reader = EventSource(None, None, input_url="/path/to/file")
+    >>> event_source = EventSource(None, None, input_url="/path/to/file")
 
     To loop through the events in a file:
 
-    >>> reader = EventSource(None, None, input_url="/path/to/file")
-    >>> for event in reader:
+    >>> event_source = EventSource(None, None, input_url="/path/to/file")
+    >>> for event in event_source:
     >>>    print(event.count)
 
-    **NOTE**: Every time a new loop is started through the reader, it restarts
+    **NOTE**: Every time a new loop is started through the event_source, it restarts
     from the first event.
 
     Alternatively one can use EventFileReader in a `with` statement to ensure
-    the correct cleanups are performed when you are finished with the reader:
+    the correct cleanups are performed when you are finished with the event_source:
 
-    >>> with EventSource(None, None, input_url="/path/to/file") as reader:
-    >>>    for event in reader:
+    >>> with EventSource(None, None, input_url="/path/to/file") as event_source:
+    >>>    for event in event_source:
     >>>       print(event.count)
 
     **NOTE**: The "event" that is returned from the generator is a pointer.
@@ -139,7 +139,7 @@ class EventSource(Component):
         Abstract method to be defined in child class.
 
         Perform a set of checks to see if the input file is compatible
-        with this file reader.
+        with this file event_source.
 
         Parameters
         ----------
