@@ -24,7 +24,7 @@ class EventSourceFactory(Factory):
 
     To use within a `ctapipe.core.tool.Tool`:
 
-    >>> reader = EventSourceFactory.produce(config=self.config, tool=self)
+    >>> event_source = EventSourceFactory.produce(config=self.config, tool=self)
 
     Parameters
     ----------
@@ -40,10 +40,10 @@ class EventSourceFactory(Factory):
 
     Attributes
     ----------
-    reader : traitlets.CaselessStrEnum
-        A string with the `EventSource.__name__` of the reader you want to
+    event_source : traitlets.CaselessStrEnum
+        A string with the `EventSource.__name__` of the event_source you want to
         use. If left blank, `EventSource.check_file_compatibility` will be
-        used to find a compatible reader.
+        used to find a compatible event_source.
     """
     description = "Obtain EventSource based on file type"
 
@@ -54,7 +54,7 @@ class EventSourceFactory(Factory):
         subclass_names,
         None,
         allow_none=True,
-        help='EventSource to use. If None then a reader will be chosen '
+        help='EventSource to use. If None then a event_source will be chosen '
              'based on file extension'
     ).tag(config=True)
 

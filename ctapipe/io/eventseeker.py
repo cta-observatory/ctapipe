@@ -22,22 +22,22 @@ class EventSeeker(Component):
     `ctapipe.io.eventfilereader.EventSource` (such as
     `ctapipe.io.hessiofilereader.HessioFileReader`), which will be used to
     loop through the file and provide the event container, filled with the
-    event information using the methods defined in the reader for that file
+    event information using the methods defined in the event_source for that file
     format.
 
     To obtain a particular event in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, reader=reader)
+    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
+    >>> seeker = EventSeeker(None, None, event_source=event_source)
     >>> event = seeker[2]
     >>> print(event.count)
 
     To obtain a particular event in a hessio file from its event_id:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, reader=reader)
+    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
+    >>> seeker = EventSeeker(None, None, event_source=event_source)
     >>> event = seeker["101"]
     >>> print(event.count)
 
@@ -50,16 +50,16 @@ class EventSeeker(Component):
     To obtain a slice of events in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, reader=reader)
+    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
+    >>> seeker = EventSeeker(None, None, event_source=event_source)
     >>> event_list = seeker[3:6]
     >>> print([event.count for event in event_list])
 
     To obtain a list of events in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, reader=reader)
+    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
+    >>> seeker = EventSeeker(None, None, event_source=event_source)
     >>> event_indicis = [2, 6, 8]
     >>> event_list = seeker[event_indicis]
     >>> print([event.count for event in event_list])
@@ -90,7 +90,7 @@ class EventSeeker(Component):
         super().__init__(config=config, parent=tool, **kwargs)
 
         if reader.is_stream:
-            raise IOError("Reader is not compatible as input to the reader "
+            raise IOError("Reader is not compatible as input to the event_source "
                           "is a stream (seeking not possible)")
 
         self._reader = reader
