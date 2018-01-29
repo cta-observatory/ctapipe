@@ -32,9 +32,7 @@ def test_check_r0_exists():
 
 
 def test_factory():
-    factory = CameraR1CalibratorFactory(None, None)
-    cls = factory.get_class()
-    calibrator = cls(None, None)
+    calibrator = CameraR1CalibratorFactory.produce(None, None)
 
     telid = 11
     event = get_test_event()

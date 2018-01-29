@@ -727,8 +727,5 @@ class ChargeExtractorFactory(Factory):
                       'Only applicable to '
                       'NeighbourPeakIntegrator').tag(config=True)
 
-    def get_factory_name(self):
-        return self.__class__.__name__
-
     def get_product_name(self):
         return self.extractor

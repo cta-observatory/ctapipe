@@ -128,10 +128,10 @@ def test_averagewf_peak_integration():
 
 
 def test_charge_extractor_factory():
-    extractor_f = ChargeExtractorFactory(None, None)
-    extractor_f.extractor = 'LocalPeakIntegrator'
-    extractor_c = extractor_f.get_class()
-    extractor = extractor_c(None, None)
+    extractor = ChargeExtractorFactory.produce(
+        None, None,
+        extractor='LocalPeakIntegrator'
+    )
 
     telid = 11
     event = get_test_event()

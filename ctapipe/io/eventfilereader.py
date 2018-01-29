@@ -257,9 +257,6 @@ class EventFileReaderFactory(Factory):
         help='Maximum number of events that will be read from the file'
     ).tag(config=True)
 
-    def get_factory_name(self):
-        return self.__class__.__name__
-
     def get_product_name(self):
         if self.reader is not None:
             return self.reader
