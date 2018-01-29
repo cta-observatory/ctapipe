@@ -1,5 +1,5 @@
 from ctapipe.utils import get_dataset
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io.eventsourcefactory import EventSourceFactory, event_source
 import pytest
 from traitlets import TraitError
 
@@ -80,3 +80,9 @@ def test_factory_incorrect_use():
             input_url=dataset
         )
         reader = factory.produce(None, None)
+
+def test_event_source_helper():
+    with event_source(get_dataset("gamma_test_large.simtel.gz")) as source:
+        for event in source:
+            pass
+
