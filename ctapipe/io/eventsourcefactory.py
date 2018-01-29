@@ -55,9 +55,6 @@ class EventSourceFactory(Factory):
                 raise ValueError("Please specify an input_url for event file")
             try:
                 for subclass in self.subclasses:
-                    print(subclass)
-                    print(self.input_url)
-                    print(subclass.is_compatible(self.input_url))
                     if subclass.is_compatible(self.input_url):
                         return subclass.__name__
                 raise ValueError
