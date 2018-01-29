@@ -69,8 +69,10 @@ def test_factory_subclass_detection():
         "ExampleComponent3",
         "ExampleComponent4"
     ]
-    assert ExampleFactory.subclasses == subclasses
-    assert ExampleFactory.subclass_names == subclass_names
+    factory_subclasses_str = [str(i) for i in ExampleFactory.subclasses]
+    subclasses_str = [str(i) for i in subclasses]
+    assert sorted(factory_subclasses_str) == sorted(subclasses_str)
+    assert sorted(ExampleFactory.subclass_names) == sorted(subclass_names)
 
 
 def test_factory_automatic_traits():
@@ -79,9 +81,15 @@ def test_factory_automatic_traits():
 
 
 def test_factory_traits_compatible_help():
-    msg = ("Compatible Components: ['ExampleComponent1', 'ExampleComponent2', "
-           "'ExampleComponent3', 'ExampleComponent4']")
-    assert msg in ExampleFactory.class_own_traits()['value'].help
+    msg = [
+        "Compatible Components:",
+        "ExampleComponent1",
+        "ExampleComponent2",
+        "ExampleComponent3",
+        "ExampleComponent4"
+        ]
+    for m in msg:
+        assert m in ExampleFactory.class_own_traits()['value'].help
 
 
 def test_factory_produce():
