@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import copy, deepcopy
 from ctapipe.core.component import Component
 from inspect import isabstract
 from traitlets.config.loader import Config
@@ -140,7 +140,7 @@ class Factory(Component, metaclass=FactoryMeta):
             raise AttributeError("Factory.base must be set to a Component")
 
         super().__init__(config=config, parent=tool, **kwargs)
-        self.kwargs = deepcopy(kwargs)
+        self.kwargs = copy(kwargs)
 
     def _get_product_name(self):
         """
@@ -194,8 +194,8 @@ class Factory(Component, metaclass=FactoryMeta):
         product = self._product
         product_traits = product.class_trait_names()
         product_args = list(product.__init__.__code__.co_varnames)
-        config = deepcopy(self.__dict__['_trait_values']['config'])
-        parent = deepcopy(self.__dict__['_trait_values']['parent'])
+        config = copy(self.__dict__['_trait_values']['config'])
+        parent = copy(self.__dict__['_trait_values']['parent'])
 
         if config[self.__class__.__name__]:
             # If Product config does not exist, create new Config instance
@@ -209,7 +209,7 @@ class Factory(Component, metaclass=FactoryMeta):
                     config[product.__name__][key] = value
 
         # Copy valid arguments to kwargs
-        kwargs = deepcopy(self.kwargs)
+        kwargs = copy(self.kwargs)
         for key in list(kwargs.keys()):
             if key not in product_traits + product_args:
                 del kwargs[key]
