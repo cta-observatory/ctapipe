@@ -44,8 +44,8 @@ class OpticsDescription:
     equivalent_focal_length: Quantity(float)
         effective focal-length of telescope, independent of which type of
         optics (as in the Monte-Carlo)
-    mirror_area: u.Quantity('m')
-        total reflective surface area of the optical system
+    mirror_area: float
+        total reflective surface area of the optical system (in m^2)
     num_mirror_tiles: int
         number of mirror facets
 
@@ -57,10 +57,9 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
-    @u.quantity_input
     def __init__(self, mirror_type, tel_type,
-                 tel_subtype, equivalent_focal_length : u.m,
-                 mirror_area : u.m**2=None, num_mirror_tiles=None):
+                 tel_subtype, equivalent_focal_length,
+                 mirror_area=None, num_mirror_tiles=None):
 
         if tel_type not in ['LST', 'MST', 'SST']:
             raise ValueError("Unknown tel_type %s", tel_type)
@@ -71,8 +70,8 @@ class OpticsDescription:
         self.mirror_type = mirror_type
         self.tel_type = tel_type
         self.tel_subtype = tel_subtype
-        self.equivalent_focal_length = equivalent_focal_length
-        self.mirror_area = mirror_area
+        self.equivalent_focal_length = equivalent_focal_length.to(u.m)
+        self.mirror_area = mirror_area.to(u.m**2)
         self.num_mirror_tiles = num_mirror_tiles
 
     @classmethod
