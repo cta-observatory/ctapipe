@@ -21,7 +21,7 @@ from ctapipe.core.traits import *
 from ctapipe.image import (tailcuts_clean, hillas_parameters,
                            HillasParameterizationError)
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io.eventsource import EventSourceFactory
+from ctapipe.io import EventSourceFactory
 from ctapipe.visualization import CameraDisplay
 
 
@@ -63,10 +63,8 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
 
-        reader_factory = EventSourceFactory(None, self)
-        reader_class = reader_factory.get_class()
-        self.reader = reader_class(None, self)
-        self.reader.allowed_tels = [self.tel,]
+        self.event_source = EventSourceFactory.produce(None, self)
+        self.event_source.allowed_tels = [self.tel, ]
 
         self.calibrator = CameraCalibrator(config=None, tool=self)
 
@@ -76,9 +74,9 @@ class SingleTelEventDisplay(Tool):
 
         disp = None
 
-        for event in tqdm(self.reader,
+        for event in tqdm(self.event_source,
                           desc='Tel{}'.format(self.tel),
-                          total=self.reader.max_events,
+                          total=self.event_source.max_events,
                           disable=~self.progress):
 
             self.log.debug(event.trig)

@@ -293,7 +293,7 @@ class DisplayIntegrator(Tool):
                          'telescope with data.').tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    aliases = Dict(dict(r='EventSourceFactory.reader',
+    aliases = Dict(dict(r='EventSourceFactory.event_source',
                         f='EventSourceFactory.input_path',
                         max_events='EventSourceFactory.max_events',
                         extractor='ChargeExtractorFactory.extractor',
