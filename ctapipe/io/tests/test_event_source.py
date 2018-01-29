@@ -1,7 +1,8 @@
 from os.path import join, dirname
 from ctapipe.utils import get_dataset
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+
 from ctapipe.io.eventsource import EventSource, EventSourceFactory
+from ctapipe.io.hessioeventsource import HESSIOEventSource
 import pytest
 from traitlets import TraitError
 
@@ -37,9 +38,8 @@ def test_is_iterable():
         pass
 
 
-def test_factory_subclasses():
-    factory= EventSourceFactory(None,None)
-    assert len(factory.subclass_names)>0
+def test_factory_subclass_detection():
+    assert len(EventSourceFactory.subclass_names)>0
 
 def test_factory():
     dataset = get_dataset("gamma_test.simtel.gz")
