@@ -1,19 +1,12 @@
-from ctapipe.calib.camera import CameraCalibrator
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
+from copy import deepcopy
+
 from numpy.testing import assert_allclose
 
-
-def get_test_event():
-    filename = get_dataset('gamma_test.simtel.gz')
-    source = hessio_event_source(filename, requested_event=409,
-                                 use_event_id=True)
-    event = next(source)
-    return event
+from ctapipe.calib.camera import CameraCalibrator
 
 
-def test_camera_calibrator():
-    event = get_test_event()
+def test_camera_calibrator(test_event):
+    event = deepcopy(test_event) # so we don't modify the test event
     telid = 11
 
     calibrator = CameraCalibrator(None, None)

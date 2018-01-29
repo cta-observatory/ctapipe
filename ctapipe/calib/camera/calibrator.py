@@ -57,26 +57,16 @@ class CameraCalibrator(Component):
         origin : str
             The origin of the event file (default: hessio) to choose the
             correct `CameraR1Calibrator`. Usually given from
-            `EventFileReader.origin`.
+            `EventSource.origin`.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        extractor_factory = ChargeExtractorFactory(config=config, tool=tool)
-        extractor_class = extractor_factory.get_class()
-        extractor = extractor_class(config=config, tool=tool)
-
-        cleaner_factory = WaveformCleanerFactory(config=config, tool=tool)
-        cleaner_class = cleaner_factory.get_class()
-        cleaner = cleaner_class(config=config, tool=tool)
-
-        r1_factory = CameraR1CalibratorFactory(config=config, tool=tool,
-                                               origin=origin)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(config=config, tool=tool)
-
+        extractor = ChargeExtractorFactory.produce(config=config, tool=tool)
+        cleaner = WaveformCleanerFactory.produce(config=config, tool=tool)
+        self.r1 = CameraR1CalibratorFactory.produce(config=config, tool=tool,
+                                                    origin=origin)
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
-
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,
                                        extractor=extractor, cleaner=cleaner)
 

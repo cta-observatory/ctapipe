@@ -9,17 +9,17 @@ from ctapipe.core import Component
 class EventSeeker(Component):
     """
     Provides the functionality to seek through a
-    `ctapipe.io.eventfilereader.EventFileReader` to find a particular event.
+    `ctapipe.io.eventfilereader.EventSource` to find a particular event.
 
     By default, this will loop through events from the start of the file
     (unless the requested event is the same as the previous requested event,
     or occurs later in the file). However if the
-    `ctapipe.io.eventfilereader.EventFileReader` has defined a `__getitem__`
+    `ctapipe.io.eventfilereader.EventSource` has defined a `__getitem__`
     method itself, then it will use that method, thereby taking advantage of
     the random event access some file formats provide.
 
     To create an instance of an EventSeeker you must provide it a sub-class of
-    `ctapipe.io.eventfilereader.EventFileReader` (such as
+    `ctapipe.io.eventfilereader.EventSource` (such as
     `ctapipe.io.hessiofilereader.HessioFileReader`), which will be used to
     loop through the file and provide the event container, filled with the
     event information using the methods defined in the reader for that file
@@ -27,7 +27,7 @@ class EventSeeker(Component):
 
     To obtain a particular event in a hessio file:
 
-    >>> from ctapipe.io.hessiofilereader import HessioFileReader
+    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
     >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
     >>> seeker = EventSeeker(None, None, reader=reader)
     >>> event = seeker[2]
@@ -35,7 +35,7 @@ class EventSeeker(Component):
 
     To obtain a particular event in a hessio file from its event_id:
 
-    >>> from ctapipe.io.hessiofilereader import HessioFileReader
+    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
     >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
     >>> seeker = EventSeeker(None, None, reader=reader)
     >>> event = seeker["101"]
@@ -49,7 +49,7 @@ class EventSeeker(Component):
 
     To obtain a slice of events in a hessio file:
 
-    >>> from ctapipe.io.hessiofilereader import HessioFileReader
+    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
     >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
     >>> seeker = EventSeeker(None, None, reader=reader)
     >>> event_list = seeker[3:6]
@@ -57,7 +57,7 @@ class EventSeeker(Component):
 
     To obtain a list of events in a hessio file:
 
-    >>> from ctapipe.io.hessiofilereader import HessioFileReader
+    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
     >>> reader = HessioFileReader(None, None, input_path="/path/to/file")
     >>> seeker = EventSeeker(None, None, reader=reader)
     >>> event_indicis = [2, 6, 8]
@@ -81,7 +81,7 @@ class EventSeeker(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        reader : `ctapipe.io.eventfilereader.EventFileReader`
+        reader : `ctapipe.io.eventfilereader.EventSource`
             A subclass of `ctapipe.io.eventfilereader.EventFileReader` that
             defines how the event container is filled for a particular file
             format
@@ -199,7 +199,7 @@ class EventSeeker(Component):
         until it finds the requested event index.
         If a file format allows random event access, then is can define its
         own `get_event_by_index` method in its
-        `ctapipe.io.eventfilereader.EventFileReader` to allow this class to
+        `ctapipe.io.eventfilereader.EventSource` to allow this class to
         utilise that method instead.
 
         Parameters
@@ -224,7 +224,7 @@ class EventSeeker(Component):
         until it finds the requested event id.
         If a file format allows random event access, then is can define its
         own `get_event_by_index` method in its
-        `ctapipe.io.eventfilereader.EventFileReader` to allow this class to
+        `ctapipe.io.eventfilereader.EventSource` to allow this class to
         utilise that method instead.
 
         Parameters
@@ -248,7 +248,7 @@ class EventSeeker(Component):
         Method for getting number of events in file. By default this is
         obtained by looping through the file and counting the events. If a
         file format has a more efficient method of supplying this information,
-        the `ctapipe.io.eventfilereader.EventFileReader` for that file format
+        the `ctapipe.io.eventfilereader.EventSource` for that file format
         can define its own `__len__` method, which this class will then
         use instead.
 

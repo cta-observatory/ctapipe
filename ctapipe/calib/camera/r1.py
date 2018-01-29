@@ -171,7 +171,7 @@ class CameraR1CalibratorFactory(Factory):
     `ctapipe.core.factory.Factory` allows the correct
     `CameraR1Calibrator` to be obtained for the data investigated. The
     discriminator used by this factory is the "origin" of the file, a string
-    obtainable from `ctapipe.io.eventfilereader.EventFileReader.origin`.
+    obtainable from `ctapipe.io.eventfilereader.EventSource.origin`.
 
     Additional filepaths are required by some cameras for R1 calibration. Due
     to the current inplementation of `ctapipe.core.factory.Factory`, every
@@ -202,8 +202,8 @@ class CameraR1CalibratorFactory(Factory):
     origin : traitlets.CaselessStrEnum
         A string describing the origin of the event file being calibrated.
         Should be obtained from the
-        `ctapipe.io.eventfilereader.EventFileReader.origin` attribute of the
-        correct `ctapipe.io.eventfilereader.EventFileReader` for the file.
+        `ctapipe.io.eventfilereader.EventSource.origin` attribute of the
+        correct `ctapipe.io.eventfilereader.EventSource` for the file.
     pedestal_path : traitlets.Unicode
         A string containing the path to a file containing the electronic
         pedestal to be subtracted from the waveforms. How/if this file is used
@@ -240,9 +240,6 @@ class CameraR1CalibratorFactory(Factory):
                           help='Path to an pe conversion file').tag(config=True)
     ff_path = Unicode('', allow_none=True,
                       help='Path to a flat field file').tag(config=True)
-
-    def get_factory_name(self):
-        return self.__class__.__name__
 
     def get_product_name(self):
         return self.origin

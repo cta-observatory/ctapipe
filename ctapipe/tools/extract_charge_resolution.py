@@ -14,7 +14,7 @@ from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.hessiofilereader import HessioFileReader
+from ctapipe.io.hessioeventsource import HESSIOEventSource
 
 
 class ChargeResolutionGenerator(Tool):
@@ -29,8 +29,8 @@ class ChargeResolutionGenerator(Tool):
                           help='Name of the output charge resolution pickle '
                                'file').tag(config=True)
 
-    aliases = Dict(dict(f='HessioFileReader.input_path',
-                        max_events='HessioFileReader.max_events',
+    aliases = Dict(dict(f='HESSIOEventSource.input_path',
+                        max_events='HESSIOEventSource.max_events',
                         extractor='ChargeExtractorFactory.extractor',
                         window_width='ChargeExtractorFactory.window_width',
                         t0='ChargeExtractorFactory.t0',
@@ -44,7 +44,7 @@ class ChargeResolutionGenerator(Tool):
                         T='ChargeResolutionGenerator.telescopes',
                         O='ChargeResolutionGenerator.output_name',
                         ))
-    classes = List([HessioFileReader,
+    classes = List([HESSIOEventSource,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
                     ChargeResolutionCalculator
@@ -62,7 +62,7 @@ class ChargeResolutionGenerator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.file_reader = HessioFileReader(**kwargs)
+        self.file_reader = HESSIOEventSource(**kwargs)
 
         extractor_factory = ChargeExtractorFactory(**kwargs)
         extractor_class = extractor_factory.get_class()
