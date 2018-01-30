@@ -188,13 +188,6 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 event.r1.tel[telid].pe_samples = calibrated
 
 
-# External Children
-try:
-    from targetpipe.calib.camera.r1 import TargetioR1Calibrator
-except ImportError:
-    pass
-
-
 class CameraR1CalibratorFactory(Factory):
     """
     The R1 calibrator `ctapipe.core.factory.Factory`. This
