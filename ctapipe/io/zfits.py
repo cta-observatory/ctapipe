@@ -76,37 +76,6 @@ class ZFitsFileReader(EventFileReader):
         )
 
 
-class ZFile:
-    def __init__(self, fname):
-        from protozfitsreader import rawzfitsreader
-
-        if not isfile(fname):
-            raise FileNotFoundError(fname)
-        self.fname = fname
-        self.eventnumber = 0
-        self.is_events_table_open = False
-
-        self.numrows = rawzfitsreader.getNumRows()
-
-    def __next__(self):
-        from protozfitsreader import rawzfitsreader
-        from protozfitsreader import L0_pb2
-
-        if self.eventnumber < self.numrows:
-            if not self.is_events_table_open:
-                rawzfitsreader.open(self.fname + ":Events")
-                self.is_events_table_open = True
-            event = L0_pb2.CameraEvent()
-            event.ParseFromString(rawzfitsreader.readEvent())
-            self.eventnumber += 1
-            return SST1M_Event(event, self.eventnumber)
-        else:
-            raise StopIteration
-
-    def __iter__(self):
-        return self
-
-
 class SST1M_Event:
     def __init__(self, event, event_id):
         self.event_id = event_id
