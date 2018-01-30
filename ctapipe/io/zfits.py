@@ -24,10 +24,11 @@ from ctapipe.io.eventfilereader import EventFileReader
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['ZFitsFileReader', 'ZFile', 'SST1M_Event']
+__all__ = ['ZFitsFileReader']
 
 
 class ZFitsFileReader(EventFileReader):
+    from protozfitsreader import ZFile
 
     def _generator(self):
         for event in ZFile(self.input_url):
