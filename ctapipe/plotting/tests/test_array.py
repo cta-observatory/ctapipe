@@ -21,10 +21,10 @@ def test_array_draw():
     cam_geom = {}
 
     source = hessio_event_source(filename, max_events=2)
-    r1 = HessioR1Calibrator(None, None)
-    dl0 = CameraDL0Reducer(None, None)
+    r1 = HessioR1Calibrator()
+    dl0 = CameraDL0Reducer()
 
-    calibrator = CameraDL1Calibrator(None, None)
+    calibrator = CameraDL1Calibrator()
 
     for event in source:
         array_pointing = SkyCoord(event.mcheader.run_array_direction[1] * u.rad,

@@ -16,7 +16,7 @@ from ctapipe.utils.neighbour_sum import get_sum_array
 
 
 class ChargeExtractor(Component):
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Base component to handle the extraction of charge from an image cube.
         
@@ -113,7 +113,7 @@ class ChargeExtractor(Component):
 
 
 class Integrator(ChargeExtractor):
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Base component for charge extractors that perform integration.
 
@@ -324,7 +324,7 @@ class Integrator(ChargeExtractor):
 
 
 class FullIntegrator(Integrator):
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Charge extractor that integrates the entire waveform.
 
@@ -367,7 +367,7 @@ class WindowIntegrator(Integrator):
     window_width = Int(7, help='Define the width of the integration '
                                'window').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Base component for charge extractors that perform integration within
         a window.
@@ -425,7 +425,7 @@ class SimpleIntegrator(WindowIntegrator):
     t0 = Int(0, help='Define the peak position for all '
                      'pixels').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Charge extractor that integrates within a window defined by the user.
 
@@ -463,7 +463,7 @@ class PeakFindingIntegrator(WindowIntegrator):
                                 'considered as significant for PeakFinding '
                                 'in the LG channel').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Base component for charge extractors that perform integration within
         a window defined around a peak position.
@@ -551,7 +551,7 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
 
         super().__init__(config=config, tool=tool, **kwargs)
 
@@ -596,7 +596,7 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
          Set to None if no Tool to pass.
      kwargs
      """
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
@@ -637,7 +637,7 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
                       'only, 1: local pixel counts as much '
                       'as any neighbour').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
     @staticmethod
@@ -676,7 +676,7 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):

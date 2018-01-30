@@ -44,7 +44,7 @@ class ImageSumDisplayerTool(Tool):
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
 
-        self.reader = HESSIOEventSource(None, None, input_url=self.infile,
+        self.reader = HESSIOEventSource(input_url=self.infile,
                                         max_events=self.max_events)
 
 
@@ -60,7 +60,7 @@ class ImageSumDisplayerTool(Tool):
                       self.telgroup,
                       str(event.inst.subarray.tel[self._selected_tels[0]]))
         self.log.info("SELECTED TELESCOPES:{}".format(self._selected_tels))
-        self.calibrator = CameraCalibrator(self.config, self)
+        self.calibrator = CameraCalibrator(config=self.config, tool=self)
         self.reader.allowed_tels = self._selected_tels
 
 

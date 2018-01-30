@@ -54,7 +54,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp.some_option = 'test' # will fail validation
     """
 
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, parent=None, config=None, **kwargs):
         """
         Parameters
         ----------
@@ -65,7 +65,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
         """
 
-        super().__init__(parent=parent, **kwargs)
+        super().__init__(parent=parent, config=config, **kwargs)
 
         # set up logging
         if self.parent:

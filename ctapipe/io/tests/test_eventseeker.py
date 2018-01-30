@@ -8,7 +8,7 @@ def test_eventseeker():
     dataset = get_dataset("gamma_test.simtel.gz")
     kwargs = dict(config=None, tool=None, input_url=dataset)
     with HESSIOEventSource(**kwargs) as reader:
-        seeker = EventSeeker(None, None, reader=reader)
+        seeker = EventSeeker( reader=reader)
         event = seeker[1]
         assert event.r0.tels_with_data == {11, 21, 24, 26, 61, 63, 118, 119}
         event = seeker[0]
@@ -35,7 +35,7 @@ def test_eventseeker():
             event = seeker[dict()]
 
     with HESSIOEventSource(**kwargs, max_events=5) as reader:
-        seeker = EventSeeker(None, None, reader=reader)
+        seeker = EventSeeker( reader=reader)
         with pytest.raises(IndexError):
             event = seeker[5]
 
@@ -44,4 +44,4 @@ def test_eventseeker():
             return True
     with StreamFileReader(**kwargs) as reader:
         with pytest.raises(IOError):
-            seeker = EventSeeker(None, None, reader=reader)
+            seeker = EventSeeker( reader=reader)

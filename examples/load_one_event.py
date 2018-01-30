@@ -10,7 +10,7 @@ from ctapipe.calib import CameraCalibrator
 
 if __name__ == '__main__':
 
-    calib = CameraCalibrator(None,None)
+    calib = CameraCalibrator()
 
     if len(sys.argv) >= 2:
         filename = sys.argv[1]
