@@ -5,10 +5,8 @@ Components to read ZFITS data.
 This requires the protozfitsreader python library to be installed
 """
 from os.path import isfile
-import numpy as np
 from numpy import ndarray
 
-import warnings
 import logging
 from ctapipe.core import Map, Field
 from ctapipe.io.containers import(
