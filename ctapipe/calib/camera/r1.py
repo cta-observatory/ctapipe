@@ -16,6 +16,7 @@ of the data.
 from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
+from ctapipe.io import EventSource
 
 __all__ = [
     'NullR1Calibrator',
@@ -207,4 +208,43 @@ class CameraR1CalibratorFactory(Factory):
     the calibration of their camera.
     """
     base = CameraR1Calibrator
-    default = 'HessioR1Calibrator'
+    custom_product_help = ('R1 Calibrator to use. If None then a '
+                           'calibrator will either be selected based on the '
+                           'supplied EventSource, or will default to '
+                           '"NullR1Calibrator".')
+
+    def __init__(self, config=None, tool=None, eventsource=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        eventsource : ctapipe.io.eventsource.EventSource
+            EventSource that is being used to read the events. The EventSource
+            contains information (such as metadata or inst) which indicates
+            the appropriate R1Calibrator to use.
+        kwargs
+
+        """
+
+        super().__init__(config, tool, **kwargs)
+        if eventsource and not issubclass(type(eventsource), EventSource):
+            raise TypeError(
+                "eventsource must be a ctapipe.io.eventsource.EventSource"
+            )
+        self.eventsource = eventsource
+
+    def _get_product_name(self):
+        try:
+            return super()._get_product_name()
+        except AttributeError:
+            if self.eventsource:
+                if self.eventsource.metadata['is_simulation']:
+                    return 'HessioR1Calibrator'
+            return 'NullR1Calibrator'
