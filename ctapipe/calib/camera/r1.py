@@ -23,19 +23,6 @@ __all__ = [
     'CameraR1CalibratorFactory'
 ]
 
-CALIB_SCALE = 1.05
-"""
-CALIB_SCALE is only relevant for MC calibration.
-
-CALIB_SCALE is the factor needed to transform from mean p.e. units to units of
-the single-p.e. peak: Depends on the collection efficiency, the asymmetry of
-the single p.e. amplitude  distribution and the electronic noise added to the
-signals. Default value is for GCT.
-
-To correctly calibrate to number of photoelectron, a fresh SPE calibration
-should be applied using a SPE sim_telarray run with an artificial light source.
-"""
-
 
 class CameraR1Calibrator(Component):
     """
@@ -170,6 +157,22 @@ class HessioR1Calibrator(CameraR1Calibrator):
         Set to None if no Tool to pass.
     kwargs
     """
+
+    calib_scale = 1.05
+    """
+    CALIB_SCALE is only relevant for MC calibration.
+
+    CALIB_SCALE is the factor needed to transform from mean p.e. units to 
+    units of the single-p.e. peak: Depends on the collection efficiency, 
+    the asymmetry of the single p.e. amplitude  distribution and the 
+    electronic noise added to the signals. Default value is for GCT.
+
+    To correctly calibrate to number of photoelectron, a fresh SPE calibration
+    should be applied using a SPE sim_telarray run with an 
+    artificial light source.
+    """
+    # TODO: Handle calib_scale differently per simlated telescope
+
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
             raise ValueError('Using HessioR1Calibrator to calibrate a '
@@ -180,7 +183,7 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 samples = event.r0.tel[telid].adc_samples
                 n_samples = samples.shape[2]
                 ped = event.mc.tel[telid].pedestal / n_samples
-                gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
+                gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
                 calibrated = (samples - ped[..., None]) * gain[..., None]
                 event.r1.tel[telid].pe_samples = calibrated
 
