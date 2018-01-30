@@ -25,9 +25,8 @@ __all__ = ['ZFitsFileReader']
 
 
 class ZFitsFileReader(EventFileReader):
-    from protozfitsreader import ZFile
-
     def _generator(self):
+        from protozfitsreader import ZFile
         for event in ZFile(self.input_url):
 
             data = SST1M_DataContainer()
