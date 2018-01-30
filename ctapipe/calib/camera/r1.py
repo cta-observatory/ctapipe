@@ -57,7 +57,6 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    origin = None
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -76,10 +75,6 @@ class CameraR1Calibrator(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        if self.origin is None:
-            raise ValueError("Subclass of CameraR1Calibrator should specify "
-                             "an origin")
-
         self._r0_empty_warn = False
 
     @abstractmethod
@@ -175,8 +170,6 @@ class HessioR1Calibrator(CameraR1Calibrator):
         Set to None if no Tool to pass.
     kwargs
     """
-    origin = 'hessio'
-
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
             raise ValueError('Using HessioR1Calibrator to calibrate a '
