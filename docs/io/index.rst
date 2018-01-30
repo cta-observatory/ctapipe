@@ -50,6 +50,37 @@ index* or *event_id*. This may not be efficient for some `EventSources` if
 the underlying file type does not support random access.
 
 
+Creating a New EventSource
+==========================
+
+Creating a new `EventSource` can be very simple, depending on how easily a
+file format can be read into Python.
+
+There are two methods that must be defined in the new `EventSource`:
+* `EventSource.is_compatible`
+    This function performs a simple check to see if the `input_url` is
+    compatible with the EventSource. It is called by
+    `EventSourceFactory.produce` to find a compatible `EventSource` to read
+    the file.
+* `EventSource._generator`
+    This function handles the looping through the file and filling the
+    `ctapipe.core.Container`for the event.
+
+In order to avoid introducing additional dependencies, it is a requirement
+that any external modules used in the reading of the file format are imported
+in the `EventSource.__init__`. For an example see how `pyhessio` is
+imported within `HESSIOEventSource`.
+
+If a file format supports random event access, then an efficient method to seek
+to an event can be created in `EventSource._get_event_by_index` and
+`EventSource._get_event_by_id`, which `EventSeeker` will then utilise.
+
+And finally, in order for `EventSourceFactory` to know about your
+`EventSource` class, it must be included in the global namespace before the
+`EventSourceFactory` is instanced. Therefore one should include it as an
+import in the "ctapipe.io.eventsourcefactory" module.
+
+
 Container Classes
 =================
 

@@ -1,15 +1,14 @@
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
-from ctapipe.core import Provenance
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-from ctapipe.utils import get_dataset
 import gzip
 import struct
 
-__all__=['HESSIOEventSource',]
+__all__ = ['HESSIOEventSource']
+
 
 class HESSIOEventSource(EventSource):
     """
@@ -19,7 +18,6 @@ class HESSIOEventSource(EventSource):
     information into the event containers.
     """
     _count = 0
-
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)

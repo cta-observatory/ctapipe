@@ -29,16 +29,16 @@ class EventSeeker(Component):
     To obtain a particular event in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader( input_path="/path/to/file")
-    >>> seeker = EventSeeker( event_source=event_source)
+    >>> event_source = HessioFileReader(input_path="/path/to/file")
+    >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker[2]
     >>> print(event.count)
 
     To obtain a particular event in a hessio file from its event_id:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader( input_path="/path/to/file")
-    >>> seeker = EventSeeker( event_source=event_source)
+    >>> event_source = HessioFileReader(input_path="/path/to/file")
+    >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker["101"]
     >>> print(event.count)
 
@@ -51,15 +51,15 @@ class EventSeeker(Component):
     To obtain a slice of events in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader( input_path="/path/to/file")
-    >>> seeker = EventSeeker( event_source=event_source)
+    >>> event_source = HessioFileReader(input_path="/path/to/file")
+    >>> seeker = EventSeeker(event_source=event_source)
     >>> event_list = seeker[3:6]
     >>> print([event.count for event in event_list])
 
     To obtain a list of events in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader( input_path="/path/to/file")
+    >>> event_source = HessioFileReader(input_path="/path/to/file")
     >>> seeker = EventSeeker(event_source)
     >>> event_indicis = [2, 6, 8]
     >>> event_list = seeker[event_indicis]
@@ -224,7 +224,7 @@ class EventSeeker(Component):
         Method for extracting a particular event by looping through events
         until it finds the requested event id.
         If a file format allows random event access, then is can define its
-        own `get_event_by_index` method in its
+        own `get_event_by_id` method in its
         `ctapipe.io.eventfilereader.EventSource` to allow this class to
         utilise that method instead.
 
