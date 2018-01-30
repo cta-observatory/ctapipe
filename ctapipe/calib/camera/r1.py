@@ -17,7 +17,11 @@ from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
 
-__all__ = ['HessioR1Calibrator', 'CameraR1CalibratorFactory']
+__all__ = [
+    'NullR1Calibrator',
+    'HessioR1Calibrator',
+    'CameraR1CalibratorFactory'
+]
 
 CALIB_SCALE = 1.05
 """
@@ -120,6 +124,36 @@ class CameraR1Calibrator(Component):
                                  "R1 is unchanged in this circumstance.")
                 self._r0_empty_warn = True
             return False
+
+
+class NullR1Calibrator(CameraR1Calibrator):
+    """
+    A dummy R1 calibrator that simply fills the r1 container with the samples
+    from the r0 container.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config, tool, **kwargs)
+        self.log.info("Using NullR1Calibrator, if event source is at "
+                      "the R0 level, then r1 samples will equal r0 samples")
+
+    def calibrate(self, event):
+        for telid in event.r0.tels_with_data:
+            if self.check_r0_exists(event, telid):
+                samples = event.r0.tel[telid].adc_samples
+                event.r1.tel[telid].pe_samples = samples.astype('float32')
 
 
 class HessioR1Calibrator(CameraR1Calibrator):
