@@ -21,7 +21,7 @@ class HESSIOEventSource(EventSource):
     _count = 0
 
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
         try:

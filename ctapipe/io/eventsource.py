@@ -45,11 +45,11 @@ class EventSource(Component):
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:
 
-    >>> event_source = EventSource(None, None, input_url="/path/to/file")
+    >>> event_source = EventSource( input_url="/path/to/file")
 
     To loop through the events in a file:
 
-    >>> event_source = EventSource(None, None, input_url="/path/to/file")
+    >>> event_source = EventSource( input_url="/path/to/file")
     >>> for event in event_source:
     >>>    print(event.count)
 
@@ -59,7 +59,7 @@ class EventSource(Component):
     Alternatively one can use EventFileReader in a `with` statement to ensure
     the correct cleanups are performed when you are finished with the event_source:
 
-    >>> with EventSource(None, None, input_url="/path/to/file") as event_source:
+    >>> with EventSource( input_url="/path/to/file") as event_source:
     >>>    for event in event_source:
     >>>       print(event.count)
 
@@ -100,7 +100,7 @@ class EventSource(Component):
     ).tag(config=True)
 
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
         generator, regardless of the type of file (either hessio or camera

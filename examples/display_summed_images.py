@@ -44,7 +44,7 @@ class ImageSumDisplayerTool(Tool):
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
 
-        self.reader = HESSIOEventSource(None, None, input_url=self.infile,
+        self.reader = HESSIOEventSource( input_url=self.infile,
                                         max_events=self.max_events)
 
 

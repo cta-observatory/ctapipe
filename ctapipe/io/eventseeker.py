@@ -29,16 +29,16 @@ class EventSeeker(Component):
     To obtain a particular event in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, event_source=event_source)
+    >>> event_source = HessioFileReader( input_path="/path/to/file")
+    >>> seeker = EventSeeker( event_source=event_source)
     >>> event = seeker[2]
     >>> print(event.count)
 
     To obtain a particular event in a hessio file from its event_id:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, event_source=event_source)
+    >>> event_source = HessioFileReader( input_path="/path/to/file")
+    >>> seeker = EventSeeker( event_source=event_source)
     >>> event = seeker["101"]
     >>> print(event.count)
 
@@ -51,22 +51,22 @@ class EventSeeker(Component):
     To obtain a slice of events in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, event_source=event_source)
+    >>> event_source = HessioFileReader( input_path="/path/to/file")
+    >>> seeker = EventSeeker( event_source=event_source)
     >>> event_list = seeker[3:6]
     >>> print([event.count for event in event_list])
 
     To obtain a list of events in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HessioFileReader(None, None, input_path="/path/to/file")
-    >>> seeker = EventSeeker(None, None, event_source=event_source)
+    >>> event_source = HessioFileReader( input_path="/path/to/file")
+    >>> seeker = EventSeeker(event_source)
     >>> event_indicis = [2, 6, 8]
     >>> event_list = seeker[event_indicis]
     >>> print([event.count for event in event_list])
     """
 
-    def __init__(self, config, tool, reader, **kwargs):
+    def __init__(self, reader, config=None, tool=None, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
         generator, regardless of the type of file (either hessio or camera
@@ -74,6 +74,10 @@ class EventSeeker(Component):
 
         Parameters
         ----------
+        reader : `ctapipe.io.eventfilereader.EventSource`
+            A subclass of `ctapipe.io.eventfilereader.EventFileReader` that
+            defines how the event container is filled for a particular file
+            format
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
@@ -82,10 +86,6 @@ class EventSeeker(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        reader : `ctapipe.io.eventfilereader.EventSource`
-            A subclass of `ctapipe.io.eventfilereader.EventFileReader` that
-            defines how the event container is filled for a particular file
-            format
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)

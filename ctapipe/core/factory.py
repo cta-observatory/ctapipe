@@ -119,7 +119,7 @@ class Factory(Component, metaclass=FactoryMeta):
     default = None
     custom_product_help = None
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Base Factory class
 
@@ -218,7 +218,7 @@ class Factory(Component, metaclass=FactoryMeta):
         return instance
 
     @classmethod
-    def produce(cls, config, tool, **kwargs):
+    def produce(cls, config=None, tool=None, **kwargs):
         """
         Produce an instance of the product class
 

@@ -21,7 +21,7 @@ def test_full_integration(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = FullIntegrator(None, None)
+    integrator = FullIntegrator()
     integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 149, 0)
@@ -39,7 +39,7 @@ def test_simple_integration(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = SimpleIntegrator(None, None)
+    integrator = SimpleIntegrator()
     integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 74, 0)
@@ -57,7 +57,7 @@ def test_global_peak_integration(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = GlobalPeakIntegrator(None, None)
+    integrator = GlobalPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 58, 0)
@@ -75,7 +75,7 @@ def test_local_peak_integration(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = LocalPeakIntegrator(None, None)
+    integrator = LocalPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 76, 0)
@@ -95,7 +95,7 @@ def test_nb_peak_integration(test_event):
     geom = event.inst.subarray.tel[telid].camera
     nei = geom.neighbor_matrix_where
 
-    integrator = NeighbourPeakIntegrator(None, None)
+    integrator = NeighbourPeakIntegrator()
     integrator.neighbours = nei
     integration, peakpos, window = integrator.extract_charge(data_ped)
 
@@ -114,7 +114,7 @@ def test_averagewf_peak_integration(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    integrator = AverageWfPeakIntegrator(None, None)
+    integrator = AverageWfPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 73, 0)
@@ -125,7 +125,7 @@ def test_averagewf_peak_integration(test_event):
 
 def test_charge_extractor_factory(test_event):
     extractor = ChargeExtractorFactory.produce(
-        None, None,
+        
         product='LocalPeakIntegrator'
     )
 

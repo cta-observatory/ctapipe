@@ -3,7 +3,7 @@ import numpy as np
 
 
 def test_add_charges():
-    chargeres = ChargeResolutionCalculator(None, None)
+    chargeres = ChargeResolutionCalculator()
     true_charge = np.arange(100)
     measured_charge = np.arange(100)
     chargeres.add_charges(true_charge, measured_charge)
@@ -17,7 +17,7 @@ def test_add_charges():
 
 
 def test_get_charge_resolution():
-    chargeres = ChargeResolutionCalculator(None, None, binning=None)
+    chargeres = ChargeResolutionCalculator( binning=None)
     true_charge = np.arange(100)
     measured_charge = np.arange(100)
     chargeres.add_charges(true_charge, measured_charge)
@@ -33,7 +33,7 @@ def test_get_charge_resolution():
 
 
 def test_get_binned_charge_resolution():
-    chargeres = ChargeResolutionCalculator(None, None)
+    chargeres = ChargeResolutionCalculator()
     true_charge = np.arange(100)
     measured_charge = np.arange(100)
     chargeres.add_charges(true_charge, measured_charge)

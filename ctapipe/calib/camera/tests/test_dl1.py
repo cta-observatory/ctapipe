@@ -9,9 +9,9 @@ from ctapipe.calib.camera.r1 import HessioR1Calibrator
 
 
 def previous_calibration(event):
-    r1 = HessioR1Calibrator(None, None)
+    r1 = HessioR1Calibrator()
     r1.calibrate(event)
-    dl0 = CameraDL0Reducer(None, None)
+    dl0 = CameraDL0Reducer()
     dl0.reduce(event)
 
 
@@ -34,7 +34,7 @@ def test_camera_dl1_calibrator(test_event):
     previous_calibration(event)
     telid = 11
 
-    calibrator = CameraDL1Calibrator(None, None)
+    calibrator = CameraDL1Calibrator()
 
     correction = calibrator.get_correction(event, telid)
     assert_allclose(correction[0], 1.077, 1e-3)
@@ -48,7 +48,7 @@ def test_check_dl0_exists(test_event):
     event = deepcopy(test_event)
     telid = 11
     previous_calibration(event)
-    calibrator = CameraDL1Calibrator(None, None)
+    calibrator = CameraDL1Calibrator()
     assert(calibrator.check_dl0_exists(event, telid) is True)
     event.dl0.tel[telid].pe_samples = None
     assert(calibrator.check_dl0_exists(event, telid) is False)

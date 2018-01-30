@@ -16,7 +16,7 @@ class ChargeResolutionVariationPlotter(Component):
                           help='Output path to save the '
                                'plot.').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Calculator of charge resolution.
 
