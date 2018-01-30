@@ -48,6 +48,7 @@ for event in source:
     # calibrating the event
     calib.calibrate(event)
     hillas_params = {}
+    subarray = event.inst.subarray
 
     for tel_id in event.dl0.tels_with_data:
 
@@ -55,10 +56,11 @@ for event in source:
         point_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw*u.rad
         point_altitude[tel_id] = (np.pi/2-event.mc.tel[tel_id].altitude_raw)*u.rad
 #        print(point_azimuth,point_altitude)
-              
+                      
         # Camera Geometry required for hillas parametrization
-        pix_x,pix_y =  event.inst.pixel_pos[tel_id]
-        foclen      =  event.inst.optical_foclen[tel_id]
+        pix_x=subarray.tel[tel_id].camera.pix_x
+        pix_y=subarray.tel[tel_id].camera.pix_y
+        foclen=subarray.tel[tel_id].optics.equivalent_focal_length
         camgeom = CameraGeometry.guess(pix_x,pix_y,foclen)
 
         # note the [0] is for channel 0 which is high-gain channel
