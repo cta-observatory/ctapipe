@@ -55,7 +55,7 @@ class CameraR1Calibrator(Component):
     """
     origin = None
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Parent class for the r1 calibrators. Fills the r1 container.
 

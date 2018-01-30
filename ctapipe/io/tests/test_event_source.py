@@ -25,11 +25,11 @@ class DummyReader(EventSource):
 
 def test_can_be_implemented():
     dataset = get_dataset("gamma_test.simtel.gz")
-    test_reader = DummyReader(None, None, input_url=dataset)
+    test_reader = DummyReader( input_url=dataset)
 
 
 def test_is_iterable():
     dataset = get_dataset("gamma_test.simtel.gz")
-    test_reader = DummyReader(None, None, input_url=dataset)
+    test_reader = DummyReader( input_url=dataset)
     for _ in test_reader:
         pass

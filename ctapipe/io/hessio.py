@@ -45,9 +45,7 @@ def hessio_event_source(url, **params):
 
     """
 
-    reader = HESSIOEventSource(None, None,
-                               input_url=url, **params)
-
+    reader = HESSIOEventSource(input_url=url, **params)
 
     return (x for x in reader)
 

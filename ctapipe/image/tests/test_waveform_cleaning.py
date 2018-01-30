@@ -16,7 +16,7 @@ def test_null_cleaner(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    cleaner = NullWaveformCleaner(None, None)
+    cleaner = NullWaveformCleaner()
     cleaned = cleaner.apply(data_ped)
 
     assert(np.array_equal(data_ped, cleaned))
@@ -31,7 +31,7 @@ def test_checm_cleaner_average(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    cleaner = CHECMWaveformCleanerAverage(None, None)
+    cleaner = CHECMWaveformCleanerAverage()
     cleaned = cleaner.apply(data_ped)
 
     assert_almost_equal(data_ped[0, 0, 0], -2.8, 1)
@@ -47,7 +47,7 @@ def test_checm_cleaner_local(test_event):
     data_ped = data - np.atleast_3d(ped/nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
-    cleaner = CHECMWaveformCleanerLocal(None, None)
+    cleaner = CHECMWaveformCleanerLocal()
     cleaned = cleaner.apply(data_ped)
 
     assert_almost_equal(data_ped[0, 0, 0], -2.8, 1)

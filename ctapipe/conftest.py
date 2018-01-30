@@ -12,8 +12,8 @@ def test_event():
     """ an example event for algorithm testing"""
     filename = get_dataset('gamma_test.simtel.gz')
 
-    with HESSIOEventSource(None, None, input_url=filename) as reader:
-        seeker = EventSeeker(None, None, reader=reader )
+    with HESSIOEventSource(input_url=filename) as reader:
+        seeker = EventSeeker(reader)
         event = seeker['409']
 
     yield event

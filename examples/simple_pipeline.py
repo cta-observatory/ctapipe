@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     source = event_source(filename, max_events=None)
 
-    cal = CameraCalibrator(None, None)
+    cal = CameraCalibrator()
 
     for data in source:
 

@@ -18,7 +18,7 @@ class ImagePlotter(Component):
                                'images. Set to None for no saved '
                                'output.').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Plotter for camera images.
 
