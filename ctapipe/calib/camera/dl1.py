@@ -110,7 +110,8 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config, tool, extractor=None, cleaner=None, **kwargs):
+    def __init__(self, config=None, tool=None, extractor=None, cleaner=None,
+                 **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
         self.extractor = extractor
         if self.extractor is None:

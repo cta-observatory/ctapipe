@@ -23,7 +23,7 @@ class ChargeResolutionPlotter(Component):
     linear_y = Bool(False, help='Plot the y values on a linear axis, '
                                 'instead of log').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Calculator of charge resolution.
 

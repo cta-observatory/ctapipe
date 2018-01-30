@@ -31,7 +31,7 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 
     @abstractmethod
@@ -89,7 +89,7 @@ class CHECMWaveformCleaner(WaveformCleaner):
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
         # Cleaning steps for plotting
@@ -219,23 +219,6 @@ class WaveformCleanerFactory(Factory):
     """
     Factory to obtain a WaveformCleaner.
     """
-    description = "Obtain WavefromCleaner based on cleaner traitlet"
-
-    subclasses = Factory.child_subclasses(WaveformCleaner)
-    subclass_names = [c.__name__ for c in subclasses]
-
-    cleaner = CaselessStrEnum(subclass_names, 'NullWaveformCleaner',
-                              help='Waveform cleaning method to '
-                                   'use.').tag(config=True)
-
-    # Product classes traits
-    window_width = Int(16, help='Define the width of the pulse '
-                                'window').tag(config=True)
-    window_shift = Int(8, help='Define the shift of the pulse window from the '
-                               'peakpos (peakpos - shift).').tag(config=True)
-
-    def get_factory_name(self):
-        return self.__class__.__name__
-
-    def get_product_name(self):
-        return self.cleaner
+    base = WaveformCleaner
+    default = 'NullWaveformCleaner'
+    custom_product_help = 'Waveform cleaning method to use.'
