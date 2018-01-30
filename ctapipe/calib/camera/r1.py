@@ -20,7 +20,7 @@ from ctapipe.io import EventSource
 
 __all__ = [
     'NullR1Calibrator',
-    'HessioR1Calibrator',
+    'HESSIOR1Calibrator',
     'CameraR1CalibratorFactory'
 ]
 
@@ -139,7 +139,7 @@ class NullR1Calibrator(CameraR1Calibrator):
                 event.r1.tel[telid].pe_samples = samples.astype('float32')
 
 
-class HessioR1Calibrator(CameraR1Calibrator):
+class HESSIOR1Calibrator(CameraR1Calibrator):
     """
     The R1 calibrator for hessio files. Fills the r1 container.
 
@@ -176,7 +176,7 @@ class HessioR1Calibrator(CameraR1Calibrator):
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
-            raise ValueError('Using HessioR1Calibrator to calibrate a '
+            raise ValueError('Using HESSIOR1Calibrator to calibrate a '
                              'non-hessio event.')
 
         for telid in event.r0.tels_with_data:
@@ -246,5 +246,5 @@ class CameraR1CalibratorFactory(Factory):
         except AttributeError:
             if self.eventsource:
                 if self.eventsource.metadata['is_simulation']:
-                    return 'HessioR1Calibrator'
+                    return 'HESSIOR1Calibrator'
             return 'NullR1Calibrator'
