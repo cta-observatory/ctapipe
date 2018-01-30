@@ -5,7 +5,7 @@ from traitlets import TraitError
 
 
 def test_factory_subclasses():
-    factory= EventSourceFactory(None,None)
+    factory= EventSourceFactory()
     assert len(factory.subclass_names)>0
 
 
