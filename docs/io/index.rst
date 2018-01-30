@@ -39,7 +39,7 @@ the case of streams that cannot be restarted):
 
 .. code-block:: python3
 
-  with EventSourceFactory.produce(None,None,"file.simtel.gz") as source:
+  with EventSourceFactory.produce("file.simtel.gz") as source:
       for event in source:
          do_something_with_event(event)
 
