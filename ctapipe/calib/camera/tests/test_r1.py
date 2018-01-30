@@ -61,6 +61,16 @@ def test_factory_from_eventsource():
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
+def test_factory_from_eventsource_override():
+    dataset = get_dataset("gamma_test.simtel.gz")
+    eventsource = HESSIOEventSource(input_url=dataset)
+    calibrator = CameraR1CalibratorFactory.produce(
+        eventsource=eventsource,
+        product="NullR1Calibrator"
+    )
+    assert isinstance(calibrator, NullR1Calibrator)
+
+
 class UnknownEventSource(EventSource):
     """
     Simple working EventSource
