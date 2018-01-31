@@ -16,21 +16,13 @@ of the data.
 from traitlets import CaselessStrEnum, Unicode
 from ctapipe.core import Component, Factory
 from abc import abstractmethod
+from ctapipe.io import EventSource
 
-__all__ = ['HessioR1Calibrator', 'CameraR1CalibratorFactory']
-
-CALIB_SCALE = 1.05
-"""
-CALIB_SCALE is only relevant for MC calibration.
-
-CALIB_SCALE is the factor needed to transform from mean p.e. units to units of
-the single-p.e. peak: Depends on the collection efficiency, the asymmetry of
-the single p.e. amplitude  distribution and the electronic noise added to the
-signals. Default value is for GCT.
-
-To correctly calibrate to number of photoelectron, a fresh SPE calibration
-should be applied using a SPE sim_telarray run with an artificial light source.
-"""
+__all__ = [
+    'NullR1Calibrator',
+    'HESSIOR1Calibrator',
+    'CameraR1CalibratorFactory'
+]
 
 
 class CameraR1Calibrator(Component):
@@ -53,7 +45,6 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    origin = None
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -72,10 +63,6 @@ class CameraR1Calibrator(Component):
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        if self.origin is None:
-            raise ValueError("Subclass of CameraR1Calibrator should specify "
-                             "an origin")
-
         self._r0_empty_warn = False
 
     @abstractmethod
@@ -122,7 +109,37 @@ class CameraR1Calibrator(Component):
             return False
 
 
-class HessioR1Calibrator(CameraR1Calibrator):
+class NullR1Calibrator(CameraR1Calibrator):
+    """
+    A dummy R1 calibrator that simply fills the r1 container with the samples
+    from the r0 container.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config, tool, **kwargs)
+        self.log.info("Using NullR1Calibrator, if event source is at "
+                      "the R0 level, then r1 samples will equal r0 samples")
+
+    def calibrate(self, event):
+        for telid in event.r0.tels_with_data:
+            if self.check_r0_exists(event, telid):
+                samples = event.r0.tel[telid].adc_samples
+                event.r1.tel[telid].pe_samples = samples.astype('float32')
+
+
+class HESSIOR1Calibrator(CameraR1Calibrator):
     """
     The R1 calibrator for hessio files. Fills the r1 container.
 
@@ -141,11 +158,25 @@ class HessioR1Calibrator(CameraR1Calibrator):
         Set to None if no Tool to pass.
     kwargs
     """
-    origin = 'hessio'
+
+    calib_scale = 1.05
+    """
+    CALIB_SCALE is only relevant for MC calibration.
+
+    CALIB_SCALE is the factor needed to transform from mean p.e. units to 
+    units of the single-p.e. peak: Depends on the collection efficiency, 
+    the asymmetry of the single p.e. amplitude  distribution and the 
+    electronic noise added to the signals. Default value is for GCT.
+
+    To correctly calibrate to number of photoelectron, a fresh SPE calibration
+    should be applied using a SPE sim_telarray run with an 
+    artificial light source.
+    """
+    # TODO: Handle calib_scale differently per simlated telescope
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
-            raise ValueError('Using HessioR1Calibrator to calibrate a '
+            raise ValueError('Using HESSIOR1Calibrator to calibrate a '
                              'non-hessio event.')
 
         for telid in event.r0.tels_with_data:
@@ -153,16 +184,9 @@ class HessioR1Calibrator(CameraR1Calibrator):
                 samples = event.r0.tel[telid].adc_samples
                 n_samples = samples.shape[2]
                 ped = event.mc.tel[telid].pedestal / n_samples
-                gain = event.mc.tel[telid].dc_to_pe * CALIB_SCALE
+                gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
                 calibrated = (samples - ped[..., None]) * gain[..., None]
                 event.r1.tel[telid].pe_samples = calibrated
-
-
-# External Children
-try:
-    from targetpipe.calib.camera.r1 import TargetioR1Calibrator
-except ImportError:
-    pass
 
 
 class CameraR1CalibratorFactory(Factory):
@@ -184,4 +208,43 @@ class CameraR1CalibratorFactory(Factory):
     the calibration of their camera.
     """
     base = CameraR1Calibrator
-    default = 'HessioR1Calibrator'
+    custom_product_help = ('R1 Calibrator to use. If None then a '
+                           'calibrator will either be selected based on the '
+                           'supplied EventSource, or will default to '
+                           '"NullR1Calibrator".')
+
+    def __init__(self, config=None, tool=None, eventsource=None, **kwargs):
+        """
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        eventsource : ctapipe.io.eventsource.EventSource
+            EventSource that is being used to read the events. The EventSource
+            contains information (such as metadata or inst) which indicates
+            the appropriate R1Calibrator to use.
+        kwargs
+
+        """
+
+        super().__init__(config, tool, **kwargs)
+        if eventsource and not issubclass(type(eventsource), EventSource):
+            raise TypeError(
+                "eventsource must be a ctapipe.io.eventsource.EventSource"
+            )
+        self.eventsource = eventsource
+
+    def _get_product_name(self):
+        try:
+            return super()._get_product_name()
+        except AttributeError:
+            if self.eventsource:
+                if self.eventsource.metadata['is_simulation']:
+                    return 'HESSIOR1Calibrator'
+            return 'NullR1Calibrator'

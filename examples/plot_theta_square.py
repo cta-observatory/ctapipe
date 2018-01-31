@@ -33,7 +33,7 @@ point_azimuth = {}
 point_altitude = {}
 
 reco = HillasReconstructor()
-calib = CameraCalibrator(None, None)
+calib = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 off_angles = []
 
 for event in source:

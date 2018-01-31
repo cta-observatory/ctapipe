@@ -10,7 +10,7 @@ from ctapipe.calib import CameraCalibrator
 
 if __name__ == '__main__':
 
-    calib = CameraCalibrator()
+    calib = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
     if len(sys.argv) >= 2:
         filename = sys.argv[1]

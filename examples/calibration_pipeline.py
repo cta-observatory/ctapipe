@@ -5,7 +5,8 @@ from traitlets import Dict, List, Int, Bool, Unicode
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventsource import EventSourceFactory
+from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.utils import get_dataset
 from ctapipe.visualization import CameraDisplay
 
 
@@ -52,7 +53,8 @@ class ImagePlotter(Component):
             self.log.info("Creating PDF: {}".format(self.output_path))
             self.pdf = PdfPages(self.output_path)
 
-    def get_geometry(self, event, telid):
+    @staticmethod
+    def get_geometry(event, telid):
         return event.inst.subarray.tel[telid].camera
 
     def plot(self, event, telid):
@@ -68,10 +70,8 @@ class ImagePlotter(Component):
 
             # Redraw camera
             geom = self.get_geometry(event, telid)
-            self.c_intensity = CameraDisplay(geom, cmap=plt.cm.viridis,
-                                             ax=self.ax_intensity)
-            self.c_peakpos = CameraDisplay(geom, cmap=plt.cm.viridis,
-                                           ax=self.ax_peakpos)
+            self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
+            self.c_peakpos = CameraDisplay(geom, ax=self.ax_peakpos)
 
             tmaxmin = event.dl0.tel[telid].pe_samples.shape[2]
             t_chargemax = peakpos[image.argmax()]
@@ -105,7 +105,6 @@ class ImagePlotter(Component):
         self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
                           .format(event.count, event.r0.event_id, telid))
 
-
         if self.display:
             plt.pause(0.001)
         if self.pdf is not None:
@@ -126,10 +125,8 @@ class DisplayDL1Calib(Tool):
                     help='Telescope to view. Set to None to display all '
                          'telescopes.').tag(config=True)
 
-    aliases = Dict(dict(f='EventSourceFactory.input_path',
-                        r='EventSourceFactory.reader',
-                        max_events='EventSourceFactory.max_events',
-                        extractor='ChargeExtractorFactory.extractor',
+    aliases = Dict(dict(max_events='EventSourceFactory.max_events',
+                        extractor='ChargeExtractorFactory.product',
                         window_width='ChargeExtractorFactory.window_width',
                         t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
@@ -152,24 +149,27 @@ class DisplayDL1Calib(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.reader = None
+        self.eventsource = None
         self.calibrator = None
         self.plotter = None
 
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        reader_factory = EventSourceFactory(**kwargs)
-        reader_class = reader_factory.get_class()
-        self.reader = reader_class(**kwargs)
+        self.eventsource = EventSourceFactory.produce(
+            input_url=get_dataset("gamma_test.simtel.gz"),
+            **kwargs
+        )
 
-        self.calibrator = CameraCalibrator(origin=self.reader.origin, **kwargs)
+        self.calibrator = CameraCalibrator(
+            eventsource=self.eventsource,
+            **kwargs
+        )
 
         self.plotter = ImagePlotter(**kwargs)
 
     def start(self):
-        source = self.reader.read()
-        for event in source:
+        for event in self.eventsource:
             self.calibrator.calibrate(event)
 
             tel_list = event.r0.tels_with_data
@@ -183,6 +183,7 @@ class DisplayDL1Calib(Tool):
 
     def finish(self):
         self.plotter.finish()
+
 
 if __name__ == '__main__':
     exe = DisplayDL1Calib()
