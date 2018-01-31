@@ -81,9 +81,7 @@ class SST1M_InstrumentContainer(InstrumentContainer):
     functions.
     """
 
-    num_pixels = Field(Map(int), "map of tel_id to number of pixels in camera")
     num_channels = Field(Map(int), "map of tel_id to number of channels")
-    num_samples = Field(Map(int), "map of tel_id to number of samples")
     cluster_matrix_7 = Field(Map(ndarray), 'map of tel_id of cluster 7 matrix')
     cluster_matrix_19 = Field(
         Map(ndarray),
