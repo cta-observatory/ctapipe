@@ -153,8 +153,8 @@ def plot_muon_event(event, muonparams):
                 u.rad) \
                 * flen * 2.  # But not FC?
 
-            px=subarray.tel[tel_id].camera.pix_x
-            py=subarray.tel[tel_id].camera.pix_y
+            px = subarray.tel[tel_id].camera.pix_x
+            py = subarray.tel[tel_id].camera.pix_y
             camera_coord = CameraFrame(x=px, y=py,
                                        focal_length=flen,
                                        rotation=geom.pix_rotation)
