@@ -43,7 +43,7 @@ for event in source:
     # corresponding to 3 components (x,y,z) of a vector 
     shower_azimuth = event.mc.az  # same as in Monte Carlo file i.e. phi
     shower_altitude = np.pi * u.rad / 2 - event.mc.alt  # altitude = 90 - theta
-    shower_direction = linalg.set_phi_theta(shower_azimuth,shower_altitude)    
+    shower_direction = linalg.set_phi_theta(shower_azimuth, shower_altitude)
     # calibrating the event
     calib.calibrate(event)
     hillas_params = {}
@@ -60,7 +60,7 @@ for event in source:
         pix_x = subarray.tel[tel_id].camera.pix_x
         pix_y = subarray.tel[tel_id].camera.pix_y
         foclen = subarray.tel[tel_id].optics.equivalent_focal_length
-        camgeom = CameraGeometry.guess(pix_x,pix_y,foclen)
+        camgeom = CameraGeometry.guess(pix_x, pix_y, foclen)
 
         # note the [0] is for channel 0 which is high-gain channel
         image = event.dl1.tel[tel_id].image[0]        
