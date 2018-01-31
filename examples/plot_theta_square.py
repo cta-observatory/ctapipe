@@ -82,15 +82,15 @@ for event in source:
     if len(hillas_params) < 2: 
         continue
 
-    reco.get_great_circles(hillas_params,event.inst.subarray,
-                           point_azimuth,point_altitude)  
+    reco.get_great_circles(hillas_params, event.inst.subarray,
+                           point_azimuth, point_altitude)  
 
     # fit the gamma's direction of origin
     # return reconstructed direction (3 components) with errors on the values
     reco_direction, reco_dir_err = reco.fit_origin_crosses()
 
     # In case fit fails to get any real value
-    if np.isnan(reco_direction).any(): 
+    if np.isnan(reco_direction).any():
         continue
 
     # get angular offset between reconstructed shower direction and MC
