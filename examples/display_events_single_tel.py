@@ -63,10 +63,17 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
 
-        self.event_source = EventSourceFactory.produce(None, self)
+        self.event_source = EventSourceFactory.produce(
+            config=self.config,
+            tool=self
+        )
         self.event_source.allowed_tels = [self.tel, ]
 
-        self.calibrator = CameraCalibrator(config=None, tool=self)
+        self.calibrator = CameraCalibrator(
+            config=self.config,
+            tool=self,
+            eventsource=self.event_source
+        )
 
         self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
 
