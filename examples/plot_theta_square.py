@@ -26,7 +26,7 @@ filename = datasets.get_dataset("gamma_test_large.simtel.gz")
 # filename
 
 # reading the Monte Carlo file for LST 
-source = event_source(filename,allowed_tels={1, 2, 3, 4})
+source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 # pointing direction of the telescopes
 point_azimuth = {}
