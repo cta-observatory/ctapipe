@@ -33,7 +33,7 @@ point_azimuth = {}
 point_altitude = {}
 
 reco = HillasReconstructor()
-calib = CameraCalibrator()
+calib = CameraCalibrator(None, None)
 off_angles = []
 
 for event in source:
@@ -44,10 +44,10 @@ for event in source:
     shower_azimuth = event.mc.az  # same as in Monte Carlo file i.e. phi
     shower_altitude = np.pi * u.rad / 2 - event.mc.alt  # altitude = 90 - theta
     shower_direction = linalg.set_phi_theta(shower_azimuth, shower_altitude)
-
     # calibrating the event
     calib.calibrate(event)
     hillas_params = {}
+    subarray = event.inst.subarray
 
     for tel_id in event.dl0.tels_with_data:
 
@@ -57,8 +57,9 @@ for event in source:
 #        print(point_azimuth,point_altitude)
 
         # Camera Geometry required for hillas parametrization
-        pix_x, pix_y = event.inst.pixel_pos[tel_id]
-        foclen = event.inst.optical_foclen[tel_id]
+        pix_x = subarray.tel[tel_id].camera.pix_x
+        pix_y = subarray.tel[tel_id].camera.pix_y
+        foclen = subarray.tel[tel_id].optics.equivalent_focal_length
         camgeom = CameraGeometry.guess(pix_x, pix_y, foclen)
 
         # note the [0] is for channel 0 which is high-gain channel
