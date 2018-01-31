@@ -80,8 +80,6 @@ class SST1M_InstrumentContainer(InstrumentContainer):
     part of the data stream, but be loaded and accessed from
     functions.
     """
-
-    num_channels = Field(Map(int), "map of tel_id to number of channels")
     cluster_matrix_7 = Field(Map(ndarray), 'map of tel_id of cluster 7 matrix')
     cluster_matrix_19 = Field(
         Map(ndarray),
