@@ -81,13 +81,9 @@ class SST1M_InstrumentContainer(InstrumentContainer):
     functions.
     """
 
-    telescope_ids = Field([], "list of IDs of telescopes used in the run")
     num_pixels = Field(Map(int), "map of tel_id to number of pixels in camera")
     num_channels = Field(Map(int), "map of tel_id to number of channels")
     num_samples = Field(Map(int), "map of tel_id to number of samples")
-    geom = Field(Map(None), 'map of tel_if to CameraGeometry')
-    cam = Field(Map(None), 'map of tel_id to Camera')
-    optics = Field(Map(None), 'map of tel_id to CameraOptics')
     cluster_matrix_7 = Field(Map(ndarray), 'map of tel_id of cluster 7 matrix')
     cluster_matrix_19 = Field(
         Map(ndarray),
