@@ -63,12 +63,13 @@ like "ctapipe.io.hessioeventsource". Inside this module create the new
 
 There are two methods that must be defined in the new `EventSource`:
 
-* `EventSource.is_compatible`
+`EventSource.is_compatible`:
     This function performs a simple check to see if the `input_url` is
     compatible with the EventSource. It is called by
     `EventSourceFactory.produce` to find a compatible `EventSource` to read
     the file.
-* `EventSource._generator`
+
+`EventSource._generator`:
     This function handles the looping through the file and filling the
     `ctapipe.core.Container`for the event.
 
