@@ -75,16 +75,16 @@ class HESSIOEventSource(EventSource):
                     # so load it on the first event.
                     data.inst.subarray = self._build_subarray_info(file)
 
-                run_id = file.get_run_number()
+                obs_id = file.get_run_number()
                 tels_with_data = set(file.get_teldata_list())
                 data.count = counter
-                data.r0.run_id = run_id
+                data.r0.obs_id = obs_id
                 data.r0.event_id = event_id
                 data.r0.tels_with_data = tels_with_data
-                data.r1.run_id = run_id
+                data.r1.obs_id = obs_id
                 data.r1.event_id = event_id
                 data.r1.tels_with_data = tels_with_data
-                data.dl0.run_id = run_id
+                data.dl0.obs_id = obs_id
                 data.dl0.event_id = event_id
                 data.dl0.tels_with_data = tels_with_data
 

@@ -65,8 +65,8 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
     container.add_item("trig", CentralTriggerData())
     container.add_item("count")
 
-    for run_id, event_id in eventstream:
-        container.dl0.run_id    = run_id
+    for obs_id, event_id in eventstream:
+        container.dl0.obs_id    = obs_id
         container.dl0.event_id  = event_id
         #container.r0.event_num = zfits.get_event_number()
 

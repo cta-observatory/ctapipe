@@ -112,7 +112,7 @@ def test_fits_dl0(fits_file_name):
     assert hdu.data["event_id"][0] == 408
     assert hdu.data["event_id"][1] == 409
     assert hdu.data["event_id"][2] == 803
-    assert hdu.data["run_id"][2] == 31964
+    assert hdu.data["obs_id"][2] == 31964
     remove(fits_file_name)
 
 
