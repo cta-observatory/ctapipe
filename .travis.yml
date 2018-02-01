@@ -56,13 +56,13 @@ install:
 script:
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
-    - travis-sphinx build --source=docs/ 
+    - travis-sphinx -v --outdir=docbuild build --source=docs/ 
 
 after_script:
     - source deactivate
 
 after_success:
-    - travis-sphinx deploy
+    - travis-sphinx -v --outdir=docbuild deploy
     - codecov 
 
 
