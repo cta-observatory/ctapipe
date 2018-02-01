@@ -62,7 +62,7 @@ after_script:
     - source deactivate
 
 after_success:
-    - travis-sphinx --outdir=docbuild deploy
+    - travis-sphinx -v --outdir=docbuild deploy
     - codecov 
 
 
