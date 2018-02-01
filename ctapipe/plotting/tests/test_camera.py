@@ -12,7 +12,7 @@ def test_eventplotter():
 
     telid = list(event.r0.tels_with_data)[0]
 
-    data = event.r0.tel[telid].adc_samples[0]
+    data = event.r0.tel[telid].waveform[0]
     plotter = CameraPlotter(event)
 
     camera = plotter.draw_camera(telid, data[:, 0])

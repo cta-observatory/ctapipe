@@ -107,7 +107,7 @@ class SingleTelEventDisplay(Tool):
 
             if self.samples:
                 # display time-varying event
-                data = event.dl0.tel[self.tel].pe_samples[self.channel]
+                data = event.dl0.tel[self.tel].waveform[self.channel]
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)

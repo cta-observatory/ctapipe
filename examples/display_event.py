@@ -51,7 +51,7 @@ def display_event(event):
         disp.autoupdate = False
         disp.cmap = random.choice(cmaps)
         chan = 0
-        signals = event.r0.tel[tel_id].adc_sums[chan].astype(float)
+        signals = event.r0.tel[tel_id].image[chan].astype(float)
         signals -= signals.mean()
         disp.image = signals
         disp.set_limits_percent(95)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 break
             elif response.startswith('i'):
                 for tel_id in sorted(event.r0.tel):
-                    for chan in event.r0.tel[tel_id].adc_samples:
+                    for chan in event.r0.tel[tel_id].waveform:
                         npix = event.inst.num_pixels[tel_id]
                         nsamp = event.inst.num_samples[tel_id]
                         print("CT{:4d} ch{} pixels,samples:{}"

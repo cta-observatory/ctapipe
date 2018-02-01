@@ -17,8 +17,8 @@ def test_write_container(temp_h5_file):
     r0tel = R0CameraContainer()
     mc = MCEventContainer()
     mc.reset()
-    r0tel.adc_samples = np.random.uniform(size=(50, 10))
-    r0tel.adc_sums = np.random.uniform(size=50)
+    r0tel.waveform = np.random.uniform(size=(50, 10))
+    r0tel.image = np.random.uniform(size=50)
     r0tel.num_samples = 10
     r0tel.meta['test_attribute'] = 3.14159
     r0tel.meta['date'] = "2020-10-10"
@@ -29,8 +29,8 @@ def test_write_container(temp_h5_file):
     writer.exclude("tel_002",".*samples")  # test exclusion of columns
 
     for ii in range(100):
-        r0tel.adc_samples[:] = np.random.uniform(size=(50, 10))
-        r0tel.adc_sums[:] = np.random.uniform(size=50)
+        r0tel.waveform[:] = np.random.uniform(size=(50, 10))
+        r0tel.image[:] = np.random.uniform(size=50)
         r0tel.num_samples = 10
         mc.energy = 10**np.random.uniform(1,2) * u.TeV
         mc.core_x = np.random.uniform(-1, 1) * u.m
@@ -61,8 +61,8 @@ def test_read_container(temp_h5_file):
         r0_2 = next(r0tab2)
 
         print("MC:", m)
-        print("t0:", r0_1.adc_sums)
-        print("t1:", r0_2.adc_sums)
+        print("t0:", r0_1.image)
+        print("t1:", r0_2.image)
         print("---------------------------")
 
     assert 'test_attribute' in r0_1.meta

@@ -105,7 +105,7 @@ if __name__ == '__main__':
             x, y = event.meta.pixel_pos[tel_id]
             if geom == 0:
                 geom = io.CameraGeometry.guess(x, y,event.meta.optical_foclen[tel_id])
-            image = apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0], tel_id)
+            image = apply_mc_calibration(event.dl0.tel[tel_id].image[0], tel_id)
             if image.shape[0] >1000:
                 continue
             clean_mask = tailcuts_clean(geom,image,1,picture_thresh=5,boundary_thresh=7)

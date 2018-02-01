@@ -132,13 +132,13 @@ class HESSIOEventSource(EventSource):
 
                     data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
-                    data.r0.tel[tel_id].adc_samples = (file.
+                    data.r0.tel[tel_id].waveform = (file.
                         get_adc_sample(tel_id))
-                    if data.r0.tel[tel_id].adc_samples.size == 0:
+                    if data.r0.tel[tel_id].waveform.size == 0:
                         # To handle ASTRI and dst files
-                        data.r0.tel[tel_id].adc_samples = (file.
+                        data.r0.tel[tel_id].waveform = (file.
                             get_adc_sum(tel_id)[..., None])
-                    data.r0.tel[tel_id].adc_sums = file.get_adc_sum(tel_id)
+                    data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                         get_ref_shapes(tel_id))
 

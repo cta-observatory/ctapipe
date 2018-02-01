@@ -102,7 +102,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
 
                 mask = np.zeros(zfits.get_number_of_pixels(),dtype=bool)
                 mask[np.array(samples.keys())]=True
-                container.dl0.tel[tel_id].adc_samples[chan] = \
+                container.dl0.tel[tel_id].waveform[chan] = \
                     ma.array(np.array(samples.values()),mask=mask)
                 
                 mask = np.zeros(zfits.get_number_of_pixels(),dtype=bool)

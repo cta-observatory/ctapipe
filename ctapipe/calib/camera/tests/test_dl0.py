@@ -18,7 +18,7 @@ def test_camera_dl0_reducer(test_event):
 
     reducer = CameraDL0Reducer()
     reducer.reduce(event)
-    waveforms = event.dl0.tel[telid].pe_samples
+    waveforms = event.dl0.tel[telid].waveform
     assert_almost_equal(waveforms[0, 0, 0], -0.091, 3)
 
 
@@ -28,5 +28,5 @@ def test_check_r1_exists(test_event):
     previous_calibration(event)
     reducer = CameraDL0Reducer()
     assert(reducer.check_r1_exists(event, telid) is True)
-    event.r1.tel[telid].pe_samples = None
+    event.r1.tel[telid].waveform = None
     assert(reducer.check_r1_exists(event, telid) is False)

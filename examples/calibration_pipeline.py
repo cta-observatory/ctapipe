@@ -73,7 +73,7 @@ class ImagePlotter(Component):
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
             self.c_peakpos = CameraDisplay(geom, ax=self.ax_peakpos)
 
-            tmaxmin = event.dl0.tel[telid].pe_samples.shape[2]
+            tmaxmin = event.dl0.tel[telid].waveform.shape[2]
             t_chargemax = peakpos[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 'cmap_t', [(0 / tmaxmin, 'darkgreen'),
