@@ -90,7 +90,6 @@ class Container(metaclass=ContainerMeta):
     >>>
     >>>    cont = MyContainer()
     >>>    print(cont.x)
-    100
     >>>    # metdata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
