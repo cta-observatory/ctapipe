@@ -5,7 +5,6 @@ Container structures for data that should be read or written to disk
 from astropy import units as u
 from astropy.time import Time
 from numpy import ndarray, nan
-import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -30,6 +29,7 @@ __all__ = ['InstrumentContainer',
            'ParticleClassificationContainer',
            'DataContainer',
            'HillasParametersContainer']
+
 
 # todo: change some of these Maps to be just 3D NDarrays?
 
@@ -103,7 +103,6 @@ class R0CameraContainer(Container):
         "(n_channels x n_pixels, n_samples)"
     ))
     num_samples = Field(None, "number of time samples for telescope")
-
 
 
 class R0Container(Container):
@@ -190,10 +189,12 @@ class MCCameraEventContainer(Container):
     )
     altitude_raw = Field(0, "Raw altitude angle [radians] for the telescope")
     azimuth_cor = Field(
-        0, "the tracking Azimuth corrected for pointing errors for the telescope"
+        0,
+        "the tracking Azimuth corrected for pointing errors for the telescope"
     )
     altitude_cor = Field(
-        0, "the tracking Altitude corrected for pointing errors for the telescope"
+        0,
+        "the tracking Altitude corrected for pointing errors for the telescope"
     )
 
 
@@ -208,8 +209,8 @@ class MCEventContainer(Container):
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
     shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
-                              "2(mu-), 100*A+Z for nucleons and nuclei," 
-                              "negative for antimatter.")
+                                    "2(mu-), 100*A+Z for nucleons and nuclei,"
+                                    "negative for antimatter.")
     tel = Field(
         Map(MCCameraEventContainer), "map of tel_id to MCCameraEventContainer"
     )
@@ -230,7 +231,6 @@ class MCHeaderContainer(Container):
 
 
 class CentralTriggerContainer(Container):
-
     gps_time = Field(Time, "central average time stamp")
     tels_with_trigger = Field([], "list of telescopes with data")
 
@@ -302,7 +302,7 @@ class ParticleClassificationContainer(Container):
         'classificator validity flag. True if the '
         'predition was successful within the algorithm '
         'validity range')
-    )
+                     )
 
     # TODO: KPK: is this different than the list in the reco
     # container? Why repeat?
@@ -354,7 +354,8 @@ class DataContainer(Container):
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
-    pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
+    pointing = Field(Map(TelescopePointingContainer),
+                     'Telescope pointing positions')
 
 
 class MuonRingParameter(Container):
@@ -446,7 +447,8 @@ class MuonIntensityParameter(Container):
     off_ring_size = Field(0., 'image size outside of ring in pe')
     ring_width = Field(0., 'width of the muon ring in degrees')
     ring_time_width = Field(0., 'duration of the ring image sequence')
-    impact_parameter = Field(0., 'distance of muon impact position from centre of mirror')
+    impact_parameter = Field(0.,
+                             'distance of muon impact position from centre of mirror')
     impact_parameter_chi2 = Field(0., 'impact parameter chi squared')
     intensity_cov_matrix = Field(0., 'covariance matrix of intensity')
     impact_parameter_pos_x = Field(0., 'impact parameter x position')
@@ -461,7 +463,6 @@ class MuonIntensityParameter(Container):
 
 
 class HillasParametersContainer(Container):
-
     intensity = Field(0.0, 'total intensity (size)')
 
     x = Field(0.0, 'centroid x coordinate')
