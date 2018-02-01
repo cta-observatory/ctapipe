@@ -71,7 +71,7 @@ There are two methods that must be defined in the new `EventSource`:
 
 `EventSource._generator`:
     This function handles the looping through the file and filling the
-    `ctapipe.core.Container`for the event.
+    `ctapipe.core.Container` for the event.
 
 In order to avoid introducing additional dependencies, it is a requirement
 that any external modules used in the reading of the file format are imported
