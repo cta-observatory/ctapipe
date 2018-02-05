@@ -96,9 +96,9 @@ class CameraR1Calibrator(Component):
         Returns
         -------
         bool
-            True if r0.tel[telid].adc_samples is not None, else false.
+            True if r0.tel[telid].waveform is not None, else false.
         """
-        r0 = event.r0.tel[telid].adc_samples
+        r0 = event.r0.tel[telid].waveform
         if r0 is not None:
             return True
         else:
@@ -135,8 +135,8 @@ class NullR1Calibrator(CameraR1Calibrator):
     def calibrate(self, event):
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
-                samples = event.r0.tel[telid].adc_samples
-                event.r1.tel[telid].pe_samples = samples.astype('float32')
+                samples = event.r0.tel[telid].waveform
+                event.r1.tel[telid].waveform = samples.astype('float32')
 
 
 class HESSIOR1Calibrator(CameraR1Calibrator):
@@ -181,12 +181,12 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
 
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
-                samples = event.r0.tel[telid].adc_samples
+                samples = event.r0.tel[telid].waveform
                 n_samples = samples.shape[2]
                 ped = event.mc.tel[telid].pedestal / n_samples
                 gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
                 calibrated = (samples - ped[..., None]) * gain[..., None]
-                event.r1.tel[telid].pe_samples = calibrated
+                event.r1.tel[telid].waveform = calibrated
 
 
 class CameraR1CalibratorFactory(Factory):

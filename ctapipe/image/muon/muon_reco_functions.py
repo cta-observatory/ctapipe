@@ -135,7 +135,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         )
 
         muonringparam.tel_id = telid
-        muonringparam.run_id = event.dl0.run_id
+        muonringparam.obs_id = event.dl0.obs_id
         muonringparam.event_id = event.dl0.event_id
         dist_mask = np.abs(dist - muonringparam.
                            ring_radius) < muonringparam.ring_radius * 0.4
@@ -187,7 +187,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                                                     image[dist_mask])
 
                 muonintensityoutput.tel_id = telid
-                muonintensityoutput.run_id = event.dl0.run_id
+                muonintensityoutput.obs_id = event.dl0.obs_id
                 muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask
 

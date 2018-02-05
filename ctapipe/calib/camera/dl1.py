@@ -138,9 +138,9 @@ class CameraDL1Calibrator(Component):
         Returns
         -------
         bool
-            True if dl0.tel[telid].pe_samples is not None, else false.
+            True if dl0.tel[telid].waveform is not None, else false.
         """
-        dl0 = event.dl0.tel[telid].pe_samples
+        dl0 = event.dl0.tel[telid].waveform
         if dl0 is not None:
             return True
         else:
@@ -195,7 +195,7 @@ class CameraDL1Calibrator(Component):
         for telid in event.dl0.tels_with_data:
 
             if self.check_dl0_exists(event, telid):
-                waveforms = event.dl0.tel[telid].pe_samples
+                waveforms = event.dl0.tel[telid].waveform
                 n_samples = waveforms.shape[2]
                 if n_samples == 1:
                     # To handle ASTRI and dst

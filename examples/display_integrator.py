@@ -21,7 +21,7 @@ from ctapipe.visualization import CameraDisplay
 
 def plot(event, telid, chan, extractor_name):
     # Extract required images
-    dl0 = event.dl0.tel[telid].pe_samples[chan]
+    dl0 = event.dl0.tel[telid].waveform[chan]
 
     t_pe = event.mc.tel[telid].photo_electron_image
     dl1 = event.dl1.tel[telid].image[chan]

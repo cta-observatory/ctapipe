@@ -15,7 +15,7 @@ def test_hessio_r1_calibrator(test_event):
     event = deepcopy(test_event)
     calibrator = HESSIOR1Calibrator()
     calibrator.calibrate(event)
-    r1 = event.r1.tel[telid].pe_samples
+    r1 = event.r1.tel[telid].waveform
     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
 
 
@@ -24,8 +24,8 @@ def test_null_r1_calibrator(test_event):
     event = deepcopy(test_event)
     calibrator = NullR1Calibrator()
     calibrator.calibrate(event)
-    r0 = event.r0.tel[telid].adc_samples
-    r1 = event.r1.tel[telid].pe_samples
+    r0 = event.r0.tel[telid].waveform
+    r1 = event.r1.tel[telid].waveform
     assert_array_equal(r0, r1)
 
 
@@ -34,7 +34,7 @@ def test_check_r0_exists(test_event):
     event = deepcopy(test_event)
     calibrator = HESSIOR1Calibrator()
     assert(calibrator.check_r0_exists(event, telid) is True)
-    event.r0.tel[telid].adc_samples = None
+    event.r0.tel[telid].waveform = None
     assert(calibrator.check_r0_exists(event, telid) is False)
 
 

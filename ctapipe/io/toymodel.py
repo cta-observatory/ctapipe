@@ -93,7 +93,7 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
             samples = image[:, np.newaxis] * norm.pdf(t, means, stds)
 
             for chan in range(n_channels):
-                container.r0.tel[tel_id].adc_samples[chan] = samples
-                container.r0.tel[tel_id].adc_sums[chan] = image
+                container.r0.tel[tel_id].waveform[chan] = samples
+                container.r0.tel[tel_id].image[chan] = image
 
         yield container

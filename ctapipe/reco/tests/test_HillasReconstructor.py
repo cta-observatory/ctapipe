@@ -126,7 +126,7 @@ def test_FitGammaHillas():
             tel_theta[tel_id] = (np.pi / 2 -
                                  event.mc.tel[tel_id].altitude_raw) * u.rad
 
-            pmt_signal = event.r0.tel[tel_id].adc_sums[0]
+            pmt_signal = event.r0.tel[tel_id].image[0]
 
             mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)

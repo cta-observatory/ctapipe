@@ -4,7 +4,7 @@ Container structures for data that should be read or written to disk
 
 from astropy import units as u
 from astropy.time import Time
-from numpy import ndarray, nan
+from numpy import nan
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -30,6 +30,7 @@ __all__ = ['InstrumentContainer',
            'DataContainer',
            'HillasParametersContainer']
 
+
 # todo: change some of these Maps to be just 3D NDarrays?
 
 
@@ -51,16 +52,23 @@ class DL1CameraContainer(Container):
     image in intensity units and other per-event calculated
     calibration information.
     """
-    image = Field(None, "np array of camera image", unit=u.electron)
-    extracted_samples = Field(None, (
+    image = Field(
+        None,
+        "np array of camera image, after waveform integration (N_pix)"
+    )
+    gain_channel = Field(None, "boolean numpy array of which gain channel was "
+                               "used for each pixel in the image ")
+    extracted_samples = Field(
+        None,
         "numpy array of bools indicating which samples were included in the "
         "charge extraction as a result of the charge extractor chosen. "
         "Shape=(nchan, npix, nsamples)."
-    ))
-    peakpos = Field(None, (
-        "numpy array containing position of the peak as determined by the "
-        "peak-finding algorithm for each pixel and channel"
-    ))
+    )
+    peakpos = Field(
+        None,
+        "numpy array containing position of the peak as determined by "
+        "the peak-finding algorithm for each pixel"
+    )
     cleaned = Field(
         None, "numpy array containing the waveform after cleaning"
     )
@@ -83,16 +91,18 @@ class R0CameraContainer(Container):
     """
     Storage of raw data from a single telescope
     """
-    adc_sums = Field(None, (
+    trigger_time = Field(None, "Telescope trigger time, start of waveform "
+                               "readout, None for MCs")
+    trigger_type = Field(0o0, "camera's event trigger type if applicable")
+    image = Field(None, (
         "numpy array containing integrated ADC data "
-        "(n_channels x n_pixels)"
-    ))
-    adc_samples = Field(None, (
+        "(n_channels x n_pixels) DEPRECATED"
+    ))  # to be removed, since this doesn't exist in real data and useless in mc
+    waveform = Field(None, (
         "numpy array containing ADC samples"
         "(n_channels x n_pixels, n_samples)"
     ))
     num_samples = Field(None, "number of time samples for telescope")
-
 
 
 class R0Container(Container):
@@ -100,7 +110,7 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    run_id = Field(-1, "run id number")
+    obs_id = Field(-1, "observation ID")
     event_id = Field(-1, "event id number")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
@@ -110,8 +120,12 @@ class R1CameraContainer(Container):
     """
     Storage of r1 calibrated data from a single telescope
     """
-    pe_samples = Field(None, (
-        "numpy array containing p.e. samples"
+    trigger_time = Field(None, "Telescope trigger time, start of waveform "
+                               "readout")
+    trigger_type = Field(0o0, "camera trigger type")
+
+    waveform = Field(None, (
+        "numpy array containing a set of images, one per ADC sample"
         "(n_channels x n_pixels, n_samples)"
     ))
 
@@ -121,7 +135,7 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    run_id = Field(-1, "run id number")
+    obs_id = Field(-1, "observation ID")
     event_id = Field(-1, "event id number")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
@@ -131,10 +145,15 @@ class DL0CameraContainer(Container):
     """
     Storage of data volume reduced dl0 data from a single telescope
     """
-    pe_samples = Field(None, (
+    trigger_time = Field(None, "Telescope trigger time, start of waveform "
+                               "readout")
+    trigger_type = Field(0o0, "camera trigger type")
+
+    waveform = Field(None, (
         "numpy array containing data volume reduced "
         "p.e. samples"
-        "(n_channels x n_pixels, n_samples)"
+        "(n_pixels, n_samples). Note this may be a masked array, "
+        "if pixels or time slices are zero-suppressed"
     ))
 
 
@@ -143,7 +162,7 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    run_id = Field(-1, "run id number")
+    obs_id = Field(-1, "observation ID")
     event_id = Field(-1, "event id number")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
@@ -170,10 +189,12 @@ class MCCameraEventContainer(Container):
     )
     altitude_raw = Field(0, "Raw altitude angle [radians] for the telescope")
     azimuth_cor = Field(
-        0, "the tracking Azimuth corrected for pointing errors for the telescope"
+        0,
+        "the tracking Azimuth corrected for pointing errors for the telescope"
     )
     altitude_cor = Field(
-        0, "the tracking Altitude corrected for pointing errors for the telescope"
+        0,
+        "the tracking Altitude corrected for pointing errors for the telescope"
     )
 
 
@@ -188,8 +209,8 @@ class MCEventContainer(Container):
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
     shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
-                              "2(mu-), 100*A+Z for nucleons and nuclei," 
-                              "negative for antimatter.")
+                                    "2(mu-), 100*A+Z for nucleons and nuclei,"
+                                    "negative for antimatter.")
     tel = Field(
         Map(MCCameraEventContainer), "map of tel_id to MCCameraEventContainer"
     )
@@ -210,7 +231,6 @@ class MCHeaderContainer(Container):
 
 
 class CentralTriggerContainer(Container):
-
     gps_time = Field(Time, "central average time stamp")
     tels_with_trigger = Field([], "list of telescopes with data")
 
@@ -334,7 +354,8 @@ class DataContainer(Container):
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
-    pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
+    pointing = Field(Map(TelescopePointingContainer),
+                     'Telescope pointing positions')
 
 
 class MuonRingParameter(Container):
@@ -344,7 +365,7 @@ class MuonRingParameter(Container):
     Parameters
     ----------
 
-    run_id : int
+    obs_id : int
         run number
     event_id : int
         event number
@@ -358,7 +379,7 @@ class MuonRingParameter(Container):
         covariance matrix of ring parameters
     """
 
-    run_id = Field(0, "run identification number")
+    obs_id = Field(0, "run identification number")
     event_id = Field(0, "event identification number")
     tel_id = Field(0, 'telescope identification number')
     ring_center_x = Field(0.0, 'centre (x) of the fitted muon ring')
@@ -379,7 +400,7 @@ class MuonIntensityParameter(Container):
     Parameters
     ----------
 
-    run_id : int
+    obs_id : int
         run number
     event_id : int
         event number
@@ -417,7 +438,7 @@ class MuonIntensityParameter(Container):
         ndarray of the mask used on the image for fitting
 
     """
-    run_id = Field(0, 'run identification number')
+    obs_id = Field(0, 'run identification number')
     event_id = Field(0, 'event identification number')
     tel_id = Field(0, 'telescope identification number')
     ring_completeness = Field(0., 'fraction of ring present')
@@ -426,7 +447,8 @@ class MuonIntensityParameter(Container):
     off_ring_size = Field(0., 'image size outside of ring in pe')
     ring_width = Field(0., 'width of the muon ring in degrees')
     ring_time_width = Field(0., 'duration of the ring image sequence')
-    impact_parameter = Field(0., 'distance of muon impact position from centre of mirror')
+    impact_parameter = Field(0.,
+                             'distance of muon impact position from centre of mirror')
     impact_parameter_chi2 = Field(0., 'impact parameter chi squared')
     intensity_cov_matrix = Field(0., 'covariance matrix of intensity')
     impact_parameter_pos_x = Field(0., 'impact parameter x position')
@@ -441,7 +463,6 @@ class MuonIntensityParameter(Container):
 
 
 class HillasParametersContainer(Container):
-
     intensity = Field(0.0, 'total intensity (size)')
 
     x = Field(0.0, 'centroid x coordinate')
