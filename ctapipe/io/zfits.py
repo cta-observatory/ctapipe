@@ -34,9 +34,6 @@ class ZFitsFileReader(EventFileReader):
             data.r0.tels_with_data = [event.telescope_id, ]
 
             for tel_id in data.r0.tels_with_data:
-                data.inst.num_channels[tel_id] = event.num_channels
-                data.inst.num_pixels[tel_id] = event.n_pixels
-
                 r0 = data.r0.tel[tel_id]
                 r0.camera_event_number = event.event_number
                 r0.pixel_flags = event.pixel_flags
@@ -50,9 +47,6 @@ class ZFitsFileReader(EventFileReader):
                 r0.trigger_output_patch7 = event.trigger_output_patch7
                 r0.trigger_output_patch19 = event.trigger_output_patch19
                 r0.digicam_baseline = event.baseline
-
-                data.inst.num_samples[tel_id] = event.num_samples
-
             yield data
 
     def is_compatible(self, path):
