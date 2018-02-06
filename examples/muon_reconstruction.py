@@ -22,7 +22,7 @@ def print_muon(event, printer=print):
         if event['MuonIntensityParams'][idx]:
             printer("MUON: Run ID {} Event ID {} \
                     Impact Parameter {} Ring Width {} Optical Efficiency {}".format(
-                event['MuonRingParams'][idx].run_id,
+                event['MuonRingParams'][idx].obs_id,
                 event['MuonRingParams'][idx].event_id,
                 event['MuonIntensityParams'][idx].impact_parameter,
                 event['MuonIntensityParams'][idx].ring_width,
@@ -56,7 +56,11 @@ class MuonDisplayerTool(Tool):
 
 
     def setup(self):
-        self.calib = CameraCalibrator(config=self.config, tool=self)
+        self.calib = CameraCalibrator(
+            config=self.config,
+            tool=self,
+            r1_product="HESSIOR1Calibrator"
+        )
 
     def start(self):
 

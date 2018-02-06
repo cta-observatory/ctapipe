@@ -147,7 +147,7 @@ if __name__ == '__main__':
             if geom == 0:
                 geom = io.CameraGeometry.guess(x, y, event.meta.optical_foclen[
                     tel_id])
-            image = apply_mc_calibration(event.dl0.tel[tel_id].adc_sums[0],
+            image = apply_mc_calibration(event.dl0.tel[tel_id].image[0],
                                          tel_id)
 
             if image.shape[0] > 2500:

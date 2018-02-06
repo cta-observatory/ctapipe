@@ -97,6 +97,8 @@ def plot_muon_event(event, muonparams):
         colorbar = None
         colorbar2 = None
 
+        subarray = event.inst.subarray
+
         # for tel_id in event.dl0.tels_with_data:
         for tel_id in muonparams['TelIds']:
             idx = muonparams['TelIds'].index(tel_id)
@@ -139,19 +141,20 @@ def plot_muon_event(event, muonparams):
                 array_direction=altaz,
                 pointing_direction=altaz)
 
+            flen = subarray.tel[tel_id].optics.equivalent_focal_length
             ring_camcoord = ring_nominal.transform_to(CameraFrame(
                 pointing_direction=altaz,
-                focal_length=event.inst.optical_foclen[tel_id],
+                focal_length=flen,
                 rotation=rotr_angle))
 
             centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
 
             ringrad_camcoord = muonparams['MuonRingParams'][idx].ring_radius.to(
                 u.rad) \
-                * event.inst.optical_foclen[tel_id] * 2.  # But not FC?
+                * flen * 2.  # But not FC?
 
-            px, py = event.inst.pixel_pos[tel_id]
-            flen = event.inst.optical_foclen[tel_id]
+            px = subarray.tel[tel_id].camera.pix_x
+            py = subarray.tel[tel_id].camera.pix_y
             camera_coord = CameraFrame(x=px, y=py,
                                        focal_length=flen,
                                        rotation=geom.pix_rotation)

@@ -1,15 +1,14 @@
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
-from ctapipe.core import Provenance
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-from ctapipe.utils import get_dataset
 import gzip
 import struct
 
-__all__=['HESSIOEventSource',]
+__all__ = ['HESSIOEventSource']
+
 
 class HESSIOEventSource(EventSource):
     """
@@ -19,7 +18,6 @@ class HESSIOEventSource(EventSource):
     information into the event containers.
     """
     _count = 0
-
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
@@ -77,16 +75,16 @@ class HESSIOEventSource(EventSource):
                     # so load it on the first event.
                     data.inst.subarray = self._build_subarray_info(file)
 
-                run_id = file.get_run_number()
+                obs_id = file.get_run_number()
                 tels_with_data = set(file.get_teldata_list())
                 data.count = counter
-                data.r0.run_id = run_id
+                data.r0.obs_id = obs_id
                 data.r0.event_id = event_id
                 data.r0.tels_with_data = tels_with_data
-                data.r1.run_id = run_id
+                data.r1.obs_id = obs_id
                 data.r1.event_id = event_id
                 data.r1.tels_with_data = tels_with_data
-                data.dl0.run_id = run_id
+                data.dl0.obs_id = obs_id
                 data.dl0.event_id = event_id
                 data.dl0.tels_with_data = tels_with_data
 
@@ -134,13 +132,13 @@ class HESSIOEventSource(EventSource):
 
                     data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
-                    data.r0.tel[tel_id].adc_samples = (file.
+                    data.r0.tel[tel_id].waveform = (file.
                         get_adc_sample(tel_id))
-                    if data.r0.tel[tel_id].adc_samples.size == 0:
+                    if data.r0.tel[tel_id].waveform.size == 0:
                         # To handle ASTRI and dst files
-                        data.r0.tel[tel_id].adc_samples = (file.
+                        data.r0.tel[tel_id].waveform = (file.
                             get_adc_sum(tel_id)[..., None])
-                    data.r0.tel[tel_id].adc_sums = file.get_adc_sum(tel_id)
+                    data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                         get_ref_shapes(tel_id))
 

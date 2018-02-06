@@ -463,8 +463,8 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     signal : ndarray
         1D (no timing) or 2D (with timing) array of the pmt signals
 
-    Note
-    ----
+    Notes
+    -----
     The back-conversion works with an internal buffer to store the transfer map (which
     was produced in the first conversion). If `key` is not found in said buffer, this
     function tries to perform a mock conversion. For this, it needs a `CameraGeometry`

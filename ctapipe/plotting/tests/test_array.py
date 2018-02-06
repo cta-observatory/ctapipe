@@ -5,7 +5,7 @@ from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.coordinates import NominalFrame, CameraFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
@@ -21,7 +21,7 @@ def test_array_draw():
     cam_geom = {}
 
     source = hessio_event_source(filename, max_events=2)
-    r1 = HessioR1Calibrator()
+    r1 = HESSIOR1Calibrator()
     dl0 = CameraDL0Reducer()
 
     calibrator = CameraDL1Calibrator()

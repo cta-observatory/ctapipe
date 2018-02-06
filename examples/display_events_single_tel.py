@@ -63,10 +63,17 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
 
-        self.event_source = EventSourceFactory.produce(None, self)
+        self.event_source = EventSourceFactory.produce(
+            config=self.config,
+            tool=self
+        )
         self.event_source.allowed_tels = [self.tel, ]
 
-        self.calibrator = CameraCalibrator(config=None, tool=self)
+        self.calibrator = CameraCalibrator(
+            config=self.config,
+            tool=self,
+            eventsource=self.event_source
+        )
 
         self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
 
@@ -100,7 +107,7 @@ class SingleTelEventDisplay(Tool):
 
             if self.samples:
                 # display time-varying event
-                data = event.dl0.tel[self.tel].pe_samples[self.channel]
+                data = event.dl0.tel[self.tel].waveform[self.channel]
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)

@@ -65,8 +65,7 @@ class ChargeResolutionVariationPlotter(Component):
         x = np.power(10, x)
         y = np.power(10, y)
         hist_mask = np.ma.masked_where(np.isnan(hist), hist)
-        im = ax.pcolormesh(x, y, hist_mask, norm=LogNorm(),
-                           cmap=plt.cm.viridis)
+        im = ax.pcolormesh(x, y, hist_mask, norm=LogNorm())
         cb = plt.colorbar(im)
         ax.set_aspect('equal')
         ax.grid()
@@ -145,6 +144,7 @@ class ChargeResolutionVariationViewer(Tool):
 def main():
     exe = ChargeResolutionVariationViewer()
     exe.run()
+
 
 if __name__ == '__main__':
     main()

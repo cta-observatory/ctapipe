@@ -42,7 +42,12 @@ class CameraCalibrator(Component):
         ))
 
     """
-    def __init__(self, config=None, tool=None, origin='hessio', **kwargs):
+    def __init__(self, config=None, tool=None,
+                 r1_product=None,
+                 extractor_product=None,
+                 cleaner_product=None,
+                 eventsource=None,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -54,21 +59,52 @@ class CameraCalibrator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        origin : str
-            The origin of the event file (default: hessio) to choose the
-            correct `CameraR1Calibrator`. Usually given from
-            `EventSource.origin`.
+        r1_product : str
+            The R1 calibrator to use. Manually overrides the Factory.
+        extractor_product : str
+            The ChargeExtractor to use. Manually overrides the Factory.
+        cleaner_product : str
+            The WaveformCleaner to use. Manually overrides the Factory.
+        eventsource : ctapipe.io.eventsource.EventSource
+            EventSource that is being used to read the events. The EventSource
+            contains information (such as metadata or inst) which indicates
+            the appropriate R1Calibrator to use.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        extractor = ChargeExtractorFactory.produce(config=config, tool=tool)
-        cleaner = WaveformCleanerFactory.produce(config=config, tool=tool)
-        self.r1 = CameraR1CalibratorFactory.produce(config=config, tool=tool,
-                                                    origin=origin)
+        kwargs_ = dict()
+        if extractor_product:
+            kwargs_['product'] = extractor_product
+        extractor = ChargeExtractorFactory.produce(
+            config=config,
+            tool=tool,
+            **kwargs_
+        )
+
+        kwargs_ = dict()
+        if cleaner_product:
+            kwargs_['product'] = cleaner_product
+        cleaner = WaveformCleanerFactory.produce(
+            config=config,
+            tool=tool,
+            **kwargs_
+        )
+
+        kwargs_ = dict()
+        if r1_product:
+            kwargs_['product'] = r1_product
+        self.r1 = CameraR1CalibratorFactory.produce(
+            config=config,
+            tool=tool,
+            eventsource=eventsource,
+            **kwargs_
+        )
+
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,
-                                       extractor=extractor, cleaner=cleaner)
+                                       extractor=extractor,
+                                       cleaner=cleaner)
 
     def calibrate(self, event):
         """

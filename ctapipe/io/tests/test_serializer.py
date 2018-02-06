@@ -12,8 +12,8 @@ from ctapipe.utils import get_dataset
 
 def compare(read_container, source_container):
     # test if 4th adc value of telescope 17 HI_GAIN are equals
-    return (read_container.r0.tel[17].adc_samples[0][2][4] ==
-            source_container.r0.tel[17].adc_samples[0][2][4])
+    return (read_container.r0.tel[17].waveform[0][2][4] ==
+            source_container.r0.tel[17].waveform[0][2][4])
 
 
 def generate_input_containers():
@@ -112,7 +112,7 @@ def test_fits_dl0(fits_file_name):
     assert hdu.data["event_id"][0] == 408
     assert hdu.data["event_id"][1] == 409
     assert hdu.data["event_id"][2] == 803
-    assert hdu.data["run_id"][2] == 31964
+    assert hdu.data["obs_id"][2] == 31964
     remove(fits_file_name)
 
 

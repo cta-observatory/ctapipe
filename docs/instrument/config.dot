@@ -11,7 +11,7 @@ digraph config {
         TelescopeTriggerConfig [fillcolor=goldenrod4,
                                 fontcolor=white, style=filled]
 
-        ObsConfig -> SubarrayConfig [label="run_id"];
+        ObsConfig -> SubarrayConfig [label="obs_id"];
         ObsConfig -> ArrayTriggerConfig [label="run_type"];
         ArrayTriggerConfig -> TelescopeTriggerConfig [label="run_type,\ntel_id"];       
         SubarrayConfig -> ArrayConfig [label="site_id,\nversion"]      

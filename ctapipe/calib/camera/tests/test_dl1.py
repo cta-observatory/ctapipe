@@ -5,11 +5,11 @@ from numpy.testing import assert_allclose
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import integration_correction, \
     CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HessioR1Calibrator
+from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 
 
 def previous_calibration(event):
-    r1 = HessioR1Calibrator()
+    r1 = HESSIOR1Calibrator()
     r1.calibrate(event)
     dl0 = CameraDL0Reducer()
     dl0.reduce(event)
@@ -50,5 +50,5 @@ def test_check_dl0_exists(test_event):
     previous_calibration(event)
     calibrator = CameraDL1Calibrator()
     assert(calibrator.check_dl0_exists(event, telid) is True)
-    event.dl0.tel[telid].pe_samples = None
+    event.dl0.tel[telid].waveform = None
     assert(calibrator.check_dl0_exists(event, telid) is False)
