@@ -67,20 +67,6 @@ class ZFitsFileReader(EventFileReader):
         )
 
 
-class SST1M_InstrumentContainer(InstrumentContainer):
-    """Storage of header info that does not change with event. This is a
-    temporary hack until the Instrument module and database is fully
-    implemented.  Eventually static information like this will not be
-    part of the data stream, but be loaded and accessed from
-    functions.
-    """
-    cluster_matrix_7 = Field(Map(ndarray), 'map of tel_id of cluster 7 matrix')
-    cluster_matrix_19 = Field(
-        Map(ndarray),
-        'map of tel_id of cluster 19 matrix')
-    patch_matrix = Field(Map(ndarray), 'map of tel_id of patch matrix')
-
-
 class SST1M_R0CameraContainer(R0CameraContainer):
     """
     Storage of raw data from a single telescope
@@ -135,6 +121,3 @@ class SST1M_R1Container(R1Container):
 class SST1M_DataContainer(DataContainer):
     r0 = Field(SST1M_R0Container(), "Raw Data")
     r1 = Field(SST1M_R1Container(), "R1 Calibrated Data")
-    inst = Field(
-        SST1M_InstrumentContainer(),
-        "instrumental information (deprecated)")
