@@ -1,5 +1,6 @@
 import numpy as np
 import logging
+import math as mt
 
 log = logging.getLogger(__name__)
 
@@ -114,3 +115,26 @@ def ring_completeness(
     bins_above_threshold = hist > threshold
 
     return np.sum(bins_above_threshold) / bins
+
+
+def ang_containment(
+        ring_radius,
+        cam_rad,
+        cring_x,
+        cring_y,
+        ):
+
+    '''
+    Estimate containment of a ring inside the camera
+    (camera center is (0,0))
+    Improve: include the case of an arbitrary 
+    center for the camera
+    '''
+    angle_ring = np.linspace(0,2*mt.pi,360.)
+    ring_x = cring_x + ring_radius * np.cos(angle_ring)
+    ring_y = cring_y + ring_radius * np.sin(angle_ring)
+    d = np.sqrt(np.power(ring_x,2)+np.power(ring_y,2))
+
+    angcontainment = len(d[d < cam_rad])/len(d)
+
+    return angcontainment
