@@ -124,11 +124,27 @@ def ang_containment(
         cring_y,
         ):
 
-    '''
-    Estimate containment of a ring inside the camera
+    '''    
+    Estimate angular containment of a ring inside the camera
     (camera center is (0,0))
     Improve: include the case of an arbitrary 
     center for the camera
+
+    Parameters
+    ----------
+    ring_radius: float
+        radius of the muon ring
+    cam_rad: float
+        radius of the camera
+    cring_x: float
+        x coordinate of the center of the muon ring
+    cring_y: float
+        y coordinate of the center of the muon ring
+
+    Returns
+    ------
+    angcontainment: float
+
     '''
     angle_ring = np.linspace(0,2*mt.pi,360.)
     ring_x = cring_x + ring_radius * np.cos(angle_ring)
