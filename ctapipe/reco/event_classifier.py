@@ -7,6 +7,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from .regressor_classifier_base import RegressorClassifierBase
 
+
 def proba_drifting(x):
     """
     gives more weight to outliers -- i.e. close to 0 and 1
@@ -22,6 +23,7 @@ def proba_drifting(x):
 
 
 class EventClassifier(RegressorClassifierBase):
+
     def __init__(self, classifier=RandomForestClassifier,
                  cam_id_list=("cam"), **kwargs):
         super().__init__(model=classifier, cam_id_list=cam_id_list, **kwargs)
@@ -147,7 +149,7 @@ class EventClassifier(RegressorClassifierBase):
 
         for i in range(len(featsToGroupBy)):
             feat_dict = featsToGroupBy[i]
-            bins = np.linspace(feat_dict['minf'], feat_dict['maxf'], feat_dict['nbins']+1)
+            bins = np.linspace(feat_dict['minf'], feat_dict['maxf'], feat_dict['nbins'] + 1)
             binning_list.append(pd.cut(dfx[feat_dict['col']], bins))
 
         groups = dfx.groupby(binning_list)
@@ -209,15 +211,15 @@ class EventClassifier(RegressorClassifierBase):
                 if exceeding > 0:
                     logger.debug('bin: {} - g: {}\th: {}\t - '
                                  'Removing {} protons'.format(key, len(group_signal.indices[key]),
-                                                                   len(group_bgd.indices[key]),
-                                                                   np.abs(exceeding)))
+                                                              len(group_bgd.indices[key]),
+                                                              np.abs(exceeding)))
                     r_ind_list = list(np.random.choice(group_bgd.indices[key], size=exceeding, replace=False))
                     dfh.drop(r_ind_list, inplace=True)
                 elif exceeding < 0:
                     logger.debug('bin: {} - g: {}\th: {}\t - '
                                  'Removing {} gammas'.format(key, len(group_signal.indices[key]),
-                                                                  len(group_bgd.indices[key]),
-                                                                  np.abs(exceeding)))
+                                                             len(group_bgd.indices[key]),
+                                                             np.abs(exceeding)))
                     r_ind_list = list(np.random.choice(group_signal.indices[key], size=-exceeding, replace=False))
                     dfg.drop(r_ind_list, inplace=True)
 

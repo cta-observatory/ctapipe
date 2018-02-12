@@ -99,7 +99,7 @@ class HESSIOEventSource(EventSource):
                     data.dl0.tels_with_data = selected
 
                 data.trig.tels_with_trigger = (file.
-                    get_central_event_teltrg_list())
+                                               get_central_event_teltrg_list())
                 time_s, time_ns = file.get_central_event_gps_time()
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                           format='unix', scale='utc')
@@ -114,7 +114,7 @@ class HESSIOEventSource(EventSource):
 
                 # mc run header data
                 data.mcheader.run_array_direction = (file.
-                    get_mc_run_array_direction())
+                                                     get_mc_run_array_direction())
 
                 # this should be done in a nicer way to not re-allocate the
                 # data each time (right now it's just deleted and garbage
@@ -133,14 +133,14 @@ class HESSIOEventSource(EventSource):
                     data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
                     data.r0.tel[tel_id].waveform = (file.
-                        get_adc_sample(tel_id))
+                                                    get_adc_sample(tel_id))
                     if data.r0.tel[tel_id].waveform.size == 0:
                         # To handle ASTRI and dst files
                         data.r0.tel[tel_id].waveform = (file.
-                            get_adc_sum(tel_id)[..., None])
+                                                        get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
-                        get_ref_shapes(tel_id))
+                                                                 get_ref_shapes(tel_id))
 
                     nsamples = file.get_event_num_samples(tel_id)
                     if nsamples <= 0:
@@ -151,17 +151,17 @@ class HESSIOEventSource(EventSource):
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
                     data.mc.tel[tel_id].photo_electron_image = hessio_mc_npe
                     data.mc.tel[tel_id].meta['refstep'] = (file.
-                        get_ref_step(tel_id))
+                                                           get_ref_step(tel_id))
                     data.mc.tel[tel_id].time_slice = (file.
-                        get_time_slice(tel_id))
+                                                      get_time_slice(tel_id))
                     data.mc.tel[tel_id].azimuth_raw = (file.
-                        get_azimuth_raw(tel_id))
+                                                       get_azimuth_raw(tel_id))
                     data.mc.tel[tel_id].altitude_raw = (file.
-                        get_altitude_raw(tel_id))
+                                                        get_altitude_raw(tel_id))
                     data.mc.tel[tel_id].azimuth_cor = (file.
-                        get_azimuth_cor(tel_id))
+                                                       get_azimuth_cor(tel_id))
                     data.mc.tel[tel_id].altitude_cor = (file.
-                        get_altitude_cor(tel_id))
+                                                        get_altitude_cor(tel_id))
                 yield data
                 counter += 1
 

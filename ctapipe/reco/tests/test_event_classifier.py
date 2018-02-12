@@ -94,6 +94,7 @@ def test_prepare_model():
     clf.fit(feature_list, target_list)
     return clf, cam_id_list
 
+
 def test_fit_save_load():
     clf, cam_id_list = test_prepare_model()
     with TemporaryDirectory() as d:
@@ -139,10 +140,12 @@ def test_Qfactor():
     # we are interested in the probability to be gamma
     proba_to_be_gamma = prediction[:, 1]
 
-    Q, gammaness = clf.compute_Qfactor(proba=proba_to_be_gamma, labels=true_labels, nbins=2)
+    Q, gammaness = clf.compute_Qfactor(
+        proba=proba_to_be_gamma, labels=true_labels, nbins=2)
 
     assert Q.size != 0
     assert Q.size == gammaness.size
+
 
 def test_hyperBinning():
     clf = EventClassifier(cam_id_list=None)
@@ -152,7 +155,7 @@ def test_hyperBinning():
                   [48, 60, 40],
                   [73, 68, 63],
                   [96, 86, 63],
-                  [73, 67,  6],
+                  [73, 67, 6],
                   [48, 66, 60],
                   [47, 82, 87],
                   [60, 52, 74]])
@@ -163,6 +166,7 @@ def test_hyperBinning():
     dum_g = clf._hyperBinning(x, dum_l)
 
     assert np.all(dum_g.size() == (1, 1, 3, 2, 1))
+
 
 def test_level_populations():
     clf = EventClassifier(cam_id_list=None)
@@ -180,10 +184,10 @@ def test_level_populations():
     h = np.array([[18, 31, 47],
                   [15, 81, 72],
                   [75, 93, 45],
-                  [57, 50,  3],
-                  [12, 80,  3],
+                  [57, 50, 3],
+                  [12, 80, 3],
                   [82, 49, 31],
-                  [ 1, 21,  0],
+                  [1, 21, 0],
                   [79, 12, 29],
                   [19, 52, 42],
                   [86, 49, 15]])

@@ -146,7 +146,7 @@ class SubarrayDescription:
             # get one example of each OpticsDescription
             for oid in optics_ids:
                 optics_list.append(next(x.optics for x in self.tels.values() if
-                                   x.optics.identifier == oid))
+                                        x.optics.identifier == oid))
 
             cols = {}
             cols['tel_description'] = [str(x) for x in optics_list]

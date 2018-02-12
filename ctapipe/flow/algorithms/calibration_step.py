@@ -44,7 +44,7 @@ class CalibrationStep(Component):
         self.parameters['integration_calib_scale'] = self.integration_calib_scale
 
         if self.integration_clip_amp is not None:
-                self.parameters['clip_amp'] = self.integration_clip_amp
+            self.parameters['clip_amp'] = self.integration_clip_amp
 
         for key, value in sorted(self.parameters.items()):
             self.log.info('%key %value' % "[{}] {}")

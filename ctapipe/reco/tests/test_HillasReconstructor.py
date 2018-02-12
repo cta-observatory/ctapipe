@@ -139,7 +139,8 @@ def test_FitGammaHillas():
                 print(e)
                 continue
 
-        if len(hillas_dict) < 2: continue
+        if len(hillas_dict) < 2:
+            continue
 
         fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
 

@@ -9,11 +9,11 @@ from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
 
 def test_null_cleaner(test_event):
     telid = 11
-    event = deepcopy(test_event) # to avoid modifying the test event
+    event = deepcopy(test_event)  # to avoid modifying the test event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     cleaner = NullWaveformCleaner()
@@ -24,11 +24,11 @@ def test_null_cleaner(test_event):
 
 def test_checm_cleaner_average(test_event):
     telid = 11
-    event = deepcopy(test_event) # to avoid modifying the test event
+    event = deepcopy(test_event)  # to avoid modifying the test event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     cleaner = CHECMWaveformCleanerAverage()
@@ -40,11 +40,11 @@ def test_checm_cleaner_average(test_event):
 
 def test_checm_cleaner_local(test_event):
     telid = 11
-    event = deepcopy(test_event) # to avoid modifying the test event
+    event = deepcopy(test_event)  # to avoid modifying the test event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     cleaner = CHECMWaveformCleanerLocal()

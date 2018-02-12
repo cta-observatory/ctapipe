@@ -14,11 +14,12 @@ def test_construct():
     x = np.linspace(-10, 10, 100)
     y = np.linspace(-10, 10, 100)
     geom = CameraGeometry(cam_id=0, pix_id=np.arange(100),
-                          pix_x=x*u.m, pix_y=y*u.m ,
-                          pix_area=x*u.m**2,
+                          pix_x=x * u.m, pix_y=y * u.m,
+                          pix_area=x * u.m**2,
                           pix_type='rectangular',
-                          pix_rotation = "10d",
-                          cam_rotation = "12d")
+                          pix_rotation="10d",
+                          cam_rotation="12d")
+
 
 def test_known_camera_names():
     cams = CameraGeometry.get_known_camera_names()
@@ -114,11 +115,11 @@ def test_write_read(tmpdir):
 def test_precal_neighbors():
     geom = CameraGeometry(cam_id="TestCam",
                           pix_id=np.arange(3),
-                          pix_x=np.arange(3)*u.deg,
-                          pix_y=np.arange(3)*u.deg,
-                          pix_area=np.ones(3)*u.deg**2,
+                          pix_x=np.arange(3) * u.deg,
+                          pix_y=np.arange(3) * u.deg,
+                          pix_area=np.ones(3) * u.deg**2,
                           neighbors=[
-                            [1, ], [0, 2], [1, ]
+                              [1, ], [0, 2], [1, ]
                           ],
                           pix_type='rectangular',
                           pix_rotation="0deg",

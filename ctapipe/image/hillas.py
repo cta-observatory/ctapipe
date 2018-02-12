@@ -225,7 +225,7 @@ def hillas_parameters_2(geom: CameraGeometry, image):
 
     M = geom.pixel_moment_matrix
 
-    momdata = (M @ image)/size
+    momdata = (M @ image) / size
 
 
     # give the moms values comprehensible names
@@ -549,9 +549,9 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
 
     M = geom.pixel_moment_matrix
     # Use a dot matrix approach that still supports masked arrays (@ does not)
-    moms = np.ma.dot(M, image)/sumsig
+    moms = np.ma.dot(M, image) / sumsig
 
-    (xm, ym , x2m, xym, y2m, x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m,
+    (xm, ym, x2m, xym, y2m, x3m, x2ym, xy2m, y3m, x4m, x3ym, x2y2m, xy3m,
      y4m) = moms
 
     # Doing this should be same as above, but its 4us slower !?
@@ -651,12 +651,12 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         kurtosis = 0.0
 
     if container:
-        return HillasParametersContainer(x=m_x*unit, y=m_y*unit,r=r*unit,
-                                         phi=Angle(phi*u.rad),
+        return HillasParametersContainer(x=m_x * unit, y=m_y * unit, r=r * unit,
+                                         phi=Angle(phi * u.rad),
                                          intensity=size,
-                                         length=length*unit,
-                                         width=width*unit,
-                                         psi=Angle(psi*u.rad),
+                                         length=length * unit,
+                                         width=width * unit,
+                                         psi=Angle(psi * u.rad),
                                          skewness=skewness,
                                          kurtosis=kurtosis)
     else:

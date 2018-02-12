@@ -6,7 +6,7 @@ import numpy as np
 def test_telescope_description():
 
     # setup a dummy telescope that look like an MST with FlashCam
-    foclen = 16*u.m
+    foclen = 16 * u.m
     pix_x = np.arange(1764, dtype=np.float) * u.m
     pix_y = np.arange(1764, dtype=np.float) * u.m
 

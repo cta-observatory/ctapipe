@@ -10,6 +10,7 @@ from numpy.random import seed
 from numpy.ma import masked_array
 import pytest
 
+
 def create_sample_image(psi='-30d'):
 
     seed(10)
@@ -32,7 +33,8 @@ def create_sample_image(psi='-30d'):
     clean_mask = tailcuts_clean(geom, image, 10,
                                 5)  # pedvars = 1 and core and boundary
 
-    return geom,  image, clean_mask
+    return geom, image, clean_mask
+
 
 def create_sample_image_zeros(psi='-30d'):
 
@@ -41,7 +43,7 @@ def create_sample_image_zeros(psi='-30d'):
     # threshold in pe
     image[~clean_mask] = 0
 
-    return geom,  image
+    return geom, image
 
 
 def create_sample_image_masked(psi='-30d'):
@@ -53,10 +55,10 @@ def create_sample_image_masked(psi='-30d'):
     return geom, image
 
 
-def compare_result(x,y):
+def compare_result(x, y):
     ux = u.Quantity(x)
     uy = u.Quantity(y)
-    assert isclose(ux.value,uy.value)
+    assert isclose(ux.value, uy.value)
     assert ux.unit == uy.unit
 
 
@@ -68,7 +70,7 @@ def test_hillas():
     """
 
     # try all quadrants
-    for psi_angle in ['30d','120d','-30d','-120d']:
+    for psi_angle in ['30d', '120d', '-30d', '-120d']:
 
         geom, image = create_sample_image_zeros(psi_angle)
         results = {}
@@ -81,7 +83,7 @@ def test_hillas():
         for aa in results:
             for bb in results:
                 if aa is not bb:
-                    print("comparing {} to {}".format(aa,bb))
+                    print("comparing {} to {}".format(aa, bb))
                     compare_result(results[aa].length, results[bb].length)
                     compare_result(results[aa].width, results[bb].width)
                     compare_result(results[aa].r, results[bb].r)
@@ -135,6 +137,7 @@ def test_hillas_api_change():
     import numpy as np
     with pytest.raises(ValueError):
         hillas_parameters_4(arange(10), arange(10), arange(10))
+
 
 def test_hillas_container():
     geom, image = create_sample_image_zeros(psi='0d')

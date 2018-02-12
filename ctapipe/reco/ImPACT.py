@@ -106,7 +106,7 @@ class ImPACTReconstructor(Reconstructor):
         self.spe = 0.5  # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "CHEC": 1.0}# * 1.36}
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "CHEC": 1.0}  # * 1.36}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -372,8 +372,8 @@ class ImPACTReconstructor(Reconstructor):
                                                      source_y, phi)
 
         prediction = self.image_prediction(self.type[tel_id],
-                                          # (90 * u.deg) - shower_reco.alt,
-                                          # shower_reco.az,
+                                           # (90 * u.deg) - shower_reco.alt,
+                                           # shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
                                            pix_x_rot * (180 / math.pi),
@@ -460,7 +460,7 @@ class ImPACTReconstructor(Reconstructor):
             # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(
                 self.type[tel_count],
-                #zenith, azimuth, 
+                #zenith, azimuth,
                 energy, impact, x_max_bin,
                 pix_x_rot * (180 / math.pi),
                 pix_y_rot * (180 / math.pi)
@@ -498,7 +498,6 @@ class ImPACTReconstructor(Reconstructor):
         if self.array_return:
             return array_like
         return np.sum(array_like)
-
 
     def get_likelihood_min(self, x):
         """Wrapper class around likelihood function for use with scipy
@@ -597,7 +596,7 @@ class ImPACTReconstructor(Reconstructor):
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(NominalFrame(
             array_direction=self.array_direction))
-        
+
         source_x = nominal_seed.x[0].to(u.rad).value
         source_y = nominal_seed.y[0].to(u.rad).value
 
@@ -624,7 +623,7 @@ class ImPACTReconstructor(Reconstructor):
                   (tilt_y - 100, tilt_y + 100),
                   (lower_en_limit.value, en_seed.value * 2),
                   (0.5, 2))
-        
+
         fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
                                            minimiser_name=self.minimiser_name)
 
@@ -723,27 +722,27 @@ class ImPACTReconstructor(Reconstructor):
             return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
                     fit_params["core_y"], fit_params["energy"], fit_params[
                         "x_max_scale"]),\
-                   (errors["source_x"], errors["source_y"], errors["core_x"],
-                    errors["core_x"], errors["energy"], errors["x_max_scale"])
+                (errors["source_x"], errors["source_y"], errors["core_x"],
+                 errors["core_x"], errors["energy"], errors["x_max_scale"])
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
-                    self.array_return = True
-                    limits = np.array(limits)
+            self.array_return = True
+            limits = np.array(limits)
 
-                    min = least_squares(self.get_likelihood_min, params,
-                                        method=minimiser_name,
-                                        x_scale=step,
-                                        xtol=1e-10,
-                                        ftol=1e-10
-                                        )
-                    return min.x, (0, 0, 0, 0, 0, 0)
+            min = least_squares(self.get_likelihood_min, params,
+                                method=minimiser_name,
+                                x_scale=step,
+                                xtol=1e-10,
+                                ftol=1e-10
+                                )
+            return min.x, (0, 0, 0, 0, 0, 0)
 
         else:
-                    min = minimize(self.get_likelihood_min, params,
-                                   method=minimiser_name,
-                                   bounds=limits
-                                   )
-                    return min.x, (0, 0, 0, 0, 0, 0)
+            min = minimize(self.get_likelihood_min, params,
+                           method=minimiser_name,
+                           bounds=limits
+                           )
+            return min.x, (0, 0, 0, 0, 0, 0)
 
     def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
                              nominal_range=2.5 * u.deg):

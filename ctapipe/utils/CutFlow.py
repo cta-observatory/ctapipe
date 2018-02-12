@@ -15,6 +15,7 @@ class CutFlow():
     '''
     a class that keeps track of e.g. events/images that passed cuts or other
     events that could reject them '''
+
     def __init__(self, name="CutFlow"):
         '''
         Parameters

@@ -228,7 +228,7 @@ def plot_muon_event(event, muonparams):
 
                 # Numpy broadcasting - fill in the shape
                 plotpred = np.zeros(image.shape)
-                truelocs = np.where(muonparams['MuonIntensityParams'][idx].mask==True)
+                truelocs = np.where(muonparams['MuonIntensityParams'][idx].mask == True)
                 plotpred[truelocs] = pred
 
                 camera2 = plotter.draw_camera(tel_id, plotpred, ax2)

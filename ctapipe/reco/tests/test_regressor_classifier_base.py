@@ -4,13 +4,14 @@ from sklearn.ensemble import RandomForestClassifier
 
 import pytest
 
+
 def test_reshuffle_event_list():
 
     feature_list = [
-            {"FlashCam": [[1, 10], [2, 20]],
-             "ASTRICam": [[30, 3], [40, 4]]},
-            {"FlashCam": [[1.5, 15]],
-             "ASTRICam": [[35, 3.5], [25, 2.5], [30, 3]]}
+        {"FlashCam": [[1, 10], [2, 20]],
+         "ASTRICam": [[30, 3], [40, 4]]},
+        {"FlashCam": [[1.5, 15]],
+         "ASTRICam": [[35, 3.5], [25, 2.5], [30, 3]]}
     ]
     target_list = ["1", "2"]
 

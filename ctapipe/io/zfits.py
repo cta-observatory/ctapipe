@@ -29,6 +29,7 @@ __all__ = [
     'zfits_event_source',
 ]
 
+
 def zfits_event_source(url, max_events=None, allowed_tels=None):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
@@ -54,7 +55,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
                            .format(url))
 
 
-    counter=0
+    counter = 0
     eventstream = zfits.move_to_next_event()
 
     container = Container("zfits_container")
@@ -66,12 +67,12 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
     container.add_item("count")
 
     for obs_id, event_id in eventstream:
-        container.dl0.obs_id    = obs_id
-        container.dl0.event_id  = event_id
+        container.dl0.obs_id = obs_id
+        container.dl0.event_id = event_id
         #container.r0.event_num = zfits.get_event_number()
 
         # We assume we are in the single-telescope case always:
-        container.dl0.tels_with_data     = [zfits.get_telescope_id(), ]
+        container.dl0.tels_with_data = [zfits.get_telescope_id(), ]
         container.trig.tels_with_trigger = container.dl0.tels_with_data
 
         time_s, time_ns = zfits.get_central_event_gps_time()
@@ -80,38 +81,40 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
 
         container.count = counter
         t = np.arange(n_samples)
-        
+
         container.dl0.tel = dict()  # clear the previous telescopes
 
-        # Depecrated loop, we keep it for clarity (similar structure than hessio and toymodel modules)
+        # Depecrated loop, we keep it for clarity (similar structure than hessio
+        # and toymodel modules)
         for tel_id in container.dl0.tels_with_data:
             # fill pixel position dictionary, if not already done:
-            #TODO: tel_id here is a dummy parameter, we are dealing with single-telescope data!. TBR.
+            # TODO: tel_id here is a dummy parameter, we are dealing with
+            # single-telescope data!. TBR.
             if tel_id not in container.inst.pixel_pos:
                 container.inst.pixel_pos[tel_id] = \
                     zfits.get_pixel_position(tel_id) * u.m
 
             nchans = zfits.get_num_channels(tel_id)
             container.inst.num_channels[tel_id] = nchans
-            
+
             for chan in range(nchans): 
                 samples = zfits.get_adc_sample(channel=chan, telescope_id=tel_id)
                 integrated = zfits.get_adc_sum(channel=chan, telescope_id=tel_id)
-                
+
                 container.dl0.tel[tel_id].pixel_samples[chan] = samples.keys()
 
-                mask = np.zeros(zfits.get_number_of_pixels(),dtype=bool)
-                mask[np.array(samples.keys())]=True
+                mask = np.zeros(zfits.get_number_of_pixels(), dtype=bool)
+                mask[np.array(samples.keys())] = True
                 container.dl0.tel[tel_id].waveform[chan] = \
-                    ma.array(np.array(samples.values()),mask=mask)
-                
-                mask = np.zeros(zfits.get_number_of_pixels(),dtype=bool)
-                mask[np.array(integrated.keys())]=True
+                    ma.array(np.array(samples.values()), mask=mask)
+
+                mask = np.zeros(zfits.get_number_of_pixels(), dtype=bool)
+                mask[np.array(integrated.keys())] = True
                 container.dl0.tel[tel_id].adc_integrated[chan] = \
-                    ma.array(np.array(integrated.values()),mask=mask)
+                    ma.array(np.array(integrated.values()), mask=mask)
 
         yield container
-        counter +=1
+        counter += 1
 
         if max_events is not None and counter > max_events:
             return

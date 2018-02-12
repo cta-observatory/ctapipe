@@ -38,6 +38,7 @@ class DataVolumeReductor(Component):
         List of neighbours for each pixel. Changes per telescope.
 
     """
+
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 

@@ -5,7 +5,8 @@ Handles seeking to a particular event in a
 from copy import deepcopy
 from ctapipe.core import Component
 
-__all__ = ['EventSeeker',]
+__all__ = ['EventSeeker', ]
+
 
 class EventSeeker(Component):
     """
@@ -144,7 +145,7 @@ class EventSeeker(Component):
                 item = len(self) + item
                 if item < 0 or item >= len(self):
                     msg = ("Event index {} out of range [0, {}]"
-                        .format(item, len(self)))
+                           .format(item, len(self)))
                     raise IndexError(msg)
         elif isinstance(item, str):
             item = int(item)
@@ -173,7 +174,7 @@ class EventSeeker(Component):
         max_events = self._reader.max_events
         if not use_event_id and max_events and item >= max_events:
             msg = ("Event index {} outside of specified max_events {}"
-                .format(item, max_events))
+                   .format(item, max_events))
             raise IndexError(msg)
 
         try:
