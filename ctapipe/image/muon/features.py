@@ -124,10 +124,10 @@ def ang_containment(
         cring_y,
         ):
 
-    '''    
+    '''
     Estimate angular containment of a ring inside the camera
     (camera center is (0,0))
-    Improve: include the case of an arbitrary 
+    Improve: include the case of an arbitrary
     center for the camera
 
     Parameters
@@ -146,11 +146,11 @@ def ang_containment(
     angcontainment: float
         the ratio of ring inside the camera
     '''
-    angle_ring = np.linspace(0,2*mt.pi,360.)
+    angle_ring = np.linspace(0, 2 * mt.pi, 360.)
     ring_x = cring_x + ring_radius * np.cos(angle_ring)
     ring_y = cring_y + ring_radius * np.sin(angle_ring)
-    d = np.sqrt(np.power(ring_x,2)+np.power(ring_y,2))
+    d = np.sqrt(np.power(ring_x, 2) + np.power(ring_y, 2))
 
-    angcontainment = len(d[d < cam_rad])/len(d)
+    angcontainment = len(d[d < cam_rad]) / len(d)
 
     return angcontainment
