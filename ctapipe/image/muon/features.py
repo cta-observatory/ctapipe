@@ -117,7 +117,7 @@ def ring_completeness(
     return np.sum(bins_above_threshold) / bins
 
 
-def ang_containment(
+def ring_containment(
         ring_radius,
         cam_rad,
         cring_x,
@@ -143,7 +143,7 @@ def ang_containment(
 
     Returns
     ------
-    angcontainment: float
+    ringcontainment: float
         the ratio of ring inside the camera
     '''
     angle_ring = np.linspace(0, 2 * mt.pi, 360.)
@@ -151,6 +151,6 @@ def ang_containment(
     ring_y = cring_y + ring_radius * np.sin(angle_ring)
     d = np.sqrt(np.power(ring_x, 2) + np.power(ring_y, 2))
 
-    angcontainment = len(d[d < cam_rad]) / len(d)
+    ringcontainment = len(d[d < cam_rad]) / len(d)
 
-    return angcontainment
+    return ringcontainment
