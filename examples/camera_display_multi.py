@@ -43,8 +43,8 @@ def draw_several_cams(geom, ncams=4):
             nsb_level_pe=1000,
         )
 
-        mask = tailcuts_clean(geom, image, picture_thresh=6*image.mean(),
-                              boundary_thresh=4*image.mean())
+        mask = tailcuts_clean(geom, image, picture_thresh=6 * image.mean(),
+                              boundary_thresh=4 * image.mean())
         cleaned = image.copy()
         cleaned[~mask] = 0
 

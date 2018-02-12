@@ -7,6 +7,7 @@ from ctapipe.utils import get_dataset
 from ctapipe.calib import pedestals
 import numpy as np
 
+
 def plot_peds(peds, pedvars):
     """ make a quick plot of the pedestal values"""
     pixid = np.arange(len(peds))
@@ -43,7 +44,7 @@ if __name__ == '__main__':
 
                 print("CT{} chan {}:".format(telid, chan))
 
-                traces = event.r0.tel[telid].waveform[chan,...]
+                traces = event.r0.tel[telid].waveform[chan, ...]
 
                 peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
                                                                      start,

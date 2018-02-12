@@ -22,7 +22,7 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     # load the camera
-    tel = TelescopeDescription.from_name("SST-1M","DigiCam")
+    tel = TelescopeDescription.from_name("SST-1M", "DigiCam")
     print(tel, tel.optics.equivalent_focal_length)
     geom = tel.camera
 
@@ -56,7 +56,6 @@ if __name__ == '__main__':
         )
         image /= image.max()
         disp.image = image
-
 
     anim = FuncAnimation(fig, update, interval=250)
     plt.show()

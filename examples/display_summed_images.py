@@ -27,11 +27,11 @@ class ImageSumDisplayerTool(Tool):
     max_events = Integer(help='stop after this many events if non-zero',
                          default_value=0, min=0).tag(config=True)
 
-    output_suffix=Unicode(help='suffix (file extension) of output '
-                               'filenames to write images '
-                               'to (no writing is done if blank). '
-                               'Images will be named [EVENTID][suffix]' ,
-                          default_value="").tag(config=True)
+    output_suffix = Unicode(help='suffix (file extension) of output '
+                            'filenames to write images '
+                            'to (no writing is done if blank). '
+                            'Images will be named [EVENTID][suffix]',
+                            default_value="").tag(config=True)
 
     aliases = Dict({'infile': 'ImageSumDisplayerTool.infile',
                     'telgroup': 'ImageSumDisplayerTool.telgroup',
@@ -46,7 +46,6 @@ class ImageSumDisplayerTool(Tool):
 
         self.reader = HESSIOEventSource(input_url=self.infile,
                                         max_events=self.max_events)
-
 
         for event in self.reader:
             camtypes = event.inst.subarray.to_table().group_by('camera_type')
@@ -69,14 +68,13 @@ class ImageSumDisplayerTool(Tool):
 
         self.reader.allowed_tels = self._selected_tels
 
-
     def start(self):
         geom = None
         imsum = None
         disp = None
 
         for event in self.reader:
-            
+
             self.calibrator.calibrate(event)
 
             if geom is None:
@@ -93,7 +91,7 @@ class ImageSumDisplayerTool(Tool):
             for telid in event.dl0.tels_with_data:
                 imsum += event.dl1.tel[telid].image[0]
 
-            self.log.info("event={} ntels={} energy={}" \
+            self.log.info("event={} ntels={} energy={}"
                           .format(event.r0.event_id,
                                   len(event.dl0.tels_with_data),
                                   event.mc.energy))

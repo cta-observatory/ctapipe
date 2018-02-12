@@ -134,7 +134,7 @@ class SingleTelEventDisplay(Tool):
                         if len(ellipses) > 0:
                             ellipses[0].remove()
 
-                        params = hillas_parameters(geom,  image=im)
+                        params = hillas_parameters(geom, image=im)
                         disp.overlay_moments(params, color='pink', lw=3,
                                              with_label=False)
                     except HillasParameterizationError:

@@ -283,7 +283,6 @@ class DisplayIntegrator(Tool):
 
         self.dl1 = CameraDL1Calibrator(extractor=self.extractor, **kwargs)
 
-
     def start(self):
         event_num = self.event_index
         if self.use_event_id:

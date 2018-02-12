@@ -19,13 +19,11 @@ from ctapipe.utils import linalg
 from ctapipe.utils import datasets
 
 
-
-
 # importing data from avaiable datasets in ctapipe
 filename = datasets.get_dataset("gamma_test_large.simtel.gz")
 # filename
 
-# reading the Monte Carlo file for LST 
+# reading the Monte Carlo file for LST
 source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 # pointing direction of the telescopes
@@ -39,8 +37,8 @@ off_angles = []
 for event in source:
 
     # The direction the incident particle.
-    # Converting Monte Carlo Shower parameter theta and phi to 
-    # corresponding to 3 components (x,y,z) of a vector 
+    # Converting Monte Carlo Shower parameter theta and phi to
+    # corresponding to 3 components (x,y,z) of a vector
     shower_azimuth = event.mc.az  # same as in Monte Carlo file i.e. phi
     shower_altitude = np.pi * u.rad / 2 - event.mc.alt  # altitude = 90 - theta
     shower_direction = linalg.set_phi_theta(shower_azimuth, shower_altitude)
@@ -63,7 +61,7 @@ for event in source:
         camgeom = CameraGeometry.guess(pix_x, pix_y, foclen)
 
         # note the [0] is for channel 0 which is high-gain channel
-        image = event.dl1.tel[tel_id].image[0]        
+        image = event.dl1.tel[tel_id].image[0]
 
         # Cleaning  of the image
         cleaned_image = image
@@ -73,17 +71,17 @@ for event in source:
         cleaned_image[~cleanmask] = 0
 
         # Calulate hillas parameters
-        # It fails for empty pixels   
+        # It fails for empty pixels
         try:
             hillas_params[tel_id] = hillas_parameters(camgeom, cleaned_image)
         except:
             pass
 
-    if len(hillas_params) < 2: 
+    if len(hillas_params) < 2:
         continue
 
     reco.get_great_circles(hillas_params, event.inst.subarray,
-                           point_azimuth, point_altitude)  
+                           point_azimuth, point_altitude)
 
     # fit the gamma's direction of origin
     # return reconstructed direction (3 components) with errors on the values
@@ -107,7 +105,7 @@ for i in off_angles:
 
 # To plot thetasquare
 # The number of events in th data files for LSTCam is not significantly high to give a nice
-# thetasquare plot for gammas    
+# thetasquare plot for gammas
 # One can use deedicated MC file for LST get nice plot
 plt.figure(figsize=(10, 8))
 plt.hist(thetasq, bins=np.linspace(0, 10, 50))

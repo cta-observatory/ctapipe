@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
         print("EVENT_ID: ", event.r0.event_id, "TELS: ",
               event.r0.tels_with_data,
-              "MC Energy:", event.mc.energy )
+              "MC Energy:", event.mc.energy)
 
         while True:
             response = get_input()

@@ -54,7 +54,6 @@ class MuonDisplayerTool(Tool):
                       'display': 'MuonDisplayerTool.display'
                       })
 
-
     def setup(self):
         self.calib = CameraCalibrator(
             config=self.config,
@@ -70,7 +69,6 @@ class MuonDisplayerTool(Tool):
 
         numev = 0
         num_muons_found = 0
-
 
         for event in event_source(self.infile):
             self.log.info("Event Number: %d, found %d muons", numev, num_muons_found)
@@ -102,8 +100,6 @@ class MuonDisplayerTool(Tool):
                         )
                         print_muon(muon_evt, printer=self.log.info)
                         num_muons_found += 1
-
-
 
         t = Table(output_parameters)
         t['ImpactP'].unit = 'm'
