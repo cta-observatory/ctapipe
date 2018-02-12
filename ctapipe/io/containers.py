@@ -377,7 +377,7 @@ class MuonRingParameter(Container):
         chi squared of the ring fit
     ring_cov_matrix:
         covariance matrix of ring parameters
-    ang_containment:
+    ring_containment:
         angular containment of the ring
     """
 
@@ -391,7 +391,7 @@ class MuonRingParameter(Container):
     ring_inclination = Field(0.0, 'Inclination of fitted ring')
     ring_chi2_fit = Field(0.0, 'chisquare of the muon ring fit')
     ring_cov_matrix = Field(0.0, 'covariance matrix of the muon ring fit')
-    ang_containment = Field(0., 'containment of the ring inside the camera')
+    ring_containment = Field(0., 'containment of the ring inside the camera')
     ring_fit_method = Field("", 'fitting method used for the muon ring')
     inputfile = Field("", 'input file')
 
