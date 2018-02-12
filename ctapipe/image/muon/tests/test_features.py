@@ -1,6 +1,4 @@
-import numpy as np
 import astropy.units as u
-
 from ctapipe.image.muon.features import ring_containment
 
 def test_ring_containment():
@@ -16,4 +14,5 @@ def test_ring_containment():
     assert(ring_cont <= 1. and ring_cont >= 0.)
 
 if __name__ == '__main__':
+
     test_ring_containment()
