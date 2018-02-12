@@ -2,6 +2,7 @@ import astropy.units as u
 from ctapipe.image.muon.features import ring_containment
 
 def test_ring_containment():
+
     ring_radius = 1. * u.m
     cam_radius = 2.25 * u.m
     ring_center_x = 1.5 * u.m
