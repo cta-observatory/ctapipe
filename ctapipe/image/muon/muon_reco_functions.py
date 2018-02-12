@@ -158,10 +158,11 @@ def analyze_muon_event(event, params=None, geom_dict=None):
            and nom_dist < muon_cuts['CamRad'][dict_index]
            and muonringparam.ring_radius < 1.5 * u.deg
            and muonringparam.ring_radius > 1. * u.deg):
-            muonringparam.ang_containment = ang_containment(muonringparam.ring_radius,
-                                                             muon_cuts['CamRad'][dict_index],
-                                                             muonringparam.ring_center_x,
-                                                             muonringparam.ring_center_y)
+            muonringparam.ang_containment = ang_containment(
+                muonringparam.ring_radius,
+                muon_cuts['CamRad'][dict_index],
+                muonringparam.ring_center_x,
+                muonringparam.ring_center_y)
 
             # Guess HESS is 0.16
             # sec_rad = 0.*u.m
