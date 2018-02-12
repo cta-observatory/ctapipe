@@ -144,7 +144,7 @@ def ang_containment(
     Returns
     ------
     angcontainment: float
-
+        the ratio of ring inside the camera
     '''
     angle_ring = np.linspace(0,2*mt.pi,360.)
     ring_x = cring_x + ring_radius * np.cos(angle_ring)
