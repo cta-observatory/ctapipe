@@ -377,6 +377,8 @@ class MuonRingParameter(Container):
         chi squared of the ring fit
     ring_cov_matrix:
         covariance matrix of ring parameters
+    ring_containment:
+        angular containment of the ring
     """
 
     obs_id = Field(0, "run identification number")
@@ -389,6 +391,7 @@ class MuonRingParameter(Container):
     ring_inclination = Field(0.0, 'Inclination of fitted ring')
     ring_chi2_fit = Field(0.0, 'chisquare of the muon ring fit')
     ring_cov_matrix = Field(0.0, 'covariance matrix of the muon ring fit')
+    ring_containment = Field(0., 'containment of the ring inside the camera')
     ring_fit_method = Field("", 'fitting method used for the muon ring')
     inputfile = Field("", 'input file')
 
@@ -431,7 +434,6 @@ class MuonIntensityParameter(Container):
         ring width
     ring_time_width:
         standard deviation of the photons time arrival
-
     prediction: dict
         ndarray of the predicted charge in all pixels
     mask:
