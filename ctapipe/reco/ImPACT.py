@@ -164,7 +164,7 @@ class ImPACTReconstructor(Reconstructor):
 
         return True
 
-    def get_brightest_mean(self, num_pix=3):
+    def get_brightest_mean(self):
         """This is a simple function to find the peak position of each image
         in an event which will be used later in the Xmax calculation. Peak is
         found by taking the average position of the n hottest pixels in the
@@ -172,9 +172,7 @@ class ImPACTReconstructor(Reconstructor):
 
         Parameters
         ----------
-        num_pix: int
-            Number of pixels the average position from
-
+        
         Returns
         -------
             None
@@ -573,7 +571,7 @@ class ImPACTReconstructor(Reconstructor):
 
         self.hillas = hillas
 
-        self.get_brightest_mean(num_pix=3)
+        self.get_brightest_mean()
         self.type = type_tel
         self.initialise_templates(type_tel)
 
@@ -730,7 +728,6 @@ class ImPACTReconstructor(Reconstructor):
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
             self.array_return = True
-            limits = np.array(limits)
 
             min = least_squares(self.get_likelihood_min, params,
                                 method=minimiser_name,

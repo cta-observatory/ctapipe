@@ -438,10 +438,10 @@ class Flow(Tool):
                 self.ports[self.consumer_step.name + '_out'] = str(self.zmq_ports.pop())
             self.consumer_step.port_in = self.ports[self.consumer_step.name + '_out']
             return True
-        except IndexError as e:
+        except IndexError:
             self.log.error("Not enough ZMQ ports. Consider adding some port "
                            "to configuration.")
-        except Exception as e:
+        except Exception:
             self.log.error("Could not configure ZMQ ports. {}".format(e))
             return False
 
@@ -462,7 +462,7 @@ class Flow(Tool):
         return None
 
     def instantiation(self, name, stage_type, process_name=None, port_in=None,
-                      connections=None, main_connection_name=None, config=None):
+                      connections=None, main_connection_name=None):
         '''
         Instantiate on Python object from name found in configuration
         Parameters

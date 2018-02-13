@@ -8,8 +8,7 @@ def test_tailcuts_clean_simple():
 
     geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
-    pedvar = np.ones_like(geom.pix_id, dtype=np.float)
-
+    
     N = 40
     some_neighs = geom.neighbors[N][0:3]  # pick 4 neighbors
     image[N] = 5.0              # set a single image pixel

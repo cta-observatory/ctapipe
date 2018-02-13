@@ -19,19 +19,19 @@ def test_guess_optics():
 def test_construct_optics():
 
     with pytest.raises(ValueError):
-        od = OpticsDescription(mirror_type="DC",
-                               tel_type="bad",  # bad value
-                               tel_subtype="1M",
-                               equivalent_focal_length=10 * u.m)
+         OpticsDescription(mirror_type="DC",
+                           tel_type="bad",  # bad value
+                           tel_subtype="1M",
+                           equivalent_focal_length=10 * u.m)
 
     with pytest.raises(ValueError):
-        od = OpticsDescription(mirror_type="bad",  # bad value
-                               tel_type="MST",
-                               tel_subtype="1M",
-                               equivalent_focal_length=10 * u.m)
+        OpticsDescription(mirror_type="bad",  # bad value
+                          tel_type="MST",
+                          tel_subtype="1M",
+                          equivalent_focal_length=10 * u.m)
 
     with pytest.raises(u.UnitsError):
-        od = OpticsDescription.guess(28.0 * u.kg)  # bad unit
+        OpticsDescription.guess(28.0 * u.kg)  # bad unit
 
     with pytest.raises(TypeError):
-        od = OpticsDescription.guess(28.0)  # not a unit quantity
+        OpticsDescription.guess(28.0)  # not a unit quantity

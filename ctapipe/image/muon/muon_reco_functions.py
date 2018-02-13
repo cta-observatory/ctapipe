@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def analyze_muon_event(event, params=None, geom_dict=None):
+def analyze_muon_event(event):
     """
     Generic muon event analyzer. 
 
@@ -28,8 +28,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     and MuonIntensityParameter container event
 
     """
-    # Declare a dict to define the muon cuts (ASTRI and SCT missing)
-    muon_cuts = {}
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
              'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
@@ -71,8 +69,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     for telid in event.dl0.tels_with_data:
 
         logger.debug("Analysing muon event for tel %d", telid)
-        muonringparam = None
-        muonintensityparam = None
         image = event.dl1.tel[telid].image[0]
 
         # Get geometry
@@ -227,7 +223,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     return muon_event_param
 
 
-def analyze_muon_source(source, params=None, geom_dict=None, args=None):
+def analyze_muon_source(source, params=None, geom_dict=None):
     """
     Generator for analyzing all the muon events
 

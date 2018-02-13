@@ -59,6 +59,7 @@ def cam_to_nom():
     )
 
     print("Nominal Coordinate", nom_coord)
+    print("AltAz coordinate", alt_az)
 
 
 # Once we are at the nominal system where most reconstruction will be done we

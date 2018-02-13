@@ -275,9 +275,10 @@ class HillasReconstructor(Reconstructor):
 
         result = linalg.normalise(np.sum(crossings, axis=0)) * u.dimless
         off_angles = [linalg.angle(result, cross) / u.rad for cross in crossings]
-        err_est_dir = np.mean(off_angles) * u.rad
         err_est_dir = np.average(
-            off_angles, weights=[len(cross) for cross in crossings]) * u.rad
+            off_angles,
+            weights=[len(cross) for cross in crossings]
+        ) * u.rad
 
         # averaging over the solutions of all permutations
         return result, err_est_dir
@@ -324,7 +325,7 @@ class HillasReconstructor(Reconstructor):
 
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
-    def fit_core_crosses(self, unit=u.m):
+    def fit_core_crosses(self):
         r"""calculates the core position as the least linear square solution
         of an (over-constrained) equation system
 

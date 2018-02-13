@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 
-def zfits_event_source(url, max_events=None, allowed_tels=None):
+def zfits_event_source(url, max_events=None):
     """A generator that streams data from an EventIO/HESSIO MC data file
     (e.g. a standard CTA data file.)
 
@@ -39,11 +39,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         path to file to open
     max_events : int, optional
         maximum number of events to read
-    allowed_tels : list[int]
-        select only a subset of telescope, if None, all are read. This can
-        be used for example emulate the final CTA data format, where there
-        would be 1 telescope per file (whereas in current monte-carlo,
-        they are all interleaved into one file)
+
 
     """
 

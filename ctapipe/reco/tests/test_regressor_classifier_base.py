@@ -52,3 +52,5 @@ def test_failures():
             feature_list,
             target_list
         )
+        assert feature_flattened is not None
+        assert target_flattened is not None

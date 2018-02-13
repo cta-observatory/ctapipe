@@ -147,7 +147,7 @@ class CameraDemo(Tool):
             plt.show()
 
 
-def main(args=None):
+def main():
 
     app = CameraDemo()
     app.run()

@@ -784,7 +784,6 @@ def check_background_contamination(n, alpha=1, max_background_ratio=.05):
 
     n_signal, n_backgr = n[0], n[1] * alpha
 
-    n_tot = n_signal + n_backgr
     if n_signal < n_backgr * max_background_ratio:
         scale_r = (n_backgr * max_background_ratio) / n_signal
         n[0] *= scale_r
