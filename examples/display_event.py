@@ -108,10 +108,11 @@ if __name__ == '__main__':
             elif response == "" or response.startswith("n"):
                 break
             elif response.startswith('i'):
+                subarray = event.inst.subarray
                 for tel_id in sorted(event.r0.tel):
                     for chan in event.r0.tel[tel_id].waveform:
-                        npix = event.inst.num_pixels[tel_id]
-                        nsamp = event.inst.num_samples[tel_id]
+                        npix = len(subarray.tel[tel_id].camera.pix_x)
+                        nsamp = event.r0.tel[tel_id].num_samples
                         print("CT{:4d} ch{} pixels,samples:{}"
                               .format(tel_id, chan, npix, nsamp))
             elif response.startswith('s'):
