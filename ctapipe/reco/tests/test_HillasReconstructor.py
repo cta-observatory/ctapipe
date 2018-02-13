@@ -3,7 +3,6 @@ from astropy import units as u
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
 from ctapipe.utils import get_dataset
@@ -56,10 +55,8 @@ def test_fit_core():
 def test_fit_origin():
     '''
     creating some great circles pointing in different directions (two
-    north-south,
-    two east-west) and that have a slight position errors (+- 0.1 m in one of
-    the four
-    cardinal directions '''
+    north-south, two east-west) and that have a slight position errors (+-
+    0.1 m in one of the four cardinal directions '''
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
     circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
