@@ -2,9 +2,10 @@
 
 import numpy as np
 from astropy.table import Table
+from matplotlib import pyplot as plt
+
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
-from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
 

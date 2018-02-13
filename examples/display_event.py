@@ -7,17 +7,17 @@
 # if no filename is given, a default example file will be used
 # containing ~10 events
 
-from ctapipe.utils.datasets import get_dataset
-from ctapipe.io import event_source
-from ctapipe.instrument import CameraGeometry
-from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
-from astropy import units as u
-from numpy import ceil, sqrt
-import random
-
-import sys
 import logging
+import random
+import sys
+
+from matplotlib import pyplot as plt
+from numpy import ceil, sqrt
+
+from ctapipe.io import event_source
+from ctapipe.utils.datasets import get_dataset
+from ctapipe.visualization import CameraDisplay
+
 logging.basicConfig(level=logging.DEBUG)
 
 fig = plt.figure(figsize=(12, 8))

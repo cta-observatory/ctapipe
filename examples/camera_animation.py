@@ -9,11 +9,11 @@ running.
 import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraGeometry
-from ctapipe.visualization import CameraDisplay
-from ctapipe.image import toymodel
 from matplotlib.animation import FuncAnimation
+
+from ctapipe.image import toymodel
 from ctapipe.instrument import TelescopeDescription
+from ctapipe.visualization import CameraDisplay
 
 if __name__ == '__main__':
 

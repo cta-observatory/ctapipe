@@ -5,8 +5,6 @@ than a for-loop. This is useful for debugging and profiling of speed.
 
 import sys
 
-import numpy as np
-
 from ctapipe.calib import CameraCalibrator
 from ctapipe.io import event_source
 

@@ -4,7 +4,9 @@ ring parameters, and write some parameters to an output table
 """
 
 import warnings
+
 from astropy.table import Table
+
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.core import traits as t

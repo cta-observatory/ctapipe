@@ -9,13 +9,14 @@ image, and a calibrated camera image
 import numpy as np
 from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
+
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.eventseeker import EventSeeker
+from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.visualization import CameraDisplay
 
 

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from ctapipe.calib import pedestals
 from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import get_dataset
-from ctapipe.calib import pedestals
-import numpy as np
 
 
 def plot_peds(peds, pedvars):

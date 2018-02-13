@@ -5,12 +5,13 @@ telescope, and display it
 """
 
 import numpy as np
+from matplotlib import pyplot as plt
+
+from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.core.traits import Unicode, Integer, Dict, List
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
-from ctapipe.calib import CameraCalibrator
 
 
 class ImageSumDisplayerTool(Tool):

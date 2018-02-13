@@ -4,11 +4,12 @@ Example of drawing a Camera using different norms
 """
 
 import matplotlib.pylab as plt
+from matplotlib.colors import PowerNorm
+from matplotlib.style import use
+
 from ctapipe.image import toymodel
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-from matplotlib.colors import PowerNorm
-from matplotlib.style import use
 
 if __name__ == '__main__':
 

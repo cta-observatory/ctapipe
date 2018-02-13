@@ -1,8 +1,9 @@
+import numpy as np
+from astropy import units as u
+from matplotlib import pyplot as plt
+
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
-from astropy import units as u
-import numpy as np
 
 if __name__ == '__main__':
 

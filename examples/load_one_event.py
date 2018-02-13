@@ -3,10 +3,10 @@ very simple example that loads a single event into memory, for exploration
 purposes
 """
 import sys
-from ctapipe.io import event_source
-from ctapipe.utils import get_dataset
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.io import event_source
+from ctapipe.utils import get_dataset
 
 if __name__ == '__main__':
 

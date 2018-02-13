@@ -7,8 +7,8 @@ import numpy as np
 from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.image import tailcuts_clean
 from ctapipe.image import hillas_parameters
+from ctapipe.image import tailcuts_clean
 from ctapipe.io import event_source
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils import datasets, linalg

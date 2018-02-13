@@ -5,11 +5,11 @@ defined in `ctapipe.coordinates`
 
 """
 import astropy.units as u
+import numpy as np
 
 from ctapipe.coordinates import CameraFrame, TelescopeFrame, GroundFrame, \
     TiltedGroundFrame, NominalFrame, HorizonFrame, project_to_ground
 
-import numpy as np
 
 # Convert camera frame to telescope frame
 

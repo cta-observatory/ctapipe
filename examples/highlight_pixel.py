@@ -1,7 +1,8 @@
+from matplotlib import pyplot as plt
+
 from ctapipe.image import toymodel
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
 
