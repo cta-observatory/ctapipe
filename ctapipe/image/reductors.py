@@ -3,7 +3,7 @@ Algorithms for the data volume reduction.
 """
 
 from abc import abstractmethod
-from traitlets import CaselessStrEnum
+
 from ctapipe.core import Component, Factory
 
 __all__ = ['DataVolumeReductor', 'DataVolumeReductorFactory']

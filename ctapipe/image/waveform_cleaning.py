@@ -2,13 +2,15 @@
 Waveform cleaning algorithms (smoothing, filtering, baseline subtraction)
 """
 
-from traitlets import Int, CaselessStrEnum
-from ctapipe.core import Component, Factory
+from abc import abstractmethod
+
 import numpy as np
 from scipy.signal import general_gaussian
-from abc import abstractmethod
-from ctapipe.image.charge_extractors import AverageWfPeakIntegrator,\
-    LocalPeakIntegrator
+from traitlets import Int
+
+from ctapipe.core import Component, Factory
+from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
+                                             LocalPeakIntegrator)
 
 __all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
            'CHECMWaveformCleanerLocal',
