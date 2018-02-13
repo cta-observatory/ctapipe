@@ -143,12 +143,16 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
     pe_summed = np.arange(max_sum)  # Need to decide how range is determined
     pe_factorial = factorial(pe_summed)
 
-    first_term = np.power(prediction, pe_summed[
-                          :, np.newaxis]) * np.exp(-1 * prediction)
-    first_term /= (pe_factorial[:, np.newaxis] *
-        np.sqrt(math.pi * 2 * (ped * ped +
-                               pe_summed[:, np.newaxis] * spe_width *
-                               spe_width)))
+    first_term = (np.power(prediction, pe_summed[:, np.newaxis])
+                  * np.exp(-1 * prediction))
+    first_term /= (
+            pe_factorial[:, np.newaxis]
+            * np.sqrt(
+                math.pi * 2 * (
+                        ped * ped
+                        + pe_summed[:, np.newaxis] * spe_width *spe_width
+                )
+    )
 
     # Throw error if we get NaN in likelihood
     if np.any(np.isnan(first_term)):

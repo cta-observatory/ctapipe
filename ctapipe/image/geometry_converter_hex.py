@@ -377,8 +377,9 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
         # the area of the pixels (note that this is still a deformed
         # image)
-        pix_area = np.ones_like(grid_x) \
-                   * (x_edges[1] - x_edges[0]) * (y_edges[1] - y_edges[0])
+        pix_area = (np.ones_like(grid_x)
+                    * (x_edges[1] - x_edges[0])
+                    * (y_edges[1] - y_edges[0]))
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(

@@ -128,8 +128,8 @@ def hillas_parameters_1(geom: CameraGeometry, image):
              + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
              + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
              + np.power(sin_delta, 3) * S_yyy)
-    asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) \
-        else np.power(asym3, 1. / 3)
+    asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3,
+                                                                    1. / 3)
 
     assert np.sign(skewness) == np.sign(asym)
 
@@ -277,12 +277,13 @@ def hillas_parameters_2(geom: CameraGeometry, image):
     # -- Asymmetry and other higher moments
     if length != 0.0:
         vx4 = x4m - 4.0 * xm * x3m + 6.0 * xm2 * x2m - 3.0 * xm2 * xm2
-        vx3y = x3ym - 3.0 * xm * x2ym + 3.0 * xm2 * xym - x3m * ym \
-               + 3.0 * x2m * xmym - 3.0 * xm2 * xmym
-        vx2y2 = x2y2m - 2.0 * ym * x2ym + x2m * ym2 \
-                - 2.0 * xm * xy2m + 4.0 * xym * xmym + xm2 * y2m - 3.0 * xm2 * ym2
-        vxy3 = xy3m - 3.0 * ym * xy2m + 3.0 * ym2 * xym - y3m * xm \
-               + 3.0 * y2m * xmym - 3.0 * ym2 * xmym
+        vx3y = (x3ym - 3.0 * xm * x2ym + 3.0 * xm2 * xym - x3m * ym
+                + 3.0 * x2m * xmym - 3.0 * xm2 * xmym)
+        vx2y2 = (x2y2m - 2.0 * ym * x2ym + x2m * ym2
+                 - 2.0 * xm * xy2m + 4.0 * xym * xmym + xm2 * y2m
+                 - 3.0 * xm2 * ym2)
+        vxy3 = (xy3m - 3.0 * ym * xy2m + 3.0 * ym2 * xym - y3m * xm
+                + 3.0 * y2m * xmym - 3.0 * ym2 * xmym)
         vy4 = y4m - 4.0 * ym * y3m + 6.0 * ym2 * y2m - 3.0 * ym2 * ym2
 
         hyp = np.hypot(tanpsi_numer, tanpsi_denom)
@@ -608,12 +609,13 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     # -- Asymmetry and other higher moments
     if length != 0.0:
         vx4 = x4m - 4.0 * xm * x3m + 6.0 * xm2 * x2m - 3.0 * xm2 * xm2
-        vx3y = x3ym - 3.0 * xm * x2ym + 3.0 * xm2 * xym - x3m * ym \
-               + 3.0 * x2m * xmym - 3.0 * xm2 * xm * ym
-        vx2y2 = x2y2m - 2.0 * ym * x2ym + x2m * ym2 \
-                - 2.0 * xm * xy2m + 4.0 * xym * xmym + xm2 * y2m - 3.0 * xm2 * ym2
-        vxy3 = xy3m - 3.0 * ym * xy2m + 3.0 * ym2 * xym - y3m * xm \
-               + 3.0 * y2m * xmym - 3.0 * ym2 * ym * xm
+        vx3y = (x3ym - 3.0 * xm * x2ym + 3.0 * xm2 * xym - x3m * ym
+                + 3.0 * x2m * xmym - 3.0 * xm2 * xm * ym)
+        vx2y2 = (x2y2m - 2.0 * ym * x2ym + x2m * ym2
+                 - 2.0 * xm * xy2m + 4.0 * xym * xmym + xm2 * y2m
+                 - 3.0 * xm2 * ym2)
+        vxy3 = (xy3m - 3.0 * ym * xy2m + 3.0 * ym2 * xym - y3m * xm
+                + 3.0 * y2m * xmym - 3.0 * ym2 * ym * xm)
         vy4 = y4m - 4.0 * ym * y3m + 6.0 * ym2 * y2m - 3.0 * ym2 * ym2
         hyp = np.hypot(tanpsi_numer, tanpsi_denom)
         if hyp != 0.:
