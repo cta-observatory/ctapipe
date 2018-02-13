@@ -21,9 +21,10 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 fig = plt.figure(figsize=(12, 8))
-cmaps = [plt.cm.jet, plt.cm.winter,
-         plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
-         plt.cm.cool, plt.cm.coolwarm]
+cmaps = [
+    plt.cm.jet, plt.cm.winter, plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth,
+    plt.cm.hot, plt.cm.cool, plt.cm.coolwarm
+]
 
 
 def display_event(event):
@@ -71,6 +72,7 @@ def get_input():
     print("q               - Quit")
     return input("Choice: ")
 
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
@@ -86,9 +88,10 @@ if __name__ == '__main__':
 
     for event in source:
 
-        print("EVENT_ID: ", event.r0.event_id, "TELS: ",
-              event.r0.tels_with_data,
-              "MC Energy:", event.mc.energy)
+        print(
+            "EVENT_ID: ", event.r0.event_id, "TELS: ", event.r0.tels_with_data,
+            "MC Energy:", event.mc.energy
+        )
 
         while True:
             response = get_input()
@@ -113,8 +116,10 @@ if __name__ == '__main__':
                     for chan in event.r0.tel[tel_id].waveform:
                         npix = len(subarray.tel[tel_id].camera.pix_x)
                         nsamp = event.r0.tel[tel_id].num_samples
-                        print("CT{:4d} ch{} pixels,samples:{}"
-                              .format(tel_id, chan, npix, nsamp))
+                        print(
+                            "CT{:4d} ch{} pixels,samples:{}"
+                            .format(tel_id, chan, npix, nsamp)
+                        )
             elif response.startswith('s'):
                 filename = "event_{0:010d}.png".format(event.r0.event_id)
                 print("Saving to", filename)

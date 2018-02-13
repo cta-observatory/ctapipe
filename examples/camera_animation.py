@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Example of drawing and updating a Camera using a toymodel shower images.
 
@@ -50,7 +49,8 @@ if __name__ == '__main__':
             psi=angle * u.deg,
         )
         image, sig, bg = toymodel.make_toymodel_shower_image(
-            geom, model.pdf,
+            geom,
+            model.pdf,
             intensity=intens,
             nsb_level_pe=5000,
         )

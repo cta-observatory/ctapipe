@@ -88,9 +88,8 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     return -2 * np.log(sq * expo)
 
 
-def poisson_likelihood_full(
-    image, prediction, spe_width, ped, width_fac=3, dtype=np.float32
-):
+def poisson_likelihood_full(image, prediction, spe_width, ped,
+                            width_fac=3, dtype=np.float32):
     """
     Calculate likelihood of prediction given the measured signal,
     full numerical integration from de Naurois et al 2009.

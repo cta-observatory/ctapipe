@@ -46,9 +46,9 @@ if __name__ == '__main__':
 
                 traces = event.r0.tel[telid].waveform[chan, ...]
 
-                peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
-                                                                     start,
-                                                                     end)
+                peds, pedvars = pedestals.calc_pedestals_from_traces(
+                    traces, start, end
+                )
 
                 print("Number of samples: {}".format(traces.shape[1]))
                 print("Calculate over window:({},{})".format(start, end))

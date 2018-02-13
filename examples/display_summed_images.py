@@ -22,21 +22,30 @@ class ImageSumDisplayerTool(Tool):
         default="/Users/kosack/Data/CTA/Prod3/gamma.simtel.gz"
     ).tag(config=True)
 
-    telgroup = Integer(help='telescope group number', default=1).tag(config=True)
+    telgroup = Integer(
+        help='telescope group number', default=1
+    ).tag(config=True)
 
-    max_events = Integer(help='stop after this many events if non-zero',
-                         default_value=0, min=0).tag(config=True)
+    max_events = Integer(
+        help='stop after this many events if non-zero', default_value=0, min=0
+    ).tag(config=True)
 
-    output_suffix = Unicode(help='suffix (file extension) of output '
-                            'filenames to write images '
-                            'to (no writing is done if blank). '
-                            'Images will be named [EVENTID][suffix]',
-                            default_value="").tag(config=True)
+    output_suffix = Unicode(
+        help='suffix (file extension) of output '
+        'filenames to write images '
+        'to (no writing is done if blank). '
+        'Images will be named [EVENTID][suffix]',
+        default_value=""
+    ).tag(config=True)
 
-    aliases = Dict({'infile': 'ImageSumDisplayerTool.infile',
-                    'telgroup': 'ImageSumDisplayerTool.telgroup',
-                    'max-events': 'ImageSumDisplayerTool.max_events',
-                    'output-suffix': 'ImageSumDisplayerTool.output_suffix'})
+    aliases = Dict(
+        {
+            'infile': 'ImageSumDisplayerTool.infile',
+            'telgroup': 'ImageSumDisplayerTool.telgroup',
+            'max-events': 'ImageSumDisplayerTool.max_events',
+            'output-suffix': 'ImageSumDisplayerTool.output_suffix'
+        }
+    )
 
     classes = List([CameraCalibrator, HESSIOEventSource])
 
@@ -45,8 +54,9 @@ class ImageSumDisplayerTool(Tool):
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
 
-        self.reader = HESSIOEventSource(input_url=self.infile,
-                                        max_events=self.max_events)
+        self.reader = HESSIOEventSource(
+            input_url=self.infile, max_events=self.max_events
+        )
 
         for event in self.reader:
             camtypes = event.inst.subarray.to_table().group_by('camera_type')
@@ -56,15 +66,14 @@ class ImageSumDisplayerTool(Tool):
         group = camtypes.groups[self.telgroup]
         self._selected_tels = list(group['tel_id'].data)
         self._base_tel = self._selected_tels[0]
-        self.log.info("Telescope group %d: %s",
-                      self.telgroup,
-                      str(event.inst.subarray.tel[self._selected_tels[0]]))
+        self.log.info(
+            "Telescope group %d: %s", self.telgroup,
+            str(event.inst.subarray.tel[self._selected_tels[0]])
+        )
         self.log.info("SELECTED TELESCOPES:{}".format(self._selected_tels))
 
         self.calibrator = CameraCalibrator(
-            config=self.config,
-            tool=self,
-            eventsource=self.reader
+            config=self.config, tool=self, eventsource=self.reader
         )
 
         self.reader.allowed_tels = self._selected_tels
@@ -92,16 +101,19 @@ class ImageSumDisplayerTool(Tool):
             for telid in event.dl0.tels_with_data:
                 imsum += event.dl1.tel[telid].image[0]
 
-            self.log.info("event={} ntels={} energy={}"
-                          .format(event.r0.event_id,
-                                  len(event.dl0.tels_with_data),
-                                  event.mc.energy))
+            self.log.info(
+                "event={} ntels={} energy={}".format(
+                    event.r0.event_id, len(event.dl0.tels_with_data),
+                    event.mc.energy
+                )
+            )
             disp.image = imsum
             plt.pause(0.1)
 
             if self.output_suffix is not "":
-                filename = "{:020d}{}".format(event.r0.event_id,
-                                              self.output_suffix)
+                filename = "{:020d}{}".format(
+                    event.r0.event_id, self.output_suffix
+                )
                 self.log.info("saving: '{}'".format(filename))
                 plt.savefig(filename)
 

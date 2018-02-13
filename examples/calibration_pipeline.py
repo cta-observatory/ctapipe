@@ -11,13 +11,18 @@ from ctapipe.visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
-    display = Bool(False,
-                   help='Display the photoelectron images on-screen as they '
-                        'are produced.').tag(config=True)
-    output_path = Unicode(None, allow_none=True,
-                          help='Output path for the pdf containing all the '
-                               'images. Set to None for no saved '
-                               'output.').tag(config=True)
+    display = Bool(
+        False,
+        help='Display the photoelectron images on-screen as they '
+        'are produced.'
+    ).tag(config=True)
+    output_path = Unicode(
+        None,
+        allow_none=True,
+        help='Output path for the pdf containing all the '
+        'images. Set to None for no saved '
+        'output.'
+    ).tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -76,23 +81,27 @@ class ImagePlotter(Component):
             tmaxmin = event.dl0.tel[telid].waveform.shape[2]
             t_chargemax = peakpos[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
-                'cmap_t', [(0 / tmaxmin, 'darkgreen'),
-                           (0.6 * t_chargemax / tmaxmin, 'green'),
-                           (t_chargemax / tmaxmin, 'yellow'),
-                           (1.4 * t_chargemax / tmaxmin, 'blue'),
-                           (1, 'darkblue')])
+                'cmap_t', [
+                    (0 / tmaxmin, 'darkgreen'),
+                    (0.6 * t_chargemax / tmaxmin, 'green'),
+                    (t_chargemax / tmaxmin, 'yellow'),
+                    (1.4 * t_chargemax / tmaxmin, 'blue'), (1, 'darkblue')
+                ]
+            )
             self.c_peakpos.pixels.set_cmap(cmap_time)
 
             if not self.cb_intensity:
-                self.c_intensity.add_colorbar(ax=self.ax_intensity,
-                                              label='Intensity (p.e.)')
+                self.c_intensity.add_colorbar(
+                    ax=self.ax_intensity, label='Intensity (p.e.)'
+                )
                 self.cb_intensity = self.c_intensity.colorbar
             else:
                 self.c_intensity.colorbar = self.cb_intensity
                 self.c_intensity.update(True)
             if not self.cb_peakpos:
-                self.c_peakpos.add_colorbar(ax=self.ax_peakpos,
-                                            label='Peakpos (ns)')
+                self.c_peakpos.add_colorbar(
+                    ax=self.ax_peakpos, label='Peakpos (ns)'
+                )
                 self.cb_peakpos = self.c_peakpos.colorbar
             else:
                 self.c_peakpos.colorbar = self.cb_peakpos
@@ -102,8 +111,10 @@ class ImagePlotter(Component):
         if peakpos is not None:
             self.c_peakpos.image = peakpos
 
-        self.fig.suptitle("Event_index={}  Event_id={}  Telescope={}"
-                          .format(event.count, event.r0.event_id, telid))
+        self.fig.suptitle(
+            "Event_index={}  Event_id={}  Telescope={}"
+            .format(event.count, event.r0.event_id, telid)
+        )
 
         if self.display:
             plt.pause(0.001)
@@ -121,31 +132,46 @@ class DisplayDL1Calib(Tool):
     description = "Calibrate dl0 data to dl1, and plot the photoelectron " \
                   "images."
 
-    telescope = Int(None, allow_none=True,
-                    help='Telescope to view. Set to None to display all '
-                         'telescopes.').tag(config=True)
+    telescope = Int(
+        None,
+        allow_none=True,
+        help='Telescope to view. Set to None to display all '
+        'telescopes.'
+    ).tag(config=True)
 
-    aliases = Dict(dict(max_events='EventSourceFactory.max_events',
-                        extractor='ChargeExtractorFactory.product',
-                        window_width='ChargeExtractorFactory.window_width',
-                        t0='ChargeExtractorFactory.t0',
-                        window_shift='ChargeExtractorFactory.window_shift',
-                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-                        lwt='ChargeExtractorFactory.lwt',
-                        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-                        T='DisplayDL1Calib.telescope',
-                        O='ImagePlotter.output_path'
-                        ))
-    flags = Dict(dict(D=({'ImagePlotter': {'display': True}},
-                         "Display the photoelectron images on-screen as they "
-                         "are produced.")
-                      ))
-    classes = List([EventSourceFactory,
-                    ChargeExtractorFactory,
-                    CameraDL1Calibrator,
-                    ImagePlotter
-                    ])
+    aliases = Dict(
+        dict(
+            max_events='EventSourceFactory.max_events',
+            extractor='ChargeExtractorFactory.product',
+            window_width='ChargeExtractorFactory.window_width',
+            t0='ChargeExtractorFactory.t0',
+            window_shift='ChargeExtractorFactory.window_shift',
+            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+            lwt='ChargeExtractorFactory.lwt',
+            clip_amplitude='CameraDL1Calibrator.clip_amplitude',
+            T='DisplayDL1Calib.telescope',
+            O='ImagePlotter.output_path'
+        )
+    )
+    flags = Dict(
+        dict(
+            D=(
+                {
+                    'ImagePlotter': {
+                        'display': True
+                    }
+                }, "Display the photoelectron images on-screen as they "
+                "are produced."
+            )
+        )
+    )
+    classes = List(
+        [
+            EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
+            ImagePlotter
+        ]
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -157,13 +183,11 @@ class DisplayDL1Calib(Tool):
         kwargs = dict(config=self.config, tool=self)
 
         self.eventsource = EventSourceFactory.produce(
-            input_url=get_dataset("gamma_test.simtel.gz"),
-            **kwargs
+            input_url=get_dataset("gamma_test.simtel.gz"), **kwargs
         )
 
         self.calibrator = CameraCalibrator(
-            eventsource=self.eventsource,
-            **kwargs
+            eventsource=self.eventsource, **kwargs
         )
 
         self.plotter = ImagePlotter(**kwargs)

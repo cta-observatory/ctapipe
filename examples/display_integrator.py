@@ -68,51 +68,75 @@ def plot(event, telid, chan, extractor_name):
     ax_max_pix.plot(dl0[max_pix])
     ax_max_pix.set_xlabel("Time (ns)")
     ax_max_pix.set_ylabel("DL0 Samples (ADC)")
-    ax_max_pix.set_title("(Max) Pixel: {}, True: {}, Measured = {:.3f}"
-                         .format(max_pix, t_pe[max_pix], dl1[max_pix]))
+    ax_max_pix.set_title(
+        "(Max) Pixel: {}, True: {}, Measured = {:.3f}"
+        .format(max_pix, t_pe[max_pix], dl1[max_pix])
+    )
     max_ylim = ax_max_pix.get_ylim()
-    ax_max_pix.plot([start[max_pix], start[max_pix]],
-                    ax_max_pix.get_ylim(), color='r', alpha=1)
-    ax_max_pix.plot([end[max_pix], end[max_pix]],
-                    ax_max_pix.get_ylim(), color='r', alpha=1)
+    ax_max_pix.plot(
+        [start[max_pix], start[max_pix]],
+        ax_max_pix.get_ylim(),
+        color='r',
+        alpha=1
+    )
+    ax_max_pix.plot(
+        [end[max_pix], end[max_pix]],
+        ax_max_pix.get_ylim(),
+        color='r',
+        alpha=1
+    )
     for i, ax in ax_max_nei.items():
         if len(max_pixel_nei) > i:
             pix = max_pixel_nei[i]
             ax.plot(dl0[pix])
             ax.set_xlabel("Time (ns)")
             ax.set_ylabel("DL0 Samples (ADC)")
-            ax.set_title("(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}"
-                         .format(pix, t_pe[pix], dl1[pix]))
+            ax.set_title(
+                "(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}"
+                .format(pix, t_pe[pix], dl1[pix])
+            )
             ax.set_ylim(max_ylim)
-            ax.plot([start[pix], start[pix]],
-                    ax.get_ylim(), color='r', alpha=1)
-            ax.plot([end[pix], end[pix]],
-                    ax.get_ylim(), color='r', alpha=1)
+            ax.plot(
+                [start[pix], start[pix]], ax.get_ylim(), color='r', alpha=1
+            )
+            ax.plot([end[pix], end[pix]], ax.get_ylim(), color='r', alpha=1)
 
     # Draw min pixel traces
     ax_min_pix.plot(dl0[min_pix])
     ax_min_pix.set_xlabel("Time (ns)")
     ax_min_pix.set_ylabel("DL0 Samples (ADC)")
-    ax_min_pix.set_title("(Min) Pixel: {}, True: {}, Measured = {:.3f}"
-                         .format(min_pix, t_pe[min_pix], dl1[min_pix]))
+    ax_min_pix.set_title(
+        "(Min) Pixel: {}, True: {}, Measured = {:.3f}"
+        .format(min_pix, t_pe[min_pix], dl1[min_pix])
+    )
     ax_min_pix.set_ylim(max_ylim)
-    ax_min_pix.plot([start[min_pix], start[min_pix]],
-                    ax_min_pix.get_ylim(), color='r', alpha=1)
-    ax_min_pix.plot([end[min_pix], end[min_pix]],
-                    ax_min_pix.get_ylim(), color='r', alpha=1)
+    ax_min_pix.plot(
+        [start[min_pix], start[min_pix]],
+        ax_min_pix.get_ylim(),
+        color='r',
+        alpha=1
+    )
+    ax_min_pix.plot(
+        [end[min_pix], end[min_pix]],
+        ax_min_pix.get_ylim(),
+        color='r',
+        alpha=1
+    )
     for i, ax in ax_min_nei.items():
         if len(min_pixel_nei) > i:
             pix = min_pixel_nei[i]
             ax.plot(dl0[pix])
             ax.set_xlabel("Time (ns)")
             ax.set_ylabel("DL0 Samples (ADC)")
-            ax.set_title("(Min Nei) Pixel: {}, True: {}, Measured = {:.3f}"
-                         .format(pix, t_pe[pix], dl1[pix]))
+            ax.set_title(
+                "(Min Nei) Pixel: {}, True: {}, Measured = {:.3f}"
+                .format(pix, t_pe[pix], dl1[pix])
+            )
             ax.set_ylim(max_ylim)
-            ax.plot([start[pix], start[pix]],
-                    ax.get_ylim(), color='r', alpha=1)
-            ax.plot([end[pix], end[pix]],
-                    ax.get_ylim(), color='r', alpha=1)
+            ax.plot(
+                [start[pix], start[pix]], ax.get_ylim(), color='r', alpha=1
+            )
+            ax.plot([end[pix], end[pix]], ax.get_ylim(), color='r', alpha=1)
 
     # Draw cameras
     nei_camera = np.zeros_like(max_charges, dtype=np.int)
@@ -123,93 +147,100 @@ def plot(event, telid, chan, extractor_name):
     camera = CameraDisplay(geom, ax=ax_img_nei)
     camera.image = nei_camera
     ax_img_nei.set_title("Neighbour Map")
-    ax_img_nei.annotate("Pixel: {}".format(max_pix),
-                        xy=(geom.pix_x.value[max_pix],
-                            geom.pix_y.value[max_pix]),
-                        xycoords='data', xytext=(0.05, 0.98),
-                        textcoords='axes fraction',
-                        arrowprops=dict(facecolor='red', width=2,
-                                        alpha=0.4),
-                        horizontalalignment='left',
-                        verticalalignment='top')
-    ax_img_nei.annotate("Pixel: {}".format(min_pix),
-                        xy=(geom.pix_x.value[min_pix],
-                            geom.pix_y.value[min_pix]),
-                        xycoords='data', xytext=(0.05, 0.94),
-                        textcoords='axes fraction',
-                        arrowprops=dict(facecolor='orange', width=2,
-                                        alpha=0.4),
-                        horizontalalignment='left',
-                        verticalalignment='top')
+    ax_img_nei.annotate(
+        "Pixel: {}".format(max_pix),
+        xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.98),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
+    ax_img_nei.annotate(
+        "Pixel: {}".format(min_pix),
+        xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.94),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
     camera = CameraDisplay(geom, ax=ax_img_max)
     camera.image = dl0[:, max_time]
     camera.add_colorbar(ax=ax_img_max, label="DL0 Samples (ADC)")
     ax_img_max.set_title("Max Timeslice (T = {})".format(max_time))
-    ax_img_max.annotate("Pixel: {}".format(max_pix),
-                        xy=(geom.pix_x.value[max_pix],
-                            geom.pix_y.value[max_pix]),
-                        xycoords='data', xytext=(0.05, 0.98),
-                        textcoords='axes fraction',
-                        arrowprops=dict(facecolor='red', width=2,
-                                        alpha=0.4),
-                        horizontalalignment='left',
-                        verticalalignment='top')
-    ax_img_max.annotate("Pixel: {}".format(min_pix),
-                        xy=(geom.pix_x.value[min_pix],
-                            geom.pix_y.value[min_pix]),
-                        xycoords='data', xytext=(0.05, 0.94),
-                        textcoords='axes fraction',
-                        arrowprops=dict(facecolor='orange', width=2,
-                                        alpha=0.4),
-                        horizontalalignment='left',
-                        verticalalignment='top')
+    ax_img_max.annotate(
+        "Pixel: {}".format(max_pix),
+        xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.98),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
+    ax_img_max.annotate(
+        "Pixel: {}".format(min_pix),
+        xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.94),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
 
     camera = CameraDisplay(geom, ax=ax_img_true)
     camera.image = t_pe
     camera.add_colorbar(ax=ax_img_true, label="True Charge (p.e.)")
     ax_img_true.set_title("True Charge")
-    ax_img_true.annotate("Pixel: {}".format(max_pix),
-                         xy=(geom.pix_x.value[max_pix],
-                             geom.pix_y.value[max_pix]),
-                         xycoords='data', xytext=(0.05, 0.98),
-                         textcoords='axes fraction',
-                         arrowprops=dict(facecolor='red', width=2,
-                                         alpha=0.4),
-                         horizontalalignment='left',
-                         verticalalignment='top')
-    ax_img_true.annotate("Pixel: {}".format(min_pix),
-                         xy=(geom.pix_x.value[min_pix],
-                             geom.pix_y.value[min_pix]),
-                         xycoords='data', xytext=(0.05, 0.94),
-                         textcoords='axes fraction',
-                         arrowprops=dict(facecolor='orange', width=2,
-                                         alpha=0.4),
-                         horizontalalignment='left',
-                         verticalalignment='top')
+    ax_img_true.annotate(
+        "Pixel: {}".format(max_pix),
+        xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.98),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
+    ax_img_true.annotate(
+        "Pixel: {}".format(min_pix),
+        xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.94),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
 
     camera = CameraDisplay(geom, ax=ax_img_cal)
     camera.image = dl1
-    camera.add_colorbar(ax=ax_img_cal,
-                        label="Calib Charge (Photo-electrons)")
+    camera.add_colorbar(ax=ax_img_cal, label="Calib Charge (Photo-electrons)")
     ax_img_cal.set_title("Charge (integrator={})".format(extractor_name))
-    ax_img_cal.annotate("Pixel: {}".format(max_pix),
-                        xy=(geom.pix_x.value[max_pix],
-                            geom.pix_y.value[max_pix]),
-                        xycoords='data', xytext=(0.05, 0.98),
-                        textcoords='axes fraction',
-                        arrowprops=dict(facecolor='red', width=2,
-                                        alpha=0.4),
-                        horizontalalignment='left',
-                        verticalalignment='top')
-    ax_img_cal.annotate("Pixel: {}".format(min_pix),
-                        xy=(geom.pix_x.value[min_pix],
-                            geom.pix_y.value[min_pix]),
-                        xycoords='data', xytext=(0.05, 0.94),
-                        textcoords='axes fraction',
-                        arrowprops=dict(facecolor='orange', width=2,
-                                        alpha=0.4),
-                        horizontalalignment='left',
-                        verticalalignment='top')
+    ax_img_cal.annotate(
+        "Pixel: {}".format(max_pix),
+        xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.98),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
+    ax_img_cal.annotate(
+        "Pixel: {}".format(min_pix),
+        xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
+        xycoords='data',
+        xytext=(0.05, 0.94),
+        textcoords='axes fraction',
+        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
+        horizontalalignment='left',
+        verticalalignment='top'
+    )
 
     fig_waveforms.suptitle("Integrator = {}".format(extractor_name))
     fig_camera.suptitle("Camera = {}".format(geom.cam_id))
@@ -225,37 +256,57 @@ class DisplayIntegrator(Tool):
                   "integration window."
 
     event_index = Int(0, help='Event index to view.').tag(config=True)
-    use_event_id = Bool(False, help='event_index will obtain an event using'
-                                    'event_id instead of '
-                                    'index.').tag(config=True)
-    telescope = Int(None, allow_none=True,
-                    help='Telescope to view. Set to None to display the first'
-                         'telescope with data.').tag(config=True)
+    use_event_id = Bool(
+        False,
+        help='event_index will obtain an event using'
+        'event_id instead of '
+        'index.'
+    ).tag(config=True)
+    telescope = Int(
+        None,
+        allow_none=True,
+        help='Telescope to view. Set to None to display the first'
+        'telescope with data.'
+    ).tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    aliases = Dict(dict(r='EventSourceFactory.product',
-                        f='EventSourceFactory.input_url',
-                        max_events='EventSourceFactory.max_events',
-                        extractor='ChargeExtractorFactory.product',
-                        window_width='ChargeExtractorFactory.window_width',
-                        window_shift='ChargeExtractorFactory.window_shift',
-                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-                        lwt='ChargeExtractorFactory.lwt',
-                        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-                        radius='CameraDL1Calibrator.radius',
-                        E='DisplayIntegrator.event_index',
-                        T='DisplayIntegrator.telescope',
-                        C='DisplayIntegrator.channel',
-                        ))
-    flags = Dict(dict(id=({'DisplayDL1Calib': {'use_event_index': True}},
-                          'event_index will obtain an event using '
-                          'event_id instead of index.')
-                      ))
-    classes = List([EventSourceFactory,
-                    ChargeExtractorFactory,
-                    CameraDL1Calibrator,
-                    ])
+    aliases = Dict(
+        dict(
+            r='EventSourceFactory.product',
+            f='EventSourceFactory.input_url',
+            max_events='EventSourceFactory.max_events',
+            extractor='ChargeExtractorFactory.product',
+            window_width='ChargeExtractorFactory.window_width',
+            window_shift='ChargeExtractorFactory.window_shift',
+            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+            lwt='ChargeExtractorFactory.lwt',
+            clip_amplitude='CameraDL1Calibrator.clip_amplitude',
+            radius='CameraDL1Calibrator.radius',
+            E='DisplayIntegrator.event_index',
+            T='DisplayIntegrator.telescope',
+            C='DisplayIntegrator.channel',
+        )
+    )
+    flags = Dict(
+        dict(
+            id=(
+                {
+                    'DisplayDL1Calib': {
+                        'use_event_index': True
+                    }
+                }, 'event_index will obtain an event using '
+                'event_id instead of index.'
+            )
+        )
+    )
+    classes = List(
+        [
+            EventSourceFactory,
+            ChargeExtractorFactory,
+            CameraDL1Calibrator,
+        ]
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -275,8 +326,7 @@ class DisplayIntegrator(Tool):
         self.extractor = ChargeExtractorFactory.produce(**kwargs)
 
         self.r1 = CameraR1CalibratorFactory.produce(
-            eventsource=eventsource,
-            **kwargs
+            eventsource=eventsource, **kwargs
         )
 
         self.dl0 = CameraDL0Reducer(**kwargs)
@@ -300,8 +350,10 @@ class DisplayIntegrator(Tool):
         if telid is None:
             telid = tels[0]
         if telid not in tels:
-            self.log.error("[event] please specify one of the following "
-                           "telescopes for this event: {}".format(tels))
+            self.log.error(
+                "[event] please specify one of the following "
+                "telescopes for this event: {}".format(tels)
+            )
             exit()
 
         extractor_name = self.extractor.__class__.__name__

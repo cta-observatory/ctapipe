@@ -6,7 +6,6 @@ from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 from matplotlib import pyplot as plt
 
-
 if __name__ == '__main__':
 
     plt.style.use("ggplot")
@@ -15,8 +14,13 @@ if __name__ == '__main__':
     arrayfile = datasets.get_dataset("PROD2_telconfig.fits.gz")
     tels = Table.read(arrayfile, hdu="TELESCOPE_LEVEL0")
 
-    adisp = ArrayDisplay(tels['TelX'], tels['TelY'], tels['MirrorArea'] * 2,
-                         title='PROD2 telescopes', autoupdate=True)
+    adisp = ArrayDisplay(
+        tels['TelX'],
+        tels['TelY'],
+        tels['MirrorArea'] * 2,
+        title='PROD2 telescopes',
+        autoupdate=True
+    )
     plt.tight_layout()
 
     values = np.zeros(len(tels))

@@ -9,7 +9,6 @@ from astropy import units as u
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import tailcuts_clean
 from ctapipe.image import hillas_parameters
-from ctapipe.instrument import CameraGeometry
 from ctapipe.io import event_source
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils import datasets, linalg
@@ -45,8 +44,9 @@ for event in source:
 
         # telescope pointing direction
         point_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-        point_altitude[tel_id] = (np.pi / 2 - event.mc.tel[
-            tel_id].altitude_raw) * u.rad
+        point_altitude[tel_id] = (
+            np.pi / 2 - event.mc.tel[tel_id].altitude_raw
+        ) * u.rad
         #        print(point_azimuth,point_altitude)
 
         # Camera Geometry required for hillas parametrization
@@ -58,8 +58,9 @@ for event in source:
         # Cleaning  of the image
         cleaned_image = image
         # create a clean mask of pixels above the threshold
-        cleanmask = tailcuts_clean(camgeom, image, picture_thresh=10,
-                                   boundary_thresh=5)
+        cleanmask = tailcuts_clean(
+            camgeom, image, picture_thresh=10, boundary_thresh=5
+        )
         # set all rejected pixels to zero
         cleaned_image[~cleanmask] = 0
 
@@ -73,8 +74,9 @@ for event in source:
     if len(hillas_params) < 2:
         continue
 
-    reco.get_great_circles(hillas_params, event.inst.subarray,
-                           point_azimuth, point_altitude)
+    reco.get_great_circles(
+        hillas_params, event.inst.subarray, point_azimuth, point_altitude
+    )
 
     # fit the gamma's direction of origin
     # return reconstructed direction (3 components) with errors on the values
@@ -94,7 +96,7 @@ for event in source:
 # calculate theta square
 thetasq = []
 for i in off_angles:
-    thetasq.append(i ** 2)
+    thetasq.append(i**2)
 
 # To plot thetasquare The number of events in th data files for LSTCam is not
 #  significantly high to give a nice thetasquare plot for gammas One can use

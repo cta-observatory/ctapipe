@@ -20,11 +20,11 @@ if __name__ == '__main__':
 
     for data in source:
 
-        print("EVENT: {}, ENERGY: {:.2f}, TELS:{}"
-              .format(data.r0.event_id,
-                      data.mc.energy,
-                      len(data.dl0.tels_with_data))
-              )
+        print(
+            "EVENT: {}, ENERGY: {:.2f}, TELS:{}".format(
+                data.r0.event_id, data.mc.energy, len(data.dl0.tels_with_data)
+            )
+        )
 
         cal.calibrate(data)
 

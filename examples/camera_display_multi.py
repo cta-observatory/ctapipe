@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Demo to show multiple shower images on a single figure using
 `CameraDisplay` and really simple toymodel shower images (not
@@ -19,7 +18,9 @@ from ctapipe.image import tailcuts_clean
 def draw_several_cams(geom, ncams=4):
 
     cmaps = ['jet', 'afmhot', 'terrain', 'autumn']
-    fig, axs = plt.subplots(1, ncams, figsize=(15, 4), sharey=True, sharex=True)
+    fig, axs = plt.subplots(
+        1, ncams, figsize=(15, 4), sharey=True, sharex=True
+    )
 
     for ii in range(ncams):
         disp = CameraDisplay(
@@ -43,8 +44,12 @@ def draw_several_cams(geom, ncams=4):
             nsb_level_pe=1000,
         )
 
-        mask = tailcuts_clean(geom, image, picture_thresh=6 * image.mean(),
-                              boundary_thresh=4 * image.mean())
+        mask = tailcuts_clean(
+            geom,
+            image,
+            picture_thresh=6 * image.mean(),
+            boundary_thresh=4 * image.mean()
+        )
         cleaned = image.copy()
         cleaned[~mask] = 0
 
