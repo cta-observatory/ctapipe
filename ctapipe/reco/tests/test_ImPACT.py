@@ -1,10 +1,11 @@
-import numpy as np
-from ctapipe.reco.ImPACT import ImPACTReconstructor
-from ctapipe.utils import get_dataset
 import astropy.units as u
-from numpy.testing import assert_allclose
-from ctapipe.io.containers import ReconstructedShowerContainer, ReconstructedEnergyContainer
+import numpy as np
 import pytest
+from numpy.testing import assert_allclose
+
+from ctapipe.io.containers import (ReconstructedShowerContainer,
+                                   ReconstructedEnergyContainer)
+from ctapipe.reco.ImPACT import ImPACTReconstructor
 
 
 class TestImPACT():
@@ -43,8 +44,10 @@ class TestImPACT():
         pixel_y = np.array([1, 1, 1, 0.]) * u.rad
         pixel_area = np.array([0, 0, 0, 0]) * u.deg * u.deg
 
-        self.impact_reco.set_event_properties({1: image}, {1: pixel_x}, {1: pixel_y}, {1: pixel_area},
-                                              {1: "CHEC"}, {1: 0 * u.m}, {1: 0 * u.m}, {1: 0 * u.m})
+        self.impact_reco.set_event_properties({1: image}, {1: pixel_x},
+                                              {1: pixel_y}, {1: pixel_area},
+                                              {1: "CHEC"}, {1: 0 * u.m},
+                                              {1: 0 * u.m}, {1: 0 * u.m})
         self.impact_reco.get_brightest_mean(num_pix=3)
 
         assert_allclose(self.impact_reco.peak_x[0], 1, rtol=0, atol=0.001)
@@ -55,11 +58,13 @@ class TestImPACT():
         x = np.array([1])
         y = np.array([0])
 
-        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(90))
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0,
+                                                      np.deg2rad(90))
         assert_allclose(xt, 0, rtol=0, atol=0.001)
         assert_allclose(yt, 1, rtol=0, atol=0.001)
 
-        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0, np.deg2rad(180))
+        xt, yt = ImPACTReconstructor.rotate_translate(x, y, 0, 0,
+                                                      np.deg2rad(180))
         assert_allclose(xt, -1, rtol=0, atol=0.001)
         assert_allclose(yt, 0, rtol=0, atol=0.001)
 
@@ -85,7 +90,8 @@ class TestImPACT():
                                               {1: pixel_y}, {1: pixel_area},
                                               {1: "CHEC"}, {1: 0 * u.m},
                                               {1: 0 * u.m},
-                                              array_direction=[0 * u.deg, 0 * u.deg])
+                                              array_direction=[0 * u.deg,
+                                                               0 * u.deg])
 
         max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
 
@@ -93,7 +99,6 @@ class TestImPACT():
 
     @pytest.mark.skip('need a dataset for this to work')
     def test_image_prediction(self):
-
         pixel_x = np.array([0]) * u.deg
         pixel_y = np.array([0]) * u.deg
 
@@ -102,8 +107,10 @@ class TestImPACT():
 
         self.impact_reco.set_event_properties({1: image}, {1: pixel_x},
                                               {1: pixel_y}, {1: pixel_area},
-                                              {1: "CHEC"}, {1: 0 * u.m}, {1: 0 * u.m},
-                                              array_direction=[0 * u.deg, 0 * u.deg])
+                                              {1: "CHEC"}, {1: 0 * u.m},
+                                              {1: 0 * u.m},
+                                              array_direction=[0 * u.deg,
+                                                               0 * u.deg])
 
         """First check image prediction by directly accessing the function"""
         pred = self.impact_reco.image_prediction("CHEC", zenith=0, azimuth=0,
@@ -131,7 +138,6 @@ class TestImPACT():
 
     @pytest.mark.skip('need a dataset for this to work')
     def test_likelihood(self):
-
         pixel_x = np.array([0]) * u.deg
         pixel_y = np.array([0]) * u.deg
 
@@ -140,8 +146,10 @@ class TestImPACT():
 
         self.impact_reco.set_event_properties({1: image}, {1: pixel_x},
                                               {1: pixel_y}, {1: pixel_area},
-                                              {1: "CHEC"}, {1: 0 * u.m}, {1: 0 * u.m},
-                                              array_direction=[0 * u.deg, 0 * u.deg])
+                                              {1: "CHEC"}, {1: 0 * u.m},
+                                              {1: 0 * u.m},
+                                              array_direction=[0 * u.deg,
+                                                               0 * u.deg])
 
         like = self.impact_reco.get_likelihood(0, 0, 0, 100, 1, 0)
         assert like is not np.nan and like > 0

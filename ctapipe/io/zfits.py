@@ -8,21 +8,20 @@ import logging
 
 import numpy as np
 import numpy.ma as ma
-
-from .containers import R0Container, R0CameraContainer
-from ctapipe.core import Container
-
 from astropy import units as u
-from astropy.coordinates import Angle
 from astropy.time import Time
+
+from ctapipe.core import Container
+from .containers import R0Container
 
 logger = logging.getLogger(__name__)
 
 try:
     import protozfitsreader
 except ImportError as err:
-    logger.fatal("the `protozfitsreader` python module is required to access MC data: {}"
-                 .format(err))
+    logger.fatal(
+        "the `protozfitsreader` python module is required to access MC data: {}"
+        .format(err))
     raise err
 
 __all__ = [
@@ -54,7 +53,6 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
         raise RuntimeError("zfits_event_source failed to open '{}'"
                            .format(url))
 
-
     counter = 0
     eventstream = zfits.move_to_next_event()
 
@@ -69,7 +67,7 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
     for obs_id, event_id in eventstream:
         container.dl0.obs_id = obs_id
         container.dl0.event_id = event_id
-        #container.r0.event_num = zfits.get_event_number()
+        # container.r0.event_num = zfits.get_event_number()
 
         # We assume we are in the single-telescope case always:
         container.dl0.tels_with_data = [zfits.get_telescope_id(), ]
@@ -80,7 +78,6 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
                                        format='gps', scale='utc')
 
         container.count = counter
-        t = np.arange(n_samples)
 
         container.dl0.tel = dict()  # clear the previous telescopes
 
@@ -90,32 +87,30 @@ def zfits_event_source(url, max_events=None, allowed_tels=None):
             # fill pixel position dictionary, if not already done:
             # TODO: tel_id here is a dummy parameter, we are dealing with
             # single-telescope data!. TBR.
-            if tel_id not in container.inst.pixel_pos:
-                container.inst.pixel_pos[tel_id] = \
-                    zfits.get_pixel_position(tel_id) * u.m
 
             nchans = zfits.get_num_channels(tel_id)
-            container.inst.num_channels[tel_id] = nchans
 
-            for chan in range(nchans): 
-                samples = zfits.get_adc_sample(channel=chan, telescope_id=tel_id)
-                integrated = zfits.get_adc_sum(channel=chan, telescope_id=tel_id)
+            for chan in range(nchans):
+                tel = container.dl0.tel[tel_id]
+                samples = zfits.get_adc_sample(channel=chan,
+                                               telescope_id=tel_id)
+                integrated = zfits.get_adc_sum(channel=chan,
+                                               telescope_id=tel_id)
 
-                container.dl0.tel[tel_id].pixel_samples[chan] = samples.keys()
+                tel.pixel_samples[chan] = samples.keys()
 
                 mask = np.zeros(zfits.get_number_of_pixels(), dtype=bool)
                 mask[np.array(samples.keys())] = True
-                container.dl0.tel[tel_id].waveform[chan] = \
-                    ma.array(np.array(samples.values()), mask=mask)
+                tel.waveform[chan] = ma.array(np.array(samples.values()),
+                                              mask=mask)
 
                 mask = np.zeros(zfits.get_number_of_pixels(), dtype=bool)
                 mask[np.array(integrated.keys())] = True
-                container.dl0.tel[tel_id].adc_integrated[chan] = \
-                    ma.array(np.array(integrated.values()), mask=mask)
+                tel.adc_integrated[chan] = ma.array(np.array(integrated.values()),
+                                                    mask=mask)
 
         yield container
         counter += 1
 
         if max_events is not None and counter > max_events:
             return
-
