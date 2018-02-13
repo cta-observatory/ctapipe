@@ -5,9 +5,8 @@ telescope, and display it
 """
 
 import numpy as np
-from astropy.table import Table
 from ctapipe.core import Tool
-from ctapipe.core.traits import *
+from ctapipe.core.traits import Unicode, Integer, Dict, List
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.visualization import CameraDisplay
 from matplotlib import pyplot as plt
@@ -18,11 +17,12 @@ class ImageSumDisplayerTool(Tool):
     description = Unicode(__doc__)
     name = "ctapipe-image-sum-display"
 
-    infile = Unicode(help='input simtelarray file',
-                     default="/Users/kosack/Data/CTA/Prod3/gamma.simtel.gz"
-                     ).tag(config=True)
-    telgroup = Integer(help='telescope group number', default=1).tag(
-        config=True)
+    infile = Unicode(
+        help='input simtelarray file',
+        default="/Users/kosack/Data/CTA/Prod3/gamma.simtel.gz"
+    ).tag(config=True)
+
+    telgroup = Integer(help='telescope group number', default=1).tag(config=True)
 
     max_events = Integer(help='stop after this many events if non-zero',
                          default_value=0, min=0).tag(config=True)
@@ -37,6 +37,7 @@ class ImageSumDisplayerTool(Tool):
                     'telgroup': 'ImageSumDisplayerTool.telgroup',
                     'max-events': 'ImageSumDisplayerTool.max_events',
                     'output-suffix': 'ImageSumDisplayerTool.output_suffix'})
+
     classes = List([CameraCalibrator, HESSIOEventSource])
 
     def setup(self):

@@ -1,4 +1,4 @@
-from ctapipe.image.timing_parameters import *
+from ctapipe.image.timing_parameters import timing_parameters
 import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
