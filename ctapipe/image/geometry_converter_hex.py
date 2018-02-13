@@ -1,7 +1,7 @@
 __author__ = "@tino-michael"
 
 import logging
-from collections import namedtuple
+
 import numpy as np
 from astropy import units as u
 from numba import jit
@@ -9,7 +9,6 @@ from numba import jit
 from ctapipe.instrument import CameraGeometry
 
 logger = logging.getLogger(__name__)
-
 
 __all__ = [
     "convert_geometry_hex1d_to_rect2d",
@@ -282,10 +281,10 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     # with the maximal extension of the axes and the size of the pixels,
     # determine the number of bins in each direction
-    NBinsx = np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2
-    NBinsy = np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2
-    x_edges = np.linspace(min(pix_x).value, max(pix_x).value, NBinsx)
-    y_edges = np.linspace(min(pix_y).value, max(pix_y).value, NBinsy)
+    n_bins_x = np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2
+    n_bins_y = np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2
+    x_edges = np.linspace(min(pix_x).value, max(pix_x).value, n_bins_x)
+    y_edges = np.linspace(min(pix_y).value, max(pix_y).value, n_bins_y)
 
     return x_edges, y_edges, x_scale
 
@@ -378,8 +377,9 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
         # the area of the pixels (note that this is still a deformed
         # image)
-        pix_area = np.ones_like(grid_x) \
-            * (x_edges[1] - x_edges[0]) * (y_edges[1] - y_edges[0])
+        pix_area = (np.ones_like(grid_x)
+                    * (x_edges[1] - x_edges[0])
+                    * (y_edges[1] - y_edges[0]))
 
         # creating a new geometry object with the attributes we just determined
         new_geom = CameraGeometry(
@@ -397,7 +397,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         # create a transfer map by enumerating all pixel positions in a 2D histogram
         hex_to_rect_map = np.histogramdd([rot_y, rot_x],
                                          bins=(y_edges, x_edges),
-                                         weights=np.arange(len(signal)))[0].astype(int)
+                                         weights=np.arange(len(signal)))[
+            0].astype(int)
         # bins that do not correspond to the original image get an entry of `-1`
         hex_to_rect_map[~square_mask] = -1
 
@@ -440,7 +441,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     return new_geom, rot_img
 
 
-def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None):
+def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
+                                           add_rot=None):
     """reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d
     back to a hexagonal grid stored in 1D arrays
 
@@ -473,18 +475,18 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     given, modified one by: `geom.cam_id.split('_')[0]`.
     """
 
-
     if key not in rot_buffer:
-        # if the key is not in the buffer from the initial conversion (maybe because you
-        # did it in another process?), perform a mock conversion here
-        # ATTENTION assumes the original cam_id can be inferred from the given, modified
-        # one by by `geom.cam_id.split('_')[0]`
+        # if the key is not in the buffer from the initial conversion (maybe
+        # because you did it in another process?), perform a mock conversion
+        # here ATTENTION assumes the original cam_id can be inferred from the
+        #  given, modified one by by `geom.cam_id.split('_')[0]`
         try:
             orig_geom = CameraGeometry.from_name(geom.cam_id.split('_')[0])
         except:
-            raise ValueError("could not deduce `CameraGeometry` from given `geom`...\n"
-                             "please provide a `geom`, so that "
-                             "`geom.cam_id.split('_')[0]` is a known `cam_id`")
+            raise ValueError(
+                "could not deduce `CameraGeometry` from given `geom`...\n"
+                "please provide a `geom`, so that "
+                "`geom.cam_id.split('_')[0]` is a known `cam_id`")
 
         orig_signal = np.zeros(len(orig_geom.pix_x))
         convert_geometry_hex1d_to_rect2d(geom=orig_geom, signal=orig_signal,
@@ -508,9 +510,8 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     # if `signal` has a third dimension, that is the time
     # and we need to roll some axes again...
     if signal.ndim == 3:
-
         # unrot_img[hex_square_map[..., new_geom.mask]] = \
-            # np.rollaxis(signal, -1, 0)[..., new_geom.mask]
+        # np.rollaxis(signal, -1, 0)[..., new_geom.mask]
 
         # reshape the image so that the time is the first axis
         # and then roll the time to the back
@@ -520,6 +521,5 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None, add_rot=None)
     # else:
     #     unrot_img[hex_square_map[new_geom.mask]] = \
     #         signal[new_geom.mask]
-
 
     return old_geom, unrot_img

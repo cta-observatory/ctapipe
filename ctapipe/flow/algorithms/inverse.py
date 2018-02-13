@@ -6,6 +6,7 @@ class Inverse(Component):
     """Add class represents a Stage for pipeline.
     It returns inverted value of received value
     """
+
     def init(self):
         self.log.debug("--- Add init ---")
         return True

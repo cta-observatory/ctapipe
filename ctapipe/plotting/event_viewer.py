@@ -84,8 +84,8 @@ class EventViewer(Component):
         ny = nn
 
         while nx * ny >= ntels:
-            ny-=1
-        ny+=1
+            ny -= 1
+        ny += 1
         while nx * ny >= ntels:
             nx -= 1
         nx += 1
@@ -108,16 +108,15 @@ class EventViewer(Component):
             reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_grid[1])
             # Create plot of telescope positions at ground level
 
-
             # Draw MC position (this should change later)
             array.draw_position(event.mc.core_x, event.mc.core_y, use_centre=True)
-            array.draw_array(((-300,300),(-300,300)))
+            array.draw_array(((-300, 300), (-300, 300)))
 
             # If we have valid Hillas parameters we should draw them in the Nominal system
             if hillas_parameters is not None:
                 array.overlay_hillas(hillas_parameters, draw_axes=True)
 
-                nominal =  NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
+                nominal = NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
                 nominal.draw_array()
         self.nominal_view = nominal
         self.array_view = array
@@ -145,10 +144,10 @@ class EventViewer(Component):
         -------
             Camera display
         """
-        #if tel_id not in self.cam_display:
+        # if tel_id not in self.cam_display:
         # Argh this is annoying, for some reason we cannot cahe the displays
         self.cam_display[tel_id] = visualization.CameraDisplay(geom, title="CT{"
-                                                                        "0}".format(tel_id))
+                                                               "0}".format(tel_id))
         self.cam_display[tel_id].add_colorbar()
         self.cam_display[tel_id].pixels.set_antialiaseds(False)
         self.cam_display[tel_id].autoupdate = True

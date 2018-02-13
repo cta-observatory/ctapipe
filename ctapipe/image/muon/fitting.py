@@ -151,7 +151,7 @@ def impact_parameter_chisq_fit(
         center_y,
         mirror_radius,
         bins=30,
-        ):
+):
     '''
     Impact parameter calculation for a ring fit before.
     This is fitting the theoretical angular light distribution to the
@@ -248,7 +248,7 @@ def radial_light_intensity(
         mirror_radius,
         lambda1=300e-9,
         lambda2=900e-9,
-        ):
+):
     '''
     Amount of photons per azimuthal angle phi on the muon ring as given in
     formula (5) of [vacanti94]_ 
@@ -273,7 +273,7 @@ def radial_light_intensity(
     Returns
     -------
     light_density: float or array-like
-        
+
     '''
 
     return (
@@ -300,7 +300,7 @@ def expected_pixel_light_content(
         focal_length,
         lambda1=300e-9,
         lambda2=900e-9,
-        ):
+):
     '''
     Calculate the expected light content of each pixel for a muon ring with the
     given properties
@@ -365,18 +365,18 @@ def efficiency_fit(
         focal_length,
         lambda1=300e-9,
         lambda2=900e-9,
-        ):
+):
     '''
     Estimate optical efficiency for a muon ring using method of [mitchell15]_.
     This is performing several steps:
-    
+
     1. fit r, x, y and width with the psf_likelihood_fit
     2. fit impact parameter with impact_parameter_chisq_fit
     3. calculate the theoretically expected light contents for each pixel 
        for the estimated parameters
     4. calculate the ratio between the observed and the expected number
        of photons.
-        
+
     Parameters
     ----------
     pe_charge: array-like
@@ -446,7 +446,7 @@ def efficiency_fit(
     return radius, center_x, center_y, sigma_psf, imp_par, phi_max, efficiency
 
 
-def _impact_parameter_chisq(params,  phi, hist, mirror_radius):
+def _impact_parameter_chisq(params, phi, hist, mirror_radius):
     ''' function (6) from G. Vacanti et. al., Astroparticle Physics 2, 1994, 1-11 '''
 
     imp_par, phi_max, scale = params

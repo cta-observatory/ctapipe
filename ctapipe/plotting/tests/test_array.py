@@ -59,7 +59,6 @@ def test_array_draw():
             geom.pix_x = nom_coord.x
             geom.pix_y = nom_coord.y
 
-
             mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
 

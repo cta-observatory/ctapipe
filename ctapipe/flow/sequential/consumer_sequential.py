@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
 
+
 class ConsumerSequential():
 
     """`ConsumerSequential` class represents a Consumer pipeline Step.
@@ -34,7 +35,7 @@ class ConsumerSequential():
             return False
         return True
 
-    def run(self,inputs=None):
+    def run(self, inputs=None):
         """ Executes coroutine run method
 
         Parameters
@@ -42,7 +43,7 @@ class ConsumerSequential():
         inputs: input for coroutine.run
         """
         self.coroutine.run(inputs)
-        self.nb_job_done+=1
+        self.nb_job_done += 1
 
     def finish(self):
         """

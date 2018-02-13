@@ -14,8 +14,8 @@ def test_prepare_model():
                                  ],
                     "ASTRICam": [[10, 1], [20, 2], [30, 3], [9, 0.9],
                                  ]}
-    target_list = {"FlashCam": np.array([1, 2, 3, 0.9])*u.TeV,
-                   "ASTRICam": np.array([1, 2, 3, 0.9])*u.TeV}
+    target_list = {"FlashCam": np.array([1, 2, 3, 0.9]) * u.TeV,
+                   "ASTRICam": np.array([1, 2, 3, 0.9]) * u.TeV}
 
     reg = EnergyRegressor(cam_id_list=cam_id_list)
     reg.fit(feature_list, target_list)

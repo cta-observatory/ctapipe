@@ -95,8 +95,8 @@ class EventSource(Component):
 
     allowed_tels = Set(
         help=('list of allowed tel_ids, others will be ignored. '
-             'If left empty, all telescopes in the input stream '
-             'will be included')
+              'If left empty, all telescopes in the input stream '
+              'will be included')
     ).tag(config=True)
 
 

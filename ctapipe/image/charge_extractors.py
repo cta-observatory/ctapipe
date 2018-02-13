@@ -16,10 +16,11 @@ from ctapipe.utils.neighbour_sum import get_sum_array
 
 
 class ChargeExtractor(Component):
+
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Base component to handle the extraction of charge from an image cube.
-        
+
         Attributes
         ----------
         neighbours : ndarray
@@ -75,13 +76,13 @@ class ChargeExtractor(Component):
     def get_peakpos(self, waveforms):
         """
         Get the peak position from the waveforms
-        
+
         Parameters
         ----------
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_chan, n_pix, n_samples).
-            
+
         Returns
         -------
         peakpos : ndarray
@@ -113,6 +114,7 @@ class ChargeExtractor(Component):
 
 
 class Integrator(ChargeExtractor):
+
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Base component for charge extractors that perform integration.
@@ -189,7 +191,7 @@ class Integrator(ChargeExtractor):
     def _get_window_width(self, waveforms):
         """
         Get the width of the integration window
-        
+
         Parameters
         ----------
         waveforms : ndarray
@@ -294,7 +296,7 @@ class Integrator(ChargeExtractor):
         """
         Consolidating function to obtain the window and peakpos given 
         a waveform.
-        
+
         Parameters
         ----------
         waveforms : ndarray
@@ -324,6 +326,7 @@ class Integrator(ChargeExtractor):
 
 
 class FullIntegrator(Integrator):
+
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Charge extractor that integrates the entire waveform.
@@ -467,7 +470,7 @@ class PeakFindingIntegrator(WindowIntegrator):
         """
         Base component for charge extractors that perform integration within
         a window defined around a peak position.
-        
+
         Attributes
         ----------
         neighbours : list
@@ -551,6 +554,7 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
+
     def __init__(self, config=None, tool=None, **kwargs):
 
         super().__init__(config=config, tool=tool, **kwargs)
@@ -596,6 +600,7 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
          Set to None if no Tool to pass.
      kwargs
      """
+
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
@@ -676,6 +681,7 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         Set to None if no Tool to pass.
     kwargs
     """
+
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 

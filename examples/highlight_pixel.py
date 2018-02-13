@@ -1,7 +1,8 @@
+from matplotlib import pyplot as plt
+
 from ctapipe.image import toymodel
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
 
 if __name__ == '__main__':
 
@@ -9,7 +10,6 @@ if __name__ == '__main__':
 
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(1, 1, 1)
-
 
     geom = CameraGeometry.from_name('NectarCam')
     disp = CameraDisplay(geom, ax=ax)

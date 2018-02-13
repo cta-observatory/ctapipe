@@ -29,6 +29,3 @@ def test_eventplotter():
     assert line is not None
     np.testing.assert_array_equal(line.get_xdata(), [0, 0])
 
-
-if __name__ == '__main__':
-    test_eventplotter()

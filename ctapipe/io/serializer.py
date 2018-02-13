@@ -105,6 +105,7 @@ class Serializer:
 
 
 class Writer(ABC):
+
     def __init__(self, filename):
         self.outfile = filename
 
@@ -250,6 +251,7 @@ class TableWriter(Writer):
     """
     Fits table writer
     """
+
     def __init__(self, outfile, format='fits', mode='w'):
         """
         Parameters

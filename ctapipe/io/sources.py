@@ -7,6 +7,7 @@ __all__ = ['PickleSource', 'FITSSource']
 
 
 class Source(ABC):
+
     def __init__(self, filename):
         self.infile = filename
         self.file_object = None
@@ -28,6 +29,7 @@ class PickleSource(Source):
     """
     Reads a pickled file and yield containers
     """
+
     def __init__(self, filename):
         """
         Parameters
@@ -89,6 +91,7 @@ class FITSSource(Source):
     """
     Reads a FITS file and yield containers
     """
+
     def __init__(self, filename):
         """
         Parameters

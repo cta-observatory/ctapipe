@@ -28,10 +28,12 @@ def generate_input_containers():
 # Setup
 input_containers = generate_input_containers()
 
+
 @pytest.fixture(scope='session')
 def binary_filename(tmpdir_factory):
     return str(tmpdir_factory.mktemp('data')
                .join('pickle_data.pickle.gz'))
+
 
 @pytest.fixture(scope='session')
 def fits_file_name(tmpdir_factory):
