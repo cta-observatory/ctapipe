@@ -281,10 +281,10 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     # with the maximal extension of the axes and the size of the pixels,
     # determine the number of bins in each direction
-    NBinsx = np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2
-    NBinsy = np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2
-    x_edges = np.linspace(min(pix_x).value, max(pix_x).value, NBinsx)
-    y_edges = np.linspace(min(pix_y).value, max(pix_y).value, NBinsy)
+    n_bins_x = np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2
+    n_bins_y = np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2
+    x_edges = np.linspace(min(pix_x).value, max(pix_x).value, n_bins_x)
+    y_edges = np.linspace(min(pix_y).value, max(pix_y).value, n_bins_y)
 
     return x_edges, y_edges, x_scale
 
