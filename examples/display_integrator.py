@@ -73,18 +73,14 @@ def plot(event, telid, chan, extractor_name):
         .format(max_pix, t_pe[max_pix], dl1[max_pix])
     )
     max_ylim = ax_max_pix.get_ylim()
-    ax_max_pix.plot(
-        [start[max_pix], start[max_pix]],
-        ax_max_pix.get_ylim(),
-        color='r',
-        alpha=1
-    )
-    ax_max_pix.plot(
-        [end[max_pix], end[max_pix]],
-        ax_max_pix.get_ylim(),
-        color='r',
-        alpha=1
-    )
+    ax_max_pix.plot([start[max_pix], start[max_pix]],
+                    ax_max_pix.get_ylim(),
+                    color='r',
+                    alpha=1)
+    ax_max_pix.plot([end[max_pix], end[max_pix]],
+                    ax_max_pix.get_ylim(),
+                    color='r',
+                    alpha=1)
     for i, ax in ax_max_nei.items():
         if len(max_pixel_nei) > i:
             pix = max_pixel_nei[i]
@@ -96,9 +92,10 @@ def plot(event, telid, chan, extractor_name):
                 .format(pix, t_pe[pix], dl1[pix])
             )
             ax.set_ylim(max_ylim)
-            ax.plot(
-                [start[pix], start[pix]], ax.get_ylim(), color='r', alpha=1
-            )
+            ax.plot([start[pix], start[pix]],
+                    ax.get_ylim(),
+                    color='r',
+                    alpha=1)
             ax.plot([end[pix], end[pix]], ax.get_ylim(), color='r', alpha=1)
 
     # Draw min pixel traces
@@ -110,18 +107,14 @@ def plot(event, telid, chan, extractor_name):
         .format(min_pix, t_pe[min_pix], dl1[min_pix])
     )
     ax_min_pix.set_ylim(max_ylim)
-    ax_min_pix.plot(
-        [start[min_pix], start[min_pix]],
-        ax_min_pix.get_ylim(),
-        color='r',
-        alpha=1
-    )
-    ax_min_pix.plot(
-        [end[min_pix], end[min_pix]],
-        ax_min_pix.get_ylim(),
-        color='r',
-        alpha=1
-    )
+    ax_min_pix.plot([start[min_pix], start[min_pix]],
+                    ax_min_pix.get_ylim(),
+                    color='r',
+                    alpha=1)
+    ax_min_pix.plot([end[min_pix], end[min_pix]],
+                    ax_min_pix.get_ylim(),
+                    color='r',
+                    alpha=1)
     for i, ax in ax_min_nei.items():
         if len(min_pixel_nei) > i:
             pix = min_pixel_nei[i]
@@ -133,9 +126,10 @@ def plot(event, telid, chan, extractor_name):
                 .format(pix, t_pe[pix], dl1[pix])
             )
             ax.set_ylim(max_ylim)
-            ax.plot(
-                [start[pix], start[pix]], ax.get_ylim(), color='r', alpha=1
-            )
+            ax.plot([start[pix], start[pix]],
+                    ax.get_ylim(),
+                    color='r',
+                    alpha=1)
             ax.plot([end[pix], end[pix]], ax.get_ylim(), color='r', alpha=1)
 
     # Draw cameras
@@ -290,23 +284,19 @@ class DisplayIntegrator(Tool):
     )
     flags = Dict(
         dict(
-            id=(
-                {
-                    'DisplayDL1Calib': {
-                        'use_event_index': True
-                    }
-                }, 'event_index will obtain an event using '
-                'event_id instead of index.'
-            )
+            id=({
+                'DisplayDL1Calib': {
+                    'use_event_index': True
+                }
+            }, 'event_index will obtain an event using '
+                'event_id instead of index.')
         )
     )
-    classes = List(
-        [
-            EventSourceFactory,
-            ChargeExtractorFactory,
-            CameraDL1Calibrator,
-        ]
-    )
+    classes = List([
+        EventSourceFactory,
+        ChargeExtractorFactory,
+        CameraDL1Calibrator,
+    ])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

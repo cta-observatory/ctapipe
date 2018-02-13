@@ -52,21 +52,19 @@ class SingleTelEventDisplay(Tool):
         help='display progress bar', default_value=True
     ).tag(config=True)
 
-    aliases = Dict(
-        {
-            'infile': 'EventSourceFactory.input_url',
-            'tel': 'SingleTelEventDisplay.tel',
-            'max-events': 'EventSourceFactory.max_events',
-            'channel': 'SingleTelEventDisplay.channel',
-            'write': 'SingleTelEventDisplay.write',
-            'clean': 'SingleTelEventDisplay.clean',
-            'hillas': 'SingleTelEventDisplay.hillas',
-            'samples': 'SingleTelEventDisplay.samples',
-            'display': 'SingleTelEventDisplay.display',
-            'delay': 'SingleTelEventDisplay.delay',
-            'progress': 'SingleTelEventDisplay.progress'
-        }
-    )
+    aliases = Dict({
+        'infile': 'EventSourceFactory.input_url',
+        'tel': 'SingleTelEventDisplay.tel',
+        'max-events': 'EventSourceFactory.max_events',
+        'channel': 'SingleTelEventDisplay.channel',
+        'write': 'SingleTelEventDisplay.write',
+        'clean': 'SingleTelEventDisplay.clean',
+        'hillas': 'SingleTelEventDisplay.hillas',
+        'samples': 'SingleTelEventDisplay.samples',
+        'display': 'SingleTelEventDisplay.display',
+        'delay': 'SingleTelEventDisplay.delay',
+        'progress': 'SingleTelEventDisplay.progress'
+    })
 
     classes = List([EventSourceFactory, CameraCalibrator])
 

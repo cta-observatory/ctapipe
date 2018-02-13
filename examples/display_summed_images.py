@@ -38,14 +38,12 @@ class ImageSumDisplayerTool(Tool):
         default_value=""
     ).tag(config=True)
 
-    aliases = Dict(
-        {
-            'infile': 'ImageSumDisplayerTool.infile',
-            'telgroup': 'ImageSumDisplayerTool.telgroup',
-            'max-events': 'ImageSumDisplayerTool.max_events',
-            'output-suffix': 'ImageSumDisplayerTool.output_suffix'
-        }
-    )
+    aliases = Dict({
+        'infile': 'ImageSumDisplayerTool.infile',
+        'telgroup': 'ImageSumDisplayerTool.telgroup',
+        'max-events': 'ImageSumDisplayerTool.max_events',
+        'output-suffix': 'ImageSumDisplayerTool.output_suffix'
+    })
 
     classes = List([CameraCalibrator, HESSIOEventSource])
 

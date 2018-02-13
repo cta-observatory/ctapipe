@@ -81,12 +81,11 @@ class ImagePlotter(Component):
             tmaxmin = event.dl0.tel[telid].waveform.shape[2]
             t_chargemax = peakpos[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
-                'cmap_t', [
-                    (0 / tmaxmin, 'darkgreen'),
-                    (0.6 * t_chargemax / tmaxmin, 'green'),
-                    (t_chargemax / tmaxmin, 'yellow'),
-                    (1.4 * t_chargemax / tmaxmin, 'blue'), (1, 'darkblue')
-                ]
+                'cmap_t',
+                [(0 / tmaxmin, 'darkgreen'),
+                 (0.6 * t_chargemax / tmaxmin, 'green'),
+                 (t_chargemax / tmaxmin, 'yellow'),
+                 (1.4 * t_chargemax / tmaxmin, 'blue'), (1, 'darkblue')]
             )
             self.c_peakpos.pixels.set_cmap(cmap_time)
 
@@ -156,22 +155,18 @@ class DisplayDL1Calib(Tool):
     )
     flags = Dict(
         dict(
-            D=(
-                {
-                    'ImagePlotter': {
-                        'display': True
-                    }
-                }, "Display the photoelectron images on-screen as they "
-                "are produced."
-            )
+            D=({
+                'ImagePlotter': {
+                    'display': True
+                }
+            }, "Display the photoelectron images on-screen as they "
+               "are produced.")
         )
     )
-    classes = List(
-        [
-            EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
-            ImagePlotter
-        ]
-    )
+    classes = List([
+        EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
+        ImagePlotter
+    ])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

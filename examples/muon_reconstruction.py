@@ -53,13 +53,11 @@ class MuonDisplayerTool(Tool):
         CameraCalibrator,
     ])
 
-    aliases = t.Dict(
-        {
-            'infile': 'MuonDisplayerTool.infile',
-            'outfile': 'MuonDisplayerTool.outfile',
-            'display': 'MuonDisplayerTool.display'
-        }
-    )
+    aliases = t.Dict({
+        'infile': 'MuonDisplayerTool.infile',
+        'outfile': 'MuonDisplayerTool.outfile',
+        'display': 'MuonDisplayerTool.display'
+    })
 
     def setup(self):
         self.calib = CameraCalibrator(
