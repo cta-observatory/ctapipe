@@ -194,7 +194,8 @@ class HESSIOEventSource(EventSource):
                 num_tiles = file.get_mirror_number(tel_id)
                 tel_pos = file.get_telescope_position(tel_id) * u.m
 
-                tel = TelescopeDescription.guess(*pix_pos, foclen)
+                tel = TelescopeDescription.guess(*pix_pos,
+                                                 equivalent_focal_length=foclen)
                 tel.optics.mirror_area = mirror_area
                 tel.optics.num_mirror_tiles = num_tiles
                 subarray.tels[tel_id] = tel
