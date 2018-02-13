@@ -93,7 +93,7 @@ def test_fit_origin():
     np.testing.assert_allclose(dir_fit_crosses, [0, 0, 1], atol=1e-3)
 
 
-def test_FitGammaHillas():
+def test_reconstruction():
     '''
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
@@ -147,9 +147,3 @@ def test_FitGammaHillas():
         fit_result.core_x.to(u.m)
         assert fit_result.is_valid
         return
-
-
-if __name__ == "__main__":
-    test_fit_core()
-    test_fit_origin()
-    test_FitGammaHillas()
