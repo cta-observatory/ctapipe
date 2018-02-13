@@ -77,8 +77,8 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     ped = np.asarray(ped)
 
     sq = 1. / np.sqrt(2 * math.pi * (np.power(ped, 2)
-                                     + prediction * (
-                                                 1 + np.power(spe_width, 2))))
+                                     + prediction
+                                     * (1 + np.power(spe_width, 2))))
 
     diff = np.power(image - prediction, 2.)
     denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
@@ -146,13 +146,11 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
 
     first_term = (np.power(prediction, pe_summed[:, np.newaxis])
                   * np.exp(-1 * prediction))
-    first_term /= (
-            pe_factorial[:, np.newaxis]
-            * np.sqrt(math.pi * 2 * (ped * ped + pe_summed[:, np.newaxis] *
-                                     spe_width * spe_width))
-    )
+    first_term /= (pe_factorial[:, np.newaxis]
+                   * np.sqrt(math.pi * 2 * (ped * ped + pe_summed[:, np.newaxis]
+                                            * spe_width * spe_width)))
 
-        # Throw error if we get NaN in likelihood
+    # Throw error if we get NaN in likelihood
     if np.any(np.isnan(first_term)):
         raise PixelLikelihoodError("Likelihood returning NaN,"
                                    "likely due to extremely high signal"
@@ -354,7 +352,7 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
         PixelLikelihoodError(
             "Image and prediction arrays have different dimensions Image "
             "shape: {} Prediction shape: {}"
-                .format(image.shape, prediction.shape)
+            .format(image.shape, prediction.shape)
         )
 
     chi_square = (image - prediction) * (image - prediction)

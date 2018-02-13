@@ -320,7 +320,7 @@ class HillasIntersection(Reconstructor):
         mean_height *= np.cos(zen)
 
         # Add on the height of the detector above sea level
-        mean_height += 2100 # TODO: replace with instrument info
+        mean_height += 2100  # TODO: replace with instrument info
 
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
