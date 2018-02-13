@@ -20,7 +20,6 @@ from ctapipe.core.traits import *
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
-from ctapipe.instrument import CameraGeometry
 from ctapipe.io import EventSourceFactory
 from ctapipe.visualization import CameraDisplay
 
