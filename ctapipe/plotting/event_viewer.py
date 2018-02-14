@@ -99,7 +99,7 @@ class EventViewer(Component):
             geom = event.inst.subarray.tel[tel_id].camera
             self.get_camera_view(tel_id,
                                  image=images.tel[tel_id].image[0],
-                                 ax=ax,
+                                 axis=ax,
                                  geom=geom)
 
         # If we want to draw the Hillas parameters in different planes we need to make a couple more viewers

@@ -52,7 +52,7 @@ def zfits_event_source(url, max_events=None):
     counter = 0
     eventstream = zfits.move_to_next_event()
 
-    container = Container("zfits_container")
+    container = Container()
     container.meta.add_item('zfits__input', url)
     container.meta.add_item('zfits__max_events', events)
     container.meta.add_item('pixel_pos', dict())

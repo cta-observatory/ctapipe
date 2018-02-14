@@ -246,6 +246,6 @@ def analyze_muon_source(source, params=None, geom_dict=None):
     numev = 0
     for event in source:  # Put a limit on number of events
         numev += 1
-        analyzed_muon = analyze_muon_event(event, params, geom_dict)
+        analyzed_muon = analyze_muon_event(event)
 
         yield analyzed_muon

@@ -29,7 +29,7 @@ class TestImPACT():
                                               {1: "CHEC"}, {1: 0 * u.m},
                                               {1: 0 * u.m}, {1: 0 * u.m})
 
-        self.impact_reco.get_brightest_mean(num_pix=pixel_x.shape[0])
+        self.impact_reco.get_brightest_mean()
 
         assert_allclose(self.impact_reco.peak_x[0], 0, rtol=0, atol=0.001)
         assert_allclose(self.impact_reco.peak_y[0], 0, rtol=0, atol=0.001)
@@ -48,7 +48,7 @@ class TestImPACT():
                                               {1: pixel_y}, {1: pixel_area},
                                               {1: "CHEC"}, {1: 0 * u.m},
                                               {1: 0 * u.m}, {1: 0 * u.m})
-        self.impact_reco.get_brightest_mean(num_pix=3)
+        self.impact_reco.get_brightest_mean()
 
         assert_allclose(self.impact_reco.peak_x[0], 1, rtol=0, atol=0.001)
         assert_allclose(self.impact_reco.peak_y[0], 1, rtol=0, atol=0.001)

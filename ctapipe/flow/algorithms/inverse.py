@@ -14,7 +14,7 @@ class Inverse(Component):
     def run(self, inputval):
         sleep(.5)
         if input:
-            self.log.debug('%input' % "Inverse receive {}")
+            self.log.debug("Inverse received %s", input)
             return int(inputval) * -1
 
     def finish(self):
