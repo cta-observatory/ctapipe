@@ -13,7 +13,7 @@ from ctapipe.io.containers import(
     R0Container,
     DataContainer
 )
-from ctapipe.io.eventfilereader import EventFileReader
+from ctapipe.io.eventsource import EventSource
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 __all__ = ['ZFitsFileReader']
 
 
-class ZFitsFileReader(EventFileReader):
+class ZFitsFileReader(EventSource):
     def _generator(self):
         from protozfitsreader import ZFile
         for event in ZFile(self.input_url):
@@ -51,6 +51,10 @@ class ZFitsFileReader(EventFileReader):
             (h['ORIGIN'] == 'CTA') and
             (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
+
+    @property
+    def is_stream(self):
+        return True
 
 
 class SST1M_R0CameraContainer(R0CameraContainer):
