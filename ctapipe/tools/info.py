@@ -36,7 +36,7 @@ def main(args=None):
                         help='Print available versions of dependencies')
     parser.add_argument('--system', action='store_true',
                         help='Print system info')
-    parser.add_argument('--all', action='store_true',
+    parser.add_argument('--all', dest='show_all', action='store_true',
                         help='show all info')
     args = parser.parse_args(args)
 
