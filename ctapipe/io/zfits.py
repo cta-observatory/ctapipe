@@ -9,11 +9,8 @@ from numpy import ndarray
 import logging
 from ctapipe.core import Map, Field
 from ctapipe.io.containers import(
-    InstrumentContainer,
     R0CameraContainer,
     R0Container,
-    R1CameraContainer,
-    R1Container,
     DataContainer
 )
 from ctapipe.io.eventfilereader import EventFileReader
