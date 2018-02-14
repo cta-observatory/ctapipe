@@ -20,6 +20,11 @@ def test_construct():
                           pix_rotation="10d",
                           cam_rotation="12d")
 
+    assert geom.cam_id == 0
+    assert geom.pix_area is not None
+    assert (geom.pix_rotation.deg - 10) < 1e-5
+    assert (geom.cam_rotation.deg - 10) < 1e-5
+
 
 def test_known_camera_names():
     cams = CameraGeometry.get_known_camera_names()

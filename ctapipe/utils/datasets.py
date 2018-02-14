@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import ctapipe_resources
-except:
+except ImportError:
     raise RuntimeError("Please install the 'ctapipe-extra' package, "
                        "which contains the ctapipe_resources module "
                        "needed by ctapipe. (conda install ctapipe-extra)")
@@ -98,8 +98,8 @@ def find_in_path(filename, searchpath):
 
     """
 
-    for dir in get_searchpath_dirs(searchpath):
-        pathname = os.path.join(dir, filename)
+    for directory in get_searchpath_dirs(searchpath):
+        pathname = os.path.join(directory, filename)
         if os.path.exists(pathname):
             return pathname
 

@@ -156,6 +156,10 @@ class HillasReconstructor(Reconstructor):
         hillas_dict : python dictionary
             dictionary with telescope IDs as key and
             MomentParameters instances as values
+        inst : ctapipe.io.InstrumentContainer
+            instrumental description
+        tel_phi:
+        tel_theta:
         seed_pos : python tuple
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)
@@ -176,7 +180,7 @@ class HillasReconstructor(Reconstructor):
         self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
         # algebraic direction estimate
-        dir, err_est_dir = self.fit_origin_crosses()
+        direction, err_est_dir = self.fit_origin_crosses()
 
         # core position estimate using a geometric approach
         pos, err_est_pos = self.fit_core_crosses()
@@ -190,7 +194,7 @@ class HillasReconstructor(Reconstructor):
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
-        phi, theta = linalg.get_phi_theta(dir).to(u.deg)
+        phi, theta = linalg.get_phi_theta(direction).to(u.deg)
 
         # TODO fix coordinates!
         result.alt, result.az = 90 * u.deg - theta, -phi
@@ -275,9 +279,10 @@ class HillasReconstructor(Reconstructor):
 
         result = linalg.normalise(np.sum(crossings, axis=0)) * u.dimless
         off_angles = [linalg.angle(result, cross) / u.rad for cross in crossings]
-        err_est_dir = np.mean(off_angles) * u.rad
         err_est_dir = np.average(
-            off_angles, weights=[len(cross) for cross in crossings]) * u.rad
+            off_angles,
+            weights=[len(cross) for cross in crossings]
+        ) * u.rad
 
         # averaging over the solutions of all permutations
         return result, err_est_dir
@@ -324,7 +329,7 @@ class HillasReconstructor(Reconstructor):
 
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
-    def fit_core_crosses(self, unit=u.m):
+    def fit_core_crosses(self):
         r"""calculates the core position as the least linear square solution
         of an (over-constrained) equation system
 

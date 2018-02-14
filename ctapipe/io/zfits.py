@@ -18,10 +18,10 @@ from ctapipe.io.eventsource import EventSource
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['ZFitsFileReader']
+__all__ = ['ZFitsEventSource']
 
 
-class ZFitsFileReader(EventSource):
+class ZFitsEventSource(EventSource):
     def _generator(self):
         from protozfitsreader import ZFile
         for event in ZFile(self.input_url):

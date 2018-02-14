@@ -13,8 +13,8 @@ __all__ = ['dynamic_class_from_module', ]
 class DynamicClassError(Exception):
 
     def __init__(self, msg):
-        '''Mentions that an exception occurred in the dynamic_class_from_module.
-        '''
+        """Mentions that an exception occurred in the dynamic_class_from_module.
+        """
         self.msg = msg
 
 # def dynamic_class_from_module(class_name, module,  configuration=None):
@@ -40,7 +40,7 @@ def dynamic_class_from_module(class_name, module, tool=None):
     """
     if module == None:
         return None
-    logger = logging.getLogger(__name__)
+
     try:
         _class = getattr(import_module(module), class_name)
         if isinstance(tool, Tool):

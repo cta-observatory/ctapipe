@@ -17,10 +17,6 @@ class InfoLabel(QLabel):
         pipeline Update pipeline state (self.steps) and force to
         update drawing
 
-        Parameters
-        ----------
-        topic : str
-
         """
         if steps:
             if self.mode == 'sequential':

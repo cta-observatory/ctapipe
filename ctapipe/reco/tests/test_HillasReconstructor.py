@@ -9,12 +9,12 @@ from ctapipe.utils import get_dataset
 
 
 def test_fit_core():
-    '''
+    """
     creating some great circles pointing in different directions (two
     north-south,
     two east-west) and that have a slight position errors (+- 0.1 m in one of
     the four
-    cardinal directions '''
+    cardinal directions """
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
     circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
@@ -53,10 +53,10 @@ def test_fit_core():
 
 
 def test_fit_origin():
-    '''
+    """
     creating some great circles pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
-    0.1 m in one of the four cardinal directions '''
+    0.1 m in one of the four cardinal directions """
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
     circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
@@ -94,7 +94,7 @@ def test_fit_origin():
 
 
 def test_reconstruction():
-    '''
+    """
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
     • hillas parametrisation
@@ -102,7 +102,7 @@ def test_reconstruction():
     • direction fit
     • position fit
 
-    in the end, proper units in the output are asserted '''
+    in the end, proper units in the output are asserted """
 
     filename = get_dataset("gamma_test.simtel.gz")
 

@@ -205,16 +205,6 @@ def hillas_parameters_2(geom: CameraGeometry, image):
                             pix_x * pix_y,
                             pix_y * pix_y])
 
-    pixdataHO = np.row_stack([pix_x * pixdata[2],
-                              pixdata[2] * pix_y,
-                              pix_x * pixdata[4],
-                              pix_y * pixdata[4],
-                              pixdata[2] * pixdata[2],
-                              pixdata[2] * pixdata[3],
-                              pixdata[2] * pixdata[4],
-                              pixdata[3] * pixdata[4],
-                              pixdata[4] * pixdata[4]])
-
     # Compute image moments (done in a bit faster way, but putting all
     # into one 2D array, where each row will be summed to calculate a
     # moment) However, this doesn't avoid a temporary created for the
@@ -315,7 +305,6 @@ def hillas_parameters_2(geom: CameraGeometry, image):
         psi = 0.0 * u.rad
         skewness = 0.0
         kurtosis = 0.0
-        asym = 0.0
 
     return MomentParameters(size=size, cen_x=xm * unit, cen_y=ym * unit,
                             length=length * unit, width=width * unit,
@@ -334,10 +323,8 @@ def hillas_parameters_3(geom: CameraGeometry, image):
 
     Parameters
     ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
+    geom : CameraGeometry
+        Geometry corresponding to the image
     image : array_like
         Pixel values corresponding
 
@@ -513,10 +500,15 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         Camera geometry
     image : array_like
         Pixel values
+    container: bool
+        return a HillasParametersContainer instead of a tuple
 
     Returns
     -------
-    hillas_parameters : `MomentParameters`
+    MomentParameters:
+        tuple of hillas parameters
+    HillasParametersContainer:
+        container of hillas parametesr
     """
 
     if not isinstance(geom, CameraGeometry):
@@ -533,9 +525,6 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
-
-    (sumsig, sumxsig, sumysig, sumx2sig, sumy2sig, sumxysig, sumx3sig,
-     sumx2ysig, sumxy2sig, sumy3sig) = np.zeros(10)
 
     # Call static_xy to initialize the "static variables"
     # Actually, would be nice to just call this if we
@@ -646,7 +635,6 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         kurtosis = kurt / (length * length * length * length)
 
     else:  # Skip Higher Moments
-        asym = 0.0
         psi = 0.0
         skewness = 0.0
         kurtosis = 0.0
