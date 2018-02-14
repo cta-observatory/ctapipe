@@ -25,6 +25,7 @@ class Field:
         self.default = default
         self.description = description
         self.unit = unit
+        self.ucd = ucd
 
     def __repr__(self):
         desc = '{}'.format(self.description)

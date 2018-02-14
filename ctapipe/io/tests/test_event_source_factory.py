@@ -38,6 +38,7 @@ def test_factory_unknown_file_format():
     with pytest.raises(ValueError):
         dataset = get_dataset("optics.ecsv.txt")
         reader = EventSourceFactory.produce(input_url=dataset)
+        assert reader is not None
 
 
 def test_factory_unknown_reader():
@@ -47,7 +48,7 @@ def test_factory_unknown_reader():
             product='UnknownFileReader',
             input_url=dataset
         )
-
+        assert reader is not None
 
 def test_factory_incompatible_file():
     dataset = get_dataset("optics.ecsv.txt")
@@ -67,16 +68,16 @@ def test_factory_nonexistant_file():
             product='HESSIOEventSource',
             input_url=dataset
         )
-
+        assert reader is not None
 
 def test_factory_incorrect_use():
     with pytest.raises(FileNotFoundError):
         dataset = get_dataset("gamma_test_large.simtel.gz")
         factory = EventSourceFactory(input_url=dataset)
         reader = factory.produce()
-
+        assert reader is not None
 
 def test_event_source_helper():
     with event_source(get_dataset("gamma_test_large.simtel.gz")) as source:
-        for event in source:
+        for _ in source:
             pass

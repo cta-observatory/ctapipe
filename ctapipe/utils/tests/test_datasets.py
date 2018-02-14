@@ -40,8 +40,7 @@ def test_datasets_in_custom_path(tmpdir_factory):
     assert path == dataset_path
 
     with pytest.raises(FileNotFoundError):
-        badpath = datasets.get_dataset("does_not_exist")
-
+        datasets.get_dataset("does_not_exist")
 
     # try using find_all_matching_datasets:
 

@@ -1,9 +1,11 @@
 from tempfile import TemporaryDirectory
-from ctapipe.reco.event_classifier import *
+
+import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-import pytest
+
+from ctapipe.reco.event_classifier import EventClassifier
 
 
 def test_pipeline_classifier():

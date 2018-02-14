@@ -8,21 +8,22 @@ running.
 import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
-from ctapipe.visualization import CameraDisplay
-from ctapipe.instrument import TelescopeDescription, CameraGeometry, OpticsDescription
+from matplotlib.animation import FuncAnimation
+
 from ctapipe.core import Tool, traits
 from ctapipe.image import toymodel, tailcuts_clean, dilate
-from matplotlib.animation import FuncAnimation
+from ctapipe.instrument import TelescopeDescription, CameraGeometry, \
+    OpticsDescription
+from ctapipe.visualization import CameraDisplay
 
 
 class CameraDemo(Tool):
-
     name = u"ctapipe-camdemo"
     description = "Display fake events in a demo camera"
 
     delay = traits.Int(50, help="Frame delay in ms", min=20).tag(config=True)
     cleanframes = traits.Int(100, help="Number of frames between turning on "
-                             "cleaning", min=0).tag(config=True)
+                                       "cleaning", min=0).tag(config=True)
     autoscale = traits.Bool(False, help='scale each frame to max if '
                                         'True').tag(config=True)
     blit = traits.Bool(False, help='use blit operation to draw on screen ('
@@ -33,7 +34,7 @@ class CameraDemo(Tool):
         default_value='NectarCam',
         help='Name of camera to display').tag(config=True)
 
-    optics =traits.CaselessStrEnum(
+    optics = traits.CaselessStrEnum(
         OpticsDescription.get_known_optics_names(),
         default_value='MST',
         help='Telescope optics description name'
@@ -51,11 +52,9 @@ class CameraDemo(Tool):
         'autoscale': 'CameraDemo.autoscale',
         'blit': 'CameraDemo.blit',
         'camera': 'CameraDemo.camera',
-        'optics' : 'CameraDemo.optics',
+        'optics': 'CameraDemo.optics',
         'num-events': 'CameraDemo.num_events'
     })
-
-
 
     def __init__(self):
         super().__init__()
@@ -83,9 +82,10 @@ class CameraDemo(Tool):
         maxwid = np.deg2rad(0.01)
         maxlen = np.deg2rad(0.03)
 
-        disp = CameraDisplay(geom, ax=ax, autoupdate=True,
-                             title="{}, f={}".format(tel,
-                             tel.optics.equivalent_focal_length))
+        disp = CameraDisplay(
+            geom, ax=ax, autoupdate=True,
+            title="{}, f={}".format(tel, tel.optics.equivalent_focal_length)
+        )
         disp.cmap = plt.cm.terrain
 
         def update(frame):
@@ -100,7 +100,8 @@ class CameraDemo(Tool):
                                                       width=width,
                                                       length=length,
                                                       psi=angle * u.deg)
-            image, sig, bg = toymodel.make_toymodel_shower_image(geom, model.pdf,
+            image, sig, bg = toymodel.make_toymodel_shower_image(geom,
+                                                                 model.pdf,
                                                                  intensity=intens,
                                                                  nsb_level_pe=5000)
 
@@ -132,9 +133,8 @@ class CameraDemo(Tool):
             self._counter += 1
             return [ax, ]
 
-
-        frames = None if self.num_events==0 else self.num_events
-        repeat = True if self.num_events==0 else False
+        frames = None if self.num_events == 0 else self.num_events
+        repeat = True if self.num_events == 0 else False
 
         self.log.info("Running for {} frames".format(frames))
         self.anim = FuncAnimation(fig, update,
@@ -147,12 +147,10 @@ class CameraDemo(Tool):
             plt.show()
 
 
-def main(args=None):
-
+def main():
     app = CameraDemo()
     app.run()
 
 
 if __name__ == '__main__':
     main()
-

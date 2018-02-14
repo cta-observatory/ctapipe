@@ -62,7 +62,6 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
             number_of_neighbors_above_picture >= min_number_picture_neighbors
         )
 
-
     # by broadcasting together pixels_in_picture (1d) with the neighbor
     # matrix (2d), we find all pixels that are above the boundary threshold
     # AND have any neighbor that is in the picture
@@ -79,8 +78,6 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
 
         return ((pixels_above_boundary & pixels_with_picture_neighbors) |
                 (pixels_in_picture & pixels_with_boundary_neighbors))
-
-
 
 
 def dilate(geom, mask):

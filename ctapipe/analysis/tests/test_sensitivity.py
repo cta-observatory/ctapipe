@@ -16,6 +16,7 @@ def test_check_min_n(n_1=2, n_2=2):
 
     scale = check_min_n(n, alpha=1, min_n_signal=min_n)
 
+    assert scale > 0
     assert sum(n) >= min_n
 
 
@@ -28,6 +29,7 @@ def test_check_background_contamination(n_1=2, n_2=2):
         n, alpha=1, max_background_ratio=max_background_ratio)
 
     assert n[0] >= n[1] * max_background_ratio
+    assert scale > 0
 
 
 def test_SensitivityPointSource_effective_area():

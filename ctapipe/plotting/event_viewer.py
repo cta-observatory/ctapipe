@@ -48,7 +48,7 @@ class EventViewer(Component):
 
         return
 
-    def draw_event(self, event, hillas_parameters=None, tilted_system=None):
+    def draw_event(self, event, hillas_parameters=None):
         """
         Draw display for a given event
 
@@ -69,7 +69,7 @@ class EventViewer(Component):
         plt.close()
         ntels = len(tel_list)
 
-        fig = plt.figure(figsize=(20, 20 * 0.66))
+        plt.figure(figsize=(20, 20 * 0.66))
 
         # If we want to draw the Hillas parameters in different planes we need to split our figure
         if self.draw_hillas_planes:
@@ -99,7 +99,7 @@ class EventViewer(Component):
             geom = event.inst.subarray.tel[tel_id].camera
             self.get_camera_view(tel_id,
                                  image=images.tel[tel_id].image[0],
-                                 ax=ax,
+                                 axis=ax,
                                  geom=geom)
 
         # If we want to draw the Hillas parameters in different planes we need to make a couple more viewers

@@ -39,19 +39,19 @@ class EnergyRegressor(RegressorClassifierBase):
     """
 
     def __init__(self, regressor=RandomForestRegressor,
-                 cam_id_list=("cam"), unit=u.TeV, **kwargs):
+                 cam_id_list="cam", unit=u.TeV, **kwargs):
         super().__init__(model=regressor, cam_id_list=cam_id_list,
                          unit=unit, **kwargs)
 
-    def predict_by_event(self, X):
+    def predict_by_event(self, event_list):
         """expects a list of events where every "event" is a dictionary
         mapping telescope identifiers to the list of feature-lists by
         the telescopes of that type in this event. Refer to the Note
-        section in `.reshuffle_event_list` for an description how `X`
+        section in `.reshuffle_event_list` for an description how `event_list`
         is supposed to look like.  The singular estimate for the event
         is simply the mean of the various estimators of the event.
 
-        X : list of "events"
+        event_list : list of "events"
             cf. `.reshuffle_event_list` under Notes
 
         Returns
@@ -64,7 +64,7 @@ class EnergyRegressor(RegressorClassifierBase):
         Raises
         ------
         KeyError:
-            if there is a telescope identifier in `X` that is not a
+            if there is a telescope identifier in `event_list` that is not a
             key in the regressor dictionary
 
         """
@@ -72,7 +72,7 @@ class EnergyRegressor(RegressorClassifierBase):
         predict_mean = []
         predict_median = []
         predict_std = []
-        for evt in X:
+        for evt in event_list:
             predicts = []
             weights = []
             for cam_id, tels in evt.items():
@@ -83,7 +83,7 @@ class EnergyRegressor(RegressorClassifierBase):
                     # QUESTION if there is no trained classifier for
                     # `cam_id`, raise an error or just pass this
                     # camera type?
-                    raise KeyError("cam_id '{}' in X but no model defined: {}"
+                    raise KeyError("cam_id '{}' in event_list but no model defined: {}"
                                    .format(cam_id, [k for k in self.model_dict]))
 
                 try:
@@ -102,7 +102,7 @@ class EnergyRegressor(RegressorClassifierBase):
                 "median": np.array(predict_median) * self.unit,
                 "std": np.array(predict_std) * self.unit}
 
-    def predict_by_telescope_type(self, X):
+    def predict_by_telescope_type(self, event_list):
         """same as `predict_dict` only that it returns a list of dictionaries
         with an estimate for the target quantity for every telescope
         type separately.
@@ -116,7 +116,7 @@ class EnergyRegressor(RegressorClassifierBase):
         """
 
         predict_list_dict = []
-        for evt in X:
+        for evt in event_list:
             res_dict = {}
             for cam_id, tels in evt.items():
                 t_res = self.model_dict[cam_id].predict(tels).tolist()

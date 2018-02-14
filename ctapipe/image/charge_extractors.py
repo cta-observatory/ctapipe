@@ -14,7 +14,6 @@ from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
 
 
-
 class ChargeExtractor(Component):
 
     def __init__(self, config=None, tool=None, **kwargs):
