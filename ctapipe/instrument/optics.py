@@ -112,6 +112,8 @@ class OpticsDescription:
         ----------
         name: str
             string representation of optics (MST, LST, SST-1M, SST-ASTRI,...)
+        optics_table: str
+            base filename of optics table if not 'optics.*'
 
 
         Returns

@@ -196,11 +196,6 @@ class CameraGeometry:
         `ctapipe_resources`. These are all the camera-ids that can be
         instantiated by the `from_name` method
 
-        Parameters
-        ----------
-        array_id: str
-            which array to search (default CTA)
-
         Returns
         -------
         list(str)
@@ -222,8 +217,6 @@ class CameraGeometry:
         ----------
         camera_id: str
            name of camera (e.g. 'NectarCam', 'LSTCam', 'GCT', 'SST-1M')
-        array_id: str
-           array identifier (e.g. 'CTA', 'HESS')
         version:
            camera version id (currently unused)
 
@@ -266,11 +259,6 @@ class CameraGeometry:
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
-
-        format: str
-            astropy.table format string (e.g. 'ascii.ecsv') in case the
-            format cannot be determined from the file extension
-
         kwargs: extra keyword arguments
             extra arguments passed to `astropy.table.read()`, depending on
             file type (e.g. format, hdu, path)

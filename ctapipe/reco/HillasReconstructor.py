@@ -156,6 +156,10 @@ class HillasReconstructor(Reconstructor):
         hillas_dict : python dictionary
             dictionary with telescope IDs as key and
             MomentParameters instances as values
+        inst : ctapipe.io.InstrumentContainer
+            instrumental description
+        tel_phi:
+        tel_theta:
         seed_pos : python tuple
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)

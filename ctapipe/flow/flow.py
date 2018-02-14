@@ -799,8 +799,6 @@ class Flow(Tool):
         ----------
         processes_to_wait : process
                 process to join
-        conf_time : str
-                represents time at which configuration has been built
         '''
         processes_to_wait.stop = 1
 

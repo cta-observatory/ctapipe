@@ -1,15 +1,17 @@
-from ctapipe.io.containers import MuonIntensityParameter
 from astropy import log
-from ctapipe.instrument import CameraGeometry
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
-import numpy as np
-from astropy import units as u
-from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
-from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
-from ctapipe.image.muon.features import ring_containment
-
 import logging
+
+import numpy as np
+from astropy import log
+from astropy import units as u
+from astropy.utils.decorators import deprecated
+
+from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
+from ctapipe.image.cleaning import tailcuts_clean
+from ctapipe.image.muon.features import ring_containment
+from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
+from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
+
 logger = logging.getLogger(__name__)
 
 
@@ -222,16 +224,15 @@ def analyze_muon_event(event):
 
     return muon_event_param
 
-
-def analyze_muon_source(source, params=None, geom_dict=None):
+@deprecated('0.6')
+def analyze_muon_source(source):
     """
     Generator for analyzing all the muon events
 
     Parameters
     ----------
-    source : generator
-    A 'ctapipe' event generator as
-    'ctapipe.io.hessio_event_source
+    source : ctapipe.io.EventSource
+        input event source
 
     Returns
     -------

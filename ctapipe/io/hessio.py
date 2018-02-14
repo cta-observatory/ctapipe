@@ -18,7 +18,7 @@ __all__ = [
 
 @deprecated(0.5, message="prefer the use of an EventSource or "
                          "EventSourceFactory")
-def hessio_event_source(url, **params):
+def hessio_event_source(url, **kwargs):
     """
     emulate the old `hessio_event_source` generator, using the new
     `HESSIOEventSource` class.  It is preferred to use `HESSIOEventSource` or
@@ -29,13 +29,9 @@ def hessio_event_source(url, **params):
     ----------
     url : str
         path to file to open
-    max_events : int, optional
-        maximum number of events to read
-    allowed_tels : List[int]
-        select only a subset of telescope, if None, all are read. This can be
-        used for example emulate the final CTA data format, where there would
-        be 1 telescope per file (whereas in current monte-carlo, they are all
-        interleaved into one file)
+    kwargs:
+        extra parameters to pass to HESSIOEventSource
+
 
 
     Returns
@@ -46,7 +42,7 @@ def hessio_event_source(url, **params):
 
     """
 
-    reader = HESSIOEventSource(input_url=url, **params)
+    reader = HESSIOEventSource(input_url=url, **kwargs)
 
     return (x for x in reader)
 

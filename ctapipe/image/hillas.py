@@ -323,10 +323,8 @@ def hillas_parameters_3(geom: CameraGeometry, image):
 
     Parameters
     ----------
-    pix_x : array_like
-        Pixel x-coordinate
-    pix_y : array_like
-        Pixel y-coordinate
+    geom : CameraGeometry
+        Geometry corresponding to the image
     image : array_like
         Pixel values corresponding
 
@@ -502,10 +500,15 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         Camera geometry
     image : array_like
         Pixel values
+    container: bool
+        return a HillasParametersContainer instead of a tuple
 
     Returns
     -------
-    hillas_parameters : `MomentParameters`
+    MomentParameters:
+        tuple of hillas parameters
+    HillasParametersContainer:
+        container of hillas parametesr
     """
 
     if not isinstance(geom, CameraGeometry):
