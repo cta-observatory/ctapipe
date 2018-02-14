@@ -27,7 +27,7 @@ class ZFitsFileReader(EventSource):
         for event in ZFile(self.input_url):
 
             data = SST1M_DataContainer()
-            data.r0.event_id = event.event_id
+            data.r0.event_id = event.event_number
             data.r0.tels_with_data = [event.telescope_id, ]
 
             for tel_id in data.r0.tels_with_data:
@@ -63,7 +63,6 @@ class SST1M_R0CameraContainer(R0CameraContainer):
     """
     pixel_flags = Field(ndarray, 'numpy array containing pixel flags')
     digicam_baseline = Field(ndarray, 'Baseline computed by DigiCam')
-    camera_event_number = Field(int, "camera event number")
     local_camera_clock = Field(float, "camera timestamp")
     gps_time = Field(float, "gps timestamp")
     camera_event_type = Field(int, "camera event type")
@@ -79,7 +78,6 @@ class SST1M_R0CameraContainer(R0CameraContainer):
     def fill_from_zfile_event(self, event):
         self.pixel_flags = event.pixel_flags
         self.digicam_baseline = event.baseline
-        self.camera_event_number = event.event_number
         self.local_camera_clock = event.local_time
         self.gps_time = event.central_event_gps_time
         self.camera_event_type = event.camera_event_type
@@ -88,7 +86,7 @@ class SST1M_R0CameraContainer(R0CameraContainer):
         self.trigger_output_patch7 = event.trigger_output_patch7
         self.trigger_output_patch19 = event.trigger_output_patch19
 
-        self.adc_samples = event.adc_samples
+        self.waveform = event.adc_samples
 
 
 class SST1M_R0Container(R0Container):
