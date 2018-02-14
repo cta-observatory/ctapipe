@@ -53,7 +53,7 @@ install:
     - pip install codecov
     # ----- SST1M:
     - conda install numpy protobuf libgcc
-    - pip install https://github.com/dneise/protozfitsreader/archive/v0.43.2.tar.gz
+    - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
     # ----- end of SST1M
     - python setup.py develop
 
