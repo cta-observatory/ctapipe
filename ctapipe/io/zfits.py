@@ -32,18 +32,7 @@ class ZFitsFileReader(EventFileReader):
 
             for tel_id in data.r0.tels_with_data:
                 r0 = data.r0.tel[tel_id]
-                r0.camera_event_number = event.event_number
-                r0.pixel_flags = event.pixel_flags
-                r0.local_camera_clock = event.local_time
-                r0.gps_time = event.central_event_gps_time
-                r0.camera_event_type = event.camera_event_type
-                r0.array_event_type = event.array_event_type
-                r0.adc_samples = event.adc_samples
-
-                r0.trigger_input_traces = event.trigger_input_traces
-                r0.trigger_output_patch7 = event.trigger_output_patch7
-                r0.trigger_output_patch19 = event.trigger_output_patch19
-                r0.digicam_baseline = event.baseline
+                r0.fill_from_zfile_event(event)
             yield data
 
     def is_compatible(self, path):
@@ -69,29 +58,33 @@ class SST1M_R0CameraContainer(R0CameraContainer):
     Storage of raw data from a single telescope
     """
     pixel_flags = Field(ndarray, 'numpy array containing pixel flags')
-    num_pixels = Field(int, "number of pixels in camera")
-    baseline = Field(ndarray, "number of time samples for telescope")
     digicam_baseline = Field(ndarray, 'Baseline computed by DigiCam')
-    standard_deviation = Field(ndarray, "number of time samples for telescope")
-    dark_baseline = Field(ndarray, 'dark baseline')
-    hv_off_baseline = Field(ndarray, 'HV off baseline')
-    camera_event_id = Field(int, 'Camera event number')
     camera_event_number = Field(int, "camera event number")
     local_camera_clock = Field(float, "camera timestamp")
     gps_time = Field(float, "gps timestamp")
-    white_rabbit_time = Field(float, "precise white rabbit based timestamp")
     camera_event_type = Field(int, "camera event type")
     array_event_type = Field(int, "array event type")
     trigger_input_traces = Field(ndarray, "trigger patch trace (n_patches)")
-    trigger_input_offline = Field(ndarray, "trigger patch trace (n_patches)")
     trigger_output_patch7 = Field(
         ndarray,
         "trigger 7 patch cluster trace (n_clusters)")
     trigger_output_patch19 = Field(
         ndarray,
         "trigger 19 patch cluster trace (n_clusters)")
-    trigger_input_7 = Field(ndarray, 'trigger input CLUSTER7')
-    trigger_input_19 = Field(ndarray, 'trigger input CLUSTER19')
+
+    def fill_from_zfile_event(self, event):
+        self.pixel_flags = event.pixel_flags
+        self.digicam_baseline = event.baseline
+        self.camera_event_number = event.event_number
+        self.local_camera_clock = event.local_time
+        self.gps_time = event.central_event_gps_time
+        self.camera_event_type = event.camera_event_type
+        self.array_event_type = event.array_event_type
+        self.trigger_input_traces = event.trigger_input_traces
+        self.trigger_output_patch7 = event.trigger_output_patch7
+        self.trigger_output_patch19 = event.trigger_output_patch19
+
+        self.adc_samples = event.adc_samples
 
 
 class SST1M_R0Container(R0Container):
