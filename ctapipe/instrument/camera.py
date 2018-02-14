@@ -282,8 +282,10 @@ class CameraGeometry:
         )
 
     def __repr__(self):
-        return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
-               "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})".format(
+        return (
+            "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " 
+            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+        ).format(
             cam_id=self.cam_id,
             pix_type=self.pix_type,
             npix=len(self.pix_id),
