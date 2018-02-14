@@ -24,9 +24,9 @@ __all__ = ['ZFitsEventSource']
 class ZFitsEventSource(EventSource):
     def _generator(self):
         from protozfitsreader import ZFile
-        for event in ZFile(self.input_url):
-
+        for count, event in enumerate(ZFile(self.input_url)):
             data = SST1M_DataContainer()
+            data.count = count
             data.r0.event_id = event.event_number
             data.r0.tels_with_data = [event.telescope_id, ]
 
