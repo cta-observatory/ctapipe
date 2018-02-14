@@ -103,21 +103,5 @@ class SST1M_R0Container(R0Container):
         "map of tel_id to SST1M_R0CameraContainer")
 
 
-class SST1M_R1CameraContainer(R1CameraContainer):
-    adc_samples = Field(
-        ndarray,
-        "baseline subtracted ADCs, (n_pixels, n_samples)")
-    nsb = Field(ndarray, "nsb rate in GHz")
-    pde = Field(ndarray, "Photo Detection Efficiency at given NSB")
-    gain_drop = Field(ndarray, "gain drop")
-
-
-class SST1M_R1Container(R1Container):
-    tel = Field(
-        Map(SST1M_R1CameraContainer),
-        "map of tel_id to SST1M_R1CameraContainer")
-
-
 class SST1M_DataContainer(DataContainer):
     r0 = Field(SST1M_R0Container(), "Raw Data")
-    r1 = Field(SST1M_R1Container(), "R1 Calibrated Data")
