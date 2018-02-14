@@ -1,19 +1,18 @@
 import numpy as np
-from ctapipe.image import cleaning
 
+from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
 
 
 def test_tailcuts_clean_simple():
-
     geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
-    
+
     num_pix = 40
     some_neighs = geom.neighbors[num_pix][0:3]  # pick 4 neighbors
-    image[num_pix] = 5.0              # set a single image pixel
-    image[some_neighs] = 3.0    # make some boundaries that are neighbors
-    image[10] = 3.0             # a boundary that is not a neighbor
+    image[num_pix] = 5.0  # set a single image pixel
+    image[some_neighs] = 3.0  # make some boundaries that are neighbors
+    image[10] = 3.0  # a boundary that is not a neighbor
 
     mask = cleaning.tailcuts_clean(geom, image, picture_thresh=4.5,
                                    boundary_thresh=2.5)
@@ -27,7 +26,6 @@ def test_tailcuts_clean_simple():
 
 
 def test_dilate():
-
     geom = CameraGeometry.from_name("LSTCam")
     mask = np.zeros_like(geom.pix_id, dtype=bool)
 
@@ -48,12 +46,11 @@ def test_dilate():
 
 
 def test_tailcuts_clean():
-
     # start with simple 3-pixel camera
     geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
 
     p = 15  # picture value
-    b = 7   # boundary value
+    b = 7  # boundary value
 
     # for no isolated pixels:
     testcases = {(p, p, 0): [True, True, False],
@@ -107,7 +104,7 @@ def test_tailcuts_clean_min_neighbors_2():
     geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
 
     p = 15  # picture value
-    b = 7   # boundary value
+    b = 7  # boundary value
 
     testcases = {(p, p, 0): [False, False, False],
                  (p, 0, p): [False, False, False],
@@ -126,12 +123,11 @@ def test_tailcuts_clean_min_neighbors_2():
 
 
 def test_tailcuts_clean_with_isolated_pixels():
-
     # start with simple 3-pixel camera
     geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
 
     p = 15  # picture value
-    b = 7   # boundary value
+    b = 7  # boundary value
 
     testcases = {(p, p, 0): [True, True, False],
                  (p, 0, p): [True, False, True],

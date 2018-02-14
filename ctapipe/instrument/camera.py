@@ -3,6 +3,7 @@
 Utilities for reading or working with Camera geometry files
 """
 import logging
+
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
@@ -16,7 +17,6 @@ from ctapipe.utils.linalg import rotation_matrix_2d
 __all__ = ['CameraGeometry']
 
 logger = logging.getLogger(__name__)
-
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
@@ -284,12 +284,12 @@ class CameraGeometry:
     def __repr__(self):
         return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
                "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})".format(
-                   cam_id=self.cam_id,
-                   pix_type=self.pix_type,
-                   npix=len(self.pix_id),
-                   pixrot=self.pix_rotation,
-                   camrot=self.cam_rotation
-               )
+            cam_id=self.cam_id,
+            pix_type=self.pix_type,
+            npix=len(self.pix_id),
+            pixrot=self.pix_rotation,
+            camrot=self.cam_rotation
+        )
 
     def __str__(self):
         return self.cam_id
@@ -360,9 +360,10 @@ class CameraGeometry:
         y = self.pix_y.value
 
         return np.row_stack([x, y,
-                             x**2, x * y, y**2,
-                             x**3, x**2 * y, x * y**2, y**3,
-                             x**4, x**3 * y, x**2 * y**2, x * y**3, y**4])
+                             x ** 2, x * y, y ** 2,
+                             x ** 3, x ** 2 * y, x * y ** 2, y ** 3,
+                             x ** 4, x ** 3 * y, x ** 2 * y ** 2, x * y ** 3,
+                             y ** 4])
 
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
@@ -511,7 +512,7 @@ def _guess_camera_type(npix, optical_foclen):
         return _CAMERA_GEOMETRY_TABLE.get(
             (npix, round(optical_foclen.value, 1)),
             ('unknown', 'unknown', 'hexagonal',
-            0 * u.degree, 0 * u.degree)
+             0 * u.degree, 0 * u.degree)
         )
 
 

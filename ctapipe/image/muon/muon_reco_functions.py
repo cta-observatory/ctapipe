@@ -1,4 +1,3 @@
-from astropy import log
 import logging
 
 import numpy as np
@@ -222,6 +221,7 @@ def analyze_muon_event(event):
                     continue
 
     return muon_event_param
+
 
 @deprecated('0.6')
 def analyze_muon_source(source):
