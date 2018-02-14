@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Example of drawing and updating a Camera using a toymodel shower images.
 
@@ -10,11 +9,11 @@ running.
 import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import CameraGeometry
-from ctapipe.visualization import CameraDisplay
-from ctapipe.image import toymodel
 from matplotlib.animation import FuncAnimation
+
+from ctapipe.image import toymodel
 from ctapipe.instrument import TelescopeDescription
+from ctapipe.visualization import CameraDisplay
 
 if __name__ == '__main__':
 
@@ -22,7 +21,7 @@ if __name__ == '__main__':
     fig, ax = plt.subplots()
 
     # load the camera
-    tel = TelescopeDescription.from_name("SST-1M","DigiCam")
+    tel = TelescopeDescription.from_name("SST-1M", "DigiCam")
     print(tel, tel.optics.equivalent_focal_length)
     geom = tel.camera
 
@@ -50,13 +49,13 @@ if __name__ == '__main__':
             psi=angle * u.deg,
         )
         image, sig, bg = toymodel.make_toymodel_shower_image(
-            geom, model.pdf,
+            geom,
+            model.pdf,
             intensity=intens,
             nsb_level_pe=5000,
         )
         image /= image.max()
         disp.image = image
-
 
     anim = FuncAnimation(fig, update, interval=250)
     plt.show()

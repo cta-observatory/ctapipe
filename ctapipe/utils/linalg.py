@@ -15,7 +15,7 @@ def rotation_matrix_2d(angle):
     """
     psi = Angle(angle).rad
     return np.array([[cos(psi), -sin(psi)],
-                     [sin(psi),  cos(psi)]])
+                     [sin(psi), cos(psi)]])
 
 
 def rotate_around_axis(vec, axis, angle):

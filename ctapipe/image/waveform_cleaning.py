@@ -2,13 +2,15 @@
 Waveform cleaning algorithms (smoothing, filtering, baseline subtraction)
 """
 
-from traitlets import Int, CaselessStrEnum
-from ctapipe.core import Component, Factory
+from abc import abstractmethod
+
 import numpy as np
 from scipy.signal import general_gaussian
-from abc import abstractmethod
-from ctapipe.image.charge_extractors import AverageWfPeakIntegrator,\
-    LocalPeakIntegrator
+from traitlets import Int
+
+from ctapipe.core import Component, Factory
+from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
+                                             LocalPeakIntegrator)
 
 __all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
            'CHECMWaveformCleanerLocal',
@@ -31,6 +33,7 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
+
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 
@@ -38,7 +41,7 @@ class WaveformCleaner(Component):
     def apply(self, waveforms):
         """
         Apply the cleaning method to the waveforms
-        
+
         Parameters
         ----------
         waveforms : ndarray
@@ -59,6 +62,7 @@ class NullWaveformCleaner(WaveformCleaner):
     """
     Dummy waveform cleaner that simply returns its input
     """
+
     def apply(self, waveforms):
         return waveforms
 
@@ -110,7 +114,7 @@ class CHECMWaveformCleaner(WaveformCleaner):
         """
         Get the extractor to be used to define a window used to mask out the
         pulse.
-        
+
         Returns
         -------
         `ChargeExtractor`
@@ -163,7 +167,7 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
     using the average of the first 32 samples in the waveforms, then a 
     convolved baseline subtraction to remove and low frequency drifts in 
     the baseline.
-    
+
     This particular cleaner obtains the peak position using an 
     `AverageWfPeakIntegrator`.
 
@@ -177,8 +181,9 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
-           
+
     """
+
     def get_extractor(self):
         return AverageWfPeakIntegrator(None, self.parent,
                                        window_width=self.window_width,
@@ -209,6 +214,7 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
         Set to None if no Tool to pass.
 
     """
+
     def get_extractor(self):
         return LocalPeakIntegrator(None, self.parent,
                                    window_width=self.window_width,

@@ -7,23 +7,24 @@
 # if no filename is given, a default example file will be used
 # containing ~10 events
 
-from ctapipe.utils.datasets import get_dataset
-from ctapipe.io import event_source
-from ctapipe.instrument import CameraGeometry
-from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
-from astropy import units as u
-from numpy import ceil, sqrt
-import random
-
-import sys
 import logging
+import random
+import sys
+
+from matplotlib import pyplot as plt
+from numpy import ceil, sqrt
+
+from ctapipe.io import event_source
+from ctapipe.utils.datasets import get_dataset
+from ctapipe.visualization import CameraDisplay
+
 logging.basicConfig(level=logging.DEBUG)
 
 fig = plt.figure(figsize=(12, 8))
-cmaps = [plt.cm.jet, plt.cm.winter,
-         plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth, plt.cm.hot,
-         plt.cm.cool, plt.cm.coolwarm]
+cmaps = [
+    plt.cm.jet, plt.cm.winter, plt.cm.ocean, plt.cm.bone, plt.cm.gist_earth,
+    plt.cm.hot, plt.cm.cool, plt.cm.coolwarm
+]
 
 
 def display_event(event):
@@ -71,6 +72,7 @@ def get_input():
     print("q               - Quit")
     return input("Choice: ")
 
+
 if __name__ == '__main__':
 
     if len(sys.argv) > 1:
@@ -86,9 +88,10 @@ if __name__ == '__main__':
 
     for event in source:
 
-        print("EVENT_ID: ", event.r0.event_id, "TELS: ",
-              event.r0.tels_with_data,
-              "MC Energy:", event.mc.energy )
+        print(
+            "EVENT_ID: ", event.r0.event_id, "TELS: ", event.r0.tels_with_data,
+            "MC Energy:", event.mc.energy
+        )
 
         while True:
             response = get_input()
@@ -108,12 +111,15 @@ if __name__ == '__main__':
             elif response == "" or response.startswith("n"):
                 break
             elif response.startswith('i'):
+                subarray = event.inst.subarray
                 for tel_id in sorted(event.r0.tel):
                     for chan in event.r0.tel[tel_id].waveform:
-                        npix = event.inst.num_pixels[tel_id]
-                        nsamp = event.inst.num_samples[tel_id]
-                        print("CT{:4d} ch{} pixels,samples:{}"
-                              .format(tel_id, chan, npix, nsamp))
+                        npix = len(subarray.tel[tel_id].camera.pix_x)
+                        nsamp = event.r0.tel[tel_id].num_samples
+                        print(
+                            "CT{:4d} ch{} pixels,samples:{}"
+                            .format(tel_id, chan, npix, nsamp)
+                        )
             elif response.startswith('s'):
                 filename = "event_{0:010d}.png".format(event.r0.event_id)
                 print("Saving to", filename)

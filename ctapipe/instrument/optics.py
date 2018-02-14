@@ -77,7 +77,7 @@ class OpticsDescription:
 
     @classmethod
     @u.quantity_input
-    def guess(cls, equivalent_focal_length : u.m):
+    def guess(cls, equivalent_focal_length: u.m):
         """
         Construct an OpticsDescription by guessing from metadata (e.g. when
         using a simulation where the exact type is not known)

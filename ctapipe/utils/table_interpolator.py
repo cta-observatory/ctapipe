@@ -76,7 +76,7 @@ class TableInterpolator:
         """
         Function opens tables contained within fits files and parses them into a format 
         recognisable by the interpolator.
-        
+
         Parameters
         ----------
         filename: str
@@ -101,20 +101,20 @@ class TableInterpolator:
         ix *= delta_x
         iy *= delta_y
 
-        x_bins = np.arange(val_x-ix ,val_x+(delta_x*nbins_x)-ix, step=delta_x)
-        y_bins = np.arange(val_y-iy ,val_y+(delta_y*nbins_y)-iy, step=delta_y)
+        x_bins = np.arange(val_x - ix, val_x + (delta_x * nbins_x) - ix, step=delta_x)
+        y_bins = np.arange(val_y - iy, val_y + (delta_y * nbins_y) - iy, step=delta_y)
         grid_vals = primHDU["GRIDVALS"]
         points = grid_vals.split(",")
 
         if self.verbose:
             print("Interpolation point source be called in order", points)
-        if self.verbose>1:
+        if self.verbose > 1:
             for p in points:
-                print(p,":", primHDU["DOC"+p])
+                print(p, ":", primHDU["DOC" + p])
 
         for hdu in file:
             template.append(hdu.data)
-            
+
             hdu_pt = list()
             for p in points:
                 hdu_pt.append(hdu.header[p])

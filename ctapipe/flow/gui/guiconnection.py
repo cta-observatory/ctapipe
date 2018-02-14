@@ -11,6 +11,7 @@ from PyQt4 import QtCore
 from PyQt4.QtGui import QLabel
 from time import time
 
+
 class GuiConnexion(Thread, QtCore.QObject):
     """
     Manages communication with pipeline thanks to ZMQ SUB message
@@ -43,7 +44,7 @@ class GuiConnexion(Thread, QtCore.QObject):
             # Inform about connection in statusBar
             if statusBar is not None:
                 self.statusBar = statusBar
-                self.statusBar.insertPermanentWidget(0,QLabel("binded to " + gui_adress))
+                self.statusBar.insertPermanentWidget(0, QLabel("binded to " + gui_adress))
             # Register socket in a poll and register topics
             self.poll = Poller()
             self.poll.register(self.socket, POLLIN)
@@ -58,7 +59,7 @@ class GuiConnexion(Thread, QtCore.QObject):
             self.steps = list()
             self.config_time = 0
             self.last_send_config = 0
-            self.nb_job_done=dict()
+            self.nb_job_done = dict()
         else:
             self.stop = True
 
@@ -79,8 +80,8 @@ class GuiConnexion(Thread, QtCore.QObject):
                 elif topic == b'MODE':
                     self.send_mode(msg)
                 else:
-                    self.update_full_state(topic,msg)
-                    if (conf_time - self.last_send_config) >= 0.0416: # 24 images /sec
+                    self.update_full_state(topic, msg)
+                    if (conf_time - self.last_send_config) >= 0.0416:  # 24 images /sec
                         # inform pipegui
                         self.message.emit(self.steps)
                         self.last_send_config = conf_time
@@ -97,7 +98,7 @@ class GuiConnexion(Thread, QtCore.QObject):
         self.reset_message.emit()
 
 
-    def update_full_state(self,topic,msg):
+    def update_full_state(self, topic, msg):
         """
         Redirect topic and message depending on topic
 
@@ -117,7 +118,7 @@ class GuiConnexion(Thread, QtCore.QObject):
             self.router_change(msg)
 
 
-    def full_change(self,receiv_steps):
+    def full_change(self, receiv_steps):
         """
         Update self.steps with new receiv_steps
         Test if receiv_steps is same as self.steps.
@@ -137,9 +138,9 @@ class GuiConnexion(Thread, QtCore.QObject):
                     if step.name == new_step.name:
                         step.nb_job_done = new_step.nb_job_done
                         step.running = new_step.running
-                        nb_corresponding_step+=1
+                        nb_corresponding_step += 1
                         break
-            if  nb_corresponding_step != len(self.steps):
+            if nb_corresponding_step != len(self.steps):
                 # in case of pipeline configuration change and GUI
                 # is not restarted
                 self.steps = receiv_steps
@@ -154,7 +155,7 @@ class GuiConnexion(Thread, QtCore.QObject):
             contains step name, step running flag and step nb_job_done
             receiv_steps: list of GUIStepInfo describing pipeline contents
         """
-        name, running , nb_job_done = msg
+        name, running, nb_job_done = msg
         for step in self.steps:
             if step.name == name:
                 step.running = running
@@ -194,11 +195,11 @@ class GuiConnexion(Thread, QtCore.QObject):
         """ Flow finished. Set all step.runnng to False
         """
         for step in self.steps:
-            step.running=0
+            step.running = 0
         self.full_change(self.steps)
         self.message.emit(self.steps)
 
-    def send_mode(self,msg):
+    def send_mode(self, msg):
         """ Flow can run in sequetial or multiprocess mode.
         This will informs InfoLabel of Flow MODE
 

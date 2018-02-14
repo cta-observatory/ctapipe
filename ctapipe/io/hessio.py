@@ -15,6 +15,7 @@ __all__ = [
     'hessio_event_source',
 ]
 
+
 @deprecated(0.5, message="prefer the use of an EventSource or "
                          "EventSourceFactory")
 def hessio_event_source(url, **params):

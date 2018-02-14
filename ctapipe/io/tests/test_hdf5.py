@@ -5,6 +5,7 @@ from astropy import units as u
 import tables
 import pytest
 
+
 @pytest.fixture(scope='session')
 def temp_h5_file(tmpdir_factory):
     """ a fixture that fetches a temporary output dir/file for a test
@@ -26,13 +27,13 @@ def test_write_container(temp_h5_file):
     writer = HDF5TableWriter(str(temp_h5_file), group_name='R0',
                              filters=tables.Filters(
         complevel=7))
-    writer.exclude("tel_002",".*samples")  # test exclusion of columns
+    writer.exclude("tel_002", ".*samples")  # test exclusion of columns
 
     for ii in range(100):
         r0tel.waveform[:] = np.random.uniform(size=(50, 10))
         r0tel.image[:] = np.random.uniform(size=50)
         r0tel.num_samples = 10
-        mc.energy = 10**np.random.uniform(1,2) * u.TeV
+        mc.energy = 10**np.random.uniform(1, 2) * u.TeV
         mc.core_x = np.random.uniform(-1, 1) * u.m
         mc.core_y = np.random.uniform(-1, 1) * u.m
 

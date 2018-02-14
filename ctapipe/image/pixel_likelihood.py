@@ -37,13 +37,9 @@ from scipy.integrate import quad
 from scipy.misc import factorial
 
 __all__ = [
-    'poisson_likelihood_gaussian',
-    'poisson_likelihood_full',
-    'poisson_likelihood',
-    'mean_poisson_likelihood_gaussian',
-    'mean_poisson_likelihood_full',
-    'PixelLikelihoodError',
-    'chi_squared'
+    'poisson_likelihood_gaussian', 'poisson_likelihood_full',
+    'poisson_likelihood', 'mean_poisson_likelihood_gaussian',
+    'mean_poisson_likelihood_full', 'PixelLikelihoodError', 'chi_squared'
 ]
 
 
@@ -76,8 +72,10 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     spe_width = np.asarray(spe_width)
     ped = np.asarray(ped)
 
-    sq = 1. / np.sqrt(2 * math.pi * (np.power(ped, 2)
-                                     + prediction * (1 + np.power(spe_width, 2))))
+    sq = 1. / np.sqrt(
+        2 * math.pi *
+        (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
+    )
 
     diff = np.power(image - prediction, 2.)
     denom = 2 * (np.power(ped, 2) + prediction * (1 + np.power(spe_width, 2)))
@@ -90,8 +88,8 @@ def poisson_likelihood_gaussian(image, prediction, spe_width, ped):
     return -2 * np.log(sq * expo)
 
 
-def poisson_likelihood_full(
-        image, prediction, spe_width, ped, width_fac=3, dtype=np.float32):
+def poisson_likelihood_full(image, prediction, spe_width, ped,
+                            width_fac=3, dtype=np.float32):
     """
     Calculate likelihood of prediction given the measured signal,
     full numerical integration from de Naurois et al 2009.
@@ -127,11 +125,11 @@ def poisson_likelihood_full(
     ped = np.asarray(ped, dtype=dtype)
 
     if image.shape != prediction.shape:
-        raise PixelLikelihoodError(("Image and prediction arrays"
-                                    " have different dimensions"),
-                                   "Image shape: ", image.shape[0],
-                                   "Prediction shape: ",
-                                   prediction.shape[0])
+        raise PixelLikelihoodError(
+            ("Image and prediction arrays"
+             " have different dimensions"), "Image shape: ", image.shape[0],
+            "Prediction shape: ", prediction.shape[0]
+        )
     max_val = np.max(image)
     width = ped * ped + max_val * spe_width * spe_width
     width = np.sqrt(np.abs(width))  # take abs of width if negative
@@ -143,26 +141,36 @@ def poisson_likelihood_full(
     pe_summed = np.arange(max_sum)  # Need to decide how range is determined
     pe_factorial = factorial(pe_summed)
 
-    first_term = np.power(prediction, pe_summed[
-                          :, np.newaxis]) * np.exp(-1 * prediction)
-    first_term /= pe_factorial[:, np.newaxis] * \
-        np.sqrt(math.pi * 2 * (ped * ped +
-                               pe_summed[:, np.newaxis] * spe_width * spe_width))
+    first_term = (
+        np.power(prediction, pe_summed[:, np.newaxis]) *
+        np.exp(-1 * prediction)
+    )
+    first_term /= (
+        pe_factorial[:, np.newaxis] * np.sqrt(
+            math.pi * 2 *
+            (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
+        )
+    )
 
     # Throw error if we get NaN in likelihood
     if np.any(np.isnan(first_term)):
-        raise PixelLikelihoodError("Likelihood returning NaN,"
-                                   "likely due to extremely high signal"
-                                   " deviation. Switch to poisson_likelihood_safe"
-                                   " implementation or"
-                                   " increase floating point precision"
-                                   " e.g. dtype=float64")
+        raise PixelLikelihoodError(
+            "Likelihood returning NaN,"
+            "likely due to extremely high signal"
+            " deviation. Switch to poisson_likelihood_safe"
+            " implementation or"
+            " increase floating point precision"
+            " e.g. dtype=float64"
+        )
 
     # Should not have any porblems here with NaN that have not bee seens
-    second_term = (image - pe_summed[:, np.newaxis]) * \
+    second_term = (
+        (image - pe_summed[:, np.newaxis]) *
         (image - pe_summed[:, np.newaxis])
-    second_term_denom = 2 * (ped * ped + spe_width *
-                             spe_width * pe_summed[:, np.newaxis])
+    )
+    second_term_denom = 2 * (
+        ped * ped + spe_width * spe_width * pe_summed[:, np.newaxis]
+    )
 
     second_term = second_term / second_term_denom
     second_term = np.exp(-1 * second_term)
@@ -176,8 +184,15 @@ def poisson_likelihood_full(
     return -2 * np.log(np.sum(like, axis=0))
 
 
-def poisson_likelihood(image, prediction, spe_width, ped,
-                       pedestal_safety=1.5, width_fac=3, dtype=np.float32):
+def poisson_likelihood(
+    image,
+    prediction,
+    spe_width,
+    ped,
+    pedestal_safety=1.5,
+    width_fac=3,
+    dtype=np.float32
+):
     """
     Safe implementation of the poissonian likelihood implementation,
     adaptively switches between the full solution and the gaussian
@@ -228,13 +243,14 @@ def poisson_likelihood(image, prediction, spe_width, ped,
     gaus_pix = width > pedestal_safety
 
     if np.any(poisson_pix):
-        like[poisson_pix] = poisson_likelihood_full(image[poisson_pix],
-                                                    prediction[poisson_pix],
-                                                    spe_width, ped, width_fac, dtype)
+        like[poisson_pix] = poisson_likelihood_full(
+            image[poisson_pix], prediction[poisson_pix], spe_width, ped,
+            width_fac, dtype
+        )
     if np.any(gaus_pix):
-        like[gaus_pix] = poisson_likelihood_gaussian(image[gaus_pix],
-                                                     prediction[gaus_pix],
-                                                     spe_width, ped)
+        like[gaus_pix] = poisson_likelihood_gaussian(
+            image[gaus_pix], prediction[gaus_pix], spe_width, ped
+        )
 
     return like
 
@@ -270,7 +286,8 @@ def mean_poisson_likelihood_gaussian(prediction, spe_width, ped):
 
 def _integral_poisson_likelihood_full(s, prediction, spe_width, ped):
     """
-    Wrapper function around likelihood calculation, used in numerical integration.
+    Wrapper function around likelihood calculation, used in numerical
+    integration.
     """
     like = poisson_likelihood(s, prediction, spe_width, ped)
     return like * np.exp(-0.5 * like)
@@ -310,10 +327,16 @@ def mean_poisson_likelihood_full(prediction, spe_width, ped):
     width = np.sqrt(width)
 
     for p in range(len(prediction)):
-        int_range = (prediction[p] - 10 * width[p],
-                     prediction[p] + 10 * width[p])
-        mean_like[p] = quad(_integral_poisson_likelihood_full, int_range[0], int_range[1],
-                            args=(prediction[p], spe_width[p], ped[p]), epsrel=0.05)[0]
+        int_range = (
+            prediction[p] - 10 * width[p], prediction[p] + 10 * width[p]
+        )
+        mean_like[p] = quad(
+            _integral_poisson_likelihood_full,
+            int_range[0],
+            int_range[1],
+            args=(prediction[p], spe_width[p], ped[p]),
+            epsrel=0.05
+        )[0]
     return mean_like
 
 
@@ -342,9 +365,11 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
     ped = np.asarray(ped)
 
     if image.shape is not prediction.shape:
-        PixelLikelihoodError("Image and prediction arrays have different dimensions",
-                             "Image shape: ", image.shape,
-                             "Prediction shape: ", prediction.shape)
+        PixelLikelihoodError(
+            "Image and prediction arrays have different dimensions Image "
+            "shape: {} Prediction shape: {}"
+            .format(image.shape, prediction.shape)
+        )
 
     chi_square = (image - prediction) * (image - prediction)
     chi_square /= ped + 0.5 * (image - prediction)

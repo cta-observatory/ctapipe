@@ -28,6 +28,7 @@ PYTABLES_TYPE_MAP = {
 
 
 class TableWriter(Component, metaclass=ABCMeta):
+
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
         self._transforms = defaultdict(dict)
@@ -434,7 +435,7 @@ class HDF5TableReader(TableReader):
             try:
                 row = tab[row_count]
             except IndexError:
-                return # stop generator when done
+                return  # stop generator when done
 
             for colname in self._cols_to_read[table_name]:
                 container[colname] = self._apply_col_transform(table_name,

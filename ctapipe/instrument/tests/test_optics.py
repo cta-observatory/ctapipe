@@ -5,7 +5,7 @@ import pytest
 
 def test_guess_optics():
 
-    od = OpticsDescription.guess(28.0*u.m)
+    od = OpticsDescription.guess(28.0 * u.m)
     od.info()
 
     assert od.tel_type == 'LST'
@@ -13,7 +13,7 @@ def test_guess_optics():
     assert od.mirror_type == 'DC'
 
     with pytest.raises(KeyError):
-        OpticsDescription.guess(0*u.m) # unknown tel
+        OpticsDescription.guess(0 * u.m)  # unknown tel
 
 
 def test_construct_optics():
@@ -22,13 +22,13 @@ def test_construct_optics():
         od = OpticsDescription(mirror_type="DC",
                                tel_type="bad",  # bad value
                                tel_subtype="1M",
-                               equivalent_focal_length=10*u.m)
+                               equivalent_focal_length=10 * u.m)
 
     with pytest.raises(ValueError):
-        od = OpticsDescription(mirror_type="bad", # bad value
+        od = OpticsDescription(mirror_type="bad",  # bad value
                                tel_type="MST",
                                tel_subtype="1M",
-                               equivalent_focal_length=10*u.m)
+                               equivalent_focal_length=10 * u.m)
 
     with pytest.raises(u.UnitsError):
         od = OpticsDescription.guess(28.0 * u.kg)  # bad unit

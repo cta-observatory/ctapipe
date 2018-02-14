@@ -6,6 +6,7 @@ from multiprocessing import Value
 from types import GeneratorType
 import zmq
 
+
 class ProducerZmq(Process, Component, Connections):
     """`ProducerZmq` class represents a Producer pipeline Step.
     It is derived from Process class.
@@ -15,6 +16,7 @@ class ProducerZmq(Process, Component, Connections):
     The process is launched by calling run method.
     init() method is call by run method.
     """
+
     def __init__(self, coroutine, name, main_connection_name,
                  connections=None):
         """
@@ -30,13 +32,13 @@ class ProducerZmq(Process, Component, Connections):
             Port number for socket for each next steps
         """
         Process.__init__(self)
-        Component.__init__(self,parent=None)
+        Component.__init__(self, parent=None)
         self.name = name
         Connections.__init__(self, main_connection_name, connections)
         self.coroutine = coroutine
-        self.other_requests=dict()
-        self._nb_job_done = Value('i',0)
-        self._running = Value('i',0)
+        self.other_requests = dict()
+        self._nb_job_done = Value('i', 0)
+        self._running = Value('i', 0)
         self.done = False
 
     def init(self):
@@ -60,20 +62,21 @@ class ProducerZmq(Process, Component, Connections):
         It loops overs its generator and sends new input to its next stage,
         thanks to its ZMQ REQ socket.
         """
-        if self.init() :
+        if self.init():
             generator = self.coroutine.run()
-            if isinstance(generator,GeneratorType):
+            if isinstance(generator, GeneratorType):
                 for result in generator:
                     self.running = 1
                     self.nb_job_done += 1
-                    if isinstance(result,tuple):
-                        msg,destination = self.get_destination_msg_from_result(result)
-                        self.send_msg(msg,destination)
+                    if isinstance(result, tuple):
+                        msg, destination = self.get_destination_msg_from_result(result)
+                        self.send_msg(msg, destination)
                     else:
                         self.send_msg(result)
                 self.running = 0
             else:
-                self.log.warning("Warning: Productor run method was not a python generator.")
+                self.log.warning(
+                    "Warning: Productor run method was not a python generator.")
         self.finish()
         self.done = True
 

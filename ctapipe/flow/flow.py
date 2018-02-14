@@ -50,6 +50,7 @@ class PipeStep():
     queue_limit: int
         Maximum number of element the router can queue
 '''
+
     def __init__(self, name,
                  next_steps_name=None,
                  port_in=None,
@@ -85,6 +86,7 @@ class PipeStep():
 
 
 class FlowError(Exception):
+
     def __init__(self, msg):
         '''Mentions that an exception occurred in the Flow based framework.
         '''
@@ -579,18 +581,18 @@ class Flow(Tool):
                 running = step.process[0].running
                 nb_job_done = step.process[0].nb_job_done
                 levels_for_gui.append(StagerRep(step.name, step.next_steps_name,
-                                      nb_job_done=nb_job_done,
-                                      running=running,
-                                      nb_process=len(step.process)))
+                                                nb_job_done=nb_job_done,
+                                                running=running,
+                                                nb_process=len(step.process)))
 
             elif self.mode == 'multiprocess':
                 for process in step.process:
                     nb_job_done += process.nb_job_done
                     running += process.running
                 levels_for_gui.append(StagerRep(process.name, step.next_steps_name,
-                                      nb_job_done=nb_job_done,
-                                      running=running,
-                                      nb_process=len(step.process)))
+                                                nb_job_done=nb_job_done,
+                                                running=running,
+                                                nb_process=len(step.process)))
 
         levels_for_gui.append(StagerRep(self.consumer_step.name,
                                         nb_job_done=self.consumer.nb_job_done,
