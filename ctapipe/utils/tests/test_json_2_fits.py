@@ -1,4 +1,4 @@
-'''A simple example of how to use traitlets.config.application.Application.
+"""A simple example of how to use traitlets.config.application.Application.
 
 This should serve as a simple example that shows how the traitlets config
 system works. The main classes are:
@@ -28,7 +28,7 @@ to set the following options:
 
 When the config attribute of an Application is updated, it will fire all of
 the trait's events for all of the config=True attributes.
-'''
+"""
 
 from traitlets.config.configurable import Configurable
 from traitlets.config.application import Application
@@ -46,9 +46,9 @@ import json
 
 
 class Foo(Configurable):
-    '''A class that has configurable, typed attributes.
+    """A class that has configurable, typed attributes.
 
-    '''
+    """
 
     i = Int(0, help='The integer i.').tag(config=True)
     j = Int(1, help='The integer j.').tag(config=True)
@@ -104,7 +104,7 @@ class MyApp(Application):
         pass
 
     def stage_default_config_file(self):
-        '''auto generate default config file, and stage it into the profile.'''
+        """auto generate default config file, and stage it into the profile."""
         # s = self.generate_config_file()
         fname = os.path.join('.', 'foo.json')  # self.config_file)
         if not os.path.exists(fname):

@@ -9,9 +9,9 @@ def test_tailcuts_clean_simple():
     geom = CameraGeometry.from_name("LSTCam")
     image = np.zeros_like(geom.pix_id, dtype=np.float)
     
-    N = 40
-    some_neighs = geom.neighbors[N][0:3]  # pick 4 neighbors
-    image[N] = 5.0              # set a single image pixel
+    num_pix = 40
+    some_neighs = geom.neighbors[num_pix][0:3]  # pick 4 neighbors
+    image[num_pix] = 5.0              # set a single image pixel
     image[some_neighs] = 3.0    # make some boundaries that are neighbors
     image[10] = 3.0             # a boundary that is not a neighbor
 
@@ -22,7 +22,7 @@ def test_tailcuts_clean_simple():
     print(geom.pix_id[mask])
 
     assert 10 not in geom.pix_id[mask]
-    assert set(some_neighs).union({N}) == set(geom.pix_id[mask])
+    assert set(some_neighs).union({num_pix}) == set(geom.pix_id[mask])
     assert (mask > 0).sum() == 4
 
 
@@ -81,7 +81,6 @@ def test_tailcuts_clean_min_neighbors_1():
 
     p = 15  # picture value
     b = 7  # boundary value
-
 
     testcases = {(p, p, 0): [True, True, False],
                  (p, 0, p): [False, False, False],

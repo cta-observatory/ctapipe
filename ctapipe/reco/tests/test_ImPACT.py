@@ -93,9 +93,9 @@ class TestImPACT():
                                               array_direction=[0 * u.deg,
                                                                0 * u.deg])
 
-        max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
+        shower_max = self.impact_reco.get_shower_max(0, 0, 0, 100, 0)
 
-        assert_allclose(max, 486.85820802 * u.g / (u.cm * u.cm), rtol=0.01)
+        assert_allclose(shower_max, 486.85820802 * u.g / (u.cm * u.cm), rtol=0.01)
 
     @pytest.mark.skip('need a dataset for this to work')
     def test_image_prediction(self):

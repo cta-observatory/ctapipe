@@ -118,12 +118,12 @@ class CameraGeometry:
                 and (self.pix_type == other.pix_type)
                 )
 
-    def __getitem__(self, slice):
+    def __getitem__(self, slice_):
         return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
-                              pix_id=self.pix_id[slice],
-                              pix_x=self.pix_x[slice],
-                              pix_y=self.pix_y[slice],
-                              pix_area=self.pix_area[slice],
+                              pix_id=self.pix_id[slice_],
+                              pix_x=self.pix_x[slice_],
+                              pix_y=self.pix_y[slice_],
+                              pix_area=self.pix_area[slice_],
                               pix_type=self.pix_type,
                               pix_rotation=self.pix_rotation,
                               cam_rotation=self.cam_rotation,
@@ -402,8 +402,6 @@ class CameraGeometry:
         printer('   - pix-rotation: {}'.format(self.pix_rotation))
         printer('   - cam-rotation: {}'.format(self.cam_rotation))
 
-
-
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
                          range_y=(-0.5, 0.5)):
@@ -510,9 +508,11 @@ def _guess_camera_type(npix, optical_foclen):
     try:
         return _CAMERA_GEOMETRY_TABLE[(npix, None)]
     except KeyError:
-        return _CAMERA_GEOMETRY_TABLE.get((npix, round(optical_foclen.value, 1)),
-                                          ('unknown', 'unknown', 'hexagonal',
-                                           0 * u.degree, 0 * u.degree))
+        return _CAMERA_GEOMETRY_TABLE.get(
+            (npix, round(optical_foclen.value, 1)),
+            ('unknown', 'unknown', 'hexagonal',
+            0 * u.degree, 0 * u.degree)
+        )
 
 
 def _neighbor_list_to_matrix(neighbors):

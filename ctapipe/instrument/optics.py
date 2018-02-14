@@ -152,7 +152,7 @@ class OpticsDescription:
     def identifier(self):
         """ returns a tuple of (tel_type, tel_subtype).  Use str(optics) to
         get a text-based identifier."""
-        return (self.tel_type, self.tel_subtype)
+        return self.tel_type, self.tel_subtype
 
     def info(self, printer=print):
         printer('OpticsDescription: "{}"'.format(self))

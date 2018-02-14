@@ -42,7 +42,6 @@ def test_datasets_in_custom_path(tmpdir_factory):
     with pytest.raises(FileNotFoundError):
         datasets.get_dataset("does_not_exist")
 
-
     # try using find_all_matching_datasets:
 
     ds = datasets.find_all_matching_datasets("test.*",

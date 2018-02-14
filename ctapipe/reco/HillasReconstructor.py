@@ -180,7 +180,7 @@ class HillasReconstructor(Reconstructor):
         self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
         # algebraic direction estimate
-        dir, err_est_dir = self.fit_origin_crosses()
+        direction, err_est_dir = self.fit_origin_crosses()
 
         # core position estimate using a geometric approach
         pos, err_est_pos = self.fit_core_crosses()
@@ -194,7 +194,7 @@ class HillasReconstructor(Reconstructor):
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
-        phi, theta = linalg.get_phi_theta(dir).to(u.deg)
+        phi, theta = linalg.get_phi_theta(direction).to(u.deg)
 
         # TODO fix coordinates!
         result.alt, result.az = 90 * u.deg - theta, -phi

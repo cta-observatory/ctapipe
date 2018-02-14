@@ -9,7 +9,7 @@ __all__ = ["SensitivityPointSource"]
 
 
 def crab_source_rate(energy):
-    '''
+    """
     function for a pseudo-Crab point-source rate:
         dN/dE = 3e-7  * (E/TeV)**-2.5 / (TeV * m² * s)
     (watch out: unbroken power law... not really true)
@@ -25,12 +25,12 @@ def crab_source_rate(energy):
     flux : astropy quantity
         differential flux at E
 
-    '''
+    """
     return 3e-7 * (energy / u.TeV)**-2.5 / (u.TeV * u.m**2 * u.s)
 
 
 def cr_background_rate(energy):
-    '''
+    """
     function for the Cosmic Ray background rate:
         dN/dE = 0.215 * (E/TeV)**-8./3 / (TeV * m² * s * sr)
     (simple power law, no knee/ankle)
@@ -46,13 +46,13 @@ def cr_background_rate(energy):
     flux : astropy quantity
         differential flux at E
 
-    '''
+    """
     return 100 * 0.1**(8. / 3) * (energy / u.TeV)**(-8. / 3) / \
         (u.TeV * u.m**2 * u.s * u.sr)
 
 
 def e_minus_2(energy, unit=u.TeV):
-    '''
+    """
     boring, old, unnormalised E^-2 spectrum
 
     Parameters
@@ -65,7 +65,7 @@ def e_minus_2(energy, unit=u.TeV):
     flux : astropy quantity
         differential flux at E
 
-    '''
+    """
     return (energy / unit)**(-2) / (unit * u.s * u.m**2)
 
 
@@ -265,7 +265,7 @@ class SensitivityPointSource:
         """
 
         if (n_simulated_events is not None and generator_spectra is not None) == \
-                (generator_energy_hists):
+                generator_energy_hists:
             raise ValueError("use either (n_simulated_events and generator"
                              "_spectra) or generator_energy_hists to set the MC "
                              "generated energy spectrum -- not both")

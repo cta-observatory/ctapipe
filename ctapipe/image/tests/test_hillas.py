@@ -91,7 +91,7 @@ def test_hillas():
                     compare_result(results[aa].psi.deg, results[bb].psi.deg)
                     compare_result(results[aa].miss, results[bb].miss)
                     compare_result(results[aa].skewness, results[bb].skewness)
-                    #compare_result(results[aa].kurtosis, results[bb].kurtosis)
+                    # compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
 
 def test_hillas_masked():

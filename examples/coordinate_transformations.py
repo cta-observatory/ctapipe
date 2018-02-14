@@ -22,8 +22,9 @@ def cam_to_tel():
     # first define the camera frame
     camera_coord = CameraFrame(pix, focal_length=15 * u.m, rotation=0 * u.deg)
 
-    # then use transform to function to convert to a new system
-    # making sure to give the required values for the conversion (these are not checked yet)
+    # then use transform to function to convert to a new system making sure
+    # to give the required values for the conversion (these are not checked
+    # yet)
     telescope_coord = camera_coord.transform_to(TelescopeFrame())
 
     # Print coordinates in the new frame
@@ -74,10 +75,12 @@ def nominal_to_altaz():
     )
     alt_az = nom.transform_to(HorizonFrame)
     print("AltAz Coordinate", alt_az)
-    # Provided we know when and where the AltAz was measured we can them convert this to any astronomical
+    # Provided we know when and where the AltAz was measured we can them
+    # convert this to any astronomical
 
 
-# We also have the ground and tilted ground systems needed for core reconstruction
+# We also have the ground and tilted ground systems needed for core
+# reconstruction
 def grd_to_tilt():
     grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m)
     tilt_coord = grd_coord.transform_to(

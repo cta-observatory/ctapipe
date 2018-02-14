@@ -48,7 +48,7 @@ def main(args=None):
 
 
 def info(version=False, tools=False, dependencies=False,
-         resources=False, system=False, all=False):
+         resources=False, system=False, show_all=False):
     """Print various info to the console.
 
     TODO: explain.
@@ -56,19 +56,19 @@ def info(version=False, tools=False, dependencies=False,
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)s - %(message)s')
 
-    if version or all:
+    if version or show_all:
         _info_version()
 
-    if tools or all:
+    if tools or show_all:
         _info_tools()
 
-    if dependencies or all:
+    if dependencies or show_all:
         _info_dependencies()
 
-    if resources or all:
+    if resources or show_all:
         _info_resources()
 
-    if system or all:
+    if system or show_all:
         _info_system()
 
 
@@ -141,8 +141,8 @@ def _info_resources():
 
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
     if os.getenv('CTAPIPE_SVC_PATH') is not None:
-        for dir in datasets.get_searchpath_dirs():
-            print("\t * {}".format(dir))
+        for directory in datasets.get_searchpath_dirs():
+            print("\t * {}".format(directory))
     else:
         print("\t no path is set")
     print("")

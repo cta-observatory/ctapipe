@@ -33,17 +33,17 @@ def analyze_muon_event(event):
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
              'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
-    TailCuts = [(5, 7), (5, 7), (10, 12), (5, 7),
+    tail_cuts = [(5, 7), (5, 7), (10, 12), (5, 7),
                 (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
               (0.1, 0.95), (0.1, 0.95), (0.1, 0.95), (0.1, 0.95)] * u.m
     ringwidth = [(0.04, 0.08), (0.02, 0.1), (0.01, 0.1), (0.02, 0.1),
                  (0.01, 0.5), (0.02, 0.2), (0.02, 0.2), (0.02, 0.2)] * u.deg
-    TotalPix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]
+    total_pix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]
     # 8% (or 6%) as limit
-    MinPix = [148., 148., 141., 680., 104., 164., 142., 164]
+    min_pix = [148., 148., 141., 680., 104., 164., 142., 164]
     # Need to either convert from the pixel area in m^2 or check the camera specs
-    AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
+    ang_pixel_width = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
     # Found from TDRs (or the pixel area)
     hole_rad = [0.308 * u.m, 0.244 * u.m, 0.244 * u.m,
                 4.3866 * u.m, 0.160 * u.m, 0.130 * u.m,
@@ -55,10 +55,10 @@ def analyze_muon_event(event):
     sct = [False, False, False, True, False, True, True, True]
 
 
-    muon_cuts = {'Name': names, 'TailCuts': TailCuts, 'Impact': impact,
-                 'RingWidth': ringwidth, 'TotalPix': TotalPix,
-                 'MinPix': MinPix, 'CamRad': cam_rad, 'SecRad': sec_rad,
-                 'SCT': sct, 'AngPixW': AngPixelWidth, 'HoleRad': hole_rad}
+    muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
+                 'RingWidth': ringwidth, 'total_pix': total_pix,
+                 'min_pix': min_pix, 'CamRad': cam_rad, 'SecRad': sec_rad,
+                 'SCT': sct, 'AngPixW': ang_pixel_width, 'HoleRad': hole_rad}
     logger.debug(muon_cuts)
 
     muonringlist = []  # [None] * len(event.dl0.tels_with_data)
@@ -82,7 +82,7 @@ def analyze_muon_event(event):
         logger.debug('found an index of %d for camera %d',
                      dict_index, geom.cam_id)
 
-        tailcuts = muon_cuts['TailCuts'][dict_index]
+        tailcuts = muon_cuts['tail_cuts'][dict_index]
         logger.debug("Tailcuts are %s", tailcuts)
 
         clean_mask = tailcuts_clean(geom, image, picture_thresh=tailcuts[0],
@@ -95,7 +95,7 @@ def analyze_muon_event(event):
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if (altval > np.pi / 2.):
+        if altval > np.pi / 2.:
             altval = np.pi / 2.
 
         altaz = HorizonFrame(alt=altval * u.rad,
@@ -142,10 +142,9 @@ def analyze_muon_event(event):
         nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,
                                     2) + np.power(muonringparam.ring_center_y, 2))
 
+        minpix = muon_cuts['min_pix'][dict_index]  # 0.06*numpix #or 8%
 
-        minpix = muon_cuts['MinPix'][dict_index]  # 0.06*numpix #or 8%
-
-        mir_rad = np.sqrt(teldes.optics.mirror_area.to("m2") / (np.pi))
+        mir_rad = np.sqrt(teldes.optics.mirror_area.to("m2") / np.pi)
 
         # Camera containment radius -  better than nothing - guess pixel
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
@@ -183,7 +182,7 @@ def analyze_muon_event(event):
                 secondary_radius=muon_cuts['SecRad'][dict_index]
             )
 
-            if (image.shape[0] == muon_cuts['TotalPix'][dict_index]):
+            if image.shape[0] == muon_cuts['total_pix'][dict_index]:
                 muonintensityoutput = ctel.fit_muon(muonringparam.ring_center_x,
                                                     muonringparam.ring_center_y,
                                                     muonringparam.ring_radius,
