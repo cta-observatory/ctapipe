@@ -16,4 +16,4 @@ def test_rotation_matrix_2d():
     # test that the rotation is Hermitian
 
     m = rotation_matrix_2d('25d')
-    assert allclose(dot(m, m.T),  identity(2)), "rotation should be Hermetian"
+    assert allclose(dot(m, m.T), identity(2)), "rotation should be Hermetian"

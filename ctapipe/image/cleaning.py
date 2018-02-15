@@ -6,6 +6,7 @@ __all__ = ['tailcuts_clean', 'dilate']
 
 import numpy as np
 
+
 def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
                    keep_isolated_pixels=False,
                    min_number_picture_neighbors=0):
@@ -51,7 +52,7 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
     pixels_above_picture = image >= picture_thresh
 
     if keep_isolated_pixels or min_number_picture_neighbors == 0:
-       pixels_in_picture = pixels_above_picture
+        pixels_in_picture = pixels_above_picture
     else:
         # Require at least min_number_picture_neighbors. Otherwise, the pixel
         #  is not selected
@@ -60,7 +61,6 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
         pixels_in_picture = pixels_above_picture & (
             number_of_neighbors_above_picture >= min_number_picture_neighbors
         )
-
 
     # by broadcasting together pixels_in_picture (1d) with the neighbor
     # matrix (2d), we find all pixels that are above the boundary threshold
@@ -74,12 +74,10 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
                 & pixels_with_picture_neighbors) | pixels_in_picture
     else:
         pixels_with_boundary_neighbors = (pixels_above_boundary &
-                                         geom.neighbor_matrix).any(axis=1)
+                                          geom.neighbor_matrix).any(axis=1)
 
         return ((pixels_above_boundary & pixels_with_picture_neighbors) |
-                (pixels_in_picture &  pixels_with_boundary_neighbors))
-
-
+                (pixels_in_picture & pixels_with_boundary_neighbors))
 
 
 def dilate(geom, mask):
@@ -88,7 +86,7 @@ def dilate(geom, mask):
     the new mask.
     This can be used to include extra rows of pixels in a mask that was
     pre-computed, e.g. via `tailcuts_clean`.
-    
+
     Parameters
     ----------
     geom: `~ctapipe.instrument.CameraGeometry`

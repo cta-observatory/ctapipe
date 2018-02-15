@@ -93,8 +93,8 @@ class ImPACTReconstructor(Reconstructor):
                            "NectarCam": "MST_xm_full.fits",
                            "FlashCam": "MST_xm_full.fits"}
 
-        # We also need a conversion function from height above ground to depth of maximum
-        # To do this we need the conversion table from CORSIKA
+        # We also need a conversion function from height above ground to
+        # depth of maximum To do this we need the conversion table from CORSIKA
         self.thickness_profile, self.altitude_profile = \
             get_atmosphere_profile_functions('paranal')
 
@@ -102,11 +102,15 @@ class ImPACTReconstructor(Reconstructor):
         # pedestal distribution for each pixel
         # currently this is not availible from the calibration,
         # so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3, "NectarCam": 2.0, "FlashCam": 2.3, "CHEC": 1.3}
+        self.ped_table = {"LSTCam": 1.3,
+                          "NectarCam": 2.0,
+                          "FlashCam": 2.3,
+                          "CHEC": 1.3}
         self.spe = 0.5  # Also hard code single p.e. distribution width
 
-        # Also we need to scale the impact_reco templates a bit, this will be fixed later
-        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "CHEC": 1.0}# * 1.36}
+        # Also we need to scale the impact_reco templates a bit, this will be
+        #  fixed later
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "CHEC": 1.0}  # * 1.36}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -160,17 +164,15 @@ class ImPACTReconstructor(Reconstructor):
 
         return True
 
-    def get_brightest_mean(self, num_pix=3):
+    def get_brightest_mean(self):
         """This is a simple function to find the peak position of each image
-        in an event which will be used later in the Xmax
-        calculation. Peak is found by taking the average position of
-        the n hottest pixels in the image.
+        in an event which will be used later in the Xmax calculation. Peak is
+        found by taking the average position of the n hottest pixels in the
+        image.
 
         Parameters
         ----------
-        num_pix: int
-            Number of pixels the average position from
-
+        
         Returns
         -------
             None
@@ -365,15 +367,14 @@ class ImPACTReconstructor(Reconstructor):
         phi = np.arctan2((self.tel_pos_y[tel_id] - tilt_y),
                          (self.tel_pos_x[tel_id] - tilt_x))
 
-        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id]
-                                                     * -1,
+        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id] * -1,
                                                      self.pixel_y[tel_id],
                                                      source_x,
                                                      source_y, phi)
 
         prediction = self.image_prediction(self.type[tel_id],
-                                          # (90 * u.deg) - shower_reco.alt,
-                                          # shower_reco.az,
+                                           # (90 * u.deg) - shower_reco.alt,
+                                           # shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
                                            pix_x_rot * (180 / math.pi),
@@ -460,7 +461,7 @@ class ImPACTReconstructor(Reconstructor):
             # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(
                 self.type[tel_count],
-                #zenith, azimuth, 
+                #zenith, azimuth,
                 energy, impact, x_max_bin,
                 pix_x_rot * (180 / math.pi),
                 pix_y_rot * (180 / math.pi)
@@ -498,7 +499,6 @@ class ImPACTReconstructor(Reconstructor):
         if self.array_return:
             return array_like
         return np.sum(array_like)
-
 
     def get_likelihood_min(self, x):
         """Wrapper class around likelihood function for use with scipy
@@ -571,7 +571,7 @@ class ImPACTReconstructor(Reconstructor):
 
         self.hillas = hillas
 
-        self.get_brightest_mean(num_pix=3)
+        self.get_brightest_mean()
         self.type = type_tel
         self.initialise_templates(type_tel)
 
@@ -597,7 +597,7 @@ class ImPACTReconstructor(Reconstructor):
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(NominalFrame(
             array_direction=self.array_direction))
-        
+
         source_x = nominal_seed.x[0].to(u.rad).value
         source_y = nominal_seed.y[0].to(u.rad).value
 
@@ -624,7 +624,7 @@ class ImPACTReconstructor(Reconstructor):
                   (tilt_y - 100, tilt_y + 100),
                   (lower_en_limit.value, en_seed.value * 2),
                   (0.5, 2))
-        
+
         fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
                                            minimiser_name=self.minimiser_name)
 
@@ -723,27 +723,26 @@ class ImPACTReconstructor(Reconstructor):
             return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
                     fit_params["core_y"], fit_params["energy"], fit_params[
                         "x_max_scale"]),\
-                   (errors["source_x"], errors["source_y"], errors["core_x"],
-                    errors["core_x"], errors["energy"], errors["x_max_scale"])
+                (errors["source_x"], errors["source_y"], errors["core_x"],
+                 errors["core_x"], errors["energy"], errors["x_max_scale"])
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
-                    self.array_return = True
-                    limits = np.array(limits)
+            self.array_return = True
 
-                    min = least_squares(self.get_likelihood_min, params,
-                                        method=minimiser_name,
-                                        x_scale=step,
-                                        xtol=1e-10,
-                                        ftol=1e-10
-                                        )
-                    return min.x, (0, 0, 0, 0, 0, 0)
+            min = least_squares(self.get_likelihood_min, params,
+                                method=minimiser_name,
+                                x_scale=step,
+                                xtol=1e-10,
+                                ftol=1e-10
+                                )
+            return min.x, (0, 0, 0, 0, 0, 0)
 
         else:
-                    min = minimize(self.get_likelihood_min, params,
-                                   method=minimiser_name,
-                                   bounds=limits
-                                   )
-                    return min.x, (0, 0, 0, 0, 0, 0)
+            min = minimize(self.get_likelihood_min, params,
+                           method=minimiser_name,
+                           bounds=limits
+                           )
+            return min.x, (0, 0, 0, 0, 0, 0)
 
     def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
                              nominal_range=2.5 * u.deg):
@@ -784,25 +783,28 @@ class ImPACTReconstructor(Reconstructor):
         tilt_x = tilted.x.to(u.m)
         tilt_y = tilted.y.to(u.m)
 
-        x_dir = np.linspace(source_x - nominal_range, source_x + nominal_range, num=bins)
-        y_dir = np.linspace(source_y - nominal_range, source_y + nominal_range, num=bins)
+        x_dir = np.linspace(source_x - nominal_range,
+                            source_x + nominal_range, num=bins)
+        y_dir = np.linspace(source_y - nominal_range,
+                            source_y + nominal_range, num=bins)
         w = np.zeros([bins, bins])
         zenith = 90 * u.deg - self.array_direction.alt
 
         for xb in range(bins):
             for yb in range(bins):
-                x_max_scale = shower_seed.h_max / \
-                    self.get_shower_max(x_dir[xb].to(u.rad).value,
-                                        y_dir[yb].to(u.rad).value,
-                                        tilt_x.value,
-                                        tilt_y.value,
-                                        zenith.to(u.rad).value)
+                shower_max = self.get_shower_max(x_dir[xb].to(u.rad).value,
+                                                 y_dir[yb].to(u.rad).value,
+                                                 tilt_x.value,
+                                                 tilt_y.value,
+                                                 zenith.to(u.rad).value)
+                x_max_scale = shower_seed.h_max / shower_max
 
                 w[xb][yb] = self.get_likelihood(x_dir[xb].to(u.rad).value,
                                                 y_dir[yb].to(u.rad).value,
                                                 tilt_x.value,
                                                 tilt_y.value,
-                                                energy_seed.energy.value, x_max_scale)
+                                                energy_seed.energy.value,
+                                                x_max_scale)
 
         w = w - np.min(w)
 
@@ -811,9 +813,10 @@ class ImPACTReconstructor(Reconstructor):
     def draw_tilted_surface(self, shower_seed, energy_seed,
                             bins=50, core_range=100 * u.m):
         """
-        Simple reconstruction for evaluating the likelihood in a grid across the 
-        nominal system, fixing all values but the core position of the gamma rays. 
-        Useful for checking the reconstruction performance of the algorithm
+        Simple reconstruction for evaluating the likelihood in a grid across
+        the nominal system, fixing all values but the core position of the
+        gamma rays. Useful for checking the reconstruction performance of the
+        algorithm
 
         Parameters
         ----------
@@ -829,41 +832,47 @@ class ImPACTReconstructor(Reconstructor):
         Returns
         -------
         ndarray, ndarray, ndarray: 
-        Bin centres in X and Y coordinates and the values of the likelihood at each 
-        position
+            Bin centres in X and Y coordinates and the values of the likelihood
+            at each position
         """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
         nominal_seed = horizon_seed.transform_to(
-            NominalFrame(array_direction=self.array_direction))
+            NominalFrame(array_direction=self.array_direction)
+        )
 
         source_x = nominal_seed.x[0].to(u.rad).value
         source_y = nominal_seed.y[0].to(u.rad).value
 
-        ground = GroundFrame(x=shower_seed.core_x,
-                             y=shower_seed.core_y, z=0 * u.m)
+        ground = GroundFrame(
+            x=shower_seed.core_x,
+            y=shower_seed.core_y, z=0 * u.m
+        )
         tilted = ground.transform_to(
             TiltedGroundFrame(pointing_direction=self.array_direction)
         )
         tilt_x = tilted.x.to(u.m)
         tilt_y = tilted.y.to(u.m)
 
-        x_ground_list = np.linspace(tilt_x - core_range, tilt_x + core_range, num=bins)
-        y_ground_list = np.linspace(tilt_y - core_range, tilt_y + core_range, num=bins)
+        x_ground_list = np.linspace(tilt_x - core_range,
+                                    tilt_x + core_range, num=bins)
+        y_ground_list = np.linspace(tilt_y - core_range,
+                                    tilt_y + core_range, num=bins)
         w = np.zeros([bins, bins])
         zenith = 90 * u.deg - self.array_direction.alt
 
         for xb in range(bins):
             for yb in range(bins):
-                x_max_scale = shower_seed.h_max / \
-                    self.get_shower_max(source_x,
-                                        source_y,
-                                        x_ground_list[xb].value,
-                                        y_ground_list[yb].value,
-                                        zenith.to(u.rad).value)
+                shower_max = self.get_shower_max(source_x,
+                                                 source_y,
+                                                 x_ground_list[xb].value,
+                                                 y_ground_list[yb].value,
+                                                 zenith.to(u.rad).value)
+                x_max_scale = shower_seed.h_max / shower_max
 
                 w[xb][yb] = self.get_likelihood(source_x,
                                                 source_y,
                                                 x_ground_list[xb].value,
                                                 y_ground_list[yb].value,
-                                                energy_seed.energy.value, x_max_scale)
+                                                energy_seed.energy.value,
+                                                x_max_scale)
         return x_ground_list, y_ground_list, w

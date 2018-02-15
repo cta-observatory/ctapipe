@@ -17,8 +17,8 @@ def chec_transformation_map():
 
 def chec_to_2d_array(input_img, img_map=chec_transformation_map()):
     """
-    Convert images comming form "CHEC" cameras in order to get regular 2D "rectangular"
-    images directly usable with most image processing tools.
+    Convert images comming form "CHEC" cameras in order to get regular 2D
+    "rectangular" images directly usable with most image processing tools.
 
     Parameters
     ----------
@@ -47,7 +47,6 @@ def chec_to_2d_array(input_img, img_map=chec_transformation_map()):
 
 
 def array_2d_to_chec(img_2d):
-
     # Flatten image and remove NaN values
     img_1d = img_2d[np.isfinite(img_2d)]
 

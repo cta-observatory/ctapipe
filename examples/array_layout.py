@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from ctapipe.visualization import ArrayDisplay
-from ctapipe.utils import datasets
-
+import matplotlib.pylab as plt
 from astropy.table import Table
 from numpy import ones_like
-import matplotlib.pylab as plt
+
+from ctapipe.utils import datasets
+from ctapipe.visualization import ArrayDisplay
 
 if __name__ == '__main__':
 

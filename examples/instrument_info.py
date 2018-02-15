@@ -14,7 +14,7 @@ if __name__ == '__main__':
         event = next(gsource)
 
     print("------ Input: ", infile)
-    
+
     subarray = event.inst.subarray
 
     print("\n---------- Subarray Info: -----------")

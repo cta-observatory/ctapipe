@@ -15,7 +15,7 @@ def rotation_matrix_2d(angle):
     """
     psi = Angle(angle).rad
     return np.array([[cos(psi), -sin(psi)],
-                     [sin(psi),  cos(psi)]])
+                     [sin(psi), cos(psi)]])
 
 
 def rotate_around_axis(vec, axis, angle):
@@ -79,12 +79,12 @@ def angle(v1, v2):
 
     Parameters
     ----------
-    vec1 : numpy array
-    vec2 : numpy array
+    v1 : numpy array
+    v2 : numpy array
 
     Returns
     -------
-    the angle between vec1 and vec2 as a dimensioned astropy quantity
+    the angle between v1 and v2 as a dimensioned astropy quantity
     """
     return acos(np.clip(v1.dot(v2) / (length(v1) * length(v2)), -1.0, 1.0))
 

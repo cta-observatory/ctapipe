@@ -18,7 +18,7 @@ def test_full_integration(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = FullIntegrator()
@@ -36,7 +36,7 @@ def test_simple_integration(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = SimpleIntegrator()
@@ -54,7 +54,7 @@ def test_global_peak_integration(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = GlobalPeakIntegrator()
@@ -72,7 +72,7 @@ def test_local_peak_integration(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = LocalPeakIntegrator()
@@ -90,7 +90,7 @@ def test_nb_peak_integration(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
     geom = event.inst.subarray.tel[telid].camera
     nei = geom.neighbor_matrix_where
@@ -111,7 +111,7 @@ def test_averagewf_peak_integration(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     integrator = AverageWfPeakIntegrator()
@@ -125,7 +125,7 @@ def test_averagewf_peak_integration(test_event):
 
 def test_charge_extractor_factory(test_event):
     extractor = ChargeExtractorFactory.produce(
-        
+
         product='LocalPeakIntegrator'
     )
 
@@ -134,7 +134,7 @@ def test_charge_extractor_factory(test_event):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
-    data_ped = data - np.atleast_3d(ped/nsamples)
+    data_ped = data - np.atleast_3d(ped / nsamples)
 
     integration, peakpos, window = extractor.extract_charge(data_ped)
 

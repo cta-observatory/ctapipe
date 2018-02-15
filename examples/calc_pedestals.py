@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from ctapipe.calib import pedestals
 from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import get_dataset
-from ctapipe.calib import pedestals
-import numpy as np
+
 
 def plot_peds(peds, pedvars):
     """ make a quick plot of the pedestal values"""
@@ -43,11 +46,11 @@ if __name__ == '__main__':
 
                 print("CT{} chan {}:".format(telid, chan))
 
-                traces = event.r0.tel[telid].waveform[chan,...]
+                traces = event.r0.tel[telid].waveform[chan, ...]
 
-                peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
-                                                                     start,
-                                                                     end)
+                peds, pedvars = pedestals.calc_pedestals_from_traces(
+                    traces, start, end
+                )
 
                 print("Number of samples: {}".format(traces.shape[1]))
                 print("Calculate over window:({},{})".format(start, end))

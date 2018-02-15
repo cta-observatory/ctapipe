@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import ctapipe_resources
-except:
+except ImportError:
     raise RuntimeError("Please install the 'ctapipe-extra' package, "
                        "which contains the ctapipe_resources module "
                        "needed by ctapipe. (conda install ctapipe-extra)")
@@ -27,6 +27,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
         return []
     return os.path.expandvars(searchpath).split(':')
 
+
 def find_all_matching_datasets(pattern,
                                searchpath=None,
                                regexp_group=None):
@@ -34,7 +35,7 @@ def find_all_matching_datasets(pattern,
     Returns a list of resource names (or substrings) matching the given 
     pattern, searching first in searchpath (a colon-separated list of 
     directories) and then in the ctapipe_resources module)
-    
+
     Parameters
     ----------
     pattern: str
@@ -83,7 +84,7 @@ def find_all_matching_datasets(pattern,
 def find_in_path(filename, searchpath):
     """
     Search in searchpath for filename, returning full path.
-    
+
     Parameters
     ----------
     searchpath: str
@@ -97,8 +98,8 @@ def find_in_path(filename, searchpath):
 
     """
 
-    for dir in get_searchpath_dirs(searchpath):
-        pathname = os.path.join(dir, filename)
+    for directory in get_searchpath_dirs(searchpath):
+        pathname = os.path.join(directory, filename)
         if os.path.exists(pathname):
             return pathname
 
@@ -109,12 +110,12 @@ def get_dataset(filename):
     """
     Returns the full file path to an auxiliary dataset needed by 
     ctapipe, given the dataset's full name (filename with no directory).
-      
+
     This will first search for the file in directories listed in 
     tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,  
     will look in the ctapipe_resources module 
     (installed with the ctapipe-extra package), which contains the defaults.
-    
+
     Parameters
     ----------
     filename: str
@@ -160,7 +161,7 @@ def get_table_dataset(table_name, role='resource', **kwargs):
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
     types_to_try = {
-        '.fits.gz' : {},
+        '.fits.gz': {},
         '.fits': {},
         '.ecsv': dict(format='ascii.ecsv'),
         '.ecsv.txt': dict(format='ascii.ecsv'),
@@ -183,7 +184,7 @@ def get_table_dataset(table_name, role='resource', **kwargs):
         table_name, ', '.join(types_to_try)))
 
 
-@deprecated("ctapipe-0.5",alternative='get_dataset()')
+@deprecated("ctapipe-0.5", alternative='get_dataset()')
 def get_path(filename):
     return get_dataset(filename)
 

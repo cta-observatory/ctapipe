@@ -23,11 +23,11 @@ class DisplayTelescopeStep(Component):
         return True
 
     def run(self, figure):
-            self.log.debug('%figure' % "DisplayTelescopeStep receive {}")
-            if self.display:
-                plt.pause(.1)
-            if self.pdfPages is not None:
-                self.pdfPages.savefig(figure)
+        self.log.debug('%figure' % "DisplayTelescopeStep receive {}")
+        if self.display:
+            plt.pause(.1)
+        if self.pdfPages is not None:
+            self.pdfPages.savefig(figure)
 
     def finish(self):
         self.log.debug("--- DisplayTelescopeStep finish ---")

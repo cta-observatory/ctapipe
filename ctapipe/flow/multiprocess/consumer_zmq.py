@@ -6,6 +6,7 @@ from multiprocessing import Value
 from pickle import loads
 from ctapipe.core import Component
 
+
 class ConsumerZMQ(Process, Component):
     """`ConsumerZMQ` class represents a Consumer pipeline Step.
     It is derived from Process class. It receives
@@ -16,6 +17,7 @@ class ConsumerZMQ(Process, Component):
     init() method is call by run method.
     The process is stopped by setting share data stop to True
     """
+
     def __init__(
             self, coroutine, sock_consumer_port, _name=""):
         """
@@ -25,14 +27,14 @@ class ConsumerZMQ(Process, Component):
         sock_consumer_port: str
             Port number for socket url
         """
-        Component.__init__(self,parent=None)
+        Component.__init__(self, parent=None)
         Process.__init__(self)
         self.coroutine = coroutine
         self.sock_consumer_url = 'tcp://localhost:' + sock_consumer_port
         self.name = _name
-        self._running = Value('i',0)
-        self._nb_job_done = Value('i',0)
-        self._stop = Value('i',0)
+        self._running = Value('i', 0)
+        self._nb_job_done = Value('i', 0)
+        self._stop = Value('i', 0)
 
     def init(self):
         """
@@ -47,7 +49,7 @@ class ConsumerZMQ(Process, Component):
         if self.coroutine.init() == False:
             return False
         self.done = False
-        return  self.init_connections()
+        return self.init_connections()
 
     def run(self):
         """
@@ -58,7 +60,7 @@ class ConsumerZMQ(Process, Component):
         has been set to False.
         """
         if self.init():
-            while not self._stop.value :
+            while not self._stop.value:
                 try:
                     sockets = dict(self.poll.poll(100))
                     if (self.sock_reply in sockets and

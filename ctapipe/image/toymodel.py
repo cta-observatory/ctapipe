@@ -94,10 +94,12 @@ def make_toymodel_shower_image(geom, showerpdf, intensity=50, nsb_level_pe=50):
 
     return image, signal, noise
 
-def Gauss(x,mean,sigma):
-    return np.exp(-(x-mean)**2./(2.*sigma*sigma))
 
-def generate_muon_model(xy,radius,width,centre_x,centre_y):
-    r_pix = np.sqrt((xy[...,0]-centre_x)**2. + (xy[...,1]-centre_y)**2.)
-    Im_pix = Gauss(r_pix,radius,width)
+def gaussian(x, mean, sigma):
+    return np.exp(-(x - mean)**2. / (2. * sigma * sigma))
+
+
+def generate_muon_model(xy, radius, width, centre_x, centre_y):
+    r_pix = np.sqrt((xy[..., 0] - centre_x)**2. + (xy[..., 1] - centre_y)**2.)
+    Im_pix = gaussian(r_pix, radius, width)
     return Im_pix

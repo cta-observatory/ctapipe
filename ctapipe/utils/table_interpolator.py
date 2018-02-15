@@ -76,7 +76,7 @@ class TableInterpolator:
         """
         Function opens tables contained within fits files and parses them into a format 
         recognisable by the interpolator.
-        
+
         Parameters
         ----------
         filename: str
@@ -90,31 +90,31 @@ class TableInterpolator:
         template = list()
         grid = list()
 
-        primHDU = file[0].header  # We require first HDU to be primary
+        primary_hdu = file[0].header  # We require first HDU to be primary
 
         # Below definitions are standard
-        ix, iy = primHDU["CRPIX2"], primHDU["CRPIX1"]
-        val_x, val_y = primHDU["CRVAL2"], primHDU["CRVAL1"]
+        ix, iy = primary_hdu["CRPIX2"], primary_hdu["CRPIX1"]
+        val_x, val_y = primary_hdu["CRVAL2"], primary_hdu["CRVAL1"]
         print(val_x, val_y)
-        delta_x, delta_y = primHDU["CRDELTA2"], primHDU["CRDELTA1"]
-        nbins_x, nbins_y = primHDU["NAXIS2"], primHDU["NAXIS1"]
+        delta_x, delta_y = primary_hdu["CRDELTA2"], primary_hdu["CRDELTA1"]
+        nbins_x, nbins_y = primary_hdu["NAXIS2"], primary_hdu["NAXIS1"]
         ix *= delta_x
         iy *= delta_y
 
-        x_bins = np.arange(val_x-ix ,val_x+(delta_x*nbins_x)-ix, step=delta_x)
-        y_bins = np.arange(val_y-iy ,val_y+(delta_y*nbins_y)-iy, step=delta_y)
-        grid_vals = primHDU["GRIDVALS"]
+        x_bins = np.arange(val_x - ix, val_x + (delta_x * nbins_x) - ix, step=delta_x)
+        y_bins = np.arange(val_y - iy, val_y + (delta_y * nbins_y) - iy, step=delta_y)
+        grid_vals = primary_hdu["GRIDVALS"]
         points = grid_vals.split(",")
 
         if self.verbose:
             print("Interpolation point source be called in order", points)
-        if self.verbose>1:
+        if self.verbose > 1:
             for p in points:
-                print(p,":", primHDU["DOC"+p])
+                print(p, ":", primary_hdu["DOC" + p])
 
         for hdu in file:
             template.append(hdu.data)
-            
+
             hdu_pt = list()
             for p in points:
                 hdu_pt.append(hdu.header[p])

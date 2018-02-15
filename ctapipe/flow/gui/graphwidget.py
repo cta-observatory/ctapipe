@@ -4,12 +4,14 @@ from PyQt4.QtGui import QPainter
 from PyQt4.QtSvg import QSvgRenderer
 from ctapipe.flow.stager_rep import StagerRep
 
+
 class GraphWidget(QWidget):
 
     """
     class that displays pipeline workload.
     It receives pipeline information thanks to pipechange method
     """
+
     def __init__(self, statusBar):
         super(GraphWidget, self).__init__()
         self.initUI()
@@ -66,9 +68,9 @@ class GraphWidget(QWidget):
         graphiz.Digraph
             It contains nodes and links corresponding to self.steps
         """
-        g = Digraph('test', format='svg',graph_attr={'bgcolor':'lightgrey'})
-        #Create nodes
-        for step in  self.steps:
+        g = Digraph('test', format='svg', graph_attr={'bgcolor': 'lightgrey'})
+        # Create nodes
+        for step in self.steps:
             str_shape = 'octagon'
             if step.type == StagerRep.CONSUMER:
                 str_shape = 'doubleoctagon'
@@ -77,21 +79,23 @@ class GraphWidget(QWidget):
             name = step.name.split('$$process')[0]
             name = self.format_name(step.name.split('$$process')[0])
             if step.running > 0:
-                g.node(name,color='lightblue', style='filled',shape=str_shape,area='0.5')
+                g.node(name, color='lightblue', style='filled',
+                       shape=str_shape, area='0.5')
             else:
-                g.node(name,shape=str_shape,color='blue',area='0.5')
-        #Create edges
+                g.node(name, shape=str_shape, color='blue', area='0.5')
+        # Create edges
         for step in self.steps:
             step_name = self.format_name(step.name.split('$$process')[0])
             for next_step_name in step.next_steps:
                 next_step = self.get_step_by_name(next_step_name.split('$$process')[0])
                 if next_step:
-                    next_step_name_formated = self.format_name(next_step.name.split('$$process')[0])
+                    next_step_name_formated = self.format_name(
+                        next_step.name.split('$$process')[0])
                     g.edge(step_name, next_step_name_formated)
-                    g.edge_attr.update(arrowhead='empty', arrowsize='1',color='purple')
+                    g.edge_attr.update(arrowhead='empty', arrowsize='1', color='purple')
         return g
 
-    def format_name(self,name, max_car=15):
+    def format_name(self, name, max_car=15):
         """
         trim name if its length is more than max_car and add 3 points
 

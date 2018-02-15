@@ -21,12 +21,10 @@ class ShowerMaxEstimator:
        atmosphere parameters
     """
 
-
     def __init__(self, atmosphere_profile_name):
 
         self.thickness_profile, self.altitude_profile = \
             get_atmosphere_profile_functions(atmosphere_profile_name)
-
 
     def find_shower_max_height(self, energy, h_first_int, gamma_alt):
         """
@@ -68,4 +66,3 @@ class ShowerMaxEstimator:
         # now find the height with the wanted thickness by solving for the
         # desired thickness
         return self.altitude_profile(t_shower_max)
-

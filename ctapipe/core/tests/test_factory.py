@@ -102,7 +102,7 @@ def test_factory_produce():
 
 def test_false_product_name():
     with pytest.raises(KeyError):
-        obj = IncorrectExampleFactory.produce(
+        IncorrectExampleFactory.produce(
             config=None, tool=None,
             product='ExampleComponent2',
             value=111

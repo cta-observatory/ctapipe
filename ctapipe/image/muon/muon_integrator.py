@@ -53,6 +53,7 @@ class MuonLineIntegrate:
         1/lambda^2 integrated over the above defined wavelength range
         multiplied by the fine structure constant (1/137)
     """
+
     def __init__(self, mirror_radius, hole_radius, pixel_width=0.2,
                  oversample_bins=3, sct_flag=False, secondary_radius=1.):
 
@@ -69,7 +70,7 @@ class MuonLineIntegrate:
         self.minlambda = 300.e-9 * u.m
         self.maxlambda = 600.e-9 * u.m
         self.photemit = alpha * (self.minlambda**-1 -
-                                       self.maxlambda**-1)  # 12165.45
+                                 self.maxlambda**-1)  # 12165.45
         self.unit = u.deg
 
     @staticmethod
