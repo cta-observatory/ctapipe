@@ -197,12 +197,12 @@ def analyze_muon_event(event):
                 muonintensityoutput.mask = dist_mask
 
                 muonintensityoutput.ring_completeness = ring_completeness(
-                    x[pix_im > 0], y[pix_im > 0], pix_im[pix_im > 0], 
+                    x[pix_im > 0], y[pix_im > 0], pix_im[pix_im > 0],
                     muonringparam.ring_radius,
                     muonringparam.ring_center_x,
                     muonringparam.ring_center_y,
-                    threshold = 30,
-                    bins = 30)
+                    threshold=30,
+                    bins=30)
 
                 logger.debug("Tel %d Impact parameter = %s mir_rad=%s "
                              "ring_width=%s", telid,

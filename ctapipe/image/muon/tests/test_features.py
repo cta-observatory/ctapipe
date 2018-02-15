@@ -17,6 +17,7 @@ def test_ring_containment():
 
     assert(ring_cont <= 1. and ring_cont >= 0.)
 
+
 def test_ring_completeness():
 
     angle_ring = np.linspace(0, 2 * mt.pi, 360.)
