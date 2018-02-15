@@ -305,7 +305,9 @@ class MuonLineIntegrate:
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
         like_value = np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
+        #print("like_value ", like_value)
         return like_value
+
 
     @staticmethod
     def calc_likelihood(image, pred, spe_width, ped):
@@ -409,17 +411,25 @@ class MuonLineIntegrate:
             **init_params,
             **init_errs,
             **init_constrain,
-            errordef=0.,
+            #errordef=0.,
             print_level=0,
             pedantic=False
         )
-
+        
         # Perform minimisation
         minuit.migrad()
+        print("printing parameters")
+        minuit.print_param()
 
         # Get fitted values
         fit_params = minuit.values
+        fit_errors = minuit.errors
+        print("fit_errors",fit_errors)
+        print("fit_params",fit_params)
         fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
+        #fitoutput.error_impact_parameter = fit_params['error_impact_parameter'] * u.m
+        #print("fitoutput.impact_parameter, fitoutput.error_impact_parameter",
+        #      fitoutput.impact_parameter, fitoutput.error_impact_parameter)
         # fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
             fit_params['phi'] * u.rad) * u.m

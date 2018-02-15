@@ -153,8 +153,10 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
         # np.sqrt(numpix*0.11/(2.*np.pi))
 
-        if(np.sum(pix_im > tailcuts[0]) > 0.1 * minpix
-           and np.sum(pix_im) > minpix
+        if(len(pix_im[pix_im > tailcuts[0]]) > 0.1 * minpix
+           # > 0.1 * minpix above threshold
+           and len(pix_im[pix_im > 0]) > minpix
+           # Npix composing the ring > minpix
            and nom_dist < muon_cuts['CamRad'][dict_index]
            and muonringparam.ring_radius < 1.5 * u.deg
            and muonringparam.ring_radius > 1. * u.deg):
@@ -163,7 +165,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muon_cuts['CamRad'][dict_index],
                 muonringparam.ring_center_x,
                 muonringparam.ring_center_y)
-
+            
             # Guess HESS is 0.16
             # sec_rad = 0.*u.m
             # sct = False
