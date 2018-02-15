@@ -35,7 +35,8 @@ class ZFitsEventSource(EventSource):
                 r0.fill_from_zfile_event(event)
             yield data
 
-    def is_compatible(self, path):
+    @staticmethod
+    def is_compatible(path):
         from astropy.io import fits
         try:
             h = fits.open(path)[1].header
