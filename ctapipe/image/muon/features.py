@@ -154,3 +154,41 @@ def ring_containment(
     ringcontainment = len(d[d < cam_rad]) / len(d)
 
     return ringcontainment
+
+
+def npix_above_threshold(pix, thr):
+    """
+    Calculate number of pixels above a given threshold
+
+    Parameters
+    ----------
+    pix: array-like
+        array with pixel content, usually pe
+    thr: float
+        threshold for the pixels to be counted
+
+    Returns
+    ------
+    npix_above_threshold: float
+        Number of pixels above threshold
+    """
+    
+    return len(pix[pix > thr])
+
+
+def npix_composing_ring(pix):
+    """
+    Calculate number of pixels composing a ring
+
+    Parameters
+    ----------
+    pix: array-like
+        array with pixel content, usually pe
+
+    Returns
+    ------
+    npix_composing ring: float
+        Number of pixels composing a ring
+    """
+
+    return np.count_nonzero(pix)
