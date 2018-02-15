@@ -201,7 +201,8 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muonintensityoutput.mask = dist_mask
 
                 muonintensityoutput.ring_completeness = ring_completeness(
-                    x[pix_im > 0], y[pix_im > 0], pix_im[pix_im>0], muonringparam.ring_radius,
+                    x[pix_im > 0], y[pix_im > 0], pix_im[pix_im > 0], 
+                    muonringparam.ring_radius,
                     muonringparam.ring_center_x,
                     muonringparam.ring_center_y,
                     threshold = 30,
