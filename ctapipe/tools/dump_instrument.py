@@ -64,7 +64,8 @@ class DumpInstrumentTool(Tool):
     def finish(self):
         pass
 
-    def _get_file_format_info(self, format_name, table_type, table_name):
+    @staticmethod
+    def _get_file_format_info(format_name, table_type, table_name):
         """ returns file extension + dict of required parameters for 
         Table.write"""
         if format_name == 'fits':
@@ -132,6 +133,7 @@ class DumpInstrumentTool(Tool):
 def main():
     tool = DumpInstrumentTool()
     tool.run()
+
 
 if __name__ == '__main__':
     main()

@@ -1,20 +1,21 @@
-from ctapipe.io.containers import MuonIntensityParameter
-from astropy import log
-from ctapipe.instrument import CameraGeometry
-from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
+import logging
+
 import numpy as np
+from astropy import log
 from astropy import units as u
-from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
-from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
+from astropy.utils.decorators import deprecated
+
+from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
+from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
+from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
+from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 
-import logging
 logger = logging.getLogger(__name__)
 
 
-def analyze_muon_event(event, params=None, geom_dict=None):
+def analyze_muon_event(event):
     """
     Generic muon event analyzer. 
 
@@ -29,22 +30,20 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     and MuonIntensityParameter container event
 
     """
-    # Declare a dict to define the muon cuts (ASTRI and SCT missing)
-    muon_cuts = {}
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
              'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
-    TailCuts = [(5, 7), (5, 7), (10, 12), (5, 7),
+    tail_cuts = [(5, 7), (5, 7), (10, 12), (5, 7),
                 (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
               (0.1, 0.95), (0.1, 0.95), (0.1, 0.95), (0.1, 0.95)] * u.m
     ringwidth = [(0.04, 0.08), (0.02, 0.1), (0.01, 0.1), (0.02, 0.1),
                  (0.01, 0.5), (0.02, 0.2), (0.02, 0.2), (0.02, 0.2)] * u.deg
-    TotalPix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]
+    total_pix = [1855., 1855., 1764., 11328., 1296., 2048., 2368., 2048]
     # 8% (or 6%) as limit
-    MinPix = [148., 148., 141., 680., 104., 164., 142., 164]
+    min_pix = [148., 148., 141., 680., 104., 164., 142., 164]
     # Need to either convert from the pixel area in m^2 or check the camera specs
-    AngPixelWidth = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
+    ang_pixel_width = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
     # Found from TDRs (or the pixel area)
     hole_rad = [0.308 * u.m, 0.244 * u.m, 0.244 * u.m,
                 4.3866 * u.m, 0.160 * u.m, 0.130 * u.m,
@@ -56,10 +55,10 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     sct = [False, False, False, True, False, True, True, True]
 
 
-    muon_cuts = {'Name': names, 'TailCuts': TailCuts, 'Impact': impact,
-                 'RingWidth': ringwidth, 'TotalPix': TotalPix,
-                 'MinPix': MinPix, 'CamRad': cam_rad, 'SecRad': sec_rad,
-                 'SCT': sct, 'AngPixW': AngPixelWidth, 'HoleRad': hole_rad}
+    muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
+                 'RingWidth': ringwidth, 'total_pix': total_pix,
+                 'min_pix': min_pix, 'CamRad': cam_rad, 'SecRad': sec_rad,
+                 'SCT': sct, 'AngPixW': ang_pixel_width, 'HoleRad': hole_rad}
     logger.debug(muon_cuts)
 
     muonringlist = []  # [None] * len(event.dl0.tels_with_data)
@@ -72,8 +71,6 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     for telid in event.dl0.tels_with_data:
 
         logger.debug("Analysing muon event for tel %d", telid)
-        muonringparam = None
-        muonintensityparam = None
         image = event.dl1.tel[telid].image[0]
 
         # Get geometry
@@ -85,7 +82,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         logger.debug('found an index of %d for camera %d',
                      dict_index, geom.cam_id)
 
-        tailcuts = muon_cuts['TailCuts'][dict_index]
+        tailcuts = muon_cuts['tail_cuts'][dict_index]
         logger.debug("Tailcuts are %s", tailcuts)
 
         clean_mask = tailcuts_clean(geom, image, picture_thresh=tailcuts[0],
@@ -98,7 +95,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if (altval > np.pi / 2.):
+        if altval > np.pi / 2.:
             altval = np.pi / 2.
 
         altaz = HorizonFrame(alt=altval * u.rad,
@@ -145,10 +142,9 @@ def analyze_muon_event(event, params=None, geom_dict=None):
         nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,
                                     2) + np.power(muonringparam.ring_center_y, 2))
 
+        minpix = muon_cuts['min_pix'][dict_index]  # 0.06*numpix #or 8%
 
-        minpix = muon_cuts['MinPix'][dict_index]  # 0.06*numpix #or 8%
-
-        mir_rad = np.sqrt(teldes.optics.mirror_area.to("m2") / (np.pi))
+        mir_rad = np.sqrt(teldes.optics.mirror_area.to("m2") / np.pi)
 
         # Camera containment radius -  better than nothing - guess pixel
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
@@ -188,7 +184,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 secondary_radius=muon_cuts['SecRad'][dict_index]
             )
 
-            if (image.shape[0] == muon_cuts['TotalPix'][dict_index]):
+            if image.shape[0] == muon_cuts['total_pix'][dict_index]:
                 muonintensityoutput = ctel.fit_muon(muonringparam.ring_center_x,
                                                     muonringparam.ring_center_y,
                                                     muonringparam.ring_radius,
@@ -238,15 +234,15 @@ def analyze_muon_event(event, params=None, geom_dict=None):
     return muon_event_param
 
 
-def analyze_muon_source(source, params=None, geom_dict=None, args=None):
+@deprecated('0.6')
+def analyze_muon_source(source):
     """
     Generator for analyzing all the muon events
 
     Parameters
     ----------
-    source : generator
-    A 'ctapipe' event generator as
-    'ctapipe.io.hessio_event_source
+    source : ctapipe.io.EventSource
+        input event source
 
     Returns
     -------
@@ -261,6 +257,6 @@ def analyze_muon_source(source, params=None, geom_dict=None, args=None):
     numev = 0
     for event in source:  # Put a limit on number of events
         numev += 1
-        analyzed_muon = analyze_muon_event(event, params, geom_dict)
+        analyzed_muon = analyze_muon_event(event)
 
         yield analyzed_muon

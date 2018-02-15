@@ -23,4 +23,3 @@ algorithms should inherit from"""
 
         """
         return ReconstructedShowerContainer()
-

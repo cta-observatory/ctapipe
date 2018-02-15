@@ -44,16 +44,15 @@ class CalibrationStep(Component):
         self.parameters['integration_calib_scale'] = self.integration_calib_scale
 
         if self.integration_clip_amp is not None:
-                self.parameters['clip_amp'] = self.integration_clip_amp
+            self.parameters['clip_amp'] = self.integration_clip_amp
 
         for key, value in sorted(self.parameters.items()):
-            self.log.info('%key %value' % "[{}] {}")
+            self.log.info("[%s] %s", key, value)
         return True
 
     def run(self, event):
         if event is not None:
-            self.log.debug('%event.dl0.event_id' %
-                           "--- CalibrationStep RUN --- event {}")
+            self.log.debug("--- CalibrationStep RUN --- %s", event.dl0.event_id)
             geom_dict = {}
             calibrated_event = calibrate_event(event, self.parameters,
                                                geom_dict)

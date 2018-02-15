@@ -1,8 +1,8 @@
+import numpy as np
+from matplotlib import pyplot as plt
+
 from ctapipe.instrument import CameraGeometry
 from ctapipe.visualization import CameraDisplay
-from matplotlib import pyplot as plt
-import numpy as np
-
 
 if __name__ == '__main__':
 

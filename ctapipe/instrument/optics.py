@@ -77,7 +77,7 @@ class OpticsDescription:
 
     @classmethod
     @u.quantity_input
-    def guess(cls, equivalent_focal_length : u.m):
+    def guess(cls, equivalent_focal_length: u.m):
         """
         Construct an OpticsDescription by guessing from metadata (e.g. when
         using a simulation where the exact type is not known)
@@ -112,6 +112,8 @@ class OpticsDescription:
         ----------
         name: str
             string representation of optics (MST, LST, SST-1M, SST-ASTRI,...)
+        optics_table: str
+            base filename of optics table if not 'optics.*'
 
 
         Returns
@@ -150,7 +152,7 @@ class OpticsDescription:
     def identifier(self):
         """ returns a tuple of (tel_type, tel_subtype).  Use str(optics) to
         get a text-based identifier."""
-        return (self.tel_type, self.tel_subtype)
+        return self.tel_type, self.tel_subtype
 
     def info(self, printer=print):
         printer('OpticsDescription: "{}"'.format(self))

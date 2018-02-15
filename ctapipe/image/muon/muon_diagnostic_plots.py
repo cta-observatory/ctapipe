@@ -170,12 +170,12 @@ def plot_muon_event(event, muonparams):
                                     2) + np.power(py - muonparams['MuonRingParams'][idx].
                                                   ring_center_y, 2))
             ring_dist = np.abs(dist - muonparams['MuonRingParams'][idx].ring_radius)
-            pixRmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
+            pix_rmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
 
             if muonparams['MuonIntensityParams'][idx] is not None:
                 signals *= muonparams['MuonIntensityParams'][idx].mask
             elif muonparams['MuonIntensityParams'][idx] is None:
-                signals *= pixRmask
+                signals *= pix_rmask
 
             camera1 = plotter.draw_camera(tel_id, signals, ax1)
 
@@ -228,7 +228,7 @@ def plot_muon_event(event, muonparams):
 
                 # Numpy broadcasting - fill in the shape
                 plotpred = np.zeros(image.shape)
-                truelocs = np.where(muonparams['MuonIntensityParams'][idx].mask==True)
+                truelocs = np.where(muonparams['MuonIntensityParams'][idx].mask == True)
                 plotpred[truelocs] = pred
 
                 camera2 = plotter.draw_camera(tel_id, plotpred, ax2)

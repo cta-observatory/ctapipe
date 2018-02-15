@@ -4,7 +4,9 @@ ring parameters, and write some parameters to an output table
 """
 
 import warnings
+
 from astropy.table import Table
+
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.core import traits as t
@@ -20,13 +22,16 @@ def print_muon(event, printer=print):
     for tid in event['TelIds']:
         idx = event['TelIds'].index(tid)
         if event['MuonIntensityParams'][idx]:
-            printer("MUON: Run ID {} Event ID {} \
-                    Impact Parameter {} Ring Width {} Optical Efficiency {}".format(
-                event['MuonRingParams'][idx].obs_id,
-                event['MuonRingParams'][idx].event_id,
-                event['MuonIntensityParams'][idx].impact_parameter,
-                event['MuonIntensityParams'][idx].ring_width,
-                event['MuonIntensityParams'][idx].optical_efficiency_muon)
+            printer(
+                "MUON: Run ID {} Event ID {} \
+                    Impact Parameter {} Ring Width {} Optical Efficiency {}"
+                .format(
+                    event['MuonRingParams'][idx].obs_id,
+                    event['MuonRingParams'][idx].event_id,
+                    event['MuonIntensityParams'][idx].impact_parameter,
+                    event['MuonIntensityParams'][idx].ring_width,
+                    event['MuonIntensityParams'][idx].optical_efficiency_muon
+                )
             )
     pass
 
@@ -40,46 +45,45 @@ class MuonDisplayerTool(Tool):
         default=get_dataset('gamma_test_large.simtel.gz')
     ).tag(config=True)
 
-    outfile = t.Unicode(help='output file name',
-                        default=None).tag(config=True)
+    outfile = t.Unicode(help='output file name', default=None).tag(config=True)
 
     display = t.Bool(
         help='display the camera events', default=False
     ).tag(config=True)
 
-    classes = t.List([CameraCalibrator, ])
+    classes = t.List([
+        CameraCalibrator,
+    ])
 
-    aliases = t.Dict({'infile': 'MuonDisplayerTool.infile',
-                      'outfile': 'MuonDisplayerTool.outfile',
-                      'display': 'MuonDisplayerTool.display'
-                      })
-
+    aliases = t.Dict({
+        'infile': 'MuonDisplayerTool.infile',
+        'outfile': 'MuonDisplayerTool.outfile',
+        'display': 'MuonDisplayerTool.display'
+    })
 
     def setup(self):
         self.calib = CameraCalibrator(
-            config=self.config,
-            tool=self,
-            r1_product="HESSIOR1Calibrator"
+            config=self.config, tool=self, r1_product="HESSIOR1Calibrator"
         )
 
     def start(self):
 
-        output_parameters = {'MuonEff': [],
-                             'ImpactP': [],
-                             'RingWidth': []}
+        output_parameters = {'MuonEff': [], 'ImpactP': [], 'RingWidth': []}
 
         numev = 0
         num_muons_found = 0
 
-
         for event in event_source(self.infile):
-            self.log.info("Event Number: %d, found %d muons", numev, num_muons_found)
+            self.log.info(
+                "Event Number: %d, found %d muons", numev, num_muons_found
+            )
             self.calib.calibrate(event)
             muon_evt = analyze_muon_event(event)
 
             numev += 1
 
-            if not muon_evt['MuonIntensityParams']:  # No telescopes contained a good muon
+            if not muon_evt['MuonIntensityParams'
+                            ]:  # No telescopes contained a good muon
                 continue
             else:
                 if self.display:
@@ -88,28 +92,32 @@ class MuonDisplayerTool(Tool):
                 for tid in muon_evt['TelIds']:
                     idx = muon_evt['TelIds'].index(tid)
                     if muon_evt['MuonIntensityParams'][idx] is not None:
-                        self.log.info("** Muon params: %s",
-                                      muon_evt['MuonIntensityParams'][idx])
+                        self.log.info(
+                            "** Muon params: %s",
+                            muon_evt['MuonIntensityParams'][idx]
+                        )
 
                         output_parameters['MuonEff'].append(
-                            muon_evt['MuonIntensityParams'][idx].optical_efficiency_muon
+                            muon_evt['MuonIntensityParams'][idx]
+                            .optical_efficiency_muon
                         )
                         output_parameters['ImpactP'].append(
-                            muon_evt['MuonIntensityParams'][idx].impact_parameter.value
+                            muon_evt['MuonIntensityParams'][idx]
+                            .impact_parameter.value
                         )
                         output_parameters['RingWidth'].append(
-                            muon_evt['MuonIntensityParams'][idx].ring_width.value
+                            muon_evt['MuonIntensityParams'][idx]
+                            .ring_width.value
                         )
                         print_muon(muon_evt, printer=self.log.info)
                         num_muons_found += 1
-
-
 
         t = Table(output_parameters)
         t['ImpactP'].unit = 'm'
         t['RingWidth'].unit = 'deg'
         if self.outfile:
             t.write(self.outfile)
+
 
 if __name__ == '__main__':
     tool = MuonDisplayerTool()

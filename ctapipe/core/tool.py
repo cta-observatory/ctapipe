@@ -175,7 +175,7 @@ class Tool(Application):
             self.finish()
             Provenance().finish_activity(activity_name=self.name,
                                          status='error')
-        except KeyboardInterrupt as err:
+        except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             self.finish()
             Provenance().finish_activity(activity_name=self.name,

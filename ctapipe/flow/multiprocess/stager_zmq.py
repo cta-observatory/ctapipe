@@ -2,7 +2,7 @@
 # coding: utf8
 from types import GeneratorType
 from multiprocessing import Process
-from multiprocessing import  Value
+from multiprocessing import Value
 from pickle import loads
 from zmq import POLLIN
 from zmq import REQ
@@ -10,6 +10,7 @@ from zmq import Poller
 from zmq import Context
 from ctapipe.flow.multiprocess.connections import Connections
 from ctapipe.core import Component
+
 
 class StagerZmq(Component, Process, Connections):
 
@@ -23,6 +24,7 @@ class StagerZmq(Component, Process, Connections):
     init() method is call by run method.
     The process is stopped by setting share data stop to True
     """
+
     def __init__(
             self, coroutine, sock_job_for_me_port,
             name=None, connections=None, main_connection_name=None):
@@ -40,16 +42,16 @@ class StagerZmq(Component, Process, Connections):
             Port number for socket for each next steps
         """
         Process.__init__(self)
-        Component.__init__(self,parent=None)
+        Component.__init__(self, parent=None)
         self.name = name
         Connections.__init__(self, main_connection_name, connections)
         self.coroutine = coroutine
         self.sock_job_for_me_url = 'tcp://localhost:' + sock_job_for_me_port
         self.done = False
-        self.waiting_since = Value('i',0)
-        self._nb_job_done = Value('i',0)
-        self._stop = Value('i',0)
-        self._running = Value('i',0)
+        self.waiting_since = Value('i', 0)
+        self._nb_job_done = Value('i', 0)
+        self._stop = Value('i', 0)
+        self._running = Value('i', 0)
 
     def init(self):
         """
@@ -81,7 +83,7 @@ class StagerZmq(Component, Process, Connections):
         has been set to False.
         Atfer the main while loop, coroutine.finish method is called
         """
-        if self.init()  :
+        if self.init():
             while not self.stop:
                 sockets = dict(self.poll.poll(100))  # Poll or time out (100ms)
                 if (self.sock_for_me in sockets and
@@ -95,18 +97,18 @@ class StagerZmq(Component, Process, Connections):
                     results = self.coroutine.run(receiv_input)
                     if isinstance(results, GeneratorType):
                         for val in results:
-                            msg,destination = self.get_destination_msg_from_result(val)
-                            self.send_msg(msg,destination)
+                            msg, destination = self.get_destination_msg_from_result(val)
+                            self.send_msg(msg, destination)
                     else:
-                        msg,destination = self.get_destination_msg_from_result(results)
-                        self.send_msg(msg,destination)
+                        msg, destination = self.get_destination_msg_from_result(results)
+                        self.send_msg(msg, destination)
                     # send acknoledgement to prev router/queue to inform it that I
                     # am available
                     self.sock_for_me.send_multipart(request)
                     self._nb_job_done.value = self._nb_job_done.value + 1
                     self.running = 0
                 else:
-                    self.waiting_since.value = self.waiting_since.value+100 # 100 ms
+                    self.waiting_since.value = self.waiting_since.value + 100  # 100 ms
             self.sock_for_me.close()
         self.finish()
         self.done = True

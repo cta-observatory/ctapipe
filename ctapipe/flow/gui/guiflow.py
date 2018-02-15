@@ -3,6 +3,7 @@ from ctapipe.core import Tool
 from traitlets import Integer
 from ctapipe.flow.gui.main_window import ModuleApplication
 
+
 class PipeGui(Tool):
     """
     Main program that lunches GUI
@@ -19,12 +20,16 @@ class PipeGui(Tool):
     description = "run stages in multiprocess pipeline"
     port = Integer(5565, help='GUI port for pipelien connection').tag(
         config=True, allow_none=True)
+
     def start(self):
         ModuleApplication(sys.argv, self.port)
+
     def setup(self):
         pass
+
     def finish(self):
         pass
+
 
 def main():
     gui = PipeGui()

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Example of drawing a Camera using a toymodel shower image.
 """
@@ -30,18 +29,18 @@ if __name__ == '__main__':
     disp.add_colorbar()
 
     # Create a fake camera image to display:
-    model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.0),
-                                              width=0.01,
-                                              length=0.1,
-                                              psi='35d')
+    model = toymodel.generate_2d_shower_model(
+        centroid=(0.2, 0.0), width=0.01, length=0.1, psi='35d'
+    )
 
-    image, sig, bg = toymodel.make_toymodel_shower_image(geom, model.pdf,
-                                                         intensity=50,
-                                                         nsb_level_pe=1000)
+    image, sig, bg = toymodel.make_toymodel_shower_image(
+        geom, model.pdf, intensity=50, nsb_level_pe=1000
+    )
 
     # Apply image cleaning
-    cleanmask = tailcuts_clean(geom, image, picture_thresh=200,
-                               boundary_thresh=100)
+    cleanmask = tailcuts_clean(
+        geom, image, picture_thresh=200, boundary_thresh=100
+    )
     clean = image.copy()
     clean[~cleanmask] = 0.0
 

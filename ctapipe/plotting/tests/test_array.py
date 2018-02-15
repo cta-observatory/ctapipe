@@ -18,7 +18,6 @@ from copy import deepcopy
 @pytest.mark.skip
 def test_array_draw():
     filename = get_dataset("gamma_test.simtel.gz")
-    cam_geom = {}
 
     source = hessio_event_source(filename, max_events=2)
     r1 = HESSIOR1Calibrator()
@@ -58,7 +57,6 @@ def test_array_draw():
 
             geom.pix_x = nom_coord.x
             geom.pix_y = nom_coord.y
-
 
             mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
