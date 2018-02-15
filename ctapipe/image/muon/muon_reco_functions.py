@@ -165,7 +165,7 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muon_cuts['CamRad'][dict_index],
                 muonringparam.ring_center_x,
                 muonringparam.ring_center_y)
-            
+
             # Guess HESS is 0.16
             # sec_rad = 0.*u.m
             # sct = False
