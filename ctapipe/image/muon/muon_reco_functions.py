@@ -8,6 +8,7 @@ from astropy import units as u
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
 from ctapipe.image.muon.features import ring_containment
+from ctapipe.image.muon.features import ring_completeness
 
 import logging
 logger = logging.getLogger(__name__)
@@ -198,6 +199,13 @@ def analyze_muon_event(event, params=None, geom_dict=None):
                 muonintensityoutput.obs_id = event.dl0.obs_id
                 muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask
+
+                muonintensityoutput.ring_completeness = ring_completeness(
+                    x[pix_im > 0], y[pix_im > 0], pix_im[pix_im>0], muonringparam.ring_radius,
+                    muonringparam.ring_center_x,
+                    muonringparam.ring_center_y,
+                    threshold = 30,
+                    bins = 30)
 
                 logger.debug("Tel %d Impact parameter = %s mir_rad=%s "
                              "ring_width=%s", telid,
