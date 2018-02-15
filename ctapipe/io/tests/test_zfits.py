@@ -34,3 +34,9 @@ def test_loop_over_events():
 
     # make sure max_events works
     assert i == N_EVENTS - 1
+
+
+def test_is_compatible():
+    from ctapipe.io.zfits import ZFitsEventSource
+
+    assert ZFitsEventSource.is_compatible(example_file_path)
