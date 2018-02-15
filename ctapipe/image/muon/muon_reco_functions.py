@@ -9,6 +9,8 @@ from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
+from ctapipe.image.muon.features import npix_above_threshold
+from ctapipe.image.muon.features import npix_composing_ring
 from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 
@@ -150,10 +152,8 @@ def analyze_muon_event(event):
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
         # np.sqrt(numpix*0.11/(2.*np.pi))
 
-        if(len(pix_im[pix_im > tailcuts[0]]) > 0.1 * minpix
-           # > 0.1 * minpix above threshold
-           and len(pix_im[pix_im > 0]) > minpix
-           # Npix composing the ring > minpix
+        if(npix_above_threshold(pix_im, tailcuts[0]) > 0.1 * minpix
+           and npix_composing_ring(pix_im) > minpix
            and nom_dist < muon_cuts['CamRad'][dict_index]
            and muonringparam.ring_radius < 1.5 * u.deg
            and muonringparam.ring_radius > 1. * u.deg):
@@ -197,7 +197,7 @@ def analyze_muon_event(event):
                 muonintensityoutput.mask = dist_mask
 
                 muonintensityoutput.ring_completeness = ring_completeness(
-                    x[pix_im > 0], y[pix_im > 0], pix_im[pix_im > 0],
+                    x[pix_im != False], y[pix_im != False], pix_im[pix_im != False],
                     muonringparam.ring_radius,
                     muonringparam.ring_center_x,
                     muonringparam.ring_center_y,
