@@ -251,6 +251,7 @@ class MuonLineIntegrate:
         pred *= np.sin(2 * radius)
         # weight by gaussian width
         pred *= self.pixel_width * gauss
+
         return pred
 
     def likelihood(self, impact_parameter, phi, centre_x, centre_y,
@@ -339,6 +340,7 @@ class MuonLineIntegrate:
         expo[sm] = 1e-300 * u.m
         log_value = sq * expo / u.m * u.deg
         likelihood_value = -2 * np.log(log_value)
+
         return likelihood_value
 
     def fit_muon(self, centre_x, centre_y, radius, pixel_x, pixel_y, image):
@@ -414,13 +416,13 @@ class MuonLineIntegrate:
             print_level=0,
             pedantic=False
         )
-        
+
         # Perform minimisation
         minuit.migrad()
 
         # Get fitted values
         fit_params = minuit.values
-        fit_errors = minuit.errors
+
         fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
         # fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
