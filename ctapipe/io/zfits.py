@@ -9,6 +9,7 @@ from numpy import ndarray
 from ..core import Map, Field, Container
 from .containers import (
     DataContainer,
+    R0Container,
     R0CameraContainer
 )
 from .eventsource import EventSource
@@ -97,8 +98,7 @@ class SST1M_DataContainer(DataContainer):
 
 def fill_DataContainer_from_zfile_event(c, event, count):
     """ fill Top-level container for all event information """
-    print(type(c), c)
-    fill_R0Container_from_zfile_event(c.r0, event)
+    c.r0 = R0Container_from_zfile_event(event)
     c.count = count
 
     # comment for devs:
@@ -117,7 +117,8 @@ def fill_DataContainer_from_zfile_event(c, event, count):
     # pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
 
 
-def fill_R0Container_from_zfile_event(c, event):
+def R0Container_from_zfile_event(event):
+    c = R0Container()
     c.obs_id = -1  # I do not know what this is.
     c.event_id = event.event_number
     c.tels_with_data = [event.telescope_id, ]
@@ -126,6 +127,7 @@ def fill_R0Container_from_zfile_event(c, event):
             c.tel[tel_id],
             event
         )
+    return c
 
 
 def fill_R0CameraContainer_from_zfile_event(c, event):
