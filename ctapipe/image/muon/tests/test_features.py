@@ -51,7 +51,7 @@ def test_npix_above_threshold():
 
 def test_npix_composing_ring():
     len_array = 100
-    pix = np.random.uniform(0, 100, len_array) 
+    pix = np.random.uniform(0, 100, len_array)
 
     npix = npix_composing_ring(pix)
 
