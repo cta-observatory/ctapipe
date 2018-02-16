@@ -10,7 +10,6 @@ from ..core import Map, Field, Container
 from .containers import (
     DataContainer,
     R0Container,
-    R0CameraContainer,
     R1Container,
     DL0Container,
     DL1Container,
