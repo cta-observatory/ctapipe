@@ -88,9 +88,6 @@ class Container(metaclass=ContainerMeta):
     For hierarchical data structures, Field can use `Container`
     subclasses or a `Map` as the default value.
 
-    You should not make class hierarchies of Containers and only ever
-    subclass the Container base class
-
     >>>    class MyContainer(Container):
     >>>        x = Field(100,"The X value")
     >>>        energy = Field(-1, "Energy measurement", unit=u.TeV)
