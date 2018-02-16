@@ -42,7 +42,7 @@ class ZFitsEventSource(EventSource):
         from astropy.io import fits
         try:
             h = fits.open(file_path)[1].header
-        except:
+        except OSError:
             # not even a fits file
             return False
 
