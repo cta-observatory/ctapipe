@@ -24,6 +24,21 @@ def test_inheritance():
     assert c.b == 10
 
 
+def test_multiple_inheritance():
+
+    class ContainerA(Container):
+        a = Field(None)
+
+    class ContainerB(ContainerA):
+        b = Field(None)
+
+    class ContainerC(ContainerB):
+        c = Field(None)
+
+    assert 'a' in ContainerC.fields
+    assert 'b' in ContainerC.fields
+
+
 def test_container():
 
     class ExampleContainer(Container):
