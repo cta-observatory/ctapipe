@@ -13,6 +13,16 @@ def test_inheritance():
 
     assert 'a' in SubclassContainer.fields
 
+    c = SubclassContainer()
+    assert c.a is None
+    assert c.b is None
+
+    c.a = 5
+    c.b = 10
+
+    assert c.a == 5
+    assert c.b == 10
+
 
 def test_container():
 
