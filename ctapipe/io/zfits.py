@@ -10,8 +10,16 @@ from ..core import Map, Field, Container
 from .containers import (
     DataContainer,
     R0Container,
-    R0CameraContainer
+    R0CameraContainer,
+    R1Container,
+    DL0Container,
+    DL1Container,
+    ReconstructedContainer,
+    CentralTriggerContainer,
+    InstrumentContainer,
 )
+
+
 from .eventsource import EventSource
 
 __all__ = ['ZFitsEventSource']
@@ -89,36 +97,39 @@ class SST1MContainer(Container):
 
 
 class SST1M_DataContainer(DataContainer):
+    r0 = Field(R0Container(), "Raw Data")
+    r1 = Field(R1Container(), "R1 Calibrated Data")
+    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
+    dl1 = Field(DL1Container(), "DL1 Calibrated image")
+    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    trig = Field(CentralTriggerContainer(), "central trigger information")
+    count = Field(0, "number of events processed")
+    inst = Field(InstrumentContainer(), "instrumental information (deprecated")
+
     sst1m = Field(SST1MContainer(), "SST1M Specific Information")
 
     def fill_from_zfile_event(self, event, count):
+        self.count = count
         self.sst1m.fill_from_zfile_event(event)
-        fill_DataContainer_from_zfile_event(self, event, count)
+        fill_R0Container_from_zfile_event(self.r0, event)
+
+        # comment for devs:
+        # these fields are also members of DataContainer,
+        # but the information to fill them is not (yet) available at this
+        # point.
+
+        # r1 = Field(R1Container(), "R1 Calibrated Data")
+        # dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
+        # dl1 = Field(DL1Container(), "DL1 Calibrated image")
+        # dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+        # mc = Field(MCEventContainer(), "Monte-Carlo data")
+        # mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
+        # trig = Field(CentralTriggerContainer(), "central trigger information")
+        # inst = Field(InstrumentContainer(), "instrumental information (deprecated")
+        # pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
 
 
-def fill_DataContainer_from_zfile_event(c, event, count):
-    """ fill Top-level container for all event information """
-    c.r0 = R0Container_from_zfile_event(event)
-    c.count = count
-
-    # comment for devs:
-    # these fields are also members of DataContainer,
-    # but the information to fill them is not (yet) available at this
-    # point.
-
-    # r1 = Field(R1Container(), "R1 Calibrated Data")
-    # dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
-    # dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    # dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    # mc = Field(MCEventContainer(), "Monte-Carlo data")
-    # mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
-    # trig = Field(CentralTriggerContainer(), "central trigger information")
-    # inst = Field(InstrumentContainer(), "instrumental information (deprecated")
-    # pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
-
-
-def R0Container_from_zfile_event(event):
-    c = R0Container()
+def fill_R0Container_from_zfile_event(c, event):
     c.obs_id = -1  # I do not know what this is.
     c.event_id = event.event_number
     c.tels_with_data = [event.telescope_id, ]
@@ -127,7 +138,6 @@ def R0Container_from_zfile_event(event):
             c.tel[tel_id],
             event
         )
-    return c
 
 
 def fill_R0CameraContainer_from_zfile_event(c, event):
