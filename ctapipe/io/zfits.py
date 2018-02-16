@@ -6,17 +6,9 @@ This requires the protozfitsreader python library to be installed
 """
 from numpy import ndarray
 
-import logging
-from ctapipe.core import Map, Field
-from ctapipe.io.containers import(
-    R0CameraContainer,
-    R0Container,
-    DataContainer
-)
+from ctapipe.core import Map, Field, Container
+from ctapipe.io.containers import DataContainer
 from ctapipe.io.eventsource import EventSource
-
-
-logger = logging.getLogger(__name__)
 
 __all__ = ['ZFitsEventSource']
 
@@ -36,8 +28,8 @@ class ZFitsEventSource(EventSource):
             data.r0.tels_with_data = [event.telescope_id, ]
 
             for tel_id in data.r0.tels_with_data:
-                r0 = data.r0.tel[tel_id]
-                r0.fill_from_zfile_event(event)
+                data.sst1m.tel[tel_id].fill_from_zfile_event(event)
+                data.r0.tel[tel_id].waveform = event.adc_samples
             yield data
 
     @staticmethod
@@ -59,10 +51,7 @@ class ZFitsEventSource(EventSource):
         )
 
 
-class SST1M_R0CameraContainer(R0CameraContainer):
-    """
-    Storage of raw data from a single telescope
-    """
+class SST1MCameraContainer(Container):
     pixel_flags = Field(ndarray, 'numpy array containing pixel flags')
     digicam_baseline = Field(ndarray, 'Baseline computed by DigiCam')
     local_camera_clock = Field(float, "camera timestamp")
@@ -88,14 +77,12 @@ class SST1M_R0CameraContainer(R0CameraContainer):
         self.trigger_output_patch7 = event.trigger_output_patch7
         self.trigger_output_patch19 = event.trigger_output_patch19
 
-        self.waveform = event.adc_samples
 
-
-class SST1M_R0Container(R0Container):
+class SST1MContainer(Container):
     tel = Field(
-        Map(SST1M_R0CameraContainer),
-        "map of tel_id to SST1M_R0CameraContainer")
+        Map(SST1MCameraContainer),
+        "map of tel_id to SST1MCameraContainer")
 
 
 class SST1M_DataContainer(DataContainer):
-    r0 = Field(SST1M_R0Container(), "Raw Data")
+    sst1m = Field(SST1MContainer(), "SST1M Specific Information")
