@@ -39,6 +39,21 @@ def test_multiple_inheritance():
     assert 'b' in ContainerC.fields
 
 
+def test_override_inheritance():
+
+    class ContainerA(Container):
+        a = Field(1)
+
+    class ContainerB(ContainerA):
+        a = Field(2)
+
+    a = ContainerA()
+    assert a.a == 1
+
+    b = ContainerB()
+    assert b.a == 2
+
+
 def test_container():
 
     class ExampleContainer(Container):
