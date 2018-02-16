@@ -3,6 +3,17 @@ import pytest
 from ctapipe.core import Container, Field, Map
 
 
+def test_inheritance():
+
+    class ExampleContainer(Container):
+        a = Field(None)
+
+    class SubclassContainer(ExampleContainer):
+        b = Field(None)
+
+    assert 'a' in SubclassContainer.fields
+
+
 def test_container():
 
     class ExampleContainer(Container):

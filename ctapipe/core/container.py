@@ -53,6 +53,12 @@ class ContainerMeta(type):
         dct['__slots__'] = tuple(items + ['meta'])
         dct['fields'] = {}
 
+        # inherit fields from baseclasses
+        for b in bases:
+            if issubclass(b, Container):
+                for k, v in b.fields.items():
+                    dct['fields'][k] = v
+
         for k in items:
             dct['fields'][k] = dct.pop(k)
 
