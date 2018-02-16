@@ -6,9 +6,9 @@ This requires the protozfitsreader python library to be installed
 """
 from numpy import ndarray
 
-from ctapipe.core import Map, Field, Container
-from ctapipe.io.containers import DataContainer
-from ctapipe.io.eventsource import EventSource
+from ..core import Map, Field, Container
+from .containers import DataContainer
+from .eventsource import EventSource
 
 __all__ = ['ZFitsEventSource']
 
