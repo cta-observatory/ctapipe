@@ -46,6 +46,12 @@ class ContainerMeta(type):
     and no new fields can be added to a container by accident.
     '''
     def __new__(cls, name, bases, dct):
+        for base in bases:
+            if Container in base.__bases__:
+                raise ValueError(
+                    "Cannot inherit from child of Container."
+                    "Inherit from Container only."
+                )
         items = [
             k for k, v in dct.items()
             if isinstance(v, Field)
