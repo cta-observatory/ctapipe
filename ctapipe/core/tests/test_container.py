@@ -3,6 +3,18 @@ import pytest
 from ctapipe.core import Container, Field, Map
 
 
+def test_cannot_inherit_twice():
+    '''Container docu says, one must not inherit from children of Container
+        only from Container itself.
+    '''
+    class Foo(Container):
+        pass
+
+    with pytest.raises(ValueError):
+        class Bar(Foo):
+            pass
+
+
 def test_container():
 
     class ExampleContainer(Container):
