@@ -38,10 +38,10 @@ class ZFitsEventSource(EventSource):
             yield data
 
     @staticmethod
-    def is_compatible(path):
+    def is_compatible(file_path):
         from astropy.io import fits
         try:
-            h = fits.open(path)[1].header
+            h = fits.open(file_path)[1].header
         except:
             # not even a fits file
             return False
