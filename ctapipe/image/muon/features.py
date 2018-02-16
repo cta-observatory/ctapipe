@@ -172,7 +172,7 @@ def npix_above_threshold(pix, thr):
     npix_above_threshold: float
         Number of pixels above threshold
     """
-    
+
     return len(pix[pix > thr])
 
 

@@ -42,7 +42,7 @@ def test_ring_completeness():
 def test_npix_above_threshold():
     len_array = 100
     thr = 5.
-    pix = np.random.uniform(0, 100, len_array) 
+    pix = np.random.uniform(0, 100, len_array)
 
     npix = npix_above_threshold(pix, thr)
 
