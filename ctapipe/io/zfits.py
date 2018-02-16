@@ -22,6 +22,11 @@ __all__ = ['ZFitsEventSource']
 
 
 class ZFitsEventSource(EventSource):
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
+        import protozfitsreader
+
     def _generator(self):
         from protozfitsreader import ZFile
         for count, event in enumerate(ZFile(self.input_url)):
@@ -52,10 +57,6 @@ class ZFitsEventSource(EventSource):
             (h['ORIGIN'] == 'CTA') and
             (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
-
-    @property
-    def is_stream(self):
-        return True
 
 
 class SST1M_R0CameraContainer(R0CameraContainer):
