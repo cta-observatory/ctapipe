@@ -96,7 +96,7 @@ class SST1MContainer(Container):
             self.tel[tel_id].fill_from_zfile_event(event)
 
 
-class SST1M_DataContainer(DataContainer):
+class SST1M_DataContainer(Container):
     r0 = Field(R0Container(), "Raw Data")
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
