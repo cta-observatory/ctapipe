@@ -7,7 +7,10 @@ This requires the protozfitsreader python library to be installed
 from numpy import ndarray
 
 from ..core import Map, Field, Container
-from .containers import DataContainer
+from .containers import (
+    DataContainer,
+    R0CameraContainer
+)
 from .eventsource import EventSource
 
 __all__ = ['ZFitsEventSource']
@@ -23,13 +26,7 @@ class ZFitsEventSource(EventSource):
         from protozfitsreader import ZFile
         for count, event in enumerate(ZFile(self.input_url)):
             data = SST1M_DataContainer()
-            data.count = count
-            data.r0.event_id = event.event_number
-            data.r0.tels_with_data = [event.telescope_id, ]
-
-            for tel_id in data.r0.tels_with_data:
-                data.sst1m.tel[tel_id].fill_from_zfile_event(event)
-                data.r0.tel[tel_id].waveform = event.adc_samples
+            data.fill_from_zfile_event(event, count)
             yield data
 
     @staticmethod
@@ -79,10 +76,61 @@ class SST1MCameraContainer(Container):
 
 
 class SST1MContainer(Container):
+    tels_with_data = Field([], "list of telescopes with data")
     tel = Field(
         Map(SST1MCameraContainer),
         "map of tel_id to SST1MCameraContainer")
 
+    def fill_from_zfile_event(self, event):
+        self.tels_with_data = [event.telescope_id, ]
+        for tel_id in self.tels_with_data:
+            self.tel[tel_id].fill_from_zfile_event(event)
+
 
 class SST1M_DataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "SST1M Specific Information")
+
+    def fill_from_zfile_event(self, event, count):
+        self.sst1m.fill_from_zfile_event(event)
+        fill_DataContainer_from_zfile_event(self, event, count)
+
+
+def fill_DataContainer_from_zfile_event(c, event, count):
+    """ fill Top-level container for all event information """
+    print(type(c), c)
+    fill_R0Container_from_zfile_event(c.r0, event)
+    c.count = count
+
+    # comment for devs:
+    # these fields are also members of DataContainer,
+    # but the information to fill them is not (yet) available at this
+    # point.
+
+    # r1 = Field(R1Container(), "R1 Calibrated Data")
+    # dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
+    # dl1 = Field(DL1Container(), "DL1 Calibrated image")
+    # dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    # mc = Field(MCEventContainer(), "Monte-Carlo data")
+    # mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
+    # trig = Field(CentralTriggerContainer(), "central trigger information")
+    # inst = Field(InstrumentContainer(), "instrumental information (deprecated")
+    # pointing = Field(Map(TelescopePointingContainer), 'Telescope pointing positions')
+
+
+def fill_R0Container_from_zfile_event(c, event):
+    c.obs_id = -1  # I do not know what this is.
+    c.event_id = event.event_number
+    c.tels_with_data = [event.telescope_id, ]
+    for tel_id in c.tels_with_data:
+        fill_R0CameraContainer_from_zfile_event(
+            c.tel[tel_id],
+            event
+        )
+
+
+def fill_R0CameraContainer_from_zfile_event(c, event):
+    c.trigger_time = event.local_time
+    c.trigger_type = event.camera_event_type
+    c.waveform = event.adc_samples
+    # Why is this needed ???
+    c.num_samples = event.adc_samples.shape[1]
