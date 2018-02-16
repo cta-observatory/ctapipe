@@ -40,3 +40,12 @@ def test_is_compatible():
     from ctapipe.io.zfits import ZFitsEventSource
 
     assert ZFitsEventSource.is_compatible(example_file_path)
+
+
+def test_factory_for_protozfits_file():
+    from ctapipe.io.eventsourcefactory import EventSourceFactory
+    from ctapipe.io.zfits import ZFitsEventSource
+
+    reader = EventSourceFactory.produce(input_url=example_file_path)
+    assert isinstance(reader, ZFitsEventSource)
+    assert reader.input_url == example_file_path
