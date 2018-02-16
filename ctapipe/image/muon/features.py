@@ -173,7 +173,7 @@ def npix_above_threshold(pix, thr):
         Number of pixels above threshold
     """
 
-    return len(pix[pix > thr])
+    return (pix > thr).sum()
 
 
 def npix_composing_ring(pix):
