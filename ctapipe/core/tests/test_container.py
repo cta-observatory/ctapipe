@@ -3,6 +3,57 @@ import pytest
 from ctapipe.core import Container, Field, Map
 
 
+def test_inheritance():
+
+    class ExampleContainer(Container):
+        a = Field(None)
+
+    class SubclassContainer(ExampleContainer):
+        b = Field(None)
+
+    assert 'a' in SubclassContainer.fields
+
+    c = SubclassContainer()
+    assert c.a is None
+    assert c.b is None
+
+    c.a = 5
+    c.b = 10
+
+    assert c.a == 5
+    assert c.b == 10
+
+
+def test_multiple_inheritance():
+
+    class ContainerA(Container):
+        a = Field(None)
+
+    class ContainerB(ContainerA):
+        b = Field(None)
+
+    class ContainerC(ContainerB):
+        c = Field(None)
+
+    assert 'a' in ContainerC.fields
+    assert 'b' in ContainerC.fields
+
+
+def test_override_inheritance():
+
+    class ContainerA(Container):
+        a = Field(1)
+
+    class ContainerB(ContainerA):
+        a = Field(2)
+
+    a = ContainerA()
+    assert a.a == 1
+
+    b = ContainerB()
+    assert b.a == 2
+
+
 def test_container():
 
     class ExampleContainer(Container):
