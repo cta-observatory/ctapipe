@@ -140,7 +140,7 @@ def test_jsonToFits():
     app.initialize()
     app.start()
     tmp = tempfile.NamedTemporaryFile()
-    app.json_to_fits(str(tmp))
+    app.json_to_fits(str(tmp.name))
     sys.argv = backup
 
 
