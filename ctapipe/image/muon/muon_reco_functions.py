@@ -206,13 +206,14 @@ def analyze_muon_event(event):
                     bins=30)
 
 
-                dist_ringwidth_mask = np.abs(dist - muonringparam.
-                           ring_radius) < (muonintensityoutput.ring_width)
+                dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
+                                             ) < (muonintensityoutput.ring_width)
                 pix_ringwidth_im = image * dist_ringwidth_mask
                 idx_ringwidth = np.nonzero(pix_ringwidth_im)
 
                 muonintensityoutput.ring_pix_completeness = npix_above_threshold(
-                    pix_ringwidth_im[idx_ringwidth], tailcuts[0])/ len(pix_im[idx_ringwidth])
+                    pix_ringwidth_im[idx_ringwidth], tailcuts[0]) / len(
+                    pix_im[idx_ringwidth])
 
                 logger.debug("Tel %d Impact parameter = %s mir_rad=%s "
                              "ring_width=%s", telid,
