@@ -60,6 +60,13 @@ def test_targetio_calibrator():
                               event_r1.r1.tel[0].waveform, 1)
 
 
+def test_targetio_calibrator_wrong_file(test_event):
+    pytest.importorskip("target_calib")
+    r1c = TargetIOR1Calibrator()
+    with pytest.raises(ValueError):
+        r1c.calibrate(test_event)
+
+
 def test_check_r0_exists(test_event):
     telid = 11
     event = deepcopy(test_event)

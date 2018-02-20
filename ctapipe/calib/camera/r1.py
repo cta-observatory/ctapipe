@@ -213,7 +213,7 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
         help='Path to a TargetCalib flat field file'
     ).tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         The R1 calibrator for targetio files (i.e. files containing data
         taken with a TARGET module, such as with CHEC)
