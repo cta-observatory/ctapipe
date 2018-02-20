@@ -53,6 +53,12 @@ class ContainerMeta(type):
         dct['__slots__'] = tuple(items + ['meta'])
         dct['fields'] = {}
 
+        # inherit fields from baseclasses
+        for b in bases:
+            if issubclass(b, Container):
+                for k, v in b.fields.items():
+                    dct['fields'][k] = v
+
         for k in items:
             dct['fields'][k] = dct.pop(k)
 
@@ -81,9 +87,6 @@ class Container(metaclass=ContainerMeta):
     Only members of instance `Field` will be used as output.
     For hierarchical data structures, Field can use `Container`
     subclasses or a `Map` as the default value.
-
-    You should not make class hierarchies of Containers and only ever
-    subclass the Container base class
 
     >>>    class MyContainer(Container):
     >>>        x = Field(100,"The X value")
