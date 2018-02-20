@@ -395,6 +395,9 @@ class DataContainer(Container):
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer),
                      'Telescope pointing positions')
+
+
+class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 

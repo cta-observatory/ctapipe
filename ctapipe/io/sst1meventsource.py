@@ -5,7 +5,7 @@ Components to read ZFITS data.
 This requires the protozfitsreader python library to be installed
 """
 from .eventsource import EventSource
-from .containers import DataContainer
+from .containers import SST1MDataContainer
 
 __all__ = ['SST1MEventSource']
 
@@ -19,7 +19,7 @@ class SST1MEventSource(EventSource):
     def _generator(self):
         from protozfitsreader import ZFile
         for count, event in enumerate(ZFile(self.input_url)):
-            data = DataContainer()
+            data = SST1MDataContainer()
             data.count = count
             data.sst1m.fill_from_zfile_event(event)
             fill_R0Container_from_zfile_event(data.r0, event)
