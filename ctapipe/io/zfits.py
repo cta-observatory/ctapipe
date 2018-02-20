@@ -8,7 +8,6 @@ from numpy import ndarray
 
 from ..core import Map, Field, Container
 from .containers import (
-    DataContainer,
     R0Container,
     R1Container,
     DL0Container,
