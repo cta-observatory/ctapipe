@@ -113,10 +113,10 @@ class MyApp(Application):
                 f.write(str(json.dumps(self.config)))
 
     def traitlets_config_to_fits(self, outputfile):
-        traitlets_config_to_fits(self.config, outputfile, clobber=True)
+        traitlets_config_to_fits(self.config, outputfile, overwrite=True)
 
-    def jsonToFits(self, outputfile):
-        json_to_fits(self.full_path_configfile, outputfile, clobber=True)
+    def json_to_fits(self, outputfile):
+        json_to_fits(self.full_path_configfile, outputfile, overwrite=True)
 
 
 def test_traitlets_config_to_fits():
@@ -128,7 +128,7 @@ def test_traitlets_config_to_fits():
     app.start()
 
     tmp = tempfile.NamedTemporaryFile()
-    app.traitlets_config_to_fits(tmp.name)
+    app.traitlets_config_to_fits(str(tmp.name))
     sys.argv = backup
 
 
@@ -140,7 +140,7 @@ def test_jsonToFits():
     app.initialize()
     app.start()
     tmp = tempfile.NamedTemporaryFile()
-    app.jsonToFits(tmp)
+    app.json_to_fits(str(tmp))
     sys.argv = backup
 
 
