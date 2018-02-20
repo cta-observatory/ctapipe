@@ -27,28 +27,23 @@ class TargetIOEventSource(EventSource):
 
     Attributes
     ----------
-    tio_reader : target_io.TargetIOEventReader()
+    _tio_reader : target_io.TargetIOEventReader()
         C++ event reader for TargetIO files. Handles the event building into
         an array of (n_pixels, n_samples) in C++, avoiding loops in Python
-    n_events : int
+    _n_events : int
         number of events in the fits file
-    n_samples : int
+    _n_samples : int
         number of samples in the waveform
-    r0_samples : ndarray
+    _r0_samples : ndarray
         three dimensional array to store the R0 level waveform for each pixel
         (n_channels, n_pixels, n_samples)
-    r1_samples : ndarray
+    _r1_samples : ndarray
         three dimensional array to store the R1 level waveform for each pixel
         (n_channels, n_pixels, n_samples)
-    samples : ndarray
+    _samples : ndarray
         pointer to the first index of either r0_samples or r1_samples
         (depending if the file has been R1 calibrated) for passing to
         TargetIO to be filled
-    cameraconfig : object
-        object conataining camera-specific information (e.g. pixel positions)
-        for one of the camera that use the targetio f
-
-
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
