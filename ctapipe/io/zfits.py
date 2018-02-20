@@ -21,10 +21,10 @@ from .containers import (
 
 from .eventsource import EventSource
 
-__all__ = ['ZFitsEventSource']
+__all__ = ['SST1MEventSource']
 
 
-class ZFitsEventSource(EventSource):
+class SST1MEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
