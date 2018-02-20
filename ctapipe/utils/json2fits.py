@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 __all__ = ['traitlets_config_to_fits', 'json_to_fits']
 
 
-def traitlets_config_to_fits(config, fits_filename, clobber=True):
+def traitlets_config_to_fits(config, fits_filename, overwrite=True):
     """Write a FITS file that represents configuration.
 
     Parameters
@@ -18,7 +18,7 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
         a traitlets.config.loader.Config to write in FITS format
     fits_filename : str
         FITS file name to write
-    clobber : bool
+    overwrite : bool
         When True, overwrite the output file if exists.
 
     Raises
@@ -51,13 +51,13 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
         table_0 = fits.TableHDU(data=None, header=header, name=section)
         hdu_list.append(table_0)
     try:
-        hdu_list.writeto(fits_filename, overwrite=clobber)
+        hdu_list.writeto(fits_filename, overwrite=overwrite)
     except OSError:
         logging.exception('Could not do save {}'.format(fits_filename))
         raise
 
 
-def json_to_fits(json_filename, fits_filename, clobber=True):
+def json_to_fits(json_filename, fits_filename, overwrite=True):
     """Write a FITS file that represents json file for traitlets configuration.
 
     Parameters
@@ -67,7 +67,7 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         Only one level of section is allowed.
     fits_filename : str
         FITS file name to write
-    clobber : bool
+    overwrite : bool
         When True, overwrite the output file if exists.
 
     Raises
@@ -120,7 +120,7 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         hduList.append(table_0)
         # write hduList to FITS file
         try:
-            hduList.writeto(fits_filename, overwrite=clobber)
+            hduList.writeto(fits_filename, overwrite=overwrite)
         except OSError:
             logging.exception('Could not do save {}'.format(fits_filename))
             raise
