@@ -56,11 +56,3 @@ def test_npix_composing_ring():
     npix = npix_composing_ring(pix)
 
     assert((npix >= 0) and (npix <= len_array))
-
-
-if __name__ == '__main__':
-
-    test_ring_containment()
-    test_ring_completeness()
-    test_npix_above_threshold()
-    test_npix_composing_ring()
