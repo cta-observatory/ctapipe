@@ -3,7 +3,7 @@ from astropy import units as u
 from astropy.time import Time
 from ctapipe.instrument import TelescopeDescription
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import DataContainer
+from ctapipe.io.containers import TargetIODataContainer
 
 __all__ = ['TargetIOEventSource']
 
