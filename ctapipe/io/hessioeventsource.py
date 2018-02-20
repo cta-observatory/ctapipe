@@ -115,6 +115,17 @@ class HESSIOEventSource(EventSource):
                 # mc run header data
                 data.mcheader.run_array_direction = (file.
                                                      get_mc_run_array_direction())
+                data.mcheader.corsika_version = file.get_corsika_version()
+                data.mcheader.simtel_version = file.get_simtel_version()
+                data.mcheader.energy_range_max = file.get_mc_E_range_Max() * u.TeV
+                data.mcheader.energy_range_min = file.get_mc_E_range_Min() * u.TeV
+                data.mcheader.prod_site_B_total = file.get_B_total() * u.uT
+                data.mcheader.prod_site_B_declination = Angle(file.
+                                                        get_B_declination() * u.rad)
+                data.mcheader.prod_site_B_inclination = Angle(file.
+                                                        get_B_inclination() * u.rad)
+                data.mcheader.prod_site_alt = file.get_mc_obsheight() * u.m
+                data.mcheader.spectral_index = file.get_spectral_index()
 
                 # this should be done in a nicer way to not re-allocate the
                 # data each time (right now it's just deleted and garbage
