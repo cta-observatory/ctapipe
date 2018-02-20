@@ -4,6 +4,7 @@ from ctapipe.io.eventsource import EventSource
 # EventFileReader imports so that EventFileReaderFactory can see them
 # (they need to exist in the global namespace)
 import ctapipe.io.hessioeventsource
+import ctapipe.io.targetioeventsource
 
 __all__ = ['EventSourceFactory', 'event_source']
 
