@@ -341,23 +341,6 @@ class TelescopePointingContainer(Container):
     altitude = Field(nan * u.rad, 'Altitude', unit=u.rad)
 
 
-class TargetioCameraContainer(Container):
-    """
-    Container for Fields that are specific to cameras that use TARGET
-    """
-    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
-                                  "waveform in the camera image (n_pixels)"))
-
-
-class TargetioContainer(Container):
-    """
-    Storage for the TargetioCameraContainer for each telescope
-    """
-
-    tel = Field(Map(TargetioCameraContainer),
-                "map of tel_id to TargetioCameraContainer")
-
-
 class DataContainer(Container):
     """ Top-level container for all event information """
 
@@ -373,7 +356,30 @@ class DataContainer(Container):
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer),
                      'Telescope pointing positions')
-    targetio = Field(TargetioContainer(), "TARGET-specific Data")
+
+
+class TargetIOCameraContainer(Container):
+    """
+    Container for Fields that are specific to cameras that use TARGET
+    """
+    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
+                                  "waveform in the camera image (n_pixels)"))
+
+
+class TargetIOContainer(Container):
+    """
+    Storage for the TargetIOCameraContainer for each telescope
+    """
+
+    tel = Field(Map(TargetIOCameraContainer),
+                "map of tel_id to TargetIOCameraContainer")
+
+
+class TargetIODataContainer(DataContainer):
+    """
+    Data container including targeto information
+    """
+    targetio = Field(TargetIOContainer(), "TARGET-specific Data")
 
 
 class MuonRingParameter(Container):
