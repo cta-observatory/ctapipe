@@ -4,9 +4,6 @@ Components to read ZFITS data.
 
 This requires the protozfitsreader python library to be installed
 """
-from numpy import ndarray
-
-from ..core import Map, Field, Container
 from .eventsource import EventSource
 from .containers import DataContainer
 
