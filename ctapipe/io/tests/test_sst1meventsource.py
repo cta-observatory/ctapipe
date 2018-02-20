@@ -18,7 +18,7 @@ ADC_SAMPLES_SHAPE = (1296, 50)
 
 
 def test_loop_over_events():
-    from ctapipe.io.zfits import SST1MEventSource
+    from ctapipe.io.sst1meventsource import SST1MEventSource
 
     N_EVENTS = 5
     inputfile_reader = SST1MEventSource(
@@ -37,14 +37,14 @@ def test_loop_over_events():
 
 
 def test_is_compatible():
-    from ctapipe.io.zfits import SST1MEventSource
+    from ctapipe.io.sst1meventsource import SST1MEventSource
 
     assert SST1MEventSource.is_compatible(example_file_path)
 
 
 def test_factory_for_protozfits_file():
     from ctapipe.io.eventsourcefactory import EventSourceFactory
-    from ctapipe.io.zfits import SST1MEventSource
+    from ctapipe.io.sst1meventsource import SST1MEventSource
 
     reader = EventSourceFactory.produce(input_url=example_file_path)
     assert isinstance(reader, SST1MEventSource)
