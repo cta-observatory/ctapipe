@@ -121,9 +121,11 @@ class HESSIOEventSource(EventSource):
                 data.mcheader.energy_range_min = file.get_mc_E_range_Min() * u.TeV
                 data.mcheader.prod_site_B_total = file.get_B_total() * u.uT
                 data.mcheader.prod_site_B_declination = Angle(file.
-                                                        get_B_declination() * u.rad)
+                                                              get_B_declination()
+                                                              * u.rad)
                 data.mcheader.prod_site_B_inclination = Angle(file.
-                                                        get_B_inclination() * u.rad)
+                                                              get_B_inclination()
+                                                              * u.rad)
                 data.mcheader.prod_site_alt = file.get_mc_obsheight() * u.m
                 data.mcheader.spectral_index = file.get_spectral_index()
 
