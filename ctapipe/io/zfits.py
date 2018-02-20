@@ -23,7 +23,9 @@ class SST1MEventSource(EventSource):
         from protozfitsreader import ZFile
         for count, event in enumerate(ZFile(self.input_url)):
             data = DataContainer()
-            fill_DataContainer_from_zfile_event(data, event, count)
+            data.count = count
+            data.sst1m.fill_from_zfile_event(event)
+            fill_R0Container_from_zfile_event(data.r0, event)
             yield data
 
     @staticmethod
@@ -45,26 +47,20 @@ class SST1MEventSource(EventSource):
         )
 
 
-def fill_DataContainer_from_zfile_event(c, event, count):
-    c.count = count
-    c.sst1m.fill_from_zfile_event(event)
-    fill_R0Container_from_zfile_event(c.r0, event)
-
-
-def fill_R0Container_from_zfile_event(c, event):
-    c.obs_id = -1  # I do not know what this is.
-    c.event_id = event.event_number
-    c.tels_with_data = [event.telescope_id, ]
-    for tel_id in c.tels_with_data:
+def fill_R0Container_from_zfile_event(container, event):
+    container.obs_id = -1  # I do not know what this is.
+    container.event_id = event.event_number
+    container.tels_with_data = [event.telescope_id, ]
+    for tel_id in container.tels_with_data:
         fill_R0CameraContainer_from_zfile_event(
-            c.tel[tel_id],
+            container.tel[tel_id],
             event
         )
 
 
-def fill_R0CameraContainer_from_zfile_event(c, event):
-    c.trigger_time = event.local_time
-    c.trigger_type = event.camera_event_type
-    c.waveform = event.adc_samples
+def fill_R0CameraContainer_from_zfile_event(container, event):
+    container.trigger_time = event.local_time
+    container.trigger_type = event.camera_event_type
+    container.waveform = event.adc_samples
     # Why is this needed ???
-    c.num_samples = event.adc_samples.shape[1]
+    container.num_samples = event.adc_samples.shape[1]
