@@ -467,6 +467,8 @@ class MuonIntensityParameter(Container):
         optical muon efficiency from intensity fit
     ring_completeness:
         completeness of the ring
+    ring_pix_completeness:
+        pixel completeness of the ring
     ring_num_pixel: int
         Number of pixels composing the ring
     ring_size:
@@ -487,6 +489,7 @@ class MuonIntensityParameter(Container):
     event_id = Field(0, 'event identification number')
     tel_id = Field(0, 'telescope identification number')
     ring_completeness = Field(0., 'fraction of ring present')
+    ring_pix_completeness = Field(0., 'fraction of pixels present in the ring')
     ring_num_pixel = Field(0, 'number of pixels in the ring image')
     ring_size = Field(0., 'size of the ring in pe')
     off_ring_size = Field(0., 'image size outside of ring in pe')
