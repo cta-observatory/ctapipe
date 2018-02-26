@@ -132,6 +132,14 @@ class Container(metaclass=ContainerMeta):
         """Generator over (key, value) pairs for the items"""
         return ((k, getattr(self, k)) for k in self.fields.keys())
 
+    def keys(self):
+        """Get the keys of the container"""
+        return self.fields.keys()
+
+    def values(self):
+        """Get the keys of the container"""
+        return (getattr(self, k) for k in self.fields.keys())
+
     def as_dict(self, recursive=False, flatten=False):
         """
         convert the `Container` into a dictionary
