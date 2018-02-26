@@ -38,7 +38,7 @@ dependencies:
   - yaml
   - zlib
   - iminuit
-  - pytables  
+  - pytables
   - tqdm
   - pip:
       - pytest_runner
