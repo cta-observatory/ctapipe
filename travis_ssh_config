@@ -1,0 +1,8 @@
+Host *
+    UseRoaming no
+    StrictHostKeyChecking no
+
+Host target_software github.com
+Hostname github.com
+IdentityFile $TRAVIS_BUILD_DIR/target_software_key
+IdentitiesOnly yes

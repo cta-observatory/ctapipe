@@ -10,6 +10,10 @@ os:
     - linux
     # - osx   # currently osx python projects are not supported in Travis
 
+env:
+  global:
+    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/Software/TargetDriver/install/lib:$HOME/Software/TargetIO/install/lib:$HOME/Software/TargetCalib/install/lib
+
 before_install:
 
     # Use utf8 encoding. Should be default, but this is insurance
@@ -42,6 +46,17 @@ before_install:
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
     - git fetch --tags
+
+    # Set up ssh config
+    - cp travis_ssh_config $HOME/.ssh/config
+
+    # target software
+    - source activate cta-dev
+    - mkdir -p $HOME/Software
+    - cd $HOME/Software
+    - git clone git@github.com:watsonjj/target_software.git
+    - cd $HOME/Software/target_software
+    - ./install.sh
 
 install:
 
