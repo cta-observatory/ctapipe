@@ -50,14 +50,6 @@ before_install:
     # Set up ssh config
     - cp travis_ssh_config $HOME/.ssh/config
 
-    # target software
-    - source activate cta-dev
-    - mkdir -p $HOME/Software
-    - cd $HOME/Software
-    - git clone git@github.com:watsonjj/target_software.git
-    - cd $HOME/Software/target_software
-    - ./install.sh
-
 install:
 
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
@@ -70,6 +62,13 @@ install:
     - conda install numpy protobuf libgcc
     - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
     # ----- end of SST1M
+    # ----- target_software
+    - mkdir -p $HOME/Software
+    - cd $HOME/Software
+    - git clone git@github.com:watsonjj/target_software.git
+    - cd $HOME/Software/target_software
+    - ./install.sh
+    # ----- end of target_software
     - python setup.py develop
 
 script:
