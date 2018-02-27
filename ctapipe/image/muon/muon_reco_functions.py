@@ -8,6 +8,9 @@ from astropy.utils.decorators import deprecated
 from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.muon.features import ring_containment
+from ctapipe.image.muon.features import ring_completeness
+from ctapipe.image.muon.features import npix_above_threshold
+from ctapipe.image.muon.features import npix_composing_ring
 from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 
@@ -149,8 +152,8 @@ def analyze_muon_event(event):
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
         # np.sqrt(numpix*0.11/(2.*np.pi))
 
-        if(np.sum(pix_im > tailcuts[0]) > 0.1 * minpix
-           and np.sum(pix_im) > minpix
+        if(npix_above_threshold(pix_im, tailcuts[0]) > 0.1 * minpix
+           and npix_composing_ring(pix_im) > minpix
            and nom_dist < muon_cuts['CamRad'][dict_index]
            and muonringparam.ring_radius < 1.5 * u.deg
            and muonringparam.ring_radius > 1. * u.deg):
@@ -192,6 +195,25 @@ def analyze_muon_event(event):
                 muonintensityoutput.obs_id = event.dl0.obs_id
                 muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask
+
+                idx_ring = np.nonzero(pix_im)
+                muonintensityoutput.ring_completeness = ring_completeness(
+                    x[idx_ring], y[idx_ring], pix_im[idx_ring],
+                    muonringparam.ring_radius,
+                    muonringparam.ring_center_x,
+                    muonringparam.ring_center_y,
+                    threshold=30,
+                    bins=30)
+
+
+                dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
+                                             ) < (muonintensityoutput.ring_width)
+                pix_ringwidth_im = image * dist_ringwidth_mask
+                idx_ringwidth = np.nonzero(pix_ringwidth_im)
+
+                muonintensityoutput.ring_pix_completeness = npix_above_threshold(
+                    pix_ringwidth_im[idx_ringwidth], tailcuts[0]) / len(
+                    pix_im[idx_ringwidth])
 
                 logger.debug("Tel %d Impact parameter = %s mir_rad=%s "
                              "ring_width=%s", telid,

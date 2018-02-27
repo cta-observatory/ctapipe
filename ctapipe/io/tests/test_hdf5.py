@@ -4,12 +4,14 @@ import numpy as np
 from astropy import units as u
 import tables
 import pytest
+from ctapipe.core.container import Container, Field
+import tempfile
 
 
 @pytest.fixture(scope='session')
 def temp_h5_file(tmpdir_factory):
     """ a fixture that fetches a temporary output dir/file for a test
-    file that we want to read or write (so it doesn't clutter up the test 
+    file that we want to read or write (so it doesn't clutter up the test
     directory when the automated tests are run)"""
     return str(tmpdir_factory.mktemp('data').join('test.h5'))
 
@@ -40,6 +42,27 @@ def test_write_container(temp_h5_file):
         writer.write("tel_001", r0tel)
         writer.write("tel_002", r0tel)  # write a second table too
         writer.write("MC", mc)
+
+
+def test_write_containers(temp_h5_file):
+
+    class C1(Container):
+        a = Field('a', None)
+        b = Field('b', None)
+
+    class C2(Container):
+        c = Field('c', None)
+        d = Field('d', None)
+
+    with tempfile.NamedTemporaryFile() as f:
+        writer = HDF5TableWriter(f.name, 'test')
+        for i in range(20):
+            c1 = C1()
+            c2 = C2()
+            c1.a, c1.b, c2.c, c2.d = np.random.normal(size=4)
+            c1.b = np.random.normal()
+
+            writer.write("tel_001", [c1, c2])
 
 
 def test_read_container(temp_h5_file):
