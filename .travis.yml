@@ -12,6 +12,7 @@ os:
 
 env:
   global:
+    - TARGET_SOFTWARE=$HOME/Software/target_software
     - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/Software/TargetDriver/install/lib:$HOME/Software/TargetIO/install/lib:$HOME/Software/TargetCalib/install/lib
 
 before_install:
@@ -67,7 +68,7 @@ install:
     - mkdir -p $HOME/Software
     - cd $HOME/Software
     - git clone git@github.com:watsonjj/target_software.git
-    - cd $HOME/Software/target_software
+    - cd $TARGET_SOFTWARE
     - ./install.sh
     - cd $TRAVIS_BUILD_DIR
     # ----- end of target_software
