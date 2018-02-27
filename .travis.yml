@@ -68,6 +68,7 @@ install:
     - git clone git@github.com:watsonjj/target_software.git
     - cd $HOME/Software/target_software
     - ./install.sh
+    - cd $TRAVIS_BUILD_DIR
     # ----- end of target_software
     - python setup.py develop
 
