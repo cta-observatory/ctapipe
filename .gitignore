@@ -78,5 +78,3 @@ distribute-*.tar.gz
 
 *.pstats
 target
-
-target_software_key
