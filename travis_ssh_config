@@ -1,8 +1,0 @@
-Host *
-    UseRoaming no
-    StrictHostKeyChecking no
-
-Host target_software github.com
-Hostname github.com
-IdentityFile ~/.ssh/target_software_key
-IdentitiesOnly yes
