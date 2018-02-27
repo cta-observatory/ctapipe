@@ -134,7 +134,7 @@ class TargetIOEventSource(EventSource):
         """
         chec_tel = 0
 
-        data = DataContainer()
+        data = TargetIODataContainer()
         data.meta['origin'] = "targetio"
 
         data.meta['input'] = self.input_url
