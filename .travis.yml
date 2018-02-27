@@ -1,4 +1,5 @@
 language: python
+sudo: required
 
 python:
     # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
