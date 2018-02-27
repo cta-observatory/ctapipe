@@ -55,18 +55,8 @@ before_install:
     - ssh-add target_software_key
 
 install:
-    - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION numpy
+    - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
     - source activate cta-dev
-
-    # ----- target_software
-    - mkdir -p $HOME/Software
-    - cd $HOME/Software
-    - git clone git@github.com:watsonjj/target_software.git
-    - cd $TARGET_SOFTWARE
-    - ./install.sh
-    - cd $TRAVIS_BUILD_DIR
-    # ----- end of target_software
-
     - conda env update -n cta-dev --file environment.yml
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
@@ -75,6 +65,14 @@ install:
     - conda install numpy protobuf libgcc
     - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
     # ----- end of SST1M
+    # ----- target_software
+    - mkdir -p $HOME/Software
+    - cd $HOME/Software
+    - git clone https://github.com/watsonjj/target_software.git
+    - cd $TARGET_SOFTWARE
+    - ./install.sh
+    - cd $TRAVIS_BUILD_DIR
+    # ----- end of target_software
     - python setup.py develop
 
 script:
