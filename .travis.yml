@@ -27,7 +27,7 @@ before_install:
     # note: a fixed anaconda version is being used below due to a bug
     # in the latest, but if solved this can change back to
     # Miniconda3-Latest-Linux-x86_64.sh
-    
+
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         wget https://repo.continuum.io/miniconda/Miniconda3-4.3.21-Linux-x86_64.sh -O miniconda.sh;
       fi
@@ -66,20 +66,20 @@ install:
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
     - pip install codecov
+    # ----- SST1M:
+    - conda install numpy protobuf libgcc
+    - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
+    # ----- end of SST1M
     - python setup.py develop
 
 script:
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
-    - travis-sphinx -v --outdir=docbuild build --source=docs/ 
+    - travis-sphinx -v --outdir=docbuild build --source=docs/
 
 after_script:
     - source deactivate
 
 after_success:
     - travis-sphinx -v --outdir=docbuild deploy
-    - codecov 
-
-
-  
-
+    - codecov

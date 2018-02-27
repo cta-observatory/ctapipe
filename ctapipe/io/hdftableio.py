@@ -9,7 +9,7 @@ from astropy.time import Time
 from astropy.units import Quantity
 
 import ctapipe
-from ctapipe.core import Component
+from ctapipe.core import Component, Container
 
 __all__ = ['TableWriter',
            'TableReader',
@@ -74,12 +74,13 @@ class TableWriter(Component, metaclass=ABCMeta):
                                                              transform))
 
     @abstractmethod
-    def write(self, table_name, container):
+    def write(self, table_name, containers):
         """
-        Write the contents of the given container to a table.  The first call
-        to write  will create a schema and initialize the table within the
-        file. The shape of data within the container must not change between
-        calls, since variable-length arrays are not supported.
+        Write the contents of the given container or containers to a table.
+        The first call to write  will create a schema and initialize the table
+        within the file.
+        The shape of data within the container must not change between calls,
+        since variable-length arrays are not supported.
 
         Parameters
         ----------
@@ -154,9 +155,9 @@ class HDF5TableWriter(TableWriter):
     def __del__(self):
         self._h5file.close()
 
-    def _create_hdf5_table_schema(self, table_name, container):
+    def _create_hdf5_table_schema(self, table_name, containers):
         """
-        Creates a pytables description class for a container
+        Creates a pytables description class for the given containers
         and registers it in the Writer
 
         Parameters
@@ -177,70 +178,80 @@ class HDF5TableWriter(TableWriter):
         meta = {}  # any extra meta-data generated here (like units, etc)
 
         # create pytables schema description for the given container
-        for col_name, value in container.items():
+        for container in containers:
+            for col_name, value in container.items():
 
-            typename = ""
-            shape = 1
+                typename = ""
+                shape = 1
 
-            if self._is_column_excluded(table_name, col_name):
-                self.log.debug("excluded column: {}/{}".format(table_name,
-                                                               col_name))
-                continue
+                if self._is_column_excluded(table_name, col_name):
+                    self.log.debug("excluded column: {}/{}".format(
+                        table_name, col_name
+                    ))
+                    continue
 
-            if isinstance(value, Quantity):
-                req_unit = container.fields[col_name].unit
-                if req_unit is not None:
-                    tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                    meta['{}_UNIT'.format(col_name)] = str(req_unit)
-                else:
-                    tr = lambda x: x.value
-                    meta['{}_UNIT'.format(col_name)] = str(value.unit)
+                if isinstance(value, Quantity):
+                    req_unit = container.fields[col_name].unit
+                    if req_unit is not None:
+                        tr = partial(tr_convert_and_strip_unit, unit=req_unit)
+                        meta['{}_UNIT'.format(col_name)] = str(req_unit)
+                    else:
+                        tr = lambda x: x.value
+                        meta['{}_UNIT'.format(col_name)] = str(value.unit)
 
-                value = tr(value)
-                self.add_column_transform(table_name, col_name, tr)
+                    value = tr(value)
+                    self.add_column_transform(table_name, col_name, tr)
 
-            if isinstance(value, np.ndarray):
-                typename = value.dtype.name
-                coltype = PYTABLES_TYPE_MAP[typename]
-                shape = value.shape
-                Schema.columns[col_name] = coltype(shape=shape)
+                if isinstance(value, np.ndarray):
+                    typename = value.dtype.name
+                    coltype = PYTABLES_TYPE_MAP[typename]
+                    shape = value.shape
+                    Schema.columns[col_name] = coltype(shape=shape)
 
-            if isinstance(value, Time):
-                # TODO: really should use MET, but need a func for that
-                Schema.columns[col_name] = tables.Float64Col()
-                self.add_column_transform(table_name, col_name,
-                                          tr_time_to_float)
+                if isinstance(value, Time):
+                    # TODO: really should use MET, but need a func for that
+                    Schema.columns[col_name] = tables.Float64Col()
+                    self.add_column_transform(
+                        table_name, col_name, tr_time_to_float
+                    )
 
-            elif type(value).__name__ in PYTABLES_TYPE_MAP:
-                typename = type(value).__name__
-                coltype = PYTABLES_TYPE_MAP[typename]
-                Schema.columns[col_name] = coltype()
+                elif type(value).__name__ in PYTABLES_TYPE_MAP:
+                    typename = type(value).__name__
+                    coltype = PYTABLES_TYPE_MAP[typename]
+                    Schema.columns[col_name] = coltype()
 
-            self.log.debug("Table {}: added col: {} type: {} shape: {}"
-                           .format(table_name, col_name, typename, shape))
+                self.log.debug(
+                    "Table {}: added col: {} type: {} shape: {}".format(
+                        table_name, col_name, typename, shape
+                    ))
 
         self._schemas[table_name] = Schema
         meta['CTAPIPE_VERSION'] = ctapipe.__version__
         return meta
 
-    def _setup_new_table(self, table_name, container):
+    def _setup_new_table(self, table_name, containers):
         """ set up the table. This is called the first time `write()`
         is called on a new table """
         self.log.debug("Initializing table '{}'".format(table_name))
-        meta = self._create_hdf5_table_schema(table_name, container)
-        meta.update(container.meta)  # copy metadata from container
+        meta = self._create_hdf5_table_schema(table_name, containers)
 
-        table = self._h5file.create_table(where=self._group,
-                                          name=table_name,
-                                          title="storage of {}".format(
-                                              container.__class__.__name__),
-                                          description=self._schemas[table_name])
+        for container in containers:
+            meta.update(container.meta)  # copy metadata from container
+
+        table = self._h5file.create_table(
+            where=self._group,
+            name=table_name,
+            title="Storage of {}".format(
+                ",".join(c.__class__.__name__ for c in containers)
+            ),
+            description=self._schemas[table_name]
+        )
         for key, val in meta.items():
             table.attrs[key] = val
 
         self._tables[table_name] = table
 
-    def _append_row(self, table_name, container):
+    def _append_row(self, table_name, containers):
         """
         append a row to an already initialized table. This is called
         automatically by `write()`
@@ -248,33 +259,38 @@ class HDF5TableWriter(TableWriter):
         table = self._tables[table_name]
         row = table.row
 
-        for colname in table.colnames:
-            value = self._apply_col_transform(table_name, colname,
-                                              container[colname])
+        for container in containers:
+            for colname in filter(lambda c: c in table.colnames, container.keys()):
+                value = self._apply_col_transform(
+                    table_name, colname, container[colname]
+                )
 
-            row[colname] = value
+                row[colname] = value
 
         row.append()
 
-    def write(self, table_name, container):
+    def write(self, table_name, containers):
         """
-        Write the contents of the given container to a table.  The first call
-        to write  will create a schema and initialize the table within the
-        file. The shape of data within the container must not change between
+        Write the contents of the given container or containers to a table.
+        The first call to write  will create a schema and initialize the table
+        within the file.
+        The shape of data within the container must not change between
         calls, since variable-length arrays are not supported.
 
         Parameters
         ----------
         table_name: str
             name of table to write to
-        container: `ctapipe.core.Container`
+        containers: `ctapipe.core.Container` or `Iterable[ctapipe.core.Container]`
             container to write
         """
+        if isinstance(containers, Container):
+            containers = (containers, )
 
         if table_name not in self._schemas:
-            self._setup_new_table(table_name, container)
+            self._setup_new_table(table_name, containers)
 
-        self._append_row(table_name, container)
+        self._append_row(table_name, containers)
 
 
 class TableReader(Component, metaclass=ABCMeta):
@@ -444,7 +460,6 @@ class HDF5TableReader(TableReader):
 
             yield container
             row_count += 1
-
 
 
 
