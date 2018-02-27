@@ -49,8 +49,13 @@ before_install:
 
     # Set up ssh config
     - cp travis_ssh_config $HOME/.ssh/config
+    - cp target_software_key $HOME/.ssh/.
 
 install:
+
+    - echo $TRAVIS_BUILD_DIR
+    - echo $TRAVIS_PYTHON_VERSION
+
 
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
     - conda env update -n cta-dev --file environment.yml

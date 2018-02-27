@@ -4,5 +4,5 @@ Host *
 
 Host target_software github.com
 Hostname github.com
-IdentityFile $TRAVIS_BUILD_DIR/target_software_key
+IdentityFile ~/.ssh/target_software_key
 IdentitiesOnly yes
