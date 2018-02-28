@@ -57,8 +57,8 @@ install:
     - pip install travis-sphinx
     - pip install codecov
     # ----- SST1M:
-#    - conda install numpy protobuf libgcc
-#    - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
+    - conda install protobuf libgcc
+    - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
     # ----- end of SST1M
     # ----- target_software
     - mkdir -p $HOME/Software
@@ -67,7 +67,7 @@ install:
     - cd $TARGET_SOFTWARE
     - ./install.sh
     - cd $TRAVIS_BUILD_DIR
-    - python -c "import target_driver; print(target_driver.__file_)"
+    - python -c "import target_driver; print(target_driver.__file__)"
     - ls -al `python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())"`/*target*
     # ----- end of target_software
     - python setup.py develop
