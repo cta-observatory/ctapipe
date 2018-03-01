@@ -61,6 +61,8 @@ install:
     - pip install https://github.com/dneise/protozfitsreader/archive/v0.44.1.tar.gz
     # ----- end of SST1M
     # ----- target_software
+    - conda install -c conda-forge cfitsio
+    - conda install swig
     - mkdir -p $HOME/Software
     - cd $HOME/Software
     - git clone https://github.com/watsonjj/target_software.git
