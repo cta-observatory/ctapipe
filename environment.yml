@@ -29,7 +29,7 @@ dependencies:
   - scikit-image
   - scipy
   - setuptools
-  - sphinx
+  - sphinx=1.6
   - sphinx_rtd_theme
   - sphinx-automodapi
   - traitlets
