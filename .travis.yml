@@ -15,6 +15,7 @@ env:
   global:
     - TARGET_SOFTWARE=$HOME/Software/target_software
     - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/Software/TargetDriver/install/lib:$HOME/Software/TargetIO/install/lib:$HOME/Software/TargetCalib/install/lib
+    - TARGETCALIBPATH=$HOME/Software/TargetCalib/install
 
 before_install:
 
