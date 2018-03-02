@@ -5,6 +5,7 @@ from ctapipe.io.eventsource import EventSource
 # (they need to exist in the global namespace)
 import ctapipe.io.hessioeventsource
 from . import sst1meventsource
+import ctapipe.io.targetioeventsource
 
 __all__ = ['EventSourceFactory', 'event_source']
 
