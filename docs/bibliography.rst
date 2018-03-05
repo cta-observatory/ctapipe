@@ -14,5 +14,5 @@ References
 
 
 .. [mitchell15] A Generic Algorithm for IACT Optical Efficiency
-           Calibration using Muons, Allison Mitchell et al. arXiv:
-           1509.04258v1
+    Calibration using Muons, Allison Mitchell et al. arXiv:
+    1509.04258v1

@@ -2,13 +2,15 @@
 Waveform cleaning algorithms (smoothing, filtering, baseline subtraction)
 """
 
-from traitlets import Int, CaselessStrEnum
-from ctapipe.core import Component, Factory
+from abc import abstractmethod
+
 import numpy as np
 from scipy.signal import general_gaussian
-from abc import abstractmethod
-from ctapipe.image.charge_extractors import AverageWfPeakIntegrator,\
-    LocalPeakIntegrator
+from traitlets import Int
+
+from ctapipe.core import Component, Factory
+from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
+                                             LocalPeakIntegrator)
 
 __all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
            'CHECMWaveformCleanerLocal',
@@ -32,16 +34,14 @@ class WaveformCleaner(Component):
     kwargs
     """
 
-    name = 'WaveformCleaner'
-
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 
     @abstractmethod
     def apply(self, waveforms):
         """
         Apply the cleaning method to the waveforms
-        
+
         Parameters
         ----------
         waveforms : ndarray
@@ -62,7 +62,6 @@ class NullWaveformCleaner(WaveformCleaner):
     """
     Dummy waveform cleaner that simply returns its input
     """
-    name = 'NullWaveformCleaner'
 
     def apply(self, waveforms):
         return waveforms
@@ -89,15 +88,12 @@ class CHECMWaveformCleaner(WaveformCleaner):
         Set to None if no Tool to pass.
 
     """
-
-    name = 'CHECMWaveformCleaner'
-
     window_width = Int(16, help='Define the width of the pulse '
                                 'window').tag(config=True)
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
         # Cleaning steps for plotting
@@ -118,7 +114,7 @@ class CHECMWaveformCleaner(WaveformCleaner):
         """
         Get the extractor to be used to define a window used to mask out the
         pulse.
-        
+
         Returns
         -------
         `ChargeExtractor`
@@ -171,7 +167,7 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
     using the average of the first 32 samples in the waveforms, then a 
     convolved baseline subtraction to remove and low frequency drifts in 
     the baseline.
-    
+
     This particular cleaner obtains the peak position using an 
     `AverageWfPeakIntegrator`.
 
@@ -185,9 +181,8 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
-           
+
     """
-    name = 'CHECMWaveformCleanerAverage'
 
     def get_extractor(self):
         return AverageWfPeakIntegrator(None, self.parent,
@@ -219,7 +214,6 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
         Set to None if no Tool to pass.
 
     """
-    name = 'CHECMWaveformCleanerLocal'
 
     def get_extractor(self):
         return LocalPeakIntegrator(None, self.parent,
@@ -231,24 +225,6 @@ class WaveformCleanerFactory(Factory):
     """
     Factory to obtain a WaveformCleaner.
     """
-    name = "WaveformCleanerFactory"
-    description = "Obtain WavefromCleaner based on cleaner traitlet"
-
-    subclasses = Factory.child_subclasses(WaveformCleaner)
-    subclass_names = [c.__name__ for c in subclasses]
-
-    cleaner = CaselessStrEnum(subclass_names, 'NullWaveformCleaner',
-                              help='Waveform cleaning method to '
-                                   'use.').tag(config=True)
-
-    # Product classes traits
-    window_width = Int(16, help='Define the width of the pulse '
-                                'window').tag(config=True)
-    window_shift = Int(8, help='Define the shift of the pulse window from the '
-                               'peakpos (peakpos - shift).').tag(config=True)
-
-    def get_factory_name(self):
-        return self.name
-
-    def get_product_name(self):
-        return self.cleaner
+    base = WaveformCleaner
+    default = 'NullWaveformCleaner'
+    custom_product_help = 'Waveform cleaning method to use.'

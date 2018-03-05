@@ -26,6 +26,7 @@ from PyQt4.QtCore import QObject
 from PyQt4.QtCore import QMetaObject
 from PyQt4.QtCore import SIGNAL
 
+
 class MainWindow(QMainWindow, object):
     """
     QMainWindow displays pipeline
@@ -42,7 +43,7 @@ class MainWindow(QMainWindow, object):
 
     def setupUi(self, port):
         self.setObjectName("MainWindow")
-        self.resize(600,600)
+        self.resize(600, 600)
         self.centralwidget = QWidget(self)
         p = self.centralwidget.palette()
         self.centralwidget.setAutoFillBackground(True)
@@ -73,7 +74,7 @@ class MainWindow(QMainWindow, object):
         self.menubar.addAction(self.menuFile.menuAction())
         # add other GUI objects
         self.graph_widget = GraphWidget(self.statusbar)
-        self.gridLayout.addWidget(self.graph_widget, 1, 11, 10, 10 )
+        self.gridLayout.addWidget(self.graph_widget, 1, 11, 10, 10)
         pixmap = QPixmap(':/images/cta-logo-mini.png')
         lbl = QLabel()
         lbl.setPixmap(pixmap)
@@ -81,19 +82,19 @@ class MainWindow(QMainWindow, object):
         p = self.graph_widget.palette()
         self.graph_widget.setAutoFillBackground(True)
         p.setColor(
-            self.graph_widget.backgroundRole(),QColor(255,255,255))# QColor(226, 235, 252))
+            self.graph_widget.backgroundRole(), QColor(255, 255, 255))  # QColor(226, 235, 252))
         self.graph_widget.setPalette(p)
         self.quitButton = QPushButton()  # self.centralwidget)
         self.quitButton.setObjectName("quitButton")
         self.quitButton.setText(QApplication.translate
                                 ("MainWindow", "Quit", None, QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 12, 0, 1, 1)
-        self.info_label = InfoLabel(0,4)
+        self.info_label = InfoLabel(0, 4)
         self.info_label.setAutoFillBackground(True)
-        self.gridLayout.addWidget(self.info_label,1, 0, 1, 5)
-        #self.info_label.setAlignment(PyQt4.Qt.AlignCenter);
+        self.gridLayout.addWidget(self.info_label, 1, 0, 1, 5)
+        # self.info_label.setAlignment(PyQt4.Qt.AlignCenter);
         palette = QPalette()
-        palette.setColor(self.info_label.backgroundRole(),Qt.lightGray)
+        palette.setColor(self.info_label.backgroundRole(), Qt.lightGray)
         self.info_label.setPalette(palette)
         QObject.connect(
             self.quitButton, SIGNAL("clicked()"), self.stop)
@@ -137,9 +138,10 @@ class MainWindow(QMainWindow, object):
         self.close()
 
     def closeEvent(self, event):
-            self.guiconnection.finish()
-            self.guiconnection.join()
-            event.accept()  # let the window close
+        self.guiconnection.finish()
+        self.guiconnection.join()
+        event.accept()  # let the window close
+
 
 class ModuleApplication(QApplication):
     """
@@ -148,7 +150,8 @@ class ModuleApplication(QApplication):
     ----------
     QApplication : QApplication
     """
-    def __init__(self,  argv, port):
+
+    def __init__(self, argv, port):
         super(ModuleApplication, self).__init__(argv)
         self.main_windows = MainWindow(port)
         self.main_windows.show()

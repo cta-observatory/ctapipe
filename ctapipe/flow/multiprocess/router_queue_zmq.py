@@ -10,6 +10,7 @@ from pickle import dumps
 from pickle import loads
 from ctapipe.core import Component
 
+
 class RouterQueue(Process, Component):
 
     """`RouterQueue` class represents a router between pipeline steps, and it
@@ -24,8 +25,9 @@ class RouterQueue(Process, Component):
     without taking new job in account, so the prev step have to send it again
     later.
     """
+
     def __init__(
-        self, connections=None, gui_address=None):
+            self, connections=None, gui_address=None):
         """
         Parameters
         ----------
@@ -37,7 +39,7 @@ class RouterQueue(Process, Component):
             GUI port for ZMQ 'hostname': + 'port'
         """
         Process.__init__(self)
-        Component.__init__(self,parent=None)
+        Component.__init__(self, parent=None)
         self.gui_address = gui_address
         # list of available stages which receive next job
         # This list allow to use next_stage in a LRU (Last recently used)
@@ -50,8 +52,8 @@ class RouterQueue(Process, Component):
         self.queue_limit = dict()
         self.connections = connections or {}
         self.done = False
-        self._stop = Value('i',0)
-        self._total_queue_size = Value('i',0)
+        self._stop = Value('i', 0)
+        self._total_queue_size = Value('i', 0)
 
     def run(self):
         """
@@ -72,7 +74,8 @@ class RouterQueue(Process, Component):
                     if queue and next_available:
                         # get that oldest job and remove it form list
                         job = self.queue_jobs[name].pop(0)
-                        if self.gui_address : self.update_gui(name)
+                        if self.gui_address:
+                            self.update_gui(name)
                         # Get the next_stage for new job, and remove it from
                         # available list
                         next_stage = self.next_available_stages[name].pop(0)
@@ -100,11 +103,12 @@ class RouterQueue(Process, Component):
                         # store it to job queue
                         queue = self.queue_jobs[n]
                         if (len(queue) > self.queue_limit[n]
-                        and self.queue_limit[n] != -1) :
+                                and self.queue_limit[n] != -1):
                             socket_router.send_multipart([address, b"", b"FULL"])
                         else:
                             queue.append(loads(request))
-                            if self.gui_address : self.update_gui(n)
+                            if self.gui_address:
+                                self.update_gui(n)
                             socket_router.send_multipart([address, b"", b"OK"])
                 nb_job_remains = 0
                 for n, queue in self.queue_jobs.items():
@@ -158,23 +162,23 @@ class RouterQueue(Process, Component):
         # Prepare our context and sockets
         context = Context()
         # Socket to talk to prev_stages
-        for name,connections in self.connections.items():
+        for name, connections in self.connections.items():
             self.queue_limit[name] = connections[2]
             sock_router = context.socket(ROUTER)
             try:
                 sock_router.bind('tcp://*:' + connections[0])
             except ZMQError as e:
                 self.log.error('{} : tcp://localhost:{}'
-                               .format(e,  connections[0]))
+                               .format(e, connections[0]))
                 return False
             self.router_sockets[name] = sock_router
             # Socket to talk to next_stages
             sock_dealer = context.socket(ROUTER)
             try:
-                sock_dealer.bind("tcp://*:" + connections[1] )
+                sock_dealer.bind("tcp://*:" + connections[1])
             except ZMQError as e:
                 self.log.error('{} : tcp://localhost:{}'
-                               .format(e,  connections[1]))
+                               .format(e, connections[1]))
                 return False
             self.dealer_sockets[name] = sock_dealer
             self.next_available_stages[name] = list()

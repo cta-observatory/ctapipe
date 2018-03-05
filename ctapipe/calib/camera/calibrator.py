@@ -16,14 +16,14 @@ class CameraCalibrator(Component):
     """
     Conveniance calibrator to handle the full camera calibration.
 
-    This calibrator will apply the calibrations found in r1.py, dl0.py and 
+    This calibrator will apply the calibrations found in r1.py, dl0.py and
     dl1.py.
-    
-    The following traitlet alias configuration is suggestion for configuring 
+
+    The following traitlet alias configuration is suggestion for configuring
     the calibration inside a `ctapipe.core.Tool`:
-    
+
     .. code-block:: python
-    
+
         aliases = Dict(dict(
         ped='CameraR1CalibratorFactory.pedestal_path',
         tf='CameraR1CalibratorFactory.tf_path',
@@ -40,11 +40,14 @@ class CameraCalibrator(Component):
         cleaner='WaveformCleanerFactory.cleaner',
         cleaner_t0='WaveformCleanerFactory.t0',
         ))
-    
-    """
-    name = 'CameraCalibrator'
 
-    def __init__(self, config, tool, origin='hessio', **kwargs):
+    """
+    def __init__(self, config=None, tool=None,
+                 r1_product=None,
+                 extractor_product=None,
+                 cleaner_product=None,
+                 eventsource=None,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -56,36 +59,57 @@ class CameraCalibrator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        origin : str
-            The origin of the event file (default: hessio) to choose the 
-            correct `CameraR1Calibrator`. Usually given from 
-            `EventFileReader.origin`.
+        r1_product : str
+            The R1 calibrator to use. Manually overrides the Factory.
+        extractor_product : str
+            The ChargeExtractor to use. Manually overrides the Factory.
+        cleaner_product : str
+            The WaveformCleaner to use. Manually overrides the Factory.
+        eventsource : ctapipe.io.eventsource.EventSource
+            EventSource that is being used to read the events. The EventSource
+            contains information (such as metadata or inst) which indicates
+            the appropriate R1Calibrator to use.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        extractor_factory = ChargeExtractorFactory(config=config, tool=tool)
-        extractor_class = extractor_factory.get_class()
-        extractor = extractor_class(config=config, tool=tool)
+        kwargs_ = dict()
+        if extractor_product:
+            kwargs_['product'] = extractor_product
+        extractor = ChargeExtractorFactory.produce(
+            config=config,
+            tool=tool,
+            **kwargs_
+        )
 
-        cleaner_factory = WaveformCleanerFactory(config=config, tool=tool)
-        cleaner_class = cleaner_factory.get_class()
-        cleaner = cleaner_class(config=config, tool=tool)
+        kwargs_ = dict()
+        if cleaner_product:
+            kwargs_['product'] = cleaner_product
+        cleaner = WaveformCleanerFactory.produce(
+            config=config,
+            tool=tool,
+            **kwargs_
+        )
 
-        r1_factory = CameraR1CalibratorFactory(config=config, tool=tool,
-                                               origin=origin)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(config=config, tool=tool)
+        kwargs_ = dict()
+        if r1_product:
+            kwargs_['product'] = r1_product
+        self.r1 = CameraR1CalibratorFactory.produce(
+            config=config,
+            tool=tool,
+            eventsource=eventsource,
+            **kwargs_
+        )
 
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
-
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,
-                                       extractor=extractor, cleaner=cleaner)
+                                       extractor=extractor,
+                                       cleaner=cleaner)
 
     def calibrate(self, event):
         """
         Perform the full camera calibration from R0 to DL1. Any calibration
-        relating to data levels before the data level the file is read into 
+        relating to data levels before the data level the file is read into
         will be skipped.
 
         Parameters

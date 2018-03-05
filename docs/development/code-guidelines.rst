@@ -24,11 +24,11 @@ errors, and these should be used frequently.
 
 .. code-block:: sh
 		
-    % pip install hacking  # installs all checker tools
+	% pip install hacking  # installs all checker tools
 
-    % pyflakes file.py # checks for code errors
-    % flake8 file.py   # checks style and code errors
-    % flake8           # checks code in all subdirs
+	% pyflakes file.py # checks for code errors
+	% flake8 file.py   # checks style and code errors
+	% flake8           # checks code in all subdirs
 
 
 If you use *PyCharm* as an IDE, there is also a GUI function to find
@@ -118,21 +118,21 @@ Logging and debugging
 
 .. code-block:: python
 
-    # at the top of your file:
+	# at the top of your file:
 
-    import logging
-    logger = logging.getLogger(__name__)
+	import logging
+	logger = logging.getLogger(__name__)
 
 
 Python logging works as follows:
 
 .. code-block:: python
 
-    logger.warning("this might be a problem")
-    logger.info("basic status")
-    logger.debug("debugging message")
-    logger.error("a serious problem")
-    logger.critical("this should never happen!")
+	logger.warning("this might be a problem")
+	logger.info("basic status")
+	logger.debug("debugging message")
+	logger.error("a serious problem")
+	logger.critical("this should never happen!")
 
 And which messages print out and in what logging format can be defined at
 run-time, along with filtering capabilities (e.g. only show log messages from
@@ -180,7 +180,7 @@ where units need to be transformed.  Internally in a function, this is not neces
 
    @quantity_input
    def my_function_that_should_enforce_units(width: u.m , length:u.m, angle:u.deg):
-       print(width.value, "is in meters") # no need for further conversion 
+	   print(width.value, "is in meters") # no need for further conversion
 
 
 With this decorator, the inputs will be automatically converted to the
@@ -191,16 +191,16 @@ call this like:
 
    # works:
    my_function_that_should_enforce_units(width=12*u.cm,
-		                         length=16*u.m,
+								 length=16*u.m,
 					 angle=1.0*u.rad)
 
    # throws exception
    my_function_that_should_enforce_units(width=12,   # no units, fails
-		                         length=16,
+								 length=16,
 					 angle=1.0)
    # throws exception
    my_function_that_should_enforce_units(width=12*u.TeV, # bad conversion, fails
-		                         length=16*u.m,
+								 length=16*u.m,
 					 angle=1.0*u.rad)
 
 Note however, that this introduces some overhead as the units are
@@ -242,20 +242,20 @@ help when writing algorithms:
 
   .. code-block:: python
 
-     def mangle_signal(signal, px, py, centerpoint=(0,0), setpoint=2.0*u.m):
-         """
+	 def mangle_signal(signal, px, py, centerpoint=(0,0), setpoint=2.0*u.m):
+		 """
 	 Mangles an image
 		  
 	 Parameters:
 	 -----------
 	 signal : np.ndarray
-	     array of signal values for each point in space
+		 array of signal values for each point in space
 	 px,py  : np.ndarray
-	     arrays of x and y valyes of each signal value
+		 arrays of x and y valyes of each signal value
 	 centerpoint : (x,y)
-	     center value in pixel coordinates
+		 center value in pixel coordinates
 	 setpoint : float quantity
-	     a parameter in meters
+		 a parameter in meters
 	 """
 	 ...
 
@@ -266,16 +266,16 @@ help when writing algorithms:
 
   .. code-block:: python
 
-     class SignalMangler:
+	 class SignalMangler:
 
-         def __init__(self, px, py, lookup_table_filename):
-             self.transform_table = Table.read(lookup_table_filename)
-	     self.px = px
-	     self.py = py
+		 def __init__(self, px, py, lookup_table_filename):
+			 self.transform_table = Table.read(lookup_table_filename)
+		 self.px = px
+		 self.py = py
 
 	 def mangle(self, signal):
-	     ...
-	    
+		 ...
+
 * if there are multiple implemenations of the same generic algorithm,
   a *class hierarchy* should be use where the base class defines the
   common interface to all algorithm instances.
@@ -297,44 +297,44 @@ help when writing algorithms:
   .. code-block:: python
 
 
-     # these should become user-defined parameters:
-     
-     filename = "events.tar.gz"
-     tel_id = 1
+	 # these should become user-defined parameters:
 
-     # initialize any algorithms
-     
-     source = calibrated_event_source(filename)
-     ImageMangler mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
-     Serializer serializer = ...
+	 filename = "events.tar.gz"
+	 tel_id = 1
 
-     # simple loop over events, calling each algorithm and directly
-     #passing data
-     
-     for event in source:
+	 # initialize any algorithms
+
+	 source = calibrated_event_source(filename)
+	 ImageMangler mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
+	 Serializer serializer = ...
+
+	 # simple loop over events, calling each algorithm and directly
+	 #passing data
+
+	 for event in source:
   
-         image = event.dl1.tel[tel_id].image
-         mangled_image = mangler.mangle(image)
-         image_parameters = parameterize_image(mangled_image)
+		 image = event.dl1.tel[tel_id].image
+		 mangled_image = mangler.mangle(image)
+		 image_parameters = parameterize_image(mangled_image)
 
-         # here you may here pack your output values into a Container if 
-         # they are not already in one. We assume here that mangled_image
-         # and image_parameters are already Container subclasses
-     
-         serializer.write([mangled_image, image_parameters])
+		 # here you may here pack your output values into a Container if
+		 # they are not already in one. We assume here that mangled_image
+		 # and image_parameters are already Container subclasses
+
+		 serializer.write([mangled_image, image_parameters])
 
 * When your algorithm test code (as above) works well and you are
   happy with the results, you can do two things:
   
   1. convert your test code into a `ctapipe.core.Tool` so that it
-     becomes a command-line program released with ctapipe (with no
-     modification to the data flow).  This should be done anyway, if
-     it is useful, since the `Tool` you create can be refactored
-     later.
+	 becomes a command-line program released with ctapipe (with no
+	 modification to the data flow).  This should be done anyway, if
+	 it is useful, since the `Tool` you create can be refactored
+	 later.
   2. request to the framework experts to have each algorithm wrapped
-     in a chainable flow framework to allow parallelization and other
-     advanced features.  Note that the choice of flow-framework is
-     under study, so leaving things simple as above lets multiple
-     systems be tested.
+	 in a chainable flow framework to allow parallelization and other
+	 advanced features.  Note that the choice of flow-framework is
+	 under study, so leaving things simple as above lets multiple
+	 systems be tested.
 
 

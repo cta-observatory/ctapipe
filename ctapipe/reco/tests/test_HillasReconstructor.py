@@ -3,19 +3,18 @@ from astropy import units as u
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
 from ctapipe.utils import get_dataset
 
 
 def test_fit_core():
-    '''
+    """
     creating some great circles pointing in different directions (two
     north-south,
     two east-west) and that have a slight position errors (+- 0.1 m in one of
     the four
-    cardinal directions '''
+    cardinal directions """
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
     circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
@@ -54,12 +53,10 @@ def test_fit_core():
 
 
 def test_fit_origin():
-    '''
+    """
     creating some great circles pointing in different directions (two
-    north-south,
-    two east-west) and that have a slight position errors (+- 0.1 m in one of
-    the four
-    cardinal directions '''
+    north-south, two east-west) and that have a slight position errors (+-
+    0.1 m in one of the four cardinal directions """
     circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
     circle1.pos = [0, 0.1] * u.m
     circle1.trace = [1, 0, 0]
@@ -96,8 +93,8 @@ def test_fit_origin():
     np.testing.assert_allclose(dir_fit_crosses, [0, 0, 1], atol=1e-3)
 
 
-def test_FitGammaHillas():
-    '''
+def test_reconstruction():
+    """
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
     • hillas parametrisation
@@ -105,13 +102,12 @@ def test_FitGammaHillas():
     • direction fit
     • position fit
 
-    in the end, proper units in the output are asserted '''
+    in the end, proper units in the output are asserted """
 
     filename = get_dataset("gamma_test.simtel.gz")
 
     fit = HillasReconstructor()
 
-    cam_geom = {}
     tel_phi = {}
     tel_theta = {}
 
@@ -122,32 +118,26 @@ def test_FitGammaHillas():
         hillas_dict = {}
         for tel_id in event.dl0.tels_with_data:
 
-            if tel_id not in cam_geom:
-                cam_geom[tel_id] = CameraGeometry.guess(
-                    event.inst.pixel_pos[tel_id][0],
-                    event.inst.pixel_pos[tel_id][1],
-                    event.inst.optical_foclen[tel_id])
+            geom = event.inst.subarray.tel[tel_id].camera
+            tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
+            tel_theta[tel_id] = (np.pi / 2 -
+                                 event.mc.tel[tel_id].altitude_raw) * u.rad
 
-                tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-                tel_theta[tel_id] = (np.pi / 2 - event.mc.tel[
-                    tel_id].altitude_raw) * u.rad
+            pmt_signal = event.r0.tel[tel_id].image[0]
 
-            pmt_signal = event.r0.tel[tel_id].adc_sums[0]
-
-            mask = tailcuts_clean(cam_geom[tel_id], pmt_signal,
+            mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)
             pmt_signal[mask == 0] = 0
 
             try:
-                moments = hillas_parameters(event.inst.pixel_pos[tel_id][0],
-                                            event.inst.pixel_pos[tel_id][1],
-                                            pmt_signal)
+                moments = hillas_parameters(geom, pmt_signal)
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
                 print(e)
                 continue
 
-        if len(hillas_dict) < 2: continue
+        if len(hillas_dict) < 2:
+            continue
 
         fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
 
@@ -157,9 +147,3 @@ def test_FitGammaHillas():
         fit_result.core_x.to(u.m)
         assert fit_result.is_valid
         return
-
-
-if __name__ == "__main__":
-    test_fit_core()
-    test_fit_origin()
-    test_FitGammaHillas()

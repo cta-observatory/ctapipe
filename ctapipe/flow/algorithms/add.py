@@ -1,11 +1,13 @@
 from ctapipe.core import Component
 from time import sleep
 
+
 class Add(Component):
     """Add class represents a Stage for pipeline.
        It simply adds one to the received value and returned it.
 
     """
+
     def init(self):
         self.log.debug("--- Add init ---")
         return True

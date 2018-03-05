@@ -1,6 +1,6 @@
-'''
+"""
 This module defines any reference systems which may be needed in addition
-'''
+"""
 
 from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 import astropy.units as u
@@ -9,7 +9,7 @@ from astropy.utils.compat.numpy import broadcast_arrays
 
 
 class PlanarRepresentation(BaseRepresentation):
-    '''
+    """
     Representation of a point in a 2D plane.
     This is essentially a copy of the Cartesian representation used
     in astropy.
@@ -24,7 +24,7 @@ class PlanarRepresentation(BaseRepresentation):
     copy : bool, optional
         If True arrays will be copied rather than referenced.
 
-    '''
+    """
     attr_classes = OrderedDict([('x', u.Quantity),
                                 ('y', u.Quantity)])
 
@@ -60,16 +60,16 @@ class PlanarRepresentation(BaseRepresentation):
 
     @property
     def x(self):
-        '''
+        """
         The x component of the point(s).
-        '''
+        """
         return self._x
 
     @property
     def y(self):
-        '''
+        """
         The y component of the point(s).
-        '''
+        """
         return self._y
 
     @property

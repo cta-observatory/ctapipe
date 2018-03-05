@@ -12,13 +12,11 @@ from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 
 
 class ChargeResolutionVariationPlotter(Component):
-    name = 'ChargeResolutionVariationPlotter'
-
     output_path = Unicode(None, allow_none=True,
                           help='Output path to save the '
                                'plot.').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Calculator of charge resolution.
 
@@ -67,8 +65,7 @@ class ChargeResolutionVariationPlotter(Component):
         x = np.power(10, x)
         y = np.power(10, y)
         hist_mask = np.ma.masked_where(np.isnan(hist), hist)
-        im = ax.pcolormesh(x, y, hist_mask, norm=LogNorm(),
-                           cmap=plt.cm.viridis)
+        im = ax.pcolormesh(x, y, hist_mask, norm=LogNorm())
         cb = plt.colorbar(im)
         ax.set_aspect('equal')
         ax.grid()
@@ -147,6 +144,7 @@ class ChargeResolutionVariationViewer(Tool):
 def main():
     exe = ChargeResolutionVariationViewer()
     exe.run()
+
 
 if __name__ == '__main__':
     main()
