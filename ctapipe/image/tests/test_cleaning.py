@@ -97,7 +97,7 @@ def test_tailcuts_clean_min_neighbors_1():
 
 
 def test_tailcuts_clean_min_neighbors_2():
-    """ requiring that picture pixels have at least two neighbors above 
+    """ requiring that picture pixels have at least two neighbors above
     picture_thresh"""
 
     # start with simple 3-pixel camera
@@ -142,3 +142,48 @@ def test_tailcuts_clean_with_isolated_pixels():
                                          boundary_thresh=5,
                                          keep_isolated_pixels=True)
         assert (result == mask).all()
+
+
+def test_tailcuts_fast_equal_to_normal():
+    geom = CameraGeometry.from_name("LSTCam")
+    np.random.seed(0)
+    image = np.random.normal(loc=3, scale=2.5, size=geom.pix_id.shape)
+
+    mask1 = cleaning.tailcuts_clean(geom, image, keep_isolated_pixels=False)
+    mask2 = cleaning.tailcuts_clean_fast(geom, image, keep_isolated_pixels=False)
+    assert (mask1 == mask2).all()
+    # when the mast is totally empty, this test is useless,
+    # we want to avoid that... the number is basically made up
+    assert mask1.sum() > 30
+
+    mask1 = cleaning.tailcuts_clean(geom, image, keep_isolated_pixels=True)
+    mask2 = cleaning.tailcuts_clean_fast(geom, image, keep_isolated_pixels=True)
+    assert (mask1 == mask2).all()
+    assert mask1.sum() > 30
+
+    mask1 = cleaning.tailcuts_clean(
+        geom, image,
+        keep_isolated_pixels=False, min_number_picture_neighbors=1)
+    mask2 = cleaning.tailcuts_clean_fast(
+        geom, image,
+        keep_isolated_pixels=False, min_number_picture_neighbors=1)
+    assert (mask1 == mask2).all()
+    assert mask1.sum() > 30
+
+
+def test_1000_tailcuts():
+    geom = CameraGeometry.from_name("LSTCam")
+    np.random.seed(0)
+    image = np.random.normal(loc=3, scale=2.5, size=geom.pix_id.shape)
+    for i in range(1000):
+        cleaning.tailcuts_clean(geom, image)
+        cleaning.tailcuts_clean(geom, image, keep_isolated_pixels=True)
+
+
+def test_1000_tailcuts_fast():
+    geom = CameraGeometry.from_name("LSTCam")
+    np.random.seed(0)
+    image = np.random.normal(loc=3, scale=2.5, size=geom.pix_id.shape)
+    for i in range(1000):
+        cleaning.tailcuts_clean_fast(geom, image)
+        cleaning.tailcuts_clean_fast(geom, image, keep_isolated_pixels=True)
