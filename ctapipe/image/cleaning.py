@@ -100,3 +100,80 @@ def dilate(geom, mask):
         input mask (array of booleans) to be dilated
     """
     return mask | (mask & geom.neighbor_matrix).any(axis=1)
+
+
+def tailcuts_clean_fast(
+    geom,
+    image,
+    picture_thresh=7,
+    boundary_thresh=5,
+    keep_isolated_pixels=False,
+    min_number_picture_neighbors=0
+):
+
+    """Clean an image by selection pixels that pass a two-threshold
+    tail-cuts procedure.  The picture and boundary thresholds are
+    defined with respect to the pedestal dispersion. All pixels that
+    have a signal higher than the picture threshold will be retained,
+    along with all those above the boundary threshold that are
+    neighbors of a picture pixel.
+
+    To include extra neighbor rows of pixels beyond what are accepted, use the
+    `ctapipe.image.dilate` function.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information
+    image: array
+        pixel values
+    picture_thresh: float or array
+        threshold above which all pixels are retained
+    boundary_thresh: float or array
+        threshold above which pixels are retained if they have a neighbor
+        already above the picture_thresh
+    keep_isolated_pixels: bool
+        If True, pixels above the picture threshold will be included always,
+        if not they are only included if a neighbor is in the picture or
+        boundary
+    min_number_picture_neighbors: int
+        A picture pixel survives cleaning only if it has at least this number
+        of picture neighbors. This has no effect in case keep_isolated_pixels is True
+
+    Returns
+    -------
+
+    A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
+    list, use `image[mask], geom.pix_id[mask]`, or to keep the same
+    image size and just set unclean pixels to 0 or similar, use
+    `image[~mask] = 0`
+
+    """
+    # core_pixels: I call pixels, which are above the so called "picture_thresh"
+    # edge_pixels: I call pixels, which are above the so called "boundary_thresh"
+
+
+    core_pixels = image >= picture_thresh
+
+    if keep_isolated_pixels or min_number_picture_neighbors == 0:
+        pixels_in_picture = core_pixels
+    else:
+        # Require at least min_number_picture_neighbors. Otherwise, the pixel
+        #  is not selected
+        number_of_core_neighbors = geom.neighbor_matrix_sparse.dot(core_pixels)
+        enough_core_neighbors = number_of_core_neighbors >= min_number_picture_neighbors
+        pixels_in_picture = core_pixels & enough_core_neighbors
+
+    # by broadcasting together pixels_in_picture (1d) with the neighbor
+    # matrix (2d), we find all pixels that are above the boundary threshold
+    # AND have any neighbor that is in the picture
+    edge_pixels = image >= boundary_thresh
+    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(pixels_in_picture)
+    if keep_isolated_pixels:
+        return (edge_pixels
+                & pixels_with_picture_neighbors) | pixels_in_picture
+    else:
+        pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(edge_pixels)
+
+        return ((edge_pixels & pixels_with_picture_neighbors) |
+                (pixels_in_picture & pixels_with_boundary_neighbors))
