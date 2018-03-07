@@ -57,7 +57,7 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
         # Require at least min_number_picture_neighbors. Otherwise, the pixel
         #  is not selected
         number_of_neighbors_above_picture = geom.neighbor_matrix_sparse.dot(
-            pixels_above_picture)
+            pixels_above_picture.view(np.byte))
         pixels_in_picture = pixels_above_picture & (
             number_of_neighbors_above_picture >= min_number_picture_neighbors
         )
