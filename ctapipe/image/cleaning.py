@@ -92,4 +92,4 @@ def dilate(geom, mask):
     mask: ndarray
         input mask (array of booleans) to be dilated
     """
-    return mask | (mask & geom.neighbor_matrix).any(axis=1)
+    return mask | geom.neighbor_matrix_sparse.dot(mask)
