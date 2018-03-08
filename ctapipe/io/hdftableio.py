@@ -24,6 +24,7 @@ PYTABLES_TYPE_MAP = {
     'int32': tables.Int32Col,
     'int64': tables.Int64Col,
     'bool': tables.BoolCol,
+    # 'str': tables.StringCol,
 }
 
 
@@ -32,6 +33,18 @@ class TableWriter(Component, metaclass=ABCMeta):
         super().__init__(parent, **kwargs)
         self._transforms = defaultdict(dict)
         self._exclusions = defaultdict(list)
+
+    def __del__(self):
+
+        self.close()
+
+    def __enter__(self):
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+
+        self.close()
 
     def exclude(self, table_name, pattern):
         """
@@ -87,6 +100,16 @@ class TableWriter(Component, metaclass=ABCMeta):
         container: `ctapipe.core.Container`
             container to write
         """
+        pass
+
+    @abstractmethod
+    def open(self, filename):
+
+        pass
+
+    @abstractmethod
+    def close(self):
+
         pass
 
     def _apply_col_transform(self, table_name, col_name, value):
@@ -146,11 +169,16 @@ class HDF5TableWriter(TableWriter):
         super().__init__()
         self._schemas = {}
         self._tables = {}
-        self._h5file = tables.open_file(filename, mode="w", **kwargs)
+        self.open(filename, **kwargs)
         self._group = self._h5file.create_group("/", group_name)
         self.log.debug("h5file: {}".format(self._h5file))
 
-    def __del__(self):
+    def open(self, filename, **kwargs):
+
+        self._h5file = tables.open_file(filename, mode="w", **kwargs)
+
+    def close(self):
+
         self._h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, container):
@@ -213,6 +241,7 @@ class HDF5TableWriter(TableWriter):
             elif type(value).__name__ in PYTABLES_TYPE_MAP:
                 typename = type(value).__name__
                 coltype = PYTABLES_TYPE_MAP[typename]
+                print(coltype)
                 Schema.columns[col_name] = coltype()
 
             self.log.debug("Table {}: added col: {} type: {} shape: {}"
@@ -289,6 +318,18 @@ class TableReader(Component, metaclass=ABCMeta):
         self._cols_to_read = defaultdict(list)
         self._transforms = defaultdict(dict)
 
+    def __del__(self):
+
+        self.close()
+
+    def __enter__(self):
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+
+        self.close()
+
     def add_column_transform(self, table_name, col_name, transform):
         """
         Add a transformation function for a column. This function will be
@@ -325,6 +366,16 @@ class TableReader(Component, metaclass=ABCMeta):
         given container.  The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
         """
+        pass
+
+    @abstractmethod
+    def open(self, filename):
+
+        pass
+
+    @abstractmethod
+    def close(self):
+
         pass
 
 
@@ -368,8 +419,17 @@ class HDF5TableReader(TableReader):
         """
         super().__init__()
         self._tables = {}
-        self._h5file = tables.open_file(filename)
+        self._h5file = self.open(filename)
         pass
+
+    def open(self, filename):
+
+        self._h5file = tables.open_file(filename)
+        return self._h5file
+
+    def close(self):
+
+        self._h5file.close()
 
     def _setup_table(self, table_name, container):
         tab = self._h5file.get_node(table_name)
@@ -425,7 +485,6 @@ class HDF5TableReader(TableReader):
             tab = self._setup_table(table_name, container)
         else:
             tab = self._tables[table_name]
-
 
         row_count = 0
 
