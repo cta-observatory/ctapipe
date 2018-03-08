@@ -523,9 +523,6 @@ class HDF5TableReader(TableReader):
             row_count += 1
 
 
-
-
-
 def tr_convert_and_strip_unit(quantity, unit):
     return quantity.to(unit).value
 
