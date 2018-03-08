@@ -39,18 +39,23 @@ class SST1MEventSource(EventSource):
         from astropy.io import fits
         try:
             h = fits.open(file_path)[1].header
+            ttypes = [
+                h[x] for x in h.keys() if 'TTYPE' in x
+            ]
         except OSError:
             # not even a fits file
             return False
 
-        # is it really a proto-zfits-file?
-        return (
+        is_protobuf_zfits_file = (
             (h['XTENSION'] == 'BINTABLE') and
             (h['EXTNAME'] == 'Events') and
             (h['ZTABLE'] is True) and
             (h['ORIGIN'] == 'CTA') and
             (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
+        is_sst1m_file = 'trigger_input_traces' in ttypes
+
+        return is_protobuf_zfits_file & is_sst1m_file
 
     def fill_R0CameraContainer_from_zfile_event(self, container, event):
         container.trigger_time = (
