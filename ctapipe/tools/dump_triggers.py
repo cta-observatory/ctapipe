@@ -47,8 +47,6 @@ class DumpTriggersTool(Tool):
                 '\n\n'
                 'If you want to see more output, use --log_level=DEBUG')
 
-
-
     # =============================================
     # The methods of the Tool (initialize, start, finish):
     # =============================================
@@ -71,7 +69,7 @@ class DumpTriggersTool(Tool):
 
         # build the trigger pattern as a fixed-length array
         # (better for storage in FITS format)
-        #trigtels = event.get_telescope_with_data_list()
+        # trigtels = event.get_telescope_with_data_list()
         trigtels = event.dl0.tels_with_data
         self._current_trigpattern[:] = 0  # zero the trigger pattern
         self._current_trigpattern[list(trigtels)] = 1  # set the triggered tels
@@ -102,7 +100,6 @@ class DumpTriggersTool(Tool):
         self._current_trigpattern = np.zeros(MAX_TELS)
         self._current_starttime = None
         self._prev_gpstime = None
-
 
     def start(self):
         """ main event loop """

@@ -184,7 +184,7 @@ class CameraDisplay:
         self.norm = norm
 
     def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
-        '''
+        """
         Highlight the given pixels with a colored line around them
 
         Parameters
@@ -199,7 +199,7 @@ class CameraDisplay:
             linewidth of the highlighting in points
         alpha: 0 <= alpha <= 1
             The transparency
-        '''
+        """
 
         l = np.zeros_like(self.image)
         l[pixels] = linewidth
@@ -233,7 +233,7 @@ class CameraDisplay:
 
     @property
     def norm(self):
-        '''
+        """
         The norm instance of the Display
 
         Possible values:
@@ -242,7 +242,7 @@ class CameraDisplay:
         - "log": log scale (cannot have negative values)
         - "symlog": symmetric log scale (negative values are ok)
         -  any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
-        '''
+        """
         return self.pixels.norm
 
     @norm.setter
@@ -409,7 +409,7 @@ class CameraDisplay:
             self._axes_overlays.append(text)
 
     def clear_overlays(self):
-        ''' Remove added overlays from the axes '''
+        """ Remove added overlays from the axes """
         while self._axes_overlays:
             overlay = self._axes_overlays.pop()
             overlay.remove()

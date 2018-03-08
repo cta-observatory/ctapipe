@@ -15,12 +15,12 @@ def rotation_matrix_2d(angle):
     """
     psi = Angle(angle).rad
     return np.array([[cos(psi), -sin(psi)],
-                     [sin(psi),  cos(psi)]])
+                     [sin(psi), cos(psi)]])
 
 
 def rotate_around_axis(vec, axis, angle):
     """ rotates a vector around an axis by an angle
-        creates a rotation matrix and multiplies 
+        creates a rotation matrix and multiplies
         the initial vector with it
 
     Parameters
@@ -79,12 +79,12 @@ def angle(v1, v2):
 
     Parameters
     ----------
-    vec1 : numpy array
-    vec2 : numpy array
+    v1 : numpy array
+    v2 : numpy array
 
     Returns
     -------
-    the angle between vec1 and vec2 as a dimensioned astropy quantity
+    the angle between v1 and v2 as a dimensioned astropy quantity
     """
     return acos(np.clip(v1.dot(v2) / (length(v1) * length(v2)), -1.0, 1.0))
 
@@ -107,8 +107,10 @@ def set_phi_theta_r(phi, theta, r=1):
     return np.array([sin(theta) * cos(phi),
                      sin(theta) * sin(phi),
                      cos(theta)]) * r
-""" simple alias for set_phi_theta_r with default (unitless) r argument """
-set_phi_theta = lambda x, y: set_phi_theta_r(x, y)
+
+
+""" simple alias for set_phi_theta_r """
+set_phi_theta = set_phi_theta_r
 
 
 def get_phi_theta(vec):

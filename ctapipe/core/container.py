@@ -25,6 +25,7 @@ class Field:
         self.default = default
         self.description = description
         self.unit = unit
+        self.ucd = ucd
 
     def __repr__(self):
         desc = '{}'.format(self.description)
@@ -51,6 +52,12 @@ class ContainerMeta(type):
         ]
         dct['__slots__'] = tuple(items + ['meta'])
         dct['fields'] = {}
+
+        # inherit fields from baseclasses
+        for b in bases:
+            if issubclass(b, Container):
+                for k, v in b.fields.items():
+                    dct['fields'][k] = v
 
         for k in items:
             dct['fields'][k] = dct.pop(k)
@@ -81,16 +88,12 @@ class Container(metaclass=ContainerMeta):
     For hierarchical data structures, Field can use `Container`
     subclasses or a `Map` as the default value.
 
-    You should not make class hierarchies of Containers and only ever
-    subclass the Container base class
-
     >>>    class MyContainer(Container):
     >>>        x = Field(100,"The X value")
     >>>        energy = Field(-1, "Energy measurement", unit=u.TeV)
     >>>
     >>>    cont = MyContainer()
     >>>    print(cont.x)
-    100
     >>>    # metdata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
@@ -128,6 +131,14 @@ class Container(metaclass=ContainerMeta):
     def items(self):
         """Generator over (key, value) pairs for the items"""
         return ((k, getattr(self, k)) for k in self.fields.keys())
+
+    def keys(self):
+        """Get the keys of the container"""
+        return self.fields.keys()
+
+    def values(self):
+        """Get the keys of the container"""
+        return (getattr(self, k) for k in self.fields.keys())
 
     def as_dict(self, recursive=False, flatten=False):
         """

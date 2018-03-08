@@ -97,6 +97,8 @@ def plot_muon_event(event, muonparams):
         colorbar = None
         colorbar2 = None
 
+        subarray = event.inst.subarray
+
         # for tel_id in event.dl0.tels_with_data:
         for tel_id in muonparams['TelIds']:
             idx = muonparams['TelIds'].index(tel_id)
@@ -125,10 +127,10 @@ def plot_muon_event(event, muonparams):
             signals = image * clean_mask
 
             rotr_angle = geom.pix_rotation
+# The following two lines have been commented out to avoid a rotation error.
+#            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
 
-            if geom.cam_id == 'LSTCam' or geom.cam_id == 'NectarCam':
-
-                rotr_angle = 0. * u.deg
+#                rotr_angle = 0. * u.deg
 
             # Convert to camera frame (centre & radius)
             altaz = HorizonFrame(alt=event.mc.alt, az=event.mc.az)
@@ -139,19 +141,20 @@ def plot_muon_event(event, muonparams):
                 array_direction=altaz,
                 pointing_direction=altaz)
 
+            flen = subarray.tel[tel_id].optics.equivalent_focal_length
             ring_camcoord = ring_nominal.transform_to(CameraFrame(
                 pointing_direction=altaz,
-                focal_length=event.inst.optical_foclen[tel_id],
+                focal_length=flen,
                 rotation=rotr_angle))
 
             centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
 
             ringrad_camcoord = muonparams['MuonRingParams'][idx].ring_radius.to(
                 u.rad) \
-                * event.inst.optical_foclen[tel_id] * 2.  # But not FC?
+                * flen * 2.  # But not FC?
 
-            px, py = event.inst.pixel_pos[tel_id]
-            flen = event.inst.optical_foclen[tel_id]
+            px = subarray.tel[tel_id].camera.pix_x
+            py = subarray.tel[tel_id].camera.pix_y
             camera_coord = CameraFrame(x=px, y=py,
                                        focal_length=flen,
                                        rotation=geom.pix_rotation)
@@ -167,12 +170,12 @@ def plot_muon_event(event, muonparams):
                                     2) + np.power(py - muonparams['MuonRingParams'][idx].
                                                   ring_center_y, 2))
             ring_dist = np.abs(dist - muonparams['MuonRingParams'][idx].ring_radius)
-            pixRmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
+            pix_rmask = ring_dist < muonparams['MuonRingParams'][idx].ring_radius * 0.4
 
             if muonparams['MuonIntensityParams'][idx] is not None:
                 signals *= muonparams['MuonIntensityParams'][idx].mask
             elif muonparams['MuonIntensityParams'][idx] is None:
-                signals *= pixRmask
+                signals *= pix_rmask
 
             camera1 = plotter.draw_camera(tel_id, signals, ax1)
 
@@ -220,13 +223,13 @@ def plot_muon_event(event, muonparams):
                 if len(pred) != np.sum(
                         muonparams['MuonIntensityParams'][idx].mask):
                     logger.warning("Lengths do not match...len(pred)=%s len("
-                               "mask)=",len(pred),
-                               np.sum(muonparams['MuonIntensityParams'][idx].mask))
+                                   "mask)=", len(pred),
+                                   np.sum(muonparams['MuonIntensityParams'][idx].mask))
 
                 # Numpy broadcasting - fill in the shape
                 plotpred = np.zeros(image.shape)
-                plotpred[
-                    muonparams['MuonIntensityParams'][idx].mask == True] = pred
+                truelocs = np.where(muonparams['MuonIntensityParams'][idx].mask == True)
+                plotpred[truelocs] = pred
 
                 camera2 = plotter.draw_camera(tel_id, plotpred, ax2)
 

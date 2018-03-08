@@ -33,10 +33,7 @@ class CameraDL0Reducer(Component):
         will equal the r1 samples.
     kwargs
     """
-
-    name = 'CameraDL0Reducer'
-
-    def __init__(self, config, tool, reductor=None, **kwargs):
+    def __init__(self, config=None, tool=None, reductor=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
         if reductor is None:
             self.log.info("Applying no data volume reduction in the "
@@ -61,9 +58,9 @@ class CameraDL0Reducer(Component):
         Returns
         -------
         bool
-            True if r1.tel[telid].pe_samples is not None, else false.
+            True if r1.tel[telid].waveform is not None, else false.
         """
-        r1 = event.r1.tel[telid].pe_samples
+        r1 = event.r1.tel[telid].waveform
         if r1 is not None:
             return True
         else:
@@ -85,10 +82,10 @@ class CameraDL0Reducer(Component):
         """
         tels = event.r1.tels_with_data
         for telid in tels:
-            r1 = event.r1.tel[telid].pe_samples
+            r1 = event.r1.tel[telid].waveform
             if self.check_r1_exists(event, telid):
                 if self._reductor is None:
-                    event.dl0.tel[telid].pe_samples = r1
+                    event.dl0.tel[telid].waveform = r1
                 else:
                     reduction = self._reductor.reduce_waveforms(r1)
-                    event.dl0.tel[telid].pe_samples = reduction
+                    event.dl0.tel[telid].waveform = reduction

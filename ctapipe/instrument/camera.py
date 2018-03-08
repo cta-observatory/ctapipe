@@ -3,7 +3,6 @@
 Utilities for reading or working with Camera geometry files
 """
 import logging
-from collections import defaultdict
 
 import numpy as np
 from astropy import units as u
@@ -11,16 +10,14 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
+from scipy.sparse import csr_matrix
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
-from ctapipe.core import Provenance
 
-
-__all__ = ['CameraGeometry',]
+__all__ = ['CameraGeometry']
 
 logger = logging.getLogger(__name__)
-
 
 # dictionary to convert number of pixels to camera + the focal length of the
 # telescope into a camera type for use in `CameraGeometry.guess()`
@@ -49,19 +46,19 @@ class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
     Cherenkov Camera that us useful for imaging algorithms and
     displays. It contains lists of pixel positions, areas, pixel
-    shapes, as well as a neighbor (adjacency) list and matrix for each pixel. 
-    In general the neighbor_matrix attribute should be used in any algorithm 
-    needing pixel neighbors, since it is much faster. See for example 
-    `ctapipe.image.tailcuts_clean` 
+    shapes, as well as a neighbor (adjacency) list and matrix for each pixel.
+    In general the neighbor_matrix attribute should be used in any algorithm
+    needing pixel neighbors, since it is much faster. See for example
+    `ctapipe.image.tailcuts_clean`
 
     The class is intended to be generic, and work with any Cherenkov
     Camera geometry, including those that have square vs hexagonal
     pixels, gaps between pixels, etc.
 
-    You can construct a CameraGeometry either by specifying all data, 
-    or using the `CameraGeometry.guess()` constructor, which takes metadata 
-    like the pixel positions and telescope focal length to look up the rest 
-    of the data. Note that this function is memoized, so calling it multiple 
+    You can construct a CameraGeometry either by specifying all data,
+    or using the `CameraGeometry.guess()` constructor, which takes metadata
+    like the pixel positions and telescope focal length to look up the rest
+    of the data. Note that this function is memoized, so calling it multiple
     times with the same inputs will give back the same object (for speed).
 
     Parameters
@@ -122,12 +119,12 @@ class CameraGeometry:
                 and (self.pix_type == other.pix_type)
                 )
 
-    def __getitem__(self, slice):
-        return CameraGeometry(cam_id=" ".join([self.cam_id," sliced"]),
-                              pix_id=self.pix_id[slice],
-                              pix_x=self.pix_x[slice],
-                              pix_y=self.pix_y[slice],
-                              pix_area=self.pix_area[slice],
+    def __getitem__(self, slice_):
+        return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
+                              pix_id=self.pix_id[slice_],
+                              pix_x=self.pix_x[slice_],
+                              pix_y=self.pix_y[slice_],
+                              pix_area=self.pix_area[slice_],
                               pix_type=self.pix_type,
                               pix_rotation=self.pix_rotation,
                               cam_rotation=self.cam_rotation,
@@ -137,9 +134,9 @@ class CameraGeometry:
     @u.quantity_input
     def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
               apply_derotation=True):
-        """ 
+        """
         Construct a `CameraGeometry` by guessing the appropriate quantities
-        from a list of pixel positions and the focal length. 
+        from a list of pixel positions and the focal length.
         """
         # only construct a new one if it has never been constructed before,
         # to speed up access. Otherwise return the already constructed instance
@@ -196,14 +193,9 @@ class CameraGeometry:
     @classmethod
     def get_known_camera_names(cls):
         """
-        Returns a list of camera_ids that are registered in 
-        `ctapipe_resources`. These are all the camera-ids that can be 
+        Returns a list of camera_ids that are registered in
+        `ctapipe_resources`. These are all the camera-ids that can be
         instantiated by the `from_name` method
-
-        Parameters
-        ----------
-        array_id: str 
-            which array to search (default CTA)
 
         Returns
         -------
@@ -226,8 +218,6 @@ class CameraGeometry:
         ----------
         camera_id: str
            name of camera (e.g. 'NectarCam', 'LSTCam', 'GCT', 'SST-1M')
-        array_id: str
-           array identifier (e.g. 'CTA', 'HESS')
         version:
            camera version id (currently unused)
 
@@ -263,20 +253,15 @@ class CameraGeometry:
     @classmethod
     def from_table(cls, url_or_table, **kwargs):
         """
-        Load a CameraGeometry from an `astropy.table.Table` instance or a 
+        Load a CameraGeometry from an `astropy.table.Table` instance or a
         file that is readable by `astropy.table.Table.read()`
 
         Parameters
         ----------
         url_or_table: string or astropy.table.Table
             either input filename/url or a Table instance
-
-        format: str
-            astropy.table format string (e.g. 'ascii.ecsv') in case the 
-            format cannot be determined from the file extension
-
         kwargs: extra keyword arguments
-            extra arguments passed to `astropy.table.read()`, depending on 
+            extra arguments passed to `astropy.table.read()`, depending on
             file type (e.g. format, hdu, path)
 
 
@@ -298,22 +283,23 @@ class CameraGeometry:
         )
 
     def __repr__(self):
-        return "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " \
-               "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})".format(
-                   cam_id=self.cam_id,
-                   pix_type=self.pix_type,
-                   npix=len(self.pix_id),
-                   pixrot=self.pix_rotation,
-                   camrot=self.cam_rotation
-               )
+        return (
+            "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', "
+            "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
+        ).format(
+            cam_id=self.cam_id,
+            pix_type=self.pix_type,
+            npix=len(self.pix_id),
+            pixrot=self.pix_rotation,
+            camrot=self.cam_rotation
+        )
 
     def __str__(self):
         return self.cam_id
 
-
     @lazyproperty
     def neighbors(self):
-        """" only calculate neighbors when needed or if not already 
+        """" only calculate neighbors when needed or if not already
         calculated"""
 
         # return pre-calculated ones (e.g. those that were passed in during
@@ -335,6 +321,10 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return _neighbor_list_to_matrix(self.neighbors)
+
+    @lazyproperty
+    def neighbor_matrix_sparse(self):
+        return csr_matrix(self.neighbor_matrix)
 
     @lazyproperty
     def neighbor_matrix_where(self):
@@ -377,10 +367,10 @@ class CameraGeometry:
         y = self.pix_y.value
 
         return np.row_stack([x, y,
-                             x**2, x*y, y**2,
-                             x**3, x**2*y, x*y**2, y**3,
-                             x**4, x**3*y, x**2*y**2, x*y**3, y**4])
-
+                             x ** 2, x * y, y ** 2,
+                             x ** 3, x ** 2 * y, x * y ** 2, y ** 3,
+                             x ** 4, x ** 3 * y, x ** 2 * y ** 2, x * y ** 3,
+                             y ** 4])
 
     def rotate(self, angle):
         """rotate the camera coordinates about the center of the camera by
@@ -411,6 +401,14 @@ class CameraGeometry:
         self.pix_rotation -= Angle(angle)
         self.cam_rotation -= Angle(angle)
 
+    def info(self, printer=print):
+        """ print detailed info about this camera """
+        printer('CameraGeometry: "{}"'.format(self))
+        printer('   - num-pixels: {}'.format(len(self.pix_id)))
+        printer('   - pixel-type: {}'.format(self.pix_type))
+        printer('   - sensitive-area: {}'.format(self.pix_area.sum()))
+        printer('   - pix-rotation: {}'.format(self.pix_rotation))
+        printer('   - cam-rotation: {}'.format(self.cam_rotation))
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
@@ -518,14 +516,16 @@ def _guess_camera_type(npix, optical_foclen):
     try:
         return _CAMERA_GEOMETRY_TABLE[(npix, None)]
     except KeyError:
-        return _CAMERA_GEOMETRY_TABLE.get((npix, round(optical_foclen.value, 1)),
-                                          ('unknown', 'unknown', 'hexagonal',
-                                           0 * u.degree, 0 * u.degree))
+        return _CAMERA_GEOMETRY_TABLE.get(
+            (npix, round(optical_foclen.value, 1)),
+            ('unknown', 'unknown', 'hexagonal',
+             0 * u.degree, 0 * u.degree)
+        )
 
 
 def _neighbor_list_to_matrix(neighbors):
-    """ 
-    convert a neighbor adjacency list (list of list of neighbors) to a 2D 
+    """
+    convert a neighbor adjacency list (list of list of neighbors) to a 2D
     numpy array, which is much faster (and can simply be multiplied)
     """
 
@@ -537,6 +537,3 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
-
-
-
