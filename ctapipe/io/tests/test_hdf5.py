@@ -43,6 +43,8 @@ def test_write_container(temp_h5_file):
         writer.write("tel_002", r0tel)  # write a second table too
         writer.write("MC", mc)
 
+    writer.close()
+
 
 def test_write_containers(temp_h5_file):
 
@@ -63,6 +65,8 @@ def test_write_containers(temp_h5_file):
             c1.b = np.random.normal()
 
             writer.write("tel_001", [c1, c2])
+
+        writer.close()
 
 
 def test_read_container(temp_h5_file):
@@ -92,6 +96,8 @@ def test_read_container(temp_h5_file):
     assert 'test_attribute' in r0_1.meta
     assert r0_1.meta['date'] == "2020-10-10"
 
+    reader.close()
+
 
 def test_read_whole_table(temp_h5_file):
 
@@ -101,6 +107,72 @@ def test_read_whole_table(temp_h5_file):
 
     for cont in reader.read('/R0/MC', mc):
         print(cont)
+
+    reader.close()
+
+
+def test_with_context_writer(temp_h5_file):
+
+    class C1(Container):
+        a = Field('a', None)
+        b = Field('b', None)
+
+    with tempfile.NamedTemporaryFile() as f:
+
+        with HDF5TableWriter(f.name, 'test') as h5_table:
+
+            for i in range(5):
+                c1 = C1()
+                c1.a, c1.b = np.random.normal(size=2)
+
+                h5_table.write("tel_001", c1)
+
+
+def test_writer_closes_file(temp_h5_file):
+
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, 'test') as h5_table:
+
+            assert h5_table._h5file.isopen == True
+
+    assert h5_table._h5file.isopen == False
+
+
+def test_reader_closes_file(temp_h5_file):
+
+    with HDF5TableReader(str(temp_h5_file)) as h5_table:
+
+        assert h5_table._h5file.isopen == True
+
+    assert h5_table._h5file.isopen == False
+
+
+def test_with_context_reader(temp_h5_file):
+
+    mc = MCEventContainer()
+
+    with HDF5TableReader(str(temp_h5_file)) as h5_table:
+
+        assert h5_table._h5file.isopen == True
+
+        for cont in h5_table.read('/R0/MC', mc):
+            print(cont)
+
+    assert h5_table._h5file.isopen == False
+
+
+def test_closing_reader(temp_h5_file):
+
+    f = HDF5TableReader(str(temp_h5_file))
+    f.close()
+
+
+def test_closing_writer(temp_h5_file):
+
+    with tempfile.NamedTemporaryFile() as f:
+        h5_table = HDF5TableWriter(f.name, 'test')
+        h5_table.close()
+
 
 if __name__ == '__main__':
 
