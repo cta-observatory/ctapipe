@@ -46,9 +46,9 @@ class HDF5TableWriter(TableWriter):
     written to the table's header on the first call to write()
 
     Multiple tables may be written at once in a single file, as long as you
-    change the table_name attribute to write() to specify which one to write
-    to.  Likelwise multiple Containers can be merged into a single output
-    table.
+    change the table_name attribute to `write()` to specify which one to write
+    to.  Likewise multiple Containers can be merged into a single output
+    table by passing a list of containers to `write()`.
 
     To append to existing files, pass the `mode='a'`  option to the
     constructor.
