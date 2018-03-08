@@ -43,6 +43,8 @@ def test_write_container(temp_h5_file):
         writer.write("tel_002", r0tel)  # write a second table too
         writer.write("MC", mc)
 
+    writer.close()
+
 
 def test_write_containers(temp_h5_file):
 
@@ -63,6 +65,8 @@ def test_write_containers(temp_h5_file):
             c1.b = np.random.normal()
 
             writer.write("tel_001", [c1, c2])
+
+        writer.close()
 
 
 def test_read_container(temp_h5_file):
@@ -92,6 +96,8 @@ def test_read_container(temp_h5_file):
     assert 'test_attribute' in r0_1.meta
     assert r0_1.meta['date'] == "2020-10-10"
 
+    reader.close()
+
 
 def test_read_whole_table(temp_h5_file):
 
@@ -101,6 +107,8 @@ def test_read_whole_table(temp_h5_file):
 
     for cont in reader.read('/R0/MC', mc):
         print(cont)
+
+    reader.close()
 
 
 def test_with_context_writer(temp_h5_file):
@@ -114,7 +122,7 @@ def test_with_context_writer(temp_h5_file):
 
             for i in range(5):
                 c1 = C1()
-                c1.a, c1.b= np.random.normal(size=2)
+                c1.a, c1.b = np.random.normal(size=2)
 
                 h5_table.write("tel_001", c1)
 
@@ -127,6 +135,8 @@ def test_with_context_reader(temp_h5_file):
 
         for cont in h5_table.read('/R0/MC', mc):
             print(cont)
+
+    # assert h5_table._h5file.close == True
 
 
 def test_closing_reader(temp_h5_file):
