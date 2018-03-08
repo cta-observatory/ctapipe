@@ -34,10 +34,6 @@ class TableWriter(Component, metaclass=ABCMeta):
         self._transforms = defaultdict(dict)
         self._exclusions = defaultdict(list)
 
-    def __del__(self):
-
-        self.close()
-
     def __enter__(self):
 
         return self
@@ -173,9 +169,6 @@ class HDF5TableWriter(TableWriter):
         self._h5file = self.open(filename, **kwargs)
         self._group = self._h5file.create_group("/", group_name)
         self.log.debug("h5file: {}".format(self._h5file))
-
-    def __del__(self):
-        self.close()
 
     def open(self, filename, **kwargs):
 
@@ -337,10 +330,6 @@ class TableReader(Component, metaclass=ABCMeta):
         super().__init__()
         self._cols_to_read = defaultdict(list)
         self._transforms = defaultdict(dict)
-
-    def __del__(self):
-
-        self.close()
 
     def __enter__(self):
 
