@@ -142,19 +142,6 @@ def test_closing_writer(temp_h5_file):
         h5_table.close()
 
 
-def test_del_reader(temp_h5_file):
-
-    f = HDF5TableReader(str(temp_h5_file))
-    del f
-
-
-def test_closing_writer(temp_h5_file):
-
-    with tempfile.NamedTemporaryFile() as f:
-        h5_table = HDF5TableWriter(f.name, 'test')
-        del h5_table
-
-
 if __name__ == '__main__':
 
     import logging
