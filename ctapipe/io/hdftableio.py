@@ -171,7 +171,7 @@ class HDF5TableWriter(TableWriter):
         super().__init__()
         self._schemas = {}
         self._tables = {}
-        self.open(filename, **kwargs)
+        self._h5file = self.open(filename, **kwargs)
         self._group = self._h5file.create_group("/", group_name)
         self.log.debug("h5file: {}".format(self._h5file))
 
@@ -181,6 +181,8 @@ class HDF5TableWriter(TableWriter):
     def open(self, filename, **kwargs):
 
         self._h5file = tables.open_file(filename, mode="w", **kwargs)
+
+        return self._h5file
 
     def close(self):
 
