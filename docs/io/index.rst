@@ -164,14 +164,19 @@ The `serializer` module provide support for storing
 `ctapipe.io.Container` classes in output files (for example FITS
 tables or pickle files)
 
-The `hdftableio` submodule provides an API to write/read Containers to and
-from HDF5 tables using the pytables package.
+The `ctapipe.io.TableWriter` and `ctapipe.io.TableReader` base classes provide
+API to write/read Containers, for example to and from HDF5 tables using the
+`ctapipe.io.HDF5TableWriter` and `ctapipe.io.HDF5TableReader` classes.
 
 
 Reference/API
 =============
 
 .. automodapi:: ctapipe.io
+
+.. automodapi:: ctapipe.io.tableio
+
+.. automodapi:: ctapipe.io.hdftableio
 
 ------------------------------
 		

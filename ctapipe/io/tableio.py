@@ -5,10 +5,13 @@ from collections import defaultdict
 from ctapipe.core import Component
 
 
+__all__ = ['TableReader', 'TableWriter']
+
 class TableWriter(Component, metaclass=ABCMeta):
     """
-    Base class for writing  Container classes as rows of an output table.
-    Subclasses of this implement specific output types.
+    Base class for writing  Container classes as rows of an output table,
+    where each `Field` becomes a column. Subclasses of this implement
+    specific output types.
 
     See Also
     --------
@@ -30,7 +33,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     def exclude(self, table_name, pattern):
         """
-        Exclude any columns matching the pattern from being written
+        Exclude any columns (Fields)  matching the pattern from being written
 
         Parameters
         ----------
@@ -88,19 +91,19 @@ class TableWriter(Component, metaclass=ABCMeta):
     @abstractmethod
     def open(self, filename, **kwargs):
         """
+        open an output file
 
         Parameters
         ----------
         filename: str
             output file name
         kwargs:
-            any extra args to pass to the instance's open method
+            any extra args to pass to the subclass open method
         """
         pass
 
     @abstractmethod
     def close(self):
-
         pass
 
     def _apply_col_transform(self, table_name, col_name, value):
@@ -127,11 +130,9 @@ class TableReader(Component, metaclass=ABCMeta):
         self._transforms = defaultdict(dict)
 
     def __enter__(self):
-
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-
         self.close()
 
     def add_column_transform(self, table_name, col_name, transform):
@@ -174,10 +175,8 @@ class TableReader(Component, metaclass=ABCMeta):
 
     @abstractmethod
     def open(self, filename):
-
         pass
 
     @abstractmethod
     def close(self):
-
         pass

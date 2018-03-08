@@ -7,6 +7,12 @@ from .tableio import TableWriter, TableReader
 from .hdftableio import  HDF5TableReader, HDF5TableWriter
 
 __all__ = [
-    'HDF5TableWriter', 'HDF5TableReader',
-    'EventSeeker', 'EventSourceFactory', 'EventSource', 'event_source'
+    'HDF5TableWriter',
+    'HDF5TableReader',
+    'TableWriter',
+    'TableReader',
+    'EventSeeker',
+    'EventSourceFactory',
+    'EventSource',
+    'event_source'
 ]
