@@ -172,9 +172,7 @@ class HDF5TableWriter(TableWriter):
 
     def open(self, filename, **kwargs):
 
-        self._h5file = tables.open_file(filename, mode="w", **kwargs)
-
-        return self._h5file
+        return tables.open_file(filename, mode="w", **kwargs)
 
     def close(self):
 
@@ -433,8 +431,7 @@ class HDF5TableReader(TableReader):
 
     def open(self, filename):
 
-        self._h5file = tables.open_file(filename)
-        return self._h5file
+        return tables.open_file(filename)
 
     def close(self):
 
