@@ -34,7 +34,7 @@ class HDF5TableWriter(TableWriter):
 
     It works by creating a HDF5 Table description from the `Field`s inside a
     container, where each item becomes a column in the table. The first time
-    `SimpleHDF5TableWriter.write()` is called, the container(s) are registered
+    `HDF5TableWriter.write()` is called, the container(s) are registered
     and the table created in the output file.
 
     Each item in the container can also have an optional transform function
@@ -229,7 +229,7 @@ class HDF5TableReader(TableReader):
     name, and if a field is missing in either, it is skipped during read,
     but a warning is emitted.
 
-    Columns that were written by SimpleHDF5TableWriter and which had unit
+    Columns that were written by HDF5TableWriter and which had unit
     transforms applied, will have the units re-applied when reading (the
     unit used is stored in the header attributes).
 
