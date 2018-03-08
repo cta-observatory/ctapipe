@@ -166,13 +166,13 @@ class HDF5TableWriter(TableWriter):
         super().__init__()
         self._schemas = {}
         self._tables = {}
-        self._h5file = self.open(filename, **kwargs)
+        self.open(filename, **kwargs)
         self._group = self._h5file.create_group("/", group_name)
         self.log.debug("h5file: {}".format(self._h5file))
 
     def open(self, filename, **kwargs):
 
-        return tables.open_file(filename, mode="w", **kwargs)
+        self._h5file = tables.open_file(filename, mode="w", **kwargs)
 
     def close(self):
 
@@ -426,12 +426,12 @@ class HDF5TableReader(TableReader):
         """
         super().__init__()
         self._tables = {}
-        self._h5file = self.open(filename)
+        self.open(filename)
         pass
 
     def open(self, filename):
 
-        return tables.open_file(filename)
+        self._h5file = tables.open_file(filename)
 
     def close(self):
 
