@@ -102,6 +102,45 @@ def test_read_whole_table(temp_h5_file):
     for cont in reader.read('/R0/MC', mc):
         print(cont)
 
+
+def test_with_context_writer(temp_h5_file):
+
+    with HDF5TableWriter(str(temp_h5_file), group_name='R0') as f:
+
+        pass
+
+
+def test_with_context_reader(temp_h5_file):
+
+    with HDF5TableReader(str(temp_h5_file)) as f:
+
+        pass
+
+
+def test_closing_reader(temp_h5_file):
+
+    f = HDF5TableReader(str(temp_h5_file))
+    f.close()
+
+
+def test_closing_writer(temp_h5_file):
+
+    f = HDF5TableWriter(str(temp_h5_file), group_name='R0')
+    f.close()
+
+
+def test_del_reader(temp_h5_file):
+
+    f = HDF5TableReader(str(temp_h5_file))
+    del f
+
+
+def test_closing_writer(temp_h5_file):
+
+    f = HDF5TableWriter(str(temp_h5_file), group_name='R0')
+    del f
+
+
 if __name__ == '__main__':
 
     import logging
