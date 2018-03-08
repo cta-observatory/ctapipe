@@ -105,16 +105,28 @@ def test_read_whole_table(temp_h5_file):
 
 def test_with_context_writer(temp_h5_file):
 
-    with HDF5TableWriter(str(temp_h5_file), group_name='R0') as f:
+    class C1(Container):
+        a = Field('a', None)
+        b = Field('b', None)
 
-        pass
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, 'test') as h5_table:
+
+            for i in range(5):
+                c1 = C1()
+                c1.a, c1.b= np.random.normal(size=2)
+
+                h5_table.write("tel_001", c1)
 
 
 def test_with_context_reader(temp_h5_file):
 
-    with HDF5TableReader(str(temp_h5_file)) as f:
+    mc = MCEventContainer()
 
-        pass
+    with HDF5TableReader(str(temp_h5_file)) as h5_table:
+
+        for cont in h5_table.read('/R0/MC', mc):
+            print(cont)
 
 
 def test_closing_reader(temp_h5_file):
@@ -125,8 +137,9 @@ def test_closing_reader(temp_h5_file):
 
 def test_closing_writer(temp_h5_file):
 
-    f = HDF5TableWriter(str(temp_h5_file), group_name='R0')
-    f.close()
+    with tempfile.NamedTemporaryFile() as f:
+        h5_table = HDF5TableWriter(f.name, 'test')
+        h5_table.close()
 
 
 def test_del_reader(temp_h5_file):
@@ -137,8 +150,9 @@ def test_del_reader(temp_h5_file):
 
 def test_closing_writer(temp_h5_file):
 
-    f = HDF5TableWriter(str(temp_h5_file), group_name='R0')
-    del f
+    with tempfile.NamedTemporaryFile() as f:
+        h5_table = HDF5TableWriter(f.name, 'test')
+        del h5_table
 
 
 if __name__ == '__main__':
