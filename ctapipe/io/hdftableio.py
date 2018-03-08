@@ -24,7 +24,7 @@ PYTABLES_TYPE_MAP = {
     'int32': tables.Int32Col,
     'int64': tables.Int64Col,
     'bool': tables.BoolCol,
-}
+    }
 
 
 class TableWriter(Component, metaclass=ABCMeta):
