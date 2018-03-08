@@ -6,6 +6,14 @@ from ctapipe.core import Component
 
 
 class TableWriter(Component, metaclass=ABCMeta):
+    """
+    Base class for writing  Container classes as rows of an output table.
+    Subclasses of this implement specific output types.
+
+    See Also
+    --------
+    - `ctapipe.io.HDF5TableWriter`
+    """
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent, **kwargs)
