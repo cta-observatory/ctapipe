@@ -1,9 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Components to read ZFITS data.
+EventSource for SST1M/digicam protobuf-fits.fz-files.
 
-This requires the protozfitsreader python library to be installed
+Needs protozfits v0.44.3 from github.com/cta-sst-1m/protozfitsreader
 """
+import numpy as np
 from .eventsource import EventSource
 from .containers import SST1MDataContainer
 
@@ -14,16 +15,24 @@ class SST1MEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        import protozfitsreader
+        from protozfits import SimpleFile
+        self.file = SimpleFile(self.input_url)
+
 
     def _generator(self):
-        from protozfitsreader import ZFile
-        for count, event in enumerate(ZFile(self.input_url)):
+        self._pixel_sort_ids = None
+
+        for count, event in enumerate(self.file.Events):
+            if self._pixel_sort_ids is None:
+                self._pixel_sort_ids = np.argsort(
+                    self._event.hiGain.waveforms.pixelsIndices)
+                self.n_pixels = len(self._pixel_sort_ids)
             data = SST1MDataContainer()
             data.count = count
-            data.sst1m.fill_from_zfile_event(event)
-            fill_R0Container_from_zfile_event(data.r0, event)
+            data.sst1m.fill_from_zfile_event(event, self._pixel_sort_ids)
+            self.fill_R0Container_from_zfile_event(data.r0, event)
             yield data
+
 
     @staticmethod
     def is_compatible(file_path):
@@ -43,21 +52,29 @@ class SST1MEventSource(EventSource):
             (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
 
+    def fill_R0CameraContainer_from_zfile_event(self, container, event):
+        container.trigger_time = (
+            event.local_time_sec * 1E9 + event.local_time_nanosec)
+        container.trigger_type = event.event_type
 
-def fill_R0Container_from_zfile_event(container, event):
-    container.obs_id = -1  # I do not know what this is.
-    container.event_id = event.event_number
-    container.tels_with_data = [event.telescope_id, ]
-    for tel_id in container.tels_with_data:
-        fill_R0CameraContainer_from_zfile_event(
-            container.tel[tel_id],
+        _samples = (
+            event.hiGain.waveforms.samples
+        ).reshape(self.n_pixels, -1)
+        container.waveform = _samples[self._pixel_sort_ids]
+
+        # Why is this needed ???
+        # This is exactly the definition of waveforms.
+        container.num_samples = container.waveform.shape[1]
+
+    def fill_R0Container_from_zfile_event(self, container, event):
+        container.obs_id = -1  # I do not know what this is.
+        container.event_id = event.eventNumber
+        container.tels_with_data = [event.telescopeID, ]
+        r0_cam_container = container.tel[event.telescopeID]
+
+        self.fill_R0CameraContainer_from_zfile_event(
+            r0_cam_container,
             event
         )
 
 
-def fill_R0CameraContainer_from_zfile_event(container, event):
-    container.trigger_time = event.local_time
-    container.trigger_type = event.camera_event_type
-    container.waveform = event.adc_samples
-    # Why is this needed ???
-    container.num_samples = event.adc_samples.shape[1]
