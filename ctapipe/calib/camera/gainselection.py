@@ -10,19 +10,21 @@ __all__ = ['GainSelectorFactory',
            'ThresholdGainSelector',
            'pick_gain_channel']
 
-# use this in the selection of the gain channels
-TRUE_FALSE = np.array([[True], [False]])
-
-def pick_gain_channel(waveforms, threshold):
+def pick_gain_channel(waveforms, threshold, select_by_sample=False):
     """
     the PMTs on some cameras have 2 gain channels. select one
     according to a threshold. ultimately, this will be done IN the
     camera/telescope itself but until then, do it here
 
-    Parameters
-    ----------
-    waveforms
-    threshold
+    Parameters:
+    -----------
+    waveforms: np.ndarray
+        Array of shape (N_gain, N_pix, N_samp)
+    threshold: float
+        threshold (in PE/sample) of when to switch to low-gain channel
+    select_by_sample: bool
+        if true, select only low-gain *samples* when high-gain is over
+        threshold
 
     Returns
     -------
@@ -32,13 +34,29 @@ def pick_gain_channel(waveforms, threshold):
 
     global TRUE_FALSE
 
-    if waveforms.shape[0] > 1:
+    # if we have 2 channels:
+    if waveforms.shape[0] == 2:
         waveforms = np.squeeze(waveforms)
-        pick = (threshold < waveforms).any(axis=0) != TRUE_FALSE
-        waveforms = waveforms.T[pick.T]
+        new_waveforms = waveforms[0].copy()
+
+        if select_by_sample:
+            # replace any samples that are above threshold with low-gain ones:
+            gain_mask = waveforms[0] > threshold
+            new_waveforms[gain_mask] = waveforms[1][gain_mask]
+        else:
+            # use entire low-gain waveform if any sample of high-gain
+            # waveform is above threshold
+            gain_mask =  (waveforms[0] > threshold).any(axis=1)
+            new_waveforms[gain_mask] = waveforms[1][gain_mask]
+
+    elif waveforms.shape[0] == 1:
+        new_waveforms = np.squeeze(waveforms)
+        gain_mask = np.zeros_like(new_waveforms).astype(bool)
     else:
-        waveforms = np.squeeze(waveforms)
-    return waveforms
+        raise ValueError("input waveforms has shape %s. not sure what to do "
+                         "with that.", waveforms.shape)
+
+    return new_waveforms, gain_mask
 
 class GainSelector(Component):
     """
@@ -73,9 +91,17 @@ class ThresholdGainSelector(GainSelector):
         help='Name of gain channel table to load'
     ).tag(config=True)
 
+    select_partial_waveform = traits.Bool(
+        False,
+        help = 'If True, replaces only the waveform samples that are above '
+               'the threshold with low-gain versions (assuming already PE '
+               'calibrated), otherwise the full low-gain waveform is used '
+    ).tag(config=True)
+
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, kwargs=kwargs)
-        self._thresholds = get_table_dataset(self.threshold_table)
+        self._thresholds = get_table_dataset(self.threshold_table ,
+                                             role='dl0.tel.svc.gain_thresholds')
         self.log.debug("Loaded threshold table: \n %s", self._thresholds)
 
     def __str__(self):
