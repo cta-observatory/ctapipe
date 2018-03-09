@@ -4,8 +4,8 @@ from collections import defaultdict
 
 from ctapipe.core import Component
 
-
 __all__ = ['TableReader', 'TableWriter']
+
 
 class TableWriter(Component, metaclass=ABCMeta):
     """

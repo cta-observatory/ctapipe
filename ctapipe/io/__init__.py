@@ -1,10 +1,10 @@
-from .eventsource import EventSource
-from .hessioeventsource import HESSIOEventSource
 from .array import get_array_layout
-from .eventsourcefactory import EventSourceFactory, event_source
 from .eventseeker import EventSeeker
+from .eventsource import EventSource
+from .eventsourcefactory import EventSourceFactory, event_source
+from .hdftableio import HDF5TableReader, HDF5TableWriter
+from .hessioeventsource import HESSIOEventSource
 from .tableio import TableWriter, TableReader
-from .hdftableio import  HDF5TableReader, HDF5TableWriter
 
 __all__ = [
     'HDF5TableWriter',
