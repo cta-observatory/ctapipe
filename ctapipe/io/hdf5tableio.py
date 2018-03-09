@@ -6,7 +6,7 @@ from astropy.time import Time
 from astropy.units import Quantity
 
 import ctapipe
-from . import TableWriter, TableReader
+from .tableio import TableWriter, TableReader
 from ..core import Container
 
 __all__ = [
@@ -70,7 +70,7 @@ class HDF5TableWriter(TableWriter):
         self._tables = {}
         self.open(filename, **kwargs)
         self._group = self._h5file.create_group("/", group_name)
-        self.log.debug("h5file: {}".format(self._h5file))
+        self.log.debug("h5file: %s", self._h5file)
 
     def open(self, filename, **kwargs):
 
@@ -110,9 +110,8 @@ class HDF5TableWriter(TableWriter):
                 shape = 1
 
                 if self._is_column_excluded(table_name, col_name):
-                    self.log.debug("excluded column: {}/{}".format(
-                        table_name, col_name
-                    ))
+                    self.log.debug("excluded column: %s/%s",
+                                   table_name, col_name )
                     continue
 
                 if isinstance(value, Quantity):
@@ -145,10 +144,8 @@ class HDF5TableWriter(TableWriter):
                     coltype = PYTABLES_TYPE_MAP[typename]
                     Schema.columns[col_name] = coltype()
 
-                self.log.debug(
-                    "Table {}: added col: {} type: {} shape: {}".format(
-                        table_name, col_name, typename, shape
-                    ))
+                self.log.debug("Table %s: added col: %s type: %s shape: %s",
+                               table_name, col_name, typename, shape)
 
         self._schemas[table_name] = Schema
         meta['CTAPIPE_VERSION'] = ctapipe.__version__
@@ -157,7 +154,7 @@ class HDF5TableWriter(TableWriter):
     def _setup_new_table(self, table_name, containers):
         """ set up the table. This is called the first time `write()`
         is called on a new table """
-        self.log.debug("Initializing table '{}'".format(table_name))
+        self.log.debug("Initializing table '%s'", table_name)
         meta = self._create_hdf5_table_schema(table_name, containers)
 
         for container in containers:
@@ -295,19 +292,17 @@ class HDF5TableReader(TableReader):
             if colname in container.fields:
                 self._cols_to_read[table_name].append(colname)
             else:
-                self.log.warn("Table '{}' has column '{}' that is not in "
-                              "container {}. It will be skipped"
-                              .format(table_name, colname,
-                                      container.__class__.__name__))
+                self.log.warn("Table '%s' has column '%s' that is not in "
+                              "container %s. It will be skipped",
+                              table_name, colname, container.__class__.__name__)
 
         # also check that the container doesn't have fields that are not
         # in the table:
         for colname in container.fields:
             if colname not in self._cols_to_read[table_name]:
-                self.log.warn("Table '{}' is missing column '{}' that is "
-                              "in container {}. It will be skipped"
-                              .format(table_name, colname,
-                                      container.__class__.__name__))
+                self.log.warn("Table '%s' is missing column '%s' that is "
+                              "in container %s. It will be skipped.",
+                              table_name, colname, container.__class__.__name__)
 
         # copy all user-defined attributes back to Container.mets
         for key in tab.attrs._f_list():
