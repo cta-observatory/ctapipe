@@ -165,8 +165,14 @@ The `serializer` module provide support for storing
 tables or pickle files)
 
 The `ctapipe.io.TableWriter` and `ctapipe.io.TableReader` base classes provide
-API to write/read Containers, for example to and from HDF5 tables using the
-`ctapipe.io.HDF5TableWriter` and `ctapipe.io.HDF5TableReader` classes.
+an interface to implement subclasses that write/read Containers to/from
+table-like data files.  Currently the only implementation is for writing
+HDF5 tables via the `ctapipe.io.HDF5TableWriter`. The output that the
+`ctapipe.io.HDF5TableWriter` produces can be read either one-row-at-a-time
+using the `ctapipe.io.HDF5TableReader`, or more generically using the
+`pytables` or `pandas` packages (note however any tables that have
+array values in a column cannot be read into a `pandas.DataFrame`, since it
+only supports scalar values).
 
 
 Reference/API
