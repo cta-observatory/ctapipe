@@ -1,11 +1,13 @@
-from ctapipe.io.containers import R0CameraContainer, MCEventContainer
-from ctapipe.io.hdftableio import HDF5TableWriter, HDF5TableReader
-import numpy as np
-from astropy import units as u
-import tables
-import pytest
-from ctapipe.core.container import Container, Field
 import tempfile
+
+import numpy as np
+import pytest
+import tables
+from astropy import units as u
+
+from ctapipe.core.container import Container, Field
+from ctapipe.io.containers import R0CameraContainer, MCEventContainer
+from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
 
 
 @pytest.fixture(scope='session')
