@@ -13,10 +13,9 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
-import os.pyth
+import os.path
 from abc import abstractmethod
 import numpy as np
-from scipy.interpolate import interp1d
 from traitlets import Unicode, Integer
 from ctapipe.core import Component, Factory
 from ctapipe.io import EventSource
