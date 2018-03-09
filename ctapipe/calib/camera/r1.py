@@ -13,8 +13,11 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
+import os.pyth
 from abc import abstractmethod
-from traitlets import Unicode
+import numpy as np
+from scipy.interpolate import interp1d
+from traitlets import Unicode, Integer
 from ctapipe.core import Component, Factory
 from ctapipe.io import EventSource
 
@@ -22,7 +25,8 @@ __all__ = [
     'NullR1Calibrator',
     'HESSIOR1Calibrator',
     'TargetIOR1Calibrator',
-    'CameraR1CalibratorFactory'
+    'CameraR1CalibratorFactory',
+    'SST1MR1Calibrator',
 ]
 
 
@@ -164,13 +168,13 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     """
     CALIB_SCALE is only relevant for MC calibration.
 
-    CALIB_SCALE is the factor needed to transform from mean p.e. units to 
-    units of the single-p.e. peak: Depends on the collection efficiency, 
-    the asymmetry of the single p.e. amplitude  distribution and the 
+    CALIB_SCALE is the factor needed to transform from mean p.e. units to
+    units of the single-p.e. peak: Depends on the collection efficiency,
+    the asymmetry of the single p.e. amplitude  distribution and the
     electronic noise added to the signals. Default value is for GCT.
 
     To correctly calibrate to number of photoelectron, a fresh SPE calibration
-    should be applied using a SPE sim_telarray run with an 
+    should be applied using a SPE sim_telarray run with an
     artificial light source.
     """
     # TODO: Handle calib_scale differently per simlated telescope
@@ -306,6 +310,127 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             fci = event.targetio.tel[self.telid].first_cell_ids
             r1 = event.r1.tel[self.telid].waveform[0]
             self.calibrator.ApplyEvent(samples, fci, r1)
+
+
+class _SST1M_BaselineFromRandomTrigger:
+    def __init__(self, n_bins):
+        self.n_bins = n_bins
+
+        self.n_events = None
+        self.means = []
+        self.stds = []
+
+        self.mean = None
+        self.std = None
+
+    def process(self, event):
+        for telescope_id in event.r0.tels_with_data:
+            r0 = event.r0.tel[telescope_id]
+            if self.n_events is None:
+                self.n_events = self.n_bins // r0.waveform.shape[1]
+
+            if r0.camera_event_type == 8:
+                self.means.append(r0.waveform.mean(axis=1))
+                self.means = self.means[-self.n_events:]
+                self.stds.append(r0.waveform.std(axis=1))
+                self.stds = self.stds[-self.n_events:]
+
+            if len(self.means) == self.self.n_events:
+                self.mean = np.mean(self.means, axis=0)
+                self.std = np.mean(self.stds, axis=0)
+        return event
+
+
+
+class SST1MR1Calibrator(CameraR1Calibrator):
+    '''
+    *  subtract a pixel-wise rough electronic + NSB noise pedestal value,
+        so that the values fluctuate around 0 counts
+        (and record it as MON or SVC data, so it can be un-applied
+        or quality-checked later)
+    *  apply a pixel-wise multiplicative gain correction factor to correct
+        for differences in camera uniformity
+    *  apply a scalar scale and shift the signal so that it efficiently fits
+        in a 16-bit signed integer value with the required dynamic range
+        (see Section 3.3)
+    *  record all applied corrections in SVC or MON streams.
+    '''
+
+    n_bins_for_baseline_estimation = Integer(1000).tag(config=True)
+    dark_baseline_path = Unicode(
+        "",
+        allow_none=True,
+        help='Path to a SST1M dark-baseline file (at the moment .npz)'
+    ).tag(config=True)
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
+        self.baseline_estimator = _SST1M_BaselineFromRandomTrigger(
+            n_bins=self.n_bins_for_baseline_estimation
+        )
+        if os.path.isfile(self.dark_baseline_path):
+            self.dark_baseline = np.load(self.dark_baseline_path)['baseline']
+        else:
+            self.dark_baseline = None
+
+    def gain_drop_from_std(self, baseline_fluctuation):
+        '''gain_drop (relative value, i.e. between 0 and 1) for every pixel
+
+        based on baseline fluctuation, does not need a previously measured
+        "dark-baseline" but the estimator for `baseline_fluctuation` needs
+        usually some statistics of interleaved pedestal events...
+
+        gain drop is a linear function of the NSB-rate and the rate
+        can be estiamted from the baseline fluctuation.
+        We just need to fill in the function here, which is currently
+        being measured in the lab...
+        '''
+        raise NotImplementedError
+
+    def gain_drop_from_mean(self, baseline_shift):
+        '''gain_drop (relative value, i.e. between 0 and 1) for every pixel
+
+        gain drop is a linear function of the NSB-rate. Since digicam is
+        dc-coupled the NSB rate is a linear function of the baseline-shift.
+        But there is a non-zero baseline also in total darkness.
+
+        So to know the baseline shift due to night sky background illumination
+        we need some "dark-baseline" measured in a dedicated "closed-lid-run"
+        before analysing physics data. If such a run was not made, we can
+        alternatively estimate the NSB-rate from the baseline fluctuation
+        see above, but that approach has its own problems.
+
+        So this function implements just a linear function, which constants
+        are currently being measured in the lab again.
+        '''
+        raise NotImplementedError
+
+    def calibrate(self, event):
+        self.baseline_estimator.process(event)
+
+        for telescope_id in event.r0.tels_with_data:
+            r0 = event.r0.tel[telescope_id]
+            sst1m = event.sst1m.tel[telescope_id]
+            r1 = event.r1.tel[telescope_id]
+
+            baseline_subtracted = r0.waveform - sst1m.digicam_baseline[:, np.newaxis]
+
+            if self.dark_baseline is None:
+                if self.baseline_estimator.std is None:
+                    # In this case we cannot apply this calibration.
+                    # Should we emit a warnings.warning? Or just silently not
+                    # calibrate and assume, that a later step which needs
+                    # this calibration will emit a warning?
+                    return event
+                gain_drop = self.gain_drop_from_std(self.baseline_estimator.std)
+            else:
+                baseline_shift = sst1m.digicam_baseline - self.dark_baseline
+                gain_drop = self.gain_drop_from_mean(baseline_shift)
+
+            uniform_over_camera = baseline_subtracted * gain_drop
+            r1.waveform = uniform_over_camera.round().astype(np.int16)
+        return event
+
 
 
 class CameraR1CalibratorFactory(Factory):
