@@ -182,7 +182,7 @@ Reference/API
 
 .. automodapi:: ctapipe.io.tableio
 
-.. automodapi:: ctapipe.io.hdftableio
+.. automodapi:: ctapipe.io.hdf5tableio
 
 ------------------------------
 		
