@@ -95,6 +95,20 @@ class ThresholdGainSelector(GainSelector):
     two columns: `cam_id` (the name of the camera) and `gain_threshold_pe`,
     the threshold in photo-electrons per sample at which the switch should
     occur.
+
+    Parameters
+    ----------
+    threshold_table_name: str
+        Name of gain channel table to load
+    select_by_sample: bool
+        If True, replaces only the waveform samples that are above
+        the threshold with low-gain versions, otherwise the full
+        low-gain waveform is used.
+
+    Attributes
+    ----------
+    thresholds: dict
+        mapping of cam_id to threshold value
     """
 
     threshold_table_name = traits.Unicode(
