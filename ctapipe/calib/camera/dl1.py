@@ -12,7 +12,6 @@ import numpy as np
 from ...core import Component
 from ...core.traits import Float
 from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
-from .gainselection import ThresholdGainSelector
 
 __all__ = ['CameraDL1Calibrator']
 
@@ -111,7 +110,7 @@ class CameraDL1Calibrator(Component):
                                 'clipping.').tag(config=True)
 
     def __init__(self, config=None, tool=None, extractor=None, cleaner=None,
-                 selector=None, **kwargs):
+                 **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
@@ -119,8 +118,6 @@ class CameraDL1Calibrator(Component):
         self.cleaner = cleaner
         if self.cleaner is None:
             self.cleaner = NullWaveformCleaner(config, tool)
-        if self.selector is None:
-            self.selector = ThresholdGainSelector(config, tool)
         self._dl0_empty_warn = False
 
     def check_dl0_exists(self, event, telid):
