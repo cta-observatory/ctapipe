@@ -2,6 +2,7 @@
 Algorithms to select correct gain channel
 """
 import numpy as np
+from abc import ABCMeta, abstractclassmethod
 
 from ...core import Component, Factory, traits
 from ...utils import get_table_dataset
@@ -58,12 +59,13 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
     return new_waveforms, gain_mask
 
 
-class GainSelector(Component):
+class GainSelector(Component, metaclass=ABCMeta):
     """
     Base class for algorithms that reduce a 2-gain-channel waveform to a
     single waveform.
     """
 
+    @abstractclassmethod
     def select_gains(self, cam_id, multi_gain_waveform):
         """
         Takes an input waveform and cam_id  and performs gain selection
