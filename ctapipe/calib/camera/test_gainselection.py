@@ -52,6 +52,7 @@ def test_pick_gain_channel():
 def test_pick_gain_channel_bad_input():
     input_waveforms = np.arange(10).reshape(1, 10)
     waveforms, gain_mask = pick_gain_channel(input_waveforms, threshold=4)
+    assert gain_mask is not None
     assert (waveforms == input_waveforms).all()
 
 
@@ -93,10 +94,10 @@ def test_gain_selector():
 
     # 3-gain channel input:
     with pytest.raises(ValueError):
-        selector.select_gains("NectarCam", np.ones((3,1000,30)))
+        selector.select_gains("NectarCam", np.ones((3, 1000, 30)))
 
     # 1-gain channel input:
-    wf0 = np.ones((1,1000,1))
+    wf0 = np.ones((1, 1000, 1))
     wf1, gm = selector.select_gains("ASTRICam", wf0)
     assert wf1.shape == (1000,)
     assert gm.shape == (1000,)
