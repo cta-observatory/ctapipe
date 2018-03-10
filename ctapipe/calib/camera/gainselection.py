@@ -32,8 +32,6 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
         gain-selected intensity, boolean array of which channel was chosen
     """
 
-    global TRUE_FALSE
-
     # if we have 2 channels:
     if waveforms.shape[0] == 2:
         waveforms = np.squeeze(waveforms)
