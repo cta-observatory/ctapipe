@@ -80,8 +80,9 @@ class NullGainSelector(GainSelector):
     """
     do no gain selection, leaving possibly 2 gain channels at the DL1 level
     """
-    def select_gains(self):
-        pass
+    def select_gains(self, cam_id, multi_gain_waveform):
+        return multi_gain_waveform, np.ones(multi_gain_waveform.shape[1])
+
 
 class ThresholdGainSelector(GainSelector):
     """
