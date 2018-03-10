@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from ctapipe.calib.camera.gainselection import GainSelectorFactory
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
@@ -53,3 +54,16 @@ def test_pick_gain_channel_bad_input():
     input_waveforms = np.arange(10).reshape(1,10)
     waveforms, gain_mask = pick_gain_channel(input_waveforms, threshold=4)
     assert (waveforms == input_waveforms).all()
+
+
+@pytest.fixture()
+def gain_selector_instance():
+    yield ThresholdGainSelector()
+
+
+def test_gain_selector(gain_selector_instance):
+    print(gain_selector_instance)
+
+    assert 'NectarCam' in gain_selector_instance.thresholds
+
+
