@@ -130,7 +130,7 @@ class ThresholdGainSelector(GainSelector):
             )
 
         waveform, gain_mask = pick_gain_channel(
-            waveform=multi_gain_waveform,
+            waveforms=multi_gain_waveform,
             threshold=threshold,
             select_by_sample=self.select_by_sample
         )
