@@ -89,3 +89,7 @@ def test_gain_selector():
     assert (new_waveforms[500:, 13:15] == good_hg_value).all()
     assert (new_waveforms[500:, :13] == good_lg_value).all()
     assert (new_waveforms[500:, 15:] == good_lg_value).all()
+
+    # test some failures
+    with pytest.raises(KeyError):
+        _ = selector.select_gains("NonExistantCamera", dummy_waveforms)
