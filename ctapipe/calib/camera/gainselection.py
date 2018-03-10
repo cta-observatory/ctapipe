@@ -13,8 +13,7 @@ __all__ = ['GainSelectorFactory',
 def pick_gain_channel(waveforms, threshold, select_by_sample=False):
     """
     the PMTs on some cameras have 2 gain channels. select one
-    according to a threshold. ultimately, this will be done IN the
-    camera/telescope itself but until then, do it here
+    according to a threshold.
 
     Parameters:
     -----------
@@ -52,6 +51,7 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
     elif waveforms.shape[0] == 1:
         new_waveforms = np.squeeze(waveforms)
         gain_mask = np.zeros_like(new_waveforms).astype(bool)
+
     else:
         raise ValueError("input waveforms has shape %s. not sure what to do "
                          "with that.", waveforms.shape)
@@ -60,13 +60,19 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
 
 class GainSelector(Component):
     """
-
+    Base class for algorithms that reduce a 2-gain-channel waveform to a
+    single waveform.
     """
 
-
-    def select_gains(self):
+    def select_gains(self, cam_id, multi_gain_waveform):
         """
-        Takes the dl0 channels and
+        Takes an input waveform and cam_id  and performs gain selection
+
+        Returns
+        -------
+        tuple(ndarray, ndarray):
+            (waveform, gain_mask), where the gain_mask is a boolean array of
+            which gain channel was used.
         """
         pass
 
@@ -86,29 +92,49 @@ class ThresholdGainSelector(GainSelector):
     occur.
     """
 
-    threshold_table = traits.Unicode(
-        'gain_channel_thresholds',
+    threshold_table_name = traits.Unicode(
+        default_value='gain_channel_thresholds',
         help='Name of gain channel table to load'
     ).tag(config=True)
 
-    select_partial_waveform = traits.Bool(
-        False,
+    select_by_sample = traits.Bool(
+        default_value=False,
         help = 'If True, replaces only the waveform samples that are above '
-               'the threshold with low-gain versions (assuming already PE '
-               'calibrated), otherwise the full low-gain waveform is used '
+               'the threshold with low-gain versions, otherwise the full '
+               'low-gain waveform is used.'
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, kwargs=kwargs)
-        self._thresholds = get_table_dataset(self.threshold_table ,
-                                             role='dl0.tel.svc.gain_thresholds')
-        self.log.debug("Loaded threshold table: \n %s", self._thresholds)
+
+        tab = get_table_dataset(
+            self.threshold_table_name ,
+            role='dl0.tel.svc.gain_thresholds'
+        )
+        self.thresholds = dict(zip(tab['cam_id'], tab['gain_threshold_pe']))
+        self.log.debug("Loaded threshold table: \n %s", tab)
+
 
     def __str__(self):
-        return "{}:\n{}".format(self.__class__.__name__, self._thresholds)
+        return "{}({})".format(self.__class__.__name__, self.thresholds)
 
-    def select_gains(self):
-        pass
+    def select_gains(self, cam_id, multi_gain_waveform):
+
+        try:
+            threshold = self.thresholds[cam_id]
+        except KeyError:
+            raise KeyError(
+                "Camera ID '{}' not found in the gain-threshold "
+                "table '{}'".format(cam_id, self.threshold_table_name)
+            )
+
+        waveform, gain_mask = pick_gain_channel(
+            waveform=multi_gain_waveform,
+            threshold=threshold,
+            select_by_sample=self.select_by_sample
+        )
+
+        return waveform, gain_mask
 
 
 class GainSelectorFactory(Factory):
