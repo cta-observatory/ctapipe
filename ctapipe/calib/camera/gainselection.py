@@ -10,6 +10,7 @@ __all__ = ['GainSelectorFactory',
            'ThresholdGainSelector',
            'pick_gain_channel']
 
+
 def pick_gain_channel(waveforms, threshold, select_by_sample=False):
     """
     the PMTs on some cameras have 2 gain channels. select one
@@ -45,7 +46,7 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
         else:
             # use entire low-gain waveform if any sample of high-gain
             # waveform is above threshold
-            gain_mask =  (waveforms[0] > threshold).any(axis=1)
+            gain_mask = (waveforms[0] > threshold).any(axis=1)
             new_waveforms[gain_mask] = waveforms[1][gain_mask]
 
     elif waveforms.shape[0] == 1:
@@ -57,6 +58,7 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
                          "with that.", waveforms.shape)
 
     return new_waveforms, gain_mask
+
 
 class GainSelector(Component):
     """
@@ -76,10 +78,12 @@ class GainSelector(Component):
         """
         pass
 
+
 class NullGainSelector(GainSelector):
     """
     do no gain selection, leaving possibly 2 gain channels at the DL1 level
     """
+
     def select_gains(self, cam_id, multi_gain_waveform):
         return multi_gain_waveform, np.ones(multi_gain_waveform.shape[1])
 
@@ -100,21 +104,20 @@ class ThresholdGainSelector(GainSelector):
 
     select_by_sample = traits.Bool(
         default_value=False,
-        help = 'If True, replaces only the waveform samples that are above '
-               'the threshold with low-gain versions, otherwise the full '
-               'low-gain waveform is used.'
+        help='If True, replaces only the waveform samples that are above '
+             'the threshold with low-gain versions, otherwise the full '
+             'low-gain waveform is used.'
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, kwargs=kwargs)
 
         tab = get_table_dataset(
-            self.threshold_table_name ,
+            self.threshold_table_name,
             role='dl0.tel.svc.gain_thresholds'
         )
         self.thresholds = dict(zip(tab['cam_id'], tab['gain_threshold_pe']))
         self.log.debug("Loaded threshold table: \n %s", tab)
-
 
     def __str__(self):
         return "{}({})".format(self.__class__.__name__, self.thresholds)
