@@ -56,14 +56,36 @@ def test_pick_gain_channel_bad_input():
     assert (waveforms == input_waveforms).all()
 
 
-@pytest.fixture()
-def gain_selector_instance():
-    yield ThresholdGainSelector()
+
+def test_gain_selector():
 
 
-def test_gain_selector(gain_selector_instance):
-    print(gain_selector_instance)
+    selector = ThresholdGainSelector()
+    print(selector)
 
-    assert 'NectarCam' in gain_selector_instance.thresholds
+    assert 'NectarCam' in selector.thresholds
+
+    threshold = selector.thresholds['NectarCam']
+    good_hg_value = 35
+    good_lg_value = 50
+    dummy_waveforms = np.ones((2,1000,30)) * good_lg_value
+    dummy_waveforms[1:] = good_hg_value #
+    dummy_waveforms[0, 500:, 13:15] = threshold + 10
+
+    new_waveforms, gain_mask = selector.select_gains("NectarCam",
+                                                     dummy_waveforms)
+
+    assert new_waveforms.shape == (1000,30)
+    assert (new_waveforms[500:] == good_hg_value).all()
+    assert (new_waveforms[:500] == good_lg_value).all()
 
 
+    selector.select_by_sample = True
+
+    new_waveforms, gain_mask = selector.select_gains("NectarCam",
+                                                     dummy_waveforms)
+
+    assert new_waveforms.shape == (1000, 30)
+    assert (new_waveforms[500:, 13:15] == good_hg_value).all()
+    assert (new_waveforms[500:, :13] == good_lg_value).all()
+    assert (new_waveforms[500:, 15:] == good_lg_value).all()
