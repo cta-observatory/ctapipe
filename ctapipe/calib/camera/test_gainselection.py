@@ -86,6 +86,17 @@ def test_gain_selector():
     assert (new_waveforms[500:, 15:] == good_lg_value).all()
     assert gain_mask.shape == new_waveforms.shape
 
-    # test some failures
+    # test some failures:
+    # Camera that doesn't have a threshold:
     with pytest.raises(KeyError):
-        _ = selector.select_gains("NonExistantCamera", dummy_waveforms)
+        selector.select_gains("NonExistantCamera", dummy_waveforms)
+
+    # 3-gain channel input:
+    with pytest.raises(ValueError):
+        selector.select_gains("NectarCam", np.ones((3,1000,30)))
+
+    # 1-gain channel input:
+    wf0 = np.ones((1,1000,1))
+    wf1, gm = selector.select_gains("ASTRICam", wf0)
+    assert wf1.shape == (1000,)
+    assert gm.shape == (1000,)
