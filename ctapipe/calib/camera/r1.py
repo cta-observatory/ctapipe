@@ -15,6 +15,7 @@ of the data.
 """
 import os.path
 from abc import abstractmethod
+from collection import deque
 import numpy as np
 from traitlets import Unicode, Integer
 from ctapipe.core import Component, Factory
@@ -314,31 +315,34 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
 class _SST1M_BaselineFromRandomTrigger:
     def __init__(self, n_bins):
         self.n_bins = n_bins
-
-        self.n_events = None
-        self.means = []
-        self.stds = []
-
+        self.is_initialized = False
+        # the
         self.mean = None
         self.std = None
 
     def process(self, event):
         for telescope_id in event.r0.tels_with_data:
             r0 = event.r0.tel[telescope_id]
-            if self.n_events is None:
-                self.n_events = self.n_bins // r0.waveform.shape[1]
+            if not self.is_initialized:
+                self._init(r0)
+            self._append(r0)
+            self._update_result()
 
-            if r0.camera_event_type == 8:
-                self.means.append(r0.waveform.mean(axis=1))
-                self.means = self.means[-self.n_events:]
-                self.stds.append(r0.waveform.std(axis=1))
-                self.stds = self.stds[-self.n_events:]
+    def _init(self, r0):
+        self.n_events = self.n_bins // r0.waveform.shape[1]
+        self.means = deque(maxlen=self.n_events)
+        self.stds = deque(maxlen=self.n_events)
+        self.is_initialized = True
 
-            if len(self.means) == self.self.n_events:
-                self.mean = np.mean(self.means, axis=0)
-                self.std = np.mean(self.stds, axis=0)
-        return event
+    def _append(self, r0):
+        if r0.camera_event_type == 8:
+            self.means.append(r0.waveform.mean(axis=1))
+            self.stds.append(r0.waveform.std(axis=1))
 
+    def _update_result(self):
+        if len(self.means) == self.self.n_events:
+            self.mean = np.mean(self.means, axis=0)
+            self.std = np.mean(self.stds, axis=0)
 
 
 class SST1MR1Calibrator(CameraR1Calibrator):
