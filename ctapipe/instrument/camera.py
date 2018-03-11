@@ -10,6 +10,7 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
+from scipy.sparse import csr_matrix
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
@@ -283,7 +284,7 @@ class CameraGeometry:
 
     def __repr__(self):
         return (
-            "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', " 
+            "CameraGeometry(cam_id='{cam_id}', pix_type='{pix_type}', "
             "npix={npix}, cam_rot={camrot}, pix_rot={pixrot})"
         ).format(
             cam_id=self.cam_id,
@@ -320,6 +321,10 @@ class CameraGeometry:
     @lazyproperty
     def neighbor_matrix(self):
         return _neighbor_list_to_matrix(self.neighbors)
+
+    @lazyproperty
+    def neighbor_matrix_sparse(self):
+        return csr_matrix(self.neighbor_matrix)
 
     @lazyproperty
     def neighbor_matrix_where(self):
