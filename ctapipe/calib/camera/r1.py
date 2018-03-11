@@ -18,8 +18,9 @@ from abc import abstractmethod
 from collections import deque
 import numpy as np
 from traitlets import Unicode, Integer
-from ctapipe.core import Component, Factory
-from ctapipe.io import EventSource
+from ...core import Component, Factory
+from ...io import EventSource
+from ...core.provenance import Provenance
 
 __all__ = [
     'NullR1Calibrator',
@@ -373,6 +374,10 @@ class SST1MR1Calibrator(CameraR1Calibrator):
         )
         if os.path.isfile(self.dark_baseline_path):
             self.dark_baseline = np.load(self.dark_baseline_path)['baseline']
+            Provenance().add_input_file(
+                self.dark_baseline_path,
+                role='dl0.tel.svc.sst1m_baseline'
+            )
         else:
             self.dark_baseline = None
 
