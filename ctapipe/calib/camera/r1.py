@@ -15,7 +15,7 @@ of the data.
 """
 import os.path
 from abc import abstractmethod
-from collection import deque
+from collections import deque
 import numpy as np
 from traitlets import Unicode, Integer
 from ctapipe.core import Component, Factory
