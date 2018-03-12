@@ -115,3 +115,4 @@ def test_simple_gain_selector():
 
         assert waveforms_1g.shape == (1000, 30)
         assert (waveforms_1g == waveforms_2g[chan]).all()
+        assert mask.shape == (1000,)
