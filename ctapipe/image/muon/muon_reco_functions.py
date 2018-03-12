@@ -204,7 +204,7 @@ def analyze_muon_event(event):
                     muonringparam.ring_center_y,
                     threshold=30,
                     bins=30)
-
+                muonintensityoutput.ring_size = np.sum(pix_im)
 
                 dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
                                              ) < (muonintensityoutput.ring_width)
