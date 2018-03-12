@@ -2,7 +2,7 @@ from pkg_resources import resource_filename
 import os
 
 import pytest
-pytest.importorskip("protozfitsreader")
+pytest.importorskip("protozfits")
 
 example_file_path = resource_filename(
     'protozfitsreader',
