@@ -376,7 +376,7 @@ class SST1MR1Calibrator(CameraR1Calibrator):
             self.dark_baseline = np.load(self.dark_baseline_path)['baseline']
             Provenance().add_input_file(
                 self.dark_baseline_path,
-                role='dl0.tel.svc.sst1m_baseline'
+                role='r1.tel.svc.sst1m_dark_baseline'
             )
         else:
             self.dark_baseline = None
