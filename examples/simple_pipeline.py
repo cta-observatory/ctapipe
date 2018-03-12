@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     source = event_source(filename, max_events=None)
 
-    cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
+    #cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
     for data in source:
 
@@ -24,6 +24,6 @@ if __name__ == '__main__':
             )
         )
 
-        cal.calibrate(data)
+        #cal.calibrate(data)
 
         # now the calibrated images are in data.dl1.tel[x].image

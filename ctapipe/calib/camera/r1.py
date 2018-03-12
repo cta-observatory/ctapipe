@@ -18,10 +18,22 @@ from abc import abstractmethod
 from ctapipe.core import Component, Factory
 from ctapipe.io import EventSource
 
+try:
+    import hipecta
+except ModuleNotFoundError:
+    self.log("Package hiPeCTA is not install on this system. You cannot use HiPeCTA_HESSIOR1Calibrator calibrator")
+
+
+import plibs_8
+
+
+
+
 __all__ = [
     'NullR1Calibrator',
     'HESSIOR1Calibrator',
-    'CameraR1CalibratorFactory'
+    'CameraR1CalibratorFactory',
+    'HiPeCTA_HESSIOR1Calibrator'
 ]
 
 
@@ -136,7 +148,61 @@ class NullR1Calibrator(CameraR1Calibrator):
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
                 samples = event.r0.tel[telid].waveform
-                event.r1.tel[telid].waveform = samples.astype('float32')
+                event.r1.tel[telid].waveform = samples.astype('float16')
+
+class HiPeCTA_HESSIOR1Calibrator(CameraR1Calibrator):
+    """
+    The HPC R1 calibrator for hessio files. Fills the r1 container with numpy array
+    ready for vectorization (SIMD, aligned memory ...)
+
+    This calibrator correctly applies the pedestal subtraction and conversion
+    from counts to photoelectrons for the Monte-Carlo data.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+
+    calib_scale = 1.05
+    """
+    CALIB_SCALE is only relevant for MC calibration.
+
+    CALIB_SCALE is the factor needed to transform from mean p.e. units to
+    units of the single-p.e. peak: Depends on the collection efficiency,
+    the asymmetry of the single p.e. amplitude  distribution and the
+    electronic noise added to the signals. Default value is for GCT.
+
+    To correctly calibrate to number of photoelectron, a fresh SPE calibration
+    should be applied using a SPE sim_telarray run with an
+    artificial light source.
+    """
+    # TODO: Handle calib_scale differently per simlated telescope
+
+    def calibrate(self, event):
+        if event.meta['origin'] != 'hessio':
+            raise ValueError('Using HPC_HESSIOR1Calibrator to calibrate a '
+                             'non-hessio event.')
+
+        for telid in event.r0.tels_with_data:
+            if self.check_r0_exists(event, telid):
+
+                samples = event.r0.tel[telid].waveform
+                ped = event.mc.tel[telid].pedestal / samples.shape[2]
+                dc_to_pe = event.mc.tel[telid].dc_to_pe
+                # get numpy.nndarray with data alignment
+                calibrated = hipecta.empty(samples.shape)
+                calibrated = hipecta.calib.r1_calibration(samples, ped, dc_to_pe, calibrated)
+                event.r1.tel[telid].waveform = calibrated
+
+
 
 
 class HESSIOR1Calibrator(CameraR1Calibrator):

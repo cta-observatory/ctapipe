@@ -7,6 +7,7 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 import gzip
 import struct
 
+
 __all__ = ['HESSIOEventSource']
 
 
@@ -134,10 +135,24 @@ class HESSIOEventSource(EventSource):
                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
                     data.r0.tel[tel_id].waveform = (file.
                                                     get_adc_sample(tel_id))
+
                     if data.r0.tel[tel_id].waveform.size == 0:
                         # To handle ASTRI and dst files
-                        data.r0.tel[tel_id].waveform = (file.
-                                                        get_adc_sum(tel_id)[..., None])
+                        try:
+                            from hipecta import zeros as hp_zeros
+                            from hipecta import copyto as hp_copyto
+                            from numpy import append
+                            from numpy import uint16
+                            adc_sum = file.get_adc_sum(tel_id)
+
+                            align_waveform = hp_zeros(list(append(adc_sum.shape, 1)), dtype=uint16)
+                            hp_copyto(align_waveform, adc_sum[..., None])
+                            data.r0.tel[tel_id].waveform = align_waveform
+
+                        except ModuleNotFoundError:
+                            data.r0.tel[tel_id].waveform = (file.
+                                            get_adc_sum(tel_id)[..., None])
+
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))

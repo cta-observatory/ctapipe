@@ -4,7 +4,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 
 __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
            'GlobalPeakIntegrator', 'LocalPeakIntegrator',
-           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
+           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator', 'HiPeCTAIntegrator']
 
 
 from abc import abstractmethod
@@ -693,6 +693,49 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         return peakpos
 
 
+class HiPeCTAIntegrator(PeakFindingIntegrator):
+    """
+    Charge extractor that defines an integration window defined by the
+    peaks in the neighbouring pixels. This class use HiPeCTA python library
+
+    Attributes
+    ----------
+    neighbours : list
+        List of neighbours for each pixel. Changes per telescope.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+    """
+    lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
+                      'only, 1: local pixel counts as much '
+                      'as any neighbour').tag(config=True)
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
+
+    @staticmethod
+    def requires_neighbours():
+        return True
+
+    def _obtain_peak_position(self, waveforms):
+        shape = waveforms.shape
+        significant_samples = self._extract_significant_entries(waveforms)
+        sig_sam = significant_samples.astype(np.float32)
+        sum_data = np.zeros_like(sig_sam)
+        n = self.neighbours.astype(np.uint16)
+        get_sum_array(sig_sam, sum_data, *shape, n, n.shape[0], self.lwt)
+        return sum_data.argmax(2).astype(np.int)
+
+
 class ChargeExtractorFactory(Factory):
     """
     Factory to obtain a ChargeExtractor.
@@ -700,3 +743,5 @@ class ChargeExtractorFactory(Factory):
     base = ChargeExtractor
     default = 'NeighbourPeakIntegrator'
     custom_product_help = 'Charge extraction scheme to use.'
+
+
