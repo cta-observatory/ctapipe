@@ -1,14 +1,16 @@
 """
 Algorithms to select correct gain channel
 """
-import numpy as np
 from abc import ABCMeta, abstractclassmethod
+
+import numpy as np
 
 from ...core import Component, Factory, traits
 from ...utils import get_table_dataset
 
 __all__ = ['GainSelectorFactory',
            'ThresholdGainSelector',
+           'SimpleGainSelector',
            'pick_gain_channel']
 
 
@@ -81,11 +83,28 @@ class GainSelector(Component, metaclass=ABCMeta):
 
 class NullGainSelector(GainSelector):
     """
-    do no gain selection, leaving possibly 2 gain channels at the DL1 level
+    do no gain selection, leaving possibly 2 gain channels at the DL1 level.
+    this may break further steps in the chain if they do not expect 2 gains.
     """
 
     def select_gains(self, cam_id, multi_gain_waveform):
         return multi_gain_waveform, np.ones(multi_gain_waveform.shape[1])
+
+
+class SimpleGainSelector(GainSelector):
+    """
+    Simply choose a single gain channel always.
+    """
+
+    channel = traits.Int(default_value=0, help="which gain channel to "
+                                               "retain").tag(config=True)
+
+    def select_gains(self, cam_id, multi_gain_waveform):
+        return (
+            multi_gain_waveform[self.channel],
+            (np.ones(multi_gain_waveform.shape[1]) * self.channel).astype(
+                np.bool)
+        )
 
 
 class ThresholdGainSelector(GainSelector):
