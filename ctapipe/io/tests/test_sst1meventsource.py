@@ -5,7 +5,7 @@ import pytest
 pytest.importorskip("protozfits")
 
 example_file_path = resource_filename(
-    'protozfitsreader',
+    'protozfits',
     os.path.join(
         'tests',
         'resources',

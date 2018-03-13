@@ -25,7 +25,7 @@ class SST1MEventSource(EventSource):
         for count, event in enumerate(self.file.Events):
             if self._pixel_sort_ids is None:
                 self._pixel_sort_ids = np.argsort(
-                    self._event.hiGain.waveforms.pixelsIndices)
+                    event.hiGain.waveforms.pixelsIndices)
                 self.n_pixels = len(self._pixel_sort_ids)
             data = SST1MDataContainer()
             data.count = count

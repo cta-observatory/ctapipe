@@ -48,7 +48,7 @@ class SST1MCameraContainer(Container):
 
     def fill_from_zfile_event(self, event, pixel_sort_ids):
         self.pixel_flags = event.pixels_flags[pixel_sort_ids]
-        self.digicam_baseline = event.hiGain.waveforms.baseline[
+        self.digicam_baseline = event.hiGain.waveforms.baselines[
             pixel_sort_ids]
         self.local_camera_clock = (
             event.local_time_sec * 1E9 + event.local_time_nanosec)
