@@ -41,7 +41,7 @@ before_install:
     - export PATH="$HOME/miniconda/bin:$PATH"
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
-    ### - conda update -q conda  # get latest conda version
+    - conda update -q conda  # get latest conda version
     # Useful for debugging any issues with conda
     - conda info -a
 
@@ -74,7 +74,6 @@ install:
     - python setup.py develop
 
 script:
-    - conda info
     - python -c "import protozfits; print(protozfits.__version__, protozfits.__file__)"
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
