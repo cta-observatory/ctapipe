@@ -58,7 +58,7 @@ install:
     - pip install travis-sphinx
     - pip install codecov
     # ----- SST1M:
-    - conda install protobuf libgcc
+    - conda install protobuf
     - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v0.44.3.tar.gz
     # ----- end of SST1M
     # ----- target_software
@@ -74,10 +74,7 @@ install:
     - python setup.py develop
 
 script:
-    - mkdir foo
-    - cd foo
     - python -c "import protozfits; print(protozfits.__version__, protozfits.__file__)"
-    - cd ..
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx -v --outdir=docbuild build --source=docs/
