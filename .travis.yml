@@ -69,7 +69,6 @@ install:
     - python setup.py develop
 
 script:
-    - python -c "import protozfits; print(protozfits.__version__, protozfits.__file__)"
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx -v --outdir=docbuild build --source=docs/
