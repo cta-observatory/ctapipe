@@ -9,10 +9,9 @@ from `ctapipe.image.charge_extractors`.
 """
 import numpy as np
 
-from ctapipe.core import Component
-from ctapipe.core.traits import Float
-from ctapipe.image import NeighbourPeakIntegrator, NullWaveformCleaner
-from ctapipe.instrument import CameraGeometry
+from ...core import Component
+from ...core.traits import Float
+from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
 
 __all__ = ['CameraDL1Calibrator']
 
