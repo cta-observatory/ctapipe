@@ -407,6 +407,61 @@ class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 
+class NectarCAMCameraContainer(Container):
+    """
+    Container for Fields that are specific to camera that use zfit
+    """
+    local_camera_clock = Field(float, "camera timestamp")
+    gps_time = Field(float, "gps timestamp")
+    camera_event_type = Field(int, "camera event type")
+    array_event_type = Field(int, "array event type")
+
+    integrals = Field(None, (
+        "numpy array containing waveform integrals"
+        "(n_channels x n_pixels)"
+    ))
+
+
+    def fill_from_zfile_event(self, event, pixel_sort_ids):
+        _n_pixels = len(pixel_sort_ids)
+        self.local_camera_clock = (
+            event.local_time_sec * 1E9 + event.local_time_nanosec)
+        self.gps_time = (
+            event.trig.timeSec * 1E9 + event.trig.timeNanoSec)
+        self.camera_event_type = event.event_type
+        self.array_event_type = event.eventType
+
+        # I must add the low gain, not clear for the moment how to do
+        _samples = (
+            event.hiGain.integrals.gains
+        ).reshape(_n_pixels, -1)
+        self.integrals = _samples[pixel_sort_ids]
+
+
+class NectarCAMContainer(Container):
+    """
+    Storage for the NectarCAMCameraContainer for each telescope
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(NectarCAMCameraContainer),
+        "map of tel_id to NectarCameraContainer")
+
+    def fill_from_zfile_event(self, event, pixel_sort_ids):
+        self.tels_with_data = [event.telescopeID, ]
+        nectar_cam_container = self.tel[event.telescopeID]
+        nectar_cam_container.fill_from_zfile_event(
+            event,
+            pixel_sort_ids,
+        )
+
+
+class NectarCAMDataContainer(DataContainer):
+    """
+    Data container including NectarCAM information
+    """
+    nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
+
 class TargetIOCameraContainer(Container):
     """
     Container for Fields that are specific to cameras that use TARGET
