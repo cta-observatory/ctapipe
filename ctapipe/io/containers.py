@@ -175,7 +175,7 @@ class R1CameraContainer(Container):
     waveform = Field(None, "calibrated images images, one per ADC sample ("
                            "n_pixels, n_samples)")
 
-    gain_channel_mask = Field(None, "Mask of which gain channel was used")
+    gain_channel = Field(None, "Mask of which gain channel was used")
 
 
 class R1Container(Container):
