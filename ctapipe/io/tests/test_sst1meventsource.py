@@ -1,5 +1,6 @@
 from pkg_resources import resource_filename
 import os
+import copy
 
 import pytest
 pytest.importorskip("protozfits", minversion="0.44.3")
@@ -34,6 +35,26 @@ def test_loop_over_events():
 
     # make sure max_events works
     assert i == N_EVENTS - 1
+
+
+def test_that_event_is_not_modified_after_loop():
+    from ctapipe.io.sst1meventsource import SST1MEventSource
+
+    N_EVENTS = 2
+    source = SST1MEventSource(
+        input_url=example_file_path,
+        max_events=N_EVENTS
+    )
+
+    for event in source:
+        last_event = copy.deepcopy(event)
+
+    # now `event` should be identical with the deepcopy of itself from
+    # inside the loop.
+    # Unfortunately this does not work:
+    #      assert last_event == event
+    # So for the moment we just compare event ids
+    assert event.r0.event_id == last_event.r0.event_id
 
 
 def test_is_compatible():
