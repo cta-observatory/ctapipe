@@ -189,7 +189,8 @@ class EventSource(Component):
         generator
         """
         for event in self._generator():
-            if self.max_events and event.count >= self.max_events:
+            if self.max_events and event.count + 1 >= self.max_events:
+                yield event
                 break
             yield event
 

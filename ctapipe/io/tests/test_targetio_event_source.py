@@ -1,3 +1,4 @@
+import copy
 import pytest
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsourcefactory import EventSourceFactory
@@ -80,6 +81,20 @@ def test_loop():
             # Check generator has restarted from beginning
             assert event.count == 0
             break
+
+
+def test_that_event_is_not_modified_after_loop():
+    dataset = get_dataset("chec_r1.tio")
+    with TargetIOEventSource(input_url=dataset, max_events=2) as source:
+        for event in source:
+            last_event = copy.deepcopy(event)
+
+        # now `event` should be identical with the deepcopy of itself from
+        # inside the loop.
+        # Unfortunately this does not work:
+        #      assert last_event == event
+        # So for the moment we just compare event ids
+        assert event.r0.event_id == last_event.r0.event_id
 
 
 def test_len():
