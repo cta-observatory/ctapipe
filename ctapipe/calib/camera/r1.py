@@ -18,6 +18,7 @@ from abc import abstractmethod
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
+from .gainselection import ThresholdGainSelector, GainSelectorFactory, NullGainSelector
 
 __all__ = [
     'NullR1Calibrator',
@@ -177,10 +178,13 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
 
     calib_scale = 1.05
 
-    def __init__(self, config=None, tool=None, selector=None, **kwargs):
+    def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
 
-
+        self.gain_selector = gain_selector
+        if self.gain_selector is None:
+            # self.gain_selector = ThresholdGainSelector(config, tool)
+            self.gain_selector = NullGainSelector(config, tool)
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
@@ -194,7 +198,13 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
                 ped = event.mc.tel[telid].pedestal / n_samples
                 gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
                 calibrated = (samples - ped[..., None]) * gain[..., None]
-                event.r1.tel[telid].waveform = calibrated
+
+                cam_id = event.inst.subarray.tel[telid].camera.cam_id
+                waveform, mask = self.gain_selector.select_gains(cam_id,
+                                                                 calibrated)
+                event.r1.tel[telid].waveform_full = calibrated
+                event.r1.tel[telid].waveform = waveform
+                event.r1.tel[telid].gain_channel_mask = mask
 
 
 class TargetIOR1Calibrator(CameraR1Calibrator):
