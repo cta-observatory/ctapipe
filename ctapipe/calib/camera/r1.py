@@ -158,23 +158,29 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
+
     kwargs
     """
 
-    calib_scale = 1.05
-    """
-    CALIB_SCALE is only relevant for MC calibration.
-
-    CALIB_SCALE is the factor needed to transform from mean p.e. units to 
-    units of the single-p.e. peak: Depends on the collection efficiency, 
-    the asymmetry of the single p.e. amplitude  distribution and the 
-    electronic noise added to the signals. Default value is for GCT.
-
-    To correctly calibrate to number of photoelectron, a fresh SPE calibration
-    should be applied using a SPE sim_telarray run with an 
-    artificial light source.
-    """
+    # CALIB_SCALE is only relevant for MC calibration.
+    #
+    # CALIB_SCALE is the factor needed to transform from mean p.e. units to
+    # units of the single-p.e. peak: Depends on the collection efficiency,
+    # the asymmetry of the single p.e. amplitude  distribution and the
+    # electronic noise added to the signals. Default value is for GCT.
+    #
+    # To correctly calibrate to number of photoelectron, a fresh SPE calibration
+    # should be applied using a SPE sim_telarray run with an
+    # artificial light source.
+    #
     # TODO: Handle calib_scale differently per simlated telescope
+
+    calib_scale = 1.05
+
+    def __init__(self, config=None, tool=None, selector=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
+
+
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
