@@ -8,10 +8,20 @@ __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
 
 
 from abc import abstractmethod
+from enum import Enum
 import numpy as np
 from traitlets import Int, CaselessStrEnum, Float
 from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
+
+class FullWaveAxes:
+    channel = 0
+    pixel = 1
+    sample = 2
+
+class WaveAxes:
+    pixel = 0
+    sample = 1
 
 
 class ChargeExtractor(Component):
@@ -230,7 +240,7 @@ class Integrator(ChargeExtractor):
         """
         w_start = self._get_window_start(waveforms, peakpos)
         w_width = self._get_window_width(waveforms)
-        n_samples = waveforms.shape[2]
+        n_samples = waveforms.shape[FullWaveAxes.sample]
         self.check_window_width_and_start(n_samples, w_start, w_width)
         return w_start, w_width
 
@@ -262,7 +272,7 @@ class Integrator(ChargeExtractor):
         end = start + width
 
         # Obtain integration window using the indices of the waveforms array
-        ind = np.indices(waveforms.shape)[2]
+        ind = np.indices(waveforms.shape)[FullWaveAxes.sample]
         integration_window = (ind >= start[..., None]) & (ind < end[..., None])
         return integration_window
 
@@ -513,11 +523,17 @@ class PeakFindingIntegrator(WindowIntegrator):
         if self.sig_amp_cut_LG or self.sig_amp_cut_HG:
             sig_entries = np.ones(waveforms.shape, dtype=bool)
             if self.sig_amp_cut_HG:
-                sig_entries[0] = waveforms[0] > self.sig_amp_cut_HG
+                sig_entries[FullWaveAxes.channel] = (
+                        waveforms[FullWaveAxes.channel] >  self.sig_amp_cut_HG
+                )
             if nchan > 1 and self.sig_amp_cut_LG:
-                sig_entries[1] = waveforms[1] > self.sig_amp_cut_LG
-            self._sig_pixels = np.any(sig_entries, axis=2)
-            self._sig_channel = np.any(self._sig_pixels, axis=1)
+                sig_entries[FullWaveAxes.pixel] = (
+                        waveforms[FullWaveAxes.pixel] >  self.sig_amp_cut_LG
+                )
+
+            self._sig_pixels = np.any(sig_entries, axis=FullWaveAxes.sample)
+            self._sig_channel = np.any(self._sig_pixels,
+                                       axis=FullWaveAxes.pixel)
             if not self._sig_channel[0]:
                 self.log.error("sigamp excludes all values in HG channel")
             return np.ma.array(waveforms, mask=~sig_entries)
@@ -561,8 +577,8 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
     def _obtain_peak_position(self, waveforms):
         nchan, npix, nsamples = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
-        max_t = significant_samples.argmax(2)
-        max_s = significant_samples.max(2)
+        max_t = significant_samples.argmax(axis=FullWaveAxes.sample)
+        max_s = significant_samples.max(axis=FullWaveAxes.sample)
 
         peakpos = np.zeros((nchan, npix), dtype=np.int)
         peakpos[0, :] = np.round(np.average(max_t[0], weights=max_s[0]))
