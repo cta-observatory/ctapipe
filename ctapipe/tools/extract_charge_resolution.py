@@ -35,8 +35,8 @@ class ChargeResolutionGenerator(Tool):
                         window_width='ChargeExtractorFactory.window_width',
                         t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
-                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+                        peak_detection_threshold='ChargeExtractorFactory'
+                                     '.peak_detection_threshold',
                         lwt='ChargeExtractorFactory.lwt',
                         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
                         radius='CameraDL1Calibrator.radius',

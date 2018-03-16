@@ -8,7 +8,6 @@ __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
 
 
 from abc import abstractmethod
-from enum import Enum
 import numpy as np
 from traitlets import Int, CaselessStrEnum, Float
 from ctapipe.core import Component, Factory
@@ -240,7 +239,7 @@ class Integrator(ChargeExtractor):
         """
         w_start = self._get_window_start(waveforms, peakpos)
         w_width = self._get_window_width(waveforms)
-        n_samples = waveforms.shape[FullWaveAxes.sample]
+        n_samples = waveforms.shape[WaveAxes.sample]
         self.check_window_width_and_start(n_samples, w_start, w_width)
         return w_start, w_width
 
@@ -272,7 +271,7 @@ class Integrator(ChargeExtractor):
         end = start + width
 
         # Obtain integration window using the indices of the waveforms array
-        ind = np.indices(waveforms.shape)[FullWaveAxes.sample]
+        ind = np.indices(waveforms.shape)[WaveAxes.sample]
         integration_window = (ind >= start[..., None]) & (ind < end[..., None])
         return integration_window
 
@@ -298,7 +297,7 @@ class Integrator(ChargeExtractor):
             Extracted charge stored in a numpy array of shape (n_chan, n_pix).
         """
         windowed = np.ma.array(waveforms, mask=~window)
-        charge = windowed.sum(2).data
+        charge = windowed.sum(axis=WaveAxes.sample).data
         return charge
 
     def get_window_from_waveforms(self, waveforms):
@@ -360,16 +359,16 @@ class FullIntegrator(Integrator):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _get_window_start(self, waveforms, peakpos):
-        nchan, npix, nsamples = waveforms.shape
-        return np.zeros((nchan, npix), dtype=np.intp)
+        npix, nsamples = waveforms.shape
+        return np.zeros(npix, dtype=np.intp)
 
     def _get_window_width(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
-        return np.full((nchan, npix), nsamples, dtype=np.intp)
+        npix, nsamples = waveforms.shape
+        return np.full(npix, nsamples, dtype=np.intp)
 
     def get_peakpos(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
-        return np.zeros((nchan, npix), dtype=np.intp)
+        npix, nsamples = waveforms.shape
+        return np.zeros(npix, dtype=np.intp)
 
 
 class WindowIntegrator(Integrator):
@@ -410,8 +409,8 @@ class WindowIntegrator(Integrator):
         return peakpos - self.window_shift
 
     def _get_window_width(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
-        return np.full((nchan, npix), self.window_width, dtype=np.intp)
+        npix, nsamples = waveforms.shape
+        return np.full(npix, self.window_width, dtype=np.intp)
 
     @abstractmethod
     def _obtain_peak_position(self, waveforms):
@@ -461,19 +460,15 @@ class SimpleIntegrator(WindowIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
-        return np.full((nchan, npix), self.t0, dtype=np.intp)
+        npix, nsamples = waveforms.shape
+        return np.full(npix, self.t0, dtype=np.intp)
 
 
 class PeakFindingIntegrator(WindowIntegrator):
-    sig_amp_cut_HG = Float(None, allow_none=True,
-                           help='Define the cut above which a sample is '
+    peak_detection_threshold = Float(None, allow_none=True,
+                                     help='Define the cut above which a sample is '
                                 'considered as significant for PeakFinding '
                                 'in the HG channel').tag(config=True)
-    sig_amp_cut_LG = Float(None, allow_none=True,
-                           help='Define the cut above which a sample is '
-                                'considered as significant for PeakFinding '
-                                'in the LG channel').tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -498,7 +493,6 @@ class PeakFindingIntegrator(WindowIntegrator):
         kwargs
         """
         super().__init__(config=config, tool=tool, **kwargs)
-        self._sig_channel = None
         self._sig_pixels = None
 
     # Extract significant entries
@@ -519,27 +513,15 @@ class PeakFindingIntegrator(WindowIntegrator):
             masked.
 
         """
-        nchan, npix, nsamples = waveforms.shape
-        if self.sig_amp_cut_LG or self.sig_amp_cut_HG:
+        npix, nsamples = waveforms.shape
+        if self.peak_detection_threshold:
             sig_entries = np.ones(waveforms.shape, dtype=bool)
-            if self.sig_amp_cut_HG:
-                sig_entries[FullWaveAxes.channel] = (
-                        waveforms[FullWaveAxes.channel] >  self.sig_amp_cut_HG
-                )
-            if nchan > 1 and self.sig_amp_cut_LG:
-                sig_entries[FullWaveAxes.pixel] = (
-                        waveforms[FullWaveAxes.pixel] >  self.sig_amp_cut_LG
-                )
-
-            self._sig_pixels = np.any(sig_entries, axis=FullWaveAxes.sample)
-            self._sig_channel = np.any(self._sig_pixels,
-                                       axis=FullWaveAxes.pixel)
-            if not self._sig_channel[0]:
-                self.log.error("sigamp excludes all values in HG channel")
+            if self.peak_detection_threshold:
+                sig_entries = waveforms >  self.peak_detection_threshold
+            self._sig_pixels = np.any(sig_entries, axis=WaveAxes.sample)
             return np.ma.array(waveforms, mask=~sig_entries)
         else:
-            self._sig_channel = np.ones(nchan, dtype=bool)
-            self._sig_pixels = np.ones((nchan, npix), dtype=bool)
+            self._sig_pixels = np.ones(npix, dtype=bool)
             return waveforms
 
     @abstractmethod
@@ -575,21 +557,14 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
+        npix, nsamples = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
-        max_t = significant_samples.argmax(axis=FullWaveAxes.sample)
-        max_s = significant_samples.max(axis=FullWaveAxes.sample)
+        max_t = significant_samples.argmax(axis=WaveAxes.sample)
+        max_s = significant_samples.max(axis=WaveAxes.sample)
 
-        peakpos = np.zeros((nchan, npix), dtype=np.int)
-        peakpos[0, :] = np.round(np.average(max_t[0], weights=max_s[0]))
-        if nchan > 1:
-            if self._sig_channel[1]:
-                peakpos[1, :] = np.round(
-                    np.average(max_t[1], weights=max_s[1]))
-            else:
-                self.log.info("LG not significant, using HG for peak finding "
-                              "instead")
-                peakpos[1, :] = peakpos[0]
+        peakpos = np.zeros(npix, dtype=np.int)
+        peakpos[:] = np.round(np.average(max_t, weights=max_s))
+
         return peakpos
 
 
@@ -620,14 +595,15 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
+        npix, nsamples = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
-        peakpos = np.full((nchan, npix), significant_samples.argmax(2),
-                          dtype=np.int)
+        peakpos = np.full(
+            npix,
+            significant_samples.argmax(WaveAxis.samples),
+            dtype=np.int
+        )
         sig_pix = self._sig_pixels
-        if nchan > 1:  # If the LG is not significant, use the HG peakpos
-            peakpos[1] = np.where(sig_pix[1] < sig_pix[0],
-                                  peakpos[0], peakpos[1])
+
         return peakpos
 
 
@@ -670,8 +646,9 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         sig_sam = significant_samples.astype(np.float32)
         sum_data = np.zeros_like(sig_sam)
         n = self.neighbours.astype(np.uint16)
-        get_sum_array(sig_sam, sum_data, *shape, n, n.shape[0], self.lwt)
-        return sum_data.argmax(2).astype(np.int)
+        # kpk: check this
+        get_sum_array(sig_sam, sum_data, 0, *shape, n, 1, self.lwt)
+        return sum_data.argmax(WaveAxes.sample).astype(np.int)
 
 
 class AverageWfPeakIntegrator(PeakFindingIntegrator):
@@ -701,11 +678,11 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):
-        nchan, npix, nsamples = waveforms.shape
+        npix, nsamples = waveforms.shape
         significant_samples = self._extract_significant_entries(waveforms)
-        peakpos = np.zeros((nchan, npix), dtype=np.int)
-        avg_wf = np.mean(significant_samples, axis=1)
-        peakpos += np.argmax(avg_wf, axis=1)[:, None]
+        peakpos = np.zeros(npix, dtype=np.int)
+        avg_wf = np.mean(significant_samples, axis=WaveAxes.pixel)
+        peakpos += np.argmax(avg_wf, axis=WaveAxes.pixel)[:, None]
         return peakpos
 
 
