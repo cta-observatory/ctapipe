@@ -66,6 +66,9 @@ class GainSelector(Component, metaclass=ABCMeta):
     single waveform.
     """
 
+    def __init__(self, config=None, parent=None):
+        super().__init__(config=config, parent=parent)
+
     @abstractclassmethod
     def select_gains(self, cam_id, multi_gain_waveform):
         """
