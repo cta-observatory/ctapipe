@@ -189,9 +189,10 @@ class EventSource(Component):
         generator
         """
         for event in self._generator():
-            yield event
-            if self.max_events and event.count >= self.max_events - 1:
+            if self.max_events and event.count + 1 >= self.max_events:
+                yield event
                 break
+            yield event
 
     def __enter__(self):
         return self
