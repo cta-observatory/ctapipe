@@ -641,13 +641,17 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         return True
 
     def _obtain_peak_position(self, waveforms):
-        shape = waveforms.shape
+        npix, nsamp = waveforms.shape
+        nchan = 1
         significant_samples = self._extract_significant_entries(waveforms)
         sig_sam = significant_samples.astype(np.float32)
         sum_data = np.zeros_like(sig_sam)
-        n = self.neighbours.astype(np.uint16)
+        neighbors = self.neighbours.astype(np.uint16)
+        neighbors_length = neighbors.shape[0]
         # kpk: check this
-        get_sum_array(sig_sam, sum_data, 0, *shape, n, 1, self.lwt)
+        get_sum_array(sig_sam, sum_data,
+                      nchan, npix, nsamp,
+                      neighbors, neighbors_length, self.lwt)
         return sum_data.argmax(WaveAxes.sample).astype(np.int)
 
 
