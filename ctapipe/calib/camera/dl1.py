@@ -227,4 +227,4 @@ class CameraDL1Calibrator(Component):
                 event.dl1.tel[telid].image = corrected
                 event.dl1.tel[telid].extracted_samples = window
                 event.dl1.tel[telid].peakpos = peakpos
-                event.dl1.tel[telid].cleaned = cleaned
+                event.dl1.tel[telid].waveform = cleaned

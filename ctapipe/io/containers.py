@@ -114,8 +114,9 @@ class DL1CameraContainer(Container):
         "numpy array containing position of the peak as determined by "
         "the peak-finding algorithm for each pixel"
     )
-    cleaned = Field(
-        None, "numpy array containing the waveform after cleaning"
+
+    waveform = Field(
+        None, "numpy array containing the waveform after waveform-cleaning"
     )
 
 
