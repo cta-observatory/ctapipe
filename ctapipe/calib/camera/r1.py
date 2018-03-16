@@ -18,7 +18,7 @@ from abc import abstractmethod
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
-from .gainselection import ThresholdGainSelector, GainSelectorFactory, NullGainSelector
+from .gainselection import ThresholdGainSelector, GainSelectorFactory
 
 __all__ = [
     'NullR1Calibrator',
@@ -183,8 +183,8 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
 
         self.gain_selector = gain_selector
         if self.gain_selector is None:
-            # self.gain_selector = ThresholdGainSelector(config, tool)
-            self.gain_selector = NullGainSelector(config, tool)
+            self.gain_selector = ThresholdGainSelector(config, tool)
+            #self.gain_selector = NullGainSelector(config, tool)
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
@@ -204,7 +204,7 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
                                                                  calibrated)
                 event.r1.tel[telid].waveform_full = calibrated
                 event.r1.tel[telid].waveform = waveform
-                event.r1.tel[telid].gain_channel_mask = mask
+                event.r1.tel[telid].gain_channel = mask
 
 
 class TargetIOR1Calibrator(CameraR1Calibrator):
