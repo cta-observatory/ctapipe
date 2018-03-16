@@ -50,14 +50,14 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
             new_waveforms[gain_mask] = waveforms[1][gain_mask]
 
     elif waveforms.shape[0] == 1:
-        new_waveforms = waveforms
+        new_waveforms = np.squeeze(waveforms, axis=0)
         gain_mask = np.zeros_like(new_waveforms).astype(bool)
 
     else:
         raise ValueError("input waveforms has shape {}. not sure what to do "
                          "with that.".format(waveforms.shape))
 
-    return np.squeeze(new_waveforms), np.squeeze(gain_mask)
+    return new_waveforms, gain_mask
 
 
 class GainSelector(Component, metaclass=ABCMeta):

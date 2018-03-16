@@ -97,17 +97,23 @@ def test_threshold_gain_selector():
     with pytest.raises(ValueError):
         selector.select_gains("NectarCam", np.ones((3, 1000, 30)))
 
-    # 1-gain channel input:
-    wf0 = np.ones((1, 1000, 1))
+    # 1-gain channel input with many samples:
+    wf0 = np.ones((1, 1000, 30))
     wf1, gm = selector.select_gains("ASTRICam", wf0)
-    assert wf1.shape == (1000,)
-    assert gm.shape == (1000,)
+    assert wf1.shape == (1000,30)
+    assert gm.shape == (1000,30)
 
     # 2-gain channel input with no samples:
     wf0 = np.random.uniform(10, size=(2, 2368, 1))
     wf1, gm = selector.select_gains("ASTRICam", wf0)
-    assert wf1.shape == (2368,)
-    assert gm.shape == (2368,)
+    assert wf1.shape == (2368, 1)
+    assert gm.shape == (2368, 1)
+
+    # 1-gain channel input with no samples:
+    wf0 = np.random.uniform(10, size=(1, 2368, 1))
+    wf1, gm = selector.select_gains("ASTRICam", wf0)
+    assert wf1.shape == (2368, 1)
+    assert gm.shape == (2368, 1)
 
 
 
