@@ -169,10 +169,13 @@ class R1CameraContainer(Container):
                                "readout")
     trigger_type = Field(0o0, "camera trigger type")
 
-    waveform = Field(None, (
-        "numpy array containing a set of images, one per ADC sample"
-        "(n_channels x n_pixels, n_samples)"
-    ))
+    waveform_full = Field(None, "Calibrated, but not gain-selected waveforms "
+                                "per pixel (n_chan, n_pixels, n_samples")
+
+    waveform = Field(None, "calibrated images images, one per ADC sample ("
+                           "n_pixels, n_samples)")
+
+    gain_channel_mask = Field(None, "Mask of which gain channel was used")
 
 
 class R1Container(Container):
