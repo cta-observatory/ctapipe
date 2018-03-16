@@ -21,10 +21,10 @@ ADC_SAMPLES_SHAPE = (1296, 50)
 def test_loop_over_events():
     from ctapipe.io.sst1meventsource import SST1MEventSource
 
-    N_EVENTS = 5
+    n_events = 5
     inputfile_reader = SST1MEventSource(
         input_url=example_file_path,
-        max_events=N_EVENTS
+        max_events=n_events
     )
 
     for i, event in enumerate(inputfile_reader):
@@ -34,16 +34,16 @@ def test_loop_over_events():
             assert event.r0.tel[telid].waveform.shape == ADC_SAMPLES_SHAPE
 
     # make sure max_events works
-    assert i == N_EVENTS - 1
+    assert i == n_events - 1
 
 
 def test_that_event_is_not_modified_after_loop():
     from ctapipe.io.sst1meventsource import SST1MEventSource
 
-    N_EVENTS = 2
+    n_events = 2
     source = SST1MEventSource(
         input_url=example_file_path,
-        max_events=N_EVENTS
+        max_events=n_events
     )
 
     for event in source:
