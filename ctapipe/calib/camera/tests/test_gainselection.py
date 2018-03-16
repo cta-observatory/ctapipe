@@ -103,6 +103,13 @@ def test_threshold_gain_selector():
     assert wf1.shape == (1000,)
     assert gm.shape == (1000,)
 
+    # 2-gain channel input with no samples:
+    wf0 = np.random.uniform(10, size=(2, 2368, 1))
+    wf1, gm = selector.select_gains("ASTRICam", wf0)
+    assert wf1.shape == (2368,)
+    assert gm.shape == (2368,)
+
+
 
 def test_simple_gain_selector():
     gs = SimpleGainSelector()
