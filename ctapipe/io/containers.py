@@ -5,6 +5,7 @@ Container structures for data that should be read or written to disk
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
+import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -422,8 +423,7 @@ class NectarCAMCameraContainer(Container):
     ))
 
 
-    def fill_from_zfile_event(self, event, pixel_sort_ids):
-        _n_pixels = len(pixel_sort_ids)
+    def fill_from_zfile_event(self, event, numTraces):
         self.local_camera_clock = (
             event.local_time_sec * 1E9 + event.local_time_nanosec)
         self.gps_time = (
@@ -432,10 +432,11 @@ class NectarCAMCameraContainer(Container):
         self.array_event_type = event.eventType
 
         # I must add the low gain, not clear for the moment how to do
-        _samples = (
-            event.hiGain.integrals.gains
-        ).reshape(_n_pixels, -1)
-        self.integrals = _samples[pixel_sort_ids]
+        self.integrals = np.array([
+            event.hiGain.integrals.gains,
+            event.loGain.integrals.gains,
+        ])
+
 
 
 class NectarCAMContainer(Container):
@@ -447,12 +448,12 @@ class NectarCAMContainer(Container):
         Map(NectarCAMCameraContainer),
         "map of tel_id to NectarCameraContainer")
 
-    def fill_from_zfile_event(self, event, pixel_sort_ids):
+    def fill_from_zfile_event(self, event, numTraces):
         self.tels_with_data = [event.telescopeID, ]
         nectar_cam_container = self.tel[event.telescopeID]
         nectar_cam_container.fill_from_zfile_event(
             event,
-            pixel_sort_ids,
+            numTraces,
         )
 
 

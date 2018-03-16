@@ -18,6 +18,7 @@ class NectarCAMEventSource(EventSource):
         super().__init__(config=config, tool=tool, **kwargs)
         from protozfits import SimpleFile
         self.file = SimpleFile(self.input_url)
+        self.header = next(self.file.RunHeader)
 
 
     def _generator(self):
@@ -25,13 +26,10 @@ class NectarCAMEventSource(EventSource):
         self._pixel_sort_ids = None
 
         for count, event in enumerate(self.file.Events):
-            if self._pixel_sort_ids is None:
-                self.n_pixels = len(event.hiGain.integrals.gains)
-                self._pixel_sort_ids = np.arange(self.n_pixels)
             data = NectarCAMDataContainer()
             data.count = count
             # fill specific NectarCAM data
-            data.nectarcam.fill_from_zfile_event(event, self._pixel_sort_ids)
+            data.nectarcam.fill_from_zfile_event(event, self.header.numTraces)
             # fill general R0 data
             self.fill_R0Container_from_zfile_event(data.r0, event)
             yield data
@@ -41,7 +39,10 @@ class NectarCAMEventSource(EventSource):
     def is_compatible(file_path):
         from astropy.io import fits
         try:
-            h = fits.open(file_path)[1].header
+            # The file contains two tables:
+            #  1: RunHeader
+            #  2: Events <--- this is what we need to look at
+            h = fits.open(file_path)[2].header
             ttypes = [
                 h[x] for x in h.keys() if 'TTYPE' in x
             ]
@@ -56,8 +57,8 @@ class NectarCAMEventSource(EventSource):
             (h['ORIGIN'] == 'CTA') and
             (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
-        is_nectarcam_file = 'hiGain_integrals_gains' in ttypes
 
+        is_nectarcam_file = 'hiGain_integrals_gains' in ttypes
         return is_protobuf_zfits_file & is_nectarcam_file
 
 
@@ -66,10 +67,14 @@ class NectarCAMEventSource(EventSource):
             event.local_time_sec * 1E9 + event.local_time_nanosec)
         container.trigger_type = event.event_type
         # I must add the low gain, not clear for the moment how to do
-        _samples = (
-            event.hiGain.waveforms.samples
-        ).reshape(self.n_pixels, -1)
-        container.waveform = _samples[self._pixel_sort_ids]
+        container.waveform = np.array([
+            (
+                event.hiGain.waveforms.samples
+            ).reshape(-1, self.header.numTraces),
+            (
+                event.loGain.waveforms.samples
+            ).reshape(-1, self.header.numTraces)
+        ])
 
         container.num_samples = container.waveform.shape[1]
 
@@ -77,13 +82,9 @@ class NectarCAMEventSource(EventSource):
         container.obs_id = -1
         container.event_id = event.eventNumber
 
-        #container.tels_with_data = [event.telescopeID, ]
-        container.tels_with_data = [1, ]
-        #r0_cam_container = container.tel[event.telescopeID]
-        r0_cam_container = container.tel[1]
+        container.tels_with_data = [self.header.telescopeID, ]
+        r0_cam_container = container.tel[self.header.telescopeID]
         self.fill_R0CameraContainer_from_zfile_event(
             r0_cam_container,
             event
         )
-
-
