@@ -648,7 +648,6 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
         sum_data = np.zeros_like(sig_sam)
         neighbors = self.neighbours.astype(np.uint16)
         neighbors_length = neighbors.shape[0]
-        # kpk: check this
         get_sum_array(sig_sam, sum_data,
                       nchan, npix, nsamp,
                       neighbors, neighbors_length, self.lwt)
