@@ -18,7 +18,7 @@ def test_camera_calibrator(test_event):
 
     calibrator.calibrate(event)
     image = event.dl1.tel[telid].image
-    assert_allclose(image[0, 0], -2.216, 1e-3)
+    assert_allclose(image[0], -2.216, 1e-3)
 
 
 def test_manual_r1():

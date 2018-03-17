@@ -41,7 +41,13 @@ def test_camera_dl1_calibrator(test_event):
 
     calibrator.calibrate(event)
     image = event.dl1.tel[telid].image
-    assert_allclose(image[0, 0], -2.216, 1e-3)
+    waveform = event.dl1.tel[telid].waveform
+    assert_allclose(image[0], -2.216, 1e-3)
+    assert image.ndim == 1
+    assert len(image) > 1  # make sure image has more than one pixel
+    assert waveform.ndim == 2
+    assert event.dl1.tel[telid].gain_channel.shape == waveform.shape
+    assert event.dl1.tel[telid]
 
 
 def test_check_dl0_exists(test_event):
