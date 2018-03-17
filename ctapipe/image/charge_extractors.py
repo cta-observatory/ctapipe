@@ -599,7 +599,7 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
         significant_samples = self._extract_significant_entries(waveforms)
         peakpos = np.full(
             npix,
-            significant_samples.argmax(WaveAxis.samples),
+            significant_samples.argmax(WaveAxes.sample),
             dtype=np.int
         )
         sig_pix = self._sig_pixels
@@ -685,7 +685,7 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         significant_samples = self._extract_significant_entries(waveforms)
         peakpos = np.zeros(npix, dtype=np.int)
         avg_wf = np.mean(significant_samples, axis=WaveAxes.pixel)
-        peakpos += np.argmax(avg_wf, axis=WaveAxes.pixel)[:, None]
+        peakpos += np.argmax(avg_wf, axis=WaveAxes.pixel)
         return peakpos
 
 
