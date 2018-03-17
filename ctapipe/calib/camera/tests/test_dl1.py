@@ -55,6 +55,6 @@ def test_check_dl0_exists(test_event):
     telid = 11
     previous_calibration(event)
     calibrator = CameraDL1Calibrator()
-    assert(calibrator.check_dl0_exists(event, telid) is True)
+    assert calibrator.check_dl0_exists(event, telid) is True
     event.dl0.tel[telid].waveform = None
-    assert(calibrator.check_dl0_exists(event, telid) is False)
+    assert calibrator.check_dl0_exists(event, telid) is False

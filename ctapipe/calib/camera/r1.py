@@ -15,10 +15,10 @@ of the data.
 """
 from abc import abstractmethod
 
+from .gainselection import ThresholdGainSelector
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
-from .gainselection import ThresholdGainSelector, GainSelectorFactory
 
 __all__ = [
     'NullR1Calibrator',
@@ -184,7 +184,6 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
         self.gain_selector = gain_selector
         if self.gain_selector is None:
             self.gain_selector = ThresholdGainSelector(config, tool)
-            #self.gain_selector = NullGainSelector(config, tool)
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
@@ -208,7 +207,6 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
 
 
 class TargetIOR1Calibrator(CameraR1Calibrator):
-
     pedestal_path = Unicode(
         '',
         allow_none=True,
