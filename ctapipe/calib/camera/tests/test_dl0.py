@@ -19,7 +19,7 @@ def test_camera_dl0_reducer(test_event):
     reducer = CameraDL0Reducer()
     reducer.reduce(event)
     waveforms = event.dl0.tel[telid].waveform
-    assert_almost_equal(waveforms[0, 0, 0], -0.091, 3)
+    assert_almost_equal(waveforms[0, 0], -0.091, 3)
 
 
 def test_check_r1_exists(test_event):

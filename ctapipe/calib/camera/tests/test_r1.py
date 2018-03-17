@@ -20,7 +20,7 @@ def test_hessio_r1_calibrator(test_event):
     calibrator = HESSIOR1Calibrator()
     calibrator.calibrate(event)
     r1 = event.r1.tel[telid].waveform
-    assert_almost_equal(r1[0, 0, 0], -0.091, 3)
+    assert_almost_equal(r1[0, 0], -0.091, 3)
 
 
 def test_null_r1_calibrator(test_event):
