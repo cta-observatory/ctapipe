@@ -82,10 +82,16 @@ class CameraDL0Reducer(Component):
         """
         tels = event.r1.tels_with_data
         for telid in tels:
-            r1 = event.r1.tel[telid].waveform
             if self.check_r1_exists(event, telid):
+                dl0_tel = event.dl0.tel[telid]
+                r1_tel = event.r1.tel[telid]
+                r1_waveform = r1_tel.waveform
                 if self._reductor is None:
-                    event.dl0.tel[telid].waveform = r1
+                    dl0_tel.waveform = r1_waveform
                 else:
-                    reduction = self._reductor.reduce_waveforms(r1)
-                    event.dl0.tel[telid].waveform = reduction
+                    reduction = self._reductor.reduce_waveforms(r1_waveform)
+                    dl0_tel.waveform = reduction
+
+                dl0_tel.gain_channel = r1_tel.gain_channel
+                dl0_tel.trigger_time = r1_tel.trigger_time
+                dl0_tel.trigger_type = r1_tel.trigger_type

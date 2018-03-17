@@ -205,6 +205,10 @@ class DL0CameraContainer(Container):
         "if pixels or time slices are zero-suppressed"
     ))
 
+    gain_channel = Field(None, "boolean numpy array of which gain channel was "
+                               "used for each pixel in the image ")
+
+
 
 class DL0Container(Container):
     """

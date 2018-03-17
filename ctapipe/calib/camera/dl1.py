@@ -194,6 +194,7 @@ class CameraDL1Calibrator(Component):
         for telid in event.dl0.tels_with_data:
 
             if self.check_dl0_exists(event, telid):
+                dl0_tel = event.dl0.tel[telid]
                 waveforms = event.dl0.tel[telid].waveform
                 n_samples = waveforms.shape[1]
                 if n_samples == 1:
@@ -228,3 +229,5 @@ class CameraDL1Calibrator(Component):
                 event.dl1.tel[telid].extracted_samples = window
                 event.dl1.tel[telid].peakpos = peakpos
                 event.dl1.tel[telid].waveform = cleaned
+                event.dl1.tel[telid].gain_channel = dl0_tel.gain_channel
+
