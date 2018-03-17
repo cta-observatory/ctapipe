@@ -5,6 +5,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
+import sys
+from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas_parameters
@@ -13,8 +15,11 @@ from ctapipe.io import event_source
 from ctapipe.reco import HillasReconstructor
 from ctapipe.utils import datasets, linalg
 
-# importing data from avaiable datasets in ctapipe
-filename = datasets.get_dataset("gamma_test_large.simtel.gz")
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+else:
+    # importing data from avaiable datasets in ctapipe
+    filename = datasets.get_dataset("gamma_test_large.simtel.gz")
 
 # reading the Monte Carlo file for LST
 source = event_source(filename, allowed_tels={1, 2, 3, 4})
@@ -27,7 +32,7 @@ reco = HillasReconstructor()
 calib = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 off_angles = []
 
-for event in source:
+for event in tqdm(source):
 
     # The direction the incident particle. Converting Monte Carlo Shower
     # parameter theta and phi to corresponding to 3 components (x,y,z) of a
@@ -53,7 +58,7 @@ for event in source:
         camgeom = subarray.tel[tel_id].camera
 
         # note the [0] is for channel 0 which is high-gain channel
-        image = event.dl1.tel[tel_id].image[0]
+        image = event.dl1.tel[tel_id].image
 
         # Cleaning  of the image
         cleaned_image = image
