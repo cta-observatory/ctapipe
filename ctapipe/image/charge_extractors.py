@@ -6,17 +6,20 @@ __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
            'GlobalPeakIntegrator', 'LocalPeakIntegrator',
            'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
 
-
 from abc import abstractmethod
+
 import numpy as np
-from traitlets import Int, CaselessStrEnum, Float
+from traitlets import Int, Float
+
 from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
+
 
 class FullWaveAxes:
     channel = 0
     pixel = 1
     sample = 2
+
 
 class WaveAxes:
     pixel = 0
@@ -467,8 +470,8 @@ class SimpleIntegrator(WindowIntegrator):
 class PeakFindingIntegrator(WindowIntegrator):
     peak_detection_threshold = Float(None, allow_none=True,
                                      help='Define the cut above which a sample is '
-                                'considered as significant for PeakFinding '
-                                'in the HG channel').tag(config=True)
+                                          'considered as significant for PeakFinding '
+                                          'in the HG channel').tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -517,7 +520,7 @@ class PeakFindingIntegrator(WindowIntegrator):
         if self.peak_detection_threshold:
             sig_entries = np.ones(waveforms.shape, dtype=bool)
             if self.peak_detection_threshold:
-                sig_entries = waveforms >  self.peak_detection_threshold
+                sig_entries = waveforms > self.peak_detection_threshold
             self._sig_pixels = np.any(sig_entries, axis=WaveAxes.sample)
             return np.ma.array(waveforms, mask=~sig_entries)
         else:
@@ -553,7 +556,6 @@ class GlobalPeakIntegrator(PeakFindingIntegrator):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _obtain_peak_position(self, waveforms):

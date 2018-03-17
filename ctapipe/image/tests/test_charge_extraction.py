@@ -11,6 +11,7 @@ from ctapipe.image.charge_extractors import (FullIntegrator,
                                              ChargeExtractorFactory,
                                              AverageWfPeakIntegrator)
 
+
 def dummy_calib(event, telid=11):
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
@@ -31,7 +32,6 @@ def test_full_integration(test_event):
     assert peakpos[0] == 0
 
 
-
 def test_simple_integration(test_event):
     data_ped = dummy_calib(deepcopy(test_event), telid=11)
 
@@ -40,7 +40,6 @@ def test_simple_integration(test_event):
 
     assert_almost_equal(integration[0], 74, 0)
     assert peakpos[0] == 0
-
 
 
 def test_global_peak_integration(test_event):
@@ -77,7 +76,6 @@ def test_nb_peak_integration(test_event):
     assert peakpos[0] == 20
 
 
-
 def test_averagewf_peak_integration(test_event):
     data_ped = dummy_calib(deepcopy(test_event), telid=11)
 
@@ -86,7 +84,6 @@ def test_averagewf_peak_integration(test_event):
 
     assert_almost_equal(integration[0], 73, 0)
     assert peakpos[0] == 10
-
 
 
 def test_charge_extractor_factory(test_event):

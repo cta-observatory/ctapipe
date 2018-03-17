@@ -14,14 +14,14 @@ class ImagePlotter(Component):
     display = Bool(
         False,
         help='Display the photoelectron images on-screen as they '
-        'are produced.'
+             'are produced.'
     ).tag(config=True)
     output_path = Unicode(
         None,
         allow_none=True,
         help='Output path for the pdf containing all the '
-        'images. Set to None for no saved '
-        'output.'
+             'images. Set to None for no saved '
+             'output.'
     ).tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
@@ -112,7 +112,7 @@ class ImagePlotter(Component):
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}"
-            .format(event.count, event.r0.event_id, telid)
+                .format(event.count, event.r0.event_id, telid)
         )
 
         if self.display:
@@ -135,7 +135,7 @@ class DisplayDL1Calib(Tool):
         None,
         allow_none=True,
         help='Telescope to view. Set to None to display all '
-        'telescopes.'
+             'telescopes.'
     ).tag(config=True)
 
     aliases = Dict(
@@ -146,7 +146,7 @@ class DisplayDL1Calib(Tool):
             t0='ChargeExtractorFactory.t0',
             window_shift='ChargeExtractorFactory.window_shift',
             peak_detection_threshold='ChargeExtractorFactory'
-                               '.peak_detection_threshold',
+                                     '.peak_detection_threshold',
             lwt='ChargeExtractorFactory.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
@@ -156,11 +156,11 @@ class DisplayDL1Calib(Tool):
     flags = Dict(
         dict(
             D=({
-                'ImagePlotter': {
-                    'display': True
-                }
-            }, "Display the photoelectron images on-screen as they "
-               "are produced.")
+                   'ImagePlotter': {
+                       'display': True
+                   }
+               }, "Display the photoelectron images on-screen as they "
+                  "are produced.")
         )
     )
     classes = List([

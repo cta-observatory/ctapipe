@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.calib.camera.gainselection import SimpleGainSelector
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.calib.camera.gainselection import pick_gain_channel
 
 
@@ -100,8 +100,8 @@ def test_threshold_gain_selector():
     # 1-gain channel input with many samples:
     wf0 = np.ones((1, 1000, 30))
     wf1, gm = selector.select_gains("ASTRICam", wf0)
-    assert wf1.shape == (1000,30)
-    assert gm.shape == (1000,30)
+    assert wf1.shape == (1000, 30)
+    assert gm.shape == (1000, 30)
 
     # 2-gain channel input with no samples:
     wf0 = np.random.uniform(10, size=(2, 2368, 1))
@@ -114,7 +114,6 @@ def test_threshold_gain_selector():
     wf1, gm = selector.select_gains("ASTRICam", wf0)
     assert wf1.shape == (2368, 1)
     assert gm.shape == (2368, 1)
-
 
 
 def test_simple_gain_selector():
