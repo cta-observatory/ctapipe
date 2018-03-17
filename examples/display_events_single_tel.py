@@ -30,9 +30,6 @@ class SingleTelEventDisplay(Tool):
 
     infile = Unicode(help="input file to read", default='').tag(config=True)
     tel = Int(help='Telescope ID to display', default=0).tag(config=True)
-    channel = Integer(
-        help="channel number to display", min=0, max=1
-    ).tag(config=True)
     write = Bool(
         help="Write out images to PNG files", default=False
     ).tag(config=True)
@@ -55,7 +52,6 @@ class SingleTelEventDisplay(Tool):
         'infile': 'EventSourceFactory.input_url',
         'tel': 'SingleTelEventDisplay.tel',
         'max-events': 'EventSourceFactory.max_events',
-        'channel': 'SingleTelEventDisplay.channel',
         'write': 'SingleTelEventDisplay.write',
         'clean': 'SingleTelEventDisplay.clean',
         'hillas': 'SingleTelEventDisplay.hillas',
@@ -116,7 +112,7 @@ class SingleTelEventDisplay(Tool):
 
             if self.samples:
                 # display time-varying event
-                data = event.dl0.tel[self.tel].waveform[self.channel]
+                data = event.dl0.tel[self.tel].waveform
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)
@@ -130,7 +126,7 @@ class SingleTelEventDisplay(Tool):
                         )
             else:
                 # display integrated event:
-                im = event.dl1.tel[self.tel].image[self.channel]
+                im = event.dl1.tel[self.tel].image
 
                 if self.clean:
                     mask = tailcuts_clean(
