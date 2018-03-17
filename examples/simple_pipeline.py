@@ -11,8 +11,12 @@ from ctapipe.io import event_source
 if __name__ == '__main__':
 
     filename = sys.argv[1]
+    try:
+        max_events = int(sys.argv[2])
+    except IndexError:
+        max_events = None
 
-    source = event_source(filename, max_events=None)
+    source = event_source(filename, max_events=max_events)
 
     cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
