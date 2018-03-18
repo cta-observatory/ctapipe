@@ -468,10 +468,11 @@ class SimpleIntegrator(WindowIntegrator):
 
 
 class PeakFindingIntegrator(WindowIntegrator):
-    peak_detection_threshold = Float(None, allow_none=True,
-                                     help='Define the cut above which a sample is '
-                                          'considered as significant for PeakFinding '
-                                          'in the HG channel').tag(config=True)
+    peak_detection_threshold = Float(
+        None, allow_none=True,
+        help='Define the cut above which a sample is considered as '
+             'significant for PeakFinding in the HG channel'
+    ).tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -604,8 +605,6 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
             significant_samples.argmax(WaveAxes.sample),
             dtype=np.int
         )
-        sig_pix = self._sig_pixels
-
         return peakpos
 
 
@@ -644,14 +643,13 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
 
     def _obtain_peak_position(self, waveforms):
         npix, nsamp = waveforms.shape
-        nchan = 1
         significant_samples = self._extract_significant_entries(waveforms)
         sig_sam = significant_samples.astype(np.float32)
         sum_data = np.zeros_like(sig_sam)
         neighbors = self.neighbours.astype(np.uint16)
         neighbors_length = neighbors.shape[0]
         get_sum_array(sig_sam, sum_data,
-                      nchan, npix, nsamp,
+                      npix, nsamp,
                       neighbors, neighbors_length, self.lwt)
         return sum_data.argmax(WaveAxes.sample).astype(np.int)
 

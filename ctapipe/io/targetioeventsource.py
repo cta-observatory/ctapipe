@@ -107,7 +107,7 @@ class TargetIOEventSource(EventSource):
 
         # Init arrays
         self._r0_samples = None
-        self._r1_samples = np.zeros((1, n_pix, n_samples), dtype=np.float32)
+        self._r1_samples = np.zeros((n_pix, n_samples), dtype=np.float32)
         self._first_cell_ids = np.zeros(n_pix, dtype=np.uint16)
 
         # Check if file is already r1 (Information obtained from a flag
@@ -115,7 +115,7 @@ class TargetIOEventSource(EventSource):
         is_r1 = self._tio_reader.fR1
         if is_r1:
             self._get_tio_event = self._tio_reader.GetR1Event
-            self._samples = self._r1_samples[0]
+            self._samples = self._r1_samples
         else:
             self._r0_samples = np.zeros((1, n_pix, n_samples), dtype=np.uint16)
             self._get_tio_event = self._tio_reader.GetR0Event

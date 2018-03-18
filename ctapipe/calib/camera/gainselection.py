@@ -98,14 +98,15 @@ class SimpleGainSelector(GainSelector):
     Simply choose a single gain channel always.
     """
 
-    channel = traits.Int(default_value=0, help="which gain channel to "
-                                               "retain").tag(config=True)
+    channel = traits.Int(
+        default_value=0,
+        help="which gain channel to retain"
+    ).tag(config=True)
 
     def select_gains(self, cam_id, multi_gain_waveform):
         return (
             multi_gain_waveform[self.channel],
-            (np.ones(multi_gain_waveform.shape[1]) * self.channel).astype(
-                np.bool)
+            np.full(multi_gain_waveform.shape[1], self.channel, dtype=np.bool)
         )
 
 
