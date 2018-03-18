@@ -17,8 +17,8 @@ __all__ = ['GainSelectorFactory',
 
 class Channel(Enum):
     """ book-keeping for gain channel index """
-    high = 0
-    low = 1
+    HIGH = 0
+    LOW = 1
 
 
 def pick_gain_channel(waveforms, threshold, select_by_sample=False):
@@ -44,20 +44,20 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
 
     # if we have 2 channels:
     if waveforms.shape[0] == 2:
-        new_waveforms = waveforms[Channel.high.value].copy()
+        new_waveforms = waveforms[Channel.HIGH.value].copy()
 
         if select_by_sample:
             # replace any samples that are above threshold with low-gain ones:
-            gain_mask = waveforms[Channel.high.value] > threshold
-            new_waveforms[gain_mask] = waveforms[Channel.low.value][gain_mask]
+            gain_mask = waveforms[Channel.HIGH.value] > threshold
+            new_waveforms[gain_mask] = waveforms[Channel.LOW.value][gain_mask]
         else:
             # use entire low-gain waveform if any sample of high-gain
             # waveform is above threshold
-            gain_mask = (waveforms[Channel.high.value] > threshold).any(axis=1)
-            new_waveforms[gain_mask] = waveforms[Channel.low.value][gain_mask]
+            gain_mask = (waveforms[Channel.HIGH.value] > threshold).any(axis=1)
+            new_waveforms[gain_mask] = waveforms[Channel.LOW.value][gain_mask]
 
     elif waveforms.shape[0] == 1:
-        new_waveforms = waveforms[Channel.high.value]
+        new_waveforms = waveforms[Channel.HIGH.value]
         gain_mask = np.zeros_like(new_waveforms).astype(bool)
 
     else:
@@ -107,7 +107,7 @@ class SimpleGainSelector(GainSelector):
 
     channel = traits.CaselessStrEnum(
         [x.name for x in Channel],
-        default_value=Channel.high.name,
+        default_value=Channel.HIGH.name,
         help="which gain channel to retain"
     ).tag(config=True)
 
