@@ -68,9 +68,7 @@ class CameraR1Calibrator(Component):
         super().__init__(config=config, parent=tool, **kwargs)
         self._r0_empty_warn = False
 
-        self.gain_selector = gain_selector
-        if self.gain_selector is None:
-            self.gain_selector = SimpleGainSelector(config, tool)
+        self.gain_selector = gain_selector or SimpleGainSelector(tool, config)
 
     @abstractmethod
     def calibrate(self, event):
@@ -136,10 +134,9 @@ class NullR1Calibrator(CameraR1Calibrator):
     """
 
     def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
-        super().__init__(config, tool, **kwargs)
+        super().__init__(config, tool, gain_selector, **kwargs)
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
-        self.gain_selector = gain_selector or SimpleGainSelector(tool, config)
 
     def calibrate(self, event):
         for telid in event.r0.tels_with_data:
@@ -208,10 +205,9 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
                 calibrated = (samples - ped[..., None]) * gain[..., None]
 
                 cam_id = event.inst.subarray.tel[telid].camera.cam_id
-                waveform, mask = self.gain_selector.select_gains(cam_id,
-                                                                 calibrated)
+                wf, mask = self.gain_selector.select_gains(cam_id, calibrated)
                 event.r1.tel[telid].waveform_full = calibrated
-                event.r1.tel[telid].waveform = waveform
+                event.r1.tel[telid].waveform = wf
                 event.r1.tel[telid].gain_channel = mask
 
 
