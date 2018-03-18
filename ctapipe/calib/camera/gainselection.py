@@ -2,7 +2,7 @@
 Algorithms to select correct gain channel
 """
 from abc import ABCMeta, abstractclassmethod
-from enum import Enum
+from enum import IntEnum
 
 import numpy as np
 
@@ -15,7 +15,7 @@ __all__ = ['GainSelectorFactory',
            'pick_gain_channel',
            'Channel']
 
-class Channel(Enum):
+class Channel(IntEnum):
     """ book-keeping for gain channel index """
     HIGH = 0
     LOW = 1
@@ -44,20 +44,20 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
 
     # if we have 2 channels:
     if waveforms.shape[0] == 2:
-        new_waveforms = waveforms[Channel.HIGH.value].copy()
+        new_waveforms = waveforms[Channel.HIGH].copy()
 
         if select_by_sample:
             # replace any samples that are above threshold with low-gain ones:
-            gain_mask = waveforms[Channel.HIGH.value] > threshold
-            new_waveforms[gain_mask] = waveforms[Channel.LOW.value][gain_mask]
+            gain_mask = waveforms[Channel.HIGH] > threshold
+            new_waveforms[gain_mask] = waveforms[Channel.LOW][gain_mask]
         else:
             # use entire low-gain waveform if any sample of high-gain
             # waveform is above threshold
-            gain_mask = (waveforms[Channel.HIGH.value] > threshold).any(axis=1)
-            new_waveforms[gain_mask] = waveforms[Channel.LOW.value][gain_mask]
+            gain_mask = (waveforms[Channel.HIGH] > threshold).any(axis=1)
+            new_waveforms[gain_mask] = waveforms[Channel.LOW][gain_mask]
 
     elif waveforms.shape[0] == 1:
-        new_waveforms = waveforms[Channel.HIGH.value]
+        new_waveforms = waveforms[Channel.HIGH]
         gain_mask = np.zeros_like(new_waveforms).astype(bool)
 
     else:
