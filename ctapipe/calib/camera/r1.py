@@ -119,7 +119,8 @@ class CameraR1Calibrator(Component):
 class NullR1Calibrator(CameraR1Calibrator):
     """
     A dummy R1 calibrator that simply fills the r1 container with the samples
-    from the r0 container.
+    from the r0 container.  To do the R1 gain selection, it uses a
+    SimpleGainSelector, which selects by default the high-gain channel.
 
     Parameters
     ----------
@@ -134,21 +135,19 @@ class NullR1Calibrator(CameraR1Calibrator):
     kwargs
     """
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
         super().__init__(config, tool, **kwargs)
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
+        self.gain_selector = gain_selector or SimpleGainSelector(tool, config)
 
     def calibrate(self, event):
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
                 samples = event.r0.tel[telid].waveform
-
                 cam_id = event.inst.subarray.tel[telid].camera.cam_id
-                waveform, mask = self.gain_selector.select_gains(cam_id,
-                                                                 samples)
-                event.r1.tel[telid].waveform_full = samples.astype('float32')
-                event.r1.tel[telid].waveform = waveform.astype('float32')
+                wf, mask = self.gain_selector.select_gains(cam_id, samples)
+                event.r1.tel[telid].waveform = wf.astype('float32')
                 event.r1.tel[telid].gain_channel = mask
 
 

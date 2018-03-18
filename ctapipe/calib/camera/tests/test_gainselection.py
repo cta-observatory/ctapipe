@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ctapipe.calib.camera.gainselection import SimpleGainSelector
+from ctapipe.calib.camera.gainselection import SimpleGainSelector, Channel
 from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.calib.camera.gainselection import pick_gain_channel
 
@@ -119,12 +119,12 @@ def test_threshold_gain_selector():
 def test_simple_gain_selector():
     gs = SimpleGainSelector()
 
-    for chan in [0, 1]:
-        gs.channel = chan
+    for chan in [Channel.HIGH, Channel.LOW]:
+        gs.channel = chan.name
 
         waveforms_2g = np.random.normal(size=(2, 1000, 30))
         waveforms_1g, mask = gs.select_gains("NectarCam", waveforms_2g)
 
         assert waveforms_1g.shape == (1000, 30)
-        assert (waveforms_1g == waveforms_2g[chan]).all()
+        assert (waveforms_1g == waveforms_2g[chan.value]).all()
         assert mask.shape == (1000,)

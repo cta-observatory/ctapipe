@@ -2,6 +2,7 @@
 Algorithms to select correct gain channel
 """
 from abc import ABCMeta, abstractclassmethod
+from enum import IntEnum
 
 import numpy as np
 
@@ -11,7 +12,13 @@ from ...utils import get_table_dataset
 __all__ = ['GainSelectorFactory',
            'ThresholdGainSelector',
            'SimpleGainSelector',
-           'pick_gain_channel']
+           'pick_gain_channel',
+           'Channel']
+
+class Channel(IntEnum):
+    """ book-keeping for gain channel index """
+    HIGH = 0
+    LOW = 1
 
 
 def pick_gain_channel(waveforms, threshold, select_by_sample=False):
@@ -37,20 +44,20 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
 
     # if we have 2 channels:
     if waveforms.shape[0] == 2:
-        new_waveforms = waveforms[0].copy()
+        new_waveforms = waveforms[Channel.HIGH].copy()
 
         if select_by_sample:
             # replace any samples that are above threshold with low-gain ones:
-            gain_mask = waveforms[0] > threshold
-            new_waveforms[gain_mask] = waveforms[1][gain_mask]
+            gain_mask = waveforms[Channel.HIGH] > threshold
+            new_waveforms[gain_mask] = waveforms[Channel.LOW][gain_mask]
         else:
             # use entire low-gain waveform if any sample of high-gain
             # waveform is above threshold
-            gain_mask = (waveforms[0] > threshold).any(axis=1)
-            new_waveforms[gain_mask] = waveforms[1][gain_mask]
+            gain_mask = (waveforms[Channel.HIGH] > threshold).any(axis=1)
+            new_waveforms[gain_mask] = waveforms[Channel.LOW][gain_mask]
 
     elif waveforms.shape[0] == 1:
-        new_waveforms = np.squeeze(waveforms, axis=0)
+        new_waveforms = waveforms[Channel.HIGH]
         gain_mask = np.zeros_like(new_waveforms).astype(bool)
 
     else:
@@ -98,14 +105,16 @@ class SimpleGainSelector(GainSelector):
     Simply choose a single gain channel always.
     """
 
-    channel = traits.Int(
-        default_value=0,
+    channel = traits.CaselessStrEnum(
+        [x.name for x in Channel],
+        default_value=Channel.HIGH.name,
         help="which gain channel to retain"
     ).tag(config=True)
 
     def select_gains(self, cam_id, multi_gain_waveform):
+        chan = Channel[self.channel].value
         return (
-            multi_gain_waveform[self.channel],
+            multi_gain_waveform[chan],
             np.full(multi_gain_waveform.shape[1], self.channel, dtype=np.bool)
         )
 
