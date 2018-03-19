@@ -31,6 +31,45 @@ __all__ = ['InstrumentContainer',
            'HillasParametersContainer']
 
 
+class SST1MCameraContainer(Container):
+    pixel_flags = Field(None, 'numpy array containing pixel flags')
+    digicam_baseline = Field(None, 'Baseline computed by DigiCam')
+    local_camera_clock = Field(float, "camera timestamp")
+    gps_time = Field(float, "gps timestamp")
+    camera_event_type = Field(int, "camera event type")
+    array_event_type = Field(int, "array event type")
+    trigger_input_traces = Field(None, "trigger patch trace (n_patches)")
+    trigger_output_patch7 = Field(
+        None,
+        "trigger 7 patch cluster trace (n_clusters)")
+    trigger_output_patch19 = Field(
+        None,
+        "trigger 19 patch cluster trace (n_clusters)")
+
+    def fill_from_zfile_event(self, event):
+        self.pixel_flags = event.pixel_flags
+        self.digicam_baseline = event.baseline
+        self.local_camera_clock = event.local_time
+        self.gps_time = event.central_event_gps_time
+        self.camera_event_type = event.camera_event_type
+        self.array_event_type = event.array_event_type
+        self.trigger_input_traces = event.trigger_input_traces
+        self.trigger_output_patch7 = event.trigger_output_patch7
+        self.trigger_output_patch19 = event.trigger_output_patch19
+
+
+class SST1MContainer(Container):
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(SST1MCameraContainer),
+        "map of tel_id to SST1MCameraContainer")
+
+    def fill_from_zfile_event(self, event):
+        self.tels_with_data = [event.telescope_id, ]
+        for tel_id in self.tels_with_data:
+            self.tel[tel_id].fill_from_zfile_event(event)
+
+
 # todo: change some of these Maps to be just 3D NDarrays?
 
 
@@ -358,6 +397,34 @@ class DataContainer(Container):
                      'Telescope pointing positions')
 
 
+class SST1MDataContainer(DataContainer):
+    sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
+
+
+class TargetIOCameraContainer(Container):
+    """
+    Container for Fields that are specific to cameras that use TARGET
+    """
+    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
+                                  "waveform in the camera image (n_pixels)"))
+
+
+class TargetIOContainer(Container):
+    """
+    Storage for the TargetIOCameraContainer for each telescope
+    """
+
+    tel = Field(Map(TargetIOCameraContainer),
+                "map of tel_id to TargetIOCameraContainer")
+
+
+class TargetIODataContainer(DataContainer):
+    """
+    Data container including targeto information
+    """
+    targetio = Field(TargetIOContainer(), "TARGET-specific Data")
+
+
 class MuonRingParameter(Container):
     """
     Storage of muon ring fit output
@@ -424,6 +491,8 @@ class MuonIntensityParameter(Container):
         optical muon efficiency from intensity fit
     ring_completeness:
         completeness of the ring
+    ring_pix_completeness:
+        pixel completeness of the ring
     ring_num_pixel: int
         Number of pixels composing the ring
     ring_size:
@@ -444,6 +513,7 @@ class MuonIntensityParameter(Container):
     event_id = Field(0, 'event identification number')
     tel_id = Field(0, 'telescope identification number')
     ring_completeness = Field(0., 'fraction of ring present')
+    ring_pix_completeness = Field(0., 'fraction of pixels present in the ring')
     ring_num_pixel = Field(0, 'number of pixels in the ring image')
     ring_size = Field(0., 'size of the ring in pe')
     off_ring_size = Field(0., 'image size outside of ring in pe')
