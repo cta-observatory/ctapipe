@@ -17,10 +17,10 @@ import os.path
 from abc import abstractmethod
 from collections import deque
 import numpy as np
-from traitlets import Unicode, Integer
 from ...core import Component, Factory
-from ...io import EventSource
 from ...core.provenance import Provenance
+from ...io import EventSource
+from ...core.traits import Unicode, Integer
 
 __all__ = [
     'NullR1Calibrator',

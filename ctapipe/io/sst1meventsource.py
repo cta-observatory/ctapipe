@@ -80,5 +80,3 @@ class SST1MEventSource(EventSource):
             r0_cam_container,
             event
         )
-
-
