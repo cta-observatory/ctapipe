@@ -65,6 +65,11 @@ class HDF5TableWriter(TableWriter):
     """
 
     def __init__(self, filename, group_name, mode='w', **kwargs):
+
+        if mode not in ['w', 'a']:
+
+            raise IOError('File {} cannot be opened in "{}" mode'.format(mode))
+
         super().__init__()
         self._schemas = {}
         self._tables = {}
@@ -244,23 +249,28 @@ class HDF5TableReader(TableReader):
 
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, mode='r'):
         """
         Parameters
         ----------
         filename: str
             name of hdf5 file
-        group_name: str
-            HDF5 path to group where tables are  to be found
+        mode: str
+            'r', 'r+', 'a'
         """
+
+        if mode not in ['r', 'r+', 'a']:
+
+            raise IOError('File {} cannot be opened in mode "w"'.
+                          format(filename))
+
         super().__init__()
         self._tables = {}
-        self.open(filename)
-        pass
+        self.open(filename, mode)
 
-    def open(self, filename):
+    def open(self, filename, mode):
 
-        self._h5file = tables.open_file(filename)
+        self._h5file = tables.open_file(filename, mode=mode)
 
     def close(self):
 
