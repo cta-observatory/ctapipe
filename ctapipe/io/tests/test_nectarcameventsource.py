@@ -2,19 +2,19 @@ from pkg_resources import resource_filename
 import os
 
 import pytest
-pytest.importorskip("protozfits", minversion="0.44.3")
+pytest.importorskip("protozfits", minversion="0.44.4")
 
 example_file_path = resource_filename(
     'protozfits',
     os.path.join(
         'tests',
         'resources',
-        'example_3evts_NectarCAM.fits.fz'
+        'example_9evts_NectarCAM.fits.fz'
     )
 )
 
-FIRST_EVENT_NUMBER_IN_FILE = 120058
-ADC_SAMPLES_SHAPE = (2, 70, 60)
+FIRST_EVENT_NUMBER_IN_FILE = 1
+ADC_SAMPLES_SHAPE = (2, 84, 60)
 
 
 def test_loop_over_events():
@@ -42,7 +42,7 @@ def test_is_compatible():
     assert NectarCAMEventSource.is_compatible(example_file_path)
 
 
-def test_factory_for_protozfits_file():
+def test_factory_for_nectarcam_file():
     from ctapipe.io.eventsourcefactory import EventSourceFactory
     from ctapipe.io.nectarcameventsource import NectarCAMEventSource
 

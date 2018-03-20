@@ -2,7 +2,7 @@
 """
 EventSource for NectarCam protobuf-fits.fz-files.
 
-Needs protozfits v0.44.3 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v0.44.4 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
@@ -66,7 +66,7 @@ class NectarCAMEventSource(EventSource):
         container.trigger_time = (
             event.local_time_sec * 1E9 + event.local_time_nanosec)
         container.trigger_type = event.event_type
-        # I must add the low gain, not clear for the moment how to do
+
         container.waveform = np.array([
             (
                 event.hiGain.waveforms.samples

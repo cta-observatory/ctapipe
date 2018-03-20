@@ -412,10 +412,8 @@ class NectarCAMCameraContainer(Container):
     """
     Container for Fields that are specific to camera that use zfit
     """
-    local_camera_clock = Field(float, "camera timestamp")
-    gps_time = Field(float, "gps timestamp")
     camera_event_type = Field(int, "camera event type")
-    array_event_type = Field(int, "array event type")
+
 
     integrals = Field(None, (
         "numpy array containing waveform integrals"
@@ -424,14 +422,8 @@ class NectarCAMCameraContainer(Container):
 
 
     def fill_from_zfile_event(self, event, numTraces):
-        self.local_camera_clock = (
-            event.local_time_sec * 1E9 + event.local_time_nanosec)
-        self.gps_time = (
-            event.trig.timeSec * 1E9 + event.trig.timeNanoSec)
-        self.camera_event_type = event.event_type
-        self.array_event_type = event.eventType
+        self.camera_event_type = event.eventType
 
-        # I must add the low gain, not clear for the moment how to do
         self.integrals = np.array([
             event.hiGain.integrals.gains,
             event.loGain.integrals.gains,
