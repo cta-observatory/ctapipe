@@ -74,7 +74,15 @@ class HDF5TableWriter(TableWriter):
         self._schemas = {}
         self._tables = {}
         self.open(filename, mode, **kwargs)
-        self._group = self._h5file.create_group("/", group_name)
+
+        if '/' + group_name in self._h5file:
+
+            self._group = self._h5file.get_node('/' + group_name)
+
+        else:
+
+            self._group = self._h5file.create_group("/", group_name)
+
         self.log.debug("h5file: %s", self._h5file)
 
     def open(self, filename, mode, **kwargs):
