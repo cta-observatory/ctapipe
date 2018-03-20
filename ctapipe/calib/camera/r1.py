@@ -15,7 +15,6 @@ of the data.
 """
 import os.path
 from abc import abstractmethod
-from collections import deque
 import numpy as np
 from ...core import Component, Factory
 from ...core.provenance import Provenance
