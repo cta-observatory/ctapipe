@@ -249,7 +249,7 @@ class HDF5TableReader(TableReader):
 
     """
 
-    def __init__(self, filename, mode='r+'):
+    def __init__(self, filename, mode='r+', **kwargs):
         """
         Parameters
         ----------
@@ -257,6 +257,9 @@ class HDF5TableReader(TableReader):
             name of hdf5 file
         mode: str
             'r+', 'a'
+        kwargs:
+            any other arguments that will be passed through to
+            `pytables.open()`
         """
 
         if mode not in ['r+', 'a']:
@@ -266,11 +269,11 @@ class HDF5TableReader(TableReader):
 
         super().__init__()
         self._tables = {}
-        self.open(filename, mode)
+        self.open(filename, mode, **kwargs)
 
-    def open(self, filename, mode):
+    def open(self, filename, mode, **kwargs):
 
-        self._h5file = tables.open_file(filename, mode=mode)
+        self._h5file = tables.open_file(filename, mode=mode, **kwargs)
 
     def close(self):
 
