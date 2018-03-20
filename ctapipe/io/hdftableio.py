@@ -100,7 +100,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def open(self, filename):
+    def open(self, filename, mode):
 
         pass
 
@@ -162,17 +162,17 @@ class HDF5TableWriter(TableWriter):
 
     """
 
-    def __init__(self, filename, group_name, **kwargs):
+    def __init__(self, filename, group_name, mode='w', **kwargs):
         super().__init__()
         self._schemas = {}
         self._tables = {}
-        self.open(filename, **kwargs)
+        self.open(filename, mode, **kwargs)
         self._group = self._h5file.create_group("/", group_name)
         self.log.debug("h5file: {}".format(self._h5file))
 
-    def open(self, filename, **kwargs):
+    def open(self, filename, mode, **kwargs):
 
-        self._h5file = tables.open_file(filename, mode="w", **kwargs)
+        self._h5file = tables.open_file(filename, mode=mode, **kwargs)
 
     def close(self):
 
@@ -427,11 +427,10 @@ class HDF5TableReader(TableReader):
         super().__init__()
         self._tables = {}
         self.open(filename)
-        pass
 
     def open(self, filename):
 
-        self._h5file = tables.open_file(filename)
+        self._h5file = tables.open_file(filename, mode='r+')
 
     def close(self):
 
