@@ -249,20 +249,20 @@ class HDF5TableReader(TableReader):
 
     """
 
-    def __init__(self, filename, mode='r'):
+    def __init__(self, filename, mode='r+'):
         """
         Parameters
         ----------
         filename: str
             name of hdf5 file
         mode: str
-            'r', 'r+', 'a'
+            'r+', 'a'
         """
 
-        if mode not in ['r', 'r+', 'a']:
+        if mode not in ['r+', 'a']:
 
-            raise IOError('File {} cannot be opened in mode "w"'.
-                          format(filename))
+            raise IOError('File {} cannot be opened in {} mode'.
+                          format(filename, mode))
 
         super().__init__()
         self._tables = {}
