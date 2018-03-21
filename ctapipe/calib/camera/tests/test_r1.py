@@ -1,14 +1,22 @@
-from numpy.testing import assert_almost_equal, assert_array_equal, \
-    assert_array_almost_equal
+import numpy as np
+from tempfile import NamedTemporaryFile
+from pkg_resources import resource_filename
+import os.path
+from numpy.testing import (
+    assert_almost_equal,
+    assert_array_equal,
+    assert_array_almost_equal,
+)
 from ctapipe.calib.camera.r1 import (
     CameraR1CalibratorFactory,
     HESSIOR1Calibrator,
     TargetIOR1Calibrator,
-    NullR1Calibrator
+    NullR1Calibrator,
 )
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsource import EventSource
+from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.utils import get_dataset
 from copy import deepcopy
 import pytest
@@ -127,3 +135,31 @@ def test_factory_from_unknown_eventsource():
     eventsource = UnknownEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(eventsource=eventsource)
     assert isinstance(calibrator, NullR1Calibrator)
+
+
+def test_sst1m_r1_calibration():
+    from ctapipe.calib.camera.r1 import SST1MR1Calibrator
+
+    pytest.importorskip("protozfits")
+    sst1m_example_file = resource_filename(
+        'protozfits',
+        os.path.join(
+            'tests',
+            'resources',
+            'example_10evts.fits.fz'
+        )
+    )
+    with NamedTemporaryFile(suffix='.npz') as named_tmp_file:
+
+        np.savez(named_tmp_file.name, baseline=np.ones(1296) * 500)
+
+        calibrator = SST1MR1Calibrator(
+            dark_baseline_path=named_tmp_file.name
+        )
+        eventsource = EventSourceFactory.produce(
+            input_url=sst1m_example_file
+        )
+        for event in eventsource:
+            calibrator.calibrate(event)
+
+
