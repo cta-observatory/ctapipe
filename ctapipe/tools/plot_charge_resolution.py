@@ -14,8 +14,6 @@ from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 
 
 class ChargeResolutionPlotter(Component):
-    name = 'ChargeResolutionPlotter'
-
     output_path = Unicode(None, allow_none=True,
                           help='Output path to save the '
                                'plot.').tag(config=True)
@@ -25,7 +23,7 @@ class ChargeResolutionPlotter(Component):
     linear_y = Bool(False, help='Plot the y values on a linear axis, '
                                 'instead of log').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Calculator of charge resolution.
 
@@ -204,6 +202,7 @@ class ChargeResolutionViewer(Tool):
 def main():
     exe = ChargeResolutionViewer()
     exe.run()
+
 
 if __name__ == '__main__':
     main()

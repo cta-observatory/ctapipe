@@ -4,6 +4,7 @@ import pytest
 from astropy.table import Table
 import pytest
 
+
 def test_find_datasets():
 
     # find all datasets matching pattern
@@ -18,6 +19,7 @@ def test_find_datasets():
                                             regexp_group=1)
     assert not r[0].endswith("gz")
 
+
 def test_datasets_in_custom_path(tmpdir_factory):
     """
     check that a dataset in a user-defined CTAPIPE_SVC_PATH is located
@@ -25,7 +27,7 @@ def test_datasets_in_custom_path(tmpdir_factory):
 
     tmpdir1 = tmpdir_factory.mktemp('datasets1')
     tmpdir2 = tmpdir_factory.mktemp('datasets2')
-    os.environ['CTAPIPE_SVC_PATH'] = ":".join([str(tmpdir1),str(tmpdir2)])
+    os.environ['CTAPIPE_SVC_PATH'] = ":".join([str(tmpdir1), str(tmpdir2)])
 
     # create a dummy dataset to search for:
 
@@ -40,8 +42,7 @@ def test_datasets_in_custom_path(tmpdir_factory):
     assert path == dataset_path
 
     with pytest.raises(FileNotFoundError):
-        badpath = datasets.get_dataset("does_not_exist")
-
+        datasets.get_dataset("does_not_exist")
 
     # try using find_all_matching_datasets:
 
@@ -60,3 +61,4 @@ def test_get_table_dataset():
 def test_fail_to_find_table():
     with pytest.raises(FileNotFoundError):
         table = datasets.get_table_dataset("missingdataset")
+

@@ -15,7 +15,7 @@ def test_camera_display_single():
     image = ones(len(geom.pix_x), dtype=float)
     disp.image = image
     disp.add_colorbar()
-    disp.cmap = 'spectral'
+    disp.cmap = 'nipy_spectral'
     disp.set_limits_minmax(0, 10)
     disp.set_limits_percent(95)
     disp.enable_pixel_picker()
@@ -40,7 +40,7 @@ def test_camera_display_single():
 def test_camera_display_multiple():
     """ create a figure with 2 subplots, each with a CameraDisplay """
     from ..mpl import CameraDisplay
-    
+
     geom = CameraGeometry.from_name("LSTCam")
     fig, ax = plt.subplots(2, 1)
 

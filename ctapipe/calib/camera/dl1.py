@@ -9,10 +9,9 @@ from `ctapipe.image.charge_extractors`.
 """
 import numpy as np
 
-from ctapipe.core import Component
-from ctapipe.core.traits import Float
-from ctapipe.image import NeighbourPeakIntegrator, NullWaveformCleaner
-from ctapipe.instrument import CameraGeometry
+from ...core import Component
+from ...core.traits import Float
+from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
 
 __all__ = ['CameraDL1Calibrator']
 
@@ -101,8 +100,6 @@ class CameraDL1Calibrator(Component):
         applied to the waveforms.
     kwargs
     """
-
-    name = 'CameraCalibrator'
     radius = Float(None, allow_none=True,
                    help='Pixels within radius from a pixel are considered '
                         'neighbours to the pixel. Set to None for the default '
@@ -112,7 +109,8 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config, tool, extractor=None, cleaner=None, **kwargs):
+    def __init__(self, config=None, tool=None, extractor=None, cleaner=None,
+                 **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
@@ -139,9 +137,9 @@ class CameraDL1Calibrator(Component):
         Returns
         -------
         bool
-            True if dl0.tel[telid].pe_samples is not None, else false.
+            True if dl0.tel[telid].waveform is not None, else false.
         """
-        dl0 = event.dl0.tel[telid].pe_samples
+        dl0 = event.dl0.tel[telid].waveform
         if dl0 is not None:
             return True
         else:
@@ -150,26 +148,6 @@ class CameraDL1Calibrator(Component):
                                  "DL1 is unchanged in this circumstance.")
                 self._dl0_empty_warn = True
             return False
-
-    @staticmethod
-    def get_geometry(event, telid):
-        """
-        Obtain the geometry for this telescope.
-
-        Parameters
-        ----------
-        event : container
-            A `ctapipe` event container
-        telid : int
-            The telescope id.
-            The neighbours are calculated once per telescope.
-
-        Returns
-        -------
-        `CameraGeometry`
-        """
-        return CameraGeometry.guess(*event.inst.pixel_pos[telid],
-                                    event.inst.optical_foclen[telid])
 
     def get_correction(self, event, telid):
         """
@@ -190,8 +168,8 @@ class CameraDL1Calibrator(Component):
         try:
             shift = self.extractor.window_shift
             width = self.extractor.window_width
-            n_chan = event.inst.num_channels[telid]
             shape = event.mc.tel[telid].reference_pulse_shape
+            n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta['refstep']
             time_slice = event.mc.tel[telid].time_slice
             correction = integration_correction(n_chan, shape, step,
@@ -216,7 +194,7 @@ class CameraDL1Calibrator(Component):
         for telid in event.dl0.tels_with_data:
 
             if self.check_dl0_exists(event, telid):
-                waveforms = event.dl0.tel[telid].pe_samples
+                waveforms = event.dl0.tel[telid].waveform
                 n_samples = waveforms.shape[2]
                 if n_samples == 1:
                     # To handle ASTRI and dst
@@ -231,7 +209,7 @@ class CameraDL1Calibrator(Component):
                     # Extract charge
                     if self.extractor.requires_neighbours():
                         e = self.extractor
-                        g = self.get_geometry(event, telid)
+                        g = event.inst.subarray.tel[telid].camera
                         e.neighbours = g.neighbor_matrix_where
                     extract = self.extractor.extract_charge
                     charge, peakpos, window = extract(cleaned)

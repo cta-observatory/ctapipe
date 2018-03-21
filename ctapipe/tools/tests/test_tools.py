@@ -5,10 +5,8 @@ from ctapipe.tools.info import info
 from ctapipe.utils import get_dataset
 
 
-
 def test_info():
-    info(all=True)
-
+    info(show_all=True)
 
 
 def test_dump_triggers(tmpdir):
@@ -25,7 +23,6 @@ def test_dump_triggers(tmpdir):
 
 
 def test_dump_instrument(tmpdir):
-
     tmpdir.chdir()
 
     tool = DumpInstrumentTool(
@@ -36,6 +33,7 @@ def test_dump_instrument(tmpdir):
 
     print(tmpdir.listdir())
     assert tmpdir.join('FlashCam.camgeom.fits.gz').exists()
+
 
 def test_camdemo():
     tool = CameraDemo()

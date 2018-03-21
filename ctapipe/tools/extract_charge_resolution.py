@@ -11,10 +11,10 @@ from traitlets import Dict, List, Int, Unicode
 from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventfilereader import HessioFileReader
+from ctapipe.io.hessioeventsource import HESSIOEventSource
 
 
 class ChargeResolutionGenerator(Tool):
@@ -26,12 +26,12 @@ class ChargeResolutionGenerator(Tool):
                       help='Telescopes to include from the event file. '
                            'Default = All telescopes').tag(config=True)
     output_name = Unicode('charge_resolution',
-                          help='Name of the output charge resolution pickle '
+                          help='Name of the output charge resolution hdf5 '
                                'file').tag(config=True)
 
-    aliases = Dict(dict(f='HessioFileReader.input_path',
-                        max_events='HessioFileReader.max_events',
-                        extractor='ChargeExtractorFactory.extractor',
+    aliases = Dict(dict(f='HESSIOEventSource.input_url',
+                        max_events='HESSIOEventSource.max_events',
+                        extractor='ChargeExtractorFactory.product',
                         window_width='ChargeExtractorFactory.window_width',
                         t0='ChargeExtractorFactory.t0',
                         window_shift='ChargeExtractorFactory.window_shift',
@@ -44,7 +44,7 @@ class ChargeResolutionGenerator(Tool):
                         T='ChargeResolutionGenerator.telescopes',
                         O='ChargeResolutionGenerator.output_name',
                         ))
-    classes = List([HessioFileReader,
+    classes = List([HESSIOEventSource,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
                     ChargeResolutionCalculator
@@ -52,7 +52,7 @@ class ChargeResolutionGenerator(Tool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.file_reader = None
+        self.eventsource = None
         self.r1 = None
         self.dl0 = None
         self.dl1 = None
@@ -62,16 +62,11 @@ class ChargeResolutionGenerator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.file_reader = HessioFileReader(**kwargs)
+        self.eventsource = HESSIOEventSource(**kwargs)
 
-        extractor_factory = ChargeExtractorFactory(**kwargs)
-        extractor_class = extractor_factory.get_class()
-        extractor = extractor_class(**kwargs)
+        extractor = ChargeExtractorFactory.produce(**kwargs)
 
-        r1_factory = CameraR1CalibratorFactory(origin=self.file_reader.origin,
-                                               **kwargs)
-        r1_class = r1_factory.get_class()
-        self.r1 = r1_class(**kwargs)
+        self.r1 = HESSIOR1Calibrator(**kwargs)
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 
@@ -81,8 +76,7 @@ class ChargeResolutionGenerator(Tool):
 
     def start(self):
         desc = "Filling Charge Resolution"
-        source = self.file_reader.read()
-        for event in tqdm(source, desc=desc):
+        for event in tqdm(self.eventsource, desc=desc):
             tels = list(event.dl0.tels_with_data)
 
             # Check events have true charge included
@@ -112,9 +106,15 @@ class ChargeResolutionGenerator(Tool):
                 self.calculator.add_charges(true_charge, measured_charge)
 
     def finish(self):
-        directory = self.file_reader.output_directory
+        input_url = self.eventsource.input_url
+        input_directory = os.path.dirname(input_url)
+        input_name = os.path.splitext(os.path.basename(input_url))[0]
+        output_directory = os.path.join(input_directory, input_name)
+        if not os.path.exists(output_directory):
+            self.log.info("Creating directory: {}".format(output_directory))
+            os.makedirs(output_directory)
         name = "{}.h5".format(self.output_name)
-        ouput_path = os.path.join(directory, name)
+        ouput_path = os.path.join(output_directory, name)
         self.calculator.save(ouput_path)
 
 

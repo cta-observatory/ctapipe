@@ -35,7 +35,7 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, phi):
         Array of pixel x positions
     phi: float
         Rotation angle of pixels
-        
+
     Returns
     -------
         ndarray,ndarray: Transformed pixel x and y coordinates
@@ -50,7 +50,7 @@ def rotate_translate(pixel_pos_x, pixel_pos_y, phi):
 def timing_parameters(pix_x, pix_y, image, peak_time, rotation_angle):
     """
     Function to extract timing parameters from a cleaned image
-    
+
     Parameters
     ----------
     pix_x : array_like
@@ -81,7 +81,7 @@ def timing_parameters(pix_x, pix_y, image, peak_time, rotation_angle):
 
     # Rotate pixels by our image axis
     pix_x_rot, pix_y_rot = rotate_translate(pix_x, pix_y, rotation_angle)
-    gradient, intercept = np.polyfit(pix_y_rot, peak_time,deg=1, w=np.sqrt(image))
+    gradient, intercept = np.polyfit(pix_y_rot, peak_time, deg=1, w=np.sqrt(image))
 
-    return TimingParameters(gradient=gradient*(peak_time.unit/unit),
-                            intercept=intercept*unit)
+    return TimingParameters(gradient=gradient * (peak_time.unit / unit),
+                            intercept=intercept * unit)

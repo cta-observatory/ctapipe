@@ -1,10 +1,12 @@
 from time import sleep
 import zmq
 
+
 class Connections():
     """
     implements ZMQ connections between process for PRODUCER and STAGER and CONSUMER
     """
+
     def __init__(self, main_connection_name, connections=None):
         """
         Parameters
@@ -14,7 +16,7 @@ class Connections():
             Default next step name. Used to send data when destination is not provided
         """
         self.connections = connections or {}
-        self.sockets=dict()
+        self.sockets = dict()
         self.context = zmq.Context()
         self.main_out_socket = None
         self.main_connection_name = main_connection_name
@@ -27,7 +29,7 @@ class Connections():
         for sock in self.sockets.values():
             sock.close()
 
-    def get_destination_msg_from_result(self,result):
+    def get_destination_msg_from_result(self, result):
         """
         If result is a tuple, check if last tuple elem is a valid next step name.
         If yes, return a destination defined to  the last tuple elem and send
@@ -43,21 +45,21 @@ class Connections():
         tulpe conaining two elements: msg and destination
 
         """
-        if isinstance(result,tuple):
+        if isinstance(result, tuple):
             # look is last tuple elem is a valid next step
             if result[-1] in self.connections.keys():
                 destination = result[-1]
-                if len(result [:-1]) == 1:
-                    msg = result [:-1][0]
+                if len(result[:-1]) == 1:
+                    msg = result[:-1][0]
                 else:
                     msg = result[:-1]
-                return msg,destination
+                return msg, destination
             else:
-                return result,None
+                return result, None
         else:
-            return result,None
+            return result, None
 
-    def send_msg(self,msg,destination_step_name=None):
+    def send_msg(self, msg, destination_step_name=None):
         """
         Send a message thanks to ZMQ
 
@@ -67,9 +69,9 @@ class Connections():
         destination_step_name: str
             msg will be send to corresponding step
         """
-        send=False
-        if not destination_step_name :
-            socket  = self.main_out_socket
+        send = False
+        if not destination_step_name:
+            socket = self.main_out_socket
         else:
             socket = self.sockets[destination_step_name]
         while not send:
@@ -86,7 +88,7 @@ class Connections():
         Because this class is s Process, This method must be call in the run
          method to be hold by the correct process.
         """
-        for name,connection in self.connections.items():
+        for name, connection in self.connections.items():
             self.sockets[name] = self.context.socket(zmq.REQ)
             try:
                 self.sockets[name].connect('tcp://localhost:' + connection)
@@ -94,6 +96,6 @@ class Connections():
                     self.main_out_socket = self.sockets[name]
             except zmq.error.ZMQError as e:
                 print(' {} : tcp://localhost:{}'
-                               .format(e,  connection))
+                      .format(e, connection))
                 return False
         return True

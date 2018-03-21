@@ -1,14 +1,14 @@
-""""
+"""
 Line-intersection-based fitting.
 
 Contact: Tino Michael <Tino.Michael@cea.fr>
 """
 
+
 from ctapipe.utils import linalg
+from ctapipe.coordinates import coordinate_transformations as trafo
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
-
-from astropy.utils.decorators import deprecated
 
 from itertools import combinations
 
@@ -21,64 +21,12 @@ u.dimless = u.dimensionless_unscaled
 
 
 __all__ = ['HillasReconstructor',
-           'TooFewTelescopesException',
+           'TooFewTelescopes',
            'dist_to_traces', 'MEst', 'GreatCircle']
 
 
-class TooFewTelescopesException(Exception):
+class TooFewTelescopes(Exception):
     pass
-
-
-@deprecated(0.1, "will be replaced with real coord transform")
-def guess_pix_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
-    """
-    TODO replace with proper implementation
-    calculates the direction vector of corresponding to a
-    (x,y) position on the camera
-
-    beta is the pixel's angular distance to the centre
-    according to beta / tel_view = r / maxR
-    alpha is the polar angle between the y-axis and the pixel
-    to find the direction the pixel is looking at:
-
-    - the pixel direction is set to the telescope direction
-    - offset by beta towards up
-    - rotated around the telescope direction by the angle alpha
-
-
-    Parameters
-    -----------
-    pix_x, pix_y : ndarray
-        lists of x and y positions on the camera
-    tel_phi, tel_theta: astropy quantities
-        two angles that describe the orientation of the telescope
-    tel_foclen : astropy quantity
-        focal length of the telescope
-
-    Returns
-    -------
-    pix_dirs : ndarray
-        shape (n,3) list of "direction vectors"
-        corresponding to a position on the camera
-
-    """
-
-    pix_alpha = np.arctan2(pix_y, pix_x)
-
-    pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
-
-    pix_beta = pix_rho / tel_foclen * u.rad
-
-    tel_dir = linalg.set_phi_theta(tel_phi, tel_theta)
-
-    pix_dirs = []
-    for a, b in zip(pix_alpha, pix_beta):
-        pix_dir = linalg.set_phi_theta(tel_phi, tel_theta - b)
-
-        pix_dir = linalg.rotate_around_axis(pix_dir, tel_dir, 90 * u.deg - a)
-        pix_dirs.append(pix_dir * u.dimless)
-
-    return pix_dirs
 
 
 def dist_to_traces(core, circles):
@@ -192,8 +140,8 @@ class HillasReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, configurable=None):
-        super().__init__(configurable)
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
         self.circles = {}
 
     def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):
@@ -208,6 +156,10 @@ class HillasReconstructor(Reconstructor):
         hillas_dict : python dictionary
             dictionary with telescope IDs as key and
             MomentParameters instances as values
+        inst : ctapipe.io.InstrumentContainer
+            instrumental description
+        tel_phi:
+        tel_theta:
         seed_pos : python tuple
             shape (2) tuple with a possible seed for
             the core position fit (e.g. CoG of all telescope images)
@@ -228,7 +180,7 @@ class HillasReconstructor(Reconstructor):
         self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
         # algebraic direction estimate
-        dir, err_est_dir = self.fit_origin_crosses()
+        direction, err_est_dir = self.fit_origin_crosses()
 
         # core position estimate using a geometric approach
         pos, err_est_pos = self.fit_core_crosses()
@@ -242,10 +194,10 @@ class HillasReconstructor(Reconstructor):
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
-        phi, theta = linalg.get_phi_theta(dir).to(u.deg)
+        phi, theta = linalg.get_phi_theta(direction).to(u.deg)
 
-        # TODO make sure az and phi turn in same direction...
-        result.alt, result.az = 90 * u.deg - theta, 90 * u.deg - phi
+        # TODO fix coordinates!
+        result.alt, result.az = 90 * u.deg - theta, -phi
         result.core_x = pos[0]
         result.core_y = pos[1]
         result.core_uncert = err_est_pos
@@ -285,10 +237,10 @@ class HillasReconstructor(Reconstructor):
             # NOTE this is correct: +cos(psi) ; +sin(psi)
             p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
             p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
-            foclen = subarray.tel[tel_id].optics.effective_focal_length
+            foclen = subarray.tel[tel_id].optics.equivalent_focal_length
 
             circle = GreatCircle(
-                guess_pix_direction(
+                trafo.pixel_position_to_direction(
                     np.array([moments.cen_x / u.m, p2_x / u.m]) * u.m,
                     np.array([moments.cen_y / u.m, p2_y / u.m]) * u.m,
                     tel_phi[tel_id], tel_theta[tel_id], foclen),
@@ -327,7 +279,10 @@ class HillasReconstructor(Reconstructor):
 
         result = linalg.normalise(np.sum(crossings, axis=0)) * u.dimless
         off_angles = [linalg.angle(result, cross) / u.rad for cross in crossings]
-        err_est_dir = np.mean(off_angles) * u.rad
+        err_est_dir = np.average(
+            off_angles,
+            weights=[len(cross) for cross in crossings]
+        ) * u.rad
 
         # averaging over the solutions of all permutations
         return result, err_est_dir
@@ -374,7 +329,7 @@ class HillasReconstructor(Reconstructor):
 
         return np.array(linalg.normalise(self.fit_result_origin.x)) * u.dimless
 
-    def fit_core_crosses(self, unit=u.m):
+    def fit_core_crosses(self):
         r"""calculates the core position as the least linear square solution
         of an (over-constrained) equation system
 
@@ -530,8 +485,8 @@ class HillasReconstructor(Reconstructor):
         tels = []
         dirs = []
         for tel_id, hillas in hillas_dict.items():
-            foclen = subarray.tel[tel_id].optics.effective_focal_length
-            max_dir, = guess_pix_direction(
+            foclen = subarray.tel[tel_id].optics.equivalent_focal_length
+            max_dir, = trafo.pixel_position_to_direction(
                 np.array([hillas.cen_x / u.m]) * u.m,
                 np.array([hillas.cen_y / u.m]) * u.m,
                 tel_phi[tel_id], tel_theta[tel_id], foclen)

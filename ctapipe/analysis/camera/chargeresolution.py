@@ -34,8 +34,6 @@ class ChargeResolutionCalculator(Component):
     variation_yedges : ndarray
         Edges of the Y bins for the variation histogram.
     """
-    name = 'ChargeResolutionCalculator'
-
     max_pe = Int(2000, help='Maximum pe to calculate the charge resolution '
                             'up to').tag(config=True)
     binning = Int(60, allow_none=True,
@@ -44,7 +42,7 @@ class ChargeResolutionCalculator(Component):
     log_bins = Bool(True, help='Bin the x axis linearly instead of '
                                'logarithmic.').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Calculator of charge resolution.
 

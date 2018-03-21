@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
+
 import matplotlib.pyplot as plt
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
-from ctapipe.calib import pedestals
 import numpy as np
+
+from ctapipe.calib import pedestals
+from ctapipe.io.eventsourcefactory import event_source
+from ctapipe.utils import get_dataset
+
 
 def plot_peds(peds, pedvars):
     """ make a quick plot of the pedestal values"""
@@ -37,17 +40,17 @@ if __name__ == '__main__':
 
     # loop over all events, all telescopes and all channels and call
     # the calc_peds function defined above to do some work:
-    for event in hessio_event_source(filename):
+    for event in event_source(filename):
         for telid in event.r0.tels_with_data:
-            for chan in range(event.r0.tel[telid].adc_samples.shape[0]):
+            for chan in range(event.r0.tel[telid].waveform.shape[0]):
 
                 print("CT{} chan {}:".format(telid, chan))
 
-                traces = event.r0.tel[telid].adc_samples[chan,...]
+                traces = event.r0.tel[telid].waveform[chan, ...]
 
-                peds, pedvars = pedestals.calc_pedestals_from_traces(traces,
-                                                                     start,
-                                                                     end)
+                peds, pedvars = pedestals.calc_pedestals_from_traces(
+                    traces, start, end
+                )
 
                 print("Number of samples: {}".format(traces.shape[1]))
                 print("Calculate over window:({},{})".format(start, end))

@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 __all__ = ['traitlets_config_to_fits', 'json_to_fits']
 
 
-def traitlets_config_to_fits(config, fits_filename, clobber=True):
-    '''Write a FITS file that represents configuration.
+def traitlets_config_to_fits(config, fits_filename, overwrite=True):
+    """Write a FITS file that represents configuration.
 
     Parameters
     ----------
@@ -18,19 +18,19 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
         a traitlets.config.loader.Config to write in FITS format
     fits_filename : str
         FITS file name to write
-    clobber : bool
+    overwrite : bool
         When True, overwrite the output file if exists.
 
     Raises
     ------
     OSError : If FITS file containing the traitlets config is not written
-    '''
+    """
 
     if not isinstance(config, Config):
         raise TypeError('Config must be an instance of traitlets.config.loader.Config')
 
     # hduList will contain one TableHDU per section
-    hduList = fits.HDUList()
+    hdu_list = fits.HDUList()
     # get all Configuration entries
     # loop over section
     for section, entry in config.items():
@@ -49,16 +49,16 @@ def traitlets_config_to_fits(config, fits_filename, clobber=True):
             header[key] = value
 
         table_0 = fits.TableHDU(data=None, header=header, name=section)
-        hduList.append(table_0)
+        hdu_list.append(table_0)
     try:
-        hduList.writeto(fits_filename, overwrite=True)
+        hdu_list.writeto(fits_filename, overwrite=overwrite)
     except OSError:
         logging.exception('Could not do save {}'.format(fits_filename))
         raise
 
 
-def json_to_fits(json_filename, fits_filename, clobber=True):
-    '''Write a FITS file that represents json file for traitlets configuration.
+def json_to_fits(json_filename, fits_filename, overwrite=True):
+    """Write a FITS file that represents json file for traitlets configuration.
 
     Parameters
     ----------
@@ -67,14 +67,14 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         Only one level of section is allowed.
     fits_filename : str
         FITS file name to write
-    clobber : bool
+    overwrite : bool
         When True, overwrite the output file if exists.
 
     Raises
     ------
     OSError : if FITS file containing a copy of json content is not written
     FileNotFoundError : if fits_filename could not be open
-    '''
+    """
     try:
         f = open(json_filename, 'r')
         # hduList will contain one TableHDU per section
@@ -120,7 +120,7 @@ def json_to_fits(json_filename, fits_filename, clobber=True):
         hduList.append(table_0)
         # write hduList to FITS file
         try:
-            hduList.writeto(fits_filename, overwrite=True)
+            hduList.writeto(fits_filename, overwrite=overwrite)
         except OSError:
             logging.exception('Could not do save {}'.format(fits_filename))
             raise
