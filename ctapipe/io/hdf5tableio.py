@@ -68,7 +68,9 @@ class HDF5TableWriter(TableWriter):
 
         if mode not in ['w', 'a']:
 
-            raise IOError('File {} cannot be opened in "{}" mode'.format(mode))
+            raise IOError('File {} cannot be opened in "{}" mode'.format(
+                filename, mode)
+            )
 
         super().__init__()
         self._schemas = {}
