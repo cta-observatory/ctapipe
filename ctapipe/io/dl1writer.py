@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from .hdftableio import HDF5TableWriter
+from . import HDF5TableWriter
 from ..core import Component
 from ..core import traits as tr
 
@@ -31,8 +31,8 @@ class DL1Writer(Component):
 
     def write(self, event):
 
-        self.writer.write(table_name='MC', container=event.mc)
+        self.writer.write(table_name='MC', containers=event.mc)
 
         for tel_id, cont in event.dl1.tel.items():
             table_name = self.get_table_name(tel_id)
-            self.writer.write(table_name=table_name, container=cont)
+            self.writer.write(table_name=table_name, containers=cont)
