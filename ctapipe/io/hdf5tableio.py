@@ -64,17 +64,22 @@ class HDF5TableWriter(TableWriter):
         any other arguments that will be passed through to `pytables.open()`
     """
 
-    def __init__(self, filename, group_name, **kwargs):
+    def __init__(self, filename, group_name, mode='w',  **kwargs):
         super().__init__()
         self._schemas = {}
         self._tables = {}
+        kwargs.update(mode=mode)
         self.open(filename, **kwargs)
-        self._group = self._h5file.create_group("/", group_name)
+        if '/' + group_name in self._h5file:
+            self._group = self._h5file.get_node('/' + group_name)
+        else:
+            self._group = self._h5file.create_group("/", group_name)
         self.log.debug("h5file: %s", self._h5file)
 
     def open(self, filename, **kwargs):
 
-        self._h5file = tables.open_file(filename, mode="w", **kwargs)
+        self.log.debug("kwargs for tables.open_file: %s", kwargs)
+        self._h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
 
