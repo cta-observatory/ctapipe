@@ -357,7 +357,8 @@ class SST1MR1Calibrator(CameraR1Calibrator):
     gain_drop_from_baseline_shift = interp1d(
         x=baseline_shift,
         y=gain_drop,
-        kind='cubic'
+        kind='cubic',
+        fill_value="extrapolate",
     )
 
     n_bins_for_baseline_estimation = Integer(1000).tag(config=True)
@@ -386,11 +387,12 @@ class SST1MR1Calibrator(CameraR1Calibrator):
             r1 = event.r1.tel[telescope_id]
 
             baseline_subtracted = r0.waveform - sst1m.digicam_baseline[:, np.newaxis]
-
+            print(sst1m.digicam_baseline, sst1m.digicam_baseline.min(), sst1m.digicam_baseline.mean(), sst1m.digicam_baseline.max())
             baseline_shift = sst1m.digicam_baseline - self.dark_baseline
+            print(baseline_shift)
             gain_drop = self.gain_drop_from_baseline_shift(baseline_shift)
 
-            uniform_over_camera = baseline_subtracted * gain_drop
+            uniform_over_camera = baseline_subtracted * gain_drop[:, np.newaxis]
             r1.waveform = uniform_over_camera.round().astype(np.int16)
         return event
 
