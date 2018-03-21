@@ -16,6 +16,7 @@ of the data.
 import os.path
 from abc import abstractmethod
 import numpy as np
+from scipy.interpolate import interp1d
 from ...core import Component, Factory
 from ...core.provenance import Provenance
 from ...io import EventSource
@@ -325,6 +326,39 @@ class SST1MR1Calibrator(CameraR1Calibrator):
         (see Section 3.3)
     *  record all applied corrections in SVC or MON streams.
     '''
+    cell_capacitance_in_farad = 85e-15
+    bias_resistance = 10e3
+    nsb_rate = np.logspace(-3, np.log10(50), 30)
+    gain_drop = (
+        1. / (
+            1. + (
+                nsb_rate *
+                cell_capacitance_in_farad *
+                bias_resistance * 1E9
+            )
+        )
+    )
+
+    # measured in a toy-MC here for the above mentioned nsb_rate
+    # the measturement takes some time, so we just put the results here
+    # https://github.com/cta-sst-1m/digicamtoy
+    # TODO: still have to find *the* exact source for these numbers
+    # but it is somewhere in that repo.
+    baseline_shift = np.array([
+        500.10844, 500.13456, 500.19772, 500.2697, 500.44418, 500.6094,
+        500.87226, 501.33124, 501.8768, 502.71168, 503.9574, 505.51968,
+        507.92038, 511.24914, 515.572, 521.41952, 528.5894, 537.03064,
+        547.04614, 557.76222, 568.03408, 577.88066, 586.55614, 593.50884,
+        598.97944, 603.33174, 606.54438, 608.84342, 610.4056, 611.94482,
+    ])
+    baseline_shift -= baseline_shift[0]
+
+
+    gain_drop_from_baseline_shift = interp1d(
+        x=baseline_shift,
+        y=gain_drop,
+        kind='cubic'
+    )
 
     n_bins_for_baseline_estimation = Integer(1000).tag(config=True)
     dark_baseline_path = Unicode(
@@ -343,21 +377,6 @@ class SST1MR1Calibrator(CameraR1Calibrator):
             role='r1.tel.svc.sst1m_dark_baseline'
         )
 
-    def gain_drop_from_mean(self, baseline_shift):
-        '''gain_drop (relative value, i.e. between 0 and 1) for every pixel
-
-        gain drop is a linear function of the NSB-rate. Since digicam is
-        dc-coupled the NSB rate is a linear function of the baseline-shift.
-        But there is a non-zero baseline also in total darkness.
-
-        So to know the baseline shift due to night sky background illumination
-        we need some "dark-baseline" measured in a dedicated "closed-lid-run"
-        before analysing physics data.
-
-        So this function implements just a linear function, whose constants
-        are currently being measured in the lab again.
-        '''
-        raise NotImplementedError
 
     def calibrate(self, event):
 
@@ -369,7 +388,7 @@ class SST1MR1Calibrator(CameraR1Calibrator):
             baseline_subtracted = r0.waveform - sst1m.digicam_baseline[:, np.newaxis]
 
             baseline_shift = sst1m.digicam_baseline - self.dark_baseline
-            gain_drop = self.gain_drop_from_mean(baseline_shift)
+            gain_drop = self.gain_drop_from_baseline_shift(baseline_shift)
 
             uniform_over_camera = baseline_subtracted * gain_drop
             r1.waveform = uniform_over_camera.round().astype(np.int16)
