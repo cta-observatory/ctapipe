@@ -122,18 +122,20 @@ class CHECMWaveformCleaner(WaveformCleaner):
         """
 
     def apply(self, waveforms):
+        samples = waveforms[0]
+
         # Subtract initial baseline
-        baseline_sub = waveforms - np.mean(waveforms[:, :32], axis=1)[:, None]
+        baseline_sub = samples - np.mean(samples[:, :32], axis=1)[:, None]
 
         # Obtain waveform with pulse masked
         baseline_sub_b = baseline_sub[None, ...]
         window, _ = self.extractor.get_window_from_waveforms(waveforms)
-        windowed = np.ma.array(baseline_sub_b, mask=window)
+        windowed = np.ma.array(baseline_sub_b, mask=window[0])
         no_pulse = np.ma.filled(windowed, 0)[0]
 
         # Get smooth baseline (no pulse)
         smooth_flat = np.convolve(no_pulse.ravel(), self.kernel, "same")
-        smooth_baseline = np.reshape(smooth_flat, waveforms.shape)
+        smooth_baseline = np.reshape(smooth_flat, samples.shape)
         no_pulse_std = np.std(no_pulse, axis=1)
         smooth_baseline_std = np.std(smooth_baseline, axis=1)
         with np.errstate(divide='ignore', invalid='ignore'):
@@ -146,7 +148,7 @@ class CHECMWaveformCleaner(WaveformCleaner):
         # Subtract smooth baseline
         cleaned = smooth_wf - smooth_baseline
 
-        self.stages['0: raw'] = waveforms
+        self.stages['0: raw'] = samples
         self.stages['1: baseline_sub'] = baseline_sub
         self.stages['window'] = window
         self.stages['2: no_pulse'] = no_pulse
