@@ -15,11 +15,10 @@ of the data.
 """
 from abc import abstractmethod
 
-from .gainselection import ThresholdGainSelector
+from .gainselection import ThresholdGainSelector, SimpleGainSelector
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
-from .gainselection import SimpleGainSelector
 
 __all__ = [
     'NullR1Calibrator',
@@ -50,7 +49,7 @@ class CameraR1Calibrator(Component):
     kwargs
     """
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
         """
         Parent class for the r1 calibrators. Fills the r1 container.
 
@@ -68,6 +67,8 @@ class CameraR1Calibrator(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
         self._r0_empty_warn = False
+
+        self.gain_selector = gain_selector or SimpleGainSelector(tool, config)
 
     @abstractmethod
     def calibrate(self, event):
@@ -133,10 +134,9 @@ class NullR1Calibrator(CameraR1Calibrator):
     """
 
     def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
-        super().__init__(config, tool, **kwargs)
+        super().__init__(config, tool, gain_selector, **kwargs)
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
-        self.gain_selector = gain_selector or SimpleGainSelector(tool, config)
 
     def calibrate(self, event):
         for telid in event.r0.tels_with_data:
@@ -176,8 +176,8 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     # the asymmetry of the single p.e. amplitude  distribution and the
     # electronic noise added to the signals. Default value is for GCT.
     #
-    # To correctly calibrate to number of photoelectron, a fresh SPE calibration
-    # should be applied using a SPE sim_telarray run with an
+    # To correctly calibrate to number of photoelectron, a fresh SPE
+    # calibration should be applied using a SPE sim_telarray run with an
     # artificial light source.
     #
     # TODO: Handle calib_scale differently per simlated telescope
@@ -185,11 +185,11 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     calib_scale = 1.05
 
     def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+        if gain_selector is None:
+            gain_selector = ThresholdGainSelector(config, tool)
 
-        self.gain_selector = gain_selector
-        if self.gain_selector is None:
-            self.gain_selector = ThresholdGainSelector(config, tool)
+        super().__init__(config=config, tool=tool,
+                         gain_selector=gain_selector, **kwargs)
 
     def calibrate(self, event):
         if event.meta['origin'] != 'hessio':
@@ -205,10 +205,9 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
                 calibrated = (samples - ped[..., None]) * gain[..., None]
 
                 cam_id = event.inst.subarray.tel[telid].camera.cam_id
-                waveform, mask = self.gain_selector.select_gains(cam_id,
-                                                                 calibrated)
+                wf, mask = self.gain_selector.select_gains(cam_id, calibrated)
                 event.r1.tel[telid].waveform_full = calibrated
-                event.r1.tel[telid].waveform = waveform
+                event.r1.tel[telid].waveform = wf
                 event.r1.tel[telid].gain_channel = mask
 
 
@@ -307,7 +306,13 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
 
         if self.check_r0_exists(event, self.telid):
             samples = event.r0.tel[self.telid].waveform
-            event.r1.tel[self.telid].waveform = samples.astype('float32')
+
+            cam_id = event.inst.subarray.tel[self.telid].camera.cam_id
+            waveform, mask = self.gain_selector.select_gains(cam_id,
+                                                             samples)
+            event.r1.tel[self.telid].waveform_full = samples.astype('float32')
+            event.r1.tel[self.telid].waveform = waveform.astype('float32')
+            event.r1.tel[self.telid].gain_channel = mask
 
     def real_calibrate(self, event):
         """
@@ -323,10 +328,17 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
                              'non-targetio event.')
 
         if self.check_r0_exists(event, self.telid):
-            samples = event.r0.tel[self.telid].waveform[0]
+            samples = event.r0.tel[self.telid].waveform
+
+            cam_id = event.inst.subarray.tel[self.telid].camera.cam_id
+            waveform, mask = self.gain_selector.select_gains(cam_id,
+                                                             samples)
+            event.r1.tel[self.telid].waveform_full = samples.astype('float32')
+            event.r1.tel[self.telid].gain_channel = mask
+
             fci = event.targetio.tel[self.telid].first_cell_ids
-            r1 = event.r1.tel[self.telid].waveform[0]
-            self.calibrator.ApplyEvent(samples, fci, r1)
+            r1 = event.r1.tel[self.telid].waveform
+            self.calibrator.ApplyEvent(waveform, fci, r1)
 
 
 class CameraR1CalibratorFactory(Factory):

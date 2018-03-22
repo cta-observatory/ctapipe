@@ -196,12 +196,12 @@ class CameraDL1Calibrator(Component):
             if self.check_dl0_exists(event, telid):
                 dl0_tel = event.dl0.tel[telid]
                 waveforms = event.dl0.tel[telid].waveform
-                n_samples = waveforms.shape[1]
+                n_pixels, n_samples = waveforms.shape
                 if n_samples == 1:
                     # To handle ASTRI and dst
                     corrected = waveforms[:, 0]
                     window = np.ones(waveforms.shape)
-                    peakpos = np.zeros(waveforms.shape[0:1])
+                    peakpos = np.zeros(n_pixels)
                     cleaned = waveforms
                 else:
                     # Clean waveforms
