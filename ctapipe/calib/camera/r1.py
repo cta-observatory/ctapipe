@@ -382,11 +382,11 @@ class SST1MR1Calibrator(CameraR1Calibrator):
 
         for telescope_id in event.r0.tels_with_data:
             r0 = event.r0.tel[telescope_id]
-            sst1m = event.sst1m.tel[telescope_id]
+            digicam_baseline = event.sst1m.tel[telescope_id].digicam_baseline
             r1 = event.r1.tel[telescope_id]
 
-            baseline_subtracted = r0.waveform - sst1m.digicam_baseline[:, np.newaxis]
-            baseline_shift = sst1m.digicam_baseline - self.dark_baseline
+            baseline_subtracted = r0.waveform - digicam_baseline[:, np.newaxis]
+            baseline_shift = digicam_baseline - self.dark_baseline
             gain_drop = self.gain_drop_from_baseline_shift(baseline_shift)
 
             uniform_over_camera = baseline_subtracted * gain_drop[:, np.newaxis]
