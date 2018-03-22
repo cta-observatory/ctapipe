@@ -72,13 +72,15 @@ class HDF5TableWriter(TableWriter):
         self._tables = {}
         self.open(filename, **kwargs)
 
-        if '/' + group_name in self._h5file:
+        root = '/'  # TODO allow user to set the full path of the group
 
-            self._group = self._h5file.get_node('/' + group_name)
+        if root + group_name in self._h5file:
+
+            self._group = self._h5file.get_node(root + group_name)
 
         else:
 
-            self._group = self._h5file.create_group("/", group_name)
+            self._group = self._h5file.create_group(root, group_name)
 
         self.log.debug("h5file: %s", self._h5file)
 
