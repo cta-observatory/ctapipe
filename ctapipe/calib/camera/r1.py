@@ -339,8 +339,8 @@ class SST1MR1Calibrator(CameraR1Calibrator):
         )
     )
 
-    # measured in a toy-MC here for the above mentioned nsb_rate
-    # the measturement takes some time, so we just put the results here
+    # measured in a toy-MC for the above mentioned nsb_rate
+    # the simulation takes some time, so we just put the results here
     # https://github.com/cta-sst-1m/digicamtoy
     # TODO: still have to find *the* exact source for these numbers
     # but it is somewhere in that repo.
