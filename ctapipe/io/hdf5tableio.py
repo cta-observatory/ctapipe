@@ -260,11 +260,9 @@ class HDF5TableReader(TableReader):
         ----------
         filename: str
             name of hdf5 file
-        mode: str
-            'r+', 'a'
         kwargs:
             any other arguments that will be passed through to
-            `pytables.open()`
+            `pytables.open()`.
         """
 
         super().__init__()
