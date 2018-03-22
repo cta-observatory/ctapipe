@@ -86,6 +86,7 @@ class HDF5TableWriter(TableWriter):
 
     def open(self, filename, **kwargs):
 
+        self.log.debug("kwargs for tables.open_file: %s", kwargs)
         self._h5file = tables.open_file(filename, **kwargs)
 
     def close(self):
