@@ -115,7 +115,7 @@ class SimpleGainSelector(GainSelector):
         chan = Channel[self.channel].value
         return (
             multi_gain_waveform[chan],
-            np.full(multi_gain_waveform.shape[1], self.channel, dtype=np.bool)
+            (np.ones(multi_gain_waveform.shape[1]) * chan).astype(np.bool)
         )
 
 
