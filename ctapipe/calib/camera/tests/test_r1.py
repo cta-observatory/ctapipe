@@ -149,12 +149,12 @@ def test_sst1m_r1_calibration():
             'example_10evts.fits.fz'
         )
     )
-    with NamedTemporaryFile(suffix='.npz') as named_tmp_file:
+    with NamedTemporaryFile(suffix='.npz') as fake_baseline_file:
 
-        np.savez(named_tmp_file.name, baseline=np.ones(1296) * 200)
+        np.savez(fake_baseline_file.name, baseline=np.ones(1296) * 200)
 
         calibrator = SST1MR1Calibrator(
-            dark_baseline_path=named_tmp_file.name
+            dark_baseline_path=fake_baseline_file.name
         )
         eventsource = EventSourceFactory.produce(
             input_url=sst1m_example_file
