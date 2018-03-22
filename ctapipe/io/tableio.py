@@ -89,7 +89,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def open(self, filename, mode, **kwargs):
+    def open(self, filename, **kwargs):
         """
         open an output file
 
@@ -174,7 +174,7 @@ class TableReader(Component, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def open(self, filename, mode, **kwargs):
+    def open(self, filename, **kwargs):
         pass
 
     @abstractmethod
