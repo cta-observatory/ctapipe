@@ -20,7 +20,7 @@ from scipy.interpolate import interp1d
 from ...core import Component, Factory
 from ...core.provenance import Provenance
 from ...io import EventSource
-from ...core.traits import Unicode, Integer
+from ...core.traits import Unicode
 
 __all__ = [
     'NullR1Calibrator',
@@ -361,7 +361,6 @@ class SST1MR1Calibrator(CameraR1Calibrator):
         fill_value="extrapolate",
     )
 
-    n_bins_for_baseline_estimation = Integer(1000).tag(config=True)
     dark_baseline_path = Unicode(
         "",
         help='Path to a SST1M dark-baseline file (at the moment .npz)'
