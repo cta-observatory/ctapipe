@@ -187,21 +187,21 @@ def test_cannot_read_with_writer(temp_h5_file):
 
 def test_cannot_read_plus_with_writer(temp_h5_file):
 
-    with pytest.raises(IOError) as exc:
+    with pytest.raises(IOError):
         with HDF5TableWriter(temp_h5_file, 'test', mode='r+'):
             pass
 
 
 def test_cannot_write_with_reader(temp_h5_file):
 
-    with pytest.raises(IOError) as exc:
+    with pytest.raises(IOError):
         with HDF5TableReader(temp_h5_file, mode='w'):
             pass
 
 
 def test_cannot_append_with_reader(temp_h5_file):
 
-    with pytest.raises(IOError) as exc:
+    with pytest.raises(IOError):
         with HDF5TableReader(temp_h5_file, mode='a'):
             pass
 
@@ -212,29 +212,53 @@ def test_append_mode(temp_h5_file):
 
         a = Field(int)
 
-    A = ContainerA()
-    A.a = 1
+    a = ContainerA()
+    a.a = 1
 
     # First open with 'w' mode to clear the file and add a Container
     with HDF5TableWriter(temp_h5_file, 'group') as h5:
 
-        h5.write('table_1', A)
+        h5.write('table_1', a)
 
     # Try to append A again
     with HDF5TableWriter(temp_h5_file, 'group', mode='a') as h5:
 
-        h5.write('table_2', A)
+        h5.write('table_2', a)
 
     # Check if file has two tables with a = 1
     with HDF5TableReader(temp_h5_file) as h5:
 
-        for A1 in h5.read('table_1', ContainerA()):
+        for a in h5.read('table_1', ContainerA()):
 
-            assert A1.a == 1
+            assert a.a == 1
 
-        for A2 in h5.read('table_2', ContainerA()):
+        for a in h5.read('table_2', ContainerA()):
 
-            assert A2.a == 1
+            assert a.a == 1
+
+
+def test_write_to_any_location(temp_h5_file):
+
+    loc = '/path/path_1'
+
+    class ContainerA(Container):
+
+        a = Field(int)
+
+    A = ContainerA()
+    A.a = 1
+
+    with HDF5TableWriter(temp_h5_file, 'group_1', root_uep=loc) as h5:
+
+        for _ in range(5):
+
+            h5.write('table', A)
+
+    with HDF5TableReader(temp_h5_file) as h5:
+
+        for A in h5.read(loc + '/group_1/table', ContainerA()):
+
+            assert A.a == 1
 
 
 if __name__ == '__main__':
