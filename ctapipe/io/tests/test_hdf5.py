@@ -206,6 +206,32 @@ def test_cannot_append_with_reader(temp_h5_file):
             pass
 
 
+def test_append_mode(temp_h5_file):
+
+    class ContainerA(Container):
+
+        a = Field(int)
+
+    A = ContainerA()
+    A.a = 1
+
+    # First open with 'w' mode to clear the file and add a Container
+    with HDF5TableWriter(temp_h5_file, 'group') as h5:
+
+        h5.write('table_1', A)
+
+    # Try to append A again
+    with HDF5TableWriter(temp_h5_file, 'group', mode='a') as h5:
+
+        h5.write('table_2', A)
+
+    # Check if file has two tables with a = 1
+    with HDF5TableReader(temp_h5_file) as h5:
+
+        assert h5.read('table_1') == 1
+        assert h5.read('table_2') == 1
+
+
 if __name__ == '__main__':
 
     import logging
