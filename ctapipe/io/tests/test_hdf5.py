@@ -176,6 +176,36 @@ def test_closing_writer(temp_h5_file):
         h5_table.close()
 
 
+def test_cannot_read_with_writer(temp_h5_file):
+
+    with pytest.raises(IOError) as exc:
+
+        with HDF5TableWriter(temp_h5_file, 'test', mode='r'):
+
+            pass
+
+
+def test_cannot_read_plus_with_writer(temp_h5_file):
+
+    with pytest.raises(IOError) as exc:
+        with HDF5TableWriter(temp_h5_file, 'test', mode='r+'):
+            pass
+
+
+def test_cannot_write_with_reader(temp_h5_file):
+
+    with pytest.raises(IOError) as exc:
+        with HDF5TableReader(temp_h5_file, mode='w'):
+            pass
+
+
+def test_cannot_append_with_reader(temp_h5_file):
+
+    with pytest.raises(IOError) as exc:
+        with HDF5TableReader(temp_h5_file, mode='a'):
+            pass
+
+
 if __name__ == '__main__':
 
     import logging
