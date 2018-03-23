@@ -178,7 +178,7 @@ def test_closing_writer(temp_h5_file):
 
 def test_cannot_read_with_writer(temp_h5_file):
 
-    with pytest.raises(IOError) as exc:
+    with pytest.raises(IOError):
 
         with HDF5TableWriter(temp_h5_file, 'test', mode='r'):
 
