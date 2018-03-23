@@ -246,20 +246,20 @@ def test_write_to_any_location(temp_h5_file):
 
         a = Field(int)
 
-    A = ContainerA()
-    A.a = 1
+    a = ContainerA()
+    a.a = 1
 
     with HDF5TableWriter(temp_h5_file, 'group_1', root_uep=loc) as h5:
 
         for _ in range(5):
 
-            h5.write('table', A)
+            h5.write('table', a)
 
     with HDF5TableReader(temp_h5_file) as h5:
 
-        for A in h5.read(loc + '/group_1/table', ContainerA()):
+        for a in h5.read(loc + '/group_1/table', ContainerA()):
 
-            assert A.a == 1
+            assert a.a == 1
 
 
 if __name__ == '__main__':
