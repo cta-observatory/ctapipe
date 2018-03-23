@@ -78,7 +78,7 @@ class HDF5TableWriter(TableWriter):
         self._schemas = {}
         self._tables = {}
 
-        if mode not in ['a', 'w']:
+        if mode not in ['a', 'w', 'r+']:
 
             raise IOError('The mode {} is not supported for writing'.
                           format(mode))
@@ -283,13 +283,7 @@ class HDF5TableReader(TableReader):
 
         super().__init__()
         self._tables = {}
-
-        if 'mode' in kwargs:
-
-            if kwargs['mode'] not in ['r', 'r+']:
-
-                raise IOError('The mode {} is not supported for reading'
-                              .format(kwargs['mode']))
+        kwargs.update(mode='r')
 
         self.open(filename, **kwargs)
 
