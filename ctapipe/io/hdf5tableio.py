@@ -62,25 +62,29 @@ class HDF5TableWriter(TableWriter):
         Writer (it will be placed under "/" in the file)
     kwargs:
         any other arguments that will be passed through to `pytables.open()`.
-        e.g. to use `pytables` append mode pass : `mode='a'`
+        e.g. to set the compression level to 7 pass : `filters=tables.Filters(
+        complevel=7)`
+
     """
 
-    def __init__(self, filename, group_name, **kwargs):
+    def __init__(self, filename, group_name, mode='w', root_uep='/', **kwargs):
 
         super().__init__()
         self._schemas = {}
         self._tables = {}
+
+        # root_uep = '/'
+        kwargs.update(mode=mode, root_uep=root_uep)
+
         self.open(filename, **kwargs)
 
-        root = '/'  # TODO allow user to set the full path of the group
+        if root_uep + group_name in self._h5file:
 
-        if root + group_name in self._h5file:
-
-            self._group = self._h5file.get_node(root + group_name)
+            self._group = self._h5file.get_node(root_uep + group_name)
 
         else:
 
-            self._group = self._h5file.create_group(root, group_name)
+            self._group = self._h5file.create_group(root_uep + group_name)
 
         self.log.debug("h5file: %s", self._h5file)
 
