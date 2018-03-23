@@ -73,7 +73,6 @@ class HDF5TableWriter(TableWriter):
         self._schemas = {}
         self._tables = {}
 
-        # root_uep = '/'
         kwargs.update(mode=mode, root_uep=root_uep)
 
         self.open(filename, **kwargs)
