@@ -50,6 +50,10 @@ class NectarCAMEventSource(EventSource):
             # not even a fits file
             return False
 
+        except IndexError:
+            # A fits file of a different format
+            return False
+
         is_protobuf_zfits_file = (
             (h['XTENSION'] == 'BINTABLE') and
             (h['EXTNAME'] == 'Events') and
