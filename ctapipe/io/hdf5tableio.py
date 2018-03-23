@@ -88,7 +88,7 @@ class HDF5TableWriter(TableWriter):
 
         else:
 
-            self._group = self._h5file.create_group(root_uep + group_name)
+            self._group = self._h5file.create_group(root_uep, group_name)
 
         self.log.debug("h5file: %s", self._h5file)
 
