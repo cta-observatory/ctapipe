@@ -228,8 +228,13 @@ def test_append_mode(temp_h5_file):
     # Check if file has two tables with a = 1
     with HDF5TableReader(temp_h5_file) as h5:
 
-        assert h5.read('table_1') == 1
-        assert h5.read('table_2') == 1
+        for A1 in h5.read('table_1', ContainerA()):
+
+            assert A1.a == 1
+
+        for A2 in h5.read('table_2', ContainerA()):
+
+            assert A2.a == 1
 
 
 if __name__ == '__main__':
