@@ -176,6 +176,92 @@ def test_closing_writer(temp_h5_file):
         h5_table.close()
 
 
+def test_cannot_read_with_writer(temp_h5_file):
+
+    with pytest.raises(IOError):
+
+        with HDF5TableWriter(temp_h5_file, 'test', mode='r'):
+
+            pass
+
+
+def test_cannot_write_with_reader(temp_h5_file):
+
+    with HDF5TableReader(temp_h5_file, mode='w') as h5:
+
+        assert h5._h5file.mode == 'r'
+
+
+def test_cannot_append_with_reader(temp_h5_file):
+
+    with HDF5TableReader(temp_h5_file, mode='a') as h5:
+
+        assert h5._h5file.mode == 'r'
+
+
+def test_cannot_r_plus_with_reader(temp_h5_file):
+
+    with HDF5TableReader(temp_h5_file, mode='r+') as h5:
+
+        assert h5._h5file.mode == 'r'
+
+
+def test_append_mode(temp_h5_file):
+
+    class ContainerA(Container):
+
+        a = Field(int)
+
+    a = ContainerA()
+    a.a = 1
+
+    # First open with 'w' mode to clear the file and add a Container
+    with HDF5TableWriter(temp_h5_file, 'group') as h5:
+
+        h5.write('table_1', a)
+
+    # Try to append A again
+    with HDF5TableWriter(temp_h5_file, 'group', mode='a') as h5:
+
+        h5.write('table_2', a)
+
+    # Check if file has two tables with a = 1
+    with HDF5TableReader(temp_h5_file) as h5:
+
+        for a in h5.read('/group/table_1', ContainerA()):
+
+            assert a.a == 1
+
+        for a in h5.read('/group/table_2', ContainerA()):
+
+            assert a.a == 1
+
+
+@pytest.mark.xfail
+def test_write_to_any_location(temp_h5_file):
+
+    loc = '/path/path_1'
+
+    class ContainerA(Container):
+
+        a = Field(int)
+
+    a = ContainerA()
+    a.a = 1
+
+    with HDF5TableWriter(temp_h5_file, 'group_1', root_uep=loc) as h5:
+
+        for _ in range(5):
+
+            h5.write('table', a)
+
+    with HDF5TableReader(temp_h5_file) as h5:
+
+        for a in h5.read(loc + '/group_1/table', ContainerA()):
+
+            assert a.a == 1
+
+
 if __name__ == '__main__':
 
     import logging

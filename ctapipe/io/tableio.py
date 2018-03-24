@@ -174,7 +174,7 @@ class TableReader(Component, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def open(self, filename):
+    def open(self, filename, **kwargs):
         pass
 
     @abstractmethod
