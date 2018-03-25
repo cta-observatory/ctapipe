@@ -337,11 +337,18 @@ class HDF5TableReader(TableReader):
         for key in tab.attrs._f_list():
             container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name, container):
+    def read(self, table_name: str , container: Container):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
+                  
+        Parameters
+        ----------
+        table_name: str
+            name of table to read from
+        container : ctapipe.core.Container
+            Container instance to fill
         """
         if table_name not in self._tables:
             tab = self._setup_table(table_name, container)

@@ -80,3 +80,4 @@ distribute-*.tar.gz
 
 *.pstats
 target
+.mypy_cache
