@@ -79,7 +79,6 @@ class HDF5TableWriter(TableWriter):
         self._tables = {}
 
         if mode not in ['a', 'w', 'r+']:
-
             raise IOError('The mode {} is not supported for writing'.
                           format(mode))
 
@@ -137,7 +136,7 @@ class HDF5TableWriter(TableWriter):
 
                 if self._is_column_excluded(table_name, col_name):
                     self.log.debug("excluded column: %s/%s",
-                                   table_name, col_name )
+                                   table_name, col_name)
                     continue
 
                 if isinstance(value, Quantity):
@@ -208,7 +207,8 @@ class HDF5TableWriter(TableWriter):
         row = table.row
 
         for container in containers:
-            for colname in filter(lambda c: c in table.colnames, container.keys()):
+            for colname in filter(lambda c: c in table.colnames,
+                                  container.keys()):
                 value = self._apply_col_transform(
                     table_name, colname, container[colname]
                 )
@@ -233,7 +233,7 @@ class HDF5TableWriter(TableWriter):
             container to write
         """
         if isinstance(containers, Container):
-            containers = (containers, )
+            containers = (containers,)
 
         if table_name not in self._schemas:
             self._setup_new_table(table_name, containers)
@@ -337,11 +337,18 @@ class HDF5TableReader(TableReader):
         for key in tab.attrs._f_list():
             container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name, container):
+    def read(self, table_name: str, container: Container):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
+
+        Parameters
+        ----------
+        table_name: str
+            name of table to read from
+        container : ctapipe.core.Container
+            Container instance to fill
         """
         if table_name not in self._tables:
             tab = self._setup_table(table_name, container)
