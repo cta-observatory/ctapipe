@@ -27,7 +27,7 @@ def test_event_id():
     source = TargetIOEventSource(input_url=url)
     event_id = 2
     source._get_event_by_id(event_id)
-    assert(event_id == source._tio_reader.fCurrentEventID)
+    assert(event_id == source._reader.fCurrentEventID)
     assert(round(source._r1_samples[0, 0, 0]) == -274)
 
 
