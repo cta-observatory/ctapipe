@@ -342,7 +342,7 @@ class HDF5TableReader(TableReader):
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
-                  
+
         Parameters
         ----------
         table_name: str
