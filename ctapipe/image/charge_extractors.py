@@ -266,6 +266,7 @@ class Integrator(ChargeExtractor):
         integration_window = (ind >= start[..., None]) & (ind < end[..., None])
         return integration_window
 
+
     @staticmethod
     def extract_from_window(waveforms, window):
         """
@@ -763,7 +764,7 @@ class HiPeCTAIntegrator(ChargeExtractor):
         n_sample = waveforms.shape[2]
         charge = np.ones((n_chan, n_pix))
         peakpos = self.get_peakpos(waveforms)
-        window =  np.ones((n_chan, n_pix, n_sample))
+        window = np.ones((n_chan, n_pix, n_sample))
 
         return charge, peakpos, window
 
