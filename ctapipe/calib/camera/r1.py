@@ -19,11 +19,6 @@ from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
 
-try:
-    import hipecta
-except ModuleNotFoundError:
-    self.log("Package hiPeCTA is not install on this system. You cannot use HiPeCTA_HESSIOR1Calibrator calibrator")
-
 __all__ = [
     'NullR1Calibrator',
     'HESSIOR1Calibrator',
@@ -166,22 +161,30 @@ class HiPeCTA_HESSIOR1Calibrator(CameraR1Calibrator):
     kwargs
     """
 
-    calib_scale = 1.05
-    """
-    CALIB_SCALE is only relevant for MC calibration.
+    def __init__(self, config=None, tool=None, **kwargs):
+        try:
+            global hipecta
+            import hipecta
+        except ModuleNotFoundError:
+            raise NotImplementedError("Package HiPeCTA is not install on this system. You cannot instantiate HiPeCTA_HESSIOR1Calibrator calibrator")
 
-    CALIB_SCALE is the factor needed to transform from mean p.e. units to
-    units of the single-p.e. peak: Depends on the collection efficiency,
-    the asymmetry of the single p.e. amplitude  distribution and the
-    electronic noise added to the signals. Default value is for GCT.
+        calib_scale = 1.05
+        """
+        CALIB_SCALE is only relevant for MC calibration.
 
-    To correctly calibrate to number of photoelectron, a fresh SPE calibration
-    should be applied using a SPE sim_telarray run with an
-    artificial light source.
-    """
-    # TODO: Handle calib_scale differently per simlated telescope
+        CALIB_SCALE is the factor needed to transform from mean p.e. units to
+        units of the single-p.e. peak: Depends on the collection efficiency,
+        the asymmetry of the single p.e. amplitude  distribution and the
+        electronic noise added to the signals. Default value is for GCT.
+
+        To correctly calibrate to number of photoelectron, a fresh SPE calibration
+        should be applied using a SPE sim_telarray run with an
+        artificial light source.
+        """
+        # TODO: Handle calib_scale differently per simlated telescope
 
     def calibrate(self, event):
+
         if event.meta['origin'] != 'hessio':
             raise ValueError('Using HPC_HESSIOR1Calibrator to calibrate a '
                              'non-hessio event.')
