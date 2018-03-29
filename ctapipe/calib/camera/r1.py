@@ -165,7 +165,7 @@ class HiPeCTA_HESSIOR1Calibrator(CameraR1Calibrator):
         try:
             global hipecta
             import hipecta
-        except ModuleNotFoundError:
+        except ImportError :
             raise NotImplementedError("Package HiPeCTA is not install on this system. You cannot instantiate HiPeCTA_HESSIOR1Calibrator calibrator")
 
         calib_scale = 1.05
