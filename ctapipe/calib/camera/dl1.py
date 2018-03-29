@@ -12,6 +12,11 @@ import numpy as np
 from ...core import Component
 from ...core.traits import Float
 from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
+try:
+    from hipecta import zeros, ones
+except ModuleNotFoundError:
+    from numpy import zeros, ones
+    self.log("Package hiPeCTA is not install on this system. dl1 module results will not be data aligned")
 
 __all__ = ['CameraDL1Calibrator']
 
@@ -47,7 +52,7 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
         Value of the integration correction for this telescope for each
         channel.
     """
-    correction = np.ones(n_chan)
+    correction = ones(n_chan)
     for chan in range(n_chan):
         pshape = pulse_shape[chan]
         if pshape.all() is False or time_slice == 0 or refstep == 0:
@@ -179,7 +184,7 @@ class CameraDL1Calibrator(Component):
             # Don't apply correction when window_shift or window_width
             # does not exist in extractor, or when container does not have
             # a reference pulse shape
-            return np.ones(event.inst.num_channels[telid])
+            return ones(event.inst.num_channels[telid])
 
     def calibrate(self, event):
         """
@@ -199,7 +204,7 @@ class CameraDL1Calibrator(Component):
                 if n_samples == 1:
                     # To handle ASTRI and dst
                     corrected = waveforms[..., 0]
-                    window = np.ones(waveforms.shape)
+                    window = ones(waveforms.shape)
                     peakpos = np.zeros(waveforms.shape[0:2])
                     cleaned = waveforms
                 else:
