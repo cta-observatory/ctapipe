@@ -21,6 +21,7 @@ __all__ = [
     'hillas_parameters_2',
     'hillas_parameters_3',
     'hillas_parameters_4',
+    'hipecta_hillas_parameters',
     'HillasParameterizationError',
 ]
 
@@ -654,6 +655,73 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
                                 r=r * unit,
                                 phi=Angle(phi * u.rad),
                                 psi=Angle(psi * u.rad),
+                                miss=miss * unit,
+                                skewness=skewness, kurtosis=kurtosis)
+
+def hipecta_hillas_parameters(geom: CameraGeometry, image, container=False):
+    """Compute Hillas parameters for a given shower image thank to HiPeCTA library.
+
+    Parameters
+    ----------
+    geom: ctapipe.instrument.CameraGeometry
+        Camera geometry
+    image : array_like
+        Pixel values
+    container: bool
+        return a HillasParametersContainer instead of a tuple
+
+    Returns
+    -------
+    MomentParameters:
+        tuple of hillas parameters
+    HillasParametersContainer:
+        container of hillas parametesr
+    """
+    try:
+        from hipecta.image import hillas
+    except ImportError:
+        raise NotImplementedError("Package HiPeCTA is not install on this system. You cannot execute hipecta_hillas_parameters")
+
+
+    if not isinstance(geom, CameraGeometry):
+        raise ValueError("Hillas Parameters API has changed: hillas_parameters("
+                         "geom, image). Please update your code")
+
+    unit = geom.pix_x.unit
+    pos_x = geom.pix_x
+    pos_y = geom.pix_y
+    hillas_param = hillas(image, pos_x, pos_y)
+    m_x = hillas_param[0]
+    m_y = hillas_param[1]
+    phi = hillas_param[2]
+    width = hillas_param[3]
+    length = hillas_param[4]
+    imageAmplitude = hillas_param[5]
+    #nbSelectedPixel = hillas_param[6]
+    skewness = hillas_param[7]
+    #skewnessPhi = hillas_param[8]
+    kurtosis = hillas_param[9]
+    direction = hillas_param[10]
+    #hofmannSeparation = hillas_param[11]
+    miss = 0
+    r = 0
+
+    if container:
+        return HillasParametersContainer(x=m_x * unit, y=m_y * unit, r=r * unit,
+                                         phi=Angle(phi * u.rad),
+                                         intensity=imageAmplitude,
+                                         length=length * unit,
+                                         width=width * unit,
+                                         psi=Angle(direction * u.rad),
+                                         skewness=skewness,
+                                         kurtosis=kurtosis)
+
+    else:
+        return MomentParameters(size=imageAmplitude, cen_x=m_x * unit, cen_y=m_y * unit,
+                                length=length * unit, width=width * unit,
+                                r=r * unit,
+                                phi=Angle(phi * u.rad),
+                                psi=Angle(direction * u.rad),
                                 miss=miss * unit,
                                 skewness=skewness, kurtosis=kurtosis)
 
