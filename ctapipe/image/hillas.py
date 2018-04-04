@@ -679,6 +679,7 @@ def hipecta_hillas_parameters(geom: CameraGeometry, image, container=False):
     """
     try:
         from hipecta.image import hillas
+        from hipecta.memory import empty, copyto
     except ImportError:
         raise NotImplementedError("Package HiPeCTA is not install on this system. You cannot execute hipecta_hillas_parameters")
 
@@ -688,8 +689,10 @@ def hipecta_hillas_parameters(geom: CameraGeometry, image, container=False):
                          "geom, image). Please update your code")
 
     unit = geom.pix_x.unit
-    pos_x = geom.pix_x
-    pos_y = geom.pix_y
+    pos_x = empty(geom.pix_x.value.shape, dtype=np.float32)
+    pos_y = empty(geom.pix_y.value.shape, dtype=np.float32)
+    copyto(pos_x, geom.pix_x.value)
+    copyto(pos_y, geom.pix_y.value)
     hillas_param = hillas(image, pos_x, pos_y)
     m_x = hillas_param[0]
     m_y = hillas_param[1]
@@ -717,6 +720,7 @@ def hipecta_hillas_parameters(geom: CameraGeometry, image, container=False):
                                          kurtosis=kurtosis)
 
     else:
+
         return MomentParameters(size=imageAmplitude, cen_x=m_x * unit, cen_y=m_y * unit,
                                 length=length * unit, width=width * unit,
                                 r=r * unit,
@@ -724,6 +728,7 @@ def hipecta_hillas_parameters(geom: CameraGeometry, image, container=False):
                                 psi=Angle(direction * u.rad),
                                 miss=miss * unit,
                                 skewness=skewness, kurtosis=kurtosis)
+
 
 
 # use the 4 version by default.

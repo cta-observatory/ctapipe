@@ -226,9 +226,9 @@ class CameraDL1Calibrator(Component):
 
                 try:
                     from hipecta.memory import copyto, zeros
-                    corrected_align = zeros(charge.shape)
+                    corrected_align = zeros(corrected.shape, dtype=np.float32)
                     copyto(corrected_align, corrected)
-                    corrected=corrected_align
+                    corrected = corrected_align
                 except ImportError:
                     pass
 

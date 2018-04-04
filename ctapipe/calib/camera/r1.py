@@ -18,6 +18,7 @@ from abc import abstractmethod
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
+from numpy import float32
 
 __all__ = [
     'NullR1Calibrator',
@@ -196,7 +197,7 @@ class HiPeCTA_HESSIOR1Calibrator(CameraR1Calibrator):
                 ped = event.mc.tel[telid].pedestal / samples.shape[2]
                 dc_to_pe = event.mc.tel[telid].dc_to_pe
                 # get numpy.nndarray with data alignment
-                calibrated = hipecta.empty(samples.shape)
+                calibrated = hipecta.empty(samples.shape, dtype=float32)
                 calibrated = hipecta.calib.r1_calibration(samples, ped, dc_to_pe, calibrated)
                 event.r1.tel[telid].waveform = calibrated
 
