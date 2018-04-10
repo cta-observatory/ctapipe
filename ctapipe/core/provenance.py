@@ -27,7 +27,7 @@ __all__ = ['Provenance']
 
 _interesting_env_vars = [
     'CONDA_DEFAULT_ENV',
-    'CONDA_PREFIX'           
+    'CONDA_PREFIX',
     'CONDA_PYTHON_EXE',
     'CONDA_EXE',
     'CONDA_PROMPT_MODIFIER',
@@ -37,7 +37,7 @@ _interesting_env_vars = [
     'DYLD_LIBRARY_PATH',
     'USER',
     'HOME',
-    'SHELL'
+    'SHELL',
 ]
 
 
