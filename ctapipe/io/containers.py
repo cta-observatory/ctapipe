@@ -5,6 +5,7 @@ Container structures for data that should be read or written to disk
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
+import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -406,6 +407,53 @@ class DataContainer(Container):
 class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
+
+class NectarCAMCameraContainer(Container):
+    """
+    Container for Fields that are specific to camera that use zfit
+    """
+    camera_event_type = Field(int, "camera event type")
+
+
+    integrals = Field(None, (
+        "numpy array containing waveform integrals"
+        "(n_channels x n_pixels)"
+    ))
+
+
+    def fill_from_zfile_event(self, event, numTraces):
+        self.camera_event_type = event.eventType
+
+        self.integrals = np.array([
+            event.hiGain.integrals.gains,
+            event.loGain.integrals.gains,
+        ])
+
+
+
+class NectarCAMContainer(Container):
+    """
+    Storage for the NectarCAMCameraContainer for each telescope
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(NectarCAMCameraContainer),
+        "map of tel_id to NectarCameraContainer")
+
+    def fill_from_zfile_event(self, event, numTraces):
+        self.tels_with_data = [event.telescopeID, ]
+        nectar_cam_container = self.tel[event.telescopeID]
+        nectar_cam_container.fill_from_zfile_event(
+            event,
+            numTraces,
+        )
+
+
+class NectarCAMDataContainer(DataContainer):
+    """
+    Data container including NectarCAM information
+    """
+    nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
 
 class TargetIOCameraContainer(Container):
     """
