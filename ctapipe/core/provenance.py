@@ -283,11 +283,13 @@ def _get_system_provenance():
         start_time_utc=Time.now().isot,
     )
 
+
 def _get_env_vars():
     envvars = {}
     for var in _interesting_env_vars:
         envvars[var] = os.getenv(var, None)
     return envvars
+
 
 def _sample_cpu_and_memory():
     # times = np.asarray(psutil.cpu_times(percpu=True))
