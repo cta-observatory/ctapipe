@@ -10,7 +10,7 @@ def test_find_datasets():
     assert len(r) > 3
 
     # get the full filename for a resrouces
-    assert os.path.exists(datasets.get_dataset(r[0]))
+    assert os.path.exists(datasets.get_dataset_path(r[0]))
 
     # try using a pattern
     r = datasets.find_all_matching_datasets("(.*)\.camgeom\.fits\.gz",
@@ -36,11 +36,11 @@ def test_datasets_in_custom_path(tmpdir_factory):
         fp.write("test test test")
 
     # try to find dummy dataset
-    path = datasets.get_dataset(dataset_name)
+    path = datasets.get_dataset_path(dataset_name)
     assert path == dataset_path
 
     with pytest.raises(FileNotFoundError):
-        datasets.get_dataset("does_not_exist")
+        datasets.get_dataset_path("does_not_exist")
 
     # try using find_all_matching_datasets:
 

@@ -148,10 +148,10 @@ def _info_resources():
     print("")
 
     all_resources = sorted(datasets.find_all_matching_datasets("\w.*"))
-    locations = [os.path.dirname(datasets.get_dataset(name))
+    locations = [os.path.dirname(datasets.get_dataset_path(name))
                  for name in all_resources]
     home = os.path.expanduser("~")
-    resource_dir = os.path.dirname(datasets.get_dataset(
+    resource_dir = os.path.dirname(datasets.get_dataset_path(
         "HESS-I.camgeom.fits.gz"))
 
     fmt = "{name:<30.30s} : {loc:<30.30s}"
