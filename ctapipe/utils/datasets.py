@@ -52,7 +52,7 @@ def find_all_matching_datasets(pattern,
     Returns
     -------
     list(str):
-       resources names, use get_dataset() to retrieve the full filename
+       resources names, use get_dataset_path() to retrieve the full filename
     """
     results = set()
 
