@@ -155,7 +155,7 @@ class ThresholdGainSelector(GainSelector):
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, kwargs=kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
 
         tab = get_table_dataset(
             self.threshold_table_name,
