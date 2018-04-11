@@ -161,7 +161,7 @@ class ThresholdGainSelector(GainSelector):
             self.threshold_table_name,
             role='dl0.tel.svc.gain_thresholds'
         )
-        self.thresholds = dict(zip(tab['cam_id'], tab['gain_threshold_pe']))
+        self.thresholds = dict(zip(tab['cam_id'], tab['gain_threshold_dc']))
         self.log.debug("Loaded threshold table: \n %s", tab)
 
     def __str__(self):
