@@ -6,6 +6,7 @@ ring parameters, and write some parameters to an output table
 import warnings
 
 from astropy.table import Table
+from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
@@ -14,6 +15,7 @@ from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
+from ctapipe.core import Provenance
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
 
@@ -25,7 +27,7 @@ def print_muon(event, printer=print):
             printer(
                 "MUON: Run ID {} Event ID {} \
                     Impact Parameter {} Ring Width {} Optical Efficiency {}"
-                .format(
+                    .format(
                     event['MuonRingParams'][idx].obs_id,
                     event['MuonRingParams'][idx].event_id,
                     event['MuonIntensityParams'][idx].impact_parameter,
@@ -45,7 +47,7 @@ class MuonDisplayerTool(Tool):
         default=get_dataset_path('gamma_test_large.simtel.gz')
     ).tag(config=True)
 
-    outfile = t.Unicode(help='output file name', default=None).tag(config=True)
+    outfile = t.Unicode("muons.fits", help='output file name').tag(config=True)
 
     display = t.Bool(
         help='display the camera events', default=False
@@ -65,25 +67,25 @@ class MuonDisplayerTool(Tool):
         self.calib = CameraCalibrator(
             config=self.config, tool=self, r1_product="HESSIOR1Calibrator"
         )
+        self.output_parameters = {'MuonEff': [], 'ImpactP': [], 'RingWidth': []}
 
     def start(self):
 
-        output_parameters = {'MuonEff': [], 'ImpactP': [], 'RingWidth': []}
+        output_parameters = self.output_parameters
 
         numev = 0
-        num_muons_found = 0
+        self.num_muons_found = 0
 
-        for event in event_source(self.infile):
-            self.log.info(
-                "Event Number: %d, found %d muons", numev, num_muons_found
-            )
+        for event in tqdm(event_source(self.infile),
+                          desc='detecting muons', leave=False):
+
             self.calib.calibrate(event)
             muon_evt = analyze_muon_event(event)
 
             numev += 1
 
-            if not muon_evt['MuonIntensityParams'
-                            ]:  # No telescopes contained a good muon
+            if not muon_evt['MuonIntensityParams']:
+                # No telescopes  contained a good muon
                 continue
             else:
                 if self.display:
@@ -99,24 +101,36 @@ class MuonDisplayerTool(Tool):
 
                         output_parameters['MuonEff'].append(
                             muon_evt['MuonIntensityParams'][idx]
-                            .optical_efficiency_muon
+                                .optical_efficiency_muon
                         )
                         output_parameters['ImpactP'].append(
                             muon_evt['MuonIntensityParams'][idx]
-                            .impact_parameter.value
+                                .impact_parameter.value
                         )
                         output_parameters['RingWidth'].append(
                             muon_evt['MuonIntensityParams'][idx]
-                            .ring_width.value
+                                .ring_width.value
                         )
                         print_muon(muon_evt, printer=self.log.info)
-                        num_muons_found += 1
+                        self.num_muons_found += 1
 
-        t = Table(output_parameters)
-        t['ImpactP'].unit = 'm'
-        t['RingWidth'].unit = 'deg'
-        if self.outfile:
-            t.write(self.outfile)
+                self.log.info(
+                    "Event Number: %d, found %d muons", numev,
+                    self.num_muons_found
+                )
+
+    def finish(self):
+        if self.num_muons_found > 0:
+            self.log.info("writing output table...")
+            t = Table(self.output_parameters)
+            t['ImpactP'].unit = 'm'
+            t['RingWidth'].unit = 'deg'
+            if self.outfile:
+                t.write(self.outfile)
+                Provenance().add_output_file(self.outpufile,
+                                             role='dl1.tel.evt.muon')
+        else:
+            self.log.info("no muons found, no output written")
 
 
 if __name__ == '__main__':
