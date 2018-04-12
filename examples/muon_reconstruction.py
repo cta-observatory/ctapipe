@@ -103,7 +103,6 @@ class MuonDisplayerTool(Tool):
 
                     if intens_params is not None:
                         ring_params = muon_evt['MuonRingParams'][idx]
-                        assert ring_params is not None
                         cam_id = str(event.inst.subarray.tel[tel_id].camera)
                         self.num_muons_found[cam_id] += 1
                         self.log.debug("INTENSITY: %s", intens_params)
