@@ -1,13 +1,14 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+import json
 import logging
 import os
 import re
-import yaml
-import json
 
+import yaml
+from astropy.table import Table
 from astropy.utils.decorators import deprecated
 from pkg_resources import resource_listdir
-from astropy.table import Table
+
 from ..core import Provenance
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,6 @@ except ImportError:
     raise RuntimeError("Please install the 'ctapipe-extra' package, "
                        "which contains the ctapipe_resources module "
                        "needed by ctapipe. (conda install ctapipe-extra)")
-
 
 __all__ = ['get_dataset_path', 'find_in_path', 'find_all_matching_datasets']
 
@@ -144,6 +144,7 @@ def get_dataset_path(filename):
 def get_dataset(filename):
     return get_dataset_path(filename)
 
+
 def get_table_dataset(table_name, role='resource', **kwargs):
     """
     get a tabular dataset as an `astropy.table.Table` object
@@ -209,12 +210,11 @@ def get_structured_dataset(basename, role='resource', **kwargs):
        dictionary of data in the file
     """
 
-
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
     types_to_try = {
         '.yaml': {},
-        '.yml' : {},
+        '.yml': {},
         '.json': {},
     }
 
@@ -229,7 +229,7 @@ def get_structured_dataset(basename, role='resource', **kwargs):
                 with open(fullname) as infile:
                     if data_type == '.yaml' or data_type == '.yml':
                         dataset = yaml.load(infile, **args)
-                    elif data_type=='.json':
+                    elif data_type == '.json':
                         dataset = json.load(infile, **args)
 
                 Provenance().add_input_file(fullname, role)
@@ -247,5 +247,4 @@ def get_path(filename):
 
 
 if __name__ == '__main__':
-
     get_table_dataset("NectarCam.camgeom")
