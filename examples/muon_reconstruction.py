@@ -8,9 +8,9 @@ The resulting output can be read e.g. using `pandas.read_hdf(filename,
 """
 
 import warnings
+from collections import defaultdict
 
 from tqdm import tqdm
-from collections import defaultdict
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
@@ -23,6 +23,7 @@ from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
+
 
 def _exclude_some_columns(subarray, writer):
     """ a hack to exclude some columns of all output tables"""
