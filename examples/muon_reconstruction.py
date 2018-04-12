@@ -9,13 +9,13 @@ from astropy.table import Table
 from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.core import Provenance
 from ctapipe.core import Tool
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
-from ctapipe.core import Provenance
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
 
