@@ -11,13 +11,13 @@ from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.plotting.array import NominalPlotter
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 from copy import deepcopy
 
 
 @pytest.mark.skip
 def test_array_draw():
-    filename = get_dataset("gamma_test.simtel.gz")
+    filename = get_dataset_path("gamma_test.simtel.gz")
 
     source = hessio_event_source(filename, max_events=2)
     r1 = HESSIOR1Calibrator()

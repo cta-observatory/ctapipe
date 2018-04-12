@@ -13,7 +13,7 @@ from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io import event_source
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
 
@@ -42,7 +42,7 @@ class MuonDisplayerTool(Tool):
 
     infile = t.Unicode(
         help='input file name',
-        default=get_dataset('gamma_test_large.simtel.gz')
+        default=get_dataset_path('gamma_test_large.simtel.gz')
     ).tag(config=True)
 
     outfile = t.Unicode(help='output file name', default=None).tag(config=True)
