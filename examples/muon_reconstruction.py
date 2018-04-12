@@ -14,19 +14,24 @@ from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Provenance
-from ctapipe.core import Tool
+from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
 from ctapipe.io import HDF5TableWriter
-from ctapipe.io import event_source
+from ctapipe.io import EventSourceFactory
 from ctapipe.utils import get_dataset_path
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
 
 
 def _exclude_some_columns(subarray, writer):
-    """ a hack to exclude some columns of all output tables"""
+    """ a hack to exclude some columns of all output tables here we exclude
+    the prediction and mask quantities, since they are arrays and thus not
+    readable by pandas.  Also, prediction currently is a variable-length
+    quantity (need to change it to be fixed-length), so it cannot be written
+    to a fixed-length table.
+    """
     all_camids = {str(x.camera) for x in subarray.tel.values()}
     for cam in all_camids:
         writer.exclude(cam, 'prediction')
@@ -37,10 +42,8 @@ class MuonDisplayerTool(Tool):
     name = 'ctapipe-display-muons'
     description = t.Unicode(__doc__)
 
-    infile = t.Unicode(
-        help='input file name',
-        default=get_dataset_path('gamma_test_large.simtel.gz')
-    ).tag(config=True)
+    events = t.Unicode("",
+                      help="input event data file").tag(config=True)
 
     outfile = t.Unicode("muons.hdf5", help='HDF5 output file name').tag(
         config=True)
@@ -50,18 +53,24 @@ class MuonDisplayerTool(Tool):
     ).tag(config=True)
 
     classes = t.List([
-        CameraCalibrator,
+        CameraCalibrator, EventSourceFactory
     ])
 
     aliases = t.Dict({
-        'infile': 'MuonDisplayerTool.infile',
+        'input': 'MuonDisplayerTool.events',
         'outfile': 'MuonDisplayerTool.outfile',
-        'display': 'MuonDisplayerTool.display'
+        'display': 'MuonDisplayerTool.display',
+        'max_events': 'EventSourceFactory.max_events',
+        'allowed_tels': 'EventSourceFactory.allowed_tels',
     })
 
     def setup(self):
+        if self.events == '':
+            raise ToolConfigurationError("please specify --input <events file>")
+        self.log.debug("input: %s", self.events)
+        self.source = EventSourceFactory.produce(input_url=self.events)
         self.calib = CameraCalibrator(
-            config=self.config, tool=self, r1_product="HESSIOR1Calibrator"
+            config=self.config, tool=self, eventsource=self.source
         )
         self.writer = HDF5TableWriter(self.outfile, "muons")
 
@@ -71,7 +80,7 @@ class MuonDisplayerTool(Tool):
         self.num_muons_found = defaultdict(int)
         table_name = "all"
 
-        for event in tqdm(event_source(self.infile), desc='detecting muons'):
+        for event in tqdm(self.source, desc='detecting muons'):
 
             self.calib.calibrate(event)
             muon_evt = analyze_muon_event(event)
