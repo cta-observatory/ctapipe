@@ -18,9 +18,8 @@ from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
-from ctapipe.io import HDF5TableWriter
 from ctapipe.io import EventSourceFactory
-from ctapipe.utils import get_dataset_path
+from ctapipe.io import HDF5TableWriter
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
 
@@ -43,7 +42,7 @@ class MuonDisplayerTool(Tool):
     description = t.Unicode(__doc__)
 
     events = t.Unicode("",
-                      help="input event data file").tag(config=True)
+                       help="input event data file").tag(config=True)
 
     outfile = t.Unicode("muons.hdf5", help='HDF5 output file name').tag(
         config=True)
