@@ -77,7 +77,7 @@ class MuonDisplayerTool(Tool):
 
         numev = 0
         self.num_muons_found = defaultdict(int)
-        
+
         for event in tqdm(self.source, desc='detecting muons'):
 
             self.calib.calibrate(event)
