@@ -1,8 +1,13 @@
 """
-
+This class is largely created as a more versatile alternative to the Linear ND
+interpolator, allowing the user to pass the interpolator an array of classes and then
+perform interpolation between the results of a member function of that class. Currently
+the name of the target interpolation function is passed in a string at initialisation.
 
 TODO:
 - Figure out what to do when out of bounds of interpolation range
+- Create function to append points to the interpolator
+
 """
 
 import numpy as np
