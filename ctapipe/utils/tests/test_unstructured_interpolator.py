@@ -68,8 +68,11 @@ def test_class_output():
                             (1, 0): RegularGridInterpolator((x,x), rand_numbers[2]),
                             (1, 1): RegularGridInterpolator((x,x), rand_numbers[3])}
 
+    pts1 = np.random.rand(1,2)
+    pts2 = np.random.rand(10,2)
+
     interpolator = UnstructuredInterpolator(interpolation_points)
-    unsrt_value = interpolator([0.5,0.5],[0.5,0.5])
+    unsort_value = interpolator(pts1, pts2)
 
     interpolation_points = {(0, 0): rand_numbers[0],
                             (0, 1): rand_numbers[1],
@@ -78,11 +81,11 @@ def test_class_output():
 
     linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
                                      list(interpolation_points.values()))
-    array_out = linear_nd([0.5,0.5])
+    array_out = linear_nd(pts1)
     reg_interpolator = RegularGridInterpolator((x,x),array_out[0])
-    lin_nd_val = reg_interpolator([0.5,0.5])
+    lin_nd_val = reg_interpolator(pts2)
 
-    assert unsrt_value == lin_nd_val
+    assert np.all(np.abs(unsort_value - lin_nd_val) < 1e-10)
 
 
 if __name__ == '__main__':

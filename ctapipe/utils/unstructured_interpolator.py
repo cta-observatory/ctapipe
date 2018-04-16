@@ -32,25 +32,25 @@ class UnstructuredInterpolator:
         self.keys = np.array(list(interpolation_points.keys()))
         self.values = np.array(list(interpolation_points.values()))
 
-        self.num_dimensions = len(self.keys[0])
+        self._num_dimensions = len(self.keys[0])
 
         # create an object with triangulation
-        self.tri = Delaunay(self.keys)
-        self.function_name = function_name
+        self._tri = Delaunay(self.keys)
+        self._function_name = function_name
 
         # OK this code is horrid and will need fixing
-        self.numpy_input = isinstance(self.values[0], np.ndarray) or \
-                           issubclass(type(self.values[0]), np.float) or \
-                           issubclass(type(self.values[0]), np.int)
+        self._numpy_input = isinstance(self.values[0], np.ndarray) or \
+                            issubclass(type(self.values[0]), np.float) or \
+                            issubclass(type(self.values[0]), np.int)
 
-        if self.numpy_input == False and function_name == None:
-            self.function_name = "__call__"
+        if self._numpy_input == False and function_name == None:
+            self._function_name = "__call__"
 
         return None
 
     def __call__(self, points, eval_points=None):
 
-        if self.numpy_input == False and eval_points==None:
+        if self._numpy_input == False and np.all(eval_points==None):
             raise ValueError("Non numpy object provided without with emtpy eval_points")
 
         # Convert to a numpy array here incase we get a list
@@ -60,19 +60,19 @@ class UnstructuredInterpolator:
             points = np.array([points])
 
         # find simplexes that contain interpolated points
-        s = self.tri.find_simplex(points)
+        s = self._tri.find_simplex(points)
         # get the vertices for each simplex
-        v = self.tri.vertices[s]
+        v = self._tri.vertices[s]
         # get transform matrices for each simplex (see explanation bellow)
-        m = self.tri.transform[s]
+        m = self._tri.transform[s]
 
         # Here comes some serious numpy magic, it could be done with a loop but would
         # be pretty inefficient I had to rip this from stack overflow - RDP
         # For each interpolated point, take the the transform matrix and multiply it by
         # the vector p-r, where r=m[:,n,:] is one of the simplex vertices to which
         # the matrix m is related to
-        b = np.einsum('ijk,ik->ij', m[:, :self.num_dimensions, :self.num_dimensions],
-                      points - m[:,self.num_dimensions, :])
+        b = np.einsum('ijk,ik->ij', m[:, :self._num_dimensions, :self._num_dimensions],
+                      points - m[:,self._num_dimensions, :])
 
         # Use the above array to get the weights for the vertices; `b` contains an
         # n-dimensional vector with weights for all but the last vertices of the simplex
@@ -81,7 +81,7 @@ class UnstructuredInterpolator:
         # the condition that sum of weights must be equal to 1
         w = np.c_[b, 1 - b.sum(axis=1)]
 
-        if self.numpy_input:
+        if self._numpy_input:
             selected_points = self.values[v]
         else:
             selected_points = self._call_class_function(v, eval_points)
@@ -92,6 +92,7 @@ class UnstructuredInterpolator:
 
     def _call_class_function(self, point_num, eval_points):
         """
+        Function to loop over class function and return array of outputs
 
         Parameters
         ----------
@@ -109,9 +110,12 @@ class UnstructuredInterpolator:
         shape = point_num.shape
         for pt in point_num.ravel():
             cls = self.values[pt]
-            cls_function = getattr(cls, self.function_name)
+            cls_function = getattr(cls, self._function_name)
             outputs.append(cls_function(eval_points))
+
         outputs = np.array(outputs)
-        outputs = outputs.reshape(shape)
+        new_shape = (*shape, *outputs.shape[1:])
+
+        outputs = outputs.reshape(new_shape)
 
         return outputs
