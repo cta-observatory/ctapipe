@@ -1,6 +1,8 @@
 """
+
+
 TODO:
-- Figure out what to do when out of bounds
+- Figure out what to do when out of bounds of interpolation range
 """
 
 import numpy as np
@@ -43,14 +45,14 @@ class UnstructuredInterpolator:
                             issubclass(type(self.values[0]), np.float) or \
                             issubclass(type(self.values[0]), np.int)
 
-        if self._numpy_input == False and function_name == None:
+        if self._numpy_input is False and function_name is None:
             self._function_name = "__call__"
 
         return None
 
     def __call__(self, points, eval_points=None):
 
-        if self._numpy_input == False and np.all(eval_points==None):
+        if self._numpy_input is False and np.all(eval_points is None):
             raise ValueError("Non numpy object provided without with emtpy eval_points")
 
         # Convert to a numpy array here incase we get a list
@@ -72,7 +74,7 @@ class UnstructuredInterpolator:
         # the vector p-r, where r=m[:,n,:] is one of the simplex vertices to which
         # the matrix m is related to
         b = np.einsum('ijk,ik->ij', m[:, :self._num_dimensions, :self._num_dimensions],
-                      points - m[:,self._num_dimensions, :])
+                      points - m[:, self._num_dimensions, :])
 
         # Use the above array to get the weights for the vertices; `b` contains an
         # n-dimensional vector with weights for all but the last vertices of the simplex
