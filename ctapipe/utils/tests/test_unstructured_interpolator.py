@@ -61,13 +61,16 @@ def test_class_output():
     """
 
     x = np.linspace(0,1,11)
+    # Create a bunch of random numbers to interpolate between
     rand_numbers = np.random.rand(4, 11, 11)
 
+    # Create input for UnstructuredInterpolator
     interpolation_points = {(0, 0): RegularGridInterpolator((x,x), rand_numbers[0]),
                             (0, 1): RegularGridInterpolator((x,x), rand_numbers[1]),
                             (1, 0): RegularGridInterpolator((x,x), rand_numbers[2]),
                             (1, 1): RegularGridInterpolator((x,x), rand_numbers[3])}
 
+    # Create some random points to evaluate our interpolators
     pts1 = np.random.rand(1,2)
     pts2 = np.random.rand(10,2)
 
@@ -79,12 +82,15 @@ def test_class_output():
                             (1, 0): rand_numbers[2],
                             (1, 1): rand_numbers[3]}
 
+    # Perform the same operation by interpolating the values of the full numpy array
     linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
                                      list(interpolation_points.values()))
     array_out = linear_nd(pts1)
+    # Then interpolate on this grid
     reg_interpolator = RegularGridInterpolator((x,x),array_out[0])
     lin_nd_val = reg_interpolator(pts2)
 
+    # Check they give the same answer
     assert np.all(np.abs(unsort_value - lin_nd_val) < 1e-10)
 
 
