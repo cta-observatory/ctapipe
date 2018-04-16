@@ -1,6 +1,5 @@
 """
 TODO:
-- Implement class interpolation
 - Figure out what to do when out of bounds
 """
 
@@ -19,7 +18,7 @@ class UnstructuredInterpolator:
     In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
-    def __init__(self, interpolation_points, function_name=""):
+    def __init__(self, interpolation_points, function_name=None):
         """
         Parameters
         ----------
@@ -44,9 +43,15 @@ class UnstructuredInterpolator:
                            issubclass(type(self.values[0]), np.float) or \
                            issubclass(type(self.values[0]), np.int)
 
+        if self.numpy_input == False and function_name == None:
+            self.function_name = "__call__"
+
         return None
 
-    def __call__(self, points):
+    def __call__(self, points, eval_points=None):
+
+        if self.numpy_input == False and eval_points==None:
+            raise ValueError("Non numpy object provided without with emtpy eval_points")
 
         # Convert to a numpy array here incase we get a list
         points = np.array(points)
@@ -62,7 +67,7 @@ class UnstructuredInterpolator:
         m = self.tri.transform[s]
 
         # Here comes some serious numpy magic, it could be done with a loop but would
-        # be pretty inefficient I had to rip this from stack overflow somewhere - RDP
+        # be pretty inefficient I had to rip this from stack overflow - RDP
         # For each interpolated point, take the the transform matrix and multiply it by
         # the vector p-r, where r=m[:,n,:] is one of the simplex vertices to which
         # the matrix m is related to
@@ -78,12 +83,12 @@ class UnstructuredInterpolator:
 
         if self.numpy_input:
             selected_points = self.values[v]
+        else:
+            selected_points = self._call_class_function(v, eval_points)
 
         # Multiply point values by weight
         p_values = np.einsum('ij...,ij...->i...', selected_points, w)
-        #p_values = selected_points * w[..., np.newaxis]
         return p_values
-
 
     def _call_class_function(self, point_num, eval_points):
         """
@@ -100,7 +105,13 @@ class UnstructuredInterpolator:
         ndarray: output from member function
         """
 
-        cls = self.values[point_num]
-        cls_function = getattr(cls, self.function_name)
+        outputs = list()
+        shape = point_num.shape
+        for pt in point_num.ravel():
+            cls = self.values[pt]
+            cls_function = getattr(cls, self.function_name)
+            outputs.append(cls_function(eval_points))
+        outputs = np.array(outputs)
+        outputs = outputs.reshape(shape)
 
-        return cls_function(eval_points)
+        return outputs

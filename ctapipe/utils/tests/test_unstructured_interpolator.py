@@ -1,6 +1,6 @@
 from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
 
 
 def test_simple_interpolation():
@@ -52,7 +52,41 @@ def test_linear_nd():
     assert np.all(np.abs(interpolated_points - linear_nd_points) < 1e-10)
 
 
+def test_class_output():
+    """
+    The final test is to use the more useful functionality of interpolating between the
+    outputs of a class member function. I will do this by interpolating between a
+    number of numpy regulat grid interpolators and comparing to the output of the
+    linear nd interpolator. Again this is a crazy use case, but is a good test.
+    """
+
+    x = np.linspace(0,1,11)
+    rand_numbers = np.random.rand(4, 11, 11)
+
+    interpolation_points = {(0, 0): RegularGridInterpolator((x,x), rand_numbers[0]),
+                            (0, 1): RegularGridInterpolator((x,x), rand_numbers[1]),
+                            (1, 0): RegularGridInterpolator((x,x), rand_numbers[2]),
+                            (1, 1): RegularGridInterpolator((x,x), rand_numbers[3])}
+
+    interpolator = UnstructuredInterpolator(interpolation_points)
+    unsrt_value = interpolator([0.5,0.5],[0.5,0.5])
+
+    interpolation_points = {(0, 0): rand_numbers[0],
+                            (0, 1): rand_numbers[1],
+                            (1, 0): rand_numbers[2],
+                            (1, 1): rand_numbers[3]}
+
+    linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
+                                     list(interpolation_points.values()))
+    array_out = linear_nd([0.5,0.5])
+    reg_interpolator = RegularGridInterpolator((x,x),array_out[0])
+    lin_nd_val = reg_interpolator([0.5,0.5])
+
+    assert unsrt_value == lin_nd_val
+
+
 if __name__ == '__main__':
 
     test_simple_interpolation()
     test_linear_nd()
+    test_class_output()
