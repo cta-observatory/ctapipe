@@ -16,7 +16,7 @@ class UnstructuredInterpolator:
     interpolate between the predictions of a set of machine learning algorithms or
     regular grid interpolators.
 
-    In the case that a numpy array is passed as the interpolation valus this class will
+    In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
     def __init__(self, interpolation_points, function_name=""):
@@ -38,6 +38,11 @@ class UnstructuredInterpolator:
         # create an object with triangulation
         self.tri = Delaunay(self.keys)
         self.function_name = function_name
+
+        # OK this code is horrid and will need fixing
+        self.numpy_input = isinstance(self.values[0], np.ndarray) or \
+                           issubclass(type(self.values[0]), np.float) or \
+                           issubclass(type(self.values[0]), np.int)
 
         return None
 
@@ -71,11 +76,31 @@ class UnstructuredInterpolator:
         # the condition that sum of weights must be equal to 1
         w = np.c_[b, 1 - b.sum(axis=1)]
 
-        selected_points = self.values[v]
+        if self.numpy_input:
+            selected_points = self.values[v]
 
         # Multiply point values by weight
-        p_values = np.einsum('ij,ij->i', selected_points, w)
-
+        p_values = np.einsum('ij...,ij...->i...', selected_points, w)
+        #p_values = selected_points * w[..., np.newaxis]
         return p_values
 
 
+    def _call_class_function(self, point_num, eval_points):
+        """
+
+        Parameters
+        ----------
+        point_num: int
+            Index of class position in values list
+        eval_points: ndarray
+            Inputs used to evaluate class member function
+
+        Returns
+        -------
+        ndarray: output from member function
+        """
+
+        cls = self.values[point_num]
+        cls_function = getattr(cls, self.function_name)
+
+        return cls_function(eval_points)

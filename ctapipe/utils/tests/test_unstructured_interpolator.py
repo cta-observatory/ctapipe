@@ -9,10 +9,10 @@ def test_simple_interpolation():
     interpolator, check if we just spread points on a grid
     """
 
-    interpolation_points = {(0, 0): 0,
-                            (0, 1): 0,
-                            (1, 0): 1,
-                            (1, 1): 1}
+    interpolation_points = {(0, 0): 0.,
+                            (0, 1): 0.,
+                            (1, 0): 1.,
+                            (1, 1): 1.}
 
     interpolator = UnstructuredInterpolator(interpolation_points)
 
@@ -32,10 +32,10 @@ def test_linear_nd():
     """
 
     # First set up 4 grid points and fill them randomly
-    interpolation_points = {(0, 0): np.random.rand(),
-                            (0, 1): np.random.rand(),
-                            (1, 0): np.random.rand(),
-                            (1, 1): np.random.rand()}
+    interpolation_points = {(0, 0): np.random.rand(2,2),
+                            (0, 1): np.random.rand(2,2),
+                            (1, 0): np.random.rand(2,2),
+                            (1, 1): np.random.rand(2,2)}
 
     # Create UnstructuredInterpolator and LinearNDInterpolator with these points
     interpolator = UnstructuredInterpolator(interpolation_points)
