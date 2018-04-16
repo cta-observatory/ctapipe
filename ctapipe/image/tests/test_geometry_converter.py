@@ -11,7 +11,7 @@ from ctapipe.image.geometry_converter import (convert_geometry_hex1d_to_rect2d,
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.instrument import CameraGeometry
 from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_shower_image
 from astropy import units as u

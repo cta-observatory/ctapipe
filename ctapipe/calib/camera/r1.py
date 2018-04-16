@@ -14,9 +14,10 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 of the data.
 """
 from abc import abstractmethod
-from traitlets import Unicode
-from ctapipe.core import Component, Factory
-from ctapipe.io import EventSource
+
+from ...core import Component, Factory
+from ...core.traits import Unicode
+from ...io import EventSource
 
 __all__ = [
     'NullR1Calibrator',

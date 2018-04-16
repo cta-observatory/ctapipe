@@ -5,6 +5,7 @@ Container structures for data that should be read or written to disk
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
+import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -46,13 +47,16 @@ class SST1MCameraContainer(Container):
         None,
         "trigger 19 patch cluster trace (n_clusters)")
 
-    def fill_from_zfile_event(self, event):
-        self.pixel_flags = event.pixel_flags
-        self.digicam_baseline = event.baseline
-        self.local_camera_clock = event.local_time
-        self.gps_time = event.central_event_gps_time
-        self.camera_event_type = event.camera_event_type
-        self.array_event_type = event.array_event_type
+    def fill_from_zfile_event(self, event, pixel_sort_ids):
+        self.pixel_flags = event.pixels_flags[pixel_sort_ids]
+        self.digicam_baseline = event.hiGain.waveforms.baselines[
+            pixel_sort_ids]
+        self.local_camera_clock = (
+            event.local_time_sec * 1E9 + event.local_time_nanosec)
+        self.gps_time = (
+            event.trig.timeSec * 1E9 + event.trig.timeNanoSec)
+        self.camera_event_type = event.event_type
+        self.array_event_type = event.eventType
         self.trigger_input_traces = event.trigger_input_traces
         self.trigger_output_patch7 = event.trigger_output_patch7
         self.trigger_output_patch19 = event.trigger_output_patch19
@@ -64,10 +68,13 @@ class SST1MContainer(Container):
         Map(SST1MCameraContainer),
         "map of tel_id to SST1MCameraContainer")
 
-    def fill_from_zfile_event(self, event):
-        self.tels_with_data = [event.telescope_id, ]
-        for tel_id in self.tels_with_data:
-            self.tel[tel_id].fill_from_zfile_event(event)
+    def fill_from_zfile_event(self, event, pixel_sort_ids):
+        self.tels_with_data = [event.telescopeID, ]
+        sst1m_cam_container = self.tel[event.telescopeID]
+        sst1m_cam_container.fill_from_zfile_event(
+            event,
+            pixel_sort_ids,
+        )
 
 
 # todo: change some of these Maps to be just 3D NDarrays?
@@ -400,6 +407,53 @@ class DataContainer(Container):
 class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
+
+class NectarCAMCameraContainer(Container):
+    """
+    Container for Fields that are specific to camera that use zfit
+    """
+    camera_event_type = Field(int, "camera event type")
+
+
+    integrals = Field(None, (
+        "numpy array containing waveform integrals"
+        "(n_channels x n_pixels)"
+    ))
+
+
+    def fill_from_zfile_event(self, event, numTraces):
+        self.camera_event_type = event.eventType
+
+        self.integrals = np.array([
+            event.hiGain.integrals.gains,
+            event.loGain.integrals.gains,
+        ])
+
+
+
+class NectarCAMContainer(Container):
+    """
+    Storage for the NectarCAMCameraContainer for each telescope
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(NectarCAMCameraContainer),
+        "map of tel_id to NectarCameraContainer")
+
+    def fill_from_zfile_event(self, event, numTraces):
+        self.tels_with_data = [event.telescopeID, ]
+        nectar_cam_container = self.tel[event.telescopeID]
+        nectar_cam_container.fill_from_zfile_event(
+            event,
+            numTraces,
+        )
+
+
+class NectarCAMDataContainer(DataContainer):
+    """
+    Data container including NectarCAM information
+    """
+    nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
 
 class TargetIOCameraContainer(Container):
     """

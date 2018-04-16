@@ -1,6 +1,3 @@
-import re
-from abc import abstractmethod, ABCMeta
-from collections import defaultdict
 from functools import partial
 
 import numpy as np
@@ -9,12 +6,13 @@ from astropy.time import Time
 from astropy.units import Quantity
 
 import ctapipe
-from ctapipe.core import Component, Container
+from .tableio import TableWriter, TableReader
+from ..core import Container
 
-__all__ = ['TableWriter',
-           'TableReader',
-           'HDF5TableWriter',
-           'HDF5TableReader']
+__all__ = [
+    'HDF5TableWriter',
+    'HDF5TableReader'
+]
 
 PYTABLES_TYPE_MAP = {
     'float': tables.Float64Col,
@@ -27,80 +25,6 @@ PYTABLES_TYPE_MAP = {
 }
 
 
-class TableWriter(Component, metaclass=ABCMeta):
-
-    def __init__(self, parent=None, **kwargs):
-        super().__init__(parent, **kwargs)
-        self._transforms = defaultdict(dict)
-        self._exclusions = defaultdict(list)
-
-    def exclude(self, table_name, pattern):
-        """
-        Exclude any columns matching the pattern from being written
-
-        Parameters
-        ----------
-        table_name: str
-            name of table on which to apply the exclusion
-        pattern: str
-            regular expression string to match column name
-        """
-        self._exclusions[table_name].append(re.compile(pattern))
-
-    def _is_column_excluded(self, table_name, col_name):
-        for pattern in self._exclusions[table_name]:
-            if pattern.match(col_name):
-                return True
-        return False
-
-    def add_column_transform(self, table_name, col_name, transform):
-        """
-        Add a transformation function for a column. This function will be
-        called on the value in the container before it is written to the
-        output file.
-
-        Parameters
-        ----------
-        table_name: str
-            identifier of table being written
-        col_name: str
-            name of column in the table (or item in the Container)
-        transform: callable
-            function that take a value and returns a new one
-        """
-        self._transforms[table_name][col_name] = transform
-        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
-                                                             col_name,
-                                                             transform))
-
-    @abstractmethod
-    def write(self, table_name, containers):
-        """
-        Write the contents of the given container or containers to a table.
-        The first call to write  will create a schema and initialize the table
-        within the file.
-        The shape of data within the container must not change between calls,
-        since variable-length arrays are not supported.
-
-        Parameters
-        ----------
-        table_name: str
-            name of table to write to
-        container: `ctapipe.core.Container`
-            container to write
-        """
-        pass
-
-    def _apply_col_transform(self, table_name, col_name, value):
-        """
-        apply value transform function if it exists for this column
-        """
-        if col_name in self._transforms[table_name]:
-            tr = self._transforms[table_name][col_name]
-            value = tr(value)
-        return value
-
-
 class HDF5TableWriter(TableWriter):
     """
     A very basic table writer that can take a container (or more than one)
@@ -110,7 +34,7 @@ class HDF5TableWriter(TableWriter):
 
     It works by creating a HDF5 Table description from the `Field`s inside a
     container, where each item becomes a column in the table. The first time
-    `SimpleHDF5TableWriter.write()` is called, the container is registered
+    `HDF5TableWriter.write()` is called, the container(s) are registered
     and the table created in the output file.
 
     Each item in the container can also have an optional transform function
@@ -122,17 +46,12 @@ class HDF5TableWriter(TableWriter):
     written to the table's header on the first call to write()
 
     Multiple tables may be written at once in a single file, as long as you
-    change the table_name attribute to write() to specify which one to write
-    to.
+    change the table_name attribute to `write()` to specify which one to write
+    to.  Likewise multiple Containers can be merged into a single output
+    table by passing a list of containers to `write()`.
 
-    TODO:
-    - ability to write several containers to the same table (appending a
-    string to each column name). Perhaps `write(name, dict(method_a=cont,
-    method_b=cont2))`, where "method_a_X" would be a column name. May be
-    possible to do this with some container magic, like joining two
-    containers `joined_container(cont1, cont2, "A", "B")` or "cont1+cont2".
-    Perhaps need to provide a better way to get container contents as a
-    dictionary.
+    To append to existing files, pass the `mode='a'`  option to the
+    constructor.
 
     Parameters
     ----------
@@ -141,18 +60,49 @@ class HDF5TableWriter(TableWriter):
     group_name: str
         name of group into which to put all of the tables generated by this
         Writer (it will be placed under "/" in the file)
+    mode : str ('w', 'a')
+        'w' if you want to overwrite the file
+        'a' if you want to append data to the file
+    root_uep : str
+        root location of the `group_name`
+    kwargs:
+        any other arguments that will be passed through to `pytables.open()`.
+        e.g. to set the compression level to 7 pass : `filters=tables.Filters(
+        complevel=7)`
 
     """
 
-    def __init__(self, filename, group_name, **kwargs):
+    def __init__(self, filename, group_name, mode='w', root_uep='/', **kwargs):
+
         super().__init__()
         self._schemas = {}
         self._tables = {}
-        self._h5file = tables.open_file(filename, mode="w", **kwargs)
-        self._group = self._h5file.create_group("/", group_name)
-        self.log.debug("h5file: {}".format(self._h5file))
 
-    def __del__(self):
+        if mode not in ['a', 'w', 'r+']:
+            raise IOError('The mode {} is not supported for writing'.
+                          format(mode))
+
+        kwargs.update(mode=mode, root_uep=root_uep)
+
+        self.open(filename, **kwargs)
+
+        if root_uep + group_name in self._h5file:
+
+            self._group = self._h5file.get_node(root_uep + group_name)
+
+        else:
+
+            self._group = self._h5file.create_group(root_uep, group_name)
+
+        self.log.debug("h5file: %s", self._h5file)
+
+    def open(self, filename, **kwargs):
+
+        self.log.debug("kwargs for tables.open_file: %s", kwargs)
+        self._h5file = tables.open_file(filename, **kwargs)
+
+    def close(self):
+
         self._h5file.close()
 
     def _create_hdf5_table_schema(self, table_name, containers):
@@ -185,9 +135,8 @@ class HDF5TableWriter(TableWriter):
                 shape = 1
 
                 if self._is_column_excluded(table_name, col_name):
-                    self.log.debug("excluded column: {}/{}".format(
-                        table_name, col_name
-                    ))
+                    self.log.debug("excluded column: %s/%s",
+                                   table_name, col_name)
                     continue
 
                 if isinstance(value, Quantity):
@@ -220,10 +169,8 @@ class HDF5TableWriter(TableWriter):
                     coltype = PYTABLES_TYPE_MAP[typename]
                     Schema.columns[col_name] = coltype()
 
-                self.log.debug(
-                    "Table {}: added col: {} type: {} shape: {}".format(
-                        table_name, col_name, typename, shape
-                    ))
+                self.log.debug("Table %s: added col: %s type: %s shape: %s",
+                               table_name, col_name, typename, shape)
 
         self._schemas[table_name] = Schema
         meta['CTAPIPE_VERSION'] = ctapipe.__version__
@@ -232,7 +179,7 @@ class HDF5TableWriter(TableWriter):
     def _setup_new_table(self, table_name, containers):
         """ set up the table. This is called the first time `write()`
         is called on a new table """
-        self.log.debug("Initializing table '{}'".format(table_name))
+        self.log.debug("Initializing table '%s'", table_name)
         meta = self._create_hdf5_table_schema(table_name, containers)
 
         for container in containers:
@@ -260,7 +207,8 @@ class HDF5TableWriter(TableWriter):
         row = table.row
 
         for container in containers:
-            for colname in filter(lambda c: c in table.colnames, container.keys()):
+            for colname in filter(lambda c: c in table.colnames,
+                                  container.keys()):
                 value = self._apply_col_transform(
                     table_name, colname, container[colname]
                 )
@@ -285,64 +233,12 @@ class HDF5TableWriter(TableWriter):
             container to write
         """
         if isinstance(containers, Container):
-            containers = (containers, )
+            containers = (containers,)
 
         if table_name not in self._schemas:
             self._setup_new_table(table_name, containers)
 
         self._append_row(table_name, containers)
-
-
-class TableReader(Component, metaclass=ABCMeta):
-    """
-    Base class for row-wise table readers. Generally methods that read a
-    full table at once are preferred to this method, since they are faster,
-    but this can be used to re-play a table row by row into a
-    `ctapipe.core.Container` class (the opposite of TableWriter)
-    """
-
-    def __init__(self):
-        super().__init__()
-        self._cols_to_read = defaultdict(list)
-        self._transforms = defaultdict(dict)
-
-    def add_column_transform(self, table_name, col_name, transform):
-        """
-        Add a transformation function for a column. This function will be
-        called on the value in the container before it is written to the
-        output file.
-
-        Parameters
-        ----------
-        table_name: str
-            identifier of table being written
-        col_name: str
-            name of column in the table (or item in the Container)
-        transform: callable
-            function that take a value and returns a new one
-        """
-        self._transforms[table_name][col_name] = transform
-        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
-                                                             col_name,
-                                                             transform))
-
-    def _apply_col_transform(self, table_name, col_name, value):
-        """
-        apply value transform function if it exists for this column
-        """
-        if col_name in self._transforms[table_name]:
-            tr = self._transforms[table_name][col_name]
-            value = tr(value)
-        return value
-
-    @abstractmethod
-    def read(self, table_name, container):
-        """
-        Returns a generator that reads the next row from the table into the
-        given container.  The generator returns the same container. Note that
-        no containers are copied, the data are overwritten inside.
-        """
-        pass
 
 
 class HDF5TableReader(TableReader):
@@ -356,7 +252,7 @@ class HDF5TableReader(TableReader):
     name, and if a field is missing in either, it is skipped during read,
     but a warning is emitted.
 
-    Columns that were written by SimpleHDF5TableWriter and which had unit
+    Columns that were written by HDF5TableWriter and which had unit
     transforms applied, will have the units re-applied when reading (the
     unit used is stored in the header attributes).
 
@@ -374,19 +270,30 @@ class HDF5TableReader(TableReader):
 
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, **kwargs):
         """
         Parameters
         ----------
         filename: str
             name of hdf5 file
-        group_name: str
-            HDF5 path to group where tables are  to be found
+        kwargs:
+            any other arguments that will be passed through to
+            `pytables.open()`.
         """
+
         super().__init__()
         self._tables = {}
-        self._h5file = tables.open_file(filename)
-        pass
+        kwargs.update(mode='r')
+
+        self.open(filename, **kwargs)
+
+    def open(self, filename, **kwargs):
+
+        self._h5file = tables.open_file(filename, **kwargs)
+
+    def close(self):
+
+        self._h5file.close()
 
     def _setup_table(self, table_name, container):
         tab = self._h5file.get_node(table_name)
@@ -414,35 +321,39 @@ class HDF5TableReader(TableReader):
             if colname in container.fields:
                 self._cols_to_read[table_name].append(colname)
             else:
-                self.log.warn("Table '{}' has column '{}' that is not in "
-                              "container {}. It will be skipped"
-                              .format(table_name, colname,
-                                      container.__class__.__name__))
+                self.log.warn("Table '%s' has column '%s' that is not in "
+                              "container %s. It will be skipped",
+                              table_name, colname, container.__class__.__name__)
 
         # also check that the container doesn't have fields that are not
         # in the table:
         for colname in container.fields:
             if colname not in self._cols_to_read[table_name]:
-                self.log.warn("Table '{}' is missing column '{}' that is "
-                              "in container {}. It will be skipped"
-                              .format(table_name, colname,
-                                      container.__class__.__name__))
+                self.log.warn("Table '%s' is missing column '%s' that is "
+                              "in container %s. It will be skipped.",
+                              table_name, colname, container.__class__.__name__)
 
         # copy all user-defined attributes back to Container.mets
         for key in tab.attrs._f_list():
             container.meta[key] = tab.attrs[key]
 
-    def read(self, table_name, container):
+    def read(self, table_name: str, container: Container):
         """
         Returns a generator that reads the next row from the table into the
         given container.  The generator returns the same container. Note that
         no containers are copied, the data are overwritten inside.
+
+        Parameters
+        ----------
+        table_name: str
+            name of table to read from
+        container : ctapipe.core.Container
+            Container instance to fill
         """
         if table_name not in self._tables:
             tab = self._setup_table(table_name, container)
         else:
             tab = self._tables[table_name]
-
 
         row_count = 0
 
@@ -460,9 +371,6 @@ class HDF5TableReader(TableReader):
 
             yield container
             row_count += 1
-
-
-
 
 
 def tr_convert_and_strip_unit(quantity, unit):
