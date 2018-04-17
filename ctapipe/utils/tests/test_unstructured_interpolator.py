@@ -94,8 +94,25 @@ def test_class_output():
     assert np.all(np.abs(unsort_value - lin_nd_val) < 1e-10)
 
 
+def test_out_of_bounds():
+    """
+    Test function to check that we sensibly extrapolate when handed a point outdie of
+    the interpolations bounds
+    """
+
+    interpolation_points = {(0, 0): 0.,
+                            (0, 1): 0.,
+                            (1, 0): 1.,
+                            (1, 1): 1.}
+
+    interpolator = UnstructuredInterpolator(interpolation_points)
+
+    interpolated_point = interpolator([[0,2],[1,2],[2,2]])
+    assert np.all(interpolated_point == [0., 1., 2.])
+
 if __name__ == '__main__':
 
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()
+    test_out_of_bounds()
