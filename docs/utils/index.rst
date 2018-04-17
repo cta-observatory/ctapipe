@@ -27,7 +27,7 @@ It currently provides:
 Access to Service Data files
 ============================
 
-The `get_dataset()` function provides a common way to load CTA "SVC"
+The `get_dataset_path()` function provides a common way to load CTA "SVC"
 data (e.g. required lookups, example data, etc). It returns the full
 directory path to the requested file. It currently works as follows:
 

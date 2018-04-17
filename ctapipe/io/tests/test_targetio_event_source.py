@@ -1,8 +1,9 @@
+import copy
 import pytest
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 
 pytest.importorskip("target_driver")
 pytest.importorskip("target_io")
@@ -10,7 +11,7 @@ pytest.importorskip("target_calib")
 
 
 def test_chec_r1():
-    url = get_dataset("chec_r1.tio")
+    url = get_dataset_path("chec_r1.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
     assert(source._r0_samples is None)
@@ -22,16 +23,16 @@ def test_chec_r1():
 
 
 def test_event_id():
-    url = get_dataset("chec_r1.tio")
+    url = get_dataset_path("chec_r1.tio")
     source = TargetIOEventSource(input_url=url)
     event_id = 2
     source._get_event_by_id(event_id)
-    assert(event_id == source._tio_reader.fCurrentEventID)
+    assert(event_id == source._reader.fCurrentEventID)
     assert(round(source._r1_samples[0, 0, 0]) == -274)
 
 
 def test_singlemodule_r0():
-    url = get_dataset("targetmodule_r0.tio")
+    url = get_dataset_path("targetmodule_r0.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
     assert(source._r1_samples.shape[1] == 64)
@@ -42,7 +43,7 @@ def test_singlemodule_r0():
 
 
 def test_singlemodule_r1():
-    url = get_dataset("targetmodule_r1.tio")
+    url = get_dataset_path("targetmodule_r1.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
     assert(source._r0_samples is None)
@@ -54,21 +55,21 @@ def test_singlemodule_r1():
 
 
 def test_compatible():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     assert TargetIOEventSource.is_compatible(dataset)
 
-    dataset = get_dataset("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test.simtel.gz")
     assert not TargetIOEventSource.is_compatible(dataset)
 
 
 def test_stream():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     with TargetIOEventSource(input_url=dataset) as source:
         assert not source.is_stream
 
 
 def test_loop():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     with TargetIOEventSource(input_url=dataset) as source:
         count = 0
         for event in source:
@@ -82,8 +83,22 @@ def test_loop():
             break
 
 
+def test_that_event_is_not_modified_after_loop():
+    dataset = get_dataset_path("chec_r1.tio")
+    with TargetIOEventSource(input_url=dataset, max_events=2) as source:
+        for event in source:
+            last_event = copy.deepcopy(event)
+
+        # now `event` should be identical with the deepcopy of itself from
+        # inside the loop.
+        # Unfortunately this does not work:
+        #      assert last_event == event
+        # So for the moment we just compare event ids
+        assert event.r0.event_id == last_event.r0.event_id
+
+
 def test_len():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     with TargetIOEventSource(input_url=dataset) as source:
         count = 0
         for _ in source:
@@ -95,26 +110,26 @@ def test_len():
 
 
 def test_geom():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     with TargetIOEventSource(input_url=dataset) as source:
         event = source._get_event_by_index(0)
         assert event.inst.subarray.tels[0].camera.pix_x.size == 2048
 
-    dataset = get_dataset("targetmodule_r1.tio")
+    dataset = get_dataset_path("targetmodule_r1.tio")
     with TargetIOEventSource(input_url=dataset) as source:
         event = source._get_event_by_index(0)
         assert event.inst.subarray.tels[0].camera.pix_x.size == 64
 
 
 def test_eventsourcefactory():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     source = EventSourceFactory.produce(input_url=dataset)
     assert source.__class__.__name__ == "TargetIOEventSource"
     assert source.input_url == dataset
 
 
 def test_eventseeker():
-    dataset = get_dataset("chec_r1.tio")
+    dataset = get_dataset_path("chec_r1.tio")
     with TargetIOEventSource(input_url=dataset) as source:
         seeker = EventSeeker(source)
         event = seeker[0]
