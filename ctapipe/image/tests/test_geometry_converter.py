@@ -1,20 +1,12 @@
-from copy import deepcopy
 import pytest
 import numpy as np
-from matplotlib import pyplot as plt
-
-from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.geometry_converter import (convert_geometry_hex1d_to_rect2d,
                                               convert_geometry_rect2d_back_to_hexe1d,
                                               astri_to_2d_array, array_2d_to_astri,
                                               chec_to_2d_array, array_2d_to_chec)
-from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
+from ctapipe.image.hillas import hillas_parameters
 from ctapipe.instrument import CameraGeometry
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset
-from ctapipe.visualization import CameraDisplay
 from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_shower_image
-from astropy import units as u
 
 
 cam_ids = CameraGeometry.get_known_camera_names()
