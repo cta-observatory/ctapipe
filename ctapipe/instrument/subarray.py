@@ -4,10 +4,11 @@ Description of Arrays or Subarrays of telescopes
 
 from collections import defaultdict
 
-import ctapipe
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
+
+import ctapipe
 
 
 class SubarrayDescription:
@@ -100,7 +101,6 @@ class SubarrayDescription:
         return np.array([p[2].to('m').value
                          for p in self.positions.values()]) * u.m
 
-
     @property
     def tel_id(self):
         """ telescope IDs as an array"""
@@ -123,11 +123,12 @@ class SubarrayDescription:
             which table to generate (subarray or optics)
         """
 
-        meta = {}
-        meta['ORIGIN'] = 'ctapipe.inst.SubarrayDescription'
-        meta['SUBARRAY'] = self.name
-        meta['SOFT_VER'] = ctapipe.__version__
-        meta['TAB_TYPE'] = kind
+        meta = {
+            'ORIGIN': 'ctapipe.inst.SubarrayDescription',
+            'SUBARRAY': self.name,
+            'SOFT_VER': ctapipe.__version__,
+            'TAB_TYPE': kind,
+        }
 
         if kind == 'subarray':
 
@@ -158,18 +159,19 @@ class SubarrayDescription:
                 optics_list.append(next(x.optics for x in self.tels.values() if
                                         x.optics.identifier == oid))
 
-            cols = {}
-            cols['tel_description'] = [str(x) for x in optics_list]
-            cols['tel_type'] = [x.tel_type for x in optics_list]
-            cols['tel_subtype'] = [x.tel_subtype for x in optics_list]
-            cols['mirror_area'] = np.array([x.mirror_area.to('m2').value for x
-                                            in optics_list]) * u.m**2
-            cols['mirror_type'] = [x.mirror_type for x in optics_list]
-            cols['num_mirror_tiles'] = [x.num_mirror_tiles for x in optics_list]
-            cols['equivalent_focal_length'] = [
-                x.equivalent_focal_length.to('m').value
-                for x in optics_list
-            ] * u.m
+            cols = {
+                'tel_description': [str(x) for x in optics_list],
+                'tel_type': [x.tel_type for x in optics_list],
+                'tel_subtype': [x.tel_subtype for x in optics_list],
+                'mirror_area': np.array([x.mirror_area.to('m2').value for x
+                                         in optics_list]) * u.m ** 2,
+                'mirror_type': [x.mirror_type for x in optics_list],
+                'num_mirror_tiles': [x.num_mirror_tiles for x in optics_list],
+                'equivalent_focal_length': [
+                                               x.equivalent_focal_length.to('m')
+                                               for x in optics_list
+                                           ] * u.m,
+            }
 
             tab = Table(cols)
 
