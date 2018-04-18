@@ -80,7 +80,8 @@ def get_git_describe_version(abbrev=7):
                          "--abbrev=%d" % abbrev]
             return check_output(arguments, cwd=CURRENT_DIRECTORY,
                                 stderr=fnull).decode("ascii").strip()
-    except (OSError, CalledProcessError):
+    except (OSError, CalledProcessError) as err:
+        print("couldn't get version from git repo: {}".format(err))
         return None
 
 
