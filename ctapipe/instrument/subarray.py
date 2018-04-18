@@ -85,12 +85,21 @@ class SubarrayDescription:
     @property
     def pos_x(self):
         """ telescope x position as array """
-        return np.array([p[0].to('m').value for p in self.positions.values()]) * u.m
+        return np.array([p[0].to('m').value
+                         for p in self.positions.values()]) * u.m
 
     @property
     def pos_y(self):
         """ telescope y positions as an array"""
-        return np.array([p[1].to('m').value for p in self.positions.values()]) * u.m
+        return np.array([p[1].to('m').value
+                         for p in self.positions.values()]) * u.m
+
+    @property
+    def pos_z(self):
+        """ telescope y positions as an array"""
+        return np.array([p[2].to('m').value
+                         for p in self.positions.values()]) * u.m
+
 
     @property
     def tel_id(self):
@@ -132,6 +141,7 @@ class SubarrayDescription:
             tab = Table(dict(tel_id=np.array(ids, dtype=np.short),
                              tel_pos_x=self.pos_x,
                              tel_pos_y=self.pos_y,
+                             tel_pos_z=self.pos_z,
                              tel_type=tel_types,
                              tel_subtype=tel_subtypes,
                              mirror_type=mirror_types,
