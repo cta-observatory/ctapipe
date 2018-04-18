@@ -78,8 +78,11 @@ def get_git_describe_version(abbrev=7):
         with open(devnull, "w") as fnull:
             arguments = [GIT_COMMAND, "describe", "--tags",
                          "--abbrev=%d" % abbrev]
-            return check_output(arguments, cwd=CURRENT_DIRECTORY,
-                                stderr=fnull).decode("ascii").strip()
+            output = check_output(arguments, cwd=CURRENT_DIRECTORY,
+                                 stderr=fnull).decode("ascii").strip()
+            print("DEBUG: output of git describe: '{}'".format(output))
+            return output
+
     except (OSError, CalledProcessError) as err:
         print("couldn't get version from git repo: {}".format(err))
         return None
