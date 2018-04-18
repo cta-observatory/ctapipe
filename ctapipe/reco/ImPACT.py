@@ -481,8 +481,8 @@ class ImPACTReconstructor(Reconstructor):
                                                self.ped[tel_count])
             if np.any(prediction == np.inf):
                 self.log.debug("inf found at type=%s zenith=%.2f azimuth=%.2f \
-                               energy=%.2f impact=%.2f x_max=%.2d", 
-                               self.tel_type[tel_count], 
+                               energy=%.2f impact=%.2f x_max=%.2d",
+                               self.tel_type[tel_count],
                                zenith, azimuth, energy,
                                impact, x_max_bin)
             like[np.isnan(like)] = 1e9
