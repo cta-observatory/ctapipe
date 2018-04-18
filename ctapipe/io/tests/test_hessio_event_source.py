@@ -1,9 +1,10 @@
-from ctapipe.utils import get_dataset
+import copy
+from ctapipe.utils import get_dataset_path
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 
 
 def test_hessio_file_reader():
-    dataset = get_dataset("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test.simtel.gz")
     kwargs = dict(config=None, tool=None, input_url=dataset)
     with HESSIOEventSource(**kwargs) as reader:
         assert reader.is_compatible(dataset)
@@ -34,3 +35,17 @@ def test_hessio_file_reader():
         for event in reader:
             assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
+
+def test_that_event_is_not_modified_after_loop():
+
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    with HESSIOEventSource(input_url=dataset, max_events=2) as source:
+        for event in source:
+            last_event = copy.deepcopy(event)
+
+        # now `event` should be identical with the deepcopy of itself from
+        # inside the loop.
+        # Unfortunately this does not work:
+        #      assert last_event == event
+        # So for the moment we just compare event ids
+        assert event.r0.event_id == last_event.r0.event_id

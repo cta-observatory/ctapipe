@@ -1,6 +1,6 @@
 from ctapipe.core.factory import Factory
 from ctapipe.core.component import Component
-from traitlets import Int
+from traitlets import Int, TraitError
 import pytest
 from traitlets.config.loader import Config
 
@@ -116,7 +116,12 @@ def test_expected_args():
         extra=4,
         nonexistant=5
     )
+    with pytest.raises(TraitError):
+        obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
+
+    kwargs.pop('nonexistant')
     obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
+
     with pytest.raises(AttributeError):
         assert obj.extra == 4
     with pytest.raises(AttributeError):

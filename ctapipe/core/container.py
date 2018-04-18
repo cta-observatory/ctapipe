@@ -94,7 +94,6 @@ class Container(metaclass=ContainerMeta):
     >>>
     >>>    cont = MyContainer()
     >>>    print(cont.x)
-    100
     >>>    # metdata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
@@ -132,6 +131,14 @@ class Container(metaclass=ContainerMeta):
     def items(self):
         """Generator over (key, value) pairs for the items"""
         return ((k, getattr(self, k)) for k in self.fields.keys())
+
+    def keys(self):
+        """Get the keys of the container"""
+        return self.fields.keys()
+
+    def values(self):
+        """Get the keys of the container"""
+        return (getattr(self, k) for k in self.fields.keys())
 
     def as_dict(self, recursive=False, flatten=False):
         """

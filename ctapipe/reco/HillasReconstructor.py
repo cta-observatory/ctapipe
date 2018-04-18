@@ -141,7 +141,7 @@ class HillasReconstructor(Reconstructor):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=tool, **kwargs)
         self.circles = {}
 
     def predict(self, hillas_dict, inst, tel_phi, tel_theta, seed_pos=(0, 0)):

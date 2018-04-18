@@ -14,7 +14,7 @@ from ctapipe.reco import HillasReconstructor
 from ctapipe.utils import datasets, linalg
 
 # importing data from avaiable datasets in ctapipe
-filename = datasets.get_dataset("gamma_test_large.simtel.gz")
+filename = datasets.get_dataset_path("gamma_test_large.simtel.gz")
 
 # reading the Monte Carlo file for LST
 source = event_source(filename, allowed_tels={1, 2, 3, 4})

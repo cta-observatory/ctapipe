@@ -1,11 +1,11 @@
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.eventseeker import EventSeeker
 import pytest
 
 
 def test_eventseeker():
-    dataset = get_dataset("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test.simtel.gz")
     kwargs = dict(config=None, tool=None, input_url=dataset)
     with HESSIOEventSource(**kwargs) as reader:
         seeker = EventSeeker(reader=reader)

@@ -12,10 +12,14 @@ from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from astropy.constants import alpha
-from ctapipe.io.containers import MuonIntensityParameter
+from ...io.containers import MuonIntensityParameter
 from scipy.stats import norm
 
+import logging
+
 __all__ = ['MuonLineIntegrate']
+
+logger = logging.getLogger(__name__)
 
 
 class MuonLineIntegrate:
@@ -252,6 +256,7 @@ class MuonLineIntegrate:
         pred *= np.sin(2 * radius)
         # weight by gaussian width
         pred *= self.pixel_width * gauss
+
         return pred
 
     def likelihood(self, impact_parameter, phi, centre_x, centre_y,
@@ -306,6 +311,7 @@ class MuonLineIntegrate:
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
         like_value = np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
+
         return like_value
 
     @staticmethod
@@ -339,6 +345,7 @@ class MuonLineIntegrate:
         expo[sm] = 1e-300 * u.m
         log_value = sq * expo / u.m * u.deg
         likelihood_value = -2 * np.log(log_value)
+
         return likelihood_value
 
     def fit_muon(self, centre_x, centre_y, radius, pixel_x, pixel_y, image):
@@ -399,7 +406,7 @@ class MuonLineIntegrate:
         init_constrain['limit_ring_width'] = (0., 1.)
         init_constrain['limit_optical_efficiency_muon'] = (0., 1.)
 
-        print("radius =", radius, " pre migrad")
+        logger.debug("radius = %3.3f pre migrad", radius)
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them
@@ -420,6 +427,7 @@ class MuonLineIntegrate:
 
         # Get fitted values
         fit_params = minuit.values
+
         fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
         # fitoutput.phi = fit_params['phi']*u.rad
         fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
