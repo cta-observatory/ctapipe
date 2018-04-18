@@ -159,12 +159,13 @@ def get_version(pep440=False):
     """
 
     raw_git_version = get_git_describe_version()
-    if not raw_git_version:  # not a git repository
-        return  read_release_version()
+    if raw_git_version:
+        git_version = format_git_describe(raw_git_version, pep440=pep440)
+        return git_version
 
-    git_version = format_git_describe(raw_git_version, pep440=pep440)
-
-    return git_version
+    # otherwise get the version from _version_cache.py, which should have
+    # been generated in the build dir when setup.py was run
+    return read_release_version()
 
 
 if __name__ == "__main__":
