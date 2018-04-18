@@ -9,7 +9,7 @@ def astri_transformation_map():
     """
 
     # By default, pixels map to the last element of input_img_ext (i.e. NaN)
-    img_map = np.full([8 * 7, 8 * 7], -1, dtype=int)
+    img_map = np.full([56, 56], -1, dtype=int)
 
     # Map values
     img_map[0:8, 16:24] = np.arange(64).reshape([8, 8])[::-1, :] + 34 * 64
