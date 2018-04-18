@@ -221,7 +221,7 @@ class HillasIntersection(Reconstructor):
 
         tx = np.zeros((len(tel_x), 2))
         ty = np.zeros((len(tel_y), 2))
-        for i in enumerate(tel_x):
+        for i, _ in enumerate(tel_x):
             tx[i][0], tx[i][1] = tel_x[i][0].value, tel_x[i][1].value
             ty[i][0], ty[i][1] = tel_y[i][0].value, tel_y[i][1].value
 
