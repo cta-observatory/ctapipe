@@ -167,10 +167,8 @@ class SubarrayDescription:
                                          in optics_list]) * u.m ** 2,
                 'mirror_type': [x.mirror_type for x in optics_list],
                 'num_mirror_tiles': [x.num_mirror_tiles for x in optics_list],
-                'equivalent_focal_length': [
-                                               x.equivalent_focal_length.to('m')
-                                               for x in optics_list
-                                           ] * u.m,
+                'equivalent_focal_length': [x.equivalent_focal_length.to('m')
+                                            for x in optics_list] * u.m,
             }
 
             tab = Table(cols)
