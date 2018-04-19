@@ -1,7 +1,7 @@
 """
 Algorithms to select correct gain channel
 """
-from abc import ABCMeta, abstractclassmethod
+from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 
 import numpy as np
@@ -76,7 +76,7 @@ class GainSelector(Component, metaclass=ABCMeta):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
 
-    @abstractclassmethod
+    @abstractmethod
     def select_gains(self, cam_id, multi_gain_waveform):
         """
         Takes an input waveform and cam_id  and performs gain selection
