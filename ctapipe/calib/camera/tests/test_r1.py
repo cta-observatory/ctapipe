@@ -28,7 +28,7 @@ def test_null_r1_calibrator(test_event):
     event = deepcopy(test_event)
     calibrator = NullR1Calibrator()
     calibrator.calibrate(event)
-    r0 = event.r0.tel[telid].waveform
+    r0 = event.r0.tel[telid].waveform[0]
     r1 = event.r1.tel[telid].waveform
     assert_array_equal(r0, r1)
 
@@ -48,7 +48,7 @@ def test_targetio_calibrator():
     event_r1 = source_r1._get_event_by_index(0)
 
     r1c.calibrate(event_r0)
-    assert_array_equal(event_r0.r0.tel[0].waveform,
+    assert_array_equal(event_r0.r0.tel[0].waveform[0],
                        event_r0.r1.tel[0].waveform)
 
     r1c = CameraR1CalibratorFactory.produce(
