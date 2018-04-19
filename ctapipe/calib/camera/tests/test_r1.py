@@ -9,7 +9,7 @@ from ctapipe.calib.camera.r1 import (
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsource import EventSource
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 from copy import deepcopy
 import pytest
 
@@ -35,9 +35,9 @@ def test_null_r1_calibrator(test_event):
 
 def test_targetio_calibrator():
     pytest.importorskip("target_calib")
-    url_r0 = get_dataset("targetmodule_r0.tio")
-    url_r1 = get_dataset("targetmodule_r1.tio")
-    pedpath = get_dataset("targetmodule_ped.tcal")
+    url_r0 = get_dataset_path("targetmodule_r0.tio")
+    url_r1 = get_dataset_path("targetmodule_r1.tio")
+    pedpath = get_dataset_path("targetmodule_ped.tcal")
 
     source_r0 = TargetIOEventSource(input_url=url_r0)
     source_r1 = TargetIOEventSource(input_url=url_r1)
@@ -93,14 +93,14 @@ def test_factory_default():
 
 
 def test_factory_from_eventsource():
-    dataset = get_dataset("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = HESSIOEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(eventsource=eventsource)
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
 def test_factory_from_eventsource_override():
-    dataset = get_dataset("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = HESSIOEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(
         eventsource=eventsource,
@@ -123,7 +123,7 @@ class UnknownEventSource(EventSource):
 
 
 def test_factory_from_unknown_eventsource():
-    dataset = get_dataset("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = UnknownEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(eventsource=eventsource)
     assert isinstance(calibrator, NullR1Calibrator)

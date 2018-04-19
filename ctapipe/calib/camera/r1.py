@@ -17,7 +17,7 @@ from abc import abstractmethod
 
 from .gainselection import ThresholdGainSelector, SimpleGainSelector
 from ...core import Component, Factory
-from ...core.traits import Unicode
+from ...core.traits import Unicode, Float
 from ...io import EventSource
 
 __all__ = [
@@ -166,23 +166,21 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
 
-    kwargs
+    Attributes
+    ----------
+    calib_scale: float
+        the factor needed to transform from mean p.e. units to
+        units of the single-p.e. peak: Depends on the collection efficiency,
+        the asymmetry of the single p.e. amplitude  distribution and the
+        electronic noise added to the signals. Default value of 1.05 is for
+        GCT, but should be 0.92 for e.g. prod3 SimTelarray simulations.
     """
 
-    # CALIB_SCALE is only relevant for MC calibration.
-    #
-    # CALIB_SCALE is the factor needed to transform from mean p.e. units to
-    # units of the single-p.e. peak: Depends on the collection efficiency,
-    # the asymmetry of the single p.e. amplitude  distribution and the
-    # electronic noise added to the signals. Default value is for GCT.
-    #
-    # To correctly calibrate to number of photoelectron, a fresh SPE
-    # calibration should be applied using a SPE sim_telarray run with an
-    # artificial light source.
-    #
-    # TODO: Handle calib_scale differently per simlated telescope
-
-    calib_scale = 1.05
+    calib_scale = Float(
+        1.05,
+        help="factor to transform from mean PE units to units single PE "
+             "peak. (0.92 for standard MCs)",
+    ).tag(config=True)
 
     def __init__(self, config=None, tool=None, gain_selector=None, **kwargs):
         if gain_selector is None:
@@ -198,11 +196,13 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
 
         for telid in event.r0.tels_with_data:
             if self.check_r0_exists(event, telid):
-                samples = event.r0.tel[telid].waveform
-                n_samples = samples.shape[2]
+                # todo: KPK  do gain selection first, then need to multiply
+                # correct pedestals with a mask
+                waveform = event.r0.tel[telid].waveform
+                n_samples = waveform.shape[2]
                 ped = event.mc.tel[telid].pedestal / n_samples
                 gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
-                calibrated = (samples - ped[..., None]) * gain[..., None]
+                calibrated = (waveform - ped[..., None]) * gain[..., None]
 
                 cam_id = event.inst.subarray.tel[telid].camera.cam_id
                 wf, mask = self.gain_selector.select_gains(cam_id, calibrated)

@@ -5,7 +5,7 @@ from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 
 
 def test_fit_core():
@@ -104,7 +104,7 @@ def test_reconstruction():
 
     in the end, proper units in the output are asserted """
 
-    filename = get_dataset("gamma_test.simtel.gz")
+    filename = get_dataset_path("gamma_test.simtel.gz")
 
     fit = HillasReconstructor()
 
