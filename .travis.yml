@@ -44,6 +44,7 @@ before_install:
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
     - git fetch --tags
+    - git describe 
 
 install:
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
