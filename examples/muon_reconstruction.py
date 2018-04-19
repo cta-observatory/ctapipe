@@ -1,122 +1,123 @@
 """
 Example to load raw data (hessio format), calibrate and reconstruct muon
-ring parameters, and write some parameters to an output table
+ring parameters, and write the muon ring and intensity parameters to an output
+table.
+
+The resulting output can be read e.g. using `pandas.read_hdf(filename,
+'muons/LSTCam')`
 """
 
 import warnings
+from collections import defaultdict
 
-from astropy.table import Table
+from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Tool
+from ctapipe.core import Provenance
+from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
-from ctapipe.io import event_source
-from ctapipe.utils import get_dataset
+from ctapipe.io import EventSourceFactory
+from ctapipe.io import HDF5TableWriter
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
 
 
-def print_muon(event, printer=print):
-    for tid in event['TelIds']:
-        idx = event['TelIds'].index(tid)
-        if event['MuonIntensityParams'][idx]:
-            printer(
-                "MUON: Run ID {} Event ID {} \
-                    Impact Parameter {} Ring Width {} Optical Efficiency {}"
-                .format(
-                    event['MuonRingParams'][idx].obs_id,
-                    event['MuonRingParams'][idx].event_id,
-                    event['MuonIntensityParams'][idx].impact_parameter,
-                    event['MuonIntensityParams'][idx].ring_width,
-                    event['MuonIntensityParams'][idx].optical_efficiency_muon
-                )
-            )
-    pass
+def _exclude_some_columns(subarray, writer):
+    """ a hack to exclude some columns of all output tables here we exclude
+    the prediction and mask quantities, since they are arrays and thus not
+    readable by pandas.  Also, prediction currently is a variable-length
+    quantity (need to change it to be fixed-length), so it cannot be written
+    to a fixed-length table.
+    """
+    all_camids = {str(x.camera) for x in subarray.tel.values()}
+    for cam in all_camids:
+        writer.exclude(cam, 'prediction')
+        writer.exclude(cam, 'mask')
 
 
 class MuonDisplayerTool(Tool):
     name = 'ctapipe-display-muons'
     description = t.Unicode(__doc__)
 
-    infile = t.Unicode(
-        help='input file name',
-        default=get_dataset('gamma_test_large.simtel.gz')
-    ).tag(config=True)
+    events = t.Unicode("",
+                       help="input event data file").tag(config=True)
 
-    outfile = t.Unicode(help='output file name', default=None).tag(config=True)
+    outfile = t.Unicode("muons.hdf5", help='HDF5 output file name').tag(
+        config=True)
 
     display = t.Bool(
         help='display the camera events', default=False
     ).tag(config=True)
 
     classes = t.List([
-        CameraCalibrator,
+        CameraCalibrator, EventSourceFactory
     ])
 
     aliases = t.Dict({
-        'infile': 'MuonDisplayerTool.infile',
+        'input': 'MuonDisplayerTool.events',
         'outfile': 'MuonDisplayerTool.outfile',
-        'display': 'MuonDisplayerTool.display'
+        'display': 'MuonDisplayerTool.display',
+        'max_events': 'EventSourceFactory.max_events',
+        'allowed_tels': 'EventSourceFactory.allowed_tels',
     })
 
     def setup(self):
+        if self.events == '':
+            raise ToolConfigurationError("please specify --input <events file>")
+        self.log.debug("input: %s", self.events)
+        self.source = EventSourceFactory.produce(input_url=self.events)
         self.calib = CameraCalibrator(
-            config=self.config, tool=self, r1_product="HESSIOR1Calibrator"
+            config=self.config, tool=self, eventsource=self.source
         )
+        self.writer = HDF5TableWriter(self.outfile, "muons")
 
     def start(self):
 
-        output_parameters = {'MuonEff': [], 'ImpactP': [], 'RingWidth': []}
-
         numev = 0
-        num_muons_found = 0
+        self.num_muons_found = defaultdict(int)
 
-        for event in event_source(self.infile):
-            self.log.info(
-                "Event Number: %d, found %d muons", numev, num_muons_found
-            )
+        for event in tqdm(self.source, desc='detecting muons'):
+
             self.calib.calibrate(event)
             muon_evt = analyze_muon_event(event)
 
+            if numev == 0:
+                _exclude_some_columns(event.inst.subarray, self.writer)
+
             numev += 1
 
-            if not muon_evt['MuonIntensityParams'
-                            ]:  # No telescopes contained a good muon
+            if not muon_evt['MuonIntensityParams']:
+                # No telescopes  contained a good muon
                 continue
             else:
                 if self.display:
                     plot_muon_event(event, muon_evt)
 
-                for tid in muon_evt['TelIds']:
-                    idx = muon_evt['TelIds'].index(tid)
-                    if muon_evt['MuonIntensityParams'][idx] is not None:
-                        self.log.info(
-                            "** Muon params: %s",
-                            muon_evt['MuonIntensityParams'][idx]
-                        )
+                for tel_id in muon_evt['TelIds']:
+                    idx = muon_evt['TelIds'].index(tel_id)
+                    intens_params = muon_evt['MuonIntensityParams'][idx]
 
-                        output_parameters['MuonEff'].append(
-                            muon_evt['MuonIntensityParams'][idx]
-                            .optical_efficiency_muon
-                        )
-                        output_parameters['ImpactP'].append(
-                            muon_evt['MuonIntensityParams'][idx]
-                            .impact_parameter.value
-                        )
-                        output_parameters['RingWidth'].append(
-                            muon_evt['MuonIntensityParams'][idx]
-                            .ring_width.value
-                        )
-                        print_muon(muon_evt, printer=self.log.info)
-                        num_muons_found += 1
+                    if intens_params is not None:
+                        ring_params = muon_evt['MuonRingParams'][idx]
+                        cam_id = str(event.inst.subarray.tel[tel_id].camera)
+                        self.num_muons_found[cam_id] += 1
+                        self.log.debug("INTENSITY: %s", intens_params)
+                        self.log.debug("RING: %s", ring_params)
+                        self.writer.write(table_name=cam_id,
+                                          containers=[intens_params,
+                                                      ring_params])
 
-        t = Table(output_parameters)
-        t['ImpactP'].unit = 'm'
-        t['RingWidth'].unit = 'deg'
-        if self.outfile:
-            t.write(self.outfile)
+                self.log.info(
+                    "Event Number: %d, found %s muons",
+                    numev, dict(self.num_muons_found)
+                )
+
+    def finish(self):
+        Provenance().add_output_file(self.outfile,
+                                     role='dl1.tel.evt.muon')
+        self.writer.close()
 
 
 if __name__ == '__main__':

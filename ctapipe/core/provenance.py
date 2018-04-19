@@ -25,6 +25,21 @@ log = logging.getLogger(__name__)
 
 __all__ = ['Provenance']
 
+_interesting_env_vars = [
+    'CONDA_DEFAULT_ENV',
+    'CONDA_PREFIX',
+    'CONDA_PYTHON_EXE',
+    'CONDA_EXE',
+    'CONDA_PROMPT_MODIFIER',
+    'CONDA_SHLVL',
+    'PATH',
+    'LD_LIBRARY_PATH',
+    'DYLD_LIBRARY_PATH',
+    'USER',
+    'HOME',
+    'SHELL',
+]
+
 
 class Provenance(metaclass=Singleton):
     """
@@ -263,9 +278,17 @@ def _get_system_provenance():
             compiler=platform.python_compiler(),
             implementation=platform.python_implementation(),
         ),
+        environment=_get_env_vars(),
         arguments=sys.argv,
         start_time_utc=Time.now().isot,
     )
+
+
+def _get_env_vars():
+    envvars = {}
+    for var in _interesting_env_vars:
+        envvars[var] = os.getenv(var, None)
+    return envvars
 
 
 def _sample_cpu_and_memory():
