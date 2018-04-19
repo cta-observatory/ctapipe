@@ -136,7 +136,8 @@ class NullR1Calibrator(CameraR1Calibrator):
         super().__init__(config, tool, **kwargs)
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
-        self.gain_selector = gain_selector or SimpleGainSelector(tool, config)
+        self.gain_selector = gain_selector or SimpleGainSelector(parent=tool,
+                                                                 config=config)
 
     def calibrate(self, event):
         for telid in event.r0.tels_with_data:
