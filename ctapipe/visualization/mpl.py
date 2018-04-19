@@ -4,15 +4,16 @@ Visualization routines using matplotlib
 """
 import copy
 import logging
+from itertools import cycle
 
-import matplotlib
 import numpy as np
 from astropy import units as u
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from matplotlib.patches import Ellipse, RegularPolygon, Circle
+from matplotlib.lines import Line2D
 from numpy import sqrt
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
@@ -446,23 +447,83 @@ class CameraDisplay:
 class ArrayDisplay:
 
     """
-    Display a top-town view of a telescope array
+    Display a top-town view of a telescope array.
+
+    This can be used in two ways: by default, you get a display of all
+    telescopes in the subarray, colored by telescope type, however you can
+    also color the telescopes by a value (like trigger pattern, or some other
+    scalar per-telescope parameter). To set the color value, simply set the
+    `value` attribute, and the fill color will be updated with the value. You
+    might want to set the border color to zero to avoid confusion between the
+    telescope type color and the value color (
+    `array_disp.telescope.set_linewidth(0)`)
+
+
+    Parameters
+    ----------
+    subarray: ctapipe.instrument.SubarrayDescription
+        the array layout to display
+    axes: matplotlib.axes.Axes
+        matplotlib axes to plot on, or None to use current one
+    title: str
+        title of array plot
+    tel_scale: float
+        scaling between telescope mirror radius in m to displayed size
+    autoupdate: bool
+        redraw when the input changes
     """
 
-    def __init__(self, telx, tely, tel_type=None, radius=20,
-                 axes=None, title="Array", autoupdate=True):
+    def __init__(self, subarray, axes=None, autoupdate=True,
+                 tel_scale=1.0, alpha=0.7, title=None):
 
-        if tel_type is None:
-            tel_type = np.ones(len(telx))
-        patches = [Rectangle(xy=(x - radius / 2, y - radius / 2),
-                             width=radius, height=radius, fill=False)
-                   for x, y in zip(telx, tely)]
+        self.subarray=subarray
+        tel_types = [str(tel) for tel in subarray.tels.values()]
+        telx = subarray.pos_x
+        tely = subarray.pos_y
+        radius = [np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
+                  for tel in subarray.tel.values()]
+
+        if title is None:
+            title = subarray.name
+
+        # get default matplotlib color cycle (depends on the current style)
+        color_cycle = cycle(plt.rcParams['axes.prop_cycle'].by_key()['color'])
+
+        # map a color to each telescope type:
+        tel_type_to_color = {}
+        for tel_type in list(set(tel_types)):
+            tel_type_to_color[tel_type] = next(color_cycle)
+
+        tel_color = [tel_type_to_color[ttype] for ttype in tel_types]
+
+        patches = []
+        for x, y, r, c in zip(list(telx.value), list(tely.value),
+                              list(radius), tel_color):
+            patches.append(
+                Circle(
+                    xy=(x,y),
+                    radius=r,
+                    fill=True,
+                    color=c,
+                    alpha=alpha,
+                )
+            )
+
+
+        # build the legend:
+        legend_elements = []
+        for ttype in list(set(tel_types)):
+            color = tel_type_to_color[ttype]
+            legend_elements.append(
+                Line2D([0], [0], marker='o', color=color,
+                       label=ttype, markersize=10, alpha=alpha,
+                       linewidth=0)
+            )
+        plt.legend(handles=legend_elements)
+
 
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
-        self.telescopes.set_clim(1, 9)
-        rgb = matplotlib.cm.Set1((tel_type - 1) / 9)
-        self.telescopes.set_edgecolor(rgb)
         self.telescopes.set_linewidth(2.0)
 
         self.axes = axes if axes is not None else plt.gca()
