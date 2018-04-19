@@ -45,7 +45,8 @@ before_install:
     - sh -e /etc/init.d/xvfb start
     - git fetch origin --tags
     - git tag
-    - git describe
+    - git branch
+    - git describe --always
 
 install:
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
