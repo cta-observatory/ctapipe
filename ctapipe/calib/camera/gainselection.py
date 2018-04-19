@@ -1,7 +1,7 @@
 """
 Algorithms to select correct gain channel
 """
-from abc import ABCMeta, abstractclassmethod
+from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 
 import numpy as np
@@ -73,10 +73,10 @@ class GainSelector(Component, metaclass=ABCMeta):
     single waveform.
     """
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, parent=None, config=None, **kwargs):
+        super().__init__(parent=parent, config=config, **kwargs)
 
-    @abstractclassmethod
+    @abstractmethod
     def select_gains(self, cam_id, multi_gain_waveform):
         """
         Takes an input waveform and cam_id  and performs gain selection
@@ -161,7 +161,13 @@ class ThresholdGainSelector(GainSelector):
             self.threshold_table_name,
             role='dl0.tel.svc.gain_thresholds'
         )
-        self.thresholds = dict(zip(tab['cam_id'], tab['gain_threshold_dc']))
+
+        if 'gain_threshold_dc' in tab:
+            thresh = tab['gain_threshold_dc']
+        else:
+            thresh = tab['gain_threshold_pe']
+
+        self.thresholds = dict(zip(tab['cam_id'], thresh))
         self.log.debug("Loaded threshold table: \n %s", tab)
 
     def __str__(self):
