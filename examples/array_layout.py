@@ -34,8 +34,11 @@ if __name__ == '__main__':
     plt.pause(1.0)
 
     print("Now setting values")
+    ad.telescopes.set_linewidth(0)
     for ii in range(50):
         vals = np.random.uniform(100.0, size=subarray.num_tels)
         ad.values = vals
         plt.pause(0.01)
 
+    ad.add_lables()
+    plt.pause(0.1)
