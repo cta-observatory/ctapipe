@@ -8,12 +8,12 @@ from itertools import cycle
 
 import numpy as np
 from astropy import units as u
+from astropy.coordinates import Angle
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse, RegularPolygon, Circle
-from matplotlib.lines import Line2D
 from numpy import sqrt
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
@@ -23,8 +23,14 @@ logger = logging.getLogger(__name__)
 PIXEL_EPSILON = 0.0005  # a bit of extra size to pixels to avoid aliasing
 
 
-class CameraDisplay:
+def polar_to_cart(rho, phi):
+    """"returns r, theta(degrees)"""
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return x, y
 
+
+class CameraDisplay:
     """
     Camera Display using matplotlib.
 
@@ -300,7 +306,7 @@ class CameraDisplay:
             raise ValueError(
                 "Image has a different shape {} than the "
                 "given CameraGeometry {}"
-                .format(image.shape, self.geom.pix_x.shape)
+                    .format(image.shape, self.geom.pix_x.shape)
             )
 
         self.pixels.set_array(image[self.geom.mask])
@@ -366,7 +372,8 @@ class CameraDisplay:
         self.update()
         return ellipse
 
-    def overlay_moments(self, momparams, with_label=True, keep_old=False, **kwargs):
+    def overlay_moments(self, momparams, with_label=True, keep_old=False,
+                        **kwargs):
         """helper to overlay ellipse from a `reco.MomentParameters` structure
 
         Parameters
@@ -389,7 +396,6 @@ class CameraDisplay:
         cen_y = u.Quantity(momparams.cen_y).value
         length = u.Quantity(momparams.length).value
         width = u.Quantity(momparams.width).value
-
 
         el = self.add_ellipse(centroid=(cen_x, cen_y),
                               length=length * 2,
@@ -445,7 +451,6 @@ class CameraDisplay:
 
 
 class ArrayDisplay:
-
     """
     Display a top-town view of a telescope array.
 
@@ -457,6 +462,11 @@ class ArrayDisplay:
     might want to set the border color to zero to avoid confusion between the
     telescope type color and the value color (
     `array_disp.telescope.set_linewidth(0)`)
+
+    To display a vector field over the telescope positions, e.g. for
+    reconstruction, call `set_uv()` to set cartesian vectors, or `set_r_phi()`
+    to set polar coordinate vectors.  These both take an array of length
+    N_tels, or a single value.
 
 
     Parameters
@@ -476,7 +486,7 @@ class ArrayDisplay:
     def __init__(self, subarray, axes=None, autoupdate=True,
                  tel_scale=1.0, alpha=0.7, title=None):
 
-        self.subarray=subarray
+        self.subarray = subarray
         tel_types = [str(tel) for tel in subarray.tels.values()]
         telx = subarray.pos_x
         tely = subarray.pos_y
@@ -501,14 +511,13 @@ class ArrayDisplay:
                               list(radius), tel_color):
             patches.append(
                 Circle(
-                    xy=(x,y),
+                    xy=(x, y),
                     radius=r,
                     fill=True,
                     color=c,
                     alpha=alpha,
                 )
             )
-
 
         # build the legend:
         legend_elements = []
@@ -521,20 +530,18 @@ class ArrayDisplay:
             )
         plt.legend(handles=legend_elements)
 
-
+        self.tel_colors = tel_color
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
         self.telescopes.set_linewidth(2.0)
 
-        self.axes = axes if axes is not None else plt.gca()
+        self.axes = axes or plt.gca()
         self.axes.add_collection(self.telescopes)
         self.axes.set_aspect(1.0)
         self.axes.set_title(title)
         self.axes.set_xlim(-1000, 1000)
         self.axes.set_ylim(-1000, 1000)
-
-        self.axes_hillas = axes if axes is not None else plt.gca()
-
+        self.quiver = None
 
     @property
     def values(self):
@@ -547,116 +554,45 @@ class ArrayDisplay:
         self.telescopes.set_array(values)
         self._update()
 
+    def set_uv(self, u, v, c=None, **kwargs):
+        """ sets the vector field U,V and color for all telescopes
+
+        Parameters
+        ----------
+        u: array[num_tels]
+            x-component of direction vector
+        v: array[num_tels]
+            y-component of direction vector
+        kwargs:
+            extra args passed to plt.quiver(), ignored on subsequent updates
+        """
+        if c is None:
+            c = self.tel_colors
+
+        if self.quiver is None:
+            x = self.subarray.pos_x.value
+            y = self.subarray.pos_y.value
+            self.quiver = self.axes.quiver(x, y, u, v, color=c, **kwargs)
+        else:
+            self.quiver.set_UVC(u, v, c=c)
+
+    def set_r_phi(self, r, phi, **kwargs):
+        """sets the vector field using R, Phi for each telescope
+
+        Parameters
+        ----------
+        r: float or array[float]
+            vector magnitude for each telescope
+        phi: array[Angle]
+            vector angle for each telescope
+        c: color or list of colors
+            vector color for each telescope (or one for all)
+        """
+        phi = Angle(phi).rad
+        u, v = polar_to_cart(r, phi)
+        self.set_uv(u, v, **kwargs)
+
     def _update(self):
         """ signal a redraw if necessary """
         if self.autoupdate:
             plt.draw()
-
-    def add_ellipse(self, centroid, length, width, angle, **kwargs):
-        """
-        plot an ellipse on top of the camera
-
-        Parameters
-        ----------
-        centroid: (float, float)
-            position of centroid
-        length: float
-            major axis
-        width: float
-            minor axis
-        angle: float
-            rotation angle wrt x-axis about the centroid, anticlockwise, in radians
-        asymmetry: float
-            3rd-order moment for directionality if known
-        kwargs:
-            any MatPlotLib style arguments to pass to the Ellipse patch
-
-        """
-        ellipse = Ellipse(xy=centroid, width=length, height=width,
-                          angle=np.degrees(angle), fill=True, **kwargs)
-
-        self.axes.add_patch(ellipse)
-        return ellipse
-
-    def add_polygon(self, centroid, radius, nsides=3, **kwargs):
-        """
-        plot a polygon on top of the camera
-
-        Parameters
-        ----------
-        centroid: (float, float)
-            position of centroid
-        radius: float
-            radius
-        nsides: int
-            Number of points on polygon
-        kwargs:
-            any MatPlotLib style arguments to pass to the RegularPolygon patch
-
-        """
-        polygon = RegularPolygon(xy=centroid, radius=radius, numVertices=nsides, **kwargs)
-        self.axes.add_patch(polygon)
-        return polygon
-
-    def overlay_moments(self, momparams, tel_position, scale_fac, **kwargs):
-        """helper to overlay ellipse from a `reco.MomentParameters` structure
-
-        Parameters
-        ----------
-        momparams: `reco.MomentParameters`
-            structuring containing Hillas-style parameterization
-        tel_position: list
-            (x, y) positions of each telescope
-        scale_fac: float
-            scaling factor to apply to width and length when overlaying moments
-        kwargs: key=value
-            any style keywords to pass to matplotlib (e.g. color='red'
-            or linewidth=6)
-        """
-        # strip off any units
-        ellipse_list = list()
-        size_list = list()
-        i = 0
-        for h in momparams:
-
-            length = u.Quantity(momparams[h].length).value * scale_fac
-            width = u.Quantity(momparams[h].width).value * scale_fac
-            size_list.append(u.Quantity(momparams[h].size).value)
-            tel_x = u.Quantity(tel_position[0][i]).value
-            tel_y = u.Quantity(tel_position[1][i]).value
-            i += 1
-
-            ellipse = Ellipse(xy=(tel_x, tel_y), width=length, height=width,
-                              angle=np.degrees(momparams[h].psi.rad))
-            ellipse_list.append(ellipse)
-
-        patches = PatchCollection(ellipse_list, **kwargs)
-        patches.set_clim(0, 1000)  # Set ellipse colour based on image size
-        patches.set_array(np.asarray(size_list))
-        self.axes_hillas.add_collection(patches)
-
-    def overlay_axis(self, momparams, tel_position, **kwargs):
-        """helper to overlay ellipse from a `reco.MomentParameters` structure
-
-        Parameters
-        ----------
-        momparams: `reco.MomentParameters`
-            structuring containing Hillas-style parameterization
-        tel_position: list
-            (x, y) positions of each telescope
-        kwargs: key=value
-            any style keywords to pass to matplotlib (e.g. color='red'
-            or linewidth=6)
-        """
-        # strip off any units
-        i = 0
-        for h in momparams:
-            tel_x = u.Quantity(tel_position[0][i]).value
-            tel_y = u.Quantity(tel_position[1][i]).value
-            psi = u.Quantity(momparams[h].psi).value
-            x_sc = [tel_x - np.cos(psi) * 10000, tel_x + np.cos(psi) * 10000]
-            y_sc = [tel_y - np.sin(psi) * 10000, tel_y + np.sin(psi) * 10000]
-
-            i += 1
-            self.axes_hillas.add_line(Line2D(x_sc, y_sc,
-                                             linestyle='dashed', color='black'))

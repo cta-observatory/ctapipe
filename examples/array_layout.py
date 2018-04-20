@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import matplotlib.pylab as plt
-from astropy.table import Table
-from numpy import ones_like
+import numpy as np
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 from ctapipe.io import event_source
+from astropy import units as u
 
 if __name__ == '__main__':
 
@@ -22,12 +22,15 @@ if __name__ == '__main__':
     # display the array, and set the color value to 50
     ad = ArrayDisplay(subarray)
 
-    # label them
-#    for tel in tels:
-#        name = "CT{tid}".format(tid=tel['TelID'])
-#        plt.text(tel['TelX'], tel['TelY'], name, fontsize=8)
-
-    #ad.axes.set_xlim(-1000, 1000)
-    #ad.axes.set_ylim(-1000, 1000)
+    plt.pause(5.0)
     plt.tight_layout()
-    plt.show()
+
+    for angle in np.linspace(0, 360, 60) * u.deg:
+        print(angle, np.sin(angle))
+        ad.set_r_phi(np.sin(angle), angle)
+        plt.pause(0.01)
+
+    ad.set_r_phi(0,0*u.deg)
+    plt.pause(0.01)
+
+
