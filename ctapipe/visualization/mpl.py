@@ -574,7 +574,7 @@ class ArrayDisplay:
             y = self.subarray.pos_y.value
             self.quiver = self.axes.quiver(x, y, u, v, color=c, **kwargs)
         else:
-            self.quiver.set_UVC(u, v, c=c)
+            self.quiver.set_UVC(u, v)
 
     def set_r_phi(self, r, phi, **kwargs):
         """sets the vector field using R, Phi for each telescope

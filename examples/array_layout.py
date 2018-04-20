@@ -9,28 +9,33 @@ from astropy import units as u
 
 if __name__ == '__main__':
 
-    #plt.style.use("ggplot")
     plt.figure(figsize=(9.5, 8.5))
 
+    # load up a single event, so we can get the subarray info:
     source = event_source(datasets.get_dataset_path("gamma_test.simtel.gz"),
                           max_events=1)
     for event in source:
         pass
 
+    # display the array
     subarray = event.inst.subarray
+    ad = ArrayDisplay(subarray, tel_scale=3.0)
 
-    # display the array, and set the color value to 50
-    ad = ArrayDisplay(subarray)
-
-    plt.pause(5.0)
+    print("Now setting vectors")
+    plt.pause(1.0)
     plt.tight_layout()
 
-    for angle in np.linspace(0, 360, 60) * u.deg:
-        print(angle, np.sin(angle))
-        ad.set_r_phi(np.sin(angle), angle)
+    for phi in np.linspace(0, 360, 60) * u.deg:
+        r = np.cos(phi/2)
+        ad.set_r_phi(r, phi)
         plt.pause(0.01)
 
     ad.set_r_phi(0,0*u.deg)
-    plt.pause(0.01)
+    plt.pause(1.0)
 
+    print("Now setting values")
+    for ii in range(50):
+        vals = np.random.uniform(100.0, size=subarray.num_tels)
+        ad.values = vals
+        plt.pause(0.01)
 
