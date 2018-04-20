@@ -338,7 +338,7 @@ class BokehFileViewer(Tool):
                                                      "Cut (LG):", value=''),
             extractor_lwt=TextInput(title="Local Pixel Weight:", value=''))
 
-        for key, val in self.w_dl1_dict.items():
+        for val in self.w_dl1_dict.values():
             val.on_change('value', self.on_dl1_widget_change)
 
         self.wb_extractor = widgetbox(

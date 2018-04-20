@@ -5,7 +5,7 @@ from ctapipe.visualization.bokeh import CameraDisplay, WaveformDisplay, \
 
 
 def test_camera_display_create():
-    c_display = CameraDisplay()
+    CameraDisplay()
 
 
 def test_camera_geom(test_event):
@@ -31,7 +31,7 @@ def test_camera_image(test_event):
     colors = intensity_to_hex(image)
 
     with pytest.raises(ValueError):
-        c_display = CameraDisplay(None, image)
+        CameraDisplay(None, image)
 
     c_display = CameraDisplay(geom, image)
     assert (c_display.cdsource.data['image'] == colors).all()
@@ -69,7 +69,7 @@ def test_fast_camera_display_create(test_event):
     area = geom.pix_area.value
     size = np.sqrt(area)
 
-    c_display = FastCameraDisplay(x, y, size)
+    FastCameraDisplay(x, y, size)
 
 
 def test_fast_camera_image(test_event):
@@ -91,7 +91,7 @@ def test_fast_camera_image(test_event):
 
 
 def test_waveform_display_create():
-    w_display = WaveformDisplay()
+    WaveformDisplay()
 
 
 def test_waveform_values():
@@ -102,7 +102,7 @@ def test_waveform_values():
     assert (w_display.cdsource.data['t'] == np.arange(wf.size)).all()
 
     wf[5] = 5
-    w_display.waveform=wf
+    w_display.waveform = wf
 
     assert (w_display.cdsource.data['samples'] == wf).all()
     assert (w_display.cdsource.data['t'] == np.arange(wf.size)).all()
@@ -121,4 +121,4 @@ def test_span():
 
     w_display.active_time = wf.size + 10
     assert w_display.active_time == wf.size - 1
-    assert w_display.span.location == wf.size -1
+    assert w_display.span.location == wf.size - 1

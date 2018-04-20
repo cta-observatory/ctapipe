@@ -8,7 +8,7 @@ def test_rgb():
     max_ = 10
     output = intensity_to_rgb(input_, min_, max_)
 
-    assert (output == np.array([ 41, 120, 142, 255])).all()
+    assert (output == np.array([41, 120, 142, 255])).all()
 
 
 def test_hex():

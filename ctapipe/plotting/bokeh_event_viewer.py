@@ -406,7 +406,7 @@ class BokehEventViewer(Component):
         self.layout = None
 
     def create(self):
-        for icam in range(self.num_cameras):
+        for _ in range(self.num_cameras):
             cam = BokehEventViewerCamera(self)
             cam.enable_pixel_picker(self.num_waveforms)
             cam.create_view_widget()
