@@ -604,6 +604,13 @@ class ArrayDisplay:
             lab.remove()
         self._labels = []
 
+    def add_lables(self):
+        px = self.subarray.pos_x.value
+        py = self.subarray.pos_y.value
+        for tel, x, y in zip(self.subarray.tels, px, py):
+            name = str(tel)
+            self.axes.text(x, y, name, fontsize=8)
+
     def _update(self):
         """ signal a redraw if necessary """
         if self.autoupdate:
