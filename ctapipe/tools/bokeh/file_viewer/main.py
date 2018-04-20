@@ -392,5 +392,13 @@ class BokehFileViewer(Tool):
                 self._updating_dl1 = False
 
 
-exe = BokehFileViewer()
-exe.run()
+def main():
+    exe = BokehFileViewer()
+    exe.run()
+
+
+if 'bk_script' in __name__:
+    main()
+
+if __name__ == '__main__':
+    main()
