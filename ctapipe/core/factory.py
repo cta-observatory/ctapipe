@@ -201,7 +201,7 @@ class Factory(Component, metaclass=FactoryMeta):
         for name, trait in self.class_own_traits().items():
             for sub in self.subclasses:
                 try:
-                    sub_trait = self.subclasses[0].class_traits()[name]
+                    sub_trait = sub.class_traits()[name]
                     sub_trait.default_value = trait.default_value
                 except KeyError:
                     pass

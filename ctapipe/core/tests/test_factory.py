@@ -187,7 +187,11 @@ def test_expected_config():
 def test_default_passing():
     old_default = ExampleFactory.value.default_value
     ExampleFactory.value.default_value = 3
-    obj = ExampleFactory.produce(config=None, tool=None)
+    obj = ExampleFactory.produce(config=None, tool=None,
+                                 product='ExampleComponent2')
+    assert (obj.value == 3)
+    obj = ExampleFactory.produce(config=None, tool=None,
+                                 product='ExampleComponent4')
     assert (obj.value == 3)
     ExampleFactory.value.default_value = old_default
     obj = ExampleFactory.produce(config=None, tool=None)
