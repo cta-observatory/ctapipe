@@ -539,7 +539,8 @@ class ArrayDisplay:
         self.axes.add_collection(self.telescopes)
         self.axes.set_aspect(1.0)
         self.axes.set_title(title)
-        self.quiver = None
+        self._labels = []
+        self._quiver = None
 
     @property
     def values(self):
@@ -567,14 +568,14 @@ class ArrayDisplay:
         if c is None:
             c = self.tel_colors
 
-        if self.quiver is None:
+        if self._quiver is None:
             x = self.subarray.pos_x.value
             y = self.subarray.pos_y.value
-            self.quiver = self.axes.quiver(x, y, u, v, color=c, **kwargs)
+            self._quiver = self.axes.quiver(x, y, u, v, color=c, **kwargs)
         else:
-            self.quiver.set_UVC(u, v)
+            self._quiver.set_UVC(u, v)
 
-    def set_r_phi(self, r, phi, **kwargs):
+    def set_r_phi(self, r, phi, c=None, **kwargs):
         """sets the vector field using R, Phi for each telescope
 
         Parameters
@@ -588,14 +589,20 @@ class ArrayDisplay:
         """
         phi = Angle(phi).rad
         u, v = polar_to_cart(r, phi)
-        self.set_uv(u, v, **kwargs)
+        self.set_uv(u, v, c=c, **kwargs)
 
-    def add_lables(self):
+    def add_labels(self):
         px = self.subarray.pos_x.value
         py = self.subarray.pos_y.value
         for tel, x, y in zip(self.subarray.tels, px, py):
             name = str(tel)
-            self.axes.text(x, y, name, fontsize=8)
+            lab = self.axes.text(x, y, name, fontsize=8)
+            self._labels.append(lab)
+
+    def remove_labels(self):
+        for lab in self._labels:
+            lab.remove()
+        self._labels = []
 
     def _update(self):
         """ signal a redraw if necessary """
