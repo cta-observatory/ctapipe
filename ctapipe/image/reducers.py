@@ -6,10 +6,10 @@ from abc import abstractmethod
 
 from ctapipe.core import Component, Factory
 
-__all__ = ['DataVolumeReductor', 'DataVolumeReductorFactory']
+__all__ = ['DataVolumeReducer', 'DataVolumeReducerFactory']
 
 
-class DataVolumeReductor(Component):
+class DataVolumeReducer(Component):
     """
     Base component for data volume reductors.
 
@@ -96,8 +96,8 @@ class DataVolumeReductor(Component):
         """
 
 
-class DataVolumeReductorFactory(Factory):
+class DataVolumeReducerFactory(Factory):
     """
-    Factory class for creating a DataVolumeReductor
+    Factory class for creating a DataVolumeReducer
     """
-    base = DataVolumeReductor
+    base = DataVolumeReducer
