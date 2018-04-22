@@ -5,7 +5,7 @@ This module handles the calibration from the R1 data level to DL0. This
 transition exists as a conveniance in the pipepline and can be used to test
 data volume reduction methods inside the pipeline. By default, no data volume
 reduction is applied, and the DL0 samples are identical to the R1. However,
-if a reductor from `ctapipe.image.reductors` is passed to the
+if a reducer from `ctapipe.image.reducers` is passed to the
 `CameraDL0Reducer`, then the reduction will be applied.
 """
 from ctapipe.core import Component

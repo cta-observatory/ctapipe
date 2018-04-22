@@ -11,7 +11,7 @@ __all__ = ['DataVolumeReducer', 'DataVolumeReducerFactory']
 
 class DataVolumeReducer(Component):
     """
-    Base component for data volume reductors.
+    Base component for data volume reducers.
 
     Parameters
     ----------
@@ -80,7 +80,7 @@ class DataVolumeReducer(Component):
     def reduce_waveforms(self, waveforms):
         """
         Call the relevant functions to reduce the waveforms using a
-        particular reductor.
+        particular reducer.
 
         Parameters
         ----------
