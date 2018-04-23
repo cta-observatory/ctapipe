@@ -166,10 +166,7 @@ class BokehFileViewer(Tool):
 
     @telid.setter
     def telid(self, val):
-        n_chan = self.event.r0.tel[self.telid].waveform.shape[0]
-        if self.channel is None or self.channel >= n_chan:
-            self.channel = 0
-
+        self.channel = 0
         tels = list(self.event.r0.tels_with_data)
         if val not in tels:
             val = tels[0]
@@ -314,7 +311,10 @@ class BokehFileViewer(Tool):
 
     def update_channel_widget(self):
         if self.w_channel:
-            n_chan = self.event.r0.tel[self.telid].waveform.shape[0]
+            try:
+                n_chan = self.event.r0.tel[self.telid].waveform.shape[0]
+            except AttributeError:
+                n_chan = 1
             channels = [str(c) for c in range(n_chan)]
             self.w_channel.options = channels
             self.w_channel.value = str(self.channel)

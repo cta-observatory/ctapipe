@@ -179,7 +179,12 @@ class CameraDL1Calibrator(Component):
             # Don't apply correction when window_shift or window_width
             # does not exist in extractor, or when container does not have
             # a reference pulse shape
-            return np.ones(event.dl0.tel[telid].waveform.shape[0])
+            shape = event.dl0.tel[telid].waveform.shape
+            if shape.size != 3:
+                raise KeyError("this function should return 1 when "
+                               "channel is removed from dl0")
+            # TODO
+            return np.ones(shape[0])
 
     def calibrate(self, event):
         """
