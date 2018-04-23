@@ -1,16 +1,7 @@
 from matplotlib.cm import get_cmap
 import numpy as np
-import ctypes
-from numpy.ctypeslib import ndpointer
-import os
-
+import codecs
 viridis = get_cmap('viridis')
-lib = np.ctypeslib.load_library("rgbtohex_c", os.path.dirname(__file__))
-rgbtohex = lib.rgbtohex
-rgbtohex.restype = None
-rgbtohex.argtypes = [ndpointer(ctypes.c_uint8, flags="C_CONTIGUOUS"),
-                     ctypes.c_size_t,
-                     ndpointer(ctypes.c_char, flags="C_CONTIGUOUS")]
 
 
 def intensity_to_rgb(array, minval=None, maxval=None):
@@ -67,7 +58,13 @@ def intensity_to_hex(array, minval=None, maxval=None):
         hex strings representing the intensity as a color
 
     """
-    array_size = array.size
-    hex_ = np.empty((array_size, 8), dtype='S1')
-    rgbtohex(intensity_to_rgb(array, minval, maxval), array_size, hex_)
+    hex_ = np.zeros((array.size, 8), dtype='B')
+    rgb = intensity_to_rgb(array, minval, maxval)
+
+    hex_encoded = codecs.encode(rgb, 'hex')
+    bytes_ = np.frombuffer(hex_encoded, 'B')
+    bytes_2d = bytes_.reshape(-1, 8)
+    hex_[:, 0] = ord('#')
+    hex_[:, 1:7] = bytes_2d[:, 0:6]
+
     return hex_.view('S8').astype('U8')[:, 0]

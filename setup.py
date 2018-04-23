@@ -44,8 +44,6 @@ package.version.update_release_version()
 # C Extensions
 neighboursum_module = Extension('ctapipe.utils.neighbour_sum_c',
                                 sources=['ctapipe/utils/neighbour_sum_c.cc'])
-rgbtohex_module = Extension('ctapipe.utils.rgbtohex_c',
-                            sources=['ctapipe/utils/rgbtohex_c.cc'])
 
 setup(name=PACKAGENAME,
       packages=find_packages(),
@@ -88,5 +86,5 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=False,
       entry_points=entry_points,
-      ext_modules=[neighboursum_module, rgbtohex_module]
+      ext_modules=[neighboursum_module]
       )
