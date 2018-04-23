@@ -104,7 +104,7 @@ class SubarrayDescription:
     @property
     def tel_id(self):
         """ telescope IDs as an array"""
-        return np.array(self.tel.keys())
+        return np.array(list(self.tel.keys()))
 
     @property
     def footprint(self):
@@ -227,3 +227,30 @@ class SubarrayDescription:
             plt.legend(loc='best')
             plt.title(self.name)
             plt.tight_layout()
+
+    def telescope_types(self):
+        """ return list of telescope types in the array"""
+        tel_types = {str(tt) for tt in self.tel.values()}
+        return list(tel_types)
+
+    def camera_types(self):
+        """ return list of camera types in the array """
+        cam_types = {str(tt.camera) for tt in self.tel.values()}
+        return list(cam_types)
+
+    def optics_types(self):
+        """ return list of optics types in the array """
+        cam_types = {str(tt.optics) for tt in self.tel.values()}
+        return list(cam_types)
+
+    def tel_ids_for_type(self, tel_type):
+        """
+        return list of tel_ids that have the given tel_type
+
+        Parameters
+        ----------
+        tel_type: str
+           telescope type string (e.g. 'MST:NectarCam')
+
+        """
+        return [id for id, descr in self.tels.items() if str(descr)==tel_type]
