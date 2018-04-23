@@ -104,6 +104,7 @@ class HESSIOEventSource(EventSource):
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                           format='unix', scale='utc')
                 data.mc.energy = file.get_mc_shower_energy() * u.TeV
+                data.mc.xmax = file.get_mc_shower_xmax() * u.g/(u.cm*u.cm)
                 data.mc.alt = Angle(file.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(file.get_mc_shower_azimuth(), u.rad)
                 data.mc.core_x = file.get_mc_event_xcore() * u.m
@@ -139,9 +140,11 @@ class HESSIOEventSource(EventSource):
                         data.r0.tel[tel_id].waveform = (file.
                                                         get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
-                    data.mc.tel[tel_id].reference_pulse_shape = (file.
-                                                                 get_ref_shapes(tel_id))
-
+                    try:
+                        data.mc.tel[tel_id].reference_pulse_shape = (file.
+                                                                     get_ref_shapes(tel_id))
+                    except:
+                        print("Warning no pulse shape found")
                     nsamples = file.get_event_num_samples(tel_id)
                     if nsamples <= 0:
                         nsamples = 1
