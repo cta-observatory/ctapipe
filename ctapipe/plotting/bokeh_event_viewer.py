@@ -25,7 +25,15 @@ class BokehEventViewerCamera(CameraDisplay):
         self._time = 0
         super().__init__(fig=fig)
 
-        self._view_options = ['r0', 'r1', 'dl0', 'dl1', 'peakpos', 'cleaned']
+        self._view_options = {
+            'r0': lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
+            'r1': lambda e, t, c, time: e.r1.tel[t].waveform[c, :, time],
+            'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[c, :, time],
+            'dl1': lambda e, t, c, time: e.dl1.tel[t].image[c, :],
+            'peakpos': lambda e, t, c, time: e.dl1.tel[t].peakpos[c, :],
+            'cleaned': lambda e, t, c, time: e.dl1.tel[t].cleaned[c, :, time],
+        }
+
         self.w_view = None
         self._geom_tel = None
 
@@ -41,55 +49,21 @@ class BokehEventViewerCamera(CameraDisplay):
         t = self.telid
         c = self.channel
         time = self.time
-        if e:
-            tels = list(e.r0.tels_with_data)
-            if t is None:
-                t = tels[0]
-            if t not in tels:
-                raise KeyError("Telescope {} has no data".format(t))
-            if v == 'r0':
-                samples = e.r0.tel[t].waveform
-                if samples is None:
-                    self.image = None
-                else:
-                    self.image = samples[c, :, time]
-                self.fig.title.text = 'R0 Slice (T = {})'.format(time)
-            elif v == 'r1':
-                samples = e.r1.tel[t].waveform
-                if samples is None:
-                    self.image = None
-                else:
-                    self.image = samples[c, :, time]
-                self.fig.title.text = 'R1 Slice (T = {})'.format(time)
-            elif v == 'dl0':
-                samples = e.dl0.tel[t].waveform
-                if samples is None:
-                    self.image = None
-                else:
-                    self.image = samples[c, :, time]
-                self.fig.title.text = 'DL0 Slice (T = {})'.format(time)
-            elif v == 'dl1':
-                self.image = e.dl1.tel[t].image[c, :]
-                self.fig.title.text = 'DL1 Image'
-            elif v == 'peakpos':
-                peakpos = e.dl1.tel[t].peakpos
-                if peakpos is None:
-                    self.image = np.zeros(self.image.shape)
-                else:
-                    self.image = peakpos[c, :]
-                self.fig.title.text = 'DL1 Peakpos Image'
-            elif v == 'cleaned':
-                samples = e.dl1.tel[t].cleaned
-                if samples is None:
-                    self.image = None
-                else:
-                    self.image = samples[c, :, time]
-                self.fig.title.text = 'Cleaned Slice (T = {})'.format(time)
-            else:
-                raise ValueError("No view configuration set up "
-                                 "for: {}".format(v))
-        else:
+        if not e:
             self.event_viewer.log.warning("No event has been provided")
+            return
+
+        tels = list(e.r0.tels_with_data)
+        if t is None:
+            t = tels[0]
+        if t not in tels:
+            raise KeyError("Telescope {} has no data".format(t))
+
+        try:
+            self.image = self._view_options[v](e, t, c, time)
+            self.fig.title.text = '{0} (T = {1})'.format(v, time)
+        except TypeError:
+            self.image = None
 
     def _update_geometry(self):
         e = self.event
@@ -127,7 +101,7 @@ class BokehEventViewerCamera(CameraDisplay):
 
     @view.setter
     def view(self, val):
-        if val not in self._view_options:
+        if val not in list(self._view_options.keys()):
             raise ValueError("View is not valid: {}".format(val))
         self._view = val
         self._set_image()
@@ -173,7 +147,7 @@ class BokehEventViewerCamera(CameraDisplay):
         self.layout = column([self.w_view, self.layout])
 
     def update_view_widget(self):
-        self.w_view.options = self._view_options
+        self.w_view.options = list(self._view_options.keys())
         self.w_view.value = self.view
 
     def on_view_widget_change(self, _, __, ___):
@@ -202,7 +176,13 @@ class BokehEventViewerWaveform(WaveformDisplay):
         super().__init__(fig=fig)
         self._draw_integration_window()
 
-        self._view_options = ['r0', 'r1', 'dl0', 'cleaned']
+        self._view_options = {
+            'r0': lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
+            'r1': lambda e, t, c, p: e.r1.tel[t].waveform[c, p],
+            'dl0': lambda e, t, c, p: e.dl0.tel[t].waveform[c, p],
+            'cleaned': lambda e, t, c, p: e.dl1.tel[t].cleaned[c, p],
+        }
+
         self.w_view = None
 
         self.event_viewer = event_viewer
@@ -217,45 +197,21 @@ class BokehEventViewerWaveform(WaveformDisplay):
         t = self.telid
         c = self.channel
         p = self.pixel
-        if e:
-            tels = list(e.r0.tels_with_data)
-            if t is None:
-                t = tels[0]
-            if t not in tels:
-                raise KeyError("Telescope {} has no data".format(t))
-            if v == 'r0':
-                samples = e.r0.tel[t].waveform
-                if samples is None:
-                    self.waveform = None
-                else:
-                    self.waveform = samples[c, p]
-                self.fig.title.text = 'R0 Waveform (Pixel = {})'.format(p)
-            elif v == 'r1':
-                samples = e.r1.tel[t].waveform
-                if samples is None:
-                    self.waveform = None
-                else:
-                    self.waveform = samples[c, p]
-                self.fig.title.text = 'R1 Waveform (Pixel = {})'.format(p)
-            elif v == 'dl0':
-                samples = e.dl0.tel[t].waveform
-                if samples is None:
-                    self.waveform = None
-                else:
-                    self.waveform = samples[c, p]
-                self.fig.title.text = 'DL0 Waveform (Pixel = {})'.format(p)
-            elif v == 'cleaned':
-                samples = e.dl1.tel[t].cleaned
-                if samples is None:
-                    self.waveform = None
-                else:
-                    self.waveform = samples[c, p]
-                self.fig.title.text = 'Cleaned Waveform (Pixel = {})'.format(p)
-            else:
-                raise ValueError("No view configuration set up "
-                                 "for: {}".format(v))
-        else:
+        if not e:
             self.event_viewer.log.warning("No event has been provided")
+            return
+
+        tels = list(e.r0.tels_with_data)
+        if t is None:
+            t = tels[0]
+        if t not in tels:
+            raise KeyError("Telescope {} has no data".format(t))
+
+        try:
+            self.waveform = self._view_options[v](e, t, c, p)
+            self.fig.title.text = '{0} (Pixel = {1})'.format(v, p)
+        except TypeError:
+            self.waveform = None
 
     def _draw_integration_window(self):
         self.intwin1 = Span(location=0, dimension='height',
@@ -308,7 +264,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
 
     @view.setter
     def view(self, val):
-        if val not in self._view_options:
+        if val not in list(self._view_options.keys()):
             raise ValueError("View is not valid: {}".format(val))
         self._view = val
         self._set_waveform()
@@ -356,7 +312,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
         self.layout = column([self.w_view, self.layout])
 
     def update_view_widget(self):
-        self.w_view.options = self._view_options
+        self.w_view.options = list(self._view_options.keys())
         self.w_view.value = self.view
 
     def on_view_widget_change(self, _, __, ___):

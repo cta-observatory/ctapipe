@@ -92,10 +92,10 @@ class CameraDisplay:
             self.cdsource.data['width'] = self._pix_sizes
             self.cdsource.data['height'] = self._pix_sizes
         else:
-            image = np.empty(self._pix_x.shape)
+            self._image = np.empty(self._pix_x.shape)
             alpha = [0] * self._n_pixels
             color = ['black'] * self._n_pixels
-            cdsource_d = dict(image=image,
+            cdsource_d = dict(image=self.image,
                               x=self._pix_x, y=self._pix_y,
                               width=self._pix_sizes, height=self._pix_sizes,
                               outline_color=color, outline_alpha=alpha
