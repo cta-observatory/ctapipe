@@ -26,7 +26,7 @@ This module contains the following sub-modules, but the most important functions
   toymodel
   pixel_likelihood
   charge_extractors
-  reductors
+  reducers
   geometry_converter
 
 
