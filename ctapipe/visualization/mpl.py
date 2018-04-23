@@ -484,7 +484,7 @@ class ArrayDisplay:
     """
 
     def __init__(self, subarray, axes=None, autoupdate=True,
-                 tel_scale=1.0, alpha=0.7, title=None):
+                 tel_scale=2.0, alpha=0.7, title=None):
 
         self.subarray = subarray
         tel_types = [str(tel) for tel in subarray.tels.values()]
@@ -553,7 +553,7 @@ class ArrayDisplay:
         self.telescopes.set_array(values)
         self._update()
 
-    def set_uv(self, u, v, c=None, **kwargs):
+    def set_vector_uv(self, u, v, c=None, **kwargs):
         """ sets the vector field U,V and color for all telescopes
 
         Parameters
@@ -575,12 +575,12 @@ class ArrayDisplay:
         else:
             self._quiver.set_UVC(u, v)
 
-    def set_r_phi(self, r, phi, c=None, **kwargs):
+    def set_vector_rho_phi(self, rho, phi, c=None, **kwargs):
         """sets the vector field using R, Phi for each telescope
 
         Parameters
         ----------
-        r: float or array[float]
+        rho: float or array[float]
             vector magnitude for each telescope
         phi: array[Angle]
             vector angle for each telescope
@@ -588,8 +588,35 @@ class ArrayDisplay:
             vector color for each telescope (or one for all)
         """
         phi = Angle(phi).rad
-        u, v = polar_to_cart(r, phi)
-        self.set_uv(u, v, c=c, **kwargs)
+        u, v = polar_to_cart(rho, phi)
+        self.set_vector_uv(u, v, c=c, **kwargs)
+
+    def set_vector_hillas(self, hillas_dict):
+        """
+        helper function to set the vector angle and length from a set of
+        Hillas parameters.
+
+        Parameters
+        ----------
+        hillas_dict: Dict[int, HillasParametersContainer]
+            mapping of tel_id to Hillas parameters
+        """
+
+        tel_id_to_index = {
+            tel_id: ii
+            for ii, tel_id in enumerate(self.subarray.tels.keys())
+        }
+
+        rho = np.zeros(self.subarray.num_tels) * u.m
+        phi = np.zeros(self.subarray.num_tels) * u.deg
+
+        for tel_id, params in hillas_dict.items():
+            idx = tel_id_to_index[tel_id]
+            rho[idx] = 1.0*u.m # params.length
+            phi[idx] = params.phi + 90*u.deg
+
+        self.set_vector_rho_phi(rho=rho, phi=phi)
+
 
     def add_labels(self):
         px = self.subarray.pos_x.value

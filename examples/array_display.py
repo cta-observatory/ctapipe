@@ -27,10 +27,10 @@ if __name__ == '__main__':
 
     for phi in np.linspace(0, 360, 30) * u.deg:
         r = np.cos(phi/2)
-        ad.set_r_phi(r, phi)
+        ad.set_vector_rho_phi(r, phi)
         plt.pause(0.01)
 
-    ad.set_r_phi(0,0*u.deg)
+    ad.set_vector_rho_phi(0, 0 * u.deg)
     plt.pause(1.0)
 
     print("Now setting values")
