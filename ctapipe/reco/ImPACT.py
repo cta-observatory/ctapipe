@@ -110,7 +110,8 @@ class ImPACTReconstructor(Reconstructor):
 
         # Also we need to scale the impact_reco templates a bit, this will be
         #  fixed later
-        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1, "FlashCam": 1.4, "CHEC": 1.0}  # * 1.36}
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1,
+                      "FlashCam": 1.4, "CHEC": 1.0}  # * 1.36}
 
         self.last_image = dict()
         self.last_point = dict()
@@ -122,7 +123,7 @@ class ImPACTReconstructor(Reconstructor):
         self.pixel_y = 0
         self.pixel_area = 0
         self.image = 0
-        self.type = ("LST")
+        self.tel_type = ("LST")
         # We also need telescope positions
         self.tel_pos_x = 0
         self.tel_pos_y = 0
@@ -172,7 +173,7 @@ class ImPACTReconstructor(Reconstructor):
 
         Parameters
         ----------
-        
+
         Returns
         -------
             None
@@ -301,13 +302,13 @@ class ImPACTReconstructor(Reconstructor):
             np.sin(phi) + (pixel_pos_y - y_trans) * np.cos(phi)
         return pixel_pos_trans_x, pixel_pos_trans_y
 
-    def image_prediction(self, type, energy, impact, x_max, pix_x, pix_y):
+    def image_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
         """Creates predicted image for the specified pixels, interpolated
         from the template library.
 
         Parameters
         ----------
-        type: string
+        tel_type: string
             Telescope type specifier
         energy: float
             Event energy (TeV)
@@ -326,8 +327,8 @@ class ImPACTReconstructor(Reconstructor):
 
         """
 
-        return self.prediction[type].interpolate([energy, impact,
-                                                  x_max], pix_x, pix_y)
+        return self.prediction[tel_type].interpolate([energy, impact,
+                                                      x_max], pix_x, pix_y)
 
     def get_prediction(self, tel_id, shower_reco, energy_reco):
 
@@ -372,7 +373,7 @@ class ImPACTReconstructor(Reconstructor):
                                                      source_x,
                                                      source_y, phi)
 
-        prediction = self.image_prediction(self.type[tel_id],
+        prediction = self.image_prediction(self.tel_type[tel_id],
                                            # (90 * u.deg) - shower_reco.alt,
                                            # shower_reco.az,
                                            energy_reco.energy.value,
@@ -380,7 +381,7 @@ class ImPACTReconstructor(Reconstructor):
                                            pix_x_rot * (180 / math.pi),
                                            pix_y_rot * (180 / math.pi))
 
-        prediction *= self.scale[self.type[tel_id]]
+        prediction *= self.scale[self.tel_type[tel_id]]
         # prediction *= self.pixel_area[tel_id]
 
         prediction[prediction < 0] = 0
@@ -460,8 +461,8 @@ class ImPACTReconstructor(Reconstructor):
 
             # Then get the predicted image, convert pixel positions to deg
             prediction = self.image_prediction(
-                self.type[tel_count],
-                #zenith, azimuth,
+                self.tel_type[tel_count],
+                # zenith, azimuth,
                 energy, impact, x_max_bin,
                 pix_x_rot * (180 / math.pi),
                 pix_y_rot * (180 / math.pi)
@@ -470,7 +471,7 @@ class ImPACTReconstructor(Reconstructor):
             prediction[prediction < 1e-6] = 1e-6
 
             # Scale templates to match simulations
-            prediction *= self.scale[self.type[tel_count]]
+            prediction *= self.scale[self.tel_type[tel_count]]
             # prediction *= self.pixel_area[tel_count]
 
             # Get likelihood that the prediction matched the camera image
@@ -479,8 +480,11 @@ class ImPACTReconstructor(Reconstructor):
                                                self.spe,
                                                self.ped[tel_count])
             if np.any(prediction == np.inf):
-                print("inf found at ", self.type[tel_count], zenith,
-                      azimuth, energy, impact, x_max_bin)
+                self.log.debug("inf found at type=%s zenith=%.2f azimuth=%.2f \
+                               energy=%.2f impact=%.2f x_max=%.2d",
+                               self.tel_type[tel_count],
+                               zenith, azimuth, energy,
+                               impact, x_max_bin)
             like[np.isnan(like)] = 1e9
             if array_like is None:
                 array_like = like
@@ -572,7 +576,7 @@ class ImPACTReconstructor(Reconstructor):
         self.hillas = hillas
 
         self.get_brightest_mean()
-        self.type = type_tel
+        self.tel_type = type_tel
         self.initialise_templates(type_tel)
 
         self.array_direction = array_direction

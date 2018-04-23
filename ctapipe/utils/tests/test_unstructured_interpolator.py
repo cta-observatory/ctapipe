@@ -110,9 +110,11 @@ def test_out_of_bounds():
     interpolated_point = interpolator([[0,2],[1,2],[2,2]])
     assert np.all(interpolated_point == [0., 1., 2.])
 
+
 if __name__ == '__main__':
 
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()
     test_out_of_bounds()
+
