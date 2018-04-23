@@ -228,22 +228,25 @@ class SubarrayDescription:
             plt.title(self.name)
             plt.tight_layout()
 
+    @property
     def telescope_types(self):
         """ return list of telescope types in the array"""
         tel_types = {str(tt) for tt in self.tel.values()}
         return list(tel_types)
 
+    @property
     def camera_types(self):
         """ return list of camera types in the array """
         cam_types = {str(tt.camera) for tt in self.tel.values()}
         return list(cam_types)
 
+    @property
     def optics_types(self):
         """ return list of optics types in the array """
         cam_types = {str(tt.optics) for tt in self.tel.values()}
         return list(cam_types)
 
-    def tel_ids_for_type(self, tel_type):
+    def get_tel_ids_for_type(self, tel_type):
         """
         return list of tel_ids that have the given tel_type
 
