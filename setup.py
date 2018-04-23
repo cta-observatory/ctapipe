@@ -36,7 +36,8 @@ entry_points['console_scripts'] = [
     'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
     'ctapipe-chargeres-hist = '
     'ctapipe.tools.plot_charge_resolution_variation_hist:main',
-    'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main'
+    'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main',
+    'ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main'
 ]
 
 package.version.update_release_version()
@@ -86,5 +87,8 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=False,
       entry_points=entry_points,
-      ext_modules=[neighboursum_module]
+      ext_modules=[neighboursum_module],
+      package_data={
+          '': ['tools/bokeh/*.yaml', 'tools/bokeh/templates/*.html'],
+      }
       )

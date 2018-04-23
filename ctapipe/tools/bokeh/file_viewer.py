@@ -1,7 +1,10 @@
-from bokeh.io import curdoc
+import os
 from bokeh.layouts import widgetbox, layout
 from bokeh.models import Select, TextInput, PreText, Button
-from traitlets import Dict, List
+from bokeh.server.server import Server
+from bokeh.document.document import jinja2
+from bokeh.themes import Theme
+from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
@@ -19,7 +22,13 @@ class BokehFileViewer(Tool):
     description = ("Interactively explore an event file using the bokeh "
                    "visualisation package")
 
+    port = Int(5006, help="Port to open bokeh server onto").tag(config=True)
+    disable_server = Bool(False, help="Do not start the bokeh server "
+                                      "(useful for testing)").tag(config=True)
+
     aliases = Dict(dict(
+        port='BokehFileViewer.port',
+        disable_server='BokehFileViewer.disable_server',
         r='EventSourceFactory.product',
         f='EventSourceFactory.input_url',
         max_events='EventSourceFactory.max_events',
@@ -27,16 +36,6 @@ class BokehFileViewer(Tool):
         tf='CameraR1CalibratorFactory.tf_path',
         pe='CameraR1CalibratorFactory.pe_path',
         ff='CameraR1CalibratorFactory.ff_path',
-        extractor='ChargeExtractorFactory.product',
-        extractor_t0='ChargeExtractorFactory.t0',
-        extractor_window_width='ChargeExtractorFactory.window_width',
-        extractor_window_shift='ChargeExtractorFactory.window_shift',
-        extractor_sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        extractor_sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        extractor_lwt='ChargeExtractorFactory.lwt',
-        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-        radius='CameraDL1Calibrator.radius',
-        cleaner='WaveformCleanerFactory.product',
     ))
 
     classes = List([
@@ -135,8 +134,26 @@ class BokehFileViewer(Tool):
         self.event_index = 0
 
     def finish(self):
-        curdoc().add_root(self.layout)
-        curdoc().title = "Event Viewer"
+        if not self.disable_server:
+            def modify_doc(doc):
+                doc.add_root(self.layout)
+                doc.title = self.name
+
+                directory = os.path.abspath(os.path.dirname(__file__))
+                theme_path = os.path.join(directory, "theme.yaml")
+                template_path = os.path.join(directory, "templates")
+                doc.theme = Theme(filename=theme_path)
+                env = jinja2.Environment(
+                    loader=jinja2.FileSystemLoader(template_path)
+                )
+                doc.template = env.get_template('index.html')
+
+            self.log.info('Opening Bokeh application on '
+                          'http://localhost:{}/'.format(self.port))
+            server = Server({'/': modify_doc}, num_procs=1, port=self.port)
+            server.start()
+            server.io_loop.add_callback(server.show, "/")
+            server.io_loop.start()
 
     @property
     def event_index(self):
@@ -396,9 +413,6 @@ def main():
     exe = BokehFileViewer()
     exe.run()
 
-
-if 'bk_script' in __name__:
-    main()
 
 if __name__ == '__main__':
     main()

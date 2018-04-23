@@ -2,7 +2,7 @@ from ctapipe.tools.camdemo import CameraDemo
 from ctapipe.tools.dump_triggers import DumpTriggersTool
 from ctapipe.tools.dump_instrument import DumpInstrumentTool
 from ctapipe.tools.info import info
-from ctapipe.tools.bokeh.file_viewer.main import BokehFileViewer
+from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
 from ctapipe.utils import get_dataset_path
 
 
@@ -45,7 +45,7 @@ def test_camdemo():
 
 
 def test_bokeh_file_viewer():
-    tool = BokehFileViewer()
+    tool = BokehFileViewer(disable_server=True)
     tool.run()
 
     assert tool.reader.input_url == get_dataset_path("gamma_test.simtel.gz")
