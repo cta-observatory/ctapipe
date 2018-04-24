@@ -481,17 +481,23 @@ class ArrayDisplay:
         scaling between telescope mirror radius in m to displayed size
     autoupdate: bool
         redraw when the input changes
+    radius: Union[float, list, None]
+        set telescope radius to value, list/array of values. If None, radius
+        is taken from the telescope's mirror size.
     """
 
     def __init__(self, subarray, axes=None, autoupdate=True,
-                 tel_scale=2.0, alpha=0.7, title=None):
+                 tel_scale=2.0, alpha=0.7, title=None,
+                 radius = None):
 
         self.subarray = subarray
         tel_types = [str(tel) for tel in subarray.tels.values()]
         telx = subarray.pos_x
         tely = subarray.pos_y
-        radius = [np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
-                  for tel in subarray.tel.values()]
+        if radius is None:
+            # set radius to the mirror radius (so big tels appear big)
+            radius = [np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
+                      for tel in subarray.tel.values()]
 
         if title is None:
             title = subarray.name
@@ -591,7 +597,7 @@ class ArrayDisplay:
         u, v = polar_to_cart(rho, phi)
         self.set_vector_uv(u, v, c=c, **kwargs)
 
-    def set_vector_hillas(self, hillas_dict):
+    def set_vector_hillas(self, hillas_dict, angle_offset=180*u.deg):
         """
         helper function to set the vector angle and length from a set of
         Hillas parameters.
@@ -613,7 +619,7 @@ class ArrayDisplay:
         for tel_id, params in hillas_dict.items():
             idx = tel_id_to_index[tel_id]
             rho[idx] = 1.0*u.m # params.length
-            phi[idx] = params.phi + 90*u.deg
+            phi[idx] = params.phi + angle_offset # correct rotation
 
         self.set_vector_rho_phi(rho=rho, phi=phi)
 
