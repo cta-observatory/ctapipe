@@ -2,6 +2,7 @@
 Plots the (rough) hillas parameters for each event on an ArrayDisplay
 """
 
+import sys
 import matplotlib.pyplot as plt
 
 from ctapipe.calib import CameraCalibrator
@@ -17,6 +18,9 @@ if __name__ == '__main__':
     # importing data from avaiable datasets in ctapipe
     filename = datasets.get_dataset_path("gamma_test_large.simtel.gz")
 
+    if len(sys.argv) > 1:
+        filename = sys.argv[1]
+
     # reading the Monte Carlo file for LST
     source = event_source(filename)
 
@@ -31,20 +35,24 @@ if __name__ == '__main__':
 
     for event in source:
 
-        if len(event.r0.tels_with_data) < 2:
+        subarray = event.inst.subarray
+
+        if first_event:
+            fig, ax = plt.subplots(1,1, figsize=(10, 8))
+            array_disp = ArrayDisplay(subarray, axes=ax, tel_scale=1.0)
+            array_disp.telescopes.set_linewidth(3)
+            array_disp.add_lables()
+            first_event = False
+            hit_pattern = np.zeros(subarray.num_tels)
+
+        if len(event.r0.tels_with_data) < 3:
             continue
 
         # calibrating the event
         calib.calibrate(event)
         hillas_dict = {}
-        subarray = event.inst.subarray
 
-        if first_event:
-            fig, ax = plt.subplots(1,1, figsize=(10, 8))
-            array_disp = ArrayDisplay(subarray, axes=ax, tel_scale=4.0)
-            array_disp.telescopes.set_linewidth(0)
-            first_event = False
-            hit_pattern = np.zeros(subarray.num_tels)
+
 
         # plot the core pos
         if markers:
@@ -53,12 +61,16 @@ if __name__ == '__main__':
         core_x = event.mc.core_x.to("m").value
         core_y = event.mc.core_y.to("m").value
         markers = ax.plot([core_x,], [core_y,], "r+", markersize=10)
-        tel_ids = sub.tel_id
 
-        # plot the hit pattern (triggered tels):
+
+        # plot the hit pattern (triggered tels).
+        # first expand the tels_with_data list into a fixed-length vector,
+        # then set the value so that the ArrayDisplay shows it as color per
+        # telescope.
+        tel_idx = event.inst.subarray.tel_indices
         hit_pattern[:] = 0
-        for itel in list(event.r0.tels_with_data):
-            hit_pattern[itel-1] = 10.0 # hack: todo: use tel_index[itel]
+        mask = [tel_idx[t] for t in event.r0.tels_with_data]
+        hit_pattern[mask] = 10.0
         array_disp.values = hit_pattern
 
         # calculate and plot the hillas params
@@ -87,7 +99,8 @@ if __name__ == '__main__':
             except HillasParameterizationError:
                 pass  # skip failed parameterization (normally no signal)
 
-        array_disp.set_vector_hillas(hillas_dict)
+
+        array_disp.set_vector_hillas(hillas_dict, angle_offset=0*u.deg)
 
         plt.pause(0.1)  # allow matplotlib to redraw the display
 
