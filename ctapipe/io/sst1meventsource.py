@@ -33,8 +33,8 @@ class SST1MEventSource(EventSource):
             data.sst1m.fill_from_zfile_event(event, self._pixel_sort_ids)
             self.fill_R0Container_from_zfile_event(data.r0, event)
             data.inst.subarray.tels[0] = TelescopeDescription.from_name(
-                optics='SST-1M', 
-                camera='DigiCam'
+                optics_name='SST-1M', 
+                camera_name='DigiCam'
             )
             yield data
 
