@@ -102,9 +102,15 @@ class SubarrayDescription:
                          for p in self.positions.values()]) * u.m
 
     @property
-    def tel_id(self):
+    def tel_ids(self):
         """ telescope IDs as an array"""
         return np.array(list(self.tel.keys()))
+
+    @property
+    def tel_indices(self):
+        """ returns dict mapping tel_id to tel_index, useful for unpacking
+        lists based on tel_ids into fixed-length arrays"""
+        return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
     @property
     def footprint(self):
@@ -245,6 +251,7 @@ class SubarrayDescription:
         """ return list of optics types in the array """
         cam_types = {str(tt.optics) for tt in self.tel.values()}
         return list(cam_types)
+
 
     def get_tel_ids_for_type(self, tel_type):
         """
