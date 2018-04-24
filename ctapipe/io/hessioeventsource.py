@@ -104,6 +104,7 @@ class HESSIOEventSource(EventSource):
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                           format='unix', scale='utc')
                 data.mc.energy = file.get_mc_shower_energy() * u.TeV
+                print(file.get_mc_shower_xmax())
                 data.mc.xmax = file.get_mc_shower_xmax() * u.g/(u.cm*u.cm)
                 data.mc.alt = Angle(file.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(file.get_mc_shower_azimuth(), u.rad)
