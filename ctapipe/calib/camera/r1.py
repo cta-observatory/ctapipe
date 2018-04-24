@@ -14,6 +14,7 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 of the data.
 """
 from abc import abstractmethod
+import numpy as np
 
 from ...core import Component, Factory
 from ...core.traits import Unicode
@@ -67,11 +68,8 @@ class CameraR1Calibrator(Component):
         super().__init__(config=config, parent=tool, **kwargs)
         self._r0_empty_warn = False
 
-    @abstractmethod
     def calibrate(self, event):
         """
-        Abstract method to be defined in child class.
-
         Perform the conversion from raw R0 data to R1 data
         (ADC Samples -> PE Samples), and fill the r1 container.
 
@@ -79,6 +77,32 @@ class CameraR1Calibrator(Component):
         ----------
         event : container
             A `ctapipe` event container
+        """
+        for telid in event.r0.tels_with_data:
+            if self.check_r0_exists(event, telid):
+                calibrated = self._get_calibrated_waveform(event, telid)
+                event.r1.tel[telid].waveform = calibrated
+                event.r1.tels_with_data.add(telid)
+
+    @abstractmethod
+    def _get_calibrated_waveform(self, event, telid):
+        """
+        Abstract method to be defined in child class.
+
+        Obtain the waveform with the R1 calibration applied according to the
+        methods defined in this CameraR1Calibrator subclass.
+
+        Parameters
+        ----------
+        event : container
+            A `ctapipe` event container
+        telid : int
+            Telescope ID
+
+        Returns
+        -------
+        calibrated : ndarray
+            The waveforms with the R1 calibration applied
         """
 
     def check_r0_exists(self, event, telid):
@@ -134,11 +158,9 @@ class NullR1Calibrator(CameraR1Calibrator):
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
 
-    def calibrate(self, event):
-        for telid in event.r0.tels_with_data:
-            if self.check_r0_exists(event, telid):
-                samples = event.r0.tel[telid].waveform
-                event.r1.tel[telid].waveform = samples.astype('float32')
+    def _get_calibrated_waveform(self, event, telid):
+        samples = event.r0.tel[telid].waveform
+        return samples.astype('float32')
 
 
 class HESSIOR1Calibrator(CameraR1Calibrator):
@@ -174,21 +196,19 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     should be applied using a SPE sim_telarray run with an 
     artificial light source.
     """
-    # TODO: Handle calib_scale differently per simlated telescope
+    # TODO: Handle calib_scale differently per simulated telescope
 
-    def calibrate(self, event):
+    def _get_calibrated_waveform(self, event, telid):
         if event.meta['origin'] != 'hessio':
             raise ValueError('Using HESSIOR1Calibrator to calibrate a '
                              'non-hessio event.')
 
-        for telid in event.r0.tels_with_data:
-            if self.check_r0_exists(event, telid):
-                samples = event.r0.tel[telid].waveform
-                n_samples = samples.shape[2]
-                ped = event.mc.tel[telid].pedestal / n_samples
-                gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
-                calibrated = (samples - ped[..., None]) * gain[..., None]
-                event.r1.tel[telid].waveform = calibrated
+        samples = event.r0.tel[telid].waveform
+        n_samples = samples.shape[2]
+        ped = event.mc.tel[telid].pedestal / n_samples
+        gain = event.mc.tel[telid].dc_to_pe * self.calib_scale
+        calibrated = (samples - ped[..., None]) * gain[..., None]
+        return calibrated
 
 
 class TargetIOR1Calibrator(CameraR1Calibrator):
@@ -243,13 +263,13 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             self.log.error(msg)
             raise
 
+        self.r1_wf = None
         self.tc = target_calib
         self.calibrator = None
-        self.telid = 0
 
         self._load_calib()
 
-    def calibrate(self, event):
+    def _get_calibrated_waveform(self, event, telid):
         """
         Placeholder function to satisfy abstract parent, this is overloaded by
         either fake_calibrate or real_calibrate.
@@ -266,47 +286,64 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             self.calibrator = self.tc.Calibrator(self.pedestal_path,
                                                  self.tf_path,
                                                  [self.pe_path, self.ff_path])
-            self.calibrate = self.real_calibrate
+            self._get_calibrated_waveform = self.real_calibrate
         else:
             self.log.warning("No pedestal path supplied, "
                              "r1 samples will equal r0 samples.")
-            self.calibrate = self.fake_calibrate
+            self._get_calibrated_waveform = self.fake_calibrate
 
-    def fake_calibrate(self, event):
+    def fake_calibrate(self, event, telid):
         """
         Don't perform any calibration on the waveforms, just fill the
         R1 container.
 
         Parameters
         ----------
-        event : `ctapipe` event-container
+        event : container
+            A `ctapipe` event container
+        telid : int
+            Telescope ID
+
+        Returns
+        -------
+        calibrated : ndarray
+            The waveforms with the R1 calibration applied
         """
         if event.meta['origin'] != 'targetio':
             raise ValueError('Using TargetioR1Calibrator to calibrate a '
                              'non-targetio event.')
 
-        if self.check_r0_exists(event, self.telid):
-            samples = event.r0.tel[self.telid].waveform
-            event.r1.tel[self.telid].waveform = samples.astype('float32')
+        samples = event.r0.tel[telid].waveform
+        return samples.astype('float32')
 
-    def real_calibrate(self, event):
+    def real_calibrate(self, event, telid):
         """
         Apply the R1 calibration defined in target_calib and fill the
         R1 container.
 
         Parameters
         ----------
-        event : `ctapipe` event-container
+        event : container
+            A `ctapipe` event container
+        telid : int
+            Telescope ID
+
+        Returns
+        -------
+        calibrated : ndarray
+            The waveforms with the R1 calibration applied
         """
         if event.meta['origin'] != 'targetio':
             raise ValueError('Using TargetioR1Calibrator to calibrate a '
                              'non-targetio event.')
 
-        if self.check_r0_exists(event, self.telid):
-            samples = event.r0.tel[self.telid].waveform[0]
-            fci = event.targetio.tel[self.telid].first_cell_ids
-            r1 = event.r1.tel[self.telid].waveform[0]
-            self.calibrator.ApplyEvent(samples, fci, r1)
+        samples = event.r0.tel[telid].waveform[0]
+        if self.r1_wf is None:
+            self.r1_wf = np.zeros(samples.shape, dtype=np.float32)
+
+        fci = event.targetio.tel[telid].first_cell_ids
+        self.calibrator.ApplyEvent(samples, fci, self.r1_wf)
+        return self.r1_wf[None, :]
 
 
 class CameraR1CalibratorFactory(Factory):
