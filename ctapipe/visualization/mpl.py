@@ -489,7 +489,7 @@ class ArrayDisplay:
 
     def __init__(self, subarray, axes=None, autoupdate=True,
                  tel_scale=2.0, alpha=0.7, title=None,
-                 radius=None, frame=GroundFrame):
+                 radius=None, frame=GroundFrame()):
 
         self.frame = frame
         self.subarray = subarray
