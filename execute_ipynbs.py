@@ -5,52 +5,11 @@ import shlex
 import subprocess as sp
 from collections import namedtuple
 
-FakeCompletedProcess = namedtuple(
-    'FakeCompletedProcess',
-    ['args', 'returncode', 'stdout', 'stderr']
-)
-
 xfail = [
     'brainstorm',
     'table_writer_reader.ipynb',
     'check_calib.ipynb'
 ]
-
-
-def detect_notbooks():
-    return sorted(glob('**/*.ipynb', recursive=True))
-
-
-def command(path, timeout=120):
-    # --ExecutePreprocessor.timeout=60 is the timeout in seconds per cell
-    return """
-    jupyter nbconvert
-    --execute
-    --ExecutePreprocessor.timeout={timeout}
-    '{path}'
-    """.format(
-        path=path,
-        timeout=timeout
-    )
-
-
-def is_xfail(path):
-    for s in xfail:
-        if s in path:
-            return True
-
-
-def fake_xfail_result():
-    ''' returns a namedtuple with the same fields
-    as a real subprocess.CompletedProcess
-    just saying that this process did not run at all.
-    '''
-    return FakeCompletedProcess(
-        args='None',
-        returncode=-1,
-        stderr=b'not executed: expected to fail',
-        stdout=b''
-    )
 
 
 def main():
@@ -75,6 +34,48 @@ def main():
                 print('F', end='', flush=True)
     print()
     return results
+
+
+def detect_notbooks():
+    return sorted(glob('**/*.ipynb', recursive=True))
+
+
+def command(path, timeout=120):
+    # --ExecutePreprocessor.timeout=60 is the timeout in seconds per cell
+    return """
+    jupyter nbconvert
+    --execute
+    --ExecutePreprocessor.timeout={timeout}
+    '{path}'
+    """.format(
+        path=path,
+        timeout=timeout
+    )
+
+
+def is_xfail(path):
+    for s in xfail:
+        if s in path:
+            return True
+
+FakeCompletedProcess = namedtuple(
+    'FakeCompletedProcess',
+    ['args', 'returncode', 'stdout', 'stderr']
+)
+
+
+def fake_xfail_result():
+    ''' returns a namedtuple with the same fields
+    as a real subprocess.CompletedProcess
+    just saying that this process did not run at all.
+    '''
+    return FakeCompletedProcess(
+        args='None',
+        returncode=-1,
+        stderr=b'not executed: expected to fail',
+        stdout=b''
+    )
+
 
 if __name__ == '__main__':
     results = main()
