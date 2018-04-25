@@ -547,6 +547,7 @@ class ArrayDisplay:
         self.axes.set_title(title)
         self._labels = []
         self._quiver = None
+        self.axes.autoscale_view()
 
     @property
     def values(self):
