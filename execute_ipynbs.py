@@ -6,7 +6,6 @@ import subprocess as sp
 from collections import namedtuple
 
 xfail = [
-    'brainstorm',
     'table_writer_reader.ipynb',
     'check_calib.ipynb'
 ]
