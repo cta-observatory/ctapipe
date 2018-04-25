@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.lines import Line2D
-from matplotlib.patches import Ellipse, RegularPolygon, Circle
+from matplotlib.patches import Ellipse, RegularPolygon, Circle, Rectangle
 from numpy import sqrt
 from ..coordinates import GroundFrame
 
