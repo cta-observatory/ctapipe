@@ -115,21 +115,21 @@ class SubarrayDescription:
     @property
     def pos_x(self):
         """ telescope x position as array """
-        warnings.warn("SubarrayDescription.pos_x is depreacated. Use "
+        warnings.warn("SubarrayDescription.pos_x is deprecated. Use "
                       "tel_coords.x")
         return self.tel_coords.x
 
     @property
     def pos_y(self):
         """ telescope y positions as an array"""
-        warnings.warn("SubarrayDescription.pos_y is depreacated. Use "
+        warnings.warn("SubarrayDescription.pos_y is deprecated. Use "
                       "tel_coords.y")
         return self.tel_coords.y
 
     @property
     def pos_z(self):
         """ telescope y positions as an array"""
-        warnings.warn("SubarrayDescription.pos_z is depreacated. Use "
+        warnings.warn("SubarrayDescription.pos_z is deprecated. Use "
                       "tel_coords.z")
         return self.tel_coords.z
 
