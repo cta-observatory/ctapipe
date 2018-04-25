@@ -5,7 +5,7 @@ import shlex
 import subprocess as sp
 
 return_codes = []
-for path in glob('examples/notebooks/**/*.ipynb', recursive=True):
+for path in sorted(glob('examples/notebooks/**/*.ipynb', recursive=True)):
     print('=' * 70)
     py_path = path.replace('.ipynb', '')
     print('testing:', path)
