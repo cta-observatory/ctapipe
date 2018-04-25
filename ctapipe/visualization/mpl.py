@@ -15,6 +15,7 @@ from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.lines import Line2D
 from matplotlib.patches import Ellipse, RegularPolygon, Circle
 from numpy import sqrt
+from ..coordinates import GroundFrame
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
@@ -488,12 +489,17 @@ class ArrayDisplay:
 
     def __init__(self, subarray, axes=None, autoupdate=True,
                  tel_scale=2.0, alpha=0.7, title=None,
-                 radius = None):
+                 radius=None, frame=GroundFrame):
 
+        self.frame = frame
         self.subarray = subarray
+
+        # get the telescope positions. If a new frame is set, this will
+        # transform to the new frame.
+        self.tel_coords = subarray.tel_coords.transform_to(frame)
+
+        # set up colors per telescope type
         tel_types = [str(tel) for tel in subarray.tels.values()]
-        telx = subarray.pos_x
-        tely = subarray.pos_y
         if radius is None:
             # set radius to the mirror radius (so big tels appear big)
             radius = [np.sqrt(tel.optics.mirror_area.to("m2").value) * tel_scale
@@ -513,8 +519,10 @@ class ArrayDisplay:
         tel_color = [tel_type_to_color[ttype] for ttype in tel_types]
 
         patches = []
-        for x, y, r, c in zip(list(telx.value), list(tely.value),
-                              list(radius), tel_color):
+        for x, y, r, c in zip(list(self.tel_coords.x.value),
+                              list(self.tel_coords.y.value),
+                              list(radius),
+                              tel_color):
             patches.append(
                 Circle(
                     xy=(x, y),
@@ -576,9 +584,13 @@ class ArrayDisplay:
             c = self.tel_colors
 
         if self._quiver is None:
-            x = self.subarray.pos_x.value
-            y = self.subarray.pos_y.value
-            self._quiver = self.axes.quiver(x, y, u, v, color=c, **kwargs)
+            coords = self.tel_coords
+            self._quiver = self.axes.quiver(
+                coords.x, coords.y,
+                u, v,
+                color=c,
+                **kwargs
+            )
         else:
             self._quiver.set_UVC(u, v)
 
@@ -598,7 +610,7 @@ class ArrayDisplay:
         u, v = polar_to_cart(rho, phi)
         self.set_vector_uv(u, v, c=c, **kwargs)
 
-    def set_vector_hillas(self, hillas_dict, angle_offset=180*u.deg):
+    def set_vector_hillas(self, hillas_dict, angle_offset=180 * u.deg):
         """
         helper function to set the vector angle and length from a set of
         Hillas parameters.
@@ -619,15 +631,14 @@ class ArrayDisplay:
 
         for tel_id, params in hillas_dict.items():
             idx = tel_id_to_index[tel_id]
-            rho[idx] = 1.0*u.m # params.length
-            phi[idx] = params.phi + angle_offset # correct rotation
+            rho[idx] = 1.0 * u.m  # params.length
+            phi[idx] = Angle(params.phi) + Angle(angle_offset)
 
         self.set_vector_rho_phi(rho=rho, phi=phi)
 
-
     def add_labels(self):
-        px = self.subarray.pos_x.value
-        py = self.subarray.pos_y.value
+        px = self.tel_coords.x.value
+        py = self.tel_coords.y.value
         for tel, x, y in zip(self.subarray.tels, px, py):
             name = str(tel)
             lab = self.axes.text(x, y, name, fontsize=8)
@@ -637,13 +648,6 @@ class ArrayDisplay:
         for lab in self._labels:
             lab.remove()
         self._labels = []
-
-    def add_lables(self):
-        px = self.subarray.pos_x.value
-        py = self.subarray.pos_y.value
-        for tel, x, y in zip(self.subarray.tels, px, py):
-            name = str(tel)
-            self.axes.text(x, y, name, fontsize=8)
 
     def _update(self):
         """ signal a redraw if necessary """

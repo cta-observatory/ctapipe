@@ -60,7 +60,7 @@ def test_array_display():
     # build a test subarray:
     tels = dict()
     tel_pos = dict()
-    for ii, pos in enumerate([[0, 0], [100, 0], [-100, 0]] * u.m):
+    for ii, pos in enumerate([[0, 0, 0], [100, 0, 0], [-100, 0, 0]] * u.m):
         tels[ii + 1] = TelescopeDescription.from_name("MST", "NectarCam")
         tel_pos[ii + 1] = pos
 
