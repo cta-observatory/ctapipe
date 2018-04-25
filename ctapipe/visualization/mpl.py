@@ -648,3 +648,24 @@ class ArrayDisplay:
         """ signal a redraw if necessary """
         if self.autoupdate:
             plt.draw()
+
+    def background_contour(self, x, y, background, **kwargs):
+        """
+        Draw image contours in background of the display, useful when likelihood fitting
+
+        Parameters
+        ----------
+        x: ndarray
+            array of image X coordinates
+        y: ndarray
+            array of image Y coordinates
+        background: ndarray
+            Array of image to use in background
+        kwargs: key=value
+            any style keywords to pass to matplotlib
+        """
+
+        # use zorder to ensure the contours appear under the telescopes.
+        self.axes.contour(x, y, background, **kwargs, zorder=0)
+
+
