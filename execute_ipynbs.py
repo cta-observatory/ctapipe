@@ -9,6 +9,8 @@ for path in sorted(glob('examples/notebooks/**/*.ipynb', recursive=True)):
     print('=' * 70)
     py_path = path.replace('.ipynb', '')
     print('testing:', path)
+
+    # --ExecutePreprocessor.timeout=60 is the timeout in seconds per cell
     nbconvert_command = """
     jupyter nbconvert
     --to notebook
