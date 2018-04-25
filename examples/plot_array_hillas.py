@@ -41,7 +41,7 @@ if __name__ == '__main__':
             fig, ax = plt.subplots(1,1, figsize=(10, 8))
             array_disp = ArrayDisplay(subarray, axes=ax, tel_scale=1.0)
             array_disp.telescopes.set_linewidth(3)
-            array_disp.add_lables()
+            array_disp.add_labels()
             first_event = False
             hit_pattern = np.zeros(subarray.num_tels)
 
