@@ -621,16 +621,11 @@ class ArrayDisplay:
             mapping of tel_id to Hillas parameters
         """
 
-        tel_id_to_index = {
-            tel_id: ii
-            for ii, tel_id in enumerate(self.subarray.tels.keys())
-        }
-
         rho = np.zeros(self.subarray.num_tels) * u.m
         phi = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
-            idx = tel_id_to_index[tel_id]
+            idx = self.subarray.tel_indices[tel_id]
             rho[idx] = 1.0 * u.m  # params.length
             phi[idx] = Angle(params.phi) + Angle(angle_offset)
 
