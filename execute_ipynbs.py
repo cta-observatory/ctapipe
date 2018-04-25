@@ -3,29 +3,89 @@ import sys
 from glob import glob
 import shlex
 import subprocess as sp
+from collections import namedtuple
 
-return_codes = []
-for path in sorted(glob('examples/notebooks/**/*.ipynb', recursive=True)):
-    print('=' * 70)
-    py_path = path.replace('.ipynb', '')
-    print('testing:', path)
+FakeCompletedProcess = namedtuple(
+    'FakeCompletedProcess',
+    ['args', 'returncode', 'stdout', 'stderr']
+)
 
+xfail = [
+    'brainstorm',
+    'table_writer_reader.ipynb',
+    'check_calib.ipynb'
+]
+
+
+def detect_notbooks():
+    return sorted(glob('**/*.ipynb', recursive=True))
+
+
+def command(path, timeout=120):
     # --ExecutePreprocessor.timeout=60 is the timeout in seconds per cell
-    nbconvert_command = """
+    return """
     jupyter nbconvert
-    --to notebook
     --execute
-    --ExecutePreprocessor.timeout=120
-    '{}'
-    """.format(path)
-    print('    ', nbconvert_command)
-    return_code = sp.call(
-        shlex.split(nbconvert_command),
-        stdout=sp.DEVNULL,
+    --ExecutePreprocessor.timeout={timeout}
+    '{path}'
+    """.format(
+        path=path,
+        timeout=timeout
     )
 
-    return_codes.append(return_code)
-    print('--> return_code:', return_code)
-    print('=' * 70)
 
-sys.exit(max(return_codes))
+def is_xfail(path):
+    for s in xfail:
+        if s in path:
+            return True
+
+
+def fake_xfail_result():
+    ''' returns a namedtuple with the same fields
+    as a real subprocess.CompletedProcess
+    just saying that this process did not run at all.
+    '''
+    return FakeCompletedProcess(
+        args='None',
+        returncode=-1,
+        stderr=b'not executed: expected to fail',
+        stdout=b''
+    )
+
+
+def main():
+    results = {}
+    print("testing notebooks: ", end='', flush=True)
+    for path in detect_notbooks():
+
+        if is_xfail(path):
+            print('X', end='', flush=True)
+            results[path] = fake_xfail_result()
+        else:
+            result = sp.run(
+                shlex.split(command(path)),
+                stdout=sp.PIPE,
+                stderr=sp.PIPE
+            )
+            results[path] = result
+
+            if result.returncode == 0:
+                print('.', end='', flush=True)
+            else:
+                print('F', end='', flush=True)
+    print()
+    return results
+
+if __name__ == '__main__':
+    results = main()
+
+    if any([r.returncode != 0 for r in results.values()]):
+        print("Captured stderr")
+        print("=" * 70)
+        for path, result in results.items():
+            if result.returncode != 0:
+                print(path)
+                print(result.stderr)
+                print("=" * 70)
+
+    sys.exit(max([r.returncode for r in results.values()]))
