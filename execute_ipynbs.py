@@ -15,7 +15,7 @@ for path in sorted(glob('examples/notebooks/**/*.ipynb', recursive=True)):
     jupyter nbconvert
     --to notebook
     --execute
-    --ExecutePreprocessor.timeout=60
+    --ExecutePreprocessor.timeout=120
     '{}'
     """.format(path)
     print('    ', nbconvert_command)
