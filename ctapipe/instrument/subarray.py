@@ -7,6 +7,10 @@ from collections import defaultdict
 import numpy as np
 from astropy import units as u
 from astropy.table import Table
+from astropy.coordinates import SkyCoord
+from astropy.utils.decorators import deprecated_attribute
+import warnings
+from ..coordinates import GroundFrame
 
 import ctapipe
 
@@ -84,22 +88,43 @@ class SubarrayDescription:
                                                          max(tels)))
 
     @property
+    def tel_coords(self):
+        """ returns telescope positions as astropy.coordinates.SkyCoord"""
+
+        pos_x = np.array([p[0].to('m').value
+                          for p in self.positions.values()]) * u.m
+        pos_y = np.array([p[1].to('m').value
+                          for p in self.positions.values()]) * u.m
+        pos_z = np.array([p[2].to('m').value
+                          for p in self.positions.values()]) * u.m
+
+        return SkyCoord(
+            x=pos_x,
+            y=pos_y,
+            z=pos_z,
+            frame=GroundFrame()
+        )
+
+    @property
     def pos_x(self):
         """ telescope x position as array """
-        return np.array([p[0].to('m').value
-                         for p in self.positions.values()]) * u.m
+        warnings.warn("SubarrayDescription.pos_x is depreacated. Use "
+                      "tel_coords.x")
+        return self.tel_coords.x
 
     @property
     def pos_y(self):
         """ telescope y positions as an array"""
-        return np.array([p[1].to('m').value
-                         for p in self.positions.values()]) * u.m
+        warnings.warn("SubarrayDescription.pos_y is depreacated. Use "
+                      "tel_coords.y")
+        return self.tel_coords.y
 
     @property
     def pos_z(self):
         """ telescope y positions as an array"""
-        return np.array([p[2].to('m').value
-                         for p in self.positions.values()]) * u.m
+        warnings.warn("SubarrayDescription.pos_z is depreacated. Use "
+                      "tel_coords.z")
+        return self.tel_coords.z
 
     @property
     def tel_ids(self):
