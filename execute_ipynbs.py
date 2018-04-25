@@ -9,6 +9,7 @@ xfail = [
     'table_writer_reader.ipynb',
     'check_calib.ipynb'
 ]
+TIMEOUT_PER_CELL = 240  # seconds
 
 
 def main():
@@ -21,7 +22,7 @@ def main():
             results[path] = fake_xfail_result()
         else:
             result = sp.run(
-                shlex.split(command(path)),
+                shlex.split(command(path, timeout=TIMEOUT_PER_CELL)),
                 stdout=sp.PIPE,
                 stderr=sp.PIPE
             )
@@ -40,7 +41,7 @@ def detect_notbooks():
 
 
 def command(path, timeout=120):
-    # --ExecutePreprocessor.timeout=60 is the timeout in seconds per cell
+    # --ExecutePreprocessor.timeout is the timeout in seconds per cell
     return """
     jupyter nbconvert
     --execute
