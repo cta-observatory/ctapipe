@@ -4,6 +4,8 @@ Plots the (rough) hillas parameters for each event on an ArrayDisplay
 
 import sys
 import matplotlib.pyplot as plt
+from astropy.coordinates import SkyCoord
+from ctapipe.coordinates import TiltedGroundFrame
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas_parameters, tailcuts_clean, \
@@ -54,14 +56,26 @@ if __name__ == '__main__':
 
 
 
-        # plot the core pos
+        # plot the core position, which must be transformed from the tilted
+        # system to the system that the ArrayDisplay is in (default
+        # GroundFrame)
+        point_dir = SkyCoord(
+            *event.mcheader.run_array_direction,
+            frame='altaz'
+        )
+        tiltedframe = TiltedGroundFrame(pointing_direction=point_dir)
         if markers:
             for marker in markers:
                 marker.remove()
-        core_x = event.mc.core_x.to("m").value
-        core_y = event.mc.core_y.to("m").value
-        markers = ax.plot([core_x,], [core_y,], "r+", markersize=10)
 
+        core_coord = SkyCoord(
+            x=event.mc.core_x,
+            y=event.mc.core_y,
+            frame=tiltedframe
+        ).transform_to(array_disp.frame)
+
+        markers = ax.plot([core_coord.x.value,], [core_coord.y.value,],
+                          "r+",markersize=10)
 
         # plot the hit pattern (triggered tels).
         # first expand the tels_with_data list into a fixed-length vector,
