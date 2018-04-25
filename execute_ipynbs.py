@@ -85,7 +85,7 @@ if __name__ == '__main__':
         for path, result in results.items():
             if result.returncode != 0:
                 print(path)
-                print(result.stderr)
+                print(result.stderr.decode('utf8'))
                 print("=" * 70)
 
     sys.exit(max([r.returncode for r in results.values()]))
