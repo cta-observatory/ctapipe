@@ -6,26 +6,24 @@ import subprocess as sp
 
 return_codes = []
 for path in glob('examples/notebooks/**/*.ipynb', recursive=True):
-    py_path = path.replace('.ipynb', '.py')
+    print('=' * 70)
+    py_path = path.replace('.ipynb', '')
     print('testing:', path)
-    nbconvert_command = "jupyter-nbconvert --to=script '{}'".format(path)
-    print('    ', nbconvert_command, ' >/dev/null 2>&1')
-    sp.check_call(
+    nbconvert_command = """
+    jupyter nbconvert
+    --to notebook
+    --execute
+    --ExecutePreprocessor.timeout=60
+    '{}'
+    """.format(path)
+    print('    ', nbconvert_command)
+    return_code = sp.call(
         shlex.split(nbconvert_command),
         stdout=sp.DEVNULL,
-        stderr=sp.DEVNULL,
     )
 
-    ipython_command = "ipython {}".format(py_path)
-
-    print('    ', ipython_command, ' >/dev/null 2>&1')
-    return_code = sp.call(
-        shlex.split(ipython_command),
-        stdout=sp.DEVNULL,
-        stderr=sp.DEVNULL,
-    )
     return_codes.append(return_code)
     print('--> return_code:', return_code)
-    print()
+    print('=' * 70)
 
 sys.exit(max(return_codes))
