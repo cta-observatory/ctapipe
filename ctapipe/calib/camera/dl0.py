@@ -80,8 +80,7 @@ class CameraDL0Reducer(Component):
         event : container
             A `ctapipe` event container
         """
-        tels = event.r1.tels_with_data
-        for telid in tels:
+        for telid in event.r1.tels_with_data:
             r1 = event.r1.tel[telid].waveform
             if self.check_r1_exists(event, telid):
                 if self._reducer is None:
@@ -89,3 +88,4 @@ class CameraDL0Reducer(Component):
                 else:
                     reduction = self._reducer.reduce_waveforms(r1)
                     event.dl0.tel[telid].waveform = reduction
+                event.dl0.tels_with_data.add(telid)
