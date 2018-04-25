@@ -8,7 +8,6 @@ from ctapipe.instrument import (CameraGeometry, SubarrayDescription,
 from ctapipe.io.containers import HillasParametersContainer
 from numpy import ones
 from astropy import units as u
-from astropy.coordinates import Angle
 
 
 def test_camera_display_single():
@@ -81,7 +80,7 @@ def test_array_display():
 
     # test using hillas params:
     hillas_dict = {
-        1: HillasParametersContainer(length=1.0*u.m, phi=90 * u.deg),
-        2: HillasParametersContainer(length=200*u.cm, phi="95deg"),
+        1: HillasParametersContainer(length=1.0 * u.m, phi=90 * u.deg),
+        2: HillasParametersContainer(length=200 * u.cm, phi="95deg"),
     }
     ad.set_vector_hillas(hillas_dict)

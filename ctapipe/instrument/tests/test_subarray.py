@@ -1,23 +1,20 @@
+import numpy as np
+from astropy import units as u
+
 from ctapipe.instrument import (
     SubarrayDescription,
     TelescopeDescription,
 )
-import numpy as np
-from astropy import units as u
 
 
 def test_subarray_description():
-
     pos = {}
     tel = {}
-    foclen = 16 * u.m
-    pix_x = np.arange(1764, dtype=np.float) * u.m
-    pix_y = np.arange(1764, dtype=np.float) * u.m
 
     for ii in range(10):
-        tel[ii+1] = TelescopeDescription.from_name(optics_name="MST",
-                                                   camera_name="NectarCam")
-        pos[ii+1] = np.random.uniform(-100, 100, size=3) * u.m
+        tel[ii + 1] = TelescopeDescription.from_name(optics_name="MST",
+                                                     camera_name="NectarCam")
+        pos[ii + 1] = np.random.uniform(-100, 100, size=3) * u.m
 
     sub = SubarrayDescription("test array",
                               tel_positions=pos,
@@ -31,7 +28,7 @@ def test_subarray_description():
     assert sub.tel[1].camera is not None
     assert 0 not in sub.tel  # check that there is no tel 0 (1 is first above)
     assert len(sub.to_table()) == 10
-    assert len(set(sub.camera_types)) == 1 # only 1 camera type
+    assert len(set(sub.camera_types)) == 1  # only 1 camera type
     assert sub.camera_types[0] == 'NectarCam'
     assert sub.optics_types[0] == 'MST'
     assert sub.telescope_types[0] == 'MST:NectarCam'
@@ -39,5 +36,3 @@ def test_subarray_description():
     subsub = sub.select_subarray("newsub", [1, 2, 3, 4])
     assert subsub.num_tels == 4
     assert set(subsub.tels.keys()) == {1, 2, 3, 4}
-
-

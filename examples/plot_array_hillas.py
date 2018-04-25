@@ -3,17 +3,19 @@ Plots the (rough) hillas parameters for each event on an ArrayDisplay
 """
 
 import sys
+
 import matplotlib.pyplot as plt
+import numpy as np
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import TiltedGroundFrame
+from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
+from ctapipe.coordinates import TiltedGroundFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean, \
     HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
-
 
 if __name__ == '__main__':
 
@@ -40,7 +42,7 @@ if __name__ == '__main__':
         subarray = event.inst.subarray
 
         if first_event:
-            fig, ax = plt.subplots(1,1, figsize=(10, 8))
+            fig, ax = plt.subplots(1, 1, figsize=(10, 8))
             array_disp = ArrayDisplay(subarray, axes=ax, tel_scale=1.0)
             array_disp.telescopes.set_linewidth(3)
             array_disp.add_labels()
@@ -53,8 +55,6 @@ if __name__ == '__main__':
         # calibrating the event
         calib.calibrate(event)
         hillas_dict = {}
-
-
 
         # plot the core position, which must be transformed from the tilted
         # system to the system that the ArrayDisplay is in (default
@@ -74,8 +74,8 @@ if __name__ == '__main__':
             frame=tiltedframe
         ).transform_to(array_disp.frame)
 
-        markers = ax.plot([core_coord.x.value,], [core_coord.y.value,],
-                          "r+",markersize=10)
+        markers = ax.plot([core_coord.x.value, ], [core_coord.y.value, ],
+                          "r+", markersize=10)
 
         # plot the hit pattern (triggered tels).
         # first expand the tels_with_data list into a fixed-length vector,
@@ -113,8 +113,7 @@ if __name__ == '__main__':
             except HillasParameterizationError:
                 pass  # skip failed parameterization (normally no signal)
 
-
-        array_disp.set_vector_hillas(hillas_dict, angle_offset=0*u.deg)
+        array_disp.set_vector_hillas(hillas_dict, angle_offset=0 * u.deg)
 
         plt.pause(0.1)  # allow matplotlib to redraw the display
 
