@@ -22,6 +22,7 @@ def test_subarray_description():
 
     sub.info()
 
+    assert str(sub) == "test array"
     assert sub.num_tels == 10
     assert len(sub.tel_ids) == 10
     assert sub.tel_ids[0] == 1
@@ -36,3 +37,4 @@ def test_subarray_description():
     subsub = sub.select_subarray("newsub", [1, 2, 3, 4])
     assert subsub.num_tels == 4
     assert set(subsub.tels.keys()) == {1, 2, 3, 4}
+

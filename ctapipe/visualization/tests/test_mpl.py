@@ -84,3 +84,7 @@ def test_array_display():
         2: HillasParametersContainer(length=200 * u.cm, phi="95deg"),
     }
     ad.set_vector_hillas(hillas_dict)
+
+    ad.add_labels()
+    ad.remove_labels()
+    
