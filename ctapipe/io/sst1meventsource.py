@@ -23,8 +23,8 @@ class SST1MEventSource(EventSource):
 
         for count, event in enumerate(self.file.Events):
             if pixel_sort_ids is None:
-                pixel_sort_ids = np.argsort(
-                    event.hiGain.waveforms.pixelsIndices)
+                pixel_indices = event.hiGain.waveforms.pixelsIndices
+                pixel_sort_ids = np.argsort(pixel_indices)
                 self.n_pixels = len(pixel_sort_ids)
             telid = event.telescopeID
             data = SST1MDataContainer()
@@ -33,18 +33,18 @@ class SST1MEventSource(EventSource):
             # R0Container
             data.r0.obs_id = -1
             data.r0.event_id = event.eventNumber
-            data.r0.tels_with_data = {event.telescopeID}
+            data.r0.tels_with_data = {telid}
 
             # R0CameraContainer
             camera_time = event.local_time_sec * 1E9 + event.local_time_nanosec
             samples = event.hiGain.waveforms.samples.reshape(self.n_pixels, -1)
             data.r0.tel[telid].trigger_time = camera_time
             data.r0.tel[telid].trigger_type = event.event_type
-            data.r0.tel[telid].waveform = samples[pixel_sort_ids]
+            data.r0.tel[telid].waveform = samples[pixel_sort_ids][None, :]
             data.r0.tel[telid].num_samples = samples.shape[-1]
 
             # SST1MContainer
-            data.sst1m.tels_with_data = {event.telescopeID}
+            data.sst1m.tels_with_data = {telid}
 
             # SST1MCameraContainer
             digicam_baseline = event.hiGain.waveforms.baselines[pixel_sort_ids]
