@@ -7,14 +7,14 @@ from collections import namedtuple
 
 xfail = [
     'table_writer_reader.ipynb',
-    'check_calib.ipynb'
+    'check_calib.ipynb',
 ]
 TIMEOUT_PER_CELL = 240  # seconds
 
 
 def main():
     results = {}
-    print("testing notebooks: ", end='', flush=True)
+    print('testing notebooks: ', end='', flush=True)
     for path in detect_notbooks():
 
         if is_xfail(path):
@@ -42,14 +42,13 @@ def detect_notbooks():
 
 def command(path, timeout=120):
     # --ExecutePreprocessor.timeout is the timeout in seconds per cell
-    return """
+    return '''
     jupyter nbconvert
     --execute
     --ExecutePreprocessor.timeout={timeout}
     '{path}'
-    """.format(
-        path=path,
-        timeout=timeout
+    '''.format(
+        path=path, timeout=timeout
     )
 
 
@@ -57,6 +56,7 @@ def is_xfail(path):
     for s in xfail:
         if s in path:
             return True
+
 
 FakeCompletedProcess = namedtuple(
     'FakeCompletedProcess',
@@ -81,12 +81,12 @@ if __name__ == '__main__':
     results = main()
 
     if any([r.returncode != 0 for r in results.values()]):
-        print("Captured stderr")
-        print("=" * 70)
+        print('Captured stderr')
+        print('=' * 70)
         for path, result in results.items():
             if result.returncode != 0:
                 print(path)
                 print(result.stderr.decode('utf8'))
-                print("=" * 70)
+                print('=' * 70)
 
     sys.exit(max([r.returncode for r in results.values()]))
