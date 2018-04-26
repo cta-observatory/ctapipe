@@ -147,8 +147,8 @@ class SubarrayDescription:
     @property
     def footprint(self):
         """area of smallest circle containing array on ground"""
-        x = self.pos_x
-        y = self.pos_y
+        x = self.tel_coords.x
+        y = self.tel_coords.y
         return (np.hypot(x, y).max() ** 2 * np.pi).to('km^2')
 
     def to_table(self, kind="subarray"):
@@ -176,11 +176,12 @@ class SubarrayDescription:
             tel_types = [x.optics.tel_type for x in self.tels.values()]
             tel_subtypes = [x.optics.tel_subtype for x in self.tels.values()]
             cam_types = [x.camera.cam_id for x in self.tels.values()]
+            tel_coords = self.tel_coords
 
             tab = Table(dict(tel_id=np.array(ids, dtype=np.short),
-                             tel_pos_x=self.pos_x,
-                             tel_pos_y=self.pos_y,
-                             tel_pos_z=self.pos_z,
+                             tel_pos_x=tel_coords.x,
+                             tel_pos_y=tel_coords.y,
+                             tel_pos_z=tel_coords.z,
                              tel_type=tel_types,
                              tel_subtype=tel_subtypes,
                              mirror_type=mirror_types,
