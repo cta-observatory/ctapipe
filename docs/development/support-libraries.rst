@@ -180,7 +180,7 @@ complex. We support *only* the following c-binding systems (in order of recommen
 
 * `ctypes <https://docs.python.org/3.6/library/ctypes.html>`_ (built into python, good for simple cases)
 * `cffi <http://cffi.readthedocs.io>`_ (for more complex wrapping and building)
-* _cython <http://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html>`_ (can be used for wrapping as well as coding)
+* `_cython <http://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html>`_ (can be used for wrapping as well as coding)
 * `pybind11 <https://pybind11.readthedocs.io/en/stable/>`_ (more complex alternative for
   C++ code, like that including classes, etc)
 
