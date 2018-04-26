@@ -12,7 +12,7 @@ from astropy import units as u
 
 def test_camera_display_single():
     """ test CameraDisplay functionality """
-    from ..mpl import CameraDisplay
+    from ..mpl_camera import CameraDisplay
 
     geom = CameraGeometry.from_name("LSTCam")
     disp = CameraDisplay(geom)
@@ -40,7 +40,7 @@ def test_camera_display_single():
 
 def test_camera_display_multiple():
     """ create a figure with 2 subplots, each with a CameraDisplay """
-    from ..mpl import CameraDisplay
+    from ..mpl_camera import CameraDisplay
 
     geom = CameraGeometry.from_name("LSTCam")
     fig, ax = plt.subplots(2, 1)
@@ -54,7 +54,7 @@ def test_camera_display_multiple():
 
 
 def test_array_display():
-    from ..mpl import ArrayDisplay
+    from ctapipe.visualization.mpl_array import ArrayDisplay
 
     # build a test subarray:
     tels = dict()
@@ -87,4 +87,3 @@ def test_array_display():
 
     ad.add_labels()
     ad.remove_labels()
-    

@@ -3,7 +3,7 @@
 import matplotlib.pylab as plt
 import numpy as np
 from ctapipe.utils import datasets
-from ctapipe.visualization import ArrayDisplay
+from ctapipe.visualization.mpl_array import ArrayDisplay
 from ctapipe.io import event_source
 from astropy import units as u
 

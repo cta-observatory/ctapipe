@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from ctapipe.visualization import ArrayDisplay
+from ctapipe.visualization.mpl_array import ArrayDisplay
 import astropy.units as u
 from ctapipe.coordinates import GroundFrame
 

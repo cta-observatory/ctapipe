@@ -4,7 +4,8 @@ Visualization: Methods for displaying data
 """
 
 try:
-    from .mpl import *
+    from .mpl_camera import CameraDisplay
+    from .mpl_array import ArrayDisplay
 except ImportError:
     pass
 
