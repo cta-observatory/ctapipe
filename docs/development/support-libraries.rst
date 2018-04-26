@@ -176,13 +176,12 @@ Use C/C++ code and wrap it
 
 This is only recommended if the other methods fail, or if there is existing
 code that is shared with other non-python-based systems, as it is the most
-complex. We support *only* the following c-binding systems (in order of recommendation):
+complex. We support *only* the following c-binding systems for code 
+within ctapipe:
 
 * `ctypes <https://docs.python.org/3.6/library/ctypes.html>`_ (built into python, good for simple cases)
 * `cffi <http://cffi.readthedocs.io>`_ (for more complex wrapping and building)
-* `_cython <http://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html>`_ (can be used for wrapping as well as coding)
-* `pybind11 <https://pybind11.readthedocs.io/en/stable/>`_ (more complex alternative for
-  C++ code, like that including classes, etc)
+* `cython <http://docs.cython.org/en/latest/src/userguide/wrapping_CPlusPlus.html>`_ (can be used for wrapping as well as coding)
 
 We do *not* recommend *swig*, as it introduces yet another language binding
 (the swig definition file) that includes both C and Python code, and is thus
