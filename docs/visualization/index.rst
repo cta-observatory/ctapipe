@@ -27,7 +27,7 @@ Getting Started
     :include-source:
 
 
-.. plot:: ../examples/array_layout.py
+.. plot:: ../examples/array_display.py
     :include-source:
 	  
 
