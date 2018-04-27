@@ -1,4 +1,4 @@
-'''A simple example of how to use traitlets.config.application.Application.
+"""A simple example of how to use traitlets.config.application.Application.
 
 This should serve as a simple example that shows how the traitlets config
 system works. The main classes are:
@@ -28,7 +28,7 @@ to set the following options:
 
 When the config attribute of an Application is updated, it will fire all of
 the trait's events for all of the config=True attributes.
-'''
+"""
 
 from traitlets.config.configurable import Configurable
 from traitlets.config.application import Application
@@ -46,9 +46,9 @@ import json
 
 
 class Foo(Configurable):
-    '''A class that has configurable, typed attributes.
+    """A class that has configurable, typed attributes.
 
-    '''
+    """
 
     i = Int(0, help='The integer i.').tag(config=True)
     j = Int(1, help='The integer j.').tag(config=True)
@@ -69,7 +69,7 @@ class MyApp(Application):
 
     aliases = Dict(dict(
         i='Foo.i', j='Foo.j', name='Foo.name', running='MyApp.running',
-        enabled='Bar.enabled', log_level='MyApp.log_level',
+        enabled='Bar.enabled', log_level='MyApp.log_lev',
         config_file='MyApp.config_file',
     ))
 
@@ -104,7 +104,7 @@ class MyApp(Application):
         pass
 
     def stage_default_config_file(self):
-        '''auto generate default config file, and stage it into the profile.'''
+        """auto generate default config file, and stage it into the profile."""
         # s = self.generate_config_file()
         fname = os.path.join('.', 'foo.json')  # self.config_file)
         if not os.path.exists(fname):
@@ -113,34 +113,34 @@ class MyApp(Application):
                 f.write(str(json.dumps(self.config)))
 
     def traitlets_config_to_fits(self, outputfile):
-        traitlets_config_to_fits(self.config, outputfile, clobber=True)
+        traitlets_config_to_fits(self.config, outputfile, overwrite=True)
 
-    def jsonToFits(self, outputfile):
-        json_to_fits(self.full_path_configfile, outputfile, clobber=True)
+    def json_to_fits(self, outputfile):
+        json_to_fits(self.full_path_configfile, outputfile, overwrite=True)
 
 
 def test_traitlets_config_to_fits():
     backup = sys.argv
     full_config_name = get_dataset('config.json')
-    sys.argv = ['test_json_2_fits.py', '--config_file=' + full_config_name]
+    sys.argv = ['test_json_2_fits.py', '--config_f=' + full_config_name]
     app = MyApp()
     app.initialize()
     app.start()
 
     tmp = tempfile.NamedTemporaryFile()
-    app.traitlets_config_to_fits(tmp.name)
+    app.traitlets_config_to_fits(str(tmp.name))
     sys.argv = backup
 
 
 def test_jsonToFits():
     backup = sys.argv
     full_config_name = get_dataset('config.json')
-    sys.argv = ['test_json_2_fits.py', '--config_file=' + full_config_name]
+    sys.argv = ['test_json_2_fits.py', '--config_f=' + full_config_name]
     app = MyApp()
     app.initialize()
     app.start()
     tmp = tempfile.NamedTemporaryFile()
-    app.jsonToFits(tmp)
+    app.json_to_fits(str(tmp.name))
     sys.argv = backup
 
 

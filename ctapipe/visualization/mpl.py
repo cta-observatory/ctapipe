@@ -2,23 +2,25 @@
 """
 Visualization routines using matplotlib
 """
-import matplotlib
-from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection, LineCollection
-from matplotlib.patches import Ellipse, RegularPolygon, Rectangle, Circle
-from matplotlib.lines import Line2D
-from matplotlib.colors import Normalize, LogNorm, SymLogNorm
-from numpy import sqrt
-import numpy as np
-import logging
 import copy
+import logging
+
+import matplotlib
+import numpy as np
 from astropy import units as u
+from matplotlib import pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.colors import Normalize, LogNorm, SymLogNorm
+from matplotlib.lines import Line2D
+from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
+from numpy import sqrt
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
 
 logger = logging.getLogger(__name__)
 
-PIXEL_EPSILON = 0.0005 # a bit of extra size to pixels to avoid aliasing
+PIXEL_EPSILON = 0.0005  # a bit of extra size to pixels to avoid aliasing
+
 
 class CameraDisplay:
 
@@ -50,8 +52,6 @@ class CameraDisplay:
         rescale the vmin/vmax values when the image changes.
         This is set to False if `set_limits_*` is called to explicity
         set data limits.
-    antialiased : bool  (default True)
-        whether to draw in antialiased mode or not.
 
     Notes
     -----
@@ -90,9 +90,8 @@ class CameraDisplay:
             cmap=None,
             allow_pick=False,
             autoupdate=True,
-            autoscale=True,
-            antialiased=True,
-            ):
+            autoscale=True
+    ):
         self.axes = ax if ax is not None else plt.gca()
         self.geom = geometry
         self.pixels = None
@@ -101,6 +100,7 @@ class CameraDisplay:
         self.autoscale = autoscale
         self._active_pixel = None
         self._active_pixel_label = None
+        self._axes_overlays = []
 
         if title is None:
             title = geometry.cam_id
@@ -114,12 +114,12 @@ class CameraDisplay:
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
         for xx, yy, aa in zip(
-            u.Quantity(self.geom.pix_x[self.geom.mask]).value,
-            u.Quantity(self.geom.pix_y[self.geom.mask]).value,
-            u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
+                u.Quantity(self.geom.pix_x[self.geom.mask]).value,
+                u.Quantity(self.geom.pix_y[self.geom.mask]).value,
+                u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
 
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2*PIXEL_EPSILON
+                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
                     (xx, yy), 6, radius=rr,
                     orientation=self.geom.pix_rotation.rad,
@@ -128,7 +128,7 @@ class CameraDisplay:
             else:
                 rr = sqrt(aa) + PIXEL_EPSILON
                 poly = Rectangle(
-                    (xx-rr/2., yy-rr/2.),
+                    (xx - rr / 2., yy - rr / 2.),
                     width=rr,
                     height=rr,
                     angle=self.geom.pix_rotation.deg,
@@ -184,7 +184,7 @@ class CameraDisplay:
         self.norm = norm
 
     def highlight_pixels(self, pixels, color='g', linewidth=1, alpha=0.75):
-        '''
+        """
         Highlight the given pixels with a colored line around them
 
         Parameters
@@ -199,7 +199,7 @@ class CameraDisplay:
             linewidth of the highlighting in points
         alpha: 0 <= alpha <= 1
             The transparency
-        '''
+        """
 
         l = np.zeros_like(self.image)
         l[pixels] = linewidth
@@ -233,7 +233,7 @@ class CameraDisplay:
 
     @property
     def norm(self):
-        '''
+        """
         The norm instance of the Display
 
         Possible values:
@@ -242,7 +242,7 @@ class CameraDisplay:
         - "log": log scale (cannot have negative values)
         - "symlog": symmetric log scale (negative values are ok)
         -  any matplotlib.colors.Normalize instance, e. g. PowerNorm(gamma=-2)
-        '''
+        """
         return self.pixels.norm
 
     @norm.setter
@@ -325,7 +325,7 @@ class CameraDisplay:
 
     def add_colorbar(self, **kwargs):
         """
-        add a colobar to the camera plot
+        add a colorbar to the camera plot
         kwargs are passed to `figure.colorbar(self.pixels, **kwargs)`
         See matplotlib documentation for the supported kwargs:
         http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure.colorbar
@@ -365,17 +365,23 @@ class CameraDisplay:
         self.update()
         return ellipse
 
-    def overlay_moments(self, momparams, **kwargs):
+    def overlay_moments(self, momparams, with_label=True, keep_old=False, **kwargs):
         """helper to overlay ellipse from a `reco.MomentParameters` structure
 
         Parameters
         ----------
         momparams: `reco.MomentParameters`
             structuring containing Hillas-style parameterization
+        with_label: bool
+            If True, show coordinates of centroid and width and length
+        keep_old: bool
+            If True, to not remove old overlays
         kwargs: key=value
             any style keywords to pass to matplotlib (e.g. color='red'
             or linewidth=6)
         """
+        if not keep_old:
+            self.clear_overlays()
 
         # strip off any units
         cen_x = u.Quantity(momparams.cen_x).value
@@ -385,16 +391,28 @@ class CameraDisplay:
 
 
         el = self.add_ellipse(centroid=(cen_x, cen_y),
-                              length=length*2,
-                              width=width*2, angle=momparams.psi.rad,
+                              length=length * 2,
+                              width=width * 2, angle=momparams.psi.rad,
                               **kwargs)
-        self.axes.text(cen_x, cen_y,
-                       ("({:.02f},{:.02f})\n"
-                        "[w={:.02f},l={:.02f}]")
-                       .format(momparams.cen_x,
-                               momparams.cen_y,
-                               momparams.width, momparams.length),
-                       color=el.get_edgecolor())
+
+        self._axes_overlays.append(el)
+
+        if with_label:
+            text = self.axes.text(cen_x, cen_y,
+                                  ("({:.02f},{:.02f})\n"
+                                   "[w={:.02f},l={:.02f}]")
+                                  .format(momparams.cen_x,
+                                          momparams.cen_y,
+                                          momparams.width, momparams.length),
+                                  color=el.get_edgecolor())
+
+            self._axes_overlays.append(text)
+
+    def clear_overlays(self):
+        """ Remove added overlays from the axes """
+        while self._axes_overlays:
+            overlay = self._axes_overlays.pop()
+            overlay.remove()
 
     def _on_pick(self, event):
         """ handler for when a pixel is clicked """
@@ -436,13 +454,14 @@ class ArrayDisplay:
 
         if tel_type is None:
             tel_type = np.ones(len(telx))
-        patches = [Rectangle(xy=(x-radius/2, y-radius/2), width=radius, height=radius, fill=False)
+        patches = [Rectangle(xy=(x - radius / 2, y - radius / 2),
+                             width=radius, height=radius, fill=False)
                    for x, y in zip(telx, tely)]
 
         self.autoupdate = autoupdate
         self.telescopes = PatchCollection(patches, match_original=True)
         self.telescopes.set_clim(1, 9)
-        rgb = matplotlib.cm.Set1((tel_type-1)/9)
+        rgb = matplotlib.cm.Set1((tel_type - 1) / 9)
         self.telescopes.set_edgecolor(rgb)
         self.telescopes.set_linewidth(2.0)
 
@@ -493,7 +512,8 @@ class ArrayDisplay:
 
         """
         ellipse = Ellipse(xy=centroid, width=length, height=width,
-                          angle=np.degrees(angle), fill=True,  **kwargs)
+                          angle=np.degrees(angle), fill=True, **kwargs)
+
         self.axes.add_patch(ellipse)
         return ellipse
 
@@ -545,12 +565,12 @@ class ArrayDisplay:
             tel_y = u.Quantity(tel_position[1][i]).value
             i += 1
 
-            ellipse = Ellipse(xy=(tel_x,tel_y), width=length, height=width,
+            ellipse = Ellipse(xy=(tel_x, tel_y), width=length, height=width,
                               angle=np.degrees(momparams[h].psi.rad))
             ellipse_list.append(ellipse)
 
         patches = PatchCollection(ellipse_list, **kwargs)
-        patches.set_clim(0, 1000) # Set ellipse colour based on image size
+        patches.set_clim(0, 1000)  # Set ellipse colour based on image size
         patches.set_array(np.asarray(size_list))
         self.axes_hillas.add_collection(patches)
 
@@ -568,8 +588,6 @@ class ArrayDisplay:
             or linewidth=6)
         """
         # strip off any units
-        line_list = list()
-        size_list = list()
         i = 0
         for h in momparams:
             tel_x = u.Quantity(tel_position[0][i]).value
@@ -579,4 +597,5 @@ class ArrayDisplay:
             y_sc = [tel_y - np.sin(psi) * 10000, tel_y + np.sin(psi) * 10000]
 
             i += 1
-            self.axes_hillas.add_line(Line2D(x_sc, y_sc, linestyle='dashed', color='black'))
+            self.axes_hillas.add_line(Line2D(x_sc, y_sc,
+                                             linestyle='dashed', color='black'))

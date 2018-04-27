@@ -1,4 +1,5 @@
 language: python
+sudo: required
 
 python:
     # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
@@ -10,6 +11,12 @@ os:
     - linux
     # - osx   # currently osx python projects are not supported in Travis
 
+env:
+  global:
+    - TARGET_SOFTWARE=$HOME/Software/target_software
+    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/Software/TargetDriver/install/lib:$HOME/Software/TargetIO/install/lib:$HOME/Software/TargetCalib/install/lib
+    - TARGETCALIBPATH=$HOME/Software/TargetCalib/install
+
 before_install:
 
     # Use utf8 encoding. Should be default, but this is insurance
@@ -19,7 +26,6 @@ before_install:
 
     # Install miniconda following instructions at
     # http://conda.pydata.org/docs/travis.html
-    
     - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       fi
@@ -37,22 +43,39 @@ before_install:
     # Make sure that interactive matplotlib backends work
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
+    - git fetch --tags
 
 install:
-
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
-    - conda env update -n cta-dev --quiet --file environment.yml
+    - conda env update -n cta-dev --file environment.yml
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
-    - python setup.py install
-
+    - pip install travis-sphinx
+    - pip install codecov
+    # ----- SST1M:
+    - conda install protobuf
+    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v0.44.3.tar.gz
+    # ----- end of SST1M
+    # ----- target_software
+    - conda install -c conda-forge cfitsio
+    - conda install swig
+    - mkdir -p $HOME/Software
+    - cd $HOME/Software
+    - git clone https://github.com/watsonjj/target_software.git
+    - cd $TARGET_SOFTWARE
+    - ./install.sh
+    - cd $TRAVIS_BUILD_DIR
+    # ----- end of target_software
+    - python setup.py develop
 
 script:
-    - make test
+    - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
+    - travis-sphinx -v --outdir=docbuild build --source=docs/
 
 after_script:
-  - source deactivate
+    - source deactivate
 
-  
-
+after_success:
+    - travis-sphinx -v --outdir=docbuild deploy
+    - codecov

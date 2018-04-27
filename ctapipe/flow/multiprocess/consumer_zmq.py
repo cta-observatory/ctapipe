@@ -5,7 +5,7 @@ from multiprocessing import Process
 from multiprocessing import Value
 from pickle import loads
 from ctapipe.core import Component
-from time import time
+
 
 class ConsumerZMQ(Process, Component):
     """`ConsumerZMQ` class represents a Consumer pipeline Step.
@@ -17,6 +17,7 @@ class ConsumerZMQ(Process, Component):
     init() method is call by run method.
     The process is stopped by setting share data stop to True
     """
+
     def __init__(
             self, coroutine, sock_consumer_port, _name=""):
         """
@@ -26,7 +27,7 @@ class ConsumerZMQ(Process, Component):
         sock_consumer_port: str
             Port number for socket url
         """
-        Component.__init__(self,parent=None)
+        Component.__init__(self, parent=None)
         Process.__init__(self)
         self.coroutine = coroutine
         self.sock_consumer_url = 'tcp://localhost:' + sock_consumer_port
@@ -34,7 +35,6 @@ class ConsumerZMQ(Process, Component):
         self._running = Value('i', 0)
         self._nb_job_done = Value('i', 0)
         self._stop = Value('i', 0)
-        self.total_time = Value('f', 0.)
 
     def init(self):
         """
@@ -46,11 +46,9 @@ class ConsumerZMQ(Process, Component):
         # Define coroutine and executes its init method
         if self.coroutine is None:
             return False
-        start_time = time()
-        if not self.coroutine.init():
+        if self.coroutine.init() == False:
             return False
         self.done = False
-        self.total_time.value += (time() - start_time)
         return self.init_connections()
 
     def run(self):
@@ -62,7 +60,7 @@ class ConsumerZMQ(Process, Component):
         has been set to False.
         """
         if self.init():
-            while not self._stop.value :
+            while not self._stop.value:
                 try:
                     sockets = dict(self.poll.poll(100))
                     if (self.sock_reply in sockets and
@@ -71,9 +69,7 @@ class ConsumerZMQ(Process, Component):
                         # do some 'work', update status
                         cmd = loads(request[0])
                         self.running = 1
-                        start_time = time()
                         self.coroutine.run(cmd)
-                        self.total_time.value += (time() - start_time)
                         self.running = 0
                         self.nb_job_done += 1
                         # send reply back to router/queuer
@@ -87,9 +83,7 @@ class ConsumerZMQ(Process, Component):
         self.done = True
 
     def finish(self):
-        start_time = time()
         self.coroutine.finish()
-        self.total_time.value += (time() - start_time)
 
     def init_connections(self):
         """
@@ -122,10 +116,6 @@ class ConsumerZMQ(Process, Component):
     @nb_job_done.setter
     def nb_job_done(self, value):
         self._nb_job_done.value = value
-
-    @property
-    def get_total_time(self):
-        return self.total_time.value
 
     @property
     def running(self):

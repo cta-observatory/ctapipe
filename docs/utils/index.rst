@@ -27,7 +27,7 @@ It currently provides:
 Access to Service Data files
 ============================
 
-The `get_dataset` function provides a common way to load CTA "SVC"
+The `get_dataset()` function provides a common way to load CTA "SVC"
 data (e.g. required lookups, example data, etc). It returns the full
 directory path to the requested file. It currently works as follows:
 
@@ -37,6 +37,19 @@ directory path to the requested file. It currently works as follows:
 2. if it doesn't find it there, it checks the ctapipe_resources module (which
    should be installed already in the package ctapipe-extra), which contains
    defaults.
+
+Tabular data can be accessed automatically using
+`get_table_dataset(basename)`, where the `basename` is the filename
+without the extension.  Several tabular formats will be searched and
+when the file is found it will be opened and read as an
+`astropy.table.Table` object.  For example:
+
+.. code-block:: python
+
+    from ctapipe.utils import get_table_dataset
+
+    optics = get_table_dataset('optics')
+    print(optics)
 
 
 Reference/API

@@ -4,13 +4,12 @@ simtelarray input file.
 """
 
 import numpy as np
-import ctapipe.io.hessio as hessio
 from astropy import units as u
 from astropy.table import Table
-from astropy.time import Time
-from ctapipe.core.traits import (Unicode, Dict, Bool)
-from ctapipe.core import Provenance
 
+import ctapipe.io.hessio as hessio
+from ctapipe.core import Provenance, ToolConfigurationError
+from ctapipe.core.traits import (Unicode, Dict, Bool)
 from ..core import Tool
 
 MAX_TELS = 1000
@@ -18,7 +17,7 @@ MAX_TELS = 1000
 
 class DumpTriggersTool(Tool):
     description = Unicode(__doc__)
-    name='ctapipe-dump-triggers'
+    name = 'ctapipe-dump-triggers'
 
     # =============================================
     # configuration parameters:
@@ -48,8 +47,6 @@ class DumpTriggersTool(Tool):
                 '\n\n'
                 'If you want to see more output, use --log_level=DEBUG')
 
-
-
     # =============================================
     # The methods of the Tool (initialize, start, finish):
     # =============================================
@@ -72,7 +69,7 @@ class DumpTriggersTool(Tool):
 
         # build the trigger pattern as a fixed-length array
         # (better for storage in FITS format)
-        #trigtels = event.get_telescope_with_data_list()
+        # trigtels = event.get_telescope_with_data_list()
         trigtels = event.dl0.tels_with_data
         self._current_trigpattern[:] = 0  # zero the trigger pattern
         self._current_trigpattern[list(trigtels)] = 1  # set the triggered tels
@@ -87,8 +84,7 @@ class DumpTriggersTool(Tool):
         """ setup function, called before `start()` """
 
         if self.infile == '':
-            raise ValueError("No 'infile' parameter was specified. "
-                             "Use --help for info")
+            raise ToolConfigurationError("No 'infile' parameter was specified. ")
 
         self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
                                    'N_TRIG', 'TRIGGERED_TELS'],
@@ -105,7 +101,6 @@ class DumpTriggersTool(Tool):
         self._current_starttime = None
         self._prev_gpstime = None
 
-
     def start(self):
         """ main event loop """
         source = hessio.hessio_event_source(self.infile)
@@ -119,16 +114,19 @@ class DumpTriggersTool(Tool):
         `start()`)
         """
         # write out the final table
-        if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
-            self.events.write(self.outfile, overwrite=self.overwrite)
-        elif self.outfile.endswith('h5'):
-            self.events.write(self.outfile, path='/events',
-                              overwrite=self.overwrite)
-        else:
-            self.events.write(self.outfile)
-        Provenance().add_output_file(self.outfile)
+        try:
+            if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
+                self.events.write(self.outfile, overwrite=self.overwrite)
+            elif self.outfile.endswith('h5'):
+                self.events.write(self.outfile, path='/events',
+                                  overwrite=self.overwrite)
+            else:
+                self.events.write(self.outfile)
 
-        self.log.info("Table written to '{}'".format(self.outfile))
+            Provenance().add_output_file(self.outfile)
+        except IOError as err:
+            self.log.warn("Couldn't write output (%s)", err)
+
         self.log.info('\n %s', self.events)
 
 

@@ -5,3 +5,4 @@ from .charge_extractors import *
 from .waveform_cleaning import *
 from .reductors import *
 from .muon import *
+from .geometry_converter import *

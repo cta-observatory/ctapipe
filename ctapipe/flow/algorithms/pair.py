@@ -1,12 +1,14 @@
 from ctapipe.core import Component
 from time import sleep
 
+
 class Pair(Component):
     """Odd` class represents a Stage for pipeline.
     It returns received value to Add stage except when
     received value is a multiple of 5. In this case it returns
     received value to Inverse stage
     """
+
     def init(self):
         self.log.debug("--- Pair init ---")
         return True

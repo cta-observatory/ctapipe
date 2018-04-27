@@ -1,16 +1,18 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+import logging
 import os
 import re
-from pkg_resources import resource_listdir
-from pathlib import Path
+
 from astropy.utils.decorators import deprecated
-import logging
+from pkg_resources import resource_listdir
+from astropy.table import Table
+from ..core import Provenance
 
 logger = logging.getLogger(__name__)
 
 try:
     import ctapipe_resources
-except:
+except ImportError:
     raise RuntimeError("Please install the 'ctapipe-extra' package, "
                        "which contains the ctapipe_resources module "
                        "needed by ctapipe. (conda install ctapipe-extra)")
@@ -25,6 +27,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
         return []
     return os.path.expandvars(searchpath).split(':')
 
+
 def find_all_matching_datasets(pattern,
                                searchpath=None,
                                regexp_group=None):
@@ -32,7 +35,7 @@ def find_all_matching_datasets(pattern,
     Returns a list of resource names (or substrings) matching the given 
     pattern, searching first in searchpath (a colon-separated list of 
     directories) and then in the ctapipe_resources module)
-    
+
     Parameters
     ----------
     pattern: str
@@ -81,7 +84,7 @@ def find_all_matching_datasets(pattern,
 def find_in_path(filename, searchpath):
     """
     Search in searchpath for filename, returning full path.
-    
+
     Parameters
     ----------
     searchpath: str
@@ -95,8 +98,8 @@ def find_in_path(filename, searchpath):
 
     """
 
-    for dir in get_searchpath_dirs(searchpath):
-        pathname = os.path.join(dir, filename)
+    for directory in get_searchpath_dirs(searchpath):
+        pathname = os.path.join(directory, filename)
         if os.path.exists(pathname):
             return pathname
 
@@ -107,12 +110,12 @@ def get_dataset(filename):
     """
     Returns the full file path to an auxiliary dataset needed by 
     ctapipe, given the dataset's full name (filename with no directory).
-      
+
     This will first search for the file in directories listed in 
     tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,  
     will look in the ctapipe_resources module 
     (installed with the ctapipe-extra package), which contains the defaults.
-    
+
     Parameters
     ----------
     filename: str
@@ -134,7 +137,58 @@ def get_dataset(filename):
 
     return ctapipe_resources.get(filename)
 
-@deprecated("ctapipe-0.5",alternative='get_dataset()')
+
+def get_table_dataset(table_name, role='resource', **kwargs):
+    """
+    get a tabular dataset as an `astropy.table.Table` object
+
+    Parameters
+    ----------
+    table_name: str
+        base name of table, without file extension
+    role: str
+        should be set to the CTA data hierarchy name when possible (e.g.
+        dl1.sub.svc.arraylayout). This will be recorded in the provenance
+        system.
+    kwargs:
+        extra arguments to pass to Table.read()
+
+    Returns
+    -------
+    Table
+    """
+
+    # a mapping of types (keys) to any extra keyword args needed for
+    # table.read()
+    types_to_try = {
+        '.fits.gz': {},
+        '.fits': {},
+        '.ecsv': dict(format='ascii.ecsv'),
+        '.ecsv.txt': dict(format='ascii.ecsv'),
+    }
+
+    for table_type in types_to_try:
+        filename = table_name + table_type
+        try:
+            fullname = get_dataset(filename)
+            if fullname:
+                args = types_to_try[table_type]
+                args.update(kwargs)
+                table = Table.read(fullname, **args)
+                Provenance().add_input_file(fullname, role)
+                return table
+        except FileNotFoundError:
+            pass
+
+    raise FileNotFoundError("couldn't locate table: {}[{}]".format(
+        table_name, ', '.join(types_to_try)))
+
+
+@deprecated("ctapipe-0.5", alternative='get_dataset()')
 def get_path(filename):
     return get_dataset(filename)
 
+
+if __name__ == '__main__':
+
+    get_table_dataset("NectarCam.camgeom")

@@ -2,6 +2,7 @@
 # coding: utf8
 from time import time
 
+
 class ProducerSequential():
 
     """`ProducerSequential` class represents a Stager pipeline Step.
@@ -51,8 +52,8 @@ class ProducerSequential():
         self.total_time += (end_time - start_time)
         for result in gen:
             msg, destination = self.get_destination_msg_from_result(result)
-            self.nb_job_done+=1
-            yield (msg,destination)
+            self.nb_job_done += 1
+            yield (msg, destination)
 
     def finish(self):
         """
@@ -64,33 +65,33 @@ class ProducerSequential():
         self.total_time += (end_time - start_time)
         return True
 
-    def get_destination_msg_from_result(self,result):
+    def get_destination_msg_from_result(self, result):
         """
         If type(result) is tuple, check if last tuple elem is a valid next step.
         If yes, return a destination defined to the last tuple elem and send result without the destination
         If no return None as destination
-        
+
         Parameters
         ----------
         result : any type
             value to send (can contain next step name)
-            
+
         Returns
         -------
         msg, destination
 
         """
         destination = self.main_connection_name
-        if isinstance(result,tuple):
+        if isinstance(result, tuple):
             # look is last tuple elem is a valid next step
             if result[-1] in self.connections.keys():
                 destination = result[-1]
-                if len(result [:-1]) == 1:
-                    msg = result [:-1][0]
+                if len(result[:-1]) == 1:
+                    msg = result[:-1][0]
                 else:
                     msg = result[:-1]
-                return msg,destination
+                return msg, destination
             else:
-                return result,destination
+                return result, destination
         else:
-            return result,destination
+            return result, destination

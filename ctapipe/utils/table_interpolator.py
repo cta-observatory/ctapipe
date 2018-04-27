@@ -66,7 +66,8 @@ class TableInterpolator:
 
         self.grid_interp = interpolate.RegularGridInterpolator((x_bins, y_bins),
                                                                np.zeros([x_bins.shape[0],
-                                                                         y_bins.shape[0]]),
+                                                                         y_bins.shape[
+                                                                             0]]),
                                                                method="linear",
                                                                bounds_error=False,
                                                                fill_value=0)
@@ -75,7 +76,7 @@ class TableInterpolator:
         """
         Function opens tables contained within fits files and parses them into a format 
         recognisable by the interpolator.
-        
+
         Parameters
         ----------
         filename: str
@@ -89,41 +90,38 @@ class TableInterpolator:
         template = list()
         grid = list()
 
-        primHDU = file[0].header  # We require first HDU to be primary
-
-        if self.verbose:
-            print("File contains")
-            print("Contains a total of", len(file), "tables of size", file[0].shape)
+        primary_hdu = file[0].header  # We require first HDU to be primary
 
         # Below definitions are standard
-        ix, iy = primHDU["CRPIX1"], primHDU["CRPIX2"]
-        val_x, val_y = primHDU["CRVAL1"], primHDU["CRVAL2"]
-        delta_x, delta_y = primHDU["CRDELTA1"], primHDU["CRDELTA2"]
-        nbins_x, nbins_y = primHDU["NAXIS1"], primHDU["NAXIS2"]
+        ix, iy = primary_hdu["CRPIX2"], primary_hdu["CRPIX1"]
+        val_x, val_y = primary_hdu["CRVAL2"], primary_hdu["CRVAL1"]
+        print(val_x, val_y)
+        delta_x, delta_y = primary_hdu["CRDELTA2"], primary_hdu["CRDELTA1"]
+        nbins_x, nbins_y = primary_hdu["NAXIS2"], primary_hdu["NAXIS1"]
         ix *= delta_x
         iy *= delta_y
 
-        x_bins = np.arange(val_x-ix ,val_x+(delta_x*nbins_x)-ix, step=delta_x)
-        y_bins = np.arange(val_y-iy ,val_y+(delta_y*nbins_y)-iy, step=delta_y)
-        grid_vals = primHDU["GRIDVALS"]
+        x_bins = np.arange(val_x - ix, val_x + (delta_x * nbins_x) - ix, step=delta_x)
+        y_bins = np.arange(val_y - iy, val_y + (delta_y * nbins_y) - iy, step=delta_y)
+        grid_vals = primary_hdu["GRIDVALS"]
         points = grid_vals.split(",")
 
         if self.verbose:
             print("Interpolation point source be called in order", points)
-        if self.verbose>1:
+        if self.verbose > 1:
             for p in points:
-                print(p,":", primHDU["DOC"+p])
+                print(p, ":", primary_hdu["DOC" + p])
 
         for hdu in file:
             template.append(hdu.data)
-            
+
             hdu_pt = list()
             for p in points:
                 hdu_pt.append(hdu.header[p])
             grid.append(np.array(hdu_pt))
 
+        print(np.array(grid))
         bins = (x_bins, y_bins)
-
         return grid, bins, template
 
     def interpolate(self, params, pixel_pos_x, pixel_pos_y):
@@ -147,6 +145,7 @@ class TableInterpolator:
 
         image = self.interpolated_image(params)
         self.grid_interp.values = image
+
         points = np.array([pixel_pos_x, pixel_pos_y])
         return self.grid_interp(points.T)
 

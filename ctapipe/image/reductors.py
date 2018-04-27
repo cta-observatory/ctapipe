@@ -3,7 +3,7 @@ Algorithms for the data volume reduction.
 """
 
 from abc import abstractmethod
-from traitlets import CaselessStrEnum
+
 from ctapipe.core import Component, Factory
 
 __all__ = ['DataVolumeReductor', 'DataVolumeReductorFactory']
@@ -38,9 +38,8 @@ class DataVolumeReductor(Component):
         List of neighbours for each pixel. Changes per telescope.
 
     """
-    name = 'DataVolumeReductor'
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 
         self._nchan = None
@@ -101,20 +100,4 @@ class DataVolumeReductorFactory(Factory):
     """
     Factory class for creating a DataVolumeReductor
     """
-    name = "DataVolumeReductorFactory"
-    description = "Obtain DataVolumeReductor based on reductor traitlet"
-
-    subclasses = Factory.child_subclasses(DataVolumeReductor)
-    subclass_names = [c.__name__ for c in subclasses]
-
-    reductor = CaselessStrEnum(subclass_names, 'NeighbourPeakIntegrator',
-                               help='Data volume reduction scheme to use for '
-                                    'the conversion to dl0.').tag(config=True)
-
-    # Product classes traits
-
-    def get_factory_name(self):
-        return self.name
-
-    def get_product_name(self):
-        return self.reductor
+    base = DataVolumeReductor

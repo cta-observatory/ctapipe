@@ -1,13 +1,11 @@
 """
 Functions to retrieve and interpolate atmosphere profiles.
 """
-
 import numpy as np
-from astropy.table import Table
 from astropy.units import Quantity
 from scipy.interpolate import interp1d
 
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_table_dataset
 
 __all__ = ['get_atmosphere_profile_table', 'get_atmosphere_profile_functions']
 
@@ -15,7 +13,7 @@ __all__ = ['get_atmosphere_profile_table', 'get_atmosphere_profile_functions']
 def get_atmosphere_profile_table(atmosphere_name='paranal'):
     """
     Get an atmosphere profile table
-    
+
     Parameters
     ----------
     atmosphere_name: str
@@ -23,26 +21,29 @@ def get_atmosphere_profile_table(atmosphere_name='paranal'):
 
     Returns
     -------
-    astropy.table.Table  containing atmosphere profile with at least columns 
+    astropy.table.Table  containing atmosphere profile with at least columns
     'altitude' (m), and 'thickness' (g cm-2) as well as others.
 
     """
-    return Table.read(get_dataset('{}.atmprof.fits.gz'.format(atmosphere_name)))
+    table_name = '{}.atmprof'.format(atmosphere_name)
+    table = get_table_dataset(table_name=table_name,
+                              role='dl0.arr.svc.atmosphere')
+    return table
 
 
 def get_atmosphere_profile_functions(atmosphere_name="paranal",
                                      with_units=True):
-    """ 
+    """
     Gives atmospheric profile as a continuous function thickness(
-    altitude), and it's inverse altitude(thickness)  in m and g/cm^2 
+    altitude), and it's inverse altitude(thickness)  in m and g/cm^2
     respectively.
-    
+
     Parameters
     ----------
     atmosphere_name: str
         identifier of atmosphere profile
     with_units: bool
-       if true, return functions that accept and return unit quantities. 
+       if true, return functions that accept and return unit quantities.
        Otherwise assume units are 'm' and 'g cm-2'
 
     Returns
@@ -65,4 +66,4 @@ def get_atmosphere_profile_functions(atmosphere_name="paranal",
 
         return thickness, altitude
 
-    return  alt_to_thickness, thickness_to_alt
+    return alt_to_thickness, thickness_to_alt

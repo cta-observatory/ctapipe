@@ -1,16 +1,16 @@
-name: ctadev
+name: cta-dev
 channels:
+  - anaconda
   - cta-observatory
-  - openastronomy
-  - astropy
+  - conda-forge
 dependencies:
-  - ctapipe-extra=0.2.9
+  - zeromq=4.2.2 
+  - ctapipe-extra=0.2.*
   - astropy
   - bokeh
-  - fitsio
+  - cython
   - gammapy
   - graphviz
-  - healpy
   - iminuit
   - ipython
   - ipywidgets
@@ -19,15 +19,17 @@ dependencies:
   - numba
   - numpy
   - numpydoc
+  - pandas
   - pyhessio
   - pytest
+  - pytest-cov
   - psutil
   - readline
   - scikit-learn
   - scikit-image
   - scipy
   - setuptools
-  - sphinx
+  - sphinx=1.6
   - sphinx_rtd_theme
   - sphinx-automodapi
   - traitlets
@@ -36,7 +38,7 @@ dependencies:
   - yaml
   - zlib
   - iminuit
-  - pytables  
+  - pytables
   - tqdm
   - pip:
       - pytest_runner

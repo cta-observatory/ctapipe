@@ -12,9 +12,10 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     '''
     pass
 
+
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components (sometimes called
-    workers, makers, etc).  Components are are classes that do some sort
+    workers, makers, etc).  Components are classes that do some sort
     of processing and contain user-configurable parameters, which are
     implemented using `traitlets`.
 
@@ -53,21 +54,23 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp.some_option = 'test' # will fail validation
     """
 
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, parent=None, config=None, **kwargs):
         """
         Parameters
         ----------
         parent: Tool or Component
             Tool or component that is the Parent of this one
         kwargs: type
-            other paremeters
+            other parameters
 
         """
 
-        super().__init__(parent=parent, **kwargs)
+        super().__init__(parent=parent, config=config, **kwargs)
 
         # set up logging
         if self.parent:
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
-            self.log = getLogger(self.__class__.__name__)
+            self.log = getLogger(
+                self.__class__.__module__ + '.' + self.__class__.__name__
+            )

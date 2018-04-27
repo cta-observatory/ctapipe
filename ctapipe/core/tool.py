@@ -1,44 +1,21 @@
+import logging
+from abc import abstractmethod
+
 from traitlets import Unicode
 from traitlets.config import Application
-from abc import abstractmethod
-from . import Provenance
-import logging
 
 from ctapipe import __version__ as version
+from .logging import ColoredFormatter
+from . import Provenance
+
+logging.basicConfig(level=logging.WARNING)
 
 
-class ColoredFormatter(logging.Formatter):
-    """
-    Custom logging.Formatter that adds colors in addition to the original
-    Application logger functionality from LevelFormatter (in application.py)
-    """
-    highlevel_limit = logging.WARN
-    highlevel_format = " %(levelname)s |"
+class ToolConfigurationError(Exception):
 
-    def format(self, record):
-        black, red, green, yellow, blue, magenta, cyan, white = range(8)
-        reset_seq = "\033[0m"
-        color_seq = "\033[1;%dm"
-        colors = {
-            'WARNING': yellow,
-            'INFO': green,
-            'DEBUG': blue,
-            'CRITICAL': yellow,
-            'ERROR': red
-        }
-
-        levelname = record.levelname
-        if levelname in colors:
-            levelname_color = color_seq % (30 + colors[levelname]) \
-                              + levelname + reset_seq
-            record.levelname = levelname_color
-
-        if record.levelno >= self.highlevel_limit:
-            record.highlevel = self.highlevel_format % record.__dict__
-        else:
-            record.highlevel = ""
-
-        return super(ColoredFormatter, self).format(record)
+    def __init__(self, message):
+        # Call the base class constructor with the parameters it needs
+        self.message = message
 
 
 class Tool(Application):
@@ -124,8 +101,8 @@ class Tool(Application):
     """
 
     config_file = Unicode(u'', help=("name of a configuration file with "
-                                "parameters to load in addition to "
-                                "command-line parameters")).tag(config=True)
+                                     "parameters to load in addition to "
+                                     "command-line parameters")).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -136,10 +113,10 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = '%(levelname)8s [%(name)s]: %(message)s'
-        self.log_level = 20  # default to INFO and above
+        self.log_format = ('%(levelname)8s [%(name)s] '
+                           '(%(module)s/%(funcName)s): %(message)s')
+        self.log_level = logging.INFO
         self.is_setup = False
-
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
@@ -148,8 +125,6 @@ class Tool(Application):
             self.log.debug("Loading config from '{}'".format(self.config_file))
             self.load_config_file(self.config_file)
         self.log.info("ctapipe version {}".format(self.version_string))
-        self.setup()
-        self.is_setup = True
 
     @abstractmethod
     def setup(self):
@@ -178,7 +153,7 @@ class Tool(Application):
         ----------
 
         argv: list(str)
-            command-line arguments, or None to get them 
+            command-line arguments, or None to get them
             from sys.argv automatically
         """
         try:
@@ -186,14 +161,31 @@ class Tool(Application):
             self.log.info("Starting: {}".format(self.name))
             self.log.debug("CONFIG: {}".format(self.config))
             Provenance().start_activity(self.name)
+            Provenance().add_config(self.config)
+            self.setup()
+            self.is_setup = True
             self.start()
             self.finish()
-            Provenance().finish_activity(self.name)
-            self.log.debug("PROVENANCE: '%s'", Provenance().as_json())
-        except ValueError as err:
-            self.log.error('{}'.format(err))
+            self.log.info("Finished: {}".format(self.name))
+            Provenance().finish_activity(activity_name=self.name)
+        except ToolConfigurationError as err:
+            self.log.error('{}.  Use --help for more info'.format(err))
         except RuntimeError as err:
             self.log.error('Caught unexpected exception: {}'.format(err))
+            self.finish()
+            Provenance().finish_activity(activity_name=self.name,
+                                         status='error')
+        except KeyboardInterrupt:
+            self.log.warning("WAS INTERRUPTED BY CTRL-C")
+            self.finish()
+            Provenance().finish_activity(activity_name=self.name,
+                                         status='interrupted')
+        finally:
+            for activity in Provenance().finished_activities:
+                output_str = ' '.join([x['url'] for x in activity.output])
+                self.log.info("Output: %s", output_str)
+
+            self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
 
     @property
     def version_string(self):

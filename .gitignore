@@ -1,3 +1,5 @@
+.pytest_cache
+
 # Compiled files
 *.py[co]
 *.a
@@ -70,6 +72,12 @@ distribute-*.tar.gz
 #sonarlint command-line output
 .sonarlint
 
-
+# output files (should not be stored in git)
+*.h5
+*.hdf5
+*.fits
+*.fits.gz
 
 *.pstats
+target
+.mypy_cache

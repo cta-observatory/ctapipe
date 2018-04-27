@@ -1,12 +1,14 @@
 from ctapipe.core import Component
 from time import sleep
 
+
 class Odd(Component):
     """Odd` class represents a Stage for pipeline.
     It returns received value to Inverse stage except when
     received value is a multiple of 5. In this case it returns
     received value to Add stage
     """
+
     def init(self):
         self.log.debug("--- Odd init ---")
         return True

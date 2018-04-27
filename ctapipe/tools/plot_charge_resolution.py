@@ -14,8 +14,6 @@ from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 
 
 class ChargeResolutionPlotter(Component):
-    name = 'ChargeResolutionPlotter'
-
     output_path = Unicode(None, allow_none=True,
                           help='Output path to save the '
                                'plot.').tag(config=True)
@@ -25,7 +23,7 @@ class ChargeResolutionPlotter(Component):
     linear_y = Bool(False, help='Plot the y values on a linear axis, '
                                 'instead of log').tag(config=True)
 
-    def __init__(self, config, tool, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Calculator of charge resolution.
 
@@ -93,7 +91,7 @@ class ChargeResolutionPlotter(Component):
         g_p, = self.ax_l.plot(x, goal, 'g', ls='--')
         p_p, = self.ax_l.plot(x, poisson, c='0.75', ls='--')
         self.ax_r.plot(x, requirement / goal, 'r')
-        self.ax_r.plot(x, goal / goal, 'g')
+        self.ax_r.plot(x, np.ones_like(x), 'g')
         self.ax_r.plot(x, poisson / goal, c='0.75', ls='--')
 
         self.legend_handles.append(r_p)
@@ -152,7 +150,7 @@ class ChargeResolutionViewer(Tool):
                   "pickled dictionaries."
 
     input_files = List(Unicode, None,
-                       help='Input pickle files that are produced from '
+                       help='Input hdf5 files that are produced from '
                             'ChargeResolutionCalculator.save().'
                             '').tag(config=True)
 
@@ -204,6 +202,7 @@ class ChargeResolutionViewer(Tool):
 def main():
     exe = ChargeResolutionViewer()
     exe.run()
+
 
 if __name__ == '__main__':
     main()

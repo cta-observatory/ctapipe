@@ -2,7 +2,7 @@
 # coding: utf8
 from types import GeneratorType
 from multiprocessing import Process
-from multiprocessing import  Value
+from multiprocessing import Value
 from pickle import loads
 from zmq import POLLIN
 from zmq import REQ
@@ -10,7 +10,7 @@ from zmq import Poller
 from zmq import Context
 from ctapipe.flow.multiprocess.connections import Connections
 from ctapipe.core import Component
-from time import time
+
 
 class StagerZmq(Component, Process, Connections):
 
@@ -24,6 +24,7 @@ class StagerZmq(Component, Process, Connections):
     init() method is call by run method.
     The process is stopped by setting share data stop to True
     """
+
     def __init__(
             self, coroutine, sock_job_for_me_port,
             name=None, connections=None, main_connection_name=None):
@@ -41,7 +42,7 @@ class StagerZmq(Component, Process, Connections):
             Port number for socket for each next steps
         """
         Process.__init__(self)
-        Component.__init__(self,parent=None)
+        Component.__init__(self, parent=None)
         self.name = name
         Connections.__init__(self, main_connection_name, connections)
         self.coroutine = coroutine
@@ -51,7 +52,6 @@ class StagerZmq(Component, Process, Connections):
         self._nb_job_done = Value('i', 0)
         self._stop = Value('i', 0)
         self._running = Value('i', 0)
-        self.total_time = Value('f', 0.)
 
     def init(self):
         """
@@ -65,10 +65,9 @@ class StagerZmq(Component, Process, Connections):
             self.name = "STAGER"
         if self.coroutine is None:
             return False
-        start_time = time()
         if self.coroutine.init() == False:
             return False
-        self.total_time.value += (time() - start_time)
+
         self.coroutine.connections = list(self.connections)
 
         return self.init_connections()
@@ -92,7 +91,6 @@ class StagerZmq(Component, Process, Connections):
                     #  Get the input from prev_stage
                     self.waiting_since.value = 0
                     self.running = 1
-                    start_time = time()
                     request = self.sock_for_me.recv_multipart()
                     receiv_input = loads(request[0])
                     # do the job
@@ -109,17 +107,14 @@ class StagerZmq(Component, Process, Connections):
                     self.sock_for_me.send_multipart(request)
                     self._nb_job_done.value = self._nb_job_done.value + 1
                     self.running = 0
-                    self.total_time.value += (time() - start_time)
                 else:
-                    self.waiting_since.value = self.waiting_since.value+100 # 100 ms
+                    self.waiting_since.value = self.waiting_since.value + 100  # 100 ms
             self.sock_for_me.close()
         self.finish()
         self.done = True
 
     def finish(self):
-        start_time = time()
         self.coroutine.finish()
-        self.total_time.value += (time() - start_time)
 
     def init_connections(self):
         """
@@ -155,11 +150,6 @@ class StagerZmq(Component, Process, Connections):
     @property
     def nb_job_done(self):
         return self._nb_job_done.value
-
-    @property
-    def get_total_time(self):
-        return self.total_time.value
-
 
     @nb_job_done.setter
     def nb_job_done(self, value):

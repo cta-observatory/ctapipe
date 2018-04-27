@@ -27,7 +27,7 @@ def test_component_simple():
         param = Float(default_value=1.0,
                       help="float parameter").tag(config=True)
 
-    comp = ExampleComponent(None)
+    comp = ExampleComponent()
 
     assert comp.has_trait('param') is True
     comp.param = 1.2
