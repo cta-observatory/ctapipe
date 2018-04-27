@@ -2,10 +2,11 @@
 
 import matplotlib.pylab as plt
 import numpy as np
-from ctapipe.utils import datasets
-from ctapipe.visualization.mpl_array import ArrayDisplay
-from ctapipe.io import event_source
 from astropy import units as u
+
+from ctapipe.io import event_source
+from ctapipe.utils import datasets
+from ctapipe.visualization import ArrayDisplay
 
 if __name__ == '__main__':
 
@@ -26,7 +27,7 @@ if __name__ == '__main__':
     plt.tight_layout()
 
     for phi in np.linspace(0, 360, 30) * u.deg:
-        r = np.cos(phi/2)
+        r = np.cos(phi / 2)
         ad.set_vector_rho_phi(r, phi)
         plt.pause(0.01)
 

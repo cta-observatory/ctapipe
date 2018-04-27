@@ -26,7 +26,7 @@ Getting Started
 .. plot:: ../examples/camera_display.py
     :include-source:
 
-     
+
 Reference/API
 =============
 

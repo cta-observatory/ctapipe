@@ -15,7 +15,7 @@ from ctapipe.image import hillas_parameters, tailcuts_clean, \
     HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
-from ctapipe.visualization.mpl_array import ArrayDisplay
+from ctapipe.visualization import ArrayDisplay
 
 if __name__ == '__main__':
 
