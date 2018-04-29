@@ -18,6 +18,11 @@ class SST1MEventSource(EventSource):
         super().__init__(config=config, tool=tool, **kwargs)
         from protozfits import SimpleFile
         self.file = SimpleFile(self.input_url)
+        # TODO: Correct pixel ordering
+        self._tel_desc = TelescopeDescription.from_name(
+            optics_name='SST-1M',
+            camera_name='DigiCam'
+        )
 
     def _generator(self):
         pixel_sort_ids = None
@@ -31,10 +36,7 @@ class SST1MEventSource(EventSource):
             data = SST1MDataContainer()
             data.count = count
 
-            data.inst.subarray.tels[telid] = TelescopeDescription.from_name(
-                optics_name='SST-1M',
-                camera_name='DigiCam'
-            )
+            data.inst.subarray.tels[telid] = self._tel_desc
 
             # R0Container
             data.r0.obs_id = -1
