@@ -19,6 +19,8 @@ __all__ = ['InstrumentContainer',
            'DL0CameraContainer',
            'DL1Container',
            'DL1CameraContainer',
+           'SST1MContainer',
+           'SST1MCameraContainer',
            'MCEventContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
@@ -29,6 +31,7 @@ __all__ = ['InstrumentContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
            'DataContainer',
+           'SST1MDataContainer',
            'HillasParametersContainer']
 
 
