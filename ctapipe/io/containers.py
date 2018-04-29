@@ -414,21 +414,10 @@ class NectarCAMCameraContainer(Container):
     """
     camera_event_type = Field(int, "camera event type")
 
-
     integrals = Field(None, (
         "numpy array containing waveform integrals"
         "(n_channels x n_pixels)"
     ))
-
-
-    def fill_from_zfile_event(self, event, numTraces):
-        self.camera_event_type = event.eventType
-
-        self.integrals = np.array([
-            event.hiGain.integrals.gains,
-            event.loGain.integrals.gains,
-        ])
-
 
 
 class NectarCAMContainer(Container):
@@ -439,14 +428,6 @@ class NectarCAMContainer(Container):
     tel = Field(
         Map(NectarCAMCameraContainer),
         "map of tel_id to NectarCameraContainer")
-
-    def fill_from_zfile_event(self, event, numTraces):
-        self.tels_with_data = [event.telescopeID, ]
-        nectar_cam_container = self.tel[event.telescopeID]
-        nectar_cam_container.fill_from_zfile_event(
-            event,
-            numTraces,
-        )
 
 
 class NectarCAMDataContainer(DataContainer):
