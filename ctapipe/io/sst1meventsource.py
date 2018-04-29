@@ -42,8 +42,10 @@ class SST1MEventSource(EventSource):
             data.r0.obs_id = -1
             data.r0.event_id = event.eventNumber
             data.r0.tels_with_data = {telid}
+            data.r1.obs_id = -1
             data.r1.event_id = event.eventNumber
             data.r1.tels_with_data = {telid}
+            data.dl0.obs_id = -1
             data.dl0.event_id = event.eventNumber
             data.dl0.tels_with_data = {telid}
 
