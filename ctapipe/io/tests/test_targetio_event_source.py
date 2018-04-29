@@ -4,6 +4,7 @@ from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.utils import get_dataset_path
+from ctapipe.calib.camera.calibrator import CameraCalibrator
 
 pytest.importorskip("target_driver")
 pytest.importorskip("target_io")
@@ -153,3 +154,12 @@ def test_eventseeker():
         with pytest.raises(IndexError):
             seeker = EventSeeker(source)
             _ = seeker[5]
+
+
+def test_pipeline():
+    dataset = get_dataset_path("chec_r1.tio")
+    reader = TargetIOEventSource(input_url=dataset, max_events=10)
+    calibrator = CameraCalibrator(eventsource=reader)
+    for event in reader:
+        calibrator.calibrate(event)
+        assert event.r0.tel.keys() == event.dl1.tel.keys()
