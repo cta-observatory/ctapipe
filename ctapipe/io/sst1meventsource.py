@@ -31,7 +31,7 @@ class SST1MEventSource(EventSource):
             data = SST1MDataContainer()
             data.count = count
 
-            data.inst.subarray.tels[0] = TelescopeDescription.from_name(
+            data.inst.subarray.tels[telid] = TelescopeDescription.from_name(
                 optics_name='SST-1M',
                 camera_name='DigiCam'
             )
