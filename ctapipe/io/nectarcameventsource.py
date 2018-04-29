@@ -8,6 +8,7 @@ Needs protozfits v0.44.4 from github.com/cta-sst-1m/protozfitsreader
 import numpy as np
 from .eventsource import EventSource
 from .containers import NectarCAMDataContainer
+from ctapipe.instrument import TelescopeDescription
 
 __all__ = ['NectarCAMEventSource']
 
@@ -19,6 +20,11 @@ class NectarCAMEventSource(EventSource):
         from protozfits import SimpleFile
         self.file = SimpleFile(self.input_url)
         self.header = next(self.file.RunHeader)
+        # TODO: Correct pixel order
+        self._tel_desc = TelescopeDescription.from_name(
+            optics_name='MST',
+            camera_name='NectarCam'
+        )
 
     def _generator(self):
         telid = self.header.telescopeID
@@ -26,6 +32,8 @@ class NectarCAMEventSource(EventSource):
         for count, event in enumerate(self.file.Events):
             data = NectarCAMDataContainer()
             data.count = count
+
+            data.inst.subarray.tels[telid] = self._tel_desc
 
             # R0Container
             data.r0.obs_id = -1
