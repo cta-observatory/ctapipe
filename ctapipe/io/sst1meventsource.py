@@ -40,6 +40,10 @@ class SST1MEventSource(EventSource):
             data.r0.obs_id = -1
             data.r0.event_id = event.eventNumber
             data.r0.tels_with_data = {telid}
+            data.r1.event_id = event.eventNumber
+            data.r1.tels_with_data = {telid}
+            data.dl0.event_id = event.eventNumber
+            data.dl0.tels_with_data = {telid}
 
             # R0CameraContainer
             camera_time = event.local_time_sec * 1E9 + event.local_time_nanosec
