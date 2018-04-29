@@ -47,11 +47,11 @@ class NectarCAMEventSource(EventSource):
             data.dl0.tels_with_data = {telid}
 
             # R0CameraContainer
-            trigger_time = event.local_time_sec*1E9 + event.local_time_nanosec
+            time = event.local_time_sec * 1E9 + event.local_time_nanosec
             num_traces = self.header.numTraces
             samples_hi = event.hiGain.waveforms.samples.reshape(-1, num_traces)
             samples_lo = event.loGain.waveforms.samples.reshape(-1, num_traces)
-            data.r0.tel[telid].trigger_time = trigger_time
+            data.r0.tel[telid].trigger_time = time
             data.r0.tel[telid].trigger_type = event.event_type
             data.r0.tel[telid].waveform = np.array([samples_hi, samples_lo])
             data.r0.tel[telid].num_samples = samples_hi.shape[-1]
