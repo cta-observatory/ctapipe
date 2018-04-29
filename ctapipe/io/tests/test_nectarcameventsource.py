@@ -1,7 +1,8 @@
 from pkg_resources import resource_filename
 import os
-
 import pytest
+from ctapipe.calib.camera.calibrator import CameraCalibrator
+
 pytest.importorskip("protozfits", minversion="0.44.4")
 
 example_file_path = resource_filename(
@@ -49,3 +50,12 @@ def test_factory_for_nectarcam_file():
     reader = EventSourceFactory.produce(input_url=example_file_path)
     assert isinstance(reader, NectarCAMEventSource)
     assert reader.input_url == example_file_path
+
+
+def test_pipeline():
+    from ctapipe.io.nectarcameventsource import NectarCAMEventSource
+    reader = NectarCAMEventSource(input_url=example_file_path, max_events=10)
+    calibrator = CameraCalibrator(eventsource=reader)
+    for event in reader:
+        calibrator.calibrate(event)
+        assert event.r0.tel.keys() == event.dl1.tel.keys()
