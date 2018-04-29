@@ -16,7 +16,7 @@ example_file_path = resource_filename(
 )
 
 FIRST_EVENT_NUMBER_IN_FILE = 97750287
-ADC_SAMPLES_SHAPE = (1296, 50)
+ADC_SAMPLES_SHAPE = (1, 1296, 50)
 
 
 def test_loop_over_events():
@@ -29,7 +29,7 @@ def test_loop_over_events():
     )
 
     for i, event in enumerate(inputfile_reader):
-        assert event.r0.tels_with_data == [1]
+        assert event.r0.tels_with_data == {1}
         for telid in event.r0.tels_with_data:
             assert event.r0.event_id == FIRST_EVENT_NUMBER_IN_FILE + i
             assert event.r0.tel[telid].waveform.shape == ADC_SAMPLES_SHAPE
