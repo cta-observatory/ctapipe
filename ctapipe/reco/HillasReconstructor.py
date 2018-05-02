@@ -25,9 +25,6 @@ __all__ = ['HillasReconstructor',
            'dist_to_traces', 'MEst', 'GreatCircle']
 
 
-class TooFewTelescopes(Exception):
-    pass
-
 
 def dist_to_traces(core, circles):
     """This function calculates the M-Estimator from the distances of the
@@ -173,7 +170,7 @@ class HillasReconstructor(Reconstructor):
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
+            raise Exception(
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
