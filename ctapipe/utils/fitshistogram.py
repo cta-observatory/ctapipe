@@ -171,7 +171,7 @@ class Histogram:
         Examples
         --------
 
-        >>> myhist.to_fits().writeto("outputfile.fits.gz", clobber=True)
+        >>> myhist.to_fits().writeto("outputfile.fits.gz", overwrite=True)
 
         """
         ohdu = fits.ImageHDU(data=self.data.transpose())
