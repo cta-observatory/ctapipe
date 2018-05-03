@@ -108,7 +108,11 @@ def analyze_muon_event(event):
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
 
-        img = image * clean_mask
+        if(cleaning):
+            img = image * clean_mask
+        else:
+            img = image
+
         muonring = ChaudhuriKunduRingFitter(None)
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
