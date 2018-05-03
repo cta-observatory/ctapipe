@@ -55,7 +55,8 @@ def analyze_muon_event(event):
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
                0. * u.m, 1. * u.m, 1.8 * u.m, 1.8 * u.m]
     sct = [False, False, False, True, False, True, True, True]
-
+    # Added cleaning here. All these options should go to an input card
+    cleaning = True
 
     muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
                  'RingWidth': ringwidth, 'total_pix': total_pix,
