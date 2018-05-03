@@ -227,4 +227,4 @@ class ArrayDisplay:
         """
 
         # use zorder to ensure the contours appear under the telescopes.
-        self.axes.contour(x, y, background,, zorder = 0, ** kwargs)
+        self.axes.contour(x, y, background, zorder = 0, **kwargs)
