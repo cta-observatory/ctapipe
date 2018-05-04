@@ -19,6 +19,10 @@ __all__ = ['InstrumentContainer',
            'DL0CameraContainer',
            'DL1Container',
            'DL1CameraContainer',
+           'TargetIOContainer',
+           'TargetIOCameraContainer',
+           'SST1MContainer',
+           'SST1MCameraContainer',
            'MCEventContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
@@ -29,6 +33,8 @@ __all__ = ['InstrumentContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
            'DataContainer',
+           'TargetIODataContainer',
+           'SST1MDataContainer',
            'HillasParametersContainer']
 
 
@@ -47,34 +53,12 @@ class SST1MCameraContainer(Container):
         None,
         "trigger 19 patch cluster trace (n_clusters)")
 
-    def fill_from_zfile_event(self, event, pixel_sort_ids):
-        self.pixel_flags = event.pixels_flags[pixel_sort_ids]
-        self.digicam_baseline = event.hiGain.waveforms.baselines[
-            pixel_sort_ids]
-        self.local_camera_clock = (
-            event.local_time_sec * 1E9 + event.local_time_nanosec)
-        self.gps_time = (
-            event.trig.timeSec * 1E9 + event.trig.timeNanoSec)
-        self.camera_event_type = event.event_type
-        self.array_event_type = event.eventType
-        self.trigger_input_traces = event.trigger_input_traces
-        self.trigger_output_patch7 = event.trigger_output_patch7
-        self.trigger_output_patch19 = event.trigger_output_patch19
-
 
 class SST1MContainer(Container):
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(
         Map(SST1MCameraContainer),
         "map of tel_id to SST1MCameraContainer")
-
-    def fill_from_zfile_event(self, event, pixel_sort_ids):
-        self.tels_with_data = [event.telescopeID, ]
-        sst1m_cam_container = self.tel[event.telescopeID]
-        sst1m_cam_container.fill_from_zfile_event(
-            event,
-            pixel_sort_ids,
-        )
 
 
 # todo: change some of these Maps to be just 3D NDarrays?
@@ -462,6 +446,7 @@ class NectarCAMDataContainer(DataContainer):
     Data container including NectarCAM information
     """
     nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
+
 
 class TargetIOCameraContainer(Container):
     """

@@ -14,8 +14,8 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 of the data.
 """
 from abc import abstractmethod
-
 from .gainselection import ThresholdGainSelector, SimpleGainSelector
+import numpy as np
 from ...core import Component, Factory
 from ...core.traits import Unicode, Float
 from ...io import EventSource
@@ -264,6 +264,7 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             self.log.error(msg)
             raise
 
+        self._r1_wf = None
         self.tc = target_calib
         self.calibrator = None
         self.telid = 0
@@ -331,7 +332,6 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
 
         if self.check_r0_exists(event, self.telid):
             samples = event.r0.tel[self.telid].waveform
-
             cam_id = event.inst.subarray.tel[self.telid].camera.cam_id
             waveform, mask = self.gain_selector.select_gains(cam_id,
                                                              samples)
@@ -341,6 +341,14 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             fci = event.targetio.tel[self.telid].first_cell_ids
             r1 = event.r1.tel[self.telid].waveform
             self.calibrator.ApplyEvent(waveform, fci, r1)
+
+            # KK: replace prev code with this
+            # if self._r1_wf is None:
+            #     self._r1_wf = np.zeros(samples.shape, dtype=np.float32)
+            # fci = event.targetio.tel[self.telid].first_cell_ids
+            # r1 = event.r1.tel[self.telid].waveform[0]
+            # self.calibrator.ApplyEvent(samples[0], fci, self._r1_wf[0])
+            # event.r1.tel[self.telid].waveform = self._r1_wf
 
 
 class CameraR1CalibratorFactory(Factory):
