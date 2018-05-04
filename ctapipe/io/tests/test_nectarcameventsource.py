@@ -3,7 +3,7 @@ import os
 import pytest
 from ctapipe.calib.camera.calibrator import CameraCalibrator
 
-pytest.importorskip("protozfits", minversion="0.44.4")
+pytest.importorskip("protozfits", minversion="0.44.5")
 
 example_file_path = resource_filename(
     'protozfits',
