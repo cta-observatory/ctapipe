@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from numpy import ceil, sqrt
 
 from ctapipe.io import event_source
-from ctapipe.utils.datasets import get_dataset
+from ctapipe.utils.datasets import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
 logging.basicConfig(level=logging.DEBUG)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_dataset("gamma_test_large.simtel.gz")
+        filename = get_dataset_path("gamma_test_large.simtel.gz")
 
     plt.style.use("ggplot")
     plt.show(block=False)

@@ -27,13 +27,6 @@ Getting Started
     :include-source:
 
 
-.. plot:: ../examples/array_layout.py
-    :include-source:
-	  
-
-
-		    
-          
 Reference/API
 =============
 

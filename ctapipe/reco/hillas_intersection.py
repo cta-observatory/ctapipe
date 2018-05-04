@@ -2,7 +2,7 @@
 """
 
 TODO:
- - Speed tests, need to be certain the looping on all telescopes is not killing 
+- Speed tests, need to be certain the looping on all telescopes is not killing 
 performance
 - Introduce new weighting schemes
 - Make intersect_lines code more readable
@@ -13,7 +13,8 @@ import itertools
 import astropy.units as u
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
-from ctapipe.coordinates import *
+from ctapipe.coordinates import NominalFrame, HorizonFrame
+from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 __all__ = [
@@ -220,7 +221,7 @@ class HillasIntersection(Reconstructor):
 
         tx = np.zeros((len(tel_x), 2))
         ty = np.zeros((len(tel_y), 2))
-        for i in range(len(tel_x)):
+        for i, _ in enumerate(tel_x):
             tx[i][0], tx[i][1] = tel_x[i][0].value, tel_x[i][1].value
             ty[i][0], ty[i][1] = tel_y[i][0].value, tel_y[i][1].value
 
@@ -358,20 +359,20 @@ class HillasIntersection(Reconstructor):
         """
         sin_1 = np.sin(phi1)
         cos_1 = np.cos(phi1)
-        A1 = sin_1
-        B1 = -1 * cos_1
-        C1 = yp1 * cos_1 - xp1 * sin_1
+        a1 = sin_1
+        b1 = -1 * cos_1
+        c1 = yp1 * cos_1 - xp1 * sin_1
 
-        s2 = np.sin(phi2)
-        c2 = np.cos(phi2)
+        sin_2 = np.sin(phi2)
+        cos_2 = np.cos(phi2)
 
-        A2 = s2
-        B2 = -1 * c2
-        C2 = yp2 * c2 - xp2 * s2
+        a2 = sin_2
+        b2 = -1 * cos_2
+        c2 = yp2 * cos_2 - xp2 * sin_2
 
-        det_ab = (A1 * B2 - A2 * B1)
-        det_bc = (B1 * C2 - B2 * C1)
-        det_ca = (C1 * A2 - C2 * A1)
+        det_ab = (a1 * b2 - a2 * b1)
+        det_bc = (b1 * c2 - b2 * c1)
+        det_ca = (c1 * a2 - c2 * a1)
 
         # if  math.fabs(det_ab) < 1e-14 : # /* parallel */
         #    return 0,0
@@ -385,7 +386,7 @@ class HillasIntersection(Reconstructor):
         return (p1 * p2) / (p1 + p2)
 
     @staticmethod
-    def weight_HESS(p1, p2):
+    def weight_hess(p1, p2):
         return 1 / ((1 / p1) + (1 / p2))
 
     @staticmethod

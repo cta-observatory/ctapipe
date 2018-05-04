@@ -1,11 +1,11 @@
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
+from numpy import ceil, sqrt
 
 from ctapipe import visualization
-from ctapipe.plotting.array import ArrayPlotter, NominalPlotter
-from numpy import ceil, sqrt
 from ctapipe.core import Component
 from ctapipe.core.traits import Bool
+from ctapipe.plotting.array import NominalPlotter
 
 
 class EventViewer(Component):
@@ -77,7 +77,8 @@ class EventViewer(Component):
         else:
             y_axis_split = 1
 
-        outer_grid = gridspec.GridSpec(1, y_axis_split, width_ratios=[y_axis_split, 1])
+        outer_grid = gridspec.GridSpec(1, y_axis_split,
+                                       width_ratios=[y_axis_split, 1])
         # Create a square grid for camera images
         nn = int(ceil(sqrt(ntels)))
         nx = nn
@@ -90,11 +91,12 @@ class EventViewer(Component):
             nx -= 1
         nx += 1
 
-        camera_grid = gridspec.GridSpecFromSubplotSpec(ny, nx, subplot_spec=outer_grid[0])
+        camera_grid = gridspec.GridSpecFromSubplotSpec(ny, nx,
+                                                       subplot_spec=outer_grid[
+                                                           0])
 
         # Loop over camera images of all telescopes and create plots
         for ii, tel_id in zip(range(ntels), tel_list):
-
             ax = plt.subplot(camera_grid[ii])
             geom = event.inst.subarray.tel[tel_id].camera
             self.get_camera_view(tel_id,
@@ -105,18 +107,22 @@ class EventViewer(Component):
         # If we want to draw the Hillas parameters in different planes we need to make a couple more viewers
         if self.draw_hillas_planes:
             # Split the second sub figure into two further figures
-            reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_grid[1])
+            reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=
+            outer_grid[1])
             # Create plot of telescope positions at ground level
 
             # Draw MC position (this should change later)
-            array.draw_position(event.mc.core_x, event.mc.core_y, use_centre=True)
+            array.draw_position(event.mc.core_x, event.mc.core_y,
+                                use_centre=True)
             array.draw_array(((-300, 300), (-300, 300)))
 
             # If we have valid Hillas parameters we should draw them in the Nominal system
             if hillas_parameters is not None:
                 array.overlay_hillas(hillas_parameters, draw_axes=True)
 
-                nominal = NominalPlotter(hillas_parameters=hillas_parameters, draw_axes=True, ax=plt.subplot(reco_grid[1]))
+                nominal = NominalPlotter(hillas_parameters=hillas_parameters,
+                                         draw_axes=True,
+                                         ax=plt.subplot(reco_grid[1]))
                 nominal.draw_array()
         self.nominal_view = nominal
         self.array_view = array
@@ -147,7 +153,8 @@ class EventViewer(Component):
         # if tel_id not in self.cam_display:
         # Argh this is annoying, for some reason we cannot cahe the displays
         self.cam_display[tel_id] = visualization.CameraDisplay(geom, title="CT{"
-                                                               "0}".format(tel_id))
+                                                                           "0}".format(
+            tel_id))
         self.cam_display[tel_id].add_colorbar()
         self.cam_display[tel_id].pixels.set_antialiaseds(False)
         self.cam_display[tel_id].autoupdate = True

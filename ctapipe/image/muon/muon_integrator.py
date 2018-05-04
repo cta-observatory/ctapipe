@@ -12,10 +12,14 @@ from scipy.ndimage.filters import correlate1d
 from iminuit import Minuit
 from astropy import units as u
 from astropy.constants import alpha
-from ctapipe.io.containers import MuonIntensityParameter
+from ...io.containers import MuonIntensityParameter
 from scipy.stats import norm
 
+import logging
+
 __all__ = ['MuonLineIntegrate']
+
+logger = logging.getLogger(__name__)
 
 
 class MuonLineIntegrate:
@@ -402,7 +406,7 @@ class MuonLineIntegrate:
         init_constrain['limit_ring_width'] = (0., 1.)
         init_constrain['limit_optical_efficiency_muon'] = (0., 1.)
 
-        print("radius =", radius, " pre migrad")
+        logger.debug("radius = %3.3f pre migrad", radius)
 
         # Create Minuit object with first guesses at parameters
         # strip away the units as Minuit doesnt like them

@@ -16,7 +16,8 @@ from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import *
+from ctapipe.core.traits import Unicode, Int, Integer, Bool
+from ctapipe.core.traits import Float, Dict, List
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
@@ -169,8 +170,6 @@ class SingleTelEventDisplay(Tool):
                 'different EventIO file or another telescope'
                 .format(self.tel, self.infile),
             )
-
-        pass
 
 
 if __name__ == '__main__':

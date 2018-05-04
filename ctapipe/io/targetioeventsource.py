@@ -59,9 +59,8 @@ class TargetIOEventSource(EventSource):
             self.log.error(msg)
             raise
 
-        self._tio_reader = target_io.TargetIOEventReader
-        self._get_r_c_bp = target_calib.CalculateRowColumnBlockPhase
-        self._n_blocksamples = target_io.T_SAMPLES_PER_WAVEFORM_BLOCK
+        self._waveform_array_reader = target_io.WaveformArrayReader
+        self._config_constr = target_calib.CameraConfiguration
 
         self._data = None
         self._event_index = None
@@ -70,55 +69,47 @@ class TargetIOEventSource(EventSource):
         self._time_sec = None
         self._time_ns = None
 
-        # TODO: Use config from TargetCalib
-        self._n_rows = 8
-        self._n_columns = 16
-        self._n_blocks = self._n_rows * self._n_columns
-        self._n_cells = self._n_rows * self._n_columns * self._n_blocksamples
-        skip_sample = 0
-        skip_end_sample = 0
-        skip_event = 2
-        skip_end_event = 1
-        self._cameraname = 'checs'
-        self._dead_pixels = []
+        self._reader = self._waveform_array_reader(self.input_url, 2, 1)
+
+        self._n_events = self._reader.fNEvents
+        self._first_event_id = self._reader.fFirstEventID
+        self._last_event_id = self._reader.fLastEventID
+        self._obs_id = self._reader.fRunID
+        n_modules = self._reader.fNModules
+        n_pix = self._reader.fNPixels
+        n_samples = self._reader.fNSamples
+        self.camera_config = self._config_constr(self._reader.fCameraVersion)
+        self._n_cells = self.camera_config.GetNCells()
+        m = self.camera_config.GetMapping(n_modules == 1)
+
         self._optical_foclen = 2.283
-        m = target_calib.MappingCHEC()
         self._pixel_pos = np.vstack([m.GetXPixVector(), m.GetYPixVector()])
         self._refshape = np.zeros(10)  # TODO: Get correct values for CHEC-S
         self._refstep = 0  # TODO: Get correct values for CHEC-S
         self._time_slice = 0  # TODO: Get correct values for CHEC-S
+        self._chec_tel = 0
 
-        self._tio_reader = self._tio_reader(
-            self.input_url,
-            self._n_cells,
-            skip_sample,
-            skip_end_sample,
-            skip_event,
-            skip_end_event
-        )
-        self._n_events = self._tio_reader.fNEvents
-        self._first_event_id = self._tio_reader.fFirstEventID
-        self._last_event_id = self._tio_reader.fLastEventID
-        self._obs_id = self._tio_reader.fRunID
-        n_pix = self._tio_reader.fNPixels
-        n_samples = self._tio_reader.fNSamples
-        # TODO: Remove when config properly set up
-        self._pixel_pos = self._pixel_pos[:, :n_pix]
-
-        # Init arrays
+        # Init fields
         self._r0_samples = None
-        self._r1_samples = np.zeros((1, n_pix, n_samples), dtype=np.float32)
+        self._r1_samples = None
         self._first_cell_ids = np.zeros(n_pix, dtype=np.uint16)
 
         # Check if file is already r1 (Information obtained from a flag
         # in the file's header)
-        is_r1 = self._tio_reader.fR1
+        is_r1 = self._reader.fR1
         if is_r1:
-            self._get_tio_event = self._tio_reader.GetR1Event
+            self._r1_samples = np.zeros(
+                (1, n_pix, n_samples),
+                dtype=np.float32
+            )
+            self._get_tio_event = self._reader.GetR1Event
             self._samples = self._r1_samples[0]
         else:
-            self._r0_samples = np.zeros((1, n_pix, n_samples), dtype=np.uint16)
-            self._get_tio_event = self._tio_reader.GetR0Event
+            self._r0_samples = np.zeros(
+                (1, n_pix, n_samples),
+                dtype=np.uint16
+            )
+            self._get_tio_event = self._reader.GetR0Event
             self._samples = self._r0_samples[0]
 
         self._init_container()
@@ -156,18 +147,19 @@ class TargetIOEventSource(EventSource):
         data = self._data
         chec_tel = 0
 
-        event_id = self._event_id
         obs_id = self._obs_id
+        event_id = self._event_id
+        tels = {self._chec_tel}
 
         data.r0.obs_id = obs_id
         data.r0.event_id = event_id
-        data.r0.tels_with_data = {chec_tel}
+        data.r0.tels_with_data = tels
         data.r1.obs_id = obs_id
         data.r1.event_id = event_id
-        data.r1.tels_with_data = {chec_tel}
+        data.r1.tels_with_data = tels
         data.dl0.obs_id = obs_id
         data.dl0.event_id = event_id
-        data.dl0.tels_with_data = {chec_tel}
+        data.dl0.tels_with_data = tels
 
         data.trig.tels_with_trigger = [chec_tel]
 
@@ -215,10 +207,10 @@ class TargetIOEventSource(EventSource):
         """
         self._event_index = val
         self._get_tio_event(val, self._samples, self._first_cell_ids)
-        self._event_id = self._tio_reader.fCurrentEventID
-        self._time_tack = self._tio_reader.fCurrentTimeTack
-        self._time_sec = self._tio_reader.fCurrentTimeSec
-        self._time_ns = self._tio_reader.fCurrentTimeNs
+        self._event_id = self._reader.fCurrentEventID
+        self._time_tack = self._reader.fCurrentTimeTack
+        self._time_sec = self._reader.fCurrentTimeSec
+        self._time_ns = self._reader.fCurrentTimeNs
         self._update_container()
 
     def _generator(self):
@@ -240,5 +232,5 @@ class TargetIOEventSource(EventSource):
         if ((event_id < self._first_event_id) |
                 (event_id > self._last_event_id)):
             raise IndexError("Event id {} not found in file".format(event_id))
-        index = self._tio_reader.GetEventIndex(event_id)
+        index = self._reader.GetEventIndex(event_id)
         return self._get_event_by_index(index)
