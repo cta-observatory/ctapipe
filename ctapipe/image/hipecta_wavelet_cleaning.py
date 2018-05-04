@@ -1,10 +1,8 @@
 from ctapipe.core import Component
+from hipecta.camera import getAutoInjunctionTable
 import hipecta
 
-#obsolete import, replace ASAP for injunction table computation
-import hipectaold.core as core 
-
-
+#TODO: add quad cleaning 
 class WaveletCleaner (Component) :
     def __init__ (self) :
         self.tabInj_dict = {}
@@ -28,7 +26,6 @@ class WaveletCleaner (Component) :
             tabpix[2*index+1] = cam_geom.pix_y.value[index]
         
         tabpix = tabpix.reshape((cam_geom.pix_x.value.shape[0], 2))
-        #TODO : Implement injunction table computation in the new hipecta
-        tabInj, nbr, nbc = core.createAutoInjunctionTable(tabpix)
+        tabInj, nbr, nbc = getAutoInjunctionTable(tabpix)
         self.tabInj_dict[cam_geom.cam_id] = (tabInj, nbr, nbc)
 
