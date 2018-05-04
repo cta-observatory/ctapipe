@@ -87,20 +87,28 @@ class TargetIOEventSource(EventSource):
         self._refshape = np.zeros(10)  # TODO: Get correct values for CHEC-S
         self._refstep = 0  # TODO: Get correct values for CHEC-S
         self._time_slice = 0  # TODO: Get correct values for CHEC-S
+        self._chec_tel = 0
 
-        # Init arrays
+        # Init fields
         self._r0_samples = None
-        self._r1_samples = np.zeros((1, n_pix, n_samples), dtype=np.float32)
+        self._r1_samples = None
         self._first_cell_ids = np.zeros(n_pix, dtype=np.uint16)
 
         # Check if file is already r1 (Information obtained from a flag
         # in the file's header)
         is_r1 = self._reader.fR1
         if is_r1:
+            self._r1_samples = np.zeros(
+                (1, n_pix, n_samples),
+                dtype=np.float32
+            )
             self._get_tio_event = self._reader.GetR1Event
             self._samples = self._r1_samples[0]
         else:
-            self._r0_samples = np.zeros((1, n_pix, n_samples), dtype=np.uint16)
+            self._r0_samples = np.zeros(
+                (1, n_pix, n_samples),
+                dtype=np.uint16
+            )
             self._get_tio_event = self._reader.GetR0Event
             self._samples = self._r0_samples[0]
 
@@ -139,18 +147,19 @@ class TargetIOEventSource(EventSource):
         data = self._data
         chec_tel = 0
 
-        event_id = self._event_id
         obs_id = self._obs_id
+        event_id = self._event_id
+        tels = {self._chec_tel}
 
         data.r0.obs_id = obs_id
         data.r0.event_id = event_id
-        data.r0.tels_with_data = {chec_tel}
+        data.r0.tels_with_data = tels
         data.r1.obs_id = obs_id
         data.r1.event_id = event_id
-        data.r1.tels_with_data = {chec_tel}
+        data.r1.tels_with_data = tels
         data.dl0.obs_id = obs_id
         data.dl0.event_id = event_id
-        data.dl0.tels_with_data = {chec_tel}
+        data.dl0.tels_with_data = tels
 
         data.trig.tels_with_trigger = [chec_tel]
 
