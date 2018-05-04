@@ -2,7 +2,7 @@
 """
 EventSource for NectarCam protobuf-fits.fz-files.
 
-Needs protozfits v0.44.4 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v0.44.5 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np

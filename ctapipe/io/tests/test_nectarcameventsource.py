@@ -2,7 +2,7 @@ from pkg_resources import resource_filename
 import os
 
 import pytest
-pytest.importorskip("protozfits", minversion="0.44.4")
+pytest.importorskip("protozfits", minversion="0.44.5")
 
 example_file_path = resource_filename(
     'protozfits',
