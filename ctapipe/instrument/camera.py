@@ -167,7 +167,7 @@ class CameraGeometry:
             cam_rotation=Angle(cam_rotation),
             apply_derotation=apply_derotation
         )
-
+        instance.cam_rotation = Angle(cam_rotation)
         CameraGeometry._geometry_cache[identifier] = instance
         return instance
 
