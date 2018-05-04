@@ -16,10 +16,12 @@ class TemplateNetworkInterpolator:
         template_file: str
             Location of pickle file containing ImPACT NN templates
         """
+
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
-
-        self.interpolator = UnstructuredInterpolator(input_dict, function_name="predict")
+        self.interpolator = UnstructuredInterpolator(input_dict, remember_last=True,
+                                                     bounds=((-5, 1),(-1.5, 1.5)))
+        # function_name="predict")
 
     def __call__(self, energy, impact, xmax, xb, yb):
         """
@@ -42,15 +44,11 @@ class TemplateNetworkInterpolator:
         -------
         ndarray: Pixel amplitude expectation values
         """
-        array = np.array([energy, impact, xmax])
-        points = np.array([xb, yb])
-        interpolated_value = self.interpolator(array.T, points.T)
+        array = np.stack((energy, impact, xmax), axis=-1)
+        points = np.stack((xb, yb), axis=-1)
+
+        interpolated_value = self.interpolator(array, points)
         interpolated_value[interpolated_value<0] = 0
-
-        x_bound = np.logical_and(xb>1, xb<-5)
-        y_bound = np.logical_and(yb>1.5, xb<-1.5)
-
-        interpolated_value[x_bound] = 0
-        interpolated_value[y_bound] = 0
+        interpolated_value = interpolated_value
 
         return interpolated_value

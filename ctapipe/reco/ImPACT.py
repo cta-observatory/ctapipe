@@ -5,6 +5,7 @@
 import math
 
 import numpy as np
+import numpy.ma as ma
 from astropy import units as u
 from iminuit import Minuit
 
@@ -18,10 +19,13 @@ from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils import TableInterpolator
+from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
+import matplotlib.pyplot as plt
+import time
 
 __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
 
@@ -40,8 +44,8 @@ def guess_shower_depth(energy):
     -------
     float: Expected depth of shower maximum
     """
-    x_max_exp = 300 * (u.g * u.cm**-2) + \
-        93 * (u.g * u.cm**-2) * np.log10(energy.to(u.TeV).value)
+
+    x_max_exp = 300  + 93 * np.log10(energy)
 
     return x_max_exp
 
@@ -54,7 +58,7 @@ def energy_prior(energy, index=-1):
 def xmax_prior(energy, xmax, width=30):
 
     x_max_exp = guess_shower_depth(energy)
-    diff = xmax.value - x_max_exp
+    diff = xmax - x_max_exp
 
     return -2 * np.log(norm.pdf(diff / width))
 
@@ -89,28 +93,28 @@ class ImPACTReconstructor(Reconstructor):
         self.root_dir = root_dir
         self.prediction = dict()
 
-        self.file_names = {"CHEC": "GCT_xm_full.fits", "LSTCam": "LST_xm_full.fits",
-                           "NectarCam": "MST_xm_full.fits",
+        self.file_names = {"CHEC": "GCTnp.template.gz", "LSTCam": "LST_xm_full.fits",
+                           "NectarCam": "MST.template.gz",
                            "FlashCam": "MST_xm_full.fits"}
 
         # We also need a conversion function from height above ground to
         # depth of maximum To do this we need the conversion table from CORSIKA
         self.thickness_profile, self.altitude_profile = \
-            get_atmosphere_profile_functions('paranal')
+            get_atmosphere_profile_functions('paranal', with_units=False)
 
         # For likelihood calculation we need the with of the
         # pedestal distribution for each pixel
         # currently this is not availible from the calibration,
         # so for now lets hard code it in a dict
-        self.ped_table = {"LSTCam": 1.3,
-                          "NectarCam": 2.0,
+        self.ped_table = {"LSTCam": 2.8,
+                          "NectarCam": 2.3,
                           "FlashCam": 2.3,
-                          "CHEC": 1.3}
+                          "CHEC": 0.5}
         self.spe = 0.5  # Also hard code single p.e. distribution width
 
         # Also we need to scale the impact_reco templates a bit, this will be
         #  fixed later
-        self.scale = {"LSTCam": 1.3, "NectarCam": 1.1,
+        self.scale = {"LSTCam": 1.3, "NectarCam": 1.,
                       "FlashCam": 1.4, "CHEC": 1.0}  # * 1.36}
 
         self.last_image = dict()
@@ -123,7 +127,7 @@ class ImPACTReconstructor(Reconstructor):
         self.pixel_y = 0
         self.pixel_area = 0
         self.image = 0
-        self.tel_type = ("LST")
+        self.tel_types = ("LST")
         # We also need telescope positions
         self.tel_pos_x = 0
         self.tel_pos_y = 0
@@ -137,6 +141,7 @@ class ImPACTReconstructor(Reconstructor):
 
         self.array_direction = 0
         self.minimiser_name = minimiser
+        self._param_scale = 0
 
         self.array_return = False
         self.priors = prior
@@ -160,8 +165,8 @@ class ImPACTReconstructor(Reconstructor):
                 continue
 
             self.prediction[tel_type[t]] = \
-                TableInterpolator(self.root_dir + "/" +
-                                  self.file_names[tel_type[t]])
+                TemplateNetworkInterpolator(self.root_dir + "/" +
+                                            self.file_names[tel_type[t]])
 
         return True
 
@@ -239,18 +244,13 @@ class ImPACTReconstructor(Reconstructor):
         disp = np.sqrt(np.power(self.peak_x - source_x, 2) +
                        np.power(self.peak_y - source_y, 2))
         # Calculate impact parameter of the shower
-        impact = np.sqrt(np.power(np.array(list(self.tel_pos_x.values()))
-                                  - core_x, 2) +
-                         np.power(np.array(list(self.tel_pos_y.values()))
-                                  - core_y, 2))
+        impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2) +
+                         np.power(self.tel_pos_y - core_y, 2))
 
         # Distance above telescope is ratio of these two (small angle)
 
         height = impact / disp
         weight = np.power(self.peak_amp, 0.)  # weight average by amplitude
-        hm = height * u.m
-        hm[hm > 99 * u.km] = 99 * u.km
-
         # Take weighted mean of esimates
         mean_height = np.sum(height * weight) / np.sum(weight)
         # This value is height above telescope in the tilted system,
@@ -263,13 +263,11 @@ class ImPACTReconstructor(Reconstructor):
         if mean_height > 100000 or np.isnan(mean_height):
             mean_height = 100000
 
-        mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.thickness_profile(mean_height.to(u.km))
-        # self.shower_max.interpolate(mean_height.to(u.km))
-
+        x_max = self.thickness_profile(mean_height)
         # Convert to slant depth
         x_max /= np.cos(zen)
+
         return x_max
 
     @staticmethod
@@ -297,9 +295,9 @@ class ImPACTReconstructor(Reconstructor):
         """
 
         pixel_pos_trans_x = (pixel_pos_x - x_trans) * \
-            np.cos(phi) - (pixel_pos_y - y_trans) * np.sin(phi)
+            np.cos(phi[...,np.newaxis]) - (pixel_pos_y - y_trans) * np.sin(phi[...,np.newaxis])
         pixel_pos_trans_y = (pixel_pos_x - x_trans) * \
-            np.sin(phi) + (pixel_pos_y - y_trans) * np.cos(phi)
+            np.sin(phi[...,np.newaxis]) + (pixel_pos_y - y_trans) * np.cos(phi[...,np.newaxis])
         return pixel_pos_trans_x, pixel_pos_trans_y
 
     def image_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
@@ -327,14 +325,14 @@ class ImPACTReconstructor(Reconstructor):
 
         """
 
-        return self.prediction[tel_type].interpolate([energy, impact,
-                                                      x_max], pix_x, pix_y)
+        return self.prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
 
     def get_prediction(self, tel_id, shower_reco, energy_reco):
 
         horizon_seed = HorizonFrame(az=shower_reco.az, alt=shower_reco.alt)
         nominal_seed = horizon_seed.transform_to(
-            NominalFrame(array_direction=horizon_seed))
+            NominalFrame(array_direction=self.array_direction))
+
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
@@ -346,42 +344,41 @@ class ImPACTReconstructor(Reconstructor):
 
         zenith = 90 * u.deg - self.array_direction.alt
 
-        x_max = shower_reco.h_max / np.cos(zenith)
+        x_max = shower_reco.h_max #/ np.cos(zenith)
 
         # Calculate expected Xmax given this energy
         x_max_exp = guess_shower_depth(energy_reco.energy)
 
         # Convert to binning of Xmax, addition of 100 can probably be removed
         x_max_bin = x_max - x_max_exp
-
         # Check for range
-        if x_max_bin > 250 * (u.g * u.cm**-2):
-            x_max_bin = 250 * (u.g * u.cm**-2)
-        if x_max_bin < -250 * (u.g * u.cm**-2):
-            x_max_bin = -250 * (u.g * u.cm**-2)
+        if x_max_bin > 150 * (u.g * u.cm**-2):
+            x_max_bin = 150 * (u.g * u.cm**-2)
+        if x_max_bin < -100 * (u.g * u.cm**-2):
+            x_max_bin = -100 * (u.g * u.cm**-2)
 
         x_max_bin = x_max_bin.value
+        #x_max_bin = 0
 
         impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) +
                          pow(self.tel_pos_y[tel_id] - tilt_y, 2))
 
         phi = np.arctan2((self.tel_pos_y[tel_id] - tilt_y),
-                         (self.tel_pos_x[tel_id] - tilt_x))
+                         (self.tel_pos_x[tel_id] - tilt_x)) * u.rad# + 180 * u.deg
 
-        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id] * -1,
+        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id]*-1,
                                                      self.pixel_y[tel_id],
                                                      source_x,
                                                      source_y, phi)
 
-        prediction = self.image_prediction(self.tel_type[tel_id],
+        prediction = self.image_prediction(self.tel_types[tel_id],
                                            # (90 * u.deg) - shower_reco.alt,
                                            # shower_reco.az,
                                            energy_reco.energy.value,
                                            impact, x_max_bin,
                                            pix_x_rot * (180 / math.pi),
                                            pix_y_rot * (180 / math.pi))
-
-        prediction *= self.scale[self.tel_type[tel_id]]
+        # prediction *= self.scale[self.tel_type[tel_id]]
         # prediction *= self.pixel_area[tel_id]
 
         prediction[prediction < 0] = 0
@@ -420,76 +417,64 @@ class ImPACTReconstructor(Reconstructor):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
-        zenith = 90 * u.deg - self.array_direction.alt
+        zenith = (np.pi/2) - self.array_direction.alt.to(u.rad).value
         azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
         x_max = self.get_shower_max(source_x, source_y,
                                     core_x, core_y,
-                                    zenith.to(u.rad).value) * x_max_scale
+                                    zenith)
+
+        x_max *= x_max_scale * np.cos(zenith)
+
         # Calculate expected Xmax given this energy
-        x_max_exp = guess_shower_depth(energy * u.TeV)
+        x_max_exp = guess_shower_depth(energy) #/ np.cos(20*u.deg)
 
         # Convert to binning of Xmax, addition of 100 can probably be removed
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 250 * (u.g * u.cm**-2):
-            x_max_bin = 250 * (u.g * u.cm**-2)
-        if x_max_bin < -250 * (u.g * u.cm**-2):
-            x_max_bin = -250 * (u.g * u.cm**-2)
+        if x_max_bin > 100: #* (u.g * u.cm**-2):
+            x_max_bin = 100 #* (u.g * u.cm**-2)
+        if x_max_bin < -100: #* (u.g * u.cm**-2):
+            x_max_bin = -100 #* (u.g * u.cm**-2)
 
-        x_max_bin = x_max_bin.value
+        # Calculate impact distance for all telescopes
+        impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2)
+                         + np.power(self.tel_pos_y - core_y, 2))
+        # And the expected rotation angle
+        phi = np.arctan2((self.tel_pos_y - core_y),
+                         (self.tel_pos_x - core_x)) * u.rad
 
-        array_like = None
+        # Rotate and translate all pixels such that they match the
+        # template orientation
 
-        for tel_count in self.image:  # Loop over all telescopes
-            # Calculate impact distance for all telescopes
-            impact = np.sqrt(pow(self.tel_pos_x[tel_count] - core_x, 2)
-                             + pow(self.tel_pos_y[tel_count] - core_y, 2))
-            # And the expected rotation angle
-            phi = np.arctan2((self.tel_pos_y[tel_count] - core_y),
-                             (self.tel_pos_x[tel_count] - core_x))  # - (math.pi/2.)
+        pix_x_rot, pix_y_rot = self.rotate_translate(
+            self.pixel_x * -1,
+            self.pixel_y,
+            source_x, source_y, phi
+        )
 
-            # Rotate and translate all pixels such that they match the
-            # template orientation
-            pix_x_rot, pix_y_rot = self.rotate_translate(
-                self.pixel_x[tel_count] * -1,
-                self.pixel_y[tel_count],
-                source_x, source_y, phi
-            )
+        prediction = ma.zeros(self.image.shape)
+        prediction.mask = ma.getmask(self.image)
 
-            # Then get the predicted image, convert pixel positions to deg
-            prediction = self.image_prediction(
-                self.tel_type[tel_count],
-                # zenith, azimuth,
-                energy, impact, x_max_bin,
-                pix_x_rot * (180 / math.pi),
-                pix_y_rot * (180 / math.pi)
-            )
-            prediction[np.isnan(prediction)] = 0
-            prediction[prediction < 1e-6] = 1e-6
+        for tel_type in self.tel_types:
+            prediction = self.image_prediction(tel_type, energy * np.ones_like(impact),
+                                               impact, x_max_bin * np.ones_like(impact),
+                                               pix_x_rot * (180 / math.pi),
+                                               pix_y_rot * (180 / math.pi))
 
-            # Scale templates to match simulations
-            prediction *= self.scale[self.tel_type[tel_count]]
-            # prediction *= self.pixel_area[tel_count]
+        prediction[np.isnan(prediction)] = 0
+        prediction[prediction < 1e-8] = 1e-8
 
-            # Get likelihood that the prediction matched the camera image
-            like = poisson_likelihood_gaussian(self.image[tel_count],
-                                               prediction,
-                                               self.spe,
-                                               self.ped[tel_count])
-            if np.any(prediction == np.inf):
-                self.log.debug("inf found at type=%s zenith=%.2f azimuth=%.2f \
-                               energy=%.2f impact=%.2f x_max=%.2d",
-                               self.tel_type[tel_count],
-                               zenith, azimuth, energy,
-                               impact, x_max_bin)
-            like[np.isnan(like)] = 1e9
-            if array_like is None:
-                array_like = like
-            else:
-                array_like = np.append(array_like, like)
+        # Get likelihood that the prediction matched the camera image
+        like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
+
+        like[np.isnan(like)] = 1e9
+        like *= np.invert(ma.getmask(self.image))
+        like = ma.MaskedArray(like, mask=ma.getmask(self.image))
+
+        array_like = like
 
         prior_pen = 0
         # Add prior penalities if we have them
@@ -500,9 +485,10 @@ class ImPACTReconstructor(Reconstructor):
             prior_pen += xmax_prior(energy, x_max)
 
         array_like += prior_pen / float(len(array_like))
+
         if self.array_return:
             return array_like
-        return np.sum(array_like)
+        return array_like.sum()
 
     def get_likelihood_min(self, x):
         """Wrapper class around likelihood function for use with scipy
@@ -518,7 +504,11 @@ class ImPACTReconstructor(Reconstructor):
         float: Likelihood value of test position
 
         """
-        return self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
+        #t = time.time()
+        val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
+        #print("Like time",time.time()-t)
+
+        return val
 
     def set_event_properties(self, image, pixel_x, pixel_y,
                              pixel_area, type_tel, tel_x, tel_y,
@@ -553,30 +543,53 @@ class ImPACTReconstructor(Reconstructor):
         # First store these parameters in the class so we can use them
         # in minimisation For most values this is simply copying
         self.image = image
+        self.ped = np.zeros(len(tel_x))
 
-        self.pixel_x = dict()
-        self.pixel_y = dict()
+        self.tel_pos_x = np.zeros(len(tel_x))
+        self.tel_pos_y = np.zeros(len(tel_x))
+        self.tel_types = list()
 
-        self.tel_pos_x = dict()
-        self.tel_pos_y = dict()
-        self.pixel_area = dict()
-        self.ped = dict()
+        max_pix_x, max_pix_y = 0, 0
+        px = list()
+        py = list()
+        pa = list()
 
         # So here we must loop over the telescopes
-        for x in tel_x:
-            self.pixel_x[x] = pixel_x[x].to(u.rad).value
-            self.pixel_y[x] = pixel_y[x].to(u.rad).value
+        for x, i in zip(tel_x, range(len(tel_x))):
 
-            self.tel_pos_x[x] = tel_x[x].value
-            self.tel_pos_y[x] = tel_y[x].value
-            self.pixel_area[x] = pixel_area[x].to(u.deg * u.deg).value
-            # Here look up pedestal value
-            self.ped[x] = self.ped_table[type_tel[x]]
+            px.append(pixel_x[x].to(u.rad).value)
+            if len(px[i])  > max_pix_x:
+                max_pix_x = len(px[i])
+            py.append(pixel_y[x].to(u.rad).value)
+            pa.append(image[x])
+
+            self.tel_pos_x[i] = tel_x[x].value
+            self.tel_pos_y[i] = tel_y[x].value
+
+            self.ped[i] = self.ped_table[type_tel[x]]
+            self.tel_types.append(type_tel[x])
+
+        self.pixel_x = ma.zeros((len(tel_x), max_pix_x))
+        self.pixel_y = ma.zeros((len(tel_x), max_pix_x))
+        self.image = ma.zeros((len(tel_x), max_pix_x))
+        self.ped = ma.zeros((len(tel_x), max_pix_x))
+
+        for i in range(len(tel_x)):
+            array_len = len(px[i])
+            self.pixel_x[i][:array_len] = px[i]
+            self.pixel_y[i][:array_len] = py[i]
+            self.image[i][:array_len] = pa[i]
+            self.ped[i][:array_len] = self.ped_table[self.tel_types[i]]
+
+        mask = self.image == 0.0
+        self.pixel_x[mask] = ma.masked
+        self.pixel_y[mask] = ma.masked
+        self.image[mask] = ma.masked
+        self.tel_types = np.unique(self.tel_types).tolist()
 
         self.hillas = hillas
 
         self.get_brightest_mean()
-        self.tel_type = type_tel
         self.initialise_templates(type_tel)
 
         self.array_direction = array_direction
@@ -602,8 +615,8 @@ class ImPACTReconstructor(Reconstructor):
         nominal_seed = horizon_seed.transform_to(NominalFrame(
             array_direction=self.array_direction))
 
-        source_x = nominal_seed.x[0].to(u.rad).value
-        source_y = nominal_seed.y[0].to(u.rad).value
+        source_x = nominal_seed.x.to(u.rad).value
+        source_y = nominal_seed.y.to(u.rad).value
 
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
@@ -666,13 +679,13 @@ class ImPACTReconstructor(Reconstructor):
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
         shower_result.goodness_of_fit = np.nan
-        shower_result.tel_ids = list(self.image.keys())
+        #shower_result.tel_ids = list(self.image.keys())
 
         energy_result = ReconstructedEnergyContainer()
         energy_result.energy = fit_params[4] * u.TeV
         energy_result.energy_uncert = errors[4] * u.TeV
         energy_result.is_valid = True
-        energy_result.tel_ids = list(self.image.keys())
+        #energy_result.tel_ids = list(self.image.keys())
         # Return interesting stuff
 
         return shower_result, energy_result
@@ -715,10 +728,13 @@ class ImPACTReconstructor(Reconstructor):
                          fix_x_max_scale=False,
                          errordef=1)
 
-            min.migrad()
 
             min.tol *= 1000
             min.set_strategy(0)
+
+            t = time.time()
+            migrad = min.migrad()
+            print("min time",time.time()-t)
 
             # Perform minimisation
             fit_params = min.values
@@ -739,14 +755,17 @@ class ImPACTReconstructor(Reconstructor):
                                 xtol=1e-10,
                                 ftol=1e-10
                                 )
+
             return min.x, (0, 0, 0, 0, 0, 0)
 
         else:
-            min = minimize(self.get_likelihood_min, params,
+            min = minimize(self.get_likelihood_min, np.array(params),
                            method=minimiser_name,
-                           bounds=limits
+                           bounds=limits,
+                           options={"disp":False}
                            )
-            return min.x, (0, 0, 0, 0, 0, 0)
+            print(min)
+            return np.array(min.x), (0, 0, 0, 0, 0, 0)
 
     def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
                              nominal_range=2.5 * u.deg):

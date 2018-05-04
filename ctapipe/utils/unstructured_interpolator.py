@@ -12,7 +12,9 @@ TODO:
 
 import numpy as np
 from scipy.spatial import Delaunay
-
+from scipy.interpolate import RegularGridInterpolator
+import time
+from scipy.ndimage import map_coordinates
 
 class UnstructuredInterpolator:
     """
@@ -25,7 +27,8 @@ class UnstructuredInterpolator:
     In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
-    def __init__(self, interpolation_points, function_name=None):
+    def __init__(self, interpolation_points, function_name=None, remember_last=False,
+                 bounds=None):
         """
         Parameters
         ----------
@@ -53,12 +56,16 @@ class UnstructuredInterpolator:
         if self._numpy_input is False and function_name is None:
             self._function_name = "__call__"
 
+        self._remember = remember_last
+        self._previous_v = 0
+        self._previous_m = 0
+        self._previous_shape = 0
+        self._bounds = bounds
+
         return None
 
-    def __call__(self, points, eval_points=None):
-
-        if self._numpy_input is False and np.all(eval_points is None):
-            raise ValueError("Non numpy object provided without with emtpy eval_points")
+    def __call__(self, points, eval_points):
+        t = time.time()
 
         # Convert to a numpy array here incase we get a list
         points = np.array(points)
@@ -67,11 +74,31 @@ class UnstructuredInterpolator:
             points = np.array([points])
 
         # find simplexes that contain interpolated points
-        s = self._tri.find_simplex(points)
-        # get the vertices for each simplex
-        v = self._tri.vertices[s]
-        # get transform matrices for each simplex (see explanation bellow)
-        m = self._tri.transform[s]
+        if self._remember and self._previous_v is not 0:
+
+            previous_keys = self.keys[self._previous_v.ravel()]
+            hull = Delaunay(previous_keys)
+
+            if np.all(hull.find_simplex(points) >= 0) and \
+                    eval_points.shape == self._previous_shape:
+                v = self._previous_v
+                m = self._previous_m
+            else:
+                s = self._tri.find_simplex(points)
+                v = self._tri.vertices[s]
+                m = self._tri.transform[s]
+                self._previous_v = v
+                self._previous_m = m
+                self._previous_shape = eval_points.shape
+        else:
+            s = self._tri.find_simplex(points)
+            # get the vertices for each simplex
+            v = self._tri.vertices[s]
+            # get transform matrices for each simplex
+            m = self._tri.transform[s]
+            self._previous_v = v
+            self._previous_m = m
+            self._previous_shape = eval_points.shape
 
         # Here comes some serious numpy magic, it could be done with a loop but would
         # be pretty inefficient I had to rip this from stack overflow - RDP
@@ -87,14 +114,17 @@ class UnstructuredInterpolator:
         # the remaining weight for the last vertex can be copmuted from
         # the condition that sum of weights must be equal to 1
         w = np.c_[b, 1 - b.sum(axis=1)]
+        #print(time.time() - t)
 
         if self._numpy_input:
-            selected_points = self.values[v]
+            selected_points = self._numpy_interpolation(v, eval_points)
         else:
             selected_points = self._call_class_function(v, eval_points)
 
         # Multiply point values by weight
         p_values = np.einsum('ij...,ij...->i...', selected_points, w)
+        #print(time.time() - t)
+
         return p_values
 
     def _call_class_function(self, point_num, eval_points):
@@ -115,14 +145,97 @@ class UnstructuredInterpolator:
 
         outputs = list()
         shape = point_num.shape
+
+        three_dim = False
+        if len(eval_points.shape) > 2:
+            first_index = np.arange(point_num.shape[0])[..., np.newaxis] * \
+                          np.ones_like(point_num)
+            first_index = first_index.ravel()
+            three_dim = True
+
+        num = 0
         for pt in point_num.ravel():
             cls = self.values[pt]
             cls_function = getattr(cls, self._function_name)
-            outputs.append(cls_function(eval_points))
+            pt = eval_points
+            if three_dim:
+                pt = eval_points[first_index[num]]
+
+            outputs.append(cls_function(pt))
+            num += 1
 
         outputs = np.array(outputs)
         new_shape = (*shape, *outputs.shape[1:])
-
         outputs = outputs.reshape(new_shape)
 
         return outputs
+
+    def _numpy_interpolation(self, point_num, eval_points):
+        """
+
+        Parameters
+        ----------
+        point_num: int
+            Index of class position in values list
+        eval_points: ndarray
+            Inputs used to evaluate class member function
+
+        Returns
+        -------
+        ndarray: output from member function
+        """
+
+        shape = point_num.shape
+        ev_shape = eval_points.shape
+
+        vals = self.values[point_num.ravel()]
+        eval_points = np.repeat(eval_points, shape[1], axis=0)
+        it = np.arange(eval_points.shape[0])
+
+        it = np.repeat(it, eval_points.shape[1], axis=0)
+
+        eval_points = eval_points.reshape((eval_points.shape[0]*eval_points.shape[1],
+                                           eval_points.shape[-1]))
+
+        scaled_points = eval_points.T
+        scaled_points[0] = ((scaled_points[0]-(self._bounds[0][0])) /
+                            (self._bounds[0][1]-self._bounds[0][0])) * vals.shape[-2]
+        scaled_points[1] += ((scaled_points[1]-(self._bounds[1][0])) /
+                            (self._bounds[1][1]-self._bounds[1][0])) * vals.shape[-1]
+        scaled_points = np.vstack((it, scaled_points))
+
+        #print(scaled_points)
+        #print(vals.shape)
+        output = map_coordinates(vals, scaled_points, order=1)
+
+        new_shape = (*shape, ev_shape[-2])
+        output = output.reshape(new_shape)
+        #vals = vals.reshape(new_shape)
+        #print(new_shape)
+        #output = list()
+        #for i in range(new_shape[0]):
+        #    out2 = list()
+        #    it = np.arange(scaled_points[i].shape[0])
+        #    #print(it)
+        #    int_points = scaled_points[i].T
+        #    int_points = np.append(it, int_points)
+        #    #print(int_points.shape)
+        #    for j in range(vals[i].shape[0]):
+        #        #t = time.time()
+        #        out2.append(map_coordinates(vals[i][j], scaled_points[i].T, order=1))
+        #        #print(time.time() - t)
+
+        #    output.append(out2)
+        #    input_grid = np.swapaxes(np.swapaxes(vals[i], 0,2),0,1)
+        #    int_vals = map_coordinates(input_grid,)
+
+            #self._grid.values = input_grid
+
+        #print(np.array(output).shape)
+        #    output.append( self._grid(eval_points[i]).T)
+        #i=0
+        #input_grid = np.swapaxes(np.swapaxes(vals[i], 0, 2), 0, 1)
+        #self._grid.values = input_grid
+        #output.append(self._grid(eval_points[i]).T)
+
+        return np.array(output)
