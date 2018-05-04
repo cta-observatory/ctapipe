@@ -19,6 +19,8 @@ __all__ = ['InstrumentContainer',
            'DL0CameraContainer',
            'DL1Container',
            'DL1CameraContainer',
+           'TargetIOContainer',
+           'TargetIOCameraContainer',
            'SST1MContainer',
            'SST1MCameraContainer',
            'MCEventContainer',
@@ -31,6 +33,7 @@ __all__ = ['InstrumentContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
            'DataContainer',
+           'TargetIODataContainer',
            'SST1MDataContainer',
            'HillasParametersContainer']
 
@@ -435,6 +438,7 @@ class NectarCAMDataContainer(DataContainer):
     Data container including NectarCAM information
     """
     nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
+
 
 class TargetIOCameraContainer(Container):
     """
