@@ -29,6 +29,16 @@ def test_integration_correction(test_event):
     assert_allclose(correction[0], 1.077, 1e-3)
 
 
+def test_integration_correction_no_ref_pulse(test_event):
+    event = deepcopy(test_event)
+    previous_calibration(event)
+    telid = list(event.dl0.tel.keys())[0]
+    delattr(event, 'mc')
+    calibrator = CameraDL1Calibrator()
+    correction = calibrator.get_correction(event, telid)
+    assert correction[0] == 1
+
+
 def test_camera_dl1_calibrator(test_event):
     event = deepcopy(test_event)
     previous_calibration(event)

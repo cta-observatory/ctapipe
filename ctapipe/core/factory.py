@@ -197,6 +197,15 @@ class Factory(Component, metaclass=FactoryMeta):
         config = copy(self.__dict__['_trait_values']['config'])
         parent = copy(self.__dict__['_trait_values']['parent'])
 
+        # Update traitlet defaults (they may have been changed via the Factory)
+        for name, trait in self.class_own_traits().items():
+            for sub in self.subclasses:
+                try:
+                    sub_trait = sub.class_traits()[name]
+                    sub_trait.default_value = trait.default_value
+                except KeyError:
+                    pass
+
         if config[self.__class__.__name__]:
             # If Product config does not exist, create new Config instance
             # Note: `config[product.__name__]` requires Config, not dict
