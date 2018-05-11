@@ -439,6 +439,62 @@ class NectarCAMDataContainer(DataContainer):
     """
     nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
 
+class LSTCameraContainer(Container):
+    """
+    Container for Fields that are specific to camera that use zfit
+    """
+    camera_event_type = Field(int, "camera event type")
+
+
+    integrals = Field(None, (
+        "numpy array containing waveform integrals"
+        "(n_channels x n_pixels)"
+    ))
+
+
+    def fill_from_zfile_event(self, event, num_samples):
+        self.camera_event_type = event.eventType
+
+        self.integrals = np.array([
+            event.hiGain.integrals.gains,
+            event.loGain.integrals.gains,
+        ])
+
+
+
+class LSTContainer(Container):
+    """
+    Storage for the LSTCameraContainer for each telescope
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(LSTCameraContainer),
+        "map of tel_id to LSTContainer")
+
+    def fill_from_zfile_event(self, event, num_samples):
+        self.tels_with_data = [event.telescope_id, ]
+        lst_cam_container = self.tel[event.telescope_id]
+        lst_cam_container.fill_from_zfile_event(
+            event,
+            num_samples,
+        )
+
+
+class LSTDataContainer(DataContainer):
+    """
+    Data container including LST information
+    """
+    lst = Field(LSTContainer(), "LST Specific Information")
+
+
+
+class TargetIOCameraContainer(Container):
+    """
+    Container for Fields that are specific to cameras that use TARGET
+    """
+    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
+                                  "waveform in the camera image (n_pixels)"))
+
 
 class TargetIOCameraContainer(Container):
     """
