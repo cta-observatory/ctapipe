@@ -12,9 +12,10 @@ TODO:
 
 import numpy as np
 from scipy.spatial import Delaunay
-from scipy.interpolate import RegularGridInterpolator
 import time
 from scipy.ndimage import map_coordinates
+import numpy.ma as ma
+
 
 class UnstructuredInterpolator:
     """
@@ -65,7 +66,6 @@ class UnstructuredInterpolator:
         return None
 
     def __call__(self, points, eval_points):
-        t = time.time()
 
         # Convert to a numpy array here incase we get a list
         points = np.array(points)
@@ -73,7 +73,8 @@ class UnstructuredInterpolator:
         if len(points.shape) == 1:
             points = np.array([points])
 
-        # find simplexes that contain interpolated points
+        # First find simplexes that contain interpolated points
+        # In
         if self._remember and self._previous_v is not 0:
 
             previous_keys = self.keys[self._previous_v.ravel()]
@@ -184,6 +185,7 @@ class UnstructuredInterpolator:
         -------
         ndarray: output from member function
         """
+        is_masked = ma.is_masked(eval_points)
 
         shape = point_num.shape
         ev_shape = eval_points.shape
@@ -198,44 +200,23 @@ class UnstructuredInterpolator:
                                            eval_points.shape[-1]))
 
         scaled_points = eval_points.T
+        if is_masked:
+            mask = np.invert(ma.getmask(scaled_points[0]))
+        else:
+            mask = np.ones_like(scaled_points[0], dtype=bool)
+
+        it = ma.masked_array(it, mask)
         scaled_points[0] = ((scaled_points[0]-(self._bounds[0][0])) /
                             (self._bounds[0][1]-self._bounds[0][0])) * vals.shape[-2]
         scaled_points[1] += ((scaled_points[1]-(self._bounds[1][0])) /
                             (self._bounds[1][1]-self._bounds[1][0])) * vals.shape[-1]
         scaled_points = np.vstack((it, scaled_points))
 
-        #print(scaled_points)
-        #print(vals.shape)
-        output = map_coordinates(vals, scaled_points, order=1)
+        output = np.zeros(scaled_points.T.shape[:-1])
+
+        output[mask] = map_coordinates(vals, scaled_points.T[mask].T, order=1)
 
         new_shape = (*shape, ev_shape[-2])
         output = output.reshape(new_shape)
-        #vals = vals.reshape(new_shape)
-        #print(new_shape)
-        #output = list()
-        #for i in range(new_shape[0]):
-        #    out2 = list()
-        #    it = np.arange(scaled_points[i].shape[0])
-        #    #print(it)
-        #    int_points = scaled_points[i].T
-        #    int_points = np.append(it, int_points)
-        #    #print(int_points.shape)
-        #    for j in range(vals[i].shape[0]):
-        #        #t = time.time()
-        #        out2.append(map_coordinates(vals[i][j], scaled_points[i].T, order=1))
-        #        #print(time.time() - t)
 
-        #    output.append(out2)
-        #    input_grid = np.swapaxes(np.swapaxes(vals[i], 0,2),0,1)
-        #    int_vals = map_coordinates(input_grid,)
-
-            #self._grid.values = input_grid
-
-        #print(np.array(output).shape)
-        #    output.append( self._grid(eval_points[i]).T)
-        #i=0
-        #input_grid = np.swapaxes(np.swapaxes(vals[i], 0, 2), 0, 1)
-        #self._grid.values = input_grid
-        #output.append(self._grid(eval_points[i]).T)
-
-        return np.array(output)
+        return ma.masked_array(output, mask=mask)

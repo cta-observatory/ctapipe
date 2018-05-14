@@ -2,11 +2,12 @@ from .unstructured_interpolator import UnstructuredInterpolator
 import numpy as np
 import pickle
 import gzip
+import numpy.ma as ma
 
 
 class TemplateNetworkInterpolator:
     """
-    Class for interpolatating between the the predictions
+    Class for interpolating between the the predictions
     """
     def __init__(self, template_file):
         """
@@ -45,7 +46,7 @@ class TemplateNetworkInterpolator:
         ndarray: Pixel amplitude expectation values
         """
         array = np.stack((energy, impact, xmax), axis=-1)
-        points = np.stack((xb, yb), axis=-1)
+        points = ma.dstack((xb, yb))
 
         interpolated_value = self.interpolator(array, points)
         interpolated_value[interpolated_value<0] = 0
