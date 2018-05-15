@@ -226,7 +226,8 @@ class MCCameraEventContainer(Container):
         0,
         "the tracking Altitude corrected for pointing errors for the telescope"
     )
-
+    num_trig_pix = Field(0,"Number of trigger groups (sectors) listed")
+    trig_pix_id = Field(None, "pixels involved in the camera trigger")
 
 class MCEventContainer(Container):
     """

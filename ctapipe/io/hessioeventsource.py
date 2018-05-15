@@ -133,6 +133,8 @@ class HESSIOEventSource(EventSource):
 
                     data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
+                    data.mc.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    data.mc.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
                     data.r0.tel[tel_id].waveform = (file.
                                                     get_adc_sample(tel_id))
                     if data.r0.tel[tel_id].waveform.size == 0:
