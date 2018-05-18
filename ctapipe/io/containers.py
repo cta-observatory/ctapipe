@@ -585,5 +585,5 @@ class HillasParametersContainer(Container):
     width = Field(0.0, 'RMS spread along the minor-axis')
     psi = Field(0.0, 'rotation angle of ellipse', unit=u.deg)
 
-    skewness = Field(0.0, 'measure of the asymmetry')
-    kurtosis = Field(0.0, 'measure of the tailedness')
+    skewness = Field(np.nan, 'measure of the asymmetry')
+    kurtosis = Field(np.nan, 'measure of the tailedness')
