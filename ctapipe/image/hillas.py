@@ -118,20 +118,25 @@ def hillas_parameters_1(geom: CameraGeometry, image):
     phi = np.arctan2(mean_y, mean_x)
 
     # Higher order moments
-    sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
+    if length == 0:
+        skewness = np.nan
+        kurtosis = np.nan
+        asym = np.nan
+    else:
+        sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
 
-    skewness = ((np.sum(image * np.power(sk, 3)) / size) /
-                ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2)))
-    kurtosis = ((np.sum(image * np.power(sk, 4)) / size) /
-                ((np.sum(image * np.power(sk, 2)) / size) ** 2))
-    asym3 = (np.power(cos_delta, 3) * S_xxx
-             + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
-             + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
-             + np.power(sin_delta, 3) * S_yyy)
-    asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3,
-                                                                    1. / 3)
+        skewness = ((np.sum(image * np.power(sk, 3)) / size) /
+                    ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2)))
+        kurtosis = ((np.sum(image * np.power(sk, 4)) / size) /
+                    ((np.sum(image * np.power(sk, 2)) / size) ** 2))
+        asym3 = (np.power(cos_delta, 3) * S_xxx
+                 + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
+                 + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
+                 + np.power(sin_delta, 3) * S_yyy)
+        asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3,
+                                                                        1. / 3)
 
-    assert np.sign(skewness) == np.sign(asym)
+        assert np.sign(skewness) == np.sign(asym)
 
     # another definition of assymetry
     # asym = (mean_x - pix_x[np.argmax(image)]) * cos_delta
