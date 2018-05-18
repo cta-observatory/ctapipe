@@ -302,9 +302,9 @@ def hillas_parameters_2(geom: CameraGeometry, image):
                 vy4 * spsi2 * spsi2)
         kurtosis = kurt / (length * length * length * length)
     else:  # Skip Higher Moments
-        psi = 0.0 * u.rad
-        skewness = 0.0
-        kurtosis = 0.0
+        psi = np.nan * u.rad
+        skewness = np.nan
+        kurtosis = np.nan
 
     return MomentParameters(size=size, cen_x=xm * unit, cen_y=ym * unit,
                             length=length * unit, width=width * unit,
@@ -459,7 +459,7 @@ def hillas_parameters_3(geom: CameraGeometry, image):
 
     # -- Asymmetry
     if length == 0.0:
-        asymm = 0.0
+        asymm = np.nan
     else:
         asymm = (vx3 * np.power(cpsi, 3) +
                  3.0 * vx2y * spsi * np.power(cpsi, 2) + 3.0 * vxy2 * cpsi *
@@ -474,7 +474,10 @@ def hillas_parameters_3(geom: CameraGeometry, image):
     # isize = int(sumsig)
 
     # Code to de-interface with historical code
-    skewness = asymm * asymm * asymm
+    if length == 0.0:
+        skewness = np.nan
+    else:
+        skewness = asymm * asymm * asymm
     kurtosis = np.nan
 
     return MomentParameters(size=size, cen_x=m_x * unit, cen_y=m_y * unit,
@@ -635,9 +638,9 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
         kurtosis = kurt / (length * length * length * length)
 
     else:  # Skip Higher Moments
-        psi = 0.0
-        skewness = 0.0
-        kurtosis = 0.0
+        psi = np.nan
+        skewness = np.nan
+        kurtosis = np.nan
 
     if container:
         return HillasParametersContainer(x=m_x * unit, y=m_y * unit, r=r * unit,
