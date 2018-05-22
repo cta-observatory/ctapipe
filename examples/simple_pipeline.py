@@ -16,11 +16,12 @@ if __name__ == '__main__':
 
     cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
-    for data in source:
+    for ii, event in enumerate(source):
 
         print(
-            "EVENT: {}, ENERGY: {:.2f}, TELS:{}".format(
-                data.r0.event_id, data.mc.energy, len(data.dl0.tels_with_data)
+            "{} EVENT_ID: {}, ENERGY: {:.2f}, NTELS:{}".format(
+                ii,
+                event.r0.event_id, event.mc.energy, len(event.dl0.tels_with_data)
             )
         )
 

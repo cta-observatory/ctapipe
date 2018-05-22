@@ -5,7 +5,7 @@ This module handles the calibration from the R1 data level to DL0. This
 transition exists as a conveniance in the pipepline and can be used to test
 data volume reduction methods inside the pipeline. By default, no data volume
 reduction is applied, and the DL0 samples are identical to the R1. However,
-if a reductor from `ctapipe.image.reductors` is passed to the
+if a reducer from `ctapipe.image.reducers` is passed to the
 `CameraDL0Reducer`, then the reduction will be applied.
 """
 from ctapipe.core import Component
@@ -27,18 +27,18 @@ class CameraDL0Reducer(Component):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
-    reductor : ctapipe.calib.camera.reductors.Reductor
-        The reductor to use to reduce the waveforms in the event.
+    reducer : ctapipe.calib.camera.reducer.Reducer
+        The reducer to use to reduce the waveforms in the event.
         By default no data volume reduction is applied, and the dl0 samples
         will equal the r1 samples.
     kwargs
     """
-    def __init__(self, config=None, tool=None, reductor=None, **kwargs):
+    def __init__(self, config=None, tool=None, reducer=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
-        if reductor is None:
+        if reducer is None:
             self.log.info("Applying no data volume reduction in the "
                           "conversion from R1 to DL0")
-        self._reductor = reductor
+        self._reducer = reducer
         self._r1_empty_warn = False
 
     def check_r1_exists(self, event, telid):
@@ -84,8 +84,8 @@ class CameraDL0Reducer(Component):
         for telid in tels:
             r1 = event.r1.tel[telid].waveform
             if self.check_r1_exists(event, telid):
-                if self._reductor is None:
+                if self._reducer is None:
                     event.dl0.tel[telid].waveform = r1
                 else:
-                    reduction = self._reductor.reduce_waveforms(r1)
+                    reduction = self._reducer.reduce_waveforms(r1)
                     event.dl0.tel[telid].waveform = reduction

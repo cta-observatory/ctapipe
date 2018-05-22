@@ -3,6 +3,7 @@ from ctapipe.core.component import Component
 from traitlets import Int, TraitError
 import pytest
 from traitlets.config.loader import Config
+import warnings
 
 
 class ExampleComponentParent(Component):
@@ -157,7 +158,9 @@ def test_expected_config():
     config['ExampleComponent2'] = Config()
     config['ExampleComponent2']['value'] = 111
     config['ExampleComponent2']['extra'] = 4
-    obj = ExampleFactory.produce(config=config, tool=None)
+    with warnings.catch_warnings():
+        warnings.simplefilter(action='ignore', category=UserWarning)
+        obj = ExampleFactory.produce(config=config, tool=None)
     assert obj.value == 111
     with pytest.raises(AttributeError):
         assert obj.extra == 4
@@ -179,3 +182,17 @@ def test_expected_config():
     obj = ExampleFactory.produce(config=config, tool=None)
     assert obj.value == 111
     assert obj.extra == 4
+
+
+def test_default_passing():
+    old_default = ExampleFactory.value.default_value
+    ExampleFactory.value.default_value = 3
+    obj = ExampleFactory.produce(config=None, tool=None,
+                                 product='ExampleComponent2')
+    assert (obj.value == 3)
+    obj = ExampleFactory.produce(config=None, tool=None,
+                                 product='ExampleComponent4')
+    assert (obj.value == 3)
+    ExampleFactory.value.default_value = old_default
+    obj = ExampleFactory.produce(config=None, tool=None)
+    assert (obj.value == old_default)
