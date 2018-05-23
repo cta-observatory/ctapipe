@@ -46,14 +46,17 @@ class SimpleEventWriter(Tool):
             config=self.config, tool=self, eventsource=self.event_source
         )
 
-        self.writer = HDF5TableWriter(filename=self.outfile, group_name='image_infos', overwrite=True)
+        self.writer = HDF5TableWriter(
+            filename=self.outfile, group_name='image_infos', overwrite=True
+        )
 
         # Define Pre-selection for images
+        preselcuts = self.config['Preselect']
         self.image_cutflow = CutFlow('Image preselection')
         self.image_cutflow.set_cuts(dict(
             no_sel=None,
-            n_pixel=lambda s: np.count_nonzero(s) < self.config['Preselect']['n_pixel']['min'],
-            image_amplitude=lambda q: q < self.config['Preselect']['image_amplitude']['min']
+            n_pixel=lambda s: np.count_nonzero(s) < preselcuts['n_pixel']['min'],
+            image_amplitude=lambda q: q < preselcuts['image_amplitude']['min']
         ))
 
         # Define Pre-selection for events
@@ -74,7 +77,6 @@ class SimpleEventWriter(Tool):
             self.event_cutflow.count('no_sel')
             self.calibrator.calibrate(event)
 
-            n_tels = dict()  # Number of images to reconstruct event (after image pre-selection)
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')
 
