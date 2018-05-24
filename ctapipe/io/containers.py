@@ -23,6 +23,10 @@ __all__ = ['InstrumentContainer',
            'TargetIOCameraContainer',
            'SST1MContainer',
            'SST1MCameraContainer',
+           'LSTContainer',
+           'LSTCameraContainer',
+           'NectarCAMContainer',
+           'NectarCAMCameraContainer',
            'MCEventContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
@@ -441,25 +445,68 @@ class NectarCAMDataContainer(DataContainer):
 
 class LSTCameraContainer(Container):
     """
-    Container for Fields that are specific to camera that use zfit
+    Container for Fields that are specific to each LST camera
     """
-    camera_event_type = Field(int, "camera event type")
 
+    # Data from the CameraConfig table
+    telescope_id = Field(-1, "telescope id")
+    cs_serial=Field(None, "serial of the camera server")
+    configuration_id = Field(None, "?")
+    date= Field(None, "NTP start of run date")
+    num_pixels = Field(-1, "number of pixels")
+    num_samples= Field(-1, "num samples")
+    pixel_ids=Field([],"pixels id")
+    data_model_version=Field(None,"data model version")
 
-    integrals = Field(None, (
-        "numpy array containing waveform integrals"
-        "(n_channels x n_pixels)"
-    ))
+    idaq_version = Field(0o0, "idaq version")
+    cdhs_version = Field(0o0, "cdhs version")
+    algorithms = Field(None, "algorithms")
+    pre_proc_algorithms = Field(None, "pre processing algorithms")
+    module_ids = Field([], "module ids")
+    num_modules= Field(-1, "number of modules")
 
+    # Data from the CameraEvent table
+    pixel_status = Field([],"status of the pixels")
+    module_status = Field([], "status of the modules")
+    extdevices_presence = Field(None, "presence of data for external devices")
+    tib_data = Field([], "TIB data array")
+    cdts_data = Field([], "CDTS data array")
+    swat_data = Field([], "SWAT data array")
+    counters = Field([], "counters")
+    chips_flags = Field([], "chips flags")
+    first_capacitor_id = Field([], "first capacitor id")
+    drs_tag_status = Field([], "DRS tag status")
+    drs_tag = Field([], "DRS tag")
 
-    def fill_from_zfile_event(self, event, num_samples):
-        self.camera_event_type = event.eventType
+    # Fill data LST specifics
+    def fill_from_zfile(self, header, event):
+        self.telescope_id=header.telescope_id
+        self.cs_serial=header.cs_serial
+        self.configuration_id=header.configuration_id
+        self.date=header.date
+        self.num_pixels = header.num_pixels
+        self.num_samples=header.num_samples
+        self.pixel_ids=header.expected_pixels_id
+        self.data_model_version= header.data_model_version
 
-        self.integrals = np.array([
-            event.hiGain.integrals.gains,
-            event.loGain.integrals.gains,
-        ])
+        self.num_modules = header.lstcam.num_modules
+        self.module_ids = header.lstcam.expected_modules_id
+        self.idaq_version = header.lstcam.idaq_version
+        self.cdhs_version = header.lstcam.cdhs_version
+        self.algorithms = header.lstcam.algorithms
+        self.pre_proc_algorithms = header.lstcam.pre_proc_algorithms
 
+        self.pixel_status = event.pixel_status
+        self.module_status = event.lstcam.module_status
+        self.extdevices_presence = event.lstcam.extdevices_presence
+        self.tib_data=event.lstcam.tib_data
+        self.cdts_data=event.lstcam.cdts_data
+        self.swat_data=event.lstcam.swat_data
+        self.counters=event.lstcam.counters
+        self.chips_flags = event.lstcam.chips_flags
+        self.first_capacitor_id = event.lstcam.first_capacitor_id
+        self.drs_tag_status = event.lstcam.drs_tag_status
+        self.drs_tag = event.lstcam.drs_tag
 
 
 class LSTContainer(Container):
@@ -467,17 +514,16 @@ class LSTContainer(Container):
     Storage for the LSTCameraContainer for each telescope
     """
     tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
     tel = Field(
         Map(LSTCameraContainer),
-        "map of tel_id to LSTContainer")
+        "map of tel_id to LSTCameraContainer")
 
-    def fill_from_zfile_event(self, event, num_samples):
-        self.tels_with_data = [event.telescope_id, ]
-        lst_cam_container = self.tel[event.telescope_id]
-        lst_cam_container.fill_from_zfile_event(
-            event,
-            num_samples,
-        )
+    def fill_from_zfile(self, header,event):
+        self.tels_with_data = [header.telescope_id, ]
+        lst_camera = self.tel[header.telescope_id]
+        lst_camera.fill_from_zfile(header, event)
 
 
 class LSTDataContainer(DataContainer):

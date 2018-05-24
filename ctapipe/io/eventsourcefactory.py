@@ -6,7 +6,7 @@ from ctapipe.io.eventsource import EventSource
 import ctapipe.io.hessioeventsource
 from . import sst1meventsource
 from . import nectarcameventsource
-from . import lstcameventsource
+from . import lsteventsource
 import ctapipe.io.targetioeventsource
 
 

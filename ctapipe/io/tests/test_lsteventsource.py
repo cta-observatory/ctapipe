@@ -2,25 +2,25 @@ from pkg_resources import resource_filename
 import os
 
 import pytest
-pytest.importorskip("protozfits", minversion="0.44.5")
+pytest.importorskip("protozfits", minversion="1.0.2")
 
 example_file_path = resource_filename(
     'protozfits',
     os.path.join(
         'tests',
         'resources',
-        'example_9evts_NectarCAM.fits.fz'
+        'example_LST_R1_10_evts.fits.fz'
     )
 )
 
 FIRST_EVENT_NUMBER_IN_FILE = 1
-ADC_SAMPLES_SHAPE = (2, 84, 60)
+ADC_SAMPLES_SHAPE = (2, 14, 40)
 
 
 def test_loop_over_events():
     from ctapipe.io.lsteventsource import LSTEventSource
 
-    N_EVENTS = 3
+    N_EVENTS = 10
     inputfile_reader = LSTEventSource(
         input_url=example_file_path,
         max_events=N_EVENTS
@@ -37,12 +37,12 @@ def test_loop_over_events():
 
 
 def test_is_compatible():
-    from ctapipe.io.lasteventsource import LSTEventSource
+    from ctapipe.io.lsteventsource import LSTEventSource
 
     assert LSTEventSource.is_compatible(example_file_path)
 
 
-def test_factory_for_nectarcam_file():
+def test_factory_for_lst_file():
     from ctapipe.io.eventsourcefactory import EventSourceFactory
     from ctapipe.io.lsteventsource import LSTEventSource
 

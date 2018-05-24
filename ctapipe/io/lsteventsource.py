@@ -1,8 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-EventSource for NectarCam protobuf-fits.fz-files.
+EventSource for LSTCam protobuf-fits.fz-files.
 
-Needs protozfits v0.44.5 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.02.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
@@ -16,22 +16,27 @@ class LSTEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        from protozfits import SimpleFile
-        self.file = SimpleFile(self.input_url)
+        from protozfits import File
+        self.file = File(self.input_url)
         self.header = next(self.file.CameraConfig)
 
 
     def _generator(self):
 
-        self._pixel_sort_ids = None
+        # container for LST data
+        data = LSTDataContainer()
+        data.meta['input_url'] = self.input_url
 
         for count, event in enumerate(self.file.Events):
-            data = LSTDataContainer()
+
+
             data.count = count
+
             # fill specific LST data
-            data.lst.fill_from_zfile_event(event, self.header.num_samples)
+            data.lst.fill_from_zfile(self.header,event)
+
             # fill general R0 data
-            self.fill_R0Container_from_zfile_event(data.r0, event)
+            self.fill_R0Container_from_zfile(data.r0, event)
             yield data
 
 
@@ -40,7 +45,7 @@ class LSTEventSource(EventSource):
         from astropy.io import fits
         try:
             # The file contains two tables:
-            #  1: CameraConfig
+            #  1: CameraConfiguration
             #  2: Events <--- this is what we need to look at
             h = fits.open(file_path)[2].header
             ttypes = [
@@ -59,36 +64,35 @@ class LSTEventSource(EventSource):
             (h['EXTNAME'] == 'Events') and
             (h['ZTABLE'] is True) and
             (h['ORIGIN'] == 'CTA') and
-            (h['PBFHEAD'] == 'DataModel.CameraEvent')
+            (h['PBFHEAD'] == 'R1.CameraEvent')
         )
 
-        is_lst_file = 'lstcam_idaq_version' in ttypes
+        is_lst_file = 'lstcam_counters' in ttypes
         return is_protobuf_zfits_file & is_lst_file
 
 
-    def fill_R0CameraContainer_from_zfile_event(self, container, event):
-        container.trigger_time = (
-            event.local_time_sec * 1E9 + event.local_time_nanosec)
-        container.trigger_type = event.event_type
+    def fill_R0CameraContainer_from_zfile(self, container, event):
 
-        container.waveform = np.array([
+
+        container.num_samples = self.header.num_samples
+        container.trigger_time = event.trigger_time_s
+        container.trigger_type = event.trigger_type
+
+        container.waveform = np.array(
             (
-                event.hiGain.waveforms.samples
-            ).reshape(-1, self.header.numTraces),
-            (
-                event.loGain.waveforms.samples
-            ).reshape(-1, self.header.numTraces)
-        ])
+                event.waveform
+            ).reshape(2, self.header.num_pixels, container.num_samples))
 
-        container.num_samples = container.waveform.shape[1]
 
-    def fill_R0Container_from_zfile_event(self, container, event):
+
+
+    def fill_R0Container_from_zfile(self, container, event):
         container.obs_id = -1
         container.event_id = event.event_id
 
         container.tels_with_data = [self.header.telescope_id, ]
-        r0_cam_container = container.tel[self.header.telescope_id]
-        self.fill_R0CameraContainer_from_zfile_event(
-            r0_cam_container,
+        r0_camera_container = container.tel[self.header.telescope_id]
+        self.fill_R0CameraContainer_from_zfile(
+            r0_camera_container,
             event
         )
