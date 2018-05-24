@@ -162,7 +162,7 @@ class HillasReconstructor(Reconstructor):
 
         Raises
         ------
-        TooFewTelescopes
+        TooFewTelescopes from reco_algorithms.py
             if len(hillas_dict) < 2
 
         """
