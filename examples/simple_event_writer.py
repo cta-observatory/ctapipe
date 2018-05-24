@@ -28,7 +28,7 @@ class SimpleEventWriter(Tool):
 
     aliases = Dict({
         'infile': 'EventSourceFactory.input_url',
-        'outfile': 'SimpleEventWriter.input_url',
+        'outfile': 'SimpleEventWriter.outfile',
         'max-events': 'EventSourceFactory.max_events',
         'progress': 'SimpleEventWriter.progress'
     })
