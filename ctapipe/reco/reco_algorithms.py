@@ -1,7 +1,15 @@
 from ctapipe.core import Component
 from ctapipe.io.containers import ReconstructedShowerContainer
 
-__all__ = ['Reconstructor']
+__all__ = ['Reconstructor',
+           'TooFewTelescopes']
+
+class TooFewTelescopes(Exception):
+    """
+    Exception class to be raised when there are not enough telescopes for the stereo reconstruction.
+    A custom message may be passed as argument.
+    """
+    pass
 
 
 class Reconstructor(Component):

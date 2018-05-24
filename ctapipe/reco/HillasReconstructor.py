@@ -8,6 +8,7 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 from ctapipe.utils import linalg
 from ctapipe.coordinates import coordinate_transformations as trafo
 from ctapipe.reco.reco_algorithms import Reconstructor
+from ctapipe.reco.reco_algorithms import TooFewTelescopes
 from ctapipe.io.containers import ReconstructedShowerContainer
 
 from itertools import combinations
@@ -21,12 +22,7 @@ u.dimless = u.dimensionless_unscaled
 
 
 __all__ = ['HillasReconstructor',
-           'TooFewTelescopes',
            'dist_to_traces', 'MEst', 'GreatCircle']
-
-
-class TooFewTelescopes(Exception):
-    pass
 
 
 def dist_to_traces(core, circles):
@@ -166,16 +162,15 @@ class HillasReconstructor(Reconstructor):
 
         Raises
         ------
-        TooFewTelescopesException
+        TooFewTelescopes
             if len(hillas_dict) < 2
 
         """
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
-            raise TooFewTelescopesException(
-                "need at least two telescopes, have {}"
-                .format(len(hillas_dict)))
+            raise TooFewTelescopes(
+                "need at least two telescopes for Hillas reconstructor, have {}".format(len(hillas_dict)))
 
         self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
@@ -214,6 +209,7 @@ class HillasReconstructor(Reconstructor):
 
         return result
 
+
     def get_great_circles(self, hillas_dict, subarray, tel_phi, tel_theta):
         """
         creates a dictionary of :class:`.GreatCircle` from a dictionary of
@@ -238,7 +234,6 @@ class HillasReconstructor(Reconstructor):
             p2_x = moments.cen_x + moments.length * np.cos(moments.psi)
             p2_y = moments.cen_y + moments.length * np.sin(moments.psi)
             foclen = subarray.tel[tel_id].optics.equivalent_focal_length
-
             circle = GreatCircle(
                 trafo.pixel_position_to_direction(
                     np.array([moments.cen_x / u.m, p2_x / u.m]) * u.m,
