@@ -443,19 +443,20 @@ class NectarCAMDataContainer(DataContainer):
     """
     nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
 
-class LSTCameraContainer(Container):
+
+class LSTServiceContainer(Container):
     """
-    Container for Fields that are specific to each LST camera
+    Container for Fields that are specific to each LST camera configuration
     """
 
     # Data from the CameraConfig table
     telescope_id = Field(-1, "telescope id")
-    cs_serial=Field(None, "serial of the camera server")
-    configuration_id = Field(None, "?")
+    cs_serial=Field(None, "serial number of the camera server")
+    configuration_id = Field(None, "id of the CameraConfiguration")
     date= Field(None, "NTP start of run date")
     num_pixels = Field(-1, "number of pixels")
     num_samples= Field(-1, "num samples")
-    pixel_ids=Field([],"pixels id")
+    pixel_ids=Field([],"id of the pixels in the waveform array")
     data_model_version=Field(None,"data model version")
 
     idaq_version = Field(0o0, "idaq version")
@@ -465,8 +466,18 @@ class LSTCameraContainer(Container):
     module_ids = Field([], "module ids")
     num_modules= Field(-1, "number of modules")
 
+
+class LSTEventContainer(Container):
+    """
+    Container for Fields that are specific to each LST event
+    """
+
     # Data from the CameraEvent table
+    configuration_id = Field(None,"id of the CameraConfiguration")
+    event_id=Field(None,"local id of the event")
+    tel_event_id = Field(None, "global id of the event")
     pixel_status = Field([],"status of the pixels")
+    ped_id = Field(None, "tel_event_id of the event used for pedestal substraction")
     module_status = Field([], "status of the modules")
     extdevices_presence = Field(None, "presence of data for external devices")
     tib_data = Field([], "TIB data array")
@@ -478,35 +489,15 @@ class LSTCameraContainer(Container):
     drs_tag_status = Field([], "DRS tag status")
     drs_tag = Field([], "DRS tag")
 
-    # Fill data LST specifics
-    def fill_from_zfile(self, header, event):
-        self.telescope_id=header.telescope_id
-        self.cs_serial=header.cs_serial
-        self.configuration_id=header.configuration_id
-        self.date=header.date
-        self.num_pixels = header.num_pixels
-        self.num_samples=header.num_samples
-        self.pixel_ids=header.expected_pixels_id
-        self.data_model_version= header.data_model_version
 
-        self.num_modules = header.lstcam.num_modules
-        self.module_ids = header.lstcam.expected_modules_id
-        self.idaq_version = header.lstcam.idaq_version
-        self.cdhs_version = header.lstcam.cdhs_version
-        self.algorithms = header.lstcam.algorithms
-        self.pre_proc_algorithms = header.lstcam.pre_proc_algorithms
+class LSTCameraContainer(Container):
+    """
+    Container for Fields that are specific to each LST camera
+    """
+    evt = Field(LSTEventContainer(), "LST specific event Information")
+    svc = Field(LSTServiceContainer(), "LST specific camera_config Information")
 
-        self.pixel_status = event.pixel_status
-        self.module_status = event.lstcam.module_status
-        self.extdevices_presence = event.lstcam.extdevices_presence
-        self.tib_data=event.lstcam.tib_data
-        self.cdts_data=event.lstcam.cdts_data
-        self.swat_data=event.lstcam.swat_data
-        self.counters=event.lstcam.counters
-        self.chips_flags = event.lstcam.chips_flags
-        self.first_capacitor_id = event.lstcam.first_capacitor_id
-        self.drs_tag_status = event.lstcam.drs_tag_status
-        self.drs_tag = event.lstcam.drs_tag
+
 
 
 class LSTContainer(Container):
@@ -518,19 +509,15 @@ class LSTContainer(Container):
     # create the camera container
     tel = Field(
         Map(LSTCameraContainer),
-        "map of tel_id to LSTCameraContainer")
+        "map of tel_id to LSTTelContainer")
 
-    def fill_from_zfile(self, header,event):
-        self.tels_with_data = [header.telescope_id, ]
-        lst_camera = self.tel[header.telescope_id]
-        lst_camera.fill_from_zfile(header, event)
 
 
 class LSTDataContainer(DataContainer):
     """
     Data container including LST information
     """
-    lst = Field(LSTContainer(), "LST Specific Information")
+    lst = Field(LSTContainer(), "LST specific Information")
 
 
 
