@@ -29,7 +29,7 @@ class UnstructuredInterpolator:
     behave exactly the same as the scipy LinearNDInterpolator
     """
     def __init__(self, interpolation_points, function_name=None, remember_last=False,
-                 bounds=None):
+                 bounds=None, dtype=None):
         """
         Parameters
         ----------
@@ -41,7 +41,10 @@ class UnstructuredInterpolator:
         """
 
         self.keys = np.array(list(interpolation_points.keys()))
-        self.values = np.array(list(interpolation_points.values()))
+        if dtype:
+            self.values = np.array(list(interpolation_points.values()), dtype=dtype)
+        else:
+            self.values = np.array(list(interpolation_points.values()))
 
         self._num_dimensions = len(self.keys[0])
 
