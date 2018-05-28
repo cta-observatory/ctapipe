@@ -352,63 +352,6 @@ class ImPACTReconstructor(Reconstructor):
 
         return self.prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
 
-    def get_prediction(self, tel_id, shower_reco, energy_reco):
-
-        horizon_seed = HorizonFrame(az=shower_reco.az, alt=shower_reco.alt)
-        nominal_seed = horizon_seed.transform_to(
-            NominalFrame(array_direction=self.array_direction))
-
-        source_x = nominal_seed.x.to(u.rad).value
-        source_y = nominal_seed.y.to(u.rad).value
-
-        ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0 * u.m)
-        tilted = ground.transform_to(
-            TiltedGroundFrame(pointing_direction=self.array_direction))
-        tilt_x = tilted.x.to(u.m).value
-        tilt_y = tilted.y.to(u.m).value
-
-        zenith = 90 * u.deg - self.array_direction.alt
-        x_max = shower_reco.h_max.value#/np.cos(zenith)
-
-        # Calculate expected Xmax given this energy
-        x_max_exp = guess_shower_depth(energy_reco.energy.value)
-
-        # Convert to binning of Xmax, addition of 100 can probably be removed
-        x_max_bin = x_max - x_max_exp
-        # Check for range
-        if x_max_bin > 100: #* (u.g * u.cm**-2):
-            x_max_bin = 100 #* (u.g * u.cm**-2)
-        if x_max_bin < -100: #* (u.g * u.cm**-2):
-            x_max_bin = -100 # * (u.g * u.cm**-2)
-
-        x_max_bin = x_max_bin
-
-        impact = np.sqrt(pow(self.tel_pos_x[tel_id] - tilt_x, 2) +
-                         pow(self.tel_pos_y[tel_id] - tilt_y, 2))
-
-        phi = np.arctan2((self.tel_pos_y[tel_id] - tilt_y),
-                         (self.tel_pos_x[tel_id] - tilt_x)) * u.rad# + 180 * u.deg
-
-        pix_x_rot, pix_y_rot = self.rotate_translate(self.pixel_x[tel_id]*-1,
-                                                     self.pixel_y[tel_id],
-                                                     source_x,
-                                                     source_y, phi)
-
-        prediction = self.image_prediction(self.type_list[tel_id],
-                                           [energy_reco.energy.value],
-                                           [impact], [x_max_bin],
-                                           np.array([pix_x_rot * (180 / math.pi)]),
-                                           np.array([pix_y_rot * (180 / math.pi)]))
-
-        print(self.type_list[tel_id],energy_reco.energy.value, impact, x_max_bin)
-        prediction[prediction < 0] = 0
-        prediction[np.isnan(prediction)] = 0
-
-        mask = np.invert(ma.getmask(self.pixel_x[tel_id]))
-        print(np.sum(mask))
-        return self.tel_id[tel_id], self.pixel_x[tel_id], self.pixel_y[tel_id], \
-               prediction[0][mask].ravel(), self.image[tel_id][mask]
-
     def get_likelihood(self, source_x, source_y, core_x, core_y,
                        energy, x_max_scale, goodness_of_fit=False):
         """Get the likelihood that the image predicted at the given test
@@ -428,7 +371,8 @@ class ImPACTReconstructor(Reconstructor):
             Shower energy (in TeV)
         x_max_scale: float
             Scaling factor applied to geometrically calculated Xmax
-
+        goodness_of_fit: boolean
+            Determines whether expected likelihood should be subtracted from result
         Returns
         -------
         float: Likelihood the model represents the camera image at this position
@@ -791,6 +735,7 @@ class ImPACTReconstructor(Reconstructor):
                               limit_energy=limits[4], fix_energy=False,
                               x_max_scale=params[5], error_x_max_scale=step[5],
                               limit_x_max_scale=limits[5], fix_x_max_scale=False,
+                              goodness_of_fit=False, fix_goodness_of_fit=True,
                               errordef=1)
 
 
