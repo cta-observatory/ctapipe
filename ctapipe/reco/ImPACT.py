@@ -14,7 +14,7 @@ from ctapipe.coordinates import (HorizonFrame,
                                  TiltedGroundFrame,
                                  GroundFrame,
                                  project_to_ground)
-from ctapipe.image import poisson_likelihood_gaussian
+from ctapipe.image import poisson_likelihood_gaussian, mean_poisson_likelihood_gaussian
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
@@ -27,7 +27,7 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 import time
 
-__all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
+__all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior', 'guess_shower_depth']
 
 
 def guess_shower_depth(energy):
@@ -397,8 +397,8 @@ class ImPACTReconstructor(Reconstructor):
         prediction = self.image_prediction(self.type_list[tel_id],
                                            [energy_reco.energy.value],
                                            [impact], [x_max_bin],
-                                           [pix_x_rot * (180 / math.pi)],
-                                           [pix_y_rot * (180 / math.pi)])
+                                           np.array([pix_x_rot * (180 / math.pi)]),
+                                           np.array([pix_y_rot * (180 / math.pi)]))
 
         print(self.type_list[tel_id],energy_reco.energy.value, impact, x_max_bin)
         prediction[prediction < 0] = 0
@@ -410,7 +410,7 @@ class ImPACTReconstructor(Reconstructor):
                prediction[0][mask].ravel(), self.image[tel_id][mask]
 
     def get_likelihood(self, source_x, source_y, core_x, core_y,
-                       energy, x_max_scale):
+                       energy, x_max_scale, goodness_of_fit=False):
         """Get the likelihood that the image predicted at the given test
         position matches the camera image.
 
@@ -443,17 +443,22 @@ class ImPACTReconstructor(Reconstructor):
         azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
-        #x_max = self.get_shower_max(source_x, source_y,
-        #                            core_x, core_y,
-        #                            zenith)
-        #x_max *= x_max_scale# / np.cos(zenith)
+        x_max = self.get_shower_max(source_x, source_y,
+                                    core_x, core_y,
+                                    zenith)
+        x_max *= x_max_scale# / np.cos(zenith)
 
         # Calculate expected Xmax given this energy
         x_max_exp = guess_shower_depth(energy) #/ np.cos(20*u.deg)
 
         # Convert to binning of Xmax, addition of 100 can probably be removed
         #x_max_bin = x_max - x_max_exp
-        x_max_bin = x_max_exp * (x_max_scale-1)
+        #x_max =  x_max_exp * x_max_scale
+        #x_max =  x_max_scale
+
+        x_max_bin = x_max - x_max_exp
+        #x_max_bin = x_max_exp * (x_max_scale-1)
+        #x_max_bin=0
 
         # Check for range
         if x_max_bin > 100:
@@ -499,6 +504,8 @@ class ImPACTReconstructor(Reconstructor):
         like = ma.MaskedArray(like, mask=ma.getmask(self.image))
 
         array_like = like
+        if goodness_of_fit:
+            return like - mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
 
         prior_pen = 0
         # Add prior penalities if we have them
@@ -533,6 +540,28 @@ class ImPACTReconstructor(Reconstructor):
         val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
 
         return val
+
+
+    def get_likelihood_nlopt(self, x, grad):
+        """Wrapper class around likelihood function for use with scipy
+        minimisers
+
+        Parameters
+        ----------
+        x: ndarray
+            Array of minimisation parameters
+
+        Returns
+        -------
+        float: Likelihood value of test position
+
+        """
+
+        val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
+        self.num_calls += 1
+
+        return val
+
 
     def set_event_properties(self, image, pixel_x, pixel_y,
                              pixel_area, type_tel, tel_x, tel_y,
@@ -617,7 +646,9 @@ class ImPACTReconstructor(Reconstructor):
 
         self.hillas = hillas
 
-        self.get_brightest_mean()
+        #self.get_brightest_mean()
+        self.get_hillas_mean()
+        #print(type_tel)
         self.initialise_templates(type_tel)
 
         self.array_direction = array_direction
@@ -653,25 +684,33 @@ class ImPACTReconstructor(Reconstructor):
         )
         tilt_x = tilted.x.to(u.m).value
         tilt_y = tilted.y.to(u.m).value
+        zenith = 90 * u.deg - self.array_direction.alt
 
         lower_en_limit = energy_seed.energy * 0.5
         en_seed = energy_seed.energy
-        if lower_en_limit < 0.03 * u.TeV:
-            lower_en_limit = 0.03 * u.TeV
-            en_seed = 0.031 * u.TeV
+        if lower_en_limit < 0.01 * u.TeV:
+            lower_en_limit = 0.01 * u.TeV
+            en_seed = 0.01 * u.TeV
 
-        seed = (source_x, source_y, tilt_x,
-                tilt_y, en_seed.value,
-                (shower_seed.h_max.value/np.cos(
-                    90*u.deg - self.array_direction.alt))/guess_shower_depth(
-                    en_seed.value))
-        step = (0.00005, 0.00005, 5, 5, en_seed.value * 0.01, 0.01)
-        limits = ((source_x - 0.01, source_x + 0.01),
-                  (source_y - 0.01, source_y + 0.01),
-                  (tilt_x - 100, tilt_x + 100),
-                  (tilt_y - 100, tilt_y + 100),
-                  (lower_en_limit.value, en_seed.value * 2),
-                  (0.5, 2))
+        #seed = (source_x[0], source_y[0], tilt_x,
+        #        tilt_y, en_seed.value, 1)
+        seed = (source_x[0], source_y[0], tilt_x,
+                tilt_y, en_seed.value, 1)
+#                (shower_seed.h_max.value/np.cos(
+#                    (np.pi/2) - self.array_direction.alt.to(
+#                        u.deg).value))/guess_shower_depth(
+#                    en_seed.value))
+        #step = [0.001, 0.001, 5, 5, en_seed.value * 0.02, 0.05]
+        step = [0.04/57.3, 0.04/57.3, 5, 5, en_seed.value * 0.1, 0.05]
+
+        limits = [[source_x[0] - 0.01, source_x[0] + 0.01],
+                  [source_y[0] - 0.01, source_y[0] + 0.01],
+                  [tilt_x - 100, tilt_x + 100],
+                  [tilt_y - 100, tilt_y + 100],
+                  [lower_en_limit.value, en_seed.value * 2],
+                  #[seed[5] - 100, seed[5] + 100]
+                  [0.5, 1]
+                  ]
 
         fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
                                            minimiser_name=self.minimiser_name)
@@ -699,14 +738,15 @@ class ImPACTReconstructor(Reconstructor):
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
 
-        zenith = 90 * u.deg - self.array_direction.alt
-        shower_result.h_max = fit_params[5] * guess_shower_depth(fit_params[4])
-            #self.get_shower_max(fit_params[0],
-            #                    fit_params[1],
-            #                    fit_params[2],
-            #                    fit_params[3],
-            #                    zenith.to(u.rad).value)
-
+        shower_result.h_max = fit_params[5] * self.get_shower_max(fit_params[0],
+                                                                  fit_params[1],
+                                                                  fit_params[2],
+                                                                  fit_params[3],
+                                                                  zenith.to(u.rad).value)
+        #* u.g
+        # *u.cm**-2
+        shower_result.h_max *= np.cos(zenith)
+        #shower_result.h_max = fit_params[5] * np.cos(zenith) * u.g / u.cm ** 2
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
         shower_result.goodness_of_fit = np.nan
@@ -755,11 +795,11 @@ class ImPACTReconstructor(Reconstructor):
 
 
             self.min.tol *= 1000
-            self.min.set_strategy(0)
+            self.min.set_strategy(1)
 
-            t = time.time()
+            #t = time.time()
             migrad = self.min.migrad()
-            print(time.time() - t)
+            #print(time.time() - t)
             # Perform minimisation
             fit_params = self.min.values
             errors = self.min.errors
@@ -769,6 +809,24 @@ class ImPACTReconstructor(Reconstructor):
                         "x_max_scale"]),\
                 (errors["source_x"], errors["source_y"], errors["core_x"],
                  errors["core_x"], errors["energy"], errors["x_max_scale"])
+
+        elif "nlopt" in minimiser_name:
+            import nlopt
+            opt = nlopt.opt(nlopt.LN_BOBYQA, 6)
+            #opt.set_local_optimizer(nlopt.opt(nlopt.LN_COBYLA, 6))
+            opt.set_min_objective(self.get_likelihood_nlopt)
+            opt.set_initial_step(step)
+
+            opt.set_lower_bounds(np.asarray(limits).T[0])
+            opt.set_upper_bounds(np.asarray(limits).T[1])
+            #opt.set_xtol_abs(0.000001)
+            opt.set_xtol_rel(1e-3)
+            self.num_calls = 0
+
+            x = opt.optimize(params)
+            minf = opt.last_optimum_value()
+            #print(self.num_calls, "calls", minf)
+            return x, (0, 0, 0, 0, 0, 0)
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
             self.array_return = True
