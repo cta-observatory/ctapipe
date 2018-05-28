@@ -410,7 +410,8 @@ class ImPACTReconstructor(Reconstructor):
 
         array_like = like
         if goodness_of_fit:
-            return like - mean_poisson_likelihood_gaussian(prediction, self.spe, self.ped)
+            return np.sum(like - mean_poisson_likelihood_gaussian(prediction, self.spe,
+                                                            self.ped))
 
         prior_pen = 0
         # Add prior penalities if we have them
