@@ -314,4 +314,5 @@ class HorizonFrame(AngularCoordinate, UnitSpherical):
 
         self.alt = alt
         self.az = az
-
+        self.phi = self.az
+        self.alt = self.theta

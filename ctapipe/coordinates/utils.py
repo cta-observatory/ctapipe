@@ -14,7 +14,11 @@ class Cartesian2D:
     x, y = None, None
 
     def separation(self, other):
-        return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2))
+        if type(self) is type(other):
+            return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2))
+        else:
+            raise TypeError("Cannot compute separation between different frame types "
+                            +type(self)+" "+type(other))
 
 
 class UnitSpherical:
@@ -22,8 +26,12 @@ class UnitSpherical:
     theta, phi = None, None
 
     def separation(self, other):
-        x_off, y_off = horizon_to_offset(self.phi, self.theta, other.phi, other.theta)
-        return np.sqrt(x_off**2 + y_off**2)
+        if type(self) is type(other):
+            x_off, y_off = horizon_to_offset(self.phi, self.theta, other.phi, other.theta)
+            return np.sqrt(x_off**2 + y_off**2)
+        else:
+            raise TypeError("Cannot compute separation between different frame types "
+                            +type(self)+" "+type(other))
 
 
 class Cartesian3D:
@@ -31,9 +39,12 @@ class Cartesian3D:
     x, y, z = None, None, None
 
     def separation(self, other):
-        return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2) +
-                       np.power(self.z-other.z, 2))
-
+        if type(self) is type(other):
+            return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2) +
+                           np.power(self.z-other.z, 2))
+        else:
+            raise TypeError("Cannot compute separation between different frame types "
+                            +type(self)+" "+type(other))
 
 # Transformations defined below this point
 def horizon_to_offset(obj_azimuth, obj_altitude, azimuth, altitude):
