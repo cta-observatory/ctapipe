@@ -32,7 +32,7 @@ __all__ = [
 
 # Transformation between nominal and AltAz system
 
-def nominal_to_altaz(norm_coord):
+def nominal_to_horizon(norm_coord):
     """
     Transformation from nominal system to astropy AltAz system
 
@@ -63,7 +63,7 @@ def nominal_to_altaz(norm_coord):
     return HorizonFrame(altitude, azimuth)
 
 
-def altaz_to_nominal(altaz_coord):
+def horizon_to_nominal(altaz_coord):
     """
     Transformation from astropy AltAz system to nominal system
 
@@ -197,9 +197,9 @@ def telescope_to_camera(telescope_coord):
 
     focal_length = telescope_coord.focal_length
     # Remove distance units here as we are using small angle approx
-    x_rotated = x_rotated.to(u.rad) * (focal_length / u.m)
-    y_rotated = y_rotated.to(u.rad) * (focal_length / u.m)
-
+    x_rotated = x_rotated.to(u.rad).value * (focal_length)
+    y_rotated = y_rotated.to(u.rad).value * (focal_length)
+    print(x_rotated)
     return CameraFrame(x_rotated, y_rotated, **telescope_coord.copy_properties())
 
 
@@ -211,20 +211,24 @@ class AngularCoordinate(BaseCoordinate):
                              "NominalFrame","HorizonFrame"])
 
     transformations = np.array([camera_to_telescope, telescope_to_nominal,
-                                nominal_to_altaz])
+                                nominal_to_horizon])
     reverse_transformations = np.array([telescope_to_camera, nominal_to_telescope,
-                                        altaz_to_nominal])
+                                        horizon_to_nominal])
 
+    @u.quantity_input(focal_length=['length'], rotation=['angle'])
     def __init__(self, focal_length=None, telescope_pointing=None, array_pointing=None,
                  rotation=0 * u.deg):
         """
-
         Parameters
         ----------
-        focal_length
-        telescope_pointing
-        array_pointing
-        rotation
+        focal_length: ndarray
+            Focal length of telescope
+        telescope_pointing: HorizonFrame
+            Pointing direction of telescope
+        array_pointing: HorizonFrame
+            Pointing direction of array
+        rotation: ndarray
+            Rotation angle of camera in telescope
         """
         self.focal_length = focal_length
         self.telescope_pointing = telescope_pointing
@@ -240,43 +244,46 @@ class AngularCoordinate(BaseCoordinate):
 
     def copy_properties(self):
         """
+        Create a copy of the shared class parameters to share with other classes
 
         Returns
         -------
-
+        dict: Dictionary of shared class parameters
         """
         properties = self.properties
         return properties
 
 
-class CameraFrame(AngularCoordinate):
+class CameraFrame(AngularCoordinate, Cartesian2D):
     """Camera coordinate frame.  The camera frame is a simple physical
     cartesian frame, describing the 2 dimensional position of objects
     in the focal plane of the telescope Most Typically this will be
     used to describe the positions of the pixels in the focal plane
     """
-    def __init__(self, x, y, **kwargs):
+    @u.quantity_input(x=['length'], y=['length'])
+    def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 
         self.x = x
         self.y = y
 
 
-class TelescopeFrame(AngularCoordinate):
+class TelescopeFrame(AngularCoordinate, Cartesian2D):
     """Telescope coordinate frame.  Cartesian system to describe the
     angular offset of a given position in reference to pointing
     direction of a given telescope When pointing corrections become
     available they should be applied to the transformation between
     this frame and the camera frame
     """
-    def __init__(self, x, y, **kwargs):
+    @u.quantity_input(x=['angle'], y=['angle'])
+    def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 
         self.x = x
         self.y = y
 
 
-class NominalFrame(AngularCoordinate):
+class NominalFrame(AngularCoordinate, Cartesian2D):
     """Nominal coordinate frame.  Cartesian system to describe the angular
     offset of a given position in reference to pointing direction of a
     nominal array pointing position. In most cases this frame is the
@@ -284,14 +291,15 @@ class NominalFrame(AngularCoordinate):
     pointing they will differ.  Event reconstruction should be
     performed in this system
     """
-    def __init__(self, x, y, **kwargs):
+    @u.quantity_input(x=['angle'], y=['angle'])
+    def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 
         self.x = x
         self.y = y
 
 
-class HorizonFrame(AngularCoordinate):
+class HorizonFrame(AngularCoordinate, UnitSpherical):
     """Horizon coordinate frame. Spherical system used to describe the direction
     of a given position, in terms of the altitude and azimuth of the system. In
     practice this is functionally identical as the astropy AltAz system, but this
@@ -300,8 +308,10 @@ class HorizonFrame(AngularCoordinate):
     The Following attributes are carried over from the telescope frame
     to allow a direct transformation from the camera frame
    """
-    def __init__(self, alt, az, **kwargs):
+    @u.quantity_input(alt=['angle'], az=['angle'])
+    def __init__(self, alt=None, az=None, **kwargs):
         super().__init__(**kwargs)
 
         self.alt = alt
         self.az = az
+

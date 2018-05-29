@@ -1,10 +1,38 @@
 from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
 import numpy as np
+import astropy.units as u
 
 __all__ = [
     'horizon_to_offset',
-    'offset_to_horizon'
+    'offset_to_horizon',
+    'Cartesian2D', 'UnitSpherical'
 ]
+
+
+class Cartesian2D:
+
+    x, y = None, None
+
+    def separation(self, other):
+        return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2))
+
+
+class UnitSpherical:
+
+    theta, phi = None, None
+
+    def separation(self, other):
+        x_off, y_off = horizon_to_offset(self.phi, self.theta, other.phi, other.theta)
+        return np.sqrt(x_off**2 + y_off**2)
+
+
+class Cartesian3D:
+
+    x, y, z = None, None, None
+
+    def separation(self, other):
+        return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2) +
+                       np.power(self.z-other.z, 2))
 
 
 # Transformations defined below this point
@@ -111,10 +139,5 @@ def offset_to_horizon(x_off, y_off, azimuth, altitude):
 
     obj_altitude = obj_altitude * u.rad
     obj_azimuth = obj_azimuth * u.rad
-
-    # if obj_azimuth.value < 0.:
-    #    obj_azimuth += 2.*pi
-    # elif obj_azimuth.value >= (2.*pi ):
-    #    obj_azimuth -= 2.*pi
 
     return obj_altitude.to(unit), obj_azimuth.to(unit)
