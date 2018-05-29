@@ -11,31 +11,16 @@ read_hess code
 
 TODO:
 
-- Tests Tests Tests!
 - Check cartesian system is still accurate for the nominal and
   telescope systems (may need a spherical system)
 - Benchmark transformation time
-- should use `astropy.coordinates.Angle` for all angles here
 """
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame,
-                                 CartesianRepresentation,
-                                 UnitSphericalRepresentation,
-                                 FunctionTransform, RepresentationMapping)
-
-try:
-    # FrameAttribute was renamed Attribute in astropy 2.0
-    # TODO: should really use subclasses like QuantityAttribute
-    from astropy.coordinates import FrameAttribute as Attribute
-except ImportError:
-    from astropy.coordinates import Attribute
-
-from astropy.coordinates import frame_transform_graph
-from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
-from ctapipe.coordinates.representation import PlanarRepresentation
+from numpy import cos, sin
 from ctapipe.coordinates.coordinate_base import *
+from ctapipe.coordinates.utils import *
 
 __all__ = [
     'CameraFrame',
@@ -43,119 +28,6 @@ __all__ = [
     'NominalFrame',
     'HorizonFrame'
 ]
-
-
-# Transformations defined below this point
-def altaz_to_offset(obj_azimuth, obj_altitude, azimuth, altitude):
-    """
-    Function to convert a given altitude and azimuth to a cartesian angular
-    angular offset with regard to a give reference system
-    (This function is directly lifted from read_hess)
-
-    Parameters
-    ----------
-    obj_azimuth: float
-        Event azimuth (radians)
-    obj_altitude: float
-        Event altitude (radians)
-    azimuth: float
-        Reference system azimuth (radians)
-    altitude: float
-        Reference system altitude (radians)
-
-    Returns
-    -------
-    x_off,y_off: (float,float)
-        Offset of the event in the reference system (in radians)
-    """
-
-    diff_az = obj_azimuth - azimuth
-    cosine_obj_alt = cos(obj_altitude)
-
-    xp0 = -cos(diff_az) * cosine_obj_alt
-    yp0 = sin(diff_az) * cosine_obj_alt
-    zp0 = sin(obj_altitude)
-
-    sin_sys_alt = sin(altitude)
-    cos_sys_alt = cos(altitude)
-
-    xp1 = sin_sys_alt * xp0 + cos_sys_alt * zp0
-    yp1 = yp0
-    zp1 = -cos_sys_alt * xp0 + sin_sys_alt * zp0
-
-    disp = tan(arccos(zp1))
-    alpha = arctan2(yp1, xp1)
-
-    x_off = disp * cos(alpha)
-    y_off = disp * sin(alpha)
-
-    return x_off, y_off
-
-
-def offset_to_altaz(x_off, y_off, azimuth, altitude):
-    """Function to convert an angular offset with regard to a give
-    reference system to an an absolute altitude and azimuth (This
-    function is directly lifted from read_hess)
-
-    Parameters
-    ----------
-    x_off: float
-        X offset of the event in the reference system
-    y_off: float
-        Y offset of the event in the reference system
-    azimuth: float
-        Reference system azimuth (radians)
-    altitude: float
-        Reference system altitude (radians)
-
-    Returns
-    -------
-    obj_altitude,obj_azimuth: (float,float)
-        Absolute altitude and azimuth of the event
-    """
-
-    unit = azimuth.unit
-
-    x_off = x_off.to(u.rad).value
-    y_off = y_off.to(u.rad).value
-    azimuth = azimuth.to(u.rad).value
-    altitude = altitude.to(u.rad).value
-
-    offset = sqrt(x_off * x_off + y_off * y_off)
-    pos = np.where(offset == 0)  # find offset 0 positions
-    if len(pos[0]) > 0:
-        offset[pos] = 1e-12  # add a very small offset to prevent math errors
-
-    atan_off = arctan(offset)
-
-    sin_atan_off = sin(atan_off)
-    xp1 = x_off * (sin_atan_off / offset)
-    yp1 = y_off * (sin_atan_off / offset)
-    zp1 = cos(atan_off)
-
-    sin_obj_alt = sin(altitude)
-    cos_obj_alt = cos(altitude)
-
-    xp0 = sin_obj_alt * xp1 - cos_obj_alt * zp1
-    yp0 = yp1
-    zp0 = cos_obj_alt * xp1 + sin_obj_alt * zp1
-
-    obj_altitude = arcsin(zp0)
-    obj_azimuth = arctan2(yp0, -xp0) + azimuth
-
-    if len(pos[0]) > 0:
-        obj_altitude[pos] = altitude
-        obj_azimuth[pos] = azimuth
-
-    obj_altitude = obj_altitude * u.rad
-    obj_azimuth = obj_azimuth * u.rad
-
-    # if obj_azimuth.value < 0.:
-    #    obj_azimuth += 2.*pi
-    # elif obj_azimuth.value >= (2.*pi ):
-    #    obj_azimuth -= 2.*pi
-
-    return obj_altitude.to(unit), obj_azimuth.to(unit)
 
 
 # Transformation between nominal and AltAz system
@@ -168,8 +40,6 @@ def nominal_to_altaz(norm_coord):
     ----------
     norm_coord: `astropy.coordinates.SkyCoord`
         nominal system
-    altaz_coord: `astropy.coordinates.SkyCoord`
-        AltAz system
 
     Returns
     -------
@@ -188,7 +58,7 @@ def nominal_to_altaz(norm_coord):
         x_off = norm_coord.x
         y_off = norm_coord.y
 
-    altitude, azimuth = offset_to_altaz(x_off, y_off, az_norm, alt_norm)
+    altitude, azimuth = offset_to_horizon(x_off, y_off, az_norm, alt_norm)
 
     return HorizonFrame(altitude, azimuth)
 
@@ -201,8 +71,6 @@ def altaz_to_nominal(altaz_coord):
     ----------
     altaz_coord: `astropy.coordinates.SkyCoord`
         AltAz system
-    norm_coord: `astropy.coordinates.SkyCoord`
-        nominal system
 
     Returns
     -------
@@ -211,7 +79,7 @@ def altaz_to_nominal(altaz_coord):
     alt_norm, az_norm = altaz_coord.array_direction.alt, altaz_coord.array_direction.az
     azimuth = altaz_coord.az
     altitude = altaz_coord.alt
-    x_off, y_off = altaz_to_offset(azimuth, altitude, az_norm, alt_norm)
+    x_off, y_off = horizon_to_offset(azimuth, altitude, az_norm, alt_norm)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
@@ -228,8 +96,6 @@ def telescope_to_nominal(tel_coord):
     ----------
     tel_coord: `astropy.coordinates.SkyCoord`
         TelescopeFrame system
-    norm_frame: `astropy.coordinates.SkyCoord`
-        NominalFrame system
 
     Returns
     -------
@@ -237,10 +103,10 @@ def telescope_to_nominal(tel_coord):
     """
     alt_tel, az_tel = tel_coord.pointing_direction.alt, tel_coord.pointing_direction.az
     alt_norm, az_norm = tel_coord.array_direction.alt, tel_coord.array_direction.az
-    alt_trans, az_trans = offset_to_altaz(
+    alt_trans, az_trans = offset_to_horizon(
         tel_coord.x, tel_coord.y, az_tel, alt_tel)
 
-    x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_norm, alt_norm)
+    x_off, y_off = horizon_to_offset(az_trans, alt_trans, az_norm, alt_norm)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
@@ -255,8 +121,6 @@ def nominal_to_telescope(norm_coord):
     ----------
     norm_coord: `astropy.coordinates.SkyCoord`
         NominalFrame system
-    tel_frame: `astropy.coordinates.SkyCoord`
-        TelescopeFrame system
 
     Returns
     -------
@@ -266,9 +130,9 @@ def nominal_to_telescope(norm_coord):
     alt_tel, az_tel = norm_coord.pointing_direction.alt, norm_coord.pointing_direction.az
     alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
 
-    alt_trans, az_trans = offset_to_altaz(
+    alt_trans, az_trans = offset_to_horizon(
         norm_coord.x, norm_coord.y, az_norm, alt_norm)
-    x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_tel, alt_tel)
+    x_off, y_off = horizon_to_offset(az_trans, alt_trans, az_tel, alt_tel)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
@@ -284,8 +148,6 @@ def camera_to_telescope(camera_coord):
     ----------
     camera_coord: `astropy.coordinates.SkyCoord`
         CameraFrame system
-    telescope_frame: `astropy.coordinates.SkyCoord`
-        TelescopeFrame system
     Returns
     -------
     TelescopeFrame coordinate
@@ -317,9 +179,6 @@ def telescope_to_camera(telescope_coord):
     ----------
     telescope_coord: `astropy.coordinates.SkyCoord`
         TelescopeFrame system
-    camera_frame: `astropy.coordinates.SkyCoord`
-        CameraFrame system
-
     Returns
     -------
     CameraFrame Coordinates
@@ -345,7 +204,9 @@ def telescope_to_camera(telescope_coord):
 
 
 class AngularCoordinate(BaseCoordinate):
+    """
 
+    """
     system_order = np.array(["CameraFrame","TelescopeFrame",
                              "NominalFrame","HorizonFrame"])
 
@@ -356,7 +217,15 @@ class AngularCoordinate(BaseCoordinate):
 
     def __init__(self, focal_length=None, telescope_pointing=None, array_pointing=None,
                  rotation=0 * u.deg):
+        """
 
+        Parameters
+        ----------
+        focal_length
+        telescope_pointing
+        array_pointing
+        rotation
+        """
         self.focal_length = focal_length
         self.telescope_pointing = telescope_pointing
         self.array_pointing = array_pointing
@@ -370,7 +239,12 @@ class AngularCoordinate(BaseCoordinate):
         return
 
     def copy_properties(self):
+        """
 
+        Returns
+        -------
+
+        """
         properties = self.properties
         return properties
 
@@ -402,7 +276,7 @@ class TelescopeFrame(AngularCoordinate):
         self.y = y
 
 
-class NominalFrame(BaseCoordinateFrame):
+class NominalFrame(AngularCoordinate):
     """Nominal coordinate frame.  Cartesian system to describe the angular
     offset of a given position in reference to pointing direction of a
     nominal array pointing position. In most cases this frame is the
@@ -417,7 +291,7 @@ class NominalFrame(BaseCoordinateFrame):
         self.y = y
 
 
-class HorizonFrame(BaseCoordinateFrame):
+class HorizonFrame(AngularCoordinate):
     """Horizon coordinate frame. Spherical system used to describe the direction
     of a given position, in terms of the altitude and azimuth of the system. In
     practice this is functionally identical as the astropy AltAz system, but this
