@@ -35,6 +35,7 @@ class BaseCoordinate:
         list: Path of function calls required to get to new system
         """
         path_start = np.where(self.system_order == self.__class__.__name__)[0][0]
+
         if not isinstance(new_system, str):
             new_system = new_system.__class__.__name__
         path_end = np.where(self.system_order == new_system)[0][0]

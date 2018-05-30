@@ -214,7 +214,6 @@ class AngularCoordinate(BaseCoordinate):
     reverse_transformations = np.array([telescope_to_camera, nominal_to_telescope,
                                         horizon_to_nominal])
 
-    @u.quantity_input(focal_length=['length'], rotation=['angle'])
     def __init__(self, focal_length=None, telescope_pointing=None, array_pointing=None,
                  rotation=0 * u.deg):
         """
@@ -260,7 +259,6 @@ class CameraFrame(AngularCoordinate, Cartesian2D):
     used to describe the positions of the pixels in the focal plane
     """
 
-    @u.quantity_input(x=['length'], y=['length'])
     def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 
@@ -276,7 +274,6 @@ class TelescopeFrame(AngularCoordinate, Cartesian2D):
     this frame and the camera frame
     """
 
-    @u.quantity_input(x=['angle'], y=['angle'])
     def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 
@@ -293,7 +290,6 @@ class NominalFrame(AngularCoordinate, Cartesian2D):
     performed in this system
     """
 
-    @u.quantity_input(x=['angle'], y=['angle'])
     def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 
@@ -311,7 +307,6 @@ class HorizonFrame(AngularCoordinate, UnitSpherical):
     to allow a direct transformation from the camera frame
    """
 
-    @u.quantity_input(alt=['angle'], az=['angle'])
     def __init__(self, alt=None, az=None, **kwargs):
         super().__init__(**kwargs)
 

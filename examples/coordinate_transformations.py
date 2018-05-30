@@ -54,8 +54,8 @@ def cam_to_nom():
     nom_coord = camera_coord.transform_to("NominalFrame")
     alt_az = camera_coord.transform_to("HorizonFrame")
 
-    print("Nominal Coordinate", nom_coord)
-    print("AltAz coordinate", alt_az)
+    #print("Nominal Coordinate", nom_coord)
+    #print("AltAz coordinate", alt_az)
 
 
 # Once we are at the nominal system where most reconstruction will be done we
@@ -86,7 +86,10 @@ def grd_to_tilt():
 
 
 if __name__ == '__main__':
+    from timeit import timeit
+
     cam_to_tel()
-    cam_to_nom()
+
+    print(timeit(cam_to_nom, number=10)/10)
     nominal_to_altaz()
     grd_to_tilt()
