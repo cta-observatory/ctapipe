@@ -1,9 +1,9 @@
-import numpy as np
 import astropy.units as u
+import numpy as np
 
 
 def test_cam_to_tel():
-    from ctapipe.coordinates import CameraFrame, TelescopeFrame
+    from ctapipe.coordinates import CameraFrame
 
     # Coordinates in any fram can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
@@ -45,7 +45,7 @@ def test_ground_to_tilt():
     tilt_coord = grd_coord.transform_to(
         TiltedGroundFrame()
     )
-    #assert tilt_coord.separation(grd_coord) == 0 * u.m
+    # assert tilt_coord.separation(grd_coord) == 0 * u.m
 
     # Check 180 degree rotation reverses y coordinate
     pointing_direction = HorizonFrame(alt=90 * u.deg, az=180 * u.deg)

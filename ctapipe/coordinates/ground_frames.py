@@ -16,13 +16,9 @@ TODO:
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame,
-                                 CartesianRepresentation,
-                                 FunctionTransform)
+
 from ctapipe.coordinates.coordinate_base import *
 from ctapipe.coordinates.utils import *
-
-from numpy import cos, sin
 
 __all__ = [
     'GroundFrame',
@@ -176,7 +172,8 @@ class GroundFrame(GroundCoordinate, Cartesian3D):
     centre of the array.  Typically this frame will be used for
     describing the position on telescopes and equipment
     """
-    def __init__(self, x=None, y=None, z=None,  **kwargs):
+
+    def __init__(self, x=None, y=None, z=None, **kwargs):
         super().__init__(**kwargs)
 
         self.x = x
@@ -193,6 +190,7 @@ class TiltedGroundFrame(GroundCoordinate, Cartesian2D):
     pointing_direction Typically this frame will be used for the
     reconstruction of the shower core position
     """
+
     def __init__(self, x=None, y=None, **kwargs):
         super().__init__(**kwargs)
 

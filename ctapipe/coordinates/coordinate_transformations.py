@@ -1,10 +1,7 @@
-import os
-
 import numpy as np
-from astropy.utils.decorators import deprecated
 from astropy import units as u
+from astropy.utils.decorators import deprecated
 
-from ctapipe import utils
 from ctapipe.utils import linalg
 
 

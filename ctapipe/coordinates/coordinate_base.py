@@ -65,5 +65,3 @@ class BaseCoordinate:
             frame = step(self)
 
         return frame
-
-
