@@ -451,13 +451,13 @@ class LSTServiceContainer(Container):
 
     # Data from the CameraConfig table
     telescope_id = Field(-1, "telescope id")
-    cs_serial=Field(None, "serial number of the camera server")
+    cs_serial = Field(None, "serial number of the camera server")
     configuration_id = Field(None, "id of the CameraConfiguration")
-    date= Field(None, "NTP start of run date")
+    date = Field(None, "NTP start of run date")
     num_pixels = Field(-1, "number of pixels")
-    num_samples= Field(-1, "num samples")
-    pixel_ids=Field([],"id of the pixels in the waveform array")
-    data_model_version=Field(None,"data model version")
+    num_samples = Field(-1, "num samples")
+    pixel_ids = Field([],"id of the pixels in the waveform array")
+    data_model_version = Field(None,"data model version")
 
     idaq_version = Field(0o0, "idaq version")
     cdhs_version = Field(0o0, "cdhs version")
@@ -473,10 +473,10 @@ class LSTEventContainer(Container):
     """
 
     # Data from the CameraEvent table
-    configuration_id = Field(None,"id of the CameraConfiguration")
-    event_id=Field(None,"local id of the event")
+    configuration_id = Field(None, "id of the CameraConfiguration")
+    event_id = Field(None, "local id of the event")
     tel_event_id = Field(None, "global id of the event")
-    pixel_status = Field([],"status of the pixels")
+    pixel_status = Field([], "status of the pixels")
     ped_id = Field(None, "tel_event_id of the event used for pedestal substraction")
     module_status = Field([], "status of the modules")
     extdevices_presence = Field(None, "presence of data for external devices")

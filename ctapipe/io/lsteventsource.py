@@ -36,7 +36,7 @@ class LSTEventSource(EventSource):
             data.count = count
 
             # fill specific LST event data
-            self.fill_LSTEventContainer_from_zfile( data.lst, event)
+            self.fill_LSTEventContainer_from_zfile(data.lst, event)
 
             # fill general R0 data
             self.fill_R0Container_from_zfile(data.r0, event)
@@ -73,7 +73,7 @@ class LSTEventSource(EventSource):
         is_lst_file = 'lstcam_counters' in ttypes
         return is_protobuf_zfits_file & is_lst_file
 
-    def fill_LSTServiceContainer_from_zfile(self, container,camera_config):
+    def fill_LSTServiceContainer_from_zfile(self, container, camera_config):
 
         container.tels_with_data = [camera_config.telescope_id, ]
 
@@ -97,21 +97,21 @@ class LSTEventSource(EventSource):
 
 
 
-    def fill_LSTEventContainer_from_zfile(self,container, event):
+    def fill_LSTEventContainer_from_zfile(self, container, event):
 
         event_container = container.tel[self.camera_config.telescope_id].evt
 
-        event_container.configuration_id=event.configuration_id
-        event_container.event_id=event.event_id
-        event_container.tel_event_id=event.tel_event_id
+        event_container.configuration_id = event.configuration_id
+        event_container.event_id = event.event_id
+        event_container.tel_event_id = event.tel_event_id
         event_container.pixel_status = event.pixel_status
         event_container.ped_id = event.ped_id
         event_container.module_status = event.lstcam.module_status
         event_container.extdevices_presence = event.lstcam.extdevices_presence
-        event_container.tib_data=event.lstcam.tib_data
-        event_container.cdts_data=event.lstcam.cdts_data
-        event_container.swat_data=event.lstcam.swat_data
-        event_container.counters=event.lstcam.counters
+        event_container.tib_data = event.lstcam.tib_data
+        event_container.cdts_data = event.lstcam.cdts_data
+        event_container.swat_data = event.lstcam.swat_data
+        event_container.counters = event.lstcam.counters
         event_container.chips_flags = event.lstcam.chips_flags
         event_container.first_capacitor_id = event.lstcam.first_capacitor_id
         event_container.drs_tag_status = event.lstcam.drs_tag_status
