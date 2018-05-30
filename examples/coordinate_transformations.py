@@ -18,9 +18,10 @@ def cam_to_tel():
 
     # Coordinates in any fram can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
-    pix = [np.ones(2048), np.ones(2048), np.zeros(2048)] * u.m
+    #pix = [np.ones(2048), np.ones(2048), np.zeros(2048)] * u.m
     # first define the camera frame
-    camera_coord = CameraFrame(pix, focal_length=15 * u.m, rotation=0 * u.deg)
+    camera_coord = CameraFrame(np.ones(2048) * u.m, np.ones(2048) * u.m,
+                               focal_length=15 * u.m, rotation=0 * u.deg)
 
     # then use transform to function to convert to a new system making sure
     # to give the required values for the conversion (these are not checked
@@ -37,27 +38,21 @@ def cam_to_tel():
 
     # We can easily check the distance between 2 coordinates in the same frame
     # In this case they should be the same
-    print("Separation", np.sum(camera_coord.separation_3d(camera_coord2)))
+    print("Separation", np.sum(camera_coord.separation(camera_coord2)))
 
 
 # The astropy system is clever enough to transform through several intermediate
 # steps to get to the sytem you want (provided it has sufficient information)
 def cam_to_nom():
-    pix = [np.ones(2048), np.ones(2048), np.zeros(2048)] * u.m
-    camera_coord = CameraFrame(pix, focal_length=15 * u.m)
+    camera_coord = CameraFrame(np.ones(2048) * u.m, np.ones(2048) * u.m,
+                               focal_length=15 * u.m,
+                               telescope_pointing=HorizonFrame(alt=70 * u.deg,
+                                                               az=180 * u.deg),
+                               array_pointing=HorizonFrame(alt=75 * u.deg,
+                                                            az=180 * u.deg))
     # In this case we bypass the telescope system
-    nom_coord = camera_coord.transform_to(
-        NominalFrame(
-            pointing_direction=HorizonFrame(alt=70 * u.deg, az=180 * u.deg),
-            array_direction=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
-        )
-    )
-    alt_az = camera_coord.transform_to(
-        HorizonFrame(
-            pointing_direction=HorizonFrame(alt=70 * u.deg, az=180 * u.deg),
-            array_direction=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
-        )
-    )
+    nom_coord = camera_coord.transform_to("NominalFrame")
+    alt_az = camera_coord.transform_to("HorizonFrame")
 
     print("Nominal Coordinate", nom_coord)
     print("AltAz coordinate", alt_az)
@@ -71,9 +66,9 @@ def nominal_to_altaz():
     nom = NominalFrame(
         x=t * u.deg,
         y=t * u.deg,
-        array_direction=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
+        array_pointing=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
     )
-    alt_az = nom.transform_to(HorizonFrame)
+    alt_az = nom.transform_to(HorizonFrame())
     print("AltAz Coordinate", alt_az)
     # Provided we know when and where the AltAz was measured we can them
     # convert this to any astronomical
@@ -82,13 +77,11 @@ def nominal_to_altaz():
 # We also have the ground and tilted ground systems needed for core
 # reconstruction
 def grd_to_tilt():
-    grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m)
-    tilt_coord = grd_coord.transform_to(
-        TiltedGroundFrame(
-            pointing_direction=HorizonFrame(alt=90 * u.deg, az=180 * u.deg)
-        )
-    )
-    print(project_to_ground(tilt_coord))
+    grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m,
+                            pointing_direction=HorizonFrame(alt=90 * u.deg,
+                                                            az=180 * u.deg))
+    print(TiltedGroundFrame.__class__)
+    tilt_coord = grd_coord.transform_to(TiltedGroundFrame())
     print("Tilted Coordinate", tilt_coord)
 
 

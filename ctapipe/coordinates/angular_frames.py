@@ -44,7 +44,7 @@ def nominal_to_horizon(norm_coord):
     -------
     AltAz Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
+    alt_norm, az_norm = norm_coord.array_pointing.alt, norm_coord.array_pointing.az
 
     if type(norm_coord.x.value).__module__ != np.__name__:
         x_off = np.zeros(1)
@@ -75,7 +75,7 @@ def horizon_to_nominal(altaz_coord):
     -------
     nominal Coordinates
     """
-    alt_norm, az_norm = altaz_coord.array_direction.alt, altaz_coord.array_direction.az
+    alt_norm, az_norm = altaz_coord.array_pointing.alt, altaz_coord.array_pointing.az
     azimuth = altaz_coord.az
     altitude = altaz_coord.alt
     x_off, y_off = horizon_to_offset(azimuth, altitude, az_norm, alt_norm)
@@ -100,8 +100,8 @@ def telescope_to_nominal(tel_coord):
     -------
     NominalFrame coordinates
     """
-    alt_tel, az_tel = tel_coord.pointing_direction.alt, tel_coord.pointing_direction.az
-    alt_norm, az_norm = tel_coord.array_direction.alt, tel_coord.array_direction.az
+    alt_tel, az_tel = tel_coord.telescope_pointing.alt, tel_coord.telescope_pointing.az
+    alt_norm, az_norm = tel_coord.array_pointing.alt, tel_coord.array_pointing.az
     alt_trans, az_trans = offset_to_horizon(
         tel_coord.x, tel_coord.y, az_tel, alt_tel)
 
@@ -126,8 +126,8 @@ def nominal_to_telescope(norm_coord):
     TelescopeFrame coordinates
 
     """
-    alt_tel, az_tel = norm_coord.pointing_direction.alt, norm_coord.pointing_direction.az
-    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
+    alt_tel, az_tel = norm_coord.telescope_pointing.alt, norm_coord.telescope_pointing.az
+    alt_norm, az_norm = norm_coord.array_pointing.alt, norm_coord.array_pointing.az
 
     alt_trans, az_trans = offset_to_horizon(
         norm_coord.x, norm_coord.y, az_norm, alt_norm)

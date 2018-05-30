@@ -62,6 +62,6 @@ class BaseCoordinate:
         transform_path = self._find_path(new_system)
         frame = self
         for step in transform_path:
-            frame = step(self)
+            frame = step(frame)
 
         return frame
