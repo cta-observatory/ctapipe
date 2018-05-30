@@ -1,8 +1,6 @@
 """This module defines the important coordinate systems to be used in
 reconstruction with the CTA pipeline and the transformations between
-this different systems. Frames and transformations are defined using
-the astropy.coordinates framework. This module contains transformations
-between angular systems.
+this different systems.
 
 For examples on usage see examples/coordinate_transformations.py
 
