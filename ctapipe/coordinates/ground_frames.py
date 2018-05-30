@@ -19,18 +19,10 @@ import numpy as np
 from astropy.coordinates import (BaseCoordinateFrame,
                                  CartesianRepresentation,
                                  FunctionTransform)
+from ctapipe.coordinates.coordinate_base import *
+from ctapipe.coordinates.utils import *
 
-try:
-    # FrameAttribute was renamed Attribute in astropy 2.0
-    # TODO: should really use subclasses like QuantityAttribute
-    from astropy.coordinates import FrameAttribute as Attribute
-except ImportError:
-    from astropy.coordinates import Attribute
-
-
-from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
-from ..coordinates.representation import PlanarRepresentation
 
 __all__ = [
     'GroundFrame',
@@ -39,87 +31,7 @@ __all__ = [
 ]
 
 
-class GroundFrame(BaseCoordinateFrame):
-    """Ground coordinate frame.  The ground coordinate frame is a simple
-    cartesian frame describing the 3 dimensional position of objects
-    compared to the array ground level in relation to the nomial
-    centre of the array.  Typically this frame will be used for
-    describing the position on telescopes and equipment
-
-    Frame attributes: None
-
-    """
-    default_representation = CartesianRepresentation
-    # Pointing direction of the tilted system (alt,az),
-    # could be the telescope pointing direction or the reconstructed shower
-    # direction
-    pointing_direction = Attribute(default=None)
-
-
-class TiltedGroundFrame(BaseCoordinateFrame):
-    """Tilted ground coordinate frame.  The tilted ground coordinate frame
-    is a cartesian system describing the 2 dimensional projected
-    positions of objects in a tilted plane described by
-    pointing_direction Typically this frame will be used for the
-    reconstruction of the shower core position
-
-    Frame attributes:
-    
-    * ``pointing_direction``
-        Alt,Az direction of the tilted reference plane
-
-    """
-    default_representation = PlanarRepresentation
-    # Pointing direction of the tilted system (alt,az),
-    # could be the telescope pointing direction or the reconstructed shower
-    # direction
-    pointing_direction = Attribute(default=None)
-
-# Transformations defined below this point
-
-
-def get_shower_trans_matrix(azimuth, altitude):
-    """Get Transformation matrix for conversion from the ground system to
-    the Tilted system and back again (This function is directly lifted
-    from read_hess, probably could be streamlined using python
-    functionality)
-
-    Parameters
-    ----------
-    azimuth: float
-        Azimuth angle of the tilted system used
-    altitude: float
-        Altitude angle of the tilted system used
-
-    Returns
-    -------
-    trans: 3x3 ndarray transformation matrix
-    """
-
-    cos_z = sin(altitude)
-    sin_z = cos(altitude)
-    cos_az = cos(azimuth)
-    sin_az = sin(azimuth)
-
-    trans = np.zeros([3, 3])
-    trans[0][0] = cos_z * cos_az
-    trans[1][0] = sin_az
-    trans[2][0] = sin_z * cos_az
-
-    trans[0][1] = -cos_z * sin_az
-    trans[1][1] = cos_az
-    trans[2][1] = -sin_z * sin_az
-
-    trans[0][2] = -sin_z
-    trans[1][2] = 0.
-    trans[2][2] = cos_z
-
-    return trans
-
-
-@frame_transform_graph.transform(FunctionTransform, GroundFrame,
-                                 TiltedGroundFrame)
-def ground_to_tilted(ground_coord, tilted_coord):
+def ground_to_tilted(ground_coord):
     """
     Transformation from ground system to tilted ground system
 
@@ -134,26 +46,22 @@ def ground_to_tilted(ground_coord, tilted_coord):
     -------
     TiltedGroundFrame coordinates
     """
-    x_grd = ground_coord.cartesian.x
-    y_grd = ground_coord.cartesian.y
-    z_grd = ground_coord.cartesian.z
+    x_grd = ground_coord.x
+    y_grd = ground_coord.y
+    z_grd = ground_coord.z
 
-    altitude, azimuth = tilted_coord.pointing_direction.alt, tilted_coord.pointing_direction.az
+    altitude, azimuth = ground_coord.pointing_direction.alt, \
+                        ground_coord.pointing_direction.az
     altitude = altitude.to(u.rad)
     azimuth = azimuth.to(u.rad)
     trans = get_shower_trans_matrix(azimuth, altitude)
 
     x_tilt = trans[0][0] * x_grd + trans[0][1] * y_grd + trans[0][2] * z_grd
     y_tilt = trans[1][0] * x_grd + trans[1][1] * y_grd + trans[1][2] * z_grd
-
-    representation = PlanarRepresentation(x_tilt, y_tilt)
-
-    return tilted_coord.realize_frame(representation)
+    return TiltedGroundFrame(x_tilt, y_tilt, **ground_coord.copy_properties())
 
 
-@frame_transform_graph.transform(FunctionTransform, TiltedGroundFrame,
-                                 GroundFrame)
-def tilted_to_ground(tilted_coord, ground_coord):
+def tilted_to_ground(tilted_coord):
     """
     Transformation from tilted ground system to  ground system
 
@@ -171,7 +79,8 @@ def tilted_to_ground(tilted_coord, ground_coord):
     x_tilt = tilted_coord.x
     y_tilt = tilted_coord.y
 
-    altitude, azimuth = tilted_coord.pointing_direction.alt, tilted_coord.pointing_direction.az
+    altitude, azimuth = tilted_coord.pointing_direction.alt, \
+                        tilted_coord.pointing_direction.az
     altitude = altitude.to(u.rad)
     azimuth = azimuth.to(u.rad)
 
@@ -181,10 +90,7 @@ def tilted_to_ground(tilted_coord, ground_coord):
     y_grd = trans[0][1] * x_tilt + trans[1][1] * y_tilt
     z_grd = trans[0][2] * x_tilt + trans[1][2] * y_tilt
 
-    representation = CartesianRepresentation(x_grd, y_grd, z_grd)
-
-    grd = ground_coord.realize_frame(representation)
-    return grd
+    return GroundFrame(x_grd, y_grd, z_grd, **tilted_coord.copy_properties())
 
 
 def project_to_ground(tilt_system):
@@ -218,3 +124,79 @@ def project_to_ground(tilt_system):
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]
 
     return GroundFrame(x=x_projected * unit, y=y_projected * unit, z=0 * unit)
+
+
+class GroundCoordinate(BaseCoordinate):
+    """
+
+    """
+    system_order = np.array(["GroundFrame", "TiltedGroundFrame"])
+
+    transformations = np.array([ground_to_tilted])
+    reverse_transformations = np.array([project_to_ground])
+
+    def __init__(self, pointing_direction=None):
+        """
+        Parameters
+        ----------
+        focal_length: ndarray
+            Focal length of telescope
+        telescope_pointing: HorizonFrame
+            Pointing direction of telescope
+        array_pointing: HorizonFrame
+            Pointing direction of array
+        rotation: ndarray
+            Rotation angle of camera in telescope
+        """
+        self.pointing_direction = pointing_direction
+
+        prop_dict = dict()
+        for key in self.__dict__:
+            prop_dict[key] = self.__dict__[key]
+        self.properties = prop_dict
+
+        return
+
+    def copy_properties(self):
+        """
+        Create a copy of the shared class parameters to share with other classes
+
+        Returns
+        -------
+        dict: Dictionary of shared class parameters
+        """
+        properties = self.properties
+        return properties
+
+
+class GroundFrame(GroundCoordinate, Cartesian3D):
+    """Ground coordinate frame.  The ground coordinate frame is a simple
+    cartesian frame describing the 3 dimensional position of objects
+    compared to the array ground level in relation to the nomial
+    centre of the array.  Typically this frame will be used for
+    describing the position on telescopes and equipment
+    """
+    def __init__(self, x=None, y=None, z=None,  **kwargs):
+        super().__init__(**kwargs)
+
+        self.x = x
+        self.y = y
+        self.z = z
+
+        return
+
+
+class TiltedGroundFrame(GroundCoordinate, Cartesian2D):
+    """Tilted ground coordinate frame.  The tilted ground coordinate frame
+    is a cartesian system describing the 2 dimensional projected
+    positions of objects in a tilted plane described by
+    pointing_direction Typically this frame will be used for the
+    reconstruction of the shower core position
+    """
+    def __init__(self, x=None, y=None, **kwargs):
+        super().__init__(**kwargs)
+
+        self.x = x
+        self.y = y
+
+        return

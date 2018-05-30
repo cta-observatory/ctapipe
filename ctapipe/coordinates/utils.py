@@ -5,7 +5,8 @@ import astropy.units as u
 __all__ = [
     'horizon_to_offset',
     'offset_to_horizon',
-    'Cartesian2D', 'UnitSpherical'
+    'get_shower_trans_matrix',
+    'Cartesian2D', 'Cartesian3D', 'UnitSpherical'
 ]
 
 
@@ -18,7 +19,7 @@ class Cartesian2D:
             return np.sqrt(np.power(self.x-other.x, 2) + np.power(self.y-other.y, 2))
         else:
             raise TypeError("Cannot compute separation between different frame types "
-                            +type(self)+" "+type(other))
+                            +str(type(self))+" "+str(type(other)))
 
 
 class UnitSpherical:
@@ -31,7 +32,7 @@ class UnitSpherical:
             return np.sqrt(x_off**2 + y_off**2)
         else:
             raise TypeError("Cannot compute separation between different frame types "
-                            +type(self)+" "+type(other))
+                            +str(type(self))+" "+str(type(other)))
 
 
 class Cartesian3D:
@@ -44,7 +45,7 @@ class Cartesian3D:
                            np.power(self.z-other.z, 2))
         else:
             raise TypeError("Cannot compute separation between different frame types "
-                            +type(self)+" "+type(other))
+                            +str(type(self))+" "+str(type(other)))
 
 # Transformations defined below this point
 def horizon_to_offset(obj_azimuth, obj_altitude, azimuth, altitude):
@@ -152,3 +153,42 @@ def offset_to_horizon(x_off, y_off, azimuth, altitude):
     obj_azimuth = obj_azimuth * u.rad
 
     return obj_altitude.to(unit), obj_azimuth.to(unit)
+
+
+def get_shower_trans_matrix(azimuth, altitude):
+    """Get Transformation matrix for conversion from the ground system to
+    the Tilted system and back again (This function is directly lifted
+    from read_hess, probably could be streamlined using python
+    functionality)
+
+    Parameters
+    ----------
+    azimuth: float
+        Azimuth angle of the tilted system used
+    altitude: float
+        Altitude angle of the tilted system used
+
+    Returns
+    -------
+    trans: 3x3 ndarray transformation matrix
+    """
+
+    cos_z = sin(altitude)
+    sin_z = cos(altitude)
+    cos_az = cos(azimuth)
+    sin_az = sin(azimuth)
+
+    trans = np.zeros([3, 3])
+    trans[0][0] = cos_z * cos_az
+    trans[1][0] = sin_az
+    trans[2][0] = sin_z * cos_az
+
+    trans[0][1] = -cos_z * sin_az
+    trans[1][1] = cos_az
+    trans[2][1] = -sin_z * sin_az
+
+    trans[0][2] = -sin_z
+    trans[1][2] = 0.
+    trans[2][2] = cos_z
+
+    return trans
