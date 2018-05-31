@@ -520,15 +520,6 @@ class LSTDataContainer(DataContainer):
     lst = Field(LSTContainer(), "LST specific Information")
 
 
-
-class TargetIOCameraContainer(Container):
-    """
-    Container for Fields that are specific to cameras that use TARGET
-    """
-    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
-                                  "waveform in the camera image (n_pixels)"))
-
-
 class TargetIOCameraContainer(Container):
     """
     Container for Fields that are specific to cameras that use TARGET
