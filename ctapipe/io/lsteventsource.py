@@ -79,13 +79,13 @@ class LSTEventSource(EventSource):
 
         svc_container = container.tel[camera_config.telescope_id].svc
 
-        svc_container.telescope_id=camera_config.telescope_id
+        svc_container.telescope_id = camera_config.telescope_id
         svc_container.cs_serial=camera_config.cs_serial
-        svc_container.configuration_id=camera_config.configuration_id
-        svc_container.date=camera_config.date
+        svc_container.configuration_id = camera_config.configuration_id
+        svc_container.date = camera_config.date
         svc_container.num_pixels = camera_config.num_pixels
-        svc_container.num_samples=camera_config.num_samples
-        svc_container.pixel_ids=camera_config.expected_pixels_id
+        svc_container.num_samples = camera_config.num_samples
+        svc_container.pixel_ids = camera_config.expected_pixels_id
         svc_container.data_model_version= camera_config.data_model_version
 
         svc_container.num_modules = camera_config.lstcam.num_modules

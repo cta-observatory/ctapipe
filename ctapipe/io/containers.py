@@ -456,15 +456,15 @@ class LSTServiceContainer(Container):
     date = Field(None, "NTP start of run date")
     num_pixels = Field(-1, "number of pixels")
     num_samples = Field(-1, "num samples")
-    pixel_ids = Field([],"id of the pixels in the waveform array")
-    data_model_version = Field(None,"data model version")
+    pixel_ids = Field([], "id of the pixels in the waveform array")
+    data_model_version = Field(None, "data model version")
 
     idaq_version = Field(0o0, "idaq version")
     cdhs_version = Field(0o0, "cdhs version")
     algorithms = Field(None, "algorithms")
     pre_proc_algorithms = Field(None, "pre processing algorithms")
     module_ids = Field([], "module ids")
-    num_modules= Field(-1, "number of modules")
+    num_modules = Field(-1, "number of modules")
 
 
 class LSTEventContainer(Container):
