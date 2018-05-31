@@ -88,7 +88,7 @@ class ImPACTReconstructor(Reconstructor):
     ped_table = {"LSTCam": 2.8,
                  "NectarCam": 2.3,
                  "FlashCam": 2.3,
-                 "CHEC": 0.8}
+                 "CHEC": 0.3}
     spe = 0.5  # Also hard code single p.e. distribution width
 
     def __init__(self, root_dir=".", minimiser="minuit", prior=""):
@@ -99,8 +99,8 @@ class ImPACTReconstructor(Reconstructor):
         self.priors = prior
         self.minimiser_name = minimiser
 
-        self.file_names = {"CHEC": "GCT.template.gz", "LSTCam": "LST_1deg.template.gz",
-                           "NectarCam": "MST_1deg.template.gz",
+        self.file_names = {"CHEC": "GCT.template.gz", "LSTCam": "LST_05deg.template.gz",
+                           "NectarCam": "MST_05deg.template.gz",
                            "FlashCam": "MST_xm_full.fits"}
 
         # We also need a conversion function from height above ground to
@@ -595,7 +595,7 @@ class ImPACTReconstructor(Reconstructor):
 
         # Take the seed from Hillas-based reconstruction
         seed = (source_x[0], source_y[0], tilt_x,
-                tilt_y, en_seed.value, 1)
+                tilt_y, en_seed.value, 1.)
 
         # Take a reasonable first guess at step size
         step = [0.04/57.3, 0.04/57.3, 5, 5, en_seed.value * 0.1, 0.05]
@@ -698,7 +698,7 @@ class ImPACTReconstructor(Reconstructor):
 
 
             self.min.tol *= 1000
-            self.min.set_strategy(1)
+            self.min.set_strategy(0)
 
             migrad = self.min.migrad()
             fit_params = self.min.values
