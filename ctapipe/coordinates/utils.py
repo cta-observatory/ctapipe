@@ -114,12 +114,10 @@ def offset_to_horizon(x_off, y_off, azimuth, altitude):
         Absolute altitude and azimuth of the event
     """
 
-    unit = azimuth.unit
-
-    x_off = x_off.to(u.rad).value
-    y_off = y_off.to(u.rad).value
-    azimuth = azimuth.to(u.rad).value
-    altitude = altitude.to(u.rad).value
+    x_off = x_off
+    y_off = y_off
+    azimuth = azimuth
+    altitude = altitude
 
     offset = sqrt(x_off * x_off + y_off * y_off)
     pos = np.where(offset == 0)  # find offset 0 positions
@@ -147,10 +145,10 @@ def offset_to_horizon(x_off, y_off, azimuth, altitude):
         obj_altitude[pos] = altitude
         obj_azimuth[pos] = azimuth
 
-    obj_altitude = obj_altitude * u.rad
-    obj_azimuth = obj_azimuth * u.rad
+    obj_altitude = obj_altitude
+    obj_azimuth = obj_azimuth
 
-    return obj_altitude.to(unit), obj_azimuth.to(unit)
+    return obj_altitude, obj_azimuth
 
 
 def get_shower_trans_matrix(azimuth, altitude):

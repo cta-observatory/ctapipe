@@ -33,7 +33,7 @@ def cam_to_tel():
 
     # Transforming back is then easy
     camera_coord2 = telescope_coord.transform_to(
-        CameraFrame(focal_length=15 * u.m, rotation=0 * u.deg)
+        "CameraFrame"
     )
 
     # We can easily check the distance between 2 coordinates in the same frame
@@ -51,7 +51,7 @@ def cam_to_nom():
                                array_pointing=HorizonFrame(alt=75 * u.deg,
                                                             az=180 * u.deg))
     # In this case we bypass the telescope system
-    nom_coord = camera_coord.transform_to("NominalFrame")
+    #nom_coord = camera_coord.transform_to("NominalFrame")
     alt_az = camera_coord.transform_to("HorizonFrame")
 
     #print("Nominal Coordinate", nom_coord)
@@ -90,6 +90,6 @@ if __name__ == '__main__':
 
     cam_to_tel()
 
-    print(timeit(cam_to_nom, number=10)/10)
+    print(timeit(cam_to_nom, number=100)/100)
     nominal_to_altaz()
     grd_to_tilt()

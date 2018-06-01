@@ -44,22 +44,21 @@ def nominal_to_horizon(norm_coord):
     -------
     AltAz Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_pointing.alt, norm_coord.array_pointing.az
+    alt_norm, az_norm = norm_coord.array_pointing.alt.to(u.rad).value, \
+                        norm_coord.array_pointing.az.to(u.rad).value
 
     if type(norm_coord.x.value).__module__ != np.__name__:
         x_off = np.zeros(1)
-        x_off[0] = norm_coord.x.value
-        x_off = x_off * norm_coord.x.unit
+        x_off[0] = norm_coord.x.to(u.rad).value
         y_off = np.zeros(1)
-        y_off[0] = norm_coord.y.value
-        y_off = y_off * norm_coord.y.unit
+        y_off[0] = norm_coord.y.to(u.rad).value
     else:
-        x_off = norm_coord.x
-        y_off = norm_coord.y
+        x_off = norm_coord.x.to(u.rad).value
+        y_off = norm_coord.y.to(u.rad).value
 
     altitude, azimuth = offset_to_horizon(x_off, y_off, az_norm, alt_norm)
 
-    return HorizonFrame(altitude, azimuth)
+    return HorizonFrame(altitude * u.rad, azimuth * u.rad)
 
 
 def horizon_to_nominal(altaz_coord):
@@ -75,14 +74,14 @@ def horizon_to_nominal(altaz_coord):
     -------
     nominal Coordinates
     """
-    alt_norm, az_norm = altaz_coord.array_pointing.alt, altaz_coord.array_pointing.az
-    azimuth = altaz_coord.az
-    altitude = altaz_coord.alt
-    x_off, y_off = horizon_to_offset(azimuth, altitude, az_norm, alt_norm)
-    x_off = x_off * u.rad
-    y_off = y_off * u.rad
+    alt_norm, az_norm = altaz_coord.array_pointing.alt.to(u.rad).value, \
+                        altaz_coord.array_pointing.az.to(u.rad).value
+    azimuth = altaz_coord.az.to(u.rad).value
+    altitude = altaz_coord.alt.to(u.rad).value
 
-    return NominalFrame(x_off, y_off, **altaz_coord.copy_properties())
+    x_off, y_off = horizon_to_offset(azimuth, altitude, az_norm, alt_norm)
+
+    return NominalFrame(x_off * u.rad, y_off * u.rad, **altaz_coord.copy_properties())
 
 
 # Transformation between telescope and nominal frames
@@ -100,16 +99,17 @@ def telescope_to_nominal(tel_coord):
     -------
     NominalFrame coordinates
     """
-    alt_tel, az_tel = tel_coord.telescope_pointing.alt, tel_coord.telescope_pointing.az
-    alt_norm, az_norm = tel_coord.array_pointing.alt, tel_coord.array_pointing.az
+    alt_tel, az_tel = tel_coord.telescope_pointing.alt.to(u.rad).value, \
+                      tel_coord.telescope_pointing.az.to(u.rad).value
+    alt_norm, az_norm = tel_coord.array_pointing.alt.to(u.rad).value, \
+                        tel_coord.array_pointing.az.to(u.rad).value
+
     alt_trans, az_trans = offset_to_horizon(
-        tel_coord.x, tel_coord.y, az_tel, alt_tel)
+        tel_coord.x.to(u.rad).value, tel_coord.y.to(u.rad).value, az_tel, alt_tel)
 
     x_off, y_off = horizon_to_offset(az_trans, alt_trans, az_norm, alt_norm)
-    x_off = x_off * u.rad
-    y_off = y_off * u.rad
 
-    return NominalFrame(x_off, y_off, **tel_coord.copy_properties())
+    return NominalFrame(x_off * u.rad, y_off * u.rad, **tel_coord.copy_properties())
 
 
 def nominal_to_telescope(norm_coord):
@@ -126,16 +126,16 @@ def nominal_to_telescope(norm_coord):
     TelescopeFrame coordinates
 
     """
-    alt_tel, az_tel = norm_coord.telescope_pointing.alt, norm_coord.telescope_pointing.az
-    alt_norm, az_norm = norm_coord.array_pointing.alt, norm_coord.array_pointing.az
+    alt_tel, az_tel = norm_coord.telescope_pointing.alt.to(u.rad).value, \
+                      norm_coord.telescope_pointing.az.to(u.rad).value
+    alt_norm, az_norm = norm_coord.array_pointing.alt.to(u.rad).value, \
+                        norm_coord.array_pointing.az.to(u.rad).value
 
     alt_trans, az_trans = offset_to_horizon(
-        norm_coord.x, norm_coord.y, az_norm, alt_norm)
+        norm_coord.x.to(u.rad).value, norm_coord.y.to(u.rad).value, az_norm, alt_norm)
     x_off, y_off = horizon_to_offset(az_trans, alt_trans, az_tel, alt_tel)
-    x_off = x_off * u.rad
-    y_off = y_off * u.rad
 
-    return TelescopeFrame(x_off, y_off, **norm_coord.copy_properties())
+    return TelescopeFrame(x_off * u.rad, y_off * u.rad, **norm_coord.copy_properties())
 
 
 # Transformations between camera frame and telescope frame
@@ -151,23 +151,25 @@ def camera_to_telescope(camera_coord):
     -------
     TelescopeFrame coordinate
     """
-    x_pos = camera_coord.x
-    y_pos = camera_coord.y
+    x_pos = camera_coord.x.to(u.m).value
+    y_pos = camera_coord.y.to(u.m).value
 
-    rot = camera_coord.rotation
+    rot = camera_coord.rotation.to(u.rad).value
+    focal_length = camera_coord.focal_length.to(u.m).value
+
     if rot == 0:
         x_rotated = x_pos
         y_rotated = y_pos
     else:
         x_rotated = x_pos * cos(rot) - y_pos * sin(rot)
         y_rotated = x_pos * sin(rot) + y_pos * cos(rot)
+    print(x_rotated)
 
-    focal_length = camera_coord.focal_length
+    x_rotated = (x_rotated / focal_length)
+    y_rotated = (y_rotated / focal_length)
 
-    x_rotated = (x_rotated / focal_length) * u.rad
-    y_rotated = (y_rotated / focal_length) * u.rad
-
-    return TelescopeFrame(x_rotated, y_rotated, **camera_coord.copy_properties())
+    return TelescopeFrame(x_rotated * u.rad, y_rotated * u.rad,
+                          **camera_coord.copy_properties())
 
 
 def telescope_to_camera(telescope_coord):
@@ -182,10 +184,11 @@ def telescope_to_camera(telescope_coord):
     -------
     CameraFrame Coordinates
     """
-    x_pos = telescope_coord.x
-    y_pos = telescope_coord.y
+    x_pos = telescope_coord.x.to(u.rad).value
+    y_pos = telescope_coord.y.to(u.rad).value
     # reverse the rotation applied to get to this system
-    rot = telescope_coord.rotation * -1
+    rot = telescope_coord.rotation.to(u.rad).value * -1
+    focal_length = telescope_coord.focal_length.to(u.m).value
 
     if rot == 0:  # if no rotation applied save a few cycles
         x_rotated = x_pos
@@ -194,12 +197,11 @@ def telescope_to_camera(telescope_coord):
         x_rotated = x_pos * cos(rot) - y_pos * sin(rot)
         y_rotated = x_pos * sin(rot) + y_pos * cos(rot)
 
-    focal_length = telescope_coord.focal_length
     # Remove distance units here as we are using small angle approx
-    x_rotated = x_rotated.to(u.rad).value * (focal_length)
-    y_rotated = y_rotated.to(u.rad).value * (focal_length)
-    print(x_rotated)
-    return CameraFrame(x_rotated, y_rotated, **telescope_coord.copy_properties())
+    x_rotated = x_rotated * focal_length
+    y_rotated = y_rotated * focal_length
+
+    return CameraFrame(x_rotated * u.m, y_rotated * u.m, **telescope_coord.copy_properties())
 
 
 class AngularCoordinate(BaseCoordinate):
