@@ -6,6 +6,7 @@ python:
     # in anaconda as well (we don't support python less than 3.5)
     - 3.5
     - 3.6
+    - 3.7
 
 os:
     - linux
