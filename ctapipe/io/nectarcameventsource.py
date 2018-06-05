@@ -2,7 +2,7 @@
 """
 EventSource for NectarCam protobuf-fits.fz-files.
 
-Needs protozfits v0.44.4 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.02.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
@@ -16,8 +16,8 @@ class NectarCAMEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        from protozfits import SimpleFile
-        self.file = SimpleFile(self.input_url)
+        from protozfits import File
+        self.file = File(self.input_url)
         self.header = next(self.file.RunHeader)
 
 
