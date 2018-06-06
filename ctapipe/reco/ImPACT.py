@@ -88,10 +88,11 @@ class ImPACTReconstructor(Reconstructor):
     ped_table = {"LSTCam": 2.8,
                  "NectarCam": 2.3,
                  "FlashCam": 2.3,
-                 "CHEC": 0.3}
+                 "CHEC": 0.5}
     spe = 0.5  # Also hard code single p.e. distribution width
 
-    def __init__(self, root_dir=".", minimiser="minuit", prior=""):
+    def __init__(self, root_dir=".", minimiser="minuit", prior="",
+                 template_scale=1., xmax_offset=0):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -99,7 +100,8 @@ class ImPACTReconstructor(Reconstructor):
         self.priors = prior
         self.minimiser_name = minimiser
 
-        self.file_names = {"CHEC": "GCT.template.gz", "LSTCam": "LST_05deg.template.gz",
+        self.file_names = {"CHEC": "GCT_05deg_ada.template.gz",
+                           "LSTCam": "LST_05deg.template.gz",
                            "NectarCam": "MST_05deg.template.gz",
                            "FlashCam": "MST_xm_full.fits"}
 
@@ -126,6 +128,10 @@ class ImPACTReconstructor(Reconstructor):
         self.prediction = dict()
         self.array_direction = None
         self.array_return = False
+
+        # For now these factors are required to fix problems in templates
+        self.template_scale = template_scale
+        self.xmax_offset = xmax_offset
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -231,7 +237,7 @@ class ImPACTReconstructor(Reconstructor):
         # Distance above telescope is ratio of these two (small angle)
 
         height = impact / disp
-        weight = np.power(self.peak_amp, 0.5)  # weight average by sqrt amplitude
+        weight = np.power(self.peak_amp, 0.)  # weight average by sqrt amplitude
         # sqrt may not be the best option...
 
         # Take weighted mean of estimates
@@ -251,7 +257,7 @@ class ImPACTReconstructor(Reconstructor):
         # Convert to slant depth
         x_max /= np.cos(zen)
 
-        return x_max
+        return x_max + self.xmax_offset
 
     @staticmethod
     def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
@@ -361,14 +367,14 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 100:
-            x_max_bin = 100
+        if x_max_bin > 150:
+            x_max_bin = 150
         if x_max_bin < -100:
             x_max_bin = -100
 
         # Calculate impact distance for all telescopes
         impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2)
-                         + np.power(self.tel_pos_y - core_y, 2)) - 2.5
+                         + np.power(self.tel_pos_y - core_y, 2))
         # And the expected rotation angle
         phi = np.arctan2((self.tel_pos_y - core_y),
                          (self.tel_pos_x - core_x)) * u.rad
@@ -400,6 +406,7 @@ class ImPACTReconstructor(Reconstructor):
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
         prediction[prediction < 1e-8] = 1e-8
+        prediction *= self.template_scale
 
         # Get likelihood that the prediction matched the camera image
         like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
@@ -446,7 +453,6 @@ class ImPACTReconstructor(Reconstructor):
         val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
 
         return val
-
 
     def get_likelihood_nlopt(self, x, grad):
         """Wrapper class around likelihood function for use with scipy
@@ -593,15 +599,20 @@ class ImPACTReconstructor(Reconstructor):
             lower_en_limit = 0.01 * u.TeV
             en_seed = 0.01 * u.TeV
 
+        xmax_seed = (shower_seed.h_max.value/(np.cos(zenith.to(u.rad).value)))/\
+                    self.get_shower_max(source_x, source_y,
+                                        tilt_x, tilt_y,
+                                        zenith.to(u.rad).value)
+
         # Take the seed from Hillas-based reconstruction
-        seed = (source_x[0], source_y[0], tilt_x,
-                tilt_y, en_seed.value, 1.)
+        seed = (source_x, source_y, tilt_x,
+                tilt_y, en_seed.value, xmax_seed)
 
         # Take a reasonable first guess at step size
         step = [0.04/57.3, 0.04/57.3, 5, 5, en_seed.value * 0.1, 0.05]
         # And some sensible limits of the fit range
-        limits = [[source_x[0] - 0.01, source_x[0] + 0.01],
-                  [source_y[0] - 0.01, source_y[0] + 0.01],
+        limits = [[source_x - 0.1, source_x + 0.1],
+                  [source_y - 0.1, source_y + 0.1],
                   [tilt_x - 100, tilt_x + 100],
                   [tilt_y - 100, tilt_y + 100],
                   [lower_en_limit.value, en_seed.value * 2],
@@ -696,9 +707,8 @@ class ImPACTReconstructor(Reconstructor):
                               goodness_of_fit=False, fix_goodness_of_fit=True,
                               errordef=1)
 
-
             self.min.tol *= 1000
-            self.min.set_strategy(0)
+            self.min.set_strategy(1)
 
             migrad = self.min.migrad()
             fit_params = self.min.values
