@@ -47,19 +47,16 @@ def guess_shower_depth(energy):
 
 
 def energy_prior(energy, index=-1):
-
     return -2 * np.log(np.power(energy, index))
 
 
 def xmax_prior(energy, xmax, width=100):
-
     x_max_exp = guess_shower_depth(energy)
     diff = xmax - x_max_exp
     return -2 * np.log(norm.pdf(diff / width))
 
 
 class ImPACTReconstructor(Reconstructor):
-
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from parsons14.  This method uses a
     comparision of the predicted image from a library of image
@@ -123,7 +120,7 @@ class ImPACTReconstructor(Reconstructor):
 
         # And the peak of the images
         self.peak_x, self.peak_y, self.peak_amp = None, None, None
-        self.hillas_parameters, self.ped  = None, None
+        self.hillas_parameters, self.ped = None, None
 
         self.prediction = dict()
         self.array_direction = None
@@ -183,7 +180,6 @@ class ImPACTReconstructor(Reconstructor):
         tel_num = 0
 
         for tel in self.hillas_parameters:
-
             weight = np.sqrt(self.hillas_parameters[tel].size)
             weighted_x = self.hillas_parameters[tel].cen_x.to(u.rad).value * weight
             weighted_y = self.hillas_parameters[tel].cen_y.to(u.rad).value * weight
@@ -283,8 +279,8 @@ class ImPACTReconstructor(Reconstructor):
 
         """
 
-        cosine_angle =  np.cos(phi[...,np.newaxis])
-        sin_angle =  np.sin(phi[...,np.newaxis])
+        cosine_angle = np.cos(phi[..., np.newaxis])
+        sin_angle = np.sin(phi[..., np.newaxis])
 
         pixel_pos_trans_x = (pixel_pos_x - x_trans) * cosine_angle - \
                             (pixel_pos_y - y_trans) * sin_angle
@@ -351,7 +347,7 @@ class ImPACTReconstructor(Reconstructor):
         # everything in the correct units when loading in the class
         # and ignore them from then on
 
-        zenith = (np.pi/2) - self.array_direction.alt.to(u.rad).value
+        zenith = (np.pi / 2) - self.array_direction.alt.to(u.rad).value
         azimuth = self.array_direction.az
 
         # Geometrically calculate the depth of maximum given this test position
@@ -361,7 +357,7 @@ class ImPACTReconstructor(Reconstructor):
         x_max *= x_max_scale
 
         # Calculate expected Xmax given this energy
-        x_max_exp = guess_shower_depth(energy) #/ np.cos(20*u.deg)
+        x_max_exp = guess_shower_depth(energy)  # / np.cos(20*u.deg)
 
         # Convert to binning of Xmax
         x_max_bin = x_max - x_max_exp
@@ -418,7 +414,7 @@ class ImPACTReconstructor(Reconstructor):
         array_like = like
         if goodness_of_fit:
             return np.sum(like - mean_poisson_likelihood_gaussian(prediction, self.spe,
-                                                            self.ped))
+                                                                  self.ped))
 
         prior_pen = 0
         # Add prior penalities if we have them
@@ -517,7 +513,7 @@ class ImPACTReconstructor(Reconstructor):
         for x, i in zip(tel_x, range(len(tel_x))):
 
             px.append(pixel_x[x].to(u.rad).value)
-            if len(px[i])  > max_pix_x:
+            if len(px[i]) > max_pix_x:
                 max_pix_x = len(px[i])
             py.append(pixel_y[x].to(u.rad).value)
             pa.append(image[x])
@@ -599,7 +595,7 @@ class ImPACTReconstructor(Reconstructor):
             lower_en_limit = 0.01 * u.TeV
             en_seed = 0.01 * u.TeV
 
-        xmax_seed = (shower_seed.h_max.value/(np.cos(zenith.to(u.rad).value)))/\
+        xmax_seed = (shower_seed.h_max.value / (np.cos(zenith.to(u.rad).value))) / \
                     self.get_shower_max(source_x, source_y,
                                         tilt_x, tilt_y,
                                         zenith.to(u.rad).value)
@@ -609,7 +605,7 @@ class ImPACTReconstructor(Reconstructor):
                 tilt_y, en_seed.value, xmax_seed)
 
         # Take a reasonable first guess at step size
-        step = [0.04/57.3, 0.04/57.3, 5, 5, en_seed.value * 0.1, 0.05]
+        step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed.value * 0.1, 0.05]
         # And some sensible limits of the fit range
         limits = [[source_x - 0.1, source_x + 0.1],
                   [source_y - 0.1, source_y + 0.1],
@@ -700,7 +696,7 @@ class ImPACTReconstructor(Reconstructor):
                               limit_core_x=limits[2], fix_core_x=False,
                               core_y=params[3], error_core_y=step[3],
                               limit_core_y=limits[3], fix_core_y=False,
-                              energy=params[4],error_energy=step[4],
+                              energy=params[4], error_energy=step[4],
                               limit_energy=limits[4], fix_energy=False,
                               x_max_scale=params[5], error_x_max_scale=step[5],
                               limit_x_max_scale=limits[5], fix_x_max_scale=False,
@@ -716,9 +712,9 @@ class ImPACTReconstructor(Reconstructor):
 
             return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
                     fit_params["core_y"], fit_params["energy"], fit_params[
-                        "x_max_scale"]),\
-                (errors["source_x"], errors["source_y"], errors["core_x"],
-                 errors["core_x"], errors["energy"], errors["x_max_scale"])
+                        "x_max_scale"]), \
+                   (errors["source_x"], errors["source_y"], errors["core_x"],
+                    errors["core_x"], errors["energy"], errors["x_max_scale"])
 
         elif "nlopt" in minimiser_name:
             import nlopt
@@ -750,7 +746,7 @@ class ImPACTReconstructor(Reconstructor):
             min = minimize(self.get_likelihood_min, np.array(params),
                            method=minimiser_name,
                            bounds=limits,
-                           options={"disp":False},
+                           options={"disp": False},
                            tol=1e-5
                            )
             print(min)
