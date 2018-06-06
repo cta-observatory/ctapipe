@@ -21,9 +21,7 @@ class TemplateNetworkInterpolator:
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
         self.interpolator = UnstructuredInterpolator(input_dict, remember_last=True,
-                                                     bounds=((-5, 1),(-1.5, 1.5)),
-                                                     dtype=np.float32)
-        # function_name="predict")
+                                                     bounds=((-5, 1),(-1.5, 1.5)))
 
     def __call__(self, energy, impact, xmax, xb, yb):
         """
