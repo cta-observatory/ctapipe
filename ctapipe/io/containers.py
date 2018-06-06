@@ -19,6 +19,14 @@ __all__ = ['InstrumentContainer',
            'DL0CameraContainer',
            'DL1Container',
            'DL1CameraContainer',
+           'TargetIOContainer',
+           'TargetIOCameraContainer',
+           'SST1MContainer',
+           'SST1MCameraContainer',
+           'LSTContainer',
+           'LSTCameraContainer',
+           'NectarCAMContainer',
+           'NectarCAMCameraContainer',
            'MCEventContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
@@ -29,6 +37,8 @@ __all__ = ['InstrumentContainer',
            'ReconstructedEnergyContainer',
            'ParticleClassificationContainer',
            'DataContainer',
+           'TargetIODataContainer',
+           'SST1MDataContainer',
            'HillasParametersContainer']
 
 
@@ -47,34 +57,12 @@ class SST1MCameraContainer(Container):
         None,
         "trigger 19 patch cluster trace (n_clusters)")
 
-    def fill_from_zfile_event(self, event, pixel_sort_ids):
-        self.pixel_flags = event.pixels_flags[pixel_sort_ids]
-        self.digicam_baseline = event.hiGain.waveforms.baselines[
-            pixel_sort_ids]
-        self.local_camera_clock = (
-            event.local_time_sec * 1E9 + event.local_time_nanosec)
-        self.gps_time = (
-            event.trig.timeSec * 1E9 + event.trig.timeNanoSec)
-        self.camera_event_type = event.event_type
-        self.array_event_type = event.eventType
-        self.trigger_input_traces = event.trigger_input_traces
-        self.trigger_output_patch7 = event.trigger_output_patch7
-        self.trigger_output_patch19 = event.trigger_output_patch19
-
 
 class SST1MContainer(Container):
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(
         Map(SST1MCameraContainer),
         "map of tel_id to SST1MCameraContainer")
-
-    def fill_from_zfile_event(self, event, pixel_sort_ids):
-        self.tels_with_data = [event.telescopeID, ]
-        sst1m_cam_container = self.tel[event.telescopeID]
-        sst1m_cam_container.fill_from_zfile_event(
-            event,
-            pixel_sort_ids,
-        )
 
 
 # todo: change some of these Maps to be just 3D NDarrays?
@@ -455,6 +443,83 @@ class NectarCAMDataContainer(DataContainer):
     Data container including NectarCAM information
     """
     nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
+
+
+class LSTServiceContainer(Container):
+    """
+    Container for Fields that are specific to each LST camera configuration
+    """
+
+    # Data from the CameraConfig table
+    telescope_id = Field(-1, "telescope id")
+    cs_serial = Field(None, "serial number of the camera server")
+    configuration_id = Field(None, "id of the CameraConfiguration")
+    date = Field(None, "NTP start of run date")
+    num_pixels = Field(-1, "number of pixels")
+    num_samples = Field(-1, "num samples")
+    pixel_ids = Field([], "id of the pixels in the waveform array")
+    data_model_version = Field(None, "data model version")
+
+    idaq_version = Field(0o0, "idaq version")
+    cdhs_version = Field(0o0, "cdhs version")
+    algorithms = Field(None, "algorithms")
+    pre_proc_algorithms = Field(None, "pre processing algorithms")
+    module_ids = Field([], "module ids")
+    num_modules = Field(-1, "number of modules")
+
+
+class LSTEventContainer(Container):
+    """
+    Container for Fields that are specific to each LST event
+    """
+
+    # Data from the CameraEvent table
+    configuration_id = Field(None, "id of the CameraConfiguration")
+    event_id = Field(None, "local id of the event")
+    tel_event_id = Field(None, "global id of the event")
+    pixel_status = Field([], "status of the pixels")
+    ped_id = Field(None, "tel_event_id of the event used for pedestal substraction")
+    module_status = Field([], "status of the modules")
+    extdevices_presence = Field(None, "presence of data for external devices")
+    tib_data = Field([], "TIB data array")
+    cdts_data = Field([], "CDTS data array")
+    swat_data = Field([], "SWAT data array")
+    counters = Field([], "counters")
+    chips_flags = Field([], "chips flags")
+    first_capacitor_id = Field([], "first capacitor id")
+    drs_tag_status = Field([], "DRS tag status")
+    drs_tag = Field([], "DRS tag")
+
+
+class LSTCameraContainer(Container):
+    """
+    Container for Fields that are specific to each LST camera
+    """
+    evt = Field(LSTEventContainer(), "LST specific event Information")
+    svc = Field(LSTServiceContainer(), "LST specific camera_config Information")
+
+
+
+
+class LSTContainer(Container):
+    """
+    Storage for the LSTCameraContainer for each telescope
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
+    tel = Field(
+        Map(LSTCameraContainer),
+        "map of tel_id to LSTTelContainer")
+
+
+
+class LSTDataContainer(DataContainer):
+    """
+    Data container including LST information
+    """
+    lst = Field(LSTContainer(), "LST specific Information")
+
 
 class TargetIOCameraContainer(Container):
     """

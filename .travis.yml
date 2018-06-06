@@ -54,7 +54,7 @@ install:
     - pip install codecov
     # ----- SST1M:
     - conda install protobuf
-    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v0.44.4.tar.gz
+    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.0.2.tar.gz
     # ----- end of SST1M
     # ----- target_software
     - conda install -c conda-forge cfitsio
@@ -72,6 +72,7 @@ script:
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx -v --outdir=docbuild build --source=docs/
+    - ./execute_ipynbs.py
 
 after_script:
     - source deactivate

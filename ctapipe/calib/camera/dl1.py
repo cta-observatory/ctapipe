@@ -11,7 +11,7 @@ import numpy as np
 
 from ...core import Component
 from ...core.traits import Float
-    from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
+from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
 
 __all__ = ['CameraDL1Calibrator']
 
@@ -165,13 +165,11 @@ class CameraDL1Calibrator(Component):
         -------
         ndarray
         """
-        shape = event.mc.tel[telid].reference_pulse_shape
-        n_chan = shape.shape[0]
-
         try:
             shift = self.extractor.window_shift
             width = self.extractor.window_width
-
+            shape = event.mc.tel[telid].reference_pulse_shape
+            n_chan = shape.shape[0]
             step = event.mc.tel[telid].meta['refstep']
             time_slice = event.mc.tel[telid].time_slice
             correction = integration_correction(n_chan, shape, step,
@@ -181,7 +179,7 @@ class CameraDL1Calibrator(Component):
             # Don't apply correction when window_shift or window_width
             # does not exist in extractor, or when container does not have
             # a reference pulse shape
-            return np.ones(n_chan)
+            return np.ones(event.dl0.tel[telid].waveform.shape[0])
 
     def calibrate(self, event):
         """
