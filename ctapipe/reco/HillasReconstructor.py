@@ -170,7 +170,8 @@ class HillasReconstructor(Reconstructor):
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
             raise TooFewTelescopes(
-                "need at least two telescopes for Hillas reconstructor, have {}".format(len(hillas_dict)))
+                "need at least two telescopes for Hillas reconstructor, "
+                "have {}".format(len(hillas_dict)))
 
         self.get_great_circles(hillas_dict, inst.subarray, tel_phi, tel_theta)
 
