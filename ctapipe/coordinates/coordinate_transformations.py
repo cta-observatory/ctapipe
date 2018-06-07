@@ -40,8 +40,7 @@ def pixel_position_to_direction(pix_x, pix_y, tel_phi, tel_theta, tel_foclen):
         shape (n,3) list of "direction vectors"
         corresponding to a position on the camera
     """
-
-    pix_alpha = np.arctan2(pix_y, pix_x)
+    pix_alpha = np.arctan2(-pix_y, pix_x)
 
     pix_rho = (pix_x ** 2 + pix_y ** 2) ** .5
 
