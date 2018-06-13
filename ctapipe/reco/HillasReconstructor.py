@@ -416,8 +416,10 @@ class HillasReconstructor(Reconstructor):
 
         # instead used directly the numpy implementation
         # speed is the same, just handles already "SingularMatrixError"
-        pos = np.linalg.lstsq(A, D)[0] * u.m
-
+        if np.all(np.isfinite(A)) and np.all(np.isfinite(D)):
+            pos = np.linalg.lstsq(A, D)[0] * u.m
+        else:
+            return [np.nan, np.nan], [np.nan, np.nan]
         weighted_sum_dist = np.sum([np.dot(pos[:2] - c.pos[:2], c.norm[:2]) * c.weight
                                     for c in self.circles.values()]) * pos.unit
         norm_sum_dist = np.sum([c.weight * np.linalg.norm(c.norm[:2])
