@@ -316,7 +316,7 @@ class HillasReconstructor(Reconstructor):
         # speed is the same, just handles already "SingularMatrixError"
         if np.all(np.isfinite(A)) and np.all(np.isfinite(D)):
             # note that nans create a value error with MKL installations but not otherwise.
-            pos = np.linalg.lstsq(A, D)[0] * u.m
+            pos = np.linalg.lstsq(A, D, rcond=None)[0] * u.m
         else:
             return [np.nan, np.nan], [np.nan, np.nan]
 
