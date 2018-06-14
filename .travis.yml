@@ -43,7 +43,10 @@ before_install:
     # Make sure that interactive matplotlib backends work
     - export DISPLAY=:99.0
     - sh -e /etc/init.d/xvfb start
-    - git fetch --tags
+    - git fetch origin --tags
+    - git tag
+    - git branch
+    - git describe --always
 
 install:
     - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION

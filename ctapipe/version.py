@@ -76,11 +76,15 @@ def get_git_describe_version(abbrev=7):
     """return the string output of git desribe"""
     try:
         with open(devnull, "w") as fnull:
-            arguments = [GIT_COMMAND, "describe", "--tags",
+            arguments = [GIT_COMMAND, "describe", "--tags", '--always',
                          "--abbrev=%d" % abbrev]
-            return check_output(arguments, cwd=CURRENT_DIRECTORY,
-                                stderr=fnull).decode("ascii").strip()
-    except (OSError, CalledProcessError):
+            output = check_output(arguments, cwd=CURRENT_DIRECTORY,
+                                 stderr=fnull).decode("ascii").strip()
+            print("DEBUG: output of git describe: '{}'".format(output))
+            return output
+
+    except (OSError, CalledProcessError) as err:
+        print("couldn't get version from git repo: {}".format(err))
         return None
 
 
@@ -155,12 +159,13 @@ def get_version(pep440=False):
     """
 
     raw_git_version = get_git_describe_version()
-    if not raw_git_version:  # not a git repository
-        return  read_release_version()
+    if raw_git_version:
+        git_version = format_git_describe(raw_git_version, pep440=pep440)
+        return git_version
 
-    git_version = format_git_describe(raw_git_version, pep440=pep440)
-
-    return git_version
+    # otherwise get the version from _version_cache.py, which should have
+    # been generated in the build dir when setup.py was run
+    return read_release_version()
 
 
 if __name__ == "__main__":
