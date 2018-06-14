@@ -121,7 +121,7 @@ class HillasReconstructor(Reconstructor):
         r, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        h_max = self.fit_h_max(hillas_dict, inst.subarray, pointing_alt, pointing_az)
+        h_max = self.estimate_h_max(hillas_dict, inst.subarray, pointing_alt, pointing_az)
 
 
         result.alt, result.az = lat, lon
@@ -329,110 +329,41 @@ class HillasReconstructor(Reconstructor):
         return pos, pos_uncert
 
 
-    def fit_h_max(self, hillas_dict, subarray, pointing_alt, pointing_az):
-        os = []
-        ns = []
+
+    def estimate_h_max(self, hillas_dict, subarray, pointing_alt, pointing_az):
+        weights = []
+        tels = []
+        dirs = []
+
         for tel_id, moments in hillas_dict.items():
-            # weights.append(self.hillas_planes[tel_id].weight)
-            pos = self.hillas_planes[tel_id].pos
-            os.append(pos)
-            dir = self.hillas_planes[tel_id].a
-            ns.append(dir)
-        os = np.array(os)
-        ns = np.array(ns)
 
-        c = []
-        for n, a in zip(ns, os):
-            n = n.reshape((3, 1))
-            c.append((n@n.T - np.eye(3))@a)
+            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-        c = np.array(c).sum(axis=0)
+            pointing = SkyCoord(alt=pointing_alt[tel_id], az=pointing_az[tel_id], frame='altaz')
 
-        S = []
-        for n in ns:
-            n = n.reshape((3, 1))
-            S.append(n@n.T- np.eye(3))
+            hf = HorizonFrame(array_direction=pointing, pointing_direction=pointing)
+            cf = CameraFrame(focal_length=focal_length, array_direction=pointing, pointing_direction=pointing)
 
-        S = np.array(S).sum(axis=0)
+            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf).transform_to(hf)
 
-        p = np.linalg.inv(S)@c
-        print(p)
-        print(np.linalg.norm(p))
-        return np.linalg.norm(p)
+            cog_direction = np.array(spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)).ravel()
+            weights.append(self.hillas_planes[tel_id].weight)
+            tels.append(self.hillas_planes[tel_id].pos)
+            dirs.append(cog_direction)
 
-    #
-    # function [P_intersect,distances] = lineIntersect3D(PA,PB)
-    # % Find intersection point of lines in 3D space, in the least squares sense.
-    # % PA :          Nx3-matrix containing starting point of N lines
-    # % PB :          Nx3-matrix containing end point of N lines
-    # % P_Intersect : Best intersection point of the N lines, in least squares sense.
-    # % distances   : Distances from intersection point to the input lines
-    # % Anders Eikenes, 2012
-    #
-    # Si = PB - PA; %N lines described as vectors
-    # ni = Si ./ (sqrt(sum(Si.^2,2))*ones(1,3)); %Normalize vectors
-    # nx = ni(:,1); ny = ni(:,2); nz = ni(:,3);
-    # SXX = sum(nx.^2-1);
-    # SYY = sum(ny.^2-1);
-    # SZZ = sum(nz.^2-1);
-    # SXY = sum(nx.*ny);
-    # SXZ = sum(nx.*nz);
-    # SYZ = sum(ny.*nz);
-    # S = [SXX SXY SXZ;SXY SYY SYZ;SXZ SYZ SZZ];
-    # CX  = sum(PA(:,1).*(nx.^2-1) + PA(:,2).*(nx.*ny)  + PA(:,3).*(nx.*nz));
-    # CY  = sum(PA(:,1).*(nx.*ny)  + PA(:,2).*(ny.^2-1) + PA(:,3).*(ny.*nz));
-    # CZ  = sum(PA(:,1).*(nx.*nz)  + PA(:,2).*(ny.*nz)  + PA(:,3).*(nz.^2-1));
-    # C   = [CX;CY;CZ];
-    # P_intersect = (S\C)';
-    #
-    # if nargout>1
-    #     N = size(PA,1);
-    #     distances=zeros(N,1);
-    #     for i=1:N %This is faster:
-    #         ui=(P_intersect-PA(i,:))*Si(i,:)'/(Si(i,:)*Si(i,:)');
-    #         distances(i)=norm(P_intersect-PA(i,:)-ui*Si(i,:));
-    #     end
-    #     %for i=1:N %http://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html:
-    #     %    distances(i) = norm(cross(P_intersect-PA(i,:),P_intersect-PB(i,:))) / norm(Si(i,:));
-    #     %end
-    # end
-    # end
+        # minimising the test function
+        pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
+                           args=(np.array(tels), np.array(dirs), np.array(weights)),
+                           method='BFGS',
+                           options={'disp': False}
+                           ).x
+        return pos_max[2] * u.m
 
-#     def fit_h_max(self, hillas_dict, subarray, pointing_alt, pointing_az):
-#
-#         weights = []
-#         tels = []
-#         dirs = []
-#
-#         for tel_id, moments in hillas_dict.items():
-#
-#             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
-#
-#             pointing = SkyCoord(alt=pointing_alt[tel_id], az=pointing_az[tel_id], frame='altaz')
-#
-#             hf = HorizonFrame(array_direction=pointing, pointing_direction=pointing)
-#             cf = CameraFrame(focal_length=focal_length, array_direction=pointing, pointing_direction=pointing)
-#
-#             cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf).transform_to(hf)
-#
-#             cog_direction = np.array(spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)).ravel()
-#             weights.append(self.hillas_planes[tel_id].weight)
-#             tels.append(self.hillas_planes[tel_id].pos)
-#             dirs.append(cog_direction)
-#
-#         # minimising the test function
-#         pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
-#                            args=(np.array(tels), np.array(dirs), np.array(weights)),
-#                            method='BFGS',
-#                            options={'disp': False}
-#                            ).x
-#         return pos_max[2] * u.m
-#
-#
-# def dist_to_line3d(pos, tels, dirs, weights):
-#     result = np.average(np.linalg.norm(np.cross((pos - tels), dirs), axis=1),
-#                         weights=weights)
-#     return result
+
+def dist_to_line3d(pos, tels, dirs, weights):
+    result = np.average(np.linalg.norm(np.cross((pos - tels), dirs), axis=1),
+                        weights=weights)
+    return result
 
 
 class HillasPlane:
