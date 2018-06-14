@@ -5,7 +5,7 @@ This module defines any reference systems which may be needed in addition
 from astropy.coordinates import BaseRepresentation, CartesianRepresentation
 import astropy.units as u
 from collections import OrderedDict
-from astropy.utils.compat.numpy import broadcast_arrays
+from numpy import broadcast_arrays
 
 
 class PlanarRepresentation(BaseRepresentation):

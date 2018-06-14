@@ -56,10 +56,6 @@ class ChargeResolutionCalculator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        reductor : ctapipe.calib.camera.reductors.Reductor
-            The reductor to use to reduce the waveforms in the event.
-            By default no data volume reduction is applied, and the dl0 samples
-            will equal the r1 samples.
         kwargs
         """
         super().__init__(config=config, parent=tool, **kwargs)

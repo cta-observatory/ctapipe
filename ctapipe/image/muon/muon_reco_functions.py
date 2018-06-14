@@ -55,7 +55,8 @@ def analyze_muon_event(event):
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
                0. * u.m, 1. * u.m, 1.8 * u.m, 1.8 * u.m]
     sct = [False, False, False, True, False, True, True, True]
-
+    # Added cleaning here. All these options should go to an input card
+    cleaning = True
 
     muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
                  'RingWidth': ringwidth, 'total_pix': total_pix,
@@ -108,7 +109,11 @@ def analyze_muon_event(event):
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
 
-        img = image * clean_mask
+        if(cleaning):
+            img = image * clean_mask
+        else:
+            img = image
+
         muonring = ChaudhuriKunduRingFitter(None)
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
@@ -135,7 +140,7 @@ def analyze_muon_event(event):
             x, y, img * (ring_dist < muonringparam.ring_radius * 0.4)
         )
 
-        muonringparam.tel_id = telid
+        muonringparam.tel_ids = telid
         muonringparam.obs_id = event.dl0.obs_id
         muonringparam.event_id = event.dl0.event_id
         dist_mask = np.abs(dist - muonringparam.
@@ -191,7 +196,7 @@ def analyze_muon_event(event):
                                                     x[dist_mask], y[dist_mask],
                                                     image[dist_mask])
 
-                muonintensityoutput.tel_id = telid
+                muonintensityoutput.tel_ids = telid
                 muonintensityoutput.obs_id = event.dl0.obs_id
                 muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask
@@ -204,7 +209,7 @@ def analyze_muon_event(event):
                     muonringparam.ring_center_y,
                     threshold=30,
                     bins=30)
-
+                muonintensityoutput.ring_size = np.sum(pix_im)
 
                 dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
                                              ) < (muonintensityoutput.ring_width)
