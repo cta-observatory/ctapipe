@@ -27,15 +27,9 @@ else:
 # reading the Monte Carlo file for LST
 source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
-# pointing direction of the telescopes
-point_azimuth = {}
-point_altitude = {}
-
 reco = HillasReconstructor()
 calib = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 off_angles = []
-
-reco.estimate_h_max = lambda a, b, c, d: np.nan
 
 for event in source:
 
@@ -43,6 +37,10 @@ for event in source:
     calib.calibrate(event)
     hillas_params = {}
     subarray = event.inst.subarray
+
+    # pointing direction of the telescopes
+    point_azimuth = {}
+    point_altitude = {}
 
     for tel_id in event.dl0.tels_with_data:
 
@@ -85,6 +83,7 @@ for event in source:
     # Appending all estimated off angles
     off_angles.append(off_angle.to(u.deg).value)
 
+# calculate theta square for angles which are not nan
 off_angles = np.array(off_angles)
 thetasquare = off_angles[np.isfinite(off_angles)]**2
 
@@ -92,8 +91,8 @@ thetasquare = off_angles[np.isfinite(off_angles)]**2
 #  significantly high to give a nice thetasquare plot for gammas One can use
 # deedicated MC file for LST get nice plot
 plt.figure(figsize=(10, 8))
-plt.hist(thetasquare, bins=np.linspace(0, 10, 50))
+plt.hist(thetasquare, bins=np.linspace(0, 1, 50))
 plt.title(r'$\theta^2$ plot')
-plt.xlabel(r'$\theta^2$')
+plt.xlabel(r'$\theta^2$ (deg)')
 plt.ylabel('# of events')
 plt.show()
