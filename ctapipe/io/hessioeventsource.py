@@ -110,6 +110,7 @@ class HESSIOEventSource(EventSource):
                 data.mc.core_y = file.get_mc_event_ycore() * u.m
                 first_int = file.get_mc_shower_h_first_int() * u.m
                 data.mc.h_first_int = first_int
+                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data

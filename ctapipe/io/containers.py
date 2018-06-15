@@ -242,6 +242,7 @@ class MCEventContainer(Container):
     core_x = Field(0.0, "MC core position", unit=u.m)
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
+    x_max = Field(0.0, "MC Xmax value", unit=u.g / (u.cm**2))
     shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
                                     "2(mu-), 100*A+Z for nucleons and nuclei,"
                                     "negative for antimatter.")
