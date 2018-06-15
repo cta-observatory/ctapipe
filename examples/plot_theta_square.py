@@ -78,7 +78,12 @@ for event in source:
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
-    off_angle = angular_separation(event.mc.az, event.mc.alt, reco_result.az, reco_result.alt)
+    off_angle = angular_separation(
+        event.mc.az,
+        event.mc.alt,
+        reco_result.az,
+        reco_result.alt
+    )
 
     # Appending all estimated off angles
     off_angles.append(off_angle.to(u.deg).value)

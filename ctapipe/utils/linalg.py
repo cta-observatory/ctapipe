@@ -56,4 +56,5 @@ def angle(v1, v2):
     -------
     the angle between v1 and v2 as a dimensioned astropy quantity
     """
-    return np.arccos(np.clip(v1.dot(v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)), -1.0, 1.0))
+    norm = np.linalg.norm(v1) * np.linalg.norm(v2)
+    return np.arccos(np.clip(v1.dot(v2) / norm, -1.0, 1.0))

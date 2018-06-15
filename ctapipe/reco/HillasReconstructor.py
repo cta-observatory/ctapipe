@@ -7,7 +7,7 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
-from ctapipe.coordinates import GroundFrame, TiltedGroundFrame, HorizonFrame, CameraFrame
+from ctapipe.coordinates import TiltedGroundFrame, HorizonFrame, CameraFrame
 from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 from itertools import combinations
 
@@ -38,7 +38,8 @@ def angle(v1, v2):
     -------
     the angle between v1 and v2 as a dimensioned astropy quantity
     """
-    return np.arccos(np.clip(v1.dot(v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)), -1.0, 1.0))
+    norm = np.linalg.norm(v1) * np.linalg.norm(v2)
+    return np.arccos(np.clip(v1.dot(v2) / norm, -1.0, 1.0))
 
 
 def normalise(vec):
@@ -108,7 +109,12 @@ class HillasReconstructor(Reconstructor):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
-        self.inititialize_hillas_planes(hillas_dict, inst.subarray, pointing_alt, pointing_az)
+        self.inititialize_hillas_planes(
+            hillas_dict,
+            inst.subarray,
+            pointing_alt,
+            pointing_az
+        )
 
         # algebraic direction estimate
         direction, err_est_dir = self.estimate_direction()
@@ -118,7 +124,7 @@ class HillasReconstructor(Reconstructor):
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
-        r, lat, lon = cartesian_to_spherical(*direction)
+        _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
         h_max = self.estimate_h_max(hillas_dict, inst.subarray, pointing_alt, pointing_az)
@@ -143,7 +149,13 @@ class HillasReconstructor(Reconstructor):
 
         return result
 
-    def inititialize_hillas_planes(self, hillas_dict, subarray, pointing_alt, pointing_az):
+    def inititialize_hillas_planes(
+        self,
+        hillas_dict,
+        subarray,
+        pointing_alt,
+        pointing_az
+    ):
         """
         creates a dictionary of :class:`.HillasPlane` from a dictionary of
         hillas
@@ -166,13 +178,27 @@ class HillasReconstructor(Reconstructor):
             p2_y = moments.cen_y + 0.1 * u.m * np.sin(moments.psi)
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-            pointing = SkyCoord(alt=pointing_alt[tel_id], az=pointing_az[tel_id], frame='altaz')
+            pointing = SkyCoord(
+                alt=pointing_alt[tel_id],
+                az=pointing_az[tel_id],
+                frame='altaz'
+            )
 
-            hf = HorizonFrame(array_direction=pointing, pointing_direction=pointing)
-            cf = CameraFrame(focal_length=focal_length, array_direction=pointing, pointing_direction=pointing)
+            hf = HorizonFrame(
+                array_direction=pointing,
+                pointing_direction=pointing
+            )
+            cf = CameraFrame(
+                focal_length=focal_length,
+                array_direction=pointing,
+                pointing_direction=pointing
+            )
 
-            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf).transform_to(hf)
-            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=cf).transform_to(hf)
+            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf)
+            cog_coord = cog_coord.transform_to(hf)
+
+            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=cf)
+            p2_coord = p2_coord.transform_to(hf)
 
             circle = HillasPlane(
                 p1=cog_coord,
@@ -315,7 +341,8 @@ class HillasReconstructor(Reconstructor):
         # instead used directly the numpy implementation
         # speed is the same, just handles already "SingularMatrixError"
         if np.all(np.isfinite(A)) and np.all(np.isfinite(D)):
-            # note that nans create a value error with MKL installations but not otherwise.
+            # note that NaN values create a value error with MKL
+            # installations but not otherwise.
             pos = np.linalg.lstsq(A, D, rcond=None)[0] * u.m
         else:
             return [np.nan, np.nan], [np.nan, np.nan]
@@ -339,14 +366,28 @@ class HillasReconstructor(Reconstructor):
 
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
-            pointing = SkyCoord(alt=pointing_alt[tel_id], az=pointing_az[tel_id], frame='altaz')
+            pointing = SkyCoord(
+                alt=pointing_alt[tel_id],
+                az=pointing_az[tel_id],
+                frame='altaz'
+            )
 
-            hf = HorizonFrame(array_direction=pointing, pointing_direction=pointing)
-            cf = CameraFrame(focal_length=focal_length, array_direction=pointing, pointing_direction=pointing)
+            hf = HorizonFrame(
+                array_direction=pointing,
+                pointing_direction=pointing
+            )
+            cf = CameraFrame(
+                focal_length=focal_length,
+                array_direction=pointing,
+                pointing_direction=pointing
+            )
 
-            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf).transform_to(hf)
+            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf)
+            cog_coord = cog_coord.transform_to(hf)
 
-            cog_direction = np.array(spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)).ravel()
+            cog_direction = spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)
+            cog_direction = np.array(cog_direction).ravel()
+
             weights.append(self.hillas_planes[tel_id].weight)
             tels.append(self.hillas_planes[tel_id].pos)
             dirs.append(cog_direction)
@@ -378,20 +419,20 @@ class HillasPlane:
     """
 
     def __init__(self, p1, p2, telescope_position, weight=1):
-        """The constructor takes two coordinates in the horizontal frame (alt, az) which define a plane perpedicular
+        """The constructor takes two coordinates in the horizontal
+        frame (alt, az) which define a plane perpedicular
         to the camera.
 
         Parameters
         -----------
         p1: astropy.coordinates.SkyCoord
-            One of two direction vectors which define the plane. This coordinate has to be defined
-            in the ctapipe.coordinates.HorizonFrame
+            One of two direction vectors which define the plane.
+            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
         p2: astropy.coordinates.SkyCoord
-            One of two direction vectors which define the plane. This coordinate has to be defined
-            in the ctapipe.coordinates.HorizonFrame
+            One of two direction vectors which define the plane.
+            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
         telescope_position: np.array(3)
             Position of the telescope on the ground
-
         weight : float, optional
             weight of this plane for later use during the reconstruction
 
