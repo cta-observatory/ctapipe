@@ -9,7 +9,6 @@ from collections import defaultdict
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 import ctapipe
@@ -96,7 +95,7 @@ class SubarrayDescription:
 
     @property
     def tel_coords(self):
-        """ returns telescope positions as astropy.coordinates.SkyCoord"""
+        """ returns telescope positions as GroundFrame object"""
 
         pos_x = np.array([p[0].to('m').value
                           for p in self.positions.values()]) * u.m
@@ -105,12 +104,11 @@ class SubarrayDescription:
         pos_z = np.array([p[2].to('m').value
                           for p in self.positions.values()]) * u.m
 
-        return SkyCoord(
+        # This works, but should add the pointing direction here
+        return GroundFrame(
             x=pos_x,
             y=pos_y,
-            z=pos_z,
-            frame=GroundFrame()
-        )
+            z=pos_z)
 
     @property
     def pos_x(self):

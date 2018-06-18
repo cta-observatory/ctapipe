@@ -1,6 +1,6 @@
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from ctapipe.coordinates import GroundFrame
 
 from ctapipe.instrument import (
     SubarrayDescription,
@@ -36,8 +36,8 @@ def test_subarray_description():
     assert sub.optics_types[0] == 'MST'
     assert sub.telescope_types[0] == 'MST:NectarCam'
     assert sub.tel_coords
-    assert isinstance(sub.tel_coords, SkyCoord)
-    assert len(sub.tel_coords) == n_tels
+    assert isinstance(sub.tel_coords, GroundFrame)
+    assert len(sub.tel_coords.x) == n_tels
 
     subsub = sub.select_subarray("newsub", [2, 3, 4, 6])
     assert subsub.num_tels == 4
