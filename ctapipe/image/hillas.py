@@ -704,6 +704,9 @@ def hillas_parameters_5(geom: CameraGeometry, image):
     delta_x = pix_x - cog_x
     delta_y = pix_y - cog_y
 
+    # The ddof=0 makes this comparable to the other methods,
+    # but ddof=1 should be more correct, mostly affects small showers
+    # on a percent level
     cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
