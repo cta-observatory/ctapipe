@@ -114,9 +114,9 @@ class HESSIOEventSource(EventSource):
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data
-                data.mcheader.run_array_direction = (
-                    file.get_mc_run_array_direction()
-                ) * u.rad
+                data.mcheader.run_array_direction = Angle(
+                    file.get_mc_run_array_direction() * u.rad
+                )
 
                 # this should be done in a nicer way to not re-allocate the
                 # data each time (right now it's just deleted and garbage
