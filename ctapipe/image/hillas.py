@@ -704,7 +704,7 @@ def hillas_parameters_5(geom: CameraGeometry, image):
     delta_x = pix_x - cog_x
     delta_y = pix_y - cog_y
 
-    cov = np.cov(delta_x, delta_y, aweights=image)
+    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # width and length are eigen values of the PCA
