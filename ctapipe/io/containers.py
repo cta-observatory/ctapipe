@@ -128,7 +128,7 @@ class R0CameraContainer(Container):
     trigger_time = Field(None, "Telescope trigger time, start of waveform "
                                "readout, None for MCs")
     trigger_type = Field(0o0, "camera's event trigger type if applicable")
-    num_trig_pix = Field(0,"Number of trigger groups (sectors) listed")
+    num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
     trig_pix_id = Field(None, "pixels involved in the camera trigger")
     image = Field(None, (
         "numpy array containing integrated ADC data "
