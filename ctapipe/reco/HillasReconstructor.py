@@ -87,7 +87,7 @@ class HillasReconstructor(Reconstructor):
         -----------
         hillas_dict : python dictionary
             dictionary with telescope IDs as key and
-            MomentParameters instances as values
+            HillasParametersContainer instances as values
         inst : ctapipe.io.InstrumentContainer
             instrumental description
         pointing_alt:
@@ -136,7 +136,7 @@ class HillasReconstructor(Reconstructor):
         result.core_uncert = err_est_pos
 
         result.tel_ids = [h for h in hillas_dict.keys()]
-        result.average_size = np.mean([h.size for h in hillas_dict.values()])
+        result.average_size = np.mean([h.intensity for h in hillas_dict.values()])
         result.is_valid = True
 
         result.alt_uncert = err_est_dir
@@ -174,8 +174,8 @@ class HillasReconstructor(Reconstructor):
 
         self.hillas_planes = {}
         for tel_id, moments in hillas_dict.items():
-            p2_x = moments.cen_x + 0.1 * u.m * np.cos(moments.psi)
-            p2_y = moments.cen_y + 0.1 * u.m * np.sin(moments.psi)
+            p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
+            p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             pointing = SkyCoord(
@@ -194,7 +194,7 @@ class HillasReconstructor(Reconstructor):
                 pointing_direction=pointing
             )
 
-            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf)
+            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=cf)
             cog_coord = cog_coord.transform_to(hf)
 
             p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=cf)
@@ -204,7 +204,7 @@ class HillasReconstructor(Reconstructor):
                 p1=cog_coord,
                 p2=p2_coord,
                 telescope_position=subarray.positions[tel_id],
-                weight=moments.size * (moments.length / moments.width),
+                weight=moments.intensity * (moments.length / moments.width),
             )
             self.hillas_planes[tel_id] = circle
 
@@ -382,7 +382,7 @@ class HillasReconstructor(Reconstructor):
                 pointing_direction=pointing
             )
 
-            cog_coord = SkyCoord(x=moments.cen_x, y=moments.cen_y, frame=cf)
+            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=cf)
             cog_coord = cog_coord.transform_to(hf)
 
             cog_direction = spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)

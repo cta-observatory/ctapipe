@@ -96,7 +96,7 @@ class SimpleEventWriter(Tool):
                     continue
 
                 # Image parametrisation
-                params = hillas_parameters(camera, cleaned, container=True)
+                params = hillas_parameters(camera, cleaned)
 
                 # Save Ids, MC infos and Hillas informations
                 self.writer.write(camera.cam_id, [event.r0, event.mc, params])

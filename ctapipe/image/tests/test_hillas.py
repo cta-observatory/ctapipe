@@ -81,13 +81,11 @@ def test_hillas():
     for psi_angle in ['30d', '120d', '-30d', '-120d']:
 
         geom, image = create_sample_image_zeros(psi_angle)
-        results = {}
+        results = {
+            'v{}'.format(i): method(geom, image)
+            for i, method in enumerate(methods, start=1)
+        }
 
-        results['v1'] = hillas_parameters_1(geom, image)
-        results['v2'] = hillas_parameters_2(geom, image)
-        results['v3'] = hillas_parameters_3(geom, image)
-        results['v4'] = hillas_parameters_4(geom, image)
-        results['v5'] = hillas_parameters_5(geom, image)
         # compare each method's output
         for aa in results:
             for bb in results:
@@ -133,12 +131,13 @@ def test_hillas_failure():
 
 
 def test_hillas_api_change():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         hillas_parameters_4(arange(10), arange(10), arange(10))
 
 
 def test_hillas_container():
     geom, image = create_sample_image_zeros(psi='0d')
 
-    params = hillas_parameters_4(geom, image, container=True)
-    assert isinstance(params, HillasParametersContainer)
+    for method in methods:
+        params = method(geom, image)
+        assert isinstance(params, HillasParametersContainer)
