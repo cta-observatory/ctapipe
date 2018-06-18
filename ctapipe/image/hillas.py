@@ -61,12 +61,15 @@ def hillas_parameters_1(geom: CameraGeometry, image):
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
+    skewness = np.nan
+    kurtosis = np.nan
+    asym = np.nan
 
     # Compute image moments
     size = np.sum(image)
 
     # Sanity check1:
-    if size == 0:
+    if abs(size) < 1e-15:
         raise HillasParameterizationError(("Empty pixels! Cannot"
                                            " calculate image"
                                            " parameters. Exiting..."))
@@ -89,7 +92,7 @@ def hillas_parameters_1(geom: CameraGeometry, image):
     # we cannot calculate Length and Width.  In reallity it is almost
     # impossible to have a distribution of cerenkov photons in the
     # used pixels which is exactly symmetric along one of the axis
-    if S_xy == 0:
+    if abs(S_xy) < 1e-15:
         raise HillasParameterizationError(("X and Y uncorrelated. Cannot "
                                            "calculate length & width"))
 
@@ -118,20 +121,21 @@ def hillas_parameters_1(geom: CameraGeometry, image):
     phi = np.arctan2(mean_y, mean_x)
 
     # Higher order moments
-    sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
+    if abs(length) > 0.0:
+        sk = cos_delta * (pix_x - mean_x) + sin_delta * (pix_y - mean_y)
 
-    skewness = ((np.sum(image * np.power(sk, 3)) / size) /
-                ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2)))
-    kurtosis = ((np.sum(image * np.power(sk, 4)) / size) /
-                ((np.sum(image * np.power(sk, 2)) / size) ** 2))
-    asym3 = (np.power(cos_delta, 3) * S_xxx
-             + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
-             + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
-             + np.power(sin_delta, 3) * S_yyy)
-    asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3,
-                                                                    1. / 3)
+        skewness = ((np.sum(image * np.power(sk, 3)) / size) /
+                    ((np.sum(image * np.power(sk, 2)) / size) ** (3. / 2)))
+        kurtosis = ((np.sum(image * np.power(sk, 4)) / size) /
+                    ((np.sum(image * np.power(sk, 2)) / size) ** 2))
+        asym3 = (np.power(cos_delta, 3) * S_xxx
+                 + 3.0 * np.power(cos_delta, 2) * sin_delta * S_xxy
+                 + 3.0 * cos_delta * np.power(sin_delta, 2) * S_xyy
+                 + np.power(sin_delta, 3) * S_yyy)
+        asym = - np.power(-asym3, 1. / 3) if (asym3 < 0.) else np.power(asym3,
+                                                                        1. / 3)
 
-    assert np.sign(skewness) == np.sign(asym)
+        assert np.sign(skewness) == np.sign(asym)
 
     # another definition of assymetry
     # asym = (mean_x - pix_x[np.argmax(image)]) * cos_delta
@@ -191,10 +195,13 @@ def hillas_parameters_2(geom: CameraGeometry, image):
 
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
+    psi = np.nan * u.rad
+    skewness = np.nan
+    kurtosis = np.nan
 
     size = image.sum()
 
-    if size == 0.0:
+    if abs(size) < 1e-15:
         raise (HillasParameterizationError(("Empty pixels!"
                                             "Cannot calculate image parameters."
                                             "Exiting...")))
@@ -265,7 +272,7 @@ def hillas_parameters_2(geom: CameraGeometry, image):
     psi = (np.arctan2(tanpsi_numer, tanpsi_denom)) * u.rad
 
     # -- Asymmetry and other higher moments
-    if length != 0.0:
+    if abs(length) > 0.0:
         vx4 = x4m - 4.0 * xm * x3m + 6.0 * xm2 * x2m - 3.0 * xm2 * xm2
         vx3y = (x3ym - 3.0 * xm * x2ym + 3.0 * xm2 * xym - x3m * ym
                 + 3.0 * x2m * xmym - 3.0 * xm2 * xmym)
@@ -277,7 +284,7 @@ def hillas_parameters_2(geom: CameraGeometry, image):
         vy4 = y4m - 4.0 * ym * y3m + 6.0 * ym2 * y2m - 3.0 * ym2 * ym2
 
         hyp = np.hypot(tanpsi_numer, tanpsi_denom)
-        if hyp != 0.:
+        if abs(hyp) > 0.0:
             cpsi = tanpsi_denom / hyp
             spsi = tanpsi_numer / hyp
         else:
@@ -301,10 +308,6 @@ def hillas_parameters_2(geom: CameraGeometry, image):
                 4.0 * vxy3 * cspsi * spsi2 +
                 vy4 * spsi2 * spsi2)
         kurtosis = kurt / (length * length * length * length)
-    else:  # Skip Higher Moments
-        psi = 0.0 * u.rad
-        skewness = 0.0
-        kurtosis = 0.0
 
     return MomentParameters(size=size, cen_x=xm * unit, cen_y=ym * unit,
                             length=length * unit, width=width * unit,
@@ -344,6 +347,11 @@ def hillas_parameters_3(geom: CameraGeometry, image):
 
     # make sure they are numpy arrays so we can use numpy operations
     image = np.asanyarray(image, dtype=np.float64)
+    asymm = np.nan
+    skewness = np.nan
+    kurtosis = np.nan
+
+
 
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
@@ -385,7 +393,7 @@ def hillas_parameters_3(geom: CameraGeometry, image):
      sumxysig, sumx3sig, sumx2ysig, sumxy2sig, sumy3sig) = np.zeros(10)
 
     for i in range(np.size(event)):
-        if event[i] != 0.0:
+        if abs(event[i]) > 0.0:
             wxbyev = wxdeg[i] * event[i]
             wybyev = wydeg[i] * event[i]
             sumsig += event[i]
@@ -399,7 +407,7 @@ def hillas_parameters_3(geom: CameraGeometry, image):
             sumxy2sig += wxdeg[i] * wydeg[i] * wybyev
             sumy3sig += wydeg[i] * wydeg[i] * wybyev
 
-    if sumsig == 0.0:
+    if abs(sumsig) < 1e-15:
         raise (
             HillasParameterizationError(("Empty pixels! Cannot calculate image"
                                          "parameters. Exiting...")))
@@ -431,6 +439,7 @@ def hillas_parameters_3(geom: CameraGeometry, image):
     d = vy2 - vx2
     dist = np.sqrt(xm2 + ym2)
     phi = np.arctan2(ym, xm)
+    miss = dist
 
     # -- simpler formulae for length & width suggested CA 901019
     z = np.sqrt(d * d + 4.0 * vxy * vxy)
@@ -439,9 +448,7 @@ def hillas_parameters_3(geom: CameraGeometry, image):
 
     # -- simpler formula for miss introduced CA, 901101
     # -- revised MP 910112
-    if z == 0.0:
-        miss = dist
-    else:
+    if abs(z) > 0:
         uu = 1 + d / z
         vv = 2 - uu
         miss = np.sqrt((uu * xm2 + vv * ym2) / 2.0 - xmym * (2.0 * vxy / z))
@@ -458,13 +465,12 @@ def hillas_parameters_3(geom: CameraGeometry, image):
     spsi = np.sin(psi)
 
     # -- Asymmetry
-    if length == 0.0:
-        asymm = 0.0
-    else:
+    if abs(length) > 0.0:
         asymm = (vx3 * np.power(cpsi, 3) +
                  3.0 * vx2y * spsi * np.power(cpsi, 2) + 3.0 * vxy2 * cpsi *
                  np.power(spsi, 2) + vy3 * np.power(spsi, 3))
         asymm = np.copysign(np.exp(np.log(np.abs(asymm)) / 3.0), asymm) / length
+        skewness = asymm * asymm * asymm
 
     # # -- Akerlof azwidth now used, 910112
     # d = y2m - x2m
@@ -474,8 +480,6 @@ def hillas_parameters_3(geom: CameraGeometry, image):
     # isize = int(sumsig)
 
     # Code to de-interface with historical code
-    skewness = asymm * asymm * asymm
-    kurtosis = np.nan
 
     return MomentParameters(size=size, cen_x=m_x * unit, cen_y=m_y * unit,
                             length=length * unit, width=width * unit,
@@ -525,6 +529,9 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     image = np.asanyarray(image, dtype=np.float64)
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
+    psi = np.nan
+    skewness = np.nan
+    kurtosis = np.nan
 
     # Call static_xy to initialize the "static variables"
     # Actually, would be nice to just call this if we
@@ -532,7 +539,7 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
 
     sumsig = image.sum()
 
-    if sumsig == 0.0:
+    if abs(sumsig) < 1e-15:
         raise HillasParameterizationError("no signal to parametrize")
 
     M = geom.pixel_moment_matrix
@@ -569,12 +576,10 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     z = np.hypot(d, 2.0 * vxy)
     length = np.sqrt((vx2 + vy2 + z) / 2.0)
     width = np.sqrt((vy2 + vx2 - z) / 2.0)
-
+    miss = dist
     # -- simpler formula for miss introduced CA, 901101
     # -- revised MP 910112
-    if z == 0.0:
-        miss = dist
-    else:
+    if abs(z) > 0.0:
         uu = 1 + d / z
         vv = 2 - uu
         miss = np.sqrt((uu * xm2 + vv * ym2) / 2.0 - xmym * (2.0 * vxy / z))
@@ -596,7 +601,7 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
     # I don't know what MAGIC's "asymmetry" is supposed to be.
 
     # -- Asymmetry and other higher moments
-    if length != 0.0:
+    if abs(length) > 0.0:
         vx4 = x4m - 4.0 * xm * x3m + 6.0 * xm2 * x2m - 3.0 * xm2 * xm2
         vx3y = (x3ym - 3.0 * xm * x2ym + 3.0 * xm2 * xym - x3m * ym
                 + 3.0 * x2m * xmym - 3.0 * xm2 * xm * ym)
@@ -607,7 +612,7 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
                 + 3.0 * y2m * xmym - 3.0 * ym2 * ym * xm)
         vy4 = y4m - 4.0 * ym * y3m + 6.0 * ym2 * y2m - 3.0 * ym2 * ym2
         hyp = np.hypot(tanpsi_numer, tanpsi_denom)
-        if hyp != 0.:
+        if abs(hyp) > 0.:
             cpsi = tanpsi_denom / hyp
             spsi = tanpsi_numer / hyp
         else:
@@ -633,11 +638,6 @@ def hillas_parameters_4(geom: CameraGeometry, image, container=False):
                 4.0 * vxy3 * cspsi * spsi2 +
                 vy4 * spsi2 * spsi2)
         kurtosis = kurt / (length * length * length * length)
-
-    else:  # Skip Higher Moments
-        psi = 0.0
-        skewness = 0.0
-        kurtosis = 0.0
 
     if container:
         return HillasParametersContainer(x=m_x * unit, y=m_y * unit, r=r * unit,
