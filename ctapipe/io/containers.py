@@ -656,16 +656,16 @@ class MuonIntensityParameter(Container):
 
 
 class HillasParametersContainer(Container):
-    intensity = Field(0.0, 'total intensity (size)')
+    intensity = Field(nan, 'total intensity (size)')
 
-    x = Field(0.0, 'centroid x coordinate')
-    y = Field(0.0, 'centroid x coordinate')
-    r = Field(0.0, 'radial coordinate of centroid')
-    phi = Field(0.0, 'polar coordinate of centroid', unit=u.deg)
+    x = Field(nan, 'centroid x coordinate')
+    y = Field(nan, 'centroid x coordinate')
+    r = Field(nan, 'radial coordinate of centroid')
+    phi = Field(nan, 'polar coordinate of centroid', unit=u.deg)
 
-    length = Field(0.0, 'RMS spread along the major-axis')
-    width = Field(0.0, 'RMS spread along the minor-axis')
-    psi = Field(0.0, 'rotation angle of ellipse', unit=u.deg)
+    length = Field(nan, 'RMS spread along the major-axis')
+    width = Field(nan, 'RMS spread along the minor-axis')
+    psi = Field(nan, 'rotation angle of ellipse', unit=u.deg)
 
-    skewness = Field(0.0, 'measure of the asymmetry')
-    kurtosis = Field(0.0, 'measure of the tailedness')
+    skewness = Field(nan, 'measure of the asymmetry')
+    kurtosis = Field(nan, 'measure of the tailedness')
