@@ -3,7 +3,7 @@ import numpy as np
 
 
 def test_cam_to_tel():
-    from ctapipe.coordinates import CameraFrame
+    from ctapipe.coordinates import CameraFrame, InvertedCameraFrame
 
     # Coordinates in any fram can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
@@ -13,7 +13,7 @@ def test_cam_to_tel():
     focal_length = 15 * u.m
 
     # first define the camera frame
-    camera_coord = CameraFrame(pix_x, pix_y, focal_length=focal_length)
+    camera_coord = InvertedCameraFrame(pix_x, pix_y, focal_length=focal_length)
 
     # then use transform to function to convert to a new system
     # making sure to give the required values for the conversion
@@ -22,13 +22,13 @@ def test_cam_to_tel():
     assert telescope_coord.x[0] == (1 / 15) * u.rad
 
     # check rotation
-    camera_coord = CameraFrame(pix_x, pix_y, focal_length=focal_length)
+    camera_coord = InvertedCameraFrame(pix_x, pix_y, focal_length=focal_length)
     telescope_coord_rot = camera_coord.transform_to("TelescopeFrame")
     assert telescope_coord_rot.y[0] - (1 / 15) * u.rad < 1e-6 * u.rad
 
     # The Transform back
-    camera_coord2 = telescope_coord.transform_to("CameraFrame")
-
+    camera_coord2 = telescope_coord.transform_to("InvertedCameraFrame")
+    print(camera_coord2)
     # Check separation
     assert camera_coord.separation(camera_coord2) == 0 * u.m
 

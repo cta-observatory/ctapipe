@@ -23,6 +23,7 @@ from ctapipe.coordinates.utils import *
 
 __all__ = [
     'CameraFrame',
+    'InvertedCameraFrame',
     'TelescopeFrame',
     'NominalFrame',
     'HorizonFrame'
@@ -201,23 +202,67 @@ def telescope_to_camera(telescope_coord):
     x_rotated = x_rotated * focal_length
     y_rotated = y_rotated * focal_length
 
-    return CameraFrame(x_rotated * u.m, y_rotated * u.m, **telescope_coord.copy_properties())
+    return InvertedCameraFrame(x_rotated * u.m, y_rotated * u.m,
+                               **telescope_coord.copy_properties())
+
+
+# Transformations between camera frame and telescope frame
+def camera_to_inverted(camera_coord):
+    """
+    Transformation between CameraFrame and TelescopeFrame
+
+    Parameters
+    ----------
+    camera_coord: `astropy.coordinates.SkyCoord`
+        CameraFrame system
+    Returns
+    -------
+    TelescopeFrame coordinate
+    """
+
+    if camera_coord.two_mirror:
+        return InvertedCameraFrame(camera_coord.x,  camera_coord.y,
+                                   **camera_coord.copy_properties())
+    else:
+        return InvertedCameraFrame(camera_coord.x * -1,  camera_coord.y * -1,
+                                   **camera_coord.copy_properties())
+
+
+def inverted_to_camera(camera_coord):
+    """
+    Transformation between CameraFrame and TelescopeFrame
+
+    Parameters
+    ----------
+    camera_coord: `astropy.coordinates.SkyCoord`
+        CameraFrame system
+    Returns
+    -------
+    TelescopeFrame coordinate
+    """
+
+    if camera_coord.two_mirror:
+        return CameraFrame(camera_coord.x,  camera_coord.y,
+                           **camera_coord.copy_properties())
+    else:
+        return CameraFrame(camera_coord.x * -1,  camera_coord.y * -1,
+                           **camera_coord.copy_properties())
 
 
 class AngularCoordinate(BaseCoordinate):
     """
 
     """
-    system_order = np.array(["CameraFrame", "TelescopeFrame",
+    system_order = np.array(["CameraFrame", "InvertedCameraFrame", "TelescopeFrame",
                              "NominalFrame", "HorizonFrame"])
 
-    transformations = np.array([camera_to_telescope, telescope_to_nominal,
-                                nominal_to_horizon])
-    reverse_transformations = np.array([telescope_to_camera, nominal_to_telescope,
-                                        horizon_to_nominal])
+    transformations = np.array([camera_to_inverted, camera_to_telescope,
+                                telescope_to_nominal, nominal_to_horizon])
+    reverse_transformations = np.array([inverted_to_camera, telescope_to_camera,
+                                        nominal_to_telescope, horizon_to_nominal])
 
     def __init__(self, focal_length=None, telescope_pointing=None, array_pointing=None,
-                 rotation=0 * u.deg):
+                 rotation=0 * u.deg, two_mirror=False):
         """
         Parameters
         ----------
@@ -234,6 +279,7 @@ class AngularCoordinate(BaseCoordinate):
         self.telescope_pointing = telescope_pointing
         self.array_pointing = array_pointing
         self.rotation = rotation
+        self.two_mirror = two_mirror
 
         prop_dict = dict()
         for key in self.__dict__:
@@ -259,6 +305,20 @@ class CameraFrame(AngularCoordinate, Cartesian2D):
     cartesian frame, describing the 2 dimensional position of objects
     in the focal plane of the telescope Most Typically this will be
     used to describe the positions of the pixels in the focal plane
+    """
+
+    def __init__(self, x=None, y=None, **kwargs):
+        super().__init__(**kwargs)
+
+        self.x = x
+        self.y = y
+
+
+class InvertedCameraFrame(AngularCoordinate, Cartesian2D):
+    """ Inverted camera coordinate frame.  The camera frame is a simple physical
+    cartesian frame, describing the 2 dimensional position of objects
+    in the focal plane of the telescope. This inverted system is typically
+    used to describe the positions of the pixels in the MC simulations of the focal plane.
     """
 
     def __init__(self, x=None, y=None, **kwargs):
