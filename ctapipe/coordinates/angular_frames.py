@@ -224,7 +224,7 @@ def camera_to_inverted(camera_coord):
         return InvertedCameraFrame(camera_coord.x,  camera_coord.y,
                                    **camera_coord.copy_properties())
     else:
-        return InvertedCameraFrame(camera_coord.x * -1,  camera_coord.y * -1,
+        return InvertedCameraFrame(camera_coord.y * -1,  camera_coord.x * -1,
                                    **camera_coord.copy_properties())
 
 
@@ -245,7 +245,7 @@ def inverted_to_camera(camera_coord):
         return CameraFrame(camera_coord.x,  camera_coord.y,
                            **camera_coord.copy_properties())
     else:
-        return CameraFrame(camera_coord.x * -1,  camera_coord.y * -1,
+        return CameraFrame(camera_coord.y * -1,  camera_coord.x * -1,
                            **camera_coord.copy_properties())
 
 
