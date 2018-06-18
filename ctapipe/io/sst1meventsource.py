@@ -2,7 +2,7 @@
 """
 EventSource for SST1M/digicam protobuf-fits.fz-files.
 
-Needs protozfits v0.44.3 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.0.2 from github.com/cta-sst-1m/protozfitsreader
 """
 import numpy as np
 from .eventsource import EventSource
@@ -16,8 +16,8 @@ class SST1MEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        from protozfits import SimpleFile
-        self.file = SimpleFile(self.input_url)
+        from protozfits import File
+        self.file = File(self.input_url)
         # TODO: Correct pixel ordering
         self._tel_desc = TelescopeDescription.from_name(
             optics_name='SST-1M',
