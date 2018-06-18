@@ -141,6 +141,8 @@ class HESSIOEventSource(EventSource):
                         data.r0.tel[tel_id].waveform = (file.
                                                         get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
+                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))
 
