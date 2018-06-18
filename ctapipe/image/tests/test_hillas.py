@@ -2,13 +2,21 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
                                   hillas_parameters_3, hillas_parameters_4,
-                                  HillasParameterizationError)
+                                  hillas_parameters_5, HillasParameterizationError)
 from ctapipe.io.containers import HillasParametersContainer
 from astropy import units as u
 from numpy import isclose, zeros_like, arange
 from numpy.random import seed
 from numpy.ma import masked_array
 import pytest
+
+methods = (
+    hillas_parameters_1,
+    hillas_parameters_2,
+    hillas_parameters_3,
+    hillas_parameters_4,
+    hillas_parameters_5
+)
 
 
 def create_sample_image(psi='-30d'):
@@ -79,6 +87,7 @@ def test_hillas():
         results['v2'] = hillas_parameters_2(geom, image)
         results['v3'] = hillas_parameters_3(geom, image)
         results['v4'] = hillas_parameters_4(geom, image)
+        results['v5'] = hillas_parameters_5(geom, image)
         # compare each method's output
         for aa in results:
             for bb in results:
@@ -89,7 +98,6 @@ def test_hillas():
                     compare_result(results[aa].r, results[bb].r)
                     compare_result(results[aa].phi.deg, results[bb].phi.deg)
                     compare_result(results[aa].psi.deg, results[bb].psi.deg)
-                    compare_result(results[aa].miss, results[bb].miss)
                     compare_result(results[aa].skewness, results[bb].skewness)
                     # compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
@@ -111,7 +119,6 @@ def test_hillas_masked():
     compare_result(results.r, results_ma.r)
     compare_result(results.phi.deg, results_ma.phi.deg)
     compare_result(results.psi.deg, results_ma.psi.deg)
-    compare_result(results.miss, results_ma.miss)
     compare_result(results.skewness, results_ma.skewness)
     # compare_result(results.kurtosis, results_ma.kurtosis)
 
@@ -120,26 +127,18 @@ def test_hillas_failure():
     geom, image = create_sample_image_zeros(psi='0d')
     blank_image = zeros_like(image)
 
-    with pytest.raises(HillasParameterizationError):
-        hillas_parameters_1(geom, blank_image)
-
-    with pytest.raises(HillasParameterizationError):
-        hillas_parameters_2(geom, blank_image)
-
-    with pytest.raises(HillasParameterizationError):
-        hillas_parameters_3(geom, blank_image)
-
-    with pytest.raises(HillasParameterizationError):
-        hillas_parameters_4(geom, blank_image)
+    for method in methods:
+        with pytest.raises(HillasParameterizationError):
+            method(geom, blank_image)
 
 
 def test_hillas_api_change():
-    import numpy as np
     with pytest.raises(ValueError):
         hillas_parameters_4(arange(10), arange(10), arange(10))
 
 
 def test_hillas_container():
     geom, image = create_sample_image_zeros(psi='0d')
+
     params = hillas_parameters_4(geom, image, container=True)
-    assert type(params) is HillasParametersContainer
+    assert isinstance(params, HillasParametersContainer)
