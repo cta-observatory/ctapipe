@@ -215,8 +215,12 @@ def offset_to_altaz(x_off, y_off, azimuth, altitude):
 
     offset = sqrt(x_off * x_off + y_off * y_off)
     pos = np.where(offset == 0)  # find offset 0 positions
+
     if len(pos[0]) > 0:
-        offset[pos] = 1e-12  # add a very small offset to prevent math errors
+        if np.isscalar(offset):
+            offset = 1e-14
+        else:
+            offset[pos] = 1e-14  # add a very small offset to prevent math errors
 
     atan_off = arctan(offset)
 
@@ -236,8 +240,12 @@ def offset_to_altaz(x_off, y_off, azimuth, altitude):
     obj_azimuth = arctan2(yp0, -xp0) + azimuth
 
     if len(pos[0]) > 0:
-        obj_altitude[pos] = altitude
-        obj_azimuth[pos] = azimuth
+        if np.isscalar(obj_altitude):
+            obj_altitude = altitude
+            obj_azimuth = azimuth
+        else:
+            obj_altitude[pos] = altitude
+            obj_azimuth[pos] = azimuth
 
     obj_altitude = obj_altitude * u.rad
     obj_azimuth = obj_azimuth * u.rad

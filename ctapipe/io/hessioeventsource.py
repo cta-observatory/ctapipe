@@ -110,6 +110,7 @@ class HESSIOEventSource(EventSource):
                 data.mc.core_y = file.get_mc_event_ycore() * u.m
                 first_int = file.get_mc_shower_h_first_int() * u.m
                 data.mc.h_first_int = first_int
+                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data
@@ -140,6 +141,8 @@ class HESSIOEventSource(EventSource):
                         data.r0.tel[tel_id].waveform = (file.
                                                         get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
+                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))
 
