@@ -68,7 +68,7 @@ class UnstructuredInterpolator:
 
         return None
 
-    def __call__(self, points, eval_points):
+    def __call__(self, points, eval_points=None):
 
         # Convert to a numpy array here incase we get a list
         points = np.array(points)
@@ -83,8 +83,12 @@ class UnstructuredInterpolator:
             previous_keys = self.keys[self._previous_v.ravel()]
             hull = Delaunay(previous_keys)
 
-            if np.all(hull.find_simplex(points) >= 0) and \
-                    eval_points.shape == self._previous_shape:
+            if np.all(eval_points is not None):
+                shape_check = eval_points.shape == self._previous_shape
+            else:
+                shape_check = True
+
+            if np.all(hull.find_simplex(points) >= 0) and shape_check:
                 v = self._previous_v
                 m = self._previous_m
             else:
@@ -93,7 +97,8 @@ class UnstructuredInterpolator:
                 m = self._tri.transform[s]
                 self._previous_v = v
                 self._previous_m = m
-                self._previous_shape = eval_points.shape
+                if np.all(eval_points is not None):
+                    self._previous_shape = eval_points.shape
         else:
             s = self._tri.find_simplex(points)
             # get the vertices for each simplex
@@ -102,7 +107,9 @@ class UnstructuredInterpolator:
             m = self._tri.transform[s]
             self._previous_v = v
             self._previous_m = m
-            self._previous_shape = eval_points.shape
+            if np.all(eval_points is not None):
+                self._previous_shape = eval_points.shape
+
 
         # Here comes some serious numpy magic, it could be done with a loop but would
         # be pretty inefficient I had to rip this from stack overflow - RDP
@@ -118,10 +125,12 @@ class UnstructuredInterpolator:
         # the remaining weight for the last vertex can be copmuted from
         # the condition that sum of weights must be equal to 1
         w = np.c_[b, 1 - b.sum(axis=1)]
-        #print(time.time() - t)
 
         if self._numpy_input:
-            selected_points = self._numpy_interpolation(v, eval_points)
+            if eval_points is None:
+                selected_points = self.values[v]
+            else:
+                selected_points = self._numpy_interpolation(v, eval_points)
         else:
             selected_points = self._call_class_function(v, eval_points)
 

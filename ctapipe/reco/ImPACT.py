@@ -21,7 +21,8 @@ from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
-from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator
+from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator, \
+    TimeGradientInterpolator
 
 __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior', 'guess_shower_depth']
 
@@ -89,7 +90,7 @@ class ImPACTReconstructor(Reconstructor):
     spe = 0.5  # Also hard code single p.e. distribution width
 
     def __init__(self, root_dir=".", minimiser="minuit", prior="",
-                 template_scale=1., xmax_offset=0):
+                 template_scale=1., xmax_offset=0, use_time_gradient=False):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -97,10 +98,13 @@ class ImPACTReconstructor(Reconstructor):
         self.priors = prior
         self.minimiser_name = minimiser
 
-        self.file_names = {"CHEC": "GCT_05deg_ada.template.gz",
-                           "LSTCam": "LST_05deg.template.gz",
-                           "NectarCam": "MST_05deg.template.gz",
-                           "FlashCam": "MST_xm_full.fits"}
+        self.file_names = {"CHEC": ["GCT_05deg_ada.template.gz",
+                                    "GCT_05deg_time.template.gz"],
+                           "LSTCam": ["LST_05deg.template.gz",
+                                      "LST_05deg_time.template.gz"],
+                           "NectarCam": ["MST_05deg.template.gz",
+                                         "MST_05deg_time.template.gz"],
+                           "FlashCam": ["MST_xm_full.fits"]}
 
         # We also need a conversion function from height above ground to
         # depth of maximum To do this we need the conversion table from CORSIKA
@@ -111,7 +115,7 @@ class ImPACTReconstructor(Reconstructor):
         # making this a class member makes passing them around much easier
 
         self.pixel_x, self.pixel_y = None, None
-        self.image = None
+        self.image, self.time = None, None
 
         self.tel_types, self.tel_id = None, None
 
@@ -123,12 +127,15 @@ class ImPACTReconstructor(Reconstructor):
         self.hillas_parameters, self.ped = None, None
 
         self.prediction = dict()
+        self.time_prediction = dict()
+
         self.array_direction = None
         self.array_return = False
 
         # For now these factors are required to fix problems in templates
         self.template_scale = template_scale
         self.xmax_offset = xmax_offset
+        self.use_time_gradient = use_time_gradient
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -150,7 +157,11 @@ class ImPACTReconstructor(Reconstructor):
 
             self.prediction[tel_type[t]] = \
                 TemplateNetworkInterpolator(self.root_dir + "/" +
-                                            self.file_names[tel_type[t]])
+                                            self.file_names[tel_type[t]][0])
+            if self.use_time_gradient:
+                self.time_prediction[tel_type[t]] = \
+                    TimeGradientInterpolator(self.root_dir + "/" +
+                                             self.file_names[tel_type[t]][1])
 
         return True
 
@@ -316,6 +327,28 @@ class ImPACTReconstructor(Reconstructor):
 
         return self.prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
 
+    def predict_time(self, tel_type, energy, impact, x_max):
+        """Creates predicted image for the specified pixels, interpolated
+        from the template library.
+
+        Parameters
+        ----------
+        tel_type: string
+            Telescope type specifier
+        energy: float
+            Event energy (TeV)
+        impact: float
+            Impact diance of shower (metres)
+        x_max: float
+            Depth of shower maximum (num bins from expectation)
+
+        Returns
+        -------
+        ndarray: predicted amplitude for all pixels
+
+        """
+        return self.time_prediction[tel_type](energy, impact, x_max)
+
     def get_likelihood(self, source_x, source_y, core_x, core_y,
                        energy, x_max_scale, goodness_of_fit=False):
         """Get the likelihood that the image predicted at the given test
@@ -388,6 +421,8 @@ class ImPACTReconstructor(Reconstructor):
         prediction = ma.zeros(self.image.shape)
         prediction.mask = ma.getmask(self.image)
 
+        time_gradients = np.zeros((self.image.shape[0],2))
+
         # Loop over all telescope types and get prediction
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
@@ -398,6 +433,33 @@ class ImPACTReconstructor(Reconstructor):
                                       np.ones_like(impact[type_mask]),
                                       pix_x_rot[type_mask] * (180 / math.pi),
                                       pix_y_rot[type_mask] * (180 / math.pi))
+
+            if self.use_time_gradient:
+                time_gradients[type_mask] = \
+                    self.predict_time(tel_type,
+                                      energy * np.ones_like(impact[type_mask]),
+                                      impact[type_mask],
+                                      x_max_bin * np.ones_like(impact[type_mask]))
+
+        if self.use_time_gradient:
+            time_mask = np.logical_and(np.invert(ma.getmask(self.image)),
+                                       self.time > 0)
+            weight = np.sqrt(self.image) * time_mask
+            rv = norm()
+
+            sx = pix_x_rot * weight
+            sxx = pix_x_rot * pix_x_rot * weight
+
+            sy = self.time * weight
+            sxy = self.time * pix_x_rot * weight
+            d = weight.sum(axis=1) * sxx.sum(axis=1) - sx.sum(axis=1) * sx.sum(axis=1)
+            time_fit = (weight.sum(axis=1) * sxy.sum(axis=1) - sx.sum(axis=1) * sy.sum(
+                axis=1)) / d
+            time_fit /= -1 * (180 / math.pi)
+            print(energy, impact, x_max_bin)
+            print(time_fit, time_gradients.T[0], time_gradients.T[1])
+            chi2 = -2 * np.log10(rv.pdf((time_fit - time_gradients.T[0])/
+                                        time_gradients.T[1]))
 
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
@@ -429,7 +491,12 @@ class ImPACTReconstructor(Reconstructor):
         if self.array_return:
             array_like = array_like.ravel()
             return array_like[np.invert(ma.getmask(array_like))]
-        return array_like.sum()
+
+        final_sum = array_like.sum()
+        if self.use_time_gradient:
+            final_sum += 0# chi2.sum() #* np.sum(ma.getmask(self.image))
+
+        return final_sum
 
     def get_likelihood_min(self, x):
         """Wrapper class around likelihood function for use with scipy
@@ -469,7 +536,7 @@ class ImPACTReconstructor(Reconstructor):
 
         return val
 
-    def set_event_properties(self, image, pixel_x, pixel_y, type_tel, tel_x, tel_y,
+    def set_event_properties(self, image, time, pixel_x, pixel_y, type_tel, tel_x, tel_y,
                              array_direction, hillas):
         """The setter class is used to set the event properties within this
         class before minimisation can take place. This simply copies a
@@ -507,7 +574,7 @@ class ImPACTReconstructor(Reconstructor):
         self.tel_types, self.tel_id = list(), list()
 
         max_pix_x, max_pix_y = 0, 0
-        px, py, pa = list(), list(), list()
+        px, py, pa, pt = list(), list(), list(), list()
 
         # So here we must loop over the telescopes
         for x, i in zip(tel_x, range(len(tel_x))):
@@ -517,6 +584,7 @@ class ImPACTReconstructor(Reconstructor):
                 max_pix_x = len(px[i])
             py.append(pixel_y[x].to(u.rad).value)
             pa.append(image[x])
+            pt.append(time[x])
 
             self.tel_pos_x[i] = tel_x[x].to(u.m).value
             self.tel_pos_y[i] = tel_y[x].to(u.m).value
@@ -532,7 +600,8 @@ class ImPACTReconstructor(Reconstructor):
         # First allocate everything
         shape = (len(tel_x), max_pix_x)
         self.pixel_x, self.pixel_y = ma.zeros(shape), ma.zeros(shape)
-        self.image, self.ped = ma.zeros(shape), ma.zeros(shape)
+        self.image, self.time, self.ped = ma.zeros(shape), ma.zeros(shape),\
+                                          ma.zeros(shape)
         self.tel_types = np.array(self.tel_types)
 
         # Copy everything into our masked arrays
@@ -541,12 +610,14 @@ class ImPACTReconstructor(Reconstructor):
             self.pixel_x[i][:array_len] = px[i]
             self.pixel_y[i][:array_len] = py[i]
             self.image[i][:array_len] = pa[i]
+            self.time[i][:array_len] = pt[i]
             self.ped[i][:array_len] = self.ped_table[self.tel_types[i]]
 
         # Set the image mask
         mask = self.image == 0.0
         self.pixel_x[mask], self.pixel_y[mask] = ma.masked, ma.masked
         self.image[mask] = ma.masked
+        self.time[mask] = ma.masked
 
         self.hillas_parameters = hillas
 
