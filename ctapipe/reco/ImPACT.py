@@ -28,7 +28,7 @@ __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
 
 def guess_shower_depth(energy):
     """
-    Simple estimation of depth of shower max based on the expected gamma-ray elongation 
+    Simple estimation of depth of shower max based on the expected gamma-ray elongation
     rate.
 
     Parameters
@@ -192,9 +192,9 @@ class ImPACTReconstructor(Reconstructor):
         tel_num = 0
         for tel in self.hillas:
 
-            weight = self.hillas[tel].size
-            weighted_x = self.hillas[tel].cen_x.to(u.rad).value * weight
-            weighted_y = self.hillas[tel].cen_y.to(u.rad).value * weight
+            weight = self.hillas[tel].intensity
+            weighted_x = self.hillas[tel].x.to(u.rad).value * weight
+            weighted_y = self.hillas[tel].y.to(u.rad).value * weight
 
             ppx = np.sum(weighted_x) / np.sum(weight)
             ppy = np.sum(weighted_y) / np.sum(weight)
@@ -595,7 +595,7 @@ class ImPACTReconstructor(Reconstructor):
         Returns
         -------
         ReconstructedShowerContainer, ReconstructedEnergyContainer:
-        Reconstructed ImPACT shower geometry and energy        
+        Reconstructed ImPACT shower geometry and energy
         """
 
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
@@ -751,14 +751,14 @@ class ImPACTReconstructor(Reconstructor):
     def draw_nominal_surface(self, shower_seed, energy_seed, bins=30,
                              nominal_range=2.5 * u.deg):
         """
-        Simple reconstruction for evaluating the likelihood in a grid across the 
-        nominal system, fixing all values but the source position of the gamma rays. 
+        Simple reconstruction for evaluating the likelihood in a grid across the
+        nominal system, fixing all values but the source position of the gamma rays.
         Useful for checking the reconstruction performance of the algorithm
 
         Parameters
         ----------
         shower_seed: ReconstructedShowerContainer
-            Best fit ImPACT shower geometry 
+            Best fit ImPACT shower geometry
         energy_seed: ReconstructedEnergyContainer
             Best fit ImPACT energy
         bins: int
@@ -768,8 +768,8 @@ class ImPACTReconstructor(Reconstructor):
 
         Returns
         -------
-        ndarray, ndarray, ndarray: 
-        Bin centres in X and Y coordinates and the values of the likelihood at each 
+        ndarray, ndarray, ndarray:
+        Bin centres in X and Y coordinates and the values of the likelihood at each
         position
         """
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
@@ -825,7 +825,7 @@ class ImPACTReconstructor(Reconstructor):
         Parameters
         ----------
         shower_seed: ReconstructedShowerContainer
-            Best fit ImPACT shower geometry 
+            Best fit ImPACT shower geometry
         energy_seed: ReconstructedEnergyContainer
             Best fit ImPACT energy
         bins: int
@@ -835,7 +835,7 @@ class ImPACTReconstructor(Reconstructor):
 
         Returns
         -------
-        ndarray, ndarray, ndarray: 
+        ndarray, ndarray, ndarray:
             Bin centres in X and Y coordinates and the values of the likelihood
             at each position
         """
