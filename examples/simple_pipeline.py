@@ -14,16 +14,17 @@ if __name__ == '__main__':
 
     source = event_source(filename, max_events=None)
 
-    #cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
+    cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
-    for data in source:
+    for ii, event in enumerate(source):
 
         print(
-            "EVENT: {}, ENERGY: {:.2f}, TELS:{}".format(
-                data.r0.event_id, data.mc.energy, len(data.dl0.tels_with_data)
+            "{} EVENT_ID: {}, ENERGY: {:.2f}, NTELS:{}".format(
+                ii,
+                event.r0.event_id, event.mc.energy, len(event.dl0.tels_with_data)
             )
         )
 
-        #cal.calibrate(data)
+        cal.calibrate(event)
 
         # now the calibrated images are in data.dl1.tel[x].image

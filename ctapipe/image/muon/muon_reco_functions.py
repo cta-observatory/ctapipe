@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from astropy import log
 from astropy import units as u
+from astropy.coordinates import Angle
 from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
@@ -55,7 +56,8 @@ def analyze_muon_event(event):
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
                0. * u.m, 1. * u.m, 1.8 * u.m, 1.8 * u.m]
     sct = [False, False, False, True, False, True, True, True]
-
+    # Added cleaning here. All these options should go to an input card
+    cleaning = True
 
     muon_cuts = {'Name': names, 'tail_cuts': tail_cuts, 'Impact': impact,
                  'RingWidth': ringwidth, 'total_pix': total_pix,
@@ -97,18 +99,22 @@ def analyze_muon_event(event):
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if altval > np.pi / 2.:
-            altval = np.pi / 2.
+        if altval > Angle(90*u.deg):
+            altval = Angle(90*u.deg)
 
-        altaz = HorizonFrame(alt=altval * u.rad,
-                             az=event.mcheader.run_array_direction[0] * u.rad)
+        altaz = HorizonFrame(alt=altval,
+                             az=event.mcheader.run_array_direction[0])
         nom_coord = camera_coord.transform_to(
             NominalFrame(array_direction=altaz, pointing_direction=altaz)
         )
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
 
-        img = image * clean_mask
+        if(cleaning):
+            img = image * clean_mask
+        else:
+            img = image
+
         muonring = ChaudhuriKunduRingFitter(None)
 
         logger.debug("img: %s mask: %s, x=%s y= %s", np.sum(image),
@@ -204,7 +210,7 @@ def analyze_muon_event(event):
                     muonringparam.ring_center_y,
                     threshold=30,
                     bins=30)
-
+                muonintensityoutput.ring_size = np.sum(pix_im)
 
                 dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
                                              ) < (muonintensityoutput.ring_width)

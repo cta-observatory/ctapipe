@@ -4,7 +4,7 @@ Array layout utilities
 """
 from glob import glob
 from astropy.table import Table
-from ctapipe.utils import get_dataset
+from ctapipe.utils import get_dataset_path
 
 _telclass_map = {0: 'SST', 1: 'MST', 2: 'LST'}
 
@@ -16,9 +16,9 @@ def get_array_layout(instrument_name):
     """
     name = instrument_name.lower()
     try:
-        layoutfile = get_dataset('{}_arraylayout.fits'.format(name))
+        layoutfile = get_dataset_path('{}_arraylayout.fits'.format(name))
     except KeyError:
-        layoutfile = get_dataset('{}_arraylayout.fits.gz'.format(name))
+        layoutfile = get_dataset_path('{}_arraylayout.fits.gz'.format(name))
     return load_array_layout_from_file(layoutfile)
 
 
