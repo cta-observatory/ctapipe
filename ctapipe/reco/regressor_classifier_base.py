@@ -368,8 +368,6 @@ class RegressorClassifierBase:
 
         """
 
-
-
         import matplotlib.pyplot as plt
         n_tel_types = len(self.model_dict)
         n_cols = np.ceil(np.sqrt(n_tel_types)).astype(int)
