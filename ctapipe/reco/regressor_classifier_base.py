@@ -385,7 +385,8 @@ class RegressorClassifierBase:
                 continue
             bins = range(importances.shape[0])
 
-            if cam_id in self.input_features_dict and (len(self.input_features_dict[cam_id]) == len(bins)):
+            if cam_id in self.input_features_dict \
+                    and (len(self.input_features_dict[cam_id]) == len(bins)):
                 feature_labels = self.input_features_dict[cam_id]
                 importances, s_feature_labels = \
                     zip(*sorted(zip(importances, feature_labels), reverse=True))
