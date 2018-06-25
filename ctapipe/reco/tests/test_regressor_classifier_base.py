@@ -1,6 +1,5 @@
 import pytest
 from sklearn.ensemble import RandomForestClassifier
-
 from ctapipe.reco.regressor_classifier_base import *
 
 
@@ -62,8 +61,8 @@ def test_show_importances():
                                  ],
                     "ASTRICam": [[10, 1], [20, 2], [30, 3], [9, 0.9],
                                  ]}
-    target_list = {"FlashCam": np.array([0, 1, 1, 0]),
-                   "ASTRICam": np.array([1, 0, 0, 0])}
+    target_list = {"FlashCam": [0, 1, 1, 0],
+                   "ASTRICam": [1, 0, 0, 0]}
 
     reg = RegressorClassifierBase(model=RandomForestClassifier,
                                   cam_id_list=cam_id_list, unit=1)
