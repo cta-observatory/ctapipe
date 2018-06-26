@@ -23,6 +23,10 @@ __all__ = ['InstrumentContainer',
            'TargetIOCameraContainer',
            'SST1MContainer',
            'SST1MCameraContainer',
+           'LSTContainer',
+           'LSTCameraContainer',
+           'NectarCAMContainer',
+           'NectarCAMCameraContainer',
            'MCEventContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
@@ -125,6 +129,8 @@ class R0CameraContainer(Container):
     trigger_time = Field(None, "Telescope trigger time, start of waveform "
                                "readout, None for MCs")
     trigger_type = Field(0o0, "camera's event trigger type if applicable")
+    num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
+    trig_pix_id = Field(None, "pixels involved in the camera trigger")
     image = Field(None, (
         "numpy array containing integrated ADC data "
         "(n_channels x n_pixels) DEPRECATED"
@@ -235,7 +241,6 @@ class MCCameraEventContainer(Container):
         "the tracking Altitude corrected for pointing errors for the telescope"
     )
 
-
 class MCEventContainer(Container):
     """
     Monte-Carlo
@@ -246,6 +251,7 @@ class MCEventContainer(Container):
     core_x = Field(0.0, "MC core position", unit=u.m)
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
+    x_max = Field(0.0, "MC Xmax value", unit=u.g / (u.cm**2))
     shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
                                     "2(mu-), 100*A+Z for nucleons and nuclei,"
                                     "negative for antimatter.")
@@ -448,6 +454,82 @@ class NectarCAMDataContainer(DataContainer):
     nectarcam = Field(NectarCAMContainer(), "NectarCAM Specific Information")
 
 
+class LSTServiceContainer(Container):
+    """
+    Container for Fields that are specific to each LST camera configuration
+    """
+
+    # Data from the CameraConfig table
+    telescope_id = Field(-1, "telescope id")
+    cs_serial = Field(None, "serial number of the camera server")
+    configuration_id = Field(None, "id of the CameraConfiguration")
+    date = Field(None, "NTP start of run date")
+    num_pixels = Field(-1, "number of pixels")
+    num_samples = Field(-1, "num samples")
+    pixel_ids = Field([], "id of the pixels in the waveform array")
+    data_model_version = Field(None, "data model version")
+
+    idaq_version = Field(0o0, "idaq version")
+    cdhs_version = Field(0o0, "cdhs version")
+    algorithms = Field(None, "algorithms")
+    pre_proc_algorithms = Field(None, "pre processing algorithms")
+    module_ids = Field([], "module ids")
+    num_modules = Field(-1, "number of modules")
+
+
+class LSTEventContainer(Container):
+    """
+    Container for Fields that are specific to each LST event
+    """
+
+    # Data from the CameraEvent table
+    configuration_id = Field(None, "id of the CameraConfiguration")
+    event_id = Field(None, "local id of the event")
+    tel_event_id = Field(None, "global id of the event")
+    pixel_status = Field([], "status of the pixels")
+    ped_id = Field(None, "tel_event_id of the event used for pedestal substraction")
+    module_status = Field([], "status of the modules")
+    extdevices_presence = Field(None, "presence of data for external devices")
+    tib_data = Field([], "TIB data array")
+    cdts_data = Field([], "CDTS data array")
+    swat_data = Field([], "SWAT data array")
+    counters = Field([], "counters")
+    chips_flags = Field([], "chips flags")
+    first_capacitor_id = Field([], "first capacitor id")
+    drs_tag_status = Field([], "DRS tag status")
+    drs_tag = Field([], "DRS tag")
+
+
+class LSTCameraContainer(Container):
+    """
+    Container for Fields that are specific to each LST camera
+    """
+    evt = Field(LSTEventContainer(), "LST specific event Information")
+    svc = Field(LSTServiceContainer(), "LST specific camera_config Information")
+
+
+
+
+class LSTContainer(Container):
+    """
+    Storage for the LSTCameraContainer for each telescope
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
+    tel = Field(
+        Map(LSTCameraContainer),
+        "map of tel_id to LSTTelContainer")
+
+
+
+class LSTDataContainer(DataContainer):
+    """
+    Data container including LST information
+    """
+    lst = Field(LSTContainer(), "LST specific Information")
+
+
 class TargetIOCameraContainer(Container):
     """
     Container for Fields that are specific to cameras that use TARGET
@@ -582,16 +664,16 @@ class MuonIntensityParameter(Container):
 
 
 class HillasParametersContainer(Container):
-    intensity = Field(0.0, 'total intensity (size)')
+    intensity = Field(nan, 'total intensity (size)')
 
-    x = Field(0.0, 'centroid x coordinate')
-    y = Field(0.0, 'centroid x coordinate')
-    r = Field(0.0, 'radial coordinate of centroid')
-    phi = Field(0.0, 'polar coordinate of centroid', unit=u.deg)
+    x = Field(nan, 'centroid x coordinate')
+    y = Field(nan, 'centroid x coordinate')
+    r = Field(nan, 'radial coordinate of centroid')
+    phi = Field(nan, 'polar coordinate of centroid', unit=u.deg)
 
-    length = Field(0.0, 'RMS spread along the major-axis')
-    width = Field(0.0, 'RMS spread along the minor-axis')
-    psi = Field(0.0, 'rotation angle of ellipse', unit=u.deg)
+    length = Field(nan, 'RMS spread along the major-axis')
+    width = Field(nan, 'RMS spread along the minor-axis')
+    psi = Field(nan, 'rotation angle of ellipse', unit=u.deg)
 
-    skewness = Field(0.0, 'measure of the asymmetry')
-    kurtosis = Field(0.0, 'measure of the tailedness')
+    skewness = Field(nan, 'measure of the asymmetry')
+    kurtosis = Field(nan, 'measure of the tailedness')

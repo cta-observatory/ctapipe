@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from astropy import log
 from astropy import units as u
+from astropy.coordinates import Angle
 from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
@@ -98,11 +99,11 @@ def analyze_muon_event(event):
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if altval > np.pi / 2.:
-            altval = np.pi / 2.
+        if altval > Angle(90*u.deg):
+            altval = Angle(90*u.deg)
 
-        altaz = HorizonFrame(alt=altval * u.rad,
-                             az=event.mcheader.run_array_direction[0] * u.rad)
+        altaz = HorizonFrame(alt=altval,
+                             az=event.mcheader.run_array_direction[0])
         nom_coord = camera_coord.transform_to(
             NominalFrame(array_direction=altaz, pointing_direction=altaz)
         )
@@ -140,7 +141,7 @@ def analyze_muon_event(event):
             x, y, img * (ring_dist < muonringparam.ring_radius * 0.4)
         )
 
-        muonringparam.tel_ids = telid
+        muonringparam.tel_id = telid
         muonringparam.obs_id = event.dl0.obs_id
         muonringparam.event_id = event.dl0.event_id
         dist_mask = np.abs(dist - muonringparam.
@@ -196,7 +197,7 @@ def analyze_muon_event(event):
                                                     x[dist_mask], y[dist_mask],
                                                     image[dist_mask])
 
-                muonintensityoutput.tel_ids = telid
+                muonintensityoutput.tel_id = telid
                 muonintensityoutput.obs_id = event.dl0.obs_id
                 muonintensityoutput.event_id = event.dl0.event_id
                 muonintensityoutput.mask = dist_mask

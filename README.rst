@@ -1,7 +1,8 @@
 =======
 ctapipe |teststatus| |codacy| |coverage| |conda| 
 =======
-.. |teststatus| image:: http://img.shields.io/travis/cta-observatory/ctapipe.svg?branch=master
+
+.. |teststatus| image:: https://travis-ci.org/cta-observatory/ctapipe.svg?branch=master
     :target: https://travis-ci.org/cta-observatory/ctapipe
     :alt: Test Status
 .. |codacy| image:: https://api.codacy.com/project/badge/Grade/d4f525fcb5d1421eb3a93dfa4eb5573d
