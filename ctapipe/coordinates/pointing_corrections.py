@@ -14,7 +14,7 @@ class PointingCorrection:
         -------
         matrix: affine translate matrix for camera corrections
         """
-        return np.matrix(np.diag(np.ones(3,3)))
+        return np.matrix(np.diagflat(np.ones(3)))
 
 
 class HESSStylePointingCorrection(PointingCorrection):
@@ -49,10 +49,10 @@ class HESSStylePointingCorrection(PointingCorrection):
         -------
         matrix: affine translate matrix for camera corrections
         """
-        c, s = np.cos(self.phi), np.sin(self.phi)
-
-        matrix = np.matrix([[c * self.scale, -s, self.x_trans * c - self.y_trans * s],
-                            [s, c * self.scale, self.x_trans * s + self.y_trans * c],
+        c, s = np.cos(self.rotation), np.sin(self.rotation)
+        print(c, s, self.scale)
+        matrix = np.matrix([[c * self.scale, -s* self.scale, self.x_trans * c - self.y_trans * s],
+                            [s* self.scale, c * self.scale, self.x_trans * s + self.y_trans * c],
                             [0, 0, 1]])
 
         return matrix
