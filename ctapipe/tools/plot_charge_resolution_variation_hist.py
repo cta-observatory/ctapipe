@@ -110,8 +110,8 @@ class ChargeResolutionVariationViewer(Tool):
                               'ChargeResolutionCalculator.save()'
                               '').tag(config=True)
 
-    aliases = Dict(dict(f='ChargeResolutionVariationViewer.input_path',
-                        O='ChargeResolutionVariationPlotter.output_path',
+    aliases = Dict(dict(input='ChargeResolutionVariationViewer.input_path',
+                        output='ChargeResolutionVariationPlotter.output_path',
                         ))
     classes = List([ChargeResolutionCalculator,
                     ChargeResolutionVariationPlotter

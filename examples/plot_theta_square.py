@@ -10,7 +10,7 @@ from astropy import units as u
 from astropy.coordinates.angle_utilities import angular_separation
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.image import hillas_parameters
+from ctapipe.image import hillas_parameters, HillasParameterizationError
 from ctapipe.image import tailcuts_clean
 from ctapipe.io import event_source
 from ctapipe.reco import HillasReconstructor
@@ -68,7 +68,7 @@ for event in source:
         # It fails for empty pixels
         try:
             hillas_params[tel_id] = hillas_parameters(camgeom, cleaned_image)
-        except:
+        except HillasParameterizationError:
             pass
 
     if len(hillas_params) < 2:

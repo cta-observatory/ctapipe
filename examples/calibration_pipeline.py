@@ -149,13 +149,13 @@ class DisplayDL1Calib(Tool):
             sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
             lwt='ChargeExtractorFactory.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-            T='DisplayDL1Calib.telescope',
-            O='ImagePlotter.output_path'
+            tel='DisplayDL1Calib.telescope',
+            output='ImagePlotter.output_path'
         )
     )
     flags = Dict(
         dict(
-            D=({
+            display=({
                 'ImagePlotter': {
                     'display': True
                 }

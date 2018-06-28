@@ -205,9 +205,9 @@ class CameraDisplay:
             The transparency
         """
 
-        l = np.zeros_like(self.image)
-        l[pixels] = linewidth
-        self.pixel_highlighting.set_linewidth(l)
+        widths = np.zeros_like(self.image)
+        widths[pixels] = linewidth
+        self.pixel_highlighting.set_linewidth(widths)
         self.pixel_highlighting.set_alpha(alpha)
         self.pixel_highlighting.set_edgecolor(color)
         self._update()

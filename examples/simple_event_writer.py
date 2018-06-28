@@ -112,4 +112,3 @@ class SimpleEventWriter(Tool):
 if __name__ == '__main__':
     tool = SimpleEventWriter()
     tool.run()
-

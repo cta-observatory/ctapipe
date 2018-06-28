@@ -59,7 +59,7 @@ class PrepareDisplayStep(Component):
                                                                        color_list)
                 camera1.pixels.set_cmap(cmap_charge)
                 camera1.add_colorbar(ax=ax1, label=" [photo-electrons]")
-            except:
+            except KeyError:
                 camera1.pixels.set_cmap('jet')
             ax1.set_title("CT {} ({}) - Mean pixel charge"
                           .format(tel_id, geom_dict[tel_id].cam_id))
@@ -80,7 +80,7 @@ class PrepareDisplayStep(Component):
                 try:
                     camera2.pixels.set_cmap(cmap_time)
                     camera2.add_colorbar(ax=ax2, label="[time slice]")
-                except:
+                except KeyError:
                     camera2.pixels.set_cmap('jet')
                 ax2.set_title("CT {} ({}) - Pixel peak position"
                               .format(tel_id, geom_dict[tel_id].cam_id))

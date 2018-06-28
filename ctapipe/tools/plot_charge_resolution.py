@@ -152,23 +152,24 @@ class ChargeResolutionViewer(Tool):
                             'ChargeResolutionCalculator.save().'
                             '').tag(config=True)
 
-    aliases = Dict(dict(f='ChargeResolutionViewer.input_files',
-                        B='ChargeResolutionCalculator.binning',
-                        max_pe='ChargeResolutionPlotter.max_pe',
-                        O='ChargeResolutionPlotter.output_path',
-                        ))
-    flags = Dict(dict(L=({'ChargeResolutionCalculator': {'log_bins': False}},
-                         'Bin the x axis linearly instead of logarithmic.'),
-                      linx=({'ChargeResolutionPlotter': {'linear_x': True}},
-                            'Plot the x values on a linear axis, '
-                            'instead of log.'),
-                      liny=({'ChargeResolutionPlotter': {'linear_y': True}},
-                            'Plot the x values on a linear axis, '
-                            'instead of log.')
-                      ))
-    classes = List([ChargeResolutionCalculator,
-                    ChargeResolutionPlotter
-                    ])
+    aliases = Dict(dict(
+        input='ChargeResolutionViewer.input_files',
+        binning='ChargeResolutionCalculator.binning',
+        max_pe='ChargeResolutionPlotter.max_pe',
+        output='ChargeResolutionPlotter.output_path',
+    ))
+    flags = Dict(dict(
+        log=({'ChargeResolutionCalculator': {'log_bins': False}},
+             'Bin the x axis linearly instead of logarithmic.'),
+        linx=({'ChargeResolutionPlotter': {'linear_x': True}},
+              'Plot the x values on a linear axis, instead of log.'),
+        liny=({'ChargeResolutionPlotter': {'linear_y': True}},
+              'Plot the x values on a linear axis, instead of log.')
+    ))
+    classes = List([
+        ChargeResolutionCalculator,
+        ChargeResolutionPlotter
+    ])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

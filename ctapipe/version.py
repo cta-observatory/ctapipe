@@ -69,7 +69,6 @@ if name == "nt":
         # git was not found
         return "git"
 
-
     GIT_COMMAND = find_git_on_windows()
 
 
@@ -122,7 +121,6 @@ def update_release_version(pep440=False):
     This method updates the version stored in the file.
     This function should be called when creating new releases.
     It is called by setup.py when building a package.
-
 
     pep440: bool
         When True, this function returns a version string suitable for

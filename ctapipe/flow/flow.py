@@ -554,10 +554,7 @@ class Flow(Tool):
                 return result
             elif role == self.CONSUMER:
                 # Create consumer step
-                try:
-                    queue_limit = self.consumer_conf['queue_limit']
-                except:
-                    queue_limit = -1
+                queue_limit = self.consumer_conf.get('queue_limit', -1)
                 cons_step = PipeStep(self.consumer_conf['name'],
                                      queue_limit=queue_limit)
                 cons_step.type = self.CONSUMER

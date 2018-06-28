@@ -35,11 +35,8 @@ def test_CutFlow():
                 pass
             else:
                 # do something else that could fail or be rejected
-                try:
-                    assert i == 3
-                    flow.count("something")
-                except:
-                    pass
+                assert i == 3
+                flow.count("something")
 
     t = flow(sort_column=1)
     assert np.all(t["selected Events"] == [4, 3, 2, 1])

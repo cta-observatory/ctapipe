@@ -111,13 +111,12 @@ class CameraGeometry:
                 self.rotate(cam_rotation)
 
     def __eq__(self, other):
-        return ((self.cam_id == other.cam_id)
-                and (self.pix_x == other.pix_x).all()
-                and (self.pix_y == other.pix_y).all()
-                and (self.pix_type == other.pix_type)
-                and (self.pix_rotation == other.pix_rotation)
-                and (self.pix_type == other.pix_type)
-                )
+        return ((self.cam_id == other.cam_id) and
+                (self.pix_x == other.pix_x).all() and
+                (self.pix_y == other.pix_y).all() and
+                (self.pix_type == other.pix_type) and
+                (self.pix_rotation == other.pix_rotation) and
+                (self.pix_type == other.pix_type))
 
     def __getitem__(self, slice_):
         return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),

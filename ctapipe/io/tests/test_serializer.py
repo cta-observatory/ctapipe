@@ -138,4 +138,3 @@ def test_fits_context_manager(fits_file_name):
     hdulist = fits.open(fits_file_name)
     assert hdulist[1].data["event_id"][0] == 408
     remove(fits_file_name)
-

@@ -181,11 +181,12 @@ class MuonLineIntegrate:
                    ) * self.oversample_bins
         # ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
         ang = np.linspace(-np.pi + phi, np.pi + phi, bins)
-        l = self.intersect_circle(impact_parameter, ang)
-        l = correlate1d(l, np.ones(self.oversample_bins), mode='wrap', axis=0)
-        l /= self.oversample_bins
+        distance = self.intersect_circle(impact_parameter, ang)
+        distance = correlate1d(distance, np.ones(self.oversample_bins),
+                               mode='wrap', axis=0)
+        distance /= self.oversample_bins
 
-        return ang, l
+        return ang, distance
 
     def pos_to_angle(self, centre_x, centre_y, pixel_x, pixel_y):
         """
