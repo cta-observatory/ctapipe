@@ -1,7 +1,8 @@
-from pkg_resources import resource_filename
 import os
 
 import pytest
+from pkg_resources import resource_filename
+
 pytest.importorskip("protozfits", minversion="0.44.5")
 
 example_file_path = resource_filename(

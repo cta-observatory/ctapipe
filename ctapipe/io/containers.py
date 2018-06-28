@@ -2,10 +2,10 @@
 Container structures for data that should be read or written to disk
 """
 
+import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
-import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -233,6 +233,7 @@ class MCCameraEventContainer(Container):
         "the tracking Altitude corrected for pointing errors for the telescope"
     )
 
+
 class MCEventContainer(Container):
     """
     Monte-Carlo
@@ -243,7 +244,7 @@ class MCEventContainer(Container):
     core_x = Field(0.0, "MC core position", unit=u.m)
     core_y = Field(0.0, "MC core position", unit=u.m)
     h_first_int = Field(0.0, "Height of first interaction")
-    x_max = Field(0.0, "MC Xmax value", unit=u.g / (u.cm**2))
+    x_max = Field(0.0, "MC Xmax value", unit=u.g / (u.cm ** 2))
     shower_primary_id = Field(None, "MC shower primary ID 0 (gamma), 1(e-),"
                                     "2(mu-), 100*A+Z for nucleons and nuclei,"
                                     "negative for antimatter.")
@@ -338,7 +339,7 @@ class ParticleClassificationContainer(Container):
         'classificator validity flag. True if the '
         'predition was successful within the algorithm '
         'validity range')
-    )
+                     )
 
     # TODO: KPK: is this different than the list in the reco
     # container? Why repeat?
@@ -404,12 +405,10 @@ class NectarCAMCameraContainer(Container):
     """
     camera_event_type = Field(int, "camera event type")
 
-
     integrals = Field(None, (
         "numpy array containing waveform integrals"
         "(n_channels x n_pixels)"
     ))
-
 
     def fill_from_zfile_event(self, event, numTraces):
         self.camera_event_type = event.eventType
@@ -418,7 +417,6 @@ class NectarCAMCameraContainer(Container):
             event.hiGain.integrals.gains,
             event.loGain.integrals.gains,
         ])
-
 
 
 class NectarCAMContainer(Container):
@@ -479,7 +477,8 @@ class LSTEventContainer(Container):
     event_id = Field(None, "local id of the event")
     tel_event_id = Field(None, "global id of the event")
     pixel_status = Field([], "status of the pixels")
-    ped_id = Field(None, "tel_event_id of the event used for pedestal substraction")
+    ped_id = Field(None,
+                   "tel_event_id of the event used for pedestal substraction")
     module_status = Field([], "status of the modules")
     extdevices_presence = Field(None, "presence of data for external devices")
     tib_data = Field([], "TIB data array")
@@ -500,8 +499,6 @@ class LSTCameraContainer(Container):
     svc = Field(LSTServiceContainer(), "LST specific camera_config Information")
 
 
-
-
 class LSTContainer(Container):
     """
     Storage for the LSTCameraContainer for each telescope
@@ -512,7 +509,6 @@ class LSTContainer(Container):
     tel = Field(
         Map(LSTCameraContainer),
         "map of tel_id to LSTTelContainer")
-
 
 
 class LSTDataContainer(DataContainer):

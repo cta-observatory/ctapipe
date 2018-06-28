@@ -1,6 +1,7 @@
-from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
+
+from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 
 
 def test_simple_interpolation():
@@ -65,10 +66,11 @@ def test_class_output():
     rand_numbers = np.random.rand(4, 11, 11)
 
     # Create input for UnstructuredInterpolator
-    interpolation_points = {(0, 0): RegularGridInterpolator((x, x), rand_numbers[0]),
-                            (0, 1): RegularGridInterpolator((x, x), rand_numbers[1]),
-                            (1, 0): RegularGridInterpolator((x, x), rand_numbers[2]),
-                            (1, 1): RegularGridInterpolator((x, x), rand_numbers[3])}
+    interpolation_points = {
+        (0, 0): RegularGridInterpolator((x, x), rand_numbers[0]),
+        (0, 1): RegularGridInterpolator((x, x), rand_numbers[1]),
+        (1, 0): RegularGridInterpolator((x, x), rand_numbers[2]),
+        (1, 1): RegularGridInterpolator((x, x), rand_numbers[3])}
 
     # Create some random points to evaluate our interpolators
     pts1 = np.random.rand(1, 2)
@@ -95,7 +97,6 @@ def test_class_output():
 
 
 if __name__ == '__main__':
-
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()

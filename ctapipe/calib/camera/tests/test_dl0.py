@@ -27,6 +27,6 @@ def test_check_r1_exists(test_event):
     telid = 11
     previous_calibration(event)
     reducer = CameraDL0Reducer()
-    assert(reducer.check_r1_exists(event, telid) is True)
+    assert reducer.check_r1_exists(event, telid) is True
     event.r1.tel[telid].waveform = None
-    assert(reducer.check_r1_exists(event, telid) is False)
+    assert reducer.check_r1_exists(event, telid) is False

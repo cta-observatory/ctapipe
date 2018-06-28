@@ -1,7 +1,8 @@
-from ctapipe.utils import get_dataset_path
-from ctapipe.io.hessioeventsource import HESSIOEventSource
-from ctapipe.io.eventseeker import EventSeeker
 import pytest
+
+from ctapipe.io.eventseeker import EventSeeker
+from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.utils import get_dataset_path
 
 
 def test_eventseeker():
@@ -47,6 +48,7 @@ def test_eventseeker():
 
         def is_stream(self):
             return True
+
     with StreamFileReader(**kwargs) as reader:
         with pytest.raises(IOError):
             seeker = EventSeeker(reader=reader)

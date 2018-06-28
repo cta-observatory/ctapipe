@@ -1,6 +1,6 @@
-from astropy.table import Table
-
 from collections import OrderedDict
+
+from astropy.table import Table
 
 
 class UndefinedCut(Exception):
@@ -111,7 +111,7 @@ class CutFlow:
         if cut not in self.cuts:
             raise UndefinedCut(
                 "unknown cut '{}' -- only know: {}"
-                .format(cut, [a for a in self.cuts.keys()]))
+                    .format(cut, [a for a in self.cuts.keys()]))
         elif self.cuts[cut][0] is None:
             raise PureCountingCut(
                 "'{}' has no function associated".format(cut))
@@ -243,13 +243,14 @@ class CutFlow:
         elif base_cut not in self.cuts:
             raise UndefinedCut(
                 "unknown cut '{}' -- only know: {}"
-                .format(base_cut, [a for a in self.cuts.keys()]))
+                    .format(base_cut, [a for a in self.cuts.keys()]))
         else:
             base_value = self.cuts[base_cut][1]
 
         t = Table([[cut for cut in self.cuts.keys()],
                    [self.cuts[cut][1] for cut in self.cuts.keys()],
-                   [self.cuts[cut][1] / base_value for cut in self.cuts.keys()]],
+                   [self.cuts[cut][1] / base_value for cut in
+                    self.cuts.keys()]],
                   names=['Cut Name', 'selected Events', 'Efficiency'])
         t['Efficiency'].format = format
 

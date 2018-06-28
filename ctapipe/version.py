@@ -24,8 +24,8 @@ https://github.com/warner/python-versioneer
 but being much more lightwheight
 
 """
-from subprocess import check_output, CalledProcessError
 from os import path, name, devnull, environ, listdir
+from subprocess import check_output, CalledProcessError
 
 __all__ = ("get_version",)
 
@@ -68,6 +68,7 @@ if name == "nt":
                 return possible_location
         # git was not found
         return "git"
+
 
     GIT_COMMAND = find_git_on_windows()
 
@@ -156,7 +157,7 @@ def get_version(pep440=False):
 
     raw_git_version = get_git_describe_version()
     if not raw_git_version:  # not a git repository
-        return  read_release_version()
+        return read_release_version()
 
     git_version = format_git_describe(raw_git_version, pep440=pep440)
 

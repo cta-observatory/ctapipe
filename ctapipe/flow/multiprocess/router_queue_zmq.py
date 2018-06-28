@@ -1,18 +1,19 @@
 from multiprocessing import Process
 from multiprocessing import Value
-from zmq import POLLIN
-from zmq import PUB
-from zmq import ROUTER
-from zmq import Poller
-from zmq import Context
-from zmq.error import ZMQError
 from pickle import dumps
 from pickle import loads
+
+from zmq import Context
+from zmq import POLLIN
+from zmq import PUB
+from zmq import Poller
+from zmq import ROUTER
+from zmq.error import ZMQError
+
 from ctapipe.core import Component
 
 
 class RouterQueue(Process, Component):
-
     """`RouterQueue` class represents a router between pipeline steps, and it
     manages queue for prev step.
     It is derived from Process class.
@@ -104,7 +105,8 @@ class RouterQueue(Process, Component):
                         queue = self.queue_jobs[n]
                         if (len(queue) > self.queue_limit[n]
                                 and self.queue_limit[n] != -1):
-                            socket_router.send_multipart([address, b"", b"FULL"])
+                            socket_router.send_multipart(
+                                [address, b"", b"FULL"])
                         else:
                             queue.append(loads(request))
                             if self.gui_address:

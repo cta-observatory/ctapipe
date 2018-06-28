@@ -1,12 +1,12 @@
 import numpy as np
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
-from astropy.coordinates import SkyCoord
 
 
 def test_estimator_results():
@@ -99,7 +99,8 @@ def test_reconstruction():
         if len(hillas_dict) < 2:
             continue
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_azimuth, tel_altitude)
+        fit_result = fit.predict(hillas_dict, event.inst, tel_azimuth,
+                                 tel_altitude)
 
         print(fit_result)
         fit_result.alt.to(u.deg)

@@ -2,8 +2,8 @@
 """
 Array layout utilities
 """
-from glob import glob
 from astropy.table import Table
+
 from ctapipe.utils import get_dataset_path
 
 _telclass_map = {0: 'SST', 1: 'MST', 2: 'LST'}

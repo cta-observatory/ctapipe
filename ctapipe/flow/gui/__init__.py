@@ -1,4 +1,3 @@
-
 """
 from ctapipe.flow.gui.main_window import ModuleApplication
 from ctapipe.flow.gui.graphwidget import GraphWidget

@@ -3,12 +3,12 @@
 
 
 class ProducerSequential():
-
     """`ProducerSequential` class represents a Stager pipeline Step.
     """
 
     def __init__(
-            self, coroutine, name=None, connections=None, main_connection_name=None):
+            self, coroutine, name=None, connections=None,
+            main_connection_name=None):
         """
         Parameters
         ----------
@@ -22,7 +22,6 @@ class ProducerSequential():
         self.connections = connections or []
         self.running = 0
         self.nb_job_done = 0
-
 
     def init(self):
         """

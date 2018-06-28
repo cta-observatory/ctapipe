@@ -2,12 +2,11 @@
 camera images and waveforms.
 """
 
+from astropy import log
+from astropy import units as u
 from matplotlib import pyplot as plt
 
 from ctapipe.visualization import CameraDisplay
-
-from astropy import units as u
-from astropy import log
 
 
 class CameraPlotter:

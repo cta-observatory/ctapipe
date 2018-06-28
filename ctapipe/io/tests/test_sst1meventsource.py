@@ -1,7 +1,9 @@
-from pkg_resources import resource_filename
-import os
 import copy
+import os
+
 import pytest
+from pkg_resources import resource_filename
+
 from ctapipe.calib.camera.calibrator import CameraCalibrator
 
 pytest.importorskip("protozfits", minversion="0.44.3")

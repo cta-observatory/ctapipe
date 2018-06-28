@@ -84,7 +84,8 @@ class DumpTriggersTool(Tool):
         """ setup function, called before `start()` """
 
         if self.infile == '':
-            raise ToolConfigurationError("No 'infile' parameter was specified. ")
+            raise ToolConfigurationError(
+                "No 'infile' parameter was specified. ")
 
         self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
                                    'N_TRIG', 'TRIGGERED_TELS'],
@@ -115,7 +116,8 @@ class DumpTriggersTool(Tool):
         """
         # write out the final table
         try:
-            if self.outfile.endswith('fits') or self.outfile.endswith('fits.gz'):
+            if self.outfile.endswith('fits') or self.outfile.endswith(
+                    'fits.gz'):
                 self.events.write(self.outfile, overwrite=self.overwrite)
             elif self.outfile.endswith('h5'):
                 self.events.write(self.outfile, path='/events',

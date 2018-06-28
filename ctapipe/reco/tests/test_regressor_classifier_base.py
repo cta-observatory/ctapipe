@@ -67,7 +67,8 @@ def test_show_importances():
     )
 
     reg.fit(feature_list, target_list)
-    reg.input_features_dict = {"FlashCam": ["f1", "f2"], "ASTRICam": ["f1", "f2"]}
+    reg.input_features_dict = {"FlashCam": ["f1", "f2"],
+                               "ASTRICam": ["f1", "f2"]}
     fig = reg.show_importances()
     ax = fig.axes[0]
     assert len(ax.get_xticklabels()) == 2

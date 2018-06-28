@@ -5,8 +5,8 @@ from traitlets import Unicode
 from traitlets.config import Application
 
 from ctapipe import __version__ as version
-from .logging import ColoredFormatter
 from . import Provenance
+from .logging import ColoredFormatter
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -102,7 +102,8 @@ class Tool(Application):
 
     config_file = Unicode(u'', help=("name of a configuration file with "
                                      "parameters to load in addition to "
-                                     "command-line parameters")).tag(config=True)
+                                     "command-line parameters")).tag(
+        config=True)
 
     _log_formatter_cls = ColoredFormatter
 

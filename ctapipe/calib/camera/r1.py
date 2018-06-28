@@ -14,7 +14,9 @@ Through the use of `CameraR1CalibratorFactory`, the correct
 of the data.
 """
 from abc import abstractmethod
+
 import numpy as np
+
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
@@ -174,6 +176,7 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     should be applied using a SPE sim_telarray run with an 
     artificial light source.
     """
+
     # TODO: Handle calib_scale differently per simlated telescope
 
     def calibrate(self, event):
@@ -192,7 +195,6 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
 
 
 class TargetIOR1Calibrator(CameraR1Calibrator):
-
     pedestal_path = Unicode(
         '',
         allow_none=True,

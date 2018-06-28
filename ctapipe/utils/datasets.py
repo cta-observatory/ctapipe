@@ -16,9 +16,11 @@ logger = logging.getLogger(__name__)
 try:
     import ctapipe_resources
 except ImportError:
-    raise RuntimeError("Please install the 'ctapipe-extra' package, "
-                       "which contains the ctapipe_resources module "
-                       "needed by ctapipe. (conda install ctapipe-extra)")
+    raise RuntimeError(
+        "Please install the 'ctapipe-extra' package, "
+        "which contains the ctapipe_resources module "
+        "needed by ctapipe. (conda install ctapipe-extra)"
+    )
 
 __all__ = ['get_dataset_path', 'find_in_path', 'find_all_matching_datasets']
 
@@ -30,9 +32,7 @@ def get_searchpath_dirs(searchpath=os.getenv("CTAPIPE_SVC_PATH")):
     return os.path.expandvars(searchpath).split(':')
 
 
-def find_all_matching_datasets(pattern,
-                               searchpath=None,
-                               regexp_group=None):
+def find_all_matching_datasets(pattern, searchpath=None, regexp_group=None):
     """
     Returns a list of resource names (or substrings) matching the given 
     pattern, searching first in searchpath (a colon-separated list of 
@@ -134,8 +134,10 @@ def get_dataset_path(filename):
         if filepath:
             return filepath
 
-    logger.debug("Resource '{}' not found in CTAPIPE_SVC_PATH, looking in "
-                 "ctapipe_resources...".format(filename))
+    logger.debug(
+        "Resource '{}' not found in CTAPIPE_SVC_PATH, looking in "
+        "ctapipe_resources...".format(filename)
+    )
 
     return ctapipe_resources.get(filename)
 
@@ -187,8 +189,11 @@ def get_table_dataset(table_name, role='resource', **kwargs):
         except FileNotFoundError:
             pass
 
-    raise FileNotFoundError("couldn't locate table: {}[{}]".format(
-        table_name, ', '.join(types_to_try)))
+    raise FileNotFoundError(
+        "couldn't locate table: {}[{}]".format(
+            table_name, ', '.join(types_to_try)
+        )
+    )
 
 
 def get_structured_dataset(basename, role='resource', **kwargs):
@@ -212,11 +217,7 @@ def get_structured_dataset(basename, role='resource', **kwargs):
 
     # a mapping of types (keys) to any extra keyword args needed for
     # table.read()
-    types_to_try = {
-        '.yaml': {},
-        '.yml': {},
-        '.json': {},
-    }
+    types_to_try = {'.yaml': {}, '.yml': {}, '.json': {}}
 
     for data_type in types_to_try:
         filename = basename + data_type
@@ -237,8 +238,11 @@ def get_structured_dataset(basename, role='resource', **kwargs):
         except FileNotFoundError:
             pass
 
-    raise FileNotFoundError("couldn't locate structed dataset: {}[{}]".format(
-        basename, ', '.join(types_to_try)))
+    raise FileNotFoundError(
+        "couldn't locate structed dataset: {}[{}]".format(
+            basename, ', '.join(types_to_try)
+        )
+    )
 
 
 @deprecated("ctapipe-0.5", alternative='get_dataset()')

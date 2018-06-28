@@ -1,9 +1,10 @@
+from traitlets import Float
+from traitlets import Int
+from traitlets import List
+from traitlets import Unicode
+
 from ctapipe.calib.camera.dl1 import calibrate_event
 from ctapipe.core import Component
-from traitlets import Unicode
-from traitlets import Int
-from traitlets import Float
-from traitlets import List
 
 
 class CalibrationStep(Component):
@@ -12,9 +13,9 @@ class CalibrationStep(Component):
         it return calibrated_event and geom_dict
     """
     integrator = Unicode('nb_peak_integration',
-                         help=("integration scheme to be used" 
+                         help=("integration scheme to be used"
                                "to extract the charge")).tag(
-                                   config=True)
+        config=True)
     integration_window = List([7, 3], help='Set integration window width \
         and offset (to before the peak) respectively').tag(
         config=True)
@@ -31,7 +32,6 @@ class CalibrationStep(Component):
         pe. Identical to global variable CALIB_SCALE in reconstruct.c in \
         hessioxxx software package.').tag(config=True)
 
-
     def init(self):
         self.log.debug("--- CalibrationStep init ---")
         self.parameters = dict()
@@ -41,7 +41,8 @@ class CalibrationStep(Component):
         self.parameters['integration_shift'] = self.integration_window[1]
         self.parameters['integration_sigamp'] = self.integration_sigamp
         self.parameters['integration_lwt'] = self.integration_lwt
-        self.parameters['integration_calib_scale'] = self.integration_calib_scale
+        self.parameters[
+            'integration_calib_scale'] = self.integration_calib_scale
 
         if self.integration_clip_amp is not None:
             self.parameters['clip_amp'] = self.integration_clip_amp

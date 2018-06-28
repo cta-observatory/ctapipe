@@ -1,6 +1,7 @@
+from copy import deepcopy
+
 import numpy as np
 from numpy.testing import assert_almost_equal
-from copy import deepcopy
 
 from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
                                              CHECMWaveformCleanerAverage,
@@ -19,7 +20,7 @@ def test_null_cleaner(test_event):
     cleaner = NullWaveformCleaner()
     cleaned = cleaner.apply(data_ped)
 
-    assert(np.array_equal(data_ped, cleaned))
+    assert (np.array_equal(data_ped, cleaned))
 
 
 def test_checm_cleaner_average(test_event):

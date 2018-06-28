@@ -1,8 +1,9 @@
+import os
+
 from traitlets import (Int, Integer, Float, Unicode, Enum, Long, List,
                        Bool, CRegExp, Dict, TraitError, observe,
                        CaselessStrEnum, TraitType)
 from traitlets.config import boolean_flag as flag
-import os
 
 __all__ = ['Path', 'Int', 'Integer', 'Float', 'Unicode', 'Enum', 'Long', 'List',
            'Bool', 'CRegExp', 'Dict', 'flag', 'TraitError', 'observe',

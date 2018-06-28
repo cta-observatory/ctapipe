@@ -27,7 +27,6 @@ try:
 except ImportError:
     from astropy.coordinates import Attribute
 
-
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
 from ..coordinates.representation import PlanarRepresentation
@@ -74,6 +73,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     # could be the telescope pointing direction or the reconstructed shower
     # direction
     pointing_direction = Attribute(default=None)
+
 
 # Transformations defined below this point
 

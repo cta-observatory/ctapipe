@@ -1,6 +1,8 @@
 from collections import OrderedDict
+
 import numpy as np
 from pytest import raises
+
 from ctapipe.utils.CutFlow import CutFlow, UndefinedCut, PureCountingCut
 
 
@@ -39,7 +41,6 @@ def test_CutFlow():
                 except:
                     pass
 
-
     t = flow(sort_column=1)
     assert np.all(t["selected Events"] == [4, 3, 2, 1])
 
@@ -73,7 +74,6 @@ def test_set_cuts_no_clear():
         ("smaller3", smaller3),
         ("smaller2", smaller2)
     ]), clear=False)
-
 
     assert flow.cuts == OrderedDict([
         ("smaller5", [smaller5, 0]),

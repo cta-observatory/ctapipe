@@ -1,9 +1,9 @@
-from ctapipe.core import Component
 from time import sleep
+
+from ctapipe.core import Component
 
 
 class IntGenerator(Component):
-
     """IntGenerator class represents a Producer for pipeline.
     It yields integer from 0 to 5 to Pair or Odd stages, depending of their parity
     """
@@ -18,7 +18,7 @@ class IntGenerator(Component):
             if i % 2 == 0:
                 yield (i, 'Pair')
             else:
-                yield(i, 'Odd')
+                yield (i, 'Odd')
 
         self.log.debug("\n--- IntGenerator Done ---")
 

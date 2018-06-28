@@ -31,7 +31,6 @@ def test_ActivityProvenance():
 
 
 def test_provenence_contextmanager():
-
     prov = Provenance()
 
     with prov.activity("myactivity"):
@@ -42,8 +41,8 @@ def test_provenence_contextmanager():
 
 
 if __name__ == '__main__':
-
     import logging
+
     logging.basicConfig(level=logging.DEBUG)
 
     prov = test_Provenance()

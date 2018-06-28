@@ -45,6 +45,7 @@ class ContainerMeta(type):
     This makes sure, that the metadata is immutable,
     and no new fields can be added to a container by accident.
     '''
+
     def __new__(cls, name, bases, dct):
         items = [
             k for k, v in dct.items()
@@ -113,6 +114,7 @@ class Container(metaclass=ContainerMeta):
     `meta` attribute, which is a `dict` of keywords to values.
 
     """
+
     def __init__(self, **fields):
 
         self.meta = {}

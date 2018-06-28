@@ -1,6 +1,5 @@
 from ctapipe.io.hessio import hessio_event_source
 from ctapipe.utils import get_dataset_path
-from ctapipe.io.hessioeventsource import HESSIOEventSource
 
 
 def test_hessio_event_source():
@@ -10,4 +9,3 @@ def test_hessio_event_source():
     tels = event.dl0.tels_with_data
     print(tels)
     assert tels == {38, 47}
-

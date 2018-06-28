@@ -1,7 +1,8 @@
-from ctapipe.image.timing_parameters import timing_parameters
-import numpy as np
 import astropy.units as u
+import numpy as np
 from numpy.testing import assert_allclose
+
+from ctapipe.image.timing_parameters import timing_parameters
 
 
 def test_grad_fit():
@@ -31,7 +32,7 @@ def test_grad_fit():
         pix_y=np.arange(4) * u.deg,
         image=np.ones(4),
         peak_time=intercept * u.ns +
-        grad * np.arange(4) * u.ns,
+                  grad * np.arange(4) * u.ns,
         rotation_angle=rot_angle
     )
     # Test the output again makes sense

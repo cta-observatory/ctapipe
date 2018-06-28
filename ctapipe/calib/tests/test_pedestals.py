@@ -1,10 +1,10 @@
 """ test code to ensure pedestal functions behave correctly """
-from .. import pedestals
 import numpy as np
+
+from .. import pedestals
 
 
 def test_calc_pedestals_from_traces():
-
     # create some test data (all ones, but with a 2 stuck in for good measure):
     npix = 1000
     nsamp = 32

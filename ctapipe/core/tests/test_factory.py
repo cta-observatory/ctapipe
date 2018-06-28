@@ -1,9 +1,11 @@
-from ctapipe.core.factory import Factory
-from ctapipe.core.component import Component
-from traitlets import Int, TraitError
-import pytest
-from traitlets.config.loader import Config
 import warnings
+
+import pytest
+from traitlets import Int, TraitError
+from traitlets.config.loader import Config
+
+from ctapipe.core.component import Component
+from ctapipe.core.factory import Factory
 
 
 class ExampleComponentParent(Component):
@@ -53,8 +55,8 @@ def test_factory():
         product='ExampleComponent2',
         value=111
     )
-    assert(obj.__class__.__name__ == 'ExampleComponent2')
-    assert(obj.value == 111)
+    assert (obj.__class__.__name__ == 'ExampleComponent2')
+    assert (obj.value == 111)
 
 
 def test_factory_subclass_detection():
@@ -88,7 +90,7 @@ def test_factory_traits_compatible_help():
         "ExampleComponent2",
         "ExampleComponent3",
         "ExampleComponent4"
-        ]
+    ]
     for m in msg:
         assert m in ExampleFactory.class_own_traits()['value'].help
 

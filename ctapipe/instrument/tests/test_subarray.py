@@ -44,6 +44,3 @@ def test_subarray_description():
     assert set(subsub.tels.keys()) == {2, 3, 4, 6}
     assert subsub.tel_indices[6] == 3
     assert subsub.tel_ids[3] == 6
-
-
-

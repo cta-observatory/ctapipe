@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.calib.camera.gainselection import SimpleGainSelector
+from ctapipe.calib.camera.gainselection import ThresholdGainSelector
 from ctapipe.calib.camera.gainselection import pick_gain_channel
 
 
@@ -22,9 +22,7 @@ def test_pick_gain_channel():
     # pixels from 500 and above should have the low-gain value of good_hg_value
 
     new_waveforms, gain_mask = pick_gain_channel(
-        waveforms=dummy_waveforms,
-        threshold=threshold,
-        select_by_sample=False
+        waveforms=dummy_waveforms, threshold=threshold, select_by_sample=False
     )
 
     assert gain_mask.shape == (1000,)
@@ -38,9 +36,7 @@ def test_pick_gain_channel():
     # low-gain value of good_hg_value:
 
     new_waveforms, gain_mask = pick_gain_channel(
-        waveforms=dummy_waveforms,
-        threshold=threshold,
-        select_by_sample=True
+        waveforms=dummy_waveforms, threshold=threshold, select_by_sample=True
     )
 
     assert gain_mask.shape == new_waveforms.shape
@@ -61,17 +57,16 @@ def test_threshold_gain_selector():
     selector = ThresholdGainSelector()
     print(selector)
 
-    assert 'NectarCam' in selector.thresholds
+    assert "NectarCam" in selector.thresholds
 
-    threshold = selector.thresholds['NectarCam']
+    threshold = selector.thresholds["NectarCam"]
     good_hg_value = 35
     good_lg_value = 50
     dummy_waveforms = np.ones((2, 1000, 30)) * good_lg_value
     dummy_waveforms[1:] = good_hg_value  #
     dummy_waveforms[0, 500:, 13:15] = threshold + 10
 
-    new_waveforms, gain_mask = selector.select_gains("NectarCam",
-                                                     dummy_waveforms)
+    new_waveforms, gain_mask = selector.select_gains("NectarCam", dummy_waveforms)
     assert gain_mask.shape == (1000,)
     assert new_waveforms.shape == (1000, 30)
     assert (new_waveforms[500:] == good_hg_value).all()
@@ -79,8 +74,7 @@ def test_threshold_gain_selector():
 
     selector.select_by_sample = True
 
-    new_waveforms, gain_mask = selector.select_gains("NectarCam",
-                                                     dummy_waveforms)
+    new_waveforms, gain_mask = selector.select_gains("NectarCam", dummy_waveforms)
 
     assert new_waveforms.shape == (1000, 30)
     assert (new_waveforms[500:, 13:15] == good_hg_value).all()

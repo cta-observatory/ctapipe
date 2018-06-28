@@ -6,8 +6,9 @@ Needs protozfits v1.02.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
-from .eventsource import EventSource
+
 from .containers import NectarCAMDataContainer
+from .eventsource import EventSource
 
 __all__ = ['NectarCAMEventSource']
 
@@ -19,7 +20,6 @@ class NectarCAMEventSource(EventSource):
         from protozfits import File
         self.file = File(self.input_url)
         self.header = next(self.file.RunHeader)
-
 
     def _generator(self):
 
@@ -33,7 +33,6 @@ class NectarCAMEventSource(EventSource):
             # fill general R0 data
             self.fill_R0Container_from_zfile_event(data.r0, event)
             yield data
-
 
     @staticmethod
     def is_compatible(file_path):
@@ -55,20 +54,19 @@ class NectarCAMEventSource(EventSource):
             return False
 
         is_protobuf_zfits_file = (
-            (h['XTENSION'] == 'BINTABLE') and
-            (h['EXTNAME'] == 'Events') and
-            (h['ZTABLE'] is True) and
-            (h['ORIGIN'] == 'CTA') and
-            (h['PBFHEAD'] == 'DataModel.CameraEvent')
+                (h['XTENSION'] == 'BINTABLE') and
+                (h['EXTNAME'] == 'Events') and
+                (h['ZTABLE'] is True) and
+                (h['ORIGIN'] == 'CTA') and
+                (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
 
         is_nectarcam_file = 'hiGain_integrals_gains' in ttypes
         return is_protobuf_zfits_file & is_nectarcam_file
 
-
     def fill_R0CameraContainer_from_zfile_event(self, container, event):
         container.trigger_time = (
-            event.local_time_sec * 1E9 + event.local_time_nanosec)
+                event.local_time_sec * 1E9 + event.local_time_nanosec)
         container.trigger_type = event.event_type
 
         container.waveform = np.array([

@@ -1,6 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
 import pytest
+
 from ctapipe.utils.fitshistogram import Histogram
 
 
@@ -24,7 +25,6 @@ def test_histogram_str():
 
 
 def test_histogram_fill_and_read():
-
     hist = Histogram(nbins=[5, 10], ranges=[[-2.5, 2.5], [-1, 1]])
 
     pa = (0.1, 0.1)

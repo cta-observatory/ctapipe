@@ -3,9 +3,11 @@ Classes and functions related to telescope Optics
 """
 
 import logging
-from ..utils import get_table_dataset
-import numpy as np
+
 import astropy.units as u
+import numpy as np
+
+from ..utils import get_table_dataset
 
 logger = logging.getLogger(__name__)
 

@@ -7,15 +7,16 @@ To do:
     - create container class for output
 
 """
+import logging
+
 import numpy as np
-from scipy.ndimage.filters import correlate1d
-from iminuit import Minuit
 from astropy import units as u
 from astropy.constants import alpha
-from ...io.containers import MuonIntensityParameter
+from iminuit import Minuit
+from scipy.ndimage.filters import correlate1d
 from scipy.stats import norm
 
-import logging
+from ...io.containers import MuonIntensityParameter
 
 __all__ = ['MuonLineIntegrate']
 
@@ -73,8 +74,8 @@ class MuonLineIntegrate:
         self.prediction = 0
         self.minlambda = 300.e-9 * u.m
         self.maxlambda = 600.e-9 * u.m
-        self.photemit = alpha * (self.minlambda**-1 -
-                                 self.maxlambda**-1)  # 12165.45
+        self.photemit = alpha * (self.minlambda ** -1 -
+                                 self.maxlambda ** -1)  # 12165.45
         self.unit = u.deg
 
     @staticmethod
@@ -168,7 +169,8 @@ class MuonLineIntegrate:
             Chord length for each angle
         """
 
-        bins = int((2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
+        bins = int((
+                               2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
         # ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
         ang = np.linspace(-np.pi + phi, np.pi + phi, bins)
         l = self.intersect_circle(impact_parameter, ang)
@@ -241,7 +243,8 @@ class MuonLineIntegrate:
 
         ang_prof, profile = self.plot_pos(impact_parameter, radius, phi)
         # Produce gaussian weight for each pixel give ring width
-        radial_dist = np.sqrt((pixel_x - centre_x)**2 + (pixel_y - centre_y)**2)
+        radial_dist = np.sqrt(
+            (pixel_x - centre_x) ** 2 + (pixel_y - centre_y) ** 2)
         gauss = norm.pdf(radial_dist, radius, ring_width)
 
         # interpolate profile to find prediction for each pixel
@@ -310,7 +313,8 @@ class MuonLineIntegrate:
         self.prediction *= optical_efficiency_muon
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
-        like_value = np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
+        like_value = np.sum(
+            self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
 
         return like_value
 
@@ -337,9 +341,10 @@ class MuonLineIntegrate:
         """
         ped = ped * u.deg
         image = image * u.deg
-        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) * u.deg))
-        diff = (image - pred)**2
-        denom = 2 * (ped**2 + pred * (1 + spe_width**2) * u.deg)
+        sq = 1 / np.sqrt(
+            2 * np.pi * (ped ** 2 + pred * (1 + spe_width ** 2) * u.deg))
+        diff = (image - pred) ** 2
+        denom = 2 * (ped ** 2 + pred * (1 + spe_width ** 2) * u.deg)
         expo = np.exp(-diff / denom) * u.m
         sm = expo < 1e-300 * u.m
         expo[sm] = 1e-300 * u.m
@@ -430,12 +435,15 @@ class MuonLineIntegrate:
 
         fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
         # fitoutput.phi = fit_params['phi']*u.rad
-        fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
+        fitoutput.impact_parameter_pos_x = fit_params[
+                                               'impact_parameter'] * np.cos(
             fit_params['phi'] * u.rad) * u.m
-        fitoutput.impact_parameter_pos_y = fit_params['impact_parameter'] * np.sin(
+        fitoutput.impact_parameter_pos_y = fit_params[
+                                               'impact_parameter'] * np.sin(
             fit_params['phi'] * u.rad) * u.m
         fitoutput.ring_width = fit_params['ring_width'] * self.unit
-        fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
+        fitoutput.optical_efficiency_muon = fit_params[
+            'optical_efficiency_muon']
 
         fitoutput.prediction = self.prediction
 

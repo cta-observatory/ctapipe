@@ -1,4 +1,5 @@
 from time import sleep
+
 import zmq
 
 
@@ -20,7 +21,6 @@ class Connections():
         self.context = zmq.Context()
         self.main_out_socket = None
         self.main_connection_name = main_connection_name
-
 
     def close_connections(self):
         """

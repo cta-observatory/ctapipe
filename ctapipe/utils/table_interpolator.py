@@ -28,9 +28,9 @@ TODO:
     - Allow non-linear interpolation
 """
 
-from scipy import interpolate
 import numpy as np
 from astropy.io import fits
+from scipy import interpolate
 
 
 class TableInterpolator:
@@ -61,16 +61,19 @@ class TableInterpolator:
         grid, bins, template = self.parse_fits_table(filename)
         x_bins, y_bins = bins
 
-        self.interpolator = interpolate.LinearNDInterpolator(grid, template, fill_value=0)
-        self.nearest_interpolator = interpolate.NearestNDInterpolator(grid, template)
+        self.interpolator = interpolate.LinearNDInterpolator(
+            grid, template, fill_value=0
+        )
+        self.nearest_interpolator = interpolate.NearestNDInterpolator(grid,
+                                                                      template)
 
-        self.grid_interp = interpolate.RegularGridInterpolator((x_bins, y_bins),
-                                                               np.zeros([x_bins.shape[0],
-                                                                         y_bins.shape[
-                                                                             0]]),
-                                                               method="linear",
-                                                               bounds_error=False,
-                                                               fill_value=0)
+        self.grid_interp = interpolate.RegularGridInterpolator(
+            (x_bins, y_bins),
+            np.zeros([x_bins.shape[0], y_bins.shape[0]]),
+            method="linear",
+            bounds_error=False,
+            fill_value=0,
+        )
 
     def parse_fits_table(self, filename):
         """
@@ -101,8 +104,12 @@ class TableInterpolator:
         ix *= delta_x
         iy *= delta_y
 
-        x_bins = np.arange(val_x - ix, val_x + (delta_x * nbins_x) - ix, step=delta_x)
-        y_bins = np.arange(val_y - iy, val_y + (delta_y * nbins_y) - iy, step=delta_y)
+        x_bins = np.arange(
+            val_x - ix, val_x + (delta_x * nbins_x) - ix, step=delta_x
+        )
+        y_bins = np.arange(
+            val_y - iy, val_y + (delta_y * nbins_y) - iy, step=delta_y
+        )
         grid_vals = primary_hdu["GRIDVALS"]
         points = grid_vals.split(",")
 
@@ -151,7 +158,8 @@ class TableInterpolator:
 
     def interpolated_image(self, params):
         """
-        Function for creating a ful interpolated image template from the interpolation library
+        Function for creating a fully interpolated image template from the
+        interpolation library
 
         Parameters
         ----------

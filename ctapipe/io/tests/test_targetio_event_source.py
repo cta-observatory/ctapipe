@@ -1,10 +1,12 @@
 import copy
+
 import pytest
-from ctapipe.io.targetioeventsource import TargetIOEventSource
-from ctapipe.io.eventsourcefactory import EventSourceFactory
-from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.utils import get_dataset_path
+
 from ctapipe.calib.camera.calibrator import CameraCalibrator
+from ctapipe.io.eventseeker import EventSeeker
+from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io.targetioeventsource import TargetIOEventSource
+from ctapipe.utils import get_dataset_path
 
 pytest.importorskip("target_driver")
 pytest.importorskip("target_io")
@@ -15,12 +17,12 @@ def test_chec_r1():
     url = get_dataset_path("chec_r1.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
-    assert(source._r0_samples is None)
-    assert(source._r1_samples.shape[1] == 2048)
-    assert(round(source._r1_samples[0, 0, 0]) == -274)
-    assert(event.r0.tels_with_data == {0})
-    assert(event.r0.tel[0].waveform is None)
-    assert(event.r1.tel[0].waveform[0, 0, 0] == source._r1_samples[0, 0, 0])
+    assert (source._r0_samples is None)
+    assert (source._r1_samples.shape[1] == 2048)
+    assert (round(source._r1_samples[0, 0, 0]) == -274)
+    assert (event.r0.tels_with_data == {0})
+    assert (event.r0.tel[0].waveform is None)
+    assert (event.r1.tel[0].waveform[0, 0, 0] == source._r1_samples[0, 0, 0])
 
 
 def test_event_id():
@@ -28,30 +30,30 @@ def test_event_id():
     source = TargetIOEventSource(input_url=url)
     event_id = 2
     source._get_event_by_id(event_id)
-    assert(event_id == source._reader.fCurrentEventID)
-    assert(round(source._r1_samples[0, 0, 0]) == -274)
+    assert (event_id == source._reader.fCurrentEventID)
+    assert (round(source._r1_samples[0, 0, 0]) == -274)
 
 
 def test_singlemodule_r0():
     url = get_dataset_path("targetmodule_r0.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
-    assert(round(source._r0_samples[0, 0, 0]) == 600)
-    assert(source._r1_samples is None)
-    assert(event.r0.tels_with_data == {0})
-    assert(event.r0.tel[0].waveform[0, 0, 0] == source._r0_samples[0, 0, 0])
+    assert (round(source._r0_samples[0, 0, 0]) == 600)
+    assert (source._r1_samples is None)
+    assert (event.r0.tels_with_data == {0})
+    assert (event.r0.tel[0].waveform[0, 0, 0] == source._r0_samples[0, 0, 0])
 
 
 def test_singlemodule_r1():
     url = get_dataset_path("targetmodule_r1.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
-    assert(source._r0_samples is None)
-    assert(source._r1_samples.shape[1] == 64)
-    assert(round(source._r1_samples[0, 0, 0]) == 0)
-    assert(event.r0.tels_with_data == {0})
-    assert(event.r0.tel[0].waveform is None)
-    assert(event.r1.tel[0].waveform[0, 0, 0] == source._r1_samples[0, 0, 0])
+    assert (source._r0_samples is None)
+    assert (source._r1_samples.shape[1] == 64)
+    assert (round(source._r1_samples[0, 0, 0]) == 0)
+    assert (event.r0.tels_with_data == {0})
+    assert (event.r0.tel[0].waveform is None)
+    assert (event.r1.tel[0].waveform[0, 0, 0] == source._r1_samples[0, 0, 0])
 
 
 def test_compatible():

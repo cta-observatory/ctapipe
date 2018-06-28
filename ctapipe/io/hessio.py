@@ -5,11 +5,11 @@ Backward compatibility function for reading hessio files.
 """
 import logging
 
-from .hessioeventsource import HESSIOEventSource
 from astropy.utils.decorators import deprecated
 
-logger = logging.getLogger(__name__)
+from .hessioeventsource import HESSIOEventSource
 
+logger = logging.getLogger(__name__)
 
 __all__ = [
     'hessio_event_source',
@@ -45,4 +45,3 @@ def hessio_event_source(url, **kwargs):
     reader = HESSIOEventSource(input_url=url, **kwargs)
 
     return (x for x in reader)
-

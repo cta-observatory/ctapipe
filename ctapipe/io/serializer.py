@@ -96,7 +96,6 @@ class Serializer:
         """
         self._writer.add_container(container)
 
-
     def close(self):
         """
         Write data to disk
@@ -234,7 +233,6 @@ def to_table(container):
     names = list()
     columns = list()
     for k, v in writeable_items(container).items():
-
         v_arr = np.array(v)
         v_arr = v_arr.reshape((1,) + v_arr.shape)
         log.debug("Creating column for item '{0}' of shape {1}".

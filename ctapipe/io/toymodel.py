@@ -5,10 +5,10 @@ Create a toymodel event stream of array events
 import logging
 
 import numpy as np
-from ctapipe.image import toymodel
 from scipy.stats import norm
 
-from .containers import DataContainer, R0CameraContainer
+from ctapipe.image import toymodel
+from .containers import DataContainer
 
 logger = logging.getLogger(__name__)
 

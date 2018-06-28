@@ -1,9 +1,6 @@
 from tempfile import TemporaryDirectory
 
-import numpy as np
 from numpy.testing import assert_allclose
-
-from astropy import units as u
 
 from ctapipe.reco.energy_regressor import *
 

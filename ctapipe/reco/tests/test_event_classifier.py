@@ -44,8 +44,10 @@ def test_prepare_model_MLP():
     target_list = {"FlashCam": ["a", "a", "a", "a", "b", "b", "b", "b"],
                    "ASTRICam": ["a", "a", "a", "a", "b", "b", "b", "b"]}
 
-    clf = EventClassifier(classifier=MLPClassifier, cam_id_list=cam_id_list, max_iter=400)
-    scaled_features, scaler = EventClassifier.scale_features(cam_id_list, feature_list)
+    clf = EventClassifier(classifier=MLPClassifier, cam_id_list=cam_id_list,
+                          max_iter=400)
+    scaled_features, scaler = EventClassifier.scale_features(cam_id_list,
+                                                             feature_list)
 
     # clf.fit(feature_list, target_list)
     clf.fit(scaled_features, target_list)
@@ -64,20 +66,26 @@ def test_fit_save_load_MLP():
 def test_predict_by_event_MLP():
     clf, cam_id_list, scaler = test_fit_save_load_MLP()
 
-    x = scaler['ASTRICam'].transform(np.array([10, 1], dtype=float).reshape(1, -1))
+    x = scaler['ASTRICam'].transform(
+        np.array([10, 1], dtype=float).reshape(1, -1))
     x = {'ASTRICam': x}
-    y = scaler['ASTRICam'].transform(np.array([2, 20], dtype=float).reshape(1, -1))
+    y = scaler['ASTRICam'].transform(
+        np.array([2, 20], dtype=float).reshape(1, -1))
     y = {'ASTRICam': y}
-    z = scaler['ASTRICam'].transform(np.array([3, 30], dtype=float).reshape(1, -1))
+    z = scaler['ASTRICam'].transform(
+        np.array([3, 30], dtype=float).reshape(1, -1))
     z = {'ASTRICam': z}
     prediction = clf.predict_by_event([x, y, z])
     assert (prediction == ["a", "b", "b"]).all()
 
-    x = scaler['FlashCam'].transform(np.array([10, 1], dtype=float).reshape(1, -1))
+    x = scaler['FlashCam'].transform(
+        np.array([10, 1], dtype=float).reshape(1, -1))
     x = {'FlashCam': x}
-    y = scaler['FlashCam'].transform(np.array([2, 20], dtype=float).reshape(1, -1))
+    y = scaler['FlashCam'].transform(
+        np.array([2, 20], dtype=float).reshape(1, -1))
     y = {'FlashCam': y}
-    z = scaler['FlashCam'].transform(np.array([3, 30], dtype=float).reshape(1, -1))
+    z = scaler['FlashCam'].transform(
+        np.array([3, 30], dtype=float).reshape(1, -1))
     z = {'FlashCam': z}
     prediction = clf.predict_by_event([x, y, z])
     assert (prediction == ["b", "a", "a"]).all()
@@ -131,8 +139,10 @@ def test_Qfactor():
     clf.fit(features, target)
 
     # Now predict
-    ev_feat = [{"ASTRICam": [[10, 1]]}, {"ASTRICam": [[2, 20]]}, {"ASTRICam": [[3, 30]]},
-               {"ASTRICam": [[100, 10]]}, {"ASTRICam": [[4, 40]]}, {"ASTRICam": [[0.5, 5]]}]
+    ev_feat = [{"ASTRICam": [[10, 1]]}, {"ASTRICam": [[2, 20]]},
+               {"ASTRICam": [[3, 30]]},
+               {"ASTRICam": [[100, 10]]}, {"ASTRICam": [[4, 40]]},
+               {"ASTRICam": [[0.5, 5]]}]
     true_labels = np.array([1, 0, 0, 1, 0, 0], dtype=np.int8)
     prediction = clf.predict_proba_by_event(X=ev_feat)
 
@@ -203,5 +213,3 @@ def test_level_populations():
     cleaned_g, cleaned_h = clf.level_populations(group_g, group_h, g, h)
 
     assert cleaned_g.shape == cleaned_h.shape
-
-

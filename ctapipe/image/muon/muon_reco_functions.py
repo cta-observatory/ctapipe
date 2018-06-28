@@ -8,10 +8,10 @@ from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
 from ctapipe.image.cleaning import tailcuts_clean
-from ctapipe.image.muon.features import ring_containment
-from ctapipe.image.muon.features import ring_completeness
 from ctapipe.image.muon.features import npix_above_threshold
 from ctapipe.image.muon.features import npix_composing_ring
+from ctapipe.image.muon.features import ring_completeness
+from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.muon_integrator import MuonLineIntegrate
 from ctapipe.image.muon.muon_ring_finder import ChaudhuriKunduRingFitter
 
@@ -35,9 +35,10 @@ def analyze_muon_event(event):
     """
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
-             'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
+             'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam',
+             'SST-ASTRI:CHEC']
     tail_cuts = [(5, 7), (5, 7), (10, 12), (5, 7),
-                (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
+                 (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
               (0.1, 0.95), (0.1, 0.95), (0.1, 0.95), (0.1, 0.95)] * u.m
     ringwidth = [(0.04, 0.08), (0.02, 0.1), (0.01, 0.1), (0.02, 0.1),
@@ -46,11 +47,13 @@ def analyze_muon_event(event):
     # 8% (or 6%) as limit
     min_pix = [148., 148., 141., 680., 104., 164., 142., 164]
     # Need to either convert from the pixel area in m^2 or check the camera specs
-    ang_pixel_width = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2, 0.163] * u.deg
+    ang_pixel_width = [0.1, 0.2, 0.18, 0.067, 0.24, 0.2, 0.17, 0.2,
+                       0.163] * u.deg
     # Found from TDRs (or the pixel area)
     hole_rad = [0.308 * u.m, 0.244 * u.m, 0.244 * u.m,
                 4.3866 * u.m, 0.160 * u.m, 0.130 * u.m,
-                0.171 * u.m, 0.171 * u.m]  # Assuming approximately spherical hole
+                0.171 * u.m,
+                0.171 * u.m]  # Assuming approximately spherical hole
     cam_rad = [2.26, 3.96, 3.87, 4., 4.45, 2.86, 5.25, 2.86] * u.deg
     # Above found from the field of view calculation
     sec_rad = [0. * u.m, 0. * u.m, 0. * u.m, 2.7 * u.m,
@@ -99,8 +102,8 @@ def analyze_muon_event(event):
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if altval > Angle(90*u.deg):
-            altval = Angle(90*u.deg)
+        if altval > Angle(90 * u.deg):
+            altval = Angle(90 * u.deg)
 
         altaz = HorizonFrame(alt=altval,
                              az=event.mcheader.run_array_direction[0])
@@ -110,7 +113,7 @@ def analyze_muon_event(event):
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
 
-        if(cleaning):
+        if (cleaning):
             img = image * clean_mask
         else:
             img = image
@@ -125,7 +128,7 @@ def analyze_muon_event(event):
 
         muonringparam = muonring.fit(x, y, image * clean_mask)
 
-        dist = np.sqrt(np.power(x - muonringparam. ring_center_x, 2)
+        dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2)
                        + np.power(y - muonringparam.ring_center_y, 2))
         ring_dist = np.abs(dist - muonringparam.ring_radius)
 
@@ -148,7 +151,8 @@ def analyze_muon_event(event):
                            ring_radius) < muonringparam.ring_radius * 0.4
         pix_im = image * dist_mask
         nom_dist = np.sqrt(np.power(muonringparam.ring_center_x,
-                                    2) + np.power(muonringparam.ring_center_y, 2))
+                                    2) + np.power(muonringparam.ring_center_y,
+                                                  2))
 
         minpix = muon_cuts['min_pix'][dict_index]  # 0.06*numpix #or 8%
 
@@ -158,11 +162,11 @@ def analyze_muon_event(event):
         # diameter of 0.11, all cameras are perfectly circular   cam_rad =
         # np.sqrt(numpix*0.11/(2.*np.pi))
 
-        if(npix_above_threshold(pix_im, tailcuts[0]) > 0.1 * minpix
-           and npix_composing_ring(pix_im) > minpix
-           and nom_dist < muon_cuts['CamRad'][dict_index]
-           and muonringparam.ring_radius < 1.5 * u.deg
-           and muonringparam.ring_radius > 1. * u.deg):
+        if (npix_above_threshold(pix_im, tailcuts[0]) > 0.1 * minpix
+                and npix_composing_ring(pix_im) > minpix
+                and nom_dist < muon_cuts['CamRad'][dict_index]
+                and muonringparam.ring_radius < 1.5 * u.deg
+                and muonringparam.ring_radius > 1. * u.deg):
             muonringparam.ring_containment = ring_containment(
                 muonringparam.ring_radius,
                 muon_cuts['CamRad'][dict_index],
@@ -213,7 +217,8 @@ def analyze_muon_event(event):
                 muonintensityoutput.ring_size = np.sum(pix_im)
 
                 dist_ringwidth_mask = np.abs(dist - muonringparam.ring_radius
-                                             ) < (muonintensityoutput.ring_width)
+                                             ) < (
+                                          muonintensityoutput.ring_width)
                 pix_ringwidth_im = image * dist_ringwidth_mask
                 idx_ringwidth = np.nonzero(pix_ringwidth_im)
 
@@ -270,7 +275,7 @@ def analyze_muon_source(source):
     log.info("[FUNCTION] {}".format(__name__))
 
     if geom_dict is None:
-        geom_dict = {}        
+        geom_dict = {}
     numev = 0
     for event in source:  # Put a limit on number of events
         numev += 1

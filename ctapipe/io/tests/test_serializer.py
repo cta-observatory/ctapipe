@@ -25,6 +25,7 @@ def generate_input_containers():
         input_containers.append(deepcopy(event))
     return input_containers
 
+
 # Setup
 input_containers = generate_input_containers()
 
@@ -38,7 +39,6 @@ def binary_filename(tmpdir_factory):
 @pytest.fixture(scope='session')
 def fits_file_name(tmpdir_factory):
     return str(tmpdir_factory.mktemp('data').join('output.fits'))
-
 
 
 def test_pickle_serializer(binary_filename):
@@ -102,9 +102,6 @@ def test_pickle_iterator(binary_filename):
     remove(binary_filename)
 
 
-
-
-
 def test_fits_dl0(fits_file_name):
     serial = Serializer(filename=fits_file_name, format='fits', mode='w')
     for container in input_containers:
@@ -130,6 +127,7 @@ def test_exclusive_mode(fits_file_name):
         serial.close()
     remove(fits_file_name)
 
+
 """
 def test_fits_dl1():
     input_test_file = get_datasets_path('example_container.pickle.gz')
@@ -152,6 +150,5 @@ def test_fits_context_manager(fits_file_name):
     hdulist = fits.open(fits_file_name)
     assert hdulist[1].data["event_id"][0] == 408
     remove(fits_file_name)
-
 
 # TODO test FITSSource class

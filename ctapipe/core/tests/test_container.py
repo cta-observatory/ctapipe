@@ -1,10 +1,10 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import pytest
+
 from ctapipe.core import Container, Field, Map
 
 
 def test_inheritance():
-
     class ExampleContainer(Container):
         a = Field(None)
 
@@ -25,7 +25,6 @@ def test_inheritance():
 
 
 def test_multiple_inheritance():
-
     class ContainerA(Container):
         a = Field(None)
 
@@ -40,7 +39,6 @@ def test_multiple_inheritance():
 
 
 def test_override_inheritance():
-
     class ContainerA(Container):
         a = Field(1)
 
@@ -55,7 +53,6 @@ def test_override_inheritance():
 
 
 def test_container():
-
     class ExampleContainer(Container):
         x = Field(-1, "x value")
         y = Field(-1, "y value")
@@ -99,7 +96,6 @@ def test_child_containers():
 
 
 def test_map_containers():
-
     class ChildContainer(Container):
         z = Field(1, "sub-item")
 
@@ -119,7 +115,6 @@ def test_map_containers():
 
 
 def test_container_as_dict():
-
     class ChildContainer(Container):
         z = Field(1, "sub-item")
 
@@ -137,7 +132,6 @@ def test_container_as_dict():
 
 
 def test_container_brackets():
-
     class TestContainer(Container):
         answer = Field(-1, "The answer to all questions")
 

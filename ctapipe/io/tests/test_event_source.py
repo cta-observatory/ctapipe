@@ -1,5 +1,5 @@
-from ctapipe.utils import get_dataset_path
 from ctapipe.io.eventsource import EventSource
+from ctapipe.utils import get_dataset_path
 
 
 def test_construct():

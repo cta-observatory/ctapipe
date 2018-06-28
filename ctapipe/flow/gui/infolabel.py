@@ -1,4 +1,4 @@
-#from PyQt4.QtCore import *
+# from PyQt4.QtCore import *
 from PyQt4.QtGui import QLabel
 
 
@@ -55,7 +55,7 @@ class InfoLabel(QLabel):
             text = name + '\t' + str(done)
         else:
             text = name + '\t' + str(running) + '\\' + str(nb_proc) + \
-                '\t' + str(queue) + '\t' + str(done)
+                   '\t' + str(queue) + '\t' + str(done)
         return text
 
     def reset(self):

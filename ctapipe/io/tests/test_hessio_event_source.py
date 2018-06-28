@@ -1,6 +1,7 @@
 import copy
-from ctapipe.utils import get_dataset_path
+
 from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.utils import get_dataset_path
 
 
 def test_hessio_file_reader():
@@ -37,7 +38,6 @@ def test_hessio_file_reader():
 
 
 def test_that_event_is_not_modified_after_loop():
-
     dataset = get_dataset_path("gamma_test.simtel.gz")
     with HESSIOEventSource(input_url=dataset, max_events=2) as source:
         for event in source:

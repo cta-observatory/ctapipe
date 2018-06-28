@@ -6,8 +6,9 @@ Needs protozfits v1.02.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
-from .eventsource import EventSource
+
 from .containers import LSTDataContainer
+from .eventsource import EventSource
 
 __all__ = ['LSTEventSource']
 
@@ -20,7 +21,6 @@ class LSTEventSource(EventSource):
         self.file = File(self.input_url)
         self.camera_config = next(self.file.CameraConfig)
 
-
     def _generator(self):
 
         # container for LST data
@@ -31,8 +31,6 @@ class LSTEventSource(EventSource):
         self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
 
         for count, event in enumerate(self.file.Events):
-
-
             data.count = count
 
             # fill specific LST event data
@@ -41,7 +39,6 @@ class LSTEventSource(EventSource):
             # fill general R0 data
             self.fill_r0_container_from_zfile(data.r0, event)
             yield data
-
 
     @staticmethod
     def is_compatible(file_path):
@@ -63,11 +60,11 @@ class LSTEventSource(EventSource):
             return False
 
         is_protobuf_zfits_file = (
-            (h['XTENSION'] == 'BINTABLE') and
-            (h['EXTNAME'] == 'Events') and
-            (h['ZTABLE'] is True) and
-            (h['ORIGIN'] == 'CTA') and
-            (h['PBFHEAD'] == 'R1.CameraEvent')
+                (h['XTENSION'] == 'BINTABLE') and
+                (h['EXTNAME'] == 'Events') and
+                (h['ZTABLE'] is True) and
+                (h['ORIGIN'] == 'CTA') and
+                (h['PBFHEAD'] == 'R1.CameraEvent')
         )
 
         is_lst_file = 'lstcam_counters' in ttypes
@@ -94,8 +91,6 @@ class LSTEventSource(EventSource):
         svc_container.cdhs_version = camera_config.lstcam.cdhs_version
         svc_container.algorithms = camera_config.lstcam.algorithms
         svc_container.pre_proc_algorithms = camera_config.lstcam.pre_proc_algorithms
-
-
 
     def fill_lst_event_container_from_zfile(self, container, event):
 
@@ -127,7 +122,6 @@ class LSTEventSource(EventSource):
             (
                 event.waveform
             ).reshape(2, self.camera_config.num_pixels, container.num_samples))
-
 
     def fill_r0_container_from_zfile(self, container, event):
         container.obs_id = -1

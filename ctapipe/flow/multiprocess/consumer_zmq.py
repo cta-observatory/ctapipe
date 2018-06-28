@@ -1,9 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-import zmq
 from multiprocessing import Process
 from multiprocessing import Value
 from pickle import loads
+
+import zmq
+
 from ctapipe.core import Component
 
 

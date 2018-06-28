@@ -1,12 +1,12 @@
+import tempfile
+
+from pytest import raises
+
 from ctapipe.core import Component
 from ctapipe.core.traits import Path, TraitError
 
-from pytest import raises
-import tempfile
-
 
 def test_path_exists():
-
     class C1(Component):
         p = Path(exists=False)
 
@@ -30,7 +30,6 @@ def test_path_exists():
 
 
 def test_path_directory_ok():
-
     class C(Component):
         p = Path(exists=True, directory_ok=False)
 
@@ -48,7 +47,6 @@ def test_path_directory_ok():
 
 
 def test_path_file_ok():
-
     class C(Component):
         p = Path(exists=True, file_ok=False)
 

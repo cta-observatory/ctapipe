@@ -1,4 +1,3 @@
-
 class StagerRep():
     """
     class representing steps status.
@@ -14,7 +13,7 @@ class StagerRep():
     CONSUMER = 3
 
     def __init__(self, name, next_steps=None, running=0,
-                 nb_job_done=0, queue_length=0, 
+                 nb_job_done=0, queue_length=0,
                  nb_process=1, step_type=STAGER):
         self.type = step_type
         self.name = name
@@ -42,4 +41,5 @@ class StagerRep():
         str containing step name (without its process extension) and the number
         of jobs it did.
         """
-        return (self.name.split('$$process')[0] + ' number of jobs done: ' + str(self.nb_job_done))
+        return (self.name.split('$$process')[
+                    0] + ' number of jobs done: ' + str(self.nb_job_done))

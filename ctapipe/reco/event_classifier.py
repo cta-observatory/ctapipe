@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from .regressor_classifier_base import RegressorClassifierBase
 
-__all__ = ['proba_drifting','EventClassifier']
+__all__ = ['proba_drifting', 'EventClassifier']
 
 
 def proba_drifting(x):

@@ -1,5 +1,6 @@
-from ctapipe.core import Component
 from time import sleep
+
+from ctapipe.core import Component
 
 
 class Odd(Component):

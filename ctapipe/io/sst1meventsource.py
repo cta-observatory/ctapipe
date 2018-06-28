@@ -5,8 +5,9 @@ EventSource for SST1M/digicam protobuf-fits.fz-files.
 Needs protozfits v1.0.2 from github.com/cta-sst-1m/protozfitsreader
 """
 import numpy as np
-from .eventsource import EventSource
+
 from .containers import SST1MDataContainer
+from .eventsource import EventSource
 from ..instrument import TelescopeDescription
 
 __all__ = ['SST1MEventSource']
@@ -90,11 +91,11 @@ class SST1MEventSource(EventSource):
             return False
 
         is_protobuf_zfits_file = (
-            (h['XTENSION'] == 'BINTABLE') and
-            (h['EXTNAME'] == 'Events') and
-            (h['ZTABLE'] is True) and
-            (h['ORIGIN'] == 'CTA') and
-            (h['PBFHEAD'] == 'DataModel.CameraEvent')
+                (h['XTENSION'] == 'BINTABLE') and
+                (h['EXTNAME'] == 'Events') and
+                (h['ZTABLE'] is True) and
+                (h['ORIGIN'] == 'CTA') and
+                (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
         is_sst1m_file = 'trigger_input_traces' in ttypes
 

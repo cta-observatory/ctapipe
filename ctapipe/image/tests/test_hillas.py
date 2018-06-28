@@ -1,14 +1,16 @@
-from ctapipe.instrument import CameraGeometry
+import pytest
+from astropy import units as u
+from numpy import isclose, zeros_like, arange
+from numpy.ma import masked_array
+from numpy.random import seed
+
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import (hillas_parameters_1, hillas_parameters_2,
                                   hillas_parameters_3, hillas_parameters_4,
-                                  hillas_parameters_5, HillasParameterizationError)
+                                  hillas_parameters_5,
+                                  HillasParameterizationError)
+from ctapipe.instrument import CameraGeometry
 from ctapipe.io.containers import HillasParametersContainer
-from astropy import units as u
-from numpy import isclose, zeros_like, arange
-from numpy.random import seed
-from numpy.ma import masked_array
-import pytest
 
 methods = (
     hillas_parameters_1,
@@ -20,7 +22,6 @@ methods = (
 
 
 def create_sample_image(psi='-30d'):
-
     seed(10)
 
     # set up the sample image using a HESS camera geometry (since it's easy
@@ -45,7 +46,6 @@ def create_sample_image(psi='-30d'):
 
 
 def create_sample_image_zeros(psi='-30d'):
-
     geom, image, clean_mask = create_sample_image(psi)
 
     # threshold in pe

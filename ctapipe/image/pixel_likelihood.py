@@ -142,14 +142,14 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
     pe_factorial = factorial(pe_summed)
 
     first_term = (
-        np.power(prediction, pe_summed[:, np.newaxis]) *
-        np.exp(-1 * prediction)
+            np.power(prediction, pe_summed[:, np.newaxis]) *
+            np.exp(-1 * prediction)
     )
     first_term /= (
-        pe_factorial[:, np.newaxis] * np.sqrt(
-            math.pi * 2 *
-            (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
-        )
+            pe_factorial[:, np.newaxis] * np.sqrt(
+        math.pi * 2 *
+        (ped * ped + pe_summed[:, np.newaxis] * spe_width * spe_width)
+    )
     )
 
     # Throw error if we get NaN in likelihood
@@ -165,11 +165,11 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
 
     # Should not have any porblems here with NaN that have not bee seens
     second_term = (
-        (image - pe_summed[:, np.newaxis]) *
-        (image - pe_summed[:, np.newaxis])
+            (image - pe_summed[:, np.newaxis]) *
+            (image - pe_summed[:, np.newaxis])
     )
     second_term_denom = 2 * (
-        ped * ped + spe_width * spe_width * pe_summed[:, np.newaxis]
+            ped * ped + spe_width * spe_width * pe_summed[:, np.newaxis]
     )
 
     second_term = second_term / second_term_denom
@@ -185,13 +185,13 @@ def poisson_likelihood_full(image, prediction, spe_width, ped,
 
 
 def poisson_likelihood(
-    image,
-    prediction,
-    spe_width,
-    ped,
-    pedestal_safety=1.5,
-    width_fac=3,
-    dtype=np.float32
+        image,
+        prediction,
+        spe_width,
+        ped,
+        pedestal_safety=1.5,
+        width_fac=3,
+        dtype=np.float32
 ):
     """
     Safe implementation of the poissonian likelihood implementation,
@@ -368,7 +368,7 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
         PixelLikelihoodError(
             "Image and prediction arrays have different dimensions Image "
             "shape: {} Prediction shape: {}"
-            .format(image.shape, prediction.shape)
+                .format(image.shape, prediction.shape)
         )
 
     chi_square = (image - prediction) * (image - prediction)
