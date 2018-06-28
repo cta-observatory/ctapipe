@@ -29,7 +29,7 @@ class ConsumerSequential():
             self.name = "Consumer"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if not self.coroutine.init():
             return False
         return True
 

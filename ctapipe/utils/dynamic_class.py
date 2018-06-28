@@ -35,7 +35,7 @@ def dynamic_class_from_module(class_name, module, tool=None):
     Raises
     ------
     """
-    if module == None:
+    if module is None:
         return None
 
     try:

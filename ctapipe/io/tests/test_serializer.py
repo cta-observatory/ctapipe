@@ -43,7 +43,8 @@ def fits_file_name(tmpdir_factory):
 
 def test_pickle_serializer(binary_filename):
     serial = Serializer(filename=binary_filename, format='pickle', mode='w')
-    # append all input file events in input_containers list and pickle serializer
+    # append all input file events in input_containers list and pickle
+    # serializer
     for event in input_containers:
         serial.add_container(event)
     serial.close()
@@ -64,8 +65,9 @@ def test_pickle_serializer(binary_filename):
 
 # Test pickle reader/writer with statement
 def test_pickle_with_statement(binary_filename):
-    with Serializer(filename=binary_filename, format='pickle', mode='w') as \
-            containers_writer:
+    with Serializer(filename=binary_filename,
+                    format='pickle',
+                    mode='w') as containers_writer:
         for container in input_containers:
             containers_writer.add_container(container)
         containers_writer.close()
@@ -128,20 +130,6 @@ def test_exclusive_mode(fits_file_name):
     remove(fits_file_name)
 
 
-"""
-def test_fits_dl1():
-    input_test_file = get_datasets_path('example_container.pickle.gz')
-    with gzip_open(input_test_file, 'rb') as f:
-        data = load(f)
-    t38 = data[0].dl1.tel[38]
-    serial = Serializer('output.fits', 'fits', overwrite=True)
-    serial.add_container(t38)
-    serial.write()
-    # t11_1 = data[1].dl1.tel[11]
-    # S_cal.write(t11_1) # This will not work because shape of data is different from tel to tel.
-"""
-
-
 def test_fits_context_manager(fits_file_name):
     with Serializer(filename=fits_file_name, format='fits', mode='w') as writer:
         for container in input_containers:
@@ -151,4 +139,3 @@ def test_fits_context_manager(fits_file_name):
     assert hdulist[1].data["event_id"][0] == 408
     remove(fits_file_name)
 
-# TODO test FITSSource class

@@ -48,7 +48,7 @@ class ConsumerZMQ(Process, Component):
         # Define coroutine and executes its init method
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
         self.done = False
         return self.init_connections()

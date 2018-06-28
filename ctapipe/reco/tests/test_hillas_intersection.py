@@ -7,8 +7,9 @@ from ctapipe.reco.hillas_intersection import HillasIntersection
 
 def test_intersect():
     """
-    Simple test to check the intersection of lines. Try to intersect positions at (0,1) and (1,0)
-    with angles perpendicular and test they cross at (0,0)
+    Simple test to check the intersection of lines. Try to intersect
+    positions at (0,1) and (1,0) with angles perpendicular and test they
+    cross at (0,0)
     """
     hill = HillasIntersection()
     x1 = 0
@@ -27,8 +28,8 @@ def test_intersect():
 
 def test_parallel():
     """
-    Simple test to check the intersection of lines. Try to intersect positions at (0,0) and (0,1)
-    with angles parallel and check the behaviour
+    Simple test to check the intersection of lines. Try to intersect
+    positions at (0,0) and (0,1) with angles parallel and check the behaviour
     """
     hill = HillasIntersection()
     x1 = 0

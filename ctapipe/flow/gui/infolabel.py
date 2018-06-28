@@ -20,9 +20,11 @@ class InfoLabel(QLabel):
         """
         if steps:
             if self.mode == 'sequential':
-                text = '  STEP                                       DONE    \n\n'
+                text = ('  STEP                 '
+                        'DONE    \n\n')
             else:
-                text = '  STEP                                       RUNNING   QUEUE       DONE    \n\n'
+                text = ('  STEP                  '
+                        'RUNNING   QUEUE       DONE    \n\n')
             for step in steps:
                 text += '{:-<80}\n'.format('-')
                 text += self.formatText(step) + '\n'

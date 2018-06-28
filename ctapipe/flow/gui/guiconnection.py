@@ -83,8 +83,8 @@ class GuiConnexion(Thread, QtCore.QObject):
                     self.send_mode(msg)
                 else:
                     self.update_full_state(topic, msg)
-                    if (
-                            conf_time - self.last_send_config) >= 0.0416:  # 24 images /sec
+                    if (conf_time - self.last_send_config) >= 0.0416:
+                        # 24 images /sec
                         # inform pipegui
                         self.message.emit(self.steps)
                         self.last_send_config = conf_time
@@ -162,8 +162,10 @@ class GuiConnexion(Thread, QtCore.QObject):
                 return
 
     def router_change(self, msg):
-        """Called by GuiConnexion instance when it receives zmq message from pipeline
-        Update pipeline state (self.steps) and force to update drawing
+        """
+        Called by GuiConnexion instance when it receives zmq message from
+        pipeline Update pipeline state (self.steps) and force to update drawing
+
         Parameters
         ----------
         msg : a Pickle.dumps message

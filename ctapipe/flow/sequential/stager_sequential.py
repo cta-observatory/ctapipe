@@ -35,7 +35,7 @@ class StagerSequential():
             self.name = "STAGER"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
         self.coroutine.connections = self.connections
         return True

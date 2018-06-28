@@ -52,7 +52,7 @@ class ProducerZmq(Process, Component, Connections):
         """
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
         self.coroutine.connections = list(self.connections)
         return self.init_connections()

@@ -66,7 +66,7 @@ class StagerZmq(Component, Process, Connections):
             self.name = "STAGER"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
 
         self.coroutine.connections = list(self.connections)
