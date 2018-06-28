@@ -6,10 +6,11 @@ __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
            'GlobalPeakIntegrator', 'LocalPeakIntegrator',
            'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
 
-
 from abc import abstractmethod
+
 import numpy as np
-from traitlets import Int, CaselessStrEnum, Float
+from traitlets import Int, Float
+
 from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
 
