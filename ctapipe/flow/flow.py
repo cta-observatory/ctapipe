@@ -297,9 +297,9 @@ class Flow(Tool):
                     stager_zmq = self.instantiation(stager_step.name,
                                                     self.STAGER,
                                                     process_name=stager_step.name
-                                                                 +
-                                                                 '$$process_number$$'
-                                                                 + str(i),
+                                                    +
+                                                    '$$process_number$$'
+                                                    + str(i),
                                                     port_in=stager_step.port_in,
                                                     connections=stager_step.connections,
                                                     main_connection_name=stager_step.
@@ -419,7 +419,7 @@ class Flow(Tool):
                 self.producer_step.connections[next_step_name] = self.ports[
                     next_step_name + '_in']
             self.producer_step.main_connection_name = (self.
-                producer_step.next_steps_name[0])
+                                                       producer_step.next_steps_name[0])
 
             # configure port_in and connections (zmq port)
             # for all stages (one per next step)
@@ -616,7 +616,7 @@ class Flow(Tool):
         self.log.info(
             '------------------ Flow configuration ------------------')
         for step in ([self.producer_step] + self.stager_steps + [
-            self.consumer_step]):
+                self.consumer_step]):
             if self.mode == 'multiprocess':
                 self.log.info('step {} (nb process {}) '.format(step.name, str(
                     step.nb_process)))

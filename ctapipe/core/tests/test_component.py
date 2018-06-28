@@ -8,6 +8,7 @@ from ctapipe.core import Component
 
 def test_component_is_abstract():
     class AbstractComponent(Component):
+
         @abstractmethod
         def test(self):
             pass

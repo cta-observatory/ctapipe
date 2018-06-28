@@ -83,7 +83,7 @@ class ChargeResolutionGenerator(Tool):
             if event.count == 0:
                 try:
                     if np.all(event.mc.tel[
-                                  tels[0]].photo_electron_image == 0):
+                            tels[0]].photo_electron_image == 0):
                         raise KeyError
                 except KeyError:
                     self.log.exception('Source does not contain '

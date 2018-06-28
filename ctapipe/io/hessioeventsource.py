@@ -141,7 +141,7 @@ class HESSIOEventSource(EventSource):
                     if data.r0.tel[tel_id].waveform.size == 0:
                         # To handle ASTRI and dst files
                         data.r0.tel[tel_id].waveform = (file.
-                            get_adc_sum(tel_id)[..., None])
+                                                        get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
                     data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(
                         tel_id)
@@ -149,7 +149,7 @@ class HESSIOEventSource(EventSource):
                         tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(
-                        tel_id))
+                                                                     tel_id))
 
                     nsamples = file.get_event_num_samples(tel_id)
                     if nsamples <= 0:
@@ -167,12 +167,12 @@ class HESSIOEventSource(EventSource):
                                                        get_azimuth_raw(tel_id))
                     data.mc.tel[tel_id].altitude_raw = (file.
                                                         get_altitude_raw(
-                        tel_id))
+                                                            tel_id))
                     data.mc.tel[tel_id].azimuth_cor = (file.
                                                        get_azimuth_cor(tel_id))
                     data.mc.tel[tel_id].altitude_cor = (file.
                                                         get_altitude_cor(
-                        tel_id))
+                                                            tel_id))
                 yield data
                 counter += 1
 

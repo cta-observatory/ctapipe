@@ -128,7 +128,7 @@ class HorizonFrame(BaseCoordinateFrame):
     }
 
     frame_specific_representation_info['unitspherical'] = \
-    frame_specific_representation_info['spherical']
+        frame_specific_representation_info['spherical']
 
     pointing_direction = Attribute(default=None)
     array_direction = Attribute(default=None)

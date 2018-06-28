@@ -42,4 +42,4 @@ class StagerRep():
         of jobs it did.
         """
         return (self.name.split('$$process')[
-                    0] + ' number of jobs done: ' + str(self.nb_job_done))
+            0] + ' number of jobs done: ' + str(self.nb_job_done))

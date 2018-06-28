@@ -8,6 +8,7 @@ from ctapipe.core.component import Component
 
 
 class FactoryMeta(type(Component), type):
+
     def __new__(mcs, name, bases, dct):
 
         # Setup class lookup

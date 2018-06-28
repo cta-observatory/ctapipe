@@ -60,11 +60,11 @@ class LSTEventSource(EventSource):
             return False
 
         is_protobuf_zfits_file = (
-                (h['XTENSION'] == 'BINTABLE') and
-                (h['EXTNAME'] == 'Events') and
-                (h['ZTABLE'] is True) and
-                (h['ORIGIN'] == 'CTA') and
-                (h['PBFHEAD'] == 'R1.CameraEvent')
+            (h['XTENSION'] == 'BINTABLE') and
+            (h['EXTNAME'] == 'Events') and
+            (h['ZTABLE'] is True) and
+            (h['ORIGIN'] == 'CTA') and
+            (h['PBFHEAD'] == 'R1.CameraEvent')
         )
 
         is_lst_file = 'lstcam_counters' in ttypes

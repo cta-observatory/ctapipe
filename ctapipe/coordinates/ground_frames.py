@@ -63,7 +63,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     reconstruction of the shower core position
 
     Frame attributes:
-    
+
     * ``pointing_direction``
         Alt,Az direction of the tilted reference plane
 

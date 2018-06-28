@@ -303,7 +303,7 @@ class CameraDisplay:
             raise ValueError(
                 "Image has a different shape {} than the "
                 "given CameraGeometry {}"
-                    .format(image.shape, self.geom.pix_x.shape)
+                .format(image.shape, self.geom.pix_x.shape)
             )
 
         self.pixels.set_array(image[self.geom.mask])

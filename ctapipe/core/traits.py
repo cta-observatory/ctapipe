@@ -11,6 +11,7 @@ __all__ = ['Path', 'Int', 'Integer', 'Float', 'Unicode', 'Enum', 'Long', 'List',
 
 
 class Path(TraitType):
+
     def __init__(self, exists=None, directory_ok=True, file_ok=True):
         '''
         A path Trait for input/output files.

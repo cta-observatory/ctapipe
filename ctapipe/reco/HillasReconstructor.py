@@ -106,7 +106,7 @@ class HillasReconstructor(Reconstructor):
         if len(hillas_dict) < 2:
             raise TooFewTelescopesException(
                 "need at least two telescopes, have {}"
-                    .format(len(hillas_dict)))
+                .format(len(hillas_dict)))
 
         self.inititialize_hillas_planes(
             hillas_dict,

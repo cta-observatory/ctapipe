@@ -8,6 +8,7 @@ __all__ = ["ChaudhuriKunduRingFitter"]
 
 
 class ChaudhuriKunduRingFitter(RingFitter):
+
     @u.quantity_input
     def fit(self, x: u.deg, y: u.deg, weight, times=None):
         """Fast and reliable analytical circle fitting method previously used
@@ -35,7 +36,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
 
         # The following notation is a bit ugly but directly references the
         # paper notation
-        factor = x ** 2 + y ** 2
+        factor = x**2 + y**2
 
         a = np.sum(weight * (x - av_weighted_pos_x) * x)
         a_prime = np.sum(weight * (y - av_weighted_pos_y) * x)
@@ -56,8 +57,8 @@ class ChaudhuriKunduRingFitter(RingFitter):
         radius = np.sqrt(
             # np.sum(weight * ((x - centre_x*u.deg)**2 +
             # (y - centre_y*u.deg)**2)) / # centre * u.deg ???
-            np.sum(weight * ((x - centre_x) ** 2 + (y - centre_y) ** 2))
-            / sum_weight
+            np.sum(weight * ((x - centre_x)**2 +
+                             (y - centre_y)**2)) / sum_weight
         )
 
         output = MuonRingParameter()
@@ -65,7 +66,7 @@ class ChaudhuriKunduRingFitter(RingFitter):
         output.ring_center_y = centre_y  # *u.deg
         output.ring_radius = radius  # *u.deg
         output.ring_phi = np.arctan(centre_y / centre_x)
-        output.ring_inclination = np.sqrt(centre_x ** 2. + centre_y ** 2.)
+        output.ring_inclination = np.sqrt(centre_x**2. + centre_y**2.)
         output.ring_fit_method = "ChaudhuriKundu"
 
         return output

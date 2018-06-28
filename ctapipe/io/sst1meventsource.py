@@ -91,11 +91,11 @@ class SST1MEventSource(EventSource):
             return False
 
         is_protobuf_zfits_file = (
-                (h['XTENSION'] == 'BINTABLE') and
-                (h['EXTNAME'] == 'Events') and
-                (h['ZTABLE'] is True) and
-                (h['ORIGIN'] == 'CTA') and
-                (h['PBFHEAD'] == 'DataModel.CameraEvent')
+            (h['XTENSION'] == 'BINTABLE') and
+            (h['EXTNAME'] == 'Events') and
+            (h['ZTABLE'] is True) and
+            (h['ORIGIN'] == 'CTA') and
+            (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
         is_sst1m_file = 'trigger_input_traces' in ttypes
 

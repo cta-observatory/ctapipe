@@ -339,7 +339,7 @@ class ParticleClassificationContainer(Container):
         'classificator validity flag. True if the '
         'predition was successful within the algorithm '
         'validity range')
-                     )
+    )
 
     # TODO: KPK: is this different than the list in the reco
     # container? Why repeat?

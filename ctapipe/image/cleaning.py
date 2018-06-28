@@ -2,14 +2,19 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
-__all__ = ['tailcuts_clean', 'dilate']
+__all__ = ["tailcuts_clean", "dilate"]
 
 import numpy as np
 
 
-def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
-                   keep_isolated_pixels=False,
-                   min_number_picture_neighbors=0):
+def tailcuts_clean(
+    geom,
+    image,
+    picture_thresh=7,
+    boundary_thresh=5,
+    keep_isolated_pixels=False,
+    min_number_picture_neighbors=0,
+):
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
     defined with respect to the pedestal dispersion. All pixels that
@@ -56,25 +61,28 @@ def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
         # Require at least min_number_picture_neighbors. Otherwise, the pixel
         #  is not selected
         number_of_neighbors_above_picture = geom.neighbor_matrix_sparse.dot(
-            pixels_above_picture.view(np.byte))
+            pixels_above_picture.view(np.byte)
+        )
         pixels_in_picture = pixels_above_picture & (
-                number_of_neighbors_above_picture >= min_number_picture_neighbors
+            number_of_neighbors_above_picture >= min_number_picture_neighbors
         )
 
     # by broadcasting together pixels_in_picture (1d) with the neighbor
     # matrix (2d), we find all pixels that are above the boundary threshold
     # AND have any neighbor that is in the picture
     pixels_above_boundary = image >= boundary_thresh
-    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(
-        pixels_in_picture)
+    pixels_with_picture_neighbors = geom.neighbor_matrix_sparse.dot(pixels_in_picture)
     if keep_isolated_pixels:
-        return (pixels_above_boundary
-                & pixels_with_picture_neighbors) | pixels_in_picture
+        return (
+            pixels_above_boundary & pixels_with_picture_neighbors
+        ) | pixels_in_picture
     else:
         pixels_with_boundary_neighbors = geom.neighbor_matrix_sparse.dot(
-            pixels_above_boundary)
-        return ((pixels_above_boundary & pixels_with_picture_neighbors) |
-                (pixels_in_picture & pixels_with_boundary_neighbors))
+            pixels_above_boundary
+        )
+        return (pixels_above_boundary & pixels_with_picture_neighbors) | (
+            pixels_in_picture & pixels_with_boundary_neighbors
+        )
 
 
 def dilate(geom, mask):

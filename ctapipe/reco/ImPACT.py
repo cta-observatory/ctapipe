@@ -40,7 +40,7 @@ def guess_shower_depth(energy):
     float: Expected depth of shower maximum
     """
     x_max_exp = 300 * (u.g * u.cm ** -2) + \
-                93 * (u.g * u.cm ** -2) * np.log10(energy.to(u.TeV).value)
+        93 * (u.g * u.cm ** -2) * np.log10(energy.to(u.TeV).value)
 
     return x_max_exp
 
@@ -293,9 +293,9 @@ class ImPACTReconstructor(Reconstructor):
         """
 
         pixel_pos_trans_x = (pixel_pos_x - x_trans) * \
-                            np.cos(phi) - (pixel_pos_y - y_trans) * np.sin(phi)
+            np.cos(phi) - (pixel_pos_y - y_trans) * np.sin(phi)
         pixel_pos_trans_y = (pixel_pos_x - x_trans) * \
-                            np.sin(phi) + (pixel_pos_y - y_trans) * np.cos(phi)
+            np.sin(phi) + (pixel_pos_y - y_trans) * np.cos(phi)
         return pixel_pos_trans_x, pixel_pos_trans_y
 
     def image_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
@@ -447,7 +447,7 @@ class ImPACTReconstructor(Reconstructor):
             # And the expected rotation angle
             phi = np.arctan2((self.tel_pos_y[tel_count] - core_y),
                              (self.tel_pos_x[
-                                  tel_count] - core_x))  # - (math.pi/2.)
+                                 tel_count] - core_x))  # - (math.pi/2.)
 
             # Rotate and translate all pixels such that they match the
             # template orientation
@@ -656,11 +656,11 @@ class ImPACTReconstructor(Reconstructor):
 
         zenith = 90 * u.deg - self.array_direction.alt
         shower_result.h_max = fit_params[5] * \
-                              self.get_shower_max(fit_params[0],
-                                                  fit_params[1],
-                                                  fit_params[2],
-                                                  fit_params[3],
-                                                  zenith.to(u.rad).value)
+            self.get_shower_max(fit_params[0],
+                                fit_params[1],
+                                fit_params[2],
+                                fit_params[3],
+                                zenith.to(u.rad).value)
 
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
@@ -727,8 +727,8 @@ class ImPACTReconstructor(Reconstructor):
                     fit_params["core_x"],
                     fit_params["core_y"], fit_params["energy"], fit_params[
                         "x_max_scale"]), \
-                   (errors["source_x"], errors["source_y"], errors["core_x"],
-                    errors["core_x"], errors["energy"], errors["x_max_scale"])
+                (errors["source_x"], errors["source_y"], errors["core_x"],
+                 errors["core_x"], errors["energy"], errors["x_max_scale"])
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
             self.array_return = True

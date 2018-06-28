@@ -54,28 +54,24 @@ class NectarCAMEventSource(EventSource):
             return False
 
         is_protobuf_zfits_file = (
-                (h['XTENSION'] == 'BINTABLE') and
-                (h['EXTNAME'] == 'Events') and
-                (h['ZTABLE'] is True) and
-                (h['ORIGIN'] == 'CTA') and
-                (h['PBFHEAD'] == 'DataModel.CameraEvent')
+            (h['XTENSION'] == 'BINTABLE') and
+            (h['EXTNAME'] == 'Events') and
+            (h['ZTABLE'] is True) and
+            (h['ORIGIN'] == 'CTA') and
+            (h['PBFHEAD'] == 'DataModel.CameraEvent')
         )
 
         is_nectarcam_file = 'hiGain_integrals_gains' in ttypes
         return is_protobuf_zfits_file & is_nectarcam_file
 
     def fill_R0CameraContainer_from_zfile_event(self, container, event):
-        container.trigger_time = (
-                event.local_time_sec * 1E9 + event.local_time_nanosec)
+        container.trigger_time = (event.local_time_sec * 1E9
+                                  + event.local_time_nanosec)
         container.trigger_type = event.event_type
 
         container.waveform = np.array([
-            (
-                event.hiGain.waveforms.samples
-            ).reshape(-1, self.header.numTraces),
-            (
-                event.loGain.waveforms.samples
-            ).reshape(-1, self.header.numTraces)
+            (event.hiGain.waveforms.samples).reshape(-1, self.header.numTraces),
+            (event.loGain.waveforms.samples).reshape(-1, self.header.numTraces)
         ])
 
         container.num_samples = container.waveform.shape[1]

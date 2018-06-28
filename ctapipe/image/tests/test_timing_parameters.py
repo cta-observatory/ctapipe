@@ -32,7 +32,7 @@ def test_grad_fit():
         pix_y=np.arange(4) * u.deg,
         image=np.ones(4),
         peak_time=intercept * u.ns +
-                  grad * np.arange(4) * u.ns,
+        grad * np.arange(4) * u.ns,
         rotation_angle=rot_angle
     )
     # Test the output again makes sense
