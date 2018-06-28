@@ -4,7 +4,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 
 __all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
            'GlobalPeakIntegrator', 'LocalPeakIntegrator',
-           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
+           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator', 'HiPeCTAIntegrator']
 
 
 from abc import abstractmethod
@@ -265,6 +265,7 @@ class Integrator(ChargeExtractor):
         ind = np.indices(waveforms.shape)[2]
         integration_window = (ind >= start[..., None]) & (ind < end[..., None])
         return integration_window
+
 
     @staticmethod
     def extract_from_window(waveforms, window):
@@ -693,6 +694,103 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         return peakpos
 
 
+class HiPeCTAIntegrator(ChargeExtractor):
+    """
+    Charge extractor that defines an integration window defined by the
+    peaks in the neighbouring pixels. This class use HiPeCTA python library
+
+    Attributes
+    ----------
+    neighbours : list
+        List of neighbours for each pixel. Changes per telescope.
+
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+    tool : ctapipe.core.Tool
+        Tool executable that is calling this component.
+        Passes the correct logger to the component.
+        Set to None if no Tool to pass.
+    kwargs
+
+    lwt = Int(0, help='Weight of the local pixel (0: peak from neighbours '
+                      'only, 1: local pixel counts as much '
+                      'as any neighbour').tag(config=True)
+
+    """
+    window_shift = Int(3, help='Define the shift of the integration window '
+                               'from the peakpos '
+                               '(peakpos - shift)').tag(config=True)
+    window_width = Int(7, help='Define the width of the integration '
+                               'window').tag(config=True)
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
+
+    @staticmethod
+    def requires_neighbours():
+        return False
+
+
+    def extract_charge(self, waveforms):
+        """
+        Call the relevant functions to fully extract the charge for the
+        particular extractor.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        charge : ndarray
+            Extracted charge stored in a numpy array of shape (n_chan, n_pix).
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel.
+            Has shape of (n_chan, n_pix).
+        window : ndarray
+            Numpy array containing True where the samples lay within the
+            integration window, and False where the samples lay outside. Has
+            shape of (n_chan, n_pix, n_samples).
+
+        """
+        n_chan = waveforms.shape[0]
+        n_pix = waveforms.shape[1]
+        n_sample = waveforms.shape[2]
+        charge = np.ones((n_chan, n_pix))
+        peakpos = self.get_peakpos(waveforms)
+        window = np.ones((n_chan, n_pix, n_sample))
+
+        return charge, peakpos, window
+
+    def get_peakpos(self, waveforms):
+        """
+        Get the peak position from the waveforms
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
+            (n_chan, n_pix, n_samples).
+
+        Returns
+        -------
+        peakpos : ndarray
+            Numpy array of the peak position for each pixel.
+            Has shape of (n_chan, n_pix).
+
+        """
+        n_chan = waveforms.shape[0]
+        n_pix = waveforms.shape[1]
+        return np.ones((n_chan, n_pix))
+
+
+
 class ChargeExtractorFactory(Factory):
     """
     Factory to obtain a ChargeExtractor.
@@ -700,3 +798,6 @@ class ChargeExtractorFactory(Factory):
     base = ChargeExtractor
     default = 'NeighbourPeakIntegrator'
     custom_product_help = 'Charge extraction scheme to use.'
+
+
+

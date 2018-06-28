@@ -13,7 +13,7 @@ class IntGenerator(Component):
 
     def run(self):
         for i in range(15):
-            sleep(.5)
+            sleep(.01)
             self.log.debug("IntGenerator send {}".format(i))
             if i % 2 == 0:
                 yield (i, 'Pair')

@@ -7,6 +7,7 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 import gzip
 import struct
 
+
 __all__ = ['HESSIOEventSource']
 
 
@@ -110,12 +111,13 @@ class HESSIOEventSource(EventSource):
                 data.mc.core_y = file.get_mc_event_ycore() * u.m
                 first_int = file.get_mc_shower_h_first_int() * u.m
                 data.mc.h_first_int = first_int
+                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data
-                data.mcheader.run_array_direction = (
-                    file.get_mc_run_array_direction()
-                ) * u.rad
+                data.mcheader.run_array_direction = Angle(
+                    file.get_mc_run_array_direction() * u.rad
+                )
 
                 # this should be done in a nicer way to not re-allocate the
                 # data each time (right now it's just deleted and garbage
@@ -135,11 +137,27 @@ class HESSIOEventSource(EventSource):
                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
                     data.r0.tel[tel_id].waveform = (file.
                                                     get_adc_sample(tel_id))
+
                     if data.r0.tel[tel_id].waveform.size == 0:
                         # To handle ASTRI and dst files
-                        data.r0.tel[tel_id].waveform = (file.
-                                                        get_adc_sum(tel_id)[..., None])
+                        try:
+                            from hipecta import zeros as hp_zeros
+                            from hipecta import copyto as hp_copyto
+                            from numpy import append
+                            from numpy import uint16
+                            adc_sum = file.get_adc_sum(tel_id)
+
+                            align_waveform = hp_zeros(list(append(adc_sum.shape, 1)), dtype=uint16)
+                            hp_copyto(align_waveform, adc_sum[..., None])
+                            data.r0.tel[tel_id].waveform = align_waveform
+
+                        except ModuleNotFoundError:
+                            data.r0.tel[tel_id].waveform = (file.
+                                            get_adc_sum(tel_id)[..., None])
+
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
+                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))
 

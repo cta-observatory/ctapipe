@@ -14,7 +14,7 @@ class Pair(Component):
         return True
 
     def run(self, _input):
-        sleep(.5)
+        sleep(.01)
         self.log.debug("Pair receive {}".format(_input))
         if _input % 5 == 0:
             return (_input, 'Inverse')

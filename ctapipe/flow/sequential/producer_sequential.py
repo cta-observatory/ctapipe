@@ -1,5 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
+from time import time
 
 
 class ProducerSequential():
@@ -22,6 +23,7 @@ class ProducerSequential():
         self.connections = connections or []
         self.running = 0
         self.nb_job_done = 0
+        self.total_time = 0
 
 
     def init(self):
@@ -31,17 +33,23 @@ class ProducerSequential():
         -------
         True if coroutine init method returns True, otherwise False
         """
+        start_time = time()
         if self.name is None:
             self.name = "STAGER"
         if self.coroutine is None:
             return False
         if self.coroutine.init() == False:
             return False
+        end_time = time()
+        self.total_time += (end_time - start_time)
         self.coroutine.connections = self.connections
         return True
 
     def run(self):
+        start_time = time()
         gen = self.coroutine.run()
+        end_time = time()
+        self.total_time += (end_time - start_time)
         for result in gen:
             msg, destination = self.get_destination_msg_from_result(result)
             self.nb_job_done += 1
@@ -51,7 +59,10 @@ class ProducerSequential():
         """
         Call coroutine finish methd
         """
+        start_time = time()
         self.coroutine.finish()
+        end_time = time()
+        self.total_time += (end_time - start_time)
         return True
 
     def get_destination_msg_from_result(self, result):

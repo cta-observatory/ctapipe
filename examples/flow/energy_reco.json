@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "Flow": {
+
+     "producer_conf": { "name" : "ListProducerProcess",
+                         "module": "ctapipe.flow.algorithms.list_producer_process",
+                         "class": "ListProducerProcess","next_steps" : "Prun2PtimeHillas"},
+
+      "consumer_conf": { "name" : "StringWriter",
+                         "module": "ctapipe.flow.algorithms.string_writer",
+                "class": "StringWriter"},
+
+      "stagers_conf" : [ {"name": "Prun2PtimeHillas", "class": "Prun2PtimeHillas",
+                          "module": "ctapipe.flow.algorithms.lapp_prun2ptimehillas",
+                          "next_steps" : "PtimeHillas2PRecoEvent", "nb_process" : 4 },
+
+                         {"name": "PtimeHillas2PRecoEvent", "class": "PtimeHillas2PRecoEvent",
+                          "module": "ctapipe.flow.algorithms.lapp_ptimehillas2precoevent",
+                          "next_steps" : "ListEnergyRecoFiles", "nb_process" : 1 },
+
+                        { "name" : "ListEnergyRecoFiles", "class": "ListEnergyRecoFiles",
+                          "module": "ctapipe.flow.algorithms.list_energy_reco_files",
+                          "next_steps" : "EnergyReco"},
+
+                        {"name": "EnergyReco", "class": "EnergyReco",
+                          "module": "ctapipe.flow.algorithms.energy_reco",
+                          "next_steps" : "StringWriter", "nb_process" : 1}
+                       ]
+  },
+
+  "ListProducerProcess": { "source_dir": "/lapp_data/cta/Data/MC/Prod/gamma/golden"},
+
+  "Prun2PtimeHillas": {"exe": "prun2ptimehillas",
+    "config_file" : "/lapp_data/cta/Data/MC/Prod/prod_23_june.ini"},
+
+  "PtimeHillas2PRecoEvent": {"exe": "ptimehillas2precoevent",
+    "config_file" : "/lapp_data/cta/Data/MC/Prod/prod_23_june.ini"},
+
+  "ListEnergyRecoFiles": { "source_dir": "/lapp_data/cta/Data/CTA/Analysis"},
+
+  "StringWriter": { "filename": "string_writter.txt"}
+
+}
+
+
+

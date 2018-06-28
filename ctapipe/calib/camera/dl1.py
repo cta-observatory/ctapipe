@@ -218,10 +218,19 @@ class CameraDL1Calibrator(Component):
                     correction = self.get_correction(event, telid)[:, None]
                     corrected = charge * correction
 
+
                 # Clip amplitude
                 if self.clip_amplitude:
                     corrected[corrected > self.clip_amplitude] = \
                         self.clip_amplitude
+
+                try:
+                    from hipecta.memory import copyto, zeros
+                    corrected_align = zeros(corrected.shape, dtype=np.float32)
+                    copyto(corrected_align, corrected)
+                    corrected = corrected_align
+                except ImportError:
+                    pass
 
                 # Store into event container
                 event.dl1.tel[telid].image = corrected
