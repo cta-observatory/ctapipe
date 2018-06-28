@@ -1,12 +1,14 @@
 import numpy as np
 import pytest
 
-from ctapipe.image.geometry_converter import (convert_geometry_hex1d_to_rect2d,
-                                              convert_geometry_rect2d_back_to_hexe1d,
-                                              astri_to_2d_array,
-                                              array_2d_to_astri,
-                                              chec_to_2d_array,
-                                              array_2d_to_chec)
+from ctapipe.image import (
+    convert_geometry_hex1d_to_rect2d,
+    convert_geometry_rect2d_back_to_hexe1d,
+    astri_to_2d_array,
+    array_2d_to_astri,
+    chec_to_2d_array,
+    array_2d_to_chec
+)
 from ctapipe.image.hillas import hillas_parameters
 from ctapipe.image.toymodel import generate_2d_shower_model, \
     make_toymodel_shower_image
