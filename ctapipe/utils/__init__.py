@@ -8,3 +8,10 @@ from .fitshistogram import Histogram
 from .json2fits import json_to_fits
 from .table_interpolator import TableInterpolator
 from .unstructured_interpolator import UnstructuredInterpolator
+
+__all__ = [
+    'CutFlow', 'PureCountingCut', 'UndefinedCut',
+    'find_all_matching_datasets', 'get_dataset_path', 'get_table_dataset',
+    'find_in_path', 'get_dataset', 'json_to_fits', 'dynamic_class_from_module',
+    'Histogram', 'TableInterpolator', 'UnstructuredInterpolator'
+]

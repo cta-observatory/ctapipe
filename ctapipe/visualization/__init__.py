@@ -3,10 +3,7 @@
 Visualization: Methods for displaying data 
 """
 
-try:
-    from .mpl_camera import CameraDisplay
-    from .mpl_array import ArrayDisplay
-except ImportError:
-    pass
+from .mpl_camera import CameraDisplay
+from .mpl_array import ArrayDisplay
 
 __all__ = ['CameraDisplay', 'ArrayDisplay']
