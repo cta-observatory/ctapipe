@@ -50,7 +50,7 @@ def test_pick_gain_channel_bad_input():
     input_waveforms = np.arange(10).reshape(1, 10)
     waveforms, gain_mask = pick_gain_channel(input_waveforms, threshold=4)
     assert gain_mask is not None
-    assert (waveforms == input_waveforms).all()
+    assert np.all(waveforms == input_waveforms)
 
 
 def test_threshold_gain_selector():
@@ -108,5 +108,5 @@ def test_simple_gain_selector():
         waveforms_1g, mask = gs.select_gains("NectarCam", waveforms_2g)
 
         assert waveforms_1g.shape == (1000, 30)
-        assert (waveforms_1g == waveforms_2g[chan]).all()
+        assert np.all(waveforms_1g == waveforms_2g[chan])
         assert mask.shape == (1000,)
