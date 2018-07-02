@@ -5,6 +5,14 @@ import numpy as np
 
 log = logging.getLogger(__name__)
 
+__all__ = [
+    'mean_squared_error',
+    'photon_ratio_inside_ring',
+    'ring_completeness',
+    'ring_containment',
+    'npix_above_threshold',
+    'npix_composing_ring',
+]
 
 def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     """
