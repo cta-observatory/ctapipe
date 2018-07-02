@@ -54,7 +54,6 @@ class UnstructuredInterpolator:
         if self._numpy_input is False and function_name is None:
             self._function_name = "__call__"
 
-        return None
 
     def __call__(self, points, eval_points=None):
 
