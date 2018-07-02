@@ -531,8 +531,8 @@ def _neighbor_list_to_matrix(neighbors):
     npix = len(neighbors)
     neigh2d = np.zeros(shape=(npix, npix), dtype=np.bool)
 
-    for ipix, neighbors in enumerate(neighbors):
-        for jn, neighbor in enumerate(neighbors):
+    for ipix, pix_neighbors in enumerate(neighbors):
+        for neighbor in pix_neighbors:
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
