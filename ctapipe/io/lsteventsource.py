@@ -70,7 +70,8 @@ class LSTEventSource(EventSource):
         is_lst_file = 'lstcam_counters' in ttypes
         return is_protobuf_zfits_file & is_lst_file
 
-    def fill_lst_service_container_from_zfile(self, container, camera_config):
+    @staticmethod
+    def fill_lst_service_container_from_zfile(container, camera_config):
 
         container.tels_with_data = [camera_config.telescope_id, ]
 
