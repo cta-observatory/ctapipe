@@ -127,28 +127,28 @@ def test_with_context_writer(temp_h5_file):
 def test_writer_closes_file(temp_h5_file):
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, 'test') as h5_table:
-            assert h5_table._h5file.isopen is True
+            assert h5_table._h5file.isopen
 
-    assert h5_table._h5file.isopen is False
+    assert not h5_table._h5file.isopen
 
 
 def test_reader_closes_file(temp_h5_file):
     with HDF5TableReader(str(temp_h5_file)) as h5_table:
-        assert h5_table._h5file.isopen is True
+        assert h5_table._h5file.isopen
 
-    assert h5_table._h5file.isopen is False
+    assert not h5_table._h5file.isopen
 
 
 def test_with_context_reader(temp_h5_file):
     mc = MCEventContainer()
 
     with HDF5TableReader(str(temp_h5_file)) as h5_table:
-        assert h5_table._h5file.isopen is True
+        assert h5_table._h5file.isopen
 
         for cont in h5_table.read('/R0/MC', mc):
             print(cont)
 
-    assert h5_table._h5file.isopen is False
+    assert not h5_table._h5file.isopen 
 
 
 def test_closing_reader(temp_h5_file):
