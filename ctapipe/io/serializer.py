@@ -9,7 +9,6 @@ from pickle import dump
 import numpy as np
 from astropy import log
 from astropy.table import Table, Column
-from traitlets import Unicode
 
 from ctapipe.core import Container
 
