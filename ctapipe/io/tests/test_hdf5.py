@@ -148,7 +148,7 @@ def test_with_context_reader(temp_h5_file):
         for cont in h5_table.read('/R0/MC', mc):
             print(cont)
 
-    assert not h5_table._h5file.isopen 
+    assert not h5_table._h5file.isopen
 
 
 def test_closing_reader(temp_h5_file):

@@ -8,8 +8,8 @@ from itertools import combinations
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord, spherical_to_cartesian, \
-    cartesian_to_spherical
+from astropy.coordinates import (SkyCoord, spherical_to_cartesian,
+                                 cartesian_to_spherical)
 from scipy.optimize import minimize
 
 from ctapipe.coordinates import HorizonFrame, CameraFrame
@@ -372,6 +372,7 @@ class HillasReconstructor(Reconstructor):
                 array_direction=pointing,
                 pointing_direction=pointing
             )
+
             cf = CameraFrame(
                 focal_length=focal_length,
                 array_direction=pointing,
@@ -390,12 +391,17 @@ class HillasReconstructor(Reconstructor):
             dirs.append(cog_direction)
 
         # minimising the test function
-        pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
-                           args=(
-                           np.array(tels), np.array(dirs), np.array(weights)),
-                           method='BFGS',
-                           options={'disp': False}
-                           ).x
+        pos_max = minimize(
+            dist_to_line3d,
+            np.array([0, 0, 10000]),
+            args=(
+                np.array(tels),
+                np.array(dirs),
+                np.array(weights)
+            ),
+            method='BFGS',
+            options={'disp': False}
+        ).x
         return pos_max[2] * u.m
 
 
@@ -412,8 +418,8 @@ class HillasPlane:
 
     Stores some vectors a, b, and c
 
-    These vectors are eucledian [x, y, z] where positive z values point towards the sky
-    and x and y are parallel to the ground.
+    These vectors are eucledian [x, y, z] where positive z values point
+    towards the sky and x and y are parallel to the ground.
     """
 
     def __init__(self, p1, p2, telescope_position, weight=1):
@@ -425,10 +431,12 @@ class HillasPlane:
         -----------
         p1: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
+            This coordinate has to be defined in the
+            ctapipe.coordinates.HorizonFrame
         p2: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
+            This coordinate has to be defined in the
+            ctapipe.coordinates.HorizonFrame
         telescope_position: np.array(3)
             Position of the telescope on the ground
         weight : float, optional
