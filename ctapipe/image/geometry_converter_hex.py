@@ -306,7 +306,9 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     signal : ndarray
         1D (no timing) or 2D (with timing) array of the pmt signals
     key : (default: None)
-        arbitrary key to store the transformed geometry in a buffer
+        arbitrary key (float, string) to store the transformed geometry in a buffer
+        The geometries (hex and rect) will be stored in a buffer.
+        The key is necessary to make the conversion back from rect to hex.
     add_rot : int/float (default: 0)
         parameter to apply an additional rotation of `add_rot` times 60°
 
@@ -455,6 +457,7 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
         pixel intensity stored in a 2D rectangular camera grid
     key:
         key to retrieve buffered geometry information
+        (see `convert_geometry_hex1d_to_rect2d`)
     add_rot:
         not used -- only here for backwards compatibility
 
