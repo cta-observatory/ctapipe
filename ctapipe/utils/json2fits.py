@@ -1,12 +1,13 @@
-from astropy.io import fits
-from traitlets.config.loader import Config
-from json import load
 import logging
 import warnings
+from json import load
+
+from astropy.io import fits
+from traitlets.config.loader import Config
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['traitlets_config_to_fits', 'json_to_fits']
+__all__ = ["traitlets_config_to_fits", "json_to_fits"]
 
 
 def traitlets_config_to_fits(config, fits_filename, overwrite=True):
@@ -27,7 +28,9 @@ def traitlets_config_to_fits(config, fits_filename, overwrite=True):
     """
 
     if not isinstance(config, Config):
-        raise TypeError('Config must be an instance of traitlets.config.loader.Config')
+        raise TypeError(
+            "Config must be an instance of traitlets.config.loader.Config"
+        )
 
     # hduList will contain one TableHDU per section
     hdu_list = fits.HDUList()
@@ -53,7 +56,7 @@ def traitlets_config_to_fits(config, fits_filename, overwrite=True):
     try:
         hdu_list.writeto(fits_filename, overwrite=overwrite)
     except OSError:
-        logging.exception('Could not do save {}'.format(fits_filename))
+        logging.exception("Could not do save {}".format(fits_filename))
         raise
 
 
@@ -76,7 +79,7 @@ def json_to_fits(json_filename, fits_filename, overwrite=True):
     FileNotFoundError : if fits_filename could not be open
     """
     try:
-        f = open(json_filename, 'r')
+        f = open(json_filename, "r")
         # hduList will contain one TableHDU per section
         hduList = fits.HDUList()
         json_object = load(f)
@@ -91,7 +94,7 @@ def json_to_fits(json_filename, fits_filename, overwrite=True):
                 for key, value in entry.items():
                     if isinstance(value, dict):
                         raise ValueError(
-                            'Malformed json file: fits header cannot contain subobjects'
+                            "Malformed json file: fits header cannot contain subobjects"
                         )
 
                     # CONTINUE and HIERARCH are incompatible, so we have to
@@ -100,7 +103,9 @@ def json_to_fits(json_filename, fits_filename, overwrite=True):
                     if isinstance(value, str):
                         if len(key) > 8 and (len(key) + len(value)) > 70:
                             warnings.warn(
-                                'Key "{}" will be truncated to {}'.format(key, key[:8])
+                                'Key "{}" will be truncated to {}'.format(
+                                    key, key[:8]
+                                )
                             )
                             key = key[:8]
 
@@ -116,15 +121,15 @@ def json_to_fits(json_filename, fits_filename, overwrite=True):
                 global_header[section] = entry
 
         # create a new TableHDU for global_header and append it to hduList
-        table_0 = fits.TableHDU(data=None, header=global_header, name='GLOBAL')
+        table_0 = fits.TableHDU(data=None, header=global_header, name="GLOBAL")
         hduList.append(table_0)
         # write hduList to FITS file
         try:
             hduList.writeto(fits_filename, overwrite=overwrite)
         except OSError:
-            logging.exception('Could not do save {}'.format(fits_filename))
+            logging.exception("Could not do save {}".format(fits_filename))
             raise
 
     except FileNotFoundError:
-        logging.exception('Could not open  {}'.format(fits_filename))
+        logging.exception("Could not open  {}".format(fits_filename))
         raise

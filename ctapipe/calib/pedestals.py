@@ -34,6 +34,5 @@ def calc_pedestals_from_traces(traces, start_sample, end_sample):
     pedvars = traces[:, start_sample:end_sample].var(axis=1)
     return peds, pedvars
 
-
 # PUT OTHER PEDESTAL CALCULATION FUNCTIONS HERE:
 # ----------------------------------------------

@@ -3,7 +3,6 @@
 
 
 class ConsumerSequential():
-
     """`ConsumerSequential` class represents a Consumer pipeline Step.
     """
 
@@ -19,7 +18,6 @@ class ConsumerSequential():
         self.running = 0
         self.nb_job_done = 0
 
-
     def init(self):
         """
         Initialise coroutine sockets and poller
@@ -31,7 +29,7 @@ class ConsumerSequential():
             self.name = "Consumer"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if not self.coroutine.init():
             return False
         return True
 

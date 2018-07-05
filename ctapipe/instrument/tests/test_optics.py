@@ -1,6 +1,7 @@
-from ctapipe.instrument.optics import OpticsDescription
-from astropy import units as u
 import pytest
+from astropy import units as u
+
+from ctapipe.instrument.optics import OpticsDescription
 
 
 def test_guess_optics():

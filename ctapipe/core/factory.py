@@ -1,11 +1,14 @@
 from copy import copy, deepcopy
-from ctapipe.core.component import Component
 from inspect import isabstract
-from traitlets.config.loader import Config
+
 from traitlets import CaselessStrEnum
+from traitlets.config.loader import Config
+
+from ctapipe.core.component import Component
 
 
 class FactoryMeta(type(Component), type):
+
     def __new__(mcs, name, bases, dct):
 
         # Setup class lookup

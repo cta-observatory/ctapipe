@@ -1,7 +1,8 @@
-from ctapipe.image.timing_parameters import timing_parameters
-import numpy as np
 import astropy.units as u
+import numpy as np
 from numpy.testing import assert_allclose
+
+from ctapipe.image.timing_parameters import timing_parameters
 
 
 def test_grad_fit():

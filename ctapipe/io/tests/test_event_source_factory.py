@@ -50,6 +50,7 @@ def test_factory_unknown_reader():
         )
         assert reader is not None
 
+
 def test_factory_incompatible_file():
     dataset = get_dataset_path("optics.ecsv.txt")
     reader = EventSourceFactory.produce(
@@ -70,12 +71,14 @@ def test_factory_nonexistant_file():
         )
         assert reader is not None
 
+
 def test_factory_incorrect_use():
     with pytest.raises(FileNotFoundError):
         dataset = get_dataset_path("gamma_test_large.simtel.gz")
         factory = EventSourceFactory(input_url=dataset)
         reader = factory.produce()
         assert reader is not None
+
 
 def test_event_source_helper():
     with event_source(get_dataset_path("gamma_test_large.simtel.gz")) as source:

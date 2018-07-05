@@ -1,11 +1,11 @@
-from ctapipe.utils import get_dataset_path
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.core import Component
 from traitlets import Unicode
+
+from ctapipe.core import Component
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.utils import get_dataset_path
 
 
 class SimTelArrayReader(Component):
-
     """`SimTelArrayReader` class represents a Producer for pipeline.
         It opens simtelarray file and yields even to the next stage
     """

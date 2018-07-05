@@ -1,8 +1,8 @@
 import numpy as np
-from scipy.optimize import minimize
 import scipy.constants as const
-from scipy.stats import norm
 from astropy.units import Quantity
+from scipy.optimize import minimize
+from scipy.stats import norm
 
 __all__ = [
     'kundu_chaudhuri_circle_fit',
@@ -52,9 +52,10 @@ def kundu_chaudhuri_circle_fit(x, y, weights):
     center_x = (b2 * c1 - b1 * c2) / (a1 * b2 - a2 * b1)
     center_y = (a2 * c1 - a1 * c2) / (a2 * b1 - a1 * b2)
 
-    radius = np.sqrt(np.sum(
-        weights * ((center_x - x)**2 + (center_y - y)**2),
-    ) / weights_sum)
+    radius = np.sqrt(
+        np.sum(weights * ((center_x - x)**2 +
+                          (center_y - y)**2), ) / weights_sum
+    )
 
     return radius, center_x, center_y
 
@@ -80,7 +81,8 @@ def _psf_neg_log_likelihood(params, x, y, weights):
     pixel_distance = np.sqrt((center_x - x)**2 + (center_y - y)**2)
 
     return np.sum(
-        (np.log(sigma) + 0.5 * ((pixel_distance - radius) / sigma)**2) * weights
+        (np.log(sigma) + 0.5 *
+         ((pixel_distance - radius) / sigma)**2) * weights
     )
 
 
@@ -129,10 +131,10 @@ def psf_likelihood_fit(x, y, weights):
         args=(x, y, weights),
         method='L-BFGS-B',
         bounds=[
-            (0, None),      # radius should be positive
+            (0, None),  # radius should be positive
             (None, None),
             (None, None),
-            (0, None),      # std should be positive
+            (0, None),  # std should be positive
         ],
     )
 
@@ -143,14 +145,14 @@ def psf_likelihood_fit(x, y, weights):
 
 
 def impact_parameter_chisq_fit(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        mirror_radius,
-        bins=30,
+    pixel_x,
+    pixel_y,
+    weights,
+    radius,
+    center_x,
+    center_y,
+    mirror_radius,
+    bins=30,
 ):
     """
     Impact parameter calculation for a ring fit before.
@@ -178,7 +180,9 @@ def impact_parameter_chisq_fit(
     """
 
     phi = np.arctan2(pixel_y - center_y, pixel_x - center_x)
-    hist, edges = np.histogram(phi, bins=bins, range=[-np.pi, np.pi], weights=weights)
+    hist, edges = np.histogram(
+        phi, bins=bins, range=[-np.pi, np.pi], weights=weights
+    )
     bin_centers = 0.5 * (edges[:-1] + edges[1:])
 
     result = minimize(
@@ -187,9 +191,9 @@ def impact_parameter_chisq_fit(
         args=(bin_centers, hist, mirror_radius),
         method='L-BFGS-B',
         bounds=[
-            (0, None),         # impact parameter should be positive
-            (-np.pi, np.pi),   # orientation angle should be in -pi to pi
-            (0, None),         # scale should be positive
+            (0, None),  # impact parameter should be positive
+            (-np.pi, np.pi),  # orientation angle should be in -pi to pi
+            (0, None),  # scale should be positive
         ],
     )
 
@@ -228,26 +232,27 @@ def mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius):
     if impact_parameter > mirror_radius:
         distance = np.empty_like(phi)
         mask = np.logical_and(
-            phi < np.arcsin(1 / ratio),
-            phi > -np.arcsin(1 / ratio)
+            phi < np.arcsin(1 / ratio), phi > -np.arcsin(1 / ratio)
         )
         distance[np.logical_not(mask)] = 0
         distance[mask] = 2 * mirror_radius * np.sqrt(radicant[mask])
     else:
-        distance = 2 * mirror_radius * (np.sqrt(radicant) + ratio * np.cos(phi))
+        distance = 2 * mirror_radius * (
+            np.sqrt(radicant) + ratio * np.cos(phi)
+        )
 
     return distance
 
 
 def radial_light_intensity(
-        phi,
-        phi_max,
-        cherenkov_angle,
-        impact_parameter,
-        pixel_fov,
-        mirror_radius,
-        lambda1=300e-9,
-        lambda2=900e-9,
+    phi,
+    phi_max,
+    cherenkov_angle,
+    impact_parameter,
+    pixel_fov,
+    mirror_radius,
+    lambda1=300e-9,
+    lambda2=900e-9,
 ):
     """
     Amount of photons per azimuthal angle phi on the muon ring as given in
@@ -277,29 +282,29 @@ def radial_light_intensity(
     """
 
     return (
-        0.5 * const.fine_structure *
-        cherenkov_integral(lambda1, lambda2) *
-        pixel_fov / cherenkov_angle *
-        np.sin(2 * cherenkov_angle) *
-        mirror_integration_distance(phi, phi_max, impact_parameter, mirror_radius)
+        0.5 * const.fine_structure * cherenkov_integral(lambda1, lambda2) *
+        pixel_fov / cherenkov_angle * np.sin(2 * cherenkov_angle) *
+        mirror_integration_distance(
+            phi, phi_max, impact_parameter, mirror_radius
+        )
     )
 
 
 def expected_pixel_light_content(
-        pixel_x,
-        pixel_y,
-        center_x,
-        center_y,
-        phi_max,
-        cherenkov_angle,
-        impact_parameter,
-        sigma_psf,
-        pixel_fov,
-        pixel_diameter,
-        mirror_radius,
-        focal_length,
-        lambda1=300e-9,
-        lambda2=900e-9,
+    pixel_x,
+    pixel_y,
+    center_x,
+    center_y,
+    phi_max,
+    cherenkov_angle,
+    impact_parameter,
+    sigma_psf,
+    pixel_fov,
+    pixel_diameter,
+    mirror_radius,
+    focal_length,
+    lambda1=300e-9,
+    lambda2=900e-9,
 ):
     """
     Calculate the expected light content of each pixel for a muon ring with the
@@ -346,9 +351,8 @@ def expected_pixel_light_content(
     ring_radius = cherenkov_angle * focal_length
 
     light = radial_light_intensity(
-        phi, phi_max,
-        cherenkov_angle, impact_parameter,
-        pixel_fov, mirror_radius, lambda1, lambda2
+        phi, phi_max, cherenkov_angle, impact_parameter, pixel_fov,
+        mirror_radius, lambda1, lambda2
     )
 
     result = light * pixel_diameter * norm.pdf(pixel_r, ring_radius, sigma_psf)
@@ -356,15 +360,15 @@ def expected_pixel_light_content(
 
 
 def efficiency_fit(
-        pe_charge,
-        pixel_x,
-        pixel_y,
-        pixel_fov,
-        pixel_diameter,
-        mirror_radius,
-        focal_length,
-        lambda1=300e-9,
-        lambda2=900e-9,
+    pe_charge,
+    pixel_x,
+    pixel_y,
+    pixel_fov,
+    pixel_diameter,
+    mirror_radius,
+    focal_length,
+    lambda1=300e-9,
+    lambda2=900e-9,
 ):
     """
     Estimate optical efficiency for a muon ring using method of [mitchell15]_.

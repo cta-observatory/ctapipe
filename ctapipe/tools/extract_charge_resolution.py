@@ -41,8 +41,8 @@ class ChargeResolutionGenerator(Tool):
                         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
                         radius='CameraDL1Calibrator.radius',
                         max_pe='ChargeResolutionCalculator.max_pe',
-                        T='ChargeResolutionGenerator.telescopes',
-                        O='ChargeResolutionGenerator.output_name',
+                        tel='ChargeResolutionGenerator.telescopes',
+                        output='ChargeResolutionGenerator.output_name',
                         ))
     classes = List([HESSIOEventSource,
                     ChargeExtractorFactory,
@@ -83,7 +83,7 @@ class ChargeResolutionGenerator(Tool):
             if event.count == 0:
                 try:
                     if np.all(event.mc.tel[
-                                  tels[0]].photo_electron_image == 0):
+                            tels[0]].photo_electron_image == 0):
                         raise KeyError
                 except KeyError:
                     self.log.exception('Source does not contain '

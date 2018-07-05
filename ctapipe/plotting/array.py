@@ -1,8 +1,8 @@
-from matplotlib import pyplot as plt
-import numpy as np
-from ctapipe.visualization.mpl_array import ArrayDisplay
 import astropy.units as u
-from ctapipe.coordinates import GroundFrame
+import numpy as np
+from matplotlib import pyplot as plt
+
+from ctapipe.visualization.mpl_array import ArrayDisplay
 
 
 class NominalPlotter:
@@ -36,7 +36,8 @@ class NominalPlotter:
         self.hillas = hillas_parameters
         scale_fac = 57.3 * 2
 
-        self.array.overlay_moments(hillas_parameters, (self.cen_x, self.cen_y), scale_fac,
+        self.array.overlay_moments(hillas_parameters, (self.cen_x, self.cen_y),
+                                   scale_fac,
                                    cmap="Greys", alpha=0.5, **kwargs)
 
         if draw_axes:

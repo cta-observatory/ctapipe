@@ -12,7 +12,6 @@ from astropy.units import Quantity
 from ctapipe.instrument import CameraGeometry
 from ..io.containers import HillasParametersContainer
 
-
 __all__ = [
     'hillas_parameters',
     'hillas_parameters_1',
@@ -341,8 +340,6 @@ def hillas_parameters_3(geom: CameraGeometry, image):
     skewness = np.nan
     kurtosis = np.nan
 
-
-
     assert pix_x.shape == image.shape
     assert pix_y.shape == image.shape
 
@@ -668,7 +665,8 @@ def hillas_parameters_5(geom: CameraGeometry, image):
     size = np.sum(image)
 
     if size == 0.0:
-        raise HillasParameterizationError('size=0, cannot calculate HillasParameters')
+        raise HillasParameterizationError(
+            'size=0, cannot calculate HillasParameters')
 
     # calculate the cog as the mean of the coordinates weighted with the image
     cog_x = np.average(pix_x, weights=image)
@@ -697,11 +695,11 @@ def hillas_parameters_5(geom: CameraGeometry, image):
     # calculate higher order moments along shower axes
     longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
 
-    m3_long = np.average(longitudinal**3, weights=image)
-    skewness_long = m3_long / length**3
+    m3_long = np.average(longitudinal ** 3, weights=image)
+    skewness_long = m3_long / length ** 3
 
-    m4_long = np.average(longitudinal**4, weights=image)
-    kurtosis_long = m4_long / length**4
+    m4_long = np.average(longitudinal ** 4, weights=image)
+    kurtosis_long = m4_long / length ** 4
 
     return HillasParametersContainer(
         x=cog_x * unit, y=cog_y * unit,

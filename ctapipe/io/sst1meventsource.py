@@ -5,8 +5,9 @@ EventSource for SST1M/digicam protobuf-fits.fz-files.
 Needs protozfits v1.0.2 from github.com/cta-sst-1m/protozfitsreader
 """
 import numpy as np
-from .eventsource import EventSource
+
 from .containers import SST1MDataContainer
+from .eventsource import EventSource
 from ..instrument import TelescopeDescription
 
 __all__ = ['SST1MEventSource']

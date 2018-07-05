@@ -7,19 +7,48 @@ To do:
     - create container class for output
 
 """
+import logging
+
 import numpy as np
-from scipy.ndimage.filters import correlate1d
-from iminuit import Minuit
 from astropy import units as u
 from astropy.constants import alpha
-from ...io.containers import MuonIntensityParameter
+from iminuit import Minuit
+from scipy.ndimage.filters import correlate1d
 from scipy.stats import norm
 
-import logging
+from ...io.containers import MuonIntensityParameter
 
 __all__ = ['MuonLineIntegrate']
 
 logger = logging.getLogger(__name__)
+
+
+def pos_to_angle(centre_x, centre_y, pixel_x, pixel_y):
+    """
+    Convert pixel positions from x,y coordinates to rotation angle
+
+    Parameters
+    ----------
+    centre_x: float
+        Reconstructed image centre
+    centre_y: float
+        Reconstructed image centre
+    pixel_x: ndarray
+        Pixel x position
+    pixel_y: ndarray
+        Pixel y position
+
+    Returns
+    -------
+     ndarray:
+        Pixel rotation angle
+
+    """
+    del_x = pixel_x - centre_x
+    del_y = pixel_y - centre_y
+
+    ang = np.arctan2(del_x, del_y)
+    return ang
 
 
 class MuonLineIntegrate:
@@ -58,8 +87,15 @@ class MuonLineIntegrate:
         multiplied by the fine structure constant (1/137)
     """
 
-    def __init__(self, mirror_radius, hole_radius, pixel_width=0.2,
-                 oversample_bins=3, sct_flag=False, secondary_radius=1.):
+    def __init__(
+        self,
+        mirror_radius,
+        hole_radius,
+        pixel_width=0.2,
+        oversample_bins=3,
+        sct_flag=False,
+        secondary_radius=1.
+    ):
 
         self.mirror_radius = mirror_radius
         self.hole_radius = hole_radius
@@ -73,8 +109,9 @@ class MuonLineIntegrate:
         self.prediction = 0
         self.minlambda = 300.e-9 * u.m
         self.maxlambda = 600.e-9 * u.m
-        self.photemit = alpha * (self.minlambda**-1 -
-                                 self.maxlambda**-1)  # 12165.45
+        self.photemit = alpha * (
+            self.minlambda**-1 - self.maxlambda**-1
+        )  # 12165.45
         self.unit = u.deg
 
     @staticmethod
@@ -168,44 +205,28 @@ class MuonLineIntegrate:
             Chord length for each angle
         """
 
-        bins = int((2 * np.pi * radius) / self.pixel_width.value) * self.oversample_bins
+        bins = int((2 * np.pi * radius) / self.pixel_width.value
+                   ) * self.oversample_bins
         # ang = np.linspace(-np.pi * u.rad + phi, np.pi * u.rad + phi, bins)
         ang = np.linspace(-np.pi + phi, np.pi + phi, bins)
-        l = self.intersect_circle(impact_parameter, ang)
-        l = correlate1d(l, np.ones(self.oversample_bins), mode='wrap', axis=0)
-        l /= self.oversample_bins
+        distance = self.intersect_circle(impact_parameter, ang)
+        distance = correlate1d(distance, np.ones(self.oversample_bins),
+                               mode='wrap', axis=0)
+        distance /= self.oversample_bins
 
-        return ang, l
+        return ang, distance
 
-    def pos_to_angle(self, centre_x, centre_y, pixel_x, pixel_y):
-        """
-        Convert pixel positions from x,y coordinates to rotation angle
-
-        Parameters
-        ----------
-        centre_x: float
-            Reconstructed image centre
-        centre_y: float
-            Reconstructed image centre
-        pixel_x: ndarray
-            Pixel x position
-        pixel_y: ndarray
-            Pixel y position
-
-        Returns
-        -------
-         ndarray:
-            Pixel rotation angle
-
-        """
-        del_x = pixel_x - centre_x
-        del_y = pixel_y - centre_y
-
-        ang = np.arctan2(del_x, del_y)
-        return ang
-
-    def image_prediction(self, impact_parameter, phi, centre_x,
-                         centre_y, radius, ring_width, pixel_x, pixel_y, ):
+    def image_prediction(
+        self,
+        impact_parameter,
+        phi,
+        centre_x,
+        centre_y,
+        radius,
+        ring_width,
+        pixel_x,
+        pixel_y,
+    ):
         """Function for producing the expected image for a given set of trial
         muon parameters
 
@@ -234,14 +255,16 @@ class MuonLineIntegrate:
         """
 
         # First produce angular position of each pixel w.r.t muon centre
-        ang = self.pos_to_angle(centre_x, centre_y, pixel_x, pixel_y)
+        ang = pos_to_angle(centre_x, centre_y, pixel_x, pixel_y)
         # Add muon rotation angle
         ang += phi
         # Produce smoothed muon profile
 
         ang_prof, profile = self.plot_pos(impact_parameter, radius, phi)
         # Produce gaussian weight for each pixel give ring width
-        radial_dist = np.sqrt((pixel_x - centre_x)**2 + (pixel_y - centre_y)**2)
+        radial_dist = np.sqrt(
+            (pixel_x - centre_x)**2 + (pixel_y - centre_y)**2
+        )
         gauss = norm.pdf(radial_dist, radius, ring_width)
 
         # interpolate profile to find prediction for each pixel
@@ -259,8 +282,10 @@ class MuonLineIntegrate:
 
         return pred
 
-    def likelihood(self, impact_parameter, phi, centre_x, centre_y,
-                   radius, ring_width, optical_efficiency_muon):
+    def likelihood(
+        self, impact_parameter, phi, centre_x, centre_y, radius, ring_width,
+        optical_efficiency_muon
+    ):
         """
         Likelihood function to be called by minimiser
 
@@ -310,7 +335,9 @@ class MuonLineIntegrate:
         self.prediction *= optical_efficiency_muon
 
         # Multiply sum of likelihoods by -2 to make them behave like chi-squared
-        like_value = np.sum(self.calc_likelihood(self.image, self.prediction, 0.5, 1.1))
+        like_value = np.sum(
+            self.calc_likelihood(self.image, self.prediction, 0.5, 1.1)
+        )
 
         return like_value
 
@@ -337,7 +364,9 @@ class MuonLineIntegrate:
         """
         ped = ped * u.deg
         image = image * u.deg
-        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) * u.deg))
+        sq = 1 / np.sqrt(
+            2 * np.pi * (ped**2 + pred * (1 + spe_width**2) * u.deg)
+        )
         diff = (image - pred)**2
         denom = 2 * (ped**2 + pred * (1 + spe_width**2) * u.deg)
         expo = np.exp(-diff / denom) * u.m
@@ -430,12 +459,16 @@ class MuonLineIntegrate:
 
         fitoutput.impact_parameter = fit_params['impact_parameter'] * u.m
         # fitoutput.phi = fit_params['phi']*u.rad
-        fitoutput.impact_parameter_pos_x = fit_params['impact_parameter'] * np.cos(
-            fit_params['phi'] * u.rad) * u.m
-        fitoutput.impact_parameter_pos_y = fit_params['impact_parameter'] * np.sin(
-            fit_params['phi'] * u.rad) * u.m
+        fitoutput.impact_parameter_pos_x = fit_params[
+            'impact_parameter'
+        ] * np.cos(fit_params['phi'] * u.rad) * u.m
+        fitoutput.impact_parameter_pos_y = fit_params[
+            'impact_parameter'
+        ] * np.sin(fit_params['phi'] * u.rad) * u.m
         fitoutput.ring_width = fit_params['ring_width'] * self.unit
-        fitoutput.optical_efficiency_muon = fit_params['optical_efficiency_muon']
+        fitoutput.optical_efficiency_muon = fit_params[
+            'optical_efficiency_muon'
+        ]
 
         fitoutput.prediction = self.prediction
 

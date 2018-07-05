@@ -4,5 +4,3 @@ This module contains configuration and setup utilities for the
 ctapipe project.
 """
 
-from .core import *
-from .json2fits import *

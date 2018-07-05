@@ -1,8 +1,9 @@
-from ctapipe.core import Component
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Bool
 from traitlets import Unicode
+
+from ctapipe.core import Component
 
 
 class DisplayTelescopeStep(Component):
@@ -13,7 +14,8 @@ class DisplayTelescopeStep(Component):
     display = Bool(default_value=False,
                    help='Display the camera events').tag(config=True)
     pdf_path = Unicode(default_value=None, allow_none=True,
-                       help='Path to store a pdf output of the plots').tag(config=True)
+                       help='Path to store a pdf output of the plots').tag(
+        config=True)
 
     def init(self):
         self.log.debug("--- DisplayTelescopeStep init ---")
@@ -23,7 +25,6 @@ class DisplayTelescopeStep(Component):
         return True
 
     def run(self, figure):
-        self.log.debug('%figure' % "DisplayTelescopeStep receive {}")
         if self.display:
             plt.pause(.1)
         if self.pdfPages is not None:

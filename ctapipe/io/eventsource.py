@@ -3,7 +3,9 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from os.path import exists
+
 from traitlets import Unicode, Int, Set
+
 from ctapipe.core import Component
 from ctapipe.core import Provenance
 
@@ -98,7 +100,6 @@ class EventSource(Component):
               'If left empty, all telescopes in the input stream '
               'will be included')
     ).tag(config=True)
-
 
     def __init__(self, config=None, tool=None, **kwargs):
         """

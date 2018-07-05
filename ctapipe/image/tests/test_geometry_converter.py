@@ -1,13 +1,18 @@
-import pytest
 import numpy as np
-from ctapipe.image.geometry_converter import (convert_geometry_hex1d_to_rect2d,
-                                              convert_geometry_rect2d_back_to_hexe1d,
-                                              astri_to_2d_array, array_2d_to_astri,
-                                              chec_to_2d_array, array_2d_to_chec)
-from ctapipe.image.hillas import hillas_parameters
-from ctapipe.instrument import CameraGeometry
-from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_shower_image
+import pytest
 
+from ctapipe.image import (
+    convert_geometry_hex1d_to_rect2d,
+    convert_geometry_rect2d_back_to_hexe1d,
+    astri_to_2d_array,
+    array_2d_to_astri,
+    chec_to_2d_array,
+    array_2d_to_chec
+)
+from ctapipe.image.hillas import hillas_parameters
+from ctapipe.image.toymodel import generate_2d_shower_model, \
+    make_toymodel_shower_image
+from ctapipe.instrument import CameraGeometry
 
 cam_ids = CameraGeometry.get_known_camera_names()
 
@@ -15,7 +20,6 @@ cam_ids = CameraGeometry.get_known_camera_names()
 @pytest.mark.parametrize("rot", [3, ])
 @pytest.mark.parametrize("cam_id", cam_ids)
 def test_convert_geometry(cam_id, rot):
-
     geom = CameraGeometry.from_name(cam_id)
 
     model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
@@ -97,7 +101,6 @@ def test_convert_geometry_mock(cam_id, rot):
 
     hillas_1 = hillas_parameters(geom, image1d)
     assert np.abs(hillas_1.phi - hillas_0.phi).deg < 1.0
-
 
 # def plot_cam(geom, geom2d, geom1d, image, image2d, image1d):
 #     # plt.viridis()

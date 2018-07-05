@@ -3,12 +3,12 @@
 
 
 class ProducerSequential():
-
     """`ProducerSequential` class represents a Stager pipeline Step.
     """
 
     def __init__(
-            self, coroutine, name=None, connections=None, main_connection_name=None):
+            self, coroutine, name=None, connections=None,
+            main_connection_name=None):
         """
         Parameters
         ----------
@@ -23,7 +23,6 @@ class ProducerSequential():
         self.running = 0
         self.nb_job_done = 0
 
-
     def init(self):
         """
         Initialise coroutine sockets and poller
@@ -35,7 +34,7 @@ class ProducerSequential():
             self.name = "STAGER"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if not self.coroutine.init():
             return False
         self.coroutine.connections = self.connections
         return True
@@ -56,9 +55,9 @@ class ProducerSequential():
 
     def get_destination_msg_from_result(self, result):
         """
-        If type(result) is tuple, check if last tuple elem is a valid next step.
-        If yes, return a destination defined to the last tuple elem and send result without the destination
-        If no return None as destination
+        If type(result) is tuple, check if last tuple elem is a valid next
+        step. If yes, return a destination defined to the last tuple elem and
+        send result without the destination If no return None as destination
 
         Parameters
         ----------

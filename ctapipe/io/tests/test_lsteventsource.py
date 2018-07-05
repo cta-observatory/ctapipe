@@ -1,7 +1,8 @@
-from pkg_resources import resource_filename
 import os
 
 import pytest
+from pkg_resources import resource_filename
+
 pytest.importorskip("protozfits", minversion="1.0.2")
 
 example_file_path = resource_filename(
@@ -14,6 +15,8 @@ example_file_path = resource_filename(
 )
 
 FIRST_EVENT_NUMBER_IN_FILE = 1
+
+
 # ADC_SAMPLES_SHAPE = (2, 14, 40)
 
 

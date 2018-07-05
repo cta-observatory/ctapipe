@@ -1,19 +1,20 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-from types import GeneratorType
 from multiprocessing import Process
 from multiprocessing import Value
 from pickle import loads
-from zmq import POLLIN
-from zmq import REQ
-from zmq import Poller
+from types import GeneratorType
+
 from zmq import Context
-from ctapipe.flow.multiprocess.connections import Connections
+from zmq import POLLIN
+from zmq import Poller
+from zmq import REQ
+
 from ctapipe.core import Component
+from ctapipe.flow.multiprocess.connections import Connections
 
 
 class StagerZmq(Component, Process, Connections):
-
     """`StagerZmq` class represents a Stager pipeline Step.
     It is derived from Process class.
     It receives new input from its prev stage, thanks to its ZMQ REQ socket,
@@ -65,7 +66,7 @@ class StagerZmq(Component, Process, Connections):
             self.name = "STAGER"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
 
         self.coroutine.connections = list(self.connections)
@@ -97,10 +98,12 @@ class StagerZmq(Component, Process, Connections):
                     results = self.coroutine.run(receiv_input)
                     if isinstance(results, GeneratorType):
                         for val in results:
-                            msg, destination = self.get_destination_msg_from_result(val)
+                            msg, destination = self.get_destination_msg_from_result(
+                                val)
                             self.send_msg(msg, destination)
                     else:
-                        msg, destination = self.get_destination_msg_from_result(results)
+                        msg, destination = self.get_destination_msg_from_result(
+                            results)
                         self.send_msg(msg, destination)
                     # send acknoledgement to prev router/queue to inform it that I
                     # am available
@@ -154,7 +157,6 @@ class StagerZmq(Component, Process, Connections):
     @nb_job_done.setter
     def nb_job_done(self, value):
         self._nb_job_done.value = value
-
 
     @property
     def running(self):

@@ -9,8 +9,8 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
-from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import csr_matrix
+from scipy.spatial import cKDTree as KDTree
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
@@ -111,13 +111,12 @@ class CameraGeometry:
                 self.rotate(cam_rotation)
 
     def __eq__(self, other):
-        return ((self.cam_id == other.cam_id)
-                and (self.pix_x == other.pix_x).all()
-                and (self.pix_y == other.pix_y).all()
-                and (self.pix_type == other.pix_type)
-                and (self.pix_rotation == other.pix_rotation)
-                and (self.pix_type == other.pix_type)
-                )
+        return ((self.cam_id == other.cam_id) and
+                (self.pix_x == other.pix_x).all() and
+                (self.pix_y == other.pix_y).all() and
+                (self.pix_type == other.pix_type) and
+                (self.pix_rotation == other.pix_rotation) and
+                (self.pix_type == other.pix_type))
 
     def __getitem__(self, slice_):
         return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
@@ -532,8 +531,8 @@ def _neighbor_list_to_matrix(neighbors):
     npix = len(neighbors)
     neigh2d = np.zeros(shape=(npix, npix), dtype=np.bool)
 
-    for ipix, neighbors in enumerate(neighbors):
-        for jn, neighbor in enumerate(neighbors):
+    for ipix, pix_neighbors in enumerate(neighbors):
+        for neighbor in pix_neighbors:
             neigh2d[ipix, neighbor] = True
 
     return neigh2d

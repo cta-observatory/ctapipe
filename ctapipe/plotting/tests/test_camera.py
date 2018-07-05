@@ -1,7 +1,8 @@
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.utils import get_dataset_path
-from ctapipe.plotting.camera import CameraPlotter
 import numpy as np
+
+from ctapipe.io.hessio import hessio_event_source
+from ctapipe.plotting.camera import CameraPlotter
+from ctapipe.utils import get_dataset_path
 
 
 def test_eventplotter():
@@ -28,4 +29,3 @@ def test_eventplotter():
     line = plotter.draw_waveform_positionline(0)
     assert line is not None
     np.testing.assert_array_equal(line.get_xdata(), [0, 0])
-

@@ -4,11 +4,11 @@ from types import GeneratorType
 
 
 class StagerSequential():
-
     """`StagerSequential` class represents a Stager pipeline Step.
     """
 
-    def __init__(self, coroutine, name=None, connections=None, main_connection_name=None):
+    def __init__(self, coroutine, name=None, connections=None,
+                 main_connection_name=None):
         """
         Parameters
         ----------
@@ -35,7 +35,7 @@ class StagerSequential():
             self.name = "STAGER"
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
         self.coroutine.connections = self.connections
         return True

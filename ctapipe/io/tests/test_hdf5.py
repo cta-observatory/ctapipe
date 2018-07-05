@@ -30,14 +30,14 @@ def test_write_container(temp_h5_file):
 
     writer = HDF5TableWriter(str(temp_h5_file), group_name='R0',
                              filters=tables.Filters(
-        complevel=7))
+                                 complevel=7))
     writer.exclude("tel_002", ".*samples")  # test exclusion of columns
 
     for ii in range(100):
         r0tel.waveform[:] = np.random.uniform(size=(50, 10))
         r0tel.image[:] = np.random.uniform(size=50)
         r0tel.num_samples = 10
-        mc.energy = 10**np.random.uniform(1, 2) * u.TeV
+        mc.energy = 10 ** np.random.uniform(1, 2) * u.TeV
         mc.core_x = np.random.uniform(-1, 1) * u.m
         mc.core_y = np.random.uniform(-1, 1) * u.m
 
@@ -49,7 +49,6 @@ def test_write_container(temp_h5_file):
 
 
 def test_write_containers(temp_h5_file):
-
     class C1(Container):
         a = Field('a', None)
         b = Field('b', None)
@@ -85,7 +84,6 @@ def test_read_container(temp_h5_file):
 
     # read all 3 tables in sync
     for ii in range(3):
-
         m = next(mctab)
         r0_1 = next(r0tab1)
         r0_2 = next(r0tab2)
@@ -102,7 +100,6 @@ def test_read_container(temp_h5_file):
 
 
 def test_read_whole_table(temp_h5_file):
-
     mc = MCEventContainer()
 
     reader = HDF5TableReader(str(temp_h5_file))
@@ -114,15 +111,12 @@ def test_read_whole_table(temp_h5_file):
 
 
 def test_with_context_writer(temp_h5_file):
-
     class C1(Container):
         a = Field('a', None)
         b = Field('b', None)
 
     with tempfile.NamedTemporaryFile() as f:
-
         with HDF5TableWriter(f.name, 'test') as h5_table:
-
             for i in range(5):
                 c1 = C1()
                 c1.a, c1.b = np.random.normal(size=2)
@@ -131,83 +125,65 @@ def test_with_context_writer(temp_h5_file):
 
 
 def test_writer_closes_file(temp_h5_file):
-
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, 'test') as h5_table:
+            assert h5_table._h5file.isopen
 
-            assert h5_table._h5file.isopen == True
-
-    assert h5_table._h5file.isopen == False
+    assert not h5_table._h5file.isopen
 
 
 def test_reader_closes_file(temp_h5_file):
-
     with HDF5TableReader(str(temp_h5_file)) as h5_table:
+        assert h5_table._h5file.isopen
 
-        assert h5_table._h5file.isopen == True
-
-    assert h5_table._h5file.isopen == False
+    assert not h5_table._h5file.isopen
 
 
 def test_with_context_reader(temp_h5_file):
-
     mc = MCEventContainer()
 
     with HDF5TableReader(str(temp_h5_file)) as h5_table:
-
-        assert h5_table._h5file.isopen == True
+        assert h5_table._h5file.isopen
 
         for cont in h5_table.read('/R0/MC', mc):
             print(cont)
 
-    assert h5_table._h5file.isopen == False
+    assert not h5_table._h5file.isopen
 
 
 def test_closing_reader(temp_h5_file):
-
     f = HDF5TableReader(str(temp_h5_file))
     f.close()
 
 
 def test_closing_writer(temp_h5_file):
-
     with tempfile.NamedTemporaryFile() as f:
         h5_table = HDF5TableWriter(f.name, 'test')
         h5_table.close()
 
 
 def test_cannot_read_with_writer(temp_h5_file):
-
     with pytest.raises(IOError):
-
         with HDF5TableWriter(temp_h5_file, 'test', mode='r'):
-
             pass
 
 
 def test_cannot_write_with_reader(temp_h5_file):
-
     with HDF5TableReader(temp_h5_file, mode='w') as h5:
-
         assert h5._h5file.mode == 'r'
 
 
 def test_cannot_append_with_reader(temp_h5_file):
-
     with HDF5TableReader(temp_h5_file, mode='a') as h5:
-
         assert h5._h5file.mode == 'r'
 
 
 def test_cannot_r_plus_with_reader(temp_h5_file):
-
     with HDF5TableReader(temp_h5_file, mode='r+') as h5:
-
         assert h5._h5file.mode == 'r'
 
 
 def test_append_mode(temp_h5_file):
-
     class ContainerA(Container):
 
         a = Field(int)
@@ -229,17 +205,14 @@ def test_append_mode(temp_h5_file):
     with HDF5TableReader(temp_h5_file) as h5:
 
         for a in h5.read('/group/table_1', ContainerA()):
-
             assert a.a == 1
 
         for a in h5.read('/group/table_2', ContainerA()):
-
             assert a.a == 1
 
 
 @pytest.mark.xfail
 def test_write_to_any_location(temp_h5_file):
-
     loc = '/path/path_1'
 
     class ContainerA(Container):
@@ -252,19 +225,17 @@ def test_write_to_any_location(temp_h5_file):
     with HDF5TableWriter(temp_h5_file, 'group_1', root_uep=loc) as h5:
 
         for _ in range(5):
-
             h5.write('table', a)
 
     with HDF5TableReader(temp_h5_file) as h5:
 
         for a in h5.read(loc + '/group_1/table', ContainerA()):
-
             assert a.a == 1
 
 
 if __name__ == '__main__':
-
     import logging
+
     logging.basicConfig(level=logging.DEBUG)
 
     test_write_container("test.h5")

@@ -1,15 +1,16 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from zmq.error import ZMQError
-from zmq import Context
-from zmq import SUB
-from zmq import Poller
-from zmq import POLLIN
-from zmq import SUBSCRIBE
-from threading import Thread
 from pickle import loads
+from threading import Thread
+from time import time
+
 from PyQt4 import QtCore
 from PyQt4.QtGui import QLabel
-from time import time
+from zmq import Context
+from zmq import POLLIN
+from zmq import Poller
+from zmq import SUB
+from zmq import SUBSCRIBE
+from zmq.error import ZMQError
 
 
 class GuiConnexion(Thread, QtCore.QObject):
@@ -44,7 +45,8 @@ class GuiConnexion(Thread, QtCore.QObject):
             # Inform about connection in statusBar
             if statusBar is not None:
                 self.statusBar = statusBar
-                self.statusBar.insertPermanentWidget(0, QLabel("binded to " + gui_adress))
+                self.statusBar.insertPermanentWidget(0, QLabel(
+                    "binded to " + gui_adress))
             # Register socket in a poll and register topics
             self.poll = Poller()
             self.poll.register(self.socket, POLLIN)
@@ -81,7 +83,8 @@ class GuiConnexion(Thread, QtCore.QObject):
                     self.send_mode(msg)
                 else:
                     self.update_full_state(topic, msg)
-                    if (conf_time - self.last_send_config) >= 0.0416:  # 24 images /sec
+                    if (conf_time - self.last_send_config) >= 0.0416:
+                        # 24 images /sec
                         # inform pipegui
                         self.message.emit(self.steps)
                         self.last_send_config = conf_time
@@ -96,7 +99,6 @@ class GuiConnexion(Thread, QtCore.QObject):
         """
         self.steps = list()
         self.reset_message.emit()
-
 
     def update_full_state(self, topic, msg):
         """
@@ -116,7 +118,6 @@ class GuiConnexion(Thread, QtCore.QObject):
         # Stager or Producer or Consumer state changes
         elif topic == b'GUI_ROUTER_CHANGE':
             self.router_change(msg)
-
 
     def full_change(self, receiv_steps):
         """
@@ -145,7 +146,6 @@ class GuiConnexion(Thread, QtCore.QObject):
                 # is not restarted
                 self.steps = receiv_steps
 
-
     def step_change(self, msg):
         """Find which pipeline step has changed, and update its corresponding
         StagerRep
@@ -162,8 +162,10 @@ class GuiConnexion(Thread, QtCore.QObject):
                 return
 
     def router_change(self, msg):
-        """Called by GuiConnexion instance when it receives zmq message from pipeline
-        Update pipeline state (self.steps) and force to update drawing
+        """
+        Called by GuiConnexion instance when it receives zmq message from
+        pipeline Update pipeline state (self.steps) and force to update drawing
+
         Parameters
         ----------
         msg : a Pickle.dumps message
@@ -173,8 +175,6 @@ class GuiConnexion(Thread, QtCore.QObject):
         step = self.get_step_by_name(name)
         if step:
             step.queue_length = queue
-
-
 
     def get_step_by_name(self, name):
         ''' Find a PipeStep in self.producer_step or  self.stager_steps or

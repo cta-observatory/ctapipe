@@ -24,8 +24,8 @@ https://github.com/warner/python-versioneer
 but being much more lightwheight
 
 """
-from subprocess import check_output, CalledProcessError
 from os import path, name, devnull, environ, listdir
+from subprocess import check_output, CalledProcessError
 
 __all__ = ("get_version",)
 
@@ -122,7 +122,6 @@ def update_release_version(pep440=False):
     This function should be called when creating new releases.
     It is called by setup.py when building a package.
 
-
     pep440: bool
         When True, this function returns a version string suitable for
         a release as defined by PEP 440. When False, the githash (if
@@ -156,7 +155,7 @@ def get_version(pep440=False):
 
     raw_git_version = get_git_describe_version()
     if not raw_git_version:  # not a git repository
-        return  read_release_version()
+        return read_release_version()
 
     git_version = format_git_describe(raw_git_version, pep440=pep440)
 

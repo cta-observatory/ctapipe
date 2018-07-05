@@ -1,6 +1,6 @@
-from astropy.table import Table
-
 from collections import OrderedDict
+
+from astropy.table import Table
 
 
 class UndefinedCut(Exception):
@@ -249,7 +249,8 @@ class CutFlow:
 
         t = Table([[cut for cut in self.cuts.keys()],
                    [self.cuts[cut][1] for cut in self.cuts.keys()],
-                   [self.cuts[cut][1] / base_value for cut in self.cuts.keys()]],
+                   [self.cuts[cut][1] / base_value for cut in
+                    self.cuts.keys()]],
                   names=['Cut Name', 'selected Events', 'Efficiency'])
         t['Efficiency'].format = format
 

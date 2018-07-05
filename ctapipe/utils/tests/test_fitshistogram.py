@@ -1,14 +1,15 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
 import pytest
+
 from ctapipe.utils.fitshistogram import Histogram
 
 
 def compare_histograms(hist1: Histogram, hist2: Histogram):
     """ check that 2 histograms are identical in value """
     assert hist1.ndims == hist2.ndims
-    assert (hist1.axis_names == hist2.axis_names).all()
-    assert (hist1.data == hist2.data).all
+    assert np.all(hist1.axis_names == hist2.axis_names)
+    assert np.all(hist1.data == hist2.data)
 
     for ii in range(hist1.ndims):
         assert np.isclose(hist1.bin_lower_edges[ii],
@@ -24,7 +25,6 @@ def test_histogram_str():
 
 
 def test_histogram_fill_and_read():
-
     hist = Histogram(nbins=[5, 10], ranges=[[-2.5, 2.5], [-1, 1]])
 
     pa = (0.1, 0.1)

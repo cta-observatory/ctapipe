@@ -30,19 +30,19 @@ When the config attribute of an Application is updated, it will fire all of
 the trait's events for all of the config=True attributes.
 """
 
-from traitlets.config.configurable import Configurable
-from traitlets.config.application import Application
+import json
+import os
+import sys
+import tempfile
+
 from traitlets import (
     Bool, Unicode, Int, List, Dict
 )
+from traitlets.config.application import Application
+from traitlets.config.configurable import Configurable
 
-from ctapipe.utils.json2fits import traitlets_config_to_fits, json_to_fits
 from ctapipe.utils import get_dataset_path
-import tempfile
-
-import sys
-import os
-import json
+from ctapipe.utils.json2fits import traitlets_config_to_fits, json_to_fits
 
 
 class Foo(Configurable):
@@ -56,12 +56,10 @@ class Foo(Configurable):
 
 
 class Bar(Configurable):
-
     enabled = Bool(True, help='Enable bar.').tag(config=True)
 
 
 class MyApp(Application):
-
     name = Unicode('myapp')
     running = Bool(False,
                    help='Is the app running?').tag(config=True)

@@ -1,6 +1,8 @@
 import sys
-from ctapipe.core import Tool
+
 from traitlets import Integer
+
+from ctapipe.core import Tool
 from ctapipe.flow.gui.main_window import ModuleApplication
 
 
@@ -34,6 +36,7 @@ class PipeGui(Tool):
 def main():
     gui = PipeGui()
     gui.run()
+
 
 if __name__ == "__main__":
     main()

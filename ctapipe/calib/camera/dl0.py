@@ -33,6 +33,7 @@ class CameraDL0Reducer(Component):
         will equal the r1 samples.
     kwargs
     """
+
     def __init__(self, config=None, tool=None, reducer=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
         if reducer is None:

@@ -1,12 +1,12 @@
-from graphviz import Digraph
-from PyQt4.QtGui import QWidget
 from PyQt4.QtGui import QPainter
+from PyQt4.QtGui import QWidget
 from PyQt4.QtSvg import QSvgRenderer
+from graphviz import Digraph
+
 from ctapipe.flow.stager_rep import StagerRep
 
 
 class GraphWidget(QWidget):
-
     """
     class that displays pipeline workload.
     It receives pipeline information thanks to pipechange method
@@ -87,12 +87,14 @@ class GraphWidget(QWidget):
         for step in self.steps:
             step_name = self.format_name(step.name.split('$$process')[0])
             for next_step_name in step.next_steps:
-                next_step = self.get_step_by_name(next_step_name.split('$$process')[0])
+                next_step = self.get_step_by_name(
+                    next_step_name.split('$$process')[0])
                 if next_step:
                     next_step_name_formated = self.format_name(
                         next_step.name.split('$$process')[0])
                     g.edge(step_name, next_step_name_formated)
-                    g.edge_attr.update(arrowhead='empty', arrowsize='1', color='purple')
+                    g.edge_attr.update(arrowhead='empty', arrowsize='1',
+                                       color='purple')
         return g
 
     def format_name(self, name, max_car=15):

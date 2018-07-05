@@ -43,7 +43,6 @@ def get_installed_tools():
 
 
 def get_all_descriptions():
-
     tools = get_installed_tools()
 
     descriptions = OrderedDict()
@@ -56,9 +55,9 @@ def get_all_descriptions():
                 descrip.replace("\n", "")
                 descriptions[name] = descrip
             except RuntimeError as err:
-                descriptions[name] = "[Couldn't parse docstring: {}]".format(err)
+                descriptions[name] = "[Couldn't parse docstring: {}]".format(
+                    err)
         else:
             descriptions[name] = "[no documentation. Please add a docstring]"
 
     return descriptions
-

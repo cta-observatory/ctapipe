@@ -1,9 +1,18 @@
-import numpy as np
 import logging
 import math as mt
 
+import numpy as np
+
 log = logging.getLogger(__name__)
 
+__all__ = [
+    'mean_squared_error',
+    'photon_ratio_inside_ring',
+    'ring_completeness',
+    'ring_containment',
+    'npix_above_threshold',
+    'npix_composing_ring',
+]
 
 def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
     """
@@ -29,8 +38,8 @@ def mean_squared_error(pixel_x, pixel_y, weights, radius, center_x, center_y):
 
 
 def photon_ratio_inside_ring(
-        pixel_x, pixel_y, weights, radius, center_x, center_y, width
-        ):
+    pixel_x, pixel_y, weights, radius, center_x, center_y, width
+):
     """
     Calculate the ratio of the photons inside a given ring with
     coordinates (center_x, center_y), radius and width.
@@ -59,8 +68,7 @@ def photon_ratio_inside_ring(
 
     pixel_r = np.sqrt((center_x - pixel_x)**2 + (center_y - pixel_y)**2)
     mask = np.logical_and(
-        pixel_r >= radius - 0.5 * width,
-        pixel_r <= radius + 0.5 * width
+        pixel_r >= radius - 0.5 * width, pixel_r <= radius + 0.5 * width
     )
 
     inside = np.sum(weights[mask])
@@ -69,15 +77,15 @@ def photon_ratio_inside_ring(
 
 
 def ring_completeness(
-        pixel_x,
-        pixel_y,
-        weights,
-        radius,
-        center_x,
-        center_y,
-        threshold=30,
-        bins=30,
-        ):
+    pixel_x,
+    pixel_y,
+    weights,
+    radius,
+    center_x,
+    center_y,
+    threshold=30,
+    bins=30,
+):
     """
     Estimate how complete a ring is.
     Bin the light distribution along the the ring and apply a threshold to the
@@ -110,7 +118,9 @@ def ring_completeness(
 
     angle = np.arctan2(pixel_y - center_y, pixel_x - center_x)
 
-    hist, edges = np.histogram(angle, bins=bins, range=[-np.pi, np.pi], weights=weights)
+    hist, edges = np.histogram(
+        angle, bins=bins, range=[-np.pi, np.pi], weights=weights
+    )
 
     bins_above_threshold = hist > threshold
 
@@ -118,12 +128,11 @@ def ring_completeness(
 
 
 def ring_containment(
-        ring_radius,
-        cam_rad,
-        cring_x,
-        cring_y,
-        ):
-
+    ring_radius,
+    cam_rad,
+    cring_x,
+    cring_y,
+):
     """
     Estimate angular containment of a ring inside the camera
     (camera center is (0,0))

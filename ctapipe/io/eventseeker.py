@@ -3,6 +3,7 @@ Handles seeking to a particular event in a
 `ctapipe.io.eventfilereader.EventFileReader`
 """
 from copy import deepcopy
+
 from ctapipe.core import Component
 
 __all__ = ['EventSeeker', ]

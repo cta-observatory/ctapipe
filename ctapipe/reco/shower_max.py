@@ -2,10 +2,8 @@ from math import log
 
 import numpy as np
 from astropy import units as u
-from ctapipe.utils.fitshistogram import Histogram
-from scipy import ndimage
+
 from ctapipe.instrument import get_atmosphere_profile_functions
-from scipy.optimize import fsolve
 
 
 class ShowerMaxEstimator:
@@ -22,7 +20,6 @@ class ShowerMaxEstimator:
     """
 
     def __init__(self, atmosphere_profile_name):
-
         self.thickness_profile, self.altitude_profile = \
             get_atmosphere_profile_functions(atmosphere_profile_name)
 

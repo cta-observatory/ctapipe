@@ -1,4 +1,5 @@
 import numpy as np
+
 from ctapipe.image import poisson_likelihood_full, poisson_likelihood_gaussian
 
 
@@ -16,7 +17,8 @@ def test_full_likelihood():
 
     full_like_small = poisson_likelihood_full(image_small, expectation_small,
                                               spe, pedestal)
-    exp_diff = full_like_small - np.asarray([2.75630505, 2.62168656, 3.39248449])
+    exp_diff = full_like_small - np.asarray(
+        [2.75630505, 2.62168656, 3.39248449])
     exp_diff = np.sum(np.abs(exp_diff))
     # Check against known values
     print(exp_diff)
@@ -27,7 +29,8 @@ def test_full_likelihood():
     full_like_large = poisson_likelihood_full(image_large, expectation_large,
                                               spe, pedestal)
     # Check against known values
-    exp_diff = full_like_large - np.asarray([7.45489137, 5.99305388, 7.66226007])
+    exp_diff = full_like_large - np.asarray(
+        [7.45489137, 5.99305388, 7.66226007])
     exp_diff = np.sum(np.abs(exp_diff))
 
     assert exp_diff / np.sum(full_like_large) < 1e-4

@@ -14,8 +14,8 @@ Todo:
 
 """
 
-from .optics import OpticsDescription
 from .camera import CameraGeometry
+from .optics import OpticsDescription
 
 
 class TelescopeDescription:
@@ -37,11 +37,9 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
-
     def __init__(self,
                  optics: OpticsDescription,
                  camera: CameraGeometry):
-
         self._optics = optics
         self._camera = camera
 

@@ -1,8 +1,6 @@
 from copy import deepcopy
 
 import numpy as np
-
-from astropy import units as u
 from sklearn.preprocessing import StandardScaler
 
 
@@ -85,7 +83,7 @@ class RegressorClassifierBase:
 
         Returns
         -------
-        trainFeatures, trainTarget : dictionaries of lists
+        train_features, train_target : dictionaries of lists
             flattened containers to be handed over to `.fit`
 
         Raises
@@ -112,7 +110,7 @@ class RegressorClassifierBase:
 
         after reshuffling, the resulting lists will look like this::
 
-          trainFeatures = {tel_type_1: [features_event_1_tel_1,
+          train_features = {tel_type_1: [features_event_1_tel_1,
                                        features_event_1_tel_2,
                                        features_event_2_tel_1, ...],
                           tel_type_2: [features_event_1_tel_3,
@@ -121,14 +119,14 @@ class RegressorClassifierBase:
                           ...}
 
 
-        `trainTarget` will be a dictionary with the same keys and a
+        `train_target` will be a dictionary with the same keys and a
         lists of energies corresponding to the features in the
-        `trainFeatures` lists.
+        `train_features` lists.
 
         """
 
-        trainFeatures = {a: [] for a in self.model_dict}
-        trainTarget = {a: [] for a in self.model_dict}
+        train_features = {a: [] for a in self.model_dict}
+        train_target = {a: [] for a in self.model_dict}
 
         for evt, target in zip(X, y):
             for cam_id, tels in evt.items():
@@ -136,21 +134,24 @@ class RegressorClassifierBase:
                     # append the features-lists of the current event
                     # and telescope type to the flat list of
                     # features-lists for this telescope type
-                    trainFeatures[cam_id] += tels
+                    train_features[cam_id] += tels
                 except KeyError:
-                    raise KeyError("cam_id '{}' in X but no model defined: {}"
-                                   .format(cam_id, [k for k in self.model_dict]))
+                    raise KeyError(
+                        "cam_id '{}' in X but no model defined: {}".format(
+                            cam_id, [k for k in self.model_dict]
+                        )
+                    )
 
                 try:
                     # add a target-entry for every feature-list
-                    trainTarget[cam_id] += \
-                        [target.to(self.unit).value] * len(tels)
+                    train_target[cam_id] += [target.to(self.unit).value] * len(
+                        tels)
                 except AttributeError:
                     # in case the target is not given as an astropy
                     # quantity let's hope that the user keeps proper
                     # track of the unit themself (might be just `1` anyway)
-                    trainTarget[cam_id] += [target] * len(tels)
-        return trainFeatures, trainTarget
+                    train_target[cam_id] += [target] * len(tels)
+        return train_features, train_target
 
     def fit(self, X, y, sample_weight=None):
         """This function fits a model against the collected features;
@@ -187,60 +188,36 @@ class RegressorClassifierBase:
 
         for cam_id in X:
             if cam_id not in y:
-                raise KeyError("cam_id '{}' in X but not in y: {}"
-                               .format(cam_id, [k for k in y]))
+                raise KeyError(
+                    "cam_id '{}' in X but not in y: {}".format(cam_id,
+                                                               [k for k in y])
+                )
 
             if cam_id not in self.model_dict:
-                raise KeyError("cam_id '{}' in X but no model defined: {}"
-                               .format(cam_id, [k for k in self.model_dict]))
+                raise KeyError(
+                    "cam_id '{}' in X but no model defined: {}".format(
+                        cam_id, [k for k in self.model_dict]
+                    )
+                )
 
-            # add a `None` entry in the weights dictionary in case there is no entry yet
             if cam_id not in sample_weight:
                 sample_weight[cam_id] = None
 
-            # for every `cam_id` train one model (as long as there are events in `X`)
+            # for every `cam_id` train one model (as long as there are events
+            #  in `X`)
             if len(X[cam_id]):
                 try:
-                    self.model_dict[cam_id].fit(X[cam_id], y[cam_id],
-                                                sample_weight=sample_weight[cam_id])
+                    self.model_dict[cam_id].fit(
+                        X[cam_id], y[cam_id],
+                        sample_weight=sample_weight[cam_id]
+                    )
                 except (TypeError, ValueError):
-                    # some models do not like `sample_weight` in the `fit` call...
-                    # catch the exception and try again without the weights
+                    # some models do not like `sample_weight` in the `fit`
+                    # call... catch the exception and try again without the
+                    # weights
                     self.model_dict[cam_id].fit(X[cam_id], y[cam_id])
 
         return self
-
-    # def predict(self, X, cam_id=None):
-    #     """
-    #     In the tradition of scikit-learn, `.predict` takes a "list of feature-lists" and
-    #     returns an estimate for targeted quantity for every  set of features.
-    #
-    #     Parameters
-    #     ----------
-    #     X : list of lists of floats
-    #         the list of feature-lists
-    #     cam_id : any (e.g. string, int), optional
-    #         identifier of the singular camera type to consider here
-    #         if not set, `.reg_dict` is assumed to have a single key which is used in place
-    #
-    #     Returns
-    #     -------
-    #     predict : list of floats
-    #         predictions for the target quantity for every set of features given in `X`
-    #
-    #     Raises
-    #     ------
-    #     ValueError
-    #         if `cam_id is None` and the number of registered models is not 1
-    #     """
-    #
-    #     if cam_id is None:
-    #         if len(self.model_dict) == 1:
-    #             cam_id = next(iter(self.model_dict.keys()))
-    #         else:
-    #             raise ValueError("you need to provide a cam_id")
-    #
-    #     return self.model_dict[cam_id].predict(X)*self.energy_unit
 
     def save(self, path):
         """saves the models in `.reg_dict` each in a separate pickle to disk
@@ -251,13 +228,13 @@ class RegressorClassifierBase:
         Parameters
         ----------
         path : string
-            Path to store the different models.  Expects to contain
+        Path to store the different models.  Expects to contain
             `{cam_id}` or at least an empty `{}` to replace it with
             the keys in `.reg_dict`.
-
         """
 
         from sklearn.externals import joblib
+
         for cam_id, model in self.model_dict.items():
             try:
                 # assume that there is a `{cam_id}` keyword to replace
@@ -303,7 +280,7 @@ class RegressorClassifierBase:
         # prevents `.__init__` to initialise `.model_dict` itself,
         # since we are going to set it with the pickled models
         # manually
-        self = cls(cam_id_list=None, unit=unit)
+        self = cls(model=None, cam_id_list=None, unit=unit)
         for key in cam_id_list:
             try:
                 # assume that there is a `{cam_id}` keyword to replace
@@ -369,6 +346,7 @@ class RegressorClassifierBase:
         """
 
         import matplotlib.pyplot as plt
+
         n_tel_types = len(self.model_dict)
         n_cols = np.ceil(np.sqrt(n_tel_types)).astype(int)
         n_rows = np.ceil(n_tel_types / n_cols).astype(int)
@@ -380,22 +358,22 @@ class RegressorClassifierBase:
             plt.title(cam_id)
             try:
                 importances = model.feature_importances_
-            except:
-                plt.gca().axis('off')
+            except AttributeError:
+                plt.gca().axis("off")
                 continue
             bins = range(importances.shape[0])
 
-            if cam_id in self.input_features_dict \
-                    and (len(self.input_features_dict[cam_id]) == len(bins)):
+            if cam_id in self.input_features_dict:
+                assert len(self.input_features_dict[cam_id]) == len(bins)
                 feature_labels = self.input_features_dict[cam_id]
-                importances, s_feature_labels = \
-                    zip(*sorted(zip(importances, feature_labels), reverse=True))
+                importances, s_feature_labels = zip(
+                    *sorted(zip(importances, feature_labels), reverse=True)
+                )
                 plt.xticks(bins, s_feature_labels, rotation=17)
-            plt.bar(bins, importances,
-                    color='r', align='center')
+            plt.bar(bins, importances, color="r", align="center")
 
         # switch off superfluous axes
         for j in range(i + 1, n_rows * n_cols):
-            axs.ravel()[j].axis('off')
+            axs.ravel()[j].axis("off")
 
         return fig

@@ -7,10 +7,6 @@ automatically generated.
 
 from collections import defaultdict
 
-import numpy as np
-from astropy import units as u
-from astropy.table import Table
-
 from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import (Unicode, Dict, Enum)
 from ctapipe.io.hessio import hessio_event_source
@@ -48,21 +44,16 @@ class DumpInstrumentTool(Tool):
     aliases = Dict(dict(infile='DumpInstrumentTool.infile',
                         format='DumpInstrumentTool.format'))
 
-
     def setup(self):
         source = hessio_event_source(self.infile)
         data = next(source)  # get one event, so the instrument table is there
         del source
         self.inst = data.inst  # keep a pointer to the instrument stuff
-        pass
 
     def start(self):
         self.write_camera_geometries()
         self.write_optics_descriptions()
         self.write_subarray_description()
-
-    def finish(self):
-        pass
 
     @staticmethod
     def _get_file_format_info(format_name, table_type, table_name):
@@ -126,8 +117,6 @@ class DumpInstrumentTool(Tool):
         except IOError as err:
             self.log.warn("couldn't write subarray description '%s' because: "
                           "%s", filename, err)
-
-
 
 
 def main():

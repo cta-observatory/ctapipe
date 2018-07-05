@@ -9,7 +9,6 @@ from pickle import dump
 import numpy as np
 from astropy import log
 from astropy.table import Table, Column
-from traitlets import Unicode
 
 from ctapipe.core import Container
 
@@ -95,7 +94,6 @@ class Serializer:
         Add a container to serializer
         """
         self._writer.add_container(container)
-
 
     def close(self):
         """
@@ -234,7 +232,6 @@ def to_table(container):
     names = list()
     columns = list()
     for k, v in writeable_items(container).items():
-
         v_arr = np.array(v)
         v_arr = v_arr.reshape((1,) + v_arr.shape)
         log.debug("Creating column for item '{0}' of shape {1}".

@@ -1,14 +1,16 @@
-from os.path import dirname, exists, splitext, basename
-from os import makedirs
-from math import ceil, floor
-from matplotlib import pyplot as plt
-from math import log10
 import warnings
+from math import ceil, floor
+from math import log10
+from os import makedirs
+from os.path import dirname, exists, splitext, basename
+
 import numpy as np
+from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
 from traitlets import Dict, List, Unicode
-from ctapipe.core import Tool, Component
+
 from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
+from ctapipe.core import Tool, Component
 
 
 class ChargeResolutionVariationPlotter(Component):
@@ -108,8 +110,8 @@ class ChargeResolutionVariationViewer(Tool):
                               'ChargeResolutionCalculator.save()'
                               '').tag(config=True)
 
-    aliases = Dict(dict(f='ChargeResolutionVariationViewer.input_path',
-                        O='ChargeResolutionVariationPlotter.output_path',
+    aliases = Dict(dict(input='ChargeResolutionVariationViewer.input_path',
+                        output='ChargeResolutionVariationPlotter.output_path',
                         ))
     classes = List([ChargeResolutionCalculator,
                     ChargeResolutionVariationPlotter

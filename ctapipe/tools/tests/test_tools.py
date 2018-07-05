@@ -1,6 +1,6 @@
 from ctapipe.tools.camdemo import CameraDemo
-from ctapipe.tools.dump_triggers import DumpTriggersTool
 from ctapipe.tools.dump_instrument import DumpInstrumentTool
+from ctapipe.tools.dump_triggers import DumpTriggersTool
 from ctapipe.tools.info import info
 from ctapipe.utils import get_dataset_path
 

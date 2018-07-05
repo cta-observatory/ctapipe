@@ -4,19 +4,17 @@ Line-intersection-based fitting.
 Contact: Tino Michael <Tino.Michael@cea.fr>
 """
 
-
-from ctapipe.reco.reco_algorithms import Reconstructor
-from ctapipe.io.containers import ReconstructedShowerContainer
-from ctapipe.coordinates import TiltedGroundFrame, HorizonFrame, CameraFrame
-from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 from itertools import combinations
 
 import numpy as np
-
+from astropy import units as u
+from astropy.coordinates import (SkyCoord, spherical_to_cartesian,
+                                 cartesian_to_spherical)
 from scipy.optimize import minimize
 
-from astropy import units as u
-
+from ctapipe.coordinates import HorizonFrame, CameraFrame
+from ctapipe.io.containers import ReconstructedShowerContainer
+from ctapipe.reco.reco_algorithms import Reconstructor
 
 __all__ = ['HillasReconstructor', 'TooFewTelescopesException', 'HillasPlane']
 
@@ -76,7 +74,8 @@ class HillasReconstructor(Reconstructor):
         super().__init__(config=config, parent=tool, **kwargs)
         self.hillas_planes = {}
 
-    def predict(self, hillas_dict, inst, pointing_alt, pointing_az, seed_pos=(0, 0)):
+    def predict(self, hillas_dict, inst, pointing_alt, pointing_az,
+                seed_pos=(0, 0)):
         """The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
         calls the functions for the direction and core position
@@ -127,8 +126,8 @@ class HillasReconstructor(Reconstructor):
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        h_max = self.estimate_h_max(hillas_dict, inst.subarray, pointing_alt, pointing_az)
-
+        h_max = self.estimate_h_max(hillas_dict, inst.subarray, pointing_alt,
+                                    pointing_az)
 
         result.alt, result.az = lat, lon
         result.core_x = pos[0]
@@ -136,7 +135,8 @@ class HillasReconstructor(Reconstructor):
         result.core_uncert = err_est_pos
 
         result.tel_ids = [h for h in hillas_dict.keys()]
-        result.average_size = np.mean([h.intensity for h in hillas_dict.values()])
+        result.average_size = np.mean(
+            [h.intensity for h in hillas_dict.values()])
         result.is_valid = True
 
         result.alt_uncert = err_est_dir
@@ -150,11 +150,11 @@ class HillasReconstructor(Reconstructor):
         return result
 
     def inititialize_hillas_planes(
-        self,
-        hillas_dict,
-        subarray,
-        pointing_alt,
-        pointing_az
+            self,
+            hillas_dict,
+            subarray,
+            pointing_alt,
+            pointing_az
     ):
         """
         creates a dictionary of :class:`.HillasPlane` from a dictionary of
@@ -245,8 +245,6 @@ class HillasReconstructor(Reconstructor):
         )
 
         return result, err_est_dir
-
-
 
     def estimate_core_position(self):
         r"""calculates the core position as the least linear square solution
@@ -347,15 +345,14 @@ class HillasReconstructor(Reconstructor):
         else:
             return [np.nan, np.nan], [np.nan, np.nan]
 
-        weighted_sum_dist = np.sum([np.dot(pos[:2] - c.pos[:2], c.norm[:2]) * c.weight
-                                    for c in self.hillas_planes.values()]) * pos.unit
+        weighted_sum_dist = np.sum(
+            [np.dot(pos[:2] - c.pos[:2], c.norm[:2]) * c.weight
+             for c in self.hillas_planes.values()]) * pos.unit
         norm_sum_dist = np.sum([c.weight * np.linalg.norm(c.norm[:2])
                                 for c in self.hillas_planes.values()])
         pos_uncert = abs(weighted_sum_dist / norm_sum_dist)
 
         return pos, pos_uncert
-
-
 
     def estimate_h_max(self, hillas_dict, subarray, pointing_alt, pointing_az):
         weights = []
@@ -363,7 +360,6 @@ class HillasReconstructor(Reconstructor):
         dirs = []
 
         for tel_id, moments in hillas_dict.items():
-
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             pointing = SkyCoord(
@@ -376,6 +372,7 @@ class HillasReconstructor(Reconstructor):
                 array_direction=pointing,
                 pointing_direction=pointing
             )
+
             cf = CameraFrame(
                 focal_length=focal_length,
                 array_direction=pointing,
@@ -385,7 +382,8 @@ class HillasReconstructor(Reconstructor):
             cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=cf)
             cog_coord = cog_coord.transform_to(hf)
 
-            cog_direction = spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)
+            cog_direction = spherical_to_cartesian(1, cog_coord.alt,
+                                                   cog_coord.az)
             cog_direction = np.array(cog_direction).ravel()
 
             weights.append(self.hillas_planes[tel_id].weight)
@@ -393,11 +391,17 @@ class HillasReconstructor(Reconstructor):
             dirs.append(cog_direction)
 
         # minimising the test function
-        pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
-                           args=(np.array(tels), np.array(dirs), np.array(weights)),
-                           method='BFGS',
-                           options={'disp': False}
-                           ).x
+        pos_max = minimize(
+            dist_to_line3d,
+            np.array([0, 0, 10000]),
+            args=(
+                np.array(tels),
+                np.array(dirs),
+                np.array(weights)
+            ),
+            method='BFGS',
+            options={'disp': False}
+        ).x
         return pos_max[2] * u.m
 
 
@@ -414,8 +418,8 @@ class HillasPlane:
 
     Stores some vectors a, b, and c
 
-    These vectors are eucledian [x, y, z] where positive z values point towards the sky
-    and x and y are parallel to the ground.
+    These vectors are eucledian [x, y, z] where positive z values point
+    towards the sky and x and y are parallel to the ground.
     """
 
     def __init__(self, p1, p2, telescope_position, weight=1):
@@ -427,10 +431,12 @@ class HillasPlane:
         -----------
         p1: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
+            This coordinate has to be defined in the
+            ctapipe.coordinates.HorizonFrame
         p2: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
+            This coordinate has to be defined in the
+            ctapipe.coordinates.HorizonFrame
         telescope_position: np.array(3)
             Position of the telescope on the ground
         weight : float, optional

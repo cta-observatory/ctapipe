@@ -1,9 +1,8 @@
 import numpy as np
-
 from astropy import units as u
+from sklearn.ensemble import RandomForestRegressor
 
 from .regressor_classifier_base import RegressorClassifierBase
-from sklearn.ensemble import RandomForestRegressor
 
 
 class EnergyRegressor(RegressorClassifierBase):
@@ -83,8 +82,9 @@ class EnergyRegressor(RegressorClassifierBase):
                     # QUESTION if there is no trained classifier for
                     # `cam_id`, raise an error or just pass this
                     # camera type?
-                    raise KeyError("cam_id '{}' in event_list but no model defined: {}"
-                                   .format(cam_id, [k for k in self.model_dict]))
+                    raise KeyError(
+                        "cam_id '{}' in event_list but no model defined: {}"
+                        .format(cam_id, [k for k in self.model_dict]))
 
                 try:
                     # if a `namedtuple` is provided, we can weight the different images

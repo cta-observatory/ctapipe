@@ -1,10 +1,11 @@
-from ctapipe.core import Component
-from traitlets import Unicode
 from time import sleep
+
+from traitlets import Unicode
+
+from ctapipe.core import Component
 
 
 class StringWriter(Component):
-
     """`StringWriter` class represents a Stage or a Consumer for pipeline.
         It writes received objects to file
     """
@@ -13,7 +14,8 @@ class StringWriter(Component):
 
     def init(self):
         self.file = open(self.filename, 'w')
-        self.log.debug("--- StringWriter init filename {}---".format(self.filename))
+        self.log.debug(
+            "--- StringWriter init filename {}---".format(self.filename))
         return True
 
     def run(self, object):

@@ -24,7 +24,6 @@ def test_tool_simple():
 
 
 def test_tool_version():
-
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)

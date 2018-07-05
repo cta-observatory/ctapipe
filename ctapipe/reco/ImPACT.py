@@ -7,6 +7,8 @@ import math
 import numpy as np
 from astropy import units as u
 from iminuit import Minuit
+from scipy.optimize import minimize, least_squares
+from scipy.stats import norm
 
 from ctapipe.coordinates import (HorizonFrame,
                                  NominalFrame,
@@ -14,14 +16,11 @@ from ctapipe.coordinates import (HorizonFrame,
                                  GroundFrame,
                                  project_to_ground)
 from ctapipe.image import poisson_likelihood_gaussian
+from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils import TableInterpolator
-from ctapipe.instrument import get_atmosphere_profile_functions
-
-from scipy.optimize import minimize, least_squares
-from scipy.stats import norm
 
 __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior']
 
@@ -40,19 +39,17 @@ def guess_shower_depth(energy):
     -------
     float: Expected depth of shower maximum
     """
-    x_max_exp = 300 * (u.g * u.cm**-2) + \
-        93 * (u.g * u.cm**-2) * np.log10(energy.to(u.TeV).value)
+    x_max_exp = 300 * (u.g * u.cm ** -2) + \
+        93 * (u.g * u.cm ** -2) * np.log10(energy.to(u.TeV).value)
 
     return x_max_exp
 
 
 def energy_prior(energy, index=-1):
-
     return -2 * np.log(np.power(energy, index))
 
 
 def xmax_prior(energy, xmax, width=30):
-
     x_max_exp = guess_shower_depth(energy)
     diff = xmax.value - x_max_exp
 
@@ -60,7 +57,6 @@ def xmax_prior(energy, xmax, width=30):
 
 
 class ImPACTReconstructor(Reconstructor):
-
     """This class is an implementation if the impact_reco Monte Carlo
     Template based image fitting method from parsons14.  This method uses a
     comparision of the predicted image from a library of image
@@ -89,7 +85,8 @@ class ImPACTReconstructor(Reconstructor):
         self.root_dir = root_dir
         self.prediction = dict()
 
-        self.file_names = {"CHEC": "GCT_xm_full.fits", "LSTCam": "LST_xm_full.fits",
+        self.file_names = {"CHEC": "GCT_xm_full.fits",
+                           "LSTCam": "LST_xm_full.fits",
                            "NectarCam": "MST_xm_full.fits",
                            "FlashCam": "MST_xm_full.fits"}
 
@@ -191,7 +188,6 @@ class ImPACTReconstructor(Reconstructor):
 
         tel_num = 0
         for tel in self.hillas:
-
             weight = self.hillas[tel].intensity
             weighted_x = self.hillas[tel].x.to(u.rad).value * weight
             weighted_y = self.hillas[tel].y.to(u.rad).value * weight
@@ -338,7 +334,8 @@ class ImPACTReconstructor(Reconstructor):
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
 
-        ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y, z=0 * u.m)
+        ground = GroundFrame(x=shower_reco.core_x, y=shower_reco.core_y,
+                             z=0 * u.m)
         tilted = ground.transform_to(
             TiltedGroundFrame(pointing_direction=self.array_direction))
         tilt_x = tilted.x.to(u.m).value
@@ -355,10 +352,10 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 250 * (u.g * u.cm**-2):
-            x_max_bin = 250 * (u.g * u.cm**-2)
-        if x_max_bin < -250 * (u.g * u.cm**-2):
-            x_max_bin = -250 * (u.g * u.cm**-2)
+        if x_max_bin > 250 * (u.g * u.cm ** -2):
+            x_max_bin = 250 * (u.g * u.cm ** -2)
+        if x_max_bin < -250 * (u.g * u.cm ** -2):
+            x_max_bin = -250 * (u.g * u.cm ** -2)
 
         x_max_bin = x_max_bin.value
 
@@ -434,10 +431,10 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 250 * (u.g * u.cm**-2):
-            x_max_bin = 250 * (u.g * u.cm**-2)
-        if x_max_bin < -250 * (u.g * u.cm**-2):
-            x_max_bin = -250 * (u.g * u.cm**-2)
+        if x_max_bin > 250 * (u.g * u.cm ** -2):
+            x_max_bin = 250 * (u.g * u.cm ** -2)
+        if x_max_bin < -250 * (u.g * u.cm ** -2):
+            x_max_bin = -250 * (u.g * u.cm ** -2)
 
         x_max_bin = x_max_bin.value
 
@@ -449,7 +446,8 @@ class ImPACTReconstructor(Reconstructor):
                              + pow(self.tel_pos_y[tel_count] - core_y, 2))
             # And the expected rotation angle
             phi = np.arctan2((self.tel_pos_y[tel_count] - core_y),
-                             (self.tel_pos_x[tel_count] - core_x))  # - (math.pi/2.)
+                             (self.tel_pos_x[
+                                 tel_count] - core_x))  # - (math.pi/2.)
 
             # Rotate and translate all pixels such that they match the
             # template orientation
@@ -629,7 +627,8 @@ class ImPACTReconstructor(Reconstructor):
                   (lower_en_limit.value, en_seed.value * 2),
                   (0.5, 2))
 
-        fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
+        fit_params, errors = self.minimise(params=seed, step=step,
+                                           limits=limits,
                                            minimiser_name=self.minimiser_name)
 
         # container class for reconstructed showers '''
@@ -724,9 +723,10 @@ class ImPACTReconstructor(Reconstructor):
             fit_params = min.values
             errors = min.errors
 
-            return (fit_params["source_x"], fit_params["source_y"], fit_params["core_x"],
+            return (fit_params["source_x"], fit_params["source_y"],
+                    fit_params["core_x"],
                     fit_params["core_y"], fit_params["energy"], fit_params[
-                        "x_max_scale"]),\
+                        "x_max_scale"]), \
                 (errors["source_x"], errors["source_y"], errors["core_x"],
                  errors["core_x"], errors["energy"], errors["x_max_scale"])
 

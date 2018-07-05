@@ -1,11 +1,13 @@
+import gzip
+import struct
+
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
-from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import DataContainer
+
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-import gzip
-import struct
+from ctapipe.io.containers import DataContainer
+from ctapipe.io.eventsource import EventSource
 
 __all__ = ['HESSIOEventSource']
 
@@ -110,7 +112,7 @@ class HESSIOEventSource(EventSource):
                 data.mc.core_y = file.get_mc_event_ycore() * u.m
                 first_int = file.get_mc_shower_h_first_int() * u.m
                 data.mc.h_first_int = first_int
-                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
+                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm ** 2)
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data
@@ -141,10 +143,13 @@ class HESSIOEventSource(EventSource):
                         data.r0.tel[tel_id].waveform = (file.
                                                         get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
-                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
-                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
+                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(
+                        tel_id)
+                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(
+                        tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
-                                                                 get_ref_shapes(tel_id))
+                                                                 get_ref_shapes(
+                                                                     tel_id))
 
                     nsamples = file.get_event_num_samples(tel_id)
                     if nsamples <= 0:
@@ -161,11 +166,13 @@ class HESSIOEventSource(EventSource):
                     data.mc.tel[tel_id].azimuth_raw = (file.
                                                        get_azimuth_raw(tel_id))
                     data.mc.tel[tel_id].altitude_raw = (file.
-                                                        get_altitude_raw(tel_id))
+                                                        get_altitude_raw(
+                                                            tel_id))
                     data.mc.tel[tel_id].azimuth_cor = (file.
                                                        get_azimuth_cor(tel_id))
                     data.mc.tel[tel_id].altitude_cor = (file.
-                                                        get_altitude_cor(tel_id))
+                                                        get_altitude_cor(
+                                                            tel_id))
                 yield data
                 counter += 1
 

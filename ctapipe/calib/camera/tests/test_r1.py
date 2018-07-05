@@ -1,17 +1,22 @@
-from numpy.testing import assert_almost_equal, assert_array_equal, \
-    assert_array_almost_equal
+from copy import deepcopy
+
+import pytest
+from numpy.testing import (
+    assert_almost_equal,
+    assert_array_equal,
+    assert_array_almost_equal,
+)
+
 from ctapipe.calib.camera.r1 import (
     CameraR1CalibratorFactory,
     HESSIOR1Calibrator,
     TargetIOR1Calibrator,
-    NullR1Calibrator
+    NullR1Calibrator,
 )
+from ctapipe.io.eventsource import EventSource
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
-from ctapipe.io.eventsource import EventSource
 from ctapipe.utils import get_dataset_path
-from copy import deepcopy
-import pytest
 
 
 def test_hessio_r1_calibrator(test_event):
@@ -48,16 +53,15 @@ def test_targetio_calibrator():
     event_r1 = source_r1._get_event_by_index(0)
 
     r1c.calibrate(event_r0)
-    assert_array_equal(event_r0.r0.tel[0].waveform,
-                       event_r0.r1.tel[0].waveform)
+    assert_array_equal(event_r0.r0.tel[0].waveform, event_r0.r1.tel[0].waveform)
 
     r1c = CameraR1CalibratorFactory.produce(
-        eventsource=source_r0,
-        pedestal_path=pedpath
+        eventsource=source_r0, pedestal_path=pedpath
     )
     r1c.calibrate(event_r0)
-    assert_array_almost_equal(event_r0.r1.tel[0].waveform,
-                              event_r1.r1.tel[0].waveform, 1)
+    assert_array_almost_equal(
+        event_r0.r1.tel[0].waveform, event_r1.r1.tel[0].waveform, 1
+    )
 
 
 def test_targetio_calibrator_wrong_file(test_event):
@@ -71,19 +75,15 @@ def test_check_r0_exists(test_event):
     telid = 11
     event = deepcopy(test_event)
     calibrator = HESSIOR1Calibrator()
-    assert(calibrator.check_r0_exists(event, telid) is True)
+    assert calibrator.check_r0_exists(event, telid) is True
     event.r0.tel[telid].waveform = None
-    assert(calibrator.check_r0_exists(event, telid) is False)
+    assert calibrator.check_r0_exists(event, telid) is False
 
 
 def test_factory_from_product():
-    calibrator = CameraR1CalibratorFactory.produce(
-        product="NullR1Calibrator"
-    )
+    calibrator = CameraR1CalibratorFactory.produce(product="NullR1Calibrator")
     assert isinstance(calibrator, NullR1Calibrator)
-    calibrator = CameraR1CalibratorFactory.produce(
-        product="HESSIOR1Calibrator"
-    )
+    calibrator = CameraR1CalibratorFactory.produce(product="HESSIOR1Calibrator")
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
@@ -103,8 +103,7 @@ def test_factory_from_eventsource_override():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = HESSIOEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(
-        eventsource=eventsource,
-        product="NullR1Calibrator"
+        eventsource=eventsource, product="NullR1Calibrator"
     )
     assert isinstance(calibrator, NullR1Calibrator)
 

@@ -1,8 +1,8 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 import numpy as np
-from scipy import ndimage
 from astropy.io import fits
 from astropy.wcs import WCS
+from scipy import ndimage
 
 __all__ = ['Histogram']
 
@@ -94,7 +94,7 @@ class Histogram:
         else:
             self.axis_names = ["axis{}".format(x) for x in range(self.ndims)]
 
-    def __str__(self,):
+    def __str__(self, ):
         return ("Histogram(name='{name}', axes={axnames}, "
                 "nbins={nbins}, ranges={ranges})"
                 .format(name=self.name, ranges=self._ranges,

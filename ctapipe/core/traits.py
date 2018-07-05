@@ -1,8 +1,9 @@
+import os
+
 from traitlets import (Int, Integer, Float, Unicode, Enum, Long, List,
                        Bool, CRegExp, Dict, TraitError, observe,
                        CaselessStrEnum, TraitType)
 from traitlets.config import boolean_flag as flag
-import os
 
 __all__ = ['Path', 'Int', 'Integer', 'Float', 'Unicode', 'Enum', 'Long', 'List',
            'Bool', 'CRegExp', 'Dict', 'flag', 'TraitError', 'observe',
@@ -10,6 +11,7 @@ __all__ = ['Path', 'Int', 'Integer', 'Float', 'Unicode', 'Enum', 'Long', 'List',
 
 
 class Path(TraitType):
+
     def __init__(self, exists=None, directory_ok=True, file_ok=True):
         '''
         A path Trait for input/output files.

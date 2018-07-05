@@ -40,8 +40,8 @@ def unskew_hex_pixel_grid(pix_x, pix_y, cam_angle=0 * u.deg,
 
     Notes
     -----
-    The correction on the pixel position r can be described by a rotation R around
-    one angle and a sheer S along a certain axis:
+    The correction on the pixel position r can be described by a rotation R
+    around one angle and a sheer S along a certain axis:
 
     .. math::
         r' = S \cdot R \cdot r
@@ -394,7 +394,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         # storing the pixel mask for later use
         new_geom.mask = square_mask
 
-        # create a transfer map by enumerating all pixel positions in a 2D histogram
+        # create a transfer map by enumerating all pixel positions in a 2D
+        # histogram
         hex_to_rect_map = np.histogramdd([rot_y, rot_x],
                                          bins=(y_edges, x_edges),
                                          weights=np.arange(len(signal)))[
@@ -416,17 +417,18 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
     # done `if key in rot_buffer`
 
-    # create the rotated rectangular image by applying `hex_to_rect_map` to the flat,
-    # extended input image
-    # `input_img_ext` is the flattened input image extended by one entry that contains NaN
-    # since `hex_to_rect_map` contains `-1` for "fake" pixels, it maps this extra NaN
-    # value at the last array position to any bin that does not correspond to a pixel of
+    # create the rotated rectangular image by applying `hex_to_rect_map` to
+    # the flat, extended input image `input_img_ext` is the flattened input
+    # image extended by one entry that contains NaN since `hex_to_rect_map`
+    # contains `-1` for "fake" pixels, it maps this extra NaN value at the
+    # last array position to any bin that does not correspond to a pixel of
     # the original image
     input_img_ext = np.full(np.prod(signal.shape) + 1, np.nan)
 
-    # the way the map is produced, it has the time dimension as axis=0;
-    # but `signal` has it as axis=-1, so we need to roll the axes back and forth a bit.
-    # if there is no time dimension, `signal` is a 1d array and `rollaxis` has no effect.
+    # the way the map is produced, it has the time dimension as axis=0; but
+    # `signal` has it as axis=-1, so we need to roll the axes back and forth
+    # a bit. if there is no time dimension, `signal` is a 1d array and
+    # `rollaxis` has no effect.
     input_img_ext[:-1] = np.rollaxis(signal, axis=-1, start=0).ravel()
 
     # now apply the transfer map
@@ -443,8 +445,9 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
 
 def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
                                            add_rot=None):
-    """reverts the geometry distortion performed by convert_geometry_hexe1d_to_rect_2d
-    back to a hexagonal grid stored in 1D arrays
+    """reverts the geometry distortion performed by
+    convert_geometry_hexe1d_to_rect_2d back to a hexagonal grid stored in 1D
+    arrays
 
     Parameters
     ----------
@@ -467,12 +470,14 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
 
     Notes
     -----
-    The back-conversion works with an internal buffer to store the transfer map (which
-    was produced in the first conversion). If `key` is not found in said buffer, this
-    function tries to perform a mock conversion. For this, it needs a `CameraGeometry`
-    instance of the original camera layout, which it tries to load by name (i.e.
-    the `cam_id`). The function assumes the original `cam_id` can be inferred from the
-    given, modified one by: `geom.cam_id.split('_')[0]`.
+
+    The back-conversion works with an internal buffer to store the transfer
+    map (which was produced in the first conversion). If `key` is not found
+    in said buffer, this function tries to perform a mock conversion. For
+    this, it needs a `CameraGeometry` instance of the original camera layout,
+    which it tries to load by name (i.e. the `cam_id`). The function assumes
+    the original `cam_id` can be inferred from the given, modified one by:
+    `geom.cam_id.split('_')[0]`.
     """
 
     if key not in rot_buffer:
@@ -482,11 +487,12 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
         #  given, modified one by by `geom.cam_id.split('_')[0]`
         try:
             orig_geom = CameraGeometry.from_name(geom.cam_id.split('_')[0])
-        except:
+        except FileNotFoundError:
             raise ValueError(
                 "could not deduce `CameraGeometry` from given `geom`...\n"
                 "please provide a `geom`, so that "
-                "`geom.cam_id.split('_')[0]` is a known `cam_id`")
+                "`geom.cam_id.split('_')[0]` is a known `cam_id`"
+            )
 
         orig_signal = np.zeros(len(orig_geom.pix_x))
         convert_geometry_hex1d_to_rect2d(geom=orig_geom, signal=orig_signal,
@@ -494,16 +500,17 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
 
     (old_geom, new_geom, hex_square_map) = rot_buffer[key]
 
-    # the output image has as many entries as there are non-negative values in the
-    # transfer map (this accounts for time as well)
+    # the output image has as many entries as there are non-negative values
+    # in the transfer map (this accounts for time as well)
     unrot_img = np.zeros(np.count_nonzero(hex_square_map >= 0))
 
-    # rearrange input `signal` according to the mask and map
-    # (the dots in the brackets expand the mask to account for a possible time dimension)
-    # `atleast_3d` ensures that there is a third axis that we can roll to the front
-    # even if there is no time; if we'd use `axis=-1` instead, in cas of no time
-    # dimensions, we would rotate the x and y axes, resulting in a mirrored image
-    # `squeeze` reduces the added axis again in the no-time-slices cases
+    # rearrange input `signal` according to the mask and map (the dots in the
+    #  brackets expand the mask to account for a possible time dimension)
+    # `atleast_3d` ensures that there is a third axis that we can roll to the
+    #  front even if there is no time; if we'd use `axis=-1` instead, in cas
+    # of no time dimensions, we would rotate the x and y axes, resulting in a
+    #  mirrored image `squeeze` reduces the added axis again in the
+    # no-time-slices cases
     unrot_img[hex_square_map[..., new_geom.mask]] = \
         np.squeeze(np.rollaxis(np.atleast_3d(signal), 2, 0))[..., new_geom.mask]
 

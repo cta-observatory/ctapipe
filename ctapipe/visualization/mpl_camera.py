@@ -205,9 +205,9 @@ class CameraDisplay:
             The transparency
         """
 
-        l = np.zeros_like(self.image)
-        l[pixels] = linewidth
-        self.pixel_highlighting.set_linewidth(l)
+        widths = np.zeros_like(self.image)
+        widths[pixels] = linewidth
+        self.pixel_highlighting.set_linewidth(widths)
         self.pixel_highlighting.set_alpha(alpha)
         self.pixel_highlighting.set_edgecolor(color)
         self._update()
@@ -303,7 +303,7 @@ class CameraDisplay:
             raise ValueError(
                 "Image has a different shape {} than the "
                 "given CameraGeometry {}"
-                    .format(image.shape, self.geom.pix_x.shape)
+                .format(image.shape, self.geom.pix_x.shape)
             )
 
         self.pixels.set_array(image[self.geom.mask])
@@ -369,7 +369,8 @@ class CameraDisplay:
         self.update()
         return ellipse
 
-    def overlay_moments(self, hillas_parameters, with_label=True, keep_old=False,
+    def overlay_moments(self, hillas_parameters, with_label=True,
+                        keep_old=False,
                         **kwargs):
         """helper to overlay ellipse from a `HillasParametersContainer` structure
 
@@ -452,5 +453,3 @@ class CameraDisplay:
 
     def show(self):
         self.axes.figure.show()
-
-

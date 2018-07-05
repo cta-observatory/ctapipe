@@ -3,8 +3,7 @@ from copy import deepcopy
 from numpy.testing import assert_allclose
 
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import integration_correction, \
-    CameraDL1Calibrator
+from ctapipe.calib.camera.dl1 import integration_correction, CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 
 
@@ -22,10 +21,11 @@ def test_integration_correction(test_event):
     shift = 3
     shape = event.mc.tel[telid].reference_pulse_shape
     n_chan = shape.shape[0]
-    step = event.mc.tel[telid].meta['refstep']
+    step = event.mc.tel[telid].meta["refstep"]
     time_slice = event.mc.tel[telid].time_slice
-    correction = integration_correction(n_chan, shape, step,
-                                        time_slice, width, shift)
+    correction = integration_correction(
+        n_chan, shape, step, time_slice, width, shift
+    )
     assert_allclose(correction[0], 1.077, 1e-3)
 
 
@@ -33,7 +33,7 @@ def test_integration_correction_no_ref_pulse(test_event):
     event = deepcopy(test_event)
     previous_calibration(event)
     telid = list(event.dl0.tel.keys())[0]
-    delattr(event, 'mc')
+    delattr(event, "mc")
     calibrator = CameraDL1Calibrator()
     correction = calibrator.get_correction(event, telid)
     assert correction[0] == 1
@@ -59,6 +59,6 @@ def test_check_dl0_exists(test_event):
     telid = 11
     previous_calibration(event)
     calibrator = CameraDL1Calibrator()
-    assert(calibrator.check_dl0_exists(event, telid) is True)
+    assert calibrator.check_dl0_exists(event, telid) is True
     event.dl0.tel[telid].waveform = None
-    assert(calibrator.check_dl0_exists(event, telid) is False)
+    assert calibrator.check_dl0_exists(event, telid) is False

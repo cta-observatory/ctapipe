@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 from .regressor_classifier_base import RegressorClassifierBase
 
-__all__ = ['proba_drifting','EventClassifier']
+__all__ = ['proba_drifting', 'EventClassifier']
 
 
 def proba_drifting(x):
@@ -62,7 +62,8 @@ class EventClassifier(RegressorClassifierBase):
         predictions = self.classes_[np.argmax(proba, axis=1)]
         return predictions
 
-    def compute_Qfactor(self, proba, labels: int, nbins):
+    @staticmethod
+    def compute_Qfactor(proba, labels: int, nbins):
         """
         Compute Q-factor for each gammaness (bin edges are 0 - 1)
 
@@ -114,7 +115,8 @@ class EventClassifier(RegressorClassifierBase):
 
         return Q, bins[1:]  # , eps_g[::-1], eps_h[::-1]
 
-    def _hyperBinning(self, x, featsToGroupBy: list):
+    @staticmethod
+    def _hyperBinning(x, featsToGroupBy: list):
         """
         This function is for hyper binning with pandas. It is intended to be
         used here in order to level number of events before training the
@@ -178,7 +180,8 @@ class EventClassifier(RegressorClassifierBase):
 
         return groups
 
-    def level_populations(self, group_signal, group_bgd, signal_evts, bgd_evts):
+    @staticmethod
+    def level_populations(group_signal, group_bgd, signal_evts, bgd_evts):
         """Equalize number of entries in each bin. When doing signal -
         background separation, it is common to wrangle input data equalizing
         the number of entries for gammas and hadron in all the requested

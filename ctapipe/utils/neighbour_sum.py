@@ -5,13 +5,15 @@ neighbour_sum_c.cc through ctypes.
 
 __all__ = []
 
-import numpy as np
 import ctypes
-from numpy.ctypeslib import ndpointer
 import os
 
+import numpy as np
+from numpy.ctypeslib import ndpointer
+
 try:
-    lib = np.ctypeslib.load_library("neighbour_sum_c", os.path.dirname(__file__))
+    lib = np.ctypeslib.load_library("neighbour_sum_c",
+                                    os.path.dirname(__file__))
     get_sum_array = lib.get_sum_array
     get_sum_array.restype = None
     get_sum_array.argtypes = [ndpointer(ctypes.c_float, flags="C_CONTIGUOUS"),

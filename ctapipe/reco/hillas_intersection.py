@@ -8,14 +8,16 @@ performance
 - Make intersect_lines code more readable
 
 """
-import numpy as np
 import itertools
+
 import astropy.units as u
-from ctapipe.reco.reco_algorithms import Reconstructor
-from ctapipe.io.containers import ReconstructedShowerContainer
+import numpy as np
+
 from ctapipe.coordinates import NominalFrame, HorizonFrame
 from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
 from ctapipe.instrument import get_atmosphere_profile_functions
+from ctapipe.io.containers import ReconstructedShowerContainer
+from ctapipe.reco.reco_algorithms import Reconstructor
 
 __all__ = [
     'HillasIntersection'
@@ -99,7 +101,8 @@ class HillasIntersection(Reconstructor):
                                      + core_err_y * core_err_y) * u.m
 
         result.tel_ids = [h for h in hillas_parameters.keys()]
-        result.average_size = np.mean([h.intensity for h in hillas_parameters.values()])
+        result.average_size = np.mean(
+            [h.intensity for h in hillas_parameters.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x * err_x + err_y * err_y)
@@ -229,11 +232,13 @@ class HillasIntersection(Reconstructor):
         tel_y = np.array(ty)
 
         # Copy parameters we need to a numpy array to speed things up
-        h1 = map(lambda h: [h[0].psi.to(u.rad).value, h[0].intensity], hillas_pairs)
+        h1 = map(lambda h: [h[0].psi.to(u.rad).value, h[0].intensity],
+                 hillas_pairs)
         h1 = np.array(list(h1))
         h1 = np.transpose(h1)
 
-        h2 = map(lambda h: [h[1].psi.to(u.rad).value, h[1].intensity], hillas_pairs)
+        h2 = map(lambda h: [h[1].psi.to(u.rad).value, h[1].intensity],
+                 hillas_pairs)
         h2 = np.array(list(h2))
         h2 = np.transpose(h2)
 

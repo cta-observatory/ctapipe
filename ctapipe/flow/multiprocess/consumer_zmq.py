@@ -1,9 +1,11 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 # coding: utf8
-import zmq
 from multiprocessing import Process
 from multiprocessing import Value
 from pickle import loads
+
+import zmq
+
 from ctapipe.core import Component
 
 
@@ -46,7 +48,7 @@ class ConsumerZMQ(Process, Component):
         # Define coroutine and executes its init method
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
         self.done = False
         return self.init_connections()

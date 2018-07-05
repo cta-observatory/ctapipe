@@ -1,10 +1,12 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-from ctapipe.core import Component
-from ctapipe.flow.multiprocess.connections import Connections
 from multiprocessing import Process
 from multiprocessing import Value
 from types import GeneratorType
+
 import zmq
+
+from ctapipe.core import Component
+from ctapipe.flow.multiprocess.connections import Connections
 
 
 class ProducerZmq(Process, Component, Connections):
@@ -50,7 +52,7 @@ class ProducerZmq(Process, Component, Connections):
         """
         if self.coroutine is None:
             return False
-        if self.coroutine.init() == False:
+        if self.coroutine.init() is False:
             return False
         self.coroutine.connections = list(self.connections)
         return self.init_connections()
@@ -69,7 +71,8 @@ class ProducerZmq(Process, Component, Connections):
                     self.running = 1
                     self.nb_job_done += 1
                     if isinstance(result, tuple):
-                        msg, destination = self.get_destination_msg_from_result(result)
+                        msg, destination = self.get_destination_msg_from_result(
+                            result)
                         self.send_msg(msg, destination)
                     else:
                         self.send_msg(result)

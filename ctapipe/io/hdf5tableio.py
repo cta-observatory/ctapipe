@@ -145,7 +145,7 @@ class HDF5TableWriter(TableWriter):
                         tr = partial(tr_convert_and_strip_unit, unit=req_unit)
                         meta['{}_UNIT'.format(col_name)] = str(req_unit)
                     else:
-                        tr = lambda x: x.value
+                        tr = tr_strip_unit
                         meta['{}_UNIT'.format(col_name)] = str(value.unit)
 
                     value = tr(value)
@@ -371,6 +371,10 @@ class HDF5TableReader(TableReader):
 
             yield container
             row_count += 1
+
+
+def tr_strip_unit(quantity):
+    return quantity.value
 
 
 def tr_convert_and_strip_unit(quantity, unit):

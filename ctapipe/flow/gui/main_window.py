@@ -3,28 +3,28 @@
 Qt QApplication and QMainWindow for GUI
 This requires the pyside python library to be installed
 """
-from ctapipe.flow.gui.graphwidget import GraphWidget
-from ctapipe.flow.gui.infolabel import InfoLabel
-from ctapipe.flow.gui.guiconnection import GuiConnexion
-import ctapipe.flow.gui.images_rc
-from PyQt4.QtGui import QMainWindow
-from PyQt4.QtGui import QPushButton
+from PyQt4.QtCore import QMetaObject
+from PyQt4.QtCore import QObject
+from PyQt4.QtCore import QRect
+from PyQt4.QtCore import Qt
+from PyQt4.QtCore import SIGNAL
+from PyQt4.QtGui import QAction
 from PyQt4.QtGui import QApplication
-from PyQt4.QtGui import QPalette
-from PyQt4.QtGui import QPixmap
-from PyQt4.QtGui import QWidget
 from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QGridLayout
-from PyQt4.QtGui import QMenuBar
-from PyQt4.QtGui import QMenu
-from PyQt4.QtGui import QStatusBar
-from PyQt4.QtGui import QAction
 from PyQt4.QtGui import QLabel
-from PyQt4.QtCore import Qt
-from PyQt4.QtCore import QRect
-from PyQt4.QtCore import QObject
-from PyQt4.QtCore import QMetaObject
-from PyQt4.QtCore import SIGNAL
+from PyQt4.QtGui import QMainWindow
+from PyQt4.QtGui import QMenu
+from PyQt4.QtGui import QMenuBar
+from PyQt4.QtGui import QPalette
+from PyQt4.QtGui import QPixmap
+from PyQt4.QtGui import QPushButton
+from PyQt4.QtGui import QStatusBar
+from PyQt4.QtGui import QWidget
+
+from ctapipe.flow.gui.graphwidget import GraphWidget
+from ctapipe.flow.gui.guiconnection import GuiConnexion
+from ctapipe.flow.gui.infolabel import InfoLabel
 
 
 class MainWindow(QMainWindow, object):
@@ -82,12 +82,14 @@ class MainWindow(QMainWindow, object):
         p = self.graph_widget.palette()
         self.graph_widget.setAutoFillBackground(True)
         p.setColor(
-            self.graph_widget.backgroundRole(), QColor(255, 255, 255))  # QColor(226, 235, 252))
+            self.graph_widget.backgroundRole(),
+            QColor(255, 255, 255))  # QColor(226, 235, 252))
         self.graph_widget.setPalette(p)
         self.quitButton = QPushButton()  # self.centralwidget)
         self.quitButton.setObjectName("quitButton")
         self.quitButton.setText(QApplication.translate
-                                ("MainWindow", "Quit", None, QApplication.UnicodeUTF8))
+                                ("MainWindow", "Quit", None,
+                                 QApplication.UnicodeUTF8))
         self.gridLayout.addWidget(self.quitButton, 12, 0, 1, 1)
         self.info_label = InfoLabel(0, 4)
         self.info_label.setAutoFillBackground(True)
@@ -106,7 +108,8 @@ class MainWindow(QMainWindow, object):
             self.actionQuit, SIGNAL("triggered()"), self.close)
         QMetaObject.connectSlotsByName(self)
         # Create GuiConnexion for ZMQ comminucation with pipeline
-        self.guiconnection = GuiConnexion(gui_port=port, statusBar=self.statusbar)
+        self.guiconnection = GuiConnexion(gui_port=port,
+                                          statusBar=self.statusbar)
         self.guiconnection.message.connect(self.graph_widget.pipechange)
         self.guiconnection.message.connect(self.info_label.pipechange)
         self.guiconnection.reset_message.connect(self.graph_widget.reset)
@@ -120,7 +123,8 @@ class MainWindow(QMainWindow, object):
 
     def retranslateUi(self):
         self.setWindowTitle(QApplication.translate(
-            "ctapipe flow based GUI", "ctapipe flow based GUI", None, QApplication.UnicodeUTF8))
+            "ctapipe flow based GUI", "ctapipe flow based GUI", None,
+            QApplication.UnicodeUTF8))
         self.menuFile.setTitle(QApplication.translate(
             "MainWindow", "File", None, QApplication.UnicodeUTF8))
         self.actionQuit.setText(QApplication.translate(

@@ -25,6 +25,7 @@ class UnstructuredInterpolator:
     In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
+
     def __init__(self, interpolation_points, function_name=None):
         """
         Parameters
@@ -47,18 +48,18 @@ class UnstructuredInterpolator:
 
         # OK this code is horrid and will need fixing
         self._numpy_input = isinstance(self.values[0], np.ndarray) or \
-                            issubclass(type(self.values[0]), np.float) or \
-                            issubclass(type(self.values[0]), np.int)
+            issubclass(type(self.values[0]), np.float) or \
+            issubclass(type(self.values[0]), np.int)
 
         if self._numpy_input is False and function_name is None:
             self._function_name = "__call__"
 
-        return None
 
     def __call__(self, points, eval_points=None):
 
         if self._numpy_input is False and np.all(eval_points is None):
-            raise ValueError("Non numpy object provided without with emtpy eval_points")
+            raise ValueError(
+                "Non numpy object provided without with emtpy eval_points")
 
         # Convert to a numpy array here incase we get a list
         points = np.array(points)
@@ -78,7 +79,8 @@ class UnstructuredInterpolator:
         # For each interpolated point, take the the transform matrix and multiply it by
         # the vector p-r, where r=m[:,n,:] is one of the simplex vertices to which
         # the matrix m is related to
-        b = np.einsum('ijk,ik->ij', m[:, :self._num_dimensions, :self._num_dimensions],
+        b = np.einsum('ijk,ik->ij',
+                      m[:, :self._num_dimensions, :self._num_dimensions],
                       points - m[:, self._num_dimensions, :])
 
         # Use the above array to get the weights for the vertices; `b` contains an

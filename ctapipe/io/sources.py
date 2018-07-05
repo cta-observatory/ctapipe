@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from gzip import open as gzip_open
-from astropy.io import fits
 from pickle import load
+
+from astropy.io import fits
 
 __all__ = ['PickleSource', 'FITSSource']
 

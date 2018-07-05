@@ -2,7 +2,6 @@ from ctapipe.io.files import get_file_type
 
 
 def test_get_file_type():
-
     test_filenames = {'test.fits.gz': 'fits',
                       'test.fits': 'fits',
                       'test.fits.bz2': 'fits',

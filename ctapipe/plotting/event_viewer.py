@@ -23,7 +23,8 @@ class EventViewer(Component):
         Parameters
         ----------
         draw_hillas_planes: bool
-            Determines whether a projection of the Hillas parameters in the nominal and tilted systems should be drawn
+            Determines whether a projection of the Hillas parameters in
+            the nominal and tilted systems should be drawn
         """
         self.array_view = None
         self.nominal_view = None
@@ -71,7 +72,8 @@ class EventViewer(Component):
 
         plt.figure(figsize=(20, 20 * 0.66))
 
-        # If we want to draw the Hillas parameters in different planes we need to split our figure
+        # If we want to draw the Hillas parameters in different planes we
+        # need to split our figure
         if self.draw_hillas_planes:
             y_axis_split = 2
         else:
@@ -104,11 +106,13 @@ class EventViewer(Component):
                                  axis=ax,
                                  geom=geom)
 
-        # If we want to draw the Hillas parameters in different planes we need to make a couple more viewers
+        # If we want to draw the Hillas parameters in different planes we
+        # need to make a couple more viewers
         if self.draw_hillas_planes:
             # Split the second sub figure into two further figures
-            reco_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=
-            outer_grid[1])
+            reco_grid = gridspec.GridSpecFromSubplotSpec(
+                2, 1, subplot_spec=outer_grid[1]
+            )
             # Create plot of telescope positions at ground level
 
             # Draw MC position (this should change later)
@@ -116,7 +120,8 @@ class EventViewer(Component):
                                 use_centre=True)
             array.draw_array(((-300, 300), (-300, 300)))
 
-            # If we have valid Hillas parameters we should draw them in the Nominal system
+            # If we have valid Hillas parameters we should draw them in the
+            # Nominal system
             if hillas_parameters is not None:
                 array.overlay_hillas(hillas_parameters, draw_axes=True)
 
@@ -152,9 +157,9 @@ class EventViewer(Component):
         """
         # if tel_id not in self.cam_display:
         # Argh this is annoying, for some reason we cannot cahe the displays
-        self.cam_display[tel_id] = visualization.CameraDisplay(geom, title="CT{"
-                                                                           "0}".format(
-            tel_id))
+        self.cam_display[tel_id] = visualization.CameraDisplay(
+            geom, title="CT{0}".format(tel_id)
+        )
         self.cam_display[tel_id].add_colorbar()
         self.cam_display[tel_id].pixels.set_antialiaseds(False)
         self.cam_display[tel_id].autoupdate = True

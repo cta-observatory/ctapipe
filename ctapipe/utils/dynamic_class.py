@@ -1,11 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
-import os
-import sys
-import logging
 from importlib import import_module
+
 from ctapipe.core.tool import Tool
-
-
 
 __all__ = ['dynamic_class_from_module', ]
 
@@ -16,6 +12,7 @@ class DynamicClassError(Exception):
         """Mentions that an exception occurred in the dynamic_class_from_module.
         """
         self.msg = msg
+
 
 # def dynamic_class_from_module(class_name, module,  configuration=None):
 
@@ -38,7 +35,7 @@ def dynamic_class_from_module(class_name, module, tool=None):
     Raises
     ------
     """
-    if module == None:
+    if module is None:
         return None
 
     try:
@@ -49,11 +46,14 @@ def dynamic_class_from_module(class_name, module, tool=None):
             instance = _class()
         return instance
     except AttributeError as e:
-        raise DynamicClassError("Could not create an instance of {} in module {}: {}"
-                                .format(class_name, module, e))
+        raise DynamicClassError(
+            "Could not create an instance of {} in module {}: {}"
+            .format(class_name, module, e))
     except ImportError as e:
-        raise DynamicClassError("Could not create an instance of {} in module {}: {}"
-                                .format(class_name, module, e))
+        raise DynamicClassError(
+            "Could not create an instance of {} in module {}: {}"
+            .format(class_name, module, e))
     except TypeError as e:
-        raise DynamicClassError("Could not create an instance of {} in module {}: {}"
-                                .format(class_name, module, e))
+        raise DynamicClassError(
+            "Could not create an instance of {} in module {}: {}"
+            .format(class_name, module, e))

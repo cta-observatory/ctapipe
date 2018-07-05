@@ -75,7 +75,8 @@ def astri_to_2d_array_no_crop(input_img, img_map=astri_transformation_map()):
 
     # Check the image
     if len(input_img) != (37 * 64):
-        raise ValueError("The input image is not a valide ASTRI telescope image.")
+        raise ValueError(
+            "The input image is not a valide ASTRI telescope image.")
 
     # Copy the input flat ctapipe image and add one element with the NaN value in the end
 
