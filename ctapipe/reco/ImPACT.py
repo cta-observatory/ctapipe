@@ -456,9 +456,7 @@ class ImPACTReconstructor(Reconstructor):
             time_fit = (weight.sum(axis=1) * sxy.sum(axis=1) - sx.sum(axis=1) * sy.sum(
                 axis=1)) / d
             time_fit /= -1 * (180 / math.pi)
-            print(energy, impact, x_max_bin)
-            print(time_fit, time_gradients.T[0], time_gradients.T[1])
-            chi2 = -2 * np.log10(rv.pdf((time_fit - time_gradients.T[0])/
+            chi2 = -2 * np.log(rv.pdf((time_fit - time_gradients.T[0])/
                                         time_gradients.T[1]))
 
         # Likelihood function will break if we find a NaN or a 0
@@ -494,7 +492,7 @@ class ImPACTReconstructor(Reconstructor):
 
         final_sum = array_like.sum()
         if self.use_time_gradient:
-            final_sum += 0# chi2.sum() #* np.sum(ma.getmask(self.image))
+            final_sum += chi2.sum() #* np.sum(ma.getmask(self.image))
 
         return final_sum
 
@@ -533,7 +531,6 @@ class ImPACTReconstructor(Reconstructor):
         """
 
         val = self.get_likelihood(x[0], x[1], x[2], x[3], x[4], x[5])
-
         return val
 
     def set_event_properties(self, image, time, pixel_x, pixel_y, type_tel, tel_x, tel_y,
@@ -672,8 +669,8 @@ class ImPACTReconstructor(Reconstructor):
                                         zenith.to(u.rad).value)
 
         # Take the seed from Hillas-based reconstruction
-        seed = (source_x, source_y, tilt_x,
-                tilt_y, en_seed.value, xmax_seed)
+        seed = (source_x[0], source_y[0], tilt_x,
+                tilt_y, en_seed.value, 1)
 
         # Take a reasonable first guess at step size
         step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed.value * 0.1, 0.05]
@@ -683,7 +680,7 @@ class ImPACTReconstructor(Reconstructor):
                   [tilt_x - 100, tilt_x + 100],
                   [tilt_y - 100, tilt_y + 100],
                   [lower_en_limit.value, en_seed.value * 2],
-                  [0.5, 1]
+                  [0.5, 2]
                   ]
 
         # Perform maximum likelihood fit
@@ -796,9 +793,9 @@ class ImPACTReconstructor(Reconstructor):
             opt.set_lower_bounds(np.asarray(limits).T[0])
             opt.set_upper_bounds(np.asarray(limits).T[1])
             opt.set_xtol_rel(1e-3)
-            self.num_calls = 0
 
-            x = opt.optimize(params)
+            x = opt.optimize(np.asarray(params))
+
             return x, (0, 0, 0, 0, 0, 0)
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
