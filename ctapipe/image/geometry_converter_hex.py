@@ -322,6 +322,24 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         rectangular grid
     rot_img : ndarray 2D (no timing) or 3D (with timing)
         the rectangular signal image
+
+    Example
+    -------
+    from ctapipe.utils import get_dataset
+    from ctapipe.image.geometry_converter import convert_geometry_hex1d_to_rect2d
+    from ctapipe.io import event_source
+    import copy
+    import matplotlib.pyplot as plt
+
+    filename = get_dataset('gamma_test.simtel.gz')
+    source = event_source(filename)
+    source.allowed_tels = {1}
+    for event in source:
+        camera = event.inst.subarray.tel[1].camera
+        image = event.r0.tel[1].image[0]
+        key = camera.cam_id
+        square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
+
     """
 
     if key in rot_buffer:
@@ -476,6 +494,24 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
     instance of the original camera layout, which it tries to load by name (i.e.
     the `cam_id`). The function assumes the original `cam_id` can be inferred from the
     given, modified one by: `geom.cam_id.split('_')[0]`.
+
+    Example
+    -------
+    from ctapipe.utils import get_dataset
+    from ctapipe.image.geometry_converter import convert_geometry_hex1d_to_rect2d
+    from ctapipe.io import event_source
+    import copy
+    import matplotlib.pyplot as plt
+
+    filename = get_dataset('gamma_test.simtel.gz')
+    source = event_source(filename)
+    source.allowed_tels = {1}
+    for event in source:
+        camera = event.inst.subarray.tel[1].camera
+        image = event.r0.tel[1].image[0]
+        key = camera.cam_id
+        square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
+        hex_geom, hex_image = convert_geometry_rect2d_back_to_hexe1d(square_geom, square_image, key=key)
     """
 
     if key not in rot_buffer:
