@@ -369,13 +369,13 @@ class CameraDisplay:
         self.update()
         return ellipse
 
-    def overlay_moments(self, momparams, with_label=True, keep_old=False,
+    def overlay_moments(self, hillas_parameters, with_label=True, keep_old=False,
                         **kwargs):
-        """helper to overlay ellipse from a `reco.MomentParameters` structure
+        """helper to overlay ellipse from a `HillasParametersContainer` structure
 
         Parameters
         ----------
-        momparams: `reco.MomentParameters`
+        hillas_parameters: `HillasParametersContainer`
             structuring containing Hillas-style parameterization
         with_label: bool
             If True, show coordinates of centroid and width and length
@@ -389,26 +389,33 @@ class CameraDisplay:
             self.clear_overlays()
 
         # strip off any units
-        cen_x = u.Quantity(momparams.cen_x).value
-        cen_y = u.Quantity(momparams.cen_y).value
-        length = u.Quantity(momparams.length).value
-        width = u.Quantity(momparams.width).value
+        cen_x = u.Quantity(hillas_parameters.x).value
+        cen_y = u.Quantity(hillas_parameters.y).value
+        length = u.Quantity(hillas_parameters.length).value
+        width = u.Quantity(hillas_parameters.width).value
 
-        el = self.add_ellipse(centroid=(cen_x, cen_y),
-                              length=length * 2,
-                              width=width * 2, angle=momparams.psi.rad,
-                              **kwargs)
+        el = self.add_ellipse(
+            centroid=(cen_x, cen_y),
+            length=length * 2,
+            width=width * 2,
+            angle=hillas_parameters.psi.rad,
+            **kwargs
+        )
 
         self._axes_overlays.append(el)
 
         if with_label:
-            text = self.axes.text(cen_x, cen_y,
-                                  ("({:.02f},{:.02f})\n"
-                                   "[w={:.02f},l={:.02f}]")
-                                  .format(momparams.cen_x,
-                                          momparams.cen_y,
-                                          momparams.width, momparams.length),
-                                  color=el.get_edgecolor())
+            text = self.axes.text(
+                cen_x,
+                cen_y,
+                "({:.02f},{:.02f})\n[w={:.02f},l={:.02f}]".format(
+                    hillas_parameters.x,
+                    hillas_parameters.y,
+                    hillas_parameters.width,
+                    hillas_parameters.length,
+                ),
+                color=el.get_edgecolor()
+            )
 
             self._axes_overlays.append(text)
 
