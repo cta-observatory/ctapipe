@@ -8,6 +8,7 @@ from collections import namedtuple
 xfail = [
     'table_writer_reader.ipynb',
     'check_calib.ipynb',
+    'vpython_display.ipynb',
 ]
 TIMEOUT_PER_CELL = 240  # seconds
 
