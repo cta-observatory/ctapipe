@@ -97,6 +97,7 @@ class LSTEventSource(EventSource):
 
 
 
+
     def fill_lst_event_container_from_zfile(self, container, event):
 
         event_container = container.tel[self.camera_config.telescope_id].evt
@@ -123,10 +124,19 @@ class LSTEventSource(EventSource):
         container.trigger_time = event.trigger_time_s
         container.trigger_type = event.trigger_type
 
+        # verify the number of gains
+        if event.waveform.shape[0]==(self.camera_config.num_pixels*container.num_samples):
+            n_gains=1
+        elif event.waveform.shape[0]==(self.camera_config.num_pixels*container.num_samples*2):
+            n_gains=2
+        else:
+            raise ValueError("Waveform matrix dimension not supported: N_chan x N_pix x N_samples= '{}'".format(event.waveform.shape[0]))
+
+
         container.waveform = np.array(
             (
                 event.waveform
-            ).reshape(2, self.camera_config.num_pixels, container.num_samples))
+            ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
 
 
     def fill_r0_container_from_zfile(self, container, event):
