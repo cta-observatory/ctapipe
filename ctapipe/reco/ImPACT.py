@@ -293,8 +293,8 @@ class ImPACTReconstructor(Reconstructor):
         cosine_angle = np.cos(phi[..., np.newaxis])
         sin_angle = np.sin(phi[..., np.newaxis])
 
-        pixel_pos_trans_x = (pixel_pos_x - x_trans) * cosine_angle - \
-                            (pixel_pos_y - y_trans) * sin_angle
+        pixel_pos_trans_x = (x_trans - pixel_pos_x ) * cosine_angle - \
+                            (y_trans - pixel_pos_y ) * sin_angle
 
         pixel_pos_trans_y = (pixel_pos_x - x_trans) * sin_angle + \
                             (pixel_pos_y - y_trans) * cosine_angle
@@ -396,8 +396,8 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 150:
-            x_max_bin = 150
+        if x_max_bin > 200:
+            x_max_bin = 200
         if x_max_bin < -100:
             x_max_bin = -100
 
@@ -405,13 +405,13 @@ class ImPACTReconstructor(Reconstructor):
         impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2)
                          + np.power(self.tel_pos_y - core_y, 2))
         # And the expected rotation angle
-        phi = np.arctan2((self.tel_pos_y - core_y),
-                         (self.tel_pos_x - core_x)) * u.rad
+        phi = np.arctan2((self.tel_pos_x - core_x),
+                         (self.tel_pos_y - core_y)) * u.rad
 
         # Rotate and translate all pixels such that they match the
         # template orientation
-        pix_x_rot, pix_y_rot = self.rotate_translate(
-            self.pixel_x * -1,
+        pix_y_rot, pix_x_rot = self.rotate_translate(
+            self.pixel_x,
             self.pixel_y,
             source_x, source_y, phi
         )
@@ -431,7 +431,7 @@ class ImPACTReconstructor(Reconstructor):
                                       np.ones_like(impact[type_mask]),
                                       impact[type_mask], x_max_bin *
                                       np.ones_like(impact[type_mask]),
-                                      pix_x_rot[type_mask] * (180 / math.pi),
+                                      pix_x_rot[type_mask] * (180 / math.pi) * -1,
                                       pix_y_rot[type_mask] * (180 / math.pi))
 
             if self.use_time_gradient:
@@ -466,7 +466,6 @@ class ImPACTReconstructor(Reconstructor):
 
         # Get likelihood that the prediction matched the camera image
         like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
-
         like[np.isnan(like)] = 1e9
         like *= np.invert(ma.getmask(self.image))
         like = ma.MaskedArray(like, mask=ma.getmask(self.image))
@@ -654,38 +653,23 @@ class ImPACTReconstructor(Reconstructor):
         tilt_y = tilted.y.to(u.m).value
         zenith = 90 * u.deg - self.array_direction.alt
 
-        lower_en_limit = energy_seed.energy * 0.5
-        en_seed = energy_seed.energy
+        if True:#len(self.hillas_parameters) > 3:
+            shift = [1]
+        else:
+            shift = [1.5, 1, 0.5, 0, -0.5, -1, -1.5]
 
-        # If our energy estimate falls outside of the range of our templates set it to
-        # the edge
-        if lower_en_limit < 0.01 * u.TeV:
-            lower_en_limit = 0.01 * u.TeV
-            en_seed = 0.01 * u.TeV
+        seed_list = spread_line_seed(self.hillas_parameters,
+                                     self.tel_pos_x, self.tel_pos_y,
+                                     source_x[0], source_y[0], tilt_x, tilt_y,
+                                     energy_seed.energy.value,
+                                     shift_frac = shift)
 
-        xmax_seed = (shower_seed.h_max.value / (np.cos(zenith.to(u.rad).value))) / \
-                    self.get_shower_max(source_x, source_y,
-                                        tilt_x, tilt_y,
-                                        zenith.to(u.rad).value)
-
-        # Take the seed from Hillas-based reconstruction
-        seed = (source_x[0], source_y[0], tilt_x,
-                tilt_y, en_seed.value, 1)
-
-        # Take a reasonable first guess at step size
-        step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed.value * 0.1, 0.05]
-        # And some sensible limits of the fit range
-        limits = [[source_x - 0.1, source_x + 0.1],
-                  [source_y - 0.1, source_y + 0.1],
-                  [tilt_x - 100, tilt_x + 100],
-                  [tilt_y - 100, tilt_y + 100],
-                  [lower_en_limit.value, en_seed.value * 2],
-                  [0.5, 2]
-                  ]
-
+        chosen_seed = self.choose_seed(seed_list)
         # Perform maximum likelihood fit
-        fit_params, errors = self.minimise(params=seed, step=step, limits=limits,
-                                           minimiser_name=self.minimiser_name)
+        fit_params, errors, like = self.minimise(params=chosen_seed[0],
+                                                 step=chosen_seed[1],
+                                                 limits=chosen_seed[2],
+                                                 minimiser_name=self.minimiser_name)
 
         # Create a container class for reconstructed shower
         shower_result = ReconstructedShowerContainer()
@@ -723,7 +707,7 @@ class ImPACTReconstructor(Reconstructor):
         shower_result.h_max *= np.cos(zenith)
         shower_result.h_max_uncert = errors[5] * shower_result.h_max
 
-        shower_result.goodness_of_fit = np.nan
+        shower_result.goodness_of_fit = like
 
         # Create a container class for reconstructed energy
         energy_result = ReconstructedEnergyContainer()
@@ -734,7 +718,18 @@ class ImPACTReconstructor(Reconstructor):
 
         return shower_result, energy_result
 
-    def minimise(self, params, step, limits, minimiser_name="minuit"):
+    def choose_seed(self, seed_list):
+
+        like = list()
+        for seed in seed_list:
+            #like.append(self.get_likelihood_min(seed[0]))
+            like.append(self.minimise(seed[0], seed[1], seed[2],
+                                      minimiser_name="nlopt", max_calls=10)[2])
+
+        print("Choosing seed", np.argmin(like), like)
+        return seed_list[np.argmin(like)]
+
+    def minimise(self, params, step, limits, minimiser_name="minuit", max_calls=0):
         """
 
         Parameters
@@ -752,6 +747,7 @@ class ImPACTReconstructor(Reconstructor):
         -------
         tuple: best fit parameters and errors
         """
+        limits = np.asarray(limits)
         if minimiser_name == "minuit":
 
             self.min = Minuit(self.get_likelihood,
@@ -782,7 +778,8 @@ class ImPACTReconstructor(Reconstructor):
                     fit_params["core_y"], fit_params["energy"], fit_params[
                         "x_max_scale"]), \
                    (errors["source_x"], errors["source_y"], errors["core_x"],
-                    errors["core_x"], errors["energy"], errors["x_max_scale"])
+                    errors["core_x"], errors["energy"], errors["x_max_scale"]), \
+                   self.min.fval
 
         elif "nlopt" in minimiser_name:
             import nlopt
@@ -793,10 +790,12 @@ class ImPACTReconstructor(Reconstructor):
             opt.set_lower_bounds(np.asarray(limits).T[0])
             opt.set_upper_bounds(np.asarray(limits).T[1])
             opt.set_xtol_rel(1e-3)
+            if max_calls:
+                opt.set_maxeval(max_calls)
 
             x = opt.optimize(np.asarray(params))
 
-            return x, (0, 0, 0, 0, 0, 0)
+            return x, (0, 0, 0, 0, 0, 0), self.get_likelihood_min(x)
 
         elif minimiser_name in ("lm", "trf", "dogleg"):
             self.array_return = True
@@ -808,7 +807,7 @@ class ImPACTReconstructor(Reconstructor):
                                 ftol=1e-10,
                                 )
 
-            return min.x, (0, 0, 0, 0, 0, 0)
+            return min.x, (0, 0, 0, 0, 0, 0), self.get_likelihood_min(x)
 
         else:
             min = minimize(self.get_likelihood_min, np.array(params),
@@ -817,5 +816,95 @@ class ImPACTReconstructor(Reconstructor):
                            options={"disp": False},
                            tol=1e-5
                            )
-            print(min)
-            return np.array(min.x), (0, 0, 0, 0, 0, 0)
+
+            return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(x)
+
+
+def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, energy,
+                     shift_frac = [2, 1.5, 1, 0.5, 0 ,-0.5, -1, -1.5]):
+    """
+
+    Parameters
+    ----------
+    hillas
+    tel_x
+    tel_y
+    source_x
+    source_y
+    tilt_x
+    tilt_y
+    energy
+    shift_frac
+
+    Returns
+    -------
+
+    """
+    centre_x, centre_y, amp = list(), list(), list()
+
+    for tel in hillas:
+        centre_x.append(hillas[tel].cen_x.to(u.rad).value)
+        centre_y.append(hillas[tel].cen_y.to(u.rad).value)
+        amp.append(hillas[tel].size)
+
+    centre_x = np.average(centre_x, weights=amp)
+    centre_y = np.average(centre_y, weights=amp)
+    centre_tel_x = np.average(tel_x, weights=amp)
+    centre_tel_y = np.average(tel_y, weights=amp)
+
+    diff_x = source_x - centre_x
+    diff_y = source_y - centre_y
+    diff_tel_x = tilt_x - centre_tel_x
+    diff_tel_y = tilt_y - centre_tel_y
+
+    seed_list = list()
+
+    for shift in shift_frac:
+        seed_list.append(create_seed(centre_x + (diff_x*shift),
+                                     centre_y + (diff_y*shift),
+                                     centre_tel_x + (diff_tel_x * shift),
+                                     centre_tel_y + (diff_tel_y * shift), energy))
+
+    return seed_list
+
+
+def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
+    """
+
+    Parameters
+    ----------
+    source_x
+    source_y
+    tilt_x
+    tilt_y
+    energy
+
+    Returns
+    -------
+
+    """
+    lower_en_limit = energy * 0.5
+    en_seed = energy
+
+    # If our energy estimate falls outside of the range of our templates set it to
+    # the edge
+    if lower_en_limit < 0.01:
+        lower_en_limit = 0.01
+        en_seed = 0.01
+
+    # Take the seed from Hillas-based reconstruction
+    seed = (source_x, source_y, tilt_x,
+            tilt_y, en_seed, 1)
+
+    # Take a reasonable first guess at step size
+    step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed * 0.1, 0.05]
+    # And some sensible limits of the fit range
+    limits = [[source_x - 0.1, source_x + 0.1],
+              [source_y - 0.1, source_y + 0.1],
+              [tilt_x - 100, tilt_x + 100],
+              [tilt_y - 100, tilt_y + 100],
+              [lower_en_limit, en_seed * 2],
+              [0.5, 2]
+              ]
+
+    return seed, step, limits
