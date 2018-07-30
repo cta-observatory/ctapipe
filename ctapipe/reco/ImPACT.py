@@ -29,7 +29,7 @@ __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior', 'guess_shower_de
 
 def guess_shower_depth(energy):
     """
-    Simple estimation of depth of shower max based on the expected gamma-ray elongation 
+    Simple estimation of depth of shower max based on the expected gamma-ray elongation
     rate.
 
     Parameters
@@ -194,7 +194,6 @@ class ImPACTReconstructor(Reconstructor):
             weight = np.sqrt(hillas.size)
             weighted_x = hillas.cen_x.to(u.rad).value * weight
             weighted_y = hillas.cen_y.to(u.rad).value * weight
-
             ppx = np.sum(weighted_x) / np.sum(weight)
             ppy = np.sum(weighted_y) / np.sum(weight)
 
@@ -633,7 +632,7 @@ class ImPACTReconstructor(Reconstructor):
         Returns
         -------
         ReconstructedShowerContainer, ReconstructedEnergyContainer:
-        Reconstructed ImPACT shower geometry and energy        
+        Reconstructed ImPACT shower geometry and energy
         """
 
         horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
@@ -805,7 +804,7 @@ class ImPACTReconstructor(Reconstructor):
                                 ftol=1e-10,
                                 )
 
-            return min.x, (0, 0, 0, 0, 0, 0), self.get_likelihood_min(x)
+            return min.x, (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
 
         else:
             min = minimize(self.get_likelihood_min, np.array(params),
@@ -815,13 +814,11 @@ class ImPACTReconstructor(Reconstructor):
                            tol=1e-5
                            )
 
-            return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(x)
-
+            return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
 
 def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, energy,
                      shift_frac = [2, 1.5, 1, 0.5, 0 ,-0.5, -1, -1.5]):
     """
-
     Parameters
     ----------
     hillas: list
@@ -871,7 +868,6 @@ def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, e
                                      centre_y + (diff_y*shift),
                                      centre_tel_x + (diff_tel_x * shift),
                                      centre_tel_y + (diff_tel_y * shift), energy))
-
     return seed_list
 
 
