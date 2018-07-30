@@ -191,9 +191,9 @@ class ImPACTReconstructor(Reconstructor):
         tel_num = 0
 
         for hillas in self.hillas_parameters:
-            weight = np.sqrt(hillas.size)
-            weighted_x = hillas.cen_x.to(u.rad).value * weight
-            weighted_y = hillas.cen_y.to(u.rad).value * weight
+            weight = np.sqrt(hillas.intensity)
+            weighted_x = hillas.x.to(u.rad).value * weight
+            weighted_y = hillas.y.to(u.rad).value * weight
             ppx = np.sum(weighted_x) / np.sum(weight)
             ppy = np.sum(weighted_y) / np.sum(weight)
 
@@ -721,7 +721,8 @@ class ImPACTReconstructor(Reconstructor):
         for seed in seed_list:
             #like.append(self.get_likelihood_min(seed[0]))
             like.append(self.minimise(seed[0], seed[1], seed[2],
-                                      minimiser_name="nlopt", max_calls=10)[2])
+                                      minimiser_name="nlopt",
+                                      max_calls=10)[2])
 
         print("Choosing seed", np.argmin(like), like)
         return seed_list[np.argmin(like)]
@@ -739,7 +740,8 @@ class ImPACTReconstructor(Reconstructor):
             Fit bounds
         minimiser_name: str
             Name of minimisation method
-
+        max_calls: int
+            Maximum number of calls to minimiser
         Returns
         -------
         tuple: best fit parameters and errors
@@ -847,9 +849,9 @@ def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, e
     centre_x, centre_y, amp = list(), list(), list()
 
     for tel_hillas in hillas:
-        centre_x.append(tel_hillas.cen_x.to(u.rad).value)
-        centre_y.append(tel_hillas.cen_y.to(u.rad).value)
-        amp.append(tel_hillas.size)
+        centre_x.append(tel_hillas.x.to(u.rad).value)
+        centre_y.append(tel_hillas.y.to(u.rad).value)
+        amp.append(tel_hillas.intensity)
 
     centre_x = np.average(centre_x, weights=amp)
     centre_y = np.average(centre_y, weights=amp)
