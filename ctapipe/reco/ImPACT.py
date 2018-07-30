@@ -191,15 +191,9 @@ class ImPACTReconstructor(Reconstructor):
         tel_num = 0
 
         for hillas in self.hillas_parameters:
-            weight = np.sqrt(hillas.intensity)
-            weighted_x = hillas.x.to(u.rad).value * weight
-            weighted_y = hillas.y.to(u.rad).value * weight
-            ppx = np.sum(weighted_x) / np.sum(weight)
-            ppy = np.sum(weighted_y) / np.sum(weight)
-
-            peak_x[tel_num] = ppx  # Fill up array
-            peak_y[tel_num] = ppy
-            peak_amp[tel_num] = np.sum(weight)
+            peak_x[tel_num] = hillas.x.to(u.rad).value   # Fill up array
+            peak_y[tel_num] = hillas.y.to(u.rad).value
+            peak_amp[tel_num] = hillas.intensity
             tel_num += 1
 
         self.peak_x = peak_x  # * unit # Add to class member
