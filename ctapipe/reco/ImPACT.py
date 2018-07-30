@@ -190,10 +190,10 @@ class ImPACTReconstructor(Reconstructor):
         # Maybe a vectorize?
         tel_num = 0
 
-        for tel in self.hillas_parameters:
-            weight = np.sqrt(self.hillas_parameters[tel].size)
-            weighted_x = self.hillas_parameters[tel].cen_x.to(u.rad).value * weight
-            weighted_y = self.hillas_parameters[tel].cen_y.to(u.rad).value * weight
+        for hillas in self.hillas_parameters:
+            weight = np.sqrt(hillas.size)
+            weighted_x = hillas.cen_x.to(u.rad).value * weight
+            weighted_y = hillas.cen_y.to(u.rad).value * weight
 
             ppx = np.sum(weighted_x) / np.sum(weight)
             ppy = np.sum(weighted_y) / np.sum(weight)
@@ -240,7 +240,6 @@ class ImPACTReconstructor(Reconstructor):
         # Calculate impact parameter of the shower
         impact = np.sqrt(np.power(self.tel_pos_x - core_x, 2) +
                          np.power(self.tel_pos_y - core_y, 2))
-
         # Distance above telescope is ratio of these two (small angle)
 
         height = impact / disp
@@ -571,6 +570,7 @@ class ImPACTReconstructor(Reconstructor):
 
         max_pix_x, max_pix_y = 0, 0
         px, py, pa, pt = list(), list(), list(), list()
+        self.hillas_parameters = list()
 
         # So here we must loop over the telescopes
         for x, i in zip(tel_x, range(len(tel_x))):
@@ -588,6 +588,7 @@ class ImPACTReconstructor(Reconstructor):
             self.ped[i] = self.ped_table[type_tel[x]]
             self.tel_types.append(type_tel[x])
             self.tel_id.append(x)
+            self.hillas_parameters.append(hillas[x])
 
         # Most interesting stuff is now copied to the class, but to remove our requirement
         # for loops we must copy the pixel positions to an array with the length of the
@@ -615,8 +616,6 @@ class ImPACTReconstructor(Reconstructor):
         self.image[mask] = ma.masked
         self.time[mask] = ma.masked
 
-        self.hillas_parameters = hillas
-
         # Finally run some functions to get ready for the event
         self.get_hillas_mean()
         self.initialise_templates(type_tel)
@@ -643,7 +642,6 @@ class ImPACTReconstructor(Reconstructor):
 
         source_x = nominal_seed.x.to(u.rad).value
         source_y = nominal_seed.y.to(u.rad).value
-
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(
@@ -653,7 +651,7 @@ class ImPACTReconstructor(Reconstructor):
         tilt_y = tilted.y.to(u.m).value
         zenith = 90 * u.deg - self.array_direction.alt
 
-        if True:#len(self.hillas_parameters) > 3:
+        if len(self.hillas_parameters) > 3:
             shift = [1]
         else:
             shift = [1.5, 1, 0.5, 0, -0.5, -1, -1.5]
@@ -826,26 +824,35 @@ def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, e
 
     Parameters
     ----------
-    hillas
-    tel_x
-    tel_y
-    source_x
-    source_y
-    tilt_x
-    tilt_y
-    energy
-    shift_frac
+    hillas: list
+        Hillas parameters in event
+    tel_x: list
+        telescope X positions in tilted system
+    tel_y: list
+        telescope Y positions in tilted system
+    source_x: float
+        Source X position in nominal system (radians)
+    source_y:float
+        Source Y position in nominal system (radians)
+    tilt_x: float
+        Core X position in tilited system (radians)
+    tilt_y: float
+        Core Y position in tilited system (radians)
+    energy: float
+        Energy in TeV
+    shift_frac: list
+        Fractional values to shist source and core positions
 
     Returns
     -------
-
+    list of seed positions to try
     """
     centre_x, centre_y, amp = list(), list(), list()
 
-    for tel in hillas:
-        centre_x.append(hillas[tel].cen_x.to(u.rad).value)
-        centre_y.append(hillas[tel].cen_y.to(u.rad).value)
-        amp.append(hillas[tel].size)
+    for tel_hillas in hillas:
+        centre_x.append(tel_hillas.cen_x.to(u.rad).value)
+        centre_y.append(tel_hillas.cen_y.to(u.rad).value)
+        amp.append(tel_hillas.size)
 
     centre_x = np.average(centre_x, weights=amp)
     centre_y = np.average(centre_y, weights=amp)
@@ -870,18 +877,24 @@ def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, e
 
 def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
     """
+    Function for creating seed, step and limits for a given position
 
     Parameters
     ----------
-    source_x
-    source_y
-    tilt_x
-    tilt_y
-    energy
+    source_x: float
+        Source X position in nominal system (radians)
+    source_y:float
+        Source Y position in nominal system (radians)
+    tilt_x: float
+        Core X position in tilited system (radians)
+    tilt_y: float
+        Core Y position in tilited system (radians)
+    energy: float
+        Energy in TeV
 
     Returns
     -------
-
+    tuple of seed, steps size and fit limits
     """
     lower_en_limit = energy * 0.5
     en_seed = energy
