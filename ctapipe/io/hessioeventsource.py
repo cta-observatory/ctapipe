@@ -104,19 +104,19 @@ class HESSIOEventSource(EventSource):
                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                           format='unix', scale='utc')
                 data.mc.energy = file.get_mc_shower_energy() * u.TeV
-                data.mc.xmax = file.get_mc_shower_xmax() * u.g/(u.cm*u.cm)
                 data.mc.alt = Angle(file.get_mc_shower_altitude(), u.rad)
                 data.mc.az = Angle(file.get_mc_shower_azimuth(), u.rad)
                 data.mc.core_x = file.get_mc_event_xcore() * u.m
                 data.mc.core_y = file.get_mc_event_ycore() * u.m
                 first_int = file.get_mc_shower_h_first_int() * u.m
                 data.mc.h_first_int = first_int
+                data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 
                 # mc run header data
-                data.mcheader.run_array_direction = (
-                    file.get_mc_run_array_direction()
-                ) * u.rad
+                data.mcheader.run_array_direction = Angle(
+                    file.get_mc_run_array_direction() * u.rad
+                )
 
                 # this should be done in a nicer way to not re-allocate the
                 # data each time (right now it's just deleted and garbage
@@ -141,11 +141,11 @@ class HESSIOEventSource(EventSource):
                         data.r0.tel[tel_id].waveform = (file.
                                                         get_adc_sum(tel_id)[..., None])
                     data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
-                    try:
-                        data.mc.tel[tel_id].reference_pulse_shape = (file.
-                                                                     get_ref_shapes(tel_id))
-                    except:
-                        print("Warning no pulse shape found")
+                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
+                    data.mc.tel[tel_id].reference_pulse_shape = (file.
+                                                                 get_ref_shapes(tel_id))
+
                     nsamples = file.get_event_num_samples(tel_id)
                     if nsamples <= 0:
                         nsamples = 1

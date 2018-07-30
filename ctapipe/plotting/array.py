@@ -24,8 +24,8 @@ class NominalPlotter:
         """
         self.axes = ax if ax is not None else plt.gca()
 
-        self.cen_x = [i.cen_x.to(u.deg).value for i in hillas_parameters.values()]
-        self.cen_y = [i.cen_y.to(u.deg).value for i in hillas_parameters.values()]
+        self.cen_x = [i.x.to(u.deg).value for i in hillas_parameters.values()]
+        self.cen_y = [i.y.to(u.deg).value for i in hillas_parameters.values()]
 
         self.centre = (0, 0)
         self.array = ArrayDisplay(telx=np.asarray(self.cen_x),

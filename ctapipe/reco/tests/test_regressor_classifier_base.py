@@ -1,6 +1,5 @@
 import pytest
 from sklearn.ensemble import RandomForestClassifier
-
 from ctapipe.reco.regressor_classifier_base import *
 
 
@@ -53,3 +52,28 @@ def test_failures():
         )
         assert feature_flattened is not None
         assert target_flattened is not None
+
+
+def test_show_importances():
+
+    cam_id_list = ["FlashCam", "ASTRICam"]
+    feature_list = {"FlashCam": [[1, 10], [2, 20], [3, 30], [0.9, 9],
+                                 ],
+                    "ASTRICam": [[10, 1], [20, 2], [30, 3], [9, 0.9],
+                                 ]}
+    target_list = {"FlashCam": [0, 1, 1, 0],
+                   "ASTRICam": [1, 0, 0, 0]}
+
+    reg = RegressorClassifierBase(model=RandomForestClassifier,
+                                  cam_id_list=cam_id_list, unit=1)
+
+    reg.fit(feature_list, target_list)
+    reg.input_features_dict = {
+        "FlashCam": ['f1', 'f2'],
+        "ASTRICam": ['f1', 'f2'],
+    }
+    fig = reg.show_importances()
+    ax = fig.axes[0]
+    assert len(ax.get_xticklabels()) == 2
+    for t in ax.get_xticklabels():
+        assert t.get_text() in ['f1', 'f2']

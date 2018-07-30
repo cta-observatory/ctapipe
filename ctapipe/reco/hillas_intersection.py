@@ -2,7 +2,7 @@
 """
 
 TODO:
-- Speed tests, need to be certain the looping on all telescopes is not killing 
+- Speed tests, need to be certain the looping on all telescopes is not killing
 performance
 - Introduce new weighting schemes
 - Make intersect_lines code more readable
@@ -99,7 +99,7 @@ class HillasIntersection(Reconstructor):
                                      + core_err_y * core_err_y) * u.m
 
         result.tel_ids = [h for h in hillas_parameters.keys()]
-        result.average_size = np.mean([h.size for h in hillas_parameters.values()])
+        result.average_size = np.mean([h.intensity for h in hillas_parameters.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x * err_x + err_y * err_y)
@@ -139,9 +139,9 @@ class HillasIntersection(Reconstructor):
         h1 = list(
             map(
                 lambda h: [h[0].psi.to(u.rad).value,
-                           h[0].cen_x.value,
-                           h[0].cen_y.value,
-                           h[0].size], hillas_pairs
+                           h[0].x.value,
+                           h[0].y.value,
+                           h[0].intensity], hillas_pairs
             )
         )
         h1 = np.array(h1)
@@ -149,9 +149,9 @@ class HillasIntersection(Reconstructor):
 
         h2 = list(
             map(lambda h: [h[1].psi.to(u.rad).value,
-                           h[1].cen_x.value,
-                           h[1].cen_y.value,
-                           h[1].size], hillas_pairs)
+                           h[1].x.value,
+                           h[1].y.value,
+                           h[1].intensity], hillas_pairs)
         )
         h2 = np.array(h2)
         h2 = np.transpose(h2)
@@ -229,11 +229,11 @@ class HillasIntersection(Reconstructor):
         tel_y = np.array(ty)
 
         # Copy parameters we need to a numpy array to speed things up
-        h1 = map(lambda h: [h[0].psi.to(u.rad).value, h[0].size], hillas_pairs)
+        h1 = map(lambda h: [h[0].psi.to(u.rad).value, h[0].intensity], hillas_pairs)
         h1 = np.array(list(h1))
         h1 = np.transpose(h1)
 
-        h2 = map(lambda h: [h[1].psi.to(u.rad).value, h[1].size], hillas_pairs)
+        h2 = map(lambda h: [h[1].psi.to(u.rad).value, h[1].intensity], hillas_pairs)
         h2 = np.array(list(h2))
         h2 = np.transpose(h2)
 
@@ -262,7 +262,7 @@ class HillasIntersection(Reconstructor):
     def reconstruct_xmax(self, source_x, source_y, core_x, core_y,
                          hillas_parameters, tel_x, tel_y, zen):
         """
-        Geometrical depth of shower maximum reconstruction, assuming the shower 
+        Geometrical depth of shower maximum reconstruction, assuming the shower
         maximum lies at the image centroid
 
         Parameters
@@ -298,9 +298,9 @@ class HillasIntersection(Reconstructor):
 
         # Loops over telescopes in event
         for tel in hillas_parameters.keys():
-            cog_x.append(hillas_parameters[tel].cen_x.to(u.rad).value)
-            cog_y.append(hillas_parameters[tel].cen_y.to(u.rad).value)
-            amp.append(hillas_parameters[tel].size)
+            cog_x.append(hillas_parameters[tel].x.to(u.rad).value)
+            cog_y.append(hillas_parameters[tel].y.to(u.rad).value)
+            amp.append(hillas_parameters[tel].intensity)
 
             tx.append(tel_x[tel].to(u.m).value)
             ty.append(tel_y[tel].to(u.m).value)
