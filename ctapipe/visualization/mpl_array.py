@@ -183,14 +183,14 @@ class ArrayDisplay:
         """
 
         rho = np.zeros(self.subarray.num_tels) * u.m
-        phi = np.zeros(self.subarray.num_tels) * u.deg
+        psi = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = 1.0 * u.m  # params.length
-            phi[idx] = Angle(params.phi) + Angle(angle_offset)
+            psi[idx] = Angle(params.psi) + Angle(angle_offset)
 
-        self.set_vector_rho_phi(rho=rho, phi=phi)
+        self.set_vector_rho_phi(rho=rho, phi=psi)
 
     def add_labels(self):
         px = self.tel_coords.x.value
