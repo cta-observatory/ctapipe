@@ -4,7 +4,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
 from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection
+from matplotlib.collections import PatchCollection, LineCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
 
@@ -182,15 +182,48 @@ class ArrayDisplay:
             mapping of tel_id to Hillas parameters
         """
 
+        # rot_angle_ellipse is psi parameter in HillasParametersContainer
+
         rho = np.zeros(self.subarray.num_tels) * u.m
-        psi = np.zeros(self.subarray.num_tels) * u.deg
+        rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = 1.0 * u.m  # params.length
-            psi[idx] = Angle(params.psi) + Angle(angle_offset)
+            rot_angle_ellipse[idx] = Angle(params.psi)+ Angle(angle_offset)
 
-        self.set_vector_rho_phi(rho=rho, phi=psi)
+        self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
+
+    def set_line_hillas(self, hillas_dict, range):
+        """
+        Function to plot a segment for each telescope from a set of Hillas parameters.
+
+        Parameters
+        ----------
+        hillas_dict: Dict[int, HillasParametersContainer]
+            mapping of tel_id to Hillas parameters
+        range: float
+            length of the segments to be plotted (in meters)
+        """
+
+        # rot_angle_ellipse is psi parameter in HillasParametersContainer
+
+        rho = np.zeros(self.subarray.num_tels) * u.m
+        rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
+        coords = self.tel_coords
+        c = self.tel_colors
+
+        for tel_id, params in hillas_dict.items():
+            idx = self.subarray.tel_indices[tel_id]
+            x_0 = coords[idx].x.value
+            y_0 = coords[idx].y.value
+            m = np.tan(params.psi)
+            x = x_0 + np.linspace(-300.0, 300.0, 50)
+            y = y_0 + m * (x-x_0)
+            distance = np.sqrt((x-x_0)**2+(y-y_0)**2)
+            mask = np.ma.masked_where(distance < range, distance).mask
+            self.axes.plot(x[mask], y[mask], color=c[idx])
+
 
     def add_labels(self):
         px = self.tel_coords.x.value
