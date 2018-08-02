@@ -205,7 +205,7 @@ class ArrayDisplay:
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
         range: float
-            length of the segments to be plotted (in meters)
+            half of the length of the segments to be plotted (in meters)
         """
 
         # rot_angle_ellipse is psi parameter in HillasParametersContainer
@@ -224,8 +224,8 @@ class ArrayDisplay:
             y = y_0 + m * (x-x_0)
             distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
             mask = np.ma.masked_where(distance < range, distance).mask
-            self.axes.plot(x[mask], y[mask], color=c[idx])
-            self.axes.scatter(x_0, y_0, color=c[idx], **kwargs)
+            self.axes.plot(x[mask], y[mask], color=c[idx], **kwargs)
+            self.axes.scatter(x_0, y_0, color=c[idx])
 
     def add_labels(self):
         px = self.tel_coords.x.value
