@@ -194,9 +194,11 @@ class ArrayDisplay:
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
-    def set_line_hillas(self, hillas_dict, range):
+    def set_line_hillas(self, hillas_dict, range, **kwargs):
         """
-        Function to plot a segment for each telescope from a set of Hillas parameters.
+        Function to plot a segment of length 2*range for each telescope from a set of Hillas parameters.
+        The segment is centered on the telescope position.
+        A point is added at each telescope position for better visualization.
 
         Parameters
         ----------
@@ -218,12 +220,12 @@ class ArrayDisplay:
             x_0 = coords[idx].x.value
             y_0 = coords[idx].y.value
             m = np.tan(params.psi)
-            x = x_0 + np.linspace(-300.0, 300.0, 50)
+            x = x_0 + np.linspace(-range, range, 50)
             y = y_0 + m * (x-x_0)
-            distance = np.sqrt((x-x_0)**2+(y-y_0)**2)
+            distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
             mask = np.ma.masked_where(distance < range, distance).mask
             self.axes.plot(x[mask], y[mask], color=c[idx])
-
+            self.axes.scatter(x_0, y_0, color=c[idx], **kwargs)
 
     def add_labels(self):
         px = self.tel_coords.x.value
