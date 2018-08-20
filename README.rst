@@ -49,3 +49,11 @@ Developers should follow the development install instructions found in the
 `documentation <https://cta-observatory.github
 .io/ctapipe/getting_started>`_.
 
+
+If you're installing *ctapipe* manually, you'll also need these external dependencies:
+
+::
+
+ git clone https://github.com/cta-observatory/pyhessio.git
+ git clone https://github.com/cta-observatory/ctapipe-extra.git
+ git clone https://github.com/cta-sst-1m/protozfitsreader.git
