@@ -208,10 +208,6 @@ class ArrayDisplay:
             half of the length of the segments to be plotted (in meters)
         """
 
-        # rot_angle_ellipse is psi parameter in HillasParametersContainer
-
-        rho = np.zeros(self.subarray.num_tels) * u.m
-        rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
         coords = self.tel_coords
         c = self.tel_colors
 
@@ -219,7 +215,7 @@ class ArrayDisplay:
             idx = self.subarray.tel_indices[tel_id]
             x_0 = coords[idx].x.value
             y_0 = coords[idx].y.value
-            m = np.tan(params.psi)
+            m = np.tan(Angle(params.psi))
             x = x_0 + np.linspace(-range, range, 50)
             y = y_0 + m * (x-x_0)
             distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
