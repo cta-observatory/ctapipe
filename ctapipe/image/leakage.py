@@ -7,8 +7,7 @@ __all__ = ['leakage']
 
 
 def leakage(geom, image):
-    '''
-    Calculating the leakage-values for a given image.
+    r"""Calculating the leakage-values for a given image.
     Image must be cleaned for example with tailcuts_clean.
 
     Parameters
@@ -30,7 +29,8 @@ def leakage(geom, image):
         leakage_border_photon2:   float
             Number of photons in the second row of the border-pixel
              divided by all photons
-    '''
+
+    """
     max_value = max(np.sum(geom.neighbor_matrix, axis=0))
     leakage_border_pixel1 = 0
     leakage_border_pixel2 = 0
@@ -53,5 +53,7 @@ def leakage(geom, image):
                 leakage_border_pixel2 += 1
                 leakage_border_photon2 += image[i]
                 break
-    return leakage_border_pixel1 / pixel_count, leakage_border_pixel2 / pixel_count, \
-           leakage_border_photon1 / size, leakage_border_photon2 / size
+    return leakage_border_pixel1 / pixel_count, \
+           leakage_border_pixel2 / pixel_count, \
+           leakage_border_photon1 / size, \
+           leakage_border_photon2 / size
