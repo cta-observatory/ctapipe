@@ -31,6 +31,7 @@ def leakage(geom, image):
              divided by all photons
 
     """
+
     max_value = max(np.sum(geom.neighbor_matrix, axis=0))
     leakage_border_pixel1 = 0
     leakage_border_pixel2 = 0
@@ -38,9 +39,8 @@ def leakage(geom, image):
     leakage_border_photon2 = 0
     size = 0
     pixel_count = 0
-    for i in range(len(image)):
-        if image[i] <= 0:
-            continue
+    nonzero_index = np.nonzero(image)[0]
+    for i in nonzero_index:
         size += image[i]
         pixel_count += 1
         if np.sum(geom.neighbor_matrix[i]) != max_value:
