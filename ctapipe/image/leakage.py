@@ -5,6 +5,7 @@ Leakage calculation
 import numpy as np
 __all__ = ['leakage']
 
+
 def leakage(geom, image):
     '''
     Calculating the leakage-values for a given image.
@@ -22,11 +23,13 @@ def leakage(geom, image):
         leakage_border_pixel1:   float
             Number of shower-pixel on the border divided by all shower-pixel
         leakage_border_pixel2:   float
-            Number of shower-pixel in the second row of the border divided by all shower-pixel
+            Number of shower-pixel in the second row of the border
+             divided by all shower-pixel
         leakage_border_photon1:   float
             Number of photons in the border-pixel divided by all photons
         leakage_border_photon2:   float
-            Number of photons in the second row of the border-pixel divided by all photons
+            Number of photons in the second row of the border-pixel
+             divided by all photons
     '''
     max_value = max(np.sum(geom.neighbor_matrix, axis=0))
     leakage_border_pixel1 = 0
@@ -50,4 +53,5 @@ def leakage(geom, image):
                 leakage_border_pixel2 += 1
                 leakage_border_photon2 += image[i]
                 break
-    return leakage_border_pixel1 / pixel_count, leakage_border_pixel2 / pixel_count, leakage_border_photon1 / size, leakage_border_photon2 / size
+    return leakage_border_pixel1 / pixel_count, leakage_border_pixel2 / pixel_count, \
+           leakage_border_photon1 / size, leakage_border_photon2 / size
