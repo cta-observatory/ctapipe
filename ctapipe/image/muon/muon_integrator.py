@@ -337,13 +337,13 @@ class MuonLineIntegrate:
         #ped = ped * u.deg
         #image = image * u.deg
         pred = pred * u.deg
-        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) ))#* u.deg))
+        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) ))
         diff = (image - pred)**2
-        denom = 2 * (ped**2 + pred * (1 + spe_width**2) )#* u.deg)
+        denom = 2 * (ped**2 + pred * (1 + spe_width**2) )
         expo = np.exp(-diff / denom) * u.m
         sm = expo < 1e-300 * u.m
         expo[sm] = 1e-300 * u.m
-        log_value = sq * expo / u.m #* u.deg
+        log_value = sq * expo / u.m 
         likelihood_value = -2 * np.log(log_value)
 
         return likelihood_value
