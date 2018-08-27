@@ -39,6 +39,8 @@ _CAMERA_GEOMETRY_TABLE = {
     (2368, None): ('SST', 'ASTRICam', 'rectangular', 0 * u.degree,
                    0 * u.degree),
     (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
+    (1039, 16.97): ('MAGIC', 'MAGICCam', 'hexagonal', 70.886 * u.degree, 0 * u.degree), # MAGIC pixel rotation retrieved from MGEOMCAMMagicTwo.cxx in MARS
+    (1039, 16.97): ('MAGIC', 'MAGICCamMars', 'hexagonal', 19.114 * u.degree, 0 * u.degree), 
 }
 
 
