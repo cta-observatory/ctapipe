@@ -17,8 +17,8 @@ _FOCLEN_TO_TEL_INFO = {
     2.15: ('SST', 'ASTRI', 'SC'),
     5.6: ('SST', '1M', 'SC'),
     5.58: ('MST', 'SCT', 'SC'),
-    5.59: ('MST', 'SCT', 'SC')
-
+    5.59: ('MST', 'SCT', 'SC'),
+    16.97: ('MAGIC', '', 'DC')
 }
 
 
@@ -38,7 +38,7 @@ class OpticsDescription:
     mirror_type: str
         'SC' or 'DC'
     tel_type: str
-        'SST', 'MST','LST'
+        'SST', 'MST', 'LST', 'MAGIC'
     tel_subtype: str
         subtype of telescope, e.g. '1M' or 'ASTRI'
     equivalent_focal_length: Quantity(float)
@@ -61,7 +61,7 @@ class OpticsDescription:
                  tel_subtype, equivalent_focal_length,
                  mirror_area=None, num_mirror_tiles=None):
 
-        if tel_type not in ['LST', 'MST', 'SST']:
+        if tel_type not in ['LST', 'MST', 'SST', 'MAGIC']:
             raise ValueError("Unknown tel_type %s", tel_type)
 
         if mirror_type not in ['SC', 'DC']:
@@ -183,7 +183,7 @@ def telescope_info_from_metadata(focal_length):
     Returns
     -------
     str,str,str:
-        tel_type ('LST', 'MST' or 'SST'),
+        tel_type ('LST', 'MST', 'SST', or 'MAGIC'),
         tel_subtype (model),
         mirror_type ('SC' or 'DC')
 
