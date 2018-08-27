@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 _FOCLEN_TO_TEL_INFO = {
     # foclen: tel_type, tel_subtype, mirror_type
     28.0: ('LST', '', 'DC'),
+    16.97: ('LST', 'MAGIC', 'DC'),
     16.0: ('MST', '', 'DC'),
     2.28: ('SST', 'GCT', 'SC'),
     2.15: ('SST', 'ASTRI', 'SC'),
