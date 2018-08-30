@@ -80,10 +80,10 @@ def test_array_display():
 
     # test using hillas params:
     hillas_dict = {
-        1: HillasParametersContainer(length=1.0 * u.m, phi=90 * u.deg),
-        2: HillasParametersContainer(length=200 * u.cm, phi="95deg"),
+        1: HillasParametersContainer(length=1.0 * u.m, psi=90 * u.deg),
+        2: HillasParametersContainer(length=200 * u.cm, psi="95deg"),
     }
     ad.set_vector_hillas(hillas_dict)
-
+    ad.set_line_hillas(hillas_dict, range=300)
     ad.add_labels()
     ad.remove_labels()
