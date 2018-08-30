@@ -86,7 +86,8 @@ class ImPACTReconstructor(Reconstructor):
     ped_table = {"LSTCam": 2.8,
                  "NectarCam": 2.3,
                  "FlashCam": 2.3,
-                 "CHEC": 0.5}
+                 "CHEC": 0.5,
+                 "DUMMY": 0}
     spe = 0.5  # Also hard code single p.e. distribution width
 
     def __init__(self, root_dir=".", minimiser="minuit", prior="",
@@ -152,7 +153,7 @@ class ImPACTReconstructor(Reconstructor):
 
         """
         for t in tel_type:
-            if tel_type[t] in self.prediction.keys():
+            if tel_type[t] in self.prediction.keys() or tel_type[t] == "DUMMY":
                 continue
 
             self.prediction[tel_type[t]] = \
