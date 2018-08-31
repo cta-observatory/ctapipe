@@ -2,10 +2,12 @@
 """
 EventSource for LSTCam protobuf-fits.fz-files.
 
-Needs protozfits v1.02.0 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.0.2 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
+from os.path import exists
+from ctapipe.core import Provenance
 from .eventsource import EventSource
 from .containers import LSTDataContainer
 
@@ -16,9 +18,11 @@ class LSTEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
-        from protozfits import File
-        self.file = File(self.input_url)
-        self.camera_config = next(self.file.CameraConfig)
+
+        self.multi_file = MultiFiles(self.input_url)
+        self.camera_config = self.multi_file.camera_config
+
+        self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
 
 
     def _generator(self):
@@ -30,8 +34,8 @@ class LSTEventSource(EventSource):
         # fill LST data from the CameraConfig table
         self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
 
-        for count, event in enumerate(self.file.Events):
-
+        # loop on events
+        for count, event in enumerate(self.multi_file):
 
             data.count = count
 
@@ -149,3 +153,99 @@ class LSTEventSource(EventSource):
             r0_camera_container,
             event
         )
+
+
+class MultiFiles:
+    '''
+    In LST they have multiple file writers, which save the incoming events
+    into different files, so in case one has 10 events and 4 files,
+    it might look like this:
+            f1 = [0, 4]
+            f2 = [1, 5, 8]
+            f3 = [2, 6, 9]
+            f4 = [3, 7]
+    The task of MultiZFitsFiles is to open these 4 files simultaneously
+    and return the events in the correct order, so the user does not really
+    have to know about these existence of 4 files.
+    '''
+
+    def __init__(self, input_url):
+
+        self._file = {}
+        self._events = {}
+        self._events_table = {}
+        self._camera_config = {}
+
+        paths = [input_url, ]
+
+        # test how many files are there
+        if '000.fits.fz' in input_url:
+            i = 0
+            while True:
+                input_url = input_url.replace(str(i).zfill(3) + '.fits.fz', str(i + 1).zfill(3) + '.fits.fz')
+                if exists(input_url):
+                    paths.append(input_url)
+                    # keep track of all input files
+                    Provenance().add_input_file(input_url, role='dl0.sub.evt')
+                    i = i + 1
+                else:
+                    break
+
+        # open the files and get the first fits Tables
+        from protozfits import File
+
+        for path in paths:
+            self._file[path] = File(path)
+            self._events_table[path] = File(path).Events
+            try:
+
+                self._events[path] = next(self._file[path].Events)
+                self._camera_config[path] = next(self._file[path].CameraConfig)
+
+            except StopIteration:
+                pass
+
+        # verify that the configuration_id of all files are the same in the CameraConfig table
+        for path in paths:
+            assert self._camera_config[path].configuration_id == self._camera_config[paths[0]].configuration_id
+
+        # keep the cameraConfig of the first file
+        self.camera_config = self._camera_config[paths[0]]
+
+    def camera_config(self):
+        return self.camera_config
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.next_event()
+
+    def next_event(self):
+        # check for the minimal event id
+        if not self._events:
+            raise StopIteration
+
+        min_path = min(
+            self._events.items(),
+            key=lambda item: item[1].event_id,
+        )[0]
+
+        # return the minimal event id
+        next_event = self._events[min_path]
+        try:
+            self._events[min_path] = next(self._file[min_path].Events)
+        except StopIteration:
+            del self._events[min_path]
+
+        return next_event
+
+    def __len__(self):
+        total_length = sum(
+            len(table)
+            for table in self._events_table.values()
+        )
+        return total_length
+
+    def num_inputs(self):
+        return len(self._file)
