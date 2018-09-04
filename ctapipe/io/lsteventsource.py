@@ -167,6 +167,11 @@ class MultiFiles:
     The task of MultiZFitsFiles is to open these 4 files simultaneously
     and return the events in the correct order, so the user does not really
     have to know about these existence of 4 files.
+
+    In case of multiple input files the name of the files must finish with suffix
+    *000.fits.fz, *001.fits.fz, etc... and the user must give as input_url the name
+    of the first file (*000.fits.fz). The program will search for the other files. 
+    In the case of only one input file the input_url can have any form.
     '''
 
     def __init__(self, input_url):
