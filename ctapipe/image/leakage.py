@@ -16,24 +16,24 @@ def leakage(geom, image):
 
     Parameters
     ----------
-        geom: `ctapipe.instrument.CameraGeometry`
-            Camera geometry information
-        image: array
-            pixel values
-
+    geom: ctapipe.instrument.CameraGeometry
+        Camera geometry information
+    image: array
+        pixel values
 
     Returns
     -------
-        leakage_pixel1:   float
-            Number of shower-pixel on the border divided by all shower-pixel
-        leakage_pixel2:   float
-            Number of shower-pixel in the second row of the border
-             divided by all shower-pixel
-        leakage_intensity1:   float
-            Number of photo-electrons in the border-pixel divided by all photo-electrons
-        leakage_intensity2:   float
-            Number of photo-electrons in the second row of the border-pixel
-             divided by all photo-electrons
+    leakage_pixel1:   float
+        Number of shower-pixel on the border divided by all shower-pixel
+    leakage_pixel2:   float
+        Number of shower-pixel in the second row of the border
+        divided by all shower-pixel
+    leakage_intensity1:   float
+        Number of photo-electrons in the border-pixel divided by all photo-electrons
+    leakage_intensity2:   float
+        Number of photo-electrons in the second row of the border-pixel
+        divided by all photo-electrons
+
     """
 
     max_value = max(np.sum(geom.neighbor_matrix, axis=0))
