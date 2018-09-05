@@ -2,7 +2,7 @@
 """
 EventSource for LSTCam protobuf-fits.fz-files.
 
-Needs protozfits v1.0.2 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.4.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
@@ -80,7 +80,6 @@ class LSTEventSource(EventSource):
     def fill_lst_service_container_from_zfile(self, container, camera_config):
 
         container.tels_with_data = [camera_config.telescope_id, ]
-
         svc_container = container.tel[camera_config.telescope_id].svc
 
         svc_container.telescope_id = camera_config.telescope_id
@@ -129,12 +128,13 @@ class LSTEventSource(EventSource):
         container.trigger_type = event.trigger_type
 
         # verify the number of gains
-        if event.waveform.shape[0]==(self.camera_config.num_pixels*container.num_samples):
-            n_gains=1
-        elif event.waveform.shape[0]==(self.camera_config.num_pixels*container.num_samples*2):
-            n_gains=2
+        if event.waveform.shape[0] == (self.camera_config.num_pixels*container.num_samples):
+            n_gains = 1
+        elif event.waveform.shape[0] == (self.camera_config.num_pixels*container.num_samples*2):
+            n_gains = 2
         else:
-            raise ValueError("Waveform matrix dimension not supported: N_chan x N_pix x N_samples= '{}'".format(event.waveform.shape[0]))
+            raise ValueError("Waveform matrix dimension not supported: "
+                             "N_chan x N_pix x N_samples= '{}'".format(event.waveform.shape[0]))
 
 
         container.waveform = np.array(
@@ -170,7 +170,7 @@ class MultiFiles:
 
     In case of multiple input files the name of the files must finish with suffix
     *000.fits.fz, *001.fits.fz, etc... and the user must give as input_url the name
-    of the first file (*000.fits.fz). The program will search for the other files. 
+    of the first file (*000.fits.fz). The program will search for the other files.
     In the case of only one input file the input_url can have any form.
     '''
 
@@ -187,7 +187,8 @@ class MultiFiles:
         if '000.fits.fz' in input_url:
             i = 0
             while True:
-                input_url = input_url.replace(str(i).zfill(3) + '.fits.fz', str(i + 1).zfill(3) + '.fits.fz')
+                input_url = input_url.replace(str(i).zfill(3) +
+                                              '.fits.fz', str(i + 1).zfill(3) + '.fits.fz')
                 if exists(input_url):
                     paths.append(input_url)
                     # keep track of all input files
@@ -210,15 +211,14 @@ class MultiFiles:
             except StopIteration:
                 pass
 
-        # verify that the configuration_id of all files are the same in the CameraConfig table
+        # verify that the configuration_id of all files are the same
+        # in the CameraConfig table
         for path in paths:
-            assert self._camera_config[path].configuration_id == self._camera_config[paths[0]].configuration_id
+            assert self._camera_config[path].configuration_id == \
+                   self._camera_config[paths[0]].configuration_id
 
         # keep the cameraConfig of the first file
         self.camera_config = self._camera_config[paths[0]]
-
-    def camera_config(self):
-        return self.camera_config
 
     def __iter__(self):
         return self
