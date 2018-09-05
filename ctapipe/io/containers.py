@@ -671,11 +671,16 @@ class HillasParametersContainer(Container):
     skewness = Field(nan, 'measure of the asymmetry')
     kurtosis = Field(nan, 'measure of the tailedness')
 
+
 class LeakageContainer(Container):
     """
     Leakage
     """
-    leakage_pixel1 = Field(nan, 'shower-pixel on the border / by all shower-pixel')
-    leakage_pixel2 = Field(nan, 'shower-pixel in the second row of the border / by all shower-pixel')
-    leakage_intensity1 = Field(nan, 'photo-electrons in the border-pixel / by all photo-electrons')
-    leakage_intensity2 = Field(nan, 'photo-electrons in the second row of the border-pixel / by all photo-electrons')
+    leakage_pixel1 = Field(nan, ("shower-pixel on the border"
+                                 "devided by all shower-pixel"))
+    leakage_pixel1 = Field(nan, ("shower-pixel in the second row of the border"
+                                 "devided by all shower-pixel"))
+    leakage_intensity1 = Field(nan, ("photo-electrons in the border-pixel"
+                                     "devided by all photo-electrons"))
+    leakage_intensity2 = Field(nan, ("photo-electrons in the second row of border-pixel"
+                                     "devided by all photo-electrons"))

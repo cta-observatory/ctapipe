@@ -5,13 +5,13 @@ Leakage calculation
 import numpy as np
 from ..io.containers import LeakageContainer
 
+
 __all__ = ['leakage']
 
-def leakage(geom, image):
-    """
-    Calculating the leakage-values for a given image.
-    Image must be cleaned for example with tailcuts_clean.
 
+def leakage(geom, image):
+    """Calculating the leakage-values for a given image.
+    Image must be cleaned for example with tailcuts_clean.
     Leakage describes how strong a shower is on the edge of a telescope.
 
     Parameters
@@ -20,6 +20,7 @@ def leakage(geom, image):
             Camera geometry information
         image: array
             pixel values
+
 
     Returns
     -------
@@ -33,7 +34,6 @@ def leakage(geom, image):
         leakage_intensity2:   float
             Number of photo-electrons in the second row of the border-pixel
              divided by all photo-electrons
-
     """
 
     max_value = max(np.sum(geom.neighbor_matrix, axis=0))
