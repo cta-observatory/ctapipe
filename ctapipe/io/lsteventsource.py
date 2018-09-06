@@ -128,13 +128,16 @@ class LSTEventSource(EventSource):
         container.trigger_type = event.trigger_type
 
         # verify the number of gains
-        if event.waveform.shape[0] == (self.camera_config.num_pixels*container.num_samples):
+        if event.waveform.shape[0] == (self.camera_config.num_pixels *
+                                       container.num_samples):
             n_gains = 1
-        elif event.waveform.shape[0] == (self.camera_config.num_pixels*container.num_samples*2):
+        elif event.waveform.shape[0] == (self.camera_config.num_pixels *
+                                         container.num_samples * 2):
             n_gains = 2
         else:
             raise ValueError("Waveform matrix dimension not supported: "
-                             "N_chan x N_pix x N_samples= '{}'".format(event.waveform.shape[0]))
+                             "N_chan x N_pix x N_samples= '{}'"
+                             .format(event.waveform.shape[0]))
 
 
         container.waveform = np.array(
@@ -188,7 +191,8 @@ class MultiFiles:
             i = 0
             while True:
                 input_url = input_url.replace(str(i).zfill(3) +
-                                              '.fits.fz', str(i + 1).zfill(3) + '.fits.fz')
+                                              '.fits.fz', str(i + 1)
+                                              .zfill(3) + '.fits.fz')
                 if exists(input_url):
                     paths.append(input_url)
                     # keep track of all input files
