@@ -218,8 +218,8 @@ class MultiFiles:
         # verify that the configuration_id of all files are the same
         # in the CameraConfig table
         for path in paths:
-            assert self._camera_config[path].configuration_id == \
-                   self._camera_config[paths[0]].configuration_id
+            assert ( self._camera_config[path].configuration_id
+                     == self._camera_config[paths[0]].configuration_id )
 
         # keep the cameraConfig of the first file
         self.camera_config = self._camera_config[paths[0]]
