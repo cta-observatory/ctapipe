@@ -165,7 +165,7 @@ class HillasReconstructor(Reconstructor):
 
         result.goodness_of_fit = np.nan
 
-        return result, self.hillas_planes
+        return result
 
     def inititialize_hillas_planes(
         self,
@@ -272,7 +272,7 @@ class HillasReconstructor(Reconstructor):
 
         core_position = line_line_intersection_3d(uvw_vectors, tel_positions)
         # we are only intyerested in x and y
-        return core_position[:2]
+        return core_position[:2] * u.m
 
 
 
