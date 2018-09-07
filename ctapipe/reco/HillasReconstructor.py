@@ -267,6 +267,21 @@ class HillasReconstructor(Reconstructor):
 
 
     def estimate_core_position(self, hillas_dict, subarray):
+        '''
+        Estimate the core position by intersection the major ellipse lines of each telescope.
+
+        Parameters
+        -----------
+        hillas_dict : dictionary
+            dictionary of hillas moments
+        subarray : ctapipe.instrument.SubarrayDescription
+            subarray information
+
+        Returns
+        -----------
+        astropy.unit.Quantity (wrapped numpy array) of shape 2
+
+        '''
         uvw_vectors = np.array([(np.cos(h.phi), np.sin(h.phi), 0) for h in hillas_dict.values()])
         tel_positions = [subarray.positions[tel_id].value for tel_id in hillas_dict]
 
