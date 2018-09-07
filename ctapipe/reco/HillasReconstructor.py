@@ -61,17 +61,21 @@ def normalise(vec):
 
 
 def line_line_intersection_3d(uvw_vectors, origins):
+    '''
+    Intersection of many lines in 3d.
+    See https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    '''
     C = []
     S = []
     for n, pos in zip(uvw_vectors, origins):
         n = n.reshape((3, 1))
-        norm_matrix = n@n.T - np.eye(3)
-        C.append(norm_matrix@pos)
+        norm_matrix = (n @ n.T) - np.eye(3)
+        C.append(norm_matrix @ pos)
         S.append(norm_matrix)
 
     S = np.array(S).sum(axis=0)
     C = np.array(C).sum(axis=0)
-    return np.linalg.inv(S)@C
+    return np.linalg.inv(S) @ C
 
 
 class HillasReconstructor(Reconstructor):
