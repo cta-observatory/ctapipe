@@ -15,7 +15,6 @@ from scipy.sparse import csr_matrix
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
 
-from functools import lru_cache
 
 __all__ = ['CameraGeometry']
 
@@ -115,7 +114,7 @@ class CameraGeometry:
                 self.rotate(cam_rotation)
 
         # cache border pixel mask per instance
-        self.get_border_pixel_mask = lru_cache(maxsize=30)(self.get_border_pixel_mask)
+        self.border_cache = {}
 
     def __eq__(self, other):
         return ((self.cam_id == other.cam_id)
@@ -474,12 +473,19 @@ class CameraGeometry:
         mask: array
             A boolean mask, True if pixel is in the border of the specified width
         '''
+        if width in self.border_cache:
+            return self.border_cache[width]
+
         if width == 1:
             n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
             max_neighbors = n_neighbors.max()
-            return n_neighbors < max_neighbors
-        n = self.neighbor_matrix
-        return (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
+            mask = n_neighbors < max_neighbors
+        else:
+            n = self.neighbor_matrix
+            mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
+
+        self.border_cache[width] = mask
+        return mask
 
 
 # ======================================================================
