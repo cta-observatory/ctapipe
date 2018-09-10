@@ -40,7 +40,7 @@ def leakage(geom, image, cleaning_mask):
     leakage_intensity1 = np.sum(image[mask1])
     leakage_intensity2 = np.sum(image[mask2])
 
-    size = np.sum(image)
+    size = np.sum(image[cleaning_mask])
 
     return LeakageContainer(
         leakage1_pixel=leakage_pixel1 / geom.n_pixels,
