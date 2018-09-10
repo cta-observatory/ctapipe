@@ -63,8 +63,7 @@ def create_sample_image_masked(psi='-30d'):
 
 def create_sample_image_selected_pixel(psi='-30d'):
     geom, image, clean_mask = create_sample_image(psi)
-    import IPython; IPython.embed()
-    
+
     return geom[clean_mask], image[clean_mask]
 
 
