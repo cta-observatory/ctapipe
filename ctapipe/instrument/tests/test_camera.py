@@ -6,6 +6,8 @@ from ctapipe.instrument.camera import (
     _get_min_pixel_seperation,
 )
 import pytest
+from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.utils import get_dataset_path
 
 cam_ids = CameraGeometry.get_known_camera_names()
 
@@ -150,6 +152,19 @@ def test_slicing():
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
+
+
+def test_slicing_rotation():
+    event_source = EventSourceFactory.produce(
+        input_url=get_dataset_path('gamma_test.simtel.gz'),
+        product='HESSIOEventSource',
+    )
+    e = next(iter(event_source))
+    geom = e.inst.subarray.tel[1].camera
+
+    sliced1 = geom[5:10]
+
+    assert sliced1.pix_x[0] == geom.pix_x[5]
 
 
 def test_border_pixels():
