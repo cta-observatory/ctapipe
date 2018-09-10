@@ -57,10 +57,15 @@ def create_sample_image_zeros(psi='-30d'):
 def create_sample_image_masked(psi='-30d'):
     geom, image, clean_mask = create_sample_image(psi)
 
-    # threshold in pe
     image = masked_array(image, mask=~clean_mask)
-
     return geom, image
+
+
+def create_sample_image_selected_pixel(psi='-30d'):
+    geom, image, clean_mask = create_sample_image(psi)
+    import IPython; IPython.embed()
+    
+    return geom[clean_mask], image[clean_mask]
 
 
 def compare_result(x, y):
@@ -119,6 +124,28 @@ def test_hillas_masked():
     compare_result(results.psi.deg, results_ma.psi.deg)
     compare_result(results.skewness, results_ma.skewness)
     # compare_result(results.kurtosis, results_ma.kurtosis)
+
+
+def test_hillas_selected():
+    """
+    test Hillas-parameter routines on a sample image with selected values
+    against a sample image with masked values set tozero
+    """
+
+    geom, image = create_sample_image_zeros()
+    geom, image_ma = create_sample_image_selected_pixel()
+
+    results = hillas_parameters_4(geom, image)
+    results_ma = hillas_parameters_4(geom, image_ma)
+
+    compare_result(results.length, results_ma.length)
+    compare_result(results.width, results_ma.width)
+    compare_result(results.r, results_ma.r)
+    compare_result(results.phi.deg, results_ma.phi.deg)
+    compare_result(results.psi.deg, results_ma.psi.deg)
+    compare_result(results.skewness, results_ma.skewness)
+    # compare_result(results.kurtosis, results_ma.kurtosis)
+
 
 
 def test_hillas_failure():
