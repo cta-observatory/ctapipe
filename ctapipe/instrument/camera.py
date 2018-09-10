@@ -92,6 +92,8 @@ class CameraGeometry:
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True):
 
+        assert len(pix_x) == len(pix_y), 'pix_x and pix_y must have same length'
+        self.n_pixels = len(pix_x)
         self.cam_id = cam_id
         self.pix_id = pix_id
         self.pix_x = pix_x
@@ -123,6 +125,9 @@ class CameraGeometry:
                 and (self.pix_rotation == other.pix_rotation)
                 and (self.pix_type == other.pix_type)
                 )
+
+    def __len__(self):
+        return self.n_pixels
 
     def __getitem__(self, slice_):
         return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
