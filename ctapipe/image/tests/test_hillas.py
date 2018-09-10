@@ -132,10 +132,10 @@ def test_hillas_selected():
     """
 
     geom, image = create_sample_image_zeros()
-    geom, image_ma = create_sample_image_selected_pixel()
+    geom_selected, image_ma = create_sample_image_selected_pixel()
 
     results = hillas_parameters_4(geom, image)
-    results_ma = hillas_parameters_4(geom, image_ma)
+    results_ma = hillas_parameters_4(geom_selected, image_ma)
 
     compare_result(results.length, results_ma.length)
     compare_result(results.width, results_ma.width)
