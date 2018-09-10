@@ -15,6 +15,8 @@ from scipy.sparse import csr_matrix
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
 
+from functools import lru_cache
+
 __all__ = ['CameraGeometry']
 
 logger = logging.getLogger(__name__)
@@ -109,6 +111,9 @@ class CameraGeometry:
             # GeometryConverter and reco algorithms if we change it.
             if len(pix_x.shape) == 1:
                 self.rotate(cam_rotation)
+
+        # cache border pixel mask per instance
+        self.get_border_pixel_mask = lru_cache(maxsize=30)(self.get_border_pixel_mask)
 
     def __eq__(self, other):
         return ((self.cam_id == other.cam_id)
@@ -449,6 +454,27 @@ class CameraGeometry:
                    pix_area=(2 * rr) ** 2,
                    neighbors=None,
                    pix_type='rectangular')
+
+    def get_border_pixel_mask(self, width=1):
+        '''
+        Get a mask for pixels at the border of the camera of arbitrary width
+
+        Parameters
+        ----------
+        width: int
+            The width of the border in pixels
+
+        Returns
+        -------
+        mask: array
+            A boolean mask, True if pixel is in the border of the specified width
+        '''
+        if width == 1:
+            n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
+            max_neighbors = n_neighbors.max()
+            return n_neighbors < max_neighbors
+        n = self.neighbor_matrix
+        return (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
 
 
 # ======================================================================
