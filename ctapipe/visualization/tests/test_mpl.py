@@ -6,7 +6,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 from ctapipe.instrument import (CameraGeometry, SubarrayDescription,
                                 TelescopeDescription)
 from ctapipe.io.containers import HillasParametersContainer
-from numpy import ones
+from numpy import ones, zeros, arange
 from astropy import units as u
 
 
@@ -55,6 +55,7 @@ def test_camera_display_multiple():
 
 def test_array_display():
     from ctapipe.visualization.mpl_array import ArrayDisplay
+    from ctapipe.image.timing_parameters import timing_parameters
 
     # build a test subarray:
     tels = dict()
@@ -80,10 +81,30 @@ def test_array_display():
 
     # test using hillas params:
     hillas_dict = {
-        1: HillasParametersContainer(length=1.0 * u.m, psi=90 * u.deg),
-        2: HillasParametersContainer(length=200 * u.cm, psi="95deg"),
+        1: HillasParametersContainer(length=100.0 * u.m, psi=90 * u.deg),
+        2: HillasParametersContainer(length=20000 * u.cm, psi="95deg"),
     }
-    ad.set_vector_hillas(hillas_dict)
+
+    grad = 2
+    intercept = 1
+
+    rot_angle = 20 * u.deg
+    timing_rot20 = timing_parameters(
+        pix_x=arange(4) * u.deg,
+        pix_y=zeros(4) * u.deg,
+        image=ones(4),
+        peak_time=intercept * u.ns + grad * arange(4) * u.ns,
+        rotation_angle=rot_angle
+    )
+    gradient_dict = {
+        1: timing_rot20.gradient.value,
+        2: timing_rot20.gradient.value,
+    }
+    ad.set_vector_hillas(hillas_dict=hillas_dict,
+                         length=500,
+                         time_gradient=gradient_dict,
+                         angle_offset=0*u.deg)
+
     ad.set_line_hillas(hillas_dict, range=300)
     ad.add_labels()
     ad.remove_labels()
