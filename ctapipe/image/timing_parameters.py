@@ -77,8 +77,8 @@ def timing_parameters(pix_x, pix_y, image, peak_time, rotation_angle):
     peak_time = np.asanyarray(peak_time, dtype=np.float64)
 
     # select only the pixels in the cleaned image that are greater than zero.
-    # This is to allow to use a dilated mask (better for the time gradient calculation),
-    # which eventually can consider also some pixel that have zero signal, which we need to exclude.
+    # This is to allow to use a dilated mask (which might be better):
+    # we need to exclude possible pixels with zero signal after cleaning.
 
     mask = np.ma.masked_where(image > 0, image).mask
     pix_x = pix_x[mask]
@@ -90,12 +90,14 @@ def timing_parameters(pix_x, pix_y, image, peak_time, rotation_angle):
     assert pix_y.shape == image.shape
     assert peak_time.shape == image.shape
 
-    # since the values of peak_pos are integers, sometimes the mask is constant for all the selected pixels
-    # We can ask for a mask to have at least 3 different values for the peak_pos in the selected pixels
+    # since the values of peak_pos are integers, sometimes the mask is constant
+    # for all the selected pixels. Asking for a mask to have at least 3 different
+    # values for the peak_pos in the selected pixels seems reasonable.
 
     if np.unique(peak_time).size > 2:
         pix_x_rot, pix_y_rot = rotate_translate(pix_x, pix_y, rotation_angle)
-        gradient, intercept = np.polyfit(x=pix_x_rot, y=peak_time, deg=1, w=np.sqrt(image))
+        gradient, intercept = np.polyfit(x=pix_x_rot, y=peak_time,
+                                         deg=1, w=np.sqrt(image))
     else:
         gradient = 0.
         intercept = 0.

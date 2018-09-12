@@ -103,7 +103,7 @@ def test_array_display():
     ad.set_vector_hillas(hillas_dict=hillas_dict,
                          length=500,
                          time_gradient=gradient_dict,
-                         angle_offset=0*u.deg)
+                         angle_offset=0 * u.deg)
 
     ad.set_line_hillas(hillas_dict, range=300)
     ad.add_labels()

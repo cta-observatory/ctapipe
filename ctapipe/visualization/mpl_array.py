@@ -178,7 +178,7 @@ class ArrayDisplay:
 
     def set_vector_hillas(self, hillas_dict, length, time_gradient, angle_offset):
         """
-        helper function to set the vector angle and length from a set of Hillas parameters.
+        Function to set the vector angle and length from a set of Hillas parameters.
 
         In order to proper use the arrow on the ground, also a dictionary with the time
         gradients for the different telescopes is needed. If the gradient is 0 the arrow
@@ -210,11 +210,14 @@ class ArrayDisplay:
             rho[idx] = length * u.m
 
             if time_gradient[tel_id] > 0.01:
-                rot_angle_ellipse[idx] = Angle(params.psi) + Angle(angle_offset) + Angle(180*u.deg)
+                rot_angle_ellipse[idx] = Angle(params.psi) \
+                                         + Angle(angle_offset) \
+                                         + Angle(180 * u.deg)
             elif time_gradient[tel_id] < -0.01:
-                rot_angle_ellipse[idx] = Angle(params.psi) + Angle(angle_offset)
+                rot_angle_ellipse[idx] = Angle(params.psi) \
+                                         + Angle(angle_offset)
             else:
-                rho[idx] = 0*u.m
+                rho[idx] = 0 * u.m
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
