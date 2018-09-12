@@ -291,54 +291,28 @@ class HillasReconstructor(Reconstructor):
 
 
 
-    def estimate_h_max(self, hillas_dict, subarray, pointing_alt, pointing_az):
-        weights = []
-        tels = []
-        dirs = []
+    def estimate_h_max(self, subarray):
+        '''
+        Estimate the max height by intersecting the lines of the cog directions of each telescope.
 
-        for tel_id, moments in hillas_dict.items():
+        Parameters
+        -----------
+        hillas_dict : dictionary
+            dictionary of hillas moments
+        subarray : ctapipe.instrument.SubarrayDescription
+            subarray information
 
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+        Returns
+        -----------
+        astropy.unit.Quantity
+            the estimated max height
+        '''
+        uvw_vectors = np.array([plane.a for plane in self.planes.values()])
+        uvw_vectors[:, 1] *= -1
+        positions = [subarray.positions[tel_id].value for tel_id in self.planes.keys()]
 
-            pointing = SkyCoord(
-                alt=pointing_alt[tel_id],
-                az=pointing_az[tel_id],
-                frame='altaz'
-            )
-
-            hf = HorizonFrame(
-                array_direction=pointing,
-                pointing_direction=pointing
-            )
-            cf = CameraFrame(
-                focal_length=focal_length,
-                array_direction=pointing,
-                pointing_direction=pointing
-            )
-
-            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=cf)
-            cog_coord = cog_coord.transform_to(hf)
-
-            cog_direction = spherical_to_cartesian(1, cog_coord.alt, cog_coord.az)
-            cog_direction = np.array(cog_direction).ravel()
-
-            weights.append(self.hillas_planes[tel_id].weight)
-            tels.append(self.hillas_planes[tel_id].pos)
-            dirs.append(cog_direction)
-
-        # minimising the test function
-        pos_max = minimize(dist_to_line3d, np.array([0, 0, 10000]),
-                           args=(np.array(tels), np.array(dirs), np.array(weights)),
-                           method='BFGS',
-                           options={'disp': False}
-                           ).x
-        return pos_max[2] * u.m
-
-
-def dist_to_line3d(pos, tels, dirs, weights):
-    result = np.average(np.linalg.norm(np.cross((pos - tels), dirs), axis=1),
-                        weights=weights)
-    return result
+        # not sure if its better to return the length of the vector of the z component
+        return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions))
 
 
 class HillasPlane:
