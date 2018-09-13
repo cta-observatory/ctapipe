@@ -147,8 +147,9 @@ class HillasReconstructor(Reconstructor):
         # estimate max height of shower
         h_max = self.estimate_h_max(hillas_dict, inst.subarray, pointing_alt, pointing_az)
 
-
-        result.alt, result.az = lat, lon
+        # astropy's coordinates system rotates counter-clockwise.
+        # Apparently we assume it to be clockwise.
+        result.alt, result.az = lat, -lon
         result.core_x = core_pos[0]
         result.core_y = core_pos[1]
         result.core_uncert = np.nan
@@ -308,7 +309,6 @@ class HillasReconstructor(Reconstructor):
             the estimated max height
         '''
         uvw_vectors = np.array([plane.a for plane in self.planes.values()])
-        uvw_vectors[:, 1] *= -1
         positions = [subarray.positions[tel_id].value for tel_id in self.planes.keys()]
 
         # not sure if its better to return the length of the vector of the z component
@@ -358,8 +358,10 @@ class HillasPlane:
 
         self.pos = telescope_position
 
-        self.a = np.array(spherical_to_cartesian(1, p1.alt, p1.az)).ravel()
-        self.b = np.array(spherical_to_cartesian(1, p2.alt, p2.az)).ravel()
+        # astropy's coordinates system rotates counter clockwise. Apparently we assume it to
+        # be clockwise
+        self.a = np.array(spherical_to_cartesian(1, p1.alt, -p1.az)).ravel()
+        self.b = np.array(spherical_to_cartesian(1, p2.alt, -p2.az)).ravel()
 
         # a and c form an orthogonal basis for the great circle
         # not really necessary since the norm can be calculated
