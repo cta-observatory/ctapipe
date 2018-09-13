@@ -145,7 +145,7 @@ class HillasReconstructor(Reconstructor):
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        h_max = self.estimate_h_max(hillas_dict, inst.subarray, pointing_alt, pointing_az)
+        h_max = self.estimate_h_max(inst.subarray)
 
         # astropy's coordinates system rotates counter-clockwise.
         # Apparently we assume it to be clockwise.
@@ -308,8 +308,8 @@ class HillasReconstructor(Reconstructor):
         astropy.unit.Quantity
             the estimated max height
         '''
-        uvw_vectors = np.array([plane.a for plane in self.planes.values()])
-        positions = [subarray.positions[tel_id].value for tel_id in self.planes.keys()]
+        uvw_vectors = np.array([plane.a for plane in self.hillas_planes.values()])
+        positions = [subarray.positions[tel_id].value for tel_id in self.hillas_planes.keys()]
 
         # not sure if its better to return the length of the vector of the z component
         return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions))
