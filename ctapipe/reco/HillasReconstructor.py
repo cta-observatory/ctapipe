@@ -138,14 +138,14 @@ class HillasReconstructor(Reconstructor):
         direction, err_est_dir = self.estimate_direction()
 
         # core position estimate using a geometric approach
-        core_pos = self.estimate_core_position(hillas_dict, inst.subarray)
+        core_pos = self.estimate_core_position(hillas_dict)
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
         _, lat, lon = cartesian_to_spherical(*direction)
 
         # estimate max height of shower
-        h_max = self.estimate_h_max(inst.subarray)
+        h_max = self.estimate_h_max()
 
         # astropy's coordinates system rotates counter-clockwise.
         # Apparently we assume it to be clockwise.
@@ -267,7 +267,7 @@ class HillasReconstructor(Reconstructor):
 
 
 
-    def estimate_core_position(self, hillas_dict, subarray):
+    def estimate_core_position(self, hillas_dict):
         '''
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
@@ -283,16 +283,17 @@ class HillasReconstructor(Reconstructor):
         astropy.unit.Quantity (wrapped numpy array) of shape 2
 
         '''
-        uvw_vectors = np.array([(np.cos(h.phi), np.sin(h.phi), 0) for h in hillas_dict.values()])
-        tel_positions = [subarray.positions[tel_id].value for tel_id in hillas_dict]
 
-        core_position = line_line_intersection_3d(uvw_vectors, tel_positions)
+        uvw_vectors = np.array([(np.cos(h.phi), np.sin(h.phi), 0) for h in hillas_dict.values()])
+        positions = [plane.pos for plane in self.hillas_planes.values()]
+
+        core_position = line_line_intersection_3d(uvw_vectors, positions)
         # we are only intyerested in x and y
         return core_position[:2] * u.m
 
 
 
-    def estimate_h_max(self, subarray):
+    def estimate_h_max(self):
         '''
         Estimate the max height by intersecting the lines of the cog directions of each telescope.
 
@@ -309,7 +310,7 @@ class HillasReconstructor(Reconstructor):
             the estimated max height
         '''
         uvw_vectors = np.array([plane.a for plane in self.hillas_planes.values()])
-        positions = [subarray.positions[tel_id].value for tel_id in self.hillas_planes.keys()]
+        positions = [plane.pos for plane in self.hillas_planes.values()]
 
         # not sure if its better to return the length of the vector of the z component
         return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions))
