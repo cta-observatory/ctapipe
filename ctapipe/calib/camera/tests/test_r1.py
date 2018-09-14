@@ -3,6 +3,7 @@ from numpy.testing import assert_almost_equal, assert_array_equal, \
 from ctapipe.calib.camera.r1 import (
     CameraR1CalibratorFactory,
     HESSIOR1Calibrator,
+    LSTR1Calibrator,
     TargetIOR1Calibrator,
     NullR1Calibrator
 )
@@ -12,6 +13,16 @@ from ctapipe.io.eventsource import EventSource
 from ctapipe.utils import get_dataset_path
 from copy import deepcopy
 import pytest
+
+
+def test_lst_r1_calibrator(test_event):
+    telid = 11
+    event = deepcopy(test_event)
+    calibrator = LSTR1Calibrator()
+    calibrator.calibrate(event)
+    r0 = event.r0.tel[telid].waveform
+    r1 = event.r1.tel[telid].waveform
+    assert_array_equal(r0[0, 0, 0], r1[0, 0, 0])
 
 
 def test_hessio_r1_calibrator(test_event):
