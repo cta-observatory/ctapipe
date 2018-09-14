@@ -7,6 +7,7 @@ dependencies:
   - zeromq=4.2.2
   - ctapipe-extra=0.2.*
   - astropy
+  - astropy-healpix
   - bokeh
   - cython
   - gammapy
