@@ -262,7 +262,7 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
     """
 
     # finding the size of the square patches
-    d_x = 99 * u.meter # TODO: @jit may have troubles interpreting astropy.Quantities
+    d_x = 99 * u.meter  # TODO: @jit may have troubles interpreting astropy.Quantities
     d_y = 99 * u.meter
     x_base = pix_x[0]
     y_base = pix_y[0]
@@ -271,7 +271,9 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
             d_x = min(d_x, abs(x - x_base))
         if abs(y - y_base) > abs(x - x_base):
             d_y = min(d_y, abs(y - y_base))
-    #for x, y in zip(pix_x, pix_y):
+
+    # 
+    # for x, y in zip(pix_x, pix_y):
     #    if abs(y - y_base) > abs(x - x_base):
     #        d_y = min(d_y, abs(y - y_base))
 
