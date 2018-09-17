@@ -72,33 +72,41 @@ class MAGICEventSource(EventSource):
             data.meta['input_url'] = self.input_url
             data.meta['max_events'] = self.max_events
 
-            events_per_tel = []
+            events_per_tel = [[],[]]
 
+            if not file.attrs['RunType'] == "Data":
+                data.meta['is_simulation'] = True
+                dt = np.float
+            else:
+                data.meta['is_simulation'] = False
+                dt = np.int16
+                
             # check which telescopes have data:
             if list(file.keys()) == ["MAGIC1_rawdata"]:
                 eventstream = file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber']
-                events_per_tel.append(np.array(eventstream))
-                events_per_tel.append([])
+                events_per_tel[0] = np.array(eventstream, dtype = dt)
                 stereoevents = []
             elif list(file.keys()) == ["MAGIC2_rawdata"]:
                 eventstream = file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber']
-                events_per_tel.append([])
-                events_per_tel.append(np.array(eventstream))
+                events_per_tel[1] = np.array(eventstream, dtype = dt)
                 stereoevents = []
             elif list(file.keys()) == ["MAGIC1_rawdata", "MAGIC2_rawdata"]:
-                events_per_tel.append(np.array(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber']))
-                events_per_tel.append(np.array(file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber']))
-                eventstream = np.union1d(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber'], file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber'])
-                stereoevents = np.intersect1d(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber'], file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber'])
-
-                
-            if not file.attrs['RunType'] == "Data":
-                data.meta['is_simulation'] = True
-            else:
-                data.meta['is_simulation'] = False
+                events_per_tel[0] = np.array(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
+                events_per_tel[1] = np.array(file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
             
-            #print(events_per_tel[0])
-            #print(events_per_tel[1])
+            # order MC mono events into event stream:
+            if data.meta['is_simulation'] == True:
+                for i_tel in range(2):
+                    for i_event in range(len(events_per_tel[i_tel])):
+                        if events_per_tel[i_tel][i_event] == 0:
+                            if i_event != 0:
+                                events_per_tel[i_tel][i_event] = np.random.uniform(events_per_tel[i_tel][i_event - 1], np.floor(events_per_tel[i_tel][i_event - 1]) + 1)
+                            else:
+                                events_per_tel[i_tel][i_event] = np.random.uniform(0, 1)
+
+            if list(file.keys()) == ["MAGIC1_rawdata", "MAGIC2_rawdata"]:
+                eventstream = np.union1d(events_per_tel[0], events_per_tel[1])
+                stereoevents = np.intersect1d(events_per_tel[0], events_per_tel[1])
             
             for event_id in eventstream:
 
