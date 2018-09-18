@@ -86,13 +86,16 @@ class MAGICEventSource(EventSource):
                 eventstream = file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber']
                 events_per_tel[0] = np.array(eventstream, dtype = dt)
                 stereoevents = []
+                tels_in_file = {1}
             elif list(file.keys()) == ["MAGIC2_rawdata"]:
                 eventstream = file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber']
                 events_per_tel[1] = np.array(eventstream, dtype = dt)
                 stereoevents = []
+                tels_in_file = {2}
             elif list(file.keys()) == ["MAGIC1_rawdata", "MAGIC2_rawdata"]:
                 events_per_tel[0] = np.array(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
                 events_per_tel[1] = np.array(file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
+                tels_in_file = {1, 2}
             
             # order MC mono events into event stream:
             if data.meta['is_simulation'] == True:
@@ -139,13 +142,10 @@ class MAGICEventSource(EventSource):
 #                 time_s, time_ns = file.get_central_event_gps_time()
 #                 data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
 #                                           format='unix', scale='utc')
-#                 data.mc.energy = file.get_mc_shower_energy() * u.TeV
+
 #                 data.mc.alt = Angle(file.get_mc_shower_altitude(), u.rad)
 #                 data.mc.az = Angle(file.get_mc_shower_azimuth(), u.rad)
-#                 data.mc.core_x = file.get_mc_event_xcore() * u.m
-#                 data.mc.core_y = file.get_mc_event_ycore() * u.m
-#                 first_int = file.get_mc_shower_h_first_int() * u.m
-#                 data.mc.h_first_int = first_int
+
 #                 data.mc.x_max = file.get_mc_shower_xmax() * u.g / (u.cm**2)
 #                 data.mc.shower_primary_id = file.get_mc_shower_primary_id()
 # 
@@ -166,7 +166,7 @@ class MAGICEventSource(EventSource):
 
                 tels_with_data_tmp = np.zeros(2)
 
-                for tel_id in {1, 2}:
+                for tel_id in tels_in_file:
 
                     # search event
                     if event_id not in events_per_tel[tel_id - 1]:
@@ -190,6 +190,15 @@ class MAGICEventSource(EventSource):
 
                     data.r0.tel[tel_id].image = np.sum(data.r0.tel[tel_id].waveform, axis=0)
                     data.r0.tel[tel_id].num_trig_pix = file['MAGIC'+str(tel_id) +'_rawdata/EvtHeader/NumTrigLvl2'][nevent]
+                    
+                    # add MC information:
+                    if data.meta['is_simulation'] == True:
+                        # energy of event should be the same in both telescopes, so simply try both:
+                        data.mc.energy = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Energy']["Energy"][nevent] * u.TeV
+                        data.mc.core_x = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Core_xy']["Core_x"][nevent] * u.m
+                        data.mc.core_y = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Core_xy']["Core_y"][nevent] * u.m
+                        data.mc.h_first_int = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/H_first_int']["H_first_int"][nevent] * u.m
+                    
 #                     data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
 #                     data.mc.tel[tel_id].reference_pulse_shape = (file.
 #                                                                  get_ref_shapes(tel_id))
