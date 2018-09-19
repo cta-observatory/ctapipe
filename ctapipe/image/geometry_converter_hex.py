@@ -272,7 +272,6 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
         if abs(y - y_base) > abs(x - x_base):
             d_y = min(d_y, abs(y - y_base))
 
-    # 
     # for x, y in zip(pix_x, pix_y):
     #    if abs(y - y_base) > abs(x - x_base):
     #        d_y = min(d_y, abs(y - y_base))
