@@ -210,10 +210,9 @@ class ArrayDisplay:
             rho[idx] = length * u.m
 
             if time_gradient[tel_id] > 0.01:
-                rot_angle_ellipse[idx] = Angle(params.psi) \
-                                         + Angle(angle_offset) + Angle(180 * u.deg)
+                rot_angle_ellipse[idx] = Angle(params.psi + angle_offset + 180 * u.deg)
             elif time_gradient[tel_id] < -0.01:
-                rot_angle_ellipse[idx] = Angle(params.psi) + Angle(angle_offset)
+                rot_angle_ellipse[idx] = Angle(params.psi + angle_offset)
             else:
                 rho[idx] = 0 * u.m
 
