@@ -150,3 +150,20 @@ def test_slicing():
     assert sliced2.pix_id[0] == 5
     assert sliced2.pix_id[1] == 7
     assert len(sliced2.pix_x) == 5
+
+
+def test_border_pixels():
+    from ctapipe.instrument.camera import CameraGeometry
+
+    cam = CameraGeometry.from_name("LSTCam")
+
+    assert np.sum(cam.get_border_pixel_mask(1)) == 168
+    assert np.sum(cam.get_border_pixel_mask(2)) == 330
+
+    cam = CameraGeometry.from_name("ASTRICam")
+    assert np.sum(cam.get_border_pixel_mask(1)) == 212
+    assert np.sum(cam.get_border_pixel_mask(2)) == 408
+
+    assert cam.get_border_pixel_mask(1)[0]
+    assert cam.get_border_pixel_mask(1)[2351]
+    assert not cam.get_border_pixel_mask(1)[521]
