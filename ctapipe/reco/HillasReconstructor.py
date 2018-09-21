@@ -327,7 +327,9 @@ class HillasReconstructor(Reconstructor):
             # circle.norm to the ground gives higher weight to planes
             # perpendicular to the ground and less to those that have
             # a steeper angle
-            A[i] = circle.weight * circle.norm[:2]
+            norm = circle.norm.copy()
+            norm[1] = - norm[1]
+            A[i] = circle.weight * norm[:2]
             # since A[i] is used in the dot-product, no need to multiply the
             # weight here
             D[i] = np.dot(A[i], circle.pos[:2])
