@@ -86,19 +86,19 @@ class NectarCAMEventSource(EventSource):
         svc_container.telescope_id = camera_config.telescope_id
         svc_container.cs_serial = camera_config.cs_serial
         svc_container.configuration_id = camera_config.configuration_id
-        #svc_container.acquisition_mode = camera_config.acquisition_mode
+        svc_container.acquisition_mode = camera_config.nectarcam.acquisition_mode
         svc_container.date = camera_config.date
         svc_container.num_pixels = camera_config.num_pixels
         svc_container.num_samples = camera_config.num_samples
         svc_container.pixel_ids = camera_config.expected_pixels_id
         svc_container.data_model_version = camera_config.data_model_version
 
-        svc_container.num_modules = camera_config.lstcam.num_modules
-        svc_container.module_ids = camera_config.lstcam.expected_modules_id
-        svc_container.idaq_version = camera_config.lstcam.idaq_version
-        svc_container.cdhs_version = camera_config.lstcam.cdhs_version
-        svc_container.algorithms = camera_config.lstcam.algorithms
-        svc_container.pre_proc_algorithms = camera_config.lstcam.pre_proc_algorithms
+        svc_container.num_modules = camera_config.nectarcam.num_modules
+        svc_container.module_ids = camera_config.nectarcam.expected_modules_id
+        svc_container.idaq_version = camera_config.nectarcam.idaq_version
+        svc_container.cdhs_version = camera_config.nectarcam.cdhs_version
+        svc_container.algorithms = camera_config.nectarcam.algorithms
+        #vc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
 
 
 
@@ -112,12 +112,12 @@ class NectarCAMEventSource(EventSource):
         event_container.tel_event_id = event.tel_event_id
         event_container.pixel_status = event.pixel_status
         event_container.ped_id = event.ped_id
-        event_container.module_status = event.lstcam.module_status
-        event_container.extdevices_presence = event.lstcam.extdevices_presence
-        event_container.tib_data = event.lstcam.tib_data
-        event_container.cdts_data = event.lstcam.cdts_data
-        event_container.swat_data = event.lstcam.swat_data
-        event_container.counters = event.lstcam.counters
+        event_container.module_status = event.nectarcam.module_status
+        event_container.extdevices_presence = event.nectarcam.extdevices_presence
+        event_container.tib_data = event.nectarcam.tib_data
+        event_container.cdts_data = event.nectarcam.cdts_data
+        event_container.swat_data = event.nectarcam.swat_data
+        event_container.counters = event.nectarcam.counters
 
 
     def fill_r0_camera_container_from_zfile(self, container, event):
