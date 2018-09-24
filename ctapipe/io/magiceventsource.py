@@ -2,10 +2,12 @@
 import numpy as np
 
 from astropy import units as u
+from astropy.units import cds
+cds.enable()  
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import DataContainer
+from ctapipe.io.containers import DataContainer, TelescopePointingContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 import gzip
 import struct
@@ -48,10 +50,10 @@ class MAGICEventSource(EventSource):
         # check general format:
         if not h5py.is_hdf5(file_path):
             return False
-        
         # crude check if hdf5 file contains MAGIC raw data:
-        with h5py.File(file_path, "r") as f:
-            if ("MAGIC1_rawdata" or "MAGIC2_rawdata") in list(f.keys()):
+        with h5py.File(file_path, "r") as file:
+            intrument_attr = file.attrs['instrument']
+            if intrument_attr.tostring() == b"MAGIC":
                 return True
             else:
                 return False
@@ -82,36 +84,44 @@ class MAGICEventSource(EventSource):
                 dt = np.int16
                 
             # check which telescopes have data:
-            if list(file.keys()) == ["MAGIC1_rawdata"]:
-                eventstream = file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber']
-                events_per_tel[0] = np.array(eventstream, dtype = dt)
-                stereoevents = []
-                tels_in_file = {1}
-            elif list(file.keys()) == ["MAGIC2_rawdata"]:
-                eventstream = file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber']
-                events_per_tel[1] = np.array(eventstream, dtype = dt)
-                stereoevents = []
-                tels_in_file = {2}
-            elif list(file.keys()) == ["MAGIC1_rawdata", "MAGIC2_rawdata"]:
-                events_per_tel[0] = np.array(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
-                events_per_tel[1] = np.array(file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
-                tels_in_file = {1, 2}
             
-            # order MC mono events into event stream:
-            if data.meta['is_simulation'] == True:
-                for i_tel in range(2):
-                    for i_event in range(len(events_per_tel[i_tel])):
-                        if events_per_tel[i_tel][i_event] == 0:
-                            if i_event != 0:
-                                events_per_tel[i_tel][i_event] = np.random.uniform(events_per_tel[i_tel][i_event - 1], np.floor(events_per_tel[i_tel][i_event - 1]) + 1)
-                            else:
-                                events_per_tel[i_tel][i_event] = np.random.uniform(0, 1)
-
-            if list(file.keys()) == ["MAGIC1_rawdata", "MAGIC2_rawdata"]:
-                eventstream = np.union1d(events_per_tel[0], events_per_tel[1])
-                stereoevents = np.intersect1d(events_per_tel[0], events_per_tel[1])
+            if file.attrs['dl_export'] == b"dl1":
+                eventstream = file['dl1/event_id']
+                if file.attrs['data format'] == b"mono M1":
+                    tels_in_file = ["M1"]
+                elif file.attrs['data format'] == b"mono M2":
+                    tels_in_file = ["M2"]
+                elif file.attrs['data format'] == b"stereo":
+                    tels_in_file = ["M1", "M2"]
+                
+            elif file.attrs['dl_export'] == b"r0":
+                if list(file.keys()) == ["MAGIC1_rawdata"]:
+                    eventstream = file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber']
+                    events_per_tel[0] = np.array(eventstream, dtype = dt)
+                    tels_in_file = [1]
+                elif list(file.keys()) == ["MAGIC2_rawdata"]:
+                    eventstream = file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber']
+                    events_per_tel[1] = np.array(eventstream, dtype = dt)
+                    tels_in_file = [2]
+                elif list(file.keys()) == ["MAGIC1_rawdata", "MAGIC2_rawdata"]:
+                    events_per_tel[0] = np.array(file['MAGIC1_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
+                    events_per_tel[1] = np.array(file['MAGIC2_rawdata/EvtHeader/StereoEvtNumber'], dtype = dt)
+                    tels_in_file = [1, 2]
+                    # order MC mono events into event stream:
+                    if data.meta['is_simulation'] == True:
+                        for i_tel in range(2):
+                            for i_event in range(len(events_per_tel[i_tel])):
+                                if events_per_tel[i_tel][i_event] == 0:
+                                    if i_event != 0:
+                                        events_per_tel[i_tel][i_event] = np.random.uniform(events_per_tel[i_tel][i_event - 1], np.floor(events_per_tel[i_tel][i_event - 1]) + 1)
+                                    else:
+                                        events_per_tel[i_tel][i_event] = np.random.uniform(0, 1)
+                    eventstream = np.union1d(events_per_tel[0], events_per_tel[1])
+                    
+            else:
+                raise IOError("MAGIC data level attribute 'dl_export' not found in file (value should be 'r0' or 'dl1').")
             
-            for event_id in eventstream:
+            for i_event, event_id in enumerate(eventstream):
 
 #                 if counter == 0:
 #                     # subarray info is only available when an event is loaded,
@@ -166,77 +176,103 @@ class MAGICEventSource(EventSource):
 
                 tels_with_data_tmp = np.zeros(2)
 
-                for tel_id in tels_in_file:
+                for i_tel, tel_id in enumerate(tels_in_file):
 
-                    # search event
-                    if event_id not in events_per_tel[tel_id - 1]:
-                        nevent = -1
-                    else:
-                        nevent = np.searchsorted(events_per_tel[tel_id - 1], event_id, side='left')
-                        tels_with_data_tmp[tel_id - 1] = 1
+                    # load r0 data:
+                    if file.attrs['dl_export'] == b"r0":
+                        # search event
+                        if event_id not in events_per_tel[i_tel]:
+                            nevent = -1
+                        else:
+                            nevent = np.searchsorted(events_per_tel[i_tel], event_id, side='left')
+                            tels_with_data_tmp[i_tel] = 1
+                            
+                        # sort out remaining calibration runs:
+                        if file['MAGIC'+str(tel_id) +'_rawdata/EvtHeader/TrigPattern']["L3 trigger"][nevent] == False:
+                            nevent = -1
+                            tels_with_data_tmp[i_tel] = 0
+    #                     # event.mc.tel[tel_id] = MCCameraContainer()
+    # 
+    #                     data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
+    #                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
+                        if nevent == -1:
+                            data.r0.tel[tel_id].waveform = None
+                        else:
+                            data.r0.tel[tel_id].waveform = file['MAGIC'+str(tel_id) +'_rawdata/Events'][...,nevent]
+    
+                        data.r0.tel[tel_id].image = np.sum(data.r0.tel[tel_id].waveform, axis=0)
+                        data.r0.tel[tel_id].num_trig_pix = file['MAGIC'+str(tel_id) +'_rawdata/EvtHeader/NumTrigLvl2'][nevent]
                         
-                    # sort out remaining calibration runs:
-                    if file['MAGIC'+str(tel_id) +'_rawdata/EvtHeader/TrigPattern']["L3 trigger"][nevent] == False:
-                        nevent = -1
-                        tels_with_data_tmp[tel_id - 1] = 0
-#                     # event.mc.tel[tel_id] = MCCameraContainer()
-# 
-#                     data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
-#                     data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
-                    if nevent == -1:
-                        data.r0.tel[tel_id].waveform = None
-                    else:
-                        data.r0.tel[tel_id].waveform = file['MAGIC'+str(tel_id) +'_rawdata/Events'][...,nevent]
+                        # add MC information:
+                        if data.meta['is_simulation'] == True:
+                            # energy of event should be the same in both telescopes, so simply try both:
+                            data.mc.energy = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Energy']["Energy"][nevent] * u.TeV
+                            data.mc.core_x = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Core_xy']["Core_x"][nevent] * u.m
+                            data.mc.core_y = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Core_xy']["Core_y"][nevent] * u.m
+                            data.mc.h_first_int = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/H_first_int']["H_first_int"][nevent] * u.m
+                        
+    #                     data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
+    #                     data.mc.tel[tel_id].reference_pulse_shape = (file.
+    #                                                                  get_ref_shapes(tel_id))
+    #  
+    #                     nsamples = file.get_event_num_samples(tel_id)
+    #                     if nsamples <= 0:
+    #                         nsamples = 1
+    #                     data.r0.tel[tel_id].num_samples = nsamples
+    #  
+    #                     # load the data per telescope/pixel
+    #                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
+    #                     data.mc.tel[tel_id].photo_electron_image = hessio_mc_npe
+    #                     data.mc.tel[tel_id].meta['refstep'] = (file.
+    #                                                            get_ref_step(tel_id))
+    #                     data.mc.tel[tel_id].time_slice = (file.
+    #                                                       get_time_slice(tel_id))
+    #                     data.mc.tel[tel_id].azimuth_raw = (file.
+    #                                                        get_azimuth_raw(tel_id))
+    #                     data.mc.tel[tel_id].altitude_raw = (file.
+    #                                                         get_altitude_raw(tel_id))
+    #                     data.mc.tel[tel_id].azimuth_cor = (file.
+    #                                                        get_azimuth_cor(tel_id))
+    #                     data.mc.tel[tel_id].altitude_cor = (file.
+    #                                                         get_altitude_cor(tel_id))
 
-                    data.r0.tel[tel_id].image = np.sum(data.r0.tel[tel_id].waveform, axis=0)
-                    data.r0.tel[tel_id].num_trig_pix = file['MAGIC'+str(tel_id) +'_rawdata/EvtHeader/NumTrigLvl2'][nevent]
-                    
-                    # add MC information:
-                    if data.meta['is_simulation'] == True:
-                        # energy of event should be the same in both telescopes, so simply try both:
-                        data.mc.energy = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Energy']["Energy"][nevent] * u.TeV
-                        data.mc.core_x = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Core_xy']["Core_x"][nevent] * u.m
-                        data.mc.core_y = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/Core_xy']["Core_y"][nevent] * u.m
-                        data.mc.h_first_int = file['MAGIC'+str(tel_id) +'_rawdata/McHeader/H_first_int']["H_first_int"][nevent] * u.m
-                    
-#                     data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
-#                     data.mc.tel[tel_id].reference_pulse_shape = (file.
-#                                                                  get_ref_shapes(tel_id))
-#  
-#                     nsamples = file.get_event_num_samples(tel_id)
-#                     if nsamples <= 0:
-#                         nsamples = 1
-#                     data.r0.tel[tel_id].num_samples = nsamples
-#  
-#                     # load the data per telescope/pixel
-#                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
-#                     data.mc.tel[tel_id].photo_electron_image = hessio_mc_npe
-#                     data.mc.tel[tel_id].meta['refstep'] = (file.
-#                                                            get_ref_step(tel_id))
-#                     data.mc.tel[tel_id].time_slice = (file.
-#                                                       get_time_slice(tel_id))
-#                     data.mc.tel[tel_id].azimuth_raw = (file.
-#                                                        get_azimuth_raw(tel_id))
-#                     data.mc.tel[tel_id].altitude_raw = (file.
-#                                                         get_altitude_raw(tel_id))
-#                     data.mc.tel[tel_id].azimuth_cor = (file.
-#                                                        get_azimuth_cor(tel_id))
-#                     data.mc.tel[tel_id].altitude_cor = (file.
-#                                                         get_altitude_cor(tel_id))
-
+                    elif file.attrs['dl_export'] == b"dl1":
+                        tels_with_data_tmp[i_tel] = file['dl1/tels_with_data'][tel_id][i_event]
+                        
+                        if tels_with_data_tmp[i_tel] == 1:
+                            pointing = TelescopePointingContainer()
+                            pointing.azimuth = np.deg2rad(file['pointing'][tel_id + "_AzCorr"][i_event]) * u.rad
+                            pointing.altitude = np.deg2rad(file['pointing'][tel_id + "_DecCorr"][i_event]) * u.rad
+                            data.pointing[i_tel + 1] = pointing
+                            
+                            time = Time(file['trig/gps_time'][tel_id + "_mjd"][i_event] * cds.MJD, file['trig/gps_time'][tel_id + "_sec"][i_event] * u.s,
+                                      format='unix', scale='utc', precision=9)
+                            
+                            data.dl1.tel[i_tel + 1].image = file['dl1/tel' + str(i_tel + 1) + '/image'][i_event]
+                            data.dl1.tel[i_tel + 1].peakpos = file['dl1/tel' + str(i_tel + 1) + '/peakpos'][i_event]
+                        
                 # update tels_with_data:
                 if tels_with_data_tmp[0] == 1 and tels_with_data_tmp[1] == 0:
                     tels_with_data = {1}
+                    time = Time(file['trig/gps_time']["M1_mjd"][i_event] * cds.MJD, file['trig/gps_time']["M1_sec"][i_event] * u.s,
+                                  format='unix', scale='utc', precision=9)
                 elif tels_with_data_tmp[0] == 0 and tels_with_data_tmp[1] == 1:
                     tels_with_data = {2}
+                    time = Time(file['trig/gps_time']["M2_mjd"][i_event] * cds.MJD, file['trig/gps_time']["M2_sec"][i_event] * u.s,
+                                  format='unix', scale='utc', precision=9)
                 elif tels_with_data_tmp[0] == 1 and tels_with_data_tmp[1] == 1:
                     tels_with_data = {1, 2}
+                    time = Time(file['trig/gps_time']["M1_mjd"][i_event] * cds.MJD, (file['trig/gps_time']["M1_sec"][i_event]+file['trig/gps_time']["M2_sec"][i_event] )/2. * u.s,
+                                  format='unix', scale='utc', precision=9)
                 else:
                     tels_with_data = {}
+
+                data.trig.gps_time = time
 
                 data.r0.tels_with_data = tels_with_data
                 data.r1.tels_with_data = tels_with_data
                 data.dl0.tels_with_data = tels_with_data
+                data.trig.tels_with_trigger = tels_with_data
 
 
                 yield data
