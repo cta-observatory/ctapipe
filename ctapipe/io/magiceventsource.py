@@ -8,7 +8,7 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer, TelescopePointingContainer
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription, OpticsDescription, CameraGeometry
 import gzip
 import struct
 
@@ -120,6 +120,15 @@ class MAGICEventSource(EventSource):
                     
             else:
                 raise IOError("MAGIC data level attribute 'dl_export' not found in file (value should be 'r0' or 'dl1').")
+            
+            optics = OpticsDescription.from_name(str(file['inst/subarray'].attrs['OpticsDescription'])[2:-1])
+            geom = CameraGeometry.from_name(str(file['inst/subarray'].attrs['CameraGeometry'])[2:-1])
+            magic_tel_description = TelescopeDescription(optics=optics, camera=geom)
+            magic_tel_descriptions = {1: magic_tel_description, 2: magic_tel_description}
+            magic_tel_positions = {1: [file['inst/subarray/tel_coords']['M1'][0]*u.m, file['inst/subarray/tel_coords']['M1'][1]*u.m, file['inst/subarray/tel_coords']['M1'][2]*u.m], 
+                                   2: [file['inst/subarray/tel_coords']['M2'][0]*u.m, file['inst/subarray/tel_coords']['M2'][1]*u.m, file['inst/subarray/tel_coords']['M2'][2]*u.m]}
+            magic_subarray = SubarrayDescription(str(file.attrs['instrument'])[2:-1], magic_tel_positions, magic_tel_descriptions)
+
             
             for i_event, event_id in enumerate(eventstream):
 
@@ -273,7 +282,7 @@ class MAGICEventSource(EventSource):
                 data.r1.tels_with_data = tels_with_data
                 data.dl0.tels_with_data = tels_with_data
                 data.trig.tels_with_trigger = tels_with_data
-
+                data.inst.subarray = magic_subarray
 
                 yield data
                 counter += 1
