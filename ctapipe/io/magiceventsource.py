@@ -257,7 +257,7 @@ class MAGICEventSource(EventSource):
                         if tels_with_data_tmp[i_tel] == 1:
                             pointing = TelescopePointingContainer()
                             pointing.azimuth = np.deg2rad(file['pointing'][tel_id + "_AzCorr"][i_event]) * u.rad
-                            pointing.altitude = np.deg2rad(file['pointing'][tel_id + "_DecCorr"][i_event]) * u.rad
+                            pointing.altitude = np.deg2rad(file['pointing'][tel_id + "_AltCorr"][i_event]) * u.rad
                             data.pointing[i_tel + 1] = pointing
                             
                             time = Time(file['trig/gps_time'][tel_id + "_mjd"][i_event] * cds.MJD, file['trig/gps_time'][tel_id + "_sec"][i_event] * u.s,
