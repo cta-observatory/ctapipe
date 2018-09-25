@@ -125,8 +125,14 @@ class MAGICEventSource(EventSource):
             geom = CameraGeometry.from_name(str(file['inst/subarray'].attrs['CameraGeometry'])[2:-1])
             magic_tel_description = TelescopeDescription(optics=optics, camera=geom)
             magic_tel_descriptions = {1: magic_tel_description, 2: magic_tel_description}
-            magic_tel_positions = {1: [file['inst/subarray/tel_coords']['M1'][0]*u.m, file['inst/subarray/tel_coords']['M1'][1]*u.m, file['inst/subarray/tel_coords']['M1'][2]*u.m], 
-                                   2: [file['inst/subarray/tel_coords']['M2'][0]*u.m, file['inst/subarray/tel_coords']['M2'][1]*u.m, file['inst/subarray/tel_coords']['M2'][2]*u.m]}
+            # magic_tel_positions = {1: [file['inst/subarray/tel_coords']['M1'][0]*u.m, file['inst/subarray/tel_coords']['M1'][1]*u.m, file['inst/subarray/tel_coords']['M1'][2]*u.m], 
+            #                        2: [file['inst/subarray/tel_coords']['M2'][0]*u.m, file['inst/subarray/tel_coords']['M2'][1]*u.m, file['inst/subarray/tel_coords']['M2'][2]*u.m]}
+
+            magic_tel_positions = {1: [file['inst/subarray/tel_coords']['M1'][0], file['inst/subarray/tel_coords']['M1'][1], file['inst/subarray/tel_coords']['M1'][2]]*u.m, 
+                                   2: [file['inst/subarray/tel_coords']['M2'][0], file['inst/subarray/tel_coords']['M2'][1], file['inst/subarray/tel_coords']['M2'][2]]*u.m}
+
+
+
             magic_subarray = SubarrayDescription(str(file.attrs['instrument'])[2:-1], magic_tel_positions, magic_tel_descriptions)
 
             
