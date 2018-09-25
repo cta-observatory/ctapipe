@@ -106,6 +106,9 @@ class DL1CameraContainer(Container):
     cleaned = Field(
         None, "numpy array containing the waveform after cleaning"
     )
+    badpixels = Field(
+        None, "numpy (nd-)array of bools indicating (a specific type of) bad pixels"
+    )
 
 
 class CameraCalibrationContainer(Container):

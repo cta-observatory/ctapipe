@@ -259,6 +259,7 @@ class MAGICEventSource(EventSource):
                             
                             data.dl1.tel[i_tel + 1].image = file['dl1/tel' + str(i_tel + 1) + '/image'][i_event]
                             data.dl1.tel[i_tel + 1].peakpos = file['dl1/tel' + str(i_tel + 1) + '/peakpos'][i_event]
+                            data.dl1.tel[i_tel + 1].badpixels = np.array(file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
                         
                 # update tels_with_data:
                 if tels_with_data_tmp[0] == 1 and tels_with_data_tmp[1] == 0:
