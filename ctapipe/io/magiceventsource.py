@@ -76,7 +76,7 @@ class MAGICEventSource(EventSource):
 
             events_per_tel = [[],[]]
 
-            if not file.attrs['RunType'] == "Data":
+            if not file.attrs['RunType'] == b"Data":
                 data.meta['is_simulation'] = True
                 dt = np.float
             else:
