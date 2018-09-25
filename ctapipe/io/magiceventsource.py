@@ -260,6 +260,13 @@ class MAGICEventSource(EventSource):
                             data.dl1.tel[i_tel + 1].image = file['dl1/tel' + str(i_tel + 1) + '/image'][i_event]
                             data.dl1.tel[i_tel + 1].peakpos = file['dl1/tel' + str(i_tel + 1) + '/peakpos'][i_event]
                             data.dl1.tel[i_tel + 1].badpixels = np.array(file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
+                            
+                        if data.meta['is_simulation'] == True:
+                            # energy of event should be the same in both telescopes, so simply try both:
+                            data.mc.energy = file['mc/energy']["Energy"][i_event] * u.TeV
+                            data.mc.core_x = file['mc/core_xy']["Core_x"][i_event] * u.m
+                            data.mc.core_y = file['mc/core_xy']["Core_y"][i_event] * u.m
+                            data.mc.h_first_int = file['mc/h_first_int']["H_first_int"][i_event] * u.m
                         
                 # update tels_with_data:
                 if tels_with_data_tmp[0] == 1 and tels_with_data_tmp[1] == 0:
