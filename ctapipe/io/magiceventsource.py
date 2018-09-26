@@ -273,10 +273,10 @@ class MAGICEventSource(EventSource):
                 # update tels_with_data:
                 if tels_with_data_tmp[0] == 1 and tels_with_data_tmp[1] == 0:
                     tels_with_data = {1}
-                    time = Time(file['trig/gps_time']["M1_mjd"][i_event], scale='utc', format='mjd') + file['trig/gps_time']["M1_sec"][i_event] * u.s
+                    time_tmp = Time(file['trig/gps_time']["M1_mjd"][i_event], scale='utc', format='mjd') + file['trig/gps_time']["M1_sec"][i_event] * u.s
                 elif tels_with_data_tmp[0] == 0 and tels_with_data_tmp[1] == 1:
                     tels_with_data = {2}
-                    time = Time(file['trig/gps_time']["M2_mjd"][i_event], scale='utc', format='mjd') + file['trig/gps_time']["M2_sec"][i_event] * u.s
+                    time_tmp = Time(file['trig/gps_time']["M2_mjd"][i_event], scale='utc', format='mjd') + file['trig/gps_time']["M2_sec"][i_event] * u.s
                 elif tels_with_data_tmp[0] == 1 and tels_with_data_tmp[1] == 1:
                     tels_with_data = {1, 2}
                     time_tmp = Time(file['trig/gps_time']["M1_mjd"][i_event], scale='utc', format='mjd') + (file['trig/gps_time']["M1_sec"][i_event]+file['trig/gps_time']["M2_sec"][i_event] )/2. * u.s
