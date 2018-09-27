@@ -28,18 +28,21 @@ def create_sample_image(psi='-30d'):
     geom = CameraGeometry.from_name("LSTCam")
 
     # make a toymodel shower model
-    model = toymodel.generate_2d_shower_model(centroid=(0.2, 0.3),
-                                              width=0.001, length=0.01,
-                                              psi=psi)
+    model = toymodel.generate_2d_shower_model(
+        centroid=(0.2, 0.3),
+        width=0.05, length=0.15,
+        psi=psi,
+    )
 
     # generate toymodel image in camera for this shower model.
-    image, signal, noise = toymodel.make_toymodel_shower_image(geom, model.pdf,
-                                                               intensity=50,
-                                                               nsb_level_pe=100)
+    image, signal, noise = toymodel.make_toymodel_shower_image(
+        geom, model.pdf,
+        intensity=1500,
+        nsb_level_pe=3,
+    )
 
     # denoise the image, so we can calculate hillas params
-    clean_mask = tailcuts_clean(geom, image, 10,
-                                5)  # pedvars = 1 and core and boundary
+    clean_mask = tailcuts_clean(geom, image, 10, 5)
 
     return geom, image, clean_mask
 
