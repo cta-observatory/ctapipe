@@ -18,12 +18,21 @@ def test_convert_geometry(cam_id, rot):
 
     geom = CameraGeometry.from_name(cam_id)
 
-    model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
-                                     psi="25d")
+    # calculate the radius of the camera to generate fitting mock showers
+    # for each camera
+    camera_r = np.max(np.sqrt(geom.pix_x**2 + geom.pix_y**2))
+    model = generate_2d_shower_model(
+        centroid=(0.3 * camera_r.value, 0),
+        width=0.03 * camera_r.value,
+        length=0.10 * camera_r.value,
+        psi="25d"
+    )
 
-    _, image, _ = make_toymodel_shower_image(geom, model.pdf,
-                                             intensity=50,
-                                             nsb_level_pe=100)
+    _, image, _ = make_toymodel_shower_image(
+        geom, model.pdf,
+        intensity=0.5 * geom.n_pixels,
+        nsb_level_pe=3,
+    )
 
     hillas_0 = hillas_parameters(geom, image)
 
