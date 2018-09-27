@@ -9,6 +9,7 @@ from numpy import isclose, zeros_like, arange
 from numpy.random import seed
 from numpy.ma import masked_array
 import pytest
+from itertools import combinations
 
 methods = (
     hillas_parameters_1,
@@ -90,17 +91,15 @@ def test_hillas():
         }
 
         # compare each method's output
-        for aa in results:
-            for bb in results:
-                if aa is not bb:
-                    print("comparing {} to {}".format(aa, bb))
-                    compare_result(results[aa].length, results[bb].length)
-                    compare_result(results[aa].width, results[bb].width)
-                    compare_result(results[aa].r, results[bb].r)
-                    compare_result(results[aa].phi.deg, results[bb].phi.deg)
-                    compare_result(results[aa].psi.deg, results[bb].psi.deg)
-                    compare_result(results[aa].skewness, results[bb].skewness)
-                    # compare_result(results[aa].kurtosis, results[bb].kurtosis)
+        for aa, bb in combinations(results, 2):
+            print("comparing {} to {}".format(aa, bb))
+            compare_result(results[aa].length, results[bb].length)
+            compare_result(results[aa].width, results[bb].width)
+            compare_result(results[aa].r, results[bb].r)
+            compare_result(results[aa].phi.deg, results[bb].phi.deg)
+            compare_result(results[aa].psi.deg, results[bb].psi.deg)
+            compare_result(results[aa].skewness, results[bb].skewness)
+            # compare_result(results[aa].kurtosis, results[bb].kurtosis)
 
 
 def test_hillas_masked():
