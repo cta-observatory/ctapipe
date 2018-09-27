@@ -90,6 +90,14 @@ def test_hillas():
             for i, method in enumerate(methods, start=1)
         }
 
+        for result in results.values():
+            if result.psi < -90 * u.deg:
+                result.psi += 180 * u.deg
+                result.skewness *= -1
+            elif result.psi > 90 * u.deg:
+                result.psi -= 180 * u.deg
+                result.skewness *= -1
+
         # compare each method's output
         for aa, bb in combinations(results, 2):
             print("comparing {} to {}".format(aa, bb))
