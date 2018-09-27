@@ -33,7 +33,6 @@ def test_intensity():
     # test if signal reproduces given width/length values
     cov = np.cov(geom.pix_x.value, geom.pix_y.value, aweights=signal)
     eigvals, eigvecs = np.linalg.eigh(cov)
-    print(eigvals)
 
     assert eigvals[0] == approx(width**2, rel=0.15)
     assert eigvals[1] == approx(length**2, rel=0.15)
