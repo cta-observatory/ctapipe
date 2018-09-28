@@ -158,47 +158,6 @@ class LSTEventSource(EventSource):
         )
 
 
-    def _build_subarray_info(self, file):
-        """
-        constructs a SubarrayDescription object from the info in an
-        EventIO/HESSSIO file
-
-        Parameters
-        ----------
-        file: HessioFile
-            The open pyhessio file
-
-        Returns
-        -------
-        SubarrayDescription :
-            instrumental information
-        """
-        telescope_ids = list(file.get_telescope_ids())
-        subarray = SubarrayDescription("LST Data")
-
-        for tel_id in telescope_ids:
-            try:
-
-                pix_pos = file.get_pixel_position(tel_id) * u.m
-                foclen = file.get_optical_foclen(tel_id) * u.m
-                mirror_area = file.get_mirror_area(tel_id) * u.m ** 2
-                num_tiles = file.get_mirror_number(tel_id)
-                tel_pos = file.get_telescope_position(tel_id) * u.m
-
-                tel = TelescopeDescription.guess(*pix_pos,
-                                                 equivalent_focal_length=foclen)
-                tel.optics.mirror_area = mirror_area
-                tel.optics.num_mirror_tiles = num_tiles
-                subarray.tels[tel_id] = tel
-                subarray.positions[tel_id] = tel_pos
-
-            except self.pyhessio.HessioGeneralError:
-                pass
-
-        return subarray
-
-
-
 class MultiFiles:
     '''
     In LST they have multiple file writers, which save the incoming events
@@ -299,5 +258,3 @@ class MultiFiles:
 
     def num_inputs(self):
         return len(self._file)
-
-
