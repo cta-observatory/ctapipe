@@ -5,7 +5,7 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import DataContainer, TelescopePointingContainer
+from ctapipe.io.containers import DataContainer, TelescopePointingContainer, WeatherContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription, OpticsDescription, CameraGeometry
 import gzip
 import struct
@@ -250,18 +250,20 @@ class MAGICEventSource(EventSource):
     #                                                         get_altitude_cor(tel_id))
 
                     elif file.attrs['dl_export'] == b"dl1":
-                        tels_with_data_tmp[i_tel] = file['dl1/tels_with_data'][tel_id][i_event]
+                        tels_with_data_tmp[i_tel] = np.bool(file['dl1/tels_with_data'][tel_id][i_event])
                         
-                        if tels_with_data_tmp[i_tel] == 1:
-                            pointing = TelescopePointingContainer()
-                            pointing.azimuth = np.deg2rad(file['pointing'][tel_id + "_AzCorr"][i_event]) * u.rad
-                            pointing.altitude = np.deg2rad(file['pointing'][tel_id + "_AltCorr"][i_event]) * u.rad
-                            data.pointing[i_tel + 1] = pointing
+                        pointing = TelescopePointingContainer()
+                        pointing.azimuth = np.deg2rad(file['pointing'][tel_id + "_AzCorr"][i_event]) * u.rad
+                        pointing.altitude = np.deg2rad(file['pointing'][tel_id + "_AltCorr"][i_event]) * u.rad
+                        pointing.ra = np.deg2rad(file['pointing_radec'][tel_id + "_RaCorr"][i_event]) * u.rad
+                        pointing.dec = np.deg2rad(file['pointing_radec'][tel_id + "_DecCorr"][i_event]) * u.rad
+                        data.pointing[i_tel + 1] = pointing
+                        
+                        if np.bool(tels_with_data_tmp[i_tel]) == True:
                             
                             data.dl1.tel[i_tel + 1].image = file['dl1/tel' + str(i_tel + 1) + '/image'][i_event]
                             data.dl1.tel[i_tel + 1].peakpos = file['dl1/tel' + str(i_tel + 1) + '/peakpos'][i_event]
                             data.dl1.tel[i_tel + 1].badpixels = np.array(file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
-                            
                             
                         if data.meta['is_simulation'] == True:
                             # energy of event should be the same in both telescopes, so simply try both:
@@ -282,18 +284,24 @@ class MAGICEventSource(EventSource):
                     time_tmp = Time(file['trig/gps_time']["M1_mjd"][i_event], scale='utc', format='mjd') + (file['trig/gps_time']["M1_sec"][i_event]+file['trig/gps_time']["M2_sec"][i_event] )/2. * u.s
                 else:
                     tels_with_data = {}
-
+                
+                weather = WeatherContainer()
+                weather.air_temperature = file['weather/air_temperature'][i_event] * u.deg_C
+                weather.air_pressure = file['weather/air_pressure'][i_event] * u.hPa
+                weather.air_humidity = file['weather/air_humidity'][i_event] * u.pct
+                data.weather = weather
+                
                 data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
-
+                
                 data.r0.tels_with_data = tels_with_data
                 data.r1.tels_with_data = tels_with_data
                 data.dl0.tels_with_data = tels_with_data
                 data.trig.tels_with_trigger = tels_with_data
                 data.inst.subarray = magic_subarray
-
+                
                 yield data
                 counter += 1
-
+        
         return
 
     def _build_subarray_info(self, file):
