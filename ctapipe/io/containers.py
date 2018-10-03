@@ -39,7 +39,8 @@ __all__ = ['InstrumentContainer',
            'DataContainer',
            'TargetIODataContainer',
            'SST1MDataContainer',
-           'HillasParametersContainer']
+           'HillasParametersContainer',
+           'LeakageContainer']
 
 
 class SST1MCameraContainer(Container):
@@ -669,3 +670,29 @@ class HillasParametersContainer(Container):
 
     skewness = Field(nan, 'measure of the asymmetry')
     kurtosis = Field(nan, 'measure of the tailedness')
+
+
+class LeakageContainer(Container):
+    """
+    Leakage
+    """
+    leakage1_pixel = Field(
+        nan,
+        'Percentage of pixels after cleaning'
+        ' that are in camera border of width=1'
+    )
+    leakage2_pixel = Field(
+        nan,
+        'Percentage of pixels after cleaning'
+        ' that are in camera border of width=2'
+    )
+    leakage1_intensity = Field(
+        nan,
+        'Percentage of photo-electrons after cleaning'
+        ' that are in the camera border of width=1'
+    )
+    leakage2_intensity = Field(
+        nan,
+        'Percentage of photo-electrons after cleaning'
+        ' that are in the camera border of width=2'
+    )
