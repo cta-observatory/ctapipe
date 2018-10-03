@@ -42,6 +42,8 @@ class RegressorClassifierBase:
 
     def __init__(self, model, cam_id_list, unit=1, **kwargs):
         self.model_dict = {}
+        self.input_features_dict = {}
+        self.output_features_dict = {}
         self.unit = unit
         for cam_id in cam_id_list or []:
             self.model_dict[cam_id] = model(**deepcopy(kwargs))
@@ -348,7 +350,7 @@ class RegressorClassifierBase:
 
         return f_dict, scaler
 
-    def show_importances(self, feature_labels=None):
+    def show_importances(self):
         """Creates a matplotlib figure that shows the importances of the
         different features for the various trained models in a grid of
         barplots.  The features are sorted by descending importance.
@@ -365,6 +367,7 @@ class RegressorClassifierBase:
             the figure holding the different bar plots
 
         """
+
         import matplotlib.pyplot as plt
         n_tel_types = len(self.model_dict)
         n_cols = np.ceil(np.sqrt(n_tel_types)).astype(int)
@@ -381,7 +384,10 @@ class RegressorClassifierBase:
                 plt.gca().axis('off')
                 continue
             bins = range(importances.shape[0])
-            if feature_labels:
+
+            if cam_id in self.input_features_dict \
+                    and (len(self.input_features_dict[cam_id]) == len(bins)):
+                feature_labels = self.input_features_dict[cam_id]
                 importances, s_feature_labels = \
                     zip(*sorted(zip(importances, feature_labels), reverse=True))
                 plt.xticks(bins, s_feature_labels, rotation=17)

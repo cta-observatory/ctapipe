@@ -3,94 +3,52 @@ from astropy import units as u
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io.hessio import hessio_event_source
-from ctapipe.reco.HillasReconstructor import HillasReconstructor, GreatCircle
+from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
+from astropy.coordinates import SkyCoord
 
 
-def test_fit_core():
+def test_estimator_results():
     """
-    creating some great circles pointing in different directions (two
-    north-south,
-    two east-west) and that have a slight position errors (+- 0.1 m in one of
-    the four
-    cardinal directions """
-    circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle1.pos = [0, 0.1] * u.m
-    circle1.trace = [1, 0, 0]
-
-    circle2 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle2.pos = [0.1, 0] * u.m
-    circle2.trace = [0, 1, 0]
-
-    circle3 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle3.pos = [0, -.1] * u.m
-    circle3.trace = [1, 0, 0]
-
-    circle4 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle4.pos = [-.1, 0] * u.m
-    circle4.trace = [0, 1, 0]
-
-    # creating the fit class and setting the the great circle member
-    fit = HillasReconstructor()
-    fit.circles = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
-
-    # performing the position fit with the minimisation algorithm
-    # and a seed that is quite far away
-    pos_fit_minimise = fit.fit_core_minimise([100, 1000] * u.m)
-    print("position fit test minimise:", pos_fit_minimise)
-    print()
-
-    # performing the position fit with the geometric algorithm
-    pos_fit_crosses, err_est_pos_fit_crosses = fit.fit_core_crosses()
-    print("position fit test crosses:", pos_fit_crosses)
-    print("error estimate:", err_est_pos_fit_crosses)
-    print()
-
-    # the results should be close to the origin of the coordinate system
-    np.testing.assert_allclose(pos_fit_minimise / u.m, [0, 0], atol=1e-3)
-    np.testing.assert_allclose(pos_fit_crosses / u.m, [0, 0], atol=1e-3)
-
-
-def test_fit_origin():
-    """
-    creating some great circles pointing in different directions (two
+    creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
     0.1 m in one of the four cardinal directions """
-    circle1 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle1.pos = [0, 0.1] * u.m
-    circle1.trace = [1, 0, 0]
 
-    circle2 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle2.pos = [0.1, 0] * u.m
-    circle2.trace = [0, 1, 0]
+    p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame='altaz')
+    p2 = SkyCoord(alt=47 * u.deg, az=45 * u.deg, frame='altaz')
+    circle1 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, 1, 0] * u.m)
 
-    circle3 = GreatCircle([[1, 0, 0], [0, 0, 1]])
-    circle3.pos = [0, -.1] * u.m
-    circle3.trace = [1, 0, 0]
+    p1 = SkyCoord(alt=44 * u.deg, az=90 * u.deg, frame='altaz')
+    p2 = SkyCoord(alt=46 * u.deg, az=90 * u.deg, frame='altaz')
+    circle2 = HillasPlane(p1=p1, p2=p2, telescope_position=[1, 0, 0] * u.m)
 
-    circle4 = GreatCircle([[0, 1, 0], [0, 0, 1]])
-    circle4.pos = [-.1, 0] * u.m
-    circle4.trace = [0, 1, 0]
+    p1 = SkyCoord(alt=44.5 * u.deg, az=45 * u.deg, frame='altaz')
+    p2 = SkyCoord(alt=46.5 * u.deg, az=45 * u.deg, frame='altaz')
+    circle3 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, -1, 0] * u.m)
+
+    p1 = SkyCoord(alt=43.5 * u.deg, az=90 * u.deg, frame='altaz')
+    p2 = SkyCoord(alt=45.5 * u.deg, az=90 * u.deg, frame='altaz')
+    circle4 = HillasPlane(p1=p1, p2=p2, telescope_position=[-1, 0, 0] * u.m)
 
     # creating the fit class and setting the the great circle member
     fit = HillasReconstructor()
-    fit.circles = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
+    fit.hillas_planes = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
 
     # performing the direction fit with the minimisation algorithm
     # and a seed that is perpendicular to the up direction
-    dir_fit_minimise = fit.fit_origin_minimise((0.1, 0.1, 1))
+    dir_fit_minimise, _ = fit.estimate_direction()
     print("direction fit test minimise:", dir_fit_minimise)
     print()
 
     # performing the direction fit with the geometric algorithm
-    dir_fit_crosses = fit.fit_origin_crosses()[0]
-    print("direction fit test crosses:", dir_fit_crosses)
+    fitted_core_position, _ = fit.estimate_core_position()
+    print("direction fit test core position:", fitted_core_position)
     print()
 
     # the results should be close to the direction straight up
-    # np.testing.assert_allclose(dir_fit_minimise, [0, 0, 1], atol=1e-1)
-    np.testing.assert_allclose(dir_fit_crosses, [0, 0, 1], atol=1e-3)
+    np.testing.assert_allclose(dir_fit_minimise, [0, 0, 1], atol=1e-3)
+    np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
 
 
 def test_reconstruction():
@@ -98,7 +56,7 @@ def test_reconstruction():
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
     • hillas parametrisation
-    • GreatCircle creation
+    • HillasPlane creation
     • direction fit
     • position fit
 
@@ -108,10 +66,13 @@ def test_reconstruction():
 
     fit = HillasReconstructor()
 
-    tel_phi = {}
-    tel_theta = {}
+    tel_azimuth = {}
+    tel_altitude = {}
 
-    source = hessio_event_source(filename)
+    source = EventSourceFactory.produce(
+        input_url=filename,
+        product='HESSIOEventSource',
+    )
 
     for event in source:
 
@@ -119,9 +80,8 @@ def test_reconstruction():
         for tel_id in event.dl0.tels_with_data:
 
             geom = event.inst.subarray.tel[tel_id].camera
-            tel_phi[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-            tel_theta[tel_id] = (np.pi / 2 -
-                                 event.mc.tel[tel_id].altitude_raw) * u.rad
+            tel_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
+            tel_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
 
             pmt_signal = event.r0.tel[tel_id].image[0]
 
@@ -139,7 +99,7 @@ def test_reconstruction():
         if len(hillas_dict) < 2:
             continue
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_phi, tel_theta)
+        fit_result = fit.predict(hillas_dict, event.inst, tel_azimuth, tel_altitude)
 
         print(fit_result)
         fit_result.alt.to(u.deg)

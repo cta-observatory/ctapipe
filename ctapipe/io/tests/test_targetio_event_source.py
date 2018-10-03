@@ -4,6 +4,7 @@ from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.utils import get_dataset_path
+from ctapipe.calib.camera.calibrator import CameraCalibrator
 
 pytest.importorskip("target_driver")
 pytest.importorskip("target_io")
@@ -35,9 +36,8 @@ def test_singlemodule_r0():
     url = get_dataset_path("targetmodule_r0.tio")
     source = TargetIOEventSource(input_url=url)
     event = source._get_event_by_index(0)
-    assert(source._r1_samples.shape[1] == 64)
     assert(round(source._r0_samples[0, 0, 0]) == 600)
-    assert(round(source._r1_samples[0, 0, 0]) == 0)
+    assert(source._r1_samples is None)
     assert(event.r0.tels_with_data == {0})
     assert(event.r0.tel[0].waveform[0, 0, 0] == source._r0_samples[0, 0, 0])
 
@@ -136,14 +136,14 @@ def test_eventseeker():
         assert source._event_index == 0
         assert source._event_id == 2
         assert event.count == 0
-        assert event.r0.event_id == 2
+        assert event.r1.event_id == 2
         assert (round(source._r1_samples[0, 0, 0]) == -274)
 
         event = seeker['2']
         assert source._event_index == 0
         assert source._event_id == 2
         assert event.count == 0
-        assert event.r0.event_id == 2
+        assert event.r1.event_id == 2
         assert (round(source._r1_samples[0, 0, 0]) == -274)
 
         event = seeker[-1]
@@ -153,3 +153,12 @@ def test_eventseeker():
         with pytest.raises(IndexError):
             seeker = EventSeeker(source)
             _ = seeker[5]
+
+
+def test_pipeline():
+    dataset = get_dataset_path("chec_r1.tio")
+    reader = TargetIOEventSource(input_url=dataset, max_events=10)
+    calibrator = CameraCalibrator(eventsource=reader)
+    for event in reader:
+        calibrator.calibrate(event)
+        assert event.r0.tel.keys() == event.dl1.tel.keys()

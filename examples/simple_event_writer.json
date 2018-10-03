@@ -1,0 +1,9 @@
+{
+  "Analysis": {
+    "allowed_tels": [1, 2, 3, 4]
+  },
+  "Preselect": {
+    "image_amplitude": {"min": 50},
+    "n_pixel": {"min": 3}
+  }
+}

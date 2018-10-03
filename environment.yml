@@ -4,13 +4,14 @@ channels:
   - cta-observatory
   - conda-forge
 dependencies:
-  - zeromq=4.2.2 
+  - zeromq=4.2.2
   - ctapipe-extra=0.2.*
   - astropy
   - bokeh
   - cython
   - gammapy
   - graphviz
+  - h5py
   - iminuit
   - ipython
   - ipywidgets
@@ -29,7 +30,7 @@ dependencies:
   - scikit-image
   - scipy
   - setuptools
-  - sphinx=1.6
+  - sphinx=1.7
   - sphinx_rtd_theme
   - sphinx-automodapi
   - traitlets
@@ -40,5 +41,6 @@ dependencies:
   - iminuit
   - pytables
   - tqdm
+  - tornado=4.5.3
   - pip:
       - pytest_runner
