@@ -344,7 +344,9 @@ class MuonLineIntegrate:
         expo = np.exp(-diff / denom) * u.m
         sm = expo < 1e-300 * u.m
         expo[sm] = 1e-300 * u.m
+
         log_value = sq * expo / u.m
+
         likelihood_value = -2 * np.log(log_value)
 
         return likelihood_value
