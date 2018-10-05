@@ -606,8 +606,8 @@ def convert(date, runnr, path_in_sorcerer, filepath_out):
         # so far, there does not seem to be a difference between the bad pixels event by event 
         #arr_badpixels_4D_data.append(arr_badpixels_3D_data)
         
-        pointing.append((pointings[0,0,0], pointings[0,0,1], pointings[0,1,0], pointings[0,1,1], 
-                         pointings[1,0,0], pointings[1,0,1], pointings[1,1,0], pointings[1,1,1]))
+        pointing.append((pointings[0,0,1], pointings[0,1,1], 
+                         pointings[1,0,1], pointings[1,1,1]))
         
         pointing_radec.append((pointings_radec[0,0], pointings_radec[0,1],
                                pointings_radec[1,0], pointings_radec[1,1]))
@@ -682,11 +682,11 @@ def convert(date, runnr, path_in_sorcerer, filepath_out):
                     arr_arrival_3D_data.append(arr_arrival_2D_data)   
                     #arr_badpixels_4D_data.append(arr_badpixels_3D_data)
     
-                    pointing.append((pointings[0,0,0], pointings[0,0,1], pointings[0,1,0], pointings[0,1,1], 
-                                     pointings[1,0,0], pointings[1,0,1], pointings[1,1,0], pointings[1,1,1]))
+                    pointing.append((pointings[0,0,1], pointings[0,1,1], 
+                                     pointings[1,0,1], pointings[1,1,1]))
                               
                     pointing_radec.append((pointings_radec[0,0], pointings_radec[0,1],
-                               pointings_radec[1,0], pointings_radec[1,1]))
+                                           pointings_radec[1,0], pointings_radec[1,1]))
                     
             elif is_mc == True:
             # collect MC information:
@@ -702,8 +702,8 @@ def convert(date, runnr, path_in_sorcerer, filepath_out):
     for index in range(len(core_xy_tmp)):
         core_xy.append((core_xy_tmp[index,0], core_xy_tmp[index,1]))
     
-    arr_phe_3D_data = np.array(arr_phe_3D_data)
-    arr_arrival_3D_data = np.array(arr_arrival_3D_data)
+    arr_phe_3D_data = np.array(arr_phe_3D_data, dtype=np.single)
+    arr_arrival_3D_data = np.array(arr_arrival_3D_data, dtype=np.single)
     
     eventstream_corrected = np.array(eventstream_corrected, dtype=dt_events)
     nevents_total = len(eventstream_corrected)           
@@ -742,8 +742,8 @@ def convert(date, runnr, path_in_sorcerer, filepath_out):
     dsets[-1][...] = np.array(tels_with_data, dtype = dt)
     f["/dl1/tels_with_data"] = h5py.SoftLink('/trig/tels_with_trigger')
     
-    dt = np.dtype([("M1_Az", np.double), ("M1_AzCorr", np.double), ("M1_Alt", np.double), ("M1_AltCorr", np.double), 
-                   ("M2_Az", np.double), ("M2_AzCorr", np.double), ("M2_Alt", np.double), ("M2_AltCorr", np.double)])
+    dt = np.dtype([("M1_AzCorr", np.single), ("M1_AltCorr", np.single), 
+                   ("M2_AzCorr", np.single), ("M2_AltCorr", np.single)])
     dsets.append(f.create_dataset("pointing", (nevents_total,), dt))
     dsets[-1][...] = np.array(pointing, dtype = dt)
     dsets[-1].attrs['FIELD_0_UNIT'] = np.string_("deg")
@@ -755,7 +755,7 @@ def convert(date, runnr, path_in_sorcerer, filepath_out):
     dsets[-1].attrs['FIELD_6_UNIT'] = np.string_("deg")
     dsets[-1].attrs['FIELD_7_UNIT'] = np.string_("deg")
     
-    dt = np.dtype([("M1_RaCorr", np.double), ("M1_DecCorr", np.double), ("M2_RaCorr", np.double), ("M2_DecCorr", np.double)])
+    dt = np.dtype([("M1_RaCorr", np.single), ("M1_DecCorr", np.single), ("M2_RaCorr", np.single), ("M2_DecCorr", np.single)])
     dsets.append(f.create_dataset("pointing_radec", (nevents_total,), dt))
     dsets[-1][...] = np.array(pointing_radec, dtype = dt)
     dsets[-1].attrs['FIELD_0_UNIT'] = np.string_("deg")
