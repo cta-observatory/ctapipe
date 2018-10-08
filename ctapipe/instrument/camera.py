@@ -15,6 +15,7 @@ from scipy.sparse import csr_matrix
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
 
+
 __all__ = ['CameraGeometry']
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,8 @@ class CameraGeometry:
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True):
 
+        assert len(pix_x) == len(pix_y), 'pix_x and pix_y must have same length'
+        self.n_pixels = len(pix_x)
         self.cam_id = cam_id
         self.pix_id = pix_id
         self.pix_x = pix_x
@@ -110,6 +113,9 @@ class CameraGeometry:
             if len(pix_x.shape) == 1:
                 self.rotate(cam_rotation)
 
+        # cache border pixel mask per instance
+        self.border_cache = {}
+
     def __eq__(self, other):
         return ((self.cam_id == other.cam_id)
                 and (self.pix_x == other.pix_x).all()
@@ -118,6 +124,9 @@ class CameraGeometry:
                 and (self.pix_rotation == other.pix_rotation)
                 and (self.pix_type == other.pix_type)
                 )
+
+    def __len__(self):
+        return self.n_pixels
 
     def __getitem__(self, slice_):
         return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
@@ -449,6 +458,34 @@ class CameraGeometry:
                    pix_area=(2 * rr) ** 2,
                    neighbors=None,
                    pix_type='rectangular')
+
+    def get_border_pixel_mask(self, width=1):
+        '''
+        Get a mask for pixels at the border of the camera of arbitrary width
+
+        Parameters
+        ----------
+        width: int
+            The width of the border in pixels
+
+        Returns
+        -------
+        mask: array
+            A boolean mask, True if pixel is in the border of the specified width
+        '''
+        if width in self.border_cache:
+            return self.border_cache[width]
+
+        if width == 1:
+            n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
+            max_neighbors = n_neighbors.max()
+            mask = n_neighbors < max_neighbors
+        else:
+            n = self.neighbor_matrix
+            mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
+
+        self.border_cache[width] = mask
+        return mask
 
 
 # ======================================================================
