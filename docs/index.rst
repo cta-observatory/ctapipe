@@ -10,7 +10,7 @@
 
 **version**:  |version|
 
-.. image:: event.png
+.. image:: ctapipe_logo.png
    :align: center
    :width: 90%
 
