@@ -6,10 +6,15 @@ Needs protozfits v1.4.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
-from os.path import exists
+
+from astropy import units as u
+from os import listdir
+from os import getcwd
 from ctapipe.core import Provenance
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 from .eventsource import EventSource
 from .containers import LSTDataContainer
+
 
 __all__ = ['LSTEventSource']
 
@@ -21,8 +26,8 @@ class LSTEventSource(EventSource):
 
         self.multi_file = MultiFiles(self.input_url)
         self.camera_config = self.multi_file.camera_config
-
         self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
+
 
 
     def _generator(self):
@@ -30,9 +35,26 @@ class LSTEventSource(EventSource):
         # container for LST data
         data = LSTDataContainer()
         data.meta['input_url'] = self.input_url
+        data.meta['max_events'] = self.max_events
+
 
         # fill LST data from the CameraConfig table
         self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
+
+        # Instrument information
+        # LSTs telescope position taken from MC from the moment
+        tel_pos = np.array([50., 50., 16.])* u.m
+
+        for tel_id in data.lst.tels_with_data:
+
+            assert (tel_id == 0) # only LST1 for the moment (id = 0)
+            subarray = SubarrayDescription("LST1 subarray")
+
+            # camera info from file LST1Cam.camgeom.fits.gz
+            subarray.tels[tel_id] = TelescopeDescription.from_name("LST","LST1Cam")
+            subarray.positions[tel_id] = tel_pos
+
+        data.inst.subarray=subarray
 
         # loop on events
         for count, event in enumerate(self.multi_file):
@@ -184,22 +206,27 @@ class MultiFiles:
         self._events_table = {}
         self._camera_config = {}
 
-        paths = [input_url, ]
 
-        # test how many files are there
-        if '000.fits.fz' in input_url:
-            i = 0
-            while True:
-                input_url = input_url.replace(str(i).zfill(3) +
-                                              '.fits.fz', str(i + 1)
-                                              .zfill(3) + '.fits.fz')
-                if exists(input_url):
-                    paths.append(input_url)
-                    # keep track of all input files
-                    Provenance().add_input_file(input_url, role='dl0.sub.evt')
-                    i = i + 1
-                else:
-                    break
+        # test how many streams are there:
+        # file name must be [stream name].[all the rest]
+        # All the files with the same [all the rest] are opened
+
+        if ('/' in input_url):
+            dir, name = input_url.rsplit('/', 1)
+        else:
+            dir = getcwd()
+            name = input_url
+
+        ls = listdir(dir)
+        stream, run = name.split('.', 1)
+        paths = []
+        for file_name in ls:
+            if run in file_name:
+                full_name=dir + '/' + file_name
+                paths.append(full_name)
+                Provenance().add_input_file(full_name, role='dl0.sub.evt')
+
+
 
         # open the files and get the first fits Tables
         from protozfits import File
@@ -258,3 +285,5 @@ class MultiFiles:
 
     def num_inputs(self):
         return len(self._file)
+
+
