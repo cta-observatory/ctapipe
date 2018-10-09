@@ -1,6 +1,6 @@
 name: cta-dev
 channels:
-  - anaconda
+  - default
   - cta-observatory
   - conda-forge
 dependencies:
