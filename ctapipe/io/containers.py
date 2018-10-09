@@ -10,37 +10,40 @@ import numpy as np
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
 
-__all__ = ['InstrumentContainer',
-           'R0Container',
-           'R0CameraContainer',
-           'R1Container',
-           'R1CameraContainer',
-           'DL0Container',
-           'DL0CameraContainer',
-           'DL1Container',
-           'DL1CameraContainer',
-           'TargetIOContainer',
-           'TargetIOCameraContainer',
-           'SST1MContainer',
-           'SST1MCameraContainer',
-           'LSTContainer',
-           'LSTCameraContainer',
-           'NectarCAMContainer',
-           'NectarCAMCameraContainer',
-           'MCEventContainer',
-           'MCHeaderContainer',
-           'MCCameraEventContainer',
-           'CameraCalibrationContainer',
-           'CentralTriggerContainer',
-           'ReconstructedContainer',
-           'ReconstructedShowerContainer',
-           'ReconstructedEnergyContainer',
-           'ParticleClassificationContainer',
-           'DataContainer',
-           'TargetIODataContainer',
-           'SST1MDataContainer',
-           'HillasParametersContainer',
-           'LeakageContainer']
+__all__ = [
+    'InstrumentContainer',
+    'R0Container',
+    'R0CameraContainer',
+    'R1Container',
+    'R1CameraContainer',
+    'DL0Container',
+    'DL0CameraContainer',
+    'DL1Container',
+    'DL1CameraContainer',
+    'TargetIOContainer',
+    'TargetIOCameraContainer',
+    'SST1MContainer',
+    'SST1MCameraContainer',
+    'LSTContainer',
+    'LSTCameraContainer',
+    'NectarCAMContainer',
+    'NectarCAMCameraContainer',
+    'MCEventContainer',
+    'MCHeaderContainer',
+    'MCCameraEventContainer',
+    'CameraCalibrationContainer',
+    'CentralTriggerContainer',
+    'ReconstructedContainer',
+    'ReconstructedShowerContainer',
+    'ReconstructedEnergyContainer',
+    'ParticleClassificationContainer',
+    'DataContainer',
+    'TargetIODataContainer',
+    'SST1MDataContainer',
+    'HillasParametersContainer',
+    'LeakageContainer',
+    'ConcentrationContainer',
+]
 
 
 class SST1MCameraContainer(Container):
@@ -695,4 +698,23 @@ class LeakageContainer(Container):
         nan,
         'Percentage of photo-electrons after cleaning'
         ' that are in the camera border of width=2'
+    )
+
+
+class ConcentrationContainer(Container):
+    """
+    Concentrations are ratios between light amount
+    in certain areas of the image and the full image.
+    """
+    concentration_cog = Field(
+        nan,
+        'Percentage of photo-electrons in the three pixels closest to the cog'
+    )
+    concentration_core = Field(
+        nan,
+        'Percentage of photo-electrons inside the hillas ellipse'
+    )
+    concentration_pixel = Field(
+        nan,
+        'Percentage of photo-electrons in the brightest pixel'
     )
