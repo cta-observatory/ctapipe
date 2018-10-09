@@ -390,6 +390,7 @@ class HillasReconstructor(Reconstructor):
 
             weights.append(self.hillas_planes[tel_id].weight)
             tels.append(self.hillas_planes[tel_id].pos)
+            cog_direction[1] = - cog_direction[1]
             dirs.append(cog_direction)
 
         # minimising the test function
