@@ -6,8 +6,8 @@ Needs protozfits v1.4.0 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
-from os.path import exists
-from ctapipe.core import Provenance
+from astropy import units as u
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 from .eventsource import EventSource
 from .lsteventsource import MultiFiles
 from .containers import NectarCAMDataContainer
@@ -28,12 +28,26 @@ class NectarCAMEventSource(EventSource):
 
     def _generator(self):
 
-        # container for LST data
+        # container for NectarCAM data
         data = NectarCAMDataContainer()
         data.meta['input_url'] = self.input_url
 
         # fill data from the CameraConfig table
-        self.fill_lst_service_container_from_zfile(data.nectarcam, self.camera_config)
+        self.fill_nectarcam_service_container_from_zfile(data.nectarcam, self.camera_config)
+
+        # Instrument information
+        # NectarCam telescope position taken from MC from the moment
+        tel_pos = np.array([50., 50., 16.]) * u.m
+
+        for tel_id in data.nectarcam.tels_with_data:
+            assert (tel_id == 0)  # only one telescope for the moment (id = 0)
+            subarray = SubarrayDescription("NectarCAM subarray")
+
+            # camera info from file
+            subarray.tels[tel_id] = TelescopeDescription.from_name("MST", "ProtoNectarCAM")
+            subarray.positions[tel_id] = tel_pos
+
+        data.inst.subarray = subarray
 
         # loop on events
         for count, event in enumerate(self.multi_file):
@@ -41,7 +55,7 @@ class NectarCAMEventSource(EventSource):
             data.count = count
 
             # fill specific NectarCAM event data
-            self.fill_lst_event_container_from_zfile(data.nectarcam, event)
+            self.fill_nectarcam_event_container_from_zfile(data.nectarcam, event)
 
             # fill general R0 data
             self.fill_r0_container_from_zfile(data.r0, event)
@@ -78,7 +92,7 @@ class NectarCAMEventSource(EventSource):
         is_nectarcam_file = 'nectarcam_counters' in ttypes
         return is_protobuf_zfits_file & is_nectarcam_file
 
-    def fill_lst_service_container_from_zfile(self, container, camera_config):
+    def fill_nectarcam_service_container_from_zfile(self, container, camera_config):
 
         container.tels_with_data = [camera_config.telescope_id, ]
         svc_container = container.tel[camera_config.telescope_id].svc
@@ -103,7 +117,7 @@ class NectarCAMEventSource(EventSource):
 
 
 
-    def fill_lst_event_container_from_zfile(self, container, event):
+    def fill_nectarcam_event_container_from_zfile(self, container, event):
 
         event_container = container.tel[self.camera_config.telescope_id].evt
 
