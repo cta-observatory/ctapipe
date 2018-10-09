@@ -1,6 +1,6 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 """
-Utilities to generate toymodel (fake) reconstruction inputs for testing 
+Utilities to generate toymodel (fake) reconstruction inputs for testing
 purposes.
 
 Example:
@@ -9,12 +9,12 @@ Example:
 
     >>> from instrument import CameraGeometry
     >>> geom = CameraGeometry.make_rectangular(20,20)
-    >>> showermodel = generate_2d_shower_model(centroid=[0.25, 0.0], 
+    >>> showermodel = generate_2d_shower_model(centroid=[0.25, 0.0],
     length=0.1,width=0.02, psi='40d')
     >>> image, signal, noise = make_toymodel_shower_image(geom, showermodel.pdf)
     >>> print(image.shape)
     (400,)
-                                             
+
 .. plot:: image/image_example.py
     :include-source:
 
@@ -53,7 +53,7 @@ def generate_2d_shower_model(centroid, width, length, psi):
     a `scipy.stats` object
 
     """
-    aligned_covariance = np.array([[length, 0], [0, width]])
+    aligned_covariance = np.array([[length**2, 0], [0, width**2]])
     # rotate by psi angle: C' = R C R+
     rotation = linalg.rotation_matrix_2d(psi)
     rotated_covariance = rotation.dot(aligned_covariance).dot(rotation.T)
@@ -69,9 +69,9 @@ def make_toymodel_shower_image(geom, showerpdf, intensity=50, nsb_level_pe=50):
     Parameters
     ----------
     geom : `ctapipe.instrument.CameraGeometry`
-        camera geometry object 
+        camera geometry object
     showerpdf : func
-        PDF function for the shower to generate in the camera, e.g. from a 
+        PDF function for the shower to generate in the camera, e.g. from a
     intensity : int
         factor to multiply the model by to get photo-electrons
     nsb_level_pe : type
@@ -84,10 +84,11 @@ def make_toymodel_shower_image(geom, showerpdf, intensity=50, nsb_level_pe=50):
 
     """
     pos = np.empty(geom.pix_x.shape + (2,))
-    pos[..., 0] = geom.pix_x.value
-    pos[..., 1] = geom.pix_y.value
+    pos[:, 0] = geom.pix_x.value
+    pos[:, 1] = geom.pix_y.value
 
-    model_counts = (showerpdf(pos) * intensity).astype(np.int32)
+    model_counts = showerpdf(pos) * intensity * geom.pix_area.value
+
     signal = np.random.poisson(model_counts)
     noise = np.random.poisson(nsb_level_pe, size=signal.shape)
     image = (signal + noise) - np.mean(noise)
