@@ -13,8 +13,8 @@ def test_grad_fit():
     intercept = 1
 
     timing = timing_parameters(
-        pix_x=np.zeros(4) * u.deg,
-        pix_y=np.arange(4) * u.deg,
+        pix_x=np.arange(4) * u.deg,
+        pix_y=np.zeros(4) * u.deg,
         image=np.ones(4),
         peak_time=intercept * u.ns + grad * np.arange(4) * u.ns,
         rotation_angle=0 * u.deg
@@ -27,8 +27,8 @@ def test_grad_fit():
     # Then try a different rotation angle
     rot_angle = 20 * u.deg
     timing_rot20 = timing_parameters(
-        pix_x=np.zeros(4) * u.deg,
-        pix_y=np.arange(4) * u.deg,
+        pix_x=np.arange(4) * u.deg,
+        pix_y=np.zeros(4) * u.deg,
         image=np.ones(4),
         peak_time=intercept * u.ns +
         grad * np.arange(4) * u.ns,
