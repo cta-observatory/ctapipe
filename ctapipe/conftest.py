@@ -3,10 +3,11 @@ common pytest fixtures for tests in ctapipe
 """
 
 import pytest
-from ctapipe.utils import get_dataset_path
+
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io.hessioeventsource import HESSIOEventSource
-from copy import deepcopy
+from ctapipe.utils import get_dataset_path
+
 
 @pytest.fixture(scope='session')
 def test_event():
@@ -20,7 +21,3 @@ def test_event():
         event = seeker['409']
 
     return event
-
-
-
-
