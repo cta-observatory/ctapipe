@@ -498,8 +498,6 @@ def hillas_parameters_4(geom: CameraGeometry, image):
         Camera geometry
     image : array_like
         Pixel values
-    container: bool
-        return a HillasParametersContainer instead of a tuple
 
     Returns
     -------
