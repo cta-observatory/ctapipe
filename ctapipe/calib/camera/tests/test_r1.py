@@ -10,26 +10,26 @@ from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.io.eventsource import EventSource
 from ctapipe.utils import get_dataset_path
-from copy import deepcopy
+
 import pytest
 
 
 def test_hessio_r1_calibrator(test_event):
     telid = 11
-    event = deepcopy(test_event)
+
     calibrator = HESSIOR1Calibrator()
-    calibrator.calibrate(event)
-    r1 = event.r1.tel[telid].waveform
+    calibrator.calibrate(test_event)
+    r1 = test_event.r1.tel[telid].waveform
     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
 
 
 def test_null_r1_calibrator(test_event):
     telid = 11
-    event = deepcopy(test_event)
+
     calibrator = NullR1Calibrator()
-    calibrator.calibrate(event)
-    r0 = event.r0.tel[telid].waveform
-    r1 = event.r1.tel[telid].waveform
+    calibrator.calibrate(test_event)
+    r0 = test_event.r0.tel[telid].waveform
+    r1 = test_event.r1.tel[telid].waveform
     assert_array_equal(r0, r1)
 
 
@@ -69,11 +69,11 @@ def test_targetio_calibrator_wrong_file(test_event):
 
 def test_check_r0_exists(test_event):
     telid = 11
-    event = deepcopy(test_event)
+
     calibrator = HESSIOR1Calibrator()
-    assert(calibrator.check_r0_exists(event, telid) is True)
-    event.r0.tel[telid].waveform = None
-    assert(calibrator.check_r0_exists(event, telid) is False)
+    assert(calibrator.check_r0_exists(test_event, telid) is True)
+    test_event.r0.tel[telid].waveform = None
+    assert(calibrator.check_r0_exists(test_event, telid) is False)
 
 
 def test_factory_from_product():

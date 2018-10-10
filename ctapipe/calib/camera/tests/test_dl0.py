@@ -12,7 +12,7 @@ def previous_calibration(event):
 
 
 def test_camera_dl0_reducer(test_event):
-    event = deepcopy(test_event)
+    event = test_event
     previous_calibration(event)
     telid = 11
 
@@ -23,7 +23,7 @@ def test_camera_dl0_reducer(test_event):
 
 
 def test_check_r1_exists(test_event):
-    event = deepcopy(test_event)
+    event = test_event
     telid = 11
     previous_calibration(event)
     reducer = CameraDL0Reducer()

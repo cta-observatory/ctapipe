@@ -14,7 +14,7 @@ from ctapipe.image.charge_extractors import (FullIntegrator,
 
 def test_full_integration(test_event):
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -32,7 +32,7 @@ def test_full_integration(test_event):
 
 def test_simple_integration(test_event):
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -50,7 +50,7 @@ def test_simple_integration(test_event):
 
 def test_global_peak_integration(test_event):
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -68,7 +68,7 @@ def test_global_peak_integration(test_event):
 
 def test_local_peak_integration(test_event):
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -86,7 +86,7 @@ def test_local_peak_integration(test_event):
 
 def test_nb_peak_integration(test_event):
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -107,7 +107,7 @@ def test_nb_peak_integration(test_event):
 
 def test_averagewf_peak_integration(test_event):
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -130,7 +130,7 @@ def test_charge_extractor_factory(test_event):
     )
 
     telid = 11
-    event = deepcopy(test_event)
+    event = test_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal

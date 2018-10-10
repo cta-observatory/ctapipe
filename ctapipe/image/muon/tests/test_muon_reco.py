@@ -15,7 +15,7 @@ def test_basic_muon_reco(test_event):
     test_event - a sample event (fixture)
 
     """
-    event = deepcopy(test_event)
+    event = test_event
 
     calib = CameraCalibrator()
     calib.calibrate(event)
