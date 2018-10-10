@@ -74,16 +74,18 @@ install:
     # ----- SST1M:
     - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.4.2.tar.gz
     # ----- end of SST1M
+
+    # DN: exclude target software for a moment ... it does not yet support py3.7
     # ----- target_software
-    - conda install -c conda-forge cfitsio
-    - conda install swig
-    - mkdir -p $HOME/Software
-    - cd $HOME/Software
-    - git clone https://github.com/watsonjj/target_software.git
-    - cd $TARGET_SOFTWARE
-    - export TRAVIS_PYTHON_VERSION=$PYTHON_VERSION  # install.sh needs $TRAVIS_PYTHON_VERSION
-    - ./install.sh
-    - cd $TRAVIS_BUILD_DIR
+    #  - conda install -c conda-forge cfitsio
+    #  - conda install swig
+    #  - mkdir -p $HOME/Software
+    #  - cd $HOME/Software
+    #  - git clone https://github.com/watsonjj/target_software.git
+    #  - cd $TARGET_SOFTWARE
+    #  - export TRAVIS_PYTHON_VERSION=$PYTHON_VERSION  # install.sh needs $TRAVIS_PYTHON_VERSION
+    #  - ./install.sh
+    #  - cd $TRAVIS_BUILD_DIR
     # ----- end of target_software
     - python setup.py develop
 
