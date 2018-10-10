@@ -163,8 +163,10 @@ class UnstructuredInterpolator:
 
         three_dim = False
         if len(eval_points.shape) > 2:
-            first_index = np.arange(point_num.shape[0])[..., np.newaxis] * \
-                          np.ones_like(point_num)
+            first_index = (
+                np.arange(point_num.shape[0])[..., np.newaxis] *
+                np.ones_like(point_num)
+            )
             first_index = first_index.ravel()
             three_dim = True
 
