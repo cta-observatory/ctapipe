@@ -1,17 +1,39 @@
-language: python
 sudo: required
 
-python:
-    # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
-    # in anaconda as well (we don't support python less than 3.5)
-    - 3.5
-    - 3.6
-    - 3.7
+language: generic
 
-os:
-    - linux
-    # - osx   # currently osx python projects are not supported in Travis
-
+matrix:
+  include:
+    - os: linux
+      python: 3.5
+      env:
+        - PYTHON_VERSION=3.5
+        - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - os: linux
+      python: 3.6
+      env:
+        - PYTHON_VERSION=3.6
+        - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - os: linux
+      python: 3.7
+      env:
+        - PYTHON_VERSION=3.7
+        - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    - os: osx
+      python: 3.5
+      env:
+        - PYTHON_VERSION=3.5
+        - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+    - os: osx
+      python: 3.6
+      env:
+        - PYTHON_VERSION=3.6
+        - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+    - os: osx
+      python: 3.7
+      env:
+        - PYTHON_VERSION=3.7
+        - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
 env:
   global:
     - TARGET_SOFTWARE=$HOME/Software/target_software
@@ -27,12 +49,7 @@ before_install:
 
     # Install miniconda following instructions at
     # http://conda.pydata.org/docs/travis.html
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
-      fi
+    - wget $MINICONDA_URL -O miniconda.sh
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
     - hash -r
@@ -47,7 +64,7 @@ before_install:
     - git fetch --tags
 
 install:
-    - conda create --name cta-dev python=$TRAVIS_PYTHON_VERSION
+    - conda create --name cta-dev python=$PYTHON_VERSION pip
     - conda env update -n cta-dev --file environment.yml
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
