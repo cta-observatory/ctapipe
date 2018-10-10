@@ -53,9 +53,11 @@ class UnstructuredInterpolator:
         self._function_name = function_name
 
         # OK this code is horrid and will need fixing
-        self._numpy_input = isinstance(self.values[0], np.ndarray) or \
-                            issubclass(type(self.values[0]), np.float) or \
-                            issubclass(type(self.values[0]), np.int)
+        self._numpy_input = (
+            isinstance(self.values[0], np.ndarray) or
+            issubclass(type(self.values[0]), np.float) or
+            issubclass(type(self.values[0]), np.int)
+        )
 
         if self._numpy_input is False and function_name is None:
             self._function_name = "__call__"
@@ -161,8 +163,10 @@ class UnstructuredInterpolator:
 
         three_dim = False
         if len(eval_points.shape) > 2:
-            first_index = np.arange(point_num.shape[0])[..., np.newaxis] * \
-                          np.ones_like(point_num)
+            first_index = (
+                np.arange(point_num.shape[0])[..., np.newaxis] *
+                np.ones_like(point_num)
+            )
             first_index = first_index.ravel()
             three_dim = True
 
@@ -208,8 +212,10 @@ class UnstructuredInterpolator:
 
         it = np.repeat(it, eval_points.shape[1], axis=0)
 
-        eval_points = eval_points.reshape((eval_points.shape[0]*eval_points.shape[1],
-                                           eval_points.shape[-1]))
+        eval_points = eval_points.reshape(
+            eval_points.shape[0] * eval_points.shape[1],
+            eval_points.shape[-1]
+        )
 
         scaled_points = eval_points.T
         if is_masked:
@@ -218,10 +224,14 @@ class UnstructuredInterpolator:
             mask = np.ones_like(scaled_points[0], dtype=bool)
 
         it = ma.masked_array(it, mask)
-        scaled_points[0] = ((scaled_points[0]-(self._bounds[0][0])) /
-                            (self._bounds[0][1]-self._bounds[0][0])) * (vals.shape[-2]-1)
-        scaled_points[1] += ((scaled_points[1]-(self._bounds[1][0])) /
-                            (self._bounds[1][1]-self._bounds[1][0])) * (vals.shape[-1]-1)
+        scaled_points[0] = (
+            (scaled_points[0] - (self._bounds[0][0])) /
+            (self._bounds[0][1] - self._bounds[0][0])
+        ) * (vals.shape[-2] - 1)
+        scaled_points[1] += (
+            (scaled_points[1] - (self._bounds[1][0])) /
+            (self._bounds[1][1] - self._bounds[1][0])
+        ) * (vals.shape[-1] - 1)
         scaled_points = np.vstack((it, scaled_points))
 
         output = np.zeros(scaled_points.T.shape[:-1])
