@@ -190,7 +190,7 @@ class ArrayDisplay:
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
             rho[idx] = 1.0 * u.m  # params.length
-            rot_angle_ellipse[idx] = Angle(params.psi)+ Angle(angle_offset)
+            rot_angle_ellipse[idx] = Angle(params.psi) + Angle(angle_offset)
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
@@ -217,7 +217,7 @@ class ArrayDisplay:
             y_0 = coords[idx].y.value
             m = np.tan(Angle(params.psi))
             x = x_0 + np.linspace(-range, range, 50)
-            y = y_0 + m * (x-x_0)
+            y = y_0 + m * (x - x_0)
             distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
             mask = np.ma.masked_where(distance < range, distance).mask
             self.axes.plot(x[mask], y[mask], color=c[idx], **kwargs)
