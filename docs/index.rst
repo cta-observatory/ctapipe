@@ -3,31 +3,31 @@
 .. _ctapipe:
 
 =====================================================
- CTA Experimental Pipeline Framework (:mod:`ctapipe`)
+ Prototype CTA Pipeline Framework (:mod:`ctapipe`)
 =====================================================
 
 .. currentmodule:: ctapipe
 
 **version**:  |version|
 
-.. image:: event.png
+.. image:: ctapipe_logo.png
    :align: center
    :width: 90%
 
 What is ctapipe?
 ================
 
-`ctapipe` is an experimental framework for the data processing
-pipelines for CTA.
+`ctapipe` is a framework for prototyping the low-level data processing algorithms for the Cherenkov Telescope Array. 
 
 .. CAUTION::
    This is not yet stable code, so expect large and rapid changes to
-   structure and functionality as we explore various design choices.
+   structure and functionality as we explore various design choices before
+   the 1.0 release.
 
 * Code, feature requests, bug reports, pull requests: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
 * License: BSD-3
-* Python 3.4 or later (Python 2 is not supported)
+* Python 3.6 or later (Python 2 is not supported)
 
 
 
@@ -66,50 +66,11 @@ Module API Status (relative to next release)
 `core`            **stable**
 `flow`            experimental
 `instrument`      **stable**
-`plotting`        caution
+`io`              **stable** 
 `reco`            **stable**
 `utils`           **stable**
 `visualization`   **stable**
 ================  ===============
-
-
-Authors (as of 2017-10-11)
-==========================
-(computed from the list of GIT commits)
-
-- Karl Kosack
-- Jason Watson
-- Dan Parsons
-- Jacquemier
-- Tino Michael
-- Maximilian Nöthe
-- Christoph Deil
-- Alison Mitchell
-- justuszorn
-- Samuel Timothy Spencer
-- AMWMitchell
-- Raquel de los Reyes
-- Michele Mastropietro
-- Jeremie DECOCK
-- Kai Brügge
-- tino-michael
-- Abelardo Moralejo Olaizola
-- Markus Gaug
-- tialis
-- fvisconti
-- Wrijupan Bhattacharyya
-- bultako
-- Paolo Cumani
-- Tristan Carel
-- Michael Punch
-- Miguel Nievas
-- Orel Gueta
-- Tarek Hassan
-- Daniel Parsons
-- GernotMaier
-- David Landriu
-- labsaha
-- Pierre Aubert
 
 
 Development Help
