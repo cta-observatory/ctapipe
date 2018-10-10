@@ -212,8 +212,10 @@ class UnstructuredInterpolator:
 
         it = np.repeat(it, eval_points.shape[1], axis=0)
 
-        eval_points = eval_points.reshape((eval_points.shape[0]*eval_points.shape[1],
-                                           eval_points.shape[-1]))
+        eval_points = eval_points.reshape(
+            eval_points.shape[0] * eval_points.shape[1],
+            eval_points.shape[-1]
+        )
 
         scaled_points = eval_points.T
         if is_masked:
