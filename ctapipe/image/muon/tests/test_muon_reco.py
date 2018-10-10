@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image.muon import muon_reco_functions as muon
 
@@ -15,10 +13,9 @@ def test_basic_muon_reco(example_event):
     test_event - a sample event (fixture)
 
     """
-    event = example_event
 
     calib = CameraCalibrator()
-    calib.calibrate(event)
+    calib.calibrate(example_event)
 
-    muon_params = muon.analyze_muon_event(event)
+    muon_params = muon.analyze_muon_event(example_event)
     assert muon_params is not None

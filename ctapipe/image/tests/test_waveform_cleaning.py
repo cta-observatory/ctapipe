@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
-from copy import deepcopy
 
 from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
                                              CHECMWaveformCleanerAverage,
@@ -9,25 +8,23 @@ from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
 
 def test_null_cleaner(example_event):
     telid = 11
-    event = example_event  # to avoid modifying the test event
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     cleaner = NullWaveformCleaner()
     cleaned = cleaner.apply(data_ped)
 
-    assert(np.array_equal(data_ped, cleaned))
+    assert (np.array_equal(data_ped, cleaned))
 
 
 def test_checm_cleaner_average(example_event):
     telid = 11
-    event = example_event  # to avoid modifying the test event
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -40,10 +37,9 @@ def test_checm_cleaner_average(example_event):
 
 def test_checm_cleaner_local(example_event):
     telid = 11
-    event = example_event  # to avoid modifying the test event
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
