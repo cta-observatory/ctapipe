@@ -19,6 +19,8 @@ def _global_example_event():
     """
     filename = get_dataset_path('gamma_test.simtel.gz')
 
+    print("******************** LOAD TEST EVENT ***********************")
+
     with HESSIOEventSource(input_url=filename) as reader:
         seeker = EventSeeker(reader)
         event = seeker['409']
