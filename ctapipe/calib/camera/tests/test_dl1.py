@@ -4,12 +4,6 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import integration_correction, \
     CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
-from numpy.testing import assert_allclose
-
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import integration_correction, \
-    CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 
 
 def previous_calibration(event):

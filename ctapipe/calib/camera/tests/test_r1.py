@@ -1,17 +1,17 @@
+import pytest
 from numpy.testing import assert_almost_equal, assert_array_equal, \
     assert_array_almost_equal
+
 from ctapipe.calib.camera.r1 import (
     CameraR1CalibratorFactory,
     HESSIOR1Calibrator,
     TargetIOR1Calibrator,
     NullR1Calibrator
 )
+from ctapipe.io.eventsource import EventSource
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
-from ctapipe.io.eventsource import EventSource
 from ctapipe.utils import get_dataset_path
-
-import pytest
 
 
 def test_hessio_r1_calibrator(example_event):
@@ -71,9 +71,9 @@ def test_check_r0_exists(example_event):
     telid = 11
 
     calibrator = HESSIOR1Calibrator()
-    assert(calibrator.check_r0_exists(example_event, telid) is True)
+    assert (calibrator.check_r0_exists(example_event, telid) is True)
     example_event.r0.tel[telid].waveform = None
-    assert(calibrator.check_r0_exists(example_event, telid) is False)
+    assert (calibrator.check_r0_exists(example_event, telid) is False)
 
 
 def test_factory_from_product():

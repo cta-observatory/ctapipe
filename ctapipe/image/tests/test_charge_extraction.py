@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import numpy as np
 from numpy.testing import assert_almost_equal
 
@@ -27,6 +25,7 @@ def test_full_integration(example_event):
     assert_almost_equal(integration[1][0], 149, 0)
     assert peakpos[0][0] == 0
     assert peakpos[1][0] == 0
+
 
 def test_simple_integration(example_event):
     telid = 11
@@ -119,7 +118,6 @@ def test_averagewf_peak_integration(example_event):
 
 def test_charge_extractor_factory(example_event):
     extractor = ChargeExtractorFactory.produce(
-
         product='LocalPeakIntegrator'
     )
 
