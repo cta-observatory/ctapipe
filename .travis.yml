@@ -79,7 +79,7 @@ install:
     - pip install protobuf
     - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/work_on_py3.7.tar.gz
     # ----- end of SST1M
-    - install_target.sh
+    - ./install_target.sh
     - python setup.py develop
 
 script:
