@@ -12,9 +12,9 @@ from ctapipe.image.charge_extractors import (FullIntegrator,
                                              AverageWfPeakIntegrator)
 
 
-def test_full_integration(test_event):
+def test_full_integration(example_event):
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -30,9 +30,9 @@ def test_full_integration(test_event):
     assert peakpos[1][0] == 0
 
 
-def test_simple_integration(test_event):
+def test_simple_integration(example_event):
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -48,9 +48,9 @@ def test_simple_integration(test_event):
     assert peakpos[1][0] == 0
 
 
-def test_global_peak_integration(test_event):
+def test_global_peak_integration(example_event):
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -66,9 +66,9 @@ def test_global_peak_integration(test_event):
     assert peakpos[1][0] == 14
 
 
-def test_local_peak_integration(test_event):
+def test_local_peak_integration(example_event):
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -84,9 +84,9 @@ def test_local_peak_integration(test_event):
     assert peakpos[1][0] == 13
 
 
-def test_nb_peak_integration(test_event):
+def test_nb_peak_integration(example_event):
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -105,9 +105,9 @@ def test_nb_peak_integration(test_event):
     assert peakpos[1][0] == 20
 
 
-def test_averagewf_peak_integration(test_event):
+def test_averagewf_peak_integration(example_event):
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -123,14 +123,14 @@ def test_averagewf_peak_integration(test_event):
     assert peakpos[1][0] == 10
 
 
-def test_charge_extractor_factory(test_event):
+def test_charge_extractor_factory(example_event):
     extractor = ChargeExtractorFactory.produce(
 
         product='LocalPeakIntegrator'
     )
 
     telid = 11
-    event = test_event
+    event = example_event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal

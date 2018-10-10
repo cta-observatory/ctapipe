@@ -15,8 +15,8 @@ def previous_calibration(event):
     dl0.reduce(event)
 
 
-def test_integration_correction(test_event):
-    event = test_event
+def test_integration_correction(example_event):
+    event = example_event
     telid = 11
     width = 7
     shift = 3
@@ -29,8 +29,8 @@ def test_integration_correction(test_event):
     assert_allclose(correction[0], 1.077, 1e-3)
 
 
-def test_integration_correction_no_ref_pulse(test_event):
-    event = test_event
+def test_integration_correction_no_ref_pulse(example_event):
+    event = example_event
     previous_calibration(event)
     telid = list(event.dl0.tel.keys())[0]
     delattr(event, 'mc')
@@ -39,8 +39,8 @@ def test_integration_correction_no_ref_pulse(test_event):
     assert correction[0] == 1
 
 
-def test_camera_dl1_calibrator(test_event):
-    event = test_event
+def test_camera_dl1_calibrator(example_event):
+    event = example_event
     previous_calibration(event)
     telid = 11
 
@@ -54,8 +54,8 @@ def test_camera_dl1_calibrator(test_event):
     assert_allclose(image[0, 0], -2.216, 1e-3)
 
 
-def test_check_dl0_exists(test_event):
-    event = test_event
+def test_check_dl0_exists(example_event):
+    event = example_event
     telid = 11
     previous_calibration(event)
     calibrator = CameraDL1Calibrator()

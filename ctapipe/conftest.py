@@ -12,7 +12,7 @@ from ctapipe.utils import get_dataset_path
 
 
 @pytest.fixture(scope='session')
-def _global_test_event():
+def _global_example_event():
     """
     helper to get a single event from a MC file. Don't use this fixture
     directly, rather use `test_event`
@@ -27,7 +27,7 @@ def _global_test_event():
 
 
 @pytest.fixture(scope='function')
-def test_event(_global_test_event):
+def example_event(_global_example_event):
     """
     Use this fixture anywhere you need a test event read from a MC file. For
     example:
@@ -37,4 +37,4 @@ def test_event(_global_test_event):
             assert len(test_event.r0.tels_with_data)>0
 
     """
-    return deepcopy(_global_test_event)
+    return deepcopy(_global_example_event)

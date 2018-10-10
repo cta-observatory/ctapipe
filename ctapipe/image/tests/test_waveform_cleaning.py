@@ -7,9 +7,9 @@ from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
                                              CHECMWaveformCleanerLocal)
 
 
-def test_null_cleaner(test_event):
+def test_null_cleaner(example_event):
     telid = 11
-    event = test_event  # to avoid modifying the test event
+    event = example_event  # to avoid modifying the test event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -22,9 +22,9 @@ def test_null_cleaner(test_event):
     assert(np.array_equal(data_ped, cleaned))
 
 
-def test_checm_cleaner_average(test_event):
+def test_checm_cleaner_average(example_event):
     telid = 11
-    event = test_event  # to avoid modifying the test event
+    event = example_event  # to avoid modifying the test event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal
@@ -38,9 +38,9 @@ def test_checm_cleaner_average(test_event):
     assert_almost_equal(cleaned[0, 0, 0], -6.4, 1)
 
 
-def test_checm_cleaner_local(test_event):
+def test_checm_cleaner_local(example_event):
     telid = 11
-    event = test_event  # to avoid modifying the test event
+    event = example_event  # to avoid modifying the test event
     data = event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = event.mc.tel[telid].pedestal

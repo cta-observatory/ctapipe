@@ -14,22 +14,22 @@ from ctapipe.utils import get_dataset_path
 import pytest
 
 
-def test_hessio_r1_calibrator(test_event):
+def test_hessio_r1_calibrator(example_event):
     telid = 11
 
     calibrator = HESSIOR1Calibrator()
-    calibrator.calibrate(test_event)
-    r1 = test_event.r1.tel[telid].waveform
+    calibrator.calibrate(example_event)
+    r1 = example_event.r1.tel[telid].waveform
     assert_almost_equal(r1[0, 0, 0], -0.091, 3)
 
 
-def test_null_r1_calibrator(test_event):
+def test_null_r1_calibrator(example_event):
     telid = 11
 
     calibrator = NullR1Calibrator()
-    calibrator.calibrate(test_event)
-    r0 = test_event.r0.tel[telid].waveform
-    r1 = test_event.r1.tel[telid].waveform
+    calibrator.calibrate(example_event)
+    r0 = example_event.r0.tel[telid].waveform
+    r1 = example_event.r1.tel[telid].waveform
     assert_array_equal(r0, r1)
 
 
@@ -60,20 +60,20 @@ def test_targetio_calibrator():
                               event_r1.r1.tel[0].waveform, 1)
 
 
-def test_targetio_calibrator_wrong_file(test_event):
+def test_targetio_calibrator_wrong_file(example_event):
     pytest.importorskip("target_calib")
     r1c = TargetIOR1Calibrator()
     with pytest.raises(ValueError):
-        r1c.calibrate(test_event)
+        r1c.calibrate(example_event)
 
 
-def test_check_r0_exists(test_event):
+def test_check_r0_exists(example_event):
     telid = 11
 
     calibrator = HESSIOR1Calibrator()
-    assert(calibrator.check_r0_exists(test_event, telid) is True)
-    test_event.r0.tel[telid].waveform = None
-    assert(calibrator.check_r0_exists(test_event, telid) is False)
+    assert(calibrator.check_r0_exists(example_event, telid) is True)
+    example_event.r0.tel[telid].waveform = None
+    assert(calibrator.check_r0_exists(example_event, telid) is False)
 
 
 def test_factory_from_product():

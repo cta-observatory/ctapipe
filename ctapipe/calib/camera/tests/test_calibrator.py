@@ -10,8 +10,8 @@ from ctapipe.io import HESSIOEventSource
 from ctapipe.utils import get_dataset_path
 
 
-def test_camera_calibrator(test_event):
-    event = test_event # so we don't modify the test event
+def test_camera_calibrator(example_event):
+    event = example_event # so we don't modify the test event
     telid = 11
 
     calibrator = CameraCalibrator(r1_product="HESSIOR1Calibrator")
