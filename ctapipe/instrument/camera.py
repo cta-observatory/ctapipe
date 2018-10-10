@@ -43,6 +43,7 @@ _CAMERA_GEOMETRY_TABLE = {
 }
 
 
+
 class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
     Cherenkov Camera that us useful for imaging algorithms and
@@ -211,7 +212,7 @@ class CameraGeometry:
         list(str)
         """
 
-        pattern = "(.*)\.camgeom\.fits(\.gz)?"
+        pattern = r'(.*)\.camgeom\.fits(\.gz)?'
         return find_all_matching_datasets(pattern, regexp_group=1)
 
     @classmethod
@@ -487,6 +488,32 @@ class CameraGeometry:
         self.border_cache[width] = mask
         return mask
 
+    def get_shower_coordinates(self, x, y, psi):
+        '''
+        Return longitudinal and transverse coordinates of the pixels
+        for a given set of hillas parameters
+
+        Parameters
+        ----------
+        hillas_parameters: ctapipe.io.containers.HilllasContainer
+
+        Returns
+        -------
+        longitudinal: astropy.units.Quantity
+            longitudinal coordinates (along the shower axis)
+        transverse: astropy.units.Quantity
+            transverse coordinates (perpendicular to the shower axis)
+        '''
+        cos_psi = np.cos(psi)
+        sin_psi = np.sin(psi)
+
+        delta_x = self.pix_x - x
+        delta_y = self.pix_y - y
+
+        longi = delta_x * cos_psi + delta_y * sin_psi
+        trans = delta_x * -sin_psi + delta_y * cos_psi
+
+        return longi, trans
 
 # ======================================================================
 # utility functions:

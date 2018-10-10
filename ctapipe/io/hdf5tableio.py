@@ -321,17 +321,17 @@ class HDF5TableReader(TableReader):
             if colname in container.fields:
                 self._cols_to_read[table_name].append(colname)
             else:
-                self.log.warn("Table '%s' has column '%s' that is not in "
-                              "container %s. It will be skipped",
-                              table_name, colname, container.__class__.__name__)
+                self.log.warning("Table '%s' has column '%s' that is not in "
+                                 "container %s. It will be skipped",
+                                 table_name, colname, container.__class__.__name__)
 
         # also check that the container doesn't have fields that are not
         # in the table:
         for colname in container.fields:
             if colname not in self._cols_to_read[table_name]:
-                self.log.warn("Table '%s' is missing column '%s' that is "
-                              "in container %s. It will be skipped.",
-                              table_name, colname, container.__class__.__name__)
+                self.log.warning("Table '%s' is missing column '%s' that is "
+                                 "in container %s. It will be skipped.",
+                                 table_name, colname, container.__class__.__name__)
 
         # copy all user-defined attributes back to Container.mets
         for key in tab.attrs._f_list():
