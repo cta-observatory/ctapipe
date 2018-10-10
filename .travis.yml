@@ -71,7 +71,7 @@ install:
     - pip install travis-sphinx
     - pip install codecov
     # ----- SST1M:
-    - conda install protobuf
+    - pip install protobuf
     - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/work_on_py3.7.tar.gz
     # ----- end of SST1M
 
