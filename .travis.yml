@@ -9,31 +9,37 @@ matrix:
       env:
         - PYTHON_VERSION=3.5
         - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        - USE_TARGET=true
     - os: linux
       python: 3.6
       env:
         - PYTHON_VERSION=3.6
         - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        - USE_TARGET=true
     - os: linux
       python: 3.7
       env:
         - PYTHON_VERSION=3.7
         - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        - USE_TARGET=false
     - os: osx
       python: 3.5
       env:
         - PYTHON_VERSION=3.5
         - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+        - USE_TARGET=true
     - os: osx
       python: 3.6
       env:
         - PYTHON_VERSION=3.6
         - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+        - USE_TARGET=true
     - os: osx
       python: 3.7
       env:
         - PYTHON_VERSION=3.7
         - MINICONDA_URL=https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+        - USE_TARGET=false
 env:
   global:
     - TARGET_SOFTWARE=$HOME/Software/target_software
@@ -73,19 +79,7 @@ install:
     - pip install protobuf
     - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/work_on_py3.7.tar.gz
     # ----- end of SST1M
-
-    # DN: exclude target software for a moment ... it does not yet support py3.7
-    # ----- target_software
-    #  - conda install -c conda-forge cfitsio
-    #  - conda install swig
-    #  - mkdir -p $HOME/Software
-    #  - cd $HOME/Software
-    #  - git clone https://github.com/watsonjj/target_software.git
-    #  - cd $TARGET_SOFTWARE
-    #  - export TRAVIS_PYTHON_VERSION=$PYTHON_VERSION  # install.sh needs $TRAVIS_PYTHON_VERSION
-    #  - ./install.sh
-    #  - cd $TRAVIS_BUILD_DIR
-    # ----- end of target_software
+    - install_target.sh
     - python setup.py develop
 
 script:
