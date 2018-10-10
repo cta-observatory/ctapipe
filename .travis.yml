@@ -59,8 +59,7 @@ before_install:
     - conda info -a
 
     # Make sure that interactive matplotlib backends work
-    - export DISPLAY=:99.0
-    - sh -e /etc/init.d/xvfb start
+    - export MPLBACKEND=Agg
     - git fetch --tags
 
 install:
