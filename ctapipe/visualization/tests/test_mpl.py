@@ -88,17 +88,19 @@ def test_array_display():
     grad = 2
     intercept = 1
 
+    geom = CameraGeometry.from_name("LSTCam")
     rot_angle = 20 * u.deg
+    hillas = HillasParametersContainer(x=0*u.m, y=0*u.m, psi=rot_angle)
+
     timing_rot20 = timing_parameters(
-        pix_x=arange(4) * u.deg,
-        pix_y=zeros(4) * u.deg,
-        image=ones(4),
-        peak_time=intercept * u.ns + grad * arange(4) * u.ns,
-        rotation_angle=rot_angle
+        geom,
+        image=ones(geom.n_pixels),
+        peakpos=intercept + grad * geom.pix_x.value,
+        hillas_parameters = hillas,
     )
     gradient_dict = {
-        1: timing_rot20.gradient.value,
-        2: timing_rot20.gradient.value,
+        1: timing_rot20.slope.value,
+        2: timing_rot20.slope.value,
     }
     ad.set_vector_hillas(hillas_dict=hillas_dict,
                          length=500,

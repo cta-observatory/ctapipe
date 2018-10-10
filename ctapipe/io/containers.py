@@ -43,6 +43,7 @@ __all__ = [
     'HillasParametersContainer',
     'LeakageContainer',
     'ConcentrationContainer',
+    'TimingParametersContainer',
 ]
 
 
@@ -718,3 +719,11 @@ class ConcentrationContainer(Container):
         nan,
         'Percentage of photo-electrons in the brightest pixel'
     )
+
+class TimingParametersContainer(Container):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis
+    """
+    slope = Field(nan, 'Slope of arrival times along main shower axis')
+    intercept = Field(nan, 'intercept of arrival times along main shower axis')
