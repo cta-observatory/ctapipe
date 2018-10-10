@@ -313,7 +313,7 @@ class HillasReconstructor(Reconstructor):
         positions = [plane.pos for plane in self.hillas_planes.values()]
 
         # not sure if its better to return the length of the vector of the z component
-        return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions))
+        return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions)) * u.m
 
 
 class HillasPlane:
