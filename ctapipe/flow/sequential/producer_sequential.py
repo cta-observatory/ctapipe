@@ -56,9 +56,12 @@ class ProducerSequential():
 
     def get_destination_msg_from_result(self, result):
         """
-        If type(result) is tuple, check if last tuple elem is a valid next step.
-        If yes, return a destination defined to the last tuple elem and send result without the destination
-        If no return None as destination
+        if type(result) is tuple:
+            if last tuple elem is a valid next step:
+                return a destination defined to the last tuple elem and
+                send result without the destination
+            else:
+                return None as destination
 
         Parameters
         ----------
