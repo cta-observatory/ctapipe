@@ -200,7 +200,7 @@ class Integrator(ChargeExtractor):
         Returns
         -------
         width : ndarray
-            Numpy array containing the window width for each pixel. 
+            Numpy array containing the window width for each pixel.
             Shape = (n_chan, n_pix)
 
         """
