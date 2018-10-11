@@ -2,38 +2,51 @@ from ctapipe.image.timing_parameters import timing_parameters
 import numpy as np
 import astropy.units as u
 from numpy.testing import assert_allclose
+from ctapipe.instrument.camera import CameraGeometry
+from ctapipe.io.containers import HillasParametersContainer
 
 
-def test_grad_fit():
+def test_psi_0():
     """
     Simple test that gradient fitting gives expected answers for perfect
     gradient
     """
-    grad = 2
-    intercept = 1
+    grad = 2.0
+    intercept = 1.0
+
+    geom = CameraGeometry.from_name("LSTCam")
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
     timing = timing_parameters(
-        pix_x=np.zeros(4) * u.deg,
-        pix_y=np.arange(4) * u.deg,
-        image=np.ones(4),
-        peak_time=intercept * u.ns + grad * np.arange(4) * u.ns,
-        rotation_angle=0 * u.deg
+        geom,
+        image=np.ones(geom.n_pixels),
+        peakpos=intercept + grad * geom.pix_x.value,
+        hillas_parameters=hillas,
     )
 
     # Test we get the values we put in back out again
-    assert_allclose(timing.gradient, grad * u.ns / u.deg)
-    assert_allclose(timing.intercept, intercept * u.deg)
+    assert_allclose(timing.slope, grad / geom.pix_x.unit)
+    assert_allclose(timing.intercept, intercept)
+
+
+def test_psi_20():
 
     # Then try a different rotation angle
-    rot_angle = 20 * u.deg
-    timing_rot20 = timing_parameters(
-        pix_x=np.zeros(4) * u.deg,
-        pix_y=np.arange(4) * u.deg,
-        image=np.ones(4),
-        peak_time=intercept * u.ns +
-        grad * np.arange(4) * u.ns,
-        rotation_angle=rot_angle
+    grad = 2
+    intercept = 1
+
+    geom = CameraGeometry.from_name("LSTCam")
+    psi = 20 * u.deg
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
+
+    timing = timing_parameters(
+        geom,
+        image=np.ones(geom.n_pixels),
+        peakpos=intercept + grad * (np.cos(psi) * geom.pix_x.value
+                                    + np.sin(psi) * geom.pix_y.value),
+        hillas_parameters=hillas,
     )
-    # Test the output again makes sense
-    assert_allclose(timing_rot20.gradient, timing.gradient / np.cos(rot_angle))
-    assert_allclose(timing_rot20.intercept, timing.intercept)
+
+    # Test we get the values we put in back out again
+    assert_allclose(timing.slope, grad / geom.pix_x.unit)
+    assert_allclose(timing.intercept, intercept)
