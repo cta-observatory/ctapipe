@@ -15,13 +15,13 @@ def test_psi_0():
     intercept = 1.0
 
     geom = CameraGeometry.from_name("LSTCam")
-    hillas = HillasParametersContainer(x=0*u.m, y=0*u.m, psi=0*u.deg)
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
 
     timing = timing_parameters(
-        geom, 
+        geom,
         image=np.ones(geom.n_pixels),
         peakpos=intercept + grad * geom.pix_x.value,
-        hillas_parameters = hillas,
+        hillas_parameters=hillas,
     )
 
     # Test we get the values we put in back out again
@@ -34,16 +34,17 @@ def test_psi_20():
     # Then try a different rotation angle
     grad = 2
     intercept = 1
-    
+
     geom = CameraGeometry.from_name("LSTCam")
-    psi = 20*u.deg
-    hillas = HillasParametersContainer(x=0*u.m, y=0*u.m, psi=psi)
+    psi = 20 * u.deg
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=psi)
 
     timing = timing_parameters(
-        geom, 
+        geom,
         image=np.ones(geom.n_pixels),
-        peakpos=intercept + grad * (np.cos(psi) * geom.pix_x.value + np.sin(psi) * geom.pix_y.value),
-        hillas_parameters = hillas,
+        peakpos=intercept + grad * (np.cos(psi) * geom.pix_x.value
+                                    + np.sin(psi) * geom.pix_y.value),
+        hillas_parameters=hillas,
     )
 
     # Test we get the values we put in back out again

@@ -2,9 +2,7 @@
 Image timing-based shower image parametrization.
 """
 
-from collections import namedtuple
 import numpy as np
-from astropy.units import Quantity
 from ctapipe.io.containers import TimingParametersContainer
 
 __all__ = [

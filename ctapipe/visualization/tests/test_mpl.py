@@ -6,7 +6,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 from ctapipe.instrument import (CameraGeometry, SubarrayDescription,
                                 TelescopeDescription)
 from ctapipe.io.containers import HillasParametersContainer
-from numpy import ones, zeros, arange
+from numpy import ones
 from astropy import units as u
 
 
@@ -90,13 +90,13 @@ def test_array_display():
 
     geom = CameraGeometry.from_name("LSTCam")
     rot_angle = 20 * u.deg
-    hillas = HillasParametersContainer(x=0*u.m, y=0*u.m, psi=rot_angle)
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=rot_angle)
 
     timing_rot20 = timing_parameters(
         geom,
         image=ones(geom.n_pixels),
         peakpos=intercept + grad * geom.pix_x.value,
-        hillas_parameters = hillas,
+        hillas_parameters=hillas,
     )
     gradient_dict = {
         1: timing_rot20.slope.value,
