@@ -4,7 +4,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
 from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection, LineCollection
+from matplotlib.collections import PatchCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
 
@@ -138,6 +138,8 @@ class ArrayDisplay:
             x-component of direction vector
         v: array[num_tels]
             y-component of direction vector
+        c: color or list of colors
+            vector color for each telescope (or one for all)
         kwargs:
             extra args passed to plt.quiver(), ignored on subsequent updates
         """
@@ -150,6 +152,9 @@ class ArrayDisplay:
                 coords.x, coords.y,
                 u, v,
                 color=c,
+                scale_units='xy',
+                angles='xy',
+                scale=1,
                 **kwargs
             )
         else:
@@ -171,26 +176,47 @@ class ArrayDisplay:
         u, v = polar_to_cart(rho, phi)
         self.set_vector_uv(u, v, c=c, **kwargs)
 
-    def set_vector_hillas(self, hillas_dict, angle_offset=180 * u.deg):
+    def set_vector_hillas(self, hillas_dict, length, time_gradient, angle_offset):
         """
-        helper function to set the vector angle and length from a set of
-        Hillas parameters.
+        Function to set the vector angle and length from a set of Hillas parameters.
+
+        In order to proper use the arrow on the ground, also a dictionary with the time
+        gradients for the different telescopes is needed. If the gradient is 0 the arrow
+        is not plotted on the ground, whereas if the value of the gradient is negative,
+        the arrow is rotated by 180 degrees (Angle(angle_offset) not added).
+
+        This plotting behaviour has been tested with the timing_parameters function
+        in ctapipe/image.
 
         Parameters
         ----------
         hillas_dict: Dict[int, HillasParametersContainer]
             mapping of tel_id to Hillas parameters
+        length: Float
+            length of the arrow (in meters)
+        time_gradient: Dict[int, value of time gradient (no units)]
+            dictionary for value of the time gradient for each telescope
+        angle_offset: Float
+            This should be the event.mcheader.run_array_direction[0] parameter
+
         """
 
         # rot_angle_ellipse is psi parameter in HillasParametersContainer
-
         rho = np.zeros(self.subarray.num_tels) * u.m
         rot_angle_ellipse = np.zeros(self.subarray.num_tels) * u.deg
 
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
-            rho[idx] = 1.0 * u.m  # params.length
-            rot_angle_ellipse[idx] = Angle(params.psi)+ Angle(angle_offset)
+            rho[idx] = length * u.m
+
+            if time_gradient[tel_id] > 0.01:
+                params.psi = Angle(params.psi)
+                angle_offset = Angle(angle_offset)
+                rot_angle_ellipse[idx] = params.psi + angle_offset + 180 * u.deg
+            elif time_gradient[tel_id] < -0.01:
+                rot_angle_ellipse[idx] = params.psi + angle_offset
+            else:
+                rho[idx] = 0 * u.m
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
@@ -217,7 +243,7 @@ class ArrayDisplay:
             y_0 = coords[idx].y.value
             m = np.tan(Angle(params.psi))
             x = x_0 + np.linspace(-range, range, 50)
-            y = y_0 + m * (x-x_0)
+            y = y_0 + m * (x - x_0)
             distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
             mask = np.ma.masked_where(distance < range, distance).mask
             self.axes.plot(x[mask], y[mask], color=c[idx], **kwargs)
@@ -228,7 +254,7 @@ class ArrayDisplay:
         py = self.tel_coords.y.value
         for tel, x, y in zip(self.subarray.tels, px, py):
             name = str(tel)
-            lab = self.axes.text(x, y, name, fontsize=8)
+            lab = self.axes.text(x, y, name, fontsize=8, clip_on=True)
             self._labels.append(lab)
 
     def remove_labels(self):

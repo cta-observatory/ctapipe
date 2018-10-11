@@ -32,8 +32,8 @@ class HESSIOEventSource(EventSource):
         self.pyhessio = pyhessio
 
         if HESSIOEventSource._count > 0:
-            self.log.warn("Only one pyhessio event_source allowed at a time. "
-                          "Previous hessio file will be closed.")
+            self.log.warning("Only one pyhessio event_source allowed at a time. "
+                             "Previous hessio file will be closed.")
             self.pyhessio.close_file()
         HESSIOEventSource._count += 1
 

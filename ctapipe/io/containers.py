@@ -10,6 +10,7 @@ import numpy as np
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
 
+
 __all__ = ['InstrumentContainer',
            'R0Container',
            'R0CameraContainer',
@@ -25,8 +26,6 @@ __all__ = ['InstrumentContainer',
            'SST1MCameraContainer',
            'LSTContainer',
            'LSTCameraContainer',
-           'NectarCAMContainerOldFormat',
-           'NectarCAMCameraContainerOldFormat',
            'MCEventContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
@@ -399,55 +398,6 @@ class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 
-class NectarCAMCameraContainerOldFormat(Container):
-    """
-    Container for Fields that are specific to camera that use zfit
-    """
-    camera_event_type = Field(int, "camera event type")
-
-
-    integrals = Field(None, (
-        "numpy array containing waveform integrals"
-        "(n_channels x n_pixels)"
-    ))
-
-
-    def fill_from_zfile_event(self, event, numTraces):
-        self.camera_event_type = event.eventType
-
-        self.integrals = np.array([
-            event.hiGain.integrals.gains,
-            event.loGain.integrals.gains,
-        ])
-
-
-
-class NectarCAMContainerOldFormat(Container):
-    """
-    Storage for the NectarCAMCameraContainer for each telescope
-    """
-    tels_with_data = Field([], "list of telescopes with data")
-    tel = Field(
-        Map(NectarCAMCameraContainerOldFormat),
-        "map of tel_id to NectarCameraContainer")
-
-    def fill_from_zfile_event(self, event, numTraces):
-        self.tels_with_data = [event.telescopeID, ]
-        nectar_cam_container = self.tel[event.telescopeID]
-        nectar_cam_container.fill_from_zfile_event(
-            event,
-            numTraces,
-        )
-
-
-class NectarCAMDataContainerOldFormat(DataContainer):
-    """
-    Data container including NectarCAM information
-    """
-    nectarcam = Field(NectarCAMContainerOldFormat(), "NectarCAM Specific Information")
-
-
-
 class NectarCAMServiceContainer(Container):
     """
     Container for Fields that are specific to each NectarCAM camera configuration
@@ -771,4 +721,23 @@ class LeakageContainer(Container):
         nan,
         'Percentage of photo-electrons after cleaning'
         ' that are in the camera border of width=2'
+    )
+
+
+class ConcentrationContainer(Container):
+    """
+    Concentrations are ratios between light amount
+    in certain areas of the image and the full image.
+    """
+    concentration_cog = Field(
+        nan,
+        'Percentage of photo-electrons in the three pixels closest to the cog'
+    )
+    concentration_core = Field(
+        nan,
+        'Percentage of photo-electrons inside the hillas ellipse'
+    )
+    concentration_pixel = Field(
+        nan,
+        'Percentage of photo-electrons in the brightest pixel'
     )
