@@ -42,19 +42,25 @@ class LSTEventSource(EventSource):
         self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
 
         # Instrument information
-        # LSTs telescope position taken from MC from the moment
-        tel_pos = np.array([50., 50., 16.])* u.m
 
         for tel_id in data.lst.tels_with_data:
 
             assert (tel_id == 0) # only LST1 for the moment (id = 0)
-            subarray = SubarrayDescription("LST1 subarray")
 
             # camera info from file LST1Cam.camgeom.fits.gz
-            subarray.tels[tel_id] = TelescopeDescription.from_name("LST","LST1Cam")
-            subarray.positions[tel_id] = tel_pos
+            tel_descr = TelescopeDescription.from_name("LST", "LST1Cam")
+            tel_descr.optics.tel_subtype = '' # to correct bug in reading
+            tels = {tel_id: tel_descr}
 
-        data.inst.subarray=subarray
+            # LSTs telescope position taken from MC from the moment
+            tel_pos = {tel_id: [50., 50., 16] * u.m}
+
+
+        subarray = SubarrayDescription("LST1 subarray")
+        subarray.tels = tels
+        subarray.positions = tel_pos
+
+        data.inst.subarray = subarray
 
         # loop on events
         for count, event in enumerate(self.multi_file):
@@ -208,7 +214,7 @@ class MultiFiles:
 
 
         # test how many streams are there:
-        # file name must be [stream name].[all the rest]
+        # file name must be [stream name]Run[all the rest]
         # All the files with the same [all the rest] are opened
 
         if ('/' in input_url):
@@ -217,9 +223,16 @@ class MultiFiles:
             dir = getcwd()
             name = input_url
 
+
+        if ('Run' in name) :
+            stream, run = name.split('Run', 1)
+        else :
+            run = name
+
+
         ls = listdir(dir)
-        stream, run = name.split('.', 1)
         paths = []
+
         for file_name in ls:
             if run in file_name:
                 full_name=dir + '/' + file_name
