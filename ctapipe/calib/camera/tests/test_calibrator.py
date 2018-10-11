@@ -1,5 +1,5 @@
-from copy import deepcopy
 from numpy.testing import assert_allclose
+
 from ctapipe.calib.camera import (
     CameraCalibrator,
     HESSIOR1Calibrator,
@@ -10,14 +10,13 @@ from ctapipe.io import HESSIOEventSource
 from ctapipe.utils import get_dataset_path
 
 
-def test_camera_calibrator(test_event):
-    event = deepcopy(test_event) # so we don't modify the test event
+def test_camera_calibrator(example_event):
     telid = 11
 
     calibrator = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
-    calibrator.calibrate(event)
-    image = event.dl1.tel[telid].image
+    calibrator.calibrate(example_event)
+    image = example_event.dl1.tel[telid].image
     assert_allclose(image[0, 0], -2.216, 1e-3)
 
 
