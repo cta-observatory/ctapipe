@@ -142,3 +142,17 @@ def test_tailcuts_clean_with_isolated_pixels():
                                          boundary_thresh=5,
                                          keep_isolated_pixels=True)
         assert (result == mask).all()
+
+
+def test_number_of_islands():
+    # test with LST geometry (1855 pixels)
+    geom = CameraGeometry.from_name("LSTCam")
+    mask = np.zeros(geom.n_pixels).astype('bool')
+
+    # create 7 triggered pixels in 4 clusters (LST only!)
+    triggered_pixels = np.array([1, 2, 18, 37, 38, 111, 222])
+    mask[triggered_pixels] = 1
+
+    n_islands = cleaning.number_of_islands(geom, mask)
+    n_islands_true = 4
+    assert n_islands == n_islands_true
