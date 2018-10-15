@@ -42,7 +42,6 @@ class LSTEventSource(EventSource):
         self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
 
         # Instrument information
-
         for tel_id in data.lst.tels_with_data:
 
             assert (tel_id == 0) # only LST1 for the moment (id = 0)

@@ -29,37 +29,46 @@ class NectarCAMEventSource(EventSource):
     def _generator(self):
 
         # container for NectarCAM data
-        data = NectarCAMDataContainer()
-        data.meta['input_url'] = self.input_url
+        self.data = NectarCAMDataContainer()
+        self.data.meta['input_url'] = self.input_url
 
         # fill data from the CameraConfig table
-        self.fill_nectarcam_service_container_from_zfile(data.nectarcam, self.camera_config)
+        self.fill_nectarcam_service_container_from_zfile()
+
 
         # Instrument information
-        # NectarCam telescope position taken from MC from the moment
-        tel_pos = np.array([50., 50., 16.]) * u.m
-
-        for tel_id in data.nectarcam.tels_with_data:
+        for tel_id in self.data.nectarcam.tels_with_data:
             assert (tel_id == 0)  # only one telescope for the moment (id = 0)
-            subarray = SubarrayDescription("NectarCAM subarray")
 
-            # camera info from file
-            subarray.tels[tel_id] = TelescopeDescription.from_name("MST", "ProtoNectarCAM")
-            subarray.positions[tel_id] = tel_pos
+            # camera info from file LST1Cam.camgeom.fits.gz
+            tel_descr = TelescopeDescription.from_name("MST", "ProtoNectarCAM")
+            tel_descr.optics.tel_subtype = ''  # to correct bug in reading
+            self.n_camera_pixels=tel_descr.camera.n_pixels
+            tels = {tel_id: tel_descr}
 
-        data.inst.subarray = subarray
+            # LSTs telescope position
+            tel_pos = {tel_id: [0., 0., 0] * u.m}
+
+
+        self.subarray = SubarrayDescription("MST prototype subarray")
+        self.subarray.tels = tels
+        self.subarray.positions = tel_pos
+
+        self.data.inst.subarray = self.subarray
+
+
 
         # loop on events
         for count, event in enumerate(self.multi_file):
 
-            data.count = count
+            self.data.count = count
 
             # fill specific NectarCAM event data
-            self.fill_nectarcam_event_container_from_zfile(data.nectarcam, event)
+            self.fill_nectarcam_event_container_from_zfile(event)
 
             # fill general R0 data
-            self.fill_r0_container_from_zfile(data.r0, event)
-            yield data
+            self.fill_r0_container_from_zfile(event)
+            yield self.data
 
 
     @staticmethod
@@ -92,34 +101,38 @@ class NectarCAMEventSource(EventSource):
         is_nectarcam_file = 'nectarcam_counters' in ttypes
         return is_protobuf_zfits_file & is_nectarcam_file
 
-    def fill_nectarcam_service_container_from_zfile(self, container, camera_config):
+    def fill_nectarcam_service_container_from_zfile(self):
 
-        container.tels_with_data = [camera_config.telescope_id, ]
-        svc_container = container.tel[camera_config.telescope_id].svc
 
-        svc_container.telescope_id = camera_config.telescope_id
-        svc_container.cs_serial = camera_config.cs_serial
-        svc_container.configuration_id = camera_config.configuration_id
-        svc_container.acquisition_mode = camera_config.nectarcam.acquisition_mode
-        svc_container.date = camera_config.date
-        svc_container.num_pixels = camera_config.num_pixels
-        svc_container.num_samples = camera_config.num_samples
-        svc_container.pixel_ids = camera_config.expected_pixels_id
-        svc_container.data_model_version = camera_config.data_model_version
+        #container.tels_with_data = [camera_config.telescope_id, ]
+        #svc_container = container.tel[self.camera_config.telescope_id].svc
+        self.data.nectarcam.tels_with_data = [self.camera_config.telescope_id, ]
+        svc_container = self.data.nectarcam.tel[self.camera_config.telescope_id].svc
 
-        svc_container.num_modules = camera_config.nectarcam.num_modules
-        svc_container.module_ids = camera_config.nectarcam.expected_modules_id
-        svc_container.idaq_version = camera_config.nectarcam.idaq_version
-        svc_container.cdhs_version = camera_config.nectarcam.cdhs_version
-        svc_container.algorithms = camera_config.nectarcam.algorithms
+        svc_container.telescope_id = self.camera_config.telescope_id
+        svc_container.cs_serial = self.camera_config.cs_serial
+        svc_container.configuration_id = self.camera_config.configuration_id
+        svc_container.acquisition_mode = self.camera_config.nectarcam.acquisition_mode
+        svc_container.date = self.camera_config.date
+        svc_container.num_pixels = self.camera_config.num_pixels
+        svc_container.num_samples = self.camera_config.num_samples
+        svc_container.pixel_ids = self.camera_config.expected_pixels_id
+        svc_container.data_model_version = self.camera_config.data_model_version
+
+        svc_container.num_modules = self.camera_config.nectarcam.num_modules
+        svc_container.module_ids = self.camera_config.nectarcam.expected_modules_id
+        svc_container.idaq_version = self.camera_config.nectarcam.idaq_version
+        svc_container.cdhs_version = self.camera_config.nectarcam.cdhs_version
+        svc_container.algorithms = self.camera_config.nectarcam.algorithms
         #vc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
 
 
 
 
-    def fill_nectarcam_event_container_from_zfile(self, container, event):
+    def fill_nectarcam_event_container_from_zfile(self, event):
 
-        event_container = container.tel[self.camera_config.telescope_id].evt
+        # event_container = container.tel[self.camera_config.telescope_id].evt
+        event_container = self.data.nectarcam.tel[self.camera_config.telescope_id].evt
 
         event_container.configuration_id = event.configuration_id
         event_container.event_id = event.event_id
@@ -135,6 +148,7 @@ class NectarCAMEventSource(EventSource):
 
 
     def fill_r0_camera_container_from_zfile(self, container, event):
+
 
         container.num_samples = self.camera_config.num_samples
         container.trigger_time = event.trigger_time_s
@@ -152,19 +166,22 @@ class NectarCAMEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
+        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
 
-        container.waveform = np.array(
-            (
+        reshaped_waveform = np.array(
                 event.waveform
-            ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
+             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+        container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
 
 
-    def fill_r0_container_from_zfile(self, container, event):
+    def fill_r0_container_from_zfile(self, event):
+        container=self.data.r0
         container.obs_id = -1
         container.event_id = event.event_id
 
         container.tels_with_data = [self.camera_config.telescope_id, ]
         r0_camera_container = container.tel[self.camera_config.telescope_id]
+
         self.fill_r0_camera_container_from_zfile(
             r0_camera_container,
             event
