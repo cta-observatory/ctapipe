@@ -41,7 +41,7 @@ class NectarCAMEventSource(EventSource):
             assert (tel_id == 0)  # only one telescope for the moment (id = 0)
 
             # camera info from file LST1Cam.camgeom.fits.gz
-            tel_descr = TelescopeDescription.from_name("MST", "ProtoNectarCAM")
+            tel_descr = TelescopeDescription.from_name("MST", "PrototypeNectarCAM")
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
             self.n_camera_pixels=tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
