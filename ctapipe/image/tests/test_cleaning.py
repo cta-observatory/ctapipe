@@ -1,5 +1,5 @@
 import numpy as np
-
+from numpy.testing import assert_allclose
 from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
 
@@ -147,12 +147,23 @@ def test_tailcuts_clean_with_isolated_pixels():
 def test_number_of_islands():
     # test with LST geometry (1855 pixels)
     geom = CameraGeometry.from_name("LSTCam")
-    mask = np.zeros(geom.n_pixels).astype('bool')
 
-    # create 7 triggered pixels in 4 clusters (LST only!)
-    triggered_pixels = np.array([1, 2, 18, 37, 38, 111, 222])
+    # create 18 triggered pixels grouped to 5 clusters
+    island_mask_true = np.zeros(geom.n_pixels)
+    mask = np.zeros(geom.n_pixels).astype('bool')
+    triggered_pixels = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+                                 14,
+                                 37, 38,
+                                 111,
+                                 222])
+    island_mask_true[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]] = 1
+    island_mask_true[14] = 2
+    island_mask_true[[37, 38]] = 3
+    island_mask_true[111] = 4
+    island_mask_true[222] = 5
     mask[triggered_pixels] = 1
 
-    n_islands = cleaning.number_of_islands(geom, mask)
-    n_islands_true = 4
+    n_islands, island_mask = cleaning.number_of_islands(geom, mask)
+    n_islands_true = 5
     assert n_islands == n_islands_true
+    assert_allclose(island_mask, island_mask_true)

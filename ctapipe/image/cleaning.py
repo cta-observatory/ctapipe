@@ -5,6 +5,7 @@ Image Cleaning Algorithms (identification of noisy pixels)
 __all__ = ['tailcuts_clean', 'dilate']
 
 import numpy as np
+from scipy.sparse.csgraph import connected_components
 
 
 def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
@@ -97,8 +98,7 @@ def dilate(geom, mask):
 
 def number_of_islands(geom, mask):
     """
-    Calculate and return the number of connected clusters of a pixel mask given 
-    the camera geometry. 
+    Search a given pixel mask for connected clusters.
     This can be used to seperate between gamma and hadronic showers.
 
     Parameters
@@ -107,28 +107,27 @@ def number_of_islands(geom, mask):
         Camera geometry information
     mask: ndarray
         input mask (array of booleans)
+
+    Returns
+    -------
+    num_islands: int
+        Total number of clusters
+    island_labels: ndarray
+        Contains cluster membership of each pixel.
+        Dimesion equals input mask.
+        Entries range from 0 (not in the pixel mask) to num_islands.
     """
-    hits = np.where(mask)[0]
-    # store information about marked pixels to avoid double counting
-    marked = np.ones(hits.shape[0]) * -1 
-    i = 0
-    count = 0
+    # compress sparse neighbor matrix
+    neighbor_matrix_compressed = geom.neighbor_matrix[mask][:, mask]
+    # pixels in no cluster have label == 0
+    island_labels = np.zeros(geom.n_pixels)
 
-    for hit in hits:
+    num_islands, island_labels_compressed = connected_components(
+        neighbor_matrix_compressed,
+        directed=False
+    )
 
-        # count any new triggered pixel towards cluster count
-        if hit not in marked:
-            marked[i] = hit
-            i += 1
-            count += 1
+    # count clusters from 1 onwards
+    island_labels[mask] = island_labels_compressed + 1
 
-        # search for neighbors that triggered and arent marked already
-        neighbors = np.where(geom.neighbor_matrix[hit] & mask)[0]
-        neighbors_mask = np.isin(neighbors, marked)
-        new_neighbors_count = np.sum(np.invert(neighbors_mask))
-
-        # mark any new neighbors so that they wont be counted again
-        marked[i:i + new_neighbors_count] = neighbors[np.invert(neighbors_mask)]
-        i += new_neighbors_count
-
-    return count
+    return num_islands, island_labels
