@@ -35,25 +35,22 @@ def timing_parameters(geom, image, peakpos, hillas_parameters):
     pix_y = geom.pix_y.value
 
     # select only the pixels in the cleaned image that are greater than zero.
-    # This is to allow to use a dilated mask (which might be better):
     # we need to exclude possible pixels with zero signal after cleaning.
-
-    mask = np.ma.masked_where(image > 0, image).mask
+    mask = image > 0
     pix_x = pix_x[mask]
     pix_y = pix_y[mask]
     image = image[mask]
     peakpos = peakpos[mask]
 
-    assert pix_x.shape == image.shape
-    assert pix_y.shape == image.shape
-    assert peakpos.shape == image.shape
+    assert pix_x.shape == image.shape, 'image shape must match geometry'
+    assert pix_x.shape == peakpos.shape, 'peakpos shape must match geometry'
 
     longi, trans = geom.get_shower_coordinates(
         hillas_parameters.x,
         hillas_parameters.y,
         hillas_parameters.psi
     )
-    slope, intercept = np.polyfit(longi, peakpos, deg=1, w=np.sqrt(image))
+    slope, intercept = np.polyfit(longi[mask], peakpos, deg=1, w=np.sqrt(image))
 
     return TimingParametersContainer(
         slope=slope / unit,

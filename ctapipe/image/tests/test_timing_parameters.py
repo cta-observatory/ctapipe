@@ -50,3 +50,25 @@ def test_psi_20():
     # Test we get the values we put in back out again
     assert_allclose(timing.slope, grad / geom.pix_x.unit)
     assert_allclose(timing.intercept, intercept)
+
+
+def test_ignore_negative():
+    grad = 2.0
+    intercept = 1.0
+
+    geom = CameraGeometry.from_name("LSTCam")
+    hillas = HillasParametersContainer(x=0 * u.m, y=0 * u.m, psi=0 * u.deg)
+
+    image = np.ones(geom.n_pixels)
+    image[5:10] = -1.0
+
+    timing = timing_parameters(
+        geom,
+        image,
+        peakpos=intercept + grad * geom.pix_x.value,
+        hillas_parameters=hillas,
+    )
+
+    # Test we get the values we put in back out again
+    assert_allclose(timing.slope, grad / geom.pix_x.unit)
+    assert_allclose(timing.intercept, intercept)
