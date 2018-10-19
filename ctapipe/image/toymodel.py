@@ -3,7 +3,7 @@
 Utilities to generate toymodel (fake) reconstruction inputs for testing
 purposes.
 
-Example:
+Examples:
 
 .. code-block:: python
 
