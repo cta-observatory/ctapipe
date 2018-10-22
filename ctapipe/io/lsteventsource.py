@@ -48,6 +48,7 @@ class LSTEventSource(EventSource):
             # camera info from file LST1Cam.camgeom.fits.gz
             tel_descr = TelescopeDescription.from_name("LST", "LST1Cam")
             tel_descr.optics.tel_subtype = '' # to correct bug in reading
+            self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
             # LSTs telescope position taken from MC from the moment
@@ -165,11 +166,19 @@ class LSTEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
+        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
 
-        container.waveform = np.array(
-            (
+        reshaped_waveform = np.array(
                 event.waveform
-            ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
+             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+
+        container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
+
+
+ #       container.waveform = np.array(
+ #           (
+ #               event.waveform
+ #           ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
 
 
     def fill_r0_container_from_zfile(self, container, event):
