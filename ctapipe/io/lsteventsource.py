@@ -2,7 +2,7 @@
 """
 EventSource for LSTCam protobuf-fits.fz-files.
 
-Needs protozfits v1.4.0 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
@@ -168,18 +168,18 @@ class LSTEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
- #       container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
+        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
 
- #       reshaped_waveform = np.array(
- #               event.waveform
-#             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
- #       container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
-
-
-        container.waveform = np.array(
-            (
+        reshaped_waveform = np.array(
                 event.waveform
-            ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
+             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+        container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
+
+
+ #       container.waveform = np.array(
+ #           (
+ #               event.waveform
+ #           ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
 
 
     def fill_r0_container_from_zfile(self, container, event):
