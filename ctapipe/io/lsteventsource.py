@@ -173,6 +173,7 @@ class LSTEventSource(EventSource):
         reshaped_waveform = np.array(
                 event.waveform
              ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+
         container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
 
 
