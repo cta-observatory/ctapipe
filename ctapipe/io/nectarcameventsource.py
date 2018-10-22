@@ -2,7 +2,7 @@
 """
 EventSource for LSTCam protobuf-fits.fz-files.
 
-Needs protozfits v1.4.0 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 """
 
 import numpy as np
@@ -43,6 +43,7 @@ class NectarCAMEventSource(EventSource):
             # camera info from file LST1Cam.camgeom.fits.gz
             tel_descr = TelescopeDescription.from_name("MST", "PrototypeNectarCAM")
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
+            tel_descr.camera.rotate(10.3*u.deg)
             self.n_camera_pixels=tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
