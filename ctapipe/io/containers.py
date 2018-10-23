@@ -10,38 +10,42 @@ import numpy as np
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
 
+__all__ = [
+    'InstrumentContainer',
+    'R0Container',
+    'R0CameraContainer',
+    'R1Container',
+    'R1CameraContainer',
+    'DL0Container',
+    'DL0CameraContainer',
+    'DL1Container',
+    'DL1CameraContainer',
+    'TargetIOContainer',
+    'TargetIOCameraContainer',
+    'SST1MContainer',
+    'SST1MCameraContainer',
+    'LSTContainer',
+    'LSTCameraContainer',
+    'NectarCAMContainer',
+    'NectarCAMCameraContainer',
+    'MCEventContainer',
+    'MCHeaderContainer',
+    'MCCameraEventContainer',
+    'CameraCalibrationContainer',
+    'CentralTriggerContainer',
+    'ReconstructedContainer',
+    'ReconstructedShowerContainer',
+    'ReconstructedEnergyContainer',
+    'ParticleClassificationContainer',
+    'DataContainer',
+    'TargetIODataContainer',
+    'SST1MDataContainer',
+    'HillasParametersContainer',
+    'LeakageContainer',
+    'ConcentrationContainer',
+    'TimingParametersContainer',
+]
 
-__all__ = ['InstrumentContainer',
-           'R0Container',
-           'R0CameraContainer',
-           'R1Container',
-           'R1CameraContainer',
-           'DL0Container',
-           'DL0CameraContainer',
-           'DL1Container',
-           'DL1CameraContainer',
-           'TargetIOContainer',
-           'TargetIOCameraContainer',
-           'SST1MContainer',
-           'SST1MCameraContainer',
-           'LSTContainer',
-           'LSTCameraContainer',
-           'NectarCAMContainer',
-           'NectarCAMCameraContainer',
-           'MCEventContainer',
-           'MCHeaderContainer',
-           'MCCameraEventContainer',
-           'CameraCalibrationContainer',
-           'CentralTriggerContainer',
-           'ReconstructedContainer',
-           'ReconstructedShowerContainer',
-           'ReconstructedEnergyContainer',
-           'ParticleClassificationContainer',
-           'DataContainer',
-           'TargetIODataContainer',
-           'SST1MDataContainer',
-           'HillasParametersContainer',
-           'LeakageContainer']
 
 
 class SST1MCameraContainer(Container):
@@ -234,6 +238,7 @@ class MCCameraEventContainer(Container):
         0,
         "the tracking Altitude corrected for pointing errors for the telescope"
     )
+
 
 class MCEventContainer(Container):
     """
@@ -743,3 +748,12 @@ class ConcentrationContainer(Container):
         nan,
         'Percentage of photo-electrons in the brightest pixel'
     )
+
+
+class TimingParametersContainer(Container):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis
+    """
+    slope = Field(nan, 'Slope of arrival times along main shower axis')
+    intercept = Field(nan, 'intercept of arrival times along main shower axis')

@@ -10,7 +10,7 @@ from astropy import units as u
 from os import listdir
 from os import getcwd
 from ctapipe.core import Provenance
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription, CameraGeometry, OpticsDescription
 from .eventsource import EventSource
 from .containers import LSTDataContainer
 
@@ -32,22 +32,29 @@ class LSTEventSource(EventSource):
     def _generator(self):
 
         # container for LST data
-        data = LSTDataContainer()
-        data.meta['input_url'] = self.input_url
-        data.meta['max_events'] = self.max_events
+        self.data = LSTDataContainer()
+        self.data.meta['input_url'] = self.input_url
+        self.data.meta['max_events'] = self.max_events
 
 
         # fill LST data from the CameraConfig table
-        self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
+        self.fill_lst_service_container_from_zfile()
 
         # Instrument information
-        for tel_id in data.lst.tels_with_data:
+        for tel_id in self.data.lst.tels_with_data:
 
             assert (tel_id == 0) # only LST1 for the moment (id = 0)
 
-            # camera info from file LST1Cam.camgeom.fits.gz
-            tel_descr = TelescopeDescription.from_name("LST", "LST1Cam")
-            tel_descr.optics.tel_subtype = '' # to correct bug in reading
+            # optics info from standard optics.fits.gz file
+            optics = OpticsDescription.from_name("LST")
+            optics.tel_subtype = '' # to correct bug in reading
+
+            # camera info from LSTCam-[geometry_version].camgeom.fits.gz file
+            geometry_version=1
+            camera = CameraGeometry.from_name("LSTCam", geometry_version)
+
+            tel_descr = TelescopeDescription(optics, camera)
+
             self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
@@ -59,19 +66,19 @@ class LSTEventSource(EventSource):
         subarray.tels = tels
         subarray.positions = tel_pos
 
-        data.inst.subarray = subarray
+        self.data.inst.subarray = subarray
 
         # loop on events
         for count, event in enumerate(self.multi_file):
 
-            data.count = count
+            self.data.count = count
 
             # fill specific LST event data
-            self.fill_lst_event_container_from_zfile(data.lst, event)
+            self.fill_lst_event_container_from_zfile(event)
 
             # fill general R0 data
-            self.fill_r0_container_from_zfile(data.r0, event)
-            yield data
+            self.fill_r0_container_from_zfile(event)
+            yield self.data
 
 
     @staticmethod
@@ -104,33 +111,37 @@ class LSTEventSource(EventSource):
         is_lst_file = 'lstcam_counters' in ttypes
         return is_protobuf_zfits_file & is_lst_file
 
-    def fill_lst_service_container_from_zfile(self, container, camera_config):
+    def fill_lst_service_container_from_zfile(self):
 
-        container.tels_with_data = [camera_config.telescope_id, ]
-        svc_container = container.tel[camera_config.telescope_id].svc
+        self.data.lst.tels_with_data = [self.camera_config.telescope_id, ]
+        svc_container = self.data.lst.tel[self.camera_config.telescope_id].svc
 
-        svc_container.telescope_id = camera_config.telescope_id
-        svc_container.cs_serial = camera_config.cs_serial
-        svc_container.configuration_id = camera_config.configuration_id
-        svc_container.date = camera_config.date
-        svc_container.num_pixels = camera_config.num_pixels
-        svc_container.num_samples = camera_config.num_samples
-        svc_container.pixel_ids = camera_config.expected_pixels_id
-        svc_container.data_model_version = camera_config.data_model_version
+        #container.tels_with_data = [camera_config.telescope_id, ]
+        #svc_container = container.tel[camera_config.telescope_id].svc
 
-        svc_container.num_modules = camera_config.lstcam.num_modules
-        svc_container.module_ids = camera_config.lstcam.expected_modules_id
-        svc_container.idaq_version = camera_config.lstcam.idaq_version
-        svc_container.cdhs_version = camera_config.lstcam.cdhs_version
-        svc_container.algorithms = camera_config.lstcam.algorithms
-        svc_container.pre_proc_algorithms = camera_config.lstcam.pre_proc_algorithms
+        svc_container.telescope_id = self.camera_config.telescope_id
+        svc_container.cs_serial = self.camera_config.cs_serial
+        svc_container.configuration_id = self.camera_config.configuration_id
+        svc_container.date = self.camera_config.date
+        svc_container.num_pixels = self.camera_config.num_pixels
+        svc_container.num_samples = self.camera_config.num_samples
+        svc_container.pixel_ids = self.camera_config.expected_pixels_id
+        svc_container.data_model_version = self.camera_config.data_model_version
+
+        svc_container.num_modules = self.camera_config.lstcam.num_modules
+        svc_container.module_ids = self.camera_config.lstcam.expected_modules_id
+        svc_container.idaq_version = self.camera_config.lstcam.idaq_version
+        svc_container.cdhs_version = self.camera_config.lstcam.cdhs_version
+        svc_container.algorithms = self.camera_config.lstcam.algorithms
+        svc_container.pre_proc_algorithms = self.camera_config.lstcam.pre_proc_algorithms
 
 
 
 
-    def fill_lst_event_container_from_zfile(self, container, event):
+    def fill_lst_event_container_from_zfile(self,event):
 
-        event_container = container.tel[self.camera_config.telescope_id].evt
+        #event_container = container.tel[self.camera_config.telescope_id].evt
+        event_container = self.data.lst.tel[self.camera_config.telescope_id].evt
 
         event_container.configuration_id = event.configuration_id
         event_container.event_id = event.event_id
@@ -148,7 +159,7 @@ class LSTEventSource(EventSource):
         event_container.drs_tag_status = event.lstcam.drs_tag_status
         event_container.drs_tag = event.lstcam.drs_tag
 
-    def fill_r0_camera_container_from_zfile(self, container, event):
+    def fill_r0_camera_container_from_zfile(self,container, event):
 
         container.num_samples = self.camera_config.num_samples
         container.trigger_time = event.trigger_time_s
@@ -174,14 +185,9 @@ class LSTEventSource(EventSource):
 
         container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
 
+    def fill_r0_container_from_zfile(self, event):
 
- #       container.waveform = np.array(
- #           (
- #               event.waveform
- #           ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
-
-
-    def fill_r0_container_from_zfile(self, container, event):
+        container = self.data.r0
         container.obs_id = -1
         container.event_id = event.event_id
 

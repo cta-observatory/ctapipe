@@ -7,7 +7,7 @@ Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription, CameraGeometry, OpticsDescription
 from .eventsource import EventSource
 from .lsteventsource import MultiFiles
 from .containers import NectarCAMDataContainer
@@ -40,8 +40,16 @@ class NectarCAMEventSource(EventSource):
         for tel_id in self.data.nectarcam.tels_with_data:
             assert (tel_id == 0)  # only one telescope for the moment (id = 0)
 
-            # camera info from file LST1Cam.camgeom.fits.gz
-            tel_descr = TelescopeDescription.from_name("MST", "PrototypeNectarCAM")
+            # optics info from standard optics.fits.gz file
+            optics = OpticsDescription.from_name("MST")
+            optics.tel_subtype = '' # to correct bug in reading
+
+            # camera info from NectarCam-[geometry_version].camgeom.fits.gz file
+            geometry_version = 1
+            camera = CameraGeometry.from_name("NectarCam",geometry_version)
+
+            tel_descr = TelescopeDescription(optics, camera)
+
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
             tel_descr.camera.rotate(10.3*u.deg)
             self.n_camera_pixels=tel_descr.camera.n_pixels
@@ -104,9 +112,6 @@ class NectarCAMEventSource(EventSource):
 
     def fill_nectarcam_service_container_from_zfile(self):
 
-
-        #container.tels_with_data = [camera_config.telescope_id, ]
-        #svc_container = container.tel[self.camera_config.telescope_id].svc
         self.data.nectarcam.tels_with_data = [self.camera_config.telescope_id, ]
         svc_container = self.data.nectarcam.tel[self.camera_config.telescope_id].svc
 
@@ -125,14 +130,14 @@ class NectarCAMEventSource(EventSource):
         svc_container.idaq_version = self.camera_config.nectarcam.idaq_version
         svc_container.cdhs_version = self.camera_config.nectarcam.cdhs_version
         svc_container.algorithms = self.camera_config.nectarcam.algorithms
-        #vc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
+        #svc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
 
 
 
 
     def fill_nectarcam_event_container_from_zfile(self, event):
 
-        # event_container = container.tel[self.camera_config.telescope_id].evt
+
         event_container = self.data.nectarcam.tel[self.camera_config.telescope_id].evt
 
         event_container.configuration_id = event.configuration_id
