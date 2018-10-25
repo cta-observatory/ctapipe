@@ -18,7 +18,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy
+  - numpy=1.15.1   # frozen for now due to bug in 1.15.3
   - numpydoc
   - pandas
   - pyhessio
@@ -36,7 +36,7 @@ dependencies:
   - traitlets
   - wheel
   - xz
-  - yaml
+  - pyyaml
   - zlib
   - iminuit
   - pytables
