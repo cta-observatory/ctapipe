@@ -116,9 +116,6 @@ class LSTEventSource(EventSource):
         self.data.lst.tels_with_data = [self.camera_config.telescope_id, ]
         svc_container = self.data.lst.tel[self.camera_config.telescope_id].svc
 
-        #container.tels_with_data = [camera_config.telescope_id, ]
-        #svc_container = container.tel[camera_config.telescope_id].svc
-
         svc_container.telescope_id = self.camera_config.telescope_id
         svc_container.cs_serial = self.camera_config.cs_serial
         svc_container.configuration_id = self.camera_config.configuration_id
@@ -140,7 +137,7 @@ class LSTEventSource(EventSource):
 
     def fill_lst_event_container_from_zfile(self,event):
 
-        #event_container = container.tel[self.camera_config.telescope_id].evt
+
         event_container = self.data.lst.tel[self.camera_config.telescope_id].evt
 
         event_container.configuration_id = event.configuration_id
@@ -177,13 +174,16 @@ class LSTEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
-        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
 
         reshaped_waveform = np.array(
                 event.waveform
              ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
 
-        container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
+        # initialize the waveform container to zero
+        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
+
+        # re-order the waveform following the expected_pixels_id values (rank = pixel id)
+        container.waveform[:, self.camera_config.expected_pixels_id, :] = reshaped_waveform
 
     def fill_r0_container_from_zfile(self, event):
 

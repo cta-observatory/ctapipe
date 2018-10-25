@@ -2,21 +2,22 @@ from pkg_resources import resource_filename
 import os
 
 import pytest
-pytest.importorskip("protozfits", minversion="1.4.0")
+from ctapipe.utils import get_dataset_path
+pytest.importorskip("protozfits", minversion="1.4.2")
 
-example_file_path = resource_filename(
-    'protozfits',
-    os.path.join(
-        'tests',
-        'resources',
-        ''
-    )
-)
+#example_file_path = resource_filename(
+#    'protozfits',
+#    os.path.join(
+#        'tests',
+#        'resources',
+#        'NectarCAM.Run0890.10events.fits.fz'
+#    )
+#)
 
 FIRST_EVENT_NUMBER_IN_FILE = 1
 
-example_file_path="/ctadata/NectarCAM/2018/20180809/NectarCAM.Run0889.0000.fits.fz"
-
+#example_file_path="NectarCam.Run0890.10events.fits.fz"
+example_file_path = get_dataset_path("NectarCam.Run0890.10events.fits.fz")
 
 def test_loop_over_events():
     from ctapipe.io.nectarcameventsource import NectarCAMEventSource
@@ -32,9 +33,10 @@ def test_loop_over_events():
         for telid in event.r0.tels_with_data:
             assert event.r0.event_id == FIRST_EVENT_NUMBER_IN_FILE + i
             n_gain = 2
-            num_pixels = event.nectarcam.tel[telid].svc.num_pixels
+            n_camera_pixels = event.inst.subarray.tels[telid].camera.n_pixels
+
             num_samples = event.nectarcam.tel[telid].svc.num_samples
-            waveform_shape = (n_gain, num_pixels, num_samples)
+            waveform_shape = (n_gain, n_camera_pixels, num_samples)
             assert event.r0.tel[telid].waveform.shape == waveform_shape
 
     # make sure max_events works
@@ -49,7 +51,7 @@ def test_is_compatible():
 
 def test_factory_for_nectarcam_file():
     from ctapipe.io.eventsourcefactory import EventSourceFactory
-    from ctapipe.io.lsteventsource import NectarCAMEventSource
+    from ctapipe.io.nectarcameventsource import NectarCAMEventSource
 
     reader = EventSourceFactory.produce(input_url=example_file_path)
     assert isinstance(reader, NectarCAMEventSource)
