@@ -392,8 +392,8 @@ class MAGICEventSourceROOT(EventSource):
         run_numbers = list(map(self._get_run_number, file_list))
         self.run_numbers = np.unique(run_numbers)
 
-        # Setting up the current run with the first run present in the data
-        self.current_run = self._set_active_run(run_number=0)
+        # # Setting up the current run with the first run present in the data
+        # self.current_run = self._set_active_run(run_number=0)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return
@@ -529,66 +529,70 @@ class MAGICEventSourceROOT(EventSource):
 
         magic_subarray = SubarrayDescription('MAGIC', magic_tel_positions, magic_tel_descriptions)
 
-        # Loop over the events
-        for event_i in range(self.current_run['data'].n_stereo_events):
-            # Event and run ids
-            event_id = self.current_run['data'].stereo_ids[event_i][0]
-            obs_id = self.current_run['number']
+        # Loop over the available data runs
+        for run_number in self.run_numbers:
+            self.current_run = self._set_active_run(run_number)
 
-            # Reading event data
-            event_data = self.current_run['data'].get_stereo_event_data(event_i)
+            # Loop over the events
+            for event_i in range(self.current_run['data'].n_stereo_events):
+                # Event and run ids
+                event_id = self.current_run['data'].stereo_ids[event_i][0]
+                obs_id = self.current_run['number']
 
-            # Event counter
-            data.count = counter
+                # Reading event data
+                event_data = self.current_run['data'].get_stereo_event_data(event_i)
 
-            # Setting up the R0 container
-            data.r0.obs_id = obs_id
-            data.r0.event_id = event_id
-            data.r0.tel.clear()
+                # Event counter
+                data.count = counter
 
-            # Setting up the R1 container
-            data.r1.obs_id = obs_id
-            data.r1.event_id = event_id
-            data.r1.tel.clear()
+                # Setting up the R0 container
+                data.r0.obs_id = obs_id
+                data.r0.event_id = event_id
+                data.r0.tel.clear()
 
-            # Setting up the DL0 container
-            data.dl0.obs_id = obs_id
-            data.dl0.event_id = event_id
-            data.dl0.tel.clear()
+                # Setting up the R1 container
+                data.r1.obs_id = obs_id
+                data.r1.event_id = event_id
+                data.r1.tel.clear()
 
-            # Filling the DL1 container with the event data
-            for tel_i, tel_id in enumerate(tels_in_file):
-                # Creating the telescope pointing container
-                pointing = TelescopePointingContainer()
-                pointing.azimuth = np.deg2rad(event_data['pointing_az']) * u.rad
-                pointing.altitude = np.deg2rad(90 - event_data['pointing_zd']) * u.rad
-                pointing.ra = np.deg2rad(event_data['pointing_ra']) * u.rad
-                pointing.dec = np.deg2rad(event_data['pointing_dec']) * u.rad
+                # Setting up the DL0 container
+                data.dl0.obs_id = obs_id
+                data.dl0.event_id = event_id
+                data.dl0.tel.clear()
 
-                # Adding the pointing container to the event data
-                data.pointing[tel_i + 1] = pointing
+                # Filling the DL1 container with the event data
+                for tel_i, tel_id in enumerate(tels_in_file):
+                    # Creating the telescope pointing container
+                    pointing = TelescopePointingContainer()
+                    pointing.azimuth = np.deg2rad(event_data['pointing_az']) * u.rad
+                    pointing.altitude = np.deg2rad(90 - event_data['pointing_zd']) * u.rad
+                    pointing.ra = np.deg2rad(event_data['pointing_ra']) * u.rad
+                    pointing.dec = np.deg2rad(event_data['pointing_dec']) * u.rad
 
-                # Adding event charge and peak positions per pixel
-                data.dl1.tel[tel_i + 1].image = event_data['{:s}_image'.format(tel_id)]
-                data.dl1.tel[tel_i + 1].peakpos = event_data['{:s}_peak_pos'.format(tel_id)]
-                # data.dl1.tel[i_tel + 1].badpixels = np.array(
-                #     file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
+                    # Adding the pointing container to the event data
+                    data.pointing[tel_i + 1] = pointing
 
-            # Adding the event arrival time
-            time_tmp = Time(event_data['mjd'], scale='utc', format='mjd')
-            data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
+                    # Adding event charge and peak positions per pixel
+                    data.dl1.tel[tel_i + 1].image = event_data['{:s}_image'.format(tel_id)]
+                    data.dl1.tel[tel_i + 1].peakpos = event_data['{:s}_peak_pos'.format(tel_id)]
+                    # data.dl1.tel[i_tel + 1].badpixels = np.array(
+                    #     file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
 
-            # Setting the telescopes with data
-            data.r0.tels_with_data = tels_with_data
-            data.r1.tels_with_data = tels_with_data
-            data.dl0.tels_with_data = tels_with_data
-            data.trig.tels_with_trigger = tels_with_data
+                # Adding the event arrival time
+                time_tmp = Time(event_data['mjd'], scale='utc', format='mjd')
+                data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
 
-            # Setting the instrument sub-array
-            data.inst.subarray = magic_subarray
+                # Setting the telescopes with data
+                data.r0.tels_with_data = tels_with_data
+                data.r1.tels_with_data = tels_with_data
+                data.dl0.tels_with_data = tels_with_data
+                data.trig.tels_with_trigger = tels_with_data
 
-            yield data
-            counter += 1
+                # Setting the instrument sub-array
+                data.inst.subarray = magic_subarray
+
+                yield data
+                counter += 1
 
         return
 
@@ -644,63 +648,68 @@ class MAGICEventSourceROOT(EventSource):
 
         magic_subarray = SubarrayDescription('MAGIC', magic_tel_positions, magic_tel_descriptions)
 
-        for event_i in range(n_events):
-            # Event and run ids
-            event_id = self.current_run['data'].mono_ids[telescope][event_i]
-            obs_id = self.current_run['number']
+        # Loop over the available data runs
+        for run_number in self.run_numbers:
+            self.current_run = self._set_active_run(run_number)
 
-            # Reading event data
-            event_data = self.current_run['data'].get_mono_event_data(event_i, telescope=telescope)
+            # Loop over the events
+            for event_i in range(n_events):
+                # Event and run ids
+                event_id = self.current_run['data'].mono_ids[telescope][event_i]
+                obs_id = self.current_run['number']
 
-            # Event counter
-            data.count = counter
+                # Reading event data
+                event_data = self.current_run['data'].get_mono_event_data(event_i, telescope=telescope)
 
-            # Setting up the R0 container
-            data.r0.obs_id = obs_id
-            data.r0.event_id = event_id
-            data.r0.tel.clear()
+                # Event counter
+                data.count = counter
 
-            # Setting up the R1 container
-            data.r1.obs_id = obs_id
-            data.r1.event_id = event_id
-            data.r1.tel.clear()
+                # Setting up the R0 container
+                data.r0.obs_id = obs_id
+                data.r0.event_id = event_id
+                data.r0.tel.clear()
 
-            # Setting up the DL0 container
-            data.dl0.obs_id = obs_id
-            data.dl0.event_id = event_id
-            data.dl0.tel.clear()
+                # Setting up the R1 container
+                data.r1.obs_id = obs_id
+                data.r1.event_id = event_id
+                data.r1.tel.clear()
 
-            # Creating the telescope pointing container
-            pointing = TelescopePointingContainer()
-            pointing.azimuth = np.deg2rad(event_data['pointing_az']) * u.rad
-            pointing.altitude = np.deg2rad(90 - event_data['pointing_zd']) * u.rad
-            pointing.ra = np.deg2rad(event_data['pointing_ra']) * u.rad
-            pointing.dec = np.deg2rad(event_data['pointing_dec']) * u.rad
+                # Setting up the DL0 container
+                data.dl0.obs_id = obs_id
+                data.dl0.event_id = event_id
+                data.dl0.tel.clear()
 
-            # Adding the pointing container to the event data
-            data.pointing[tel_i + 1] = pointing
+                # Creating the telescope pointing container
+                pointing = TelescopePointingContainer()
+                pointing.azimuth = np.deg2rad(event_data['pointing_az']) * u.rad
+                pointing.altitude = np.deg2rad(90 - event_data['pointing_zd']) * u.rad
+                pointing.ra = np.deg2rad(event_data['pointing_ra']) * u.rad
+                pointing.dec = np.deg2rad(event_data['pointing_dec']) * u.rad
 
-            # Adding event charge and peak positions per pixel
-            data.dl1.tel[tel_i + 1].image = event_data['image']
-            data.dl1.tel[tel_i + 1].peakpos = event_data['peak_pos']
-            # data.dl1.tel[tel_i + 1].badpixels = np.array(
-            #     file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
+                # Adding the pointing container to the event data
+                data.pointing[tel_i + 1] = pointing
 
-            # Adding the event arrival time
-            time_tmp = Time(event_data['mjd'], scale='utc', format='mjd')
-            data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
+                # Adding event charge and peak positions per pixel
+                data.dl1.tel[tel_i + 1].image = event_data['image']
+                data.dl1.tel[tel_i + 1].peakpos = event_data['peak_pos']
+                # data.dl1.tel[tel_i + 1].badpixels = np.array(
+                #     file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
 
-            # Setting the telescopes with data
-            data.r0.tels_with_data = tels_with_data
-            data.r1.tels_with_data = tels_with_data
-            data.dl0.tels_with_data = tels_with_data
-            data.trig.tels_with_trigger = tels_with_data
+                # Adding the event arrival time
+                time_tmp = Time(event_data['mjd'], scale='utc', format='mjd')
+                data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
 
-            # Setting the instrument sub-array
-            data.inst.subarray = magic_subarray
+                # Setting the telescopes with data
+                data.r0.tels_with_data = tels_with_data
+                data.r1.tels_with_data = tels_with_data
+                data.dl0.tels_with_data = tels_with_data
+                data.trig.tels_with_trigger = tels_with_data
 
-            yield data
-            counter += 1
+                # Setting the instrument sub-array
+                data.inst.subarray = magic_subarray
+
+                yield data
+                counter += 1
 
         return
 
@@ -756,63 +765,68 @@ class MAGICEventSourceROOT(EventSource):
 
         magic_subarray = SubarrayDescription('MAGIC', magic_tel_positions, magic_tel_descriptions)
 
-        for event_i in range(n_events):
-            # Event and run ids
-            event_id = self.current_run['data'].pedestal_ids[telescope][event_i]
-            obs_id = self.current_run['number']
+        # Loop over the available data runs
+        for run_number in self.run_numbers:
+            self.current_run = self._set_active_run(run_number)
 
-            # Reading event data
-            event_data = self.current_run['data'].get_pedestal_event_data(event_i, telescope=telescope)
+            # Loop over the events
+            for event_i in range(n_events):
+                # Event and run ids
+                event_id = self.current_run['data'].pedestal_ids[telescope][event_i]
+                obs_id = self.current_run['number']
 
-            # Event counter
-            data.count = counter
+                # Reading event data
+                event_data = self.current_run['data'].get_pedestal_event_data(event_i, telescope=telescope)
 
-            # Setting up the R0 container
-            data.r0.obs_id = obs_id
-            data.r0.event_id = event_id
-            data.r0.tel.clear()
+                # Event counter
+                data.count = counter
 
-            # Setting up the R1 container
-            data.r1.obs_id = obs_id
-            data.r1.event_id = event_id
-            data.r1.tel.clear()
+                # Setting up the R0 container
+                data.r0.obs_id = obs_id
+                data.r0.event_id = event_id
+                data.r0.tel.clear()
 
-            # Setting up the DL0 container
-            data.dl0.obs_id = obs_id
-            data.dl0.event_id = event_id
-            data.dl0.tel.clear()
+                # Setting up the R1 container
+                data.r1.obs_id = obs_id
+                data.r1.event_id = event_id
+                data.r1.tel.clear()
 
-            # Creating the telescope pointing container
-            pointing = TelescopePointingContainer()
-            pointing.azimuth = np.deg2rad(event_data['pointing_az']) * u.rad
-            pointing.altitude = np.deg2rad(90 - event_data['pointing_zd']) * u.rad
-            pointing.ra = np.deg2rad(event_data['pointing_ra']) * u.rad
-            pointing.dec = np.deg2rad(event_data['pointing_dec']) * u.rad
+                # Setting up the DL0 container
+                data.dl0.obs_id = obs_id
+                data.dl0.event_id = event_id
+                data.dl0.tel.clear()
 
-            # Adding the pointing container to the event data
-            data.pointing[tel_i + 1] = pointing
+                # Creating the telescope pointing container
+                pointing = TelescopePointingContainer()
+                pointing.azimuth = np.deg2rad(event_data['pointing_az']) * u.rad
+                pointing.altitude = np.deg2rad(90 - event_data['pointing_zd']) * u.rad
+                pointing.ra = np.deg2rad(event_data['pointing_ra']) * u.rad
+                pointing.dec = np.deg2rad(event_data['pointing_dec']) * u.rad
 
-            # Adding event charge and peak positions per pixel
-            data.dl1.tel[tel_i + 1].image = event_data['image']
-            data.dl1.tel[tel_i + 1].peakpos = event_data['peak_pos']
-            # data.dl1.tel[tel_i + 1].badpixels = np.array(
-            #     file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
+                # Adding the pointing container to the event data
+                data.pointing[tel_i + 1] = pointing
 
-            # Adding the event arrival time
-            time_tmp = Time(event_data['mjd'], scale='utc', format='mjd')
-            data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
+                # Adding event charge and peak positions per pixel
+                data.dl1.tel[tel_i + 1].image = event_data['image']
+                data.dl1.tel[tel_i + 1].peakpos = event_data['peak_pos']
+                # data.dl1.tel[tel_i + 1].badpixels = np.array(
+                #     file['dl1/tel' + str(i_tel + 1) + '/badpixels'], dtype=np.bool)
 
-            # Setting the telescopes with data
-            data.r0.tels_with_data = tels_with_data
-            data.r1.tels_with_data = tels_with_data
-            data.dl0.tels_with_data = tels_with_data
-            data.trig.tels_with_trigger = tels_with_data
+                # Adding the event arrival time
+                time_tmp = Time(event_data['mjd'], scale='utc', format='mjd')
+                data.trig.gps_time = Time(time_tmp, format='unix', scale='utc', precision=9)
 
-            # Setting the instrument sub-array
-            data.inst.subarray = magic_subarray
+                # Setting the telescopes with data
+                data.r0.tels_with_data = tels_with_data
+                data.r1.tels_with_data = tels_with_data
+                data.dl0.tels_with_data = tels_with_data
+                data.trig.tels_with_trigger = tels_with_data
 
-            yield data
-            counter += 1
+                # Setting the instrument sub-array
+                data.inst.subarray = magic_subarray
+
+                yield data
+                counter += 1
 
         return
 
