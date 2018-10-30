@@ -7,7 +7,8 @@ Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 
 import numpy as np
 from astropy import units as u
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription, CameraGeometry, OpticsDescription
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
+    CameraGeometry, OpticsDescription
 from .eventsource import EventSource
 from .lsteventsource import MultiFiles
 from .containers import NectarCAMDataContainer
@@ -42,17 +43,17 @@ class NectarCAMEventSource(EventSource):
 
             # optics info from standard optics.fits.gz file
             optics = OpticsDescription.from_name("MST")
-            optics.tel_subtype = '' # to correct bug in reading
+            optics.tel_subtype = ''  # to correct bug in reading
 
             # camera info from NectarCam-[geometry_version].camgeom.fits.gz file
             geometry_version = 1
-            camera = CameraGeometry.from_name("NectarCam",geometry_version)
+            camera = CameraGeometry.from_name("NectarCam", geometry_version)
 
             tel_descr = TelescopeDescription(optics, camera)
 
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
-            tel_descr.camera.rotate(10.3*u.deg)
-            self.n_camera_pixels=tel_descr.camera.n_pixels
+            tel_descr.camera.rotate(10.3 * u.deg)
+            self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
             # LSTs telescope position
@@ -130,7 +131,7 @@ class NectarCAMEventSource(EventSource):
         svc_container.idaq_version = self.camera_config.nectarcam.idaq_version
         svc_container.cdhs_version = self.camera_config.nectarcam.cdhs_version
         svc_container.algorithms = self.camera_config.nectarcam.algorithms
-        #svc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
+        # svc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
 
 
 
@@ -174,18 +175,21 @@ class NectarCAMEventSource(EventSource):
 
 
         reshaped_waveform = np.array(
-                event.waveform
+            event.waveform
              ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
 
         # initialize the waveform container to zero
-        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
+        container.waveform = np.zeros([n_gains,
+                                       self.n_camera_pixels,
+                                       container.num_samples])
 
         # re-order the waveform following the expected_pixels_id values (rank = pixel id)
-        container.waveform[:, self.camera_config.expected_pixels_id,:] = reshaped_waveform
+        container.waveform[:, self.camera_config.expected_pixels_id, :] \
+            = reshaped_waveform
 
 
     def fill_r0_container_from_zfile(self, event):
-        container=self.data.r0
+        container = self.data.r0
         container.obs_id = -1
         container.event_id = event.event_id
 

@@ -5,18 +5,9 @@ import pytest
 from ctapipe.utils import get_dataset_path
 pytest.importorskip("protozfits", minversion="1.4.2")
 
-#example_file_path = resource_filename(
-#    'protozfits',
-#    os.path.join(
-#        'tests',
-#        'resources',
-#        'NectarCAM.Run0890.10events.fits.fz'
-#    )
-#)
-
 FIRST_EVENT_NUMBER_IN_FILE = 1
 
-#example_file_path="NectarCam.Run0890.10events.fits.fz"
+# example_file_path="NectarCam.Run0890.10events.fits.fz"
 example_file_path = get_dataset_path("NectarCam.Run0890.10events.fits.fz")
 
 def test_loop_over_events():

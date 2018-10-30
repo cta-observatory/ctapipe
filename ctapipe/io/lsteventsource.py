@@ -7,10 +7,12 @@ Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 import numpy as np
 
 from astropy import units as u
-from os import listdir
+#from os import listdir
+import glob
 from os import getcwd
 from ctapipe.core import Provenance
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription, CameraGeometry, OpticsDescription
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
+    CameraGeometry, OpticsDescription
 from .eventsource import EventSource
 from .containers import LSTDataContainer
 
@@ -43,14 +45,14 @@ class LSTEventSource(EventSource):
         # Instrument information
         for tel_id in self.data.lst.tels_with_data:
 
-            assert (tel_id == 0) # only LST1 for the moment (id = 0)
+            assert (tel_id == 0)  # only LST1 for the moment (id = 0)
 
             # optics info from standard optics.fits.gz file
             optics = OpticsDescription.from_name("LST")
-            optics.tel_subtype = '' # to correct bug in reading
+            optics.tel_subtype = ''  # to correct bug in reading
 
             # camera info from LSTCam-[geometry_version].camgeom.fits.gz file
-            geometry_version=1
+            geometry_version = 1
             camera = CameraGeometry.from_name("LSTCam", geometry_version)
 
             tel_descr = TelescopeDescription(optics, camera)
@@ -133,9 +135,7 @@ class LSTEventSource(EventSource):
         svc_container.pre_proc_algorithms = self.camera_config.lstcam.pre_proc_algorithms
 
 
-
-
-    def fill_lst_event_container_from_zfile(self,event):
+    def fill_lst_event_container_from_zfile(self, event):
 
 
         event_container = self.data.lst.tel[self.camera_config.telescope_id].evt
@@ -156,7 +156,7 @@ class LSTEventSource(EventSource):
         event_container.drs_tag_status = event.lstcam.drs_tag_status
         event_container.drs_tag = event.lstcam.drs_tag
 
-    def fill_r0_camera_container_from_zfile(self,container, event):
+    def fill_r0_camera_container_from_zfile(self, container, event):
 
         container.num_samples = self.camera_config.num_samples
         container.trigger_time = event.trigger_time_s
@@ -180,14 +180,18 @@ class LSTEventSource(EventSource):
              ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
 
         # initialize the waveform container to zero
-        container.waveform = np.zeros([n_gains, self.n_camera_pixels, container.num_samples])
+        container.waveform = np.zeros([n_gains, self.n_camera_pixels,
+                                       container.num_samples])
 
         # re-order the waveform following the expected_pixels_id values (rank = pixel id)
-        container.waveform[:, self.camera_config.expected_pixels_id, :] = reshaped_waveform
+        container.waveform[:, self.camera_config.expected_pixels_id, :] =\
+            reshaped_waveform
 
     def fill_r0_container_from_zfile(self, event):
 
+
         container = self.data.r0
+
         container.obs_id = -1
         container.event_id = event.event_id
 
@@ -200,23 +204,12 @@ class LSTEventSource(EventSource):
 
 
 class MultiFiles:
-    '''
-    In LST they have multiple file writers, which save the incoming events
-    into different files, so in case one has 10 events and 4 files,
-    it might look like this:
-            f1 = [0, 4]
-            f2 = [1, 5, 8]
-            f3 = [2, 6, 9]
-            f4 = [3, 7]
-    The task of MultiZFitsFiles is to open these 4 files simultaneously
-    and return the events in the correct order, so the user does not really
-    have to know about these existence of 4 files.
 
-    In case of multiple input files the name of the files must finish with suffix
-    *000.fits.fz, *001.fits.fz, etc... and the user must give as input_url the name
-    of the first file (*000.fits.fz). The program will search for the other files.
-    In the case of only one input file the input_url can have any form.
-    '''
+    """
+    This class open all the files related to a given run xxxx if the file name
+    contains Runxxxx and all the files are in the same directory
+    (this will probably be changed in the future)
+    """
 
     def __init__(self, input_url):
 
@@ -224,35 +217,29 @@ class MultiFiles:
         self._events = {}
         self._events_table = {}
         self._camera_config = {}
+        self.camera_config = None
 
-
-        # test how many streams are there:
-        # file name must be [stream name]Run[all the rest]
-        # All the files with the same [all the rest] are opened
-
+        # In the input_url contain Runxxxx, test how many files with Runxxxx in the name
+        # are in the directory and open all of them
+        # If not "Run" tag is present in the name it opens only the input_url file
         if ('/' in input_url):
-            dir, name = input_url.rsplit('/', 1)
+            dir_name, name = input_url.rsplit('/', 1)
         else:
-            dir = getcwd()
+            dir_name = getcwd()
             name = input_url
 
-
-        if ('Run' in name) :
-            stream, run = name.split('Run', 1)
-        else :
+        if ('Run' in name):
+            idx = name.find('Run')
+            run = name[idx:idx + 7]
+        else:
             run = name
 
-
-        ls = listdir(dir)
+        ls = glob.glob(dir_name + "/*.fits.fz")
         paths = []
-
         for file_name in ls:
             if run in file_name:
-                full_name=dir + '/' + file_name
-                paths.append(full_name)
-                Provenance().add_input_file(full_name, role='dl0.sub.evt')
-
-
+                paths.append(file_name)
+                Provenance().add_input_file(file_name, role='dl0.sub.evt')
 
         # open the files and get the first fits Tables
         from protozfits import File
@@ -263,19 +250,21 @@ class MultiFiles:
             try:
 
                 self._events[path] = next(self._file[path].Events)
-                self._camera_config[path] = next(self._file[path].CameraConfig)
+
+                # verify where the CameraConfig is present
+                if 'CameraConfig' in self._file[path].__dict__.keys():
+                    self._camera_config[path] = next(self._file[path].CameraConfig)
+
+                # for the moment it takes the first CameraConfig it finds (to be changed)
+                    if(self.camera_config == None):
+                        self.camera_config = self._camera_config[path]
+
 
             except StopIteration:
                 pass
 
-        # verify that the configuration_id of all files are the same
-        # in the CameraConfig table
-        for path in paths:
-            assert (self._camera_config[path].configuration_id
-                    == self._camera_config[paths[0]].configuration_id)
-
-        # keep the cameraConfig of the first file
-        self.camera_config = self._camera_config[paths[0]]
+        # verify that soemwhere the CameraConfing is present
+        assert (self.camera_config)
 
     def __iter__(self):
         return self

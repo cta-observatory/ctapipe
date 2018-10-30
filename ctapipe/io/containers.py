@@ -424,7 +424,7 @@ class NectarCAMServiceContainer(Container):
     cdhs_version = Field(0o0, "cdhs version")
     acquisition_mode = Field(-1, "acquisition mode")
     algorithms = Field(None, "algorithms")
-    #pre_proc_algorithms = Field(None, "pre processing algorithms")
+    # pre_proc_algorithms = Field(None, "pre processing algorithms")
     module_ids = Field([], "module ids")
     num_modules = Field(-1, "number of modules")
 
@@ -454,7 +454,8 @@ class NectarCAMCameraContainer(Container):
     Container for Fields that are specific to each NectarCAM camera
     """
     evt = Field(NectarCAMEventContainer(), "NectarCAM specific event Information")
-    svc = Field(NectarCAMServiceContainer(), "NectarCAM specific camera_config Information")
+    svc = Field(NectarCAMServiceContainer(), "NectarCAM specific camera_config "
+                                             "Information")
 
 
 
