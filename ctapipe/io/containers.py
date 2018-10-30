@@ -31,6 +31,7 @@ __all__ = ['InstrumentContainer',
            'MCHeaderContainer',
            'MCCameraEventContainer',
            'CameraCalibrationContainer',
+           'WeatherContainer',
            'CentralTriggerContainer',
            'ReconstructedContainer',
            'ReconstructedShowerContainer',
@@ -105,6 +106,20 @@ class DL1CameraContainer(Container):
     )
     cleaned = Field(
         None, "numpy array containing the waveform after cleaning"
+    )
+    badpixels = Field(
+        None, "numpy (nd-)array of bools indicating (a specific type of) bad pixels"
+    )
+
+
+class WeatherContainer(Container):
+    """Storage of event-wise weather information (MAGIC implementation).
+    """
+    air_temperature = Field( None, "Outside air temperature"
+    )
+    air_pressure = Field(None, "Outside air pressure"
+    )
+    air_humidity = Field(None, "Outside air humidity"
     )
 
 
@@ -375,6 +390,8 @@ class TelescopePointingContainer(Container):
     """
     azimuth = Field(nan * u.rad, 'Azimuth, measured N->E', unit=u.rad)
     altitude = Field(nan * u.rad, 'Altitude', unit=u.rad)
+    ra = Field(nan * u.rad, 'Right ascension of camera center pointing from raw data', unit=u.rad)
+    dec = Field(nan * u.rad, 'Declination of camera center pointing from raw data', unit=u.rad)
 
 
 class DataContainer(Container):
@@ -392,6 +409,8 @@ class DataContainer(Container):
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer),
                      'Telescope pointing positions')
+    weather = Field(Map(WeatherContainer),
+                     'Outside weather conditions at the observatory')
 
 
 class SST1MDataContainer(DataContainer):
