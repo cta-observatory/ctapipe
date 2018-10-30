@@ -130,15 +130,18 @@ class CameraGeometry:
         return self.n_pixels
 
     def __getitem__(self, slice_):
-        return CameraGeometry(cam_id=" ".join([self.cam_id, " sliced"]),
-                              pix_id=self.pix_id[slice_],
-                              pix_x=self.pix_x[slice_],
-                              pix_y=self.pix_y[slice_],
-                              pix_area=self.pix_area[slice_],
-                              pix_type=self.pix_type,
-                              pix_rotation=self.pix_rotation,
-                              cam_rotation=self.cam_rotation,
-                              neighbors=None)
+        return CameraGeometry(
+            cam_id=" ".join([self.cam_id, " sliced"]),
+            pix_id=self.pix_id[slice_],
+            pix_x=self.pix_x[slice_],
+            pix_y=self.pix_y[slice_],
+            pix_area=self.pix_area[slice_],
+            pix_type=self.pix_type,
+            pix_rotation=self.pix_rotation,
+            cam_rotation=self.cam_rotation,
+            neighbors=None,
+            apply_derotation=False,
+        )
 
     @classmethod
     @u.quantity_input
