@@ -16,10 +16,10 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription, Optics
 import gzip
 import struct
 
-__all__ = ['MAGICEventSource', 'MAGICEventSourceROOT']
+__all__ = ['MAGICEventSourceHDF5', 'MAGICEventSourceROOT']
 
 
-class MAGICEventSource(EventSource):
+class MAGICEventSourceHDF5(EventSource):
     """
     EventSource for MAGIC raw data converted to hdf5.
 
