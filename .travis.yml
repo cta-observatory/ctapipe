@@ -54,7 +54,7 @@ install:
     - pip install codecov
     # ----- SST1M:
     - conda install protobuf
-    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.0.2.tar.gz
+    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.4.0.tar.gz
     # ----- end of SST1M
     # ----- target_software
     - conda install -c conda-forge cfitsio

@@ -19,7 +19,7 @@ def draw_several_cams(geom, ncams=4):
 
     cmaps = ['jet', 'afmhot', 'terrain', 'autumn']
     fig, axs = plt.subplots(
-        1, ncams, figsize=(15, 4), sharey=True, sharex=True
+        1, ncams, figsize=(15, 4),
     )
 
     for ii in range(ncams):
@@ -32,16 +32,16 @@ def draw_several_cams(geom, ncams=4):
 
         model = toymodel.generate_2d_shower_model(
             centroid=(0.2 - ii * 0.1, -ii * 0.05),
-            width=0.005 + 0.001 * ii,
-            length=0.1 + 0.05 * ii,
+            width=0.05 + 0.001 * ii,
+            length=0.15 + 0.05 * ii,
             psi=ii * 20 * u.deg,
         )
 
         image, sig, bg = toymodel.make_toymodel_shower_image(
             geom,
             model.pdf,
-            intensity=50,
-            nsb_level_pe=1000,
+            intensity=1500,
+            nsb_level_pe=5,
         )
 
         mask = tailcuts_clean(
