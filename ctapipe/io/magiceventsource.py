@@ -980,26 +980,33 @@ class MarsDataRun:
 
             mjd = mjd + (millisec/1e3 + nanosec/1e9) / 86400.0
 
-            # Getting the telescope drive info
-            drive_mjd = input_file['Drive']['MReportDrive.fMjd'].array()
-            drive_zd = input_file['Drive']['MReportDrive.fCurrentZd'].array()
-            drive_az = input_file['Drive']['MReportDrive.fCurrentAz'].array()
-            drive_ra = input_file['Drive']['MReportDrive.fRa'].array()
-            drive_dec = input_file['Drive']['MReportDrive.fDec'].array()
+            if 'MPointingPos.' in input_file['Events']:
+                # Retrieving the telescope pointing direction
+                pointing_zd = input_file['Events']['MPointingPos.fZd'].array()
+                pointing_az = input_file['Events']['MPointingPos.fAz'].array()
+                pointing_ra = input_file['Events']['MPointingPos.fRa'].array()
+                pointing_dec = input_file['Events']['MPointingPos.fDec'].array()
+            else:
+                # Getting the telescope drive info
+                drive_mjd = input_file['Drive']['MReportDrive.fMjd'].array()
+                drive_zd = input_file['Drive']['MReportDrive.fCurrentZd'].array()
+                drive_az = input_file['Drive']['MReportDrive.fCurrentAz'].array()
+                drive_ra = input_file['Drive']['MReportDrive.fRa'].array()
+                drive_dec = input_file['Drive']['MReportDrive.fDec'].array()
 
-            # Creating azimuth and zenith angles interpolators
-            drive_zd_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_zd, fill_value="extrapolate")
-            drive_az_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_az, fill_value="extrapolate")
+                # Creating azimuth and zenith angles interpolators
+                drive_zd_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_zd, fill_value="extrapolate")
+                drive_az_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_az, fill_value="extrapolate")
 
-            # Creating azimuth and zenith angles interpolators
-            drive_ra_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_ra, fill_value="extrapolate")
-            drive_dec_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_dec, fill_value="extrapolate")
+                # Creating azimuth and zenith angles interpolators
+                drive_ra_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_ra, fill_value="extrapolate")
+                drive_dec_pointing_interpolator = scipy.interpolate.interp1d(drive_mjd, drive_dec, fill_value="extrapolate")
 
-            # Interpolating the drive pointing to the event time stamps
-            pointing_zd = drive_zd_pointing_interpolator(event_data['MJD'])
-            pointing_az = drive_az_pointing_interpolator(event_data['MJD'])
-            pointing_ra = drive_ra_pointing_interpolator(event_data['MJD'])
-            pointing_dec = drive_dec_pointing_interpolator(event_data['MJD'])
+                # Interpolating the drive pointing to the event time stamps
+                pointing_zd = drive_zd_pointing_interpolator(event_data['MJD'])
+                pointing_az = drive_az_pointing_interpolator(event_data['MJD'])
+                pointing_ra = drive_ra_pointing_interpolator(event_data['MJD'])
+                pointing_dec = drive_dec_pointing_interpolator(event_data['MJD'])
 
             event_data['charge'].append(charge)
             event_data['arrival_time'].append(arrival_time)
