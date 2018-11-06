@@ -536,7 +536,8 @@ class MAGICEventSourceROOT(EventSource):
             # Loop over the events
             for event_i in range(self.current_run['data'].n_stereo_events):
                 # Event and run ids
-                event_id = self.current_run['data'].stereo_ids[event_i][0]
+                event_order_number = self.current_run['data'].stereo_ids[event_i][0]
+                event_id = self.current_run['data']['M1']['stereo_event_number'][event_order_number]
                 obs_id = self.current_run['number']
 
                 # Reading event data
@@ -655,7 +656,8 @@ class MAGICEventSourceROOT(EventSource):
             # Loop over the events
             for event_i in range(n_events):
                 # Event and run ids
-                event_id = self.current_run['data'].mono_ids[telescope][event_i]
+                event_order_number = self.current_run['data'].mono_ids[telescope][event_i]
+                event_id = self.current_run['data']['M1']['stereo_event_number'][event_order_number]
                 obs_id = self.current_run['number']
 
                 # Reading event data
@@ -772,7 +774,8 @@ class MAGICEventSourceROOT(EventSource):
             # Loop over the events
             for event_i in range(n_events):
                 # Event and run ids
-                event_id = self.current_run['data'].pedestal_ids[telescope][event_i]
+                event_order_number = self.current_run['data'].pedestal_ids[telescope][event_i]
+                event_id = self.current_run['data']['M1']['stereo_event_number'][event_order_number]
                 obs_id = self.current_run['number']
 
                 # Reading event data
