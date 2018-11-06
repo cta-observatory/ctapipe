@@ -28,23 +28,25 @@ class UnstructuredInterpolator:
     In the case that a numpy array is passed as the interpolation values this class will
     behave exactly the same as the scipy LinearNDInterpolator
     """
-    def __init__(self, interpolation_points, function_name=None, remember_last=False,
+    def __init__(self, keys, values, function_name=None, remember_last=False,
                  bounds=None, dtype=None):
         """
         Parameters
         ----------
-        interpolation_points: dict
-            Dictionary of interpolation points (stored as key) and values
+        keys: ndarray
+            Interpolation grid points
+        values: ndarray
+            Interpolation values
         function_name: str
             Name of class member function to call in the case we are interpolating
             between class predictions, for numpy arrays leave blank
         """
 
-        self.keys = np.array(list(interpolation_points.keys()))
+        self.keys = keys
         if dtype:
-            self.values = np.array(list(interpolation_points.values()), dtype=dtype)
+            self.values = np.array(values, dtype=dtype)
         else:
-            self.values = np.array(list(interpolation_points.values()))
+            self.values = np.array(values)
 
         self._num_dimensions = len(self.keys[0])
 
@@ -138,7 +140,6 @@ class UnstructuredInterpolator:
 
         # Multiply point values by weight
         p_values = np.einsum('ij...,ij...->i...', selected_points, w)
-        #print(time.time() - t)
 
         return p_values
 
