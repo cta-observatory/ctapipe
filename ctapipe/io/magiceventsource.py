@@ -1258,8 +1258,8 @@ class MarsDataRun:
         event_data = dict()
         event_data['image'] = photon_content
         event_data['peak_pos'] = arrival_times
-        event_data['pointing_az'] = self.event_data[telescope]['pointing_zd'][event_id]
-        event_data['pointing_zd'] = self.event_data[telescope]['pointing_az'][event_id]
+        event_data['pointing_az'] = self.event_data[telescope]['pointing_az'][event_id]
+        event_data['pointing_zd'] = self.event_data[telescope]['pointing_zd'][event_id]
         event_data['pointing_ra'] = self.event_data[telescope]['pointing_ra'][event_id]
         event_data['pointing_dec'] = self.event_data[telescope]['pointing_dec'][event_id]
         event_data['mjd'] = self.event_data[telescope]['MJD'][event_id]
@@ -1311,8 +1311,8 @@ class MarsDataRun:
         event_data['m1_peak_pos'] = m1_arrival_times
         event_data['m2_image'] = m2_photon_content
         event_data['m2_peak_pos'] = m2_arrival_times
-        event_data['pointing_az'] = self.event_data['M1']['pointing_zd'][m1_id]
-        event_data['pointing_zd'] = self.event_data['M1']['pointing_az'][m1_id]
+        event_data['pointing_az'] = self.event_data['M1']['pointing_az'][m1_id]
+        event_data['pointing_zd'] = self.event_data['M1']['pointing_zd'][m1_id]
         event_data['pointing_ra'] = self.event_data['M1']['pointing_ra'][m1_id]
         event_data['pointing_dec'] = self.event_data['M1']['pointing_dec'][m1_id]
         event_data['mjd'] = self.event_data['M1']['MJD'][m1_id]
@@ -1358,8 +1358,8 @@ class MarsDataRun:
         event_data = dict()
         event_data['image'] = photon_content
         event_data['peak_pos'] = arrival_times
-        event_data['pointing_az'] = self.event_data[telescope]['pointing_zd'][event_id]
-        event_data['pointing_zd'] = self.event_data[telescope]['pointing_az'][event_id]
+        event_data['pointing_az'] = self.event_data[telescope]['pointing_az'][event_id]
+        event_data['pointing_zd'] = self.event_data[telescope]['pointing_zd'][event_id]
         event_data['pointing_ra'] = self.event_data[telescope]['pointing_ra'][event_id]
         event_data['pointing_dec'] = self.event_data[telescope]['pointing_dec'][event_id]
         event_data['mjd'] = self.event_data[telescope]['MJD'][event_id]
