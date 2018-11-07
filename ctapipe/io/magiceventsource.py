@@ -394,6 +394,7 @@ class MAGICEventSourceROOT(EventSource):
 
         # # Setting up the current run with the first run present in the data
         # self.current_run = self._set_active_run(run_number=0)
+        self.current_run = None
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return
@@ -531,6 +532,13 @@ class MAGICEventSourceROOT(EventSource):
 
         # Loop over the available data runs
         for run_number in self.run_numbers:
+
+            # Removing the previously read data run from memory
+            if self.current_run is not None:
+                if 'data' in self.current_run:
+                    del self.current_run['data']
+
+            # Setting the new active run
             self.current_run = self._set_active_run(run_number)
 
             # Loop over the events
@@ -630,11 +638,6 @@ class MAGICEventSourceROOT(EventSource):
         tel_i = tels_in_file.index(telescope)
         tels_with_data = {tel_i + 1, }
 
-        if tel_i == 0:
-            n_events = self.current_run['data'].n_mono_events_m1
-        else:
-            n_events = self.current_run['data'].n_mono_events_m2
-
         # MAGIC telescope description
         optics = OpticsDescription.from_name('MAGIC')
         geom = CameraGeometry.from_name('MAGICCam')
@@ -651,13 +654,25 @@ class MAGICEventSourceROOT(EventSource):
 
         # Loop over the available data runs
         for run_number in self.run_numbers:
+
+            # Removing the previously read data run from memory
+            if self.current_run is not None:
+                if 'data' in self.current_run:
+                    del self.current_run['data']
+
+            # Setting the new active run
             self.current_run = self._set_active_run(run_number)
+
+            if telescope == 'M1':
+                n_events = self.current_run['data'].n_mono_events_m1
+            else:
+                n_events = self.current_run['data'].n_mono_events_m2
 
             # Loop over the events
             for event_i in range(n_events):
                 # Event and run ids
                 event_order_number = self.current_run['data'].mono_ids[telescope][event_i]
-                event_id = self.current_run['data'].event_data['M1']['stereo_event_number'][event_order_number]
+                event_id = self.current_run['data'].event_data[telescope]['stereo_event_number'][event_order_number]
                 obs_id = self.current_run['number']
 
                 # Reading event data
@@ -748,11 +763,6 @@ class MAGICEventSourceROOT(EventSource):
         tel_i = tels_in_file.index(telescope)
         tels_with_data = {tel_i + 1, }
 
-        if tel_i == 0:
-            n_events = self.current_run['data'].n_pedestal_events_m1
-        else:
-            n_events = self.current_run['data'].n_pedestal_events_m2
-
         # MAGIC telescope description
         optics = OpticsDescription.from_name('MAGIC')
         geom = CameraGeometry.from_name('MAGICCam')
@@ -769,7 +779,19 @@ class MAGICEventSourceROOT(EventSource):
 
         # Loop over the available data runs
         for run_number in self.run_numbers:
+
+            # Removing the previously read data run from memory
+            if self.current_run is not None:
+                if 'data' in self.current_run:
+                    del self.current_run['data']
+
+            # Setting the new active run
             self.current_run = self._set_active_run(run_number)
+
+            if telescope == 'M1':
+                n_events = self.current_run['data'].n_pedestal_events_m1
+            else:
+                n_events = self.current_run['data'].n_pedestal_events_m2
 
             # Loop over the events
             for event_i in range(n_events):
