@@ -395,6 +395,18 @@ class MAGICEventSourceROOT(EventSource):
         # # Setting up the current run with the first run present in the data
         # self.current_run = self._set_active_run(run_number=0)
         self.current_run = None
+        
+        # MAGIC telescope positions in m wrt. to the center of CTA simulations
+        self.magic_tel_positions = {
+            1: [-27.24, -146.66, 50.00] * u.m,
+            2: [-96.44, -96.77, 51.00] * u.m
+        }
+        # MAGIC telescope description
+        optics = OpticsDescription.from_name('MAGIC')
+        geom = CameraGeometry.from_name('MAGICCam')
+        self.magic_tel_description = TelescopeDescription(optics=optics, camera=geom)
+        self.magic_tel_descriptions = {1: self.magic_tel_description, 2: self.magic_tel_description}
+        self.magic_subarray = SubarrayDescription('MAGIC', self.magic_tel_positions, self.magic_tel_descriptions)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         return
@@ -516,20 +528,6 @@ class MAGICEventSourceROOT(EventSource):
         tels_in_file = ["m1", "m2"]
         tels_with_data = {1, 2}
 
-        # MAGIC telescope description
-        optics = OpticsDescription.from_name('MAGIC')
-        geom = CameraGeometry.from_name('MAGICCam')
-        magic_tel_description = TelescopeDescription(optics=optics, camera=geom)
-        magic_tel_descriptions = {1: magic_tel_description, 2: magic_tel_description}
-
-        # MAGIC telescope positions in m wrt. to the center of CTA simulations
-        magic_tel_positions = {
-            1: [-27.24 * u.m, -146.66 * u.m, 50.00 * u.m],
-            2: [-96.44 * u.m, -96.77 * u.m, 51.00 * u.m]
-        }
-
-        magic_subarray = SubarrayDescription('MAGIC', magic_tel_positions, magic_tel_descriptions)
-
         # Loop over the available data runs
         for run_number in self.run_numbers:
 
@@ -598,7 +596,7 @@ class MAGICEventSourceROOT(EventSource):
                 data.trig.tels_with_trigger = tels_with_data
 
                 # Setting the instrument sub-array
-                data.inst.subarray = magic_subarray
+                data.inst.subarray = self.magic_subarray
 
                 yield data
                 counter += 1
@@ -637,20 +635,6 @@ class MAGICEventSourceROOT(EventSource):
 
         tel_i = tels_in_file.index(telescope)
         tels_with_data = {tel_i + 1, }
-
-        # MAGIC telescope description
-        optics = OpticsDescription.from_name('MAGIC')
-        geom = CameraGeometry.from_name('MAGICCam')
-        magic_tel_description = TelescopeDescription(optics=optics, camera=geom)
-        magic_tel_descriptions = {1: magic_tel_description, 2: magic_tel_description}
-
-        # MAGIC telescope positions in m wrt. to the center of CTA simulations
-        magic_tel_positions = {
-            1: [-27.24 * u.m, -146.66 * u.m, 50.00 * u.m],
-            2: [-96.44 * u.m, -96.77 * u.m, 51.00 * u.m]
-        }
-
-        magic_subarray = SubarrayDescription('MAGIC', magic_tel_positions, magic_tel_descriptions)
 
         # Loop over the available data runs
         for run_number in self.run_numbers:
@@ -723,7 +707,7 @@ class MAGICEventSourceROOT(EventSource):
                 data.trig.tels_with_trigger = tels_with_data
 
                 # Setting the instrument sub-array
-                data.inst.subarray = magic_subarray
+                data.inst.subarray = self.magic_subarray
 
                 yield data
                 counter += 1
@@ -762,20 +746,6 @@ class MAGICEventSourceROOT(EventSource):
 
         tel_i = tels_in_file.index(telescope)
         tels_with_data = {tel_i + 1, }
-
-        # MAGIC telescope description
-        optics = OpticsDescription.from_name('MAGIC')
-        geom = CameraGeometry.from_name('MAGICCam')
-        magic_tel_description = TelescopeDescription(optics=optics, camera=geom)
-        magic_tel_descriptions = {1: magic_tel_description, 2: magic_tel_description}
-
-        # MAGIC telescope positions in m wrt. to the center of CTA simulations
-        magic_tel_positions = {
-            1: [-27.24 * u.m, -146.66 * u.m, 50.00 * u.m],
-            2: [-96.44 * u.m, -96.77 * u.m, 51.00 * u.m]
-        }
-
-        magic_subarray = SubarrayDescription('MAGIC', magic_tel_positions, magic_tel_descriptions)
 
         # Loop over the available data runs
         for run_number in self.run_numbers:
@@ -848,7 +818,7 @@ class MAGICEventSourceROOT(EventSource):
                 data.trig.tels_with_trigger = tels_with_data
 
                 # Setting the instrument sub-array
-                data.inst.subarray = magic_subarray
+                data.inst.subarray = self.magic_subarray
 
                 yield data
                 counter += 1
@@ -1007,16 +977,16 @@ class MarsDataRun:
 
             if 'MPointingPos.' in input_file['Events']:
                 # Retrieving the telescope pointing direction
-                pointing_zd = input_file['Events']['MPointingPos.fZd'].array()
-                pointing_az = input_file['Events']['MPointingPos.fAz'].array()
-                pointing_ra = input_file['Events']['MPointingPos.fRa'].array()
-                pointing_dec = input_file['Events']['MPointingPos.fDec'].array()
+                pointing_zd = input_file['Events']['MPointingPos.fZd'].array() - input_file['Events']['MPointingPos.fDevZd'].array()
+                pointing_az = input_file['Events']['MPointingPos.fAz'].array() - input_file['Events']['MPointingPos.fDevAz'].array()
+                pointing_ra = (input_file['Events']['MPointingPos.fRa'].array() - input_file['Events']['MPointingPos.fDevHa'].array()) * 15.
+                pointing_dec = input_file['Events']['MPointingPos.fDec'].array() - input_file['Events']['MPointingPos.fDevDec'].array()
             else:
                 # Getting the telescope drive info
                 drive_mjd = input_file['Drive']['MReportDrive.fMjd'].array()
                 drive_zd = input_file['Drive']['MReportDrive.fCurrentZd'].array()
                 drive_az = input_file['Drive']['MReportDrive.fCurrentAz'].array()
-                drive_ra = input_file['Drive']['MReportDrive.fRa'].array()
+                drive_ra = input_file['Drive']['MReportDrive.fRa'].array() * 15.
                 drive_dec = input_file['Drive']['MReportDrive.fDec'].array()
 
                 # Creating azimuth and zenith angles interpolators
