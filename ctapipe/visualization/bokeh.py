@@ -198,8 +198,7 @@ class CameraDisplay:
         self.active_pixels = [0] * n_active
         self.fig.add_tools(TapTool())
 
-        def source_change_response(_, __, ___):
-            val = self.cdsource.selected['1d']['indices']
+        def source_change_response(_, __, val):
             if val:
                 pix = val[0]
                 ai = self.active_index
@@ -211,7 +210,7 @@ class CameraDisplay:
                 if self.automatic_index_increment:
                     self.active_index = (ai + 1) % len(self.active_pixels)
 
-        self.cdsource.on_change('selected', source_change_response)
+        self.cdsource.selected.on_change('indices', source_change_response)
 
     def _on_pixel_click(self, pix_id):
         print("Clicked pixel_id: {}".format(pix_id))
