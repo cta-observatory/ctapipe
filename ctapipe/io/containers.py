@@ -44,6 +44,12 @@ __all__ = [
     'LeakageContainer',
     'ConcentrationContainer',
     'TimingParametersContainer',
+    'StatInfoContainer',
+    'FlatFieldCameraContainer',
+    'PedestalCameraContainer',
+    'FlatFieldContainer',
+    'PedestalContainer', 
+    'MonitorDataContainer'
 ]
 
 
@@ -758,3 +764,66 @@ class TimingParametersContainer(Container):
     """
     slope = Field(nan, 'Slope of arrival times along main shower axis')
     intercept = Field(nan, 'intercept of arrival times along main shower axis')
+
+
+class FlatFieldCameraContainer(Container):
+    """
+    Container for relative flat-field coefficients 
+    per camera    
+    """
+   
+    mean_time_s = Field(0, 'Mean time, seconds since reference')
+    range_time_s = Field([], 'Range of time')
+    
+    n_events = Field(0,'Number of events used for statistics')
+    
+    relative_gain_mean = Field(None,
+        "np array of the relative flat-field coefficient mean (n_chan X N_pix)"
+    )
+    relative_gain_median = Field(None,
+        "np array of the relative flat-field coefficient  median (n_chan X N_pix)"
+    )
+    
+    relative_gain_rms = Field(None,
+        "np array of the relative flat-field coefficient rms (n_chan X N_pix)"
+    )
+            
+    
+    
+class PedestalCameraContainer(Container):     
+    """
+    Container for pedestals per camera    
+    """
+    # still to be filled
+    
+    
+
+class FlatFieldContainer(Container):
+    """
+    Container for relative flat field coefficients
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(FlatFieldCameraContainer),
+        "map of tel_id to FlatFiledCameraContainer")
+    
+    
+
+class PedestalContainer(Container):
+    """
+    Container for pedestal data
+    """
+    tels_with_data = Field([], "list of telescopes with data")
+    tel = Field(
+        Map(PedestalCameraContainer),
+        "map of tel_id to PedestalCameraContainer")
+
+class MonDataContainer(Container):
+    """
+    Root container for MON data   
+    """
+    flatfield = Field(FlatFieldContainer(), "Relative flat field data")
+    pedestal = Field(PedestalContainer(), "Pedestal data")
+  
+
+  
