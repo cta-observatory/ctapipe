@@ -88,8 +88,8 @@ The following special frames are defined for CTA:
 they can be transformed to and from any other `astropy.coordinates` frame, like
 `astropy.coordinates.AltAz` or `astropy.coordinates.ICRS` (RA/Dec)
 
-Example
--------
+Examples
+--------
 
 .. code-block:: python
 

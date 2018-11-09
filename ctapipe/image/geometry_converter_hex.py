@@ -262,16 +262,19 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
     """
 
     # finding the size of the square patches
-    d_x = 99 * u.m
-    d_y = 99 * u.m
+    d_x = 99 * u.meter  # TODO: @jit may have troubles interpreting astropy.Quantities
+    d_y = 99 * u.meter
     x_base = pix_x[0]
     y_base = pix_y[0]
     for x, y in zip(pix_x, pix_y):
         if abs(y - y_base) < abs(x - x_base):
             d_x = min(d_x, abs(x - x_base))
-    for x, y in zip(pix_x, pix_y):
         if abs(y - y_base) > abs(x - x_base):
             d_y = min(d_y, abs(y - y_base))
+
+    # for x, y in zip(pix_x, pix_y):
+    #    if abs(y - y_base) > abs(x - x_base):
+    #        d_y = min(d_y, abs(y - y_base))
 
     x_scale = 1
     if scale_aspect:
@@ -281,8 +284,8 @@ def get_orthogonal_grid_edges(pix_x, pix_y, scale_aspect=True):
 
     # with the maximal extension of the axes and the size of the pixels,
     # determine the number of bins in each direction
-    n_bins_x = np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2
-    n_bins_y = np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2
+    n_bins_x = (np.around(abs(max(pix_x) - min(pix_x)) / d_x) + 2).astype(int)
+    n_bins_y = (np.around(abs(max(pix_y) - min(pix_y)) / d_y) + 2).astype(int)
     x_edges = np.linspace(min(pix_x).value, max(pix_x).value, n_bins_x)
     y_edges = np.linspace(min(pix_y).value, max(pix_y).value, n_bins_y)
 
@@ -306,7 +309,9 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     signal : ndarray
         1D (no timing) or 2D (with timing) array of the pmt signals
     key : (default: None)
-        arbitrary key to store the transformed geometry in a buffer
+        arbitrary key (float, string) to store the transformed geometry in a buffer
+        The geometries (hex and rect) will be stored in a buffer.
+        The key is necessary to make the conversion back from rect to hex.
     add_rot : int/float (default: 0)
         parameter to apply an additional rotation of `add_rot` times 60°
 
@@ -320,6 +325,13 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         rectangular grid
     rot_img : ndarray 2D (no timing) or 3D (with timing)
         the rectangular signal image
+
+    Examples
+    --------
+    camera = event.inst.subarray.tel[tel_id].camera
+    image = event.r0.tel[tel_id].image[0]
+    key = camera.cam_id
+    square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
     """
 
     if key in rot_buffer:
@@ -385,9 +397,9 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         new_geom = CameraGeometry(
             cam_id=geom.cam_id + "_rect",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
-            pix_x=grid_x * u.m,
-            pix_y=grid_y * u.m,
-            pix_area=pix_area * u.m ** 2,
+            pix_x=grid_x * u.meter,
+            pix_y=grid_y * u.meter,
+            pix_area=pix_area * u.meter ** 2,
             neighbors=geom.neighbors,
             pix_type='rectangular', apply_derotation=False)
 
@@ -455,6 +467,7 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
         pixel intensity stored in a 2D rectangular camera grid
     key:
         key to retrieve buffered geometry information
+        (see `convert_geometry_hex1d_to_rect2d`)
     add_rot:
         not used -- only here for backwards compatibility
 
@@ -473,6 +486,15 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
     instance of the original camera layout, which it tries to load by name (i.e.
     the `cam_id`). The function assumes the original `cam_id` can be inferred from the
     given, modified one by: `geom.cam_id.split('_')[0]`.
+
+    Examples
+    --------
+    camera = event.inst.subarray.tel[tel_id].camera
+    image = event.r0.tel[tel_id].image[0]
+    key = camera.cam_id
+    square_geom, square_image = convert_geometry_hex1d_to_rect2d(camera, image, key=key)
+    hex_geom, hex_image = convert_geometry_rect2d_back_to_hexe1d(square_geom,
+    square_image, key = key)
     """
 
     if key not in rot_buffer:

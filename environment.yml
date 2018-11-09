@@ -1,23 +1,24 @@
 name: cta-dev
 channels:
-  - anaconda
+  - default
   - cta-observatory
   - conda-forge
 dependencies:
-  - zeromq=4.2.2 
+  - zeromq=4.2.2
   - ctapipe-extra=0.2.*
   - astropy
   - bokeh
   - cython
   - gammapy
   - graphviz
+  - h5py
   - iminuit
   - ipython
   - ipywidgets
   - jupyter
   - matplotlib
   - numba
-  - numpy
+  - numpy=1.15.1   # frozen for now due to bug in 1.15.3
   - numpydoc
   - pandas
   - pyhessio
@@ -29,16 +30,17 @@ dependencies:
   - scikit-image
   - scipy
   - setuptools
-  - sphinx=1.6
+  - sphinx=1.7
   - sphinx_rtd_theme
   - sphinx-automodapi
   - traitlets
   - wheel
   - xz
-  - yaml
+  - pyyaml
   - zlib
   - iminuit
   - pytables
   - tqdm
+  - tornado=4.5.3
   - pip:
       - pytest_runner

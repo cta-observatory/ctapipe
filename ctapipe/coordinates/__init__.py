@@ -2,13 +2,6 @@
 """
 Coordinates.
 """
-
-
-from .coordinate_transformations import (pixel_position_to_direction,
-                                         alt_to_theta, az_to_phi,
-                                         transform_pixel_position)
-
-
 from .angular_frames import *
 from .ground_frames import *
 
