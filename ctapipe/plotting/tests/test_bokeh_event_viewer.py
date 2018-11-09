@@ -8,14 +8,14 @@ def test_bokeh_event_viewer_creation():
     viewer.create()
 
 
-def test_event_setting(test_event):
+def test_event_setting(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
     for cam in viewer.cameras:
-        assert cam.event == test_event
+        assert cam.event == example_event
     for wf in viewer.waveforms:
-        assert wf.event == test_event
+        assert wf.event == example_event
 
 
 def test_enable_automatic_index_increment():
@@ -26,10 +26,10 @@ def test_enable_automatic_index_increment():
         assert cam.automatic_index_increment
 
 
-def test_change_time(test_event):
+def test_change_time(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     t = 5
     viewer.change_time(t)
@@ -45,8 +45,8 @@ def test_change_time(test_event):
     for wf in viewer.waveforms:
         assert wf.active_time == 0
 
-    tel = list(test_event.r0.tels_with_data)[0]
-    n_samples = test_event.r0.tel[tel].waveform.shape[-1]
+    tel = list(example_event.r0.tels_with_data)[0]
+    n_samples = example_event.r0.tel[tel].waveform.shape[-1]
     t = 10000
     viewer.change_time(t)
     for cam in viewer.cameras:
@@ -55,10 +55,10 @@ def test_change_time(test_event):
         assert wf.active_time == n_samples - 1
 
 
-def test_on_waveform_click(test_event):
+def test_on_waveform_click(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     t = 5
     viewer.waveforms[0]._on_waveform_click(t)
@@ -68,12 +68,12 @@ def test_on_waveform_click(test_event):
         assert wf.active_time == t
 
 
-def test_telid(test_event):
+def test_telid(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
-    tels = list(test_event.r0.tels_with_data)
+    tels = list(example_event.r0.tels_with_data)
 
     assert viewer.telid == tels[0]
     for cam in viewer.cameras:
@@ -89,29 +89,29 @@ def test_telid(test_event):
         assert wf.telid == tels[1]
 
 
-def test_telid_incorrect(test_event):
+def test_telid_incorrect(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     with pytest.raises(KeyError):
         viewer.telid = 148937242
 
 
-def test_on_pixel_click(test_event):
+def test_on_pixel_click(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     p1 = 5
     viewer.cameras[0]._on_pixel_click(p1)
     assert viewer.waveforms[viewer.cameras[0].active_index].pixel == p1
 
 
-def test_channel(test_event):
+def test_channel(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     assert viewer.channel == 0
     for cam in viewer.cameras:
@@ -120,46 +120,46 @@ def test_channel(test_event):
         assert wf.channel == 0
 
 
-def test_channel_incorrect(test_event):
+def test_channel_incorrect(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     with pytest.raises(IndexError):
         viewer.channel = 148937242
 
 
-def test_view_camera(test_event):
+def test_view_camera(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     c = CameraCalibrator()
-    c.calibrate(test_event)
+    c.calibrate(example_event)
 
-    t = list(test_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tels_with_data)[0]
 
     cam = viewer.cameras[0]
     cam.view = 'r1'
-    assert (cam.image == test_event.r1.tel[t].waveform[0, :, 0]).all()
+    assert (cam.image == example_event.r1.tel[t].waveform[0, :, 0]).all()
 
     with pytest.raises(ValueError):
         cam.view = 'q'
 
 
-def test_view_wf(test_event):
+def test_view_wf(example_event):
     viewer = BokehEventViewer(config=None, tool=None)
     viewer.create()
-    viewer.event = test_event
+    viewer.event = example_event
 
     c = CameraCalibrator()
-    c.calibrate(test_event)
+    c.calibrate(example_event)
 
-    t = list(test_event.r0.tels_with_data)[0]
+    t = list(example_event.r0.tels_with_data)[0]
 
     wf = viewer.waveforms[0]
     wf.view = 'r1'
-    assert (wf.waveform == test_event.r1.tel[t].waveform[0, 0, :]).all()
+    assert (wf.waveform == example_event.r1.tel[t].waveform[0, 0, :]).all()
 
     with pytest.raises(ValueError):
         wf.view = 'q'

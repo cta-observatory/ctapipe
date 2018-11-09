@@ -8,24 +8,24 @@ def test_camera_display_create():
     CameraDisplay()
 
 
-def test_camera_geom(test_event):
-    t = list(test_event.r0.tels_with_data)[0]
-    geom = test_event.inst.subarray.tel[t].camera
+def test_camera_geom(example_event):
+    t = list(example_event.r0.tels_with_data)[0]
+    geom = example_event.inst.subarray.tel[t].camera
     c_display = CameraDisplay(geom)
 
     assert (c_display.cdsource.data['x'] == geom.pix_x.value).all()
     assert (c_display.cdsource.data['y'] == geom.pix_y.value).all()
 
-    t = list(test_event.r0.tels_with_data)[1]
-    geom = test_event.inst.subarray.tel[t].camera
+    t = list(example_event.r0.tels_with_data)[1]
+    geom = example_event.inst.subarray.tel[t].camera
     c_display.geom = geom
     assert (c_display.cdsource.data['x'] == geom.pix_x.value).all()
     assert (c_display.cdsource.data['y'] == geom.pix_y.value).all()
 
 
-def test_camera_image(test_event):
-    t = list(test_event.r0.tels_with_data)[0]
-    geom = test_event.inst.subarray.tel[t].camera
+def test_camera_image(example_event):
+    t = list(example_event.r0.tels_with_data)[0]
+    geom = example_event.inst.subarray.tel[t].camera
     n_pixels = geom.pix_x.value.size
     image = np.ones(n_pixels)
     colors = intensity_to_hex(image)
@@ -46,9 +46,9 @@ def test_camera_image(test_event):
     assert c_display.image_max == image.max()
 
 
-def test_camera_enable_pixel_picker(test_event):
-    t = list(test_event.r0.tels_with_data)[0]
-    geom = test_event.inst.subarray.tel[t].camera
+def test_camera_enable_pixel_picker(example_event):
+    t = list(example_event.r0.tels_with_data)[0]
+    geom = example_event.inst.subarray.tel[t].camera
     n_pixels = geom.pix_x.value.size
     image = np.ones(n_pixels)
     c_display = CameraDisplay(geom, image)
@@ -60,9 +60,9 @@ def test_camera_enable_pixel_picker(test_event):
     assert len(c_display.active_pixels) == 3
 
 
-def test_fast_camera_display_create(test_event):
-    t = list(test_event.r0.tels_with_data)[0]
-    geom = test_event.inst.subarray.tel[t].camera
+def test_fast_camera_display_create(example_event):
+    t = list(example_event.r0.tels_with_data)[0]
+    geom = example_event.inst.subarray.tel[t].camera
 
     x = geom.pix_x.value
     y = geom.pix_y.value
@@ -72,9 +72,9 @@ def test_fast_camera_display_create(test_event):
     FastCameraDisplay(x, y, size)
 
 
-def test_fast_camera_image(test_event):
-    t = list(test_event.r0.tels_with_data)[0]
-    geom = test_event.inst.subarray.tel[t].camera
+def test_fast_camera_image(example_event):
+    t = list(example_event.r0.tels_with_data)[0]
+    geom = example_event.inst.subarray.tel[t].camera
 
     x = geom.pix_x.value
     y = geom.pix_y.value
