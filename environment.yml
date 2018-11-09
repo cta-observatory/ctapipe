@@ -5,7 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - zeromq=4.2.2
-  - ctapipe-extra=0.2.*
+  - ctapipe-extra=0.2.14
   - astropy
   - bokeh
   - cython
