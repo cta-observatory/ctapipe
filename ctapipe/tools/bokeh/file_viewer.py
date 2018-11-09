@@ -36,6 +36,14 @@ class BokehFileViewer(Tool):
         tf='CameraR1CalibratorFactory.tf_path',
         pe='CameraR1CalibratorFactory.pe_path',
         ff='CameraR1CalibratorFactory.ff_path',
+        extractor='ChargeExtractorFactory.product',
+        extractor_t0='ChargeExtractorFactory.t0',
+        extractor_window_width='ChargeExtractorFactory.window_width',
+        extractor_window_shift='ChargeExtractorFactory.window_shift',
+        extractor_sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+        extractor_sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+        extractor_lwt='ChargeExtractorFactory.lwt',
+        cleaner='WaveformCleanerFactory.product',
     ))
 
     classes = List([
