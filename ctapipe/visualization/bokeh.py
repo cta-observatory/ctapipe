@@ -174,7 +174,7 @@ class CameraDisplay:
     def _draw_camera(self):
         # TODO: Support other pixel shapes OR switch to ellipse
         # after https://github.com/bokeh/bokeh/issues/6985
-        self.glyphs = self.fig.rect(
+        self.glyphs = self.fig.ellipse(
             'x', 'y', color='image', width='width', height='height',
             line_color='outline_color',
             line_alpha='outline_alpha',
