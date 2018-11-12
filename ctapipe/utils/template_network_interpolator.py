@@ -20,11 +20,30 @@ class BaseTemplate:
         self.keys = None
         self.values = None
 
-    def _create_direction_matrix(self, keys, values):
+    def _create_table_matrix(self, keys, values):
+        """
+        Create the array of interpolators to be used for all combinations of zenith and
+        azimuth included in the templates
 
+        Parameters
+        ----------
+        keys: ndarray
+            Template grid points
+        values: ndarray
+            Template values
+
+        Returns
+        -------
+        None
+        """
+
+        # First lets store the unique zeniths and azimuths stored in our table
         zeniths = np.sort(np.unique(keys.T[0]))
         azimuths = np.sort(np.unique(keys.T[1]))
 
+        # Assuming these are created on a grid create an array to hold the unstructured
+        # interpolator objects for each zenith and azimuth
+        # Don't create any yet though as they are slow!
         interpolator = np.empty((len(zeniths), len(azimuths)), dtype=object)
 
         self.interpolator = interpolator
@@ -35,38 +54,184 @@ class BaseTemplate:
         self.values = values
 
     def _get_bounds(self, zenith, azimuth):
+        """
+        Get bounding indices of a given direction in the zenith, azimuth grid
 
+        This code is ugly and not easily transferable, but should be fast enough
+
+        Parameters
+        ----------
+        zenith: float
+            Zenith angle (degrees)
+        azimuth: float
+            Azimuth angle (degrees)
+        Returns
+        -------
+        tuple: (zenith indices, azimuth indices)
+        """
+
+        # If we only have one zenith angle available in the templates, don't bother
+        # searching
         if len(self.zeniths) == 0:
             zenith_bound = self.zeniths[0], self.zeniths[0]
         else:
+            # Otherwise search for where our zenith lies in the available range
             index = np.searchsorted(self.zeniths, zenith, side="left")
-            if index != 0:
-                index -= 1
 
             index_upper = index
-            if index != len(self.zeniths)-1:
+            # Unless we are the edge of the range the boundary should be above this value
+            if index != len(self.zeniths)-1 and index != 0:
                 index_upper += 1
 
-            zenith_bound = (self.zeniths[index], self.zeniths[index_upper])
+            # If we are not at the edge we need to reduce the index by one
+            if index != 0:
+                index -= 1
+                index_upper -= 1
 
+            zenith_bound = (index, index_upper)
+
+        # Do the same again for azimuth angle
         if len(self.azimuths) == 0:
             azimuth_bound = self.azimuths[0], self.azimuths[0]
         else:
             index = np.searchsorted(self.azimuths, azimuth)
+            # Except in this case we need to loop back around rather than stay at the edge
             if index != 0:
                 index -= 1
 
             index_upper = index
-            print(index, self.azimuths, azimuth)
-
             if index != len(self.azimuths) - 1:
                 index_upper += 1
             else:
-                index_upper = index-1
+                index_upper = 0
 
-            azimuth_bound = (self.azimuths[index], self.azimuths[index_upper])
+            azimuth_bound = (index, index_upper)
 
+        # Return our boundaries
         return zenith_bound, azimuth_bound
+
+    def _create_interpolator(self, zenith_bin, azimuth_bin):
+        """
+        Creates unstructured interpolator object in a given zenith and azimuth bin when
+        needed
+
+        Parameters
+        ----------
+        zenith_bin: int
+            Bin number of requested zenith
+        azimuth_bin: int
+            Bin number of requested azimuth
+
+        Returns
+        -------
+        None
+        """
+        # Get our requested zenith and azimuth
+        zenith = self.zeniths[zenith_bin]
+        azimuth = self.azimuths[azimuth_bin]
+
+        # Select these values from our range of keys
+        selection = np.logical_and(self.keys.T[0] == zenith,
+                                   self.keys.T[1] == azimuth)
+
+        # Create interpolator using this selection
+        self.interpolator[zenith_bin][azimuth_bin] = \
+            UnstructuredInterpolator(self.keys[selection].T[2:].T, self.values[selection],
+                                     remember_last=True, bounds=((-1.5, 1.5), (-5, 1)))
+
+        # We can now remove these entries.
+        self.keys = self.keys[np.invert(selection)]
+        self.values = self.values[np.invert(selection)]
+
+    def perform_interpolation(self, zenith, azimuth, interpolation_array, points):
+        """
+
+        Parameters
+        ----------
+        zenith
+        azimuth
+        interpolation_array
+        points
+
+        Returns
+        -------
+
+        """
+        zenith_bounds, azimuth_bounds = self._get_bounds(zenith, azimuth)
+
+        zenith_lower, zenith_upper = zenith_bounds
+        azimuth_lower, azimuth_upper = azimuth_bounds
+
+
+        # First lower azimuth bound
+        if self.interpolator[zenith_lower][azimuth_lower] is None:
+            self._create_interpolator(zenith_lower, azimuth_lower)
+        evaluate_azimuth_lower1 = self.interpolator[zenith_lower][azimuth_lower]\
+            (interpolation_array, points)
+
+        if self.interpolator[zenith_upper][azimuth_lower] is None:
+            self._create_interpolator(zenith_upper, azimuth_lower)
+        evaluate_azimuth_lower2 = self.interpolator[zenith_upper][azimuth_lower]\
+            (interpolation_array, points)
+
+        evaluate_azimuth_lower = self._linear_interpolation(zenith,
+                                                            self.zeniths[zenith_lower],
+                                                            self.zeniths[zenith_upper],
+                                                            evaluate_azimuth_lower1,
+                                                            evaluate_azimuth_lower2)
+        # Then the upper
+        if self.interpolator[zenith_lower][azimuth_upper] is None:
+            self._create_interpolator(zenith_lower, azimuth_upper)
+        evaluate_azimuth_upper1 = self.interpolator[zenith_lower][azimuth_upper] \
+            (interpolation_array, points)
+
+        if self.interpolator[zenith_upper][azimuth_upper] is None:
+            self._create_interpolator(zenith_upper, azimuth_upper)
+        evaluate_azimuth_upper2 = self.interpolator[zenith_upper][azimuth_upper] \
+            (interpolation_array, points)
+
+        evaluate_azimuth_upper = self._linear_interpolation(zenith,
+                                                            self.zeniths[zenith_lower],
+                                                            self.zeniths[zenith_upper],
+                                                            evaluate_azimuth_upper1,
+                                                            evaluate_azimuth_upper2)
+        # And finally interpolate between the azimuths
+        result = self._linear_interpolation(azimuth,
+                                            self.azimuths[azimuth_lower],
+                                            self.azimuths[azimuth_upper],
+                                            evaluate_azimuth_lower,
+                                            evaluate_azimuth_upper)
+
+        return result
+
+    @staticmethod
+    def _linear_interpolation(point, grid1, grid2, value1, value2):
+        """
+        Simple function to perform linear interpolation between two values
+
+        Parameters
+        ----------
+        point: float
+            Point at which to perform interpolation
+        grid1: float
+            Lower interpolation point
+        grid2: float
+            Upper interpolation point
+        value1: ndarray
+            Lower interpolation value
+        value2: ndarray
+            Upper interpolation value
+
+        Returns
+        -------
+        ndarray: Interpolated values
+        """
+        if np.abs(grid1 - grid2) < 1e-10:
+            return value1
+
+        result = ((value2 - value1) * (point - grid1) / (grid2 - grid1)) + value1
+
+        return result
 
 
 class TemplateNetworkInterpolator(BaseTemplate):
@@ -86,16 +251,19 @@ class TemplateNetworkInterpolator(BaseTemplate):
         input_dict = pickle.load(file_list)
 
         keys = np.array(list(input_dict.keys()))
-        values = np.array(list(input_dict.values()))
+        values = np.array(list(input_dict.values()), dtype=np.float32)
+        self.no_zenaz = False
+        input_dict = None
 
         # First check if we even have a zen and azimuth entry
         if len(keys[0]) > 3:
             # If we do then for the sake of speed lets
-            self._create_direction_matrix(keys, values)
+            self._create_table_matrix(keys, values)
         else:
             # If not we work as before
             self.interpolator = UnstructuredInterpolator(keys, values, remember_last=True,
                                                          bounds=((-5, 1), (-1.5, 1.5)))
+            self.no_zenaz = True
 
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):
         """
@@ -121,7 +289,11 @@ class TemplateNetworkInterpolator(BaseTemplate):
         array = np.stack((energy, impact, xmax), axis=-1)
         points = ma.dstack((xb, yb))
 
-        interpolated_value = self.interpolator(array, points)
+        if self.no_zenaz:
+            interpolated_value = self.interpolator(array, points)
+        else:
+            interpolated_value = self.perform_interpolation(zenith, azimuth, array, points)
+
         interpolated_value[interpolated_value<0] = 0
         interpolated_value = interpolated_value
 
