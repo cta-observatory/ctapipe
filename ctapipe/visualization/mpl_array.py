@@ -4,7 +4,7 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import Angle
 from matplotlib import pyplot as plt
-from matplotlib.collections import PatchCollection, LineCollection
+from matplotlib.collections import PatchCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle
 

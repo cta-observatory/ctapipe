@@ -18,9 +18,10 @@ def cam_to_tel():
 
     # Coordinates in any fram can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
-    pix = [np.ones(2048), np.ones(2048), np.zeros(2048)] * u.m
+    pix_x = np.ones(2048) * u.m
+    pix_y = np.ones(2048) * u.m
     # first define the camera frame
-    camera_coord = CameraFrame(pix, focal_length=15 * u.m, rotation=0 * u.deg)
+    camera_coord = CameraFrame(pix_x, pix_y, focal_length=15 * u.m, rotation=0 * u.deg)
 
     # then use transform to function to convert to a new system making sure
     # to give the required values for the conversion (these are not checked
@@ -43,8 +44,9 @@ def cam_to_tel():
 # The astropy system is clever enough to transform through several intermediate
 # steps to get to the sytem you want (provided it has sufficient information)
 def cam_to_nom():
-    pix = [np.ones(2048), np.ones(2048), np.zeros(2048)] * u.m
-    camera_coord = CameraFrame(pix, focal_length=15 * u.m)
+    pix_x = np.ones(2048) * u.m
+    pix_y = np.ones(2048) * u.m
+    camera_coord = CameraFrame(pix_x, pix_y, focal_length=15 * u.m)
     # In this case we bypass the telescope system
     nom_coord = camera_coord.transform_to(
         NominalFrame(

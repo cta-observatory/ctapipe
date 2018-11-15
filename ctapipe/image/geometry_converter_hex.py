@@ -326,8 +326,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
     rot_img : ndarray 2D (no timing) or 3D (with timing)
         the rectangular signal image
 
-    Example
-    -------
+    Examples
+    --------
     camera = event.inst.subarray.tel[tel_id].camera
     image = event.r0.tel[tel_id].image[0]
     key = camera.cam_id
@@ -487,8 +487,8 @@ def convert_geometry_rect2d_back_to_hexe1d(geom, signal, key=None,
     the `cam_id`). The function assumes the original `cam_id` can be inferred from the
     given, modified one by: `geom.cam_id.split('_')[0]`.
 
-    Example
-    -------
+    Examples
+    --------
     camera = event.inst.subarray.tel[tel_id].camera
     image = event.r0.tel[tel_id].image[0]
     key = camera.cam_id

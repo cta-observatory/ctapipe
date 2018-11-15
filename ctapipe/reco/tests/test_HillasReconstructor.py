@@ -76,7 +76,7 @@ def test_h_max_results():
 
 
     # the results should be close to the direction straight up
-    np.testing.assert_allclose(h_max_reco, 0, atol=1e-8)
+    np.testing.assert_allclose(h_max_reco.value, 0, atol=1e-8)
     # np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
 
 
