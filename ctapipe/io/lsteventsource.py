@@ -29,7 +29,9 @@ class LSTEventSource(EventSource):
         self.camera_config = self.multi_file.camera_config
         self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
 
-
+    def rewind(self):
+        self.multi_file.rewind()
+         
 
     def _generator(self):
 
@@ -52,7 +54,7 @@ class LSTEventSource(EventSource):
             optics.tel_subtype = ''  # to correct bug in reading
 
             # camera info from LSTCam-[geometry_version].camgeom.fits.gz file
-            geometry_version = 1
+            geometry_version = 2
             camera = CameraGeometry.from_name("LSTCam", geometry_version)
 
             tel_descr = TelescopeDescription(optics, camera)
@@ -297,6 +299,12 @@ class MultiFiles:
             for table in self._events_table.values()
         )
         return total_length
+    
+    def rewind(self):
+        for name, file in self._file.items():
+            file.Events.protobuf_i_fits.rewind()
+            
+         
 
     def num_inputs(self):
         return len(self._file)

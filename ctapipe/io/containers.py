@@ -788,15 +788,7 @@ class FlatFieldCameraContainer(Container):
         "np array of the relative flat-field coefficient rms (n_chan X N_pix)"
     )
             
-    
-    
-class PedestalCameraContainer(Container):     
-    """
-    Container for pedestals per camera    
-    """
-    # still to be filled
-    
-    
+      
 
 class FlatFieldContainer(Container):
     """
@@ -807,7 +799,13 @@ class FlatFieldContainer(Container):
         Map(FlatFieldCameraContainer),
         "map of tel_id to FlatFiledCameraContainer")
     
-    
+     
+class PedestalCameraContainer(Container):     
+    """
+    Container for pedestals per camera    
+    """
+    # still to be filled
+      
 
 class PedestalContainer(Container):
     """
