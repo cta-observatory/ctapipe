@@ -52,7 +52,7 @@ class LSTEventSource(EventSource):
             optics.tel_subtype = ''  # to correct bug in reading
 
             # camera info from LSTCam-[geometry_version].camgeom.fits.gz file
-            geometry_version = 1
+            geometry_version = 2
             camera = CameraGeometry.from_name("LSTCam", geometry_version)
 
             tel_descr = TelescopeDescription(optics, camera)

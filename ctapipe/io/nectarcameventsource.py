@@ -46,13 +46,13 @@ class NectarCAMEventSource(EventSource):
             optics.tel_subtype = ''  # to correct bug in reading
 
             # camera info from NectarCam-[geometry_version].camgeom.fits.gz file
-            geometry_version = 1
+            geometry_version = 2
             camera = CameraGeometry.from_name("NectarCam", geometry_version)
 
             tel_descr = TelescopeDescription(optics, camera)
 
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
-            tel_descr.camera.rotate(10.3 * u.deg)
+            
             self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
