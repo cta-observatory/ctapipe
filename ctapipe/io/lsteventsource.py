@@ -207,8 +207,9 @@ class MultiFiles:
 
     """
     This class open all the files related to a given run xxxx if the file name
-    contains Runxxxx and all the files are in the same directory
-    (this will probably be changed in the future)
+    contains Runxxxx and all the files are in the same directory. If you want
+    to open only some files, link them from an empty directory
+    (this will probably be changed in the near future)
     """
 
     def __init__(self, input_url):
