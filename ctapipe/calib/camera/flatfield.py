@@ -82,10 +82,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        eventsource : ctapipe.io.eventsource.EventSource
-            EventSource that is being used to read the events. The EventSource
-            contains information (such as metadata or inst) which indicates
-            the appropriate R1Calibrator to use.
+
         kwargs
 
         """
@@ -157,8 +154,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             self.count = 0
             
             return self.container
-         
-        return None 
+        
+        else: 
+        
+            return None 
             
                
 

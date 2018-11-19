@@ -2,11 +2,8 @@
 Extract flat field coefficients from flasher data files.
 """
 
-import os
-
-import numpy as np
-from tqdm import tqdm
-from traitlets import Dict, List, Int, Unicode
+#from tqdm import tqdm
+from traitlets import Dict, List, Unicode
 
 
 from ctapipe.core import Provenance
@@ -67,9 +64,10 @@ class FlatFieldGenerator(Tool):
         for count, event in enumerate(self.eventsource):
            
             for tel_id in event.r0.tels_with_data:
+                
                 # initialize the flat filed  containers
                 self.container.flatfield.tels_with_data.append(tel_id)
-                #SSself.container.flatfield.tel[tel_id].tel_id = tel_id
+                
             
                 ff_data = self.flatfield.calculate_relative_gain(event.r0.tel[tel_id])
                 
