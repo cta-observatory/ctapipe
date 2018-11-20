@@ -118,7 +118,7 @@ def number_of_islands(geom, mask):
         Entries range from 0 (not in the pixel mask) to num_islands.
     """
     # compress sparse neighbor matrix
-    neighbor_matrix_compressed = geom.neighbor_matrix[mask][:, mask]
+    neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
     # pixels in no cluster have label == 0
     island_labels = np.zeros(geom.n_pixels)
 
