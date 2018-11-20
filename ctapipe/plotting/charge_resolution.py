@@ -226,6 +226,8 @@ class ChargeResolutionPlotter(Component):
         self.fig.savefig(self.output_path, bbox_inches='tight')
         print("Figure saved to: {}".format(self.output_path))
 
+        plt.close(self.fig)
+
     @staticmethod
     def limit_curves(q, nsb, t_w, n_e, sigma_g, enf):
         """
