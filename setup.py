@@ -34,8 +34,6 @@ entry_points['console_scripts'] = [
     'ctapipe-flow = ctapipe.flow.flow:main',
     'ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main',
     'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
-    'ctapipe-chargeres-hist = '
-    'ctapipe.tools.plot_charge_resolution_variation_hist:main',
     'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main',
     'ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main'
 ]
