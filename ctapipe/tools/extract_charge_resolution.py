@@ -1,6 +1,6 @@
 """
 Calculate the Charge Resolution from a sim_telarray simulation and store
-within a HDF5 file
+within a HDF5 file.
 """
 
 import os
@@ -21,7 +21,8 @@ from ctapipe.io.hessioeventsource import HESSIOEventSource
 class ChargeResolutionGenerator(Tool):
     name = "ChargeResolutionGenerator"
     description = ("Calculate the Charge Resolution from a sim_telarray "
-                   "simulation and store within a HDF5 file")
+                   "simulation and store within a HDF5 file.")
+
     output_path = Unicode(
         'charge_resolution.h5',
         help='Path to store the output HDF5 file'
