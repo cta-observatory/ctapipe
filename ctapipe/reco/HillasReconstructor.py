@@ -7,13 +7,11 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
-from ctapipe.coordinates import TiltedGroundFrame, HorizonFrame, CameraFrame
+from ctapipe.coordinates import HorizonFrame, CameraFrame
 from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 from itertools import combinations
 
 import numpy as np
-
-from scipy.optimize import minimize
 
 from astropy import units as u
 
