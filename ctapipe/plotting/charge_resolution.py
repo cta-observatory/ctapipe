@@ -41,7 +41,7 @@ def bin_dataframe(df, n_bins):
     """
     true = df['true'].values
     min_ = true.min()
-    max_ = (true.max() // 500 + 1) * 500
+    max_ = true.max()
     bins = np.geomspace(min_, max_, n_bins)
     bins = np.append(bins, 10**(np.log10(bins[-1]) +
                                 np.diff(np.log10(bins))[0]))
@@ -103,7 +103,8 @@ class ChargeResolutionPlotter(Component):
 
     def _set_file(self, path):
         """
-        Prepare the class to plot from a particular charge resolution file.
+        Reads the charge resolution DataFrames from the file and assigns it to
+        this class ready for plotting.
 
         Parameters
         ----------
@@ -114,7 +115,7 @@ class ChargeResolutionPlotter(Component):
             self._df_pixel = store['charge_resolution_pixel']
             self._df_camera = store['charge_resolution_camera']
 
-    def _plot(self, x, y, xerr, yerr, label=''):
+    def _plot(self, x, y, **kwargs):
         """
         Plot the given points onto the figure
 
@@ -126,14 +127,16 @@ class ChargeResolutionPlotter(Component):
         yerr : ndarray
         label : str
         """
-        (_, caps, _) = self.ax.errorbar(
-            x, y, xerr=xerr, yerr=yerr, mew=1, capsize=1, elinewidth=0.5,
-            markersize=2, label=label, linewidth=0.5, fmt='.',
+        defaults = dict(
+            mew=1, capsize=1, elinewidth=0.5, markersize=2,
+            linewidth=0.5, fmt='.'
         )
+        kwargs = {**defaults, **kwargs}
+        (_, caps, _) = self.ax.errorbar(x, y, **kwargs)
         for cap in caps:
             cap.set_markeredgewidth(0.5)
 
-    def plot_average(self, path, label=''):
+    def plot_average(self, path, label='', **kwargs):
         """
         Plot the average and standard deviation of the charge resolution
         across the pixels of the camera.
@@ -144,6 +147,7 @@ class ChargeResolutionPlotter(Component):
             Path to the charge resolution HDF5 file
         label : str
             Label for the figure's legend
+        kwargs
         """
         self._set_file(path)
         df_binned = bin_dataframe(self._df_pixel, self.n_bins)
@@ -152,9 +156,9 @@ class ChargeResolutionPlotter(Component):
         x = df_agg['true']['mean'].values
         y = df_agg['charge_resolution']['mean'].values
         yerr = df_agg['charge_resolution']['std'].values
-        self._plot(x, y, None, yerr, label)
+        self._plot(x, y, yerr=yerr, label=label, **kwargs)
 
-    def plot_pixel(self, path, pixel, label=''):
+    def plot_pixel(self, path, pixel, label='', **kwargs):
         """
         Plot a single pixel's charge resolution.
 
@@ -168,6 +172,7 @@ class ChargeResolutionPlotter(Component):
             Pixel index to plot
         label : str
             Label for the figure's legend
+        kwargs
         """
         self._set_file(path)
         df_p = self._df_pixel.loc[self._df_pixel['pixel'] == pixel]
@@ -177,9 +182,9 @@ class ChargeResolutionPlotter(Component):
         x = df_agg['true'].values
         y = df_agg['charge_resolution'].values
         yerr = 1 / np.sqrt(df_agg['n'].values)
-        self._plot(x, y, None, yerr, label)
+        self._plot(x, y, yerr=yerr, label=label, **kwargs)
 
-    def plot_camera(self, path, label=''):
+    def plot_camera(self, path, label='', **kwargs):
         """
         Plot the charge resolution for the entire camera.
 
@@ -191,6 +196,7 @@ class ChargeResolutionPlotter(Component):
             Path to the charge resolution HDF5 file
         label : str
             Label for the figure's legend
+        kwargs
         """
         self._set_file(path)
         df_binned = bin_dataframe(self._df_camera, self.n_bins)
@@ -199,7 +205,7 @@ class ChargeResolutionPlotter(Component):
         x = df_agg['true'].values
         y = df_agg['charge_resolution'].values
         yerr = 1 / np.sqrt(df_agg['n'].values)
-        self._plot(x, y, None, yerr, label)
+        self._plot(x, y, yerr=yerr, label=label, **kwargs)
 
     def _finish(self):
         """
@@ -338,11 +344,11 @@ class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
         self.ax.set_xlabel("True Charge (p.e.)")
         self.ax.set_ylabel(r"$\frac{{\sigma_Q}}{{Q}}$ / Requirement")
 
-    def _plot(self, x, y, xerr, yerr, label=''):
+    def _plot(self, x, y, **kwargs):
         y = y / self.requirement(x)
-        if yerr is not None:
-            yerr = yerr / self.requirement(x)
-        super()._plot(x, y, xerr, yerr, label)
+        if 'yerr' in kwargs:
+            kwargs['yerr'] /= self.requirement(x)
+        super()._plot(x, y, **kwargs)
 
     def plot_requirement(self, q):
         req = self.requirement(q)
