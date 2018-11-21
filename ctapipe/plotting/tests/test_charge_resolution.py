@@ -19,7 +19,7 @@ def create_temp_cr_file(directory):
     chargeres.add(0, true_charge, measured_charge)
     df_p, df_c = chargeres.finish()
 
-    output_path = os.path.join(directory, "cr.h5")
+    output_path = os.path.join(str(directory), "cr.h5")
     with pd.HDFStore(output_path, 'w') as store:
         store['charge_resolution_pixel'] = df_p
         store['charge_resolution_camera'] = df_c
