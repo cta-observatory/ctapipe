@@ -56,7 +56,7 @@ def test_bokeh_file_viewer():
 
 
 def test_extract_charge_resolution(tmpdir):
-    output_path = os.path.join(tmpdir, "cr.h5")
+    output_path = os.path.join(str(tmpdir), "cr.h5")
     tool = ChargeResolutionGenerator()
     with pytest.raises(KeyError):
         tool.run([
@@ -72,7 +72,7 @@ def test_plot_charge_resolution(tmpdir):
         create_temp_cr_file
     path = create_temp_cr_file(tmpdir)
 
-    output_path = os.path.join(tmpdir, "cr.pdf")
+    output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
     tool.run([
         '-f', [path],
