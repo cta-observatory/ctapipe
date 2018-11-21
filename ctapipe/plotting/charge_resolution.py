@@ -344,15 +344,15 @@ class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
             yerr = yerr / self.requirement(x)
         super()._plot(x, y, xerr, yerr, label)
 
-    def plot_requirement(self, true):
-        req = self.requirement(true)
-        req /= self.requirement(true)
-        self.ax.plot(true, req, '--', color='black', label="Requirement")
+    def plot_requirement(self, q):
+        req = self.requirement(q)
+        req /= self.requirement(q)
+        self.ax.plot(q, req, '--', color='black', label="Requirement")
 
-    def plot_poisson(self, true):
-        poisson = self.poisson(true)
-        poisson /= self.requirement(true)
-        self.ax.plot(true, poisson, '--', color='grey', label="Poisson")
+    def plot_poisson(self, q):
+        poisson = self.poisson(q)
+        poisson /= self.requirement(q)
+        self.ax.plot(q, poisson, '--', color='grey', label="Poisson")
 
     def _finish(self):
         self.ax.set_xscale('log')
