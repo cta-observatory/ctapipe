@@ -46,7 +46,7 @@ def test_bin_dataframe():
 
 def test_file_reading(tmpdir):
     path = create_temp_cr_file(tmpdir)
-    output_path = os.path.join(tmpdir, "cr.pdf")
+    output_path = os.path.join(str(tmpdir), "cr.pdf")
     plotter = ChargeResolutionPlotter(output_path=output_path)
     plotter._set_file(path)
     assert plotter._df_pixel is not None
@@ -54,8 +54,8 @@ def test_file_reading(tmpdir):
 
 
 def test_incorrect_file(tmpdir):
-    path = os.path.join(tmpdir, "cr_incorrect.h5")
-    output_path = os.path.join(tmpdir, "cr_incorrect.pdf")
+    path = os.path.join(str(tmpdir), "cr_incorrect.h5")
+    output_path = os.path.join(str(tmpdir), "cr_incorrect.pdf")
     with pd.HDFStore(path, 'w') as store:
         store['test'] = pd.DataFrame(dict(a=[3]))
 
@@ -65,8 +65,8 @@ def test_incorrect_file(tmpdir):
 
 
 def test_missing_file(tmpdir):
-    path = os.path.join(tmpdir, "cr_missing.h5")
-    output_path = os.path.join(tmpdir, "cr_missing.pdf")
+    path = os.path.join(str(tmpdir), "cr_missing.h5")
+    output_path = os.path.join(str(tmpdir), "cr_missing.pdf")
 
     assert not os.path.exists(path)
 
@@ -77,7 +77,7 @@ def test_missing_file(tmpdir):
 
 def test_plotting(tmpdir):
     path = create_temp_cr_file(tmpdir)
-    output_path = os.path.join(tmpdir, "cr.pdf")
+    output_path = os.path.join(str(tmpdir), "cr.pdf")
     plotter = ChargeResolutionPlotter(output_path=output_path)
     plotter.plot_average(path, "average")
     plotter.plot_camera(path, "average")
@@ -111,7 +111,7 @@ def test_poisson():
 
 def test_plotting_wrr(tmpdir):
     path = create_temp_cr_file(tmpdir)
-    output_path = os.path.join(tmpdir, "cr_wrr.pdf")
+    output_path = os.path.join(str(tmpdir), "cr_wrr.pdf")
     plotter = ChargeResolutionWRRPlotter(output_path=output_path)
     plotter.plot_average(path, "average")
     plotter.plot_camera(path, "average")
