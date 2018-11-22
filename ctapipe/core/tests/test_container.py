@@ -3,6 +3,18 @@ import pytest
 from ctapipe.core import Container, Field, Map
 
 
+def test_prefix():
+    class AwesomeContainer(Container):
+        pass
+
+    assert AwesomeContainer.prefix == 'awesome'
+
+    class AwesomeContainer(Container):
+        prefix = 'test'
+
+    assert AwesomeContainer.prefix == 'test'
+
+
 def test_inheritance():
 
     class ExampleContainer(Container):

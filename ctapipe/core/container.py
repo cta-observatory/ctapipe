@@ -46,11 +46,11 @@ class ContainerMeta(type):
     and no new fields can be added to a container by accident.
     '''
     def __new__(cls, name, bases, dct):
-        items = [
+        field_names = [
             k for k, v in dct.items()
             if isinstance(v, Field)
         ]
-        dct['__slots__'] = tuple(items + ['meta'])
+        dct['__slots__'] = tuple(field_names + ['meta'])
         dct['fields'] = {}
 
         # inherit fields from baseclasses
@@ -59,10 +59,16 @@ class ContainerMeta(type):
                 for k, v in b.fields.items():
                     dct['fields'][k] = v
 
-        for k in items:
+        for k in field_names:
             dct['fields'][k] = dct.pop(k)
 
-        return type.__new__(cls, name, bases, dct)
+        new_cls = type.__new__(cls, name, bases, dct)
+
+        # if prefix was not set as a class variable, build a default one
+        if 'prefix' not in dct:
+            new_cls.prefix = name.lower().replace('container', '')
+
+        return new_cls
 
 
 class Container(metaclass=ContainerMeta):
@@ -72,7 +78,7 @@ class Container(metaclass=ContainerMeta):
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
     the user from accessing members that have not been defined a
-    priori (more like a C struct), and also keeps metdata information
+    priori (more like a C struct), and also keeps metadata information
     such as a description, defaults, and units for each item in the
     container.
 
@@ -157,8 +163,6 @@ class Container(metaclass=ContainerMeta):
         else:
             d = dict()
             for key, val in self.items():
-                if key.startswith("_"):
-                    continue
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({"{}_{}".format(key, k): v
@@ -166,18 +170,9 @@ class Container(metaclass=ContainerMeta):
                     else:
                         d[key] = val.as_dict(recursive=recursive,
                                              flatten=flatten)
-                    continue
-                d[key] = val
+                else:
+                    d[key] = val
             return d
-
-    @classmethod
-    def disable_attribute_check(cls):
-        """
-        Globally turn off attribute checking for all Containers,
-        which provides a ~5-10x speed up for setting attributes.
-        This may be used e.g. after code is tested to speed up operation.
-        """
-        cls.__setattr__ = object.__setattr__
 
     def reset(self, recursive=True):
         """ set all values back to their default values"""
