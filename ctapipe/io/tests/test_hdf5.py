@@ -3,10 +3,11 @@ import tempfile
 import numpy as np
 import pytest
 import tables
+import pandas as pd
 from astropy import units as u
 
 from ctapipe.core.container import Container, Field
-from ctapipe.io.containers import R0CameraContainer, MCEventContainer
+from ctapipe.io.containers import R0CameraContainer, MCEventContainer, HillasParametersContainer, LeakageContainer
 from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
 
 
@@ -46,6 +47,28 @@ def test_write_container(temp_h5_file):
         writer.write("MC", mc)
 
     writer.close()
+
+
+def test_prefix():
+
+    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
+        h = HillasParametersContainer(
+            x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m,
+        )
+        l = LeakageContainer(
+            leakage1_pixel=0.1,
+            leakage2_pixel=0.1,
+            leakage1_intensity=0.1,
+            leakage2_intensity=0.1,
+        )
+
+        with HDF5TableWriter(f.name, group_name='blabla', add_prefix=True) as writer:
+            for i in range(10):
+                writer.write('events', [h, l])
+
+        df = pd.read_hdf(f.name)
+        assert 'hillas_x' in df.columns
+        assert 'leakage2_pixel' in df.columns
 
 
 def test_write_containers(temp_h5_file):
