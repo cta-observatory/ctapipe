@@ -292,11 +292,13 @@ class HillasReconstructor(Reconstructor):
         ground_frame = GroundFrame(pointing_direction=pointing_direction)
 
         positions = [
-            SkyCoord(*plane.pos, frame=ground_frame).transform_to(tilted_frame)
+            (
+                SkyCoord(*plane.pos, frame=ground_frame)
+                .transform_to(tilted_frame)
+                .cartesian.xyz
+            )
             for plane in self.hillas_planes.values()
         ]
-        positions = [u.Quantity([pos.x, pos.y, 0 * u.m]) for pos in positions]
-
         core_position = line_line_intersection_3d(uvw_vectors, positions)
 
         core_pos_tilted = SkyCoord(
