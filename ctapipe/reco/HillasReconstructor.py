@@ -124,7 +124,7 @@ class HillasReconstructor(Reconstructor):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
-        self.inititialize_hillas_planes(
+        self.initialize_hillas_planes(
             hillas_dict,
             inst.subarray,
             pointing_alt,
@@ -171,7 +171,7 @@ class HillasReconstructor(Reconstructor):
 
         return result
 
-    def inititialize_hillas_planes(
+    def initialize_hillas_planes(
         self,
         hillas_dict,
         subarray,
@@ -274,14 +274,17 @@ class HillasReconstructor(Reconstructor):
 
         Parameters
         -----------
-        hillas_dict : dict[HillasContainer]
+        hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray information
+        pointing_direction: SkyCoord[AltAz]
+            Pointing direction of the array
 
         Returns
         -----------
-        astropy.unit.Quantity (wrapped numpy array) of shape 2
+        core_x: u.Quantity
+            estimated x position of impact
+        core_y: u.Quantity
+            estimated y position of impact
 
         '''
         psi = u.Quantity([h.psi for h in hillas_dict.values()])
