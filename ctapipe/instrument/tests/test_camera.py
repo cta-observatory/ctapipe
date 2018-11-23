@@ -152,6 +152,16 @@ def test_slicing():
     assert len(sliced2.pix_x) == 5
 
 
+@pytest.mark.parametrize("cam_id", cam_ids)
+def test_slicing_rotation(cam_id):
+    cam = CameraGeometry.from_name(cam_id)
+    cam.rotate('25d')
+
+    sliced1 = cam[5:10]
+
+    assert sliced1.pix_x[0] == cam.pix_x[5]
+
+
 def test_border_pixels():
     from ctapipe.instrument.camera import CameraGeometry
 
