@@ -74,7 +74,15 @@ class HDF5TableWriter(TableWriter):
 
     """
 
-    def __init__(self, filename, group_name, add_prefix=False, mode='w', root_uep='/', **kwargs):
+    def __init__(
+        self,
+        filename,
+        group_name,
+        add_prefix=False,
+        mode='w',
+        root_uep='/',
+        **kwargs
+    ):
 
         super().__init__()
         self._schemas = {}

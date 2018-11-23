@@ -9,10 +9,10 @@ def test_prefix():
 
     assert AwesomeContainer.prefix == 'awesome'
 
-    class AwesomeContainer(Container):
+    class ReallyAwesomeContainer(Container):
         prefix = 'test'
 
-    assert AwesomeContainer.prefix == 'test'
+    assert ReallyAwesomeContainer.prefix == 'test'
 
 
 def test_inheritance():

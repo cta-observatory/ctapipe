@@ -7,7 +7,10 @@ import pandas as pd
 from astropy import units as u
 
 from ctapipe.core.container import Container, Field
-from ctapipe.io.containers import R0CameraContainer, MCEventContainer, HillasParametersContainer, LeakageContainer
+from ctapipe.io.containers import (
+    R0CameraContainer, MCEventContainer,
+    HillasParametersContainer, LeakageContainer,
+)
 from ctapipe.io.hdf5tableio import HDF5TableWriter, HDF5TableReader
 
 
@@ -63,8 +66,7 @@ def test_prefix():
         )
 
         with HDF5TableWriter(f.name, group_name='blabla', add_prefix=True) as writer:
-            for i in range(10):
-                writer.write('events', [h, l])
+            writer.write('events', [h, l])
 
         df = pd.read_hdf(f.name)
         assert 'hillas_x' in df.columns
