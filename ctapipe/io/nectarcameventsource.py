@@ -174,6 +174,9 @@ class NectarCAMEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
+        container.pixel_status=np.zeros([self.n_camera_pixels])
+        container.pixel_status[self.camera_config.expected_pixels_id]= \
+            event.pixel_status
 
         reshaped_waveform = np.array(
             event.waveform
@@ -183,10 +186,13 @@ class NectarCAMEventSource(EventSource):
         container.waveform = np.zeros([n_gains,
                                        self.n_camera_pixels,
                                        container.num_samples])
+        
 
         # re-order the waveform following the expected_pixels_id values (rank = pixel id)
         container.waveform[:, self.camera_config.expected_pixels_id, :] \
             = reshaped_waveform
+        
+            
 
 
     def fill_r0_container_from_zfile(self, event):

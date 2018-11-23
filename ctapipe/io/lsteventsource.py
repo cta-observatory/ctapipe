@@ -176,6 +176,9 @@ class LSTEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
+        container.pixel_status=np.zeros([self.n_camera_pixels])
+        container.pixel_status[self.camera_config.expected_pixels_id]= \
+            event.pixel_status
 
         reshaped_waveform = np.array(
                 event.waveform

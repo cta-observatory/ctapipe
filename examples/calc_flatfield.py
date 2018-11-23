@@ -10,6 +10,8 @@ from ctapipe.core import Provenance
 from ctapipe.io import HDF5TableWriter
 from ctapipe.core import Tool
 from ctapipe.io import EventSourceFactory
+
+from ctapipe.image import ChargeExtractorFactory, WaveformCleanerFactory
 from ctapipe.calib.camera.flatfield import FlatFieldFactory
 from ctapipe.io.containers import MonDataContainer
 
@@ -25,14 +27,25 @@ class FlatFieldGenerator(Tool):
 
     aliases = Dict(dict(input_file='EventSourceFactory.input_url',
                         max_events='EventSourceFactory.max_events',
-                        allowed_tels= 'EventSourceFactory.allowed_tels',
+                        allowed_tels= 'EventSourceFactory.allowed_tels',                       
+                        charge_extractor='ChargeExtractorFactory.product',
+                        window_width='ChargeExtractorFactory.window_width',
+                        t0='ChargeExtractorFactory.t0',
+                        window_shift='ChargeExtractorFactory.window_shift',
+                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+                        lwt='ChargeExtractorFactory.lwt',
+                        cleaner='WaveformCleanerFactory.product',
+                        cleaner_width='WaveformCleanerFactory.baseline_width',
                         generator='FlatFieldFactory.product',
                         max_time_range_s='FlatFieldFactory.max_time_range_s',
                         ff_events='FlatFieldFactory.max_events',
-                        n_channels='FlatFieldFactory.n_channels'                  
+                        n_channels='FlatFieldFactory.n_channels',               
                         ))
 
     classes = List([EventSourceFactory,
+                    ChargeExtractorFactory,
+                    WaveformCleanerFactory,
                     FlatFieldFactory,
                     MonDataContainer,
                     HDF5TableWriter
@@ -46,17 +59,16 @@ class FlatFieldGenerator(Tool):
         self.writer = None
 
     def setup(self):
-        self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
+       # self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
-        
-        # open an extractor per camera
         self.eventsource = EventSourceFactory.produce(**kwargs)
         self.flatfield = FlatFieldFactory.produce(**kwargs)
+        
         self.container = MonDataContainer()
         self.writer = HDF5TableWriter(
             filename=self.output_file, group_name='flatfield', overwrite=True
         )
-        
+  
 
     def start(self):
         desc = "Flat field coefficient calculator"
@@ -65,11 +77,13 @@ class FlatFieldGenerator(Tool):
            
             for tel_id in event.r0.tels_with_data:
                 
-                # initialize the flat filed  containers
-                self.container.flatfield.tels_with_data.append(tel_id)
                 
-            
-                ff_data = self.flatfield.calculate_relative_gain(event.r0.tel[tel_id])
+                # initialize the flat fieLd  containers
+                if (count == 0):
+                    self.container.flatfield.tels_with_data.append(tel_id)
+                
+                
+                ff_data = self.flatfield.calculate_relative_gain(event, tel_id)
                 
                 if ff_data:   
                     self.container.flatfield.tel[tel_id] = ff_data

@@ -151,7 +151,7 @@ class R0CameraContainer(Container):
         "(n_channels x n_pixels, n_samples)"
     ))
     num_samples = Field(None, "number of time samples for telescope")
-
+    pixel_status = Field(0o0, "status of the pixels")
 
 class R0Container(Container):
     """
