@@ -52,8 +52,7 @@ class NectarCAMEventSource(EventSource):
             tel_descr = TelescopeDescription(optics, camera)
 
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
-            #Stel_descr.camera.rotate(10.3 * u.deg)
-        
+
             self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
@@ -180,7 +179,9 @@ class NectarCAMEventSource(EventSource):
 
         reshaped_waveform = np.array(
             event.waveform
-             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+             ).reshape(n_gains, 
+                       self.camera_config.num_pixels, 
+                       container.num_samples)
 
         # initialize the waveform container to zero
         container.waveform = np.zeros([n_gains,
