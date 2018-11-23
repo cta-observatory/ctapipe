@@ -7,7 +7,6 @@ Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 import numpy as np
 
 from astropy import units as u
-#from os import listdir
 import glob
 from os import getcwd
 from ctapipe.core import Provenance
@@ -177,7 +176,9 @@ class LSTEventSource(EventSource):
 
         reshaped_waveform = np.array(
                 event.waveform
-             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+             ).reshape(n_gains, 
+                       self.camera_config.num_pixels, 
+                       container.num_samples)
 
         # initialize the waveform container to zero
         container.waveform = np.zeros([n_gains, self.n_camera_pixels,
@@ -257,7 +258,7 @@ class MultiFiles:
                     self._camera_config[path] = next(self._file[path].CameraConfig)
 
                 # for the moment it takes the first CameraConfig it finds (to be changed)
-                    if(self.camera_config == None):
+                    if(self.camera_config is None):
                         self.camera_config = self._camera_config[path]
 
 

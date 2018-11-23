@@ -176,7 +176,9 @@ class NectarCAMEventSource(EventSource):
 
         reshaped_waveform = np.array(
             event.waveform
-             ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples)
+             ).reshape(n_gains, 
+                       self.camera_config.num_pixels, 
+                       container.num_samples)
 
         # initialize the waveform container to zero
         container.waveform = np.zeros([n_gains,
