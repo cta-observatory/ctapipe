@@ -966,18 +966,20 @@ class MarsDataRun:
 
             mjd = mjd + (millisec/1e3 + nanosec/1e9) / 86400.0
 
+            degrees_per_hour = 15.0
+
             if 'MPointingPos.' in input_file['Events']:
                 # Retrieving the telescope pointing direction
                 pointing_zd = input_file['Events']['MPointingPos.fZd'].array() - input_file['Events']['MPointingPos.fDevZd'].array()
                 pointing_az = input_file['Events']['MPointingPos.fAz'].array() - input_file['Events']['MPointingPos.fDevAz'].array()
-                pointing_ra = (input_file['Events']['MPointingPos.fRa'].array() - input_file['Events']['MPointingPos.fDevHa'].array()) * 15.
+                pointing_ra = (input_file['Events']['MPointingPos.fRa'].array() - input_file['Events']['MPointingPos.fDevHa'].array()) * degrees_per_hour
                 pointing_dec = input_file['Events']['MPointingPos.fDec'].array() - input_file['Events']['MPointingPos.fDevDec'].array()
             else:
                 # Getting the telescope drive info
                 drive_mjd = input_file['Drive']['MReportDrive.fMjd'].array()
                 drive_zd = input_file['Drive']['MReportDrive.fCurrentZd'].array()
                 drive_az = input_file['Drive']['MReportDrive.fCurrentAz'].array()
-                drive_ra = input_file['Drive']['MReportDrive.fRa'].array() * 15.
+                drive_ra = input_file['Drive']['MReportDrive.fRa'].array() * degrees_per_hour
                 drive_dec = input_file['Drive']['MReportDrive.fDec'].array()
 
                 # Creating azimuth and zenith angles interpolators
