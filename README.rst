@@ -54,6 +54,7 @@ If you're installing *ctapipe* manually, you'll also need these external depende
 
 ::
 
- git clone https://github.com/cta-observatory/pyhessio.git
- git clone https://github.com/cta-observatory/ctapipe-extra.git
- git clone https://github.com/cta-sst-1m/protozfitsreader.git
+ pip install https://github.com/cta-observatory/pyhessio/archive/master.tar.gz
+ pip install https://github.com/cta-observatory/ctapipe-extra/archive/master.tar.gz
+ pip install https://github.com/cta-sst-1m/protozfitsreader/archive/master.tar.gz
+ 
