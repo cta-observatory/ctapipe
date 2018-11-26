@@ -196,8 +196,9 @@ class HillasReconstructor(Reconstructor):
 
         self.hillas_planes = {}
         for tel_id, moments in hillas_dict.items():
-            p2_x = moments.x + moments.length * np.cos(moments.psi)
-            p2_y = moments.y + moments.length * np.sin(moments.psi)
+            # we just need any point on the main shower axis a bit away from the cog
+            p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
+            p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
 
             pointing = SkyCoord(
