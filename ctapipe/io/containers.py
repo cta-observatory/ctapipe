@@ -118,14 +118,10 @@ class DL1CameraContainer(Container):
 
 
 class WeatherContainer(Container):
-    """Storage of event-wise weather information (MAGIC implementation).
-    """
-    air_temperature = Field( None, "Outside air temperature"
-    )
-    air_pressure = Field(None, "Outside air pressure"
-    )
-    air_humidity = Field(None, "Outside air humidity"
-    )
+    """Storage of event-wise weather information (MAGIC implementation)."""
+    air_temperature = Field(None, "Outside air temperature")
+    air_pressure = Field(None, "Outside air pressure")
+    air_humidity = Field(None, "Outside air humidity")
 
 
 class CameraCalibrationContainer(Container):
