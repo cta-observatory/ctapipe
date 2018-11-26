@@ -1024,8 +1024,10 @@ class MarsDataRun:
 
         pedestal_ids = dict()
 
+        pedestal_trigger_pattern = 8
+
         for telescope in self.event_data:
-            ped_triggers = np.where(self.event_data[telescope]['trigger_pattern'] == 8)
+            ped_triggers = np.where(self.event_data[telescope]['trigger_pattern'] == pedestal_trigger_pattern)
             pedestal_ids[telescope] = ped_triggers[0]
 
         return pedestal_ids
@@ -1040,13 +1042,15 @@ class MarsDataRun:
             A list of pairs (M1_id, M2_id) corresponding to stereo events in the run.
         """
 
-        m2_data_condition = (self.event_data['M2']['trigger_pattern'] == 128)
+        data_trigger_pattern = 128
+
+        m2_data_condition = (self.event_data['M2']['trigger_pattern'] == data_trigger_pattern)
 
         stereo_ids = []
         n_m1_events = len(self.event_data['M1']['stereo_event_number'])
 
         for m1_id in range(0, n_m1_events):
-            if self.event_data['M1']['trigger_pattern'][m1_id] == 128:
+            if self.event_data['M1']['trigger_pattern'][m1_id] == data_trigger_pattern:
                 m2_stereo_condition = (self.event_data['M2']['stereo_event_number'] ==
                                        self.event_data['M1']['stereo_event_number'][m1_id])
 
@@ -1073,8 +1077,10 @@ class MarsDataRun:
         mono_ids['M1'] = []
         mono_ids['M2'] = []
 
-        m1_data_condition = self.event_data['M1']['trigger_pattern'] == 128
-        m2_data_condition = self.event_data['M2']['trigger_pattern'] == 128
+        data_trigger_pattern = 128
+
+        m1_data_condition = self.event_data['M1']['trigger_pattern'] == data_trigger_pattern
+        m2_data_condition = self.event_data['M2']['trigger_pattern'] == data_trigger_pattern
 
         n_m1_events = len(self.event_data['M1']['stereo_event_number'])
         n_m2_events = len(self.event_data['M2']['stereo_event_number'])
