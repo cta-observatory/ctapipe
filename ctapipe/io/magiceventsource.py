@@ -454,7 +454,10 @@ class MAGICEventSourceROOT(EventSource):
         mask = ".*\d+_M\d+_(\d+)\.\d+_.*"
         parsed_info = re.findall(mask, file_name)
 
-        run_number = int(parsed_info[0])
+        try:
+            run_number = int(parsed_info[0])
+        except IndexError:
+            raise IndexError('Can not identify the run number of the file {:s}'.format(file_name))
 
         return run_number
 
