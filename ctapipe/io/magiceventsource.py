@@ -3,7 +3,6 @@
 import glob
 import re
 
-import uproot
 import h5py
 import numpy as np
 import scipy.interpolate
@@ -363,6 +362,13 @@ class MAGICEventSourceROOT(EventSource):
             NOTE: The file mask of the data to read can be passed with
             the 'input_url' parameter.
         """
+
+        try:
+            import uproot
+        except ImportError:
+            msg = "The `uproot` python module is required to access the MAGIC data"
+            self.log.error(msg)
+            raise
 
         file_list = glob.glob(kwargs['input_url'])
         file_list.sort()
