@@ -20,7 +20,8 @@ _FOCLEN_TO_TEL_INFO = {
     5.59: ('MST', 'SCT', 'SC'),
     15.0: ('MST', 'HESS', 'DC'),
     14.98: ('MST', 'HESS', 'DC'),
-    36.0: ('LST', 'HESS', 'DC')
+    36.0: ('LST', 'HESS', 'DC'),
+    16.97: ('MAGIC', '', 'DC')
 }
 
 
