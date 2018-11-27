@@ -845,7 +845,9 @@ class MarsDataRun:
         # Preparing the lists of M1/2 data files
         file_list = glob.glob(run_file_mask)
         self.m1_file_list = list(filter(lambda name: '_M1_' in name, file_list))
+        self.m1_file_list.sort()
         self.m2_file_list = list(filter(lambda name: '_M2_' in name, file_list))
+        self.m2_file_list.sort()
 
         # Retrieving the list of run numbers corresponding to the data files
         run_numbers = list(map(self._get_run_number, file_list))
