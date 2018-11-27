@@ -16,6 +16,13 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription, Optics
 import gzip
 import struct
 
+try:
+    import uproot
+except ImportError:
+    msg = "The `uproot` python module is required to access the MAGIC data"
+    self.log.error(msg)
+    raise
+
 __all__ = ['MAGICEventSourceHDF5', 'MAGICEventSourceROOT']
 
 
@@ -362,13 +369,6 @@ class MAGICEventSourceROOT(EventSource):
             NOTE: The file mask of the data to read can be passed with
             the 'input_url' parameter.
         """
-
-        try:
-            import uproot
-        except ImportError:
-            msg = "The `uproot` python module is required to access the MAGIC data"
-            self.log.error(msg)
-            raise
 
         file_list = glob.glob(kwargs['input_url'])
         file_list.sort()
@@ -852,7 +852,9 @@ class MarsDataRun:
         # Preparing the lists of M1/2 data files
         file_list = glob.glob(run_file_mask)
         self.m1_file_list = list(filter(lambda name: '_M1_' in name, file_list))
+        self.m1_file_list.sort()
         self.m2_file_list = list(filter(lambda name: '_M2_' in name, file_list))
+        self.m2_file_list.sort()
 
         # Retrieving the list of run numbers corresponding to the data files
         run_numbers = list(map(self._get_run_number, file_list))
