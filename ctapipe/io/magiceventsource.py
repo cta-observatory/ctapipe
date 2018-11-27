@@ -16,12 +16,6 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription, Optics
 import gzip
 import struct
 
-try:
-    import uproot
-except ImportError:
-    msg = "The `uproot` python module is required to access the MAGIC data"
-    self.log.error(msg)
-    raise
 
 __all__ = ['MAGICEventSourceHDF5', 'MAGICEventSourceROOT']
 
@@ -369,6 +363,13 @@ class MAGICEventSourceROOT(EventSource):
             NOTE: The file mask of the data to read can be passed with
             the 'input_url' parameter.
         """
+
+        try:
+            import uproot
+        except ImportError:
+            msg = "The `uproot` python module is required to access the MAGIC data"
+            self.log.error(msg)
+            raise
 
         file_list = glob.glob(kwargs['input_url'])
         file_list.sort()
