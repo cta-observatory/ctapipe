@@ -424,13 +424,20 @@ class MAGICEventSourceROOT(EventSource):
 
         for file_path in file_list:
             try:
-                with uproot.open(file_path) as input_data:
-                    if 'Events' not in input_data:
-                        is_magic_root_file = False
-            except ValueError:
-                # uproot raises ValueError if the file is not a ROOT file
-                is_magic_root_file = False
-                pass
+                import uproot
+
+                try:
+                    with uproot.open(file_path) as input_data:
+                        if 'Events' not in input_data:
+                            is_magic_root_file = False
+                except ValueError:
+                    # uproot raises ValueError if the file is not a ROOT file
+                    is_magic_root_file = False
+                    pass
+
+            except ImportError:
+                if file_path.split('.')[-1].lower() != 'root':
+                    is_magic_root_file = False
 
         return is_magic_root_file
 
