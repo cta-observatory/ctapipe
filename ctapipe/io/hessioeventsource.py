@@ -53,6 +53,7 @@ class HESSIOEventSource(EventSource):
         return int_marker == 3558836791 or int_marker == 931798996
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        HESSIOEventSource._count -= 1
         self.pyhessio.close_file()
 
     def _generator(self):
