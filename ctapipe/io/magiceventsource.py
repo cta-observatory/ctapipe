@@ -945,6 +945,12 @@ class MarsDataRun:
             A dictionary with the even properties: charge / arrival time data, trigger, direction etc.
         """
 
+        try:
+            import uproot
+        except ImportError:
+            msg = "The `uproot` python module is required to access the MAGIC data"
+            raise ImportError(msg)
+
         event_data = dict()
 
         event_data['charge'] = []
