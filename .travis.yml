@@ -66,6 +66,11 @@ install:
     - ./install.sh
     - cd $TRAVIS_BUILD_DIR
     # ----- end of target_software
+
+    # optional dependency pyeventio:
+    - pip install git+https://github.com/fact-project/pyeventio/tree/simtel
+
+
     - python setup.py develop
 
 script:
