@@ -1,8 +1,9 @@
+import pytest
 import copy
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.simteleventsource import SimTelEventSource
 
-
+@pytest.mark.xfail
 def test_hessio_file_reader():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     kwargs = dict(config=None, tool=None, input_url=dataset)
@@ -36,6 +37,7 @@ def test_hessio_file_reader():
             assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
 
+@pytest.mark.xfail
 def test_that_event_is_not_modified_after_loop():
 
     dataset = get_dataset_path("gamma_test.simtel.gz")
