@@ -102,7 +102,7 @@ def pedestal_signal(x, norm, eped, eped_sigma, lambda_):
     eped_sigma : float
         Sigma of the zeroth peak, represents electronic noise of the system
     lambda_ : float
-        Poisson mean
+        Poisson mean (average illumination in p.e.)
 
     Returns
     -------
@@ -139,7 +139,7 @@ def pe_signal(k, x, norm, eped, eped_sigma, spe, spe_sigma, lambda_):
     spe_sigma : float
         Spread in the number of photo-electrons incident on the MAPMT
     lambda_ : float
-        Poisson mean (illumination in p.e.)
+        Poisson mean (average illumination in p.e.)
 
     Returns
     -------
@@ -179,7 +179,7 @@ def pmt_spe_fit(x, norm, eped, eped_sigma, spe, spe_sigma, lambda_, **kwargs):
     spe_sigma : float
         Spread in the number of photo-electrons incident on the MAPMT
     lambda_ : float
-        Poisson mean (illumination in p.e.)
+        Poisson mean (average illumination in p.e.)
 
     Returns
     -------
