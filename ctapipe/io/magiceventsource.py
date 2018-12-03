@@ -365,13 +365,6 @@ class MAGICEventSourceROOT(EventSource):
             the 'input_url' parameter.
         """
 
-        try:
-            import uproot
-        except ImportError:
-            msg = "The `uproot` python module is required to access the MAGIC data"
-            self.log.error(msg)
-            raise
-
         file_list = glob.glob(kwargs['input_url'])
         file_list.sort()
 
@@ -380,6 +373,13 @@ class MAGICEventSourceROOT(EventSource):
         # the specified file mask.
         del kwargs['input_url']
         super().__init__(config=config, tool=tool, input_url=file_list[0], **kwargs)
+
+        try:
+            import uproot
+        except ImportError:
+            msg = "The `uproot` python module is required to access the MAGIC data"
+            self.log.error(msg)
+            raise
 
         # Retrieving the list of run numbers corresponding to the data files
         run_numbers = list(map(self._get_run_number, file_list))
