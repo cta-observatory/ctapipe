@@ -420,8 +420,6 @@ class MAGICEventSourceROOT(EventSource):
 
         """
 
-        is_magic_root_file = True
-
         file_list = glob.glob(file_mask)
 
         for file_path in file_list:
@@ -431,17 +429,16 @@ class MAGICEventSourceROOT(EventSource):
                 try:
                     with uproot.open(file_path) as input_data:
                         if 'Events' not in input_data:
-                            is_magic_root_file = False
+                            return False
                 except ValueError:
                     # uproot raises ValueError if the file is not a ROOT file
-                    is_magic_root_file = False
-                    pass
+                    return False
 
             except ImportError:
                 if re.match('.+_m\d_.+root', file_path.lower()) is None:
-                    is_magic_root_file = False
+                    return False
 
-        return is_magic_root_file
+        return True
 
     @staticmethod
     def _get_run_number(file_name):
