@@ -525,26 +525,28 @@ class MAGICEventSourceROOT(EventSource):
         tels_in_file = ["m1", "m2"]
         tels_with_data = {1, 2}
 
+        current_run = None
+
         # Loop over the available data runs
         for run_number in self.run_numbers:
 
             # Removing the previously read data run from memory
-            if self.current_run is not None:
-                if 'data' in self.current_run:
-                    del self.current_run['data']
+            if current_run is not None:
+                if 'data' in current_run:
+                    del current_run['data']
 
             # Setting the new active run
-            self.current_run = self._set_active_run(run_number)
+            current_run = self._set_active_run(run_number)
 
             # Loop over the events
-            for event_i in range(self.current_run['data'].n_stereo_events):
+            for event_i in range(current_run['data'].n_stereo_events):
                 # Event and run ids
-                event_order_number = self.current_run['data'].stereo_ids[event_i][0]
-                event_id = self.current_run['data'].event_data['M1']['stereo_event_number'][event_order_number]
-                obs_id = self.current_run['number']
+                event_order_number = current_run['data'].stereo_ids[event_i][0]
+                event_id = current_run['data'].event_data['M1']['stereo_event_number'][event_order_number]
+                obs_id = current_run['number']
 
                 # Reading event data
-                event_data = self.current_run['data'].get_stereo_event_data(event_i)
+                event_data = current_run['data'].get_stereo_event_data(event_i)
 
                 # Event counter
                 data.count = counter
@@ -633,31 +635,33 @@ class MAGICEventSourceROOT(EventSource):
         tel_i = tels_in_file.index(telescope)
         tels_with_data = {tel_i + 1, }
 
+        current_run = None
+
         # Loop over the available data runs
         for run_number in self.run_numbers:
 
             # Removing the previously read data run from memory
-            if self.current_run is not None:
-                if 'data' in self.current_run:
-                    del self.current_run['data']
+            if current_run is not None:
+                if 'data' in current_run:
+                    del current_run['data']
 
             # Setting the new active run
-            self.current_run = self._set_active_run(run_number)
+            current_run = self._set_active_run(run_number)
 
             if telescope == 'M1':
-                n_events = self.current_run['data'].n_mono_events_m1
+                n_events = current_run['data'].n_mono_events_m1
             else:
-                n_events = self.current_run['data'].n_mono_events_m2
+                n_events = current_run['data'].n_mono_events_m2
 
             # Loop over the events
             for event_i in range(n_events):
                 # Event and run ids
-                event_order_number = self.current_run['data'].mono_ids[telescope][event_i]
-                event_id = self.current_run['data'].event_data[telescope]['stereo_event_number'][event_order_number]
-                obs_id = self.current_run['number']
+                event_order_number = current_run['data'].mono_ids[telescope][event_i]
+                event_id = current_run['data'].event_data[telescope]['stereo_event_number'][event_order_number]
+                obs_id = current_run['number']
 
                 # Reading event data
-                event_data = self.current_run['data'].get_mono_event_data(event_i, telescope=telescope)
+                event_data = current_run['data'].get_mono_event_data(event_i, telescope=telescope)
 
                 # Event counter
                 data.count = counter
@@ -744,31 +748,33 @@ class MAGICEventSourceROOT(EventSource):
         tel_i = tels_in_file.index(telescope)
         tels_with_data = {tel_i + 1, }
 
+        current_run = None
+
         # Loop over the available data runs
         for run_number in self.run_numbers:
 
             # Removing the previously read data run from memory
-            if self.current_run is not None:
-                if 'data' in self.current_run:
-                    del self.current_run['data']
+            if current_run is not None:
+                if 'data' in current_run:
+                    del current_run['data']
 
             # Setting the new active run
-            self.current_run = self._set_active_run(run_number)
+            current_run = self._set_active_run(run_number)
 
             if telescope == 'M1':
-                n_events = self.current_run['data'].n_pedestal_events_m1
+                n_events = current_run['data'].n_pedestal_events_m1
             else:
-                n_events = self.current_run['data'].n_pedestal_events_m2
+                n_events = current_run['data'].n_pedestal_events_m2
 
             # Loop over the events
             for event_i in range(n_events):
                 # Event and run ids
-                event_order_number = self.current_run['data'].pedestal_ids[telescope][event_i]
-                event_id = self.current_run['data'].event_data[telescope]['stereo_event_number'][event_order_number]
-                obs_id = self.current_run['number']
+                event_order_number = current_run['data'].pedestal_ids[telescope][event_i]
+                event_id = current_run['data'].event_data[telescope]['stereo_event_number'][event_order_number]
+                obs_id = current_run['number']
 
                 # Reading event data
-                event_data = self.current_run['data'].get_pedestal_event_data(event_i, telescope=telescope)
+                event_data = current_run['data'].get_pedestal_event_data(event_i, telescope=telescope)
 
                 # Event counter
                 data.count = counter
