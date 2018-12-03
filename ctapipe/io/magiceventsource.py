@@ -1,6 +1,7 @@
 
 
 import glob
+import os
 import re
 
 import h5py
@@ -483,8 +484,8 @@ class MAGICEventSourceROOT(EventSource):
 
         """
 
-        input_path = '/'.join(self.input_url.split('/')[:-1])
-        this_run_mask = input_path + '/*{:d}*root'.format(run_number)
+        input_path = os.path.dirname(self.input_url)
+        this_run_mask = os.path.join(input_path, '*{:d}*root'.format(run_number))
 
         run = dict()
         run['number'] = run_number
