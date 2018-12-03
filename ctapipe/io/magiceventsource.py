@@ -501,9 +501,9 @@ class MAGICEventSourceROOT(EventSource):
 
         """
 
-        return self._stereo_event_generator()
+        return self.iter_stereo_events()
 
-    def _stereo_event_generator(self):
+    def iter_stereo_events(self):
         """
         Stereo event generator. Yields DataContainer instances, filled
         with the read event data.
@@ -602,7 +602,7 @@ class MAGICEventSourceROOT(EventSource):
 
         return
 
-    def _mono_event_generator(self, telescope):
+    def iter_mono_events(self, telescope):
         """
         Mono event generator. Yields DataContainer instances, filled
         with the read event data.
@@ -715,7 +715,7 @@ class MAGICEventSourceROOT(EventSource):
 
         return
 
-    def _pedestal_event_generator(self, telescope):
+    def iter_pedestal_events(self, telescope):
         """
         Pedestal event generator. Yields DataContainer instances, filled
         with the read event data.
