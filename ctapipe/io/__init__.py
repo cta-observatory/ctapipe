@@ -5,8 +5,10 @@ from .eventsourcefactory import EventSourceFactory, event_source
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .hessioeventsource import HESSIOEventSource
 from .tableio import TableWriter, TableReader
+from .simteleventsource import SimTelEventSource
 
 __all__ = [
+    'SimTelEventSource',
     'HDF5TableWriter',
     'HDF5TableReader',
     'TableWriter',
