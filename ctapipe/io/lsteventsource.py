@@ -21,10 +21,49 @@ __all__ = ['LSTEventSource']
 
 class LSTEventSource(EventSource):
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    """
+    EventSource for LST r0 data.
+    """
 
-        self.multi_file = MultiFiles(self.input_url)
+    
+
+    def __init__(self, config=None, tool=None, **kwargs):
+        
+        """
+        Constructor
+        Parameters
+        ----------
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool: ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs: dict
+            Additional parameters to be passed.
+            NOTE: The file mask of the data to read can be passed with
+            the 'input_url' parameter.
+        """
+
+
+        # EventSource can not handle file wild cards as input_url
+        # To overcome this we substitute the input_url with first file matching
+        # the specified file mask (copied from  MAGICEventSourceROOT).
+
+        
+        self.file_list = glob.glob(kwargs['input_url'])
+        self.file_list.sort()
+        
+        
+        kwargs['input_url']=self.file_list[0]
+        
+        super().__init__(config=config, tool=tool, **kwargs)
+        
+
+        self.multi_file = MultiFiles(self.file_list)
+        
         self.camera_config = self.multi_file.camera_config
         self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
 
@@ -212,13 +251,11 @@ class LSTEventSource(EventSource):
 class MultiFiles:
 
     """
-    This class open all the files related to a given run xxxx if the file name
-    contains Runxxxx and all the files are in the same directory. If you want
-    to open only some files, link them from an empty directory
-    (this will probably be changed in the near future)
+    This class open all the files in file_list and read the events following
+    the event_id order 
     """
 
-    def __init__(self, input_url):
+    def __init__(self, file_list):
 
         self._file = {}
         self._events = {}
@@ -226,36 +263,20 @@ class MultiFiles:
         self._camera_config = {}
         self.camera_config = None
 
-        # In the input_url contain Runxxxx, test how many files with Runxxxx in the name
-        # are in the directory and open all of them
-        # If not "Run" tag is present in the name it opens only the input_url file
-        if ('/' in input_url):
-            dir_name, name = input_url.rsplit('/', 1)
-        else:
-            dir_name = getcwd()
-            name = input_url
-
-        if ('Run' in name):
-            idx = name.find('Run')
-            run = name[idx:idx + 7]
-        else:
-            run = name
-
-        ls = glob.glob(dir_name + "/*.fits.fz")
+    
         paths = []
-        for file_name in ls:
-            if run in file_name:
-                paths.append(file_name)
-                Provenance().add_input_file(file_name, role='dl0.sub.evt')
+        for file_name in file_list:            
+            paths.append(file_name)
+            Provenance().add_input_file(file_name, role='r0.sub.evt')
 
         # open the files and get the first fits Tables
         from protozfits import File
 
         for path in paths:
-            self._file[path] = File(path)
-            self._events_table[path] = File(path).Events
-            try:
 
+            try:
+                self._file[path] = File(path)
+                self._events_table[path] = File(path).Events
                 self._events[path] = next(self._file[path].Events)
 
                 # verify where the CameraConfig is present
@@ -270,7 +291,7 @@ class MultiFiles:
             except StopIteration:
                 pass
 
-        # verify that soemwhere the CameraConfing is present
+        # verify that somewhere the CameraConfing is present
         assert (self.camera_config)
 
     def __iter__(self):
