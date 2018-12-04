@@ -8,17 +8,25 @@ def test_prefix():
         pass
 
     # make sure the default prefix is class name without container
-    assert AwesomeContainer.prefix == 'awesome'
+    assert AwesomeContainer.container_prefix == 'awesome'
+    assert AwesomeContainer().prefix == 'awesome'
 
     # make sure we can set the class level prefix at definition time
     class ReallyAwesomeContainer(Container):
-        prefix = 'test'
+        container_prefix = 'test'
 
-    assert ReallyAwesomeContainer.prefix == 'test'
-    assert ReallyAwesomeContainer().prefix == 'test'
+    assert ReallyAwesomeContainer.container_prefix == 'test'
+    r = ReallyAwesomeContainer()
+    assert r.prefix == 'test'
+
+    ReallyAwesomeContainer.container_prefix = 'test2'
+    # new instance should have the old prefix, old instance
+    # the one it was created with
+    assert ReallyAwesomeContainer().prefix == 'test2'
+    assert r.prefix == 'test'
 
     # Make sure we can set the class level prefix at runtime
-    ReallyAwesomeContainer.prefix = 'foo'
+    ReallyAwesomeContainer.container_prefix = 'foo'
     assert ReallyAwesomeContainer().prefix == 'foo'
 
     # make sure we can assign instance level prefixes

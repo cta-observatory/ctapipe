@@ -50,7 +50,7 @@ class ContainerMeta(type):
             k for k, v in dct.items()
             if isinstance(v, Field)
         ]
-        dct['__slots__'] = tuple(field_names + ['meta'])
+        dct['__slots__'] = tuple(field_names + ['meta', 'prefix'])
         dct['fields'] = {}
 
         # inherit fields from baseclasses
@@ -65,8 +65,8 @@ class ContainerMeta(type):
         new_cls = type.__new__(cls, name, bases, dct)
 
         # if prefix was not set as a class variable, build a default one
-        if 'prefix' not in dct:
-            new_cls.prefix = name.lower().replace('container', '')
+        if 'container_prefix' not in dct:
+            new_cls.container_prefix = name.lower().replace('container', '')
 
         return new_cls
 
@@ -120,8 +120,12 @@ class Container(metaclass=ContainerMeta):
 
     """
     def __init__(self, **fields):
-
         self.meta = {}
+        # __slots__ cannot be provided with defaults
+        # via class variables, so we use a `__prefix` class variable
+        # and a `_prefix` in `__slots__` together with a property.
+        self.prefix = self.container_prefix
+
         for k, v in self.fields.items():
             setattr(self, k, deepcopy(v.default))
 

@@ -84,7 +84,7 @@ class HDF5TableWriter(TableWriter):
         **kwargs
     ):
 
-        super().__init__()
+        super().__init__(add_prefix=add_prefix)
         self._schemas = {}
         self._tables = {}
 
@@ -94,7 +94,6 @@ class HDF5TableWriter(TableWriter):
 
         kwargs.update(mode=mode, root_uep=root_uep)
 
-        self.add_prefix = add_prefix
         self.open(filename, **kwargs)
 
         if root_uep + group_name in self._h5file:
@@ -115,12 +114,6 @@ class HDF5TableWriter(TableWriter):
     def close(self):
 
         self._h5file.close()
-
-    def build_prefix(self, container):
-        prefix = container.prefix if self.add_prefix else ''
-        if prefix:
-            prefix += '_'
-        return prefix
 
     def _create_hdf5_table_schema(self, table_name, containers):
         """

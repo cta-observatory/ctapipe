@@ -18,10 +18,11 @@ class TableWriter(Component, metaclass=ABCMeta):
     - `ctapipe.io.HDF5TableWriter`
     """
 
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, parent=None, add_prefix=False, **kwargs):
         super().__init__(parent, **kwargs)
         self._transforms = defaultdict(dict)
         self._exclusions = defaultdict(list)
+        self.add_prefix = add_prefix
 
     def __enter__(self):
 
@@ -30,6 +31,12 @@ class TableWriter(Component, metaclass=ABCMeta):
     def __exit__(self, exc_type, exc_val, exc_tb):
 
         self.close()
+
+    def build_prefix(self, container):
+        prefix = container.prefix if self.add_prefix else ''
+        if prefix:
+            prefix += '_'
+        return prefix
 
     def exclude(self, table_name, pattern):
         """
