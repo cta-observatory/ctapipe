@@ -16,7 +16,7 @@ def test_compare_5_event_hessio_and_simtel():
         with HESSIOEventSource(**kwargs) as hessio_source:
             iter_hessio_event = iter(hessio_source)
 
-            for test_event in range(2):
+            for test_event in range(5):
                 simtel_event = next(iter_simtel_event)
                 hessio_event = next(iter_hessio_event)
 
