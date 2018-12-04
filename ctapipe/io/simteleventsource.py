@@ -144,7 +144,8 @@ class SimTelEventSource(EventSource):
                 data.r0.tel[tel_id].trig_pix_id = PL['pixel_list']
                 data.mc.tel[tel_id].reference_pulse_shape = self.file_.ref_pulse[tel_id]['shape']
 
-                data.mc.tel[tel_id].photo_electron_image = event['pe_sum']['num_pe'][tel_id-1]
+                # photo_electron_image needs to be read from 1205 objects
+                # data.mc.tel[tel_id].photo_electron_image = ...
                 data.mc.tel[tel_id].meta['refstep'] = self.file_.ref_pulse[tel_id]['step']
                 data.mc.tel[tel_id].time_slice = self.file_.time_slices_per_telescope[tel_id]
                 data.mc.tel[tel_id].azimuth_raw = event['event']['tel_events'][tel_id]['track']['azimuth_raw']
