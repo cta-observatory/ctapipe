@@ -44,14 +44,14 @@ class MAGICEventSourceROOT(EventSource):
             the 'input_url' parameter.
         """
 
-        file_list = glob.glob(kwargs['input_url'])
-        file_list.sort()
+        self.file_list = glob.glob(kwargs['input_url'])
+        self.file_list.sort()
 
         # EventSource can not handle file wild cards as input_url
         # To overcome this we substitute the input_url with first file matching
         # the specified file mask.
         del kwargs['input_url']
-        super().__init__(config=config, tool=tool, input_url=file_list[0], **kwargs)
+        super().__init__(config=config, tool=tool, input_url=self.file_list[0], **kwargs)
 
         try:
             import uproot
@@ -61,7 +61,7 @@ class MAGICEventSourceROOT(EventSource):
             raise
 
         # Retrieving the list of run numbers corresponding to the data files
-        run_numbers = list(map(self._get_run_number, file_list))
+        run_numbers = list(map(self._get_run_number, self.file_list))
         self.run_numbers = np.unique(run_numbers)
 
         # # Setting up the current run with the first run present in the data
@@ -162,11 +162,13 @@ class MAGICEventSourceROOT(EventSource):
 
         input_path = os.path.dirname(self.input_url)
         this_run_mask = os.path.join(input_path, '*{:d}*root'.format(run_number))
+        this_run_files = glob.glob(this_run_mask)
+        this_run_files = list(filter(lambda name: name in self.file_list, this_run_files))
 
         run = dict()
         run['number'] = run_number
         run['read_events'] = 0
-        run['data'] = MarsDataRun(run_file_mask=this_run_mask)
+        run['data'] = MarsDataRun(run_file_list=this_run_files)
 
         return run
 
@@ -513,19 +515,19 @@ class MarsDataRun:
     This class implements reading of the event data from a single MAGIC data run.
     """
 
-    def __init__(self, run_file_mask):
+    def __init__(self, run_file_list):
         """
         Constructor of the class. Defines the run to use and the camera pixel arrangement.
 
         Parameters
         ----------
-        run_file_mask: str
-            A path mask for files belonging to the run. Must correspond to a single run
+        run_file_list: list
+            A list of files belonging to the run. Must correspond to a single run
             or an exception will be raised. Must correspond to calibrated ("sorcerer"-level)
             data.
         """
 
-        self.run_file_mask = run_file_mask
+        self.run_file_list = run_file_list
 
         # Loading the camera geometry
         camera_geometry = CameraGeometry.from_name('MAGICCam')
@@ -534,14 +536,13 @@ class MarsDataRun:
         self.n_camera_pixels = len(self.camera_pixel_x)
 
         # Preparing the lists of M1/2 data files
-        file_list = glob.glob(run_file_mask)
-        self.m1_file_list = list(filter(lambda name: '_M1_' in name, file_list))
+        self.m1_file_list = list(filter(lambda name: '_M1_' in name, self.run_file_list))
         self.m1_file_list.sort()
-        self.m2_file_list = list(filter(lambda name: '_M2_' in name, file_list))
+        self.m2_file_list = list(filter(lambda name: '_M2_' in name, self.run_file_list))
         self.m2_file_list.sort()
 
         # Retrieving the list of run numbers corresponding to the data files
-        run_numbers = list(map(self._get_run_number, file_list))
+        run_numbers = list(map(self._get_run_number, self.run_file_list))
         run_numbers = np.unique(run_numbers)
 
         # Checking if a single run is going to be read
