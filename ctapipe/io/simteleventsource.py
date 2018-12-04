@@ -70,11 +70,8 @@ class SimTelEventSource(EventSource):
             # next lines are just for debugging
             self._event = event
             self._shower = shower
-            # I did not exactly understand which event_id is used
-            # here .. tests agains the pyhessio implementation will
-            # hopefully show this
-            event_id = counter
 
+            event_id = event['mc_event']['event']
             data.inst.subarray = self._subarray_info
 
             obs_id = self.file_.header['run']
@@ -136,18 +133,17 @@ class SimTelEventSource(EventSource):
                 H = event['event']['tel_events'][tel_id]['header']
                 PL = event['event']['tel_events'][tel_id]['pixel_list']
 
-                data.mc.tel[tel_id].dc_to_pe = self.file_.lascal[tel_id-1]['calib']
-                data.mc.tel[tel_id].pedestal = self.file_.tel_moni[tel_id-1]['pedestal']
+                data.mc.tel[tel_id].dc_to_pe = self.file_.lascal[tel_id]['calib']
+                data.mc.tel[tel_id].pedestal = self.file_.tel_moni[tel_id]['pedestal']
                 data.r0.tel[tel_id].waveform = event['event']['tel_events'][tel_id]['waveform']
-                data.r0.tel[tel_id].num_samples = data.r0.tel[tel_id].waveform.shape[1]
-                if 'image' in event['event']['tel_events'][tel_id]:
-                    data.r0.tel[tel_id].image = event['event']['tel_events'][tel_id]['image']
+                data.r0.tel[tel_id].num_samples = data.r0.tel[tel_id].waveform.shape[-1]
+                # We should not calculate stuff in an event source
+                # if this is not needed, we calculate it for nothing
+                data.r0.tel[tel_id].image = data.r0.tel[tel_id].waveform.sum(axis=-1)
                 data.r0.tel[tel_id].num_trig_pix = len(PL['pixel_list'])
                 data.r0.tel[tel_id].trig_pix_id = PL['pixel_list']
                 data.mc.tel[tel_id].reference_pulse_shape = self.file_.ref_pulse[tel_id]['shape']
 
-
-                # load the data per telescope/pixel
                 data.mc.tel[tel_id].photo_electron_image = event['pe_sum']['num_pe'][tel_id-1]
                 data.mc.tel[tel_id].meta['refstep'] = self.file_.ref_pulse[tel_id]['step']
                 data.mc.tel[tel_id].time_slice = self.file_.time_slices_per_telescope[tel_id]
