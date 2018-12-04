@@ -7,12 +7,27 @@ def test_prefix():
     class AwesomeContainer(Container):
         pass
 
+    # make sure the default prefix is class name without container
     assert AwesomeContainer.prefix == 'awesome'
 
+    # make sure we can set the class level prefix at definition time
     class ReallyAwesomeContainer(Container):
         prefix = 'test'
 
     assert ReallyAwesomeContainer.prefix == 'test'
+    assert ReallyAwesomeContainer().prefix == 'test'
+
+    # Make sure we can set the class level prefix at runtime
+    ReallyAwesomeContainer.prefix = 'foo'
+    assert ReallyAwesomeContainer().prefix == 'foo'
+
+    # make sure we can assign instance level prefixes
+    c1 = ReallyAwesomeContainer()
+    c2 = ReallyAwesomeContainer()
+    c2.prefix = 'c2'
+
+    assert c1.prefix == 'foo'
+    assert c2.prefix == 'c2'
 
 
 def test_inheritance():
