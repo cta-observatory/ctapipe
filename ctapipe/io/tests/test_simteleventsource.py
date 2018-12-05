@@ -65,8 +65,8 @@ def test_compare_5_event_hessio_and_simtel():
                     assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
                     assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
 
-@pytest.mark.xfail
-def test_hessio_file_reader():
+
+def test_simtel_event_source_on_gamma_test_one_event():
     kwargs = dict(config=None, tool=None, input_url=gamma_test_path)
 
     with SimTelEventSource(**kwargs) as reader:
@@ -100,7 +100,6 @@ def test_hessio_file_reader():
             assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
 
-@pytest.mark.xfail
 def test_that_event_is_not_modified_after_loop():
 
     dataset = gamma_test_path
