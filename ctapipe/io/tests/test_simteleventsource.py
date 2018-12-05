@@ -5,10 +5,12 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.io.simteleventsource import SimTelEventSource
 from ctapipe.io.simteleventsource import HESSIOEventSource
 
-dataset_path = get_dataset_path("gamma_test_large.simtel.gz")
+gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
+gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
+
 
 def test_compare_5_event_hessio_and_simtel():
-    kwargs = dict(config=None, tool=None, input_url=dataset_path)
+    kwargs = dict(config=None, tool=None, input_url=gamma_test_path)
 
     with SimTelEventSource(**kwargs) as simtel_source:
         iter_simtel_event = iter(simtel_source)
@@ -52,24 +54,23 @@ def test_compare_5_event_hessio_and_simtel():
                     assert (h.r0.tel[tel_id].num_samples == s.r0.tel[tel_id].num_samples)
                     assert (h.r0.tel[tel_id].image == s.r0.tel[tel_id].image).all()
 
-                    # assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
-                    # assert h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id
+                    if h.r0.tel[tel_id].num_trig_pix != 0:
+                        assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
+                        assert (h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id).all()
                     assert (h.mc.tel[tel_id].reference_pulse_shape == s.mc.tel[tel_id].reference_pulse_shape).all()
 
-                    # assert (h.mc.tel[tel_id].photo_electron_image == s.mc.tel[tel_id].photo_electron_image).all()
+                    assert (h.mc.tel[tel_id].photo_electron_image == s.mc.tel[tel_id].photo_electron_image).all()
                     assert h.mc.tel[tel_id].meta == s.mc.tel[tel_id].meta
                     assert h.mc.tel[tel_id].time_slice == s.mc.tel[tel_id].time_slice
-                    # assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
-                    # assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
-
-
+                    assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
+                    assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
 
 @pytest.mark.xfail
 def test_hessio_file_reader():
-    kwargs = dict(config=None, tool=None, input_url=dataset_path)
+    kwargs = dict(config=None, tool=None, input_url=gamma_test_path)
 
     with SimTelEventSource(**kwargs) as reader:
-        assert reader.is_compatible(dataset_path)
+        assert reader.is_compatible(gamma_test_path)
         assert not reader.is_stream
 
         for event in reader:
@@ -98,11 +99,11 @@ def test_hessio_file_reader():
         for event in reader:
             assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
-"""
+
 @pytest.mark.xfail
 def test_that_event_is_not_modified_after_loop():
 
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = gamma_test_path
     with SimTelEventSource(input_url=dataset, max_events=2) as source:
         for event in source:
             last_event = copy.deepcopy(event)
@@ -113,4 +114,3 @@ def test_that_event_is_not_modified_after_loop():
         #      assert last_event == event
         # So for the moment we just compare event ids
         assert event.r0.event_id == last_event.r0.event_id
-"""

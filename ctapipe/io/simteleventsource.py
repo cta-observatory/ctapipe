@@ -1,3 +1,4 @@
+import numpy as np
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.containers import DataContainer
@@ -144,12 +145,15 @@ class SimTelEventSource(EventSource):
                 data.r0.tel[tel_id].trig_pix_id = PL['pixel_list']
                 data.mc.tel[tel_id].reference_pulse_shape = self.file_.ref_pulse[tel_id]['shape']
 
+                n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
+
+                data.mc.tel[tel_id].photo_electron_image = np.zeros((n_pixel, ), dtype='i2')
                 # photo_electron_image needs to be read from 1205 objects
-                # data.mc.tel[tel_id].photo_electron_image = ...
                 data.mc.tel[tel_id].meta['refstep'] = self.file_.ref_pulse[tel_id]['step']
                 data.mc.tel[tel_id].time_slice = self.file_.time_slices_per_telescope[tel_id]
+
                 data.mc.tel[tel_id].azimuth_raw = event['event']['tel_events'][tel_id]['track']['azimuth_raw']
-                data.mc.tel[tel_id].azimuth_raw = event['event']['tel_events'][tel_id]['track']['altitude_raw']
+                data.mc.tel[tel_id].altitude_raw = event['event']['tel_events'][tel_id]['track']['altitude_raw']
                 try:
                     data.mc.tel[tel_id].azimuth_cor = event['event']['tel_events'][tel_id]['track']['azimuth_cor']
                     data.mc.tel[tel_id].altitude_cor = event['event']['tel_events'][tel_id]['track']['altitude_cor']
