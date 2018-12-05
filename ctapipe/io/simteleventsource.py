@@ -72,7 +72,7 @@ class SimTelEventSource(EventSource):
             self._event = event
             self._shower = shower
 
-            event_id = event['mc_event']['event']
+            event_id = event['pe_sum']['event']
             data.inst.subarray = self._subarray_info
 
             obs_id = self.file_.header['run']
