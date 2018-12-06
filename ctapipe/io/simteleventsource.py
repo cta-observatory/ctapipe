@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.hessioeventsource import HESSIOEventSource
@@ -60,8 +61,16 @@ class SimTelEventSource(EventSource):
         return HESSIOEventSource.is_compatible(file_path)
 
     def _generator(self):
+        try:
+            yield from self.__generator()
+        except EOFError:
+            msg = 'EOFError in {input_url}. Might be truncated'.format(
+                input_url=self.input_url
+            )
+            self.log.warning(msg)
+            warnings.warn(msg)
 
-
+    def __generator(self):
         data = DataContainer()
         data.meta['origin'] = "eventio"
         data.meta['input_url'] = self.input_url

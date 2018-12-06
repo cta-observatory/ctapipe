@@ -95,9 +95,10 @@ def test_simtel_event_source_on_gamma_test_one_event():
         assert count == max_events
 
     # test that the allowed_tels mask works:
-    with SimTelEventSource(**kwargs, allowed_tels={3, 4}) as reader:
-        for event in reader:
-            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+    with pytest.warns(UserWarning):
+        with SimTelEventSource(**kwargs, allowed_tels={3, 4}) as reader:
+            for event in reader:
+                assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
 
 def test_that_event_is_not_modified_after_loop():
