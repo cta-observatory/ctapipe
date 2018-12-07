@@ -56,7 +56,7 @@ class SimTelEventSource(EventSource):
             tel.optics.mirror_area = cam_settings['mirror_area'] * u.m ** 2
             tel.optics.num_mirror_tiles = cam_settings['mirror_area']
             subarray.tels[tel_id] = tel
-            tel_idx = header['tel_id'] - 1
+            tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
             subarray.positions[tel_id] = header['tel_pos'][tel_idx] * u.m
 
         return subarray
