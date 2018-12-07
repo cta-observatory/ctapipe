@@ -3,7 +3,7 @@ Factory for the estimation of the flat field coefficients
 """
 from abc import abstractmethod
 import numpy as np
-
+from astropy import units as u
 from ctapipe.core import Component, Factory
 
 from ctapipe.image import ChargeExtractorFactory, WaveformCleanerFactory
@@ -29,8 +29,7 @@ class FlatFieldCalculator(Component):
     n_channels = Int(2, help='Define the number of channels to be '
                     'treated ').tag(config=True)
 
-
-    def __init__(self, config=None, tool=None, extractor_product=None,cleaner_product=None,**kwargs):
+    def __init__(self, config=None, tool=None, extractor_product=None, cleaner_product=None, **kwargs):
         """
         Parent class for the flat field calculators. Fills the MON.flatfield container.
 
@@ -44,7 +43,10 @@ class FlatFieldCalculator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-
+        extractor_product : str
+            The ChargeExtractor to use.
+        cleaner_product : str
+            The WaveformCleaner to use.
         kwargs
 
         """
@@ -73,14 +75,7 @@ class FlatFieldCalculator(Component):
             **kwargs_
         )
         self.log.info(f"cleaner {self.cleaner}")
-       
-        #self.extractor = ChargeExtractorFactory.produce(config=config, tool=tool,**kwargs)
-        #self.log.info(f"extractor {self.extractor}")
-        
-        #self.cleaner =  WaveformCleanerFactory.produce(config=config, tool=tool, **kwargs)    
-        #self.log.info(f"cleaner {self.cleaner}")
-     
-        
+
     @abstractmethod
     def calculate_relative_gain(self,event):
         """
@@ -89,9 +84,8 @@ class FlatFieldCalculator(Component):
         event
         
         """
-       
-        
-        
+
+
 class FlasherFlatFieldCalculator(FlatFieldCalculator):
     """
     Class for calculating flat field coefficients witht the
@@ -100,7 +94,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
     def __init__(self,  config=None, tool=None,  **kwargs):
         """
-        Parent class for the flat field calculators. Fills the MON.flatfield container.
+        Parent class for the flat-field calculators. Fills the MON.flatfield container.
 
         Parameters
         ----------
@@ -112,108 +106,127 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-
         kwargs
 
         """
         super().__init__(config=config, tool=tool,  **kwargs)
-       
-        #self.extractor = config.extractor
-        #self.cleaner =  config.cleaner                     
+
         self.log.info("Used events statistics : %d", self.max_events)
         self.count = 0
 
-         
-    def _extract_charge(self, event,tel_id):    
+    def _extract_charge(self, event, tel_id):
+        """
+        Extract the charge and the time from a calibration event
+
+        Parameters
+        ----------
+        event : general event container
+
+        tel_id : telescope id
+        """
         
         waveforms = event.r0.tel[tel_id].waveform
-    
-        
-        # Clean waveforms 
-        if(self.cleaner):
-            cleaned = self.cleaner.apply(waveforms)
-        else: # do nothing
-            cleaned=waveforms    
 
-        # Extract charge
-        if(self.extractor):
+        # Clean waveforms
+        if self.cleaner:
+            cleaned = self.cleaner.apply(waveforms)
+        # do nothing
+        else:
+            cleaned = waveforms
+
+        # Extract charge and time
+        if self.extractor:
             if self.extractor.requires_neighbours():
                 g = event.inst.subarray.tel[tel_id].camera
                 self.extractor.neighbours = g.neighbor_matrix_where
 
-            charge, peakpos, window = self.extractor.extract_charge(cleaned)
-            
-        else: # sum all the samples
+            charge, peak_pos, window = self.extractor.extract_charge(cleaned)
+
+        # sum all the samples
+        else:
             charge = cleaned.sum(axis=2)
-            peakpos = np.argmax(cleaned,axis=2)  
-            
-        
-        return charge, peakpos                
+            peak_pos = np.argmax(cleaned,axis=2)
+
+        return charge, peak_pos
             
     def calculate_relative_gain(self, event, tel_id):
         """
-        calculate the relative flat filed coefficients
+        calculate the relative flat field coefficients
 
         Parameters
         ----------
-        event : specific camera  
+        event : general event container
 
+        tel_id : telescope id for which we calculate the gain
         """
+
         # initialize the np array at each cycle
         waveform = event.r0.tel[tel_id].waveform
         trigger_time = event.r0.tel[tel_id].trigger_time
         pixel_status = event.r0.tel[tel_id].pixel_status
         
-        if (self.count == 0):
+        if self.count == 0:
             self.time_start = trigger_time
                 
-            if(waveform.shape[0] < self.n_channels):
+            if waveform.shape[0] < self.n_channels:
                 self.n_channels = waveform.shape[0]
                                                  
             self.event_median = np.zeros((self.max_events, self.n_channels))
             
             n_pix = waveform.shape[1]
             self.trace_integral = np.zeros((self.max_events, self.n_channels, n_pix))
+            self.trace_time = np.zeros((self.max_events, self.n_channels, n_pix))
             self.trace_mask = np.zeros((self.max_events, self.n_channels, n_pix))
 
-        
-        # extract the charge of the event and the peak position
+        # extract the charge of the event and the peak position (assumed as time for the moment)
         integral, peakpos =self._extract_charge(event,tel_id)
 
         # remember the charge
-        self.trace_integral[self.count]= integral
-        
+        self.trace_integral[self.count] = integral
+
+        # remember the time
+        self.trace_time[self.count] = peakpos
+
         # keep the mask of not working pixels (to be improved)
-        self.trace_mask[self.count]=[pixel_status==0,pixel_status==0]
-        
-                             
+        self.trace_mask[self.count] = [pixel_status == 0, pixel_status == 0]
+
         # extract the median on all the camera per event: <x>(i) (for not masked pixels)
-        masked_integral=np.ma.array(integral,mask=self.trace_mask[self.count])
-        self.event_median[self.count,:] =  np.ma.median(masked_integral,axis=1)     
-        
-        
+        masked_integral = np.ma.array(integral, mask=self.trace_mask[self.count])
+        self.event_median[self.count, :] = np.ma.median(masked_integral, axis=1)
+
         # increment the internal counter
         self.count = self.count+1
             
         # check if to create a calibration event
-        if ((trigger_time - self.time_start) > self.max_time_range_s or self.count == self.max_events):
+        if (trigger_time - self.time_start) > self.max_time_range_s or self.count == self.max_events:
         
-            #consider only not masked data 
-            masked_trace_integral = np.ma.array(self.trace_integral, mask=self.trace_mask) 
+            # consider only not masked data
+            masked_trace_integral = np.ma.array(self.trace_integral, mask=self.trace_mask)
+            masked_trace_time = np.ma.array(self.trace_time, mask=self.trace_mask)
                     
-            # extract for each pixel and each  event : x(i,j)/<x>(i) = g(i,j) 
-            masked_rel_gain_event = masked_trace_integral/self.event_median[:,:, np.newaxis]
-            rel_gain_event = np.ma.getdata(masked_rel_gain_event)
-            
+            # extract for each pixel and each event : x(i,j)/<x>(i) = g(i,j)
+            masked_relative_gain_event = masked_trace_integral/self.event_median[:,:, np.newaxis]
+            relative_gain_event = np.ma.getdata(masked_relative_gain_event)
+
             # extract the median, mean and std over all the events <g>j and
             # fill the container and return it
-            self.container.mean_time_s = (trigger_time - self.time_start)/2
-            self.container.range_time_s = [self.time_start, trigger_time]       
-            self.container.n_events = self.count + 1
-            self.container.relative_gain_median =  np.median(rel_gain_event, axis=0)
-            self.container.relative_gain_mean =  np.mean(rel_gain_event, axis=0)                  
-            self.container.relative_gain_rms =  np.std(rel_gain_event, axis=0)
-            
+            self.container.time_mean = (trigger_time - self.time_start)/2 * u.s
+            self.container.time_range = [self.time_start, trigger_time] * u.s
+            self.container.n_events = self.count
+            self.container.relative_gain_median = np.median(relative_gain_event, axis=0)
+            self.container.relative_gain_mean = np.mean(relative_gain_event, axis=0)
+            self.container.relative_gain_rms = np.std(relative_gain_event, axis=0)
+
+            # extract the average time over the camera and the events
+            camera_time_median = np.ma.median(masked_trace_time)
+            camera_time_mean = np.ma.mean(masked_trace_time)
+            pixel_time_median = np.ma.median(masked_trace_time, axis=0)
+            pixel_time_mean = np.ma.mean(masked_trace_time, axis=0)
+
+            # fill the container
+            self.container.relative_time_median = np.ma.getdata(pixel_time_median-camera_time_median)
+            self.container.relative_time_mean = np.ma.getdata(pixel_time_mean-camera_time_mean)
+
             # re-initialize the event count
             self.count = 0
             
@@ -222,8 +235,6 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         else: 
         
             return None 
-            
-               
 
 
 class FlatFieldFactory(Factory):
@@ -232,6 +243,6 @@ class FlatFieldFactory(Factory):
     """
     base = FlatFieldCalculator
     default = 'FlasherFlatFieldCalculator'
-    custom_product_help = ('')
+    custom_product_help = ('Flat-flield method to use')
 
  

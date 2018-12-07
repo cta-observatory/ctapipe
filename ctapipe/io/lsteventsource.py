@@ -61,7 +61,6 @@ class LSTEventSource(EventSource):
             super().__init__(config=config, tool=tool, **kwargs)
             self.file_list = [self.input_url]
 
-
         self.multi_file = MultiFiles(self.file_list)
         
         self.camera_config = self.multi_file.camera_config
@@ -69,7 +68,6 @@ class LSTEventSource(EventSource):
 
     def rewind(self):
         self.multi_file.rewind()
-         
 
     def _generator(self):
 
@@ -77,7 +75,6 @@ class LSTEventSource(EventSource):
         self.data = LSTDataContainer()
         self.data.meta['input_url'] = self.input_url
         self.data.meta['max_events'] = self.max_events
-
 
         # fill LST data from the CameraConfig table
         self.fill_lst_service_container_from_zfile()
@@ -176,7 +173,6 @@ class LSTEventSource(EventSource):
 
 
     def fill_lst_event_container_from_zfile(self, event):
-
 
         event_container = self.data.lst.tel[self.camera_config.telescope_id].evt
 
@@ -329,8 +325,6 @@ class MultiFiles:
     def rewind(self):
         for name, file in self._file.items():
             file.Events.protobuf_i_fits.rewind()
-            
-         
 
     def num_inputs(self):
         return len(self._file)

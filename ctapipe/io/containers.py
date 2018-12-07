@@ -44,7 +44,6 @@ __all__ = [
     'LeakageContainer',
     'ConcentrationContainer',
     'TimingParametersContainer',
-    'StatInfoContainer',
     'FlatFieldCameraContainer',
     'PedestalCameraContainer',
     'FlatFieldContainer',
@@ -768,12 +767,12 @@ class TimingParametersContainer(Container):
 
 class FlatFieldCameraContainer(Container):
     """
-    Container for relative flat-field coefficients 
-    per camera    
+    Container for relative camera flat-field coefficients
+
     """
    
-    mean_time_s = Field(0, 'Mean time, seconds since reference')
-    range_time_s = Field([], 'Range of time')
+    time_mean = Field(0, 'Mean time, seconds since reference', unit=u.s)
+    time_range = Field([], 'Range of time of the calibration data [t_min, t_max]', unit=u.s)
     
     n_events = Field(0,'Number of events used for statistics')
     
@@ -787,8 +786,13 @@ class FlatFieldCameraContainer(Container):
     relative_gain_rms = Field(None,
         "np array of the relative flat-field coefficient rms (n_chan X N_pix)"
     )
-            
-      
+
+    relative_time_mean = Field(None,
+                               "np array of the relative time mean (n_chan X N_pix)"
+                               , unit=u.ns)
+    relative_time_median = Field(None,
+                                 "np array of the relative time  median (n_chan X N_pix)"
+                                , unit=u.ns)
 
 class FlatFieldContainer(Container):
     """
@@ -816,7 +820,7 @@ class PedestalContainer(Container):
         Map(PedestalCameraContainer),
         "map of tel_id to PedestalCameraContainer")
 
-class MonDataContainer(Container):
+class MonitorDataContainer(Container):
     """
     Root container for MON data   
     """

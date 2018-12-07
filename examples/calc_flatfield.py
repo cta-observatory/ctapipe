@@ -13,7 +13,7 @@ from ctapipe.io import EventSourceFactory
 
 from ctapipe.image import ChargeExtractorFactory, WaveformCleanerFactory
 from ctapipe.calib.camera.flatfield import FlatFieldFactory
-from ctapipe.io.containers import MonDataContainer
+from ctapipe.io.containers import MonitorDataContainer
 
 
 class FlatFieldGenerator(Tool):
@@ -47,7 +47,7 @@ class FlatFieldGenerator(Tool):
                     ChargeExtractorFactory,
                     WaveformCleanerFactory,
                     FlatFieldFactory,
-                    MonDataContainer,
+                    MonitorDataContainer,
                     HDF5TableWriter
                     ])
 
@@ -64,7 +64,7 @@ class FlatFieldGenerator(Tool):
         self.eventsource = EventSourceFactory.produce(**kwargs)
         self.flatfield = FlatFieldFactory.produce(**kwargs)
         
-        self.container = MonDataContainer()
+        self.container = MonitorDataContainer()
         self.writer = HDF5TableWriter(
             filename=self.output_file, group_name='flatfield', overwrite=True
         )
