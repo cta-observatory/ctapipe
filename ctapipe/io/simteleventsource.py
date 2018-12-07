@@ -142,25 +142,27 @@ class SimTelEventSource(EventSource):
             telescope_events = array_event['telescope_events']
             tracking_positions = array_event['tracking_positions']
             for tel_id, telescope_event in telescope_events.items():
-                PL = telescope_event['pixel_list']
                 telescope_description = self.file_.telescope_descriptions[tel_id]
 
                 data.mc.tel[tel_id].dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
                 data.mc.tel[tel_id].pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
-                    adc_samples = telescope_event['adc_sums'][:, np.newaxis]
+                    adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
                 data.r0.tel[tel_id].waveform = adc_samples
                 data.r0.tel[tel_id].num_samples = adc_samples.shape[-1]
                 # We should not calculate stuff in an event source
                 # if this is not needed, we calculate it for nothing
                 data.r0.tel[tel_id].image = adc_samples.sum(axis=-1)
-                data.r0.tel[tel_id].num_trig_pix = len(PL['pixel_list'])
-                data.r0.tel[tel_id].trig_pix_id = PL['pixel_list']
+
+                pixel_lists = telescope_event['pixel_lists']
+                data.r0.tel[tel_id].num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
+                if data.r0.tel[tel_id].num_trig_pix > 0:
+                    data.r0.tel[tel_id].trig_pix_id = pixel_lists[0]['pixel_list']
 
                 pixel_settings = telescope_description['pixel_settings']
                 data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['refshape']
-                data.mc.tel[tel_id].meta['ref_step'] = pixel_settings['ref_step']
+                data.mc.tel[tel_id].meta['refstep'] = pixel_settings['ref_step']
                 data.mc.tel[tel_id].time_slice = pixel_settings['time_slice']
 
                 n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
