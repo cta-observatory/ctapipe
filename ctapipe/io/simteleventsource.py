@@ -12,7 +12,6 @@ from eventio.simtel.simtelfile import SimTelFile
 
 __all__ = ['SimTelEventSource']
 
-import eventio
 
 class SimTelEventSource(EventSource):
 
@@ -41,7 +40,8 @@ class SimTelEventSource(EventSource):
 
         subarray = SubarrayDescription("MonteCarloArray")
 
-        for tel_id, cam_settings in self.file_.cam_settings.items():
+        for tel_id, telescope_description in self.file_.telescope_descriptions.items():
+            cam_settings = telescope_description['camera_settings']
             tel = TelescopeDescription.guess(
                 cam_settings['pixel_x'] * u.m,
                 cam_settings['pixel_y'] * u.m,
@@ -64,7 +64,7 @@ class SimTelEventSource(EventSource):
         try:
             yield from self.__generator()
         except EOFError:
-            msg = 'EOFError in {input_url}. Might be truncated'.format(
+            msg = 'EOFError reading from "{input_url}". Might be truncated'.format(
                 input_url=self.input_url
             )
             self.log.warning(msg)
@@ -76,16 +76,15 @@ class SimTelEventSource(EventSource):
         data.meta['input_url'] = self.input_url
         data.meta['max_events'] = self.max_events
 
-        for counter, (shower, event) in enumerate(self.file_):
+        for counter, array_event in enumerate(self.file_):
             # next lines are just for debugging
-            self._event = event
-            self._shower = shower
+            self.array_event = array_event
 
-            event_id = event['pe_sum']['event']
+            event_id = array_event['mc_event']['event_id']
             data.inst.subarray = self._subarray_info
 
             obs_id = self.file_.header['run']
-            tels_with_data = set(event['event']['tel_events'].keys())
+            tels_with_data = set(array_event['telescope_events'].keys())
             data.count = counter
             data.r0.obs_id = obs_id
             data.r0.event_id = event_id
@@ -107,23 +106,24 @@ class SimTelEventSource(EventSource):
                 data.r1.tels_with_data = selected
                 data.dl0.tels_with_data = selected
 
-            cent_event = event['event']['cent_event']
-            MC_EVENT = event['mc_event']
+            trigger_information = array_event['trigger_information']
+            mc_event = array_event['mc_event']
+            mc_shower = array_event['mc_shower']
 
-            data.trig.tels_with_trigger = cent_event['triggered_telescopes']
-            time_s, time_ns = cent_event['gps_time']
+            data.trig.tels_with_trigger = trigger_information['triggered_telescopes']
+            time_s, time_ns = trigger_information['gps_time']
             data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                       format='unix', scale='utc')
 
-            data.mc.energy = shower['energy'] * u.TeV
-            data.mc.alt = Angle(shower['altitude'], u.rad)
-            data.mc.az = Angle(shower['azimuth'], u.rad)
-            data.mc.core_x = MC_EVENT['xcore'] * u.m
-            data.mc.core_y = MC_EVENT['ycore'] * u.m
-            first_int = shower['h_first_int'] * u.m
+            data.mc.energy = mc_shower['energy'] * u.TeV
+            data.mc.alt = Angle(mc_shower['altitude'], u.rad)
+            data.mc.az = Angle(mc_shower['azimuth'], u.rad)
+            data.mc.core_x = mc_event['xcore'] * u.m
+            data.mc.core_y = mc_event['ycore'] * u.m
+            first_int = mc_shower['h_first_int'] * u.m
             data.mc.h_first_int = first_int
-            data.mc.x_max = shower['xmax'] * u.g / (u.cm**2)
-            data.mc.shower_primary_id = shower['primary_id']
+            data.mc.x_max = mc_shower['xmax'] * u.g / (u.cm**2)
+            data.mc.shower_primary_id = mc_shower['primary_id']
 
             # mc run header data
             data.mcheader.run_array_direction = Angle(
@@ -139,34 +139,41 @@ class SimTelEventSource(EventSource):
             data.dl1.tel.clear()
             data.mc.tel.clear()  # clear the previous telescopes
 
-            for tel_id in tels_with_data:
-                H = event['event']['tel_events'][tel_id]['header']
-                PL = event['event']['tel_events'][tel_id]['pixel_list']
+            telescope_events = array_event['telescope_events']
+            tracking_positions = array_event['tracking_positions']
+            for tel_id, telescope_event in telescope_events.items():
+                PL = telescope_event['pixel_list']
+                telescope_description = self.file_.telescope_descriptions[tel_id]
 
-                data.mc.tel[tel_id].dc_to_pe = self.file_.lascal[tel_id]['calib']
-                data.mc.tel[tel_id].pedestal = self.file_.tel_moni[tel_id]['pedestal']
-                data.r0.tel[tel_id].waveform = event['event']['tel_events'][tel_id]['waveform']
-                data.r0.tel[tel_id].num_samples = data.r0.tel[tel_id].waveform.shape[-1]
+                data.mc.tel[tel_id].dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
+                data.mc.tel[tel_id].pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
+                adc_samples = telescope_event.get('adc_samples')
+                if adc_samples is None:
+                    adc_samples = telescope_event['adc_sums'][:, np.newaxis]
+                data.r0.tel[tel_id].waveform = adc_samples
+                data.r0.tel[tel_id].num_samples = adc_samples.shape[-1]
                 # We should not calculate stuff in an event source
                 # if this is not needed, we calculate it for nothing
-                data.r0.tel[tel_id].image = data.r0.tel[tel_id].waveform.sum(axis=-1)
+                data.r0.tel[tel_id].image = adc_samples.sum(axis=-1)
                 data.r0.tel[tel_id].num_trig_pix = len(PL['pixel_list'])
                 data.r0.tel[tel_id].trig_pix_id = PL['pixel_list']
-                data.mc.tel[tel_id].reference_pulse_shape = self.file_.ref_pulse[tel_id]['shape']
+
+                pixel_settings = telescope_description['pixel_settings']
+                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['refshape']
+                data.mc.tel[tel_id].meta['ref_step'] = pixel_settings['ref_step']
+                data.mc.tel[tel_id].time_slice = pixel_settings['time_slice']
 
                 n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
 
-                data.mc.tel[tel_id].photo_electron_image = np.zeros((n_pixel, ), dtype='i2')
-                # photo_electron_image needs to be read from 1205 objects
-                data.mc.tel[tel_id].meta['refstep'] = self.file_.ref_pulse[tel_id]['step']
-                data.mc.tel[tel_id].time_slice = self.file_.time_slices_per_telescope[tel_id]
+                data.mc.tel[tel_id].photo_electron_image = array_event.get(
+                    'photoelectrons', {}
+                ).get(tel_id)
+                if data.mc.tel[tel_id].photo_electron_image is None:
+                    data.mc.tel[tel_id].photo_electron_image = np.zeros((n_pixel, ), dtype='i2')
 
-                data.mc.tel[tel_id].azimuth_raw = event['event']['tel_events'][tel_id]['track']['azimuth_raw']
-                data.mc.tel[tel_id].altitude_raw = event['event']['tel_events'][tel_id]['track']['altitude_raw']
-                try:
-                    data.mc.tel[tel_id].azimuth_cor = event['event']['tel_events'][tel_id]['track']['azimuth_cor']
-                    data.mc.tel[tel_id].altitude_cor = event['event']['tel_events'][tel_id]['track']['altitude_cor']
-                except KeyError:
-                    data.mc.tel[tel_id].azimuth_cor = 0
-                    data.mc.tel[tel_id].altitude_cor = 0
+                tracking_position = tracking_positions[tel_id]
+                data.mc.tel[tel_id].azimuth_raw = tracking_position['azimuth_raw']
+                data.mc.tel[tel_id].altitude_raw = tracking_position['altitude_raw']
+                data.mc.tel[tel_id].azimuth_cor = tracking_position.get('azimuth_cor', 0)
+                data.mc.tel[tel_id].altitude_cor = tracking_position.get('altitude_cor', 0)
             yield data
