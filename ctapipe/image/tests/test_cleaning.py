@@ -173,13 +173,13 @@ def test_fact_image_cleaning():
     # use LST pixel geometry
     geom = CameraGeometry.from_name("LSTCam")
     # create some signal pixels
-    values = np.zeros(len(geom)) 
-    timing = np.zeros(len(geom)) 
+    values = np.zeros(len(geom))
+    timing = np.zeros(len(geom))
     signal_pixels = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
                              10, 11, 12, 13, 14, 37, 38, 111, 222])
     values[signal_pixels] = 5
     timing[signal_pixels] = 10
-    # manipulate some of those 
+    # manipulate some of those
     values[[1, 2]] = 3
     values[7] = 1
     timing[[5, 6, 13, 111]] = 20

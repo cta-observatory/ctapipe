@@ -227,7 +227,7 @@ def fact_image_cleaning(geom, image, arrival_times, picture_threshold=4,
 
     # Step 3
     pixels_above_boundary = image >= boundary_threshold
-    pixels_to_keep = dilate(geom, pixels_to_keep) & pixels_above_boundary 
+    pixels_to_keep = dilate(geom, pixels_to_keep) & pixels_above_boundary
 
     # nothing else to do if min_number_neighbors <= 0
     if min_number_neighbors <= 0:
