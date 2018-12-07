@@ -80,7 +80,7 @@ class SimTelEventSource(EventSource):
             # next lines are just for debugging
             self.array_event = array_event
 
-            event_id = array_event['mc_event']['event_id']
+            event_id = array_event['event_id']
             data.inst.subarray = self._subarray_info
 
             obs_id = self.file_.header['run']

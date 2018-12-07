@@ -52,7 +52,7 @@ install:
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
     - pip install codecov
-    - pip install eventio
+    - pip install 'eventio>=0.9.1' 
     # ----- SST1M:
     - conda install protobuf
     - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.4.0.tar.gz
