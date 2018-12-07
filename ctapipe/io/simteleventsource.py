@@ -20,17 +20,23 @@ class SimTelEventSource(EventSource):
         self.metadata['is_simulation'] = True
         self.file_ = SimTelFile(self.input_url)
 
-        self._subarray_info = self.prepare_subarray_info()
+        self._subarray_info = self.prepare_subarray_info(
+            self.file_.telescope_descriptions,
+            self.file_.header
+        )
 
-    def prepare_subarray_info(self):
+    @staticmethod
+    def prepare_subarray_info(telescope_descriptions, header):
         """
-        constructs a SubarrayDescription object from the info in an
-        EventIO/HESSSIO file
+        Constructs a SubarrayDescription object from the
+        ``telescope_descriptions`` given by ``SimTelFile``
 
         Parameters
         ----------
-        file: HessioFile
-            The open pyhessio file
+        telescope_descriptions: dict
+            telescope descriptions as given by ``SimTelFile.telescope_descriptions``
+        header: dict
+            header as returned by ``SimTelFile.header``
 
         Returns
         -------
@@ -40,7 +46,7 @@ class SimTelEventSource(EventSource):
 
         subarray = SubarrayDescription("MonteCarloArray")
 
-        for tel_id, telescope_description in self.file_.telescope_descriptions.items():
+        for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description['camera_settings']
             tel = TelescopeDescription.guess(
                 cam_settings['pixel_x'] * u.m,
@@ -50,8 +56,8 @@ class SimTelEventSource(EventSource):
             tel.optics.mirror_area = cam_settings['mirror_area'] * u.m ** 2
             tel.optics.num_mirror_tiles = cam_settings['mirror_area']
             subarray.tels[tel_id] = tel
-            H = self.file_.header
-            subarray.positions[tel_id] = H['tel_pos'][H['tel_id'] - 1] * u.m
+            tel_idx = header['tel_id'] - 1
+            subarray.positions[tel_id] = header['tel_pos'][tel_idx] * u.m
 
         return subarray
 
