@@ -7,7 +7,7 @@ import numpy as np
 def test_eventplotter():
     dataset = get_dataset_path("gamma_test.simtel.gz")
 
-    with HESSIOEventSource(dataset, max_events=1) as source:
+    with HESSIOEventSource(input_url=dataset, max_events=1) as source:
         event = next(iter(source))
 
     telid = list(event.r0.tels_with_data)[0]
