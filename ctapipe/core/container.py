@@ -138,9 +138,12 @@ class Container(metaclass=ContainerMeta):
     def __setitem__(self, key, value):
         return setattr(self, key, value)
 
-    def items(self):
+    def items(self, add_prefix=False):
         """Generator over (key, value) pairs for the items"""
-        return ((k, getattr(self, k)) for k in self.fields.keys())
+        if not add_prefix or self.prefix == '':
+            return ((k, getattr(self, k)) for k in self.fields.keys())
+
+        return ((self.prefix + '_' + k, getattr(self, k)) for k in self.fields.keys())
 
     def keys(self):
         """Get the keys of the container"""
@@ -150,7 +153,7 @@ class Container(metaclass=ContainerMeta):
         """Get the keys of the container"""
         return (getattr(self, k) for k in self.fields.keys())
 
-    def as_dict(self, recursive=False, flatten=False):
+    def as_dict(self, recursive=False, flatten=False, add_prefix=False):
         """
         convert the `Container` into a dictionary
 
@@ -163,17 +166,20 @@ class Container(metaclass=ContainerMeta):
             by appending the sub-Container name.
         """
         if not recursive:
-            return dict(self.items())
+            return dict(self.items(add_prefix=add_prefix))
         else:
             d = dict()
-            for key, val in self.items():
+            for key, val in self.items(add_prefix=add_prefix):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
-                        d.update({"{}_{}".format(key, k): v
-                                  for k, v in val.as_dict(recursive).items()})
+                        d.update({
+                            "{}_{}".format(key, k): v
+                            for k, v in val.as_dict(recursive, add_prefix=add_prefix).items()
+                        })
                     else:
-                        d[key] = val.as_dict(recursive=recursive,
-                                             flatten=flatten)
+                        d[key] = val.as_dict(
+                            recursive=recursive, flatten=flatten, add_prefix=add_prefix
+                        )
                 else:
                     d[key] = val
             return d
@@ -218,7 +224,7 @@ class Map(defaultdict):
     by `tel_id` or algorithm name).
     """
 
-    def as_dict(self, recursive=False, flatten=False):
+    def as_dict(self, recursive=False, flatten=False, add_prefix=False):
         if not recursive:
             return dict(self.items())
         else:
@@ -227,10 +233,13 @@ class Map(defaultdict):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({"{}_{}".format(key, k): v
-                                  for k, v in val.as_dict(recursive).items()})
+                                  for k, v in val.as_dict(recursive, add_prefix=add_prefix).items()})
                     else:
-                        d[key] = val.as_dict(recursive=recursive,
-                                             flatten=flatten)
+                        d[key] = val.as_dict(
+                            recursive=recursive,
+                            flatten=flatten,
+                            add_prefix=add_prefix,
+                        )
                     continue
                 d[key] = val
             return d

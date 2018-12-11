@@ -139,47 +139,51 @@ class HDF5TableWriter(TableWriter):
 
         # create pytables schema description for the given container
         for container in containers:
-            prefix = self.build_prefix(container)
-            for col_name, value in container.items():
+            for col_name, value in container.items(add_prefix=self.add_prefix):
 
                 typename = ""
                 shape = 1
 
-                if self._is_column_excluded(table_name, prefix + col_name):
+                if self._is_column_excluded(table_name, col_name):
                     self.log.debug(
-                        "excluded column: %s/%s", table_name, prefix + col_name
+                        "excluded column: %s/%s", table_name, col_name
                     )
                     continue
 
                 if isinstance(value, Quantity):
-                    req_unit = container.fields[col_name].unit
+                    if self.add_prefix:
+                        key = col_name.replace(container.prefix + '_', '')
+                    else:
+                        key = col_name
+                    req_unit = container.fields[key].unit
+
                     if req_unit is not None:
                         tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                        meta['{}_UNIT'.format(prefix + col_name)] = str(req_unit)
+                        meta['{}_UNIT'.format(col_name)] = str(req_unit)
                     else:
                         tr = lambda x: x.value
-                        meta['{}_UNIT'.format(prefix + col_name)] = str(value.unit)
+                        meta['{}_UNIT'.format(col_name)] = str(value.unit)
 
                     value = tr(value)
-                    self.add_column_transform(table_name, prefix + col_name, tr)
+                    self.add_column_transform(table_name, col_name, tr)
 
                 if isinstance(value, np.ndarray):
                     typename = value.dtype.name
                     coltype = PYTABLES_TYPE_MAP[typename]
                     shape = value.shape
-                    Schema.columns[prefix + col_name] = coltype(shape=shape)
+                    Schema.columns[col_name] = coltype(shape=shape)
 
                 if isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
-                    Schema.columns[prefix + col_name] = tables.Float64Col()
+                    Schema.columns[col_name] = tables.Float64Col()
                     self.add_column_transform(
-                        table_name, prefix + col_name, tr_time_to_float
+                        table_name, col_name, tr_time_to_float
                     )
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
-                    Schema.columns[prefix + col_name] = coltype()
+                    Schema.columns[col_name] = coltype()
 
                 self.log.debug("Table %s: added col: %s type: %s shape: %s",
                                table_name, col_name, typename, shape)
@@ -219,15 +223,17 @@ class HDF5TableWriter(TableWriter):
         row = table.row
 
         for container in containers:
-            prefix = self.build_prefix(container)
-            for colname in filter(lambda c: c in table.colnames,
-                                  container.keys()):
+            selected_fields = filter(
+                lambda kv: kv[0] in table.colnames,
+                container.items(add_prefix=self.add_prefix)
+            )
+            for colname, value in selected_fields:
+
                 value = self._apply_col_transform(
-                    table_name, prefix + colname, container[colname]
+                    table_name, colname, value
                 )
 
-                row[prefix + colname] = value
-
+                row[colname] = value
         row.append()
 
     def write(self, table_name, containers):

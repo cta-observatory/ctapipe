@@ -29,14 +29,7 @@ class TableWriter(Component, metaclass=ABCMeta):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-
         self.close()
-
-    def build_prefix(self, container):
-        prefix = container.prefix if self.add_prefix else ''
-        if prefix:
-            prefix += '_'
-        return prefix
 
     def exclude(self, table_name, pattern):
         """
