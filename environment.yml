@@ -18,7 +18,7 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy=1.15.1   # frozen for now due to bug in 1.15.3
+  - numpy>1.15.4
   - numpydoc
   - pandas
   - pyhessio
