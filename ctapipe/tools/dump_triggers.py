@@ -7,7 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-import ctapipe.io.hessio as hessio
+from ctapipe.io import event_source
 from ctapipe.core import Provenance, ToolConfigurationError
 from ctapipe.core.traits import (Unicode, Dict, Bool)
 from ..core import Tool
@@ -103,10 +103,9 @@ class DumpTriggersTool(Tool):
 
     def start(self):
         """ main event loop """
-        source = hessio.hessio_event_source(self.infile)
-
-        for event in source:
-            self.add_event_to_table(event)
+        with event_source(self.infile) as source:
+            for event in source:
+                self.add_event_to_table(event)
 
     def finish(self):
         """
