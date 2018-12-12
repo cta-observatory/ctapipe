@@ -45,22 +45,32 @@ class SimTelEventSource(EventSource):
             instrumental information
         """
 
-        subarray = SubarrayDescription("MonteCarloArray")
+        tel_descriptions = {}  # tel_id : TelescopeDescription
+        tel_positions = {}  # tel_id : TelescopeDescription
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description['camera_settings']
-            tel = TelescopeDescription.guess(
+            tel_description = TelescopeDescription.guess(
                 cam_settings['pixel_x'] * u.m,
                 cam_settings['pixel_y'] * u.m,
                 equivalent_focal_length=cam_settings['focal_length'] * u.m
             )
-            tel.optics.mirror_area = cam_settings['mirror_area'] * u.m ** 2
-            tel.optics.num_mirror_tiles = cam_settings['mirror_area']
-            subarray.tels[tel_id] = tel
-            tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
-            subarray.positions[tel_id] = header['tel_pos'][tel_idx] * u.m
+            tel_description.optics.mirror_area = (
+                cam_settings['mirror_area'] * u.m ** 2
+            )
+            tel_description.optics.num_mirror_tiles = (
+                cam_settings['mirror_area']
+            )
+            tel_descriptions[tel_id] = tel_description
 
-        return subarray
+            tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
+            tel_positions[tel_id] = header['tel_pos'][tel_idx] * u.m
+
+        return SubarrayDescription(
+            "MonteCarloArray",
+            tel_positions=tel_positions,
+            tel_descriptions=tel_descriptions,
+        )
 
     @staticmethod
     def is_compatible(file_path):
