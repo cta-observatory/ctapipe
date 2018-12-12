@@ -23,7 +23,7 @@ before_install:
     # against future changes
 
     - export PYTHONIOENCODING=UTF8
-    - export MPLBACKEND=Agg
+    - export MPLBACKEND=agg
 
     # Install miniconda following instructions at
     # http://conda.pydata.org/docs/travis.html
