@@ -1,4 +1,4 @@
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 from ctapipe.plotting.camera import CameraPlotter
 import numpy as np
@@ -6,8 +6,8 @@ import numpy as np
 
 def test_eventplotter():
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    with HESSIOEventSource(dataset, max_events=1) as source:
-        event = next(source)
+    with event_source(dataset, max_events=1) as source:
+        event = next(iter(source))
 
         telid = list(event.r0.tels_with_data)[0]
 
