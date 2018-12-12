@@ -41,4 +41,4 @@ dependencies:
   - tqdm
   - pip:
       - pytest_runner
-      - eventio
+      - eventio==0.11.0
