@@ -20,21 +20,23 @@ TODO:
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame,
-                                 CartesianRepresentation,
-                                 UnitSphericalRepresentation,
-                                 FunctionTransform, RepresentationMapping)
+from astropy.coordinates import (
+    BaseCoordinateFrame,
+    CartesianRepresentation,
+    UnitSphericalRepresentation,
+    FunctionTransform,
+    Attribute,
+    CoordinateAttribute,
+    TimeAttribute,
+    EarthLocationAttribute,
+    AltAz
+)
 
-try:
-    # FrameAttribute was renamed Attribute in astropy 2.0
-    # TODO: should really use subclasses like QuantityAttribute
-    from astropy.coordinates import FrameAttribute as Attribute
-except ImportError:
-    from astropy.coordinates import Attribute
 
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
 from ..coordinates.representation import PlanarRepresentation
+
 
 __all__ = [
     'CameraFrame',
@@ -44,24 +46,16 @@ __all__ = [
 ]
 
 
-class CameraFrame(BaseCoordinateFrame):
-    """Camera coordinate frame.  The camera frame is a simple physical
-    cartesian frame, describing the 2 dimensional position of objects
-    in the focal plane of the telescope Most Typically this will be
-    used to describe the positions of the pixels in the focal plane
-
-    Frame attributes:
-
-    * ``focal_length``
-        Focal length of the telescope as a unit quantity (usually meters)
-    * ``rotation``
-        Rotation angle of the camera (0 deg in most cases)
+class HorizonFrame(AltAz):
+    """Horizon coordinate frame. Spherical system used to describe the direction
+    of a given position, in terms of the altitude and azimuth of the system. In
+    practice this is functionally identical as the astropy AltAz system, but this
+    implementation allows us to pass array pointing information, allowing us to directly
+    transform to the Horizon Frame from the Camera system.
+    The Following attributes are carried over from the telescope frame
+    to allow a direct transformation from the camera frame
     """
-    default_representation = PlanarRepresentation
-    focal_length = Attribute(default=None)
-    rotation = Attribute(default=0 * u.deg)
-    pointing_direction = Attribute(default=None)
-    array_direction = Attribute(default=None)
+    pass
 
 
 class TelescopeFrame(BaseCoordinateFrame):
@@ -82,7 +76,10 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     """
     default_representation = PlanarRepresentation
-    pointing_direction = Attribute(default=None)
+    pointing_direction = CoordinateAttribute(default=None, frame=HorizonFrame)
+
+    obstime = TimeAttribute(default=None)
+    location = EarthLocationAttribute(default=None)
 
 
 class NominalFrame(BaseCoordinateFrame):
@@ -106,34 +103,27 @@ class NominalFrame(BaseCoordinateFrame):
     array_direction = Attribute(default=None)
 
 
-class HorizonFrame(BaseCoordinateFrame):
-    """Horizon coordinate frame. Spherical system used to describe the direction
-    of a given position, in terms of the altitude and azimuth of the system. In
-    practice this is functionally identical as the astropy AltAz system, but this
-    implementation allows us to pass array pointing information, allowing us to directly
-    transform to the Horizon Frame from the Camera system.
-    The Following attributes are carried over from the telescope frame
-    to allow a direct transformation from the camera frame
+class CameraFrame(BaseCoordinateFrame):
+    """Camera coordinate frame.  The camera frame is a simple physical
+    cartesian frame, describing the 2 dimensional position of objects
+    in the focal plane of the telescope Most Typically this will be
+    used to describe the positions of the pixels in the focal plane
 
     Frame attributes:
 
-    * ``array_direction``
-        Alt,Az direction of the array pointing
-    * ``pointing_direction``
-        Alt,Az direction of the telescope pointing
-
+    * ``focal_length``
+        Focal length of the telescope as a unit quantity (usually meters)
+    * ``rotation``
+        Rotation angle of the camera (0 deg in most cases)
     """
-    default_representation = UnitSphericalRepresentation
+    default_representation = PlanarRepresentation
 
-    frame_specific_representation_info = {
-        'spherical': [RepresentationMapping('lon', 'az'),
-                      RepresentationMapping('lat', 'alt')],
-    }
+    focal_length = Attribute(default=None)
+    rotation = Attribute(default=0 * u.deg)
+    pointing_direction = CoordinateAttribute(frame=HorizonFrame, default=None)
 
-    frame_specific_representation_info['unitspherical'] = frame_specific_representation_info['spherical']
-
-    pointing_direction = Attribute(default=None)
-    array_direction = Attribute(default=None)
+    obstime = TimeAttribute(default=None)
+    location = EarthLocationAttribute(default=None)
 
 
 # Transformations defined below this point
@@ -258,6 +248,65 @@ def offset_to_altaz(x_off, y_off, azimuth, altitude):
     return obj_altitude.to(unit), obj_azimuth.to(unit)
 
 
+@frame_transform_graph.transform(FunctionTransform, HorizonFrame, TelescopeFrame)
+def horizon_to_telescope(horizon_coord, telescope_frame):
+    """
+    Transformation from HorizonFrame to TelescopeFrame
+
+    Parameters
+    ----------
+    altaz_coord: `astropy.coordinates.SkyCoord`
+        AltAz system
+    norm_coord: `astropy.coordinates.SkyCoord`
+        nominal system
+
+    Returns
+    -------
+    nominal Coordinates
+    """
+    alt_pointing = telescope_frame.pointing_direction.alt
+    az_pointing = telescope_frame.pointing_direction.az
+    azimuth = horizon_coord.az
+    altitude = horizon_coord.alt
+
+    x_off, y_off = altaz_to_offset(azimuth, altitude, az_pointing, alt_pointing)
+    x_off = x_off * u.rad
+    y_off = y_off * u.rad
+
+    representation = PlanarRepresentation(x_off, y_off)
+
+    return telescope_frame.realize_frame(representation)
+
+
+@frame_transform_graph.transform(FunctionTransform, TelescopeFrame, HorizonFrame)
+def telescope_to_horizon(telescope_coord, horizon_frame):
+    """
+    Transformation from nominal system to astropy AltAz system
+
+    Parameters
+    ----------
+    tekescope_coord: `astropy.coordinates.SkyCoord`
+        Coordinate in `TelescopeFrame`
+    horizon_frame: `ctapipe.coordinates.HorizonFrame`
+        frame to transform into
+
+    Returns
+    -------
+    SkyCoord in horizon_frame
+    """
+    pointing = telescope_coord.pointing_direction
+
+    altitude, azimuth = offset_to_altaz(
+        telescope_coord.x,
+        telescope_coord.y,
+        pointing.alt,
+        pointing.az,
+    )
+
+    representation = UnitSphericalRepresentation(lon=azimuth, lat=altitude)
+    return horizon_frame.realize_frame(representation)
+
+
 # Transformation between nominal and AltAz system
 
 
@@ -277,7 +326,7 @@ def nominal_to_altaz(norm_coord, altaz_coord):
     -------
     AltAz Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
+    alt_nom, az_nom = norm_coord.array_direction.alt, norm_coord.array_direction.az
 
     if type(norm_coord.x.value).__module__ != np.__name__:
         x_off = np.zeros(1)
@@ -290,9 +339,9 @@ def nominal_to_altaz(norm_coord, altaz_coord):
         x_off = norm_coord.x
         y_off = norm_coord.y
 
-    altitude, azimuth = offset_to_altaz(x_off, y_off, az_norm, alt_norm)
+    altitude, azimuth = offset_to_altaz(x_off, y_off, az_nom, alt_nom)
 
-    representation = UnitSphericalRepresentation(lon=azimuth.to(u.deg), lat=altitude.to(u.deg))
+    representation = UnitSphericalRepresentation(lon=azimuth, lat=altitude)
     return altaz_coord.realize_frame(representation)
 
 
@@ -312,14 +361,13 @@ def altaz_to_nominal(altaz_coord, norm_coord):
     -------
     nominal Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
+    alt_nom, az_nom = norm_coord.array_direction.alt, norm_coord.array_direction.az
     azimuth = altaz_coord.az
     altitude = altaz_coord.alt
-    x_off, y_off = altaz_to_offset(azimuth, altitude, az_norm, alt_norm)
+    x_off, y_off = altaz_to_offset(azimuth, altitude, az_nom, alt_nom)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
-    representation = PlanarRepresentation(
-        x_off.to(u.deg), y_off.to(u.deg))
+    representation = PlanarRepresentation(x_off, y_off)
 
     return norm_coord.realize_frame(representation)
 
@@ -328,7 +376,7 @@ def altaz_to_nominal(altaz_coord, norm_coord):
 
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, NominalFrame)
-def telescope_to_nominal(tel_coord, norm_frame):
+def telescope_to_nominal(tel_coord, nominal_frame):
     """
     Coordinate transformation from telescope frame to nominal frame
 
@@ -336,7 +384,7 @@ def telescope_to_nominal(tel_coord, norm_frame):
     ----------
     tel_coord: `astropy.coordinates.SkyCoord`
         TelescopeFrame system
-    norm_frame: `astropy.coordinates.SkyCoord`
+    nominal_frame: `astropy.coordinates.SkyCoord`
         NominalFrame system
 
     Returns
@@ -344,18 +392,16 @@ def telescope_to_nominal(tel_coord, norm_frame):
     NominalFrame coordinates
     """
     alt_tel, az_tel = tel_coord.pointing_direction.alt, tel_coord.pointing_direction.az
-    alt_norm, az_norm = norm_frame.array_direction.alt, norm_frame.array_direction.az
-    alt_trans, az_trans = offset_to_altaz(
-        tel_coord.x, tel_coord.y, az_tel, alt_tel)
+    alt_nom, az_nom = nominal_frame.array_direction.alt, nominal_frame.array_direction.az
+    alt_trans, az_trans = offset_to_altaz(tel_coord.x, tel_coord.y, az_tel, alt_tel)
 
-    x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_norm, alt_norm)
+    x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_nom, alt_nom)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
-    representation = PlanarRepresentation(
-        x_off.to(tel_coord.x.unit), y_off.to(tel_coord.x.unit))
+    representation = PlanarRepresentation(x_off, y_off)
 
-    return norm_frame.realize_frame(representation)
+    return nominal_frame.realize_frame(representation)
 
 
 @frame_transform_graph.transform(FunctionTransform, NominalFrame, TelescopeFrame)
@@ -376,15 +422,23 @@ def nominal_to_telescope(norm_coord, tel_frame):
 
     """
     alt_tel, az_tel = tel_frame.pointing_direction.alt, tel_frame.pointing_direction.az
-    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
+    alt_nom, az_nom = norm_coord.array_direction.alt, norm_coord.array_direction.az
 
     alt_trans, az_trans = offset_to_altaz(
-        norm_coord.x, norm_coord.y, az_norm, alt_norm)
+        norm_coord.x,
+        norm_coord.y,
+        az_nom,
+        alt_nom
+    )
+
     x_off, y_off = altaz_to_offset(az_trans, alt_trans, az_tel, alt_tel)
     x_off = x_off * u.rad
     y_off = y_off * u.rad
 
-    representation = PlanarRepresentation(x_off.to(norm_coord.x.unit), y_off.to(norm_coord.x.unit))
+    representation = PlanarRepresentation(
+        x_off.to(norm_coord.x.unit),
+        y_off.to(norm_coord.x.unit),
+    )
 
     return tel_frame.realize_frame(representation)
 
@@ -459,6 +513,9 @@ def telescope_to_camera(telescope_coord, camera_frame):
     y_rotated = y_rotated.to(u.rad) * (focal_length / u.m)
 
     representation = CartesianRepresentation(
-        x_rotated.value * u.m, y_rotated.value * u.m, 0 * u.m)
+        x_rotated.value * u.m,
+        y_rotated.value * u.m,
+        0 * u.m
+    )
 
     return camera_frame.realize_frame(representation)
