@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.core.traits import Unicode, Integer, Dict, List
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.io import SimTelEventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -46,14 +46,14 @@ class ImageSumDisplayerTool(Tool):
         'output-suffix': 'ImageSumDisplayerTool.output_suffix'
     })
 
-    classes = List([CameraCalibrator, HESSIOEventSource])
+    classes = List([CameraCalibrator, SimTelEventSource])
 
     def setup(self):
         # load up the telescope types table (need to first open a file, a bit of
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
 
-        self.reader = HESSIOEventSource(
+        self.reader = SimTelEventSource(
             input_url=self.infile, max_events=self.max_events
         )
 
