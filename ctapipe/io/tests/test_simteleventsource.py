@@ -3,7 +3,7 @@ import pytest
 import copy
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.simteleventsource import SimTelEventSource
-from ctapipe.io.simteleventsource import HESSIOEventSource
+from ctapipe.io.hessioeventsource import HESSIOEventSource
 from itertools import zip_longest
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")

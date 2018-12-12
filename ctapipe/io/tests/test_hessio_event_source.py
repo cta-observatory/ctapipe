@@ -7,7 +7,6 @@ def test_hessio_file_reader():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     kwargs = dict(config=None, tool=None, input_url=dataset)
     with HESSIOEventSource(**kwargs) as reader:
-        assert reader.is_compatible(dataset)
         assert not reader.is_stream
         for event in reader:
             if event.count == 0:

@@ -7,10 +7,6 @@ automatically generated.
 
 from collections import defaultdict
 
-import numpy as np
-from astropy import units as u
-from astropy.table import Table
-
 from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import (Unicode, Dict, Enum)
 from ctapipe.io import event_source
@@ -50,7 +46,7 @@ class DumpInstrumentTool(Tool):
 
     def setup(self):
         with event_source(self.infile) as source:
-            data = next(source)  # get one event, so the instrument table is there
+            data = next(iter(source))  # get one event, so the instrument table is there
 
         self.inst = data.inst  # keep a reference to the instrument stuff
 

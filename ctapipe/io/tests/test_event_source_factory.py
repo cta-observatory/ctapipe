@@ -1,7 +1,7 @@
 import pytest
 from traitlets import TraitError
 
-from ctapipe.io.eventsourcefactory import EventSourceFactory, event_source
+from ctapipe.io import EventSourceFactory, event_source
 from ctapipe.utils import get_dataset_path
 
 
@@ -52,23 +52,15 @@ def test_factory_unknown_reader():
 
 
 def test_factory_incompatible_file():
-    dataset = get_dataset_path("optics.ecsv.txt")
-    reader = EventSourceFactory.produce(
-        product='SimTelEventSource',
-        input_url=dataset
-    )
-    event_list = [event for event in reader]
-    assert len(event_list) == 0
-    # TODO: Need better test for this, why does pyhessio not throw an error?
+    with pytest.raises(ValueError):
+        dataset = get_dataset_path("optics.ecsv.txt")
+        EventSourceFactory.produce(input_url=dataset)
 
 
 def test_factory_nonexistant_file():
     with pytest.raises(FileNotFoundError):
         dataset = "/fake_path/fake_file.fake_extension"
-        reader = EventSourceFactory.produce(
-            product='SimTelEventSource',
-            input_url=dataset
-        )
+        reader = EventSourceFactory.produce(input_url=dataset)
         assert reader is not None
 
 
