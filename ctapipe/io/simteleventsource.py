@@ -1,12 +1,13 @@
 import warnings
 import numpy as np
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.hessioeventsource import HESSIOEventSource
 from ctapipe.io.containers import DataContainer
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+import struct
+import gzip
 
 from eventio.simtel.simtelfile import SimTelFile
 
@@ -63,8 +64,18 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        # can be copied here verbatim if HESSIOEventSource should be removed
-        return HESSIOEventSource.is_compatible(file_path)
+        # read the first 4 bytes
+        with open(file_path, 'rb') as f:
+            marker_bytes = f.read(4)
+
+        # if file is gzip, read the first 4 bytes with gzip again
+        if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
+            with gzip.open(file_path, 'rb') as f:
+                marker_bytes = f.read(4)
+
+        # check for the simtel magic marker
+        int_marker, = struct.unpack('I', marker_bytes)
+        return int_marker == 3558836791 or int_marker == 931798996
 
     def _generator(self):
         try:

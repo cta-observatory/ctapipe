@@ -13,24 +13,24 @@ def test_factory_subclasses():
 def test_factory():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     reader = EventSourceFactory.produce(input_url=dataset)
-    assert reader.__class__.__name__ == "HESSIOEventSource"
+    assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset
 
 
 def test_factory_different_file():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     reader = EventSourceFactory.produce(input_url=dataset)
-    assert reader.__class__.__name__ == "HESSIOEventSource"
+    assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset
 
 
 def test_factory_from_reader():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     reader = EventSourceFactory.produce(
-        product='HESSIOEventSource',
+        product='SimTelEventSource',
         input_url=dataset
     )
-    assert reader.__class__.__name__ == "HESSIOEventSource"
+    assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset
 
 
@@ -50,10 +50,11 @@ def test_factory_unknown_reader():
         )
         assert reader is not None
 
+
 def test_factory_incompatible_file():
     dataset = get_dataset_path("optics.ecsv.txt")
     reader = EventSourceFactory.produce(
-        product='HESSIOEventSource',
+        product='SimTelEventSource',
         input_url=dataset
     )
     event_list = [event for event in reader]
@@ -65,10 +66,11 @@ def test_factory_nonexistant_file():
     with pytest.raises(FileNotFoundError):
         dataset = "/fake_path/fake_file.fake_extension"
         reader = EventSourceFactory.produce(
-            product='HESSIOEventSource',
+            product='SimTelEventSource',
             input_url=dataset
         )
         assert reader is not None
+
 
 def test_factory_incorrect_use():
     with pytest.raises(FileNotFoundError):
@@ -76,6 +78,7 @@ def test_factory_incorrect_use():
         factory = EventSourceFactory(input_url=dataset)
         reader = factory.produce()
         assert reader is not None
+
 
 def test_event_source_helper():
     with event_source(get_dataset_path("gamma_test_large.simtel.gz")) as source:
