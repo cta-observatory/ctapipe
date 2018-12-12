@@ -11,12 +11,12 @@ conf = RawConfigParser()
 conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
-PACKAGENAME = metadata.get('package_name', 'packagename')
-DESCRIPTION = metadata.get('description', 'Astropy affiliated package')
-AUTHOR = metadata.get('author', '')
-AUTHOR_EMAIL = metadata.get('author_email', '')
-LICENSE = metadata.get('license', 'unknown')
-URL = metadata.get('url', 'http://astropy.org')
+PACKAGENAME = metadata['package_name']
+DESCRIPTION = metadata['description']
+AUTHOR = metadata['author']
+AUTHOR_EMAIL = metadata['author_email']
+LICENSE = metadata['license']
+URL = metadata['url']
 
 # Get the long description from the package's docstring
 __import__(PACKAGENAME)
@@ -69,6 +69,7 @@ setup(name=PACKAGENAME,
           'pandas',
           'bokeh>=1.0.1',
           'scikit-learn',
+          'eventio==0.11.0',
       ],
       tests_require=['pytest', 'ctapipe-extra>=0.2.11'],
       author=AUTHOR,
