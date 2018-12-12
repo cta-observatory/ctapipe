@@ -69,7 +69,7 @@ install:
     - python setup.py develop
 
 script:
-    - pytest --cov=ctapipe
+    - pytest --cov=ctapipe -s
     - ctapipe-info --version # print out the version string
     - travis-sphinx -v --outdir=docbuild build --source=docs/
     - ./execute_ipynbs.py
