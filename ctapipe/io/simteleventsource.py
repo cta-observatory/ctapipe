@@ -178,9 +178,9 @@ class SimTelEventSource(EventSource):
                     data.r0.tel[tel_id].trig_pix_id = pixel_lists[0]['pixel_list']
 
                 pixel_settings = telescope_description['pixel_settings']
-                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['refshape']
-                data.mc.tel[tel_id].meta['refstep'] = pixel_settings['ref_step']
-                data.mc.tel[tel_id].time_slice = pixel_settings['time_slice']
+                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['refshape'].astype('float64')
+                data.mc.tel[tel_id].meta['refstep'] = float(pixel_settings['ref_step'])
+                data.mc.tel[tel_id].time_slice = float(pixel_settings['time_slice'])
 
                 n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
 
