@@ -156,6 +156,18 @@ class SimTelEventSource(EventSource):
             data.mcheader.run_array_direction = Angle(
                 self.file_.header['direction'] * u.rad
             )
+            mc_run_head = self.file_.mc_run_headers[-1]
+            data.mcheader.corsika_version = mc_run_head['shower_prog_vers']
+            data.mcheader.simtel_version = mc_run_head['detector_prog_vers']
+            data.mcheader.energy_range_min = mc_run_head['E_range'][0] * u.TeV
+            data.mcheader.energy_range_max = mc_run_head['E_range'][1] * u.TeV
+            data.mcheader.prod_site_B_total = mc_run_head['B_total'] * u.uT
+            data.mcheader.prod_site_B_declination = Angle(
+                mc_run_head['B_declination'] * u.rad)
+            data.mcheader.prod_site_B_inclination = Angle(
+                mc_run_head['B_inclination'] * u.rad)
+            data.mcheader.prod_site_alt = mc_run_head['obsheight'] * u.m
+            data.mcheader.spectral_index = mc_run_head['spectral_index']
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
@@ -206,3 +218,6 @@ class SimTelEventSource(EventSource):
                 data.mc.tel[tel_id].azimuth_cor = tracking_position.get('azimuth_cor', 0)
                 data.mc.tel[tel_id].altitude_cor = tracking_position.get('altitude_cor', 0)
             yield data
+
+
+
