@@ -118,3 +118,36 @@ def test_that_event_is_not_modified_after_loop():
         #      assert last_event == event
         # So for the moment we just compare event ids
         assert event.r0.event_id == last_event.r0.event_id
+
+
+def test_additional_meta_data_from_mc_header():
+    kwargs = dict(config=None, tool=None, input_url=gamma_test_path)
+
+    with SimTelEventSource(**kwargs) as reader:
+        data = next(iter(reader))
+
+    # for expectation values
+    from astropy import units as u
+    from astropy.coordinates import Angle
+
+    assert data.mcheader.corsika_version == 6990
+    assert data.mcheader.simtel_version == 1404919891
+    assert data.mcheader.spectral_index == -2.0
+
+    name_expectation = {
+        'energy_range_min': u.Quantity(3.0e-03, u.TeV),
+        'energy_range_max': u.Quantity(3.3e+02, u.TeV),
+        'prod_site_B_total': u.Quantity(27.181243896484375, u.uT),
+        'prod_site_B_declination': Angle(0.0 * u.rad),
+        'prod_site_B_inclination': Angle(-1.1581752300262451 * u.rad),
+        'prod_site_alt': 1640.0 * u.m,
+    }
+
+    for name, expectation in name_expectation.items():
+        value = getattr(data.mcheader, name)
+
+        assert value.unit == expectation.unit
+        assert np.isclose(
+            value.to_value(expectation.unit),
+            expectation.to_value(expectation.unit)
+        )
