@@ -64,12 +64,12 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     Frame attributes:
 
-    * ``tel_pointing``
+    * ``telescope_pointing``
         Alt,Az direction of the telescope pointing
 
     """
     default_representation = PlanarRepresentation
-    tel_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
+    telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
@@ -113,7 +113,7 @@ class CameraFrame(BaseCoordinateFrame):
 
     focal_length = Attribute(default=None)
     rotation = Attribute(default=0 * u.deg)
-    tel_pointing = CoordinateAttribute(frame=HorizonFrame, default=None)
+    telescope_pointing = CoordinateAttribute(frame=HorizonFrame, default=None)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
@@ -257,8 +257,8 @@ def horizon_to_telescope(horizon_coord, telescope_frame):
     -------
     Coordinates in TelescopeFrame
     """
-    alt_pointing = telescope_frame.tel_pointing.alt
-    az_pointing = telescope_frame.tel_pointing.az
+    alt_pointing = telescope_frame.telescope_pointing.alt
+    az_pointing = telescope_frame.telescope_pointing.az
     azimuth = horizon_coord.az
     altitude = horizon_coord.alt
 
@@ -287,7 +287,7 @@ def telescope_to_horizon(telescope_coord, horizon_frame):
     -------
     SkyCoord in horizon_frame
     """
-    pointing = telescope_coord.tel_pointing
+    pointing = telescope_coord.telescope_pointing
 
     altitude, azimuth = offset_to_altaz(
         telescope_coord.x,
@@ -376,7 +376,7 @@ def telescope_to_nominal(tel_coord, nominal_frame):
     -------
     NominalFrame coordinates
     """
-    alt_tel, az_tel = tel_coord.tel_pointing.alt, tel_coord.tel_pointing.az
+    alt_tel, az_tel = tel_coord.telescope_pointing.alt, tel_coord.telescope_pointing.az
 
     alt_nom, az_nom = nominal_frame.reference_point.alt, nominal_frame.reference_point.az
     alt_trans, az_trans = offset_to_altaz(tel_coord.x, tel_coord.y, az_tel, alt_tel)
@@ -407,7 +407,7 @@ def nominal_to_telescope(norm_coord, tel_frame):
     TelescopeFrame coordinates
 
     """
-    alt_tel, az_tel = tel_frame.tel_pointing.alt, tel_frame.tel_pointing.az
+    alt_tel, az_tel = tel_frame.telescope_pointing.alt, tel_frame.telescope_pointing.az
     alt_nom, az_nom = norm_coord.reference_point.alt, norm_coord.reference_point.az
 
     alt_trans, az_trans = offset_to_altaz(

@@ -6,7 +6,7 @@ def test_roundtrip_camera_horizon():
     from ctapipe.coordinates import CameraFrame, TelescopeFrame, HorizonFrame
 
     telescope_pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=HorizonFrame())
-    camera_frame = CameraFrame(focal_length=28 * u.m, pointing_direction=telescope_pointing)
+    camera_frame = CameraFrame(focal_length=28 * u.m, telescope_pointing=telescope_pointing)
 
     cam_coord = SkyCoord(x=0.5 * u.m, y=0.1 * u.m, frame=camera_frame)
     telescope_coord = cam_coord.transform_to(TelescopeFrame())
