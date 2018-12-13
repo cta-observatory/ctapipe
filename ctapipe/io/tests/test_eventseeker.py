@@ -3,12 +3,12 @@ from ctapipe.io import SimTelEventSource
 from ctapipe.io.eventseeker import EventSeeker
 import pytest
 
+dataset = get_dataset_path("gamma_test.simtel.gz")
+
 
 def test_eventseeker():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
-    kwargs = dict(config=None, tool=None, input_url=dataset)
 
-    with SimTelEventSource(**kwargs) as reader:
+    with SimTelEventSource(input_url=dataset) as reader:
 
         seeker = EventSeeker(reader=reader)
 
@@ -46,7 +46,7 @@ def test_eventseeker():
             event = seeker[dict()]
             assert event is not None
 
-    with SimTelEventSource(**kwargs, max_events=5) as reader:
+    with SimTelEventSource(input_url=dataset, max_events=5) as reader:
         seeker = EventSeeker(reader=reader)
         with pytest.raises(IndexError):
             event = seeker[5]
@@ -56,7 +56,8 @@ def test_eventseeker():
 
         def is_stream(self):
             return True
-    with StreamFileReader(**kwargs) as reader:
+
+    with StreamFileReader(input_url=dataset) as reader:
         with pytest.raises(IOError):
             seeker = EventSeeker(reader=reader)
             assert seeker is not None

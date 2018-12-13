@@ -4,12 +4,12 @@ import pytest
 
 
 def test_bokeh_event_viewer_creation():
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
 
 
 def test_event_setting(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
     for cam in viewer.cameras:
@@ -19,7 +19,7 @@ def test_event_setting(example_event):
 
 
 def test_enable_automatic_index_increment():
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.enable_automatic_index_increment()
     for cam in viewer.cameras:
@@ -27,7 +27,7 @@ def test_enable_automatic_index_increment():
 
 
 def test_change_time(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -56,7 +56,7 @@ def test_change_time(example_event):
 
 
 def test_on_waveform_click(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -69,7 +69,7 @@ def test_on_waveform_click(example_event):
 
 
 def test_telid(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -90,7 +90,7 @@ def test_telid(example_event):
 
 
 def test_telid_incorrect(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -99,7 +99,7 @@ def test_telid_incorrect(example_event):
 
 
 def test_on_pixel_click(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -109,7 +109,7 @@ def test_on_pixel_click(example_event):
 
 
 def test_channel(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -121,7 +121,7 @@ def test_channel(example_event):
 
 
 def test_channel_incorrect(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -130,7 +130,7 @@ def test_channel_incorrect(example_event):
 
 
 def test_view_camera(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
@@ -148,7 +148,7 @@ def test_view_camera(example_event):
 
 
 def test_view_wf(example_event):
-    viewer = BokehEventViewer(config=None, tool=None)
+    viewer = BokehEventViewer()
     viewer.create()
     viewer.event = example_event
 
