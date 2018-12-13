@@ -1,9 +1,10 @@
 import logging
+import warnings
 
 import numpy as np
 from astropy import log
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
@@ -91,21 +92,29 @@ def analyze_muon_event(event):
 
         clean_mask = tailcuts_clean(geom, image, picture_thresh=tailcuts[0],
                                     boundary_thresh=tailcuts[1])
-        camera_coord = CameraFrame(
-            x=x, y=y,
-            focal_length=teldes.optics.equivalent_focal_length,
-            rotation=geom.pix_rotation
-        )
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if altval > Angle(90*u.deg):
-            altval = Angle(90*u.deg)
+        if altval > Angle(90, unit=u.deg):
+            warnings.warn('Altitude over 90 degrees')
+            altval = Angle(90, unit=u.deg)
 
-        altaz = HorizonFrame(alt=altval,
-                             az=event.mcheader.run_array_direction[0])
+        pointing_direction = SkyCoord(
+            alt=altval,
+            az=event.mcheader.run_array_direction[0],
+            frame=HorizonFrame()
+        )
+        camera_coord = SkyCoord(
+            x=x, y=y,
+            frame=CameraFrame(
+                focal_length=teldes.optics.equivalent_focal_length,
+                rotation=geom.pix_rotation,
+                pointing_direction=pointing_direction,
+            )
+        )
+
         nom_coord = camera_coord.transform_to(
-            NominalFrame(array_direction=altaz, pointing_direction=altaz)
+            NominalFrame(array_direction=pointing_direction)
         )
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)
