@@ -62,7 +62,7 @@ def test_ground_to_tilt():
     assert tilt_coord.separation_3d(grd_coord) == 0 * u.m
 
     # Check 180 degree rotation reverses y coordinate
-    pointing_direction = HorizonFrame(alt=90 * u.deg, az=180 * u.deg)
+    pointing_direction = SkyCoord(alt=90 * u.deg, az=180 * u.deg, frame=HorizonFrame())
     tilt_coord = grd_coord.transform_to(
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )
