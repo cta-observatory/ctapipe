@@ -25,8 +25,8 @@ from astropy.coordinates import (
     CartesianRepresentation,
     UnitSphericalRepresentation,
     FunctionTransform,
-    Attribute,
     CoordinateAttribute,
+    QuantityAttribute,
     TimeAttribute,
     EarthLocationAttribute,
     AltAz
@@ -47,7 +47,9 @@ __all__ = [
 
 
 class HorizonFrame(AltAz):
-    """Horizon coordinate frame. Spherical system used to describe the direction
+    """Horizon coordinate frame.
+
+    Spherical system used to describe the direction
     of a given position, in terms of the altitude and azimuth of the system.
     This is functionally identical as the astropy AltAz system.
     """
@@ -55,22 +57,27 @@ class HorizonFrame(AltAz):
 
 
 class TelescopeFrame(BaseCoordinateFrame):
-    """Telescope coordinate frame.  Cartesian system to describe the
-    angular offset of a given position in reference to pointing
-    direction of a given telescope. The telescope just have informations
-    regarding its pointing direction.
-    When pointing corrections become available they should be applied
-    to the transformation between this frame and the camera frame.
+    """
+    Telescope coordinate frame.
+
+    Cartesian system describing the angular offset of a given position in reference
+    to the pointing direction of a given telescope.
+
+    This makes use of small angle approximations of the position of interest and
+    the pointing direction.
 
     Frame attributes:
 
     * ``telescope_pointing``
-        Alt,Az direction of the telescope pointing
-
+        Coordinate of the telescope pointing in HorizonFrame
+    * ``obstime``
+        Observation time
+    * ``location``
+        Location of the telescope
     """
     default_representation = PlanarRepresentation
-    telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
 
+    telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 
@@ -87,11 +94,14 @@ class NominalFrame(BaseCoordinateFrame):
 
     * ``reference_point``
         Alt,Az direction of the array pointing
-
+    * ``obstime``
+        Observation time
+    * ``location``
+        Location of the telescope
     """
     default_representation = PlanarRepresentation
-    reference_point = CoordinateAttribute(frame=HorizonFrame, default=None)
 
+    reference_point = CoordinateAttribute(frame=HorizonFrame, default=None)
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 
@@ -111,8 +121,8 @@ class CameraFrame(BaseCoordinateFrame):
     """
     default_representation = PlanarRepresentation
 
-    focal_length = Attribute(default=None)
-    rotation = Attribute(default=0 * u.deg)
+    focal_length = QuantityAttribute(default=None, unit=u.m)
+    rotation = QuantityAttribute(default=0 * u.deg, unit=u.rad)
     telescope_pointing = CoordinateAttribute(frame=HorizonFrame, default=None)
 
     obstime = TimeAttribute(default=None)
