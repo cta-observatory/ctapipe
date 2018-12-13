@@ -99,7 +99,7 @@ def analyze_muon_event(event):
             warnings.warn('Altitude over 90 degrees')
             altval = Angle(90, unit=u.deg)
 
-        pointing_direction = SkyCoord(
+        telescope_pointing = SkyCoord(
             alt=altval,
             az=event.mcheader.run_array_direction[0],
             frame=HorizonFrame()
@@ -109,12 +109,12 @@ def analyze_muon_event(event):
             frame=CameraFrame(
                 focal_length=teldes.optics.equivalent_focal_length,
                 rotation=geom.pix_rotation,
-                pointing_direction=pointing_direction,
+                telescope_pointing=telescope_pointing,
             )
         )
 
         nom_coord = camera_coord.transform_to(
-            NominalFrame(array_direction=pointing_direction)
+            NominalFrame(reference_point=telescope_pointing)
         )
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)

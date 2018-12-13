@@ -257,8 +257,8 @@ def horizon_to_telescope(horizon_coord, telescope_frame):
     -------
     Coordinates in TelescopeFrame
     """
-    alt_pointing = telescope_frame.pointing_direction.alt
-    az_pointing = telescope_frame.pointing_direction.az
+    alt_pointing = telescope_frame.telescope_pointing.alt
+    az_pointing = telescope_frame.telescope_pointing.az
 
     x_off, y_off = altaz_to_offset(
         obj_azimuth=horizon_coord.az,

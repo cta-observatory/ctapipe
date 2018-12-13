@@ -141,9 +141,9 @@ class HillasReconstructor(Reconstructor):
         if np.any(alt != alt[0]) or np.any(az != az[0]):
             warnings.warn('Divergent pointing not supported')
 
-        pointing_direction = SkyCoord(alt=alt[0], az=az[0], frame=HorizonFrame())
+        telescope_pointing = SkyCoord(alt=alt[0], az=az[0], frame=HorizonFrame())
         # core position estimate using a geometric approach
-        core_pos = self.estimate_core_position(hillas_dict, pointing_direction)
+        core_pos = self.estimate_core_position(hillas_dict, telescope_pointing)
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
@@ -212,7 +212,7 @@ class HillasReconstructor(Reconstructor):
 
             camera_frame = CameraFrame(
                 focal_length=focal_length,
-                pointing_direction=pointing
+                telescope_pointing=pointing
             )
 
             cog_coord = SkyCoord(
@@ -271,7 +271,7 @@ class HillasReconstructor(Reconstructor):
 
         return result, err_est_dir
 
-    def estimate_core_position(self, hillas_dict, pointing_direction):
+    def estimate_core_position(self, hillas_dict, telescope_pointing):
         '''
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
@@ -279,7 +279,7 @@ class HillasReconstructor(Reconstructor):
         -----------
         hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
-        pointing_direction: SkyCoord[HorizonFrame]
+        telescope_pointing: SkyCoord[HorizonFrame]
             Pointing direction of the array
 
         Returns
@@ -294,7 +294,7 @@ class HillasReconstructor(Reconstructor):
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
 
-        tilted_frame = TiltedGroundFrame(pointing_direction=pointing_direction)
+        tilted_frame = TiltedGroundFrame(pointing_direction=telescope_pointing)
         ground_frame = GroundFrame()
 
         positions = [

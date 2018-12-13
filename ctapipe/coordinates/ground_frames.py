@@ -67,8 +67,6 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     # direction
     pointing_direction = CoordinateAttribute(default=None, frame=HorizonFrame)
 
-# Transformations defined below this point
-
 
 def get_shower_trans_matrix(azimuth, altitude):
     """Get Transformation matrix for conversion from the ground system to
