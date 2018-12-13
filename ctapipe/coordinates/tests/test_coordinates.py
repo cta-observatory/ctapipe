@@ -26,8 +26,9 @@ def test_cam_to_tel():
 
     focal_length = 15 * u.m
 
+    camera_frame = CameraFrame(focal_length=focal_length)
     # first define the camera frame
-    camera_coord = CameraFrame(pix_x, pix_y, focal_length=focal_length)
+    camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
 
     # then use transform to function to convert to a new system
     # making sure to give the required values for the conversion
@@ -36,14 +37,12 @@ def test_cam_to_tel():
     assert telescope_coord.x[0] == (1 / 15) * u.rad
 
     # check rotation
-    camera_coord = CameraFrame(pix_x, pix_y, focal_length=focal_length)
+    camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
     telescope_coord_rot = camera_coord.transform_to(TelescopeFrame())
     assert telescope_coord_rot.y[0] - (1 / 15) * u.rad < 1e-6 * u.rad
 
     # The Transform back
-    camera_coord2 = telescope_coord.transform_to(
-        CameraFrame(focal_length=focal_length)
-    )
+    camera_coord2 = telescope_coord.transform_to(camera_frame)
 
     # Check separation
     assert camera_coord.separation_3d(camera_coord2)[0] == 0 * u.m
@@ -54,7 +53,7 @@ def test_ground_to_tilt():
 
     # define ground coordinate
     grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m)
-    pointing_direction = HorizonFrame(alt=90 * u.deg, az=0 * u.deg)
+    pointing_direction = SkyCoord(alt=90 * u.deg, az=0 * u.deg, frame=HorizonFrame())
 
     # Convert to tilted frame at zenith (should be the same)
     tilt_coord = grd_coord.transform_to(
@@ -70,7 +69,7 @@ def test_ground_to_tilt():
     assert np.abs(tilt_coord.y + 2. * u.m) < 1e-5 * u.m
 
     # Check that if we look at horizon the x coordinate is 0
-    pointing_direction = HorizonFrame(alt=0 * u.deg, az=0 * u.deg)
+    pointing_direction = SkyCoord(alt=0 * u.deg, az=0 * u.deg, frame=HorizonFrame())
     tilt_coord = grd_coord.transform_to(
         TiltedGroundFrame(pointing_direction=pointing_direction)
     )

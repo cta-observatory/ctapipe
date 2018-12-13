@@ -6,12 +6,13 @@ For generic use with all muon algorithms
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import numpy as np
+from astropy/coordinates import SkyCoord
 from astropy import units as u
 from astropy.table import Table
 from matplotlib import colors
 from scipy.stats import norm
 
-from ctapipe.coordinates import (CameraFrame, NominalFrame, HorizonFrame)
+from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.plotting.camera import CameraPlotter
 from ctapipe.utils.fitshistogram import Histogram
@@ -149,19 +150,22 @@ def plot_muon_event(event, muonparams):
 
             centroid = (ring_camcoord.x.value, ring_camcoord.y.value)
 
-            ringrad_camcoord = muonparams['MuonRingParams'][idx].ring_radius.to(
-                u.rad) \
-                * flen * 2.  # But not FC?
+            radius = muonparams['MuonRingParams'][idx].ring_radius
+            ringrad_camcoord = 2 * radius.to(u.rad) * flen  # But not FC?
 
             px = subarray.tel[tel_id].camera.pix_x
             py = subarray.tel[tel_id].camera.pix_y
-            camera_coord = CameraFrame(x=px, y=py,
-                                       focal_length=flen,
-                                       rotation=geom.pix_rotation)
+            camera_coord = SkyCoord(
+                x=px,
+                y=py,
+                frame=CameraFrame(
+                    focal_length=flen,
+                    rotation=geom.pix_rotation,
+                )
+            )
 
             nom_coord = camera_coord.transform_to(
-                NominalFrame(array_direction=altaz,
-                             pointing_direction=altaz)
+                NominalFrame(reference_point=altaz)
             )
 
             px = nom_coord.x.to(u.deg)
