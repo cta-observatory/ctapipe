@@ -184,8 +184,12 @@ def fact_image_cleaning(geom, image, arrival_times, picture_threshold=4,
     5: Remove pixels with less than N neighbors
     6: Remove pixels with less than N neighbors arriving within a given timeframe
 
-    Reference: FACT Project
-    Implementation: https://github.com/fact-project/fact-tools
+    Reference:
+        On the hunt for photons: analysis of Crab Nebula data obtained
+        by the first G-APD Cherenkov telescope, Thomas Fabian Temme
+        http://dx.doi.org/10.17877/DE290R-17773
+    Implementation:
+        https://github.com/fact-project/fact-tools
 
     Parameters
     ----------
