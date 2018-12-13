@@ -19,14 +19,13 @@ from astropy.coordinates import (
     BaseCoordinateFrame,
     CartesianRepresentation,
     FunctionTransform,
-    Attribute,
     CoordinateAttribute,
 )
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
 
 from .representation import PlanarRepresentation
-from .angular_frames import HorizonFrame
+from .horizon_frame import HorizonFrame
 
 __all__ = [
     'GroundFrame',

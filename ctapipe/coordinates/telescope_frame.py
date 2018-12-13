@@ -22,7 +22,7 @@ from astropy.coordinates import (
     EarthLocationAttribute,
 )
 
-from .angular_frames import HorizonFrame
+from .horizon_frame import HorizonFrame
 
 
 class TelescopeFrame(BaseCoordinateFrame):
