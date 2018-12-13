@@ -99,8 +99,10 @@ class NominalFrame(BaseCoordinateFrame):
 
     """
     default_representation = PlanarRepresentation
-    pointing_direction = Attribute(default=None)
-    array_direction = Attribute(default=None)
+    array_direction = CoordinateAttribute(frame=HorizonFrame, default=None)
+
+    obstime = TimeAttribute(default=None)
+    location = EarthLocationAttribute(default=None)
 
 
 class CameraFrame(BaseCoordinateFrame):
