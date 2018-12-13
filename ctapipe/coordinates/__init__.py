@@ -1,6 +1,7 @@
 """
 Coordinates.
 """
+from .horizon_frame import HorizonFrame
 from .telescope_frame import TelescopeFrame
 from .nominal_frame import NominalFrame
 from .ground_frames import GroundFrame, TiltedGroundFrame, project_to_ground

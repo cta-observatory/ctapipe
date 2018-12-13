@@ -5,6 +5,7 @@ http://docs.astropy.org/en/stable/_modules/astropy/coordinates/builtin_frames/sk
 We are just not creating a metaclass and a factory but directly building the
 corresponding class.
 '''
+import astropy.units as u
 from astropy.coordinates.matrix_utilities import (
     rotation_matrix,
     matrix_product,
@@ -20,6 +21,8 @@ from astropy.coordinates import (
     CoordinateAttribute,
     TimeAttribute,
     EarthLocationAttribute,
+    RepresentationMapping,
+    QuantityAttribute,
 )
 
 from .horizon_frame import HorizonFrame
@@ -44,10 +47,17 @@ class NominalFrame(BaseCoordinateFrame):
     * ``location``
         Location of the telescope
     """
+    frame_specific_representation_info = {
+        SphericalRepresentation: [
+            RepresentationMapping('lon', 'x'),
+            RepresentationMapping('lat', 'y'),
+        ]
+    }
     default_representation = SphericalRepresentation
     default_differential = SphericalCosLatDifferential
 
     origin = CoordinateAttribute(default=None, frame=HorizonFrame)
+    rotation = QuantityAttribute(0, unit=u.deg)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
