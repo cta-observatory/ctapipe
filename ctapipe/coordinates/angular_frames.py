@@ -46,14 +46,7 @@ __all__ = [
 ]
 
 
-class HorizonFrame(AltAz):
-    """Horizon coordinate frame.
-
-    Spherical system used to describe the direction
-    of a given position, in terms of the altitude and azimuth of the system.
-    This is functionally identical as the astropy AltAz system.
-    """
-    pass
+HorizonFrame = AltAz
 
 
 class TelescopeFrame(BaseCoordinateFrame):
