@@ -330,16 +330,8 @@ def nominal_to_altaz(norm_coord, altaz_coord):
     """
     alt_nom, az_nom = norm_coord.array_direction.alt, norm_coord.array_direction.az
 
-    if type(norm_coord.x.value).__module__ != np.__name__:
-        x_off = np.zeros(1)
-        x_off[0] = norm_coord.x.value
-        x_off = x_off * norm_coord.x.unit
-        y_off = np.zeros(1)
-        y_off[0] = norm_coord.y.value
-        y_off = y_off * norm_coord.y.unit
-    else:
-        x_off = norm_coord.x
-        y_off = norm_coord.y
+    x_off = norm_coord.x
+    y_off = norm_coord.y
 
     altitude, azimuth = offset_to_altaz(x_off, y_off, az_nom, alt_nom)
 
