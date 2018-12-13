@@ -15,7 +15,7 @@ class EventSource(Component):
     Parent class for EventFileReaders of different sources.
 
     A new EventFileReader should be created for each type of event file read
-    into ctapipe, e.g. sim_telarray files are read by the `HESSIOEventSource`.
+    into ctapipe, e.g. sim_telarray files are read by the `SimTelEventSource`.
 
     EventFileReader provides a common high-level interface for accessing event
     information from different data sources (simulation or different camera
@@ -26,7 +26,7 @@ class EventSource(Component):
     EventFileReader itself is an abstract class. To use an EventFileReader you
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
-    `ctapipe.io.hessiofilereader.HESSIOEventSource` to read a hessio format
+    `ctapipe.io.SimTelEventSource` to read a hessio format
     file). Alternatively you can use
     `ctapipe.io.eventfilereader.EventSourceFactory` to automatically
     select the correct EventFileReader subclass for the file format you wish

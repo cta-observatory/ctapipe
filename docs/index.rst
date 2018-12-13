@@ -64,7 +64,6 @@ Module API Status (relative to next release)
 `calib`           **stable**
 `coordinates`     caution
 `core`            **stable**
-`flow`            experimental
 `instrument`      **stable**
 `io`              **stable** 
 `reco`            **stable**

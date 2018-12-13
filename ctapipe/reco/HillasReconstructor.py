@@ -7,13 +7,11 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
-from ctapipe.coordinates import TiltedGroundFrame, HorizonFrame, CameraFrame
+from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, project_to_ground
 from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 from itertools import combinations
 
 import numpy as np
-
-from scipy.optimize import minimize
 
 from astropy import units as u
 
@@ -94,8 +92,9 @@ class HillasReconstructor(Reconstructor):
         super().__init__(config=config, parent=tool, **kwargs)
         self.hillas_planes = {}
 
-    def predict(self, hillas_dict, inst, pointing_alt, pointing_az, seed_pos=(0, 0)):
-        """The function you want to call for the reconstruction of the
+    def predict(self, hillas_dict, inst, pointing_alt, pointing_az):
+        '''
+        The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
         calls the functions for the direction and core position
         reconstruction.  Shower parameters not reconstructed by this
@@ -103,23 +102,21 @@ class HillasReconstructor(Reconstructor):
 
         Parameters
         -----------
-        hillas_dict : python dictionary
+        hillas_dict: dict
             dictionary with telescope IDs as key and
             HillasParametersContainer instances as values
         inst : ctapipe.io.InstrumentContainer
             instrumental description
-        pointing_alt:
-        pointing_az:
-        seed_pos : python tuple
-            shape (2) tuple with a possible seed for
-            the core position fit (e.g. CoG of all telescope images)
+        pointing_alt: dict[astropy.coordinates.Angle]
+            dict mapping telescope ids to pointing altitude
+        pointing_az: dict[astropy.coordinates.Angle]
+            dict mapping telescope ids to pointing azimuth
 
         Raises
         ------
         TooFewTelescopesException
             if len(hillas_dict) < 2
-
-        """
+        '''
 
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
@@ -127,7 +124,7 @@ class HillasReconstructor(Reconstructor):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
-        self.inititialize_hillas_planes(
+        self.initialize_hillas_planes(
             hillas_dict,
             inst.subarray,
             pointing_alt,
@@ -137,8 +134,14 @@ class HillasReconstructor(Reconstructor):
         # algebraic direction estimate
         direction, err_est_dir = self.estimate_direction()
 
+        alt = u.Quantity(list(pointing_alt.values()))
+        az = u.Quantity(list(pointing_az.values()))
+        if np.any(alt != alt[0]) or np.any(az != az[0]):
+            raise ValueError('Divergent pointing not supported')
+
+        pointing_direction = SkyCoord(alt=alt[0], az=az[0], frame='altaz')
         # core position estimate using a geometric approach
-        core_pos = self.estimate_core_position(hillas_dict)
+        core_pos = self.estimate_core_position(hillas_dict, pointing_direction)
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
@@ -168,7 +171,7 @@ class HillasReconstructor(Reconstructor):
 
         return result
 
-    def inititialize_hillas_planes(
+    def initialize_hillas_planes(
         self,
         hillas_dict,
         subarray,
@@ -193,6 +196,7 @@ class HillasReconstructor(Reconstructor):
 
         self.hillas_planes = {}
         for tel_id, moments in hillas_dict.items():
+            # we just need any point on the main shower axis a bit away from the cog
             p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
             p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
             focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
@@ -210,7 +214,7 @@ class HillasReconstructor(Reconstructor):
             cf = CameraFrame(
                 focal_length=focal_length,
                 array_direction=pointing,
-                pointing_direction=pointing
+                pointing_direction=pointing,
             )
 
             cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=cf)
@@ -265,33 +269,51 @@ class HillasReconstructor(Reconstructor):
 
         return result, err_est_dir
 
-
-
-    def estimate_core_position(self, hillas_dict):
+    def estimate_core_position(self, hillas_dict, pointing_direction):
         '''
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
         Parameters
         -----------
-        hillas_dict : dictionary
+        hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray information
+        pointing_direction: SkyCoord[AltAz]
+            Pointing direction of the array
 
         Returns
         -----------
-        astropy.unit.Quantity (wrapped numpy array) of shape 2
+        core_x: u.Quantity
+            estimated x position of impact
+        core_y: u.Quantity
+            estimated y position of impact
 
         '''
+        psi = u.Quantity([h.psi for h in hillas_dict.values()])
+        z = np.zeros(len(psi))
+        uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
 
-        uvw_vectors = np.array([(np.cos(h.phi), np.sin(h.phi), 0) for h in hillas_dict.values()])
-        positions = [plane.pos for plane in self.hillas_planes.values()]
+        tilted_frame = TiltedGroundFrame(pointing_direction=pointing_direction)
+        ground_frame = GroundFrame(pointing_direction=pointing_direction)
 
+        positions = [
+            (
+                SkyCoord(*plane.pos, frame=ground_frame)
+                .transform_to(tilted_frame)
+                .cartesian.xyz
+            )
+            for plane in self.hillas_planes.values()
+        ]
         core_position = line_line_intersection_3d(uvw_vectors, positions)
-        # we are only intyerested in x and y
-        return core_position[:2] * u.m
 
+        core_pos_tilted = SkyCoord(
+            x=core_position[0] * u.m,
+            y=core_position[1] * u.m,
+            frame=tilted_frame
+        )
 
+        core_pos = project_to_ground(core_pos_tilted)
+
+        return core_pos.x, core_pos.y
 
     def estimate_h_max(self):
         '''
@@ -313,7 +335,7 @@ class HillasReconstructor(Reconstructor):
         positions = [plane.pos for plane in self.hillas_planes.values()]
 
         # not sure if its better to return the length of the vector of the z component
-        return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions))
+        return np.linalg.norm(line_line_intersection_3d(uvw_vectors, positions)) * u.m
 
 
 class HillasPlane:

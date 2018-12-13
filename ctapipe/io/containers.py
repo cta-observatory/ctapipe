@@ -43,6 +43,7 @@ __all__ = [
     'HillasParametersContainer',
     'LeakageContainer',
     'ConcentrationContainer',
+    'TimingParametersContainer',
 ]
 
 
@@ -237,6 +238,7 @@ class MCCameraEventContainer(Container):
         "the tracking Altitude corrected for pointing errors for the telescope"
     )
 
+
 class MCEventContainer(Container):
     """
     Monte-Carlo
@@ -268,6 +270,21 @@ class MCHeaderContainer(Container):
         "OR "
         "[0]=R.A., [1]=Declination in mode 1."
     ))
+    corsika_version = Field(0.0, "CORSIKA version * 1000")
+    simtel_version = Field(0.0, "sim_telarray version * 1000")
+    energy_range_min = Field(0.0, "Lower limit of energy range "
+                                  "of primary particle", unit=u.TeV)
+    energy_range_max = Field(0.0, "Upper limit of energy range "
+                                  "of primary particle", unit=u.TeV)
+    prod_site_B_total = Field(0.0, "total geomagnetic field", unit=u.uT)
+    prod_site_B_declination = Field(0.0, "magnetic declination", unit=u.rad)
+    prod_site_B_inclination = Field(0.0, "magnetic inclination", unit=u.rad)
+    prod_site_alt = Field(0.0, "height of observation level", unit=u.m)
+    prod_site_array = Field("None", "site array")
+    prod_site_coord = Field("None", "site (long., lat.) coordinates")
+    prod_site_subarray = Field("None", "site subarray")
+    spectral_index = Field(0.0, "Power-law spectral index of spectrum")
+
 
 
 class CentralTriggerContainer(Container):
@@ -718,3 +735,12 @@ class ConcentrationContainer(Container):
         nan,
         'Percentage of photo-electrons in the brightest pixel'
     )
+
+
+class TimingParametersContainer(Container):
+    """
+    Slope and Intercept of a linear regression of the arrival times
+    along the shower main axis
+    """
+    slope = Field(nan, 'Slope of arrival times along main shower axis')
+    intercept = Field(nan, 'intercept of arrival times along main shower axis')

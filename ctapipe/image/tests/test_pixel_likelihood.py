@@ -4,8 +4,8 @@ from ctapipe.image import poisson_likelihood_full, poisson_likelihood_gaussian
 
 def test_full_likelihood():
     """
-    Simple test of likelihood, test against known values for high and low 
-    signal cases. Check that full calculation and the gaussian approx become 
+    Simple test of likelihood, test against known values for high and low
+    signal cases. Check that full calculation and the gaussian approx become
     equal at high signal.
     """
     spe = 0.5  # Single photo-electron width
