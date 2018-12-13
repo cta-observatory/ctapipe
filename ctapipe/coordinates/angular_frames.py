@@ -121,7 +121,7 @@ class CameraFrame(BaseCoordinateFrame):
     """
     default_representation = PlanarRepresentation
 
-    focal_length = QuantityAttribute(default=None, unit=u.m)
+    focal_length = QuantityAttribute(default=0, unit=u.m)
     rotation = QuantityAttribute(default=0 * u.deg, unit=u.rad)
     telescope_pointing = CoordinateAttribute(frame=HorizonFrame, default=None)
 
