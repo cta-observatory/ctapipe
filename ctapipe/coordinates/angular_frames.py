@@ -71,7 +71,7 @@ class TelescopeFrame(BaseCoordinateFrame):
     """
     default_representation = PlanarRepresentation
 
-    telescope_pointing = Attribute(default=None) #, frame=HorizonFrame)
+    telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 
@@ -95,7 +95,7 @@ class NominalFrame(BaseCoordinateFrame):
     """
     default_representation = PlanarRepresentation
 
-    reference_point = Attribute(default=None)
+    reference_point = CoordinateAttribute(default=None, frame=HorizonFrame)
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 
