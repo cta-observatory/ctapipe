@@ -15,7 +15,7 @@ def test_cam_to_nominal():
     cam_frame = CameraFrame(focal_length=28 * u.m, telescope_pointing=telescope_pointing)
     cam = SkyCoord(x=0.5 * u.m, y=0.1 * u.m, frame=cam_frame)
 
-    nom_frame = NominalFrame(reference_point=array_pointing)
+    nom_frame = NominalFrame(origin=array_pointing)
     cam.transform_to(nom_frame)
 
 

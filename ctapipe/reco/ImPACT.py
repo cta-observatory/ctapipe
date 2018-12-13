@@ -635,7 +635,7 @@ class ImPACTReconstructor(Reconstructor):
             az=shower_seed.az, alt=shower_seed.alt, frame=HorizonFrame()
         )
         nominal_seed = horizon_seed.transform_to(
-            NominalFrame(reference_point=self.array_direction)
+            NominalFrame(origin=self.array_direction)
         )
 
         source_x = nominal_seed.x.to(u.rad).value
@@ -675,7 +675,7 @@ class ImPACTReconstructor(Reconstructor):
         nominal = SkyCoord(
             x=fit_params[0] * u.rad,
             y=fit_params[1] * u.rad,
-            frame=NominalFrame(reference_point=self.array_direction)
+            frame=NominalFrame(origin=self.array_direction)
         )
         horizon = nominal.transform_to(HorizonFrame())
 

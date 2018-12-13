@@ -165,7 +165,7 @@ def plot_muon_event(event, muonparams):
             )
 
             nom_coord = camera_coord.transform_to(
-                NominalFrame(reference_point=altaz)
+                NominalFrame(origin=altaz)
             )
 
             px = nom_coord.x.to(u.deg)

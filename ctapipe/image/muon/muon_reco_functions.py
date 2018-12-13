@@ -114,7 +114,7 @@ def analyze_muon_event(event):
         )
 
         nom_coord = camera_coord.transform_to(
-            NominalFrame(reference_point=telescope_pointing)
+            NominalFrame(origin=telescope_pointing)
         )
         x = nom_coord.x.to(u.deg)
         y = nom_coord.y.to(u.deg)

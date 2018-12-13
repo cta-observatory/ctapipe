@@ -15,14 +15,13 @@ from astropy.coordinates import (
     frame_transform_graph,
     FunctionTransform,
     DynamicMatrixTransform,
-    SphericalRepresentation,
-    SphericalCosLatDifferential,
     BaseCoordinateFrame,
     CoordinateAttribute,
     TimeAttribute,
     EarthLocationAttribute,
     RepresentationMapping,
     QuantityAttribute,
+    UnitSphericalRepresentation
 )
 
 from .horizon_frame import HorizonFrame
@@ -48,13 +47,12 @@ class TelescopeFrame(BaseCoordinateFrame):
         Location of the telescope
     """
     frame_specific_representation_info = {
-        SphericalRepresentation: [
+        UnitSphericalRepresentation: [
             RepresentationMapping('lon', 'x'),
             RepresentationMapping('lat', 'y'),
         ]
     }
-    default_representation = SphericalRepresentation
-    default_differential = SphericalCosLatDifferential
+    default_representation = UnitSphericalRepresentation
 
     telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
     rotation = QuantityAttribute(0, unit=u.deg)

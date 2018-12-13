@@ -62,7 +62,7 @@ def cam_to_nom():
 
     # In this case we bypass the telescope system
     nominal_frame = NominalFrame(
-        reference_point=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
+        origin=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
     )
     nom_coord = camera_coord.transform_to(nominal_frame)
 
@@ -79,7 +79,7 @@ def nominal_to_altaz():
     nom = SkyCoord(
         x=0 * u.deg,
         y=0 * u.deg,
-        frame=NominalFrame(reference_point=HorizonFrame(alt=75 * u.deg, az=180 * u.deg))
+        frame=NominalFrame(origin=HorizonFrame(alt=75 * u.deg, az=180 * u.deg))
     )
     alt_az = nom.transform_to(HorizonFrame())
     print("HorizonCoordinate", alt_az)

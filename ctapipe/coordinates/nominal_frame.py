@@ -15,8 +15,7 @@ from astropy.coordinates import (
     frame_transform_graph,
     FunctionTransform,
     DynamicMatrixTransform,
-    SphericalRepresentation,
-    SphericalCosLatDifferential,
+    UnitSphericalRepresentation,
     BaseCoordinateFrame,
     CoordinateAttribute,
     TimeAttribute,
@@ -48,13 +47,12 @@ class NominalFrame(BaseCoordinateFrame):
         Location of the telescope
     """
     frame_specific_representation_info = {
-        SphericalRepresentation: [
+        UnitSphericalRepresentation: [
             RepresentationMapping('lon', 'x'),
             RepresentationMapping('lat', 'y'),
         ]
     }
-    default_representation = SphericalRepresentation
-    default_differential = SphericalCosLatDifferential
+    default_representation = UnitSphericalRepresentation
 
     origin = CoordinateAttribute(default=None, frame=HorizonFrame)
     rotation = QuantityAttribute(0, unit=u.deg)
