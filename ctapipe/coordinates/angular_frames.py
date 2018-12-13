@@ -29,6 +29,7 @@ from astropy.coordinates import (
     QuantityAttribute,
     TimeAttribute,
     EarthLocationAttribute,
+    Attribute,
     AltAz
 )
 
@@ -70,7 +71,7 @@ class TelescopeFrame(BaseCoordinateFrame):
     """
     default_representation = PlanarRepresentation
 
-    telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
+    telescope_pointing = Attribute(default=None) #, frame=HorizonFrame)
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 
@@ -94,7 +95,7 @@ class NominalFrame(BaseCoordinateFrame):
     """
     default_representation = PlanarRepresentation
 
-    reference_point = CoordinateAttribute(frame=HorizonFrame, default=None)
+    reference_point = Attribute(default=None)
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
 

@@ -3,6 +3,8 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.time import Time
 
+location = EarthLocation.of_site('Roque de los Muchachos')
+
 
 def test_cam_to_nominal():
     from ctapipe.coordinates import CameraFrame, HorizonFrame, NominalFrame
@@ -41,6 +43,49 @@ def test_icrs_to_camera():
 
     # assert ceta tauri is in FoV
     assert camera_center.separation_3d(ceta_tauri_camera) < u.Quantity(0.6 * u.m)
+
+
+def test_telescope_separation():
+    from ctapipe.coordinates import TelescopeFrame, HorizonFrame
+
+    telescope_pointing = SkyCoord(
+        alt=70 * u.deg,
+        az=0 * u.deg,
+        frame=HorizonFrame() # location=location, obstime=Time('2013-11-01T03:00'))
+    )
+
+    telescope_frame = TelescopeFrame(telescope_pointing=telescope_pointing)
+    tel1 = SkyCoord(0 * u.deg, 0 * u.deg, frame=telescope_frame)
+    tel2 = SkyCoord(0 * u.deg, 1 * u.deg, frame=telescope_frame)
+
+    assert tel1.separation(tel2) == u.Quantity(1, u.deg)
+
+
+def test_separation_is_the_same():
+    from ctapipe.coordinates import TelescopeFrame, HorizonFrame
+
+    obstime = Time('2013-11-01T03:00')
+    location = EarthLocation.of_site('Roque de los Muchachos')
+    horizon_frame = HorizonFrame(location=location, obstime=obstime)
+
+    crab = SkyCoord(ra='05h34m31.94s', dec='22d00m52.2s')
+    ceta_tauri = SkyCoord(ra='5h37m38.6854231s', dec='21d08m33.158804s')
+
+    # simulate crab "on" observations
+    telescope_pointing = crab.transform_to(horizon_frame)
+
+    telescope_frame = TelescopeFrame(
+        telescope_pointing=telescope_pointing,
+        location=location,
+        obstime=obstime,
+    )
+
+    ceta_tauri_telescope = ceta_tauri.transform_to(telescope_frame)
+    crab_telescope = crab.transform_to(telescope_frame)
+    print(crab_telescope)
+    print(ceta_tauri_telescope)
+
+    assert ceta_tauri.separation(crab) == ceta_tauri_telescope.separation(crab_telescope)
 
 
 def test_cam_to_tel():
