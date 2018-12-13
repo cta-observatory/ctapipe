@@ -9,6 +9,7 @@ from astropy.coordinates import (
     FunctionTransform,
     frame_transform_graph,
     CartesianRepresentation,
+    UnitSphericalRepresentation,
 )
 
 from .horizon_frame import HorizonFrame
@@ -71,7 +72,7 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
     x_rotated = (x_rotated / focal_length).to_value() * u.rad
     y_rotated = (y_rotated / focal_length).to_value() * u.rad
-    representation = PlanarRepresentation(x_rotated, y_rotated)
+    representation = UnitSphericalRepresentation(x_rotated, y_rotated)
 
     return telescope_frame.realize_frame(representation)
 

@@ -83,10 +83,9 @@ def test_separation_is_the_same():
 
     ceta_tauri_telescope = ceta_tauri.transform_to(telescope_frame)
     crab_telescope = crab.transform_to(telescope_frame)
-    print(crab_telescope)
-    print(ceta_tauri_telescope)
 
-    assert ceta_tauri.separation(crab) == approx(ceta_tauri_telescope.separation(crab_telescope))
+    sep = ceta_tauri_telescope.separation(crab_telescope).to_value(u.deg)
+    assert ceta_tauri.separation(crab).to_value(u.deg) == approx(sep, rel=1e-4)
 
 
 def test_cam_to_tel():
