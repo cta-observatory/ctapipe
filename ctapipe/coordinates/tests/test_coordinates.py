@@ -2,6 +2,7 @@ import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.time import Time
+from pytest import approx
 
 location = EarthLocation.of_site('Roque de los Muchachos')
 
@@ -85,7 +86,7 @@ def test_separation_is_the_same():
     print(crab_telescope)
     print(ceta_tauri_telescope)
 
-    assert ceta_tauri.separation(crab) == ceta_tauri_telescope.separation(crab_telescope)
+    assert ceta_tauri.separation(crab) == approx(ceta_tauri_telescope.separation(crab_telescope))
 
 
 def test_cam_to_tel():
