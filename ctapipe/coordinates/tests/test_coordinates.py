@@ -1,6 +1,7 @@
 import numpy as np
 import astropy.units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.time import Time
 
 
 def test_cam_to_nominal():
@@ -14,6 +15,32 @@ def test_cam_to_nominal():
 
     nom_frame = NominalFrame(reference_point=array_pointing)
     cam.transform_to(nom_frame)
+
+
+def test_icrs_to_camera():
+    from ctapipe.coordinates import CameraFrame, HorizonFrame
+
+    obstime = Time('2013-11-01T03:00')
+    location = EarthLocation.of_site('Roque de los Muchachos')
+    horizon_frame = HorizonFrame(location=location, obstime=obstime)
+
+    # simulate crab "on" observations
+    crab = SkyCoord(ra='05h34m31.94s', dec='22d00m52.2s')
+    telescope_pointing = crab.transform_to(horizon_frame)
+
+    camera_frame = CameraFrame(
+        focal_length=28 * u.m,
+        telescope_pointing=telescope_pointing,
+        location=location, obstime=obstime,
+    )
+
+    ceta_tauri = SkyCoord(ra='5h37m38.6854231s', dec='21d08m33.158804s')
+    ceta_tauri_camera = ceta_tauri.transform_to(camera_frame)
+
+    camera_center = SkyCoord(0 * u.m, 0 * u.m, frame=camera_frame)
+
+    # assert ceta tauri is in FoV
+    assert camera_center.separation_3d(ceta_tauri_camera) < u.Quantity(0.6 * u.m)
 
 
 def test_cam_to_tel():
