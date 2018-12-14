@@ -104,33 +104,42 @@ def test_hillas_container():
 def test_with_toy():
     from ctapipe.image import toymodel
 
-    np.random.seed(0)
+    np.random.seed(42)
 
     geom = CameraGeometry.from_name('LSTCam')
 
-    width = 0.05
+    width = 0.03
     length = 0.15
     intensity = 500
-    psi = Angle('30d')
 
-    # make a toymodel shower model
-    model = toymodel.generate_2d_shower_model(
-        centroid=(0.2, 0.3),
-        width=width, length=length,
-        psi=psi,
-    )
+    xs = (0.5, 0.5, -0.5, -0.5)
+    ys = (0.5, -0.5, 0.5, -0.5)
+    psis = Angle([-90, -45, 0, 45, 90], unit='deg')
 
-    image, signal, noise = toymodel.make_toymodel_shower_image(
-        geom, model.pdf, intensity=intensity, nsb_level_pe=5,
-    )
+    for x, y in zip(xs, ys):
+        for psi in psis:
 
-    result = hillas_parameters(geom, signal)
+            # make a toymodel shower model
+            model = toymodel.generate_2d_shower_model(
+                centroid=(0.2, 0.3),
+                width=width, length=length,
+                psi=psi,
+            )
 
-    assert result.x.to_value(u.m) == approx(0.2, rel=0.15)
-    assert result.y.to_value(u.m) == approx(0.3, rel=0.15)
+            image, signal, noise = toymodel.make_toymodel_shower_image(
+                geom, model.pdf, intensity=intensity, nsb_level_pe=5,
+            )
 
-    assert result.width.to_value(u.m) == approx(width, rel=0.05)
-    assert result.length.to_value(u.m) == approx(length, rel=0.05)
-    assert result.psi.to_value(u.deg) == approx(psi.deg, rel=0.05)
+            result = hillas_parameters(geom, signal)
 
-    assert poisson(intensity).ppf(0.05) <= result.intensity <= poisson(intensity).ppf(0.95)
+            assert result.x.to_value(u.m) == approx(0.2, rel=0.1)
+            assert result.y.to_value(u.m) == approx(0.3, rel=0.1)
+
+            assert result.width.to_value(u.m) == approx(width, rel=0.1)
+            assert result.length.to_value(u.m) == approx(length, rel=0.1)
+            assert (
+                (result.psi.to_value(u.deg) == approx(psi.deg, abs=2))
+                or abs(result.psi.to_value(u.deg) - psi.deg) == approx(180.0, abs=2)
+            )
+
+            assert signal.sum() == result.intensity
