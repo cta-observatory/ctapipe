@@ -1,12 +1,12 @@
 """
-Set of diagnostic plots relating to muons 
+Set of diagnostic plots relating to muons
 For generic use with all muon algorithms
 """
 
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy/coordinates import SkyCoord
+from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.table import Table
 from matplotlib import colors
