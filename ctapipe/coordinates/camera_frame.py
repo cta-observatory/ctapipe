@@ -18,18 +18,25 @@ from .representation import PlanarRepresentation
 
 
 class CameraFrame(BaseCoordinateFrame):
-    """Camera coordinate frame.  The camera frame is a simple physical
+    '''Camera coordinate frame.  The camera frame is a simple physical
     cartesian frame, describing the 2 dimensional position of objects
     in the focal plane of the telescope Most Typically this will be
     used to describe the positions of the pixels in the focal plane
 
-    Frame attributes:
+    Attributes
+    ----------
 
-    * ``focal_length``
+    focal_length : u.Quantity[length]
         Focal length of the telescope as a unit quantity (usually meters)
-    * ``rotation``
+    rotation : u.Quantity[angle]
         Rotation angle of the camera (0 deg in most cases)
-    """
+    telescope_pointing : SkyCoord[HorizonFrame]
+        Pointing direction of the telescope as SkyCoord in HorizonFrame
+    obstime : Time
+        Observation time
+    location : EarthLocation
+        location of the telescope
+    '''
     default_representation = PlanarRepresentation
 
     focal_length = QuantityAttribute(default=0, unit=u.m)
@@ -42,19 +49,10 @@ class CameraFrame(BaseCoordinateFrame):
 
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
 def camera_to_telescope(camera_coord, telescope_frame):
-    """
-    Transformation between CameraFrame and TelescopeFrame
-
-    Parameters
-    ----------
-    camera_coord: `astropy.coordinates.SkyCoord`
-        CameraFrame system
-    telescope_frame: `astropy.coordinates.SkyCoord`
-        TelescopeFrame system
-    Returns
-    -------
-    TelescopeFrame coordinate
-    """
+    '''
+    Transformation between CameraFrame and TelescopeFrame.
+    Is called when a SkyCoord is transformed from CameraFrame into TelescopeFrame
+    '''
     x_pos = camera_coord.cartesian.x
     y_pos = camera_coord.cartesian.y
 
@@ -79,20 +77,11 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, CameraFrame)
 def telescope_to_camera(telescope_coord, camera_frame):
-    """
+    '''
     Transformation between TelescopeFrame and CameraFrame
 
-    Parameters
-    ----------
-    telescope_coord: `astropy.coordinates.SkyCoord`
-        TelescopeFrame system
-    camera_frame: `astropy.coordinates.SkyCoord`
-        CameraFrame system
-
-    Returns
-    -------
-    CameraFrame Coordinates
-    """
+    Is called when a SkyCoord is transformed from TelescopeFrame into CameraFrame
+    '''
     x_pos = telescope_coord.x
     y_pos = telescope_coord.y
     # reverse the rotation applied to get to this system

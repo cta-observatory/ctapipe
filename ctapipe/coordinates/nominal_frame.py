@@ -28,24 +28,29 @@ from .horizon_frame import HorizonFrame
 
 
 class NominalFrame(BaseCoordinateFrame):
-    """
-    Telescope coordinate frame.
+    '''
+    Nominal coordinate frame.
 
-    Cartesian system describing the angular offset of a given position in reference
-    to the pointing direction of a given telescope.
+    A Frame using a UnitSphericalRepresentation.
+    This is basically the same as a HorizonCoordinate, but the
+    origin is at an arbitray position in the sky.
+    This is what astropy calls a SkyOffsetCoordinate
 
-    This makes use of small angle approximations of the position of interest and
-    the pointing direction.
+    If the telescopes are in divergent pointing, this Frame can be
+    used to transform to a common system.
 
-    Frame attributes:
+    Attributes
+    ----------
 
-    * ``origin``
-        Coordinate of the telescope pointing in HorizonFrame
-    * ``obstime``
+    origin: SkyCoord[HorizonFrame]
+        Origin of this frame as a HorizonCoordinate
+    obstime: Tiem
         Observation time
-    * ``location``
+    location: EarthLocation
         Location of the telescope
-    """
+    rotation: Angle
+        rotation of the frame, 0 means x along azimuth, y along altitude
+    '''
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
             RepresentationMapping('lon', 'x'),

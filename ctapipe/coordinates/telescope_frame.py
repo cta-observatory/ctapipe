@@ -28,24 +28,26 @@ from .horizon_frame import HorizonFrame
 
 
 class TelescopeFrame(BaseCoordinateFrame):
-    """
+    '''
     Telescope coordinate frame.
 
-    Cartesian system describing the angular offset of a given position in reference
-    to the pointing direction of a given telescope.
+    A Frame using a UnitSphericalRepresentation.
+    This is basically the same as a HorizonCoordinate, but the
+    origin is at the telescope's pointing direction.
+    This is what astropy calls a SkyOffsetCoordinate
 
-    This makes use of small angle approximations of the position of interest and
-    the pointing direction.
+    Attributes
+    ----------
 
-    Frame attributes:
-
-    * ``telescope_pointing``
+    telescope_pointing: SkyCoord[HorizonFrame]
         Coordinate of the telescope pointing in HorizonFrame
-    * ``obstime``
+    obstime: Tiem
         Observation time
-    * ``location``
+    location: EarthLocation
         Location of the telescope
-    """
+    rotation: Angle
+        rotation of the frame, 0 means x along azimuth, y along altitude
+    '''
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
             RepresentationMapping('lon', 'x'),
@@ -63,7 +65,7 @@ class TelescopeFrame(BaseCoordinateFrame):
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, TelescopeFrame)
 def skyoffset_to_skyoffset(from_telescope_coord, to_telescope_frame):
-    """Transform between two skyoffset frames."""
+    '''Transform between two skyoffset frames.'''
 
     intermediate_from = from_telescope_coord.transform_to(
         from_telescope_coord.telescope_pointing
@@ -76,7 +78,7 @@ def skyoffset_to_skyoffset(from_telescope_coord, to_telescope_frame):
 
 @frame_transform_graph.transform(DynamicMatrixTransform, HorizonFrame, TelescopeFrame)
 def reference_to_skyoffset(reference_frame, telescope_frame):
-    """Convert a reference coordinate to an sky offset frame."""
+    '''Convert a reference coordinate to an sky offset frame.'''
 
     # Define rotation matrices along the position angle vector, and
     # relative to the telescope_pointing.
@@ -89,7 +91,7 @@ def reference_to_skyoffset(reference_frame, telescope_frame):
 
 @frame_transform_graph.transform(DynamicMatrixTransform, TelescopeFrame, HorizonFrame)
 def skyoffset_to_reference(skyoffset_coord, reference_frame):
-    """Convert an sky offset frame coordinate to the reference frame"""
+    '''Convert an sky offset frame coordinate to the reference frame'''
 
     # use the forward transform, but just invert it
     R = reference_to_skyoffset(reference_frame, skyoffset_coord)
