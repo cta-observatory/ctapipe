@@ -2,9 +2,13 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.image import tailcuts_clean, toymodel
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io.containers import HillasParametersContainer
+from astropy.coordinates import Angle
 from astropy import units as u
+import numpy as np
 from numpy import isclose, zeros_like, arange
 from numpy.random import seed
+from pytest import approx
+from scipy.stats import poisson
 import pytest
 
 
@@ -95,3 +99,38 @@ def test_hillas_container():
 
     params = hillas_parameters(geom, image)
     assert isinstance(params, HillasParametersContainer)
+
+
+def test_with_toy():
+    from ctapipe.image import toymodel
+
+    np.random.seed(0)
+
+    geom = CameraGeometry.from_name('LSTCam')
+
+    width = 0.05
+    length = 0.15
+    intensity = 500
+    psi = Angle('30d')
+
+    # make a toymodel shower model
+    model = toymodel.generate_2d_shower_model(
+        centroid=(0.2, 0.3),
+        width=width, length=length,
+        psi=psi,
+    )
+
+    image, signal, noise = toymodel.make_toymodel_shower_image(
+        geom, model.pdf, intensity=intensity, nsb_level_pe=5,
+    )
+
+    result = hillas_parameters(geom, signal)
+
+    assert result.x.to_value(u.m) == approx(0.2, rel=0.15)
+    assert result.y.to_value(u.m) == approx(0.3, rel=0.15)
+
+    assert result.width.to_value(u.m) == approx(width, rel=0.05)
+    assert result.length.to_value(u.m) == approx(length, rel=0.05)
+    assert result.psi.to_value(u.deg) == approx(psi.deg, rel=0.05)
+
+    assert poisson(intensity).ppf(0.05) <= result.intensity <= poisson(intensity).ppf(0.95)

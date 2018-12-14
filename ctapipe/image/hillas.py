@@ -77,7 +77,7 @@ def hillas_parameters(geom: CameraGeometry, image):
     width, length = np.sqrt(eig_vals)
 
     # psi is the angle of the eigenvector to length to the x-axis
-    psi = np.arctan2(eig_vecs[1, 1], eig_vecs[0, 1])
+    psi = np.arctan(eig_vecs[1, 1] / eig_vecs[0, 1])
 
     # calculate higher order moments along shower axes
     longitudinal = delta_x * np.cos(psi) + delta_y * np.sin(psi)
