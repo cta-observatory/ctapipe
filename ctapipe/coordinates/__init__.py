@@ -11,8 +11,8 @@ from astropy.utils import iers
 iers.conf.auto_download = True  # auto-fetch updates to IERS_A table
 
 
+# HorizonFrame is not in __all__ because the docs complain otherwise
 __all__ = [
-    'HorizonFrame',
     'TelescopeFrame',
     'CameraFrame',
     'NominalFrame',
