@@ -5,14 +5,19 @@ from ctapipe.io.containers import HillasParametersContainer
 from astropy.coordinates import Angle
 from astropy import units as u
 import numpy as np
-from numpy import isclose, zeros_like, arange
+from numpy import isclose, zeros_like
 from numpy.random import seed
 from pytest import approx
-from scipy.stats import poisson
 import pytest
 
 
-def create_sample_image(psi='-30d', centroid=(0.2, 0.3), width=0.05, length=0.15, intensity=1500):
+def create_sample_image(
+        psi='-30d',
+        centroid=(0.2, 0.3),
+        width=0.05,
+        length=0.15,
+        intensity=1500
+):
     seed(10)
 
     geom = CameraGeometry.from_name('LSTCam')
@@ -89,11 +94,6 @@ def test_hillas_failure():
         hillas_parameters(geom, blank_image)
 
 
-def test_hillas_api_change():
-    with pytest.raises(TypeError):
-        hillas_parameters(arange(10), arange(10), arange(10))
-
-
 def test_hillas_container():
     geom, image = create_sample_image_zeros(psi='0d')
 
@@ -102,8 +102,6 @@ def test_hillas_container():
 
 
 def test_with_toy():
-    from ctapipe.image import toymodel
-
     np.random.seed(42)
 
     geom = CameraGeometry.from_name('LSTCam')
@@ -121,7 +119,7 @@ def test_with_toy():
 
             # make a toymodel shower model
             model = toymodel.generate_2d_shower_model(
-                centroid=(0.2, 0.3),
+                centroid=(x, y),
                 width=width, length=length,
                 psi=psi,
             )
@@ -132,8 +130,8 @@ def test_with_toy():
 
             result = hillas_parameters(geom, signal)
 
-            assert result.x.to_value(u.m) == approx(0.2, rel=0.1)
-            assert result.y.to_value(u.m) == approx(0.3, rel=0.1)
+            assert result.x.to_value(u.m) == approx(x, rel=0.1)
+            assert result.y.to_value(u.m) == approx(y, rel=0.1)
 
             assert result.width.to_value(u.m) == approx(width, rel=0.1)
             assert result.length.to_value(u.m) == approx(length, rel=0.1)
