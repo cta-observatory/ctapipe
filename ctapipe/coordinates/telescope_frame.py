@@ -94,6 +94,6 @@ def skyoffset_to_reference(skyoffset_coord, reference_frame):
     '''Convert an sky offset frame coordinate to the reference frame'''
 
     # use the forward transform, but just invert it
-    R = reference_to_skyoffset(reference_frame, skyoffset_coord)
-    # transpose is the inverse because R is a rotation matrix
-    return matrix_transpose(R)
+    mat = reference_to_skyoffset(reference_frame, skyoffset_coord)
+    # transpose is the inverse because mat is a rotation matrix
+    return matrix_transpose(mat)

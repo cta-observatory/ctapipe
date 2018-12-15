@@ -19,8 +19,10 @@ def test_roundtrip_camera_horizon():
     back_telescope_coord = horizon_coord.transform_to(TelescopeFrame())
     back_cam_coord = back_telescope_coord.transform_to(camera_frame)
 
-    assert back_telescope_coord.x.to_value(u.deg) == approx(telescope_coord.x.to_value(u.deg))
-    assert back_telescope_coord.y.to_value(u.deg) == approx(telescope_coord.y.to_value(u.deg))
+    x = back_telescope_coord.x.to_value(u.deg)
+    y = back_telescope_coord.y.to_value(u.deg)
+    assert x == approx(telescope_coord.x.to_value(u.deg))
+    assert y == approx(telescope_coord.y.to_value(u.deg))
 
     assert back_cam_coord.x.to_value(u.m) == approx(cam_coord.x.to_value(u.m))
     assert back_cam_coord.y.to_value(u.m) == approx(cam_coord.y.to_value(u.m))

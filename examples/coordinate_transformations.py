@@ -57,7 +57,10 @@ def cam_to_nom():
     pix_y = np.ones(2048) * u.m
 
     pointing_direction = SkyCoord(alt=70 * u.deg, az=180 * u.deg, frame=HorizonFrame())
-    camera_frame = CameraFrame(focal_length=15 * u.m, telescope_pointing=pointing_direction)
+    camera_frame = CameraFrame(
+        focal_length=15 * u.m,
+        telescope_pointing=pointing_direction
+    )
     camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
 
     # In this case we bypass the telescope system

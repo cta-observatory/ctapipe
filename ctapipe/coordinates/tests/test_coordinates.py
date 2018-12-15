@@ -52,7 +52,7 @@ def test_telescope_separation():
     telescope_pointing = SkyCoord(
         alt=70 * u.deg,
         az=0 * u.deg,
-        frame=HorizonFrame() # location=location, obstime=Time('2013-11-01T03:00'))
+        frame=HorizonFrame()
     )
 
     telescope_frame = TelescopeFrame(telescope_pointing=telescope_pointing)

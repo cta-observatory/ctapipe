@@ -4,7 +4,6 @@ from ctapipe.io import event_source
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.datasets import get_dataset_path
-from ctapipe.visualization import CameraDisplay
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -65,7 +64,11 @@ with event_source(input_url=input_url) as source:
                 min_number_picture_neighbors=min_neighbors
             )
 
-            cam_coords = SkyCoord(camera.pix_x[clean], camera.pix_y[clean], frame=camera_frame)
+            cam_coords = SkyCoord(
+                camera.pix_x[clean],
+                camera.pix_y[clean],
+                frame=camera_frame
+            )
             nom = cam_coords.transform_to(nominal_frame)
             nom_x.append(nom.x.wrap_at(180 * u.deg).to_value(u.deg))
             nom_y.append(nom.y.to_value(u.deg))
