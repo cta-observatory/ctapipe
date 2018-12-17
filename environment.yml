@@ -4,7 +4,6 @@ channels:
   - cta-observatory
   - conda-forge
 dependencies:
-  - ctapipe-extra=0.2.16
   - zeromq
   - astropy
   - bokeh
