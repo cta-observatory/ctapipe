@@ -22,26 +22,23 @@ if __name__ == '__main__':
 
     # load the camera
     tel = TelescopeDescription.from_name("SST-1M", "DigiCam")
-    print(tel, tel.optics.equivalent_focal_length)
     geom = tel.camera
 
-    # poor-man's coordinate transform from telscope to camera frame (it's
-    # better to use ctapipe.coordiantes when they are stable)
-    scale = tel.optics.equivalent_focal_length.to(geom.pix_x.unit).value
-    fov = np.deg2rad(4.0)
-    maxwid = np.deg2rad(0.01)
-    maxlen = np.deg2rad(0.03)
+    fov = 0.3
+    maxwid = 0.05
+    maxlen = 0.1
 
     disp = CameraDisplay(geom, ax=ax)
-    disp.cmap = plt.cm.terrain
+    disp.cmap = 'inferno'
     disp.add_colorbar(ax=ax)
 
     def update(frame):
-        centroid = np.random.uniform(-fov, fov, size=2) * scale
-        width = np.random.uniform(0, maxwid) * scale
-        length = np.random.uniform(0, maxlen) * scale + width
-        angle = np.random.uniform(0, 360)
-        intens = np.random.exponential(2) * 50
+        centroid = np.random.uniform(-fov, fov, size=2)
+        width = np.random.uniform(0.01, maxwid)
+        length = np.random.uniform(width, maxlen)
+        angle = np.random.uniform(0, 180)
+        intens = width * length * (5e4 + 1e5 * np.random.exponential(2))
+
         model = toymodel.generate_2d_shower_model(
             centroid=centroid,
             width=width,
@@ -52,10 +49,9 @@ if __name__ == '__main__':
             geom,
             model.pdf,
             intensity=intens,
-            nsb_level_pe=5000,
+            nsb_level_pe=5,
         )
-        image /= image.max()
         disp.image = image
 
-    anim = FuncAnimation(fig, update, interval=250)
+    anim = FuncAnimation(fig, update, interval=500)
     plt.show()

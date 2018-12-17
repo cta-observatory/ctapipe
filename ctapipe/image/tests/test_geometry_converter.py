@@ -12,19 +12,33 @@ from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_showe
 cam_ids = CameraGeometry.get_known_camera_names()
 
 
+def create_mock_image(geom):
+    '''
+    creates a mock image, which parameters are adapted to the camera size
+    '''
+
+    camera_r = np.max(np.sqrt(geom.pix_x**2 + geom.pix_y**2))
+    model = generate_2d_shower_model(
+        centroid=(0.3 * camera_r.value, 0),
+        width=0.03 * camera_r.value,
+        length=0.10 * camera_r.value,
+        psi="25d"
+    )
+
+    _, image, _ = make_toymodel_shower_image(
+        geom, model.pdf,
+        intensity=0.5 * geom.n_pixels,
+        nsb_level_pe=3,
+    )
+    return image
+
+
 @pytest.mark.parametrize("rot", [3, ])
 @pytest.mark.parametrize("cam_id", cam_ids)
 def test_convert_geometry(cam_id, rot):
 
     geom = CameraGeometry.from_name(cam_id)
-
-    model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
-                                     psi="25d")
-
-    _, image, _ = make_toymodel_shower_image(geom, model.pdf,
-                                             intensity=50,
-                                             nsb_level_pe=100)
-
+    image = create_mock_image(geom)
     hillas_0 = hillas_parameters(geom, image)
 
     if geom.pix_type == 'hexagonal':
@@ -70,14 +84,7 @@ def test_convert_geometry_mock(cam_id, rot):
     """
 
     geom = CameraGeometry.from_name(cam_id)
-
-    model = generate_2d_shower_model(centroid=(0.4, 0), width=0.01, length=0.03,
-                                     psi="25d")
-
-    _, image, _ = make_toymodel_shower_image(geom, model.pdf,
-                                             intensity=50,
-                                             nsb_level_pe=100)
-
+    image = create_mock_image(geom)
     hillas_0 = hillas_parameters(geom, image)
 
     if geom.pix_type == 'hexagonal':

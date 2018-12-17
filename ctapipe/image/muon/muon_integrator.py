@@ -252,10 +252,10 @@ class MuonLineIntegrate:
         pred *= 0.5 * photval
 
         # weight by pixel width
-        pred *= (self.pixel_width / radius)
+        pred *= (self.pixel_width.value / radius)
         pred *= np.sin(2 * radius)
         # weight by gaussian width
-        pred *= self.pixel_width * gauss
+        pred *= self.pixel_width.value * gauss
 
         return pred
 
@@ -301,10 +301,10 @@ class MuonLineIntegrate:
             self.pixel_x.value,
             self.pixel_y.value,
         )
-        # TEST: extra scaling factor, HESS style (ang pix size squared/2piR)
-        # Not including bins atm
-        # HESSscale = self.pixel_width*self.pixel_width / (2.*np.pi() * radius)
-        # prediction *= HESSscale
+        # TEST: extra scaling factor, HESS style (ang pix size /2piR)
+
+        scalenpix = self.pixel_width / (2.*np.pi * radius)
+        self.prediction *= scalenpix.value
 
         # scale prediction by optical efficiency of array
         self.prediction *= optical_efficiency_muon
@@ -335,15 +335,18 @@ class MuonLineIntegrate:
         ndarray: likelihood for each pixel
 
         """
-        ped = ped * u.deg
-        image = image * u.deg
-        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) * u.deg))
+        #ped = ped * u.deg
+        #image = image * u.deg
+        pred = pred * u.deg
+        sq = 1 / np.sqrt(2 * np.pi * (ped**2 + pred * (1 + spe_width**2) ))
         diff = (image - pred)**2
-        denom = 2 * (ped**2 + pred * (1 + spe_width**2) * u.deg)
+        denom = 2 * (ped**2 + pred * (1 + spe_width**2) )
         expo = np.exp(-diff / denom) * u.m
         sm = expo < 1e-300 * u.m
         expo[sm] = 1e-300 * u.m
-        log_value = sq * expo / u.m * u.deg
+
+        log_value = sq * expo / u.m
+
         likelihood_value = -2 * np.log(log_value)
 
         return likelihood_value
@@ -417,7 +420,7 @@ class MuonLineIntegrate:
             **init_params,
             **init_errs,
             **init_constrain,
-            errordef=0.,
+            errordef=0.1,
             print_level=0,
             pedantic=False
         )
