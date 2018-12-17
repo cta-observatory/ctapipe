@@ -57,7 +57,7 @@ def camera_to_telescope(camera_coord, telescope_frame):
     y_pos = camera_coord.cartesian.y
 
     rot = camera_coord.rotation
-    if rot == 0:
+    if rot == 0:  # if no rotation applied save a few cycles
         x_rotated = x_pos
         y_rotated = y_pos
     else:
@@ -68,8 +68,15 @@ def camera_to_telescope(camera_coord, telescope_frame):
 
     focal_length = camera_coord.focal_length
 
-    x_rotated = (x_rotated / focal_length).to_value() * u.rad
-    y_rotated = (y_rotated / focal_length).to_value() * u.rad
+    # this assumes an equidistant mapping function of the telescope optics
+    # or a small angle approximation of most other mapping functions
+    # this could be replaced by actually defining the mapping function
+    # as an Attribute of `CameraFrame` that maps f(r, focal_length) -> theta,
+    # where theta is the angle to the optical axis and r is the distance
+    # to the camera center in the focal plane
+    x_rotated = u.Quantity((x_rotated / focal_length).to_value(), u.rad)
+    y_rotated = u.Quantity((y_rotated / focal_length).to_value(), u.rad)
+
     representation = UnitSphericalRepresentation(x_rotated, y_rotated)
 
     return telescope_frame.realize_frame(representation)
@@ -97,7 +104,13 @@ def telescope_to_camera(telescope_coord, camera_frame):
         y_rotated = x_pos * sinrot + y_pos * cosrot
 
     focal_length = camera_frame.focal_length
-    # Remove distance units here as we are using small angle approx
+
+    # this assumes an equidistant mapping function of the telescope optics
+    # or a small angle approximation of most other mapping functions
+    # this could be replaced by actually defining the mapping function
+    # as an Attribute of `CameraFrame` that maps f(theta, focal_length) -> r,
+    # where theta is the angle to the optical axis and r is the distance
+    # to the camera center in the focal plane
     x_rotated = x_rotated.to_value(u.rad) * focal_length
     y_rotated = y_rotated.to_value(u.rad) * focal_length
 
