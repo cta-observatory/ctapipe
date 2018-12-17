@@ -151,6 +151,7 @@ class NectarCAMEventSource(EventSource):
         self.data.nectarcam.tels_with_data = [self.camera_config.telescope_id, ]
         svc_container = self.data.nectarcam.tel[self.camera_config.telescope_id].svc
 
+
         svc_container.telescope_id = self.camera_config.telescope_id
         svc_container.cs_serial = self.camera_config.cs_serial
         svc_container.configuration_id = self.camera_config.configuration_id
@@ -169,10 +170,7 @@ class NectarCAMEventSource(EventSource):
         # svc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
 
 
-
-
     def fill_nectarcam_event_container_from_zfile(self, event):
-
 
         event_container = self.data.nectarcam.tel[self.camera_config.telescope_id].evt
 
@@ -191,7 +189,6 @@ class NectarCAMEventSource(EventSource):
 
     def fill_r0_camera_container_from_zfile(self, container, event):
 
-
         container.num_samples = self.camera_config.num_samples
         container.trigger_time = event.trigger_time_s
         container.trigger_type = event.trigger_type
@@ -208,6 +205,7 @@ class NectarCAMEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
+
         container.pixel_status=np.zeros([self.n_camera_pixels])
         container.pixel_status[self.camera_config.expected_pixels_id]= \
             event.pixel_status
@@ -222,13 +220,11 @@ class NectarCAMEventSource(EventSource):
         container.waveform = np.zeros([n_gains,
                                        self.n_camera_pixels,
                                        container.num_samples])
-        
 
         # re-order the waveform following the expected_pixels_id values (rank = pixel id)
         container.waveform[:, self.camera_config.expected_pixels_id, :] \
             = reshaped_waveform
-        
-            
+
 
 
     def fill_r0_container_from_zfile(self, event):

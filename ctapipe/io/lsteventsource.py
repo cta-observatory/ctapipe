@@ -69,6 +69,7 @@ class LSTEventSource(EventSource):
     def rewind(self):
         self.multi_file.rewind()
 
+
     def _generator(self):
 
         # container for LST data
@@ -163,6 +164,7 @@ class LSTEventSource(EventSource):
         svc_container.num_samples = self.camera_config.num_samples
         svc_container.pixel_ids = self.camera_config.expected_pixels_id
         svc_container.data_model_version = self.camera_config.data_model_version
+
 
         svc_container.num_modules = self.camera_config.lstcam.num_modules
         svc_container.module_ids = self.camera_config.lstcam.expected_modules_id
