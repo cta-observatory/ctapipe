@@ -21,7 +21,8 @@ from astropy.coordinates import (
     EarthLocationAttribute,
     RepresentationMapping,
     QuantityAttribute,
-    UnitSphericalRepresentation
+    UnitSphericalRepresentation,
+    Angle
 )
 
 from .horizon_frame import HorizonFrame
@@ -61,6 +62,13 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # make sure telescope coordinate is in range [-180°, 180°]
+        if isinstance(self._data, UnitSphericalRepresentation):
+            self._data.lon.wrap_angle = Angle(180, unit=u.deg)
 
 
 @frame_transform_graph.transform(FunctionTransform, TelescopeFrame, TelescopeFrame)

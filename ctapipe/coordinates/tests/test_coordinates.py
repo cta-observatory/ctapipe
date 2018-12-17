@@ -43,8 +43,8 @@ def test_icrs_to_camera():
     camera_center = SkyCoord(0 * u.m, 0 * u.m, frame=camera_frame)
     crab_camera = crab.transform_to(camera_frame)
 
-    assert crab_camera.x.to_value(u.m) == approx(0.0)
-    assert crab_camera.y.to_value(u.m) == approx(0.0)
+    assert crab_camera.x.to_value(u.m) == approx(0.0, abs=1e-10)
+    assert crab_camera.y.to_value(u.m) == approx(0.0, abs=1e-10)
 
     # assert ceta tauri is in FoV
     assert camera_center.separation_3d(ceta_tauri_camera) < u.Quantity(0.6, u.m)
