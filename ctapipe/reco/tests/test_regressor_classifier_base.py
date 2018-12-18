@@ -1,6 +1,6 @@
 import pytest
 from sklearn.ensemble import RandomForestClassifier
-from ctapipe.reco.regressor_classifier_base import *
+from ctapipe.reco.regressor_classifier_base import RegressorClassifierBase
 
 
 def test_reshuffle_event_list():
@@ -14,7 +14,7 @@ def test_reshuffle_event_list():
 
     cam_id_list = ["FlashCam", "ASTRICam"]
     my_base = RegressorClassifierBase(model=RandomForestClassifier,
-                                      cam_id_list=cam_id_list, unit=1)
+                                      cam_id_list=cam_id_list, unit=1, n_estimators=100)
 
     feature_flattened, target_flattened = my_base.reshuffle_event_list(
         feature_list, target_list
@@ -64,8 +64,12 @@ def test_show_importances():
     target_list = {"FlashCam": [0, 1, 1, 0],
                    "ASTRICam": [1, 0, 0, 0]}
 
-    reg = RegressorClassifierBase(model=RandomForestClassifier,
-                                  cam_id_list=cam_id_list, unit=1)
+    reg = RegressorClassifierBase(
+        model=RandomForestClassifier,
+        cam_id_list=cam_id_list,
+        unit=1,
+        n_estimators=10,
+    )
 
     reg.fit(feature_list, target_list)
     reg.input_features_dict = {

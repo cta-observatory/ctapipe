@@ -9,14 +9,14 @@ from ctapipe.utils import datasets
 
 def test_find_datasets():
     # find all datasets matching pattern
-    r = datasets.find_all_matching_datasets("(.*)\.camgeom\.fits\.gz")
+    r = datasets.find_all_matching_datasets(r"(.*)\.camgeom\.fits\.gz")
     assert len(r) > 3
 
     # get the full filename for a resrouces
     assert os.path.exists(datasets.get_dataset_path(r[0]))
 
     # try using a pattern
-    r = datasets.find_all_matching_datasets("(.*)\.camgeom\.fits\.gz",
+    r = datasets.find_all_matching_datasets(r"(.*)\.camgeom\.fits\.gz",
                                             regexp_group=1)
     assert not r[0].endswith("gz")
 
