@@ -215,57 +215,79 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             sample_age > self.max_time_range_s
             or self.num_events_seen == self.max_events
         ):
-
-            # consider only not masked data
-            masked_trace_integral = np.ma.array(
+            relative_gain_results = calculate_relative_gain_results(
+                self.event_median,
                 self.trace_integral,
-                mask=self.bad_pixels_of_sample
+                self.bad_pixels_of_sample,
             )
-            masked_trace_time = np.ma.array(
+            time_results = calculate_time_results(
                 self.trace_time,
-                mask=self.bad_pixels_of_sample
+                self.bad_pixels_of_sample,
+                self.time_start,
+                trigger_time,
             )
 
-            # extract for each pixel and each event : x(i,j)/<x>(i) = g(i,j)
-            masked_relative_gain_event = (
-                masked_trace_integral / self.event_median[:, :, np.newaxis])
-            relative_gain_event = np.ma.getdata(masked_relative_gain_event)
+            result = {
+                'n_events': self.num_events_seen,
+                **relative_gain_results,
+                **time_results,
+            }
+            for key, value in result.items():
+                setattr(self.container, key, value)
 
-            # extract the median, mean and std over all the events <g>j and
-            # fill the container and return it
-            self.container.time_mean = (
-                (trigger_time - self.time_start) / 2 * u.s)
-            self.container.time_range = [self.time_start, trigger_time] * u.s
-            self.container.n_events = self.num_events_seen
-            self.container.relative_gain_median = np.median(
-                relative_gain_event, axis=0)
-            self.container.relative_gain_mean = np.mean(
-                relative_gain_event, axis=0)
-            self.container.relative_gain_rms = np.std(
-                relative_gain_event, axis=0)
-
-            # extract the average time over the camera and the events
-            camera_time_median = np.ma.median(masked_trace_time)
-            camera_time_mean = np.ma.mean(masked_trace_time)
-            pixel_time_median = np.ma.median(masked_trace_time, axis=0)
-            pixel_time_mean = np.ma.mean(masked_trace_time, axis=0)
-
-            # fill the container
-            self.container.relative_time_median = np.ma.getdata(
-                pixel_time_median - camera_time_median
-            )
-            self.container.relative_time_mean = np.ma.getdata(
-                pixel_time_mean - camera_time_mean
-            )
-
-            # re-initialize the event count
             self.num_events_seen = 0
-
             return self.container
 
         else:
 
             return None
+
+
+def calculate_time_results(
+    trace_time,
+    bad_pixels_of_sample,
+    time_start,
+    trigger_time,
+):
+    masked_trace_time = np.ma.array(
+        trace_time,
+        mask=bad_pixels_of_sample
+    )
+
+    # extract the average time over the camera and the events
+    camera_time_median = np.ma.median(masked_trace_time)
+    camera_time_mean = np.ma.mean(masked_trace_time)
+    pixel_time_median = np.ma.median(masked_trace_time, axis=0)
+    pixel_time_mean = np.ma.mean(masked_trace_time, axis=0)
+
+    return {
+        'time_mean': (trigger_time - time_start) / 2 * u.s,
+        'time_range': [time_start, trigger_time] * u.s,
+        'relative_time_median': np.ma.getdata(
+            pixel_time_median - camera_time_median),
+        'relative_time_mean': np.ma.getdata(
+            pixel_time_mean - camera_time_mean),
+    }
+
+
+def calculate_relative_gain_results(
+    event_median,
+    trace_integral,
+    bad_pixels_of_sample,
+):
+    masked_trace_integral = np.ma.array(
+        trace_integral,
+        mask=bad_pixels_of_sample
+    )
+    relative_gain_event = np.ma.getdata(
+        masked_trace_integral / event_median[:, :, np.newaxis]
+    )
+
+    return {
+        'relative_gain_median': np.median(relative_gain_event, axis=0),
+        'relative_gain_mean': np.mean(relative_gain_event, axis=0),
+        'relative_gain_rms': np.std(relative_gain_event, axis=0),
+    }
 
 
 class FlatFieldFactory(Factory):
