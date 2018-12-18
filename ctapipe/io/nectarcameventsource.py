@@ -5,11 +5,15 @@ EventSource for LSTCam protobuf-fits.fz-files.
 Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 """
 
-import numpy as np
 import glob
+import numpy as np
 from astropy import units as u
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
-    CameraGeometry, OpticsDescription
+from ctapipe.instrument import (
+    TelescopeDescription,
+    SubarrayDescription,
+    CameraGeometry,
+    OpticsDescription,
+)
 from .eventsource import EventSource
 from .lsteventsource import MultiFiles
 from .containers import NectarCAMDataContainer
@@ -23,8 +27,6 @@ class NectarCAMEventSource(EventSource):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-   
-        
         """
         Constructor
         Parameters
@@ -46,7 +48,6 @@ class NectarCAMEventSource(EventSource):
         # To overcome this we substitute the input_url with first file matching
         # the specified file mask (copied from  MAGICEventSourceROOT).
 
-
         if 'input_url' in kwargs.keys():
             self.file_list = glob.glob(kwargs['input_url'])
             self.file_list.sort()
@@ -59,8 +60,9 @@ class NectarCAMEventSource(EventSource):
         self.multi_file = MultiFiles(self.file_list)
         self.camera_config = self.multi_file.camera_config
 
-        self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
-
+        self.log.info("Read {} input files".format(
+            self.multi_file.num_inputs()
+        ))
 
     def _generator(self):
 
@@ -70,7 +72,6 @@ class NectarCAMEventSource(EventSource):
 
         # fill data from the CameraConfig table
         self.fill_nectarcam_service_container_from_zfile()
-
 
         # Instrument information
         for tel_id in self.data.nectarcam.tels_with_data:
@@ -94,14 +95,11 @@ class NectarCAMEventSource(EventSource):
             # LSTs telescope position
             tel_pos = {tel_id: [0., 0., 0] * u.m}
 
-
         self.subarray = SubarrayDescription("MST prototype subarray")
         self.subarray.tels = tels
         self.subarray.positions = tel_pos
 
         self.data.inst.subarray = self.subarray
-
-
 
         # loop on events
         for count, event in enumerate(self.multi_file):
@@ -114,7 +112,6 @@ class NectarCAMEventSource(EventSource):
             # fill general R0 data
             self.fill_r0_container_from_zfile(event)
             yield self.data
-
 
     @staticmethod
     def is_compatible(file_path):
@@ -167,7 +164,6 @@ class NectarCAMEventSource(EventSource):
         svc_container.idaq_version = self.camera_config.nectarcam.idaq_version
         svc_container.cdhs_version = self.camera_config.nectarcam.cdhs_version
         svc_container.algorithms = self.camera_config.nectarcam.algorithms
-        # svc_container.pre_proc_algorithms = camera_config.nectarcam.pre_proc_algorithms
 
 
     def fill_nectarcam_event_container_from_zfile(self, event):
@@ -206,15 +202,17 @@ class NectarCAMEventSource(EventSource):
                              .format(event.waveform.shape[0]))
 
 
-        container.pixel_status=np.zeros([self.n_camera_pixels])
-        container.pixel_status[self.camera_config.expected_pixels_id]= \
+        container.pixel_status = np.zeros([self.n_camera_pixels])
+        container.pixel_status[self.camera_config.expected_pixels_id] = \
             event.pixel_status
 
         reshaped_waveform = np.array(
             event.waveform
-             ).reshape(n_gains, 
-                       self.camera_config.num_pixels, 
-                       container.num_samples)
+        ).reshape(
+            n_gains,
+            self.camera_config.num_pixels,
+            container.num_samples
+        )
 
         # initialize the waveform container to zero
         container.waveform = np.zeros([n_gains,
@@ -224,8 +222,6 @@ class NectarCAMEventSource(EventSource):
         # re-order the waveform following the expected_pixels_id values (rank = pixel id)
         container.waveform[:, self.camera_config.expected_pixels_id, :] \
             = reshaped_waveform
-
-
 
     def fill_r0_container_from_zfile(self, event):
         container = self.data.r0
@@ -239,4 +235,3 @@ class NectarCAMEventSource(EventSource):
             r0_camera_container,
             event
         )
-
