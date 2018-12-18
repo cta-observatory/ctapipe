@@ -77,7 +77,7 @@ class FlatFieldCalculator(Component):
         self.log.info(f"cleaner {self.cleaner}")
 
     @abstractmethod
-    def calculate_relative_gain(self,event):
+    def calculate_relative_gain(self, event):
         """
         Parameters
         ----------
@@ -196,10 +196,13 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.event_median[self.count, :] = np.ma.median(masked_integral, axis=1)
 
         # increment the internal counter
-        self.count = self.count+1
+        self.count = self.count + 1
 
         # check if to create a calibration event
-        if (trigger_time - self.time_start) > self.max_time_range_s or self.count == self.max_events:
+        if (
+            (trigger_time - self.time_start) > self.max_time_range_s
+            or self.count == self.max_events
+        ):
 
             # consider only not masked data
             masked_trace_integral = np.ma.array(self.trace_integral, mask=self.trace_mask)
