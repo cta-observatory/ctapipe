@@ -51,10 +51,10 @@ class FlatFieldCalculator(Component):
 
         """
         super().__init__(config=config, parent=tool, **kwargs)
-        
+
         # initialize the output
         self.container = FlatFieldCameraContainer()
-        
+
         # load the waveform charge extractor and cleaner
         kwargs_ = dict()
         if extractor_product:
@@ -65,7 +65,7 @@ class FlatFieldCalculator(Component):
             **kwargs_
         )
         self.log.info(f"extractor {self.extractor}")
-        
+
         kwargs_ = dict()
         if cleaner_product:
             kwargs_['product'] = cleaner_product
@@ -82,7 +82,7 @@ class FlatFieldCalculator(Component):
         Parameters
         ----------
         event
-        
+
         """
 
 
@@ -92,9 +92,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
     flasher data. Fills the MON.flatfield container.
     """
 
-    def __init__(self,  config=None, tool=None,  **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
-        Parent class for the flat-field calculators. Fills the MON.flatfield container.
+        Parent class for the flat-field calculators.
+        Fills the MON.flatfield container.
 
         Parameters
         ----------
@@ -109,7 +110,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         kwargs
 
         """
-        super().__init__(config=config, tool=tool,  **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         self.log.info("Used events statistics : %d", self.max_events)
         self.count = 0
@@ -124,7 +125,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         tel_id : telescope id
         """
-        
+
         waveforms = event.r0.tel[tel_id].waveform
 
         # Clean waveforms
@@ -145,10 +146,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # sum all the samples
         else:
             charge = cleaned.sum(axis=2)
-            peak_pos = np.argmax(cleaned,axis=2)
+            peak_pos = np.argmax(cleaned, axis=2)
 
         return charge, peak_pos
-            
+
     def calculate_relative_gain(self, event, tel_id):
         """
         calculate the relative flat field coefficients
@@ -164,22 +165,22 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         waveform = event.r0.tel[tel_id].waveform
         trigger_time = event.r0.tel[tel_id].trigger_time
         pixel_status = event.r0.tel[tel_id].pixel_status
-        
+
         if self.count == 0:
             self.time_start = trigger_time
-                
+
             if waveform.shape[0] < self.n_channels:
                 self.n_channels = waveform.shape[0]
-                                                 
+
             self.event_median = np.zeros((self.max_events, self.n_channels))
-            
+
             n_pix = waveform.shape[1]
             self.trace_integral = np.zeros((self.max_events, self.n_channels, n_pix))
             self.trace_time = np.zeros((self.max_events, self.n_channels, n_pix))
             self.trace_mask = np.zeros((self.max_events, self.n_channels, n_pix))
 
         # extract the charge of the event and the peak position (assumed as time for the moment)
-        integral, peakpos =self._extract_charge(event,tel_id)
+        integral, peakpos = self._extract_charge(event, tel_id)
 
         # remember the charge
         self.trace_integral[self.count] = integral
@@ -196,14 +197,14 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # increment the internal counter
         self.count = self.count+1
-            
+
         # check if to create a calibration event
         if (trigger_time - self.time_start) > self.max_time_range_s or self.count == self.max_events:
-        
+
             # consider only not masked data
             masked_trace_integral = np.ma.array(self.trace_integral, mask=self.trace_mask)
             masked_trace_time = np.ma.array(self.trace_time, mask=self.trace_mask)
-                    
+
             # extract for each pixel and each event : x(i,j)/<x>(i) = g(i,j)
             masked_relative_gain_event = masked_trace_integral/self.event_median[:,:, np.newaxis]
             relative_gain_event = np.ma.getdata(masked_relative_gain_event)
@@ -229,12 +230,12 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
             # re-initialize the event count
             self.count = 0
-            
+
             return self.container
-        
-        else: 
-        
-            return None 
+
+        else:
+
+            return None
 
 
 class FlatFieldFactory(Factory):
@@ -244,5 +245,3 @@ class FlatFieldFactory(Factory):
     base = FlatFieldCalculator
     default = 'FlasherFlatFieldCalculator'
     custom_product_help = ('Flat-flield method to use')
-
- 
