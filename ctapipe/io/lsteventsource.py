@@ -4,11 +4,9 @@ EventSource for LSTCam protobuf-fits.fz-files.
 
 Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 """
-import numpy as np
-
-from astropy import units as u
 import glob
-from os import getcwd
+import numpy as np
+from astropy import units as u
 from ctapipe.core import Provenance
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
     CameraGeometry, OpticsDescription
@@ -20,15 +18,9 @@ __all__ = ['LSTEventSource']
 
 
 class LSTEventSource(EventSource):
-
-    """
-    EventSource for LST r0 data.
-    """
-
-    
+    """EventSource for LST r0 data."""
 
     def __init__(self, config=None, tool=None, **kwargs):
-        
         """
         Constructor
         Parameters
@@ -47,7 +39,6 @@ class LSTEventSource(EventSource):
             the 'input_url' parameter.
         """
 
-
         # EventSource can not handle file wild cards as input_url
         # To overcome this we substitute the input_url with first file matching
         # the specified file mask (copied from  MAGICEventSourceROOT).
@@ -62,13 +53,16 @@ class LSTEventSource(EventSource):
             self.file_list = [self.input_url]
 
         self.multi_file = MultiFiles(self.file_list)
-        
+
         self.camera_config = self.multi_file.camera_config
-        self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
+        self.log.info(
+            "Read {} input files".format(
+                self.multi_file.num_inputs()
+            )
+        )
 
     def rewind(self):
         self.multi_file.rewind()
-
 
     def _generator(self):
 
@@ -83,7 +77,7 @@ class LSTEventSource(EventSource):
         # Instrument information
         for tel_id in self.data.lst.tels_with_data:
 
-            assert (tel_id == 0)  # only LST1 for the moment (id = 0)
+            assert tel_id == 0  # only LST1 for the moment (id = 0)
 
             # optics info from standard optics.fits.gz file
             optics = OpticsDescription.from_name("LST")
@@ -100,7 +94,6 @@ class LSTEventSource(EventSource):
 
             # LSTs telescope position taken from MC from the moment
             tel_pos = {tel_id: [50., 50., 16] * u.m}
-
 
         subarray = SubarrayDescription("LST1 subarray")
         subarray.tels = tels
@@ -119,7 +112,6 @@ class LSTEventSource(EventSource):
             # fill general R0 data
             self.fill_r0_container_from_zfile(event)
             yield self.data
-
 
     @staticmethod
     def is_compatible(file_path):
@@ -212,27 +204,28 @@ class LSTEventSource(EventSource):
                              "N_chan x N_pix x N_samples= '{}'"
                              .format(event.waveform.shape[0]))
 
-        container.pixel_status=np.zeros([self.n_camera_pixels])
-        container.pixel_status[self.camera_config.expected_pixels_id]= \
+        container.pixel_status = np.zeros([self.n_camera_pixels])
+        container.pixel_status[self.camera_config.expected_pixels_id] = \
             event.pixel_status
 
         reshaped_waveform = np.array(
-                event.waveform
-             ).reshape(n_gains, 
-                       self.camera_config.num_pixels, 
-                       container.num_samples)
+            event.waveform
+        ).reshape(
+            n_gains,
+            self.camera_config.num_pixels,
+            container.num_samples
+        )
 
         # initialize the waveform container to zero
         container.waveform = np.zeros([n_gains, self.n_camera_pixels,
                                        container.num_samples])
 
-        # re-order the waveform following the expected_pixels_id values (rank = pixel id)
+        # re-order the waveform following the expected_pixels_id values
+        # (rank = pixel id)
         container.waveform[:, self.camera_config.expected_pixels_id, :] =\
             reshaped_waveform
 
     def fill_r0_container_from_zfile(self, event):
-
-
         container = self.data.r0
 
         container.obs_id = -1
@@ -250,7 +243,7 @@ class MultiFiles:
 
     """
     This class open all the files in file_list and read the events following
-    the event_id order 
+    the event_id order
     """
 
     def __init__(self, file_list):
@@ -261,9 +254,8 @@ class MultiFiles:
         self._camera_config = {}
         self.camera_config = None
 
-    
         paths = []
-        for file_name in file_list:            
+        for file_name in file_list:
             paths.append(file_name)
             Provenance().add_input_file(file_name, role='r0.sub.evt')
 
@@ -285,12 +277,11 @@ class MultiFiles:
                     if(self.camera_config is None):
                         self.camera_config = self._camera_config[path]
 
-
             except StopIteration:
                 pass
 
         # verify that somewhere the CameraConfing is present
-        assert (self.camera_config)
+        assert self.camera_config
 
     def __iter__(self):
         return self
@@ -323,7 +314,7 @@ class MultiFiles:
             for table in self._events_table.values()
         )
         return total_length
-    
+
     def rewind(self):
         for name, file in self._file.items():
             file.Events.protobuf_i_fits.rewind()
