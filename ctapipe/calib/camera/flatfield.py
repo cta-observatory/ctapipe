@@ -113,7 +113,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         super().__init__(config=config, tool=tool, **kwargs)
 
         self.log.info("Used events statistics : %d", self.max_events)
-        self.count = 0
+        self.num_events_seen = 0
 
     def _extract_charge(self, event, tel_id):
         """
@@ -166,7 +166,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         trigger_time = event.r0.tel[tel_id].trigger_time
         pixel_status = event.r0.tel[tel_id].pixel_status
 
-        if self.count == 0:
+        if self.num_events_seen == 0:
             self.time_start = trigger_time
 
             if waveform.shape[0] < self.n_channels:
@@ -183,25 +183,24 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         integral, peakpos = self._extract_charge(event, tel_id)
 
         # remember the charge
-        self.trace_integral[self.count] = integral
+        self.trace_integral[self.num_events_seen] = integral
 
         # remember the time
-        self.trace_time[self.count] = peakpos
+        self.trace_time[self.num_events_seen] = peakpos
 
         # keep the mask of not working pixels (to be improved)
-        self.trace_mask[self.count] = [pixel_status == 0, pixel_status == 0]
+        self.trace_mask[self.num_events_seen] = [pixel_status == 0, pixel_status == 0]
 
         # extract the median on all the camera per event: <x>(i) (for not masked pixels)
-        masked_integral = np.ma.array(integral, mask=self.trace_mask[self.count])
-        self.event_median[self.count, :] = np.ma.median(masked_integral, axis=1)
+        masked_integral = np.ma.array(integral, mask=self.trace_mask[self.num_events_seen])
+        self.event_median[self.num_events_seen, :] = np.ma.median(masked_integral, axis=1)
 
-        # increment the internal counter
-        self.count = self.count + 1
+        self.num_events_seen += 1
 
         # check if to create a calibration event
         if (
             (trigger_time - self.time_start) > self.max_time_range_s
-            or self.count == self.max_events
+            or self.num_events_seen == self.max_events
         ):
 
             # consider only not masked data
@@ -216,7 +215,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             # fill the container and return it
             self.container.time_mean = (trigger_time - self.time_start)/2 * u.s
             self.container.time_range = [self.time_start, trigger_time] * u.s
-            self.container.n_events = self.count
+            self.container.n_events = self.num_events_seen
             self.container.relative_gain_median = np.median(relative_gain_event, axis=0)
             self.container.relative_gain_mean = np.mean(relative_gain_event, axis=0)
             self.container.relative_gain_rms = np.std(relative_gain_event, axis=0)
@@ -232,7 +231,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             self.container.relative_time_mean = np.ma.getdata(pixel_time_mean-camera_time_mean)
 
             # re-initialize the event count
-            self.count = 0
+            self.num_events_seen = 0
 
             return self.container
 
