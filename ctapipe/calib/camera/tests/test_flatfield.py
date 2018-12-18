@@ -20,5 +20,5 @@ def test_FlasherFlatFieldCalculator():
 
             ff_data = ff_calculator.calculate_relative_gain(event, tel_id)
 
-            if ff_calculator.count == ff_calculator.max_events:
+            if ff_calculator.num_events_seen == ff_calculator.max_events:
                 assert ff_data
