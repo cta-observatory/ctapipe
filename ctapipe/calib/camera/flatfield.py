@@ -19,19 +19,33 @@ __all__ = [
 
 class FlatFieldCalculator(Component):
     """
-    Parent class for the flat field calculators. Fills the MON.flatfield container.
-
+    Parent class for the flat field calculators.
+    Fills the MON.flatfield container.
     """
-    max_time_range_s = Int(60, help='Define the maximum time interval per'
-           ' coefficient flat-filed calculation').tag(config=True)
-    max_events = Int(10000, help='Define the maximum number of events per '
-           ' coefficient flat-filed calculation').tag(config=True)
-    n_channels = Int(2, help='Define the number of channels to be '
-                    'treated ').tag(config=True)
+    max_time_range_s = Int(
+        60,
+        help='sample duration in seconds'
+    ).tag(config=True)
+    max_events = Int(
+        10000,
+        help='sample size'
+    ).tag(config=True)
+    n_channels = Int(
+        2,
+        help='number of channels to be treated'
+    ).tag(config=True)
 
-    def __init__(self, config=None, tool=None, extractor_product=None, cleaner_product=None, **kwargs):
+    def __init__(
+        self,
+        config=None,
+        tool=None,
+        extractor_product=None,
+        cleaner_product=None,
+        **kwargs
+    ):
         """
-        Parent class for the flat field calculators. Fills the MON.flatfield container.
+        Parent class for the flat field calculators.
+        Fills the MON.flatfield container.
 
         Parameters
         ----------
