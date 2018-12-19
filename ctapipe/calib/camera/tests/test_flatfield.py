@@ -12,13 +12,12 @@ def test_FlasherFlatFieldCalculator():
         max_events=10
     )
 
-    ff_calculator = FlasherFlatFieldCalculator()
-    ff_calculator.max_events = 3
+    ff_calculator = FlasherFlatFieldCalculator(sample_size=3)
 
     for event in inputfile_reader:
         for tel_id in event.r0.tels_with_data:
 
             ff_data = ff_calculator.calculate_relative_gain(event, tel_id)
 
-            if ff_calculator.num_events_seen == ff_calculator.max_events:
+            if ff_calculator.num_events_seen == ff_calculator.sample_size:
                 assert ff_data
