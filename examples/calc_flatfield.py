@@ -74,7 +74,7 @@ class FlatFieldGenerator(Tool):
             for tel_id in event.r0.tels_with_data:
 
                 # initialize the flat fieLd  containers
-                if (count == 0):
+                if count == 0:
                     self.container.flatfield.tels_with_data.append(tel_id)
 
                 ff_data = self.flatfield.calculate_relative_gain(event, tel_id)
