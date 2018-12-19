@@ -22,11 +22,11 @@ class FlatFieldCalculator(Component):
     Parent class for the flat field calculators.
     Fills the MON.flatfield container.
     """
-    max_time_range_s = Int(
+    sample_duration = Int(
         60,
         help='sample duration in seconds'
     ).tag(config=True)
-    max_events = Int(
+    sample_size = Int(
         10000,
         help='sample size'
     ).tag(config=True)
@@ -126,7 +126,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         """
         super().__init__(config=config, tool=tool, **kwargs)
 
-        self.log.info("Used events statistics : %d", self.max_events)
+        self.log.info("Used events statistics : %d", self.sample_size)
         self.num_events_seen = 0
 
         # members to keep state in calculate_relative_gain()
@@ -193,10 +193,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             if waveform.shape[0] < self.n_channels:
                 self.n_channels = waveform.shape[0]
 
-            self.event_median = np.zeros((self.max_events, self.n_channels))
+            self.event_median = np.zeros((self.sample_size, self.n_channels))
 
             n_pix = waveform.shape[1]
-            shape = (self.max_events, self.n_channels, n_pix)
+            shape = (self.sample_size, self.n_channels, n_pix)
             self.trace_integral = np.zeros(shape)
             self.trace_time = np.zeros(shape)
             self.bad_pixels_of_sample = np.zeros(shape)
@@ -226,8 +226,8 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         sample_age = trigger_time - self.time_start
         # check if to create a calibration event
         if (
-            sample_age > self.max_time_range_s
-            or self.num_events_seen == self.max_events
+            sample_age > self.sample_duration
+            or self.num_events_seen == self.sample_size
         ):
             relative_gain_results = calculate_relative_gain_results(
                 self.event_median,
