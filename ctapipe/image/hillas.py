@@ -23,7 +23,7 @@ class HillasParameterizationError(RuntimeError):
     pass
 
 
-def hillas_parameters(geom: CameraGeometry, image):
+def hillas_parameters(geom, image):
     """
     Compute Hillas parameters for a given shower image.
 
