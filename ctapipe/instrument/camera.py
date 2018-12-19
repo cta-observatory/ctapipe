@@ -517,6 +517,33 @@ class CameraGeometry:
         trans = delta_x * -sin_psi + delta_y * cos_psi
 
         return longi, trans
+    
+    def find_pixel_index(self, x, y):
+        
+        pixel_centers = np.stack([self.pix_x.to_value(u.m),self.pix_y.to_value(u.m)]).T
+        points_searched = np.dstack([x.to_value(u.m),y.to_value(u.m)])
+
+        kdtree = KDTree(pixel_centers)
+        dist, pixel_ids = kdtree.query(points_searched)
+        pixel_ids = pixel_ids.flatten()
+        
+        # check if we are still inside the camera:
+        borderpix_ids = np.where(self.get_border_pixel_mask())[0]
+        borderpix_ids_in_list = np.intersect1d(borderpix_ids, pixel_ids)
+        if borderpix_ids_in_list.any():
+            # now check and invest some time...
+            for borderpix_id in borderpix_ids_in_list:
+                index = np.where(pixel_ids==borderpix_id)[0][0]
+                # compare with central pixel in the camera:
+                xprime = points_searched[0][index,0] - pixel_centers[borderpix_id,0] + pixel_centers[0,0]
+                yprime = points_searched[0][index,1] - pixel_centers[borderpix_id,1] + pixel_centers[0,1]
+                dist_check, index_check = kdtree.query([xprime, yprime])
+                if index_check != 0:
+                    logger.warning(" Coordinate ({} m, {} m) lies outside camera".format(points_searched[0][index,0],points_searched[0][index,1]))
+                    pixel_ids[index] = -1
+        
+        return pixel_ids
+
 
 # ======================================================================
 # utility functions:
