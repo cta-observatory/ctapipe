@@ -92,44 +92,33 @@ class FlatFieldCalculator(Component):
 
     @abstractmethod
     def calculate_relative_gain(self, event):
-        """
+        """calculate relative gain from event
         Parameters
         ----------
-        event
+        event: DataContainer
 
+        Returns: FlatFieldCameraContainer or None
+
+            None is returned if no new flat field coefficients were calculated
+            e.g. due to insufficient statistics.
         """
 
 
 class FlasherFlatFieldCalculator(FlatFieldCalculator):
-    """
-    Class for calculating flat field coefficients witht the
-    flasher data. Fills the MON.flatfield container.
-    """
 
     def __init__(self, config=None, tool=None, **kwargs):
-        """
-        Parent class for the flat-field calculators.
-        Fills the MON.flatfield container.
+        """Calculates flat field coefficients from flasher data
 
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
+        based on the best algorithm described by S. Fegan in MST-CAM-TN-0060
 
+        Parameters: see base class FlatFieldCalculator
         """
         super().__init__(config=config, tool=tool, **kwargs)
 
         self.log.info("Used events statistics : %d", self.sample_size)
-        self.num_events_seen = 0
 
         # members to keep state in calculate_relative_gain()
+        self.num_events_seen = 0
         self.time_start = None  # trigger time of first event in sample
         self.event_median = None  # med. charge in camera per event in sample
         self.trace_integral = None  # charge per event in sample
