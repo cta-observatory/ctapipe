@@ -33,9 +33,8 @@ with event_source(input_url=input_url) as source:
             origin=SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=HorizonFrame)
         )
 
-
-        nom_x = []
-        nom_y = []
+        nom_delta_az = []
+        nom_delta_alt = []
         photons = []
 
         for tel_id, dl1 in event.dl1.tel.items():
@@ -70,17 +69,19 @@ with event_source(input_url=input_url) as source:
                 frame=camera_frame
             )
             nom = cam_coords.transform_to(nominal_frame)
-            nom_x.append(nom.x.wrap_at(180 * u.deg).to_value(u.deg))
-            nom_y.append(nom.y.to_value(u.deg))
+            nom_delta_az.append(nom.delta_az.to_value(u.deg))
+            nom_delta_alt.append(nom.delta_alt.to_value(u.deg))
             photons.append(image[clean])
 
-        nom_x = np.concatenate(nom_x)
-        nom_y = np.concatenate(nom_y)
+        nom_delta_az = np.concatenate(nom_delta_az)
+        nom_delta_alt = np.concatenate(nom_delta_alt)
         photons = np.concatenate(photons)
 
-        nom_x = np.repeat(nom_x, photons.astype(int))
-        nom_y = np.repeat(nom_y, photons.astype(int))
+        nom_delta_az = np.repeat(nom_delta_az, photons.astype(int))
+        nom_delta_alt = np.repeat(nom_delta_alt, photons.astype(int))
 
-        plt.hexbin(nom_x, nom_y, gridsize=50, extent=[-5, 5, -5, 5])
+        plt.hexbin(nom_delta_az, nom_delta_alt, gridsize=50, extent=[-5, 5, -5, 5])
+        plt.xlabel('delta_az / deg')
+        plt.ylabel('delta_alt / deg')
         plt.gca().set_aspect(1)
         plt.show()

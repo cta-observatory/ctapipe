@@ -136,11 +136,11 @@ def plot_muon_event(event, muonparams):
             # Convert to camera frame (centre & radius)
             altaz = HorizonFrame(alt=event.mc.alt, az=event.mc.az)
 
-            ring_nominal = NominalFrame(
-                x=muonparams['MuonRingParams'][idx].ring_center_x,
-                y=muonparams['MuonRingParams'][idx].ring_center_y,
-                array_direction=altaz,
-                pointing_direction=altaz)
+            ring_nominal = SkyCoord(
+                delta_az=muonparams['MuonRingParams'][idx].ring_center_x,
+                delta_alt=muonparams['MuonRingParams'][idx].ring_center_y,
+                frame=NominalFrame(origin=altaz)
+            )
 
             flen = subarray.tel[tel_id].optics.equivalent_focal_length
             ring_camcoord = ring_nominal.transform_to(CameraFrame(
@@ -168,8 +168,8 @@ def plot_muon_event(event, muonparams):
                 NominalFrame(origin=altaz)
             )
 
-            px = nom_coord.x.to(u.deg)
-            py = nom_coord.y.to(u.deg)
+            px = nom_coord.delta_az.to(u.deg)
+            py = nom_coord.delta_alt.to(u.deg)
             dist = np.sqrt(np.power(px - muonparams['MuonRingParams'][idx].ring_center_x,
                                     2) + np.power(py - muonparams['MuonRingParams'][idx].
                                                   ring_center_y, 2))

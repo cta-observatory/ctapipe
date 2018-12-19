@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def analyze_muon_event(event):
     """
-    Generic muon event analyzer. 
+    Generic muon event analyzer.
 
     Parameters
     ----------
@@ -30,7 +30,7 @@ def analyze_muon_event(event):
 
     Returns
     -------
-    muonringparam, muonintensityparam : MuonRingParameter 
+    muonringparam, muonintensityparam : MuonRingParameter
     and MuonIntensityParameter container event
 
     """
@@ -116,8 +116,8 @@ def analyze_muon_event(event):
         nom_coord = camera_coord.transform_to(
             NominalFrame(origin=telescope_pointing)
         )
-        x = nom_coord.x.to(u.deg)
-        y = nom_coord.y.to(u.deg)
+        x = nom_coord.delta_az.to(u.deg)
+        y = nom_coord.delta_alt.to(u.deg)
 
         if(cleaning):
             img = image * clean_mask
@@ -279,7 +279,7 @@ def analyze_muon_source(source):
     log.info("[FUNCTION] {}".format(__name__))
 
     if geom_dict is None:
-        geom_dict = {}        
+        geom_dict = {}
     numev = 0
     for event in source:  # Put a limit on number of events
         numev += 1

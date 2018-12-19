@@ -74,10 +74,10 @@ def camera_to_telescope(camera_coord, telescope_frame):
     # as an Attribute of `CameraFrame` that maps f(r, focal_length) -> theta,
     # where theta is the angle to the optical axis and r is the distance
     # to the camera center in the focal plane
-    x_rotated = u.Quantity((x_rotated / focal_length).to_value(), u.rad)
-    y_rotated = u.Quantity((y_rotated / focal_length).to_value(), u.rad)
+    delta_alt = u.Quantity((x_rotated / focal_length).to_value(), u.rad)
+    delta_az = u.Quantity((y_rotated / focal_length).to_value(), u.rad)
 
-    representation = UnitSphericalRepresentation(x_rotated, y_rotated)
+    representation = UnitSphericalRepresentation(lat=delta_alt, lon=delta_az)
 
     return telescope_frame.realize_frame(representation)
 
@@ -89,8 +89,8 @@ def telescope_to_camera(telescope_coord, camera_frame):
 
     Is called when a SkyCoord is transformed from TelescopeFrame into CameraFrame
     '''
-    x_pos = telescope_coord.x
-    y_pos = telescope_coord.y
+    x_pos = telescope_coord.delta_alt
+    y_pos = telescope_coord.delta_az
     # reverse the rotation applied to get to this system
     rot = -camera_frame.rotation
 

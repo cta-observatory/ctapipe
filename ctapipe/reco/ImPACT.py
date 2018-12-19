@@ -638,8 +638,8 @@ class ImPACTReconstructor(Reconstructor):
             NominalFrame(origin=self.array_direction)
         )
 
-        source_x = nominal_seed.x.to(u.rad).value
-        source_y = nominal_seed.y.to(u.rad).value
+        source_x = nominal_seed.delta_az.to_value(u.rad)
+        source_y = nominal_seed.delta_alt.to_value(u.rad)
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(

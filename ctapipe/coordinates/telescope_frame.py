@@ -46,19 +46,16 @@ class TelescopeFrame(BaseCoordinateFrame):
         Observation time
     location: EarthLocation
         Location of the telescope
-    rotation: Angle
-        rotation of the frame, 0 means x along azimuth, y along altitude
     '''
     frame_specific_representation_info = {
         UnitSphericalRepresentation: [
-            RepresentationMapping('lon', 'x'),
-            RepresentationMapping('lat', 'y'),
+            RepresentationMapping('lon', 'delta_az'),
+            RepresentationMapping('lat', 'delta_alt'),
         ]
     }
     default_representation = UnitSphericalRepresentation
 
     telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
-    rotation = QuantityAttribute(0, unit=u.deg)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
@@ -91,10 +88,9 @@ def reference_to_skyoffset(reference_frame, telescope_frame):
     # Define rotation matrices along the position angle vector, and
     # relative to the telescope_pointing.
     telescope_pointing = telescope_frame.telescope_pointing.spherical
-    mat1 = rotation_matrix(-telescope_frame.rotation, 'x')
-    mat2 = rotation_matrix(-telescope_pointing.lat, 'y')
-    mat3 = rotation_matrix(telescope_pointing.lon, 'z')
-    return matrix_product(mat1, mat2, mat3)
+    mat1 = rotation_matrix(-telescope_pointing.lat, 'y')
+    mat2 = rotation_matrix(telescope_pointing.lon, 'z')
+    return matrix_product(mat1, mat2)
 
 
 @frame_transform_graph.transform(DynamicMatrixTransform, TelescopeFrame, HorizonFrame)
