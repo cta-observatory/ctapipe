@@ -120,10 +120,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # members to keep state in calculate_relative_gain()
         self.num_events_seen = 0
         self.time_start = None  # trigger time of first event in sample
-        self.event_median = None  # med. charge in camera per event in sample
-        self.trace_integral = None  # charge per event in sample
-        self.trace_time = None  # arrival time per event in sample
-        self.bad_pixels_of_sample = None  # bad pixels per event in sample
+        self.charge_medians = None  # med. charge in camera per event in sample
+        self.charges = None  # charge per event in sample
+        self.arrival_times = None  # arrival time per event in sample
+        self.sample_bad_pixels = None  # bad pixels per event in sample
 
     def _extract_charge(self, event, tel_id):
         """
@@ -178,39 +178,12 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         if self.num_events_seen == 0:
             self.time_start = trigger_time
-
-            if waveform.shape[0] < self.n_channels:
-                self.n_channels = waveform.shape[0]
-
-            self.event_median = np.zeros((self.sample_size, self.n_channels))
-
-            n_pix = waveform.shape[1]
-            shape = (self.sample_size, self.n_channels, n_pix)
-            self.trace_integral = np.zeros(shape)
-            self.trace_time = np.zeros(shape)
-            self.bad_pixels_of_sample = np.zeros(shape)
+            self.setup_sample_buffers(waveform, self.sample_size)
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        integral, peakpos = self._extract_charge(event, tel_id)
-
-        # remember the charge
-        self.trace_integral[self.num_events_seen] = integral
-
-        # remember the time
-        self.trace_time[self.num_events_seen] = peakpos
-
-        # keep the mask of not working pixels (to be improved)
-        bad_pixels = np.array([pixel_status == 0, pixel_status == 0])
-        self.bad_pixels_of_sample[self.num_events_seen, :] = bad_pixels
-
-        # extract the median on all the camera per event: <x>(i)
-        # (for not masked pixels)
-        masked_integral = np.ma.array(integral, mask=bad_pixels)
-        self.event_median[self.num_events_seen, :] = np.ma.median(
-            masked_integral, axis=1)
-
-        self.num_events_seen += 1
+        charge, arrival_time = self._extract_charge(event, tel_id)
+        self.collect_sample(charge, pixel_status, arrival_time)
 
         sample_age = trigger_time - self.time_start
         # check if to create a calibration event
@@ -219,13 +192,13 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             or self.num_events_seen == self.sample_size
         ):
             relative_gain_results = calculate_relative_gain_results(
-                self.event_median,
-                self.trace_integral,
-                self.bad_pixels_of_sample,
+                self.charge_medians,
+                self.charges,
+                self.sample_bad_pixels,
             )
             time_results = calculate_time_results(
-                self.trace_time,
-                self.bad_pixels_of_sample,
+                self.arrival_times,
+                self.sample_bad_pixels,
                 self.time_start,
                 trigger_time,
             )
@@ -244,6 +217,32 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         else:
 
             return None
+
+    def setup_sample_buffers(self, waveform, sample_size):
+        n_channels = waveform.shape[0]
+        n_pix = waveform.shape[1]
+        shape = (sample_size, n_channels, n_pix)
+
+        self.charge_medians = np.zeros((sample_size, n_channels))
+        self.charges = np.zeros(shape)
+        self.arrival_times = np.zeros(shape)
+        self.sample_bad_pixels = np.zeros(shape)
+
+    def collect_sample(self, charge, pixel_status, arrival_time):
+
+        # extract the charge of the event and
+        # the peak position (assumed as time for the moment)
+        bad_pixels = np.zeros(charge.shape, dtype=np.bool)
+        bad_pixels[:] = pixel_status == 0
+
+        good_charge = np.ma.array(charge, mask=bad_pixels)
+        charge_median = np.ma.median(good_charge, axis=1)
+
+        self.charges[self.num_events_seen] = charge
+        self.arrival_times[self.num_events_seen] = arrival_time
+        self.sample_bad_pixels[self.num_events_seen] = bad_pixels
+        self.charge_medians[self.num_events_seen] = charge_median
+        self.num_events_seen += 1
 
 
 def calculate_time_results(
