@@ -20,7 +20,6 @@ from astropy.coordinates import (
     TimeAttribute,
     EarthLocationAttribute,
     RepresentationMapping,
-    QuantityAttribute,
     UnitSphericalRepresentation,
     Angle
 )
