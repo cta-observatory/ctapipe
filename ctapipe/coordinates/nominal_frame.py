@@ -21,7 +21,6 @@ from astropy.coordinates import (
     TimeAttribute,
     EarthLocationAttribute,
     RepresentationMapping,
-    QuantityAttribute,
     Angle,
 )
 
