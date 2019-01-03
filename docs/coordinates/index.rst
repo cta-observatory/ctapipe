@@ -17,7 +17,6 @@ which internally use the ERFA coordinate transformation library,
 the open-source-licensed fork of the IAU SOFA system.
 
 
-
 Getting Started
 ===============
 
