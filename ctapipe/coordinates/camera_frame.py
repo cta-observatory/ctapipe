@@ -18,10 +18,21 @@ from .representation import PlanarRepresentation
 
 
 class CameraFrame(BaseCoordinateFrame):
-    '''Camera coordinate frame.  The camera frame is a simple physical
-    cartesian frame, describing the 2 dimensional position of objects
-    in the focal plane of the telescope Most Typically this will be
-    used to describe the positions of the pixels in the focal plane
+    '''
+    Camera coordinate frame.
+
+    The camera frame is a 2d cartesian frame,
+    describing position of objects in the focal plane of the telescope.
+
+    The frame is defined as in H.E.S.S., starting at the horizon,
+    the telescope is pointed to magnetic north in azimuth and then up to zenith.
+
+    Now, x points north and y points west, so in this orientation, the
+    camera coordinates line up with the CORSIKA ground coordinate system.
+
+    MAGIC and FACT use a different camera coordinate system:
+    Standing at the dish, looking at the camera, x points right, y points up.
+    To transform MAGIC/FACT to ctapipe, do x' = -y, y' = -x.
 
     Attributes
     ----------
