@@ -5,7 +5,7 @@ from numpy.testing import assert_allclose
 
 from astropy import units as u
 
-from ctapipe.reco.energy_regressor import *
+from ctapipe.reco.energy_regressor import EnergyRegressor
 
 
 def test_prepare_model():
@@ -17,7 +17,7 @@ def test_prepare_model():
     target_list = {"FlashCam": np.array([1, 2, 3, 0.9]) * u.TeV,
                    "ASTRICam": np.array([1, 2, 3, 0.9]) * u.TeV}
 
-    reg = EnergyRegressor(cam_id_list=cam_id_list)
+    reg = EnergyRegressor(cam_id_list=cam_id_list, n_estimators=10)
     reg.fit(feature_list, target_list)
     return reg, cam_id_list
 

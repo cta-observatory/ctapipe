@@ -92,7 +92,7 @@ def test_prepare_model():
     target_list = {"FlashCam": ["a", "a", "a", "a", "b", "b", "b", "b"],
                    "ASTRICam": ["a", "a", "a", "a", "b", "b", "b", "b"]}
 
-    clf = EventClassifier(cam_id_list=cam_id_list)
+    clf = EventClassifier(cam_id_list=cam_id_list, n_estimators=10)
     clf.fit(feature_list, target_list)
     return clf, cam_id_list
 
@@ -127,7 +127,7 @@ def test_Qfactor():
     features = {"ASTRICam": [[10, 1], [20, 2], [30, 3], [9, 0.9],
                              [1, 10], [2, 20], [3, 30], [0.9, 9]]}
     target = {"ASTRICam": [1, 1, 1, 1, 0, 0, 0, 0]}
-    clf = EventClassifier(cam_id_list=cam_id)
+    clf = EventClassifier(cam_id_list=cam_id, n_estimators=10)
     clf.fit(features, target)
 
     # Now predict
