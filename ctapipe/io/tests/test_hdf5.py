@@ -154,7 +154,7 @@ def test_writer_closes_file(temp_h5_file):
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, 'test') as h5_table:
 
-            assert h5_table._h5file.isopen  == 1
+            assert h5_table._h5file.isopen == 1
 
     assert h5_table._h5file.isopen == 0
 
