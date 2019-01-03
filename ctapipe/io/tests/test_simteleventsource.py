@@ -11,10 +11,9 @@ gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 
 
 def compare_sources(input_url):
-    kwargs = dict(config=None, tool=None, input_url=input_url)
 
-    with SimTelEventSource(**kwargs) as simtel_source, \
-            HESSIOEventSource(**kwargs) as hessio_source:
+    with SimTelEventSource(input_url=input_url) as simtel_source, \
+            HESSIOEventSource(input_url=input_url) as hessio_source:
 
         for s, h in zip_longest(simtel_source, hessio_source):
 
@@ -71,9 +70,7 @@ def test_compare_event_hessio_and_simtel():
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
-    kwargs = dict(config=None, tool=None, input_url=gamma_test_path)
-
-    with SimTelEventSource(**kwargs) as reader:
+    with SimTelEventSource(input_url=gamma_test_path) as reader:
         assert reader.is_compatible(gamma_test_path)
         assert not reader.is_stream
 
@@ -92,7 +89,7 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
     # test that max_events works:
     max_events = 5
-    with SimTelEventSource(**kwargs, max_events=max_events) as reader:
+    with SimTelEventSource(input_url=gamma_test_path, max_events=max_events) as reader:
         count = 0
         for _ in reader:
             count += 1
@@ -100,7 +97,10 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
     # test that the allowed_tels mask works:
     with pytest.warns(UserWarning):
-        with SimTelEventSource(**kwargs, allowed_tels={3, 4}) as reader:
+        with SimTelEventSource(
+            input_url=gamma_test_path,
+            allowed_tels={3, 4}
+        ) as reader:
             for event in reader:
                 assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
@@ -118,3 +118,34 @@ def test_that_event_is_not_modified_after_loop():
         #      assert last_event == event
         # So for the moment we just compare event ids
         assert event.r0.event_id == last_event.r0.event_id
+
+
+def test_additional_meta_data_from_mc_header():
+    with SimTelEventSource(input_url=gamma_test_path) as reader:
+        data = next(iter(reader))
+
+    # for expectation values
+    from astropy import units as u
+    from astropy.coordinates import Angle
+
+    assert data.mcheader.corsika_version == 6990
+    assert data.mcheader.simtel_version == 1404919891
+    assert data.mcheader.spectral_index == -2.0
+
+    name_expectation = {
+        'energy_range_min': u.Quantity(3.0e-03, u.TeV),
+        'energy_range_max': u.Quantity(3.3e+02, u.TeV),
+        'prod_site_B_total': u.Quantity(27.181243896484375, u.uT),
+        'prod_site_B_declination': Angle(0.0 * u.rad),
+        'prod_site_B_inclination': Angle(-1.1581752300262451 * u.rad),
+        'prod_site_alt': 1640.0 * u.m,
+    }
+
+    for name, expectation in name_expectation.items():
+        value = getattr(data.mcheader, name)
+
+        assert value.unit == expectation.unit
+        assert np.isclose(
+            value.to_value(expectation.unit),
+            expectation.to_value(expectation.unit)
+        )

@@ -65,7 +65,7 @@ class ChargeResolutionCalculator(Component):
         self.sum_dict = {}
         self.n_dict = {}
 
-        self.variation_hist_nbins = log10(self.max_pe) * 50
+        self.variation_hist_nbins = int(log10(self.max_pe) * 50)
         self.variation_hist_range = [[log10(1), log10(self.max_pe)],
                                      [log10(1), log10(self.max_pe)]]
         h, xedges, yedges = np.histogram2d([np.nan], [np.nan],
