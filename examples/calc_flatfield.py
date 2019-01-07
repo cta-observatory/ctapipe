@@ -37,8 +37,8 @@ class FlatFieldGenerator(Tool):
         cleaner_width='WaveformCleanerFactory.baseline_width',
         generator='FlatFieldFactory.product',
         tel_id='FlatFieldFactory.tel_id',
-        max_time_range_s='FlatFieldFactory.max_time_range_s',
-        ff_events='FlatFieldFactory.max_events',
+        sample_duration='FlatFieldFactory.sample_duration',
+        sample_size='FlatFieldFactory.sample_size',
         n_channels='FlatFieldFactory.n_channels',
     ))
 
