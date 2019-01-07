@@ -25,7 +25,7 @@ class FlatFieldCalculator(Component):
 
     tel_id = Int(
         0,
-        help='telescope id'
+        help='id of the telescope to calculate the flat-field coefficients'
     ).tag(config=True)
     sample_duration = Int(
         60,
