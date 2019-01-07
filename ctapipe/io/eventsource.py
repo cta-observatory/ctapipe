@@ -1,7 +1,6 @@
 """
 Handles reading of different event/waveform containing files
 """
-from abc import abstractmethod
 from os.path import exists
 from traitlets import Unicode, Int, Set
 from ctapipe.core import Component
@@ -201,6 +200,7 @@ class EventSource(Component):
     @classmethod
     def cls_from_url(cls, url):
         for subcls in cls.__subclasses__():
-            if subcls.is_compatible(str(url)):
+            if subcls.is_compatible(url):
                 return subcls
+
         raise ValueError

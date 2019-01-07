@@ -8,6 +8,7 @@ import numpy as np
 from .eventsource import EventSource
 from .containers import SST1MDataContainer
 from ..instrument import TelescopeDescription
+import gzip
 
 __all__ = ['SST1MEventSource']
 
@@ -78,6 +79,18 @@ class SST1MEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        # read the first 1kB
+        with open(file_path, 'rb') as f:
+            marker_bytes = f.read(1024)
+
+        # if file is gzip, read the first 4 bytes with gzip again
+        if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
+            with gzip.open(file_path, 'rb') as f:
+                marker_bytes = f.read(1024)
+
+        if b'FITS' not in marker_bytes:
+            return False
+
         from astropy.io import fits
         try:
             h = fits.open(file_path)[1].header

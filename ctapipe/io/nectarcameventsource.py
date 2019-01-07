@@ -7,6 +7,7 @@ Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 
 import numpy as np
 import glob
+import gzip
 from astropy import units as u
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
     CameraGeometry, OpticsDescription
@@ -23,8 +24,8 @@ class NectarCAMEventSource(EventSource):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-   
-        
+
+
         """
         Constructor
         Parameters
@@ -87,7 +88,7 @@ class NectarCAMEventSource(EventSource):
             tel_descr = TelescopeDescription(optics, camera)
 
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
-            
+
             self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
@@ -118,6 +119,18 @@ class NectarCAMEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        # read the first 1kB
+        with open(file_path, 'rb') as f:
+            marker_bytes = f.read(1024)
+
+        # if file is gzip, read the first 4 bytes with gzip again
+        if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
+            with gzip.open(file_path, 'rb') as f:
+                marker_bytes = f.read(1024)
+
+        if b'FITS' not in marker_bytes:
+            return False
+
         from astropy.io import fits
         try:
             # The file contains two tables:
@@ -211,8 +224,8 @@ class NectarCAMEventSource(EventSource):
 
         reshaped_waveform = np.array(
             event.waveform
-             ).reshape(n_gains, 
-                       self.camera_config.num_pixels, 
+             ).reshape(n_gains,
+                       self.camera_config.num_pixels,
                        container.num_samples)
 
         # initialize the waveform container to zero
