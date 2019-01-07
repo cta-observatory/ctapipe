@@ -3,7 +3,7 @@ import pandas as pd
 from matplotlib.ticker import FuncFormatter
 from matplotlib import pyplot as plt
 import os
-from ctapipe.core import Component
+from ctapipe.core import Component, Provenance
 from traitlets import Unicode, Int
 
 
@@ -231,6 +231,7 @@ class ChargeResolutionPlotter(Component):
 
         self.fig.savefig(self.output_path, bbox_inches='tight')
         print("Figure saved to: {}".format(self.output_path))
+        Provenance().add_output_file(self.output_path)
 
         plt.close(self.fig)
 
