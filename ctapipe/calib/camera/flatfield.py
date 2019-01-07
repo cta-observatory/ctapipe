@@ -22,6 +22,11 @@ class FlatFieldCalculator(Component):
     Parent class for the flat field calculators.
     Fills the MON.flatfield container.
     """
+
+    tel_id = Int(
+        0,
+        help='telescope id'
+    ).tag(config=True)
     sample_duration = Int(
         60,
         help='sample duration in seconds'
@@ -125,7 +130,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.arrival_times = None  # arrival time per event in sample
         self.sample_bad_pixels = None  # bad pixels per event in sample
 
-    def _extract_charge(self, event, tel_id):
+    def _extract_charge(self, event):
         """
         Extract the charge and the time from a calibration event
 
@@ -133,10 +138,9 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         ----------
         event : general event container
 
-        tel_id : telescope id
         """
 
-        waveforms = event.r0.tel[tel_id].waveform
+        waveforms = event.r0.tel[self.tel_id].waveform
 
         # Clean waveforms
         if self.cleaner:
@@ -148,7 +152,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # Extract charge and time
         if self.extractor:
             if self.extractor.requires_neighbours():
-                g = event.inst.subarray.tel[tel_id].camera
+                g = event.inst.subarray.tel[self.tel_id].camera
                 self.extractor.neighbours = g.neighbor_matrix_where
 
             charge, peak_pos, window = self.extractor.extract_charge(cleaned)
@@ -160,7 +164,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         return charge, peak_pos
 
-    def calculate_relative_gain(self, event, tel_id):
+    def calculate_relative_gain(self, event):
         """
         calculate the relative flat field coefficients
 
@@ -168,13 +172,12 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         ----------
         event : general event container
 
-        tel_id : telescope id for which we calculate the gain
         """
 
         # initialize the np array at each cycle
-        waveform = event.r0.tel[tel_id].waveform
-        trigger_time = event.r0.tel[tel_id].trigger_time
-        pixel_status = event.r0.tel[tel_id].pixel_status
+        waveform = event.r0.tel[self.tel_id].waveform
+        trigger_time = event.r0.tel[self.tel_id].trigger_time
+        pixel_status = event.r0.tel[self.tel_id].pixel_status
 
         if self.num_events_seen == 0:
             self.time_start = trigger_time
@@ -182,7 +185,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        charge, arrival_time = self._extract_charge(event, tel_id)
+        charge, arrival_time = self._extract_charge(event)
         self.collect_sample(charge, pixel_status, arrival_time)
 
         sample_age = trigger_time - self.time_start

@@ -36,6 +36,7 @@ class FlatFieldGenerator(Tool):
         cleaner='WaveformCleanerFactory.product',
         cleaner_width='WaveformCleanerFactory.baseline_width',
         generator='FlatFieldFactory.product',
+        tel_id='FlatFieldFactory.tel_id',
         max_time_range_s='FlatFieldFactory.max_time_range_s',
         ff_events='FlatFieldFactory.max_events',
         n_channels='FlatFieldFactory.n_channels',
@@ -69,25 +70,21 @@ class FlatFieldGenerator(Tool):
     def start(self):
         '''Flat field coefficient calculator'''
 
+        # initialize the flat fieLd  containers
+        self.container.flatfield.tels_with_data.append(self.flatfield.tel_id)
+
         for count, event in enumerate(self.eventsource):
 
-            for tel_id in event.r0.tels_with_data:
+            ff_data = self.flatfield.calculate_relative_gain(event)
 
-                # initialize the flat fieLd  containers
-                if count == 0:
-                    self.container.flatfield.tels_with_data.append(tel_id)
+            if ff_data:
+                self.container.flatfield.tel[self.flatfield.tel_id] = ff_data
+                table_name = 'tel_' + str(self.flatfield.tel_id)
 
-                ff_data = self.flatfield.calculate_relative_gain(event, tel_id)
-
-                if ff_data:
-                    self.container.flatfield.tel[tel_id] = ff_data
-                    table_name = 'tel_' + str(tel_id)
-
-                    self.log.info(
-                        "write event in table: /flatfield/%s",
-                        table_name
-                    )
-                    self.writer.write(table_name, ff_data)
+                self.log.info(
+                     "write event in table: /flatfield/%s", table_name
+                )
+                self.writer.write(table_name, ff_data)
 
     def finish(self):
         Provenance().add_output_file(
