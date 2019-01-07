@@ -69,10 +69,7 @@ class SingleTelEventDisplay(Tool):
     classes = List([EventSource, CameraCalibrator])
 
     def setup(self):
-
-        dummy = EventSource(config=self.config, tool=self)
-        self.event_source = EventSource.from_url(
-            url=dummy.input_url,
+        self.event_source = EventSource.from_config(
             config=self.config,
             tool=self
         )

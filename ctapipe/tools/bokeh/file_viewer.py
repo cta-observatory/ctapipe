@@ -91,8 +91,7 @@ class BokehFileViewer(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        dummy_source = EventSource(**kwargs)
-        self.reader = EventSource.from_url(dummy_source.input_url, **kwargs)
+        self.reader = EventSource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
         self.extractor = ChargeExtractorFactory.produce(**kwargs)

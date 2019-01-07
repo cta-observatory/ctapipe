@@ -37,9 +37,7 @@ class SimpleEventWriter(Tool):
     def setup(self):
         self.log.info('Configure EventSource...')
 
-        dummy = EventSource(config=self.config, tool=self)
-        self.event_source = EventSource.from_url(
-            url=dummy.input_url,
+        self.event_source = EventSource.from_config(
             config=self.config,
             tool=self
         )

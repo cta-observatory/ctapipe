@@ -310,8 +310,7 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        dummy = EventSource(**kwargs)
-        eventsource = EventSource.from_url(url=dummy.input_url, **kwargs)
+        eventsource = EventSource.from_config(**kwargs)
         self.eventseeker = EventSeeker(eventsource, **kwargs)
 
         self.extractor = ChargeExtractorFactory.produce(**kwargs)

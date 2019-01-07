@@ -202,5 +202,16 @@ class EventSource(Component):
         for subcls in cls.__subclasses__():
             if subcls.is_compatible(url):
                 return subcls
-
         raise ValueError
+
+    @classmethod
+    def from_config(cls, *args, **kwargs):
+        # making this "dummy" instance here is just needed to let
+        # traitlets do their magic.
+        # What we actually want here is to find the input_url in the
+        # configuration, in order to call `from_url()`
+        # if there is a better way than making a dummy instance, then
+        # we should do it.
+        dummy = cls(*args, **kwargs)
+        url = dummy.input_url
+        return cls.from_url(url, *args, **kwargs)
