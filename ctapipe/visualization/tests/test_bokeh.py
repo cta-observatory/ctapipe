@@ -1,14 +1,15 @@
 import numpy as np
 import pytest
-from ctapipe.visualization.bokeh import CameraDisplay, WaveformDisplay, \
-    FastCameraDisplay, intensity_to_hex
 
 
 def test_camera_display_create():
+    from ctapipe.visualization.bokeh import CameraDisplay
     CameraDisplay()
 
 
 def test_camera_geom(example_event):
+    from ctapipe.visualization.bokeh import CameraDisplay
+
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_event.inst.subarray.tel[t].camera
     c_display = CameraDisplay(geom)
@@ -24,6 +25,8 @@ def test_camera_geom(example_event):
 
 
 def test_camera_image(example_event):
+    from ctapipe.visualization.bokeh import CameraDisplay, intensity_to_hex
+
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_event.inst.subarray.tel[t].camera
     n_pixels = geom.pix_x.value.size
@@ -47,6 +50,7 @@ def test_camera_image(example_event):
 
 
 def test_camera_enable_pixel_picker(example_event):
+    from ctapipe.visualization.bokeh import CameraDisplay
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_event.inst.subarray.tel[t].camera
     n_pixels = geom.pix_x.value.size
@@ -61,6 +65,7 @@ def test_camera_enable_pixel_picker(example_event):
 
 
 def test_fast_camera_display_create(example_event):
+    from ctapipe.visualization.bokeh import FastCameraDisplay
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_event.inst.subarray.tel[t].camera
 
@@ -73,6 +78,8 @@ def test_fast_camera_display_create(example_event):
 
 
 def test_fast_camera_image(example_event):
+    from ctapipe.visualization.bokeh import FastCameraDisplay, intensity_to_hex
+
     t = list(example_event.r0.tels_with_data)[0]
     geom = example_event.inst.subarray.tel[t].camera
 
@@ -91,10 +98,14 @@ def test_fast_camera_image(example_event):
 
 
 def test_waveform_display_create():
+    from ctapipe.visualization.bokeh import WaveformDisplay
+
     WaveformDisplay()
 
 
 def test_waveform_values():
+    from ctapipe.visualization.bokeh import WaveformDisplay
+
     wf = np.ones(30)
     w_display = WaveformDisplay(wf)
 
@@ -109,6 +120,8 @@ def test_waveform_values():
 
 
 def test_span():
+    from ctapipe.visualization.bokeh import WaveformDisplay
+
     wf = np.ones(30)
     w_display = WaveformDisplay(wf)
     w_display.enable_time_picker()

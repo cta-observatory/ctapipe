@@ -6,7 +6,7 @@ from ctapipe.calib.camera import (
     NullR1Calibrator
 )
 from ctapipe.image.charge_extractors import LocalPeakIntegrator
-from ctapipe.io import HESSIOEventSource
+from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 
 
@@ -32,14 +32,14 @@ def test_manual_extractor():
 
 def test_eventsource_r1():
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    eventsource = HESSIOEventSource(input_url=dataset)
+    eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraCalibrator(eventsource=eventsource)
     assert isinstance(calibrator.r1, HESSIOR1Calibrator)
 
 
 def test_eventsource_override_r1():
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    eventsource = HESSIOEventSource(input_url=dataset)
+    eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraCalibrator(
         eventsource=eventsource,
         r1_product="NullR1Calibrator"

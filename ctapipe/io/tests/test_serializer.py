@@ -4,7 +4,7 @@ from os import remove
 import pytest
 from astropy.io import fits
 
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io import event_source
 from ctapipe.io.serializer import Serializer
 from ctapipe.io.sources import PickleSource
 from ctapipe.utils import get_dataset_path
@@ -19,11 +19,10 @@ def compare(read_container, source_container):
 def generate_input_containers():
     # Get event from hessio file, append them into input_containers
     input_filename = get_dataset_path("gamma_test.simtel.gz")
-    gen = hessio_event_source(input_filename, max_events=3)
-    input_containers = []
-    for event in gen:
-        input_containers.append(deepcopy(event))
+    with event_source(input_filename, max_events=3) as source:
+        input_containers = [deepcopy(event) for event in source]
     return input_containers
+
 
 # Setup
 input_containers = generate_input_containers()
@@ -38,7 +37,6 @@ def binary_filename(tmpdir_factory):
 @pytest.fixture(scope='session')
 def fits_file_name(tmpdir_factory):
     return str(tmpdir_factory.mktemp('data').join('output.fits'))
-
 
 
 def test_pickle_serializer(binary_filename):

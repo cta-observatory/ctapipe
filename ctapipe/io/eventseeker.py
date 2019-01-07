@@ -29,16 +29,16 @@ class EventSeeker(Component):
 
     To obtain a particular event in a hessio file:
 
-    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HESSIOEventSource(input_path="/path/to/file")
+    >>> from ctapipe.io.hessioeventsource import SimTelEventSource
+    >>> event_source = SimTelEventSource(input_url="/path/to/file")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker[2]
     >>> print(event.count)
 
     To obtain a particular event in a hessio file from its event_id:
 
-    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HESSIOEventSource(input_path="/path/to/file")
+    >>> from ctapipe.io.hessioeventsource import SimTelEventSource
+    >>> event_source = SimTelEventSource(input_url="/path/to/file")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker["101"]
     >>> print(event.count)
@@ -51,16 +51,16 @@ class EventSeeker(Component):
 
     To obtain a slice of events in a hessio file:
 
-    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HESSIOEventSource(input_path="/path/to/file")
+    >>> from ctapipe.io import SimTelEventSource
+    >>> event_source = SimTelEventSource(input_url="/path/to/file")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event_list = seeker[3:6]
     >>> print([event.count for event in event_list])
 
     To obtain a list of events in a hessio file:
 
-    >>> from ctapipe.io.hessioeventsource import HESSIOEventSource
-    >>> event_source = HESSIOEventSource(input_path="/path/to/file")
+    >>> from ctapipe.io import SimTelEventSource
+    >>> event_source = SimTelEventSource(input_url="/path/to/file")
     >>> seeker = EventSeeker(event_source)
     >>> event_indicis = [2, 6, 8]
     >>> event_list = seeker[event_indicis]

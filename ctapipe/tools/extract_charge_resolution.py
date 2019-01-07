@@ -15,7 +15,7 @@ from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.io.simteleventsource import SimTelEventSource
 
 
 class ChargeResolutionGenerator(Tool):
@@ -29,9 +29,9 @@ class ChargeResolutionGenerator(Tool):
     ).tag(config=True)
 
     aliases = Dict(dict(
-        f='HESSIOEventSource.input_url',
-        max_events='HESSIOEventSource.max_events',
-        T='HESSIOEventSource.allowed_tels',
+        f='SimTelEventSource.input_url',
+        max_events='SimTelEventSource.max_events',
+        T='SimTelEventSource.allowed_tels',
         extractor='ChargeExtractorFactory.product',
         window_width='ChargeExtractorFactory.window_width',
         t0='ChargeExtractorFactory.t0',
@@ -45,7 +45,7 @@ class ChargeResolutionGenerator(Tool):
         o='ChargeResolutionGenerator.output_path',
     ))
     classes = List([
-        HESSIOEventSource,
+        SimTelEventSource,
         ChargeExtractorFactory,
         CameraDL1Calibrator,
         ChargeResolutionCalculator
@@ -63,7 +63,7 @@ class ChargeResolutionGenerator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = HESSIOEventSource(**kwargs)
+        self.eventsource = SimTelEventSource(**kwargs)
 
         extractor = ChargeExtractorFactory.produce(**kwargs)
 

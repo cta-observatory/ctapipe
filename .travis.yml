@@ -23,6 +23,7 @@ before_install:
     # against future changes
 
     - export PYTHONIOENCODING=UTF8
+    - export MPLBACKEND=agg
 
     # Install miniconda following instructions at
     # http://conda.pydata.org/docs/travis.html
@@ -53,8 +54,7 @@ install:
     - pip install travis-sphinx
     - pip install codecov
     # ----- SST1M:
-    - conda install protobuf
-    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.4.0.tar.gz
+    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.4.2.tar.gz
     # ----- end of SST1M
     # ----- target_software
     - conda install -c conda-forge cfitsio
