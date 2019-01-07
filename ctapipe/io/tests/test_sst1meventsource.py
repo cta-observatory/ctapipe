@@ -65,10 +65,10 @@ def test_is_compatible():
 
 
 def test_factory_for_protozfits_file():
-    from ctapipe.io.eventsourcefactory import EventSourceFactory
+    from ctapipe.io import EventSource
     from ctapipe.io.sst1meventsource import SST1MEventSource
 
-    reader = EventSourceFactory.produce(input_url=example_file_path)
+    reader = EventSource.from_url(url=example_file_path)
     assert isinstance(reader, SST1MEventSource)
     assert reader.input_url == example_file_path
 

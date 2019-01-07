@@ -27,8 +27,7 @@ class EventSource(Component):
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
     `ctapipe.io.SimTelEventSource` to read a hessio format
-    file). Alternatively you can use
-    `ctapipe.io.eventfilereader.EventSourceFactory` to automatically
+    file). Alternatively you can use `from_url()` to automatically
     select the correct EventFileReader subclass for the file format you wish
     to read.
 
@@ -38,9 +37,8 @@ class EventSource(Component):
 
     >>> event_source = EventSource(self.config, self)
 
-    An example of how to use `ctapipe.core.tool.Tool` and
-    `ctapipe.io.eventfilereader.EventSourceFactory` can be found in
-    ctapipe/examples/calibration_pipeline.py.
+    An example of how to use `ctapipe.core.tool.Tool` and `from_url()`
+    can be found in ctapipe/examples/calibration_pipeline.py.
 
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:
@@ -99,7 +97,6 @@ class EventSource(Component):
               'will be included')
     ).tag(config=True)
 
-
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
@@ -133,7 +130,6 @@ class EventSource(Component):
         Provenance().add_input_file(self.input_url, role='dl0.sub.evt')
 
     @staticmethod
-    @abstractmethod
     def is_compatible(file_path):
         """
         Abstract method to be defined in child class.
@@ -167,7 +163,6 @@ class EventSource(Component):
         """
         return False
 
-    @abstractmethod
     def _generator(self):
         """
         Abstract method to be defined in child class.
@@ -198,3 +193,14 @@ class EventSource(Component):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+    @classmethod
+    def from_url(cls, url, *args, **kwargs):
+        return cls.cls_from_url(url)(input_url=url, *args, **kwargs)
+
+    @classmethod
+    def cls_from_url(cls, url):
+        for subcls in cls.__subclasses__():
+            if subcls.is_compatible(str(url)):
+                return subcls
+        raise ValueError

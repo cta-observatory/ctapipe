@@ -11,7 +11,7 @@ from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.image.waveform_cleaning import WaveformCleanerFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
@@ -26,12 +26,14 @@ class BokehFileViewer(Tool):
     disable_server = Bool(False, help="Do not start the bokeh server "
                                       "(useful for testing)").tag(config=True)
 
+    default_url = get_dataset_path("gamma_test.simtel.gz")
+    EventSource.input_url.default_value = default_url
+
     aliases = Dict(dict(
         port='BokehFileViewer.port',
         disable_server='BokehFileViewer.disable_server',
-        r='EventSourceFactory.product',
-        f='EventSourceFactory.input_url',
-        max_events='EventSourceFactory.max_events',
+        f='EventSource.input_url',
+        max_events='EventSource.max_events',
         ped='CameraR1CalibratorFactory.pedestal_path',
         tf='CameraR1CalibratorFactory.tf_path',
         pe='CameraR1CalibratorFactory.pe_path',
@@ -47,7 +49,7 @@ class BokehFileViewer(Tool):
     ))
 
     classes = List([
-        EventSourceFactory,
+        EventSource,
         ChargeExtractorFactory,
         CameraR1CalibratorFactory,
         CameraDL1Calibrator,
@@ -89,9 +91,8 @@ class BokehFileViewer(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        default_url = get_dataset_path("gamma_test.simtel.gz")
-        EventSourceFactory.input_url.default_value = default_url
-        self.reader = EventSourceFactory.produce(**kwargs)
+        dummy_source = EventSource(**kwargs)
+        self.reader = EventSource.from_url(dummy_source.input_url, **kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
         self.extractor = ChargeExtractorFactory.produce(**kwargs)

@@ -16,7 +16,7 @@ from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -267,9 +267,8 @@ class DisplayIntegrator(Tool):
 
     aliases = Dict(
         dict(
-            r='EventSourceFactory.product',
-            f='EventSourceFactory.input_url',
-            max_events='EventSourceFactory.max_events',
+            f='EventSource.input_url',
+            max_events='EventSource.max_events',
             extractor='ChargeExtractorFactory.product',
             window_width='ChargeExtractorFactory.window_width',
             window_shift='ChargeExtractorFactory.window_shift',
@@ -294,7 +293,7 @@ class DisplayIntegrator(Tool):
         )
     )
     classes = List([
-        EventSourceFactory,
+        EventSource,
         ChargeExtractorFactory,
         CameraDL1Calibrator,
     ])
@@ -311,7 +310,8 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        eventsource = EventSourceFactory.produce(**kwargs)
+        dummy = EventSource(**kwargs)
+        eventsource = EventSource.from_url(url=dummy.input_url, **kwargs)
         self.eventseeker = EventSeeker(eventsource, **kwargs)
 
         self.extractor = ChargeExtractorFactory.produce(**kwargs)

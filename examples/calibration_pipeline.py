@@ -5,7 +5,7 @@ from traitlets import Dict, List, Int, Bool, Unicode
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
 from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
@@ -140,7 +140,7 @@ class DisplayDL1Calib(Tool):
 
     aliases = Dict(
         dict(
-            max_events='EventSourceFactory.max_events',
+            max_events='EventSource.max_events',
             extractor='ChargeExtractorFactory.product',
             window_width='ChargeExtractorFactory.window_width',
             t0='ChargeExtractorFactory.t0',
@@ -164,7 +164,7 @@ class DisplayDL1Calib(Tool):
         )
     )
     classes = List([
-        EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
+        EventSource, ChargeExtractorFactory, CameraDL1Calibrator,
         ImagePlotter
     ])
 
@@ -177,8 +177,9 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = EventSourceFactory.produce(
-            input_url=get_dataset_path("gamma_test.simtel.gz"), **kwargs
+        self.eventsource = EventSource.from_url(
+            url=get_dataset_path("gamma_test.simtel.gz"),
+            **kwargs
         )
 
         self.calibrator = CameraCalibrator(

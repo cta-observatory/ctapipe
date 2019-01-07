@@ -3,6 +3,7 @@ from ctapipe.core.component import Component
 from inspect import isabstract
 from traitlets.config.loader import Config
 from traitlets import CaselessStrEnum
+from collections import defaultdict
 
 
 class FactoryMeta(type(Component), type):
@@ -16,64 +17,79 @@ class FactoryMeta(type(Component), type):
             if not isinstance(base, type) or not issubclass(base, Component):
                 raise AttributeError("Factory.base must be set to a Component")
 
-            dct['subclasses'] = mcs.child_subclasses(base)
+            dct['subclasses'] = child_subclasses(base)
             dct['subclass_names'] = [c.__name__ for c in dct['subclasses']]
 
-            default = None if 'default' not in dct else dct['default']
-            help_msg = 'Product class to obtain from the Factory.'
-            if 'custom_product_help' in dct and dct['custom_product_help']:
-                help_msg = dct['custom_product_help']
+            default_product = dct.get('default', None)
+            help_msg = dct.get(
+                'custom_product_help',
+                'Product class to obtain from the Factory.'
+            )
             dct['product'] = CaselessStrEnum(
                 dct['subclass_names'],
-                default,
+                default_product,
                 allow_none=True,
                 help=help_msg
             ).tag(config=True)
 
-            # Gather a record of which traits are valid for which subclasses
-            # and copy subclass traits
-            traits = dict()
-            record = dict()
-            for sub in dct['subclasses']:
-                for key, trait in sub.class_traits().items():
-                    if key in ['config', 'parent']:
-                        continue
-                    record.setdefault(key, []).append(sub.__name__)
-                    if key not in traits:
-                        traits[key] = deepcopy(trait)
+            traits = gather_traits_of_classes(dct['subclasses'])
 
-            # Add subclass traits to Factory and include a list of valid
-            # sublasses for the trait help message
+            classes_using_trait = crate_map_of_traitname_to_classnames(
+                dct['subclasses'])
+
+            # add sublasses for the trait to help message
             for key, trait in traits.items():
-                trait.help += "\n\nCompatible Components: " + str(record[key])
-                dct[key] = trait
+                trait.help += "\n\nCompatible Components: {}".format(
+                    classes_using_trait[key]
+                )
 
+            dct.update(traits)
         return type.__new__(mcs, name, bases, dct)
 
-    @staticmethod
-    def child_subclasses(base):
-        """
-        Return all non-abstract subclasses of a base class.
 
-        Parameters
-        ----------
-        base : class
-            high level class object that is inherited by the
-            desired subclasses
+def gather_traits_of_classes(classes):
+    traits = dict()
+    for sub in classes:
+        for key, trait in sub.class_traits().items():
+            if key not in ['config', 'parent']:
+                traits[key] = deepcopy(trait)
+    return traits
 
-        Returns
-        -------
-        children : list
-            list of non-abstract subclasses
 
-        """
-        family = base.__subclasses__() + [
-            g for s in base.__subclasses__()
-            for g in FactoryMeta.child_subclasses(s)
-        ]
-        children = [g for g in family if not isabstract(g)]
+def crate_map_of_traitname_to_classnames(classes):
+    '''create a dict of traitnames to a list of classnames having these traits
+    '''
+    record = defaultdict(list)
+    for sub in classes:
+        for key in sub.class_traits().keys():
+            if key not in ['config', 'parent']:
+                record[key].append(sub.__name__)
+    return record
 
-        return children
+
+def child_subclasses(base):
+    """
+    Return all non-abstract subclasses of a base class.
+
+    Parameters
+    ----------
+    base : class
+        high level class object that is inherited by the
+        desired subclasses
+
+    Returns
+    -------
+    children : list
+        list of non-abstract subclasses
+
+    """
+    family = base.__subclasses__() + [
+        g for s in base.__subclasses__()
+        for g in child_subclasses(s)
+    ]
+    children = [g for g in family if not isabstract(g)]
+
+    return children
 
 
 class Factory(Component, metaclass=FactoryMeta):

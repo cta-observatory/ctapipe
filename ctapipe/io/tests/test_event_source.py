@@ -1,11 +1,5 @@
-import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.eventsource import EventSource
-
-
-def test_construct():
-    with pytest.raises(TypeError):
-        EventSource()
 
 
 class DummyReader(EventSource):
