@@ -221,12 +221,14 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
 waveform_cleaners = child_subclasses(WaveformCleaner)
 waveform_cleaner_names = [cls.__name__ for cls in waveform_cleaners]
 
-waveform_cleaner_enum_trait = CaselessStrEnum(
-    waveform_cleaner_names,
-    'NullWaveformCleaner',
-    allow_none=True,
-    help='Waveform cleaning method to use.'
-).tag(config=True)
+
+def enum_trait():
+    return CaselessStrEnum(
+        waveform_cleaner_names,
+        'NullWaveformCleaner',
+        allow_none=True,
+        help='Waveform cleaning method to use.'
+    ).tag(config=True)
 
 all_classes = [WaveformCleaner] + waveform_cleaners
 classes_with_traits = [cls for cls in all_classes if has_traits(cls)]

@@ -2,16 +2,12 @@
 Charge extraction algorithms to reduce the image to one value per pixel
 """
 
-__all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
-           'GlobalPeakIntegrator', 'LocalPeakIntegrator',
-           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
-
-
 from abc import abstractmethod
 import numpy as np
 from traitlets import Int, CaselessStrEnum, Float
 from ctapipe.core import Component, Factory
 from ctapipe.utils.neighbour_sum import get_sum_array
+from ctapipe.core.factory import child_subclasses, has_traits
 
 
 class ChargeExtractor(Component):
@@ -85,7 +81,7 @@ class ChargeExtractor(Component):
         Returns
         -------
         peakpos : ndarray
-            Numpy array of the peak position for each pixel. 
+            Numpy array of the peak position for each pixel.
             Has shape of (n_chan, n_pix).
 
         """
@@ -175,7 +171,7 @@ class Integrator(ChargeExtractor):
             Waveforms stored in a numpy array of shape
             (n_chan, n_pix, n_samples).
         peakpos : ndarray
-            Numpy array containing the peak position for each pixel. 
+            Numpy array containing the peak position for each pixel.
             Shape = (n_chan, n_pix)
 
         Returns
@@ -216,7 +212,7 @@ class Integrator(ChargeExtractor):
             Waveforms stored in a numpy array of shape
             (n_chan, n_pix, n_samples).
         peakpos : ndarray
-            Numpy array of the peak position for each pixel. 
+            Numpy array of the peak position for each pixel.
             Has shape of (n_chan, n_pix).
 
         Returns
@@ -269,7 +265,7 @@ class Integrator(ChargeExtractor):
     @staticmethod
     def extract_from_window(waveforms, window):
         """
-        Extract the charge but applying an intregration window to the 
+        Extract the charge but applying an intregration window to the
         waveforms.
 
         Parameters
@@ -293,7 +289,7 @@ class Integrator(ChargeExtractor):
 
     def get_window_from_waveforms(self, waveforms):
         """
-        Consolidating function to obtain the window and peakpos given 
+        Consolidating function to obtain the window and peakpos given
         a waveform.
 
         Parameters
@@ -309,7 +305,7 @@ class Integrator(ChargeExtractor):
             integration window, and False where the samples lay outside. Has
             shape of (n_chan, n_pix, n_samples).
         peakpos : ndarray
-            Numpy array of the peak position for each pixel. 
+            Numpy array of the peak position for each pixel.
             Has shape of (n_chan, n_pix).
 
         """
@@ -660,7 +656,7 @@ class NeighbourPeakIntegrator(PeakFindingIntegrator):
 
 class AverageWfPeakIntegrator(PeakFindingIntegrator):
     """
-    Charge extractor that defines an integration window defined by the 
+    Charge extractor that defines an integration window defined by the
     average waveform across all pixels.
 
     Attributes
@@ -693,10 +689,25 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         return peakpos
 
 
-class ChargeExtractorFactory(Factory):
-    """
-    Factory to obtain a ChargeExtractor.
-    """
-    base = ChargeExtractor
-    default = 'NeighbourPeakIntegrator'
-    custom_product_help = 'Charge extraction scheme to use.'
+charge_extractors = child_subclasses(ChargeExtractor)
+charge_extractor_names = [cls.__name__ for cls in charge_extractors]
+
+def enum_trait():
+    return CaselessStrEnum(
+        charge_extractor_names,
+        'NeighbourPeakIntegrator',
+        allow_none=True,
+        help='Charge extraction scheme to use.'
+    ).tag(config=True)
+
+all_classes = [ChargeExtractor] + charge_extractors
+classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
+__all__ = charge_extractor_names
+
+
+def from_name(charge_extractor_name=None, *args, **kwargs):
+    if charge_extractor_name is None:
+        charge_extractor_name = 'NeighbourPeakIntegrator'
+
+    cls = globals()[charge_extractor_name]
+    return cls(*args, **kwargs)

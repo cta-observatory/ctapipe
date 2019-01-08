@@ -10,7 +10,7 @@ from ctapipe.calib.camera import (
     CameraDL0Reducer,
     CameraDL1Calibrator,
 )
-from ctapipe.image import ChargeExtractorFactory
+from ctapipe.image import charge_extractors
 from ctapipe.image import waveform_cleaning
 
 __all__ = ['CameraCalibrator']
@@ -32,13 +32,6 @@ class CameraCalibrator(Component):
         ped='CameraR1CalibratorFactory.pedestal_path',
         tf='CameraR1CalibratorFactory.tf_path',
         pe='CameraR1CalibratorFactory.adc2pe_path',
-        extractor='ChargeExtractorFactory.extractor',
-        extractor_t0='ChargeExtractorFactory.t0',
-        window_width='ChargeExtractorFactory.window_width',
-        window_shift='ChargeExtractorFactory.window_shift',
-        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        lwt='ChargeExtractorFactory.lwt',
         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
         radius='CameraDL1Calibrator.radius',
         ))
@@ -75,13 +68,10 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        kwargs_ = dict()
-        if extractor_product:
-            kwargs_['product'] = extractor_product
-        extractor = ChargeExtractorFactory.produce(
+        extractor = charge_extractors.from_name(
+            extractor_product,
             config=config,
-            tool=tool,
-            **kwargs_
+            tool=tool
         )
 
         cleaner = waveform_cleaning.from_name(

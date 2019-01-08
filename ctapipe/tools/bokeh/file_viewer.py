@@ -9,7 +9,7 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image import charge_extractors
 from ctapipe.image import waveform_cleaning
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
@@ -29,7 +29,8 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    cleaner_name = waveform_cleaning.waveform_cleaner_enum_trait
+    cleaner_name = waveform_cleaning.enum_trait()
+    extractor_name = charge_extractors.enum_trait()
 
     aliases = Dict(dict(
         port='BokehFileViewer.port',
@@ -40,23 +41,17 @@ class BokehFileViewer(Tool):
         tf='CameraR1CalibratorFactory.tf_path',
         pe='CameraR1CalibratorFactory.pe_path',
         ff='CameraR1CalibratorFactory.ff_path',
-        extractor='ChargeExtractorFactory.product',
-        extractor_t0='ChargeExtractorFactory.t0',
-        extractor_window_width='ChargeExtractorFactory.window_width',
-        extractor_window_shift='ChargeExtractorFactory.window_shift',
-        extractor_sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        extractor_sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        extractor_lwt='ChargeExtractorFactory.lwt',
+        extractor='BokehFileViewer.extractor_name',
         cleaner='BokehFileViewer.cleaner_name'
     ))
 
     classes = List(
         [
             EventSource,
-            ChargeExtractorFactory,
             CameraR1CalibratorFactory,
             CameraDL1Calibrator,
         ] + waveform_cleaning.classes_with_traits
+        + charge_extractors.classes_with_traits
     )
 
     def __init__(self, **kwargs):
@@ -97,7 +92,7 @@ class BokehFileViewer(Tool):
         self.reader = EventSource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
-        self.extractor = ChargeExtractorFactory.produce(**kwargs)
+        self.extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
         self.cleaner = waveform_cleaning.from_name(self.cleaner_name, **kwargs)
 
         self.r1 = CameraR1CalibratorFactory.produce(
@@ -356,7 +351,7 @@ class BokehFileViewer(Tool):
             cleaner=Select(title="Cleaner:", value='', width=5,
                            options=BokehFileViewer.cleaner_name.values),
             extractor=Select(title="Extractor:", value='', width=5,
-                             options=ChargeExtractorFactory.subclass_names),
+                             options=BokehFileViewer.extractor_name.values),
             extractor_t0=TextInput(title="T0:", value=''),
             extractor_window_width=TextInput(title="Window Width:", value=''),
             extractor_window_shift=TextInput(title="Window Shift:", value=''),
@@ -413,7 +408,9 @@ class BokehFileViewer(Tool):
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
-                extractor = ChargeExtractorFactory.produce(**kwargs)
+                extractor = charge_extractors.from_name(
+                    self.extractor_name,
+                    **kwargs)
                 cleaner = waveform_cleaning.from_name(
                     self.cleaner_name,
                     **kwargs)

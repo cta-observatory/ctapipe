@@ -13,7 +13,7 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image import charge_extractors
 from ctapipe.io.simteleventsource import SimTelEventSource
 
 
@@ -29,26 +29,24 @@ class ChargeResolutionGenerator(Tool):
                           help='Name of the output charge resolution hdf5 '
                                'file').tag(config=True)
 
+    extractor_name = charge_extractors.enum_trait()
+
     aliases = Dict(dict(f='SimTelEventSource.input_url',
                         max_events='SimTelEventSource.max_events',
-                        extractor='ChargeExtractorFactory.product',
-                        window_width='ChargeExtractorFactory.window_width',
-                        t0='ChargeExtractorFactory.t0',
-                        window_shift='ChargeExtractorFactory.window_shift',
-                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-                        lwt='ChargeExtractorFactory.lwt',
+                        extractor='ChargeResolutionGenerator.extractor_name',
                         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
                         radius='CameraDL1Calibrator.radius',
                         max_pe='ChargeResolutionCalculator.max_pe',
                         T='ChargeResolutionGenerator.telescopes',
                         O='ChargeResolutionGenerator.output_name',
                         ))
-    classes = List([SimTelEventSource,
-                    ChargeExtractorFactory,
-                    CameraDL1Calibrator,
-                    ChargeResolutionCalculator
-                    ])
+    classes = List(
+        [
+            SimTelEventSource,
+            CameraDL1Calibrator,
+            ChargeResolutionCalculator
+        ] + charge_extractors.classes_with_traits
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -64,7 +62,7 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(**kwargs)
 
-        extractor = ChargeExtractorFactory.produce(**kwargs)
+        extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
 
         self.r1 = HESSIOR1Calibrator(**kwargs)
 

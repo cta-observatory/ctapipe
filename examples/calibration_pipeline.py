@@ -4,7 +4,7 @@ from traitlets import Dict, List, Int, Bool, Unicode
 
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image import charge_extractors
 from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
@@ -138,16 +138,12 @@ class DisplayDL1Calib(Tool):
         'telescopes.'
     ).tag(config=True)
 
+    extractor_name = charge_extractors.enum_trait()
+
     aliases = Dict(
         dict(
             max_events='EventSource.max_events',
-            extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            t0='ChargeExtractorFactory.t0',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            extractor='DisplayDL1Calib.extractor_name',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
             O='ImagePlotter.output_path'
@@ -163,10 +159,13 @@ class DisplayDL1Calib(Tool):
                "are produced.")
         )
     )
-    classes = List([
-        EventSource, ChargeExtractorFactory, CameraDL1Calibrator,
-        ImagePlotter
-    ])
+    classes = List(
+        [
+            EventSource,
+            CameraDL1Calibrator,
+            ImagePlotter
+        ] + charge_extractors.classes_with_traits
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
