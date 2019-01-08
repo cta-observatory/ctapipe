@@ -219,6 +219,7 @@ class EventSource(Component):
         given the provided configuration in `args` and `kwargs`
         Then returns an instance.
         '''
+
         # making this "dummy" instance here is just needed to let
         # traitlets do their magic.
         # What we actually want here is to find the input_url in the
@@ -227,4 +228,5 @@ class EventSource(Component):
         # we should do it.
         dummy = cls(*args, **kwargs)
         url = dummy.input_url
+
         return cls.from_url(url, *args, **kwargs)
