@@ -6,15 +6,14 @@ from abc import abstractmethod
 
 import numpy as np
 from scipy.signal import general_gaussian
-from traitlets import Int
+from traitlets import Int, CaselessStrEnum
 
 from ctapipe.core import Component, Factory
 from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
                                              LocalPeakIntegrator)
+from ctapipe.core.factory import child_subclasses
 
-__all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
-           'CHECMWaveformCleanerLocal',
-           'NullWaveformCleaner']
+
 
 
 class WaveformCleaner(Component):
@@ -72,8 +71,8 @@ class CHECMWaveformCleaner(WaveformCleaner):
     Waveform cleaner used by CHEC-M.
 
     This cleaner performs 2 basline subtractions: a simple subtraction
-    using the average of the first 32 samples in the waveforms, then a 
-    convolved baseline subtraction to remove and low frequency drifts in 
+    using the average of the first 32 samples in the waveforms, then a
+    convolved baseline subtraction to remove and low frequency drifts in
     the baseline.
 
     Parameters
@@ -164,11 +163,11 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
     Waveform cleaner used by CHEC-M.
 
     This cleaner performs 2 basline subtractions: a simple subtraction
-    using the average of the first 32 samples in the waveforms, then a 
-    convolved baseline subtraction to remove and low frequency drifts in 
+    using the average of the first 32 samples in the waveforms, then a
+    convolved baseline subtraction to remove and low frequency drifts in
     the baseline.
 
-    This particular cleaner obtains the peak position using an 
+    This particular cleaner obtains the peak position using an
     `AverageWfPeakIntegrator`.
 
     Parameters
@@ -195,11 +194,11 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
     Waveform cleaner used by CHEC-M.
 
     This cleaner performs 2 basline subtractions: a simple subtraction
-    using the average of the first 32 samples in the waveforms, then a 
-    convolved baseline subtraction to remove and low frequency drifts in 
+    using the average of the first 32 samples in the waveforms, then a
+    convolved baseline subtraction to remove and low frequency drifts in
     the baseline.
 
-    This particular cleaner obtains the peak position using an 
+    This particular cleaner obtains the peak position using an
     `LocalPeakIntegrator`.
 
     Parameters
@@ -219,6 +218,20 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
         return LocalPeakIntegrator(None, self.parent,
                                    window_width=self.window_width,
                                    window_shift=self.window_shift)
+
+
+waveform_cleaners = child_subclasses(WaveformCleaner)
+waveform_cleaner_names = [cls.__name__ for cls in waveform_cleaners]
+
+waveform_cleaner_enum_trait = CaselessStrEnum(
+    waveform_cleaner_names,
+    'NullWaveformCleaner',
+    allow_none=True,
+    help='Waveform cleaning method to use.'
+).tag(config=True)
+
+all_classes = [WaveformCleaner] + waveform_cleaners
+__all__ = waveform_cleaner_names + ['WaveformCleanerFactory']
 
 
 class WaveformCleanerFactory(Factory):
