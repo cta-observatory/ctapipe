@@ -37,15 +37,14 @@ def from_name(cls_name, default, namespace, *args, **kwargs):
 
 def enum_trait(base_class, default, help_str):
     return CaselessStrEnum(
-        non_abstract_child_class_names(base_class),
+        [
+            cls.__name__
+            for cls in non_abstract_children(base_class)
+        ],
         default,
         allow_none=True,
         help=help_str
     ).tag(config=True)
-
-
-def non_abstract_child_class_names(base_class):
-    return [cls.__name__ for cls in non_abstract_children(base_class)]
 
 
 def classes_with_traits(base_class):
