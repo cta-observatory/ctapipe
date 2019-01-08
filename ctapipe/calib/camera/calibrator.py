@@ -84,7 +84,8 @@ class CameraCalibrator(Component):
             **kwargs_
         )
 
-        cleaner = waveform_cleaning.from_name(cleaner_product)(
+        cleaner = waveform_cleaning.from_name(
+            cleaner_product,
             config=config,
             tool=tool,
         )

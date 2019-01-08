@@ -92,6 +92,18 @@ def child_subclasses(base):
     return children
 
 
+def has_traits(cls, ignore=('config', 'parent')):
+    '''True if cls has any traits apart from the usual ones
+
+    all our components have at least 'config' and 'parent' as traitlets
+    this is inherited from `traitlets.config.Configurable` so we ignore them
+    here.
+    '''
+    return bool(
+        set(cls.class_trait_names()) - set(ignore)
+    )
+
+
 class Factory(Component, metaclass=FactoryMeta):
     """
     A base class for all class factories that exist in the `Tools`/`Components`

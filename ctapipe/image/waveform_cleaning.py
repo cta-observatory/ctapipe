@@ -8,12 +8,10 @@ import numpy as np
 from scipy.signal import general_gaussian
 from traitlets import Int, CaselessStrEnum
 
-from ctapipe.core import Component, Factory
+from ctapipe.core import Component
 from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
                                              LocalPeakIntegrator)
-from ctapipe.core.factory import child_subclasses
-
-
+from ctapipe.core.factory import child_subclasses, has_traits
 
 
 class WaveformCleaner(Component):
@@ -231,8 +229,13 @@ waveform_cleaner_enum_trait = CaselessStrEnum(
 ).tag(config=True)
 
 all_classes = [WaveformCleaner] + waveform_cleaners
+classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
 __all__ = waveform_cleaner_names
 
 
-def from_name(waveform_cleaner_name='NullWaveformCleaner', *args, **kwargs):
-    return globals()[waveform_cleaner_name](*args, **kwargs)
+def from_name(waveform_cleaner_name=None, *args, **kwargs):
+    if waveform_cleaner_name is None:
+        waveform_cleaner_name = 'NullWaveformCleaner'
+
+    cls = globals()[waveform_cleaner_name]
+    return cls(*args, **kwargs)
