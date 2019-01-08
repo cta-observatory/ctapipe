@@ -2,9 +2,8 @@
 
 from .component import Component
 from .container import Container, Field, Map
-from .factory import Factory
 from .provenance import Provenance
 from .tool import Tool, ToolConfigurationError
 
-__all__ = ['Component', 'Container', 'Tool', 'Field', 'Map', 'Factory',
+__all__ = ['Component', 'Container', 'Tool', 'Field', 'Map',
            'Provenance', 'ToolConfigurationError']

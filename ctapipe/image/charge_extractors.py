@@ -5,7 +5,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 from abc import abstractmethod
 import numpy as np
 from traitlets import Int, CaselessStrEnum, Float
-from ctapipe.core import Component, Factory
+from ctapipe.core import Component
 from ctapipe.utils.neighbour_sum import get_sum_array
 from ctapipe.core.factory import child_subclasses, has_traits
 

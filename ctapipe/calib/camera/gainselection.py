@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractclassmethod
 
 import numpy as np
 
-from ...core import Component, Factory, traits
+from ...core import Component, traits
 from ...utils import get_table_dataset
 from ctapipe.core.factory import child_subclasses, has_traits
 from traitlets import CaselessStrEnum

@@ -1,4 +1,3 @@
-from ctapipe.core.factory import Factory
 from ctapipe.io.eventsource import EventSource
 
 # EventFileReader imports so that EventFileReaderFactory can see them

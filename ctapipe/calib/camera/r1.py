@@ -15,9 +15,8 @@ of the data.
 """
 from abc import abstractmethod
 import numpy as np
-from ...core import Component, Factory
+from ...core import Component
 from ...core.traits import Unicode
-from ...io import EventSource
 from ctapipe.core.factory import child_subclasses, has_traits
 from traitlets import CaselessStrEnum
 
@@ -306,66 +305,6 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             r1 = event.r1.tel[self.telid].waveform[0]
             self.calibrator.ApplyEvent(samples[0], fci, self._r1_wf[0])
             event.r1.tel[self.telid].waveform = self._r1_wf
-
-
-class CameraR1CalibratorFactory(Factory):
-    """
-    The R1 calibrator `ctapipe.core.factory.Factory`. This
-    `ctapipe.core.factory.Factory` allows the correct
-    `CameraR1Calibrator` to be obtained for the data investigated.
-
-    Additional filepaths are required by some cameras for R1 calibration. Due
-    to the current inplementation of `ctapipe.core.factory.Factory`, every
-    trait that could
-    possibly be required for a child `ctapipe.core.component.Component` of
-    `CameraR1Calibrator` is
-    included in this `ctapipe.core.factory.Factory`. The
-    `CameraR1Calibrator` specific to a
-    camera type should then define how/if that filepath should be used. The
-    format of the file is not restricted, and the file can be read from inside
-    ctapipe, or can call a different library created by the camera teams for
-    the calibration of their camera.
-    """
-    base = CameraR1Calibrator
-    custom_product_help = ''
-    def __init__(self, config=None, tool=None, eventsource=None, **kwargs):
-        """
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        eventsource : ctapipe.io.eventsource.EventSource
-            EventSource that is being used to read the events. The EventSource
-            contains information (such as metadata or inst) which indicates
-            the appropriate R1Calibrator to use.
-        kwargs
-
-        """
-
-        super().__init__(config, tool, **kwargs)
-        if eventsource and not issubclass(type(eventsource), EventSource):
-            raise TypeError(
-                "eventsource must be a ctapipe.io.eventsource.EventSource"
-            )
-        self.eventsource = eventsource
-
-    def _get_product_name(self):
-        try:
-            return super()._get_product_name()
-        except AttributeError:
-            es = self.eventsource
-            if es:
-                if es.metadata['is_simulation']:
-                    return 'HESSIOR1Calibrator'
-                elif es.__class__.__name__ == "TargetIOEventSource":
-                    return 'TargetIOR1Calibrator'
-            return 'NullR1Calibrator'
 
 
 camera_R1_calibrators = child_subclasses(CameraR1Calibrator)
