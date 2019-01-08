@@ -8,12 +8,11 @@ import numpy as np
 from scipy.signal import general_gaussian
 from traitlets import Int
 
-from ctapipe.core import Component
+from ctapipe.core import Component, non_abstract_children
 from ctapipe.image.charge_extractors import (
     AverageWfPeakIntegrator,
     LocalPeakIntegrator,
 )
-from ctapipe.utils.basic import non_abstract_children
 
 
 class WaveformCleaner(Component):

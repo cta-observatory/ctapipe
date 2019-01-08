@@ -1,7 +1,6 @@
 '''some utils for Tool Developers
 '''
-
-from ctapipe.utils.basic import non_abstract_children
+from ctapipe.core import non_abstract_children
 from traitlets import CaselessStrEnum
 
 

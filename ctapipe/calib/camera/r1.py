@@ -16,8 +16,7 @@ of the data.
 from abc import abstractmethod
 import numpy as np
 
-from ctapipe.utils.basic import non_abstract_children
-from ...core import Component
+from ...core import Component, non_abstract_children
 from ...core.traits import Unicode
 
 

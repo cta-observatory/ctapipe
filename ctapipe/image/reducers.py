@@ -4,8 +4,7 @@ Algorithms for the data volume reduction.
 
 from abc import abstractmethod
 
-from ctapipe.core import Component
-from ctapipe.utils.basic import non_abstract_children
+from ctapipe.core import Component, non_abstract_children
 
 
 class DataVolumeReducer(Component):

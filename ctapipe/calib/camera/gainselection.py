@@ -5,8 +5,7 @@ from abc import ABCMeta, abstractclassmethod
 
 import numpy as np
 
-from ctapipe.utils.basic import non_abstract_children
-from ...core import Component, traits
+from ...core import Component, traits, non_abstract_children
 from ...utils import get_table_dataset
 
 
