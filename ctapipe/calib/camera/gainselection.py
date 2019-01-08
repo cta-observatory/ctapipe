@@ -7,11 +7,8 @@ import numpy as np
 
 from ...core import Component, Factory, traits
 from ...utils import get_table_dataset
-
-__all__ = ['GainSelectorFactory',
-           'ThresholdGainSelector',
-           'SimpleGainSelector',
-           'pick_gain_channel']
+from ctapipe.core.factory import child_subclasses, has_traits
+from traitlets import CaselessStrEnum
 
 
 def pick_gain_channel(waveforms, threshold, select_by_sample=False):
@@ -174,10 +171,25 @@ class ThresholdGainSelector(GainSelector):
         return waveform, gain_mask
 
 
-class GainSelectorFactory(Factory):
-    """
-    Factory to obtain a GainSelector
-    """
-    base = GainSelector
-    default = 'ThresholdGainSelector'
-    custom_product_help = 'Gain-channel selection scheme to use.'
+gain_selectors = child_subclasses(GainSelector)
+gain_selector_names = [cls.__name__ for cls in gain_selectors]
+all_classes = [GainSelector] + gain_selectors
+classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
+__all__ = gain_selector_names + ['pick_gain_channel']
+
+
+def enum_trait():
+    return CaselessStrEnum(
+        gain_selector_names,
+        'ThresholdGainSelector',
+        allow_none=True,
+        help='Gain-channel selection scheme to use.'
+    ).tag(config=True)
+
+
+def from_name(gain_selector_name=None, *args, **kwargs):
+    if gain_selector_name is None:
+        gain_selector_name = 'ThresholdGainSelector'
+
+    cls = globals()[gain_selector_name]
+    return cls(*args, **kwargs)
