@@ -199,10 +199,13 @@ class EventSource(Component):
 
     @classmethod
     def from_url(cls, url, *args, **kwargs):
-        return cls.cls_from_url(url)(input_url=url, *args, **kwargs)
+        '''find compatible EventSource for `url` and return instance'''
+        compatible_cls = cls.cls_from_url(url)
+        return compatible_cls(input_url=url, *args, **kwargs)
 
     @classmethod
     def cls_from_url(cls, url):
+        '''find compatible EventSource sub-class for `url`'''
         for subcls in cls.__subclasses__():
             if subcls.is_compatible(url):
                 return subcls
@@ -210,6 +213,12 @@ class EventSource(Component):
 
     @classmethod
     def from_config(cls, *args, **kwargs):
+        '''return EventSource instance from configuration
+
+        Tries its best to find out what event source should be created
+        given the provided configuration in `args` and `kwargs`
+        Then returns an instance.
+        '''
         # making this "dummy" instance here is just needed to let
         # traitlets do their magic.
         # What we actually want here is to find the input_url in the
