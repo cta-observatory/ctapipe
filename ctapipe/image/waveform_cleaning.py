@@ -220,6 +220,9 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
 
 waveform_cleaners = child_subclasses(WaveformCleaner)
 waveform_cleaner_names = [cls.__name__ for cls in waveform_cleaners]
+all_classes = [WaveformCleaner] + waveform_cleaners
+classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
+__all__ = waveform_cleaner_names
 
 
 def enum_trait():
@@ -229,10 +232,6 @@ def enum_trait():
         allow_none=True,
         help='Waveform cleaning method to use.'
     ).tag(config=True)
-
-all_classes = [WaveformCleaner] + waveform_cleaners
-classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
-__all__ = waveform_cleaner_names
 
 
 def from_name(waveform_cleaner_name=None, *args, **kwargs):
