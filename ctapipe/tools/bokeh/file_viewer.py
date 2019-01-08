@@ -7,7 +7,7 @@ from bokeh.themes import Theme
 from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera import r1
 from ctapipe.core import Tool
 from ctapipe.image import charge_extractors
 from ctapipe.image import waveform_cleaning
@@ -37,10 +37,6 @@ class BokehFileViewer(Tool):
         disable_server='BokehFileViewer.disable_server',
         f='EventSource.input_url',
         max_events='EventSource.max_events',
-        ped='CameraR1CalibratorFactory.pedestal_path',
-        tf='CameraR1CalibratorFactory.tf_path',
-        pe='CameraR1CalibratorFactory.pe_path',
-        ff='CameraR1CalibratorFactory.ff_path',
         extractor='BokehFileViewer.extractor_name',
         cleaner='BokehFileViewer.cleaner_name'
     ))
@@ -48,10 +44,10 @@ class BokehFileViewer(Tool):
     classes = List(
         [
             EventSource,
-            CameraR1CalibratorFactory,
             CameraDL1Calibrator,
         ] + waveform_cleaning.classes_with_traits
         + charge_extractors.classes_with_traits
+        + r1.classes_with_traits
     )
 
     def __init__(self, **kwargs):
@@ -94,11 +90,7 @@ class BokehFileViewer(Tool):
 
         self.extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
         self.cleaner = waveform_cleaning.from_name(self.cleaner_name, **kwargs)
-
-        self.r1 = CameraR1CalibratorFactory.produce(
-            eventsource=self.reader,
-            **kwargs
-        )
+        self.r1 = r1.from_eventsource(eventsource=self.reader, **kwargs)
         self.dl0 = CameraDL0Reducer(**kwargs)
         self.dl1 = CameraDL1Calibrator(
             extractor=self.extractor,

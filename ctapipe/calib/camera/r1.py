@@ -9,7 +9,7 @@ the cameras.
 As the R1 calibration is camera specific, each camera (and seperately the MC)
 requires their own calibrator class with inherits from `CameraR1Calibrator`.
 `HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
-Through the use of `CameraR1CalibratorFactory`, the correct
+Through the use of `from_eventsource()`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
@@ -18,13 +18,8 @@ import numpy as np
 from ...core import Component, Factory
 from ...core.traits import Unicode
 from ...io import EventSource
-
-__all__ = [
-    'NullR1Calibrator',
-    'HESSIOR1Calibrator',
-    'TargetIOR1Calibrator',
-    'CameraR1CalibratorFactory'
-]
+from ctapipe.core.factory import child_subclasses, has_traits
+from traitlets import CaselessStrEnum
 
 
 class CameraR1Calibrator(Component):
@@ -165,13 +160,13 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     """
     CALIB_SCALE is only relevant for MC calibration.
 
-    CALIB_SCALE is the factor needed to transform from mean p.e. units to 
-    units of the single-p.e. peak: Depends on the collection efficiency, 
-    the asymmetry of the single p.e. amplitude  distribution and the 
+    CALIB_SCALE is the factor needed to transform from mean p.e. units to
+    units of the single-p.e. peak: Depends on the collection efficiency,
+    the asymmetry of the single p.e. amplitude  distribution and the
     electronic noise added to the signals. Default value is for GCT.
 
     To correctly calibrate to number of photoelectron, a fresh SPE calibration
-    should be applied using a SPE sim_telarray run with an 
+    should be applied using a SPE sim_telarray run with an
     artificial light source.
     """
     # TODO: Handle calib_scale differently per simlated telescope
@@ -332,11 +327,7 @@ class CameraR1CalibratorFactory(Factory):
     the calibration of their camera.
     """
     base = CameraR1Calibrator
-    custom_product_help = ('R1 Calibrator to use. If None then a '
-                           'calibrator will either be selected based on the '
-                           'supplied EventSource, or will default to '
-                           '"NullR1Calibrator".')
-
+    custom_product_help = ''
     def __init__(self, config=None, tool=None, eventsource=None, **kwargs):
         """
         Parameters
@@ -375,3 +366,45 @@ class CameraR1CalibratorFactory(Factory):
                 elif es.__class__.__name__ == "TargetIOEventSource":
                     return 'TargetIOR1Calibrator'
             return 'NullR1Calibrator'
+
+
+camera_R1_calibrators = child_subclasses(CameraR1Calibrator)
+camera_R1_calibrator_names = [cls.__name__ for cls in camera_R1_calibrators]
+all_classes = [CameraR1Calibrator] + camera_R1_calibrators
+classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
+__all__ = camera_R1_calibrator_names
+
+
+def enum_trait():
+    return CaselessStrEnum(
+        camera_R1_calibrator_names,
+        'NullR1Calibrator',
+        allow_none=True,
+        help=(
+            'R1 Calibrator to use. If None then a '
+            'calibrator will either be selected based on the '
+            'supplied EventSource, or will default to '
+            '"NullR1Calibrator".'
+        )
+    ).tag(config=True)
+
+
+def from_name(camera_R1_calibrator_name=None, *args, **kwargs):
+    if camera_R1_calibrator_name is None:
+        camera_R1_calibrator_name = 'NullR1Calibrator'
+
+    cls = globals()[camera_R1_calibrator_name]
+    return cls(*args, **kwargs)
+
+
+def from_eventsource(eventsource=None, *args, **kwargs):
+    if eventsource is None:
+        return from_name(camera_R1_calibrator_name=None, *args, **kwargs)
+
+    if eventsource.metadata['is_simulation']:
+        name = 'HESSIOR1Calibrator'
+    elif eventsource.__class__.__name__ == "TargetIOEventSource":
+        name = 'TargetIOR1Calibrator'
+    else:
+        name = None
+    return from_name(name, *args, **kwargs)

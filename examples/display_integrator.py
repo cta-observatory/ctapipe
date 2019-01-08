@@ -12,7 +12,7 @@ from traitlets import Dict, List, Int, Bool, Enum
 
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera import r1
 from ctapipe.core import Tool
 from ctapipe.image import charge_extractors
 from ctapipe.io.eventseeker import EventSeeker
@@ -310,12 +310,8 @@ class DisplayIntegrator(Tool):
 
         eventsource = EventSource.from_config(**kwargs)
         self.eventseeker = EventSeeker(eventsource, **kwargs)
-
         self.extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
-
-        self.r1 = CameraR1CalibratorFactory.produce(
-            eventsource=eventsource, **kwargs
-        )
+        self.r1 = r1.from_eventsource(eventsource=eventsource, **kwargs)
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 

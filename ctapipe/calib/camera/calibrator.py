@@ -5,8 +5,8 @@ This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
 from ctapipe.core import Component
+from ctapipe.calib.camera import r1
 from ctapipe.calib.camera import (
-    CameraR1CalibratorFactory,
     CameraDL0Reducer,
     CameraDL1Calibrator,
 )
@@ -29,9 +29,6 @@ class CameraCalibrator(Component):
     .. code-block:: python
 
         aliases = Dict(dict(
-        ped='CameraR1CalibratorFactory.pedestal_path',
-        tf='CameraR1CalibratorFactory.tf_path',
-        pe='CameraR1CalibratorFactory.adc2pe_path',
         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
         radius='CameraDL1Calibrator.radius',
         ))
@@ -80,15 +77,18 @@ class CameraCalibrator(Component):
             tool=tool,
         )
 
-        kwargs_ = dict()
         if r1_product:
-            kwargs_['product'] = r1_product
-        self.r1 = CameraR1CalibratorFactory.produce(
-            config=config,
-            tool=tool,
-            eventsource=eventsource,
-            **kwargs_
-        )
+            self.r1 = r1.from_name(
+                r1_product,
+                config=config,
+                tool=tool,
+            )
+        else:
+            self.r1 = r1.from_eventsource(
+                eventsource,
+                config=config,
+                tool=tool,
+            )
 
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,
