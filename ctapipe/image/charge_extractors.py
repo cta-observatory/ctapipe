@@ -4,10 +4,10 @@ Charge extraction algorithms to reduce the image to one value per pixel
 
 from abc import abstractmethod
 import numpy as np
-from traitlets import Int, CaselessStrEnum, Float
+from traitlets import Int, Float
 from ctapipe.core import Component
 from ctapipe.utils.neighbour_sum import get_sum_array
-from ctapipe.core.factory import child_subclasses, has_traits
+from ctapipe.core import factory
 
 
 class ChargeExtractor(Component):
@@ -689,25 +689,33 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         return peakpos
 
 
-charge_extractors = child_subclasses(ChargeExtractor)
-charge_extractor_names = [cls.__name__ for cls in charge_extractors]
+BASECLASS = ChargeExtractor
+DEFAULT_NAME = 'NeighbourPeakIntegrator'
+HELP = 'Charge extraction scheme to use.'
+
+__all__ = [
+    cls.__name__
+    for cls in factory.non_abstract_children(BASECLASS)
+]
+
+
+def classes_with_traits():
+    return factory.classes_with_traits(BASECLASS)
+
 
 def enum_trait():
-    return CaselessStrEnum(
-        charge_extractor_names,
-        'NeighbourPeakIntegrator',
-        allow_none=True,
-        help='Charge extraction scheme to use.'
-    ).tag(config=True)
-
-all_classes = [ChargeExtractor] + charge_extractors
-classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
-__all__ = charge_extractor_names
+    return factory.enum_trait(
+        base_class=BASECLASS,
+        default=DEFAULT_NAME,
+        help_str=HELP
+    )
 
 
-def from_name(charge_extractor_name=None, *args, **kwargs):
-    if charge_extractor_name is None:
-        charge_extractor_name = 'NeighbourPeakIntegrator'
-
-    cls = globals()[charge_extractor_name]
-    return cls(*args, **kwargs)
+def from_name(name=None, *args, **kwargs):
+    return factory.from_name(
+        cls_name=name,
+        default=DEFAULT_NAME,
+        namespace=globals(),
+        *args,
+        **kwargs
+    )

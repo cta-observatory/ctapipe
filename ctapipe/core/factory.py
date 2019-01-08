@@ -1,29 +1,18 @@
 from inspect import isabstract
+from traitlets import CaselessStrEnum
 
 
-def child_subclasses(base):
+def non_abstract_children(base):
     """
-    Return all non-abstract subclasses of a base class.
-
-    Parameters
-    ----------
-    base : class
-        high level class object that is inherited by the
-        desired subclasses
-
-    Returns
-    -------
-    children : list
-        list of non-abstract subclasses
-
+    Return all non-abstract subclasses of a base class recursively.
     """
-    family = base.__subclasses__() + [
+    subclasses = base.__subclasses__() + [
         g for s in base.__subclasses__()
-        for g in child_subclasses(s)
+        for g in non_abstract_children(s)
     ]
-    children = [g for g in family if not isabstract(g)]
+    non_abstract = [g for g in subclasses if not isabstract(g)]
 
-    return children
+    return non_abstract
 
 
 def has_traits(cls, ignore=('config', 'parent')):
@@ -36,3 +25,29 @@ def has_traits(cls, ignore=('config', 'parent')):
     return bool(
         set(cls.class_trait_names()) - set(ignore)
     )
+
+
+def from_name(cls_name, default, namespace, *args, **kwargs):
+    if cls_name is None:
+        cls_name = default
+
+    cls = namespace[cls_name]
+    return cls(*args, **kwargs)
+
+
+def enum_trait(base_class, default, help_str):
+    return CaselessStrEnum(
+        non_abstract_child_class_names(base_class),
+        default,
+        allow_none=True,
+        help=help_str
+    ).tag(config=True)
+
+
+def non_abstract_child_class_names(base_class):
+    return [cls.__name__ for cls in non_abstract_children(base_class)]
+
+
+def classes_with_traits(base_class):
+    all_classes = [base_class] + non_abstract_children(base_class)
+    return [cls for cls in all_classes if has_traits(cls)]

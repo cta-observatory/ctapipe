@@ -15,10 +15,9 @@ of the data.
 """
 from abc import abstractmethod
 import numpy as np
+from ctapipe.core import factory
 from ...core import Component
 from ...core.traits import Unicode
-from ctapipe.core.factory import child_subclasses, has_traits
-from traitlets import CaselessStrEnum
 
 
 class CameraR1Calibrator(Component):
@@ -307,38 +306,46 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             event.r1.tel[self.telid].waveform = self._r1_wf
 
 
-camera_R1_calibrators = child_subclasses(CameraR1Calibrator)
-camera_R1_calibrator_names = [cls.__name__ for cls in camera_R1_calibrators]
-all_classes = [CameraR1Calibrator] + camera_R1_calibrators
-classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
-__all__ = camera_R1_calibrator_names
+BASECLASS = CameraR1Calibrator
+DEFAULT_NAME = 'NullR1Calibrator'
+HELP = (
+    'R1 Calibrator to use. If None then a '
+    'calibrator will either be selected based on the '
+    'supplied EventSource, or will default to '
+    '"NullR1Calibrator".'
+)
+
+__all__ = [
+    cls.__name__
+    for cls in factory.non_abstract_children(BASECLASS)
+]
+
+
+def classes_with_traits():
+    return factory.classes_with_traits(BASECLASS)
 
 
 def enum_trait():
-    return CaselessStrEnum(
-        camera_R1_calibrator_names,
-        'NullR1Calibrator',
-        allow_none=True,
-        help=(
-            'R1 Calibrator to use. If None then a '
-            'calibrator will either be selected based on the '
-            'supplied EventSource, or will default to '
-            '"NullR1Calibrator".'
-        )
-    ).tag(config=True)
+    return factory.enum_trait(
+        base_class=BASECLASS,
+        default=DEFAULT_NAME,
+        help_str=HELP
+    )
 
 
-def from_name(camera_R1_calibrator_name=None, *args, **kwargs):
-    if camera_R1_calibrator_name is None:
-        camera_R1_calibrator_name = 'NullR1Calibrator'
-
-    cls = globals()[camera_R1_calibrator_name]
-    return cls(*args, **kwargs)
+def from_name(name=None, *args, **kwargs):
+    return factory.from_name(
+        cls_name=name,
+        default=DEFAULT_NAME,
+        namespace=globals(),
+        *args,
+        **kwargs
+    )
 
 
 def from_eventsource(eventsource=None, *args, **kwargs):
     if eventsource is None:
-        return from_name(camera_R1_calibrator_name=None, *args, **kwargs)
+        return from_name(None, *args, **kwargs)
 
     if eventsource.metadata['is_simulation']:
         name = 'HESSIOR1Calibrator'

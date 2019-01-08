@@ -45,7 +45,7 @@ class ChargeResolutionGenerator(Tool):
             SimTelEventSource,
             CameraDL1Calibrator,
             ChargeResolutionCalculator
-        ] + charge_extractors.classes_with_traits
+        ] + charge_extractors.classes_with_traits()
     )
 
     def __init__(self, **kwargs):

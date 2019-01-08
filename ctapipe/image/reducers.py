@@ -5,8 +5,7 @@ Algorithms for the data volume reduction.
 from abc import abstractmethod
 
 from ctapipe.core import Component
-from ctapipe.core.factory import child_subclasses, has_traits
-from traitlets import CaselessStrEnum
+from ctapipe.core import factory
 
 
 class DataVolumeReducer(Component):
@@ -95,25 +94,34 @@ class DataVolumeReducer(Component):
             (n_chan, n_pix, n_samples).
         """
 
-data_volume_reducers = child_subclasses(DataVolumeReducer)
-data_volume_reducer_names = [cls.__name__ for cls in data_volume_reducers]
-all_classes = [DataVolumeReducer] + data_volume_reducers
-classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
-__all__ = data_volume_reducer_names
+
+BASECLASS = DataVolumeReducer
+DEFAULT_NAME = 'DataVolumeReducer'
+HELP = ''
+
+__all__ = [
+    cls.__name__
+    for cls in factory.non_abstract_children(BASECLASS)
+]
+
+
+def classes_with_traits():
+    return factory.classes_with_traits(BASECLASS)
 
 
 def enum_trait():
-    return CaselessStrEnum(
-        data_volume_reducer_names,
-        'DataVolumeReducer',
-        allow_none=True,
-        help=''
-    ).tag(config=True)
+    return factory.enum_trait(
+        base_class=BASECLASS,
+        default=DEFAULT_NAME,
+        help_str=HELP
+    )
 
 
-def from_name(data_volume_reducer_name=None, *args, **kwargs):
-    if data_volume_reducer_name is None:
-        data_volume_reducer_name = 'DataVolumeReducer'
-
-    cls = globals()[data_volume_reducer_name]
-    return cls(*args, **kwargs)
+def from_name(name=None, *args, **kwargs):
+    return factory.from_name(
+        cls_name=name,
+        default=DEFAULT_NAME,
+        namespace=globals(),
+        *args,
+        **kwargs
+    )

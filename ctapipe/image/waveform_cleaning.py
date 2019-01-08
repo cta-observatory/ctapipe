@@ -6,12 +6,14 @@ from abc import abstractmethod
 
 import numpy as np
 from scipy.signal import general_gaussian
-from traitlets import Int, CaselessStrEnum
+from traitlets import Int
 
 from ctapipe.core import Component
-from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
-                                             LocalPeakIntegrator)
-from ctapipe.core.factory import child_subclasses, has_traits
+from ctapipe.image.charge_extractors import (
+    AverageWfPeakIntegrator,
+    LocalPeakIntegrator,
+)
+from ctapipe.core import factory
 
 
 class WaveformCleaner(Component):
@@ -218,25 +220,33 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
                                    window_shift=self.window_shift)
 
 
-waveform_cleaners = child_subclasses(WaveformCleaner)
-waveform_cleaner_names = [cls.__name__ for cls in waveform_cleaners]
-all_classes = [WaveformCleaner] + waveform_cleaners
-classes_with_traits = [cls for cls in all_classes if has_traits(cls)]
-__all__ = waveform_cleaner_names
+BASECLASS = WaveformCleaner
+DEFAULT_NAME = 'NullWaveformCleaner'
+HELP = 'Waveform cleaning method to use.'
+
+__all__ = [
+    cls.__name__
+    for cls in factory.non_abstract_children(BASECLASS)
+]
+
+
+def classes_with_traits():
+    return factory.classes_with_traits(BASECLASS)
 
 
 def enum_trait():
-    return CaselessStrEnum(
-        waveform_cleaner_names,
-        'NullWaveformCleaner',
-        allow_none=True,
-        help='Waveform cleaning method to use.'
-    ).tag(config=True)
+    return factory.enum_trait(
+        base_class=BASECLASS,
+        default=DEFAULT_NAME,
+        help_str=HELP
+    )
 
 
-def from_name(waveform_cleaner_name=None, *args, **kwargs):
-    if waveform_cleaner_name is None:
-        waveform_cleaner_name = 'NullWaveformCleaner'
-
-    cls = globals()[waveform_cleaner_name]
-    return cls(*args, **kwargs)
+def from_name(name=None, *args, **kwargs):
+    return factory.from_name(
+        cls_name=name,
+        default=DEFAULT_NAME,
+        namespace=globals(),
+        *args,
+        **kwargs
+    )

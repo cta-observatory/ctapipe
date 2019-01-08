@@ -45,9 +45,9 @@ class BokehFileViewer(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + waveform_cleaning.classes_with_traits
-        + charge_extractors.classes_with_traits
-        + r1.classes_with_traits
+        ] + waveform_cleaning.classes_with_traits()
+        + charge_extractors.classes_with_traits()
+        + r1.classes_with_traits()
     )
 
     def __init__(self, **kwargs):

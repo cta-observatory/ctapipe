@@ -293,7 +293,7 @@ class DisplayIntegrator(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + charge_extractors.classes_with_traits
+        ] + charge_extractors.classes_with_traits()
     )
 
     def __init__(self, **kwargs):
