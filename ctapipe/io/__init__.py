@@ -1,7 +1,6 @@
 from .array import get_array_layout
 from .eventseeker import EventSeeker
-from .eventsourcefactory import event_source
-from .eventsource import EventSource
+from .eventsource import EventSource, event_source
 from .simteleventsource import SimTelEventSource
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader

@@ -104,10 +104,6 @@ file, so that the Travis CI can perform ALL tests. Additionally, a small test
 file that is in the corresponding file format should be committed to
 ctapipe-extra.
 
-And finally, in order for `EventSourceFactory` to know about your
-`EventSource` class, it must be included in the global namespace before the
-`EventSourceFactory` is instanced. Therefore one should include it as an
-import in the "ctapipe.io.eventsourcefactory" module.
 
 Container Classes
 =================
@@ -140,7 +136,7 @@ data:
   been filled in by another algorithm. Instead, prefer a new data
   item, or a second copy of the Container with the updated values.
 * Fields in a container should be one of the following:
-  
+
  * scalar values (`int`, `float`, `bool`)
  * `numpy.NDarray` if the data are not scalar (use only simple dtypes that can be written to output files)
  * a `ctapipe.core.Container` class (in the case a hierarchy is needed)
@@ -148,9 +144,9 @@ data:
    if the hierarchy needs multiple copies of the same `Container`,
    organized by some variable-length index (e.g. by `tel_id` or
    algorithm name)
-   
+
 * Fields that should *not* be in a container class:
-  
+
  * `dicts`
  * classes that are not a subclass of `ctapipe.core.Container`
  * any other type that cannot be translated automatically into the
@@ -185,7 +181,7 @@ Reference/API
 .. automodapi:: ctapipe.io.hdf5tableio
 
 ------------------------------
-		
+
 .. automodapi:: ctapipe.io.containers
     :no-inheritance-diagram:
 

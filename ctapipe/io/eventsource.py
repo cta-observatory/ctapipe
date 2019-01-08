@@ -6,7 +6,11 @@ from traitlets import Unicode, Int, Set
 from ctapipe.core import Component
 from ctapipe.core import Provenance
 
-__all__ = ['EventSource', ]
+__all__ = ['EventSource', 'event_source']
+
+
+def event_source(input_url, *args, **kwargs):
+    return EventSource.from_url(input_url, *args, **kwargs)
 
 
 class EventSource(Component):
