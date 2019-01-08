@@ -1,5 +1,5 @@
 """
-The most basic pipeline, using no special features of the framework other 
+The most basic pipeline, using no special features of the framework other
 than a for-loop. This is useful for debugging and profiling of speed.
 """
 
@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     source = event_source(filename, max_events=None)
 
-    cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
+    cal = CameraCalibrator(r1_name="HESSIOR1Calibrator")
 
     for ii, event in enumerate(source):
 

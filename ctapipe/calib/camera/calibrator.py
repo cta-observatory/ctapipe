@@ -36,7 +36,7 @@ class CameraCalibrator(Component):
 
     """
     def __init__(self, config=None, tool=None,
-                 r1_product=None,
+                 r1_name=None,
                  extractor_name=None,
                  cleaner_name=None,
                  eventsource=None,
@@ -52,7 +52,7 @@ class CameraCalibrator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        r1_product : str
+        r1_name : str
             The R1 calibrator to use. Manually overrides the Factory.
         extractor_name : str
             The ChargeExtractor to use. Manually overrides the Factory.
@@ -78,9 +78,9 @@ class CameraCalibrator(Component):
             tool=tool,
         )
 
-        if r1_product:
+        if r1_name:
             self.r1 = CameraR1Calibrator.from_name(
-                r1_product,
+                r1_name,
                 config=config,
                 tool=tool,
             )
