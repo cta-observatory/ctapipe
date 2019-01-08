@@ -231,13 +231,8 @@ waveform_cleaner_enum_trait = CaselessStrEnum(
 ).tag(config=True)
 
 all_classes = [WaveformCleaner] + waveform_cleaners
-__all__ = waveform_cleaner_names + ['WaveformCleanerFactory']
+__all__ = waveform_cleaner_names
 
 
-class WaveformCleanerFactory(Factory):
-    """
-    Factory to obtain a WaveformCleaner.
-    """
-    base = WaveformCleaner
-    default = 'NullWaveformCleaner'
-    custom_product_help = 'Waveform cleaning method to use.'
+def from_name(waveform_cleaner_name='NullWaveformCleaner', *args, **kwargs):
+    return globals()[waveform_cleaner_name](*args, **kwargs)

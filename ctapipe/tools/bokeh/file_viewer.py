@@ -98,7 +98,7 @@ class BokehFileViewer(Tool):
         self.seeker = EventSeeker(self.reader, **kwargs)
 
         self.extractor = ChargeExtractorFactory.produce(**kwargs)
-        self.cleaner = getattr(waveform_cleaning, self.cleaner_name)(**kwargs)
+        self.cleaner = waveform_cleaning.from_name(self.cleaner_name)(**kwargs)
 
         self.r1 = CameraR1CalibratorFactory.produce(
             eventsource=self.reader,
@@ -414,10 +414,8 @@ class BokehFileViewer(Tool):
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
                 extractor = ChargeExtractorFactory.produce(**kwargs)
-                cleaner = getattr(
-                    self.waveform_cleaning,
-                    self.cleaner_name
-                )(**kwargs)
+                cleaner = waveform_cleaning.from_name(self.cleaner_name)(
+                    **kwargs)
                 self.update_dl1_calibrator(extractor, cleaner)
                 self.update_dl1_widget_values()
                 self._updating_dl1 = False

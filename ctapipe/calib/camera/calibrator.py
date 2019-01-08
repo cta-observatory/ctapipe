@@ -5,9 +5,13 @@ This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
 from ctapipe.core import Component
-from ctapipe.calib.camera import CameraR1CalibratorFactory, CameraDL0Reducer, \
-    CameraDL1Calibrator
-from ctapipe.image import ChargeExtractorFactory, WaveformCleanerFactory
+from ctapipe.calib.camera import (
+    CameraR1CalibratorFactory,
+    CameraDL0Reducer,
+    CameraDL1Calibrator,
+)
+from ctapipe.image import ChargeExtractorFactory
+from ctapipe.image import waveform_cleaning
 
 __all__ = ['CameraCalibrator']
 
@@ -37,8 +41,6 @@ class CameraCalibrator(Component):
         lwt='ChargeExtractorFactory.lwt',
         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
         radius='CameraDL1Calibrator.radius',
-        cleaner='WaveformCleanerFactory.cleaner',
-        cleaner_t0='WaveformCleanerFactory.t0',
         ))
 
     """
@@ -82,13 +84,9 @@ class CameraCalibrator(Component):
             **kwargs_
         )
 
-        kwargs_ = dict()
-        if cleaner_product:
-            kwargs_['product'] = cleaner_product
-        cleaner = WaveformCleanerFactory.produce(
+        cleaner = waveform_cleaning.from_name(cleaner_product)(
             config=config,
             tool=tool,
-            **kwargs_
         )
 
         kwargs_ = dict()
