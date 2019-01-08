@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractclassmethod
 
 import numpy as np
 
-from ctapipe.core import factory
+from ctapipe.utils.basic import non_abstract_children
 from ...core import Component, traits
 from ...utils import get_table_dataset
 
@@ -62,6 +62,7 @@ class GainSelector(Component, metaclass=ABCMeta):
     Base class for algorithms that reduce a 2-gain-channel waveform to a
     single waveform.
     """
+    _default_name = 'ThresholdGainSelector'
 
     @abstractclassmethod
     def select_gains(self, cam_id, multi_gain_waveform):
@@ -170,33 +171,7 @@ class ThresholdGainSelector(GainSelector):
         return waveform, gain_mask
 
 
-BASECLASS = GainSelector
-DEFAULT_NAME = 'ThresholdGainSelector'
-HELP = 'Gain-channel selection scheme to use.'
-
 __all__ = [
     cls.__name__
-    for cls in factory.non_abstract_children(BASECLASS)
+    for cls in non_abstract_children(GainSelector)
 ]
-
-
-def classes_with_traits():
-    return factory.classes_with_traits(BASECLASS)
-
-
-def enum_trait():
-    return factory.enum_trait(
-        base_class=BASECLASS,
-        default=DEFAULT_NAME,
-        help_str=HELP
-    )
-
-
-def from_name(name=None, *args, **kwargs):
-    return factory.from_name(
-        cls_name=name,
-        default=DEFAULT_NAME,
-        namespace=globals(),
-        *args,
-        **kwargs
-    )

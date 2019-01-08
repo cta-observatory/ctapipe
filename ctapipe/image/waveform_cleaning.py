@@ -13,7 +13,7 @@ from ctapipe.image.charge_extractors import (
     AverageWfPeakIntegrator,
     LocalPeakIntegrator,
 )
-from ctapipe.core import factory
+from ctapipe.utils.basic import non_abstract_children
 
 
 class WaveformCleaner(Component):
@@ -32,6 +32,7 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
+    _default_name = 'NullWaveformCleaner'
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
@@ -220,33 +221,7 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
                                    window_shift=self.window_shift)
 
 
-BASECLASS = WaveformCleaner
-DEFAULT_NAME = 'NullWaveformCleaner'
-HELP = 'Waveform cleaning method to use.'
-
 __all__ = [
     cls.__name__
-    for cls in factory.non_abstract_children(BASECLASS)
+    for cls in non_abstract_children(WaveformCleaner)
 ]
-
-
-def classes_with_traits():
-    return factory.classes_with_traits(BASECLASS)
-
-
-def enum_trait():
-    return factory.enum_trait(
-        base_class=BASECLASS,
-        default=DEFAULT_NAME,
-        help_str=HELP
-    )
-
-
-def from_name(name=None, *args, **kwargs):
-    return factory.from_name(
-        cls_name=name,
-        default=DEFAULT_NAME,
-        namespace=globals(),
-        *args,
-        **kwargs
-    )

@@ -10,11 +10,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
+import ctapipe.utils.tools as tool_utils
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera import r1
+from ctapipe.calib.camera.r1 import CameraR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image import charge_extractors
+from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
@@ -265,7 +266,7 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    extractor_name = charge_extractors.enum_trait()
+    extractor_name = tool_utils.enum_trait(ChargeExtractor)
 
     aliases = Dict(
         dict(
@@ -293,7 +294,7 @@ class DisplayIntegrator(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + charge_extractors.classes_with_traits()
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -310,8 +311,14 @@ class DisplayIntegrator(Tool):
 
         eventsource = EventSource.from_config(**kwargs)
         self.eventseeker = EventSeeker(eventsource, **kwargs)
-        self.extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
-        self.r1 = r1.from_eventsource(eventsource=eventsource, **kwargs)
+        self.extractor = ChargeExtractor.from_name(
+            self.extractor_name,
+            **kwargs
+        )
+        self.r1 = CameraR1Calibrator.from_eventsource(
+            eventsource=eventsource,
+            **kwargs
+        )
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 

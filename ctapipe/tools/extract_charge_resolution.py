@@ -8,12 +8,13 @@ import numpy as np
 from tqdm import tqdm
 from traitlets import Dict, List, Int, Unicode
 
+import ctapipe.utils.tools as tool_utils
 from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image import charge_extractors
+from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.simteleventsource import SimTelEventSource
 
 
@@ -29,7 +30,7 @@ class ChargeResolutionGenerator(Tool):
                           help='Name of the output charge resolution hdf5 '
                                'file').tag(config=True)
 
-    extractor_name = charge_extractors.enum_trait()
+    extractor_name = tool_utils.enum_trait(ChargeExtractor)
 
     aliases = Dict(dict(f='SimTelEventSource.input_url',
                         max_events='SimTelEventSource.max_events',
@@ -45,7 +46,7 @@ class ChargeResolutionGenerator(Tool):
             SimTelEventSource,
             CameraDL1Calibrator,
             ChargeResolutionCalculator
-        ] + charge_extractors.classes_with_traits()
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -62,7 +63,7 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(**kwargs)
 
-        extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
+        extractor = ChargeExtractor.from_name(self.extractor_name, **kwargs)
 
         self.r1 = HESSIOR1Calibrator(**kwargs)
 

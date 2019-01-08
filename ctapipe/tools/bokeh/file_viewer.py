@@ -7,14 +7,15 @@ from bokeh.themes import Theme
 from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera import r1
+from ctapipe.calib.camera.r1 import CameraR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image import charge_extractors
-from ctapipe.image import waveform_cleaning
+from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.waveform_cleaning import WaveformCleaner
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
+import ctapipe.utils.tools as tool_utils
 
 
 class BokehFileViewer(Tool):
@@ -29,8 +30,8 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    cleaner_name = waveform_cleaning.enum_trait()
-    extractor_name = charge_extractors.enum_trait()
+    cleaner_name = tool_utils.enum_trait(WaveformCleaner)
+    extractor_name = tool_utils.enum_trait(ChargeExtractor)
 
     aliases = Dict(dict(
         port='BokehFileViewer.port',
@@ -45,9 +46,9 @@ class BokehFileViewer(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + waveform_cleaning.classes_with_traits()
-        + charge_extractors.classes_with_traits()
-        + r1.classes_with_traits()
+        ] + tool_utils.classes_with_traits(WaveformCleaner)
+        + tool_utils.classes_with_traits(ChargeExtractor)
+        + tool_utils.classes_with_traits(CameraR1Calibrator)
     )
 
     def __init__(self, **kwargs):
@@ -88,9 +89,18 @@ class BokehFileViewer(Tool):
         self.reader = EventSource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
-        self.extractor = charge_extractors.from_name(self.extractor_name, **kwargs)
-        self.cleaner = waveform_cleaning.from_name(self.cleaner_name, **kwargs)
-        self.r1 = r1.from_eventsource(eventsource=self.reader, **kwargs)
+        self.extractor = ChargeExtractor.from_name(
+            self.extractor_name,
+            **kwargs
+        )
+        self.cleaner = WaveformCleaner.from_name(
+            self.cleaner_name,
+            **kwargs
+        )
+        self.r1 = CameraR1Calibrator.from_eventsource(
+            eventsource=self.reader,
+            **kwargs
+        )
         self.dl0 = CameraDL0Reducer(**kwargs)
         self.dl1 = CameraDL1Calibrator(
             extractor=self.extractor,
@@ -400,10 +410,10 @@ class BokehFileViewer(Tool):
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
-                extractor = charge_extractors.from_name(
+                extractor = ChargeExtractor.from_name(
                     self.extractor_name,
                     **kwargs)
-                cleaner = waveform_cleaning.from_name(
+                cleaner = WaveformCleaner.from_name(
                     self.cleaner_name,
                     **kwargs)
                 self.update_dl1_calibrator(extractor, cleaner)

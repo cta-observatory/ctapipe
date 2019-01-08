@@ -1,9 +1,9 @@
 """ Class to handle configuration for algorithms """
-
 from traitlets.config import Configurable
 from traitlets import TraitError
 from abc import ABCMeta
 from logging import getLogger
+from ctapipe.utils.basic import non_abstract_children
 
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
@@ -80,3 +80,24 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             self.log = getLogger(
                 self.__class__.__module__ + '.' + self.__class__.__name__
             )
+
+    @classmethod
+    def from_name(cls, name=None, *args, **kwargs):
+        '''create instance of subclass by `name`
+
+        if `name` is None and the class has class variable `_default_name`
+        defined, then this is used.
+        '''
+        if name is None and hasattr(cls, '_default_name'):
+            name = cls._default_name
+
+        if name is None:
+            _cls = cls
+        else:
+            subclasses = {
+                cls.__name__: cls
+                for cls in non_abstract_children(cls)
+            }
+            _cls = subclasses[name]
+
+        return _cls(*args, **kwargs)

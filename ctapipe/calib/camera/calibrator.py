@@ -5,13 +5,14 @@ This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
 from ctapipe.core import Component
-from ctapipe.calib.camera import r1
+from ctapipe.calib.camera.r1 import CameraR1Calibrator
+
 from ctapipe.calib.camera import (
     CameraDL0Reducer,
     CameraDL1Calibrator,
 )
-from ctapipe.image import charge_extractors
-from ctapipe.image import waveform_cleaning
+from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.waveform_cleaning import WaveformCleaner
 
 __all__ = ['CameraCalibrator']
 
@@ -36,8 +37,8 @@ class CameraCalibrator(Component):
     """
     def __init__(self, config=None, tool=None,
                  r1_product=None,
-                 extractor_product=None,
-                 cleaner_product=None,
+                 extractor_name=None,
+                 cleaner_name=None,
                  eventsource=None,
                  **kwargs):
         """
@@ -53,9 +54,9 @@ class CameraCalibrator(Component):
             Set to None if no Tool to pass.
         r1_product : str
             The R1 calibrator to use. Manually overrides the Factory.
-        extractor_product : str
+        extractor_name : str
             The ChargeExtractor to use. Manually overrides the Factory.
-        cleaner_product : str
+        cleaner_name : str
             The WaveformCleaner to use. Manually overrides the Factory.
         eventsource : ctapipe.io.eventsource.EventSource
             EventSource that is being used to read the events. The EventSource
@@ -65,26 +66,26 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        extractor = charge_extractors.from_name(
-            extractor_product,
+        extractor = ChargeExtractor.from_name(
+            extractor_name,
             config=config,
             tool=tool
         )
 
-        cleaner = waveform_cleaning.from_name(
-            cleaner_product,
+        cleaner = WaveformCleaner.from_name(
+            cleaner_name,
             config=config,
             tool=tool,
         )
 
         if r1_product:
-            self.r1 = r1.from_name(
+            self.r1 = CameraR1Calibrator.from_name(
                 r1_product,
                 config=config,
                 tool=tool,
             )
         else:
-            self.r1 = r1.from_eventsource(
+            self.r1 = CameraR1Calibrator.from_eventsource(
                 eventsource,
                 config=config,
                 tool=tool,

@@ -7,10 +7,11 @@ import numpy as np
 from traitlets import Int, Float
 from ctapipe.core import Component
 from ctapipe.utils.neighbour_sum import get_sum_array
-from ctapipe.core import factory
+from ctapipe.utils.basic import non_abstract_children
 
 
 class ChargeExtractor(Component):
+    _default_name = 'NeighbourPeakIntegrator'
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -689,33 +690,7 @@ class AverageWfPeakIntegrator(PeakFindingIntegrator):
         return peakpos
 
 
-BASECLASS = ChargeExtractor
-DEFAULT_NAME = 'NeighbourPeakIntegrator'
-HELP = 'Charge extraction scheme to use.'
-
 __all__ = [
     cls.__name__
-    for cls in factory.non_abstract_children(BASECLASS)
+    for cls in non_abstract_children(ChargeExtractor)
 ]
-
-
-def classes_with_traits():
-    return factory.classes_with_traits(BASECLASS)
-
-
-def enum_trait():
-    return factory.enum_trait(
-        base_class=BASECLASS,
-        default=DEFAULT_NAME,
-        help_str=HELP
-    )
-
-
-def from_name(name=None, *args, **kwargs):
-    return factory.from_name(
-        cls_name=name,
-        default=DEFAULT_NAME,
-        namespace=globals(),
-        *args,
-        **kwargs
-    )

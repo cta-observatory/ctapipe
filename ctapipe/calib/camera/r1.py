@@ -15,7 +15,8 @@ of the data.
 """
 from abc import abstractmethod
 import numpy as np
-from ctapipe.core import factory
+
+from ctapipe.utils.basic import non_abstract_children
 from ...core import Component
 from ...core.traits import Unicode
 
@@ -40,6 +41,7 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
+    _default_name = 'NullR1Calibrator'
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -102,6 +104,19 @@ class CameraR1Calibrator(Component):
                                  "R1 is unchanged in this circumstance.")
                 self._r0_empty_warn = True
             return False
+
+    @classmethod
+    def from_eventsource(cls, eventsource=None, *args, **kwargs):
+        if eventsource is None:
+            return cls.from_name(None, *args, **kwargs)
+
+        if eventsource.metadata['is_simulation']:
+            name = 'HESSIOR1Calibrator'
+        elif eventsource.__class__.__name__ == "TargetIOEventSource":
+            name = 'TargetIOR1Calibrator'
+        else:
+            name = None
+        return cls.from_name(name, *args, **kwargs)
 
 
 class NullR1Calibrator(CameraR1Calibrator):
@@ -306,51 +321,7 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             event.r1.tel[self.telid].waveform = self._r1_wf
 
 
-BASECLASS = CameraR1Calibrator
-DEFAULT_NAME = 'NullR1Calibrator'
-HELP = (
-    'R1 Calibrator to use. If None then a '
-    'calibrator will either be selected based on the '
-    'supplied EventSource, or will default to '
-    '"NullR1Calibrator".'
-)
-
 __all__ = [
     cls.__name__
-    for cls in factory.non_abstract_children(BASECLASS)
+    for cls in non_abstract_children(CameraR1Calibrator)
 ]
-
-
-def classes_with_traits():
-    return factory.classes_with_traits(BASECLASS)
-
-
-def enum_trait():
-    return factory.enum_trait(
-        base_class=BASECLASS,
-        default=DEFAULT_NAME,
-        help_str=HELP
-    )
-
-
-def from_name(name=None, *args, **kwargs):
-    return factory.from_name(
-        cls_name=name,
-        default=DEFAULT_NAME,
-        namespace=globals(),
-        *args,
-        **kwargs
-    )
-
-
-def from_eventsource(eventsource=None, *args, **kwargs):
-    if eventsource is None:
-        return from_name(None, *args, **kwargs)
-
-    if eventsource.metadata['is_simulation']:
-        name = 'HESSIOR1Calibrator'
-    elif eventsource.__class__.__name__ == "TargetIOEventSource":
-        name = 'TargetIOR1Calibrator'
-    else:
-        name = None
-    return from_name(name, *args, **kwargs)

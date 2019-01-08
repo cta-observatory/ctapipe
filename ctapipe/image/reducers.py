@@ -5,7 +5,7 @@ Algorithms for the data volume reduction.
 from abc import abstractmethod
 
 from ctapipe.core import Component
-from ctapipe.core import factory
+from ctapipe.utils.basic import non_abstract_children
 
 
 class DataVolumeReducer(Component):
@@ -95,33 +95,7 @@ class DataVolumeReducer(Component):
         """
 
 
-BASECLASS = DataVolumeReducer
-DEFAULT_NAME = 'DataVolumeReducer'
-HELP = ''
-
 __all__ = [
     cls.__name__
-    for cls in factory.non_abstract_children(BASECLASS)
+    for cls in non_abstract_children(DataVolumeReducer)
 ]
-
-
-def classes_with_traits():
-    return factory.classes_with_traits(BASECLASS)
-
-
-def enum_trait():
-    return factory.enum_trait(
-        base_class=BASECLASS,
-        default=DEFAULT_NAME,
-        help_str=HELP
-    )
-
-
-def from_name(name=None, *args, **kwargs):
-    return factory.from_name(
-        cls_name=name,
-        default=DEFAULT_NAME,
-        namespace=globals(),
-        *args,
-        **kwargs
-    )

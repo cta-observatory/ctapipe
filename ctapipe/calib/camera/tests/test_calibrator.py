@@ -26,7 +26,7 @@ def test_manual_r1():
 
 
 def test_manual_extractor():
-    calibrator = CameraCalibrator(extractor_product="LocalPeakIntegrator")
+    calibrator = CameraCalibrator(extractor_name="LocalPeakIntegrator")
     assert isinstance(calibrator.dl1.extractor, LocalPeakIntegrator)
 
 

@@ -2,7 +2,7 @@ import numpy as np
 from numpy.testing import assert_almost_equal
 
 from ctapipe.image.charge_extractors import (
-    from_name,
+    ChargeExtractor,
     FullIntegrator,
     SimpleIntegrator,
     GlobalPeakIntegrator,
@@ -119,7 +119,7 @@ def test_averagewf_peak_integration(example_event):
 
 
 def test_charge_extractor_factory(example_event):
-    extractor = from_name('LocalPeakIntegrator')
+    extractor = ChargeExtractor.from_name('LocalPeakIntegrator')
 
     telid = 11
     data = example_event.r0.tel[telid].waveform
