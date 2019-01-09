@@ -5,6 +5,31 @@ from traitlets.config.loader import Config
 from traitlets import CaselessStrEnum
 
 
+def child_subclasses(base):
+    """
+    Return all non-abstract subclasses of a base class.
+
+    Parameters
+    ----------
+    base : class
+        high level class object that is inherited by the
+        desired subclasses
+
+    Returns
+    -------
+    children : dict
+        list of non-abstract subclasses
+
+    """
+    family = base.__subclasses__() + [
+        g for s in base.__subclasses__()
+        for g in child_subclasses(s)
+    ]
+    children = {g.__name__: g for g in family if not isabstract(g)}
+
+    return children
+
+
 class FactoryMeta(type(Component), type):
     def __new__(mcs, name, bases, dct):
 
@@ -49,31 +74,6 @@ class FactoryMeta(type(Component), type):
                 dct[key] = trait
 
         return type.__new__(mcs, name, bases, dct)
-
-    @staticmethod
-    def child_subclasses(base):
-        """
-        Return all non-abstract subclasses of a base class.
-
-        Parameters
-        ----------
-        base : class
-            high level class object that is inherited by the
-            desired subclasses
-
-        Returns
-        -------
-        children : list
-            list of non-abstract subclasses
-
-        """
-        family = base.__subclasses__() + [
-            g for s in base.__subclasses__()
-            for g in FactoryMeta.child_subclasses(s)
-        ]
-        children = [g for g in family if not isabstract(g)]
-
-        return children
 
 
 class Factory(Component, metaclass=FactoryMeta):
