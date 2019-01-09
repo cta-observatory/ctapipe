@@ -8,10 +8,10 @@ from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1Calibrator
-from ctapipe.core import Tool
+from ctapipe.core import Tool, subclass_from_name
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.image.waveform_cleaning import WaveformCleaner
-from ctapipe.io import EventSource
+from ctapipe.io import EventSource, eventsource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
@@ -86,14 +86,16 @@ class BokehFileViewer(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.reader = EventSource.from_config(**kwargs)
+        self.reader = eventsource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
-        self.extractor = ChargeExtractor.from_name(
+        self.extractor = subclass_from_name(
+            ChargeExtractor,
             self.extractor_name,
             **kwargs
         )
-        self.cleaner = WaveformCleaner.from_name(
+        self.cleaner = subclass_from_name(
+            WaveformCleaner,
             self.cleaner_name,
             **kwargs
         )
@@ -410,10 +412,12 @@ class BokehFileViewer(Tool):
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
-                extractor = ChargeExtractor.from_name(
+                extractor = subclass_from_name(
+                    ChargeExtractor,
                     self.extractor_name,
                     **kwargs)
-                cleaner = WaveformCleaner.from_name(
+                cleaner = subclass_from_name(
+                    WaveformCleaner,
                     self.cleaner_name,
                     **kwargs)
                 self.update_dl1_calibrator(extractor, cleaner)

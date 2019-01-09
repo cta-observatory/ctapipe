@@ -16,7 +16,7 @@ of the data.
 from abc import abstractmethod
 import numpy as np
 
-from ...core import Component, non_abstract_children
+from ...core import Component, non_abstract_children, subclass_from_name
 from ...core.traits import Unicode
 
 
@@ -107,7 +107,7 @@ class CameraR1Calibrator(Component):
     @classmethod
     def for_eventsource(cls, eventsource=None, *args, **kwargs):
         if eventsource is None:
-            return cls.from_name(None, *args, **kwargs)
+            return subclass_from_name(cls, None, *args, **kwargs)
 
         if eventsource.metadata['is_simulation']:
             name = 'HESSIOR1Calibrator'
@@ -115,7 +115,7 @@ class CameraR1Calibrator(Component):
             name = 'TargetIOR1Calibrator'
         else:
             name = None
-        return cls.from_name(name, *args, **kwargs)
+        return subclass_from_name(cls, name, *args, **kwargs)
 
 
 class NullR1Calibrator(CameraR1Calibrator):

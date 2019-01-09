@@ -6,7 +6,7 @@ from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
 from ctapipe.image.charge_extractors import ChargeExtractor
 
-from ctapipe.io import EventSource
+from ctapipe.io import EventSource, eventsource
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 import ctapipe.utils.tools as tool_utils
@@ -179,7 +179,7 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = EventSource.for_url(
+        self.eventsource = eventsource.for_url(
             url=get_dataset_path("gamma_test.simtel.gz"),
             **kwargs
         )

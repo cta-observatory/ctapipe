@@ -1,6 +1,7 @@
 """
 Handles reading of different event/waveform containing files
 """
+from abc import abstractmethod
 from os.path import exists
 from traitlets import Unicode, Int, Set
 from ctapipe.core import Component
@@ -10,7 +11,7 @@ __all__ = ['EventSource', 'event_source']
 
 
 def event_source(input_url, *args, **kwargs):
-    return EventSource.for_url(input_url, *args, **kwargs)
+    return for_url(input_url, *args, **kwargs)
 
 
 class EventSource(Component):
@@ -133,6 +134,7 @@ class EventSource(Component):
         Provenance().add_input_file(self.input_url, role='dl0.sub.evt')
 
     @staticmethod
+    @abstractmethod
     def is_compatible(file_path):
         """
         Abstract method to be defined in child class.
@@ -166,6 +168,7 @@ class EventSource(Component):
         """
         return False
 
+    @abstractmethod
     def _generator(self):
         """
         Abstract method to be defined in child class.
@@ -197,46 +200,56 @@ class EventSource(Component):
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
-    @classmethod
-    def for_url(cls, url, *args, **kwargs):
-        '''find compatible EventSource for `url` and return instance'''
-        compatible_cls = cls.cls_for_url(url)
-        return compatible_cls(input_url=url, *args, **kwargs)
 
-    @classmethod
-    def cls_for_url(cls, url):
-        '''find compatible EventSource sub-class for `url`'''
-        for subcls in cls.__subclasses__():
-            if subcls.is_compatible(url):
-                return subcls
-        raise ValueError(
-            (
-                'Cannot find compatible EventSource for \n'
-                'url:{}\n'
-                'in available EventSources:\n'
-                '{}'
-            ).format(
-                url,
-                [c.__name__ for c in cls.__subclasses__()]
-            )
+def for_url(url, *args, **kwargs):
+    '''find compatible EventSource for `url` and return instance'''
+    compatible_cls = cls_for_url(url)
+    return compatible_cls(input_url=url, *args, **kwargs)
+
+
+def cls_for_url(url):
+    '''find compatible EventSource sub-class for `url`'''
+    for subcls in EventSource.__subclasses__():
+        if subcls.is_compatible(url):
+            return subcls
+    raise ValueError(
+        (
+            'Cannot find compatible EventSource for \n'
+            'url:{}\n'
+            'in available EventSources:\n'
+            '{}'
+        ).format(
+            url,
+            [c.__name__ for c in EventSource.__subclasses__()]
         )
+    )
 
-    @classmethod
-    def from_config(cls, *args, **kwargs):
-        '''return EventSource instance from configuration
 
-        Tries its best to find out what event source should be created
-        given the provided configuration in `args` and `kwargs`
-        Then returns an instance.
-        '''
+class NonAbstractDummyEventSource(EventSource):
+    '''this class is only needed below in from_config, c.f. comment there'''
+    @staticmethod
+    def is_compatible(file_path):
+        return False
 
-        # making this "dummy" instance here is just needed to let
-        # traitlets do their magic.
-        # What we actually want here is to find the input_url in the
-        # configuration, in order to call `for_url()`
-        # if there is a better way than making a dummy instance, then
-        # we should do it.
-        dummy = cls(*args, **kwargs)
-        url = dummy.input_url
+    def _generator(self):
+        pass
 
-        return cls.for_url(url, *args, **kwargs)
+
+def from_config(*args, **kwargs):
+    '''return EventSource instance from configuration
+
+    Tries its best to find out what event source should be created
+    given the provided configuration in `args` and `kwargs`
+    Then returns an instance.
+    '''
+
+    # making this "dummy" instance here is just needed to let
+    # traitlets do their magic.
+    # What we actually want here is to find the input_url in the
+    # configuration, in order to call `for_url()`
+    # if there is a better way than making a dummy instance, then
+    # we should do it.
+    dummy = NonAbstractDummyEventSource(*args, **kwargs)
+    url = dummy.input_url
+
+    return for_url(url, *args, **kwargs)

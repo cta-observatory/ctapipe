@@ -1,4 +1,5 @@
 import pytest
+from ctapipe.core import subclass_from_name
 from numpy.testing import assert_almost_equal, assert_array_equal, \
     assert_array_almost_equal
 
@@ -83,14 +84,14 @@ def test_check_r0_exists(example_event):
 
 
 def test_factory_from_product():
-    calibrator = CameraR1Calibrator.from_name("NullR1Calibrator")
+    calibrator = subclass_from_name(CameraR1Calibrator, "NullR1Calibrator")
     assert isinstance(calibrator, NullR1Calibrator)
-    calibrator = CameraR1Calibrator.from_name("HESSIOR1Calibrator")
+    calibrator = subclass_from_name(CameraR1Calibrator, "HESSIOR1Calibrator")
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
 def test_factory_default():
-    calibrator = CameraR1Calibrator.from_name()
+    calibrator = subclass_from_name(CameraR1Calibrator)
     assert isinstance(calibrator, NullR1Calibrator)
 
 

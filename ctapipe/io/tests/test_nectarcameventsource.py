@@ -41,9 +41,9 @@ def test_is_compatible():
 
 
 def test_factory_for_nectarcam_file():
-    from ctapipe.io import EventSource
+    from ctapipe.io import eventsource
     from ctapipe.io.nectarcameventsource import NectarCAMEventSource
 
-    reader = EventSource.for_url(url=example_file_path)
+    reader = eventsource.for_url(url=example_file_path)
     assert isinstance(reader, NectarCAMEventSource)
     assert reader.input_url == example_file_path

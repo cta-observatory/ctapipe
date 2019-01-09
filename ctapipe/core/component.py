@@ -20,6 +20,27 @@ def non_abstract_children(base):
     return non_abstract
 
 
+def subclass_from_name(base, name=None, *args, **kwargs):
+    '''create instance of subclass by `name`
+
+    if `name` is None and the class has class variable `_default_name`
+    defined, then this is used.
+    '''
+    if name is None and hasattr(base, '_default_name'):
+        name = base._default_name
+
+    if name is None:
+        cls = base
+    else:
+        subclasses = {
+            base.__name__: base
+            for base in non_abstract_children(base)
+        }
+        cls = subclasses[name]
+
+    return cls(*args, **kwargs)
+
+
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     '''
     Metaclass to be able to make Component abstract
@@ -95,23 +116,3 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 self.__class__.__module__ + '.' + self.__class__.__name__
             )
 
-    @classmethod
-    def from_name(cls, name=None, *args, **kwargs):
-        '''create instance of subclass by `name`
-
-        if `name` is None and the class has class variable `_default_name`
-        defined, then this is used.
-        '''
-        if name is None and hasattr(cls, '_default_name'):
-            name = cls._default_name
-
-        if name is None:
-            _cls = cls
-        else:
-            subclasses = {
-                cls.__name__: cls
-                for cls in non_abstract_children(cls)
-            }
-            _cls = subclasses[name]
-
-        return _cls(*args, **kwargs)
