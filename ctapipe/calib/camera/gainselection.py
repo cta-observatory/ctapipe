@@ -5,8 +5,16 @@ from abc import ABCMeta, abstractclassmethod
 
 import numpy as np
 
-from ...core import Component, traits, non_abstract_children
+from ...core import Component, traits
 from ...utils import get_table_dataset
+
+__all__ = [
+    'pick_gain_channel',
+    'GainSelector',
+    'NullGainSelector',
+    'SimpleGainSelector',
+    'ThresholdGainSelector',
+]
 
 
 def pick_gain_channel(waveforms, threshold, select_by_sample=False):
@@ -50,8 +58,12 @@ def pick_gain_channel(waveforms, threshold, select_by_sample=False):
         gain_mask = np.zeros_like(new_waveforms).astype(bool)
 
     else:
-        raise ValueError("input waveforms has shape %s. not sure what to do "
-                         "with that.", waveforms.shape)
+        raise ValueError(
+            (
+                'input waveforms has shape {}. '
+                'not sure what to do with that.'
+            ).format(waveforms.shape)
+        )
 
     return new_waveforms, gain_mask
 
@@ -64,7 +76,7 @@ class GainSelector(Component, metaclass=ABCMeta):
     _default_name = 'ThresholdGainSelector'
 
     @abstractclassmethod
-    def select_gains(self, cam_id, multi_gain_waveform):
+    def select_gains(cls, cam_id, multi_gain_waveform):
         """
         Takes an input waveform and cam_id  and performs gain selection
 
@@ -168,9 +180,3 @@ class ThresholdGainSelector(GainSelector):
         )
 
         return waveform, gain_mask
-
-
-__all__ = [
-    cls.__name__
-    for cls in non_abstract_children(GainSelector)
-]
