@@ -1,4 +1,4 @@
-from ctapipe.core.factory import Factory
+from ctapipe.core.factory import Factory, child_subclasses
 from ctapipe.core.component import Component
 from traitlets import Int, TraitError
 import pytest
@@ -37,6 +37,7 @@ class ExampleComponent4(ExampleComponentParent):
 class ExampleFactory(Factory):
     base = ExampleComponentParent
     default = 'ExampleComponent1'
+    custom_product_help = "Value for testing"
 
 
 class IncorrectExampleFactory(Factory):
@@ -69,10 +70,10 @@ def test_factory_subclass_detection():
         "ExampleComponent3",
         "ExampleComponent4"
     ]
-    factory_subclasses_str = [str(i) for i in ExampleFactory.subclasses]
+    factory_subclasses_str = [str(i) for i in child_subclasses(ExampleFactory.base).values()]
     subclasses_str = [str(i) for i in subclasses]
     assert sorted(factory_subclasses_str) == sorted(subclasses_str)
-    assert sorted(ExampleFactory.subclass_names) == sorted(subclass_names)
+    assert sorted(child_subclasses(ExampleFactory.base).keys()) == sorted(subclass_names)
 
 
 def test_factory_automatic_traits():
@@ -203,9 +204,10 @@ def test_component_definition_after_factory():
     class ExampleComponent5(ExampleComponentParent):
         value = Int(1234445, help="").tag(config=True)
 
-    assert "ExampleComponent5" in ExampleFactory.product.values
     obj = ExampleFactory.produce(product='ExampleComponent5')
+    assert (obj.__class__.__name__ == 'ExampleComponent5')
     assert (obj.value == 1234445)
+
 
 def test_component_definition_after_factory_help_message():
     """
@@ -217,3 +219,8 @@ def test_component_definition_after_factory_help_message():
         value = Int(1234445, help="").tag(config=True)
 
     assert "ExampleComponent5" in ExampleFactory.class_get_help()
+
+
+def test_custom_product_help():
+    help_msg = ExampleFactory.class_get_help()
+    assert ExampleFactory.custom_product_help in help_msg
