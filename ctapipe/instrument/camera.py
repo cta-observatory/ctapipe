@@ -563,17 +563,22 @@ class CameraGeometry:
         # pixel. If not, pos lies outside the camera. This approach does not need to know the  
         # particular pixel shape.
         
-        borderpix_ids = np.where(self.get_border_pixel_mask())[0]
+        border_mask = self.get_border_pixel_mask()
+        # get some pixel not at the border:
+        inside_pix_id = np.where(~border_mask)[0][0]
+        #get all pixels at camera border:
+        borderpix_ids = np.where(border_mask)[0]
+        
         borderpix_ids_in_list = np.intersect1d(borderpix_ids, pixel_ids)
         if borderpix_ids_in_list.any():
             # now check in detail
             for borderpix_id in borderpix_ids_in_list:
                 index = np.where(pixel_ids==borderpix_id)[0][0]
-                # compare with central pixel in the camera:
-                xprime = points_searched[0][index,0] - self.pix_x.to_value(u.m)[borderpix_id] + self.pix_x.to_value(u.m)[0]
-                yprime = points_searched[0][index,1] - self.pix_y.to_value(u.m)[borderpix_id] + self.pix_y.to_value(u.m)[0]
+                # compare with inside pixel:
+                xprime = points_searched[0][index,0] - self.pix_x.to_value(u.m)[borderpix_id] + self.pix_x.to_value(u.m)[inside_pix_id]
+                yprime = points_searched[0][index,1] - self.pix_y.to_value(u.m)[borderpix_id] + self.pix_y.to_value(u.m)[inside_pix_id]
                 dist_check, index_check = kdtree.query([xprime, yprime])
-                if index_check != 0:
+                if index_check != inside_pix_id:
                     logger.warning(" Coordinate ({} m, {} m) lies outside camera".format(points_searched[0][index,0],points_searched[0][index,1]))
                     pixel_ids[index] = -1
         
