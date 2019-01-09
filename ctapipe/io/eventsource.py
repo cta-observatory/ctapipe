@@ -209,7 +209,17 @@ class EventSource(Component):
         for subcls in cls.__subclasses__():
             if subcls.is_compatible(url):
                 return subcls
-        raise ValueError
+        raise ValueError(
+            (
+                'Cannot find compatible EventSource for \n'
+                'url:{}\n'
+                'in available EventSources:\n'
+                '{}'
+            ).format(
+                url,
+                [c.__name__ for c in cls.__subclasses__()]
+            )
+        )
 
     @classmethod
     def from_config(cls, *args, **kwargs):
