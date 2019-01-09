@@ -5,6 +5,15 @@ from traitlets import CaselessStrEnum
 
 
 def enum_trait(base_class, help_str=None):
+    '''create a configurable CaselessStrEnum traitlet from baseclass
+
+    the enumeration should contain all names of non_abstract_children()
+    of said baseclass and the default choice should be given by
+    `base_class._default` name.
+
+    If the base_class has no `_default_name` an exception is raised, as
+    this class is not suitable to be used with this function.
+    '''
     if help_str is None:
         help_str = '{} to use.'.format(base_class.__name__)
 

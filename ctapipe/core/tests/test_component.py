@@ -1,8 +1,38 @@
+from abc import abstractmethod, ABC
 import pytest
 from traitlets import Float, TraitError
 
 from ctapipe.core import Component
-from abc import abstractmethod
+
+
+def test_non_abstract_children():
+    from ctapipe.core import non_abstract_children
+
+    class AbstractBase(ABC):
+        @abstractmethod
+        def method():
+            pass
+
+    class Child1(AbstractBase):
+        def method():
+            print('method of Child1')
+
+    class Child2(AbstractBase):
+        def method():
+            print('method of Child2')
+
+    class GrandChild(Child2):
+        def method():
+            print('method of GrandChild')
+
+    class AbstractChild(AbstractBase):
+        pass
+
+    kids = non_abstract_children(AbstractBase)
+    assert Child1 in kids
+    assert Child2 in kids
+    assert GrandChild in kids
+    assert AbstractChild not in kids
 
 
 def test_component_is_abstract():
