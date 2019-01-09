@@ -203,6 +203,21 @@ class CameraGeometry:
 
         return np.ones(pix_x.shape) * area
 
+    @lazyproperty
+    def all_pixels_kdtree(self):
+        """
+        Pre-calculated kdtree of all pixel centers inside camera
+
+
+        Returns
+        -------
+        kdtree
+
+        """
+
+        pixel_centers = np.stack([self.pix_x.to_value(u.m),self.pix_y.to_value(u.m)]).T
+        return KDTree(pixel_centers)
+
     @classmethod
     def get_known_camera_names(cls):
         """
@@ -535,10 +550,9 @@ class CameraGeometry:
         pixel_ids: Pixel number or array of pixel numbers. Returns -1 if position falls outside camera
         '''
         
-        pixel_centers = np.stack([self.pix_x.to_value(u.m),self.pix_y.to_value(u.m)]).T
         points_searched = np.dstack([x.to_value(u.m),y.to_value(u.m)])
 
-        kdtree = KDTree(pixel_centers)
+        kdtree = self.all_pixels_kdtree
         dist, pixel_ids = kdtree.query(points_searched)
         pixel_ids = pixel_ids.flatten()
         
@@ -556,8 +570,8 @@ class CameraGeometry:
             for borderpix_id in borderpix_ids_in_list:
                 index = np.where(pixel_ids==borderpix_id)[0][0]
                 # compare with central pixel in the camera:
-                xprime = points_searched[0][index,0] - pixel_centers[borderpix_id,0] + pixel_centers[0,0]
-                yprime = points_searched[0][index,1] - pixel_centers[borderpix_id,1] + pixel_centers[0,1]
+                xprime = points_searched[0][index,0] - self.pix_x.to_value(u.m)[borderpix_id] + self.pix_x.to_value(u.m)[0]
+                yprime = points_searched[0][index,1] - self.pix_y.to_value(u.m)[borderpix_id] + self.pix_y.to_value(u.m)[0]
                 dist_check, index_check = kdtree.query([xprime, yprime])
                 if index_check != 0:
                     logger.warning(" Coordinate ({} m, {} m) lies outside camera".format(points_searched[0][index,0],points_searched[0][index,1]))
