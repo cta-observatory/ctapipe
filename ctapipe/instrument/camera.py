@@ -518,7 +518,22 @@ class CameraGeometry:
 
         return longi, trans
     
-    def find_pixel_index(self, x, y):
+    def get_pixel_id(self, x, y):
+        '''
+        Return the camera pixel number which contains a given position (x,y) 
+        in the camera frame. The (x,y) coordinates can be arrays (of equal length),
+        for which the methods returns an array of pixel ids. A warning is raised if the position
+        falls outside the camera.
+
+        Parameters
+        ----------
+        x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame
+        y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame
+
+        Returns
+        -------
+        pixel_ids: Pixel number or array of pixel numbers. Returns -1 if position falls outside camera
+        '''
         
         pixel_centers = np.stack([self.pix_x.to_value(u.m),self.pix_y.to_value(u.m)]).T
         points_searched = np.dstack([x.to_value(u.m),y.to_value(u.m)])
@@ -527,11 +542,17 @@ class CameraGeometry:
         dist, pixel_ids = kdtree.query(points_searched)
         pixel_ids = pixel_ids.flatten()
         
-        # check if we are still inside the camera:
+        # Check if the position lies inside the camera. It is first checked if any border
+        # pixel numbers are returned. If not, everything is fine. If yes, the distance of 
+        # the given position to the closest pixel center is translated to the pixel center of the,
+        # camera center, pos -> pos', and it is checked whether pos' lies within the camera center 
+        # pixel. If not, pos lies outside the camera. This approach does not need to know the  
+        # particular pixel shape.
+        
         borderpix_ids = np.where(self.get_border_pixel_mask())[0]
         borderpix_ids_in_list = np.intersect1d(borderpix_ids, pixel_ids)
         if borderpix_ids_in_list.any():
-            # now check and invest some time...
+            # now check in detail
             for borderpix_id in borderpix_ids_in_list:
                 index = np.where(pixel_ids==borderpix_id)[0][0]
                 # compare with central pixel in the camera:
@@ -542,7 +563,7 @@ class CameraGeometry:
                     logger.warning(" Coordinate ({} m, {} m) lies outside camera".format(points_searched[0][index,0],points_searched[0][index,1]))
                     pixel_ids[index] = -1
         
-        return pixel_ids
+        return pixel_ids if len(pixel_ids) > 1 else pixel_ids[0]
 
 
 # ======================================================================

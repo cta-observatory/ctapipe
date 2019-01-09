@@ -54,6 +54,13 @@ def test_guess_camera():
     assert geom.pix_type.startswith('rect')
 
 
+def test_get_pixel_id():
+    geom = CameraGeometry.from_name("LSTCam")
+    x, y = 0.80 * u.m, 0.79 * u.m, 
+    pix_id = geom.get_pixel_id(x, y)
+    assert pix_id == 1790
+
+
 def test_get_min_pixel_seperation():
     x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
     pixsep = _get_min_pixel_seperation(x.ravel(), y.ravel())
