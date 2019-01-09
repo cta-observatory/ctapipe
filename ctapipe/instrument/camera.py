@@ -564,14 +564,14 @@ class CameraGeometry:
         # particular pixel shape.
         
         border_mask = self.get_border_pixel_mask()
-        # get some pixel not at the border:
-        inside_pix_id = np.where(~border_mask)[0][0]
         #get all pixels at camera border:
         borderpix_ids = np.where(border_mask)[0]
         
         borderpix_ids_in_list = np.intersect1d(borderpix_ids, pixel_ids)
         if borderpix_ids_in_list.any():
-            # now check in detail
+            # Get some pixel not at the border:
+            inside_pix_id = np.where(~border_mask)[0][0]
+            # Check in detail whether location in border pixel or outside camera:
             for borderpix_id in borderpix_ids_in_list:
                 index = np.where(pixel_ids==borderpix_id)[0][0]
                 # compare with inside pixel:
