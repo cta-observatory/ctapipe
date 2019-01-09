@@ -24,14 +24,14 @@ class Tool(Application):
     and provenance meta-data handling. It is based on
     `traitlets.config.Application`. Tools may contain configurable
     `ctapipe.core.Component` classes that do work, and their
-    configuration parameters will propegate automatically to the
+    configuration parameters will propagate automatically to the
     `Tool`.
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
     `name`, `description` and `examples` class attributes as
     strings. The `aliases` attribute can be set to cause a lower-level
-    `Component` parameter to become a high-plevel command-line
+    `Component` parameter to become a high-level command-line
     parameter (See example below). The `setup()`, `start()`, and
     `finish()` methods should be defined in the sub-class.
 
