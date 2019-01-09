@@ -36,20 +36,6 @@ class FactoryMeta(type(Component), type):
         # Setup class lookup
         base = dct['base']
         if base:
-            if not isinstance(base, type) or not issubclass(base, Component):
-                raise AttributeError("Factory.base must be set to a Component")
-
-            default = None if 'default' not in dct else dct['default']
-            help_msg = 'Product class to obtain from the Factory.'
-            if 'custom_product_help' in dct and dct['custom_product_help']:
-                help_msg = dct['custom_product_help']
-            dct['product'] = CaselessStrEnum(
-                child_subclasses(base).keys(),
-                default,
-                allow_none=True,
-                help=help_msg
-            ).tag(config=True)
-
             # Gather a record of which traits are valid for which subclasses
             # and copy subclass traits
             traits = dict()
@@ -108,16 +94,26 @@ class Factory(Component, metaclass=FactoryMeta):
         product traitlet.
     """
     base = None
-    product = None  # Instanced as a traitlet by FactoryMeta
     default = None
-    custom_product_help = None
+    custom_product_help = 'Product class to obtain from the Factory.'
+    # TODO: Rename custom_product_help to product_help
+
+    product = CaselessStrEnum(
+        [],
+        default,
+        allow_none=True,
+        help=custom_product_help
+    ).tag(config=True)
 
     def __new__(cls, *args, **kwargs):
         """
-        Update values of product traitlet to make sure it contains Components
-        included since Factory definition
+        Setup product traitlet
+        Also ensures the values of the product traitlet contain Components
+        defined since Factory definition
         """
         cls.product.values = child_subclasses(cls.base).keys()
+        cls.product.default_value = cls.default
+        cls.product.help = cls.custom_product_help
         cls = super().__new__(cls, *args, **kwargs)
         return cls
 
