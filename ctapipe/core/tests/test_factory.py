@@ -37,7 +37,7 @@ class ExampleComponent4(ExampleComponentParent):
 class ExampleFactory(Factory):
     base = ExampleComponentParent
     default = 'ExampleComponent1'
-    custom_product_help = "Value for testing"
+    custom_product_help = "Product for testing"
 
 
 class IncorrectExampleFactory(Factory):
@@ -64,16 +64,46 @@ def test_factory_subclass_detection():
         ExampleComponent3,
         ExampleComponent4
     ]
+    subclasses_str = [str(i) for i in subclasses]
+
+    factory_subclasses = child_subclasses(ExampleFactory.base).values()
+    factory_subclasses_str = [str(i) for i in factory_subclasses]
+
     subclass_names = [
         "ExampleComponent1",
         "ExampleComponent2",
         "ExampleComponent3",
         "ExampleComponent4"
     ]
-    factory_subclasses_str = [str(i) for i in child_subclasses(ExampleFactory.base).values()]
-    subclasses_str = [str(i) for i in subclasses]
+    factory_subclass_names = child_subclasses(ExampleFactory.base).keys()
+
+    ExampleFactory.update_product_traitlet()
+    product_values = ExampleFactory.product.values
+
     assert sorted(factory_subclasses_str) == sorted(subclasses_str)
-    assert sorted(child_subclasses(ExampleFactory.base).keys()) == sorted(subclass_names)
+    assert sorted(factory_subclass_names) == sorted(subclass_names)
+    assert sorted(product_values) == sorted(subclass_names)
+
+
+def test_default():
+    help_msg = ExampleFactory.class_get_help()
+    assert ExampleFactory.default in help_msg
+    obj = ExampleFactory.produce()
+    assert obj.__class__.__name__ == "ExampleComponent1"
+
+    ExampleFactory.default = "ExampleComponent2"
+    help_msg = ExampleFactory.class_get_help()
+    assert ExampleFactory.default in help_msg
+    obj = ExampleFactory.produce()
+    assert obj.__class__.__name__ == "ExampleComponent2"
+
+
+def test_custom_product_help():
+    help_msg = ExampleFactory.class_get_help()
+    assert ExampleFactory.custom_product_help in help_msg
+    ExampleFactory.custom_product_help += "2"
+    help_msg = ExampleFactory.class_get_help()
+    assert ExampleFactory.custom_product_help in help_msg
 
 
 def test_factory_automatic_traits():
@@ -184,18 +214,6 @@ def test_expected_config():
     assert obj.extra == 4
 
 
-def test_default_passing():
-    old_default = ExampleFactory.value.default_value
-    ExampleFactory.value.default_value = 3
-    obj = ExampleFactory.produce(product='ExampleComponent2')
-    assert (obj.value == 3)
-    obj = ExampleFactory.produce(product='ExampleComponent4')
-    assert (obj.value == 3)
-    ExampleFactory.value.default_value = old_default
-    obj = ExampleFactory.produce()
-    assert (obj.value == old_default)
-
-
 def test_component_definition_after_factory():
     """
     Test if a component defined after the factory definition will be
@@ -214,13 +232,7 @@ def test_component_definition_after_factory_help_message():
     Test if a component defined after the factory definition will be
     inside the help message
     """
+    class ExampleComponent6(ExampleComponentParent):
+        value = Int(1234446, help="").tag(config=True)
 
-    class ExampleComponent5(ExampleComponentParent):
-        value = Int(1234445, help="").tag(config=True)
-
-    assert "ExampleComponent5" in ExampleFactory.class_get_help()
-
-
-def test_custom_product_help():
-    help_msg = ExampleFactory.class_get_help()
-    assert ExampleFactory.custom_product_help in help_msg
+    assert "ExampleComponent6" in ExampleFactory.class_get_help()
