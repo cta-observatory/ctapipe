@@ -111,9 +111,7 @@ class Factory(Component, metaclass=FactoryMeta):
         Also ensures the values of the product traitlet contain Components
         defined since Factory definition
         """
-        cls.product.values = child_subclasses(cls.base).keys()
-        cls.product.default_value = cls.default
-        cls.product.help = cls.custom_product_help
+        cls.update_product_traitlet()
         cls = super().__new__(cls, *args, **kwargs)
         return cls
 
@@ -139,6 +137,16 @@ class Factory(Component, metaclass=FactoryMeta):
 
         super().__init__(config=config, parent=tool, **kwargs)
         self.kwargs = copy(kwargs)
+
+    @classmethod
+    def update_product_traitlet(cls):
+        """
+        Update the values for the product trailet so they match the properties
+        of the Factory and the loaded Components
+        """
+        cls.product.values = child_subclasses(cls.base).keys()
+        cls.product.default_value = cls.default
+        cls.product.help = cls.custom_product_help
 
     def _get_product_name(self):
         """
@@ -251,3 +259,12 @@ class Factory(Component, metaclass=FactoryMeta):
         factory = cls(config=config, tool=tool, **kwargs)
         instance = factory._instance
         return instance
+
+    @classmethod
+    def class_get_help(cls, inst=None):
+        """
+        Update values before obtaining help message to make sure it contains
+        Components included since Factory definition
+        """
+        cls.update_product_traitlet()
+        return super().class_get_help(inst)
