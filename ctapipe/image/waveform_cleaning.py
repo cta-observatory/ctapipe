@@ -8,11 +8,19 @@ import numpy as np
 from scipy.signal import general_gaussian
 from traitlets import Int
 
-from ctapipe.core import Component, non_abstract_children
+from ctapipe.core import Component
 from ctapipe.image.charge_extractors import (
     AverageWfPeakIntegrator,
     LocalPeakIntegrator,
 )
+
+__all__ = [
+    'WaveformCleaner',
+    'NullWaveformCleaner',
+    'CHECMWaveformCleaner',
+    'CHECMWaveformCleanerAverage',
+    'CHECMWaveformCleanerLocal',
+]
 
 
 class WaveformCleaner(Component):
@@ -218,9 +226,3 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
         return LocalPeakIntegrator(None, self.parent,
                                    window_width=self.window_width,
                                    window_shift=self.window_shift)
-
-
-__all__ = [
-    cls.__name__
-    for cls in non_abstract_children(WaveformCleaner)
-]

@@ -4,7 +4,11 @@ Algorithms for the data volume reduction.
 
 from abc import abstractmethod
 
-from ctapipe.core import Component, non_abstract_children
+from ctapipe.core import Component
+
+__all__ = [
+    'DataVolumeReducer',
+]
 
 
 class DataVolumeReducer(Component):
@@ -92,9 +96,3 @@ class DataVolumeReducer(Component):
             Reduced waveforms stored in a numpy array of shape
             (n_chan, n_pix, n_samples).
         """
-
-
-__all__ = [
-    cls.__name__
-    for cls in non_abstract_children(DataVolumeReducer)
-]

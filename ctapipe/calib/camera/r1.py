@@ -16,8 +16,15 @@ of the data.
 from abc import abstractmethod
 import numpy as np
 
-from ...core import Component, non_abstract_children, subclass_from_name
+from ...core import Component, subclass_from_name
 from ...core.traits import Unicode
+
+__all__ = [
+    'CameraR1Calibrator',
+    'NullR1Calibrator',
+    'HESSIOR1Calibrator',
+    'TargetIOR1Calibrator',
+]
 
 
 class CameraR1Calibrator(Component):
@@ -318,9 +325,3 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             r1 = event.r1.tel[self.telid].waveform[0]
             self.calibrator.ApplyEvent(samples[0], fci, self._r1_wf[0])
             event.r1.tel[self.telid].waveform = self._r1_wf
-
-
-__all__ = [
-    cls.__name__
-    for cls in non_abstract_children(CameraR1Calibrator)
-]
