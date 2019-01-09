@@ -13,7 +13,7 @@ from ctapipe.calib.camera.flatfield import FlatFieldFactory
 from ctapipe.io.containers import MonitorDataContainer
 
 
-class FlatFieldGenerator(Tool):
+class FlatFieldHDF5Writer(Tool):
     name = "FlatFieldGenerator"
     description = "Generate a HDF5 file with flat field coefficients"
 
