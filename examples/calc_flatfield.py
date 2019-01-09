@@ -14,7 +14,7 @@ from ctapipe.io.containers import MonitorDataContainer
 
 
 class FlatFieldHDF5Writer(Tool):
-    name = "FlatFieldGenerator"
+    name = "FlatFieldHDF5Writer"
     description = "Generate a HDF5 file with flat field coefficients"
 
     output_file = Unicode(
@@ -95,7 +95,7 @@ class FlatFieldHDF5Writer(Tool):
 
 
 def main():
-    exe = FlatFieldGenerator()
+    exe = FlatFieldHDF5Writer()
     exe.run()
 
 
