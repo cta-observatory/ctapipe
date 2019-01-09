@@ -6,6 +6,12 @@ from ctapipe.calib.camera.gainselection import SimpleGainSelector
 from ctapipe.calib.camera.gainselection import pick_gain_channel
 
 
+def test_dunder_all():
+    from ctapipe.calib.camera import gainselection
+    # test existence and non-emptyness
+    assert gainselection.__all__
+
+
 def test_pick_gain_channel():
     threshold = 100
     good_hg_value = 35
