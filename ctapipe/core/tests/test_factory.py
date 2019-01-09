@@ -193,3 +193,27 @@ def test_default_passing():
     ExampleFactory.value.default_value = old_default
     obj = ExampleFactory.produce()
     assert (obj.value == old_default)
+
+
+def test_component_definition_after_factory():
+    """
+    Test if a component defined after the factory definition will be
+    obtainable by the factory
+    """
+    class ExampleComponent5(ExampleComponentParent):
+        value = Int(1234445, help="").tag(config=True)
+
+    assert "ExampleComponent5" in ExampleFactory.product.values
+    obj = ExampleFactory.produce(product='ExampleComponent5')
+    assert (obj.value == 1234445)
+
+def test_component_definition_after_factory_help_message():
+    """
+    Test if a component defined after the factory definition will be
+    inside the help message
+    """
+
+    class ExampleComponent5(ExampleComponentParent):
+        value = Int(1234445, help="").tag(config=True)
+
+    assert "ExampleComponent5" in ExampleFactory.class_get_help()
