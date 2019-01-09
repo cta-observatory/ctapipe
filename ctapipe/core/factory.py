@@ -112,6 +112,15 @@ class Factory(Component, metaclass=FactoryMeta):
     default = None
     custom_product_help = None
 
+    def __new__(cls, *args, **kwargs):
+        """
+        Update values of product traitlet to make sure it contains Components
+        included since Factory definition
+        """
+        cls.product.values = child_subclasses(cls.base).keys()
+        cls = super().__new__(cls, *args, **kwargs)
+        return cls
+
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Base Factory class
