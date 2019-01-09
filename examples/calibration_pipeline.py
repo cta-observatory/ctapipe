@@ -179,7 +179,7 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = EventSource.from_url(
+        self.eventsource = EventSource.for_url(
             url=get_dataset_path("gamma_test.simtel.gz"),
             **kwargs
         )

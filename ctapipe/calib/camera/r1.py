@@ -9,7 +9,7 @@ the cameras.
 As the R1 calibration is camera specific, each camera (and seperately the MC)
 requires their own calibrator class with inherits from `CameraR1Calibrator`.
 `HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
-Through the use of `from_eventsource()`, the correct
+Through the use of `for_eventsource()`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
@@ -105,7 +105,7 @@ class CameraR1Calibrator(Component):
             return False
 
     @classmethod
-    def from_eventsource(cls, eventsource=None, *args, **kwargs):
+    def for_eventsource(cls, eventsource=None, *args, **kwargs):
         if eventsource is None:
             return cls.from_name(None, *args, **kwargs)
 

@@ -67,7 +67,7 @@ class MuonDisplayerTool(Tool):
         if self.events == '':
             raise ToolConfigurationError("please specify --input <events file>")
         self.log.debug("input: %s", self.events)
-        self.source = EventSource.from_url(url=self.events)
+        self.source = EventSource.for_url(url=self.events)
         self.calib = CameraCalibrator(
             config=self.config, tool=self, eventsource=self.source
         )

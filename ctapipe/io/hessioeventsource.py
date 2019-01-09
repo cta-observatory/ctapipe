@@ -39,7 +39,7 @@ class HESSIOEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        '''This class should never be chosen in from_url'''
+        '''This class should never be chosen in for_url'''
         return False
 
     def __exit__(self, exc_type, exc_val, exc_tb):

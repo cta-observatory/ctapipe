@@ -85,7 +85,7 @@ class CameraCalibrator(Component):
                 tool=tool,
             )
         else:
-            self.r1 = CameraR1Calibrator.from_eventsource(
+            self.r1 = CameraR1Calibrator.for_eventsource(
                 eventsource,
                 config=config,
                 tool=tool,

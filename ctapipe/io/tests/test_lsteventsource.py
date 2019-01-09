@@ -51,6 +51,6 @@ def test_factory_for_lst_file():
     from ctapipe.io import EventSource
     from ctapipe.io.lsteventsource import LSTEventSource
 
-    reader = EventSource.from_url(url=example_file_path)
+    reader = EventSource.for_url(url=example_file_path)
     assert isinstance(reader, LSTEventSource)
     assert reader.input_url == example_file_path

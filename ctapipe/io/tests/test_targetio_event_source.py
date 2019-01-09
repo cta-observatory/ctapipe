@@ -123,7 +123,7 @@ def test_geom():
 
 def test_eventsourcefactory():
     dataset = get_dataset_path("chec_r1.tio")
-    source = EventSource.from_url(url=dataset)
+    source = EventSource.for_url(url=dataset)
     assert source.__class__.__name__ == "TargetIOEventSource"
     assert source.input_url == dataset
 

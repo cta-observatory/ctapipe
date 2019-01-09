@@ -315,7 +315,7 @@ class DisplayIntegrator(Tool):
             self.extractor_name,
             **kwargs
         )
-        self.r1 = CameraR1Calibrator.from_eventsource(
+        self.r1 = CameraR1Calibrator.for_eventsource(
             eventsource=eventsource,
             **kwargs
         )

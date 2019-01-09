@@ -10,7 +10,7 @@ __all__ = ['EventSource', 'event_source']
 
 
 def event_source(input_url, *args, **kwargs):
-    return EventSource.from_url(input_url, *args, **kwargs)
+    return EventSource.for_url(input_url, *args, **kwargs)
 
 
 class EventSource(Component):
@@ -30,7 +30,7 @@ class EventSource(Component):
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
     `ctapipe.io.SimTelEventSource` to read a hessio format
-    file). Alternatively you can use `from_url()` to automatically
+    file). Alternatively you can use `for_url()` to automatically
     select the correct EventFileReader subclass for the file format you wish
     to read.
 
@@ -40,7 +40,7 @@ class EventSource(Component):
 
     >>> event_source = EventSource(self.config, self)
 
-    An example of how to use `ctapipe.core.tool.Tool` and `from_url()`
+    An example of how to use `ctapipe.core.tool.Tool` and `for_url()`
     can be found in ctapipe/examples/calibration_pipeline.py.
 
     However if you are not inside a Tool, you can still create an instance and
@@ -198,13 +198,13 @@ class EventSource(Component):
         pass
 
     @classmethod
-    def from_url(cls, url, *args, **kwargs):
+    def for_url(cls, url, *args, **kwargs):
         '''find compatible EventSource for `url` and return instance'''
-        compatible_cls = cls.cls_from_url(url)
+        compatible_cls = cls.cls_for_url(url)
         return compatible_cls(input_url=url, *args, **kwargs)
 
     @classmethod
-    def cls_from_url(cls, url):
+    def cls_for_url(cls, url):
         '''find compatible EventSource sub-class for `url`'''
         for subcls in cls.__subclasses__():
             if subcls.is_compatible(url):
@@ -233,10 +233,10 @@ class EventSource(Component):
         # making this "dummy" instance here is just needed to let
         # traitlets do their magic.
         # What we actually want here is to find the input_url in the
-        # configuration, in order to call `from_url()`
+        # configuration, in order to call `for_url()`
         # if there is a better way than making a dummy instance, then
         # we should do it.
         dummy = cls(*args, **kwargs)
         url = dummy.input_url
 
-        return cls.from_url(url, *args, **kwargs)
+        return cls.for_url(url, *args, **kwargs)
