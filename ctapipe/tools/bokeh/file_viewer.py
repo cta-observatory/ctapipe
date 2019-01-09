@@ -39,7 +39,16 @@ class BokehFileViewer(Tool):
         f='EventSource.input_url',
         max_events='EventSource.max_events',
         extractor='BokehFileViewer.extractor_name',
-        cleaner='BokehFileViewer.cleaner_name'
+        cleaner='BokehFileViewer.cleaner_name',
+        ped='TargetIOR1Calibrator.pedestal_path',
+        tf='TargetIOR1Calibrator.tf_path',
+        pe='TargetIOR1Calibrator.adc2pe_path',
+        simpleintegrator_t0='SimpleIntegrator.t0',
+        window_width='WindowIntegrator.window_width',
+        window_shift='WindowIntegrator.window_shift',
+        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+        lwt='NeighbourPeakIntegrator.lwt',
     ))
 
     classes = List(
