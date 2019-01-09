@@ -35,21 +35,21 @@ class FactoryMeta(type(Component), type):
 
         # Setup class lookup
         base = dct['base']
-        dct['subclasses'] = None
-        dct['subclass_names'] = None
+        # dct['subclasses'] = None
+        # dct['subclass_names'] = None
         if base:
             if not isinstance(base, type) or not issubclass(base, Component):
                 raise AttributeError("Factory.base must be set to a Component")
 
-            dct['subclasses'] = mcs.child_subclasses(base)
-            dct['subclass_names'] = [c.__name__ for c in dct['subclasses']]
+            # dct['subclasses'] = mcs.child_subclasses(base)
+            # dct['subclass_names'] = [c.__name__ for c in dct['subclasses']]
 
             default = None if 'default' not in dct else dct['default']
             help_msg = 'Product class to obtain from the Factory.'
             if 'custom_product_help' in dct and dct['custom_product_help']:
                 help_msg = dct['custom_product_help']
             dct['product'] = CaselessStrEnum(
-                dct['subclass_names'],
+                child_subclasses(base).keys(),
                 default,
                 allow_none=True,
                 help=help_msg
@@ -59,7 +59,7 @@ class FactoryMeta(type(Component), type):
             # and copy subclass traits
             traits = dict()
             record = dict()
-            for sub in dct['subclasses']:
+            for sub in child_subclasses(base).values():
                 for key, trait in sub.class_traits().items():
                     if key in ['config', 'parent']:
                         continue
@@ -114,8 +114,8 @@ class Factory(Component, metaclass=FactoryMeta):
     """
     base = None
     product = None  # Instanced as a traitlet by FactoryMeta
-    subclasses = None  # Filled by FactoryMeta
-    subclass_names = None  # Filled by FactoryMeta
+    # subclasses = None  # Filled by FactoryMeta
+    # subclass_names = None  # Filled by FactoryMeta
     default = None
     custom_product_help = None
 
@@ -167,7 +167,7 @@ class Factory(Component, metaclass=FactoryMeta):
         product : class
 
         """
-        subclass_dict = dict(zip(self.subclass_names, self.subclasses))
+        subclass_dict = child_subclasses(self.base)
         product_name = self._get_product_name()
         self.log.info("Obtaining {} from {}".format(product_name,
                                                     self.__class__.__name__))
@@ -199,7 +199,7 @@ class Factory(Component, metaclass=FactoryMeta):
 
         # Update traitlet defaults (they may have been changed via the Factory)
         for name, trait in self.class_own_traits().items():
-            for sub in self.subclasses:
+            for sub in child_subclasses(self.base).values():
                 try:
                     sub_trait = sub.class_traits()[name]
                     sub_trait.default_value = trait.default_value
