@@ -35,14 +35,9 @@ class FactoryMeta(type(Component), type):
 
         # Setup class lookup
         base = dct['base']
-        # dct['subclasses'] = None
-        # dct['subclass_names'] = None
         if base:
             if not isinstance(base, type) or not issubclass(base, Component):
                 raise AttributeError("Factory.base must be set to a Component")
-
-            # dct['subclasses'] = mcs.child_subclasses(base)
-            # dct['subclass_names'] = [c.__name__ for c in dct['subclasses']]
 
             default = None if 'default' not in dct else dct['default']
             help_msg = 'Product class to obtain from the Factory.'
@@ -114,8 +109,6 @@ class Factory(Component, metaclass=FactoryMeta):
     """
     base = None
     product = None  # Instanced as a traitlet by FactoryMeta
-    # subclasses = None  # Filled by FactoryMeta
-    # subclass_names = None  # Filled by FactoryMeta
     default = None
     custom_product_help = None
 
