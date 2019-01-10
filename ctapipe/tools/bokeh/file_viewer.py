@@ -349,8 +349,6 @@ class BokehFileViewer(Tool):
             self.channel = int(self.w_channel.value)
 
     def create_dl1_widgets(self):
-        from IPython import embed
-        embed()
         self.w_dl1_dict = dict(
             cleaner=Select(
                 title="Cleaner:",
