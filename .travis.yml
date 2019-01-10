@@ -81,3 +81,4 @@ after_script:
 after_success:
     - travis-sphinx -v --outdir=docbuild deploy
     - codecov
+
