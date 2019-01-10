@@ -129,6 +129,45 @@ class Factory(Component):
         cls.update_product_traitlet()
         return super().class_get_help(inst)
 
+    def _clean_kwargs_for_product(self, kwargs_dict):
+        """
+        Remove and warn about kwargs that would throw an error for this
+        particular product.
+
+        There may be a usecase for certain products would accept certain
+        arguments (as they are a traitlet for that Component), but a different
+        product from the same factory may not accept that argument (as it does
+        not also contain that traitlet). This function therefore removes such
+        arguments from the kwargs, preparing them for this particular
+        product Component.
+
+        Parameters
+        ----------
+        kwargs_dict : dict
+            The full kwargs dictionary
+
+        Returns
+        -------
+        kwargs_dict : dict
+            The kwargs dictionary with the non-compatible arguments removed
+        """
+        product = self._product
+        product_traits = product.class_trait_names()
+        product_args = list(product.__init__.__code__.co_varnames)
+        # config = copy(self.__dict__['_trait_values']['config'])
+        # parent = copy(self.__dict__['_trait_values']['parent'])
+
+        # Copy valid arguments to kwargs
+        kwargs_copy = copy(kwargs_dict)
+        for key in list(kwargs_copy.keys()):
+            if key not in product_traits + product_args:
+                del kwargs_copy[key]
+                msg = ("Traitlet ({}) does not exist for {}"
+                       .format(key, product.__name__))
+                self.log.warning(msg)
+                warnings.warn(msg, stacklevel=9)
+        return kwargs_copy
+
     def _get_product_name(self):
         """
         Method to obtain the correct name for the product.
@@ -182,20 +221,6 @@ class Factory(Component):
             to produce.
 
         """
-        product = self._product
-        product_traits = product.class_trait_names()
-        product_args = list(product.__init__.__code__.co_varnames)
-        # config = copy(self.__dict__['_trait_values']['config'])
-        # parent = copy(self.__dict__['_trait_values']['parent'])
-
-        # Copy valid arguments to kwargs
-        for key in list(kwargs.keys()):
-            if key not in product_traits + product_args:
-                del kwargs[key]
-                msg = ("Traitlet ({}) does not exist for {}"
-                       .format(key, product.__name__))
-                self.log.warning(msg)
-                warnings.warn(msg, stacklevel=9)
-
-        instance = product(self.config, self.parent, **kwargs)
+        kwargs = self._clean_kwargs_for_product(kwargs)
+        instance = self._product(self.config, self.parent, **kwargs)
         return instance
