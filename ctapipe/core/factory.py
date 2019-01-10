@@ -30,7 +30,29 @@ def child_subclasses(base):
     return children
 
 
-class Factory(Component):
+class FactoryMeta(type(Component), type):
+    def __new__(mcs, name, bases, dct):
+        """
+        This metaclass is required to create a fresh `product` traitlet for
+        each `Factory`. If the traitlet was instead defined in the `Factory`
+        baseclass, then every `Factory` would share the same traitlet, and
+        problems would occur.
+        The test 'ctapipe/core/tests/test_factory.py::
+        test_second_factory_product_different' checks for this.
+        """
+        # Setup class lookup
+        base = dct['base']
+        if base:
+            dct['product'] = CaselessStrEnum(
+                [],
+                None,
+                allow_none=True,
+                help=''
+            ).tag(config=True)
+        return type.__new__(mcs, name, bases, dct)
+
+
+class Factory(Component, metaclass=FactoryMeta):
     """
     A base class for all class factories that exist in the `Tools`/`Components`
     frameworks.
@@ -68,13 +90,7 @@ class Factory(Component):
     base = None
     default = None
     product_help = 'Product class to obtain from the Factory.'
-
-    product = CaselessStrEnum(
-        [],
-        default,
-        allow_none=True,
-        help=product_help
-    ).tag(config=True)
+    product = None  # Defined by metaclass
 
     def __new__(cls, *args, **kwargs):
         """
