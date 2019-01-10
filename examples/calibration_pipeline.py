@@ -177,9 +177,10 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = EventSourceFactory.produce(
-            input_url=get_dataset_path("gamma_test.simtel.gz"), **kwargs
-        )
+        self.eventsource = EventSourceFactory(
+            input_url=get_dataset_path("gamma_test.simtel.gz"),
+            **kwargs
+        ).produce()
 
         self.calibrator = CameraCalibrator(
             eventsource=self.eventsource, **kwargs

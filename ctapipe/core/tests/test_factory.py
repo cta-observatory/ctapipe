@@ -36,7 +36,7 @@ class ExampleComponent4(ExampleComponentParent):
 class ExampleFactory(Factory):
     base = ExampleComponentParent
     default = 'ExampleComponent1'
-    custom_product_help = "Product for testing"
+    product_help = "Product for testing"
 
 
 class IncorrectExampleFactory(Factory):
@@ -96,10 +96,10 @@ def test_default():
 
 def test_custom_product_help():
     help_msg = ExampleFactory.class_get_help()
-    assert ExampleFactory.custom_product_help in help_msg
-    ExampleFactory.custom_product_help += "2"
+    assert ExampleFactory.product_help in help_msg
+    ExampleFactory.product_help += "2"
     help_msg = ExampleFactory.class_get_help()
-    assert ExampleFactory.custom_product_help in help_msg
+    assert ExampleFactory.product_help in help_msg
 
 
 def test_factory_produce():

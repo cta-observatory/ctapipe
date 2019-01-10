@@ -99,7 +99,7 @@ def test_reconstruction():
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = EventSourceFactory.produce(input_url=filename)
+    source = EventSourceFactory(input_url=filename).produce()
 
     for event in source:
 

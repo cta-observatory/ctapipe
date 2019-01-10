@@ -22,7 +22,7 @@ cleaning_level = {
 
 
 input_url = get_dataset_path('gamma_test_large.simtel.gz')
-event_source = EventSourceFactory.produce(input_url=input_url)
+event_source = EventSourceFactory(input_url=input_url).produce()
 
 calibrator = CameraCalibrator(
     eventsource=event_source,

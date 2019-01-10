@@ -44,6 +44,6 @@ def test_factory_for_nectarcam_file():
     from ctapipe.io.eventsourcefactory import EventSourceFactory
     from ctapipe.io.nectarcameventsource import NectarCAMEventSource
 
-    reader = EventSourceFactory.produce(input_url=example_file_path)
+    reader = EventSourceFactory(input_url=example_file_path).produce()
     assert isinstance(reader, NectarCAMEventSource)
     assert reader.input_url == example_file_path

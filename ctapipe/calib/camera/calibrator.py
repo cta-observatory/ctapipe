@@ -73,33 +73,20 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        kwargs_ = dict()
+        kwargs_ = dict(config=config, tool=tool)
         if extractor_product:
             kwargs_['product'] = extractor_product
-        extractor = ChargeExtractorFactory.produce(
-            config=config,
-            tool=tool,
-            **kwargs_
-        )
+        extractor = ChargeExtractorFactory(**kwargs_).produce()
 
-        kwargs_ = dict()
+        kwargs_ = dict(config=config, tool=tool)
         if cleaner_product:
             kwargs_['product'] = cleaner_product
-        cleaner = WaveformCleanerFactory.produce(
-            config=config,
-            tool=tool,
-            **kwargs_
-        )
+        cleaner = WaveformCleanerFactory(**kwargs_).produce()
 
-        kwargs_ = dict()
+        kwargs_ = dict(config=config, tool=tool, eventsource=eventsource)
         if r1_product:
             kwargs_['product'] = r1_product
-        self.r1 = CameraR1CalibratorFactory.produce(
-            config=config,
-            tool=tool,
-            eventsource=eventsource,
-            **kwargs_
-        )
+        self.r1 = CameraR1CalibratorFactory(**kwargs_).produce()
 
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,

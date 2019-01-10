@@ -699,4 +699,4 @@ class ChargeExtractorFactory(Factory):
     """
     base = ChargeExtractor
     default = 'NeighbourPeakIntegrator'
-    custom_product_help = 'Charge extraction scheme to use.'
+    product_help = 'Charge extraction scheme to use.'

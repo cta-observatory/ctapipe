@@ -23,7 +23,7 @@ def child_subclasses(base):
     """
     family = base.__subclasses__() + [
         g for s in base.__subclasses__()
-        for g in child_subclasses(s)
+        for n, g in child_subclasses(s).items()
     ]
     children = {g.__name__: g for g in family if not isabstract(g)}
 
@@ -113,7 +113,7 @@ class Factory(Component):
         Update the values for the product trailet so they match the properties
         of the Factory and the loaded Components
         """
-        cls.product.values = child_subclasses(cls.base).keys()
+        cls.product.values = list(child_subclasses(cls.base).keys())
         cls.product.default_value = cls.default
         cls.product.help = cls.product_help
 

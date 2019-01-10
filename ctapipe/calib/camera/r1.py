@@ -332,10 +332,10 @@ class CameraR1CalibratorFactory(Factory):
     the calibration of their camera.
     """
     base = CameraR1Calibrator
-    custom_product_help = ('R1 Calibrator to use. If None then a '
-                           'calibrator will either be selected based on the '
-                           'supplied EventSource, or will default to '
-                           '"NullR1Calibrator".')
+    product_help = ('R1 Calibrator to use. If None then a '
+                    'calibrator will either be selected based on the '
+                    'supplied EventSource, or will default to '
+                    '"NullR1Calibrator".')
 
     def __init__(self, config=None, tool=None, eventsource=None, **kwargs):
         """

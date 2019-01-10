@@ -227,4 +227,4 @@ class WaveformCleanerFactory(Factory):
     """
     base = WaveformCleaner
     default = 'NullWaveformCleaner'
-    custom_product_help = 'Waveform cleaning method to use.'
+    product_help = 'Waveform cleaning method to use.'

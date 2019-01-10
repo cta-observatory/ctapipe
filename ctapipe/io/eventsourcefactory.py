@@ -1,5 +1,6 @@
-from ctapipe.core.factory import Factory
+from ctapipe.core.factory import Factory, child_subclasses
 from ctapipe.io.eventsource import EventSource
+from traitlets import Unicode
 
 # EventFileReader imports so that EventFileReaderFactory can see them
 # (they need to exist in the global namespace)
@@ -28,7 +29,7 @@ class EventSourceFactory(Factory):
 
     To use within a `ctapipe.core.tool.Tool`:
 
-    >>> event_source = EventSourceFactory.produce(config=self.config, tool=self)
+    >>> source = EventSourceFactory(config=self.config, tool=self).produce()
 
     Parameters
     ----------
@@ -50,18 +51,22 @@ class EventSourceFactory(Factory):
         used to find a compatible event_source.
     """
     base = EventSource
-    custom_product_help = ('EventSource to use. If None then a reader will '
-                           'be chosen based on the input_url')
-    input_url = None  # Instanced as a traitlet by FactoryMeta
+    product_help = ('EventSource to use. If None then a reader will '
+                    'be chosen based on the input_url')
+
+    input_url = Unicode(
+        '',
+        help='Path to the input file containing events.'
+    ).tag(config=True)
 
     def _get_product_name(self):
         try:
             return super()._get_product_name()
         except AttributeError:
-            if self.input_url is None:
+            if not self.input_url:
                 raise ValueError("Please specify an input_url for event file")
             try:
-                for subclass in self.subclasses:
+                for subclass in child_subclasses(self.base).values():
                     if subclass.is_compatible(self.input_url):
                         return subclass.__name__
                 raise ValueError
@@ -69,6 +74,16 @@ class EventSourceFactory(Factory):
                 self.log.exception("Cannot find compatible EventSource "
                                    "for: {}".format(self.input_url))
                 raise
+
+    def produce(self, **kwargs):
+        if self.input_url:
+            kwargs = self._clean_kwargs_for_product(kwargs)
+            instance = self._product(
+                self.config, self.parent, input_url=self.input_url, **kwargs
+            )
+            return instance
+        else:
+            return super().produce(**kwargs)
 
 
 def event_source(input_url, config=None, parent=None, **kwargs):
@@ -97,8 +112,8 @@ def event_source(input_url, config=None, parent=None, **kwargs):
         input filename.
     """
 
-    reader = EventSourceFactory.produce(config, parent,
-                                        input_url=input_url,
-                                        **kwargs)
+    reader = EventSourceFactory(
+        config, parent, input_url=input_url
+    ).produce(**kwargs)
 
     return reader

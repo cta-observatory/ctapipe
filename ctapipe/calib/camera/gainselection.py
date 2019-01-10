@@ -180,4 +180,4 @@ class GainSelectorFactory(Factory):
     """
     base = GainSelector
     default = 'ThresholdGainSelector'
-    custom_product_help = 'Gain-channel selection scheme to use.'
+    product_help = 'Gain-channel selection scheme to use.'

@@ -70,9 +70,9 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
 
-        self.event_source = EventSourceFactory.produce(
+        self.event_source = EventSourceFactory(
             config=self.config, tool=self
-        )
+        ).produce()
         self.event_source.allowed_tels = [
             self.tel,
         ]
