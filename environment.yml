@@ -5,6 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - zeromq
+  - pyzmq>=17
   - astropy
   - bokeh
   - cython
