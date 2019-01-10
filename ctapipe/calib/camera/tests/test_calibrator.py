@@ -13,7 +13,7 @@ from ctapipe.utils import get_dataset_path
 def test_camera_calibrator(example_event):
     telid = 11
 
-    calibrator = CameraCalibrator(r1_name="HESSIOR1Calibrator")
+    calibrator = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
     calibrator.calibrate(example_event)
     image = example_event.dl1.tel[telid].image
@@ -21,12 +21,12 @@ def test_camera_calibrator(example_event):
 
 
 def test_manual_r1():
-    calibrator = CameraCalibrator(r1_name="HESSIOR1Calibrator")
+    calibrator = CameraCalibrator(r1_product="HESSIOR1Calibrator")
     assert isinstance(calibrator.r1, HESSIOR1Calibrator)
 
 
 def test_manual_extractor():
-    calibrator = CameraCalibrator(extractor_name="LocalPeakIntegrator")
+    calibrator = CameraCalibrator(extractor_product="LocalPeakIntegrator")
     assert isinstance(calibrator.dl1.extractor, LocalPeakIntegrator)
 
 
@@ -42,6 +42,6 @@ def test_eventsource_override_r1():
     eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraCalibrator(
         eventsource=eventsource,
-        r1_name="NullR1Calibrator"
+        r1_product="NullR1Calibrator"
     )
     assert isinstance(calibrator.r1, NullR1Calibrator)

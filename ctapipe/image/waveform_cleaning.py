@@ -9,18 +9,12 @@ from scipy.signal import general_gaussian
 from traitlets import Int
 
 from ctapipe.core import Component
-from ctapipe.image.charge_extractors import (
-    AverageWfPeakIntegrator,
-    LocalPeakIntegrator,
-)
+from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
+                                             LocalPeakIntegrator)
 
-__all__ = [
-    'WaveformCleaner',
-    'NullWaveformCleaner',
-    'CHECMWaveformCleaner',
-    'CHECMWaveformCleanerAverage',
-    'CHECMWaveformCleanerLocal',
-]
+__all__ = ['WaveformCleaner', 'CHECMWaveformCleanerAverage',
+           'CHECMWaveformCleanerLocal',
+           'NullWaveformCleaner']
 
 
 class WaveformCleaner(Component):

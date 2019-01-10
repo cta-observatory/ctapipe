@@ -30,11 +30,17 @@ class ChargeResolutionGenerator(Tool):
                           help='Name of the output charge resolution hdf5 '
                                'file').tag(config=True)
 
-    extractor_name = tool_utils.enum_trait(ChargeExtractor)
+    extractor_product = tool_utils.enum_trait(ChargeExtractor)
 
     aliases = Dict(dict(f='SimTelEventSource.input_url',
                         max_events='SimTelEventSource.max_events',
-                        extractor='ChargeResolutionGenerator.extractor_name',
+                        extractor='ChargeResolutionGenerator.extractor_product',
+                        window_width='WindowIntegrator.window_width',
+                        window_shift='WindowIntegrator.window_shift',
+                        t0='SimpleIntegrator.t0',
+                        sig_amp_cut_HG='PeakFindngIntegrator.sig_amp_cut_HG',
+                        sig_amp_cut_LG='PeakFindngIntegrator.sig_amp_cut_LG',
+                        lwt='NeighbourPeakIntegrator.lwt',
                         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
                         radius='CameraDL1Calibrator.radius',
                         max_pe='ChargeResolutionCalculator.max_pe',
@@ -63,7 +69,7 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(**kwargs)
 
-        extractor = ChargeExtractor.from_name(self.extractor_name, **kwargs)
+        extractor = ChargeExtractor.from_name(self.extractor_product, **kwargs)
 
         self.r1 = HESSIOR1Calibrator(**kwargs)
 

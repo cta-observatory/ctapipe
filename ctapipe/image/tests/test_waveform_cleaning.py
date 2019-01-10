@@ -6,12 +6,6 @@ from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
                                              CHECMWaveformCleanerLocal)
 
 
-def test_dunder_all():
-    from ctapipe.image import waveform_cleaning
-    # test existence and non-emptyness
-    assert waveform_cleaning.__all__
-
-
 def test_null_cleaner(example_event):
     telid = 11
     data = example_event.r0.tel[telid].waveform

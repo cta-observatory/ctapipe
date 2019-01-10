@@ -30,16 +30,16 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    cleaner_name = tool_utils.enum_trait(WaveformCleaner)
-    extractor_name = tool_utils.enum_trait(ChargeExtractor)
+    cleaner_product = tool_utils.enum_trait(WaveformCleaner)
+    extractor_product = tool_utils.enum_trait(ChargeExtractor)
 
     aliases = Dict(dict(
         port='BokehFileViewer.port',
         disable_server='BokehFileViewer.disable_server',
         f='EventSource.input_url',
         max_events='EventSource.max_events',
-        extractor='BokehFileViewer.extractor_name',
-        cleaner='BokehFileViewer.cleaner_name',
+        extractor='BokehFileViewer.extractor_product',
+        cleaner='BokehFileViewer.cleaner_product',
         ped='TargetIOR1Calibrator.pedestal_path',
         tf='TargetIOR1Calibrator.tf_path',
         pe='TargetIOR1Calibrator.adc2pe_path',
@@ -100,12 +100,12 @@ class BokehFileViewer(Tool):
 
         self.extractor = subclass_from_name(
             ChargeExtractor,
-            self.extractor_name,
+            self.extractor_product,
             **kwargs
         )
         self.cleaner = subclass_from_name(
             WaveformCleaner,
-            self.cleaner_name,
+            self.cleaner_product,
             **kwargs
         )
         self.r1 = CameraR1Calibrator.for_eventsource(
@@ -362,9 +362,9 @@ class BokehFileViewer(Tool):
     def create_dl1_widgets(self):
         self.w_dl1_dict = dict(
             cleaner=Select(title="Cleaner:", value='', width=5,
-                           options=BokehFileViewer.cleaner_name.values),
+                           options=BokehFileViewer.cleaner_product.values),
             extractor=Select(title="Extractor:", value='', width=5,
-                             options=BokehFileViewer.extractor_name.values),
+                             options=BokehFileViewer.extractor_product.values),
             extractor_t0=TextInput(title="T0:", value=''),
             extractor_window_width=TextInput(title="Window Width:", value=''),
             extractor_window_shift=TextInput(title="Window Shift:", value=''),
@@ -423,11 +423,11 @@ class BokehFileViewer(Tool):
                 kwargs = dict(config=self.config, tool=self)
                 extractor = subclass_from_name(
                     ChargeExtractor,
-                    self.extractor_name,
+                    self.extractor_product,
                     **kwargs)
                 cleaner = subclass_from_name(
                     WaveformCleaner,
-                    self.cleaner_name,
+                    self.cleaner_product,
                     **kwargs)
                 self.update_dl1_calibrator(extractor, cleaner)
                 self.update_dl1_widget_values()

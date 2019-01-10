@@ -15,12 +15,6 @@ from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.utils import get_dataset_path
 
 
-def test_dunder_all():
-    from ctapipe.calib.camera import r1
-    # test existence and non-emptyness
-    assert r1.__all__
-
-
 def test_hessio_r1_calibrator(example_event):
     telid = 11
 

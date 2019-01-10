@@ -28,7 +28,7 @@ else:
 source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
-calib = CameraCalibrator(r1_name="HESSIOR1Calibrator")
+calib = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 off_angles = []
 
 for event in source:

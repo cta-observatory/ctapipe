@@ -5,14 +5,9 @@ This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
 from ctapipe.core import Component, subclass_from_name
-from ctapipe.calib.camera.r1 import CameraR1Calibrator
-
-from ctapipe.calib.camera import (
-    CameraDL0Reducer,
-    CameraDL1Calibrator,
-)
-from ctapipe.image.charge_extractors import ChargeExtractor
-from ctapipe.image.waveform_cleaning import WaveformCleaner
+from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
+    CameraDL1Calibrator
+from ctapipe.image import ChargeExtractor, WaveformCleaner
 
 
 __all__ = ['CameraCalibrator']
@@ -31,15 +26,27 @@ class CameraCalibrator(Component):
     .. code-block:: python
 
         aliases = Dict(dict(
+        ped='CameraR1CalibratorFactory.pedestal_path',
+        tf='CameraR1CalibratorFactory.tf_path',
+        pe='CameraR1CalibratorFactory.adc2pe_path',
+        extractor='ChargeExtractorFactory.extractor',
+        extractor_t0='ChargeExtractorFactory.t0',
+        window_width='ChargeExtractorFactory.window_width',
+        window_shift='ChargeExtractorFactory.window_shift',
+        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
+        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
+        lwt='ChargeExtractorFactory.lwt',
         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
         radius='CameraDL1Calibrator.radius',
+        cleaner='WaveformCleanerFactory.cleaner',
+        cleaner_t0='WaveformCleanerFactory.t0',
         ))
 
     """
     def __init__(self, config=None, tool=None,
-                 r1_name=None,
-                 extractor_name=None,
-                 cleaner_name=None,
+                 r1_product=None,
+                 extractor_product=None,
+                 cleaner_product=None,
                  eventsource=None,
                  **kwargs):
         """
@@ -53,11 +60,11 @@ class CameraCalibrator(Component):
             Tool executable that is calling this component.
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
-        r1_name : str
+        r1_product : str
             The R1 calibrator to use. Manually overrides the Factory.
-        extractor_name : str
+        extractor_product : str
             The ChargeExtractor to use. Manually overrides the Factory.
-        cleaner_name : str
+        cleaner_product : str
             The WaveformCleaner to use. Manually overrides the Factory.
         eventsource : ctapipe.io.eventsource.EventSource
             EventSource that is being used to read the events. The EventSource
@@ -69,22 +76,22 @@ class CameraCalibrator(Component):
 
         extractor = subclass_from_name(
             ChargeExtractor,
-            extractor_name,
+            extractor_product,
             config=config,
             tool=tool
         )
 
         cleaner = subclass_from_name(
             WaveformCleaner,
-            cleaner_name,
+            cleaner_product,
             config=config,
             tool=tool,
         )
 
-        if r1_name:
+        if r1_product:
             self.r1 = subclass_from_name(
                 CameraR1Calibrator,
-                r1_name,
+                r1_product,
                 config=config,
                 tool=tool,
             )

@@ -13,12 +13,6 @@ from ctapipe.image.charge_extractors import (
 )
 
 
-def test_dunder_all():
-    from ctapipe.image import charge_extractors
-    # test existence and non-emptyness
-    assert charge_extractors.__all__
-
-
 def test_full_integration(example_event):
     telid = 11
     data = example_event.r0.tel[telid].waveform

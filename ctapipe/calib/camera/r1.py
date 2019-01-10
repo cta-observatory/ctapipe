@@ -20,10 +20,10 @@ from ...core import Component, subclass_from_name
 from ...core.traits import Unicode
 
 __all__ = [
-    'CameraR1Calibrator',
     'NullR1Calibrator',
     'HESSIOR1Calibrator',
     'TargetIOR1Calibrator',
+    'CameraR1Calibrator'
 ]
 
 

@@ -21,7 +21,7 @@ from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
-def plot(event, telid, chan, extractor_name):
+def plot(event, telid, chan, extractor_product):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform[chan]
 
@@ -216,7 +216,7 @@ def plot(event, telid, chan, extractor_name):
     camera = CameraDisplay(geom, ax=ax_img_cal)
     camera.image = dl1
     camera.add_colorbar(ax=ax_img_cal, label="Calib Charge (Photo-electrons)")
-    ax_img_cal.set_title("Charge (integrator={})".format(extractor_name))
+    ax_img_cal.set_title("Charge (integrator={})".format(extractor_product))
     ax_img_cal.annotate(
         "Pixel: {}".format(max_pix),
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
@@ -238,7 +238,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
 
-    fig_waveforms.suptitle("Integrator = {}".format(extractor_name))
+    fig_waveforms.suptitle("Integrator = {}".format(extractor_product))
     fig_camera.suptitle("Camera = {}".format(geom.cam_id))
 
     plt.show()
@@ -266,13 +266,19 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    extractor_name = tool_utils.enum_trait(ChargeExtractor)
+    extractor_product = tool_utils.enum_trait(ChargeExtractor)
 
     aliases = Dict(
         dict(
             f='EventSource.input_url',
             max_events='EventSource.max_events',
-            extractor='DisplayIntegrator.extractor_name',
+            extractor='DisplayIntegrator.extractor_product',
+            t0='SimpleIntegrator.t0',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             radius='CameraDL1Calibrator.radius',
             E='DisplayIntegrator.event_index',
@@ -312,7 +318,7 @@ class DisplayIntegrator(Tool):
         eventsource = EventSource.from_config(**kwargs)
         self.eventseeker = EventSeeker(eventsource, **kwargs)
         self.extractor = ChargeExtractor.from_name(
-            self.extractor_name,
+            self.extractor_product,
             **kwargs
         )
         self.r1 = CameraR1Calibrator.for_eventsource(
