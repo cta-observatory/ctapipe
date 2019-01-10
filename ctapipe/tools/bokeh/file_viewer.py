@@ -7,14 +7,16 @@ from bokeh.themes import Theme
 from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory, \
+    CameraR1Calibrator, TargetIOR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import *
 from ctapipe.image.waveform_cleaning import WaveformCleanerFactory
 from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
+from ctapipe.io.eventsource import EventSource
 
 
 class BokehFileViewer(Tool):
@@ -31,18 +33,18 @@ class BokehFileViewer(Tool):
         disable_server='BokehFileViewer.disable_server',
         r='EventSourceFactory.product',
         f='EventSourceFactory.input_url',
-        max_events='EventSourceFactory.max_events',
-        ped='CameraR1CalibratorFactory.pedestal_path',
-        tf='CameraR1CalibratorFactory.tf_path',
-        pe='CameraR1CalibratorFactory.pe_path',
-        ff='CameraR1CalibratorFactory.ff_path',
+        max_events='EventSource.max_events',
+        ped='TargetIOR1Calibrator.pedestal_path',
+        tf='TargetIOR1Calibrator.tf_path',
+        pe='TargetIOR1Calibrator.pe_path',
+        ff='TargetIOR1Calibrator.ff_path',
         extractor='ChargeExtractorFactory.product',
-        extractor_t0='ChargeExtractorFactory.t0',
-        extractor_window_width='ChargeExtractorFactory.window_width',
-        extractor_window_shift='ChargeExtractorFactory.window_shift',
-        extractor_sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        extractor_sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        extractor_lwt='ChargeExtractorFactory.lwt',
+        extractor_t0='SimpleIntegrator.t0',
+        extractor_window_width='WindowIntegrator.window_width',
+        extractor_window_shift='WindowIntegrator.window_shift',
+        extractor_sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+        extractor_sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+        extractor_lwt='NeighbourPeakIntegrator.lwt',
         cleaner='WaveformCleanerFactory.product',
     ))
 
@@ -51,7 +53,15 @@ class BokehFileViewer(Tool):
         ChargeExtractorFactory,
         CameraR1CalibratorFactory,
         CameraDL1Calibrator,
-        WaveformCleanerFactory
+        WaveformCleanerFactory,
+        EventSource,
+        CameraR1Calibrator,
+        ChargeExtractor,
+        TargetIOR1Calibrator,
+        SimpleIntegrator,
+        PeakFindingIntegrator,
+        WindowIntegrator,
+        NeighbourPeakIntegrator,
     ])
 
     def __init__(self, **kwargs):

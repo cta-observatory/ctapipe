@@ -2,9 +2,18 @@
 Charge extraction algorithms to reduce the image to one value per pixel
 """
 
-__all__ = ['ChargeExtractorFactory', 'FullIntegrator', 'SimpleIntegrator',
-           'GlobalPeakIntegrator', 'LocalPeakIntegrator',
-           'NeighbourPeakIntegrator', 'AverageWfPeakIntegrator']
+__all__ = [
+    'ChargeExtractorFactory',
+    'ChargeExtractor',
+    'PeakFindingIntegrator',
+    'WindowIntegrator',
+    'FullIntegrator',
+    'SimpleIntegrator',
+    'GlobalPeakIntegrator',
+    'LocalPeakIntegrator',
+    'NeighbourPeakIntegrator',
+    'AverageWfPeakIntegrator'
+]
 
 
 from abc import abstractmethod

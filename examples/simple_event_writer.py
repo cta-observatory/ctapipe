@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Unicode, List, Dict, Bool
-from ctapipe.io import EventSourceFactory, HDF5TableWriter
+from ctapipe.io import EventSourceFactory, HDF5TableWriter, EventSource
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.CutFlow import CutFlow
 from ctapipe.image import hillas_parameters, tailcuts_clean
@@ -29,10 +29,15 @@ class SimpleEventWriter(Tool):
     aliases = Dict({
         'infile': 'EventSourceFactory.input_url',
         'outfile': 'SimpleEventWriter.outfile',
-        'max-events': 'EventSourceFactory.max_events',
+        'max-events': 'EventSource.max_events',
         'progress': 'SimpleEventWriter.progress'
     })
-    classes = List([EventSourceFactory, CameraCalibrator, CutFlow])
+    classes = List([
+        EventSource,
+        EventSourceFactory,
+        CameraCalibrator,
+        CutFlow
+    ])
 
     def setup(self):
         self.log.info('Configure EventSourceFactory...')

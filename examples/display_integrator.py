@@ -14,9 +14,9 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import *
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io.eventsourcefactory import EventSourceFactory, EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -269,13 +269,13 @@ class DisplayIntegrator(Tool):
         dict(
             r='EventSourceFactory.product',
             f='EventSourceFactory.input_url',
-            max_events='EventSourceFactory.max_events',
+            max_events='EventSource.max_events',
             extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             radius='CameraDL1Calibrator.radius',
             E='DisplayIntegrator.event_index',
@@ -294,9 +294,13 @@ class DisplayIntegrator(Tool):
         )
     )
     classes = List([
+        EventSource,
         EventSourceFactory,
         ChargeExtractorFactory,
         CameraDL1Calibrator,
+        WindowIntegrator,
+        PeakFindingIntegrator,
+        NeighbourPeakIntegrator,
     ])
 
     def __init__(self, **kwargs):

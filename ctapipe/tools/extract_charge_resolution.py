@@ -13,7 +13,7 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import *
 from ctapipe.io.simteleventsource import SimTelEventSource
 
 
@@ -32,12 +32,12 @@ class ChargeResolutionGenerator(Tool):
     aliases = Dict(dict(f='SimTelEventSource.input_url',
                         max_events='SimTelEventSource.max_events',
                         extractor='ChargeExtractorFactory.product',
-                        window_width='ChargeExtractorFactory.window_width',
-                        t0='ChargeExtractorFactory.t0',
-                        window_shift='ChargeExtractorFactory.window_shift',
-                        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-                        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-                        lwt='ChargeExtractorFactory.lwt',
+                        window_width='WindowIntegrator.window_width',
+                        window_shift='WindowIntegrator.window_shift',
+                        t0='SimpleIntegrator.t0',
+                        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+                        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+                        lwt='NeighbourPeakIntegrator.lwt',
                         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
                         radius='CameraDL1Calibrator.radius',
                         max_pe='ChargeResolutionCalculator.max_pe',
@@ -47,7 +47,11 @@ class ChargeResolutionGenerator(Tool):
     classes = List([SimTelEventSource,
                     ChargeExtractorFactory,
                     CameraDL1Calibrator,
-                    ChargeResolutionCalculator
+                    ChargeResolutionCalculator,
+                    WindowIntegrator,
+                    SimpleIntegrator,
+                    PeakFindingIntegrator,
+                    NeighbourPeakIntegrator,
                     ])
 
     def __init__(self, **kwargs):

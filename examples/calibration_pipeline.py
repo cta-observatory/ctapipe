@@ -4,8 +4,8 @@ from traitlets import Dict, List, Int, Bool, Unicode
 
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.image.charge_extractors import *
+from ctapipe.io.eventsourcefactory import EventSourceFactory, EventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 
@@ -140,14 +140,14 @@ class DisplayDL1Calib(Tool):
 
     aliases = Dict(
         dict(
-            max_events='EventSourceFactory.max_events',
+            max_events='EventSource.max_events',
             extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            t0='ChargeExtractorFactory.t0',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            t0='SimpleIntegrator.t0',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
             O='ImagePlotter.output_path'
@@ -164,8 +164,15 @@ class DisplayDL1Calib(Tool):
         )
     )
     classes = List([
-        EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
-        ImagePlotter
+        EventSource,
+        EventSourceFactory,
+        ChargeExtractorFactory,
+        CameraDL1Calibrator,
+        ImagePlotter,
+        WindowIntegrator,
+        SimpleIntegrator,
+        PeakFindingIntegrator,
+        NeighbourPeakIntegrator,
     ])
 
     def __init__(self, **kwargs):
