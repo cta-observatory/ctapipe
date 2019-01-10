@@ -117,7 +117,9 @@ class Factory(Component, metaclass=FactoryMeta):
             Passes the correct logger to the component.
             Set to None if no Tool to pass.
         kwargs
-
+            Named arguments to pass to the Factory. These are not passed on
+            to the product Component. Use the arguments to `produce` to pass
+            arguments to a Component.
         """
         if not self.base:
             raise AttributeError("Factory.base must be set to a Component")
@@ -225,7 +227,7 @@ class Factory(Component, metaclass=FactoryMeta):
         Parameters
         ----------
         kwargs
-            Named arguments to pass to product
+            Named arguments to pass to product Component
 
         Returns
         -------
