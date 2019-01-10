@@ -3,6 +3,7 @@ from ctapipe.core.component import Component
 from inspect import isabstract
 from traitlets.config.loader import Config
 from traitlets import CaselessStrEnum
+import warnings
 
 
 def child_subclasses(base):
@@ -191,8 +192,10 @@ class Factory(Component):
         for key in list(kwargs.keys()):
             if key not in product_traits + product_args:
                 del kwargs[key]
-                self.log.warning("Traitlet ({}) does not be exist for {}"
-                                 .format(key, product.__name__))
+                msg = ("Traitlet ({}) does not exist for {}"
+                       .format(key, product.__name__))
+                self.log.warning(msg)
+                warnings.warn(msg, stacklevel=9)
 
         instance = product(self.config, self.parent, **kwargs)
         return instance

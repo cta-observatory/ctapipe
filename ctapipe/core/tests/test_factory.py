@@ -104,15 +104,23 @@ def test_custom_product_help():
 
 
 def test_factory_produce():
-    with pytest.raises(TraitError): # TODO: Change to `with pytest.warns(UserWarning):`, but doesn't work?
-        ExampleFactory().produce(product='ExampleComponent2',value=111)
-
-    with pytest.raises(TraitError):
-        ExampleFactory(product='ExampleComponent2', value=111).produce()
-
     obj = ExampleFactory(product='ExampleComponent2').produce(value=111)
     assert (obj.__class__.__name__ == 'ExampleComponent2')
     assert (obj.value == 111)
+
+
+def test_incorrect_factory_kwarg():
+    with pytest.raises(TraitError):
+        ExampleFactory(product='ExampleComponent2', value=111).produce()
+
+
+def test_incorrect_produce_kwarg():
+    kwargs = dict(
+        value=111,
+        nonexistant=5
+    )
+    with pytest.warns(UserWarning):
+        ExampleFactory(product='ExampleComponent2').produce(**kwargs)
 
 
 def test_false_product_name():
@@ -121,75 +129,37 @@ def test_false_product_name():
 
 
 def test_expected_args():
-    fkwargs = dict(
-        product='ExampleComponent2',
-    )
-    pkwargs = dict(
+    kwargs = dict(
         value=111,
         extra=4,
-        nonexistant=5
     )
-    with pytest.raises(TraitError):
-        obj = ExampleFactory(**fkwargs).produce(**pkwargs)
 
-    pkwargs.pop('nonexistant')
-    obj = ExampleFactory(**fkwargs).produce(**pkwargs)
-
+    with pytest.warns(UserWarning):
+        obj = ExampleFactory(product='ExampleComponent2').produce(**kwargs)
+    assert obj.value == 111
     with pytest.raises(AttributeError):
         assert obj.extra == 4
-    with pytest.raises(AttributeError):
-        assert obj.nonexistant == 5
 
-    fkwargs['product'] = 'ExampleComponent3'
-    obj = ExampleFactory(**fkwargs).produce(**pkwargs)
+    obj = ExampleFactory(product='ExampleComponent3').produce(**kwargs)
+    assert obj.value == 111
     assert obj.extra == 4
-    with pytest.raises(AttributeError):
-        assert obj.nonexistant == 5
 
-    fkwargs['product'] = 'ExampleComponent4'
-    obj = ExampleFactory(**fkwargs).produce(**pkwargs)
+    obj = ExampleFactory(product='ExampleComponent4').produce(**kwargs)
+    assert obj.value == 111
     assert obj.extra == 4
-    with pytest.raises(AttributeError):
-        assert obj.nonexistant == 5
 
 
 def test_expected_config():
     config = Config()
     config['ExampleFactory'] = Config()
     config['ExampleFactory']['product'] = 'ExampleComponent2'
-    config['ExampleFactory']['value'] = 111
-    config['ExampleFactory']['extra'] = 4
-    obj = ExampleFactory(config=config).produce()
-    with pytest.raises(AssertionError):
-        # Cannot set Component value via Factory
-        assert obj.value == 111
-    with pytest.raises(AttributeError):
-        assert obj.extra == 4
-
-    config = Config()
-    config['ExampleFactory'] = Config()
-    config['ExampleFactory']['product'] = 'ExampleComponent2'
     config['ExampleComponent2'] = Config()
     config['ExampleComponent2']['value'] = 111
     config['ExampleComponent2']['extra'] = 4
-    with warnings.catch_warnings():
-        warnings.simplefilter(action='ignore', category=UserWarning)
+    with pytest.warns(UserWarning):
         obj = ExampleFactory(config=config).produce()
     assert obj.value == 111
     with pytest.raises(AttributeError):
-        assert obj.extra == 4
-
-    config = Config()
-    config['ExampleFactory'] = Config()
-    config['ExampleFactory']['product'] = 'ExampleComponent4'
-    config['ExampleFactory']['value'] = 111
-    config['ExampleFactory']['extra'] = 4
-    obj = ExampleFactory(config=config).produce()
-    with pytest.raises(AssertionError):
-        # Cannot set Component value via Factory
-        assert obj.value == 111
-    with pytest.raises(AssertionError):
-        # Cannot set Component value via Factory
         assert obj.extra == 4
 
     config['ExampleFactory'] = Config()
@@ -200,6 +170,20 @@ def test_expected_config():
     obj = ExampleFactory(config=config).produce()
     assert obj.value == 111
     assert obj.extra == 4
+
+
+def test_trying_to_set_traitlets_via_factory():
+    config = Config()
+    config['ExampleFactory'] = Config()
+    config['ExampleFactory']['product'] = 'ExampleComponent4'
+    config['ExampleFactory']['value'] = 111
+    config['ExampleFactory']['extra'] = 4
+    with pytest.warns(UserWarning):
+        obj = ExampleFactory(config=config).produce()
+    with pytest.raises(AssertionError):
+        assert obj.value == 111
+    with pytest.raises(AssertionError):
+        assert obj.extra == 4
 
 
 def test_component_definition_after_factory():
