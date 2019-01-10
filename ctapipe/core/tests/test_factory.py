@@ -39,6 +39,11 @@ class ExampleFactory(Factory):
     product_help = "Product for testing"
 
 
+class SecondExampleFactory(Factory):
+    base = ExampleComponentParent
+    default = 'Should be different'
+    product_help = "Should be different"
+
 class IncorrectExampleFactory(Factory):
     base = ExampleComponentParent
     default = 'ExampleComponent1'
@@ -51,6 +56,11 @@ def test_factory():
     obj = ExampleFactory(product='ExampleComponent2').produce(value=111)
     assert(obj.__class__.__name__ == 'ExampleComponent2')
     assert(obj.value == 111)
+
+
+def test_second_factory_product_different():
+    assert ExampleFactory.product != SecondExampleFactory.product
+    assert ExampleFactory.product.help != SecondExampleFactory.product.help
 
 
 def test_factory_subclass_detection():
