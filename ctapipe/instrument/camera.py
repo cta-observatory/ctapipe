@@ -550,6 +550,9 @@ class CameraGeometry:
         pixel_ids: Pixel number or array of pixel numbers. Returns -1 if position falls outside camera
         '''
         
+        if not np.all(self.pix_area == self.pix_area[0], axis=0):
+            logger.warning(" Method not implemented for cameras with varying pixel sizes")
+        
         points_searched = np.dstack([x.to_value(u.m),y.to_value(u.m)])
 
         kdtree = self.all_pixels_kdtree
@@ -558,10 +561,11 @@ class CameraGeometry:
         
         # Check if the position lies inside the camera. It is first checked if any border
         # pixel numbers are returned. If not, everything is fine. If yes, the distance of 
-        # the given position to the closest pixel center is translated to the pixel center of the,
-        # camera center, pos -> pos', and it is checked whether pos' lies within the camera center 
-        # pixel. If not, pos lies outside the camera. This approach does not need to know the  
-        # particular pixel shape.
+        # the given position to the closest pixel center is translated to the distance to the
+        # center of a non-border pixel', pos -> pos', and it is checked whether pos' still lies
+        # within pixel'. If not, pos lies outside the camera. This approach does not need to 
+        # know the particular pixel shape, but as the kdtree itself, presumes all camera pixels
+        # being of equal size.
         
         border_mask = self.get_border_pixel_mask()
         #get all pixels at camera border:
@@ -571,7 +575,7 @@ class CameraGeometry:
         if borderpix_ids_in_list.any():
             # Get some pixel not at the border:
             inside_pix_id = np.where(~border_mask)[0][0]
-            # Check in detail whether location in border pixel or outside camera:
+            # Check in detail whether location is in border pixel or outside camera:
             for borderpix_id in borderpix_ids_in_list:
                 index = np.where(pixel_ids==borderpix_id)[0][0]
                 # compare with inside pixel:
