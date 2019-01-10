@@ -2,6 +2,7 @@ language: python
 sudo: required
 
 cache:
+    timeout: 1000
     directories:
         $HOME/miniconda
 
