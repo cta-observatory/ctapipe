@@ -307,9 +307,9 @@ class MCHeaderContainer(Container):
     corsika_iact_options = Field(0.0, "Detector MC information")
     corsika_low_E_model = Field(0.0, "Detector MC information")
     corsika_high_E_model = Field(0.0, "Detector MC information")
-    corsika_bunchsize = Field(0.0, "Detector MC information")
-    corsika_wlen_min = Field(0.0, "Detector MC information")
-    corsika_wlen_max = Field(0.0, "Detector MC information")
+    corsika_bunchsize = Field(0.0, "Number of photons per bunch")
+    corsika_wlen_min = Field(0.0, "Minimum wavelength of cherenkov light")
+    corsika_wlen_max = Field(0.0, "Maximum wavelength of cherenkov light")
     corsika_low_E_detail = Field(0.0, "Detector MC information")
     corsika_high_E_detail = Field(0.0, "Detector MC information")
 
