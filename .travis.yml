@@ -14,42 +14,25 @@ os:
     - linux
     # - osx   # currently osx python projects are not supported in Travis
 
-env:
-  global:
-    - TARGET_SOFTWARE=$HOME/Software/target_software
-    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/Software/TargetDriver/install/lib:$HOME/Software/TargetIO/install/lib:$HOME/Software/TargetCalib/install/lib
-    - TARGETCALIBPATH=$HOME/Software/TargetCalib/install
 
 before_install:
-
-    - echo 'list travis cached dirs'
-    - echo 'ls $HOME/miniconda:'
-    - true || ls $HOME/miniconda
-    - echo 'ls $HOME/miniconda/envs:'
-    - true || ls $HOME/miniconda/envs
-
     # Use utf8 encoding. Should be default, but this is insurance
     # against future changes
-
     - export PYTHONIOENCODING=UTF8
     - export MPLBACKEND=agg
+    # Make sure that interactive matplotlib backends work
+    - export DISPLAY=:99.0
+    - sh -e /etc/init.d/xvfb start
 
     - ./install_miniconda.sh
     - export PATH="$HOME/miniconda/bin:$PATH"
     # Useful for debugging any issues with conda
     - conda info -a
 
-    # Make sure that interactive matplotlib backends work
-    - export DISPLAY=:99.0
-    - sh -e /etc/init.d/xvfb start
     - git fetch --tags
 
 install:
     - ./create_conda_env.sh
-
-    - echo 'ls $HOME/miniconda/envs:'
-    - true || ls $HOME/miniconda/envs
-
     - source activate cta-dev
     - pip install travis-sphinx
     - pip install codecov
