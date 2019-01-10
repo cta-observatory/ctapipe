@@ -147,12 +147,12 @@ class Factory(Component, metaclass=FactoryMeta):
         Remove and warn about kwargs that would throw an error for this
         particular product.
 
-        There may be a usecase for certain products would accept certain
-        arguments (as they are a traitlet for that Component), but a different
-        product from the same factory may not accept that argument (as it does
-        not also contain that traitlet). This function therefore removes such
-        arguments from the kwargs, preparing them for this particular
-        product Component.
+        There may be a usecase for passing arguments to the produce method of
+        the `Factory`, but the arguments are only valid for some of the
+        possible products of the Factory. This may be because some Components
+        have different traitlets. This function therefore removes arguments
+        that are not valid for the product Component returned this time from
+        the Factory.
 
         Parameters
         ----------
