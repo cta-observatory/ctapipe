@@ -59,6 +59,8 @@ def test_factory():
 
 
 def test_second_factory_product_different():
+    ExampleFactory.update_product_traitlet()
+    SecondExampleFactory.update_product_traitlet()
     assert ExampleFactory.product != SecondExampleFactory.product
     assert ExampleFactory.product.help != SecondExampleFactory.product.help
 
