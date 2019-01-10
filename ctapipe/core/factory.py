@@ -66,16 +66,53 @@ class Factory(Component, metaclass=FactoryMeta):
     for the `product` traitlet in a `Tool` utilising the `Factory` can be set
     with the `product_help` attribute.
 
-    To use a factory from within a `ctapipe.core.tool.Tool`:
+    Below is an example of a `Factory` used witin a `ctapipe.core.tool.Tool`:
 
-    >>> from ctapipe.core.tool import Tool
+    >>> from traitlets import Dict, List, Int
+    >>> from ctapipe.core import Tool, Component, Factory
+    >>>
+    >>>
+    >>> class ExampleComponentParent(Component):
+    >>>     value = Int(123, help="").tag(config=True)
+    >>>
+    >>>     def __init__(self, config, tool, **kwargs):
+    >>>         super().__init__(config=config, parent=tool, **kwargs)
+    >>>
+    >>>
+    >>> class ExampleComponent1(ExampleComponentParent):
+    >>>     value = Int(123111, help="").tag(config=True)
+    >>>
+    >>>
+    >>> class ExampleComponent2(ExampleComponentParent):
+    >>>     value = Int(123222, help="").tag(config=True)
+    >>>
+    >>>
+    >>> class ExampleFactory(Factory):
+    >>>     base = ExampleComponentParent
+    >>>     default = 'ExampleComponent1'
+    >>>
+    >>>
     >>> class ExampleTool(Tool):
+    >>>     name = "ExampleTool"
+    >>>
+    >>>     aliases = Dict(dict(
+    >>>         product='ExampleFactory.product',
+    >>>     ))
+    >>> 
+    >>>     classes = List([
+    >>>         ExampleFactory,
+    >>>     ])
+    >>>
     >>>     def setup(self):
-    >>>         cls = Factory(config=self.config, tool=self).produce()
-    >>>         print(cls.__class__.__name__)
-    >>>     def start(self, **kwargs):
+    >>>         kwargs = dict(config=self.config, tool=self)
+    >>>
+    >>>         example = ExampleFactory(**kwargs).produce()
+    >>>         print(example.__class__.__name__)
+    >>>
+    >>>     def start(self):
     >>>         pass
-    >>>     def finish(self, **kwargs):
+    >>>
+    >>>     def finish(self):
     >>>         pass
 
     Arguments can be passed to the produced `Component` via the arguments to
@@ -144,13 +181,14 @@ class Factory(Component, metaclass=FactoryMeta):
         cls.product.help = cls.product_help
 
     @classmethod
-    def class_get_help(cls, inst=None):
+    def class_get_trait_help(cls, trait, inst=None):
         """
         Update values before obtaining help message to make sure it contains
         Components included since Factory definition
         """
-        cls.update_product_traitlet()
-        return super().class_get_help(inst)
+        if trait == cls.product:
+            cls.update_product_traitlet()
+        return super().class_get_trait_help(trait, inst)
 
     def _clean_kwargs_for_product(self, kwargs_dict):
         """
