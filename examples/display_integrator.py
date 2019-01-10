@@ -21,7 +21,7 @@ from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
-def plot(event, telid, chan, extractor_product):
+def plot(event, telid, chan, extractor_name):
     # Extract required images
     dl0 = event.dl0.tel[telid].waveform[chan]
 
@@ -216,7 +216,7 @@ def plot(event, telid, chan, extractor_product):
     camera = CameraDisplay(geom, ax=ax_img_cal)
     camera.image = dl1
     camera.add_colorbar(ax=ax_img_cal, label="Calib Charge (Photo-electrons)")
-    ax_img_cal.set_title("Charge (integrator={})".format(extractor_product))
+    ax_img_cal.set_title("Charge (integrator={})".format(extractor_name))
     ax_img_cal.annotate(
         "Pixel: {}".format(max_pix),
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
@@ -238,7 +238,7 @@ def plot(event, telid, chan, extractor_product):
         verticalalignment='top'
     )
 
-    fig_waveforms.suptitle("Integrator = {}".format(extractor_product))
+    fig_waveforms.suptitle("Integrator = {}".format(extractor_name))
     fig_camera.suptitle("Camera = {}".format(geom.cam_id))
 
     plt.show()

@@ -1,5 +1,5 @@
 """
-The most basic pipeline, using no special features of the framework other
+The most basic pipeline, using no special features of the framework other 
 than a for-loop. This is useful for debugging and profiling of speed.
 """
 
