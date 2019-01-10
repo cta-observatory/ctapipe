@@ -30,34 +30,7 @@ def child_subclasses(base):
     return children
 
 
-class FactoryMeta(type(Component), type):
-    def __new__(mcs, name, bases, dct):
-
-        # Setup class lookup
-        base = dct['base']
-        if base:
-            # Gather a record of which traits are valid for which subclasses
-            # and copy subclass traits
-            traits = dict()
-            record = dict()
-            for sub in child_subclasses(base).values():
-                for key, trait in sub.class_traits().items():
-                    if key in ['config', 'parent']:
-                        continue
-                    record.setdefault(key, []).append(sub.__name__)
-                    if key not in traits:
-                        traits[key] = deepcopy(trait)
-
-            # Add subclass traits to Factory and include a list of valid
-            # sublasses for the trait help message
-            for key, trait in traits.items():
-                trait.help += "\n\nCompatible Components: " + str(record[key])
-                dct[key] = trait
-
-        return type.__new__(mcs, name, bases, dct)
-
-
-class Factory(Component, metaclass=FactoryMeta):
+class Factory(Component):
     """
     A base class for all class factories that exist in the `Tools`/`Components`
     frameworks.
@@ -134,9 +107,7 @@ class Factory(Component, metaclass=FactoryMeta):
         """
         if not self.base:
             raise AttributeError("Factory.base must be set to a Component")
-
         super().__init__(config=config, parent=tool, **kwargs)
-        self.kwargs = copy(kwargs)
 
     @classmethod
     def update_product_traitlet(cls):
@@ -147,6 +118,15 @@ class Factory(Component, metaclass=FactoryMeta):
         cls.product.values = child_subclasses(cls.base).keys()
         cls.product.default_value = cls.default
         cls.product.help = cls.custom_product_help
+
+    @classmethod
+    def class_get_help(cls, inst=None):
+        """
+        Update values before obtaining help message to make sure it contains
+        Components included since Factory definition
+        """
+        cls.update_product_traitlet()
+        return super().class_get_help(inst)
 
     def _get_product_name(self):
         """
@@ -185,86 +165,34 @@ class Factory(Component, metaclass=FactoryMeta):
                                'factory.'.format(product_name))
             raise
 
-    @property
-    def _instance(self):
+    def produce(self, **kwargs):
         """
-        Obtain an instance of the product class with the config and arguments
-        correctly copied from the Factory to the product.
+        Produce an instance of the product class from the Factory
+
+        Parameters
+        ----------
+        kwargs
+            Named arguments to pass to product
 
         Returns
         -------
         instance
             Instance of the product class that is the purpose of the factory
             to produce.
+
         """
         product = self._product
         product_traits = product.class_trait_names()
         product_args = list(product.__init__.__code__.co_varnames)
-        config = copy(self.__dict__['_trait_values']['config'])
-        parent = copy(self.__dict__['_trait_values']['parent'])
-
-        # Update traitlet defaults (they may have been changed via the Factory)
-        for name, trait in self.class_own_traits().items():
-            for sub in child_subclasses(self.base).values():
-                try:
-                    sub_trait = sub.class_traits()[name]
-                    sub_trait.default_value = trait.default_value
-                except KeyError:
-                    pass
-
-        if config[self.__class__.__name__]:
-            # If Product config does not exist, create new Config instance
-            # Note: `config[product.__name__]` requires Config, not dict
-            if not config[product.__name__]:
-                config[product.__name__] = Config()
-
-            # Copy Factory config to Product config
-            for key, value in config[self.__class__.__name__].items():
-                if key in product_traits:
-                    config[product.__name__][key] = value
+        # config = copy(self.__dict__['_trait_values']['config'])
+        # parent = copy(self.__dict__['_trait_values']['parent'])
 
         # Copy valid arguments to kwargs
-        kwargs = copy(self.kwargs)
         for key in list(kwargs.keys()):
             if key not in product_traits + product_args:
                 del kwargs[key]
+                self.log.warning("Traitlet ({}) does not be exist for {}"
+                                 .format(key, product.__name__))
 
-        instance = product(config, parent, **kwargs)
+        instance = product(self.config, self.parent, **kwargs)
         return instance
-
-    @classmethod
-    def produce(cls, config=None, tool=None, **kwargs):
-        """
-        Produce an instance of the product class
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
-
-        Returns
-        -------
-        instance
-            Instance of the product class that is the purpose of the factory
-            to produce.
-
-        """
-        factory = cls(config=config, tool=tool, **kwargs)
-        instance = factory._instance
-        return instance
-
-    @classmethod
-    def class_get_help(cls, inst=None):
-        """
-        Update values before obtaining help message to make sure it contains
-        Components included since Factory definition
-        """
-        cls.update_product_traitlet()
-        return super().class_get_help(inst)

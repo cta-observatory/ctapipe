@@ -49,10 +49,7 @@ class IncorrectExampleFactory(Factory):
 
 
 def test_factory():
-    obj = ExampleFactory.produce(
-        product='ExampleComponent2',
-        value=111
-    )
+    obj = ExampleFactory(product='ExampleComponent2').produce(value=111)
     assert(obj.__class__.__name__ == 'ExampleComponent2')
     assert(obj.value == 111)
 
@@ -88,13 +85,13 @@ def test_factory_subclass_detection():
 def test_default():
     help_msg = ExampleFactory.class_get_help()
     assert ExampleFactory.default in help_msg
-    obj = ExampleFactory.produce()
+    obj = ExampleFactory().produce()
     assert obj.__class__.__name__ == "ExampleComponent1"
 
     ExampleFactory.default = "ExampleComponent2"
     help_msg = ExampleFactory.class_get_help()
     assert ExampleFactory.default in help_msg
-    obj = ExampleFactory.produce()
+    obj = ExampleFactory().produce()
     assert obj.__class__.__name__ == "ExampleComponent2"
 
 
@@ -106,66 +103,51 @@ def test_custom_product_help():
     assert ExampleFactory.custom_product_help in help_msg
 
 
-def test_factory_automatic_traits():
-    traits = sorted(list(ExampleFactory.class_own_traits().keys()))
-    assert traits == sorted(['extra', 'product', 'value'])
-
-
-def test_factory_traits_compatible_help():
-    msg = [
-        "Compatible Components:",
-        "ExampleComponent1",
-        "ExampleComponent2",
-        "ExampleComponent3",
-        "ExampleComponent4"
-    ]
-    for m in msg:
-        assert m in ExampleFactory.class_own_traits()['value'].help
-
-
 def test_factory_produce():
-    obj = ExampleFactory.produce(
-        product='ExampleComponent2',
-        value=111
-    )
+    with pytest.raises(TraitError): # TODO: Change to `with pytest.warns(UserWarning):`, but doesn't work?
+        ExampleFactory().produce(product='ExampleComponent2',value=111)
+
+    with pytest.raises(TraitError):
+        ExampleFactory(product='ExampleComponent2', value=111).produce()
+
+    obj = ExampleFactory(product='ExampleComponent2').produce(value=111)
     assert (obj.__class__.__name__ == 'ExampleComponent2')
     assert (obj.value == 111)
 
 
 def test_false_product_name():
     with pytest.raises(KeyError):
-        IncorrectExampleFactory.produce(
-            product='ExampleComponent2',
-            value=111
-        )
+        IncorrectExampleFactory(product='ExampleComponent2').produce(value=111)
 
 
 def test_expected_args():
-    kwargs = dict(
+    fkwargs = dict(
         product='ExampleComponent2',
+    )
+    pkwargs = dict(
         value=111,
         extra=4,
         nonexistant=5
     )
     with pytest.raises(TraitError):
-        obj = ExampleFactory.produce(**kwargs)
+        obj = ExampleFactory(**fkwargs).produce(**pkwargs)
 
-    kwargs.pop('nonexistant')
-    obj = ExampleFactory.produce(**kwargs)
+    pkwargs.pop('nonexistant')
+    obj = ExampleFactory(**fkwargs).produce(**pkwargs)
 
     with pytest.raises(AttributeError):
         assert obj.extra == 4
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
 
-    kwargs['product'] = 'ExampleComponent3'
-    obj = ExampleFactory.produce(**kwargs)
+    fkwargs['product'] = 'ExampleComponent3'
+    obj = ExampleFactory(**fkwargs).produce(**pkwargs)
     assert obj.extra == 4
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
 
-    kwargs['product'] = 'ExampleComponent4'
-    obj = ExampleFactory.produce(**kwargs)
+    fkwargs['product'] = 'ExampleComponent4'
+    obj = ExampleFactory(**fkwargs).produce(**pkwargs)
     assert obj.extra == 4
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
@@ -177,8 +159,10 @@ def test_expected_config():
     config['ExampleFactory']['product'] = 'ExampleComponent2'
     config['ExampleFactory']['value'] = 111
     config['ExampleFactory']['extra'] = 4
-    obj = ExampleFactory.produce(config=config)
-    assert obj.value == 111
+    obj = ExampleFactory(config=config).produce()
+    with pytest.raises(AssertionError):
+        # Cannot set Component value via Factory
+        assert obj.value == 111
     with pytest.raises(AttributeError):
         assert obj.extra == 4
 
@@ -190,7 +174,7 @@ def test_expected_config():
     config['ExampleComponent2']['extra'] = 4
     with warnings.catch_warnings():
         warnings.simplefilter(action='ignore', category=UserWarning)
-        obj = ExampleFactory.produce(config=config)
+        obj = ExampleFactory(config=config).produce()
     assert obj.value == 111
     with pytest.raises(AttributeError):
         assert obj.extra == 4
@@ -200,16 +184,20 @@ def test_expected_config():
     config['ExampleFactory']['product'] = 'ExampleComponent4'
     config['ExampleFactory']['value'] = 111
     config['ExampleFactory']['extra'] = 4
-    obj = ExampleFactory.produce(config=config)
-    assert obj.value == 111
-    assert obj.extra == 4
+    obj = ExampleFactory(config=config).produce()
+    with pytest.raises(AssertionError):
+        # Cannot set Component value via Factory
+        assert obj.value == 111
+    with pytest.raises(AssertionError):
+        # Cannot set Component value via Factory
+        assert obj.extra == 4
 
     config['ExampleFactory'] = Config()
     config['ExampleFactory']['product'] = 'ExampleComponent4'
     config['ExampleComponent4'] = Config()
     config['ExampleComponent4']['value'] = 111
     config['ExampleComponent4']['extra'] = 4
-    obj = ExampleFactory.produce(config=config)
+    obj = ExampleFactory(config=config).produce()
     assert obj.value == 111
     assert obj.extra == 4
 
@@ -222,7 +210,7 @@ def test_component_definition_after_factory():
     class ExampleComponent5(ExampleComponentParent):
         value = Int(1234445, help="").tag(config=True)
 
-    obj = ExampleFactory.produce(product='ExampleComponent5')
+    obj = ExampleFactory(product='ExampleComponent5').produce()
     assert (obj.__class__.__name__ == 'ExampleComponent5')
     assert (obj.value == 1234445)
 
