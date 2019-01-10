@@ -8,7 +8,6 @@ cache:
 python:
     # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
     # in anaconda as well (we don't support python less than 3.5)
-    - 3.5
     - 3.6
 
 os:
@@ -25,9 +24,9 @@ before_install:
 
     - echo 'list travis cached dirs'
     - echo 'ls $HOME/miniconda:'
-    - ls $HOME/miniconda
+    - true || ls $HOME/miniconda
     - echo 'ls $HOME/miniconda/envs:'
-    - ls $HOME/miniconda/envs
+    - true || ls $HOME/miniconda/envs
 
     # Use utf8 encoding. Should be default, but this is insurance
     # against future changes
@@ -61,7 +60,7 @@ install:
     - conda env update -n cta-dev --file environment.yml
 
     - echo 'ls $HOME/miniconda/envs:'
-    - ls $HOME/miniconda/envs
+    - true || ls $HOME/miniconda/envs
 
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
