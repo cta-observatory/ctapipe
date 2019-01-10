@@ -68,7 +68,15 @@ class Factory(Component, metaclass=FactoryMeta):
 
     To use a factory from within a `ctapipe.core.tool.Tool`:
 
-    >>> cls = Factory(config=self.config, tool=self).produce()
+    >>> from ctapipe.core.tool import Tool
+    >>> class ExampleTool(Tool):
+    >>>     def setup(self):
+    >>>         cls = Factory(config=self.config, tool=self).produce()
+    >>>         print(cls.__class__.__name__)
+    >>>     def start(self, **kwargs):
+    >>>         pass
+    >>>     def finish(self, **kwargs):
+    >>>         pass
 
     Arguments can be passed to the produced `Component` via the arguments to
     `produce`.

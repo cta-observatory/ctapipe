@@ -29,7 +29,16 @@ class EventSourceFactory(Factory):
 
     To use within a `ctapipe.core.tool.Tool`:
 
-    >>> source = EventSourceFactory(config=self.config, tool=self).produce()
+    >>> from ctapipe.core.tool import Tool
+    >>> class ExampleTool(Tool):
+    >>>     def setup(self):
+    >>>         kwargs = dict(config=self.config, tool=self)
+    >>>         source = EventSourceFactory(**kwargs).produce()
+    >>>         print(source.__class__.__name__)
+    >>>     def start(self, **kwargs):
+    >>>         pass
+    >>>     def finish(self, **kwargs):
+    >>>         pass
 
     Parameters
     ----------
