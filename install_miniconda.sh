@@ -17,7 +17,6 @@ if [ ! -f $HOME/miniconda/bin/python ]; then
     conda update -q conda  # get latest conda version
 else
     echo 'miniconda is already installed.'
-    export PATH="$HOME/miniconda/bin:$PATH"
 fi
 
 exit 0;
