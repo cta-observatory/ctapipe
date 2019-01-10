@@ -114,6 +114,17 @@ def test_incorrect_factory_kwarg():
         ExampleFactory(product='ExampleComponent2', value=111).produce()
 
 
+def test_clean_kwargs_for_product():
+    kwargs = dict(
+        value=111,
+        nonexistant=5
+    )
+    factory = ExampleFactory(product='ExampleComponent2')
+    with pytest.warns(UserWarning):
+        cleaned = factory._clean_kwargs_for_product(kwargs)
+    assert 'nonexistant' not in cleaned
+
+
 def test_incorrect_produce_kwarg():
     kwargs = dict(
         value=111,
