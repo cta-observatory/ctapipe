@@ -1,7 +1,6 @@
-from copy import copy, deepcopy
+from copy import copy
 from ctapipe.core.component import Component
 from inspect import isabstract
-from traitlets.config.loader import Config
 from traitlets import CaselessStrEnum
 import warnings
 
@@ -37,46 +36,44 @@ class Factory(Component):
     frameworks.
 
     To create a Factory, inherit this class and set `base` to the
-    base-class of the Factory.
+    base-class of the Components.
 
-    The traits of the sub-classes are automatically added to the Factory
-    (and are included in the help message).
-
-    The traits and kwargsthat correctly correspond to the product are passed
-    onto the product.
+    A `product` traitlet is automatically generated which allows selection of
+    the returned `Component` class by name. The default `Component` can be set
+    by the `default` attribute of the `Factory`. The help message that appears
+    for the `product` traitlet in a `Tool` utilising the `Factory` can be set
+    with the `product_help` attribute.
 
     To use a factory from within a `ctapipe.core.tool.Tool`:
 
-    >>> cls = Factory.produce(config=self.config, tool=self)
+    >>> cls = Factory(config=self.config, tool=self).produce()
+
+    Arguments can be passed to the produced `Component` via the arguments to
+    `produce`.
 
     Attributes
     ----------
     base : type
         The base-class for the different classes that could be returned from
         the factory
-    product : traitlets.CaselessStrEnum
-        The traitlet allowing the manual specification of which class is
-        returned from the factory. This is created in `FactoryMeta`.
-    subclasses : list
-        A list of the subclasses for the base-class specified in `base`
-    subclass_names : list
-        The names of the classes in `subclasses`
     default : str
         The default product to return. If None, then there is no default.
-    custom_product_help : None or str
+    product_help : None or str
         If set, then this text will be displayed for the help message for the
         product traitlet.
+    product : traitlets.CaselessStrEnum
+        The traitlet allowing the manual specification of which class is
+        returned from the factory.
     """
     base = None
     default = None
-    custom_product_help = 'Product class to obtain from the Factory.'
-    # TODO: Rename custom_product_help to product_help
+    product_help = 'Product class to obtain from the Factory.'
 
     product = CaselessStrEnum(
         [],
         default,
         allow_none=True,
-        help=custom_product_help
+        help=product_help
     ).tag(config=True)
 
     def __new__(cls, *args, **kwargs):
@@ -118,7 +115,7 @@ class Factory(Component):
         """
         cls.product.values = child_subclasses(cls.base).keys()
         cls.product.default_value = cls.default
-        cls.product.help = cls.custom_product_help
+        cls.product.help = cls.product_help
 
     @classmethod
     def class_get_help(cls, inst=None):

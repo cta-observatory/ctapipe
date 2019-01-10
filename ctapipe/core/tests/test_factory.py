@@ -3,7 +3,6 @@ from ctapipe.core.component import Component
 from traitlets import Int, TraitError
 import pytest
 from traitlets.config.loader import Config
-import warnings
 
 
 class ExampleComponentParent(Component):
