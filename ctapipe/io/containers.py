@@ -783,27 +783,34 @@ class FlatFieldCameraContainer(Container):
     """
    
     time_mean = Field(0, 'Mean time, seconds since reference', unit=u.s)
-    time_range = Field([], 'Range of time of the calibration data [t_min, t_max]', unit=u.s)
-    
-    n_events = Field(0,'Number of events used for statistics')
-    
-    relative_gain_mean = Field(None,
+    time_range = Field(
+        [],
+        'Range of time of the calibration data [t_min, t_max]',
+        unit=u.s
+    )
+    n_events = Field(0, 'Number of events used for statistics')
+    relative_gain_mean = Field(
+        None,
         "np array of the relative flat-field coefficient mean (n_chan X N_pix)"
     )
-    relative_gain_median = Field(None,
+    relative_gain_median = Field(
+        None,
         "np array of the relative flat-field coefficient  median (n_chan X N_pix)"
     )
-    
-    relative_gain_rms = Field(None,
+    relative_gain_rms = Field(
+        None,
         "np array of the relative flat-field coefficient rms (n_chan X N_pix)"
     )
+    relative_time_mean = Field(
+        None,
+        "np array of the relative time mean (n_chan X N_pix)",
+        unit=u.ns
+    )
+    relative_time_median = Field(
+        None,
+        "np array of the relative time  median (n_chan X N_pix)",
+        unit=u.ns)
 
-    relative_time_mean = Field(None,
-                               "np array of the relative time mean (n_chan X N_pix)"
-                               , unit=u.ns)
-    relative_time_median = Field(None,
-                                 "np array of the relative time  median (n_chan X N_pix)"
-                                , unit=u.ns)
 
 class FlatFieldContainer(Container):
     """
@@ -830,6 +837,7 @@ class PedestalContainer(Container):
     tel = Field(
         Map(PedestalCameraContainer),
         "map of tel_id to PedestalCameraContainer")
+
 
 class MonitorDataContainer(Container):
     """
