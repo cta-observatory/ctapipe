@@ -1,14 +1,11 @@
+import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.eventsource import EventSource
 
 
 def test_construct():
-    try:
-        EventSource(config=None, tool=None)
-    except TypeError:
-        return
-    raise TypeError("EventSource should raise a TypeError when "
-                    "instantiated due to its abstract methods")
+    with pytest.raises(TypeError):
+        EventSource()
 
 
 class DummyReader(EventSource):

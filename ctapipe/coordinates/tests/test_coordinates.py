@@ -1,5 +1,19 @@
 import numpy as np
 import astropy.units as u
+from astropy.coordinates import SkyCoord
+
+
+def test_cam_to_nominal():
+    from ctapipe.coordinates import CameraFrame, HorizonFrame, NominalFrame
+
+    telescope_pointing = SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=HorizonFrame())
+    array_pointing = SkyCoord(alt=72 * u.deg, az=0 * u.deg, frame=HorizonFrame())
+
+    cam_frame = CameraFrame(focal_length=28 * u.m, pointing_direction=telescope_pointing)
+    cam = SkyCoord(x=0.5 * u.m, y=0.1 * u.m, frame=cam_frame)
+
+    nom_frame = NominalFrame(array_direction=array_pointing)
+    cam.transform_to(nom_frame)
 
 
 def test_cam_to_tel():

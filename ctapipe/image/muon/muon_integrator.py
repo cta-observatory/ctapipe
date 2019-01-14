@@ -420,7 +420,7 @@ class MuonLineIntegrate:
             **init_params,
             **init_errs,
             **init_constrain,
-            errordef=0.,
+            errordef=0.1,
             print_level=0,
             pedantic=False
         )

@@ -99,10 +99,7 @@ def test_reconstruction():
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = EventSourceFactory.produce(
-        input_url=filename,
-        product='HESSIOEventSource',
-    )
+    source = EventSourceFactory.produce(input_url=filename)
 
     for event in source:
 

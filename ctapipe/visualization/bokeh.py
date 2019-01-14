@@ -2,8 +2,14 @@ import warnings
 import numpy as np
 from bokeh.plotting import figure
 from bokeh.events import Tap
-from bokeh.models import (ColumnDataSource, TapTool, palettes, Span, ColorBar,
-                          LinearColorMapper)
+from bokeh import palettes
+from bokeh.models import (
+    ColumnDataSource,
+    TapTool,
+    Span,
+    ColorBar,
+    LinearColorMapper,
+)
 from ctapipe.utils.rgbtohex import intensity_to_hex
 
 PLOTARGS = dict(tools="", toolbar_location=None, outline_line_color='#595959')
