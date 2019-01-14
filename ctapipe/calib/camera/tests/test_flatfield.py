@@ -3,7 +3,7 @@ from ctapipe.io.nectarcameventsource import NectarCAMEventSource
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
 
 
-def test_FlasherFlatFieldCalculator():
+def test_flasherflatfieldcalculator():
 
     example_file_path = get_dataset_path("NectarCAM.Run0890.10events.fits.fz")
 

@@ -81,9 +81,8 @@ class FlatFieldHDF5Writer(Tool):
                 self.container.flatfield.tel[self.flatfield.tel_id] = ff_data
                 table_name = 'tel_' + str(self.flatfield.tel_id)
 
-                self.log.info(
-                     "write event in table: /flatfield/%s", table_name
-                )
+                self.log.info("write event in table: /flatfield/%s",
+                              table_name)
                 self.writer.write(table_name, ff_data)
 
     def finish(self):
