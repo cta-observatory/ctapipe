@@ -19,4 +19,8 @@ else
     echo 'miniconda is already installed.'
 fi
 
+export PATH="$HOME/miniconda/bin:$PATH"
+hash -r
+conda config --set always_yes yes --set changeps1 no
+
 exit 0;

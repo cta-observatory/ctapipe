@@ -32,7 +32,6 @@ before_install:
     - sh -e /etc/init.d/xvfb start
 
     - ./install_miniconda.sh
-    - export PATH="$HOME/miniconda/bin:$PATH"
     # Useful for debugging any issues with conda
     - conda info -a
 
