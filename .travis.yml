@@ -34,6 +34,7 @@ before_install:
 
 install:
     - ./create_conda_env.sh
+    - conda env update -n cta-dev --file environment.yml
     - source activate cta-dev
     - pip install travis-sphinx
     - pip install codecov
