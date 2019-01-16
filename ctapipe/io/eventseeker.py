@@ -30,7 +30,7 @@ class EventSeeker(Component):
     To obtain a particular event in a hessio file:
 
     >>> from ctapipe.io.hessioeventsource import SimTelEventSource
-    >>> event_source = SimTelEventSource(input_path="/path/to/file")
+    >>> event_source = SimTelEventSource(input_url="/path/to/file")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker[2]
     >>> print(event.count)
@@ -38,7 +38,7 @@ class EventSeeker(Component):
     To obtain a particular event in a hessio file from its event_id:
 
     >>> from ctapipe.io.hessioeventsource import SimTelEventSource
-    >>> event_source = SimTelEventSource(input_path="/path/to/file")
+    >>> event_source = SimTelEventSource(input_url="/path/to/file")
     >>> seeker = EventSeeker(event_source=event_source)
     >>> event = seeker["101"]
     >>> print(event.count)

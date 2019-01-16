@@ -306,7 +306,6 @@ help when writing algorithms:
 
 	 source = calibrated_event_source(filename)
 	 ImageMangler mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
-	 Serializer serializer = ...
 
 	 # simple loop over events, calling each algorithm and directly
 	 #passing data
@@ -317,11 +316,6 @@ help when writing algorithms:
 		 mangled_image = mangler.mangle(image)
 		 image_parameters = parameterize_image(mangled_image)
 
-		 # here you may here pack your output values into a Container if
-		 # they are not already in one. We assume here that mangled_image
-		 # and image_parameters are already Container subclasses
-
-		 serializer.write([mangled_image, image_parameters])
 
 * When your algorithm test code (as above) works well and you are
   happy with the results, you can do two things:
