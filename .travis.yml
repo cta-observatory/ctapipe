@@ -4,7 +4,6 @@ sudo: required
 python:
     # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
     # in anaconda as well (we don't support python less than 3.5)
-    - 3.5
     - 3.6
 
 os:
