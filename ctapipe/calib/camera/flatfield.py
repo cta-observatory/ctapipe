@@ -177,13 +177,16 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # initialize the np array at each cycle
         waveform = event.r0.tel[self.tel_id].waveform
-        trigger_time = event.r0.tel[self.tel_id].trigger_time
 
-        # patch for MC data which no trigger time defined
-        if (trigger_time == None):
+
+        # patches for MC data
+        if not event.mcheader.simtel_version:
+            trigger_time = event.r0.tel[self.tel_id].trigger_time
+            pixel_status = event.r0.tel[self.tel_id].pixel_status
+        else:
             trigger_time = event.trig.gps_time.unix
+            pixel_status = np.ones(waveform.shape[1])
 
-        pixel_status = event.r0.tel[self.tel_id].pixel_status
 
         if self.num_events_seen == 0:
             self.time_start = trigger_time
