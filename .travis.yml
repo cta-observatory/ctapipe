@@ -11,11 +11,6 @@ os:
     - linux
     # - osx   # currently osx python projects are not supported in Travis
 
-env:
-  global:
-    - TARGET_SOFTWARE=$HOME/Software/target_software
-    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/Software/TargetDriver/install/lib:$HOME/Software/TargetIO/install/lib:$HOME/Software/TargetCalib/install/lib
-    - TARGETCALIBPATH=$HOME/Software/TargetCalib/install
 
 before_install:
 
@@ -52,20 +47,6 @@ install:
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
-    - pip install codecov
-    # ----- SST1M:
-    - pip install https://github.com/cta-sst-1m/protozfitsreader/archive/v1.4.2.tar.gz
-    # ----- end of SST1M
-    # ----- target_software
-    - conda install -c conda-forge cfitsio
-    - conda install swig
-    - mkdir -p $HOME/Software
-    - cd $HOME/Software
-    - git clone https://github.com/watsonjj/target_software.git
-    - cd $TARGET_SOFTWARE
-    - ./install.sh
-    - cd $TRAVIS_BUILD_DIR
-    # ----- end of target_software
     - python setup.py develop
 
 script:
