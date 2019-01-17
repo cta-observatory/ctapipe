@@ -61,7 +61,7 @@ install:
     - conda create --name cta-dev python=$PYTHON_VERSION pip
     - travis_wait 20 conda env update -n cta-dev --file environment.yml
     - source activate cta-dev
-    - ulimit -s 16000  # increase stack size limit, for libhessio
+    - ulimit -s 50000  # increase stack size limit, for libhessio 50MB
     - pip install travis-sphinx
     - pip install codecov
     # ----- SST1M:
