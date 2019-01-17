@@ -78,8 +78,8 @@ class BaselineWaveformCleaner(WaveformCleaner):
     def apply(self, waveforms):
         # self.log.debug(f"calculate baseline on first {self.baseline_width} samples")
         # Subtract initial baseline
-        baseline_sub = waveforms - np.mean(waveforms[:, :self.baseline_width],
-                                           axis=1)[:, None]
+        baseline_sub = waveforms - np.mean(waveforms[:,:, :self.baseline_width],
+                                           axis=2)[:,:, None]
         
         return baseline_sub
 

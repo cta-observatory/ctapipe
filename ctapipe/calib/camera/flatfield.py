@@ -1,6 +1,7 @@
 """
 Factory for the estimation of the flat field coefficients
 """
+
 from abc import abstractmethod
 import numpy as np
 from astropy import units as u
@@ -177,6 +178,11 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # initialize the np array at each cycle
         waveform = event.r0.tel[self.tel_id].waveform
         trigger_time = event.r0.tel[self.tel_id].trigger_time
+
+        # patch for MC data which no trigger time defined
+        if (trigger_time == None):
+            trigger_time = event.trig.gps_time.unix
+
         pixel_status = event.r0.tel[self.tel_id].pixel_status
 
         if self.num_events_seen == 0:
@@ -189,6 +195,8 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         self.collect_sample(charge, pixel_status, arrival_time)
 
         sample_age = trigger_time - self.time_start
+
+
         # check if to create a calibration event
         if (
             sample_age > self.sample_duration
