@@ -5,6 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - zeromq
+  - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
   - bokeh
   - cython
