@@ -75,10 +75,12 @@ class BaselineWaveformCleaner(WaveformCleaner):
     baseline_width = Int(10, help='Define then number of samples for estimating the '
                                   'baseline').tag(config=True)
 
+    window_shift = Int(0, help='Define the shift of the window on which caluclate '
+                               'the baseline.').tag(config=True)
     def apply(self, waveforms):
         # self.log.debug(f"calculate baseline on first {self.baseline_width} samples")
         # Subtract initial baseline
-        baseline_sub = waveforms - np.mean(waveforms[:,:, :self.baseline_width],
+        baseline_sub = waveforms - np.mean(waveforms[:,:, self.window_shift:self.baseline_width],
                                            axis=2)[:,:, None]
         
         return baseline_sub

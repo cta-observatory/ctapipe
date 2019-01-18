@@ -35,6 +35,7 @@ class FlatFieldHDF5Writer(Tool):
         lwt='ChargeExtractorFactory.lwt',
         cleaner='WaveformCleanerFactory.product',
         cleaner_width='WaveformCleanerFactory.baseline_width',
+        cleaner_shift='WaveformCleanerFactory.window_shift',
         generator='FlatFieldFactory.product',
         tel_id='FlatFieldFactory.tel_id',
         sample_duration='FlatFieldFactory.sample_duration',
