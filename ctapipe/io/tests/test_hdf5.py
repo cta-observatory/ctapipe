@@ -52,25 +52,29 @@ def test_write_container(temp_h5_file):
             writer.write("MC", mc)
 
 
-def test_prefix():
+def test_prefix(tmp_path):
+    tmp_file = tmp_path / 'test_prefix.hdf5'
+    hillas_parameter_container = HillasParametersContainer(
+        x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m,
+    )
 
-    with tempfile.NamedTemporaryFile(suffix='.hdf5') as f:
-        h = HillasParametersContainer(
-            x=1 * u.m, y=1 * u.m, length=1 * u.m, width=1 * u.m,
-        )
-        l = LeakageContainer(
-            leakage1_pixel=0.1,
-            leakage2_pixel=0.1,
-            leakage1_intensity=0.1,
-            leakage2_intensity=0.1,
-        )
+    leakage_container = LeakageContainer(
+        leakage1_pixel=0.1,
+        leakage2_pixel=0.1,
+        leakage1_intensity=0.1,
+        leakage2_intensity=0.1,
+    )
 
-        with HDF5TableWriter(f.name, group_name='blabla', add_prefix=True) as writer:
-            writer.write('events', [h, l])
+    with HDF5TableWriter(
+        tmp_file.name,
+        group_name='blabla',
+        add_prefix=True
+    ) as writer:
+        writer.write('events', [hillas_parameter_container, leakage_container])
 
-        df = pd.read_hdf(f.name)
-        assert 'hillas_x' in df.columns
-        assert 'leakage2_pixel' in df.columns
+    df = pd.read_hdf(tmp_file.name)
+    assert 'hillas_x' in df.columns
+    assert 'leakage2_pixel' in df.columns
 
 
 def test_write_containers(temp_h5_file):
