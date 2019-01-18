@@ -33,7 +33,7 @@ def test_write_container(temp_h5_file):
     r0tel.meta['date'] = "2020-10-10"
 
     with HDF5TableWriter(
-            str(temp_h5_file),
+            temp_h5_file,
             group_name='R0',
             filters=tables.Filters(complevel=7)
     ) as writer:
@@ -99,7 +99,7 @@ def test_read_container(temp_h5_file):
     r0tel2 = R0CameraContainer()
     mc = MCEventContainer()
 
-    with HDF5TableReader(str(temp_h5_file)) as reader:
+    with HDF5TableReader(temp_h5_file) as reader:
 
         # get the generators for each table
         mctab = reader.read('/R0/MC', mc)
@@ -126,7 +126,7 @@ def test_read_whole_table(temp_h5_file):
 
     mc = MCEventContainer()
 
-    with HDF5TableReader(str(temp_h5_file)) as reader:
+    with HDF5TableReader(temp_h5_file) as reader:
 
         for cont in reader.read('/R0/MC', mc):
             print(cont)
@@ -161,7 +161,7 @@ def test_writer_closes_file(temp_h5_file):
 
 def test_reader_closes_file(temp_h5_file):
 
-    with HDF5TableReader(str(temp_h5_file)) as h5_table:
+    with HDF5TableReader(temp_h5_file) as h5_table:
 
         assert h5_table._h5file.isopen == 1
 
@@ -172,7 +172,7 @@ def test_with_context_reader(temp_h5_file):
 
     mc = MCEventContainer()
 
-    with HDF5TableReader(str(temp_h5_file)) as h5_table:
+    with HDF5TableReader(temp_h5_file) as h5_table:
 
         assert h5_table._h5file.isopen == 1
 
@@ -184,7 +184,7 @@ def test_with_context_reader(temp_h5_file):
 
 def test_closing_reader(temp_h5_file):
 
-    f = HDF5TableReader(str(temp_h5_file))
+    f = HDF5TableReader(temp_h5_file)
     f.close()
 
     assert f._h5file.isopen == 0
