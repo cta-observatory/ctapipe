@@ -51,6 +51,7 @@ install:
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio
     - pip install travis-sphinx
+    - pip install codecov
     - python setup.py develop
 
 script:
