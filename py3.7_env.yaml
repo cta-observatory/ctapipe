@@ -4,6 +4,7 @@ channels:
   - cta-observatory
   - conda-forge
 dependencies:
+  - python=3.7
   - zeromq
   - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
@@ -21,7 +22,6 @@ dependencies:
   - numpy>=1.15.4
   - numpydoc
   - pandas
-  - pyhessio
   - pytest
   - pytest-cov
   - psutil
@@ -43,3 +43,4 @@ dependencies:
       - pytest_runner
       - eventio==0.11.0
       - https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.16.tar.gz
+      - https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz
