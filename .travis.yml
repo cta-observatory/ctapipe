@@ -5,11 +5,17 @@ cache:
     directories:
         $HOME/miniconda
 
-python:
-    # not used directly, but this sets TRAVIS_PYTHON_VERSION so we can use it
-    # in anaconda as well (we don't support python less than 3.5)
-    - 3.6
-    - 3.7
+
+matrix:
+  include:
+    - os: linux
+      python: 3.6
+      env:
+        - PYTHON_VERSION=3.6
+    - os: linux
+      python: 3.7
+      env:
+        - PYTHON_VERSION=3.7
 
 
 before_install:
@@ -17,8 +23,6 @@ before_install:
     # against future changes
     - export PYTHONIOENCODING=UTF8
     - export MPLBACKEND=Agg
-    - echo $TRAVIS_PYTHON_VERSION
-    - cat py${TRAVIS_PYTHON_VERSION}_env.yaml
 
     - ./install_miniconda.sh
     - export PATH="$HOME/miniconda/bin:$PATH"
@@ -30,7 +34,7 @@ before_install:
     - git fetch --tags
 
     - ./create_conda_env.sh
-    - travis_wait 30 conda env update -n cta-dev --file py${TRAVIS_PYTHON_VERSION}_env.yaml
+    - travis_wait 30 conda env update -n cta-dev --file py${PYTHON_VERSION}_env.yaml
 
     - source activate cta-dev
     - ulimit -s 16000  # increase stack size limit, for libhessio, needed in tests
