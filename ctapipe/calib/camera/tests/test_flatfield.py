@@ -1,6 +1,13 @@
+import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.nectarcameventsource import NectarCAMEventSource
 from ctapipe.calib.camera.flatfield import FlasherFlatFieldCalculator
+
+# this test cannot run if protozfits is not installed
+# since NectarCAMEventSource needs lsteventsource.MultiFiles which
+# in turn needs protozfits, which is an optional dependency, so
+# in case this is not installed the tests in this file cannot succeed
+pytest.importorskip("protozfits", minversion="0.44.3")
 
 
 def test_flasherflatfieldcalculator():
