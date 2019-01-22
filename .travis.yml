@@ -17,6 +17,8 @@ before_install:
     # against future changes
     - export PYTHONIOENCODING=UTF8
     - export MPLBACKEND=Agg
+    - echo $TRAVIS_PYTHON_VERSION
+    - cat py${TRAVIS_PYTHON_VERSION}_env.yaml
 
     - ./install_miniconda.sh
     - export PATH="$HOME/miniconda/bin:$PATH"
