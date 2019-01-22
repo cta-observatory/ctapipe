@@ -87,7 +87,7 @@ if __name__ == '__main__':
     if any([r.returncode != 0 for r, d in results.values()]):
         print('Captured stderr')
         print('=' * 70)
-        for path, result in results.items():
+        for path, (result, duration) in results.items():
             if result.returncode != 0:
                 print(path)
                 print(result.stderr.decode('utf8'))
