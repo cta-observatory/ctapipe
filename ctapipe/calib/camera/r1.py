@@ -28,18 +28,16 @@ __all__ = [
 ]
 
 
-def camera_r1_calibrator_for_eventsource(
-    eventsource,
-    *args,
-    **kwargs
-):
-    if hasattr(eventsource, 'metadata') and eventsource.metadata['is_simulation']:
+def camera_r1_calibrator_for_eventsource(eventsource, *args, **kwargs):
+    if (
+        hasattr(eventsource, 'metadata')
+        and eventsource.metadata['is_simulation']
+    ):
         return HESSIOR1Calibrator(*args, **kwargs)
     if eventsource.__class__.__name__ == "TargetIOEventSource":
         return TargetIOR1Calibrator(*args, **kwargs)
 
     return NullR1Calibrator(*args, **kwargs)
-
 
 
 class CameraR1Calibrator(Component):
