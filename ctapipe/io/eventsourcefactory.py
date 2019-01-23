@@ -1,3 +1,6 @@
+import importlib
+import pkgutil
+
 from ctapipe.core.factory import Factory
 from ctapipe.io.eventsource import EventSource
 
@@ -8,6 +11,15 @@ from . import sst1meventsource
 from . import nectarcameventsource
 from . import lsteventsource
 import ctapipe.io.targetioeventsource
+
+
+# detect and import ctapipe_io_ plugin modules
+IO_PLUGINS = {
+    name: importlib.import_module(name)
+    for finder, name, ispkg
+    in pkgutil.iter_modules()
+    if name.startswith('ctapipe_io_')
+}
 
 
 __all__ = ['EventSourceFactory', 'event_source']
