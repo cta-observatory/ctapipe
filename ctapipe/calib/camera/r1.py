@@ -32,6 +32,8 @@ def camera_r1_calibrator_for_eventsource(
     *args,
     **kwargs
 ):
+    if eventsource is None:
+        return subclass_from_name(CameraR1Calibrator, None, *args, **kwargs)
     if eventsource.metadata['is_simulation']:
         name = 'HESSIOR1Calibrator'
     elif eventsource.__class__.__name__ == "TargetIOEventSource":
