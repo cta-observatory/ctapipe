@@ -1,12 +1,12 @@
 """
-The most basic pipeline, using no special features of the framework other 
+The most basic pipeline, using no special features of the framework other
 than a for-loop. This is useful for debugging and profiling of speed.
 """
 
 import sys
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 
 if __name__ == '__main__':
 

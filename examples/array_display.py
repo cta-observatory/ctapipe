@@ -4,7 +4,7 @@ import matplotlib.pylab as plt
 import numpy as np
 from astropy import units as u
 
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 

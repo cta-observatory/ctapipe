@@ -5,7 +5,7 @@ purposes
 import sys
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import get_dataset_path
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 """
-Dump instrumental descriptions in a monte-carlo (simtelarray) input file to 
-FITS files that can be loaded independently (e.g. with 
-CameraGeometry.from_table()).  The name of the output files are 
+Dump instrumental descriptions in a monte-carlo (simtelarray) input file to
+FITS files that can be loaded independently (e.g. with
+CameraGeometry.from_table()).  The name of the output files are
 automatically generated.
 """
 
@@ -9,7 +9,7 @@ from collections import defaultdict
 
 from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import (Unicode, Dict, Enum)
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 
 
 def get_camera_types(subarray):

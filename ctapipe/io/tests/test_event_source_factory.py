@@ -1,7 +1,7 @@
 import pytest
 from traitlets import TraitError
 
-from ctapipe.io import EventSourceFactory, event_source
+from ctapipe.io.eventsourcefactory import EventSourceFactory, event_source
 from ctapipe.utils import get_dataset_path
 
 

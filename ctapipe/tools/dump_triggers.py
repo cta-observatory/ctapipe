@@ -7,7 +7,7 @@ import numpy as np
 from astropy import units as u
 from astropy.table import Table
 
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.core import Provenance, ToolConfigurationError
 from ctapipe.core.traits import (Unicode, Dict, Bool)
 from ..core import Tool

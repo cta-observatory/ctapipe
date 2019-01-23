@@ -14,7 +14,7 @@ import sys
 from matplotlib import pyplot as plt
 from numpy import ceil, sqrt
 
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils.datasets import get_dataset_path
 from ctapipe.visualization import CameraDisplay
 

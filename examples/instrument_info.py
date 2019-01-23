@@ -2,7 +2,7 @@
 Example of showing some information about the instrumental description
 """
 
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import get_dataset_path
 
 if __name__ == '__main__':

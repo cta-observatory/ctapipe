@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Unicode, List, Dict, Bool
-from ctapipe.io import EventSourceFactory, HDF5TableWriter
+from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import HDF5TableWriter
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.CutFlow import CutFlow
 from ctapipe.image import hillas_parameters, tailcuts_clean

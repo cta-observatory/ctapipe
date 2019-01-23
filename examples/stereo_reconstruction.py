@@ -1,6 +1,6 @@
 import astropy.units as u
 
-from ctapipe.io import EventSourceFactory
+from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image.cleaning import tailcuts_clean, number_of_islands
 from ctapipe.image import leakage, hillas_parameters

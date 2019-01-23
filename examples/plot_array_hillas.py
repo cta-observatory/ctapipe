@@ -13,7 +13,7 @@ from ctapipe.calib import CameraCalibrator
 from ctapipe.coordinates import TiltedGroundFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean, \
     HillasParameterizationError
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
 

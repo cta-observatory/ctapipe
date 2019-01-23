@@ -1,4 +1,4 @@
-from ctapipe.io import event_source
+from ctapipe.io.eventsourcefactory import event_source
 from ctapipe.utils import get_dataset_path
 from ctapipe.plotting.camera import CameraPlotter
 import numpy as np
