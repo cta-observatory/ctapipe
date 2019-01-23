@@ -25,12 +25,8 @@ formats may be supported by simply adding a plug-in.
 The underlying mechanism is a set of `EventSource` sub-classes that
 read data in various formats, with a common interface and automatic command-line
 configuration parameters. These are generally constructed in a generic way by
-using `EventSourceFactory.produce` or by using the helper function
-`event_source(file_or_url)`, both of which will construct the
+using `event_source(file_or_url)` which will construct the
 appropriate `EventSource` subclass based on the input file's type.
-The former is recommended when configuration information should be
-passed to a `ctapipe.core.Tool`, while the latter helper function qis useful
-for small scripts or interactive use.
 
 The resulting `EventSource`  then works like a python collection and can be
 looped over, providing data for each subsequent event. If looped over
@@ -39,7 +35,7 @@ the case of streams that cannot be restarted):
 
 .. code-block:: python3
 
-  with EventSourceFactory.produce(input_url="file.simtel.gz") as source:
+  with event_source(input_url="file.simtel.gz") as source:
       for event in source:
          do_something_with_event(event)
 
@@ -50,59 +46,12 @@ index* or *event_id*. This may not be efficient for some `EventSources` if
 the underlying file type does not support random access.
 
 
-Creating a New EventSource
-==========================
+Creating a New EventSource Plugin
+=================================
 
-Creating a new `EventSource` can be very simple, depending on how easily a
-file format can be read into Python.
+An example can be found in:
 
-Firstly, one must create a new module to host their new `EventSource`, just
-like "ctapipe.io.hessioeventsource". Inside this module create the new
-`EventSource` with a relevant name and inherit from
-`ctapipe.io.eventsource.EventSource`.
-
-There are two methods that must be defined in the new `EventSource`:
-
-`EventSource.is_compatible`:
-    This function performs a simple check to see if the `input_url` is
-    compatible with the EventSource. It is called by
-    `EventSourceFactory.produce` to find a compatible `EventSource` to read
-    the file.
-
-`EventSource._generator`:
-    This function handles the looping through the file and filling the
-    `ctapipe.core.Container` for the event.
-
-In order to avoid introducing additional dependencies, it is a requirement
-that any external modules used in the reading of the file format are imported
-in the `EventSource.__init__`. For an example see how `pyhessio` is
-imported within `HESSIOEventSource`.
-
-If a file format supports random event access, then an efficient method to seek
-to an event can be created in `EventSource._get_event_by_index` and
-`EventSource._get_event_by_id`, which `EventSeeker` will then utilise.
-
-When creating tests for the new `EventSource`, it is important to still avoid
-introducing dependencies. Therefore it is recommended to add a skip for the
-tests if the external dependencies are not installed. This can be achieved
-by either:
-
->>> import pytest
->>> pytest.importorskip("external_module")
-
-To skip all the tests in the file, or:
-
->>> import pytest
->>> def test_something():
->>>    pytest.importorskip("external_module")
-
-To skip a single test function.
-
-The method to install the external software should be included in the
-docstring of the `EventSource`, and also be added to the .travis.yml
-file, so that the Travis CI can perform ALL tests. Additionally, a small test
-file that is in the corresponding file format should be committed to
-ctapipe-extra.
+https://github.com/cta-observatory/ctapipe_io_sst1m
 
 
 Container Classes
