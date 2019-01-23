@@ -27,6 +27,7 @@ __all__ = [
     'camera_r1_calibrator_for_eventsource',
 ]
 
+
 def camera_r1_calibrator_for_eventsource(
     eventsource,
     *args,
