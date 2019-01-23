@@ -46,11 +46,11 @@ class ContainerMeta(type):
     and no new fields can be added to a container by accident.
     '''
     def __new__(cls, name, bases, dct):
-        items = [
+        field_names = [
             k for k, v in dct.items()
             if isinstance(v, Field)
         ]
-        dct['__slots__'] = tuple(items + ['meta'])
+        dct['__slots__'] = tuple(field_names + ['meta', 'prefix'])
         dct['fields'] = {}
 
         # inherit fields from baseclasses
@@ -59,10 +59,16 @@ class ContainerMeta(type):
                 for k, v in b.fields.items():
                     dct['fields'][k] = v
 
-        for k in items:
+        for k in field_names:
             dct['fields'][k] = dct.pop(k)
 
-        return type.__new__(cls, name, bases, dct)
+        new_cls = type.__new__(cls, name, bases, dct)
+
+        # if prefix was not set as a class variable, build a default one
+        if 'container_prefix' not in dct:
+            new_cls.container_prefix = name.lower().replace('container', '')
+
+        return new_cls
 
 
 class Container(metaclass=ContainerMeta):
@@ -72,7 +78,7 @@ class Container(metaclass=ContainerMeta):
     The purpose of this class is to provide a flexible data structure
     that works a bit like a dict or blank Python class, but prevents
     the user from accessing members that have not been defined a
-    priori (more like a C struct), and also keeps metdata information
+    priori (more like a C struct), and also keeps metadata information
     such as a description, defaults, and units for each item in the
     container.
 
@@ -114,8 +120,12 @@ class Container(metaclass=ContainerMeta):
 
     """
     def __init__(self, **fields):
-
         self.meta = {}
+        # __slots__ cannot be provided with defaults
+        # via class variables, so we use a `__prefix` class variable
+        # and a `_prefix` in `__slots__` together with a property.
+        self.prefix = self.container_prefix
+
         for k, v in self.fields.items():
             setattr(self, k, deepcopy(v.default))
 
@@ -128,9 +138,12 @@ class Container(metaclass=ContainerMeta):
     def __setitem__(self, key, value):
         return setattr(self, key, value)
 
-    def items(self):
+    def items(self, add_prefix=False):
         """Generator over (key, value) pairs for the items"""
-        return ((k, getattr(self, k)) for k in self.fields.keys())
+        if not add_prefix or self.prefix == '':
+            return ((k, getattr(self, k)) for k in self.fields.keys())
+
+        return ((self.prefix + '_' + k, getattr(self, k)) for k in self.fields.keys())
 
     def keys(self):
         """Get the keys of the container"""
@@ -140,7 +153,7 @@ class Container(metaclass=ContainerMeta):
         """Get the keys of the container"""
         return (getattr(self, k) for k in self.fields.keys())
 
-    def as_dict(self, recursive=False, flatten=False):
+    def as_dict(self, recursive=False, flatten=False, add_prefix=False):
         """
         convert the `Container` into a dictionary
 
@@ -153,31 +166,26 @@ class Container(metaclass=ContainerMeta):
             by appending the sub-Container name.
         """
         if not recursive:
-            return dict(self.items())
+            return dict(self.items(add_prefix=add_prefix))
         else:
             d = dict()
-            for key, val in self.items():
-                if key.startswith("_"):
-                    continue
+            for key, val in self.items(add_prefix=add_prefix):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
-                        d.update({"{}_{}".format(key, k): v
-                                  for k, v in val.as_dict(recursive).items()})
+                        d.update({
+                            "{}_{}".format(key, k): v
+                            for k, v in val.as_dict(
+                                recursive,
+                                add_prefix=add_prefix
+                            ).items()
+                        })
                     else:
-                        d[key] = val.as_dict(recursive=recursive,
-                                             flatten=flatten)
-                    continue
-                d[key] = val
+                        d[key] = val.as_dict(
+                            recursive=recursive, flatten=flatten, add_prefix=add_prefix
+                        )
+                else:
+                    d[key] = val
             return d
-
-    @classmethod
-    def disable_attribute_check(cls):
-        """
-        Globally turn off attribute checking for all Containers,
-        which provides a ~5-10x speed up for setting attributes.
-        This may be used e.g. after code is tested to speed up operation.
-        """
-        cls.__setattr__ = object.__setattr__
 
     def reset(self, recursive=True):
         """ set all values back to their default values"""
@@ -219,7 +227,7 @@ class Map(defaultdict):
     by `tel_id` or algorithm name).
     """
 
-    def as_dict(self, recursive=False, flatten=False):
+    def as_dict(self, recursive=False, flatten=False, add_prefix=False):
         if not recursive:
             return dict(self.items())
         else:
@@ -227,11 +235,18 @@ class Map(defaultdict):
             for key, val in self.items():
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
-                        d.update({"{}_{}".format(key, k): v
-                                  for k, v in val.as_dict(recursive).items()})
+                        d.update({
+                            "{}_{}".format(key, k): v
+                            for k, v in val.as_dict(
+                                recursive, add_prefix=add_prefix
+                            ).items()
+                        })
                     else:
-                        d[key] = val.as_dict(recursive=recursive,
-                                             flatten=flatten)
+                        d[key] = val.as_dict(
+                            recursive=recursive,
+                            flatten=flatten,
+                            add_prefix=add_prefix,
+                        )
                     continue
                 d[key] = val
             return d

@@ -706,6 +706,8 @@ class MuonIntensityParameter(Container):
 
 
 class HillasParametersContainer(Container):
+    container_prefix = 'hillas'
+
     intensity = Field(nan, 'total intensity (size)')
 
     x = Field(nan, 'centroid x coordinate')
@@ -725,6 +727,8 @@ class LeakageContainer(Container):
     """
     Leakage
     """
+    container_prefix = ''
+
     leakage1_pixel = Field(
         nan,
         'Percentage of pixels after cleaning'
