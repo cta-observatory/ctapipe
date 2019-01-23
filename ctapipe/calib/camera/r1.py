@@ -16,7 +16,7 @@ of the data.
 from abc import abstractmethod
 import numpy as np
 
-from ...core import Component, subclass_from_name
+from ...core import Component
 from ...core.traits import Unicode
 
 __all__ = [
@@ -33,14 +33,13 @@ def camera_r1_calibrator_for_eventsource(
     *args,
     **kwargs
 ):
-    try:
-        if eventsource.metadata['is_simulation']:
-            name = 'HESSIOR1Calibrator'
-        elif eventsource.__class__.__name__ == "TargetIOEventSource":
-            name = 'TargetIOR1Calibrator'
-        return subclass_from_name(CameraR1Calibrator, name, *args, **kwargs)
-    except:
-        return NullR1Calibrator(*args, **kwargs)
+    if hasattr(eventsource, 'metadata') and eventsource.metadata['is_simulation']:
+        return HESSIOR1Calibrator(*args, **kwargs)
+    if eventsource.__class__.__name__ == "TargetIOEventSource":
+        return TargetIOR1Calibrator(*args, **kwargs)
+
+    return NullR1Calibrator(*args, **kwargs)
+
 
 
 class CameraR1Calibrator(Component):
