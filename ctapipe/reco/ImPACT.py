@@ -7,6 +7,7 @@ import math
 import numpy as np
 import numpy.ma as ma
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 from iminuit import Minuit
 from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
@@ -630,12 +631,15 @@ class ImPACTReconstructor(Reconstructor):
         Reconstructed ImPACT shower geometry and energy
         """
 
-        horizon_seed = HorizonFrame(az=shower_seed.az, alt=shower_seed.alt)
-        nominal_seed = horizon_seed.transform_to(NominalFrame(
-            array_direction=self.array_direction))
+        horizon_seed = SkyCoord(
+            az=shower_seed.az, alt=shower_seed.alt, frame=HorizonFrame()
+        )
+        nominal_seed = horizon_seed.transform_to(
+            NominalFrame(origin=self.array_direction)
+        )
 
-        source_x = nominal_seed.x.to(u.rad).value
-        source_y = nominal_seed.y.to(u.rad).value
+        source_x = nominal_seed.delta_az.to_value(u.rad)
+        source_y = nominal_seed.delta_alt.to_value(u.rad)
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(
@@ -668,15 +672,19 @@ class ImPACTReconstructor(Reconstructor):
 
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
-        nominal = NominalFrame(x=fit_params[0] * u.rad,
-                               y=fit_params[1] * u.rad,
-                               array_direction=self.array_direction)
+        nominal = SkyCoord(
+            x=fit_params[0] * u.rad,
+            y=fit_params[1] * u.rad,
+            frame=NominalFrame(origin=self.array_direction)
+        )
         horizon = nominal.transform_to(HorizonFrame())
 
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
-        tilted = TiltedGroundFrame(x=fit_params[2] * u.m,
-                                   y=fit_params[3] * u.m,
-                                   pointing_direction=self.array_direction)
+        tilted = TiltedGroundFrame(
+            x=fit_params[2] * u.m,
+            y=fit_params[3] * u.m,
+            pointing_direction=self.array_direction
+        )
         ground = project_to_ground(tilted)
 
         shower_result.core_x = ground.x

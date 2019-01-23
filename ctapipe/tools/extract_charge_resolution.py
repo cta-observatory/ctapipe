@@ -1,18 +1,19 @@
 """
-Extract data necessary to calcualte charge resolution from raw data files.
+Calculate the Charge Resolution from a sim_telarray simulation and store
+within a HDF5 file.
 """
 
 import os
-
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
-from traitlets import Dict, List, Int, Unicode
-
-from ctapipe.analysis.camera.chargeresolution import ChargeResolutionCalculator
+from traitlets import Dict, List, Unicode
+from ctapipe.analysis.camera.charge_resolution import \
+    ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
-from ctapipe.core import Tool
+from ctapipe.core import Tool, Provenance
 from ctapipe.image.charge_extractors import ChargeExtractorFactory, \
     WindowIntegrator, SimpleIntegrator, \
     PeakFindingIntegrator, NeighbourPeakIntegrator
@@ -21,40 +22,40 @@ from ctapipe.io.simteleventsource import SimTelEventSource
 
 class ChargeResolutionGenerator(Tool):
     name = "ChargeResolutionGenerator"
-    description = "Generate the a pickle file of ChargeResolutionFile for " \
-                  "a MC file."
+    description = ("Calculate the Charge Resolution from a sim_telarray "
+                   "simulation and store within a HDF5 file.")
 
-    telescopes = List(Int, None, allow_none=True,
-                      help='Telescopes to include from the event file. '
-                           'Default = All telescopes').tag(config=True)
-    output_name = Unicode('charge_resolution',
-                          help='Name of the output charge resolution hdf5 '
-                               'file').tag(config=True)
+    output_path = Unicode(
+        'charge_resolution.h5',
+        help='Path to store the output HDF5 file'
+    ).tag(config=True)
 
-    aliases = Dict(dict(f='SimTelEventSource.input_url',
-                        max_events='SimTelEventSource.max_events',
-                        extractor='ChargeExtractorFactory.product',
-                        window_width='WindowIntegrator.window_width',
-                        window_shift='WindowIntegrator.window_shift',
-                        t0='SimpleIntegrator.t0',
-                        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
-                        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
-                        lwt='NeighbourPeakIntegrator.lwt',
-                        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-                        radius='CameraDL1Calibrator.radius',
-                        max_pe='ChargeResolutionCalculator.max_pe',
-                        T='ChargeResolutionGenerator.telescopes',
-                        O='ChargeResolutionGenerator.output_name',
-                        ))
-    classes = List([SimTelEventSource,
-                    ChargeExtractorFactory,
-                    CameraDL1Calibrator,
-                    ChargeResolutionCalculator,
-                    WindowIntegrator,
-                    SimpleIntegrator,
-                    PeakFindingIntegrator,
-                    NeighbourPeakIntegrator,
-                    ])
+    aliases = Dict(dict(
+        f='SimTelEventSource.input_url',
+        max_events='SimTelEventSource.max_events',
+        T='SimTelEventSource.allowed_tels',
+        extractor='ChargeExtractorFactory.product',
+        window_width='WindowIntegrator.window_width',
+        window_shift='WindowIntegrator.window_shift',
+        t0='SimpleIntegrator.t0',
+        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+        lwt='NeighbourPeakIntegrator.lwt',
+        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
+        radius='CameraDL1Calibrator.radius',
+        max_pe='ChargeResolutionCalculator.max_pe',
+        o='ChargeResolutionGenerator.output_path',
+    ))
+    classes = List([
+        SimTelEventSource,
+        ChargeExtractorFactory,
+        CameraDL1Calibrator,
+        ChargeResolutionCalculator,
+        WindowIntegrator,
+        SimpleIntegrator,
+        PeakFindingIntegrator,
+        NeighbourPeakIntegrator,
+    ])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -78,50 +79,48 @@ class ChargeResolutionGenerator(Tool):
 
         self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
 
-        self.calculator = ChargeResolutionCalculator(**kwargs)
+        self.calculator = ChargeResolutionCalculator()
 
     def start(self):
-        desc = "Filling Charge Resolution"
+        desc = "Extracting Charge Resolution"
         for event in tqdm(self.eventsource, desc=desc):
-            tels = list(event.dl0.tels_with_data)
-
-            # Check events have true charge included
-            if event.count == 0:
-                try:
-                    if np.all(event.mc.tel[
-                                  tels[0]].photo_electron_image == 0):
-                        raise KeyError
-                except KeyError:
-                    self.log.exception('Source does not contain '
-                                       'true charge!')
-                    raise
-
             self.r1.calibrate(event)
             self.dl0.reduce(event)
             self.dl1.calibrate(event)
 
-            if self.telescopes:
-                tels = []
-                for tel in self.telescopes:
-                    if tel in event.dl0.tels_with_data:
-                        tels.append(tel)
+            # Check events have true charge included
+            if event.count == 0:
+                try:
+                    pe = list(event.mc.tel.values())[0].photo_electron_image
+                    if np.all(pe == 0):
+                        raise KeyError
+                except KeyError:
+                    self.log.exception(
+                        'Source does not contain true charge!'
+                    )
+                    raise
 
-            for telid in tels:
-                true_charge = event.mc.tel[telid].photo_electron_image
-                measured_charge = event.dl1.tel[telid].image[0]
-                self.calculator.add_charges(true_charge, measured_charge)
+            for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
+                true_charge = mc.photo_electron_image
+                measured_charge = dl1.image[0]
+                pixels = np.arange(measured_charge.size)
+                self.calculator.add(pixels, true_charge, measured_charge)
 
     def finish(self):
-        input_url = self.eventsource.input_url
-        input_directory = os.path.dirname(input_url)
-        input_name = os.path.splitext(os.path.basename(input_url))[0]
-        output_directory = os.path.join(input_directory, input_name)
+        df_p, df_c = self.calculator.finish()
+
+        output_directory = os.path.dirname(self.output_path)
         if not os.path.exists(output_directory):
             self.log.info("Creating directory: {}".format(output_directory))
             os.makedirs(output_directory)
-        name = "{}.h5".format(self.output_name)
-        ouput_path = os.path.join(output_directory, name)
-        self.calculator.save(ouput_path)
+
+        with pd.HDFStore(self.output_path, 'w') as store:
+            store['charge_resolution_pixel'] = df_p
+            store['charge_resolution_camera'] = df_c
+
+        self.log.info("Created charge resolution file: {}"
+                      .format(self.output_path))
+        Provenance().add_output_file(self.output_path)
 
 
 def main():

@@ -43,7 +43,7 @@ class SimpleEventWriter(Tool):
         self.log.info('Configure EventSourceFactory...')
 
         self.event_source = EventSourceFactory(
-            config=self.config, tool=self, product='HESSIOEventSource'
+            config=self.config, tool=self, product='SimTelEventSource'
         ).produce()
         self.event_source.allowed_tels = self.config['Analysis']['allowed_tels']
 

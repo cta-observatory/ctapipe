@@ -160,10 +160,6 @@ data:
 Serialization of Containers:
 ============================
 
-The `serializer` module provide support for storing
-`ctapipe.io.Container` classes in output files (for example FITS
-tables or pickle files)
-
 The `ctapipe.io.TableWriter` and `ctapipe.io.TableReader` base classes provide
 an interface to implement subclasses that write/read Containers to/from
 table-like data files.  Currently the only implementation is for writing
@@ -188,9 +184,3 @@ Reference/API
 		
 .. automodapi:: ctapipe.io.containers
     :no-inheritance-diagram:
-
-------------------------------
-
-.. automodapi:: ctapipe.io.serializer
-    :no-inheritance-diagram:
-
