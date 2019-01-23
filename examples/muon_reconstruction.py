@@ -18,7 +18,7 @@ from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
-from ctapipe.io import EventSource, eventsource
+from ctapipe.io import EventSource, event_source
 from ctapipe.io import HDF5TableWriter
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
