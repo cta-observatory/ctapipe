@@ -20,23 +20,13 @@ def non_abstract_children(base):
     return non_abstract
 
 
-def subclass_from_name(base, name=None, *args, **kwargs):
-    '''create instance of subclass by `name`
-
-    if `name` is None and the class has class variable `_default_name`
-    defined, then this is used.
-    '''
-    if name is None and hasattr(base, '_default_name'):
-        name = base._default_name
-
-    if name is None:
-        cls = base
-    else:
-        subclasses = {
-            base.__name__: base
-            for base in non_abstract_children(base)
-        }
-        cls = subclasses[name]
+def subclass_from_name(base, name, *args, **kwargs):
+    '''create instance of subclass by `name` '''
+    subclasses = {
+        base.__name__: base
+        for base in non_abstract_children(base)
+    }
+    cls = subclasses[name]
 
     return cls(*args, **kwargs)
 

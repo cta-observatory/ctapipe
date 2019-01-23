@@ -33,8 +33,6 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    _default_name = 'NullWaveformCleaner'
-
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, parent=tool, **kwargs)
 

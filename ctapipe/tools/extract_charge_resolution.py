@@ -35,7 +35,10 @@ class ChargeResolutionGenerator(Tool):
         'charge_resolution.h5',
         help='Path to store the output HDF5 file'
     ).tag(config=True)
-    extractor_product = tool_utils.enum_trait(ChargeExtractor)
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
 
     aliases = Dict(dict(
         f='SimTelEventSource.input_url',

@@ -1,3 +1,4 @@
+import pytest
 import traitlets
 from traitlets import HasTraits
 from traitlets import Int
@@ -5,11 +6,19 @@ from traitlets import Int
 from ctapipe.image.charge_extractors import ChargeExtractor
 
 
+def test_enum_trait_default_is_right():
+    # function under test
+    from ctapipe.utils.tools import enum_trait
+
+    with pytest.raises(AssertionError):
+        enum_trait(ChargeExtractor, default='name_of_default_choice')
+
+
 def test_enum_trait():
     # function under test
     from ctapipe.utils.tools import enum_trait
 
-    trait = enum_trait(ChargeExtractor)
+    trait = enum_trait(ChargeExtractor, default='NeighbourPeakIntegrator')
     assert isinstance(trait, traitlets.traitlets.CaselessStrEnum)
 
 

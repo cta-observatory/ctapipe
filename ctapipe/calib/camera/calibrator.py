@@ -49,8 +49,8 @@ class CameraCalibrator(Component):
     """
     def __init__(self, config=None, tool=None,
                  r1_product=None,
-                 extractor_product=None,
-                 cleaner_product=None,
+                 extractor_product='NeighbourPeakIntegrator',
+                 cleaner_product='NullWaveformCleaner',
                  eventsource=None,
                  **kwargs):
         """

@@ -31,8 +31,14 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    cleaner_product = tool_utils.enum_trait(WaveformCleaner)
-    extractor_product = tool_utils.enum_trait(ChargeExtractor)
+    cleaner_product = tool_utils.enum_trait(
+        WaveformCleaner,
+        default='NullWaveformCleaner'
+    )
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
 
     aliases = Dict(dict(
         port='BokehFileViewer.port',

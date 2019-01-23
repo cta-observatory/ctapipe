@@ -85,11 +85,6 @@ def test_factory_from_product():
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
-def test_factory_default():
-    calibrator = subclass_from_name(CameraR1Calibrator)
-    assert isinstance(calibrator, NullR1Calibrator)
-
-
 def test_factory_for_eventsource():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = SimTelEventSource(input_url=dataset)

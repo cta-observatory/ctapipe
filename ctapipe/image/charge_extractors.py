@@ -15,7 +15,6 @@ from ctapipe.utils.neighbour_sum import get_sum_array
 
 
 class ChargeExtractor(Component):
-    _default_name = 'NeighbourPeakIntegrator'
 
     def __init__(self, config=None, tool=None, **kwargs):
         """

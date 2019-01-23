@@ -33,15 +33,14 @@ def camera_r1_calibrator_for_eventsource(
     *args,
     **kwargs
 ):
-    if eventsource is None:
-        return subclass_from_name(CameraR1Calibrator, None, *args, **kwargs)
-    if eventsource.metadata['is_simulation']:
-        name = 'HESSIOR1Calibrator'
-    elif eventsource.__class__.__name__ == "TargetIOEventSource":
-        name = 'TargetIOR1Calibrator'
-    else:
-        name = None
-    return subclass_from_name(CameraR1Calibrator, name, *args, **kwargs)
+    try:
+        if eventsource.metadata['is_simulation']:
+            name = 'HESSIOR1Calibrator'
+        elif eventsource.__class__.__name__ == "TargetIOEventSource":
+            name = 'TargetIOR1Calibrator'
+        return subclass_from_name(CameraR1Calibrator, name, *args, **kwargs)
+    except:
+        return NullR1Calibrator(*args, **kwargs)
 
 
 class CameraR1Calibrator(Component):
@@ -64,8 +63,6 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    _default_name = 'NullR1Calibrator'
-
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Parent class for the r1 calibrators. Fills the r1 container.

@@ -4,25 +4,26 @@ from ctapipe.core import non_abstract_children
 from traitlets import CaselessStrEnum
 
 
-def enum_trait(base_class, help_str=None):
+def enum_trait(base_class, default, help_str=None):
     '''create a configurable CaselessStrEnum traitlet from baseclass
 
     the enumeration should contain all names of non_abstract_children()
     of said baseclass and the default choice should be given by
     `base_class._default` name.
 
-    If the base_class has no `_default_name` an exception is raised, as
-    this class is not suitable to be used with this function.
+    default must be specified and must be the name of one child-class
     '''
     if help_str is None:
         help_str = '{} to use.'.format(base_class.__name__)
 
+    choices = [
+        cls.__name__
+        for cls in non_abstract_children(base_class)
+    ]
+    assert default in choices, f'{default} is not in choices: {choices}'
     return CaselessStrEnum(
-        [
-            cls.__name__
-            for cls in non_abstract_children(base_class)
-        ],
-        base_class._default_name,
+        choices,
+        default,
         allow_none=True,
         help=help_str
     ).tag(config=True)

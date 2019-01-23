@@ -66,8 +66,6 @@ class GainSelector(Component, metaclass=ABCMeta):
     Base class for algorithms that reduce a 2-gain-channel waveform to a
     single waveform.
     """
-    _default_name = 'ThresholdGainSelector'
-
     @abstractclassmethod
     def select_gains(self, cam_id, multi_gain_waveform):
         """

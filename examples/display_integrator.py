@@ -267,7 +267,10 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
-    extractor_product = tool_utils.enum_trait(ChargeExtractor)
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
 
     aliases = Dict(
         dict(

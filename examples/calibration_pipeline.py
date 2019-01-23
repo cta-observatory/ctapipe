@@ -141,7 +141,10 @@ class DisplayDL1Calib(Tool):
         'telescopes.'
     ).tag(config=True)
 
-    extractor_product = tool_utils.enum_trait(ChargeExtractor)
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
 
     aliases = Dict(
         dict(
