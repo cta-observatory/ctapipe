@@ -44,6 +44,7 @@ class SecondExampleFactory(Factory):
     default = 'Should be different'
     product_help = "Should be different"
 
+
 class IncorrectExampleFactory(Factory):
     base = ExampleComponentParent
     default = 'ExampleComponent1'

@@ -66,7 +66,7 @@ def test_factory_nonexistant_file():
 
 def test_no_file():
     with pytest.raises(ValueError):
-        reader = EventSourceFactory().produce()
+        EventSourceFactory().produce()
 
 
 def test_factory_incorrect_use():
@@ -78,6 +78,7 @@ def test_factory_incorrect_use():
 
 
 def test_event_source_helper():
-    with event_source(get_dataset_path("gamma_test_large.simtel.gz")) as source:
+    path = get_dataset_path("gamma_test_large.simtel.gz")
+    with event_source(path) as source:
         for _ in source:
             pass

@@ -98,7 +98,7 @@ class Factory(Component, metaclass=FactoryMeta):
     >>>     aliases = Dict(dict(
     >>>         product='ExampleFactory.product',
     >>>     ))
-    >>> 
+    >>>
     >>>     classes = List([
     >>>         ExampleFactory,
     >>>     ])

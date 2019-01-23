@@ -13,7 +13,9 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import *
+from ctapipe.image.charge_extractors import ChargeExtractorFactory, \
+    WindowIntegrator, SimpleIntegrator, \
+    PeakFindingIntegrator, NeighbourPeakIntegrator
 from ctapipe.io.simteleventsource import SimTelEventSource
 
 

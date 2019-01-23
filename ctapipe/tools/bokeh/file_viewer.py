@@ -10,7 +10,9 @@ from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory, \
     CameraR1Calibrator, TargetIOR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import *
+from ctapipe.image.charge_extractors import ChargeExtractor, \
+    ChargeExtractorFactory, SimpleIntegrator, PeakFindingIntegrator, \
+    WindowIntegrator, NeighbourPeakIntegrator
 from ctapipe.image.waveform_cleaning import WaveformCleanerFactory
 from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.io.eventseeker import EventSeeker
