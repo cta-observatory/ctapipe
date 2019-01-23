@@ -5,8 +5,12 @@ This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
 from ctapipe.core import Component, subclass_from_name
-from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
-    CameraDL1Calibrator
+from ctapipe.calib.camera import (
+    CameraR1Calibrator,
+    CameraDL0Reducer,
+    CameraDL1Calibrator,
+    camera_r1_calibrator_for_eventsource
+)
 from ctapipe.image import ChargeExtractor, WaveformCleaner
 
 
@@ -96,7 +100,7 @@ class CameraCalibrator(Component):
                 tool=tool,
             )
         else:
-            self.r1 = CameraR1Calibrator.for_eventsource(
+            self.r1 = camera_r1_calibrator_for_eventsource(
                 eventsource,
                 config=config,
                 tool=tool,

@@ -8,6 +8,7 @@ from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1Calibrator
+from ctapipe.calib.camera.r1 import camera_r1_calibrator_for_eventsource
 from ctapipe.core import Tool, subclass_from_name
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.image.waveform_cleaning import WaveformCleaner
@@ -108,7 +109,7 @@ class BokehFileViewer(Tool):
             self.cleaner_product,
             **kwargs
         )
-        self.r1 = CameraR1Calibrator.for_eventsource(
+        self.r1 = camera_r1_calibrator_for_eventsource(
             eventsource=self.reader,
             **kwargs
         )

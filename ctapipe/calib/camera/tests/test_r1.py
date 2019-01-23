@@ -7,7 +7,8 @@ from ctapipe.calib.camera.r1 import (
     CameraR1Calibrator,
     HESSIOR1Calibrator,
     TargetIOR1Calibrator,
-    NullR1Calibrator
+    NullR1Calibrator,
+    camera_r1_calibrator_for_eventsource,
 )
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.simteleventsource import SimTelEventSource
@@ -43,7 +44,7 @@ def test_targetio_calibrator():
     source_r0 = TargetIOEventSource(input_url=url_r0)
     source_r1 = TargetIOEventSource(input_url=url_r1)
 
-    r1c = CameraR1Calibrator.for_eventsource(eventsource=source_r0)
+    r1c = camera_r1_calibrator_for_eventsource(eventsource=source_r0)
 
     event_r0 = source_r0._get_event_by_index(0)
     event_r1 = source_r1._get_event_by_index(0)
@@ -52,7 +53,7 @@ def test_targetio_calibrator():
     assert_array_equal(event_r0.r0.tel[0].waveform,
                        event_r0.r1.tel[0].waveform)
 
-    r1c = CameraR1Calibrator.for_eventsource(
+    r1c = camera_r1_calibrator_for_eventsource(
         eventsource=source_r0,
         pedestal_path=pedpath
     )
@@ -92,7 +93,7 @@ def test_factory_default():
 def test_factory_for_eventsource():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = SimTelEventSource(input_url=dataset)
-    calibrator = CameraR1Calibrator.for_eventsource(eventsource=eventsource)
+    calibrator = camera_r1_calibrator_for_eventsource(eventsource=eventsource)
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
@@ -112,5 +113,5 @@ class UnknownEventSource(EventSource):
 def test_factory_from_unknown_eventsource():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = UnknownEventSource(input_url=dataset)
-    calibrator = CameraR1Calibrator.for_eventsource(eventsource=eventsource)
+    calibrator = camera_r1_calibrator_for_eventsource(eventsource=eventsource)
     assert isinstance(calibrator, NullR1Calibrator)

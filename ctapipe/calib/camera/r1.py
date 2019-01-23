@@ -9,7 +9,7 @@ the cameras.
 As the R1 calibration is camera specific, each camera (and seperately the MC)
 requires their own calibrator class with inherits from `CameraR1Calibrator`.
 `HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
-Through the use of `for_eventsource()`, the correct
+Through the use of `camera_r1_calibrator_for_eventsource()`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
@@ -23,8 +23,22 @@ __all__ = [
     'NullR1Calibrator',
     'HESSIOR1Calibrator',
     'TargetIOR1Calibrator',
-    'CameraR1Calibrator'
+    'CameraR1Calibrator',
+    'camera_r1_calibrator_for_eventsource',
 ]
+
+def camera_r1_calibrator_for_eventsource(
+    eventsource,
+    *args,
+    **kwargs
+):
+    if eventsource.metadata['is_simulation']:
+        name = 'HESSIOR1Calibrator'
+    elif eventsource.__class__.__name__ == "TargetIOEventSource":
+        name = 'TargetIOR1Calibrator'
+    else:
+        name = None
+    return subclass_from_name(CameraR1Calibrator, name, *args, **kwargs)
 
 
 class CameraR1Calibrator(Component):
@@ -110,19 +124,6 @@ class CameraR1Calibrator(Component):
                                  "R1 is unchanged in this circumstance.")
                 self._r0_empty_warn = True
             return False
-
-    @classmethod
-    def for_eventsource(cls, eventsource=None, *args, **kwargs):
-        if eventsource is None:
-            return subclass_from_name(cls, None, *args, **kwargs)
-
-        if eventsource.metadata['is_simulation']:
-            name = 'HESSIOR1Calibrator'
-        elif eventsource.__class__.__name__ == "TargetIOEventSource":
-            name = 'TargetIOR1Calibrator'
-        else:
-            name = None
-        return subclass_from_name(cls, name, *args, **kwargs)
 
 
 class NullR1Calibrator(CameraR1Calibrator):
