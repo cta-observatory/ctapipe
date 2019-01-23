@@ -28,6 +28,7 @@ def test_factory_nonexistant_file():
         dataset = "/fake_path/fake_file.fake_extension"
         eventsource.for_url(url=dataset)
 
+
 def test_event_source_helper():
     with event_source(get_dataset_path("gamma_test_large.simtel.gz")) as source:
         for _ in source:
