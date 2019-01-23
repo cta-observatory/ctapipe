@@ -13,7 +13,7 @@ from ..instrument import TelescopeDescription
 __all__ = ['SST1MEventSource']
 
 
-def is_FITS_in_first_kB(file_path):
+def is_fits_in_header(file_path):
     '''quick check if file is a FITS file
 
     by looking into the first 1024 bytes and searching for the string "FITS"
@@ -97,7 +97,7 @@ class SST1MEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        if not is_FITS_in_first_kB(file_path):
+        if not is_fits_in_header(file_path):
             return False
 
         from astropy.io import fits

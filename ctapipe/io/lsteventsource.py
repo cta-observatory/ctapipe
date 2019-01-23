@@ -123,8 +123,8 @@ class LSTEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        from .sst1meventsource import is_FITS_in_first_kB
-        if not is_FITS_in_first_kB(file_path):
+        from .sst1meventsource import is_fits_in_header
+        if not is_fits_in_header(file_path):
             return False
 
         from astropy.io import fits
