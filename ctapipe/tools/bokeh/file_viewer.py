@@ -49,7 +49,7 @@ class BokehFileViewer(Tool):
         cleaner='BokehFileViewer.cleaner_product',
         ped='TargetIOR1Calibrator.pedestal_path',
         tf='TargetIOR1Calibrator.tf_path',
-        pe='TargetIOR1Calibrator.adc2pe_path',
+        pe='TargetIOR1Calibrator.pe_path',
         simpleintegrator_t0='SimpleIntegrator.t0',
         window_width='WindowIntegrator.window_width',
         window_shift='WindowIntegrator.window_shift',
