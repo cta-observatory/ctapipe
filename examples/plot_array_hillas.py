@@ -10,7 +10,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.coordinates import TiltedGroundFrame
+from ctapipe.coordinates import TiltedGroundFrame, HorizonFrame
 from ctapipe.image import hillas_parameters, tailcuts_clean, \
     HillasParameterizationError
 from ctapipe.io import event_source
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         # GroundFrame)
         point_dir = SkyCoord(
             *event.mcheader.run_array_direction,
-            frame='altaz'
+            frame=HorizonFrame()
         )
         tiltedframe = TiltedGroundFrame(pointing_direction=point_dir)
         if markers:
