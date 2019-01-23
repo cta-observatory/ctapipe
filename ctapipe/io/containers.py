@@ -1,11 +1,9 @@
 """
 Container structures for data that should be read or written to disk
 """
-
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
-import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -22,8 +20,6 @@ __all__ = [
     'DL1CameraContainer',
     'TargetIOContainer',
     'TargetIOCameraContainer',
-    'SST1MContainer',
-    'SST1MCameraContainer',
     'LSTContainer',
     'LSTCameraContainer',
     'NectarCAMContainer',
@@ -39,36 +35,11 @@ __all__ = [
     'ParticleClassificationContainer',
     'DataContainer',
     'TargetIODataContainer',
-    'SST1MDataContainer',
     'HillasParametersContainer',
     'LeakageContainer',
     'ConcentrationContainer',
     'TimingParametersContainer',
 ]
-
-
-
-class SST1MCameraContainer(Container):
-    pixel_flags = Field(None, 'numpy array containing pixel flags')
-    digicam_baseline = Field(None, 'Baseline computed by DigiCam')
-    local_camera_clock = Field(float, "camera timestamp")
-    gps_time = Field(float, "gps timestamp")
-    camera_event_type = Field(int, "camera event type")
-    array_event_type = Field(int, "array event type")
-    trigger_input_traces = Field(None, "trigger patch trace (n_patches)")
-    trigger_output_patch7 = Field(
-        None,
-        "trigger 7 patch cluster trace (n_clusters)")
-    trigger_output_patch19 = Field(
-        None,
-        "trigger 19 patch cluster trace (n_clusters)")
-
-
-class SST1MContainer(Container):
-    tels_with_data = Field([], "list of telescopes with data")
-    tel = Field(
-        Map(SST1MCameraContainer),
-        "map of tel_id to SST1MCameraContainer")
 
 
 # todo: change some of these Maps to be just 3D NDarrays?
@@ -414,10 +385,6 @@ class DataContainer(Container):
     inst = Field(InstrumentContainer(), "instrumental information (deprecated")
     pointing = Field(Map(TelescopePointingContainer),
                      'Telescope pointing positions')
-
-
-class SST1MDataContainer(DataContainer):
-    sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 
 class NectarCAMServiceContainer(Container):
