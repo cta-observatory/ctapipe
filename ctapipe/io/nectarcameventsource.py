@@ -7,7 +7,6 @@ Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 
 import numpy as np
 import glob
-import gzip
 from astropy import units as u
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
     CameraGeometry, OpticsDescription
@@ -119,16 +118,8 @@ class NectarCAMEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        # read the first 1kB
-        with open(file_path, 'rb') as f:
-            marker_bytes = f.read(1024)
-
-        # if file is gzip, read the first 4 bytes with gzip again
-        if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
-            with gzip.open(file_path, 'rb') as f:
-                marker_bytes = f.read(1024)
-
-        if b'FITS' not in marker_bytes:
+        from .sst1meventsource import is_fits_in_header
+        if not is_fits_in_header(file_path):
             return False
 
         from astropy.io import fits
