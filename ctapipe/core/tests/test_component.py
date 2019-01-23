@@ -10,19 +10,19 @@ def test_non_abstract_children():
 
     class AbstractBase(ABC):
         @abstractmethod
-        def method():
+        def method(self):
             pass
 
     class Child1(AbstractBase):
-        def method():
+        def method(self):
             print('method of Child1')
 
     class Child2(AbstractBase):
-        def method():
+        def method(self):
             print('method of Child2')
 
     class GrandChild(Child2):
-        def method():
+        def method(self):
             print('method of GrandChild')
 
     class AbstractChild(AbstractBase):
