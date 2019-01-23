@@ -6,10 +6,6 @@ from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
 
 
-# this needs to be the last ever import ever
-from .eventsourcefactory import EventSourceFactory, event_source
-
-
 __all__ = [
     'get_array_layout',
     'SimTelEventSource',
@@ -18,7 +14,5 @@ __all__ = [
     'TableWriter',
     'TableReader',
     'EventSeeker',
-    'EventSourceFactory',
     'EventSource',
-    'event_source'
 ]
