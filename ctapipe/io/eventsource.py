@@ -10,8 +10,10 @@ from ctapipe.core import Provenance
 __all__ = ['EventSource', 'event_source']
 
 
-def event_source(input_url, *args, **kwargs):
-    return for_url(input_url, *args, **kwargs)
+def event_source(url, *args, **kwargs):
+    '''find compatible EventSource for `url` and return instance'''
+    compatible_cls = cls_for_url(url)
+    return compatible_cls(input_url=url, *args, **kwargs)
 
 
 class EventSource(Component):
@@ -31,7 +33,7 @@ class EventSource(Component):
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
     `ctapipe.io.SimTelEventSource` to read a hessio format
-    file). Alternatively you can use `for_url()` to automatically
+    file). Alternatively you can use `event_source()` to automatically
     select the correct EventFileReader subclass for the file format you wish
     to read.
 
@@ -41,7 +43,7 @@ class EventSource(Component):
 
     >>> event_source = EventSource(self.config, self)
 
-    An example of how to use `ctapipe.core.tool.Tool` and `for_url()`
+    An example of how to use `ctapipe.core.tool.Tool` and `event_source()`
     can be found in ctapipe/examples/calibration_pipeline.py.
 
     However if you are not inside a Tool, you can still create an instance and
@@ -201,12 +203,6 @@ class EventSource(Component):
         pass
 
 
-def for_url(url, *args, **kwargs):
-    '''find compatible EventSource for `url` and return instance'''
-    compatible_cls = cls_for_url(url)
-    return compatible_cls(input_url=url, *args, **kwargs)
-
-
 def cls_for_url(url):
     '''find compatible EventSource sub-class for `url`'''
     for subcls in EventSource.__subclasses__():
@@ -246,10 +242,10 @@ def from_config(*args, **kwargs):
     # making this "dummy" instance here is just needed to let
     # traitlets do their magic.
     # What we actually want here is to find the input_url in the
-    # configuration, in order to call `for_url()`
+    # configuration, in order to call `event_source()`
     # if there is a better way than making a dummy instance, then
     # we should do it.
     dummy = NonAbstractDummyEventSource(*args, **kwargs)
     url = dummy.input_url
 
-    return for_url(url, *args, **kwargs)
+    return event_source(url, *args, **kwargs)

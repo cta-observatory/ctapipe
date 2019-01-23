@@ -48,9 +48,9 @@ def test_is_compatible():
 
 
 def test_factory_for_lst_file():
-    from ctapipe.io import eventsource
+    from ctapipe.io import event_source
     from ctapipe.io.lsteventsource import LSTEventSource
 
-    reader = eventsource.for_url(url=example_file_path)
+    reader = event_source(example_file_path)
     assert isinstance(reader, LSTEventSource)
     assert reader.input_url == example_file_path
