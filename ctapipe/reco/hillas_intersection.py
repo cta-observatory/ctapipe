@@ -13,9 +13,11 @@ import itertools
 import astropy.units as u
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
+from ctapipe.instrument import get_atmosphere_profile_functions
+
+from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, HorizonFrame
 from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
-from ctapipe.instrument import get_atmosphere_profile_functions
 
 __all__ = [
     'HillasIntersection'
@@ -77,32 +79,40 @@ class HillasIntersection(Reconstructor):
         err_x *= u.rad
         err_y *= u.rad
 
-        nom = NominalFrame(x=src_x * u.rad, y=src_y * u.rad,
-                           array_direction=array_direction)
+        nom = SkyCoord(
+            x=src_x * u.rad,
+            y=src_y * u.rad,
+            frame=NominalFrame(array_direction=array_direction)
+        )
         horiz = nom.transform_to(HorizonFrame())
+
         result = ReconstructedShowerContainer()
         result.alt, result.az = horiz.alt, horiz.az
 
-        tilt = TiltedGroundFrame(x=core_x * u.m, y=core_y * u.m,
-                                 pointing_direction=array_direction)
+        tilt = SkyCoord(
+            x=core_x * u.m,
+            y=core_y * u.m,
+            frame=TiltedGroundFrame(pointing_direction=array_direction),
+        )
         grd = project_to_ground(tilt)
         result.core_x = grd.x
         result.core_y = grd.y
 
-        x_max = self.reconstruct_xmax(nom.x, nom.y,
-                                      tilt.x, tilt.y,
-                                      hillas_parameters,
-                                      tel_x, tel_y,
-                                      90 * u.deg - array_direction.alt)
+        x_max = self.reconstruct_xmax(
+            nom.x, nom.y,
+            tilt.x, tilt.y,
+            hillas_parameters,
+            tel_x, tel_y,
+            90 * u.deg - array_direction.alt,
+        )
 
-        result.core_uncert = np.sqrt(core_err_x * core_err_x
-                                     + core_err_y * core_err_y) * u.m
+        result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
 
         result.tel_ids = [h for h in hillas_parameters.keys()]
         result.average_size = np.mean([h.intensity for h in hillas_parameters.values()])
         result.is_valid = True
 
-        src_error = np.sqrt(err_x * err_x + err_y * err_y)
+        src_error = np.sqrt(err_x**2 + err_y**2)
         result.alt_uncert = src_error.to(u.deg)
         result.az_uncert = src_error.to(u.deg)
         result.h_max = x_max
