@@ -551,7 +551,7 @@ class CameraGeometry:
                    outside camera
         '''
 
-        if not np.all(self.pix_area == self.pix_area[0], axis=0):
+        if np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0):
             logger.warning(" Method not implemented for cameras with varying pixel sizes")
 
         points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
