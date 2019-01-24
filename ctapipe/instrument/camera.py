@@ -533,9 +533,9 @@ class CameraGeometry:
 
         return longi, trans
 
-    def get_pixel_id(self, x, y):
+    def position_to_pix_index(self, x, y):
         '''
-        Return the camera pixel number which contains a given position (x,y) 
+        Return the index of a camera pixel which contains a given position (x,y) 
         in the camera frame. The (x,y) coordinates can be arrays (of equal length),
         for which the methods returns an array of pixel ids. A warning is raised if the 
         position falls outside the camera.
@@ -547,8 +547,8 @@ class CameraGeometry:
 
         Returns
         -------
-        pixel_ids: Pixel number or array of pixel numbers. Returns -1 if position falls 
-                   outside camera
+        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls 
+                    outside camera
         '''
 
         if np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0):
@@ -557,8 +557,8 @@ class CameraGeometry:
         points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
 
         kdtree = self.all_pixels_kdtree
-        dist, pixel_ids = kdtree.query(points_searched)
-        pixel_ids = pixel_ids.flatten()
+        dist, pix_indices = kdtree.query(points_searched)
+        pix_indices = pix_indices.flatten()
 
         # Check if the position lies inside the camera. It is first checked if any border
         # pixel numbers are returned. If not, everything is fine. If yes, the distance of 
@@ -570,30 +570,30 @@ class CameraGeometry:
 
         border_mask = self.get_border_pixel_mask()
         # get all pixels at camera border:
-        borderpix_ids = np.where(border_mask)[0]
+        borderpix_indices = np.where(border_mask)[0]
 
-        borderpix_ids_in_list = np.intersect1d(borderpix_ids, pixel_ids)
-        if borderpix_ids_in_list.any():
+        borderpix_indices_in_list = np.intersect1d(borderpix_indices, pix_indices)
+        if borderpix_indices_in_list.any():
             # Get some pixel not at the border:
-            inside_pix_id = np.where(~border_mask)[0][0]
+            insidepix_index = np.where(~border_mask)[0][0]
             # Check in detail whether location is in border pixel or outside camera:
-            for borderpix_id in borderpix_ids_in_list:
-                index = np.where(pixel_ids == borderpix_id)[0][0]
+            for borderpix_index in borderpix_indices_in_list:
+                index = np.where(pix_indices == borderpix_index)[0][0]
                 # compare with inside pixel:
                 xprime = points_searched[0][index, 0] \
-                    - self.pix_x.to_value(u.m)[borderpix_id] \
-                    + self.pix_x.to_value(u.m)[inside_pix_id]
+                    - self.pix_x.to_value(u.m)[borderpix_index] \
+                    + self.pix_x.to_value(u.m)[insidepix_index]
                 yprime = points_searched[0][index, 1] \
-                    - self.pix_y.to_value(u.m)[borderpix_id] \
-                    + self.pix_y.to_value(u.m)[inside_pix_id]
+                    - self.pix_y.to_value(u.m)[borderpix_index] \
+                    + self.pix_y.to_value(u.m)[insidepix_index]
                 dist_check, index_check = kdtree.query([xprime, yprime])
-                if index_check != inside_pix_id:
+                if index_check != insidepix_index:
                     logger.warning(" Coordinate ({} m, {} m) lies outside camera"
                                    .format(points_searched[0][index, 0], 
                                            points_searched[0][index, 1]))
-                    pixel_ids[index] = -1
+                    pix_indices[index] = -1
 
-        return pixel_ids if len(pixel_ids) > 1 else pixel_ids[0]
+        return pix_indices if len(pix_indices) > 1 else pix_indices[0]
 
 
 # ======================================================================
