@@ -10,7 +10,7 @@ def test_enum_trait_default_is_right():
     # function under test
     from ctapipe.utils.tools import enum_trait
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         enum_trait(ChargeExtractor, default='name_of_default_choice')
 
 
