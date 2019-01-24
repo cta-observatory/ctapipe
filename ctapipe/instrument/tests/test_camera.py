@@ -54,9 +54,9 @@ def test_guess_camera():
     assert geom.pix_type.startswith('rect')
 
 
-def test_get_pixel_id():
+def test_position_to_pix_index():
     geom = CameraGeometry.from_name("LSTCam")
-    x, y = 0.80 * u.m, 0.79 * u.m, 
+    x, y = 0.80 * u.m, 0.79 * u.m,
     pix_id = geom.get_pixel_id(x, y)
     assert pix_id == 1790
 
