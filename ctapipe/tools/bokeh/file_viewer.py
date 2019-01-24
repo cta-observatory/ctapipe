@@ -103,16 +103,16 @@ class BokehFileViewer(Tool):
 
         default_url = get_dataset_path("gamma_test.simtel.gz")
         EventSourceFactory.input_url.default_value = default_url
-        self.reader = EventSourceFactory(**kwargs).produce()
+        self.reader = EventSourceFactory(**kwargs).get_product()
         self.seeker = EventSeeker(self.reader, **kwargs)
 
-        self.extractor = ChargeExtractorFactory(**kwargs).produce()
-        self.cleaner = WaveformCleanerFactory(**kwargs).produce()
+        self.extractor = ChargeExtractorFactory(**kwargs).get_product()
+        self.cleaner = WaveformCleanerFactory(**kwargs).get_product()
 
         self.r1 = CameraR1CalibratorFactory(
             eventsource=self.reader,
             **kwargs
-        ).produce()
+        ).get_product()
         self.dl0 = CameraDL0Reducer(**kwargs)
         self.dl1 = CameraDL1Calibrator(
             extractor=self.extractor,
@@ -430,8 +430,8 @@ class BokehFileViewer(Tool):
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
-                extractor = ChargeExtractorFactory(**kwargs).produce()
-                cleaner = WaveformCleanerFactory(**kwargs).produce()
+                extractor = ChargeExtractorFactory(**kwargs).get_product()
+                cleaner = WaveformCleanerFactory(**kwargs).get_product()
                 self.update_dl1_calibrator(extractor, cleaner)
                 self.update_dl1_widget_values()
                 self._updating_dl1 = False

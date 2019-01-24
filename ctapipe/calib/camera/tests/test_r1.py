@@ -42,7 +42,7 @@ def test_targetio_calibrator():
     source_r0 = TargetIOEventSource(input_url=url_r0)
     source_r1 = TargetIOEventSource(input_url=url_r1)
 
-    r1c = CameraR1CalibratorFactory(eventsource=source_r0).produce()
+    r1c = CameraR1CalibratorFactory(eventsource=source_r0).get_product()
 
     event_r0 = source_r0._get_event_by_index(0)
     event_r1 = source_r1._get_event_by_index(0)
@@ -51,7 +51,7 @@ def test_targetio_calibrator():
     assert_array_equal(event_r0.r0.tel[0].waveform,
                        event_r0.r1.tel[0].waveform)
 
-    r1c = CameraR1CalibratorFactory(eventsource=source_r0).produce(
+    r1c = CameraR1CalibratorFactory(eventsource=source_r0).get_product(
         pedestal_path=pedpath
     )
     r1c.calibrate(event_r0)
@@ -78,23 +78,23 @@ def test_check_r0_exists(example_event):
 def test_factory_from_product():
     calibrator = CameraR1CalibratorFactory(
         product="NullR1Calibrator"
-    ).produce()
+    ).get_product()
     assert isinstance(calibrator, NullR1Calibrator)
     calibrator = CameraR1CalibratorFactory(
         product="HESSIOR1Calibrator"
-    ).produce()
+    ).get_product()
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
 def test_factory_default():
-    calibrator = CameraR1CalibratorFactory().produce()
+    calibrator = CameraR1CalibratorFactory().get_product()
     assert isinstance(calibrator, NullR1Calibrator)
 
 
 def test_factory_from_eventsource():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = SimTelEventSource(input_url=dataset)
-    calibrator = CameraR1CalibratorFactory(eventsource=eventsource).produce()
+    calibrator = CameraR1CalibratorFactory(eventsource=eventsource).get_product()
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
@@ -104,7 +104,7 @@ def test_factory_from_eventsource_override():
     calibrator = CameraR1CalibratorFactory(
         eventsource=eventsource,
         product="NullR1Calibrator"
-    ).produce()
+    ).get_product()
     assert isinstance(calibrator, NullR1Calibrator)
 
 
@@ -124,5 +124,5 @@ class UnknownEventSource(EventSource):
 def test_factory_from_unknown_eventsource():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     eventsource = UnknownEventSource(input_url=dataset)
-    calibrator = CameraR1CalibratorFactory(eventsource=eventsource).produce()
+    calibrator = CameraR1CalibratorFactory(eventsource=eventsource).get_product()
     assert isinstance(calibrator, NullR1Calibrator)

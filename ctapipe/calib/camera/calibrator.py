@@ -76,17 +76,17 @@ class CameraCalibrator(Component):
         kwargs_ = dict(config=config, tool=tool)
         if extractor_product:
             kwargs_['product'] = extractor_product
-        extractor = ChargeExtractorFactory(**kwargs_).produce()
+        extractor = ChargeExtractorFactory(**kwargs_).get_product()
 
         kwargs_ = dict(config=config, tool=tool)
         if cleaner_product:
             kwargs_['product'] = cleaner_product
-        cleaner = WaveformCleanerFactory(**kwargs_).produce()
+        cleaner = WaveformCleanerFactory(**kwargs_).get_product()
 
         kwargs_ = dict(config=config, tool=tool, eventsource=eventsource)
         if r1_product:
             kwargs_['product'] = r1_product
-        self.r1 = CameraR1CalibratorFactory(**kwargs_).produce()
+        self.r1 = CameraR1CalibratorFactory(**kwargs_).get_product()
 
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,

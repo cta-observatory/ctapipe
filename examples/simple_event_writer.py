@@ -44,7 +44,7 @@ class SimpleEventWriter(Tool):
 
         self.event_source = EventSourceFactory(
             config=self.config, tool=self, product='SimTelEventSource'
-        ).produce()
+        ).get_product()
         self.event_source.allowed_tels = self.config['Analysis']['allowed_tels']
 
         self.calibrator = CameraCalibrator(

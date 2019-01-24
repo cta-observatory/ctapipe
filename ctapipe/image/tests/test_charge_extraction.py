@@ -117,7 +117,7 @@ def test_averagewf_peak_integration(example_event):
 
 
 def test_charge_extractor_factory(example_event):
-    extractor = ChargeExtractorFactory(product='LocalPeakIntegrator').produce()
+    extractor = ChargeExtractorFactory(product='LocalPeakIntegrator').get_product()
 
     telid = 11
     data = example_event.r0.tel[telid].waveform

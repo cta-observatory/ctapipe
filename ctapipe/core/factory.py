@@ -3,6 +3,7 @@ from ctapipe.core.component import Component
 from inspect import isabstract
 from traitlets import CaselessStrEnum
 import warnings
+from traitlets.config.loader import Config
 
 
 def child_subclasses(base):
@@ -106,7 +107,7 @@ class Factory(Component, metaclass=FactoryMeta):
     >>>     def setup(self):
     >>>         kwargs = dict(config=self.config, tool=self)
     >>>
-    >>>         example = ExampleFactory(**kwargs).produce()
+    >>>         example = ExampleFactory(**kwargs).get_product()
     >>>         print(example.__class__.__name__)
     >>>
     >>>     def start(self):
@@ -266,7 +267,7 @@ class Factory(Component, metaclass=FactoryMeta):
                                'factory.'.format(product_name))
             raise
 
-    def produce(self, **kwargs):
+    def get_product(self, **kwargs):
         """
         Produce an instance of the product class from the Factory
 
@@ -277,7 +278,7 @@ class Factory(Component, metaclass=FactoryMeta):
 
         Returns
         -------
-        instance : object
+        instance
             Instance of the product class that is the purpose of the factory
             to produce.
 
@@ -287,3 +288,74 @@ class Factory(Component, metaclass=FactoryMeta):
         instance = constructor(self.config, self.parent, **kwargs)
         return instance
 
+    @classmethod
+    def produce(cls, config=None, tool=None, **kwargs):
+        """
+        Deprecated method to produce the product of the Factory via the
+        classmethod. Also contains the old behaviour of copying the traits
+        specified for the Factory to the Component.
+
+        This method therefore avoids a change in API being forced on users
+        who have not updated their scripts since PR #917. Instead they are
+        warned that they need to do so.
+
+        Parameters
+        ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs
+
+        Returns
+        -------
+        instance
+            Instance of the product class that is the purpose of the factory
+            to produce.
+
+        """
+        msg = (
+            "The produce classmethod of Factory has been deprecated. "
+            "Instead of:\n"
+            "\tcls = Factory.produce(config=self.config, tool=self, "
+            "**product_kwargs)\n"
+            "Please switch to:\n"
+            "\tcls = Factory(config=self.config, tool=self, "
+            "**factory_kwargs).produce(**product_kwargs)\n"
+            "See https://github.com/cta-observatory/ctapipe/pull/917 "
+            "for further details."
+        )
+        warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+        warnings.warn(msg, category=DeprecationWarning, stacklevel=2)
+        warnings.simplefilter('default', DeprecationWarning)  # reset filter
+
+        # Remove kwargs not meant for Factory
+        factory_traits = cls.class_trait_names()
+        factory_args = list(cls.__init__.__code__.co_varnames)
+        factory_kwargs = copy(kwargs)
+        for key in list(factory_kwargs.keys()):
+            if key not in factory_traits + factory_args:
+                del factory_kwargs[key]
+
+        # Obtain Component constructor
+        factory = cls(config=config, tool=tool, **factory_kwargs)
+        if hasattr(factory, 'input_url'):
+            kwargs['input_url'] = factory.input_url
+        constructor = factory._get_constructor()
+
+        # Copy traits accidently passed to Factory to Component
+        if config and config[cls.__name__]:
+            if not config[constructor.__name__]:
+                config[constructor.__name__] = Config()
+            for key, value in config[cls.__name__].items():
+                if key in constructor.class_trait_names():
+                    config[constructor.__name__][key] = value
+
+        # Produce instance of the produced Component
+        kwargs = factory._clean_kwargs_for_product(constructor, kwargs)
+        instance = constructor(factory.config, factory.parent, **kwargs)
+        return instance

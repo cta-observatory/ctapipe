@@ -71,7 +71,7 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(**kwargs)
 
-        extractor = ChargeExtractorFactory(**kwargs).produce()
+        extractor = ChargeExtractorFactory(**kwargs).get_product()
 
         self.r1 = HESSIOR1Calibrator(**kwargs)
 

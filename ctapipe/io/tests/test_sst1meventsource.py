@@ -68,7 +68,7 @@ def test_factory_for_protozfits_file():
     from ctapipe.io.eventsourcefactory import EventSourceFactory
     from ctapipe.io.sst1meventsource import SST1MEventSource
 
-    reader = EventSourceFactory(input_url=example_file_path).produce()
+    reader = EventSourceFactory(input_url=example_file_path).get_product()
     assert isinstance(reader, SST1MEventSource)
     assert reader.input_url == example_file_path
 

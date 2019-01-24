@@ -72,7 +72,7 @@ class SingleTelEventDisplay(Tool):
 
         self.event_source = EventSourceFactory(
             config=self.config, tool=self
-        ).produce()
+        ).get_product()
         self.event_source.allowed_tels = [
             self.tel,
         ]

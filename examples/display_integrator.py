@@ -316,14 +316,14 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        eventsource = EventSourceFactory(**kwargs).produce()
+        eventsource = EventSourceFactory(**kwargs).get_product()
         self.eventseeker = EventSeeker(eventsource, **kwargs)
 
-        self.extractor = ChargeExtractorFactory(**kwargs).produce()
+        self.extractor = ChargeExtractorFactory(**kwargs).get_product()
 
         self.r1 = CameraR1CalibratorFactory(
             eventsource=eventsource, **kwargs
-        ).produce()
+        ).get_product()
 
         self.dl0 = CameraDL0Reducer(**kwargs)
 

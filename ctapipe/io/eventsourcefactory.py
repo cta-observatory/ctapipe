@@ -33,7 +33,7 @@ class EventSourceFactory(Factory):
     >>> class ExampleTool(Tool):
     >>>     def setup(self):
     >>>         kwargs = dict(config=self.config, tool=self)
-    >>>         source = EventSourceFactory(**kwargs).produce()
+    >>>         source = EventSourceFactory(**kwargs).get_product()
     >>>         print(source.__class__.__name__)
     >>>     def start(self, **kwargs):
     >>>         pass
@@ -84,15 +84,15 @@ class EventSourceFactory(Factory):
                                    "for: {}".format(self.input_url))
                 raise
 
-    def produce(self, **kwargs):
+    def get_product(self, **kwargs):
         if self.input_url:
-            kwargs = self._clean_kwargs_for_product(kwargs)
-            instance = self._product(
-                self.config, self.parent, input_url=self.input_url, **kwargs
-            )
+            constructor = self._get_constructor()
+            kwargs = self._clean_kwargs_for_product(constructor, kwargs)
+            instance = constructor(self.config, self.parent,
+                                   input_url=self.input_url, **kwargs)
             return instance
         else:
-            return super().produce(**kwargs)
+            return super().get_product(**kwargs)
 
 
 def event_source(input_url, config=None, parent=None, **kwargs):
@@ -123,6 +123,6 @@ def event_source(input_url, config=None, parent=None, **kwargs):
 
     reader = EventSourceFactory(
         config, parent, input_url=input_url
-    ).produce(**kwargs)
+    ).get_product(**kwargs)
 
     return reader
