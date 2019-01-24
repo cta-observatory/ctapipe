@@ -204,7 +204,7 @@ class CameraGeometry:
         return np.ones(pix_x.shape) * area
 
     @lazyproperty
-    def all_pixels_kdtree(self):
+    def kdtree(self):
         """
         Pre-calculated kdtree of all pixel centers inside camera
 
@@ -556,7 +556,7 @@ class CameraGeometry:
 
         points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
 
-        kdtree = self.all_pixels_kdtree
+        kdtree = self.kdtree
         dist, pix_indices = kdtree.query(points_searched)
         pix_indices = pix_indices.flatten()
 
