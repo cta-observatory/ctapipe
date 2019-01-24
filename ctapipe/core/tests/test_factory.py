@@ -133,7 +133,7 @@ def test_clean_kwargs_for_product():
     )
     factory = ExampleFactory(product='ExampleComponent2')
     with pytest.warns(UserWarning):
-        cleaned = factory._clean_kwargs_for_product(kwargs)
+        cleaned = factory._clean_kwargs_for_product(ExampleComponent2, kwargs)
     assert 'nonexistant' not in cleaned
 
 

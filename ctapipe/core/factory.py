@@ -190,7 +190,7 @@ class Factory(Component, metaclass=FactoryMeta):
             cls.update_product_traitlet()
         return super().class_get_trait_help(trait, inst)
 
-    def _clean_kwargs_for_product(self, kwargs_dict):
+    def _clean_kwargs_for_product(self, product_class, kwargs_dict):
         """
         Remove and warn about kwargs that would throw an error for this
         particular product.
@@ -204,6 +204,8 @@ class Factory(Component, metaclass=FactoryMeta):
 
         Parameters
         ----------
+        product_class: class
+            The constructor for the product of the factory
         kwargs_dict : dict
             The full kwargs dictionary
 
@@ -212,9 +214,8 @@ class Factory(Component, metaclass=FactoryMeta):
         kwargs_dict : dict
             The kwargs dictionary with the non-compatible arguments removed
         """
-        product = self._product
-        product_traits = product.class_trait_names()
-        product_args = list(product.__init__.__code__.co_varnames)
+        product_traits = product_class.class_trait_names()
+        product_args = list(product_class.__init__.__code__.co_varnames)
         # config = copy(self.__dict__['_trait_values']['config'])
         # parent = copy(self.__dict__['_trait_values']['parent'])
 
@@ -224,7 +225,7 @@ class Factory(Component, metaclass=FactoryMeta):
             if key not in product_traits + product_args:
                 del kwargs_copy[key]
                 msg = ("Traitlet ({}) does not exist for {}"
-                       .format(key, product.__name__))
+                       .format(key, product_class.__name__))
                 self.log.warning(msg)
                 warnings.warn(msg, stacklevel=9)
         return kwargs_copy
@@ -281,8 +282,8 @@ class Factory(Component, metaclass=FactoryMeta):
             to produce.
 
         """
-        kwargs = self._clean_kwargs_for_product(kwargs)
         constructor = self._get_constructor()
+        kwargs = self._clean_kwargs_for_product(constructor, kwargs)
         instance = constructor(self.config, self.parent, **kwargs)
         return instance
 
