@@ -7,7 +7,7 @@ def detect_and_import_plugins(prefix):
         name: importlib.import_module(name)
         for finder, name, ispkg
         in pkgutil.iter_modules()
-        if name.startswith()
+        if name.startswith(prefix)
     }
 
 
