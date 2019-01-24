@@ -212,22 +212,12 @@ def test_trying_to_set_traitlets_via_factory():
 def test_component_definition_after_factory():
     """
     Test if a component defined after the factory definition will be
-    obtainable by the factory
+    obtainable by the factory, and is inside the help message
     """
     class ExampleComponent5(ExampleComponentParent):
         value = Int(1234445, help="").tag(config=True)
 
     obj = ExampleFactory(product='ExampleComponent5').produce()
-    assert (obj.__class__.__name__ == 'ExampleComponent5')
-    assert (obj.value == 1234445)
-
-
-def test_component_definition_after_factory_help_message():
-    """
-    Test if a component defined after the factory definition will be
-    inside the help message
-    """
-    class ExampleComponent6(ExampleComponentParent):
-        value = Int(1234446, help="").tag(config=True)
-
-    assert "ExampleComponent6" in ExampleFactory.class_get_help()
+    assert isinstance(obj, ExampleComponent5)
+    assert obj.value == 1234445
+    assert "ExampleComponent5" in ExampleFactory.class_get_help()

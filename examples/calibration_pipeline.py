@@ -4,7 +4,9 @@ from traitlets import Dict, List, Int, Bool, Unicode
 
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.core import Tool, Component
-from ctapipe.image.charge_extractors import *
+from ctapipe.image.charge_extractors import ChargeExtractorFactory, \
+    WindowIntegrator, SimpleIntegrator, PeakFindingIntegrator, \
+    NeighbourPeakIntegrator
 from ctapipe.io.eventsourcefactory import EventSourceFactory, EventSource
 from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
