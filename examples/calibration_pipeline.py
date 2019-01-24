@@ -12,7 +12,6 @@ from ctapipe.visualization import CameraDisplay
 import ctapipe.utils.tools as tool_utils
 
 
-
 class ImagePlotter(Component):
     display = Bool(
         False,
