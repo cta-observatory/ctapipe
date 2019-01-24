@@ -81,3 +81,6 @@ distribute-*.tar.gz
 *.pstats
 target
 .mypy_cache
+
+examples/notebooks/*.html
+examples/notebooks/*.png
