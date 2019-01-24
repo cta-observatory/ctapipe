@@ -1,6 +1,7 @@
 import importlib
 import pkgutil
 
+
 def detect_and_import_plugins(prefix):
     ''' detect and import  plugin modules with given prefix, '''
     return {
