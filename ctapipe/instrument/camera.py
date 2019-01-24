@@ -204,10 +204,9 @@ class CameraGeometry:
         return np.ones(pix_x.shape) * area
 
     @lazyproperty
-    def kdtree(self):
+    def _kdtree(self):
         """
         Pre-calculated kdtree of all pixel centers inside camera
-
 
         Returns
         -------
@@ -217,6 +216,18 @@ class CameraGeometry:
 
         pixel_centers = np.column_stack([self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)])
         return KDTree(pixel_centers)
+
+    @lazyproperty
+    def _all_pixel_areas_equal(self):
+        """
+        Pre-calculated kdtree of all pixel centers inside camera
+
+        Returns
+        -------
+        True if all pixels are of equal size, False otherwise
+
+        """
+        return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
 
     @classmethod
     def get_known_camera_names(cls):
@@ -551,12 +562,12 @@ class CameraGeometry:
                     outside camera
         '''
 
-        if np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0):
+        if not self._all_pixel_areas_equal:
             logger.warning(" Method not implemented for cameras with varying pixel sizes")
 
         points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
 
-        kdtree = self.kdtree
+        kdtree = self._kdtree
         dist, pix_indices = kdtree.query(points_searched)
         pix_indices = pix_indices.flatten()
 
