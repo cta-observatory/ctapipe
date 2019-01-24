@@ -244,8 +244,7 @@ class Factory(Component, metaclass=FactoryMeta):
             raise AttributeError("The user has not specified a product for {}"
                                  .format(self.__class__.__name__))
 
-    @property
-    def _product(self):
+    def _get_constructor(self):
         """
         Obtain the class constructor for the specified product name.
 
@@ -277,11 +276,12 @@ class Factory(Component, metaclass=FactoryMeta):
 
         Returns
         -------
-        instance
+        instance : object
             Instance of the product class that is the purpose of the factory
             to produce.
 
         """
         kwargs = self._clean_kwargs_for_product(kwargs)
-        instance = self._product(self.config, self.parent, **kwargs)
+        instance = self._get_constructor(self.config, self.parent, **kwargs)
         return instance
+
