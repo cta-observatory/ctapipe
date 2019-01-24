@@ -204,6 +204,21 @@ class CameraGeometry:
         return np.ones(pix_x.shape) * area
 
     @lazyproperty
+    def _pixel_circumferences(self):
+        """ pixel circumference radius/radii based on pixel area and layout
+
+        """
+
+        if self.pix_type.startswith('hex'):
+            circum_rad = np.sqrt(2.0 * self.pix_area / 3.0 / np.sqrt(3))
+        elif self.pix_type.startswith('rect'):
+            circum_rad = np.sqrt(self.pix_area / 2.0)
+        else:
+            raise KeyError("unsupported pixel type")
+
+        return circum_rad
+
+    @lazyproperty
     def _kdtree(self):
         """
         Pre-calculated kdtree of all pixel centers inside camera
@@ -214,7 +229,8 @@ class CameraGeometry:
 
         """
 
-        pixel_centers = np.column_stack([self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)])
+        pixel_centers = np.column_stack([self.pix_x.to_value(u.m),
+                                         self.pix_y.to_value(u.m)])
         return KDTree(pixel_centers)
 
     @lazyproperty
@@ -546,9 +562,9 @@ class CameraGeometry:
 
     def position_to_pix_index(self, x, y):
         '''
-        Return the index of a camera pixel which contains a given position (x,y) 
+        Return the index of a camera pixel which contains a given position (x,y)
         in the camera frame. The (x,y) coordinates can be arrays (of equal length),
-        for which the methods returns an array of pixel ids. A warning is raised if the 
+        for which the methods returns an array of pixel ids. A warning is raised if the
         position falls outside the camera.
 
         Parameters
@@ -558,7 +574,7 @@ class CameraGeometry:
 
         Returns
         -------
-        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls 
+        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
                     outside camera
         '''
 
@@ -566,23 +582,26 @@ class CameraGeometry:
             logger.warning(" Method not implemented for cameras with varying pixel sizes")
 
         points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
-
+        circum_rad = self._pixel_circumferences[0].to_value(u.m)
         kdtree = self._kdtree
-        dist, pix_indices = kdtree.query(points_searched)
+        dist, pix_indices = kdtree.query(points_searched, distance_upper_bound=circum_rad)
+        del dist
         pix_indices = pix_indices.flatten()
 
-        # Check if the position lies inside the camera. It is first checked if any border
-        # pixel numbers are returned. If not, everything is fine. If yes, the distance of 
-        # the given position to the closest pixel center is translated to the distance to 
-        # the center of a non-border pixel', pos -> pos', and it is checked whether pos' 
-        # still lies within pixel'. If not, pos lies outside the camera. This approach  
-        # does not need to know the particular pixel shape, but as the kdtree itself, 
-        # presumes all camera pixels being of equal size.
+        # 1. Mark all points outside pixel circumeference as lying outside camera
+        pix_indices[pix_indices == self.n_pixels] = -1
 
+        # 2. Accurate check for the remaing cases (within circumference, but still outside
+        # camera). It is first checked if any border pixel numbers are returned. 
+        # If not, everything is fine. If yes, the distance of the given position to the
+        # the given position to the closest pixel center is translated to the distance to
+        # the center of a non-border pixel', pos -> pos', and it is checked whether pos'
+        # still lies within pixel'. If not, pos lies outside the camera. This approach
+        # does not need to know the particular pixel shape, but as the kdtree itself,
+        # presumes all camera pixels being of equal size.
         border_mask = self.get_border_pixel_mask()
         # get all pixels at camera border:
         borderpix_indices = np.where(border_mask)[0]
-
         borderpix_indices_in_list = np.intersect1d(borderpix_indices, pix_indices)
         if borderpix_indices_in_list.any():
             # Get some pixel not at the border:
@@ -591,18 +610,23 @@ class CameraGeometry:
             for borderpix_index in borderpix_indices_in_list:
                 index = np.where(pix_indices == borderpix_index)[0][0]
                 # compare with inside pixel:
-                xprime = points_searched[0][index, 0] \
-                    - self.pix_x.to_value(u.m)[borderpix_index] \
-                    + self.pix_x.to_value(u.m)[insidepix_index]
-                yprime = points_searched[0][index, 1] \
-                    - self.pix_y.to_value(u.m)[borderpix_index] \
-                    + self.pix_y.to_value(u.m)[insidepix_index]
-                dist_check, index_check = kdtree.query([xprime, yprime])
+                xprime = (points_searched[0][index, 0]
+                          - self.pix_x.to_value(u.m)[borderpix_index]
+                          + self.pix_x.to_value(u.m)[insidepix_index])
+                yprime = (points_searched[0][index, 1]
+                          - self.pix_y.to_value(u.m)[borderpix_index]
+                          + self.pix_y.to_value(u.m)[insidepix_index])
+                dist_check, index_check = kdtree.query([xprime, yprime], 
+                                                       distance_upper_bound=circum_rad)
+                del dist_check
                 if index_check != insidepix_index:
-                    logger.warning(" Coordinate ({} m, {} m) lies outside camera"
-                                   .format(points_searched[0][index, 0], 
-                                           points_searched[0][index, 1]))
                     pix_indices[index] = -1
+
+        # print warning:
+        for index in np.where(pix_indices == -1)[0]:
+            logger.warning(" Coordinate ({} m, {} m) lies outside camera"
+                           .format(points_searched[0][index, 0],
+                                   points_searched[0][index, 1]))
 
         return pix_indices if len(pix_indices) > 1 else pix_indices[0]
 
