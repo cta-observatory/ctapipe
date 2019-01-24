@@ -20,7 +20,9 @@ def enum_trait(base_class, default, help_str=None):
         cls.__name__
         for cls in non_abstract_children(base_class)
     ]
-    assert default in choices, f'{default} is not in choices: {choices}'
+    if default not in choices:
+        raise ValueError(f'{default} is not in choices: {choices}')
+
     return CaselessStrEnum(
         choices,
         default,

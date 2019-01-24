@@ -25,5 +25,10 @@ __all__ = [
     'TableReader',
     'EventSeeker',
     'EventSource',
-    'event_source'
+    'event_source',
+    'hessioeventsource',
+    'targetioeventsource',
+    'lsteventsource',
+    'nectarcameventsource',
+    'sst1meventsource',
 ]
