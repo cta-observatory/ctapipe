@@ -282,6 +282,7 @@ class Factory(Component, metaclass=FactoryMeta):
 
         """
         kwargs = self._clean_kwargs_for_product(kwargs)
-        instance = self._get_constructor(self.config, self.parent, **kwargs)
+        constructor = self._get_constructor()
+        instance = constructor(self.config, self.parent, **kwargs)
         return instance
 
