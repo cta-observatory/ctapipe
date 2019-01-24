@@ -215,7 +215,7 @@ class CameraGeometry:
 
         """
 
-        pixel_centers = np.stack([self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)]).T
+        pixel_centers = np.column_stack([self.pix_x.to_value(u.m), self.pix_y.to_value(u.m)])
         return KDTree(pixel_centers)
 
     @classmethod
