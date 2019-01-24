@@ -5,16 +5,9 @@ from .simteleventsource import SimTelEventSource
 from .hdf5tableio import HDF5TableReader, HDF5TableWriter
 from .tableio import TableWriter, TableReader
 
-# import all eventsources, otherwise they cannot be
-# detected in EventSource.from_name as sub-classes of EventSource :-(
-from . import (
-    hessioeventsource,
-    targetioeventsource,
-    lsteventsource,
-    nectarcameventsource,
-    sst1meventsource,
-)
+from ctapipe.core.plugins import detect_and_import_io_plugins
 
+detect_and_import_io_plugins()
 
 __all__ = [
     'get_array_layout',
@@ -26,9 +19,4 @@ __all__ = [
     'EventSeeker',
     'EventSource',
     'event_source',
-    'hessioeventsource',
-    'targetioeventsource',
-    'lsteventsource',
-    'nectarcameventsource',
-    'sst1meventsource',
 ]
