@@ -64,15 +64,6 @@ def test_is_compatible():
     assert SST1MEventSource.is_compatible(example_file_path)
 
 
-def test_factory_for_protozfits_file():
-    from ctapipe.io import event_source
-    from ctapipe.io.sst1meventsource import SST1MEventSource
-
-    reader = event_source(example_file_path)
-    assert isinstance(reader, SST1MEventSource)
-    assert reader.input_url == example_file_path
-
-
 def test_pipeline():
     from ctapipe.io.sst1meventsource import SST1MEventSource
     reader = SST1MEventSource(input_url=example_file_path, max_events=10)
