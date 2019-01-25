@@ -159,4 +159,3 @@ def test_charge_extractor_factory_args():
         'FullIntegrator',
         config=config,
     )
-
