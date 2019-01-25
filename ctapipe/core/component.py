@@ -20,15 +20,18 @@ def non_abstract_children(base):
     return non_abstract
 
 
-def subclass_from_name(base, name, *args, **kwargs):
-    '''create instance of subclass by `name` '''
+def subclass_from_name(base, name, config=None, tool=None):
+    '''create instance of subclass by `name`
+
+    config and tool are only relevant for `Tool` developers
+    '''
     subclasses = {
         base.__name__: base
         for base in non_abstract_children(base)
     }
     cls = subclasses[name]
 
-    return cls(*args, **kwargs)
+    return cls(config=config, tool=tool)
 
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
