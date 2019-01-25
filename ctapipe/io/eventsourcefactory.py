@@ -180,10 +180,13 @@ class EventSourceFactory(Factory):
         """
         product_name = self._get_product_name()
         product_constructor = self._get_product_constructor(product_name)
+        kwargs = dict(input_url=self.input_url)
+        if self.max_events:
+            kwargs['max_events'] = self.max_events
+        if self.allowed_tels:
+            kwargs['allowed_tels'] = self.allowed_tels
         product_instance = product_constructor(
-            self.config, self.parent,
-            input_url=self.input_url, max_events=self.max_events,
-            allowed_tels=self.allowed_tels
+            self.config, self.parent, **kwargs
         )
         return product_instance
 
