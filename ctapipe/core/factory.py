@@ -311,7 +311,7 @@ class Factory(Component, metaclass=FactoryMeta):
             "**product_kwargs)\n"
             "Please switch to:\n"
             "\tcls = Factory(config=self.config, tool=self, "
-            "**factory_kwargs).get_product(**product_kwargs)\n"
+            "**factory_kwargs).get_product()\n"
             "See the doctring of Factory for an example, and "
             "https://github.com/cta-observatory/ctapipe/pull/917 "
             "for further details."
