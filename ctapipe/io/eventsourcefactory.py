@@ -1,7 +1,6 @@
 from ctapipe.core.factory import Factory, child_subclasses
 from ctapipe.io.eventsource import EventSource
 from traitlets import Unicode
-from traitlets.config.loader import Config
 
 # EventFileReader imports so that EventFileReaderFactory can see them
 # (they need to exist in the global namespace)
@@ -148,13 +147,12 @@ class EventSourceFactory(Factory):
             for subclass in subclasses.values():
                 if subclass.is_compatible(self.input_url):
                     return subclass.__name__
-            else:
-                raise ValueError(
-                    "Cannot find compatible EventSource for \n"
-                    "\turl: {}\n"
-                    "in available EventSources:\n"
-                    "\t{}".format(self.input_url, list(subclasses.keys()))
-                )
+            raise ValueError(
+                "Cannot find compatible EventSource for \n"
+                "\turl: {}\n"
+                "in available EventSources:\n"
+                "\t{}".format(self.input_url, list(subclasses.keys()))
+            )
 
 
     def get_product(self):
