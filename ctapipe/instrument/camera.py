@@ -611,12 +611,12 @@ class CameraGeometry:
                 index = np.where(pix_indices == borderpix_index)[0][0]
                 # compare with inside pixel:
                 xprime = (points_searched[0][index, 0]
-                          - self.pix_x.to_value(u.m)[borderpix_index]
-                          + self.pix_x.to_value(u.m)[insidepix_index])
+                          - self.pix_x[borderpix_index].to_value(u.m)
+                          + self.pix_x[insidepix_index].to_value(u.m))
                 yprime = (points_searched[0][index, 1]
-                          - self.pix_y.to_value(u.m)[borderpix_index]
-                          + self.pix_y.to_value(u.m)[insidepix_index])
-                dist_check, index_check = kdtree.query([xprime, yprime], 
+                          - self.pix_y[borderpix_index].to_value(u.m)
+                          + self.pix_y[insidepix_index].to_value(u.m))
+                dist_check, index_check = kdtree.query([xprime, yprime],
                                                        distance_upper_bound=circum_rad)
                 del dist_check
                 if index_check != insidepix_index:
