@@ -65,12 +65,11 @@ def test_factory_unknown_file_format():
 
 def test_factory_from_product():
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    with pytest.raises(OSError):
-        with pytest.warns(AstropyUserWarning):
-            EventSourceFactory(
-                input_url=dataset,
-                product="SST1MEventSource",
-            ).get_product()
+    reader = EventSourceFactory(
+        input_url=dataset,
+        product="HESSIOEventSource",
+    ).get_product()
+    assert reader.__class__.__name__ == "HESSIOEventSource"
 
 
 def test_factory_unknown_reader():
