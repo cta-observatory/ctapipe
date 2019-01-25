@@ -119,6 +119,23 @@ class Factory(Component, metaclass=FactoryMeta):
     Arguments can be passed to the produced `Component` via the arguments to
     `produce`.
 
+    Parameters
+    ----------
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        This argument is typically only used from within a `ctapipe.core.Tool`.
+        Used to set traitlet values.
+        Leave as None if no configuration to pass.
+    tool : ctapipe.core.Tool or None
+        Tool executable that is calling this component.
+        This argument is typically only used from within a `ctapipe.core.Tool`.
+        Passes the correct logger to the component.
+        Leave as None if no Tool to pass.
+    kwargs
+        Named arguments to pass to the Factory. These are not passed on
+        to the product Component. Use the arguments to `produce` to pass
+        arguments to a Component.
+
     Attributes
     ----------
     base : type
@@ -299,16 +316,25 @@ class Factory(Component, metaclass=FactoryMeta):
         who have not updated their scripts since PR #917. Instead they are
         warned that they need to do so.
 
+        Instead of this classmethod, one should switch to the new API
+        using the get_product method after the Factory has been initialised.
+        See the Factory docstring for an example, and PR #917 if you want
+        more details.
+
         Parameters
         ----------
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
+            This argument is typically only used from within a
+            `ctapipe.core.Tool`.
             Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
+            Leave as None if no configuration to pass.
+        tool : ctapipe.core.Tool or None
             Tool executable that is calling this component.
+            This argument is typically only used from within a
+            `ctapipe.core.Tool`.
             Passes the correct logger to the component.
-            Set to None if no Tool to pass.
+            Leave as None if no Tool to pass.
         kwargs
 
         Returns
@@ -325,8 +351,9 @@ class Factory(Component, metaclass=FactoryMeta):
             "**product_kwargs)\n"
             "Please switch to:\n"
             "\tcls = Factory(config=self.config, tool=self, "
-            "**factory_kwargs).produce(**product_kwargs)\n"
-            "See https://github.com/cta-observatory/ctapipe/pull/917 "
+            "**factory_kwargs).get_product(**product_kwargs)\n"
+            "See the doctring of Factory for an example, and "
+            "https://github.com/cta-observatory/ctapipe/pull/917 "
             "for further details."
         )
         warnings.simplefilter('always', DeprecationWarning)  # turn off filter
@@ -345,7 +372,17 @@ class Factory(Component, metaclass=FactoryMeta):
         factory = cls(config=config, tool=tool, **factory_kwargs)
         if hasattr(factory, 'input_url'):
             kwargs['input_url'] = factory.input_url
-        constructor = factory._get_constructor()
+        try:
+            constructor = factory._get_constructor()
+        except ValueError:
+            if hasattr(cls, 'input_url'):
+                msg = ("Passing the input_url to the initialisation of "
+                       "EventSourceFactory, and then calling the deprecated "
+                       "`produce` classmethod is not supported. Please switch "
+                       "to the `get_product` method. See the "
+                       "EventSourceFactory docstring for examples")
+                raise SyntaxError(msg)
+            raise
 
         # Copy traits accidently passed to Factory to Component
         if config and config[cls.__name__]:
@@ -357,5 +394,5 @@ class Factory(Component, metaclass=FactoryMeta):
 
         # Produce instance of the produced Component
         kwargs = factory._clean_kwargs_for_product(constructor, kwargs)
-        instance = constructor(factory.config, factory.parent, **kwargs)
+        instance = constructor(config, tool, **kwargs)
         return instance

@@ -90,8 +90,8 @@ def test_factory_incorrect_use():
 def test_event_source_helper():
     path = get_dataset_path("gamma_test_large.simtel.gz")
     with event_source(path) as source:
-        for _ in source:
-            pass
+        assert source.__class__.__name__ == "SimTelEventSource"
+        assert source.input_url == path
 
 
 def test_deprecated_behaviour():
@@ -109,3 +109,7 @@ def test_deprecated_behaviour():
     assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset
 
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    with pytest.warns(DeprecationWarning):
+        with pytest.raises(SyntaxError):
+            EventSourceFactory(input_url=dataset).produce()
