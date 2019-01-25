@@ -51,7 +51,7 @@ class HESSStylePointingCorrection(PointingCorrection):
         """
         c, s = np.cos(self.rotation), np.sin(self.rotation)
         print(c, s, self.scale)
-        matrix = np.matrix([[c * self.scale, -s* self.scale,
+        matrix = np.matrix([[c * self.scale, -s * self.scale,
                              self.x_trans * c - self.y_trans * s],
                             [s* self.scale, c * self.scale,
                              self.x_trans * s + self.y_trans * c],
