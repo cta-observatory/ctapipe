@@ -592,7 +592,7 @@ class CameraGeometry:
         pix_indices[pix_indices == self.n_pixels] = -1
 
         # 2. Accurate check for the remaing cases (within circumference, but still outside
-        # camera). It is first checked if any border pixel numbers are returned. 
+        # camera). It is first checked if any border pixel numbers are returned.
         # If not, everything is fine. If yes, the distance of the given position to the
         # the given position to the closest pixel center is translated to the distance to
         # the center of a non-border pixel', pos -> pos', and it is checked whether pos'
