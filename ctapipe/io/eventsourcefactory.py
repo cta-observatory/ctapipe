@@ -85,7 +85,7 @@ class EventSourceFactory(Factory):
         help='Path to the input file containing events.'
     ).tag(config=True)
 
-    def __init__(self, input_url=None, max_events=None,
+    def __init__(self, input_url=None, max_events=None, allowed_tels=None,
                  config=None, tool=None, **kwargs):
         """
         Parameters
@@ -101,6 +101,9 @@ class EventSourceFactory(Factory):
             overriden.
         max_events : int
             Maximum number of events to read from file
+        allowed_tels : set
+            Set of allowed tel_ids, others will be ignored. If left empty, all
+            telescopes in the input stream will be included
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             This argument is typically only used from within a
@@ -120,6 +123,7 @@ class EventSourceFactory(Factory):
         if input_url:
             kwargs['input_url'] = input_url
         self.max_events = max_events
+        self.allowed_tels = set() if allowed_tels is None else allowed_tels
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _get_product_name(self):
@@ -178,7 +182,8 @@ class EventSourceFactory(Factory):
         product_constructor = self._get_product_constructor(product_name)
         product_instance = product_constructor(
             self.config, self.parent,
-            input_url=self.input_url, max_events=self.max_events
+            input_url=self.input_url, max_events=self.max_events,
+            allowed_tels=self.allowed_tels
         )
         return product_instance
 
@@ -221,7 +226,7 @@ class EventSourceFactory(Factory):
         return super().produce(config=config, tool=tool, **kwargs)
 
 
-def event_source(input_url, max_events=None,
+def event_source(input_url, max_events=None, allowed_tels=None,
                  config=None, parent=None, **kwargs):
     """
     Helper function to quickly construct an `EventSourceFactory` and produce
@@ -241,9 +246,12 @@ def event_source(input_url, max_events=None,
     Parameters
     ----------
     input_url: str
-        filename or URL pointing to an event file.
+        Filename or URL pointing to an event file
     max_events : int
         Maximum number of events to read from file
+    allowed_tels : set
+        Set of allowed tel_ids, others will be ignored. If left empty, all
+        telescopes in the input stream will be included
     config : traitlets.loader.Config
         Configuration specified by config file or cmdline arguments.
         This argument is typically only used from within a `ctapipe.core.Tool`.
@@ -266,7 +274,7 @@ def event_source(input_url, max_events=None,
     """
 
     reader = EventSourceFactory(
-        input_url=input_url, max_events=max_events,
+        input_url=input_url, max_events=max_events, allowed_tels=allowed_tels,
         config=config, tool=parent, **kwargs
     ).get_product()
 

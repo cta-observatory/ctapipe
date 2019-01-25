@@ -27,6 +27,18 @@ def test_factory_max_events():
     assert reader.max_events == max_events
 
 
+def test_factory_allowed_tels():
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    reader = EventSourceFactory(
+        input_url=dataset,
+    ).get_product()
+    assert len(reader.allowed_tels) == 0
+    reader = EventSourceFactory(
+        input_url=dataset, allowed_tels={1, 3}
+    ).get_product()
+    assert len(reader.allowed_tels) == 2
+
+
 def test_factory_config():
     dataset = get_dataset_path("gamma_test.simtel.gz")
     config = Config()
@@ -101,6 +113,14 @@ def test_event_source_helper_max_events():
     path = get_dataset_path("gamma_test_large.simtel.gz")
     with event_source(path, max_events=max_events) as source:
         assert source.max_events == max_events
+
+
+def test_event_source_helper_allowed_tels():
+    path = get_dataset_path("gamma_test_large.simtel.gz")
+    with event_source(path) as source:
+        assert len(source.allowed_tels) == 0
+    with event_source(path, allowed_tels={1, 3}) as source:
+        assert len(source.allowed_tels) == 2
 
 
 def test_deprecated_behaviour():
