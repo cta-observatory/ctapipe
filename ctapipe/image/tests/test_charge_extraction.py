@@ -11,7 +11,6 @@ from ctapipe.image.charge_extractors import (
     NeighbourPeakIntegrator,
     AverageWfPeakIntegrator,
 )
-from traitlets.config.loader import Config
 
 
 def test_full_integration(example_event):
@@ -134,20 +133,30 @@ def test_charge_extractor_factory(example_event):
     assert_almost_equal(integration[0][0], 76, 0)
 
 
-def test_charge_extractor_factory_args(example_event):
-    kwargs = dict(
-        window_width=20,
-        window_shift=3,
+def test_charge_extractor_factory_args():
+    '''config is supposed to be created by a `Tool`
+    '''
+    from traitlets.config.loader import Config
+    config = Config(
+        {
+            'ChargeExtractor': {
+                'window_width': 20,
+                'window_shift': 3,
+            }
+        }
     )
 
-    subclass_from_name(
+    local_peak_integrator = subclass_from_name(
         ChargeExtractor,
         'LocalPeakIntegrator',
-        **kwargs,
+        config=config,
     )
+    assert local_peak_integrator.window_width == 20
+    assert local_peak_integrator.window_shift == 3
 
     subclass_from_name(
         ChargeExtractor,
         'FullIntegrator',
-        **kwargs,
+        config=config,
     )
+
