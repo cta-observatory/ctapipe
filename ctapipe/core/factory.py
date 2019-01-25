@@ -18,17 +18,17 @@ def child_subclasses(base):
 
     Returns
     -------
-    children : dict
-        list of non-abstract subclasses
+    non_abstract : dict
+        dict of all non-abstract subclasses
 
     """
-    family = base.__subclasses__() + [
+    subclasses = base.__subclasses__() + [
         g for s in base.__subclasses__()
         for n, g in child_subclasses(s).items()
     ]
-    children = {g.__name__: g for g in family if not isabstract(g)}
+    non_abstract = {g.__name__: g for g in subclasses if not isabstract(g)}
 
-    return children
+    return non_abstract
 
 
 class FactoryMeta(type(Component), type):
@@ -157,7 +157,7 @@ class Factory(Component, metaclass=FactoryMeta):
 
     def __new__(cls, *args, **kwargs):
         """
-        Setup product traitlet
+        Setup product traitlet before instancing of Factory.
         Also ensures the values of the product traitlet contain Components
         defined since Factory definition
         """
@@ -201,52 +201,13 @@ class Factory(Component, metaclass=FactoryMeta):
     @classmethod
     def class_get_trait_help(cls, trait, inst=None):
         """
-        Update values before obtaining help message to make sure it contains
-        Components included since Factory definition
+        Override of Configurable.class_get_trait_help to update values before
+        obtaining help message to make sure it contains Components included
+        since Factory definition
         """
         if trait == cls.product:
             cls.update_product_traitlet()
         return super().class_get_trait_help(trait, inst)
-
-    def _clean_kwargs_for_product(self, product_class, kwargs_dict):
-        """
-        Remove and warn about kwargs that would throw an error for this
-        particular product.
-
-        There may be a usecase for passing arguments to the produce method of
-        the `Factory`, but the arguments are only valid for some of the
-        possible products of the Factory. This may be because some Components
-        have different traitlets. This function therefore removes arguments
-        that are not valid for the product Component returned this time from
-        the Factory.
-
-        Parameters
-        ----------
-        product_class: class
-            The constructor for the product of the factory
-        kwargs_dict : dict
-            The full kwargs dictionary
-
-        Returns
-        -------
-        kwargs_dict : dict
-            The kwargs dictionary with the non-compatible arguments removed
-        """
-        product_traits = product_class.class_trait_names()
-        product_args = list(product_class.__init__.__code__.co_varnames)
-        # config = copy(self.__dict__['_trait_values']['config'])
-        # parent = copy(self.__dict__['_trait_values']['parent'])
-
-        # Copy valid arguments to kwargs
-        kwargs_copy = copy(kwargs_dict)
-        for key in list(kwargs_copy.keys()):
-            if key not in product_traits + product_args:
-                del kwargs_copy[key]
-                msg = ("Traitlet ({}) does not exist for {}"
-                       .format(key, product_class.__name__))
-                self.log.warning(msg)
-                warnings.warn(msg, stacklevel=9)
-        return kwargs_copy
 
     def _get_product_name(self):
         """
@@ -263,9 +224,14 @@ class Factory(Component, metaclass=FactoryMeta):
             raise AttributeError("The user has not specified a product for {}"
                                  .format(self.__class__.__name__))
 
-    def _get_constructor(self):
+    def _get_product_constructor(self, product_name):
         """
         Obtain the class constructor for the specified product name.
+
+        Parameters
+        ----------
+        product_name : str
+            Name of the subclass to obtain from the factory
 
         Returns
         -------
@@ -273,7 +239,6 @@ class Factory(Component, metaclass=FactoryMeta):
 
         """
         subclass_dict = child_subclasses(self.base)
-        product_name = self._get_product_name()
         self.log.info("Obtaining {} from {}".format(product_name,
                                                     self.__class__.__name__))
         try:
@@ -284,26 +249,21 @@ class Factory(Component, metaclass=FactoryMeta):
                                'factory.'.format(product_name))
             raise
 
-    def get_product(self, **kwargs):
+    def get_product(self):
         """
         Produce an instance of the product class from the Factory
 
-        Parameters
-        ----------
-        kwargs
-            Named arguments to pass to product Component
-
         Returns
         -------
-        instance
+        product_instance
             Instance of the product class that is the purpose of the factory
             to produce.
 
         """
-        constructor = self._get_constructor()
-        kwargs = self._clean_kwargs_for_product(constructor, kwargs)
-        instance = constructor(self.config, self.parent, **kwargs)
-        return instance
+        product_name = self._get_product_name()
+        product_constructor = self._get_product_constructor(product_name)
+        product_instance = product_constructor(self.config, self.parent)
+        return product_instance
 
     @classmethod
     def produce(cls, config=None, tool=None, **kwargs):
@@ -373,7 +333,8 @@ class Factory(Component, metaclass=FactoryMeta):
         if hasattr(factory, 'input_url'):
             kwargs['input_url'] = factory.input_url
         try:
-            constructor = factory._get_constructor()
+            product_name = factory._get_product_name()
+            constructor = factory._get_product_constructor(product_name)
         except ValueError:
             if hasattr(cls, 'input_url'):
                 msg = ("Passing the input_url to the initialisation of "
@@ -392,7 +353,14 @@ class Factory(Component, metaclass=FactoryMeta):
                 if key in constructor.class_trait_names():
                     config[constructor.__name__][key] = value
 
+        # Remove kwargs not meant for product
+        product_traits = constructor.class_trait_names()
+        product_args = list(constructor.__init__.__code__.co_varnames)
+        product_kwargs = copy(kwargs)
+        for key in list(product_kwargs.keys()):
+            if key not in product_traits + product_args:
+                del product_kwargs[key]
+
         # Produce instance of the produced Component
-        kwargs = factory._clean_kwargs_for_product(constructor, kwargs)
-        instance = constructor(config, tool, **kwargs)
+        instance = constructor(config, tool, **product_kwargs)
         return instance

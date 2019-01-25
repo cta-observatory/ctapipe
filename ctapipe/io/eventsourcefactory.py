@@ -1,6 +1,7 @@
 from ctapipe.core.factory import Factory, child_subclasses
 from ctapipe.io.eventsource import EventSource
 from traitlets import Unicode
+from traitlets.config.loader import Config
 
 # EventFileReader imports so that EventFileReaderFactory can see them
 # (they need to exist in the global namespace)
@@ -85,18 +86,22 @@ class EventSourceFactory(Factory):
         help='Path to the input file containing events.'
     ).tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, input_url=None, max_events=None,
+                 config=None, tool=None, **kwargs):
         """
         Parameters
         ----------
         input_url : str
-            Path to a file to read.
-            The input_url can be specified either via a named argument to
+            URL to a file to read.
+            The input_url can be specified either via an argument to
             __init__, or via the command line utilising the input_url traitlet
             from a `ctapipe.core.tool.Tool` (see Tool example above).
-            The traitlet is passed to this Factory via the config argument.
+            The traitlet is then passed to this Factory via the config
+            argument.
             If specified as a named argument, the input_url traitlet will
             overriden.
+        max_events : int
+            Maximum number of events to read from file
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             This argument is typically only used from within a
@@ -113,25 +118,46 @@ class EventSourceFactory(Factory):
             Named arguments for the EventSourceFactory. These are not passed
             on to the EventSource.
         """
+        if input_url:
+            kwargs['input_url'] = input_url
+        self.max_events = max_events
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _get_product_name(self):
+        """
+        Method to obtain the correct name for the EventSource. If the
+        `product` traitlet is set, then the correspondingly named EventSource
+        is returned. If the `product` traitlet is unset, the subclasses to
+        EventSource are looped through, executing `is_compatible` with the
+        `input_url` traitlet until a compatible EventSource is found.
+
+        Returns
+        -------
+        str
+            The name of the EventSource to return from the EventSourceFactory.
+        """
         try:
+            # If a specific EventSource is requested via the `product` traitlet
             return super()._get_product_name()
         except AttributeError:
             if not self.input_url:
                 raise ValueError("Please specify an input_url for event file")
-            try:
-                for subclass in child_subclasses(self.base).values():
-                    if subclass.is_compatible(self.input_url):
-                        return subclass.__name__
-                raise ValueError
-            except ValueError:
-                self.log.exception("Cannot find compatible EventSource "
-                                   "for: {}".format(self.input_url))
-                raise
 
-    def get_product(self, **kwargs):
+            # Find compatible EventSource
+            subclasses = child_subclasses(self.base)
+            for subclass in subclasses.values():
+                if subclass.is_compatible(self.input_url):
+                    return subclass.__name__
+            else:
+                raise ValueError(
+                    "Cannot find compatible EventSource for \n"
+                    "\turl: {}\n"
+                    "in available EventSources:\n"
+                    "\t{}".format(self.input_url, list(subclasses.keys()))
+                )
+
+
+    def get_product(self):
         """
         Obtain the correct EventSource for the input_url supplied to this
         EventSourceFactory (via the arguments to __init__ or via the
@@ -146,18 +172,18 @@ class EventSourceFactory(Factory):
 
         Returns
         -------
-        instance : ctapipe.io.EventSource
+        product_instance : ctapipe.io.EventSource
             EventSource corresponding to the input_url, or corresponding to
             the product argument/traitlet if specified.
         """
-        if self.input_url:
-            constructor = self._get_constructor()
-            kwargs = self._clean_kwargs_for_product(constructor, kwargs)
-            instance = constructor(self.config, self.parent,
-                                   input_url=self.input_url, **kwargs)
-            return instance
-        else:
-            return super().get_product(**kwargs)
+        product_name = self._get_product_name()
+        product_constructor = self._get_product_constructor(product_name)
+        product_instance = product_constructor(
+            self.config, self.parent,
+            input_url=self.input_url, max_events=self.max_events
+        )
+        return product_instance
+
 
     @classmethod
     def produce(cls, config=None, tool=None, **kwargs):
@@ -196,7 +222,9 @@ class EventSourceFactory(Factory):
         """
         return super().produce(config=config, tool=tool, **kwargs)
 
-def event_source(input_url, config=None, parent=None, **kwargs):
+
+def event_source(input_url, max_events=None,
+                 config=None, parent=None, **kwargs):
     """
     Helper function to quickly construct an `EventSourceFactory` and produce
     an `EventSource`. This may be used in small scripts and demos for
@@ -216,6 +244,8 @@ def event_source(input_url, config=None, parent=None, **kwargs):
     ----------
     input_url: str
         filename or URL pointing to an event file.
+    max_events : int
+        Maximum number of events to read from file
     config : traitlets.loader.Config
         Configuration specified by config file or cmdline arguments.
         This argument is typically only used from within a `ctapipe.core.Tool`.
@@ -226,6 +256,9 @@ def event_source(input_url, config=None, parent=None, **kwargs):
         This argument is typically only used from within a `ctapipe.core.Tool`.
         Passes the correct logger to the component.
         Leave as None if no Tool to pass.
+    kwargs
+        Named arguments for the EventSourceFactory. These are not passed
+        on to the EventSource.
 
     Returns
     -------
@@ -235,7 +268,8 @@ def event_source(input_url, config=None, parent=None, **kwargs):
     """
 
     reader = EventSourceFactory(
-        config, parent, input_url=input_url
-    ).get_product(**kwargs)
+        input_url=input_url, max_events=max_events,
+        config=config, tool=parent, **kwargs
+    ).get_product()
 
     return reader

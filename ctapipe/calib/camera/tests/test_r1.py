@@ -12,6 +12,7 @@ from ctapipe.io.eventsource import EventSource
 from ctapipe.io.simteleventsource import SimTelEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.utils import get_dataset_path
+from traitlets.config.loader import Config
 
 
 def test_hessio_r1_calibrator(example_event):
@@ -51,9 +52,12 @@ def test_targetio_calibrator():
     assert_array_equal(event_r0.r0.tel[0].waveform,
                        event_r0.r1.tel[0].waveform)
 
-    r1c = CameraR1CalibratorFactory(eventsource=source_r0).get_product(
-        pedestal_path=pedpath
-    )
+    config = Config()
+    config['TargetIOR1Calibrator'] = Config()
+    config['TargetIOR1Calibrator']['pedestal_path'] = pedpath
+    r1c = CameraR1CalibratorFactory(
+        eventsource=source_r0, config=config
+    ).get_product()
     r1c.calibrate(event_r0)
     assert_array_almost_equal(event_r0.r1.tel[0].waveform,
                               event_r1.r1.tel[0].waveform, 1)

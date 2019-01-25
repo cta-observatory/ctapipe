@@ -13,7 +13,7 @@ class ExampleComponentParent(Component):
 
 
 class ExampleComponent1(ExampleComponentParent):
-    value = Int(123111, help="").tag(config=True)
+    pass
 
 
 class ExampleComponent2(ExampleComponentParent):
@@ -54,9 +54,123 @@ class IncorrectFactory(Factory):
 
 
 def test_factory():
-    obj = ExampleFactory(product='ExampleComponent2').get_product(value=111)
+    obj = ExampleFactory(product='ExampleComponent2').get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent2')
+    assert(obj.value == 123222)
+
+
+def test_factory_config():
+    config = Config()
+    config['ExampleComponent2'] = Config()
+    config['ExampleComponent2']['value'] = 111
+    obj = ExampleFactory(
+        product='ExampleComponent2', config=config
+    ).get_product()
     assert(obj.__class__.__name__ == 'ExampleComponent2')
     assert(obj.value == 111)
+
+
+def test_factory_config_via_parent():
+    config = Config()
+    config['ExampleComponentParent'] = Config()
+    config['ExampleComponentParent']['value'] = 111
+    obj = ExampleFactory(
+        product='ExampleComponent2', config=config
+    ).get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent2')
+    assert(obj.value == 111)
+
+
+def test_factory_config_via_sibling():
+    config = Config()
+    config['ExampleComponent1'] = Config()
+    config['ExampleComponent1']['value'] = 111
+    obj = ExampleFactory(
+        product='ExampleComponent2', config=config
+    ).get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent2')
+    with pytest.raises(AssertionError):
+        assert(obj.value == 111)
+
+
+def test_factory_config_extra():
+    config = Config()
+    config['ExampleComponent4'] = Config()
+    config['ExampleComponent4']['value'] = 111
+    config['ExampleComponent4']['extra'] = 112
+    obj = ExampleFactory(
+        product='ExampleComponent4', config=config
+    ).get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent4')
+    assert(obj.value == 111)
+    assert(obj.extra == 112)
+
+
+def test_factory_config_via_parent_extra():
+    config = Config()
+    config['ExampleComponentParent'] = Config()
+    config['ExampleComponentParent']['value'] = 111
+    config['ExampleComponentParent']['extra'] = 112
+    obj = ExampleFactory(
+        product='ExampleComponent4', config=config
+    ).get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent4')
+    assert(obj.value == 111)
+    assert(obj.extra == 112)
+
+
+def test_factory_config_via_sibling_extra():
+    config = Config()
+    config['ExampleComponent1'] = Config()
+    config['ExampleComponent1']['value'] = 111
+    config['ExampleComponent1']['extra'] = 112
+    obj = ExampleFactory(
+        product='ExampleComponent4', config=config
+    ).get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent4')
+    with pytest.raises(AssertionError):
+        assert(obj.value == 111)
+    with pytest.raises(AssertionError):
+        assert(obj.extra == 112)
+
+
+def test_factory_traitlet_default():
+    old_default = ExampleComponentParent.value.default_value
+    ExampleComponentParent.value.default_value = 199
+    assert ExampleComponent1.value.default_value == 199
+    obj = ExampleFactory(product='ExampleComponent1').get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent1')
+    assert(obj.value == 199)
+    ExampleComponentParent.value.default_value = old_default
+
+
+def test_factory_traitlet_default_seperate_traitlet():
+    """
+    Possibly want to allow such functionality in the future!
+    """
+    old_default = ExampleComponentParent.value.default_value
+    ExampleComponentParent.value.default_value = 199
+    with pytest.raises(AssertionError):
+        assert ExampleComponent2.value.default_value == 199
+    obj = ExampleFactory(product='ExampleComponent2').get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent2')
+    with pytest.raises(AssertionError):
+        assert(obj.value == 199)
+    ExampleComponentParent.value.default_value = old_default
+
+
+def test_factory_traitlet_default_config():
+    old_default = ExampleComponentParent.value.default_value
+    ExampleComponentParent.value.default_value = 199
+    config = Config()
+    config['ExampleComponentParent'] = Config()
+    config['ExampleComponentParent']['value'] = 111
+    obj = ExampleFactory(
+        product='ExampleComponent1', config=config
+    ).get_product()
+    assert(obj.__class__.__name__ == 'ExampleComponent1')
+    assert(obj.value == 111)
+    ExampleComponentParent.value.default_value = old_default
 
 
 def test_second_factory_product_different():
@@ -115,61 +229,14 @@ def test_custom_product_help():
     assert ExampleFactory.product_help in help_msg
 
 
-def test_factory_produce():
-    obj = ExampleFactory(product='ExampleComponent2').get_product(value=111)
-    assert (obj.__class__.__name__ == 'ExampleComponent2')
-    assert (obj.value == 111)
-
-
 def test_incorrect_factory_kwarg():
     with pytest.raises(TraitError):
         ExampleFactory(product='ExampleComponent2', value=111).get_product()
 
 
-def test_clean_kwargs_for_product():
-    kwargs = dict(
-        value=111,
-        nonexistant=5
-    )
-    factory = ExampleFactory(product='ExampleComponent2')
-    with pytest.warns(UserWarning):
-        cleaned = factory._clean_kwargs_for_product(ExampleComponent2, kwargs)
-    assert 'nonexistant' not in cleaned
-
-
-def test_incorrect_produce_kwarg():
-    kwargs = dict(
-        value=111,
-        nonexistant=5
-    )
-    with pytest.warns(UserWarning):
-        ExampleFactory(product='ExampleComponent2').get_product(**kwargs)
-
-
 def test_false_product_name():
     with pytest.raises(KeyError):
-        IncorrectFactory(product='ExampleComponent2').get_product(value=111)
-
-
-def test_expected_args():
-    kwargs = dict(
-        value=111,
-        extra=4,
-    )
-
-    with pytest.warns(UserWarning):
-        obj = ExampleFactory(product='ExampleComponent2').get_product(**kwargs)
-    assert obj.value == 111
-    with pytest.raises(AttributeError):
-        assert obj.extra == 4
-
-    obj = ExampleFactory(product='ExampleComponent3').get_product(**kwargs)
-    assert obj.value == 111
-    assert obj.extra == 4
-
-    obj = ExampleFactory(product='ExampleComponent4').get_product(**kwargs)
-    assert obj.value == 111
-    assert obj.extra == 4
+        IncorrectFactory(product='ExampleComponent2').get_product()
 
 
 def test_expected_config():

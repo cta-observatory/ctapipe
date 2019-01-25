@@ -1,4 +1,5 @@
 import pytest
+from astropy.utils.exceptions import AstropyUserWarning
 from traitlets import TraitError
 from ctapipe.io import EventSourceFactory, event_source
 from ctapipe.utils import get_dataset_path
@@ -15,6 +16,15 @@ def test_factory():
     reader = EventSourceFactory(input_url=dataset).get_product()
     assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset
+
+
+def test_factory_max_events():
+    max_events = 10
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    reader = EventSourceFactory(
+        input_url=dataset, max_events=max_events
+    ).get_product()
+    assert reader.max_events == max_events
 
 
 def test_factory_config():
@@ -34,21 +44,21 @@ def test_factory_different_file():
     assert reader.input_url == dataset
 
 
-def test_factory_from_reader():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
-    reader = EventSourceFactory(
-        product='SimTelEventSource',
-        input_url=dataset
-    ).get_product()
-    assert reader.__class__.__name__ == "SimTelEventSource"
-    assert reader.input_url == dataset
-
-
 def test_factory_unknown_file_format():
     with pytest.raises(ValueError):
         dataset = get_dataset_path("optics.ecsv.txt")
         reader = EventSourceFactory(input_url=dataset).get_product()
         assert reader is not None
+
+
+def test_factory_from_product():
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    with pytest.raises(OSError):
+        with pytest.warns(AstropyUserWarning):
+            EventSourceFactory(
+                input_url=dataset,
+                product="SST1MEventSource",
+            ).get_product()
 
 
 def test_factory_unknown_reader():
@@ -79,19 +89,18 @@ def test_no_file():
         EventSourceFactory().get_product()
 
 
-def test_factory_incorrect_use():
-    # with pytest.raises(FileNotFoundError):
-    dataset = get_dataset_path("gamma_test_large.simtel.gz")
-    factory = EventSourceFactory(product='SimTelEventSource')
-    reader = factory.get_product(input_url=dataset)
-    assert reader is not None
-
-
 def test_event_source_helper():
     path = get_dataset_path("gamma_test_large.simtel.gz")
     with event_source(path) as source:
         assert source.__class__.__name__ == "SimTelEventSource"
         assert source.input_url == path
+
+
+def test_event_source_helper_max_events():
+    max_events = 10
+    path = get_dataset_path("gamma_test_large.simtel.gz")
+    with event_source(path, max_events=max_events) as source:
+        assert source.max_events == max_events
 
 
 def test_deprecated_behaviour():
