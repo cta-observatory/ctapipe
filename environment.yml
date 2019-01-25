@@ -22,7 +22,6 @@ dependencies:
   - numpy>=1.15.4
   - numpydoc
   - pandas
-  - pyhessio
   - pytest
   - pytest-cov
   - psutil

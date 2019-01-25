@@ -2,15 +2,15 @@ name: cta-dev
 channels:
   - default
   - cta-observatory
-  - conda-forge
 dependencies:
+  - ctapipe-extra=0.2.16
   - python=3.7
   - zeromq
   - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
   - bokeh
   - cython
-  - gammapy
+  - conda-forge::gammapy
   - graphviz
   - h5py
   - iminuit
@@ -28,7 +28,7 @@ dependencies:
   - scikit-learn
   - scipy
   - setuptools
-  - sphinx=1.7
+  - sphinx
   - sphinx_rtd_theme
   - sphinx-automodapi
   - traitlets
@@ -42,5 +42,4 @@ dependencies:
   - pip:
       - pytest_runner
       - eventio==0.11.0
-      - https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.16.tar.gz
       - https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz
