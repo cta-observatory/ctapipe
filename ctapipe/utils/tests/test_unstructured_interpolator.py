@@ -1,7 +1,7 @@
 from ctapipe.utils.unstructured_interpolator import UnstructuredInterpolator
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator, RegularGridInterpolator
-
+import numpy.ma as ma
 
 def test_simple_interpolation():
     """
@@ -52,6 +52,61 @@ def test_linear_nd():
     assert np.all(np.abs(interpolated_points - linear_nd_points) < 1e-10)
 
 
+def test_remember_last():
+    """
+    Check we get the same answer when using masked arrays
+    """
+
+    # First set up 4 grid points and fill them randomly
+    interpolation_points = {(0, 0): np.random.rand(2, 2),
+                            (0, 1): np.random.rand(2, 2),
+                            (1, 0): np.random.rand(2, 2),
+                            (1, 1): np.random.rand(2, 2)}
+
+    # Create UnstructuredInterpolator and LinearNDInterpolator with these points
+    interpolator = UnstructuredInterpolator(interpolation_points, remember_last=True)
+
+    # Create some random coordinates in this space
+    random_nums = np.random.rand(2, 2)
+    points_mask = ma.masked_array(random_nums, mask=[[True, False],
+                                                     [True, False]])
+
+    # And interpolate...
+    interpolated_points = interpolator(random_nums).T[0]
+    interpolated_points_mask = interpolator(points_mask).T[0]
+
+    # Check everything agrees to a reasonable precision
+    assert np.all(np.abs(interpolated_points - interpolated_points_mask) < 1e-10)
+
+
+def test_masked_input():
+    """
+    Now lets test how well this all works if we pass a masked input
+    """
+
+    # First set up 4 grid points and fill them randomly
+    interpolation_points = {(0, 0): np.random.rand(2, 2),
+                            (0, 1): np.random.rand(2, 2),
+                            (1, 0): np.random.rand(2, 2),
+                            (1, 1): np.random.rand(2, 2)}
+
+    # Create UnstructuredInterpolator and LinearNDInterpolator with these points
+    interpolator = UnstructuredInterpolator(interpolation_points, remember_last=True)
+    linear_nd = LinearNDInterpolator(list(interpolation_points.keys()),
+                                     list(interpolation_points.values()))
+
+    # Create some random coordinates in this space
+    points = np.random.rand(10, 2)
+    # And interpolate...
+    interpolator(points)
+    interpolated_points = interpolator(points)
+
+    linear_nd_points = linear_nd(points)
+
+    # Check everything agrees to a reasonable precision
+    assert np.all(np.abs(interpolated_points - linear_nd_points) < 1e-10)
+
+
 def test_class_output():
     """
     The final test is to use the more useful functionality of interpolating between the
@@ -94,8 +149,27 @@ def test_class_output():
     assert np.all(np.abs(unsort_value - lin_nd_val) < 1e-10)
 
 
+def test_out_of_bounds():
+    """
+    Test function to check that we sensibly extrapolate when handed a point outside of
+    the interpolations bounds
+    """
+
+    interpolation_points = {(0, 0): 0.,
+                            (0, 1): 0.,
+                            (1, 0): 1.,
+                            (1, 1): 1.}
+
+    interpolator = UnstructuredInterpolator(interpolation_points)
+
+    interpolated_point = interpolator([[0,2],[1,2],[2,2]])
+    assert np.all(interpolated_point == [0., 1., 2.])
+
+
 if __name__ == '__main__':
 
     test_simple_interpolation()
     test_linear_nd()
     test_class_output()
+    test_out_of_bounds()
+

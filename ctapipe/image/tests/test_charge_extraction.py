@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import numpy as np
 from numpy.testing import assert_almost_equal
 
@@ -12,12 +10,11 @@ from ctapipe.image.charge_extractors import (FullIntegrator,
                                              AverageWfPeakIntegrator)
 
 
-def test_full_integration(test_event):
+def test_full_integration(example_event):
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -30,12 +27,12 @@ def test_full_integration(test_event):
     assert peakpos[1][0] == 0
 
 
-def test_simple_integration(test_event):
+def test_simple_integration(example_event):
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -48,12 +45,11 @@ def test_simple_integration(test_event):
     assert peakpos[1][0] == 0
 
 
-def test_global_peak_integration(test_event):
+def test_global_peak_integration(example_event):
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -66,12 +62,11 @@ def test_global_peak_integration(test_event):
     assert peakpos[1][0] == 14
 
 
-def test_local_peak_integration(test_event):
+def test_local_peak_integration(example_event):
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -84,15 +79,14 @@ def test_local_peak_integration(test_event):
     assert peakpos[1][0] == 13
 
 
-def test_nb_peak_integration(test_event):
+def test_nb_peak_integration(example_event):
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
-    geom = event.inst.subarray.tel[telid].camera
+    geom = example_event.inst.subarray.tel[telid].camera
     nei = geom.neighbor_matrix_where
 
     integrator = NeighbourPeakIntegrator()
@@ -105,12 +99,11 @@ def test_nb_peak_integration(test_event):
     assert peakpos[1][0] == 20
 
 
-def test_averagewf_peak_integration(test_event):
+def test_averagewf_peak_integration(example_event):
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
@@ -123,17 +116,15 @@ def test_averagewf_peak_integration(test_event):
     assert peakpos[1][0] == 10
 
 
-def test_charge_extractor_factory(test_event):
+def test_charge_extractor_factory(example_event):
     extractor = ChargeExtractorFactory.produce(
-
         product='LocalPeakIntegrator'
     )
 
     telid = 11
-    event = deepcopy(test_event)
-    data = event.r0.tel[telid].waveform
+    data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
-    ped = event.mc.tel[telid].pedestal
+    ped = example_event.mc.tel[telid].pedestal
     data_ped = data - np.atleast_3d(ped / nsamples)
 
     integration, peakpos, window = extractor.extract_charge(data_ped)

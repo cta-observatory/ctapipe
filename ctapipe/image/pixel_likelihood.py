@@ -34,7 +34,7 @@ import math
 
 import numpy as np
 from scipy.integrate import quad
-from scipy.misc import factorial
+from scipy.special import factorial
 
 __all__ = [
     'poisson_likelihood_gaussian', 'poisson_likelihood_full',

@@ -11,12 +11,12 @@ conf = RawConfigParser()
 conf.read(['setup.cfg'])
 metadata = dict(conf.items('metadata'))
 
-PACKAGENAME = metadata.get('package_name', 'packagename')
-DESCRIPTION = metadata.get('description', 'Astropy affiliated package')
-AUTHOR = metadata.get('author', '')
-AUTHOR_EMAIL = metadata.get('author_email', '')
-LICENSE = metadata.get('license', 'unknown')
-URL = metadata.get('url', 'http://astropy.org')
+PACKAGENAME = metadata['package_name']
+DESCRIPTION = metadata['description']
+AUTHOR = metadata['author']
+AUTHOR_EMAIL = metadata['author_email']
+LICENSE = metadata['license']
+URL = metadata['url']
 
 # Get the long description from the package's docstring
 __import__(PACKAGENAME)
@@ -31,12 +31,10 @@ entry_points['console_scripts'] = [
     'ctapipe-info = ctapipe.tools.info:main',
     'ctapipe-camdemo = ctapipe.tools.camdemo:main',
     'ctapipe-dump-triggers = ctapipe.tools.dump_triggers:main',
-    'ctapipe-flow = ctapipe.flow.flow:main',
     'ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main',
     'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
-    'ctapipe-chargeres-hist = '
-    'ctapipe.tools.plot_charge_resolution_variation_hist:main',
-    'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main'
+    'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main',
+    'ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main'
 ]
 
 package.version.update_release_version()
@@ -66,6 +64,9 @@ setup(name=PACKAGENAME,
           'matplotlib>=2.0',
           'numba',
           'pandas',
+          'bokeh>=1.0.1',
+          'scikit-learn',
+          'eventio==0.11.0',
       ],
       tests_require=['pytest', 'ctapipe-extra>=0.2.11'],
       author=AUTHOR,
@@ -86,5 +87,8 @@ setup(name=PACKAGENAME,
       zip_safe=False,
       use_2to3=False,
       entry_points=entry_points,
-      ext_modules=[neighboursum_module]
+      ext_modules=[neighboursum_module],
+      package_data={
+          '': ['tools/bokeh/*.yaml', 'tools/bokeh/templates/*.html'],
+      }
       )

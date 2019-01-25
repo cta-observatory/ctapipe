@@ -4,8 +4,6 @@ from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-import gzip
-import struct
 
 __all__ = ['HESSIOEventSource']
 
@@ -32,8 +30,8 @@ class HESSIOEventSource(EventSource):
         self.pyhessio = pyhessio
 
         if HESSIOEventSource._count > 0:
-            self.log.warn("Only one pyhessio event_source allowed at a time. "
-                          "Previous hessio file will be closed.")
+            self.log.warning("Only one pyhessio event_source allowed at a time. "
+                             "Previous hessio file will be closed.")
             self.pyhessio.close_file()
         HESSIOEventSource._count += 1
 
@@ -41,18 +39,11 @@ class HESSIOEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        # read the first 4 bytes
-        with open(file_path, 'rb') as f:
-            marker_bytes = f.read(4)
-        # if file is gzip, read the first 4 bytes with gzip again
-        if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
-            with gzip.open(file_path, 'rb') as f:
-                marker_bytes = f.read(4)
-        # check for the simtel magic marker
-        int_marker, = struct.unpack('I', marker_bytes)
-        return int_marker == 3558836791 or int_marker == 931798996
+        '''This class should never be chosen by the EventSourceFactory'''
+        return False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        HESSIOEventSource._count -= 1
         self.pyhessio.close_file()
 
     def _generator(self):

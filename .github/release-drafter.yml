@@ -1,0 +1,8 @@
+template: |
+  ## What's Changed since $PREVIOUS_TAG
+
+  $CHANGES
+
+  ## Contributers
+
+  $CONTRIBUTERS

@@ -4,12 +4,31 @@ EventSource for SST1M/digicam protobuf-fits.fz-files.
 
 Needs protozfits v1.0.2 from github.com/cta-sst-1m/protozfitsreader
 """
+import gzip
 import numpy as np
 from .eventsource import EventSource
 from .containers import SST1MDataContainer
 from ..instrument import TelescopeDescription
 
 __all__ = ['SST1MEventSource']
+
+
+def is_fits_in_header(file_path):
+    '''quick check if file is a FITS file
+
+    by looking into the first 1024 bytes and searching for the string "FITS"
+    typically used in is_compatible
+    '''
+    # read the first 1kB
+    with open(file_path, 'rb') as f:
+        marker_bytes = f.read(1024)
+
+    # if file is gzip, read the first 4 bytes with gzip again
+    if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
+        with gzip.open(file_path, 'rb') as f:
+            marker_bytes = f.read(1024)
+
+    return b'FITS' in marker_bytes
 
 
 class SST1MEventSource(EventSource):
@@ -78,6 +97,9 @@ class SST1MEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        if not is_fits_in_header(file_path):
+            return False
+
         from astropy.io import fits
         try:
             h = fits.open(file_path)[1].header

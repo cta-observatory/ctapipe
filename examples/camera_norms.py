@@ -22,16 +22,16 @@ if __name__ == '__main__':
 
     model = toymodel.generate_2d_shower_model(
         centroid=(0.2, 0.0),
-        width=0.01,
-        length=0.1,
+        width=0.05,
+        length=0.15,
         psi='35d',
     )
 
     image, sig, bg = toymodel.make_toymodel_shower_image(
         geom,
         model.pdf,
-        intensity=50,
-        nsb_level_pe=1000,
+        intensity=1500,
+        nsb_level_pe=5,
     )
 
     disps = []

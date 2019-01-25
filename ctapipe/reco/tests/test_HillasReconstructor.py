@@ -7,6 +7,7 @@ from ctapipe.io.eventsourcefactory import EventSourceFactory
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord
+from ctapipe.coordinates import HorizonFrame
 
 
 def test_estimator_results():
@@ -14,21 +15,22 @@ def test_estimator_results():
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
     0.1 m in one of the four cardinal directions """
+    horizon_frame = HorizonFrame()
 
-    p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame='altaz')
-    p2 = SkyCoord(alt=47 * u.deg, az=45 * u.deg, frame='altaz')
+    p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=47 * u.deg, az=45 * u.deg, frame=horizon_frame)
     circle1 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, 1, 0] * u.m)
 
-    p1 = SkyCoord(alt=44 * u.deg, az=90 * u.deg, frame='altaz')
-    p2 = SkyCoord(alt=46 * u.deg, az=90 * u.deg, frame='altaz')
+    p1 = SkyCoord(alt=44 * u.deg, az=90 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=46 * u.deg, az=90 * u.deg, frame=horizon_frame)
     circle2 = HillasPlane(p1=p1, p2=p2, telescope_position=[1, 0, 0] * u.m)
 
-    p1 = SkyCoord(alt=44.5 * u.deg, az=45 * u.deg, frame='altaz')
-    p2 = SkyCoord(alt=46.5 * u.deg, az=45 * u.deg, frame='altaz')
+    p1 = SkyCoord(alt=44.5 * u.deg, az=45 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=46.5 * u.deg, az=45 * u.deg, frame=horizon_frame)
     circle3 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, -1, 0] * u.m)
 
-    p1 = SkyCoord(alt=43.5 * u.deg, az=90 * u.deg, frame='altaz')
-    p2 = SkyCoord(alt=45.5 * u.deg, az=90 * u.deg, frame='altaz')
+    p1 = SkyCoord(alt=43.5 * u.deg, az=90 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=45.5 * u.deg, az=90 * u.deg, frame=horizon_frame)
     circle4 = HillasPlane(p1=p1, p2=p2, telescope_position=[-1, 0, 0] * u.m)
 
     # creating the fit class and setting the the great circle member
@@ -41,14 +43,42 @@ def test_estimator_results():
     print("direction fit test minimise:", dir_fit_minimise)
     print()
 
-    # performing the direction fit with the geometric algorithm
-    fitted_core_position, _ = fit.estimate_core_position()
-    print("direction fit test core position:", fitted_core_position)
-    print()
+
+def test_h_max_results():
+    """
+    creating some planes pointing in different directions (two
+    north-south, two east-west) and that have a slight position errors (+-
+    0.1 m in one of the four cardinal directions """
+    horizon_frame = HorizonFrame()
+
+    p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
+    circle1 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, 1, 0] * u.m)
+
+    p1 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
+    circle2 = HillasPlane(p1=p1, p2=p2, telescope_position=[1, 0, 0] * u.m)
+
+    p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
+    circle3 = HillasPlane(p1=p1, p2=p2, telescope_position=[0, -1, 0] * u.m)
+
+    p1 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
+    p2 = SkyCoord(alt=0 * u.deg, az=90 * u.deg, frame=horizon_frame)
+    circle4 = HillasPlane(p1=p1, p2=p2, telescope_position=[-1, 0, 0] * u.m)
+
+    # creating the fit class and setting the the great circle member
+    fit = HillasReconstructor()
+    fit.hillas_planes = {1: circle1, 2: circle2, 3: circle3, 4: circle4}
+
+    # performing the direction fit with the minimisation algorithm
+    # and a seed that is perpendicular to the up direction
+    h_max_reco = fit.estimate_h_max()
+    print("h max fit test minimise:", h_max_reco)
 
     # the results should be close to the direction straight up
-    np.testing.assert_allclose(dir_fit_minimise, [0, 0, 1], atol=1e-3)
-    np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
+    np.testing.assert_allclose(h_max_reco.value, 0, atol=1e-8)
+    # np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
 
 
 def test_reconstruction():
@@ -69,10 +99,7 @@ def test_reconstruction():
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = EventSourceFactory.produce(
-        input_url=filename,
-        product='HESSIOEventSource',
-    )
+    source = EventSourceFactory.produce(input_url=filename)
 
     for event in source:
 
@@ -106,4 +133,3 @@ def test_reconstruction():
         fit_result.az.to(u.deg)
         fit_result.core_x.to(u.m)
         assert fit_result.is_valid
-        return

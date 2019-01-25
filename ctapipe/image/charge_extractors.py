@@ -181,7 +181,7 @@ class Integrator(ChargeExtractor):
         Returns
         -------
         start : ndarray
-            Numpy array containing the window start for each pixel. 
+            Numpy array containing the window start for each pixel.
             Shape = (n_chan, n_pix)
 
         """
@@ -200,7 +200,7 @@ class Integrator(ChargeExtractor):
         Returns
         -------
         width : ndarray
-            Numpy array containing the window width for each pixel. 
+            Numpy array containing the window width for each pixel.
             Shape = (n_chan, n_pix)
 
         """
@@ -617,7 +617,7 @@ class LocalPeakIntegrator(PeakFindingIntegrator):
 
 class NeighbourPeakIntegrator(PeakFindingIntegrator):
     """
-    Charge extractor that defines an integration window defined by the 
+    Charge extractor that defines an integration window defined by the
     peaks in the neighbouring pixels.
 
     Attributes

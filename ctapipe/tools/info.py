@@ -147,7 +147,7 @@ def _info_resources():
         print("\t no path is set")
     print("")
 
-    all_resources = sorted(datasets.find_all_matching_datasets("\w.*"))
+    all_resources = sorted(datasets.find_all_matching_datasets(r'\w.*'))
     locations = [os.path.dirname(datasets.get_dataset_path(name))
                  for name in all_resources]
     home = os.path.expanduser("~")

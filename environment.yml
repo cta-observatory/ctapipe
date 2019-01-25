@@ -1,11 +1,11 @@
 name: cta-dev
 channels:
-  - anaconda
+  - default
   - cta-observatory
   - conda-forge
 dependencies:
-  - zeromq=4.2.2
-  - ctapipe-extra=0.2.*
+  - zeromq
+  - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
   - bokeh
   - cython
@@ -18,16 +18,14 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy
+  - numpy>=1.15.4
   - numpydoc
   - pandas
   - pyhessio
   - pytest
   - pytest-cov
   - psutil
-  - readline
   - scikit-learn
-  - scikit-image
   - scipy
   - setuptools
   - sphinx=1.7
@@ -36,11 +34,12 @@ dependencies:
   - traitlets
   - wheel
   - xz
-  - yaml
+  - pyyaml
   - zlib
   - iminuit
   - pytables
   - tqdm
-  - tornado=4.5.3
   - pip:
       - pytest_runner
+      - eventio==0.11.0
+      - https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.16.tar.gz

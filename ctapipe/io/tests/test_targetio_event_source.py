@@ -152,7 +152,7 @@ def test_eventseeker():
     with TargetIOEventSource(input_url=dataset, max_events=3) as source:
         with pytest.raises(IndexError):
             seeker = EventSeeker(source)
-            _ = seeker[5]
+            seeker[5]
 
 
 def test_pipeline():

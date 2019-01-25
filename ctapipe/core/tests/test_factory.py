@@ -49,7 +49,6 @@ class IncorrectExampleFactory(Factory):
 
 def test_factory():
     obj = ExampleFactory.produce(
-        config=None, tool=None,
         product='ExampleComponent2',
         value=111
     )
@@ -88,15 +87,16 @@ def test_factory_traits_compatible_help():
         "ExampleComponent2",
         "ExampleComponent3",
         "ExampleComponent4"
-        ]
+    ]
     for m in msg:
         assert m in ExampleFactory.class_own_traits()['value'].help
 
 
 def test_factory_produce():
-    obj = ExampleFactory.produce(config=None, tool=None,
-                                 product='ExampleComponent2',
-                                 value=111)
+    obj = ExampleFactory.produce(
+        product='ExampleComponent2',
+        value=111
+    )
     assert (obj.__class__.__name__ == 'ExampleComponent2')
     assert (obj.value == 111)
 
@@ -104,7 +104,6 @@ def test_factory_produce():
 def test_false_product_name():
     with pytest.raises(KeyError):
         IncorrectExampleFactory.produce(
-            config=None, tool=None,
             product='ExampleComponent2',
             value=111
         )
@@ -118,10 +117,10 @@ def test_expected_args():
         nonexistant=5
     )
     with pytest.raises(TraitError):
-        obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
+        obj = ExampleFactory.produce(**kwargs)
 
     kwargs.pop('nonexistant')
-    obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
+    obj = ExampleFactory.produce(**kwargs)
 
     with pytest.raises(AttributeError):
         assert obj.extra == 4
@@ -129,13 +128,13 @@ def test_expected_args():
         assert obj.nonexistant == 5
 
     kwargs['product'] = 'ExampleComponent3'
-    obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
+    obj = ExampleFactory.produce(**kwargs)
     assert obj.extra == 4
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
 
     kwargs['product'] = 'ExampleComponent4'
-    obj = ExampleFactory.produce(config=None, tool=None, **kwargs)
+    obj = ExampleFactory.produce(**kwargs)
     assert obj.extra == 4
     with pytest.raises(AttributeError):
         assert obj.nonexistant == 5
@@ -147,7 +146,7 @@ def test_expected_config():
     config['ExampleFactory']['product'] = 'ExampleComponent2'
     config['ExampleFactory']['value'] = 111
     config['ExampleFactory']['extra'] = 4
-    obj = ExampleFactory.produce(config=config, tool=None)
+    obj = ExampleFactory.produce(config=config)
     assert obj.value == 111
     with pytest.raises(AttributeError):
         assert obj.extra == 4
@@ -160,7 +159,7 @@ def test_expected_config():
     config['ExampleComponent2']['extra'] = 4
     with warnings.catch_warnings():
         warnings.simplefilter(action='ignore', category=UserWarning)
-        obj = ExampleFactory.produce(config=config, tool=None)
+        obj = ExampleFactory.produce(config=config)
     assert obj.value == 111
     with pytest.raises(AttributeError):
         assert obj.extra == 4
@@ -170,7 +169,7 @@ def test_expected_config():
     config['ExampleFactory']['product'] = 'ExampleComponent4'
     config['ExampleFactory']['value'] = 111
     config['ExampleFactory']['extra'] = 4
-    obj = ExampleFactory.produce(config=config, tool=None)
+    obj = ExampleFactory.produce(config=config)
     assert obj.value == 111
     assert obj.extra == 4
 
@@ -179,7 +178,7 @@ def test_expected_config():
     config['ExampleComponent4'] = Config()
     config['ExampleComponent4']['value'] = 111
     config['ExampleComponent4']['extra'] = 4
-    obj = ExampleFactory.produce(config=config, tool=None)
+    obj = ExampleFactory.produce(config=config)
     assert obj.value == 111
     assert obj.extra == 4
 
@@ -187,12 +186,10 @@ def test_expected_config():
 def test_default_passing():
     old_default = ExampleFactory.value.default_value
     ExampleFactory.value.default_value = 3
-    obj = ExampleFactory.produce(config=None, tool=None,
-                                 product='ExampleComponent2')
+    obj = ExampleFactory.produce(product='ExampleComponent2')
     assert (obj.value == 3)
-    obj = ExampleFactory.produce(config=None, tool=None,
-                                 product='ExampleComponent4')
+    obj = ExampleFactory.produce(product='ExampleComponent4')
     assert (obj.value == 3)
     ExampleFactory.value.default_value = old_default
-    obj = ExampleFactory.produce(config=None, tool=None)
+    obj = ExampleFactory.produce()
     assert (obj.value == old_default)

@@ -1,9 +1,10 @@
 import logging
+import warnings
 
 import numpy as np
 from astropy import log
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 from astropy.utils.decorators import deprecated
 
 from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def analyze_muon_event(event):
     """
-    Generic muon event analyzer. 
+    Generic muon event analyzer.
 
     Parameters
     ----------
@@ -29,7 +30,7 @@ def analyze_muon_event(event):
 
     Returns
     -------
-    muonringparam, muonintensityparam : MuonRingParameter 
+    muonringparam, muonintensityparam : MuonRingParameter
     and MuonIntensityParameter container event
 
     """
@@ -91,24 +92,32 @@ def analyze_muon_event(event):
 
         clean_mask = tailcuts_clean(geom, image, picture_thresh=tailcuts[0],
                                     boundary_thresh=tailcuts[1])
-        camera_coord = CameraFrame(
-            x=x, y=y,
-            focal_length=teldes.optics.equivalent_focal_length,
-            rotation=geom.pix_rotation
-        )
 
         # TODO: correct this hack for values over 90
         altval = event.mcheader.run_array_direction[1]
-        if altval > Angle(90*u.deg):
-            altval = Angle(90*u.deg)
+        if altval > Angle(90, unit=u.deg):
+            warnings.warn('Altitude over 90 degrees')
+            altval = Angle(90, unit=u.deg)
 
-        altaz = HorizonFrame(alt=altval,
-                             az=event.mcheader.run_array_direction[0])
-        nom_coord = camera_coord.transform_to(
-            NominalFrame(array_direction=altaz, pointing_direction=altaz)
+        telescope_pointing = SkyCoord(
+            alt=altval,
+            az=event.mcheader.run_array_direction[0],
+            frame=HorizonFrame()
         )
-        x = nom_coord.x.to(u.deg)
-        y = nom_coord.y.to(u.deg)
+        camera_coord = SkyCoord(
+            x=x, y=y,
+            frame=CameraFrame(
+                focal_length=teldes.optics.equivalent_focal_length,
+                rotation=geom.pix_rotation,
+                telescope_pointing=telescope_pointing,
+            )
+        )
+
+        nom_coord = camera_coord.transform_to(
+            NominalFrame(origin=telescope_pointing)
+        )
+        x = nom_coord.delta_az.to(u.deg)
+        y = nom_coord.delta_alt.to(u.deg)
 
         if(cleaning):
             img = image * clean_mask
@@ -270,7 +279,7 @@ def analyze_muon_source(source):
     log.info("[FUNCTION] {}".format(__name__))
 
     if geom_dict is None:
-        geom_dict = {}        
+        geom_dict = {}
     numev = 0
     for event in source:  # Put a limit on number of events
         numev += 1
