@@ -190,8 +190,8 @@ class SimTelEventSource(EventSource):
             data.mcheader.corsika_low_E_model = mc_run_head['corsika_low_E_model']
             data.mcheader.corsika_high_E_model = mc_run_head['corsika_high_E_model']
             data.mcheader.corsika_bunchsize = mc_run_head['corsika_bunchsize']
-            data.mcheader.corsika_wlen_min = mc_run_head['corsika_wlen_min']
-            data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max']
+            data.mcheader.corsika_wlen_min = mc_run_head['corsika_wlen_min'] * u.nm
+            data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max'] * u.nm
             data.mcheader.corsika_low_E_detail = mc_run_head['corsika_low_E_detail']
             data.mcheader.corsika_high_E_detail = mc_run_head['corsika_high_E_detail']
 
