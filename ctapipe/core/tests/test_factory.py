@@ -239,7 +239,7 @@ def test_false_product_name():
         IncorrectFactory(product='ExampleComponent2').get_product()
 
 
-def test_expected_config():
+def test_extra_config():
     config = Config()
     config['ExampleFactory'] = Config()
     config['ExampleFactory']['product'] = 'ExampleComponent2'
@@ -260,6 +260,16 @@ def test_expected_config():
     obj = ExampleFactory(config=config).get_product()
     assert obj.value == 111
     assert obj.extra == 4
+
+
+def test_override_product():
+    config = Config()
+    config['ExampleFactory'] = Config()
+    config['ExampleFactory']['product'] = 'ExampleComponent1'
+    obj = ExampleFactory(
+        config=config, product='ExampleComponent2'
+    ).get_product()
+    assert obj.__class__.__name__ == 'ExampleComponent2'
 
 
 def test_trying_to_set_traitlets_via_factory():
@@ -288,6 +298,62 @@ def test_component_definition_after_factory():
     assert isinstance(obj, ExampleComponent5)
     assert obj.value == 1234445
     assert "ExampleComponent5" in ExampleFactory.class_get_help()
+
+
+def test_product_kwargs():
+    obj = ExampleFactory(product='ExampleComponent2').get_product(value=5)
+    assert isinstance(obj, ExampleComponent2)
+    assert obj.value == 5
+
+
+def test_product_kwargs_does_not_alter_config():
+    config = Config()
+    config['ExampleComponent2'] = Config()
+    config['ExampleComponent2']['value'] = 111
+    factory = ExampleFactory(config=config, product='ExampleComponent2')
+    obj = factory.get_product(value=5)
+    assert obj.value == 5
+    assert factory.config['ExampleComponent2']['value'] == 111
+
+
+def test_product_kwargs_override_config():
+    config = Config()
+    config['ExampleComponent2'] = Config()
+    config['ExampleComponent2']['value'] = 111
+    obj = ExampleFactory(
+        config=config, product='ExampleComponent2'
+    ).get_product(value=5)
+    assert isinstance(obj, ExampleComponent2)
+    assert obj.value == 5
+
+
+def test_product_kwargs_override_config_parent():
+    config = Config()
+    config['ExampleComponentParent'] = Config()
+    config['ExampleComponentParent']['value'] = 111
+    obj = ExampleFactory(
+        config=config, product='ExampleComponent2'
+    ).get_product(value=5)
+    assert isinstance(obj, ExampleComponent2)
+    assert obj.value == 5
+
+
+def test_product_kwargs_override_config_sibling():
+    config = Config()
+    config['ExampleComponent1'] = Config()
+    config['ExampleComponent1']['value'] = 111
+    obj = ExampleFactory(
+        config=config, product='ExampleComponent2'
+    ).get_product(value=5)
+    assert isinstance(obj, ExampleComponent2)
+    assert obj.value == 5
+
+
+def test_product_kwargs_unrecognised():
+    with pytest.warns(UserWarning):
+        obj = ExampleFactory(product='ExampleComponent2').get_product(extra=5)
+    assert isinstance(obj, ExampleComponent2)
+    assert not hasattr(obj, 'extra')
 
 
 def test_deprecated_behaviour():

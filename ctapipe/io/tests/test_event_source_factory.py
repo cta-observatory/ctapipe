@@ -31,9 +31,12 @@ def test_factory_input_url_config_override():
     dataset1 = get_dataset_path("gamma_test.simtel.gz")
     dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
     config = Config()
-    config['EventSource'] = Config()
-    config['EventSource']['input_url'] = dataset1
-    reader = EventSourceFactory(input_url=dataset2).get_product()
+    config['EventSourceFactory'] = Config()
+    config['EventSourceFactory']['input_url'] = dataset1
+    reader = EventSourceFactory(
+        input_url=dataset2,
+        config=config,
+    ).get_product()
     assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset2
 
@@ -43,6 +46,58 @@ def test_factory_input_url_product_override():
     dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
     factory = EventSourceFactory(input_url=dataset1)
     reader = factory.get_product(input_url=dataset2)
+    assert reader.__class__.__name__ == "SimTelEventSource"
+    assert reader.input_url == dataset2
+
+
+def test_factory_input_url_factory_config_missing():
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    config = Config()
+    config['EventSource'] = Config()
+    config['EventSource']['input_url'] = dataset
+    with pytest.raises(ValueError):
+        EventSourceFactory(config=config).get_product()
+
+
+def test_factory_input_url_product_config_override():
+    dataset1 = get_dataset_path("gamma_test.simtel.gz")
+    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
+    config = Config()
+    config['EventSource'] = Config()
+    config['EventSource']['input_url'] = dataset1
+    reader = EventSourceFactory(
+        input_url=dataset2,
+        config=config,
+    ).get_product()
+    assert reader.__class__.__name__ == "SimTelEventSource"
+    assert reader.input_url == dataset1
+
+
+def test_factory_input_url_product_config_override2():
+    dataset1 = get_dataset_path("gamma_test.simtel.gz")
+    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
+    config = Config()
+    config['EventSource'] = Config()
+    config['EventSource']['input_url'] = dataset1
+    reader = EventSourceFactory(
+        input_url=dataset2,
+        config=config,
+    ).get_product(input_url=dataset1)
+    assert reader.__class__.__name__ == "SimTelEventSource"
+    assert reader.input_url == dataset1
+
+
+def test_factory_input_url_override_only_config():
+    dataset1 = get_dataset_path("gamma_test.simtel.gz")
+    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
+    config = Config()
+    config['EventSourceFactory'] = Config()
+    config['EventSourceFactory']['input_url'] = dataset1
+    config['EventSource'] = Config()
+    config['EventSource']['input_url'] = dataset2
+    reader = EventSourceFactory(
+        config=config,
+    ).get_product()
     assert reader.__class__.__name__ == "SimTelEventSource"
     assert reader.input_url == dataset2
 

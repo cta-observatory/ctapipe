@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 from ctapipe.core.component import Component
 from inspect import isabstract
 from traitlets import CaselessStrEnum
@@ -249,7 +249,32 @@ class Factory(Component, metaclass=FactoryMeta):
                                'factory.'.format(product_name))
             raise
 
-    def get_product(self):
+    def _get_product_config(self, product_name, **kwargs):
+        """
+        Add named arguments intended for the product to a `Config` object so
+        that they may be passed to the `Component`.
+
+        Parameters
+        ----------
+        product_name : str
+            Name of the product, obtained by `_get_product_name`
+        kwargs
+            Named arguments intended for the product
+
+        Returns
+        -------
+        config : traitlets.config.loader.Config
+            Config object containing the kwargs.
+            Intended to be passed to the contructor of the product
+        """
+        config = deepcopy(self.config) or Config()
+        config[product_name] = config.get(product_name, Config())
+        for key, value in kwargs.items():
+            if value is not None:
+                config[product_name][key] = value
+        return config
+
+    def get_product(self, **kwargs):
         """
         Produce an instance of the product class from the Factory
 
@@ -258,11 +283,14 @@ class Factory(Component, metaclass=FactoryMeta):
         product_instance
             Instance of the product class that is the purpose of the factory
             to produce.
+        kwargs
+            Named arguments intended to set the traitlet values for the product
 
         """
         product_name = self._get_product_name()
         product_constructor = self._get_product_constructor(product_name)
-        product_instance = product_constructor(self.config, self.parent)
+        product_config = self._get_product_config(product_name, **kwargs)
+        product_instance = product_constructor(product_config, self.parent)
         return product_instance
 
     @classmethod

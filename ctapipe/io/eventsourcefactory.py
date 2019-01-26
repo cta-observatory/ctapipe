@@ -116,6 +116,9 @@ class EventSourceFactory(Factory):
         """
         if input_url:
             kwargs['input_url'] = input_url
+        # input_url traitlet is set by the `traitlets.config.Configurable`
+        # class (inherited) via kwargs passed into __init__,
+        # or via the traitlets config
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _get_product_name(self):
@@ -150,7 +153,7 @@ class EventSourceFactory(Factory):
                 "\t{}".format(self.input_url, list(subclasses.keys()))
             )
 
-    def get_product(self, input_url=None, max_events=None, allowed_tels=None):
+    def get_product(self, max_events=None, allowed_tels=None, **kwargs):
         """
         Obtain the correct EventSource for the input_url supplied to this
         EventSourceFactory (via the arguments to __init__ or via the
@@ -158,12 +161,6 @@ class EventSourceFactory(Factory):
 
         Parameters
         ----------
-        input_url : str
-            URL to a file to read. Overrides the input_url supplied to the
-            EventSourceFactory. Does not need to be set if an input_url was
-            passed to the EventSourceFactory via __init__ or via traitlet
-            configuration. Also overrides the
-            EventSource.input_url traitlet configuration.
         max_events : int
             Maximum number of events to read from file. Overrides the
             EventSource.max_events traitlet configuration.
@@ -171,6 +168,9 @@ class EventSourceFactory(Factory):
             Set of allowed tel_ids, others will be ignored. If left empty, all
             telescopes in the input stream will be included. Overrides the
             EventSource.allowed_tels traitlet configuration.
+        kwargs
+            Additional named arguments intended to set the traitlet values
+            for the product
 
         Returns
         -------
@@ -180,16 +180,20 @@ class EventSourceFactory(Factory):
         """
         product_name = self._get_product_name()
         product_constructor = self._get_product_constructor(product_name)
-        kwargs = dict(input_url=self.input_url)
-        if input_url:
-            kwargs['input_url'] = input_url
-        if max_events:
-            kwargs['max_events'] = max_events
-        if allowed_tels:
-            kwargs['allowed_tels'] = allowed_tels
-        product_instance = product_constructor(
-            self.config, self.parent, **kwargs
+
+        # Copy EventSourceFactory.input_url into the EventSource config
+        config = self._get_product_config(
+            'EventSource', input_url=self.input_url
         )
+        # Restore original EventSource config (if it exists) and add kwargs
+        config.merge(self._get_product_config(
+            product_name,
+            max_events=max_events,
+            allowed_tels=allowed_tels,
+            **kwargs
+        ))
+
+        product_instance = product_constructor(config, self.parent)
         return product_instance
 
     @classmethod
