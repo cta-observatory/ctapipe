@@ -288,7 +288,7 @@ class MCHeaderContainer(Container):
     shower_prog_start = Field(np.nan, """Time when shower simulation started,
                               CORSIKA: only date""")
     shower_prog_id = Field(np.nan, "CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
-    detector_prog_start = Field(np.nna, "Time when detector simulation started")
+    detector_prog_start = Field(np.nan, "Time when detector simulation started")
     detector_prog_id = Field(np.nan, "simtelarray=1")
     num_showers = Field(np.nan, "Number of showers simulated")
     shower_reuse = Field(np.nan, "Numbers of uses of each shower")
