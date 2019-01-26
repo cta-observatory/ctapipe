@@ -17,12 +17,42 @@ def test_factory():
     assert reader.input_url == dataset
 
 
+def test_factory_config():
+    dataset = get_dataset_path("gamma_test.simtel.gz")
+    config = Config()
+    config['EventSourceFactory'] = Config()
+    config['EventSourceFactory']['input_url'] = dataset
+    reader = EventSourceFactory(config=config).get_product()
+    assert reader.__class__.__name__ == "SimTelEventSource"
+    assert reader.input_url == dataset
+
+
+def test_factory_input_url_config_override():
+    dataset1 = get_dataset_path("gamma_test.simtel.gz")
+    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
+    config = Config()
+    config['EventSource'] = Config()
+    config['EventSource']['input_url'] = dataset1
+    reader = EventSourceFactory(input_url=dataset2).get_product()
+    assert reader.__class__.__name__ == "SimTelEventSource"
+    assert reader.input_url == dataset2
+
+
+def test_factory_input_url_product_override():
+    dataset1 = get_dataset_path("gamma_test.simtel.gz")
+    dataset2 = get_dataset_path("gamma_test_large.simtel.gz")
+    factory = EventSourceFactory(input_url=dataset1)
+    reader = factory.get_product(input_url=dataset2)
+    assert reader.__class__.__name__ == "SimTelEventSource"
+    assert reader.input_url == dataset2
+
+
 def test_factory_max_events():
     max_events = 10
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    reader = EventSourceFactory(
-        input_url=dataset, max_events=max_events
-    ).get_product()
+    reader = EventSourceFactory(input_url=dataset).get_product(
+        max_events=max_events
+    )
     assert reader.max_events == max_events
 
 
@@ -44,9 +74,9 @@ def test_factory_allowed_tels():
         input_url=dataset,
     ).get_product()
     assert len(reader.allowed_tels) == 0
-    reader = EventSourceFactory(
-        input_url=dataset, allowed_tels={1, 3}
-    ).get_product()
+    reader = EventSourceFactory(input_url=dataset).get_product(
+        allowed_tels={1, 3}
+    )
     assert len(reader.allowed_tels) == 2
 
 
@@ -59,16 +89,6 @@ def test_factory_allowed_tels_config():
         input_url=dataset, config=config,
     ).get_product()
     assert len(reader.allowed_tels) == 2
-
-
-def test_factory_config():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
-    config = Config()
-    config['EventSourceFactory'] = Config()
-    config['EventSourceFactory']['input_url'] = dataset
-    reader = EventSourceFactory(config=config).get_product()
-    assert reader.__class__.__name__ == "SimTelEventSource"
-    assert reader.input_url == dataset
 
 
 def test_factory_different_file():

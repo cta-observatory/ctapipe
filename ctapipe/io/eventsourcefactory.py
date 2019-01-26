@@ -85,8 +85,7 @@ class EventSourceFactory(Factory):
         help='Path to the input file containing events.'
     ).tag(config=True)
 
-    def __init__(self, input_url=None, max_events=None, allowed_tels=None,
-                 config=None, tool=None, **kwargs):
+    def __init__(self, input_url=None, config=None, tool=None, **kwargs):
         """
         Parameters
         ----------
@@ -99,11 +98,6 @@ class EventSourceFactory(Factory):
             argument.
             If specified as a named argument, the input_url traitlet will
             overriden.
-        max_events : int
-            Maximum number of events to read from file
-        allowed_tels : set
-            Set of allowed tel_ids, others will be ignored. If left empty, all
-            telescopes in the input stream will be included
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             This argument is typically only used from within a
@@ -122,8 +116,6 @@ class EventSourceFactory(Factory):
         """
         if input_url:
             kwargs['input_url'] = input_url
-        self.max_events = max_events
-        self.allowed_tels = set() if allowed_tels is None else allowed_tels
         super().__init__(config=config, tool=tool, **kwargs)
 
     def _get_product_name(self):
@@ -158,8 +150,7 @@ class EventSourceFactory(Factory):
                 "\t{}".format(self.input_url, list(subclasses.keys()))
             )
 
-
-    def get_product(self):
+    def get_product(self, input_url=None, max_events=None, allowed_tels=None):
         """
         Obtain the correct EventSource for the input_url supplied to this
         EventSourceFactory (via the arguments to __init__ or via the
@@ -167,10 +158,19 @@ class EventSourceFactory(Factory):
 
         Parameters
         ----------
-        kwargs
-            Named arguments to pass to the EventSource. The path to the file
-            is passed to the EventSource automatically, and should not be
-            specified here.
+        input_url : str
+            URL to a file to read. Overrides the input_url supplied to the
+            EventSourceFactory. Does not need to be set if an input_url was
+            passed to the EventSourceFactory via __init__ or via traitlet
+            configuration. Also overrides the
+            EventSource.input_url traitlet configuration.
+        max_events : int
+            Maximum number of events to read from file. Overrides the
+            EventSource.max_events traitlet configuration.
+        allowed_tels : set
+            Set of allowed tel_ids, others will be ignored. If left empty, all
+            telescopes in the input stream will be included. Overrides the
+            EventSource.allowed_tels traitlet configuration.
 
         Returns
         -------
@@ -181,15 +181,16 @@ class EventSourceFactory(Factory):
         product_name = self._get_product_name()
         product_constructor = self._get_product_constructor(product_name)
         kwargs = dict(input_url=self.input_url)
-        if self.max_events:
-            kwargs['max_events'] = self.max_events
-        if self.allowed_tels:
-            kwargs['allowed_tels'] = self.allowed_tels
+        if input_url:
+            kwargs['input_url'] = input_url
+        if max_events:
+            kwargs['max_events'] = max_events
+        if allowed_tels:
+            kwargs['allowed_tels'] = allowed_tels
         product_instance = product_constructor(
             self.config, self.parent, **kwargs
         )
         return product_instance
-
 
     @classmethod
     def produce(cls, config=None, tool=None, **kwargs):
@@ -277,8 +278,7 @@ def event_source(input_url, max_events=None, allowed_tels=None,
     """
 
     reader = EventSourceFactory(
-        input_url=input_url, max_events=max_events, allowed_tels=allowed_tels,
-        config=config, tool=parent, **kwargs
-    ).get_product()
+        input_url=input_url, config=config, tool=parent, **kwargs
+    ).get_product(max_events=max_events, allowed_tels=allowed_tels)
 
     return reader
