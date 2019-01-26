@@ -222,7 +222,7 @@ def test_change_default_subclass_override():
     old_default = ExampleComponent.param.default_value
     ExampleComponent.param.default_value = 199.
     comp = ExampleSubclass2()
-    assert comp.param == 199.
+    assert comp.param == 3.  # No change as it is a seperate traitlet object
     ExampleComponent.param.default_value = old_default
 
 
