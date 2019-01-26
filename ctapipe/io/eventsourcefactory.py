@@ -1,6 +1,7 @@
 from ctapipe.core.factory import Factory, child_subclasses
 from ctapipe.io.eventsource import EventSource
 from traitlets import Unicode
+from traitlets.config.loader import Config
 
 # EventFileReader imports so that EventFileReaderFactory can see them
 # (they need to exist in the global namespace)
@@ -117,7 +118,7 @@ class EventSourceFactory(Factory):
         if input_url:
             kwargs['input_url'] = input_url
         # input_url traitlet is set by the `traitlets.config.Configurable`
-        # class (inherited) via kwargs passed into __init__,
+        # class (inherited), via kwargs passed into __init__,
         # or via the traitlets config
         super().__init__(config=config, tool=tool, **kwargs)
 
@@ -153,24 +154,24 @@ class EventSourceFactory(Factory):
                 "\t{}".format(self.input_url, list(subclasses.keys()))
             )
 
-    def get_product(self, max_events=None, allowed_tels=None, **kwargs):
+    def get_product(self, **kwargs):
         """
         Obtain the correct EventSource for the input_url supplied to this
         EventSourceFactory (via the arguments to __init__ or via the
-        Tool config).
+        traitlet config).
 
         Parameters
         ----------
-        max_events : int
-            Maximum number of events to read from file. Overrides the
-            EventSource.max_events traitlet configuration.
-        allowed_tels : set
-            Set of allowed tel_ids, others will be ignored. If left empty, all
-            telescopes in the input stream will be included. Overrides the
-            EventSource.allowed_tels traitlet configuration.
         kwargs
             Additional named arguments intended to set the traitlet values
-            for the product
+            for the product. Includes:
+            max_events : int
+                Maximum number of events to read from file. Overrides the
+                EventSource.max_events traitlet configuration.
+            allowed_tels : set
+                Set of allowed tel_ids, others will be ignored. If left
+                empty, all telescopes in the input stream will be included.
+                Overrides the EventSource.allowed_tels traitlet configuration.
 
         Returns
         -------
@@ -180,18 +181,14 @@ class EventSourceFactory(Factory):
         """
         product_name = self._get_product_name()
         product_constructor = self._get_product_constructor(product_name)
+        config = self._get_product_config(product_name, **kwargs)
 
-        # Copy EventSourceFactory.input_url into the EventSource config
-        config = self._get_product_config(
-            'EventSource', input_url=self.input_url
+        # Add the input_url used in EventSourceFactory to EventSource, unless
+        # it has already been specified
+        config['EventSource'] = config.get('EventSource', Config())
+        config['EventSource']['input_url'] = config['EventSource'].get(
+            'input_url', self.input_url
         )
-        # Restore original EventSource config (if it exists) and add kwargs
-        config.merge(self._get_product_config(
-            product_name,
-            max_events=max_events,
-            allowed_tels=allowed_tels,
-            **kwargs
-        ))
 
         product_instance = product_constructor(config, self.parent)
         return product_instance
