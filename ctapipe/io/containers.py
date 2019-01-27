@@ -308,8 +308,8 @@ class MCHeaderContainer(Container):
     corsika_low_E_model = Field(np.nan, "Detector MC information")
     corsika_high_E_model = Field(np.nan, "Detector MC information")
     corsika_bunchsize = Field(np.nan, "Number of photons per bunch")
-    corsika_wlen_min = Field(np.nan, "Minimum wavelength of cherenkov light") * u.nm
-    corsika_wlen_max = Field(np.nan, "Maximum wavelength of cherenkov light") * u.nm
+    corsika_wlen_min = Field(np.nan, "Minimum wavelength of cherenkov light", unit=u.nm)
+    corsika_wlen_max = Field(np.nan, "Maximum wavelength of cherenkov light", unit=u.nm)
     corsika_low_E_detail = Field(np.nan, "Detector MC information")
     corsika_high_E_detail = Field(np.nan, "Detector MC information")
 
