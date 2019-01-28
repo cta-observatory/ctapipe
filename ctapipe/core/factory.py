@@ -278,14 +278,16 @@ class Factory(Component, metaclass=FactoryMeta):
         """
         Produce an instance of the product class from the Factory
 
+        Parameters
+        ----------
+        kwargs
+            Named arguments intended to set the traitlet values for the product
+
         Returns
         -------
         product_instance
             Instance of the product class that is the purpose of the factory
             to produce.
-        kwargs
-            Named arguments intended to set the traitlet values for the product
-
         """
         product_name = self._get_product_name()
         product_constructor = self._get_product_constructor(product_name)
