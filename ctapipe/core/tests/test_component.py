@@ -173,7 +173,7 @@ def test_extra_config():
 
 def test_extra_missing():
     with pytest.raises(TraitError):
-        comp = ExampleSubclass1(extra=229.)
+        ExampleSubclass1(extra=229.)
 
 
 def test_extra_config_missing():
