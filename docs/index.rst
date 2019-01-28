@@ -42,6 +42,7 @@ General documentation
 
   getting_started/index
   development/index
+  tutorials/index
   tools/index
   */index
   FAQ

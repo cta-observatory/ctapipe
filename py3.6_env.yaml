@@ -39,6 +39,7 @@ dependencies:
   - iminuit
   - pytables
   - tqdm
+  - conda-forge::nbsphinx
   - pip:
       - pytest_runner
       - eventio==0.11.0
