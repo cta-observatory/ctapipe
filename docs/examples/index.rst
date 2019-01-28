@@ -5,7 +5,7 @@ Examples
 ========
 
 Some lower-level examples of features of the ctapipe API (see
-`Tutorials`_ for more complete examples)
+the Tutorials section for more complete examples)
 
 .. toctree::
   :maxdepth: 1
