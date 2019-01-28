@@ -136,7 +136,6 @@ def test_additional_meta_data_from_mc_header():
     assert data.mcheader.core_pos_mode == 1
     assert data.mcheader.diffuse == 0
     assert data.mcheader.atmosphere == 24
-    assert data.mcheader.corsika_wlen_min == 250.0
 
     name_expectation = {
         'energy_range_min': u.Quantity(3.0e-03, u.TeV),
@@ -149,6 +148,7 @@ def test_additional_meta_data_from_mc_header():
         'min_az': 0.0 * u.rad,
         'min_alt': 1.2217305 * u.rad,
         'max_viewcone_radius': 0.0 * u.deg,
+        'corsika_wlen_min': 250 * u.nm,
 
     }
 
