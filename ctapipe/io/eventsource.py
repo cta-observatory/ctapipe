@@ -221,31 +221,10 @@ def cls_for_url(url):
     )
 
 
-class NonAbstractDummyEventSource(EventSource):
-    '''this class is only needed below in from_config, c.f. comment there'''
-    @staticmethod
-    def is_compatible(file_path):
-        return False
-
-    def _generator(self):
-        pass
-
-
-def from_config(*args, **kwargs):
-    '''return EventSource instance from configuration
-
-    Tries its best to find out what event source should be created
-    given the provided configuration in `args` and `kwargs`
-    Then returns an instance.
-    '''
-
-    # making this "dummy" instance here is just needed to let
-    # traitlets do their magic.
-    # What we actually want here is to find the input_url in the
-    # configuration, in order to call `event_source()`
-    # if there is a better way than making a dummy instance, then
-    # we should do it.
-    dummy = NonAbstractDummyEventSource(*args, **kwargs)
-    url = dummy.input_url
-
+def from_config(config, tool, *args, **kwargs):
+    '''return EventSource instance from traitlets.Configuration'''
+    if isinstance(config.EventSource.input_url, str):
+        url = config.EventSource.input_url
+    else:
+        url = EventSource.input_url.default_value
     return event_source(url, *args, **kwargs)
