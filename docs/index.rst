@@ -43,6 +43,7 @@ General documentation
   getting_started/index
   development/index
   tutorials/index
+  examples/index
   FAQ
   ctapipe_api/index
   bibliography
