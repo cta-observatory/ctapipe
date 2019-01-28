@@ -1,5 +1,6 @@
 import tempfile
 
+import h5py
 import numpy as np
 import pytest
 import tables
@@ -66,15 +67,15 @@ def test_prefix(tmp_path):
     )
 
     with HDF5TableWriter(
-        tmp_file.name,
+        tmp_file,
         group_name='blabla',
         add_prefix=True
     ) as writer:
         writer.write('events', [hillas_parameter_container, leakage_container])
 
-    df = pd.read_hdf(tmp_file.name)
-    assert 'hillas_x' in df.columns
-    assert 'leakage2_pixel' in df.columns
+    dataset = h5py.File(tmp_file, 'r')['blabla']['events']
+    assert 'hillas_x' in dataset.dtype.fields
+    assert 'leakage2_pixel' in dataset.dtype.fields
 
 
 def test_write_containers(temp_h5_file):
