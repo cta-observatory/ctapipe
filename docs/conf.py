@@ -53,6 +53,7 @@ extensions = ['sphinx.ext.autodoc',
               'numpydoc']
 
 numpydoc_show_class_members = False
+nbsphinx_timeout = 120 # for long-running notebooks
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -187,7 +188,7 @@ intersphinx_mapping = {
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'cython': ('http://docs.cython.org/en/latest/', None),
-    'iminuit': ('http://iminuit.readthedocs.io/en/latest/', None)
+    'iminuit': ('https://iminuit.readthedocs.io/en/latest/', None)
 }
 
 # on_rtd is whether we are on readthedocs.org

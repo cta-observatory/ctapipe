@@ -87,7 +87,7 @@ with `numpy` operations, since it is quite speed-efficient.
 Examples
 --------
 
-.. plot:: instrument/camerageometry_example.py
+.. plot:: ctapipe_api/instrument/camerageometry_example.py
     :include-source:
 
 
