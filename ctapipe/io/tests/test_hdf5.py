@@ -72,7 +72,7 @@ def test_prefix(tmp_path):
     ) as writer:
         writer.write('events', [hillas_parameter_container, leakage_container])
 
-    df = pd.read_hdf(tmp_file.name)
+    df = pd.read_hdf(tmp_file.name, key='/blabla/events')
     assert 'hillas_x' in df.columns
     assert 'leakage2_pixel' in df.columns
 
