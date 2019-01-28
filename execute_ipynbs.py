@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import time
 from glob import glob
 import shlex
 import subprocess as sp
@@ -16,18 +17,20 @@ TIMEOUT_PER_CELL = 240  # seconds
 def main():
     results = {}
     print('testing notebooks: ', end='', flush=True)
-    for path in detect_notbooks():
+    for nb_path in detect_notbooks():
 
-        if is_xfail(path):
+        if is_xfail(nb_path):
             print('X', end='', flush=True)
-            results[path] = fake_xfail_result()
+            results[nb_path] = fake_xfail_result()
         else:
+            start_time = time.time()
             result = sp.run(
-                shlex.split(command(path, timeout=TIMEOUT_PER_CELL)),
+                shlex.split(command(nb_path, timeout=TIMEOUT_PER_CELL)),
                 stdout=sp.PIPE,
                 stderr=sp.PIPE
             )
-            results[path] = result
+            duration = time.time() - start_time
+            results[nb_path] = result, duration
 
             if result.returncode == 0:
                 print('.', end='', flush=True)
@@ -75,19 +78,28 @@ def fake_xfail_result():
         returncode=-1,
         stderr=b'not executed: expected to fail',
         stdout=b''
-    )
+    ), 0.  # duration of xfails is set to zero
 
 
 if __name__ == '__main__':
     results = main()
 
-    if any([r.returncode != 0 for r in results.values()]):
+    if any([r.returncode != 0 for r, d in results.values()]):
         print('Captured stderr')
         print('=' * 70)
-        for path, result in results.items():
+        for path, (result, duration) in results.items():
             if result.returncode != 0:
                 print(path)
                 print(result.stderr.decode('utf8'))
                 print('=' * 70)
 
-    sys.exit(max([r.returncode for r in results.values()]))
+    # print durations longest first
+
+    for nb_path, (r, d) in sorted(
+        results.items(),
+        key=lambda x: x[1][1],
+        reverse=True
+    ):
+        print(f'{nb_path:.<70} duration {d:.1f}sec')
+
+    sys.exit(max([r.returncode for r, d in results.values()]))
