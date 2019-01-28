@@ -162,16 +162,16 @@ class EventSourceFactory(Factory):
 
         Parameters
         ----------
+        max_events : int
+            Maximum number of events to read from file. Overrides the
+            EventSource.max_events traitlet configuration.
+        allowed_tels : set
+            Set of allowed tel_ids, others will be ignored. If left
+            empty, all telescopes in the input stream will be included.
+            Overrides the EventSource.allowed_tels traitlet configuration.
         kwargs
             Additional named arguments intended to set the traitlet values
-            for the product. Includes:
-            max_events : int
-                Maximum number of events to read from file. Overrides the
-                EventSource.max_events traitlet configuration.
-            allowed_tels : set
-                Set of allowed tel_ids, others will be ignored. If left
-                empty, all telescopes in the input stream will be included.
-                Overrides the EventSource.allowed_tels traitlet configuration.
+            for the product.
 
         Returns
         -------
