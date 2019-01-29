@@ -1,10 +1,9 @@
 """ Class to handle configuration for algorithms """
-from traitlets.config import Configurable
-from traitlets import TraitError
 from abc import ABCMeta
 from logging import getLogger
-
 from inspect import isabstract
+from traitlets.config import Configurable
+from traitlets import TraitError
 
 
 def non_abstract_children(base):
