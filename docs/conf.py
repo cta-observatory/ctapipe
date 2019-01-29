@@ -48,10 +48,13 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.githubpages',
               'sphinx.ext.mathjax',
               'sphinx_automodapi.automodapi',
+              'nbsphinx',
               'matplotlib.sphinxext.plot_directive',
               'numpydoc']
 
 numpydoc_show_class_members = False
+nbsphinx_timeout = 120  # allow max 2 minutes to build each notebook
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -93,7 +96,7 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -186,7 +189,7 @@ intersphinx_mapping = {
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'cython': ('http://docs.cython.org/en/latest/', None),
-    'iminuit': ('http://iminuit.readthedocs.io/en/latest/', None)
+    'iminuit': ('https://iminuit.readthedocs.io/en/latest/', None)
 }
 
 # on_rtd is whether we are on readthedocs.org
