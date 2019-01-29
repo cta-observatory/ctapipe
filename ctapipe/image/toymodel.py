@@ -15,10 +15,6 @@ Examples:
     >>> print(image.shape)
     (400,)
 
-.. plot:: image/image_example.py
-    :include-source:
-
-
 
 """
 import numpy as np

@@ -2,6 +2,67 @@
 Change Log
 ==========
 
+
+v0.6.1
+------
+
+* Fix broken build (#743) @kosack
+* Add example script for a simple event writer (#746) @jjlk
+* Fix camera axis alignment in HillasReconstructor (#741) @mackaiver
+* Lst reader (#749) @FrancaCassol
+* replace deprecated astropy broadcast (#754) @mackaiver
+* A few more example notebooks (#757) @kosack
+* Add MC xmax info (#759) @mackaiver
+* Use Astropy Coordinate Transofmations For Reconstruction (#758) @mackaiver
+* Trigger pixel reader (#745) @thomasarmstrong
+* Change requested in #742: init Hillas skewness and kurtosis to NaN (#744) @STSpencer
+* Fix call to np.linalg.leastsq (#760) @kosack
+* Fix/muon bugs (#762) @kosack
+* Implement hillas features usen eigh (#748) @MaxNoe
+* Use HillasParametersContainer only (#763) @MaxNoe
+* Regression features in `RegressorClassifierBase` (#764) @vuillaut
+* Adding an example notebook no how to convert hex geometry to square and back (#767) @vuillaut
+* Wrong angle in ArrayDisplay. changed phi to psi. (#771) @thomasgas
+* Unstructured interpolator (#770) @ParsonsRD
+* Lst reader (#776) @FrancaCassol
+* Fixing core reconstruction (#777) @kpfrang
+* Leakage (#783) @MaxNoe
+* Revert "Fixing core reconstruction" (#789) @kosack
+* Fixing the toy image generator (#790) @MaxNoe
+* Fix bad builds by changing channel name (missing pyqt package) (#793) @kosack
+* Implement concentration image features (#791) @MaxNoe
+* updated main documentation page (#792) @kosack
+* Impact intersection (#778) @mackaiver
+* add test for sliced geometries for hillas calculation (#781) @mackaiver
+* Simple HESS adaptations (#794) @ParsonsRD
+* added a config file for github release-drafter plugin (#795) @kosack
+* Array plotting (#784) @thomasgas
+* Minor changes: mostly deprecationwarning fixes (#787) @mireianievas
+* Codacy code style improvements (#796) @dneise
+* Add unit to h_max in HillasReconstructor (#797) @jjlk
+* speed up unit tests that use test_event fixture (#798) @kosack
+* Update Timing Parameters (#799) @LukasNickel
+
+v0.6.0
+------
+
+This is an interim release, after some major refactoring, and before we add
+the automatic gain selection and refactored container classes. It's not
+intended yet for production.
+
+Some Major changes since last release:
+
+* new `EventSource` class hierarchy for reading event data, which now supports simulation and testbench data from multiple camera prototypes (notably CHEC, SST-1M, NectarCam)
+* new `EventSeeker` class for (inefficient) random event access.
+* a much improved `Factory` class
+* re-organized event data structure (still evolving) - all scripts not in ctapipe must be changed to work with the new data items that were re-named  (a migration guide will be given in the 0.7 release)
+* better HDF5 table output, supporting merging multiple `Containers` into a single output table
+* improvements to Muon analysis, and the muon example script
+* improvements to the calibration classes
+* big improvements to the Instrument classes
+* lots of cleanups and bug fixes
+* much more...
+
 v0.5.3 (unlreleased)
 --------------------
 

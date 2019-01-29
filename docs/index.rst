@@ -42,9 +42,10 @@ General documentation
 
   getting_started/index
   development/index
-  tools/index
-  */index
+  tutorials/index
+  examples/index
   FAQ
+  ctapipe_api/index
   bibliography
   changelog
 
