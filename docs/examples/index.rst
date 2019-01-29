@@ -14,3 +14,6 @@ the Tutorials section for more complete examples)
   dilate_image
   containers
   provenance
+  nd_interpolation
+  InstrumentDescription
+  table_writer_reader
