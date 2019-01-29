@@ -223,8 +223,6 @@ def cls_for_url(url):
 
 def from_config(config, tool, *args, **kwargs):
     '''return EventSource instance from traitlets.Configuration'''
-    if isinstance(config.EventSource.input_url, str):
-        url = config.EventSource.input_url
-    else:
-        url = EventSource.input_url.default_value
-    return event_source(url, *args, **kwargs)
+    if not isinstance(config.EventSource.input_url, str):
+        config.EventSource.input_url = EventSource.input_url.default_value
+    return event_source(config.EventSource.input_url, *args, **kwargs)
