@@ -12,7 +12,22 @@ __all__ = ['EventSource', 'event_source']
 
 def event_source(url, *args, **kwargs):
     '''find compatible EventSource for `url` and return instance'''
-    compatible_cls = cls_for_url(url)
+
+    for subcls in EventSource.__subclasses__():
+        if subcls.is_compatible(url):
+            compatible_cls = subcls
+    raise ValueError(
+        (
+            'Cannot find compatible EventSource for \n'
+            'url:{}\n'
+            'in available EventSources:\n'
+            '{}'
+        ).format(
+            url,
+            [c.__name__ for c in EventSource.__subclasses__()]
+        )
+    )
+
     return compatible_cls(input_url=url, *args, **kwargs)
 
 
@@ -203,25 +218,7 @@ class EventSource(Component):
         pass
 
 
-def cls_for_url(url):
-    '''find compatible EventSource sub-class for `url`'''
-    for subcls in EventSource.__subclasses__():
-        if subcls.is_compatible(url):
-            return subcls
-    raise ValueError(
-        (
-            'Cannot find compatible EventSource for \n'
-            'url:{}\n'
-            'in available EventSources:\n'
-            '{}'
-        ).format(
-            url,
-            [c.__name__ for c in EventSource.__subclasses__()]
-        )
-    )
-
-
-def from_config(config, tool, *args, **kwargs):
+def from_config(config, *args, **kwargs):
     '''return EventSource instance from traitlets.Configuration'''
     if not isinstance(config.EventSource.input_url, str):
         config.EventSource.input_url = EventSource.input_url.default_value
