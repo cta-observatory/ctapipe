@@ -3,9 +3,10 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from os.path import exists
-from traitlets import Unicode, Int, Set
+from traitlets import Unicode, Int, Set, TraitError
 from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
+from traitlets.config.loader import LazyConfigValue
 
 __all__ = ['EventSource', 'event_source']
 
@@ -230,6 +231,8 @@ class EventSource(Component):
 
 def from_config(config, *args, **kwargs):
     '''return EventSource instance from traitlets.Configuration'''
-    if not isinstance(config.EventSource.input_url, str):
+    if isinstance(config.EventSource.input_url, LazyConfigValue):
         config.EventSource.input_url = EventSource.input_url.default_value
+    elif not isinstance(config.EventSource.input_url, str):
+        raise TraitError("Wrong type specified for input_url traitlet")
     return event_source(config.EventSource.input_url, *args, **kwargs)
