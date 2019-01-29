@@ -1,3 +1,4 @@
+import sys
 from ctapipe.tools.camdemo import CameraDemo
 from ctapipe.tools.dump_triggers import DumpTriggersTool
 from ctapipe.tools.dump_instrument import DumpInstrumentTool
@@ -15,6 +16,7 @@ def test_info():
 
 
 def test_dump_triggers(tmpdir):
+    sys.argv = ['dump_triggers']
     outfile = tmpdir.join("triggers.fits")
 
     tool = DumpTriggersTool(
@@ -28,6 +30,7 @@ def test_dump_triggers(tmpdir):
 
 
 def test_dump_instrument(tmpdir):
+    sys.argv = ['dump_instrument']
     tmpdir.chdir()
 
     tool = DumpInstrumentTool(
@@ -41,6 +44,7 @@ def test_dump_instrument(tmpdir):
 
 
 def test_camdemo():
+    sys.argv = ['camera_demo']
     tool = CameraDemo()
     tool.num_events = 10
     tool.cleanframes = 2
@@ -49,6 +53,7 @@ def test_camdemo():
 
 
 def test_bokeh_file_viewer():
+    sys.argv = ['bokeh_file_viewer']
     tool = BokehFileViewer(disable_server=True)
     tool.run()
 

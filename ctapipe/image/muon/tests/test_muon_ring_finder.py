@@ -72,8 +72,6 @@ def test_ChaudhuriKunduRingFitter():
     clean_toy_mask = tailcuts_clean(geom, toymodel_image,
                                     boundary_thresh=5, picture_thresh=10)
 
-    # camera_coord = CameraFrame(x=x,y=y,z=np.zeros(x.shape)*u.m,
-    # focal_length = event.inst.optical_foclen[telid], rotation=geom.pix_rotation)
     muonring = muon_ring_finder.ChaudhuriKunduRingFitter(None)
 
     x = np.rad2deg((geom.pix_x.value / 15.) * u.rad)  # .value

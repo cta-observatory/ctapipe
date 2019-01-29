@@ -203,6 +203,48 @@ class CameraGeometry:
 
         return np.ones(pix_x.shape) * area
 
+    @lazyproperty
+    def _pixel_circumferences(self):
+        """ pixel circumference radius/radii based on pixel area and layout
+
+        """
+
+        if self.pix_type.startswith('hex'):
+            circum_rad = np.sqrt(2.0 * self.pix_area / 3.0 / np.sqrt(3))
+        elif self.pix_type.startswith('rect'):
+            circum_rad = np.sqrt(self.pix_area / 2.0)
+        else:
+            raise KeyError("unsupported pixel type")
+
+        return circum_rad
+
+    @lazyproperty
+    def _kdtree(self):
+        """
+        Pre-calculated kdtree of all pixel centers inside camera
+
+        Returns
+        -------
+        kdtree
+
+        """
+
+        pixel_centers = np.column_stack([self.pix_x.to_value(u.m),
+                                         self.pix_y.to_value(u.m)])
+        return KDTree(pixel_centers)
+
+    @lazyproperty
+    def _all_pixel_areas_equal(self):
+        """
+        Pre-calculated kdtree of all pixel centers inside camera
+
+        Returns
+        -------
+        True if all pixels are of equal size, False otherwise
+
+        """
+        return ~np.any(~np.isclose(self.pix_area.value, self.pix_area[0].value), axis=0)
+
     @classmethod
     def get_known_camera_names(cls):
         """
@@ -517,6 +559,77 @@ class CameraGeometry:
         trans = delta_x * -sin_psi + delta_y * cos_psi
 
         return longi, trans
+
+    def position_to_pix_index(self, x, y):
+        '''
+        Return the index of a camera pixel which contains a given position (x,y)
+        in the camera frame. The (x,y) coordinates can be arrays (of equal length),
+        for which the methods returns an array of pixel ids. A warning is raised if the
+        position falls outside the camera.
+
+        Parameters
+        ----------
+        x: astropy.units.Quantity (distance) of horizontal position(s) in the camera frame
+        y: astropy.units.Quantity (distance) of vertical position(s) in the camera frame
+
+        Returns
+        -------
+        pix_indices: Pixel index or array of pixel indices. Returns -1 if position falls
+                    outside camera
+        '''
+
+        if not self._all_pixel_areas_equal:
+            logger.warning(" Method not implemented for cameras with varying pixel sizes")
+
+        points_searched = np.dstack([x.to_value(u.m), y.to_value(u.m)])
+        circum_rad = self._pixel_circumferences[0].to_value(u.m)
+        kdtree = self._kdtree
+        dist, pix_indices = kdtree.query(points_searched, distance_upper_bound=circum_rad)
+        del dist
+        pix_indices = pix_indices.flatten()
+
+        # 1. Mark all points outside pixel circumeference as lying outside camera
+        pix_indices[pix_indices == self.n_pixels] = -1
+
+        # 2. Accurate check for the remaing cases (within circumference, but still outside
+        # camera). It is first checked if any border pixel numbers are returned.
+        # If not, everything is fine. If yes, the distance of the given position to the
+        # the given position to the closest pixel center is translated to the distance to
+        # the center of a non-border pixel', pos -> pos', and it is checked whether pos'
+        # still lies within pixel'. If not, pos lies outside the camera. This approach
+        # does not need to know the particular pixel shape, but as the kdtree itself,
+        # presumes all camera pixels being of equal size.
+        border_mask = self.get_border_pixel_mask()
+        # get all pixels at camera border:
+        borderpix_indices = np.where(border_mask)[0]
+        borderpix_indices_in_list = np.intersect1d(borderpix_indices, pix_indices)
+        if borderpix_indices_in_list.any():
+            # Get some pixel not at the border:
+            insidepix_index = np.where(~border_mask)[0][0]
+            # Check in detail whether location is in border pixel or outside camera:
+            for borderpix_index in borderpix_indices_in_list:
+                index = np.where(pix_indices == borderpix_index)[0][0]
+                # compare with inside pixel:
+                xprime = (points_searched[0][index, 0]
+                          - self.pix_x[borderpix_index].to_value(u.m)
+                          + self.pix_x[insidepix_index].to_value(u.m))
+                yprime = (points_searched[0][index, 1]
+                          - self.pix_y[borderpix_index].to_value(u.m)
+                          + self.pix_y[insidepix_index].to_value(u.m))
+                dist_check, index_check = kdtree.query([xprime, yprime],
+                                                       distance_upper_bound=circum_rad)
+                del dist_check
+                if index_check != insidepix_index:
+                    pix_indices[index] = -1
+
+        # print warning:
+        for index in np.where(pix_indices == -1)[0]:
+            logger.warning(" Coordinate ({} m, {} m) lies outside camera"
+                           .format(points_searched[0][index, 0],
+                                   points_searched[0][index, 1]))
+
+        return pix_indices if len(pix_indices) > 1 else pix_indices[0]
+
 
 # ======================================================================
 # utility functions:

@@ -7,9 +7,11 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 
 from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
+from itertools import combinations
+
 from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, project_to_ground
 from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
-from itertools import combinations
+import warnings
 
 import numpy as np
 
@@ -137,11 +139,11 @@ class HillasReconstructor(Reconstructor):
         alt = u.Quantity(list(pointing_alt.values()))
         az = u.Quantity(list(pointing_az.values()))
         if np.any(alt != alt[0]) or np.any(az != az[0]):
-            raise ValueError('Divergent pointing not supported')
+            warnings.warn('Divergent pointing not supported')
 
-        pointing_direction = SkyCoord(alt=alt[0], az=az[0], frame='altaz')
+        telescope_pointing = SkyCoord(alt=alt[0], az=az[0], frame=HorizonFrame())
         # core position estimate using a geometric approach
-        core_pos = self.estimate_core_position(hillas_dict, pointing_direction)
+        core_pos = self.estimate_core_position(hillas_dict, telescope_pointing)
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
@@ -195,6 +197,7 @@ class HillasReconstructor(Reconstructor):
         """
 
         self.hillas_planes = {}
+        horizon_frame = HorizonFrame()
         for tel_id, moments in hillas_dict.items():
             # we just need any point on the main shower axis a bit away from the cog
             p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
@@ -204,24 +207,23 @@ class HillasReconstructor(Reconstructor):
             pointing = SkyCoord(
                 alt=pointing_alt[tel_id],
                 az=pointing_az[tel_id],
-                frame='altaz'
+                frame=horizon_frame,
             )
 
-            hf = HorizonFrame(
-                array_direction=pointing,
-                pointing_direction=pointing
-            )
-            cf = CameraFrame(
+            camera_frame = CameraFrame(
                 focal_length=focal_length,
-                array_direction=pointing,
-                pointing_direction=pointing,
+                telescope_pointing=pointing
             )
 
-            cog_coord = SkyCoord(x=moments.x, y=moments.y, frame=cf)
-            cog_coord = cog_coord.transform_to(hf)
+            cog_coord = SkyCoord(
+                x=moments.x,
+                y=moments.y,
+                frame=camera_frame,
+            )
+            cog_coord = cog_coord.transform_to(horizon_frame)
 
-            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=cf)
-            p2_coord = p2_coord.transform_to(hf)
+            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
+            p2_coord = p2_coord.transform_to(horizon_frame)
 
             circle = HillasPlane(
                 p1=cog_coord,
@@ -269,7 +271,7 @@ class HillasReconstructor(Reconstructor):
 
         return result, err_est_dir
 
-    def estimate_core_position(self, hillas_dict, pointing_direction):
+    def estimate_core_position(self, hillas_dict, telescope_pointing):
         '''
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
@@ -277,7 +279,7 @@ class HillasReconstructor(Reconstructor):
         -----------
         hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
-        pointing_direction: SkyCoord[AltAz]
+        telescope_pointing: SkyCoord[HorizonFrame]
             Pointing direction of the array
 
         Returns
@@ -292,8 +294,8 @@ class HillasReconstructor(Reconstructor):
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
 
-        tilted_frame = TiltedGroundFrame(pointing_direction=pointing_direction)
-        ground_frame = GroundFrame(pointing_direction=pointing_direction)
+        tilted_frame = TiltedGroundFrame(pointing_direction=telescope_pointing)
+        ground_frame = GroundFrame()
 
         positions = [
             (
