@@ -4,7 +4,7 @@ Handles reading of different event/waveform containing files
 from abc import abstractmethod
 from os.path import exists
 from traitlets import Unicode, Int, Set
-from ctapipe.core import Component
+from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
 
 __all__ = ['EventSource', 'event_source']
@@ -13,7 +13,7 @@ __all__ = ['EventSource', 'event_source']
 def event_source(url, *args, **kwargs):
     '''find compatible EventSource for `url` and return instance'''
 
-    for subcls in EventSource.__subclasses__():
+    for subcls in non_abstract_children(EventSource):
         if subcls.is_compatible(url):
             compatible_cls = subcls
     raise ValueError(
