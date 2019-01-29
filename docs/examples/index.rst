@@ -13,6 +13,7 @@ the Tutorials section for more complete examples)
     
     dilate_image
     nd_interpolation
+    convert_hex_to_square
 
 .. toctree::
     :maxdepth: 1
