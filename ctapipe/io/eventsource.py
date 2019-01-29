@@ -12,8 +12,9 @@ __all__ = ['EventSource', 'event_source']
 
 def event_source(url, *args, **kwargs):
     '''find is_compatible EventSource for `url` and return instance'''
+    available_classes = non_abstract_children(EventSource)
 
-    for subcls in non_abstract_children(EventSource):
+    for subcls in available_classes:
         if subcls.is_compatible(url):
             return subcls(input_url=url, *args, **kwargs)
 
@@ -25,7 +26,7 @@ def event_source(url, *args, **kwargs):
             '{}'
         ).format(
             url,
-            [c.__name__ for c in EventSource.__subclasses__()]
+            [c.__name__ for c in available_classes]
         )
     )
 
