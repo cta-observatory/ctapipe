@@ -6,5 +6,7 @@ Tutorials
 
 .. toctree::
 
-   raw_data_exploration
    ctapipe_handson
+   raw_data_exploration
+   theta_square
+   
