@@ -59,7 +59,7 @@ class SimTelEventSource(EventSource):
                 cam_settings['mirror_area'] * u.m ** 2
             )
             tel_description.optics.num_mirror_tiles = (
-                cam_settings['mirror_area']
+                cam_settings['n_mirrors']
             )
             tel_descriptions[tel_id] = tel_description
 
