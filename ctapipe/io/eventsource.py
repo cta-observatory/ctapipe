@@ -11,7 +11,7 @@ from traitlets.config.loader import LazyConfigValue
 __all__ = ['EventSource', 'event_source']
 
 
-def event_source(input_url, *args, **kwargs):
+def event_source(input_url, **kwargs):
     """
     Find compatible EventSource for input_url via the `is_compatible` method
     of the EventSource
@@ -32,7 +32,7 @@ def event_source(input_url, *args, **kwargs):
 
     for subcls in available_classes:
         if subcls.is_compatible(input_url):
-            return subcls(input_url=input_url, *args, **kwargs)
+            return subcls(input_url=input_url, **kwargs)
 
     raise ValueError(
         'Cannot find compatible EventSource for \n'
@@ -229,10 +229,14 @@ class EventSource(Component):
         pass
 
 
-def from_config(config, *args, **kwargs):
+def from_config(config, **kwargs):
     '''return EventSource instance from traitlets.Configuration'''
     if isinstance(config.EventSource.input_url, LazyConfigValue):
         config.EventSource.input_url = EventSource.input_url.default_value
     elif not isinstance(config.EventSource.input_url, str):
         raise TraitError("Wrong type specified for input_url traitlet")
-    return event_source(config.EventSource.input_url, *args, **kwargs)
+    return event_source(
+        config.EventSource.input_url,
+        config=config,
+        **kwargs
+    )
