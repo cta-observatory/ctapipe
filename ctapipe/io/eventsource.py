@@ -15,7 +15,8 @@ def event_source(url, *args, **kwargs):
 
     for subcls in non_abstract_children(EventSource):
         if subcls.is_compatible(url):
-            compatible_cls = subcls
+            return subcls(input_url=url, *args, **kwargs)
+
     raise ValueError(
         (
             'Cannot find compatible EventSource for \n'
@@ -27,8 +28,6 @@ def event_source(url, *args, **kwargs):
             [c.__name__ for c in EventSource.__subclasses__()]
         )
     )
-
-    return compatible_cls(input_url=url, *args, **kwargs)
 
 
 class EventSource(Component):
