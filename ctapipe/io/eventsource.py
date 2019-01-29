@@ -10,24 +10,34 @@ from ctapipe.core import Provenance
 __all__ = ['EventSource', 'event_source']
 
 
-def event_source(url, *args, **kwargs):
-    '''find is_compatible EventSource for `url` and return instance'''
+def event_source(input_url, *args, **kwargs):
+    """
+    Find compatible EventSource for input_url via the `is_compatible` method
+    of the EventSource
+
+    Parameters
+    ----------
+    input_url : str
+        Filename or URL pointing to an event file
+    kwargs
+        Named arguments for the EventSource
+
+    Returns
+    -------
+    instance
+        Instance of a compatible EventSource subclass
+    """
     available_classes = non_abstract_children(EventSource)
 
     for subcls in available_classes:
-        if subcls.is_compatible(url):
-            return subcls(input_url=url, *args, **kwargs)
+        if subcls.is_compatible(input_url):
+            return subcls(input_url=input_url, *args, **kwargs)
 
     raise ValueError(
-        (
-            'Cannot find compatible EventSource for \n'
-            'url:{}\n'
-            'in available EventSources:\n'
-            '{}'
-        ).format(
-            url,
-            [c.__name__ for c in available_classes]
-        )
+        'Cannot find compatible EventSource for \n'
+        '\turl:{}\n'
+        'in available EventSources:\n'
+        '\t{}'.format(input_url, [c.__name__ for c in available_classes])
     )
 
 
