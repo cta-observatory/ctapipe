@@ -11,7 +11,7 @@ __all__ = ['EventSource', 'event_source']
 
 
 def event_source(url, *args, **kwargs):
-    '''find compatible EventSource for `url` and return instance'''
+    '''find is_compatible EventSource for `url` and return instance'''
 
     for subcls in non_abstract_children(EventSource):
         if subcls.is_compatible(url):
