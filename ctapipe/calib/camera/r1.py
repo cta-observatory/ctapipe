@@ -28,16 +28,30 @@ __all__ = [
 ]
 
 
-def camera_r1_calibrator_for_eventsource(eventsource, *args, **kwargs):
-    if (
-        hasattr(eventsource, 'metadata')
-        and eventsource.metadata['is_simulation']
-    ):
+def camera_r1_calibrator_for_eventsource(eventsource, **kwargs):
+    """
+    Obtain the correct `CameraR1Calibrator` according the the `EventSource`
+    of the file.
+
+    Parameters
+    ----------
+    eventsource : ctapipe.io.EventSource
+        Subclass of `ctapipe.io.EventSource`
+    kwargs
+        Named arguments to pass to the `CameraR1Calibrator`
+
+    Returns
+    -------
+    calibrator
+        Subclass of `CameraR1Calibrator`
+    """
+    if (hasattr(eventsource, 'metadata') and
+            eventsource.metadata['is_simulation']):
         return HESSIOR1Calibrator(*args, **kwargs)
-    if eventsource.__class__.__name__ == "TargetIOEventSource":
+    elif eventsource.__class__.__name__ == "TargetIOEventSource":
         return TargetIOR1Calibrator(*args, **kwargs)
 
-    return NullR1Calibrator(*args, **kwargs)
+    return NullR1Calibrator(**kwargs)
 
 
 class CameraR1Calibrator(Component):
