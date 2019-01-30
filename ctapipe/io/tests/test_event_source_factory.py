@@ -16,7 +16,7 @@ def test_factory():
 def test_factory_different_file():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     reader = event_source(input_url=dataset)
-    assert isinstance(event_source, SimTelEventSource)
+    assert isinstance(reader, SimTelEventSource)
     assert reader.input_url == dataset
 
 
