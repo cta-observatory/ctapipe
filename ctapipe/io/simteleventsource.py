@@ -181,6 +181,7 @@ class SimTelEventSource(EventSource):
             telescope_events = array_event['telescope_events']
             tracking_positions = array_event['tracking_positions']
             for tel_id, telescope_event in telescope_events.items():
+                tel_index = self.file_.header['tel_id'].tolist().index(tel_id)
                 telescope_description = self.file_.telescope_descriptions[tel_id]
 
                 data.mc.tel[tel_id].dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
@@ -205,12 +206,12 @@ class SimTelEventSource(EventSource):
                 data.mc.tel[tel_id].time_slice = float(pixel_settings['time_slice'])
 
                 n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
-
-                data.mc.tel[tel_id].photo_electron_image = array_event.get(
-                    'photoelectrons', {}
-                ).get(tel_id)
-                if data.mc.tel[tel_id].photo_electron_image is None:
-                    data.mc.tel[tel_id].photo_electron_image = np.zeros((n_pixel, ), dtype='i2')
+                data.mc.tel[tel_id].photo_electron_image = (
+                    array_event.get('photoelectrons', {})
+                        .get(tel_index, {})
+                        .get('photoelectrons',
+                             np.zeros(n_pixel, dtype='float32'))
+                )
 
                 tracking_position = tracking_positions[tel_id]
                 data.mc.tel[tel_id].azimuth_raw = tracking_position['azimuth_raw']
