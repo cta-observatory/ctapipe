@@ -208,9 +208,8 @@ class SimTelEventSource(EventSource):
                 n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
                 data.mc.tel[tel_id].photo_electron_image = (
                     array_event.get('photoelectrons', {})
-                        .get(tel_index, {})
-                        .get('photoelectrons',
-                             np.zeros(n_pixel, dtype='float32'))
+                               .get(tel_index, {})
+                               .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
                 )
 
                 tracking_position = tracking_positions[tel_id]
