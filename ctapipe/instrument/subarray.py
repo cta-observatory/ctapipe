@@ -257,10 +257,11 @@ class SubarrayDescription:
             for teltype in types:
                 tels = tab[tab['tel_description'] == teltype]['tel_id']
                 sub = self.select_subarray(teltype, tels)
+                tel_coords = sub.tel_coords
                 radius = np.array([np.sqrt(tel.optics.mirror_area / np.pi).value
                                    for tel in sub.tels.values()])
 
-                plt.scatter(sub.pos_x, sub.pos_y, s=radius * 8, alpha=0.5,
+                plt.scatter(tel_coords.x, tel_coords.y, s=radius * 8, alpha=0.5,
                             label=teltype)
 
             plt.legend(loc='best')

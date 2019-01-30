@@ -9,7 +9,7 @@ from ctapipe.calib.camera.r1 import (
     NullR1Calibrator
 )
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.io.simteleventsource import SimTelEventSource
 from ctapipe.io.targetioeventsource import TargetIOEventSource
 from ctapipe.utils import get_dataset_path
 
@@ -94,14 +94,14 @@ def test_factory_default():
 
 def test_factory_from_eventsource():
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    eventsource = HESSIOEventSource(input_url=dataset)
+    eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(eventsource=eventsource)
     assert isinstance(calibrator, HESSIOR1Calibrator)
 
 
 def test_factory_from_eventsource_override():
     dataset = get_dataset_path("gamma_test.simtel.gz")
-    eventsource = HESSIOEventSource(input_url=dataset)
+    eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraR1CalibratorFactory.produce(
         eventsource=eventsource,
         product="NullR1Calibrator"

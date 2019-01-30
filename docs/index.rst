@@ -42,9 +42,10 @@ General documentation
 
   getting_started/index
   development/index
-  tools/index
-  */index
+  tutorials/index
+  examples/index
   FAQ
+  ctapipe_api/index
   bibliography
   changelog
 
@@ -64,7 +65,6 @@ Module API Status (relative to next release)
 `calib`           **stable**
 `coordinates`     caution
 `core`            **stable**
-`flow`            experimental
 `instrument`      **stable**
 `io`              **stable** 
 `reco`            **stable**

@@ -22,7 +22,7 @@ expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
-* Example notebooks: https://github.com/cta-observatory/ctapipe/tree/master/examples/notebooks
+
 
 Installation for Users
 ----------------------

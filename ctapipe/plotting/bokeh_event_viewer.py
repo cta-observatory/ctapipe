@@ -321,7 +321,14 @@ class BokehEventViewerWaveform(WaveformDisplay):
 
 
 class BokehEventViewer(Component):
-    def __init__(self, config, tool, num_cameras=1, num_waveforms=2, **kwargs):
+    def __init__(
+        self,
+        config=None,
+        tool=None,
+        num_cameras=1,
+        num_waveforms=2,
+        **kwargs
+    ):
         """
         A class to organise the interface between
         `ctapipe.visualization.bokeh.CameraDisplay`,

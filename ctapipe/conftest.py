@@ -7,7 +7,7 @@ import pytest
 from copy import deepcopy
 
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io.hessioeventsource import HESSIOEventSource
+from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 
 
@@ -21,7 +21,7 @@ def _global_example_event():
 
     print("******************** LOAD TEST EVENT ***********************")
 
-    with HESSIOEventSource(input_url=filename) as reader:
+    with SimTelEventSource(input_url=filename) as reader:
         seeker = EventSeeker(reader)
         event = seeker['409']
 

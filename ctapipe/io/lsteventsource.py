@@ -2,53 +2,131 @@
 """
 EventSource for LSTCam protobuf-fits.fz-files.
 
-Needs protozfits v1.4.0 from github.com/cta-sst-1m/protozfitsreader
+Needs protozfits v1.4.2 from github.com/cta-sst-1m/protozfitsreader
 """
-
 import numpy as np
-from os.path import exists
+
+from astropy import units as u
+import glob
+from os import getcwd
 from ctapipe.core import Provenance
+from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
+    CameraGeometry, OpticsDescription
 from .eventsource import EventSource
 from .containers import LSTDataContainer
+
 
 __all__ = ['LSTEventSource']
 
 
 class LSTEventSource(EventSource):
 
+    """
+    EventSource for LST r0 data.
+    """
+
+
+
     def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
 
-        self.multi_file = MultiFiles(self.input_url)
+        """
+        Constructor
+        Parameters
+        ----------
+        config: traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool: ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            Set to None if no Tool to pass.
+        kwargs: dict
+            Additional parameters to be passed.
+            NOTE: The file mask of the data to read can be passed with
+            the 'input_url' parameter.
+        """
+
+
+        # EventSource can not handle file wild cards as input_url
+        # To overcome this we substitute the input_url with first file matching
+        # the specified file mask (copied from  MAGICEventSourceROOT).
+
+        if 'input_url' in kwargs.keys():
+            self.file_list = glob.glob(kwargs['input_url'])
+            self.file_list.sort()
+            kwargs['input_url'] = self.file_list[0]
+            super().__init__(config=config, tool=tool, **kwargs)
+        else:
+            super().__init__(config=config, tool=tool, **kwargs)
+            self.file_list = [self.input_url]
+
+
+        self.multi_file = MultiFiles(self.file_list)
+
         self.camera_config = self.multi_file.camera_config
-
         self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
+
 
 
     def _generator(self):
 
         # container for LST data
-        data = LSTDataContainer()
-        data.meta['input_url'] = self.input_url
+        self.data = LSTDataContainer()
+        self.data.meta['input_url'] = self.input_url
+        self.data.meta['max_events'] = self.max_events
+
 
         # fill LST data from the CameraConfig table
-        self.fill_lst_service_container_from_zfile(data.lst, self.camera_config)
+        self.fill_lst_service_container_from_zfile()
+
+        # Instrument information
+        for tel_id in self.data.lst.tels_with_data:
+
+            assert (tel_id == 0)  # only LST1 for the moment (id = 0)
+
+            # optics info from standard optics.fits.gz file
+            optics = OpticsDescription.from_name("LST")
+            optics.tel_subtype = ''  # to correct bug in reading
+
+            # camera info from LSTCam-[geometry_version].camgeom.fits.gz file
+            geometry_version = 2
+            camera = CameraGeometry.from_name("LSTCam", geometry_version)
+
+            tel_descr = TelescopeDescription(optics, camera)
+
+            self.n_camera_pixels = tel_descr.camera.n_pixels
+            tels = {tel_id: tel_descr}
+
+            # LSTs telescope position taken from MC from the moment
+            tel_pos = {tel_id: [50., 50., 16] * u.m}
+
+
+        subarray = SubarrayDescription("LST1 subarray")
+        subarray.tels = tels
+        subarray.positions = tel_pos
+
+        self.data.inst.subarray = subarray
 
         # loop on events
         for count, event in enumerate(self.multi_file):
 
-            data.count = count
+            self.data.count = count
 
             # fill specific LST event data
-            self.fill_lst_event_container_from_zfile(data.lst, event)
+            self.fill_lst_event_container_from_zfile(event)
 
             # fill general R0 data
-            self.fill_r0_container_from_zfile(data.r0, event)
-            yield data
+            self.fill_r0_container_from_zfile(event)
+            yield self.data
 
 
     @staticmethod
     def is_compatible(file_path):
+        from .sst1meventsource import is_fits_in_header
+        if not is_fits_in_header(file_path):
+            return False
+
         from astropy.io import fits
         try:
             # The file contains two tables:
@@ -77,33 +155,32 @@ class LSTEventSource(EventSource):
         is_lst_file = 'lstcam_counters' in ttypes
         return is_protobuf_zfits_file & is_lst_file
 
-    def fill_lst_service_container_from_zfile(self, container, camera_config):
+    def fill_lst_service_container_from_zfile(self):
 
-        container.tels_with_data = [camera_config.telescope_id, ]
-        svc_container = container.tel[camera_config.telescope_id].svc
+        self.data.lst.tels_with_data = [self.camera_config.telescope_id, ]
+        svc_container = self.data.lst.tel[self.camera_config.telescope_id].svc
 
-        svc_container.telescope_id = camera_config.telescope_id
-        svc_container.cs_serial = camera_config.cs_serial
-        svc_container.configuration_id = camera_config.configuration_id
-        svc_container.date = camera_config.date
-        svc_container.num_pixels = camera_config.num_pixels
-        svc_container.num_samples = camera_config.num_samples
-        svc_container.pixel_ids = camera_config.expected_pixels_id
-        svc_container.data_model_version = camera_config.data_model_version
+        svc_container.telescope_id = self.camera_config.telescope_id
+        svc_container.cs_serial = self.camera_config.cs_serial
+        svc_container.configuration_id = self.camera_config.configuration_id
+        svc_container.date = self.camera_config.date
+        svc_container.num_pixels = self.camera_config.num_pixels
+        svc_container.num_samples = self.camera_config.num_samples
+        svc_container.pixel_ids = self.camera_config.expected_pixels_id
+        svc_container.data_model_version = self.camera_config.data_model_version
 
-        svc_container.num_modules = camera_config.lstcam.num_modules
-        svc_container.module_ids = camera_config.lstcam.expected_modules_id
-        svc_container.idaq_version = camera_config.lstcam.idaq_version
-        svc_container.cdhs_version = camera_config.lstcam.cdhs_version
-        svc_container.algorithms = camera_config.lstcam.algorithms
-        svc_container.pre_proc_algorithms = camera_config.lstcam.pre_proc_algorithms
-
-
+        svc_container.num_modules = self.camera_config.lstcam.num_modules
+        svc_container.module_ids = self.camera_config.lstcam.expected_modules_id
+        svc_container.idaq_version = self.camera_config.lstcam.idaq_version
+        svc_container.cdhs_version = self.camera_config.lstcam.cdhs_version
+        svc_container.algorithms = self.camera_config.lstcam.algorithms
+        svc_container.pre_proc_algorithms = self.camera_config.lstcam.pre_proc_algorithms
 
 
-    def fill_lst_event_container_from_zfile(self, container, event):
+    def fill_lst_event_container_from_zfile(self, event):
 
-        event_container = container.tel[self.camera_config.telescope_id].evt
+
+        event_container = self.data.lst.tel[self.camera_config.telescope_id].evt
 
         event_container.configuration_id = event.configuration_id
         event_container.event_id = event.event_id
@@ -140,13 +217,25 @@ class LSTEventSource(EventSource):
                              .format(event.waveform.shape[0]))
 
 
-        container.waveform = np.array(
-            (
+        reshaped_waveform = np.array(
                 event.waveform
-            ).reshape(n_gains, self.camera_config.num_pixels, container.num_samples))
+             ).reshape(n_gains,
+                       self.camera_config.num_pixels,
+                       container.num_samples)
+
+        # initialize the waveform container to zero
+        container.waveform = np.zeros([n_gains, self.n_camera_pixels,
+                                       container.num_samples])
+
+        # re-order the waveform following the expected_pixels_id values (rank = pixel id)
+        container.waveform[:, self.camera_config.expected_pixels_id, :] =\
+            reshaped_waveform
+
+    def fill_r0_container_from_zfile(self, event):
 
 
-    def fill_r0_container_from_zfile(self, container, event):
+        container = self.data.r0
+
         container.obs_id = -1
         container.event_id = event.event_id
 
@@ -159,70 +248,50 @@ class LSTEventSource(EventSource):
 
 
 class MultiFiles:
-    '''
-    In LST they have multiple file writers, which save the incoming events
-    into different files, so in case one has 10 events and 4 files,
-    it might look like this:
-            f1 = [0, 4]
-            f2 = [1, 5, 8]
-            f3 = [2, 6, 9]
-            f4 = [3, 7]
-    The task of MultiZFitsFiles is to open these 4 files simultaneously
-    and return the events in the correct order, so the user does not really
-    have to know about these existence of 4 files.
 
-    In case of multiple input files the name of the files must finish with suffix
-    *000.fits.fz, *001.fits.fz, etc... and the user must give as input_url the name
-    of the first file (*000.fits.fz). The program will search for the other files.
-    In the case of only one input file the input_url can have any form.
-    '''
+    """
+    This class open all the files in file_list and read the events following
+    the event_id order
+    """
 
-    def __init__(self, input_url):
+    def __init__(self, file_list):
 
         self._file = {}
         self._events = {}
         self._events_table = {}
         self._camera_config = {}
+        self.camera_config = None
 
-        paths = [input_url, ]
 
-        # test how many files are there
-        if '000.fits.fz' in input_url:
-            i = 0
-            while True:
-                input_url = input_url.replace(str(i).zfill(3) +
-                                              '.fits.fz', str(i + 1)
-                                              .zfill(3) + '.fits.fz')
-                if exists(input_url):
-                    paths.append(input_url)
-                    # keep track of all input files
-                    Provenance().add_input_file(input_url, role='dl0.sub.evt')
-                    i = i + 1
-                else:
-                    break
+        paths = []
+        for file_name in file_list:
+            paths.append(file_name)
+            Provenance().add_input_file(file_name, role='r0.sub.evt')
 
         # open the files and get the first fits Tables
         from protozfits import File
 
         for path in paths:
-            self._file[path] = File(path)
-            self._events_table[path] = File(path).Events
-            try:
 
+            try:
+                self._file[path] = File(path)
+                self._events_table[path] = File(path).Events
                 self._events[path] = next(self._file[path].Events)
-                self._camera_config[path] = next(self._file[path].CameraConfig)
+
+                # verify where the CameraConfig is present
+                if 'CameraConfig' in self._file[path].__dict__.keys():
+                    self._camera_config[path] = next(self._file[path].CameraConfig)
+
+                # for the moment it takes the first CameraConfig it finds (to be changed)
+                    if(self.camera_config is None):
+                        self.camera_config = self._camera_config[path]
+
 
             except StopIteration:
                 pass
 
-        # verify that the configuration_id of all files are the same
-        # in the CameraConfig table
-        for path in paths:
-            assert (self._camera_config[path].configuration_id
-                    == self._camera_config[paths[0]].configuration_id)
-
-        # keep the cameraConfig of the first file
-        self.camera_config = self._camera_config[paths[0]]
+        # verify that somewhere the CameraConfing is present
+        assert (self.camera_config)
 
     def __iter__(self):
         return self
