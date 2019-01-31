@@ -234,7 +234,25 @@ class EventSource(Component):
 
 
 def event_source_from_config(config, **kwargs):
-    '''return EventSource instance from traitlets.Configuration'''
+    """
+    Find compatible EventSource for the EventSource.input_url traitlet
+    specified via the config.
+
+    This method is typically used in Tools, where the input_url is chosen via
+    the command line using the traitlet configuration system.
+
+    Parameters
+    ----------
+    config : traitlets.config.loader.Config
+        Configuration created in the Tool
+    kwargs
+        Named arguments for the EventSource
+
+    Returns
+    -------
+    instance
+        Instance of a compatible EventSource subclass
+    """
     if isinstance(config.EventSource.input_url, LazyConfigValue):
         config.EventSource.input_url = EventSource.input_url.default_value
     elif not isinstance(config.EventSource.input_url, str):
