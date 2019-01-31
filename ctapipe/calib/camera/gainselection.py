@@ -153,7 +153,7 @@ class ThresholdGainSelector(GainSelector):
         self.log.debug("Loaded threshold table: \n %s", tab)
 
     def __str__(self):
-        return "{}({})".format(self.__class__.__name__, self.thresholds)
+        return f"{self.__class__.__name__}({self.thresholds})"
 
     def select_gains(self, cam_id, multi_gain_waveform):
 

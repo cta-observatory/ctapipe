@@ -105,7 +105,7 @@ class ChargeResolutionGenerator(Tool):
 
         output_directory = os.path.dirname(self.output_path)
         if not os.path.exists(output_directory):
-            self.log.info("Creating directory: {}".format(output_directory))
+            self.log.info(f"Creating directory: {output_directory}")
             os.makedirs(output_directory)
 
         with pd.HDFStore(self.output_path, 'w') as store:

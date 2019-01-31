@@ -70,7 +70,7 @@ def test_get_min_pixel_seperation():
 def test_find_neighbor_pixels():
     x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
     neigh = _find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
-    assert set(neigh[11]) == set([16, 6, 10, 12])
+    assert set(neigh[11]) == {16, 6, 10, 12}
 
 
 @pytest.mark.parametrize("cam_id", cam_ids)

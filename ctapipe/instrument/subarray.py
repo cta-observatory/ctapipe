@@ -82,9 +82,9 @@ class SubarrayDescription:
         for tel_id, desc in self.tels.items():
             teltypes[str(desc)].append(tel_id)
 
-        printer("Subarray : {}".format(self.name))
-        printer("Num Tels : {}".format(self.num_tels))
-        printer("Footprint: {:.2f}".format(self.footprint))
+        printer(f"Subarray : {self.name}")
+        printer(f"Num Tels : {self.num_tels}")
+        printer(f"Footprint: {self.footprint:.2f}")
         printer("")
         printer("                TYPE  Num IDmin  IDmax")
         printer("=====================================")
@@ -213,7 +213,7 @@ class SubarrayDescription:
             tab = Table(cols)
 
         else:
-            raise ValueError("Table type '{}' not known".format(kind))
+            raise ValueError(f"Table type '{kind}' not known")
 
         tab.meta.update(meta)
         return tab

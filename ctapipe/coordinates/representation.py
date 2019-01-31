@@ -38,10 +38,10 @@ class PlanarRepresentation(BaseRepresentation):
             )
 
         if not isinstance(x, self.attr_classes['x']):
-            raise TypeError('x should be a {0}'.format(self.attr_classes['x'].__name__))
+            raise TypeError('x should be a {}'.format(self.attr_classes['x'].__name__))
 
         if not isinstance(y, self.attr_classes['y']):
-            raise TypeError('y should be a {0}'.format(self.attr_classes['y'].__name__))
+            raise TypeError('y should be a {}'.format(self.attr_classes['y'].__name__))
 
         x = self.attr_classes['x'](x, copy=copy)
         y = self.attr_classes['y'](y, copy=copy)
