@@ -12,8 +12,7 @@ from ctapipe.calib.camera.r1 import camera_r1_calibrator_for_eventsource
 from ctapipe.core import Tool, subclass_from_name
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.image.waveform_cleaning import WaveformCleaner
-from ctapipe.io import EventSource
-from ctapipe.io.eventsource import event_source_from_config
+from ctapipe.io import EventSource, event_source_from_config
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path

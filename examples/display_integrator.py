@@ -17,8 +17,7 @@ from ctapipe.calib.camera.r1 import camera_r1_calibrator_for_eventsource
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io import EventSource
-from ctapipe.io.eventsource import event_source_from_config
+from ctapipe.io import EventSource, event_source_from_config
 from ctapipe.visualization import CameraDisplay
 from ctapipe.core import subclass_from_name
 
