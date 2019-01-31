@@ -17,7 +17,8 @@ from ctapipe.calib.camera.r1 import camera_r1_calibrator_for_eventsource
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io import EventSource, eventsource
+from ctapipe.io import EventSource
+from ctapipe.io.eventsource import event_source_from_config
 from ctapipe.visualization import CameraDisplay
 from ctapipe.core import subclass_from_name
 
@@ -319,7 +320,7 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        event_source = eventsource.from_config(**kwargs)
+        event_source = event_source_from_config(**kwargs)
         self.eventseeker = EventSeeker(event_source, **kwargs)
         self.extractor = subclass_from_name(
             ChargeExtractor,

@@ -229,7 +229,7 @@ class EventSource(Component):
         pass
 
 
-def from_config(config, **kwargs):
+def event_source_from_config(config, **kwargs):
     '''return EventSource instance from traitlets.Configuration'''
     if isinstance(config.EventSource.input_url, LazyConfigValue):
         config.EventSource.input_url = EventSource.input_url.default_value
