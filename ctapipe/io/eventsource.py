@@ -8,7 +8,11 @@ from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
 from traitlets.config.loader import LazyConfigValue
 
-__all__ = ['EventSource', 'event_source']
+__all__ = [
+    'EventSource',
+    'event_source',
+    'event_source_from_config',
+]
 
 
 def event_source(input_url, **kwargs):
