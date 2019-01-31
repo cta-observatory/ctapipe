@@ -55,7 +55,7 @@ class ImagePlotter(Component):
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
         self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
-            self.log.info("Creating PDF: {}".format(self.output_path))
+            self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
 
     @staticmethod
