@@ -76,18 +76,22 @@ class HillasIntersection(Reconstructor):
         src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_parameters)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
             hillas_parameters, tel_x, tel_y)
-        err_x *= u.rad
-        err_y *= u.rad
+        err_x *= u.deg
+        err_y *= u.deg
 
-        nom = SkyCoord(
-            x=src_x * u.rad,
-            y=src_y * u.rad,
-            frame=NominalFrame(array_direction=array_direction)
+        sky_pos = SkyCoord(
+            az=src_x * u.deg,
+            alt=src_y * u.deg,
+            frame=HorizonFrame()
         )
-        horiz = nom.transform_to(HorizonFrame())
+
+        nom_frame = NominalFrame(origin=array_direction)
+
+        nom = sky_pos.transform_to(nom_frame)
 
         result = ReconstructedShowerContainer()
-        result.alt, result.az = horiz.alt, horiz.az
+        result.alt = nom.altaz.alt  # src_y * u.deg
+        result.az = nom.altaz.az   # src_x * u.deg
 
         tilt = SkyCoord(
             x=core_x * u.m,
@@ -99,7 +103,7 @@ class HillasIntersection(Reconstructor):
         result.core_y = grd.y
 
         x_max = self.reconstruct_xmax(
-            nom.x, nom.y,
+            nom.altaz.az, nom.altaz.alt,
             tilt.x, tilt.y,
             hillas_parameters,
             tel_x, tel_y,
@@ -135,7 +139,7 @@ class HillasIntersection(Reconstructor):
 
         Returns
         -------
-        Reconstructed event position in the nominal system
+        Reconstructed event position in the horizon system
 
         """
         if len(hillas_parameters) < 2:
@@ -184,8 +188,6 @@ class HillasIntersection(Reconstructor):
         y_pos = np.average(sy, weights=weight)
         var_x = np.average((sx - x_pos) ** 2, weights=weight)
         var_y = np.average((sy - y_pos) ** 2, weights=weight)
-
-        # Copy into nominal coordinate
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
