@@ -19,4 +19,5 @@ __all__ = [
     'EventSeeker',
     'EventSource',
     'event_source',
+    'event_source_from_config',
 ]
