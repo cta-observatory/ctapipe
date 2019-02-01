@@ -271,21 +271,47 @@ class MCHeaderContainer(Container):
         "OR "
         "[0]=R.A., [1]=Declination in mode 1."
     ))
-    corsika_version = Field(0.0, "CORSIKA version * 1000")
-    simtel_version = Field(0.0, "sim_telarray version * 1000")
-    energy_range_min = Field(0.0, "Lower limit of energy range "
+    corsika_version = Field(np.nan, "CORSIKA version * 1000")
+    simtel_version = Field(np.nan, "sim_telarray version * 1000")
+    energy_range_min = Field(np.nan, "Lower limit of energy range "
                                   "of primary particle", unit=u.TeV)
-    energy_range_max = Field(0.0, "Upper limit of energy range "
+    energy_range_max = Field(np.nan, "Upper limit of energy range "
                                   "of primary particle", unit=u.TeV)
-    prod_site_B_total = Field(0.0, "total geomagnetic field", unit=u.uT)
-    prod_site_B_declination = Field(0.0, "magnetic declination", unit=u.rad)
-    prod_site_B_inclination = Field(0.0, "magnetic inclination", unit=u.rad)
-    prod_site_alt = Field(0.0, "height of observation level", unit=u.m)
+    prod_site_B_total = Field(np.nan, "total geomagnetic field", unit=u.uT)
+    prod_site_B_declination = Field(np.nan, "magnetic declination", unit=u.rad)
+    prod_site_B_inclination = Field(np.nan, "magnetic inclination", unit=u.rad)
+    prod_site_alt = Field(np.nan, "height of observation level", unit=u.m)
     prod_site_array = Field("None", "site array")
     prod_site_coord = Field("None", "site (long., lat.) coordinates")
     prod_site_subarray = Field("None", "site subarray")
-    spectral_index = Field(0.0, "Power-law spectral index of spectrum")
-
+    spectral_index = Field(np.nan, "Power-law spectral index of spectrum")
+    shower_prog_start = Field(np.nan, """Time when shower simulation started,
+                              CORSIKA: only date""")
+    shower_prog_id = Field(np.nan, "CORSIKA=1, ALTAI=2, KASCADE=3, MOCCA=4")
+    detector_prog_start = Field(np.nan, "Time when detector simulation started")
+    detector_prog_id = Field(np.nan, "simtelarray=1")
+    num_showers = Field(np.nan, "Number of showers simulated")
+    shower_reuse = Field(np.nan, "Numbers of uses of each shower")
+    max_alt = Field(np.nan, "Maximimum shower altitude", unit=u.rad)
+    min_alt = Field(np.nan, "Minimum shower altitude", unit=u.rad)
+    max_az = Field(np.nan, "Maximum shower azimuth", unit=u.rad)
+    min_az = Field(np.nan, "Minimum shower azimuth", unit=u.rad)
+    diffuse = Field(np.nan, "Diffuse Mode On/Off")
+    max_viewcone_radius = Field(np.nan, "Maximum viewcone radius", unit=u.deg)
+    min_viewcone_radius = Field(np.nan, "Minimum viewcone radius", unit=u.deg)
+    max_scatter_range = Field(np.nan, "Maximum scatter range", unit=u.m)
+    min_scatter_range = Field(np.nan, "Minimum scatter range", unit=u.m)
+    core_pos_mode = Field(np.nan, "Core Position Mode (fixed/circular/...)")
+    injection_height = Field(np.nan, "Height of particle injection", unit=u.m)
+    atmosphere = Field(np.nan, "Atmospheric model number")
+    corsika_iact_options = Field(np.nan, "Detector MC information")
+    corsika_low_E_model = Field(np.nan, "Detector MC information")
+    corsika_high_E_model = Field(np.nan, "Detector MC information")
+    corsika_bunchsize = Field(np.nan, "Number of photons per bunch")
+    corsika_wlen_min = Field(np.nan, "Minimum wavelength of cherenkov light", unit=u.nm)
+    corsika_wlen_max = Field(np.nan, "Maximum wavelength of cherenkov light", unit=u.nm)
+    corsika_low_E_detail = Field(np.nan, "Detector MC information")
+    corsika_high_E_detail = Field(np.nan, "Detector MC information")
 
 
 class CentralTriggerContainer(Container):
