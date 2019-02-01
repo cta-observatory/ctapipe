@@ -8,11 +8,10 @@ from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1Calibrator
-from ctapipe.calib.camera.r1 import camera_r1_calibrator_for_eventsource
-from ctapipe.core import Tool, subclass_from_name
+from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.image.waveform_cleaning import WaveformCleaner
-from ctapipe.io import EventSource, event_source_from_config
+from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
@@ -102,20 +101,18 @@ class BokehFileViewer(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        self.reader = event_source_from_config(**kwargs)
+        self.reader = EventSource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
-        self.extractor = subclass_from_name(
-            ChargeExtractor,
+        self.extractor = ChargeExtractor.from_name(
             self.extractor_product,
             **kwargs
         )
-        self.cleaner = subclass_from_name(
-            WaveformCleaner,
+        self.cleaner = WaveformCleaner.from_name(
             self.cleaner_product,
             **kwargs
         )
-        self.r1 = camera_r1_calibrator_for_eventsource(
+        self.r1 = CameraR1Calibrator.from_eventsource(
             eventsource=self.reader,
             **kwargs
         )
@@ -428,12 +425,10 @@ class BokehFileViewer(Tool):
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
-                extractor = subclass_from_name(
-                    ChargeExtractor,
+                extractor = ChargeExtractor.from_name(
                     self.extractor_product,
                     **kwargs)
-                cleaner = subclass_from_name(
-                    WaveformCleaner,
+                cleaner = WaveformCleaner.from_name(
                     self.cleaner_product,
                     **kwargs)
                 self.update_dl1_calibrator(extractor, cleaner)

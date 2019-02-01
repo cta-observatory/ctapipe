@@ -9,7 +9,7 @@ the cameras.
 As the R1 calibration is camera specific, each camera (and seperately the MC)
 requires their own calibrator class with inherits from `CameraR1Calibrator`.
 `HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
-Through the use of `camera_r1_calibrator_for_eventsource()`, the correct
+Through the use of `CameraR1Calibrator.from_eventsource()`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
@@ -24,34 +24,7 @@ __all__ = [
     'HESSIOR1Calibrator',
     'TargetIOR1Calibrator',
     'CameraR1Calibrator',
-    'camera_r1_calibrator_for_eventsource',
 ]
-
-
-def camera_r1_calibrator_for_eventsource(eventsource, **kwargs):
-    """
-    Obtain the correct `CameraR1Calibrator` according the the `EventSource`
-    of the file.
-
-    Parameters
-    ----------
-    eventsource : ctapipe.io.EventSource
-        Subclass of `ctapipe.io.EventSource`
-    kwargs
-        Named arguments to pass to the `CameraR1Calibrator`
-
-    Returns
-    -------
-    calibrator
-        Subclass of `CameraR1Calibrator`
-    """
-    if (hasattr(eventsource, 'metadata') and
-            eventsource.metadata['is_simulation']):
-        return HESSIOR1Calibrator(**kwargs)
-    elif eventsource.__class__.__name__ == "TargetIOEventSource":
-        return TargetIOR1Calibrator(**kwargs)
-
-    return NullR1Calibrator(**kwargs)
 
 
 class CameraR1Calibrator(Component):
@@ -135,6 +108,32 @@ class CameraR1Calibrator(Component):
                                  "R1 is unchanged in this circumstance.")
                 self._r0_empty_warn = True
             return False
+
+    @classmethod
+    def from_eventsource(cls, eventsource, **kwargs):
+        """
+        Obtain the correct `CameraR1Calibrator` according the the `EventSource`
+        of the file.
+
+        Parameters
+        ----------
+        eventsource : ctapipe.io.EventSource
+            Subclass of `ctapipe.io.EventSource`
+        kwargs
+            Named arguments to pass to the `CameraR1Calibrator`
+
+        Returns
+        -------
+        calibrator
+            Subclass of `CameraR1Calibrator`
+        """
+        if (hasattr(eventsource, 'metadata') and
+                eventsource.metadata['is_simulation']):
+            return HESSIOR1Calibrator(**kwargs)
+        elif eventsource.__class__.__name__ == "TargetIOEventSource":
+            return TargetIOR1Calibrator(**kwargs)
+
+        return NullR1Calibrator(**kwargs)
 
 
 class NullR1Calibrator(CameraR1Calibrator):

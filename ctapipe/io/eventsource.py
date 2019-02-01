@@ -11,12 +11,13 @@ from traitlets.config.loader import LazyConfigValue
 __all__ = [
     'EventSource',
     'event_source',
-    'event_source_from_config',
 ]
 
 
 def event_source(input_url, **kwargs):
     """
+    Helper function for EventSource.from_url
+
     Find compatible EventSource for input_url via the `is_compatible` method
     of the EventSource
 
@@ -32,18 +33,7 @@ def event_source(input_url, **kwargs):
     instance
         Instance of a compatible EventSource subclass
     """
-    available_classes = non_abstract_children(EventSource)
-
-    for subcls in available_classes:
-        if subcls.is_compatible(input_url):
-            return subcls(input_url=input_url, **kwargs)
-
-    raise ValueError(
-        'Cannot find compatible EventSource for \n'
-        '\turl:{}\n'
-        'in available EventSources:\n'
-        '\t{}'.format(input_url, [c.__name__ for c in available_classes])
-    )
+    return EventSource.from_url(input_url, **kwargs)
 
 
 class EventSource(Component):
@@ -232,33 +222,64 @@ class EventSource(Component):
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+    @classmethod
+    def from_url(cls, input_url, **kwargs):
+        """
+        Find compatible EventSource for input_url via the `is_compatible`
+        method of the EventSource
 
-def event_source_from_config(config, **kwargs):
-    """
-    Find compatible EventSource for the EventSource.input_url traitlet
-    specified via the config.
+        Parameters
+        ----------
+        input_url : str
+            Filename or URL pointing to an event file
+        kwargs
+            Named arguments for the EventSource
 
-    This method is typically used in Tools, where the input_url is chosen via
-    the command line using the traitlet configuration system.
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        available_classes = non_abstract_children(cls)
 
-    Parameters
-    ----------
-    config : traitlets.config.loader.Config
-        Configuration created in the Tool
-    kwargs
-        Named arguments for the EventSource
+        for subcls in available_classes:
+            if subcls.is_compatible(input_url):
+                return subcls(input_url=input_url, **kwargs)
 
-    Returns
-    -------
-    instance
-        Instance of a compatible EventSource subclass
-    """
-    if isinstance(config.EventSource.input_url, LazyConfigValue):
-        config.EventSource.input_url = EventSource.input_url.default_value
-    elif not isinstance(config.EventSource.input_url, str):
-        raise TraitError("Wrong type specified for input_url traitlet")
-    return event_source(
-        config.EventSource.input_url,
-        config=config,
-        **kwargs
-    )
+        raise ValueError(
+            'Cannot find compatible EventSource for \n'
+            '\turl:{}\n'
+            'in available EventSources:\n'
+            '\t{}'.format(input_url, [c.__name__ for c in available_classes])
+        )
+
+    @classmethod
+    def from_config(cls, config, **kwargs):
+        """
+        Find compatible EventSource for the EventSource.input_url traitlet
+        specified via the config.
+
+        This method is typically used in Tools, where the input_url is chosen via
+        the command line using the traitlet configuration system.
+
+        Parameters
+        ----------
+        config : traitlets.config.loader.Config
+            Configuration created in the Tool
+        kwargs
+            Named arguments for the EventSource
+
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        if isinstance(config.EventSource.input_url, LazyConfigValue):
+            config.EventSource.input_url = cls.input_url.default_value
+        elif not isinstance(config.EventSource.input_url, str):
+            raise TraitError("Wrong type specified for input_url traitlet")
+        return event_source(
+            config.EventSource.input_url,
+            config=config,
+            **kwargs
+        )

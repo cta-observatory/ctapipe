@@ -21,7 +21,7 @@ from ctapipe.core.traits import Float, Dict, List
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
-from ctapipe.io import EventSource, event_source_from_config
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -69,7 +69,7 @@ class SingleTelEventDisplay(Tool):
     classes = List([EventSource, CameraCalibrator])
 
     def setup(self):
-        self.event_source = event_source_from_config(
+        self.event_source = EventSource.from_config(
             config=self.config,
             tool=self
         )

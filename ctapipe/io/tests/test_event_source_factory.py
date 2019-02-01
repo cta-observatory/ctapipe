@@ -2,7 +2,7 @@ import pytest
 from traitlets.config.loader import Config
 from traitlets import TraitError
 from ctapipe.io import event_source, SimTelEventSource
-from ctapipe.io.eventsource import event_source_from_config, EventSource
+from ctapipe.io.eventsource import EventSource
 from ctapipe.utils import get_dataset_path
 
 
@@ -35,7 +35,7 @@ def test_factory_nonexistant_file():
 def test_from_config():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     config = Config({'EventSource': {'input_url': dataset}})
-    reader = event_source_from_config(config=config, tool=None)
+    reader = EventSource.from_config(config=config, tool=None)
     assert isinstance(reader, SimTelEventSource)
     assert reader.input_url == dataset
 
@@ -45,7 +45,7 @@ def test_from_config_default():
     dataset = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = dataset
     config = Config()
-    reader = event_source_from_config(config=config, tool=None)
+    reader = EventSource.from_config(config=config, tool=None)
     assert isinstance(reader, SimTelEventSource)
     assert reader.input_url == dataset
     EventSource.input_url.default_value = old_default
@@ -56,7 +56,7 @@ def test_from_config_invalid_type():
     EventSource.input_url.default_value = dataset
     config = Config({'EventSource': {'input_url': 124}})
     with pytest.raises(TraitError):
-        event_source_from_config(config=config, tool=None)
+        EventSource.from_config(config=config, tool=None)
 
 
 def test_event_source_config():
@@ -91,7 +91,7 @@ def test_factory_max_events_from_config():
         'input_url': dataset,
         'max_events': max_events,
     }})
-    reader = event_source_from_config(config=config)
+    reader = EventSource.from_config(config=config)
     assert reader.max_events == max_events
 
 
@@ -109,5 +109,5 @@ def test_factory_allowed_tels_from_config():
         'input_url': dataset,
         'allowed_tels': {1, 3}
     }})
-    reader = event_source_from_config(config=config, tool=None)
+    reader = EventSource.from_config(config=config, tool=None)
     assert len(reader.allowed_tels) == 2

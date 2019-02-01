@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Unicode, List, Dict, Bool
-from ctapipe.io import EventSource, HDF5TableWriter, event_source_from_config
+from ctapipe.io import EventSource, HDF5TableWriter
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.CutFlow import CutFlow
@@ -38,7 +38,7 @@ class SimpleEventWriter(Tool):
     def setup(self):
         self.log.info('Configure EventSource...')
 
-        self.event_source = event_source_from_config(
+        self.event_source = EventSource.from_config(
             config=self.config,
             tool=self
         )

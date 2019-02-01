@@ -11,15 +11,13 @@ from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
 import ctapipe.utils.tools as tool_utils
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import camera_r1_calibrator_for_eventsource
+from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
+    CameraDL1Calibrator
 from ctapipe.core import Tool
 from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io import EventSource, event_source_from_config
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
-from ctapipe.core import subclass_from_name
 
 
 def plot(event, telid, chan, extractor_name):
@@ -319,14 +317,13 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        event_source = event_source_from_config(**kwargs)
+        event_source = EventSource.from_config(**kwargs)
         self.eventseeker = EventSeeker(event_source, **kwargs)
-        self.extractor = subclass_from_name(
-            ChargeExtractor,
+        self.extractor = ChargeExtractor.from_name(
             self.extractor_product,
             **kwargs
         )
-        self.r1 = camera_r1_calibrator_for_eventsource(
+        self.r1 = CameraR1Calibrator.from_eventsource(
             eventsource=event_source,
             **kwargs
         )

@@ -17,7 +17,7 @@ from ctapipe.analysis.camera.charge_resolution import \
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
-from ctapipe.core import Tool, Provenance, subclass_from_name
+from ctapipe.core import Tool, Provenance
 from ctapipe.image.charge_extractors import ChargeExtractor
 
 from ctapipe.io.simteleventsource import SimTelEventSource
@@ -79,8 +79,7 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(**kwargs)
 
-        extractor = subclass_from_name(
-            ChargeExtractor,
+        extractor = ChargeExtractor.from_name(
             self.extractor_product,
             **kwargs
         )

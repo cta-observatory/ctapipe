@@ -262,3 +262,16 @@ def test_help_changed_default():
     help_msg = ExampleComponent.class_get_help()
     assert "Default: 199.0" in help_msg
     ExampleComponent.param.default_value = old_default
+
+
+def test_from_name():
+    subclass = ExampleComponent.from_name("ExampleSubclass1")
+    assert isinstance(subclass, ExampleSubclass1)
+    subclass = ExampleComponent.from_name("ExampleSubclass2")
+    assert isinstance(subclass, ExampleSubclass2)
+
+
+def test_from_name_config():
+    config = Config({'ExampleComponent': {'param': 229.}})
+    subclass = ExampleComponent.from_name("ExampleSubclass1", config=config)
+    assert subclass.param == 229.

@@ -9,7 +9,17 @@ from traitlets import TraitError
 def non_abstract_children(base):
     """
     Return all non-abstract subclasses of a base class recursively.
-    """
+
+    Parameters
+    ----------
+    base : class
+        High level class object that is inherited by the
+        desired subclasses
+    Returns
+    -------
+    non_abstract : dict
+        dict of all non-abstract subclasses
+     """
     subclasses = base.__subclasses__() + [
         g for s in base.__subclasses__()
         for g in non_abstract_children(s)
@@ -17,20 +27,6 @@ def non_abstract_children(base):
     non_abstract = [g for g in subclasses if not isabstract(g)]
 
     return non_abstract
-
-
-def subclass_from_name(base, name, config=None, tool=None):
-    '''create instance of subclass by `name`
-
-    config and tool are only relevant for `Tool` developers
-    '''
-    subclasses = {
-        base.__name__: base
-        for base in non_abstract_children(base)
-    }
-    cls = subclasses[name]
-
-    return cls(config=config, tool=tool)
 
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
@@ -108,3 +104,35 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                 self.__class__.__module__ + '.' + self.__class__.__name__
             )
 
+    @classmethod
+    def from_name(cls, name, config=None, tool=None):
+        """
+        Obtain an instance of a subclass via its name
+
+        Parameters
+        ----------
+        name : str
+            Name of the subclass to obtain
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            This argument is typically only specified when using this method
+            from within a Tool.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            This argument is typically only specified when using this method
+            from within a Tool.
+
+        Returns
+        -------
+        instace
+            Instance of subclass to this class
+        """
+        subclasses = {
+            base.__name__: base
+            for base in non_abstract_children(cls)
+        }
+        requested_subclass = subclasses[name]
+
+        return requested_subclass(config=config, tool=tool)

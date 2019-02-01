@@ -4,12 +4,11 @@ Conveniance calibrator to handle the full camera calibration.
 This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
-from ctapipe.core import Component, subclass_from_name
+from ctapipe.core import Component
 from ctapipe.calib.camera import (
     CameraR1Calibrator,
     CameraDL0Reducer,
     CameraDL1Calibrator,
-    camera_r1_calibrator_for_eventsource
 )
 from ctapipe.image import ChargeExtractor, WaveformCleaner
 
@@ -78,29 +77,26 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=tool, **kwargs)
 
-        extractor = subclass_from_name(
-            ChargeExtractor,
+        extractor = ChargeExtractor.from_name(
             extractor_product,
             config=config,
             tool=tool
         )
 
-        cleaner = subclass_from_name(
-            WaveformCleaner,
+        cleaner = WaveformCleaner.from_name(
             cleaner_product,
             config=config,
             tool=tool,
         )
 
         if r1_product:
-            self.r1 = subclass_from_name(
-                CameraR1Calibrator,
+            self.r1 = CameraR1Calibrator.from_name(
                 r1_product,
                 config=config,
                 tool=tool,
             )
         else:
-            self.r1 = camera_r1_calibrator_for_eventsource(
+            self.r1 = CameraR1Calibrator.from_eventsource(
                 eventsource,
                 config=config,
                 tool=tool,
