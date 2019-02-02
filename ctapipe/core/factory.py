@@ -139,7 +139,7 @@ class Factory(Component, metaclass=FactoryMeta):
         if not self.base:
             raise AttributeError("Factory.base must be set to a Component")
 
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self.kwargs = copy(kwargs)
 
     def _get_product_name(self):

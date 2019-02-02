@@ -89,7 +89,7 @@ class EventSeeker(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         if reader.is_stream:
             raise IOError("Reader is not compatible as input to the "

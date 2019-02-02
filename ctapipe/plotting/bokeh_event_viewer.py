@@ -351,7 +351,7 @@ class BokehEventViewer(Component):
             Number of waveform figures to handle
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         self._event = None
         self._view = 'r0'

@@ -142,8 +142,8 @@ class ThresholdGainSelector(GainSelector):
              'low-gain waveform is used.'
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, config=None, tool=None, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
 
         tab = get_table_dataset(
             self.threshold_table_name,

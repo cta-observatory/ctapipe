@@ -86,7 +86,7 @@ class ChargeResolutionPlotter(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self._df_pixel = None
         self._df_camera = None
 
