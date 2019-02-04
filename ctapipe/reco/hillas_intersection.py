@@ -82,7 +82,7 @@ class HillasIntersection(Reconstructor):
         sky_pos = SkyCoord(
             az=src_x * u.deg,
             alt=src_y * u.deg,
-            frame=HorizonFrame()
+            frame=HorizonFrame(location=array_direction.location, obstime=array_direction.obstime)
         )
 
         nom_frame = NominalFrame(origin=array_direction)
