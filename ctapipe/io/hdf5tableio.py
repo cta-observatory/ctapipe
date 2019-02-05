@@ -151,7 +151,7 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 if isinstance(value, Quantity):
-                    if self.add_prefix:
+                    if self.add_prefix and container.prefix:
                         key = col_name.replace(container.prefix + '_', '')
                     else:
                         key = col_name
