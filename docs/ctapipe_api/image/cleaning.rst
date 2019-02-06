@@ -10,7 +10,7 @@ filtering).
 
 An example of image cleaning and dilation:
 
-.. image:: dilate.png
+.. image:: ./dilate.png
 
 
 API Reference

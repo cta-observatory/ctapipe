@@ -58,7 +58,6 @@ script:
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx -v --outdir=docbuild build --source=docs/
-    - ./execute_ipynbs.py
 
 after_script:
     - source deactivate
