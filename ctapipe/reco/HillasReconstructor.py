@@ -9,7 +9,7 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 from itertools import combinations
 
-from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, project_to_ground
+from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, MissingFrameAttributeWarning, project_to_ground
 from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 import warnings
 
@@ -120,6 +120,9 @@ class HillasReconstructor(Reconstructor):
             if len(hillas_dict) < 2
         '''
 
+        # filter warnings for missing obs time. this is needed because MC data hass no obs time
+        warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
+        
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
             raise TooFewTelescopesException(
@@ -195,7 +198,6 @@ class HillasReconstructor(Reconstructor):
             dictionaries of the orientation angles of the telescopes
             needs to contain at least the same keys as in `hillas_dict`
         """
-
         self.hillas_planes = {}
         horizon_frame = HorizonFrame()
         for tel_id, moments in hillas_dict.items():
