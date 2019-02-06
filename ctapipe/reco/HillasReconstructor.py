@@ -160,7 +160,7 @@ class HillasReconstructor(Reconstructor):
         result.core_uncert = np.nan
 
         result.tel_ids = [h for h in hillas_dict.keys()]
-        result.average_size = np.mean([h.intensity for h in hillas_dict.values()])
+        result.average_intensity = np.mean([h.intensity for h in hillas_dict.values()])
         result.is_valid = True
 
         result.alt_uncert = err_est_dir
