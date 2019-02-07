@@ -29,7 +29,7 @@ First, it's useful to make a directory where you have can check out
 cta GIT repos (this is optinal - you can put it anywhere)
 
 .. code-block:: console
-    
+
     $ mkdir ctasoft
     $ cd ctasoft
 
@@ -53,14 +53,14 @@ ctapipe repo (make sure you put in your own username there):
 
 .. code-block:: console
 
-    $ git clone https://github.com/[YOUR-GITHUB-USERNAME]/ctapipe.git  
+    $ git clone https://github.com/[YOUR-GITHUB-USERNAME]/ctapipe.git
     $ cd ctapipe
 
 
 You now need to tell Git that this repo where the master CTA version is:
 
 .. code-block:: console
-		
+
     $ git remote add upstream https://github.com/cta-observatory/ctapipe.git
 
 If that worked, then you should see a *upstream* target in
@@ -77,18 +77,18 @@ Change to the directory where you cloned `ctapipe`, and type:
 
 .. code-block:: console
 
-       
+
     $ conda env create -n cta-dev -f environment.yml
 
-	
+
 This will create a conda virtual environment called `cta-dev` with all
 the ctapipe dependencies and a few useful packages for development and
 interaction. Next, switch to this new virtual environment:
-	
+
 .. code-block:: console
 
     $ source activate cta-dev
-	
+
 
 You will need to type that last command any time you open a new
 terminal to actiavate the virtual environment (you can of course
@@ -110,7 +110,7 @@ usable from anywhere.
 
 .. code-block:: console
 
-    $ make develop  
+    $ pip install -e .
 
 .. note::
 
@@ -120,7 +120,7 @@ usable from anywhere.
    before 1.9.0). To fix the problem, simply type `git fetch upstream
    --tags` and try `make develop` again)
 
-    
+
 Run the tests to make sure everything is OK:
 
 .. code-block:: console
@@ -131,7 +131,7 @@ Build the HTML docs locally and open them in your web browser:
 
 .. code-block:: console
 
-    $ make doc   
+    $ make doc
 
 Run the example Python scripts:
 
@@ -194,8 +194,8 @@ the first line is a short description, followed by a blank line,
 followed by details if needed (in a bullet list if applicable). You
 may even refer to GitHub issue ids, and they will be automatically
 linked to the commit in the issue tracker.  An example commit message::
-  
-  fixed bug #245 
+
+  fixed bug #245
 
   - changed the order of if statements to avoid logical error
   - added unit test to check for regression
@@ -271,7 +271,7 @@ If the reviewer asks for changes, all you need to do is make them, `git
 commit` them and then run `git push` and the reviewer will see the changes.
 
 When the PR is accepted, the reviewer will merge your branch into the
-*master* repo on cta-observatory's account.  
+*master* repo on cta-observatory's account.
 
 +++++++++++++++++++++++++++++
 6. delete your feature branch

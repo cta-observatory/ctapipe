@@ -23,8 +23,8 @@ class NectarCAMEventSource(EventSource):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-   
-        
+
+
         """
         Constructor
         Parameters
@@ -87,7 +87,7 @@ class NectarCAMEventSource(EventSource):
             tel_descr = TelescopeDescription(optics, camera)
 
             tel_descr.optics.tel_subtype = ''  # to correct bug in reading
-            
+
             self.n_camera_pixels = tel_descr.camera.n_pixels
             tels = {tel_id: tel_descr}
 
@@ -118,6 +118,10 @@ class NectarCAMEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        from .sst1meventsource import is_fits_in_header
+        if not is_fits_in_header(file_path):
+            return False
+
         from astropy.io import fits
         try:
             # The file contains two tables:
@@ -211,8 +215,8 @@ class NectarCAMEventSource(EventSource):
 
         reshaped_waveform = np.array(
             event.waveform
-             ).reshape(n_gains, 
-                       self.camera_config.num_pixels, 
+             ).reshape(n_gains,
+                       self.camera_config.num_pixels,
                        container.num_samples)
 
         # initialize the waveform container to zero

@@ -25,10 +25,10 @@ class LSTEventSource(EventSource):
     EventSource for LST r0 data.
     """
 
-    
+
 
     def __init__(self, config=None, tool=None, **kwargs):
-        
+
         """
         Constructor
         Parameters
@@ -63,7 +63,7 @@ class LSTEventSource(EventSource):
 
 
         self.multi_file = MultiFiles(self.file_list)
-        
+
         self.camera_config = self.multi_file.camera_config
         self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
 
@@ -123,6 +123,10 @@ class LSTEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
+        from .sst1meventsource import is_fits_in_header
+        if not is_fits_in_header(file_path):
+            return False
+
         from astropy.io import fits
         try:
             # The file contains two tables:
@@ -215,8 +219,8 @@ class LSTEventSource(EventSource):
 
         reshaped_waveform = np.array(
                 event.waveform
-             ).reshape(n_gains, 
-                       self.camera_config.num_pixels, 
+             ).reshape(n_gains,
+                       self.camera_config.num_pixels,
                        container.num_samples)
 
         # initialize the waveform container to zero
@@ -247,7 +251,7 @@ class MultiFiles:
 
     """
     This class open all the files in file_list and read the events following
-    the event_id order 
+    the event_id order
     """
 
     def __init__(self, file_list):
@@ -258,9 +262,9 @@ class MultiFiles:
         self._camera_config = {}
         self.camera_config = None
 
-    
+
         paths = []
-        for file_name in file_list:            
+        for file_name in file_list:
             paths.append(file_name)
             Provenance().add_input_file(file_name, role='r0.sub.evt')
 

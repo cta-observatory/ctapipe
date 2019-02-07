@@ -59,7 +59,7 @@ class SimTelEventSource(EventSource):
                 cam_settings['mirror_area'] * u.m ** 2
             )
             tel_description.optics.num_mirror_tiles = (
-                cam_settings['mirror_area']
+                cam_settings['n_mirrors']
             )
             tel_descriptions[tel_id] = tel_description
 
@@ -168,6 +168,33 @@ class SimTelEventSource(EventSource):
                 mc_run_head['B_inclination'] * u.rad)
             data.mcheader.prod_site_alt = mc_run_head['obsheight'] * u.m
             data.mcheader.spectral_index = mc_run_head['spectral_index']
+            data.mcheader.shower_prog_start = mc_run_head['shower_prog_start']
+            data.mcheader.shower_prog_id = mc_run_head['shower_prog_id']
+            data.mcheader.detector_prog_start = mc_run_head['detector_prog_start']
+            data.mcheader.detector_prog_id = mc_run_head['detector_prog_id']
+            data.mcheader.num_showers = mc_run_head['num_showers']
+            data.mcheader.shower_reuse = mc_run_head['num_use']
+            data.mcheader.max_alt = mc_run_head['alt_range'][1] * u.rad
+            data.mcheader.min_alt = mc_run_head['alt_range'][0] * u.rad
+            data.mcheader.max_az = mc_run_head['az_range'][1] * u.rad
+            data.mcheader.min_az = mc_run_head['az_range'][0] * u.rad
+            data.mcheader.diffuse = mc_run_head['diffuse']
+            data.mcheader.max_viewcone_radius = mc_run_head['viewcone'][1] * u.deg
+            data.mcheader.min_viewcone_radius = mc_run_head['viewcone'][0] * u.deg
+            data.mcheader.max_scatter_range = mc_run_head['core_range'][1] * u.m
+            data.mcheader.min_scatter_range = mc_run_head['core_range'][0] * u.m
+            data.mcheader.core_pos_mode = mc_run_head['core_pos_mode']
+            data.mcheader.injection_height = mc_run_head['injection_height'] * u.m
+            data.mcheader.atmosphere = mc_run_head['atmosphere']
+            data.mcheader.corsika_iact_options = mc_run_head['corsika_iact_options']
+            data.mcheader.corsika_low_E_model = mc_run_head['corsika_low_E_model']
+            data.mcheader.corsika_high_E_model = mc_run_head['corsika_high_E_model']
+            data.mcheader.corsika_bunchsize = mc_run_head['corsika_bunchsize']
+            data.mcheader.corsika_wlen_min = mc_run_head['corsika_wlen_min'] * u.nm
+            data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max'] * u.nm
+            data.mcheader.corsika_low_E_detail = mc_run_head['corsika_low_E_detail']
+            data.mcheader.corsika_high_E_detail = mc_run_head['corsika_high_E_detail']
+
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
@@ -181,6 +208,7 @@ class SimTelEventSource(EventSource):
             telescope_events = array_event['telescope_events']
             tracking_positions = array_event['tracking_positions']
             for tel_id, telescope_event in telescope_events.items():
+                tel_index = self.file_.header['tel_id'].tolist().index(tel_id)
                 telescope_description = self.file_.telescope_descriptions[tel_id]
 
                 data.mc.tel[tel_id].dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
@@ -205,12 +233,11 @@ class SimTelEventSource(EventSource):
                 data.mc.tel[tel_id].time_slice = float(pixel_settings['time_slice'])
 
                 n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
-
-                data.mc.tel[tel_id].photo_electron_image = array_event.get(
-                    'photoelectrons', {}
-                ).get(tel_id)
-                if data.mc.tel[tel_id].photo_electron_image is None:
-                    data.mc.tel[tel_id].photo_electron_image = np.zeros((n_pixel, ), dtype='i2')
+                data.mc.tel[tel_id].photo_electron_image = (
+                    array_event.get('photoelectrons', {})
+                               .get(tel_index, {})
+                               .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
+                )
 
                 tracking_position = tracking_positions[tel_id]
                 data.mc.tel[tel_id].azimuth_raw = tracking_position['azimuth_raw']
