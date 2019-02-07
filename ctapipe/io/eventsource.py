@@ -40,7 +40,7 @@ class EventSource(Component):
 
     An example of how to use `ctapipe.core.tool.Tool` and
     `ctapipe.io.eventfilereader.EventSourceFactory` can be found in
-    ctapipe/examples/calibration_pipeline.py.
+    ctapipe/tools/display_dl1.py.
 
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:

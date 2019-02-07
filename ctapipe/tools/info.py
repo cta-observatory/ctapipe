@@ -180,3 +180,6 @@ def _info_system():
 
         for name, val in sysinfo.items():
             print("{:>20.20s} -- {:<60.60s}".format(name, str(val)))
+
+if __name__ == '__main__':
+    main()

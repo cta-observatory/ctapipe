@@ -1,7 +1,7 @@
 """
 Select a group of similar telescopes (with same camera type), Loop over
 events where telescopes in the group participate, sum the image from each
-telescope, and display it
+telescope, and display it.
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from ctapipe.visualization import CameraDisplay
 
 class ImageSumDisplayerTool(Tool):
     description = Unicode(__doc__)
-    name = "ctapipe-image-sum-display"
+    name = "ctapipe-display-imagesum"
 
     infile = Unicode(
         help='input simtelarray file',
@@ -117,6 +117,6 @@ class ImageSumDisplayerTool(Tool):
                 plt.savefig(filename)
 
 
-if __name__ == '__main__':
+def main():
     tool = ImageSumDisplayerTool()
     tool.run()

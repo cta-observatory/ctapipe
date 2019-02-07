@@ -26,7 +26,7 @@ from ctapipe.visualization import CameraDisplay
 
 
 class SingleTelEventDisplay(Tool):
-    name = "ctapipe-display-single-tel"
+    name = "ctapipe-display-televents"
     description = Unicode(__doc__)
 
     infile = Unicode(help="input file to read", default='').tag(config=True)
@@ -172,6 +172,6 @@ class SingleTelEventDisplay(Tool):
             )
 
 
-if __name__ == '__main__':
+def main():
     tool = SingleTelEventDisplay()
     tool.run()

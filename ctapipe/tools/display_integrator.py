@@ -1,11 +1,8 @@
 """
-Create a plot of where the integration window lays on the trace for the pixel
-with the highest charge, its neighbours, and the pixel with the lowest max
-charge and its neighbours. Also shows a disgram of which pixels count as a
-neighbour, the camera image for the max charge timeslice, the true pe camera
-image, and a calibrated camera image
+Calibrate dl0 data to dl1, and plot the various camera images that
+characterise the event and calibration. Also plot some examples of waveforms
+with the integration window.
 """
-
 import numpy as np
 from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
@@ -244,11 +241,8 @@ def plot(event, telid, chan, extractor_name):
 
 
 class DisplayIntegrator(Tool):
-    name = "DisplayIntegrator"
-    description = "Calibrate dl0 data to dl1, and plot the various camera " \
-                  "images that characterise the event and calibration. Also " \
-                  "plot some examples of waveforms with the " \
-                  "integration window."
+    name = "ctapipe-display-integration"
+    description = __doc__
 
     event_index = Int(0, help='Event index to view.').tag(config=True)
     use_event_id = Bool(
@@ -355,6 +349,6 @@ class DisplayIntegrator(Tool):
         pass
 
 
-if __name__ == '__main__':
+def main():
     exe = DisplayIntegrator()
     exe.run()

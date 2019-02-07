@@ -1,3 +1,6 @@
+"""
+Calibrate dl0 data to dl1, and plot the photoelectron images.
+"""
 from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
@@ -12,7 +15,7 @@ from ctapipe.visualization import CameraDisplay
 
 class ImagePlotter(Component):
     display = Bool(
-        False,
+        True,
         help='Display the photoelectron images on-screen as they '
         'are produced.'
     ).tag(config=True)
@@ -127,9 +130,8 @@ class ImagePlotter(Component):
 
 
 class DisplayDL1Calib(Tool):
-    name = "DisplayDL1Calib"
-    description = "Calibrate dl0 data to dl1, and plot the photoelectron " \
-                  "images."
+    name = "ctapipe-display-dl1"
+    description = __doc__
 
     telescope = Int(
         None,
