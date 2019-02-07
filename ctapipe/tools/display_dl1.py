@@ -5,26 +5,26 @@ from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
 
-from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
-from ctapipe.core import Tool, Component
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
-from ctapipe.utils import get_dataset_path
-from ctapipe.visualization import CameraDisplay
+from ..calib import CameraCalibrator, CameraDL1Calibrator
+from ..core import Tool, Component
+from ..image.charge_extractors import ChargeExtractorFactory
+from ..io.eventsourcefactory import EventSourceFactory
+from ..utils import get_dataset_path
+from ..visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
     display = Bool(
         True,
         help='Display the photoelectron images on-screen as they '
-        'are produced.'
+             'are produced.'
     ).tag(config=True)
     output_path = Unicode(
         None,
         allow_none=True,
         help='Output path for the pdf containing all the '
-        'images. Set to None for no saved '
-        'output.'
+             'images. Set to None for no saved '
+             'output.'
     ).tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
@@ -115,7 +115,7 @@ class ImagePlotter(Component):
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}"
-            .format(event.count, event.r0.event_id, telid)
+                .format(event.count, event.r0.event_id, telid)
         )
 
         if self.display:
@@ -137,7 +137,7 @@ class DisplayDL1Calib(Tool):
         None,
         allow_none=True,
         help='Telescope to view. Set to None to display all '
-        'telescopes.'
+             'telescopes.'
     ).tag(config=True)
 
     aliases = Dict(
@@ -158,11 +158,11 @@ class DisplayDL1Calib(Tool):
     flags = Dict(
         dict(
             D=({
-                'ImagePlotter': {
-                    'display': True
-                }
-            }, "Display the photoelectron images on-screen as they "
-               "are produced.")
+                   'ImagePlotter': {
+                       'display': True
+                   }
+               }, "Display the photoelectron images on-screen as they "
+                  "are produced.")
         )
     )
     classes = List([
@@ -206,6 +206,6 @@ class DisplayDL1Calib(Tool):
         self.plotter.finish()
 
 
-if __name__ == '__main__':
+def main():
     exe = DisplayDL1Calib()
     exe.run()

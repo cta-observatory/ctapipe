@@ -39,7 +39,7 @@ entry_points['console_scripts'] = [
     'ctapipe-display-imagesums = ctapipe.tools.display_summed_images:main',
     'ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main',
     'ctapipe-display-integration = ctapipe.tools.display_integrator:main',
-    'ctapipe-display-dl1 = ctapipe.tools.display_dl1',
+    'ctapipe-display-dl1 = ctapipe.tools.display_dl1:main',
 
 ]
 

@@ -33,9 +33,9 @@ class ImageSumDisplayerTool(Tool):
 
     output_suffix = Unicode(
         help='suffix (file extension) of output '
-        'filenames to write images '
-        'to (no writing is done if blank). '
-        'Images will be named [EVENTID][suffix]',
+             'filenames to write images '
+             'to (no writing is done if blank). '
+             'Images will be named [EVENTID][suffix]',
         default_value=""
     ).tag(config=True)
 

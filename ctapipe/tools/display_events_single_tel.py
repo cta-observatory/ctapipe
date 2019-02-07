@@ -16,8 +16,8 @@ from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, Int, Integer, Bool
 from ctapipe.core.traits import Float, Dict, List
+from ctapipe.core.traits import Unicode, Int, Integer, Bool
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
@@ -88,10 +88,10 @@ class SingleTelEventDisplay(Tool):
         disp = None
 
         for event in tqdm(
-            self.event_source,
-            desc=f'Tel{self.tel}',
-            total=self.event_source.max_events,
-            disable=~self.progress
+                self.event_source,
+                desc=f'Tel{self.tel}',
+                total=self.event_source.max_events,
+                disable=~self.progress
         ):
 
             self.log.debug(event.trig)
@@ -127,7 +127,7 @@ class SingleTelEventDisplay(Tool):
                     if self.write:
                         plt.savefig(
                             'CT{:03d}_EV{:10d}_S{:02d}.png'
-                            .format(self.tel, event.r0.event_id, ii)
+                                .format(self.tel, event.r0.event_id, ii)
                         )
             else:
                 # display integrated event:
@@ -159,7 +159,7 @@ class SingleTelEventDisplay(Tool):
                 if self.write:
                     plt.savefig(
                         'CT{:03d}_EV{:010d}.png'
-                        .format(self.tel, event.r0.event_id)
+                            .format(self.tel, event.r0.event_id)
                     )
 
         self.log.info("FINISHED READING DATA FILE")
@@ -168,7 +168,7 @@ class SingleTelEventDisplay(Tool):
             self.log.warning(
                 'No events for tel {} were found in {}. Try a '
                 'different EventIO file or another telescope'
-                .format(self.tel, self.infile),
+                    .format(self.tel, self.infile),
             )
 
 
