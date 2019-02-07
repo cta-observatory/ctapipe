@@ -69,7 +69,7 @@ class ImageSumDisplayerTool(Tool):
             "Telescope group %d: %s", self.telgroup,
             str(event.inst.subarray.tel[self._selected_tels[0]])
         )
-        self.log.info("SELECTED TELESCOPES:{}".format(self._selected_tels))
+        self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
         self.calibrator = CameraCalibrator(
             config=self.config, tool=self, eventsource=self.reader
@@ -113,7 +113,7 @@ class ImageSumDisplayerTool(Tool):
                 filename = "{:020d}{}".format(
                     event.r0.event_id, self.output_suffix
                 )
-                self.log.info("saving: '{}'".format(filename))
+                self.log.info(f"saving: '{filename}'")
                 plt.savefig(filename)
 
 

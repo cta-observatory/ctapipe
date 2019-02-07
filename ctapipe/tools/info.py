@@ -76,7 +76,7 @@ def _info_version():
     """Print version info."""
     import ctapipe
     print('\n*** ctapipe version info ***\n')
-    print('version: {0}'.format(ctapipe.__version__))
+    print(f'version: {ctapipe.__version__}')
     # print('release: {0}'.format(version.release))
     # print('githash: {0}'.format(version.githash))
     print('')
@@ -99,7 +99,7 @@ def _info_tools():
 
     scripts = get_all_descriptions()
     for name, desc in sorted(scripts.items()):
-        text = "{:<30s}  - {}".format(name, desc)
+        text = f"{name:<30s}  - {desc}"
         print(wrapper.fill(text))
         print('')
     print('')
@@ -116,7 +116,7 @@ def _info_dependencies():
         except ImportError:
             version = 'not installed'
 
-        print('{:>20s} -- {}'.format(name, version))
+        print(f'{name:>20s} -- {version}')
 
     print('\n*** ctapipe optional dependencies ***\n')
 
@@ -129,7 +129,7 @@ def _info_dependencies():
         except AttributeError:
             version = "installed, but __version__ doesn't exist"
 
-        print('{:>20s} -- {}'.format(name, version))
+        print(f'{name:>20s} -- {version}')
 
 
 def _info_resources():
@@ -137,12 +137,12 @@ def _info_resources():
 
     print('\n*** ctapipe resources ***\n')
 
-    print("ctapipe_resources version: {}".format(ctapipe_resources.__version__))
+    print(f"ctapipe_resources version: {ctapipe_resources.__version__}")
 
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
     if os.getenv('CTAPIPE_SVC_PATH') is not None:
         for directory in datasets.get_searchpath_dirs():
-            print("\t * {}".format(directory))
+            print(f"\t * {directory}")
     else:
         print("\t no path is set")
     print("")

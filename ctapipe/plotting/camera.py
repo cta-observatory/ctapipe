@@ -103,14 +103,14 @@ class CameraPlotter:
 
         geom = self.get_geometry(tel)
         axes = axes if axes is not None else plt.gca()
-        axes.annotate("Pixel: {}".format(p0),
+        axes.annotate(f"Pixel: {p0}",
                       xy=(u.Quantity(geom.pix_x).value[p0],
                           u.Quantity(geom.pix_y).value[p0]),
                       xycoords='data', xytext=(0.05, 0.98),
                       textcoords='axes fraction',
                       arrowprops=dict(facecolor='red', width=2, alpha=0.4),
                       horizontalalignment='left', verticalalignment='top')
-        axes.annotate("Pixel: {}".format(p1),
+        axes.annotate(f"Pixel: {p1}",
                       xy=(u.Quantity(geom.pix_x).value[p1],
                           u.Quantity(geom.pix_y).value[p1]),
                       xycoords='data', xytext=(0.05, 0.94),

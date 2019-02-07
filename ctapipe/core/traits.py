@@ -42,11 +42,11 @@ class Path(TraitType):
             if os.path.exists(value):
                 if os.path.isdir(value) and not self.directory_ok:
                     raise TraitError(
-                        'Path "{}" must not be a directory'.format(value)
+                        f'Path "{value}" must not be a directory'
                     )
                 if os.path.isfile(value) and not self.file_ok:
                     raise TraitError(
-                        'Path "{}" must not be a file'.format(value)
+                        f'Path "{value}" must not be a file'
                     )
 
             return value

@@ -28,9 +28,9 @@ class Field:
         self.ucd = ucd
 
     def __repr__(self):
-        desc = '{}'.format(self.description)
+        desc = f'{self.description}'
         if self.unit is not None:
-            desc += ' [{}]'.format(self.unit)
+            desc += f' [{self.unit}]'
         return desc
 
 
@@ -173,7 +173,7 @@ class Container(metaclass=ContainerMeta):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({
-                            "{}_{}".format(key, k): v
+                            f"{key}_{k}": v
                             for k, v in val.as_dict(
                                 recursive,
                                 add_prefix=add_prefix
@@ -236,7 +236,7 @@ class Map(defaultdict):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({
-                            "{}_{}".format(key, k): v
+                            f"{key}_{k}": v
                             for k, v in val.as_dict(
                                 recursive, add_prefix=add_prefix
                             ).items()

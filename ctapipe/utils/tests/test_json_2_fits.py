@@ -52,7 +52,7 @@ class Foo(Configurable):
 
     i = Int(0, help='The integer i.').tag(config=True)
     j = Int(1, help='The integer j.').tag(config=True)
-    name = Unicode(u'Brian', help='First name.').tag(config=True)
+    name = Unicode('Brian', help='First name.').tag(config=True)
 
 
 class Bar(Configurable):
@@ -82,7 +82,7 @@ class MyApp(Application):
     key_much_too_long_for_fits = Unicode('value short enough')
     key_and_value_too_long = Unicode(5 * 'value to long as wellenough')
     short = Unicode(20 * 'value to long')
-    config_file = Unicode(u'', help='Load this config file').tag(config=True)
+    config_file = Unicode('', help='Load this config file').tag(config=True)
 
     def init_foo(self):
         # Pass config to other classes for them to inherit the config.
@@ -108,7 +108,7 @@ class MyApp(Application):
         # s = self.generate_config_file()
         fname = os.path.join('.', 'foo.json')  # self.config_file)
         if not os.path.exists(fname):
-            self.log.warn('Generating default config file: {}'.format(fname))
+            self.log.warn(f'Generating default config file: {fname}')
             with open(fname, 'w') as f:
                 f.write(str(json.dumps(self.config)))
 

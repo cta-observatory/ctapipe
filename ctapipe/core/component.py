@@ -71,7 +71,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
 
         for key, value in kwargs.items():
             if not self.has_trait(key):
-                raise TraitError("Traitlet does not exist: {}".format(key))
+                raise TraitError(f"Traitlet does not exist: {key}")
 
         # set up logging
         if self.parent:

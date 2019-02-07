@@ -75,7 +75,7 @@ def plot_muon_efficiency(outputpath):
     contrw = axrw.hist(t['RingWidth'], nbins)
     axrw.set_xlim(0.2 * min(t['RingWidth']), 1.2 * max(t['RingWidth']))
     axrw.set_ylim(0., 1.2 * max(contrw[0]))
-    axrw.set_xlabel('Ring Width ($^\circ$)')
+    axrw.set_xlabel(r'Ring Width ($^\circ$)')
 
     plt.draw()
 

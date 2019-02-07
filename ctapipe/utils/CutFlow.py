@@ -114,7 +114,7 @@ class CutFlow:
                 .format(cut, [a for a in self.cuts.keys()]))
         elif self.cuts[cut][0] is None:
             raise PureCountingCut(
-                "'{}' has no function associated".format(cut))
+                f"'{cut}' has no function associated")
 
     def cut(self, cut, *args, weight=1, **kwargs):
         """

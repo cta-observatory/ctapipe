@@ -76,7 +76,7 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
                 centroid,
                 width,
                 length,
-                '{}d'.format(psi)
+                f'{psi}d'
             )
             image, _, _ = toymodel.make_toymodel_shower_image(
                 geom,

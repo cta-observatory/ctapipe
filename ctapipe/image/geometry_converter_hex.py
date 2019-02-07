@@ -353,8 +353,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         # total rotation angle:
         rot_angle = (add_rot * 60 * u.deg) - extra_rot
 
-        logger.debug("geom={}".format(geom))
-        logger.debug("rot={}, extra={}".format(rot_angle, extra_rot))
+        logger.debug(f"geom={geom}")
+        logger.debug(f"rot={rot_angle}, extra={extra_rot}")
 
         rot_x, rot_y = unskew_hex_pixel_grid(geom.pix_x, geom.pix_y,
                                              cam_angle=rot_angle)
