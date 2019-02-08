@@ -26,23 +26,11 @@ class ImagePlotter(Component):
         'output.'
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         Plotter for camera images.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
         self._current_tel = None
         self.c_intensity = None
         self.c_peakpos = None

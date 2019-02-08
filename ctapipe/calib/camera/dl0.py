@@ -19,22 +19,14 @@ class CameraDL0Reducer(Component):
 
     Parameters
     ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool or None
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
     reducer : ctapipe.calib.camera.reducer.Reducer
         The reducer to use to reduce the waveforms in the event.
         By default no data volume reduction is applied, and the dl0 samples
         will equal the r1 samples.
     kwargs
     """
-    def __init__(self, config=None, parent=None, reducer=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, reducer=None, **kwargs):
+        super().__init__(**kwargs)
         if reducer is None:
             self.log.info("Applying no data volume reduction in the "
                           "conversion from R1 to DL0")

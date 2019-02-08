@@ -17,8 +17,8 @@ class HESSIOEventSource(EventSource):
     """
     _count = 0
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         try:
             import pyhessio

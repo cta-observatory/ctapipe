@@ -34,36 +34,13 @@ class CameraR1Calibrator(Component):
     The R1 calibrator performs the camera-specific R1 calibration that is
     usually performed on the raw data by the camera server. This calibrator
     exists in ctapipe for testing and prototyping purposes.
-
-    Parameters
-    ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool or None
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
-    kwargs
     """
-    def __init__(self, config=None, parent=None, **kwargs):
+
+    def __init__(self, **kwargs):
         """
         Parent class for the r1 calibrators. Fills the r1 container.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
         self._r0_empty_warn = False
 
     @abstractmethod
@@ -154,8 +131,8 @@ class NullR1Calibrator(CameraR1Calibrator):
     kwargs
     """
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config, parent, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
 
@@ -239,26 +216,14 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
         help='Path to a TargetCalib flat field file'
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         The R1 calibrator for targetio files (i.e. files containing data
         taken with a TARGET module, such as with CHEC)
 
         Fills the r1 container.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
         try:
             import target_calib
         except ImportError:

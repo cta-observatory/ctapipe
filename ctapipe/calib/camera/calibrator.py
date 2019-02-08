@@ -48,8 +48,6 @@ class CameraCalibrator(Component):
     """
     def __init__(
         self,
-        config=None,
-        parent=None,
         r1_product=None,
         extractor_product='NeighbourPeakIntegrator',
         cleaner_product='NullWaveformCleaner',
@@ -59,14 +57,6 @@ class CameraCalibrator(Component):
         """
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool or None
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
         r1_product : str
             The R1 calibrator to use. Manually overrides the Factory.
         extractor_product : str
@@ -79,7 +69,7 @@ class CameraCalibrator(Component):
             the appropriate R1Calibrator to use.
         kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
 
         extractor = ChargeExtractor.from_name(
             extractor_product,

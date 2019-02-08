@@ -83,14 +83,6 @@ class CameraDL1Calibrator(Component):
 
     Parameters
     ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool or None
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
     extractor : ctapipe.calib.camera.charge_extractors.ChargeExtractor
         The extractor to use to extract the charge from the waveforms.
         By default the NeighbourPeakIntegrator with default configuration
@@ -109,15 +101,14 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config=None, parent=None, extractor=None, cleaner=None,
-                 **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, extractor=None, cleaner=None, **kwargs):
+        super().__init__(**kwargs)
         self.extractor = extractor
         if self.extractor is None:
-            self.extractor = NeighbourPeakIntegrator(config, parent)
+            self.extractor = NeighbourPeakIntegrator(parent=self)
         self.cleaner = cleaner
         if self.cleaner is None:
-            self.cleaner = NullWaveformCleaner(config, parent)
+            self.cleaner = NullWaveformCleaner(parent=self)
         self._dl0_empty_warn = False
 
     def check_dl0_exists(self, event, telid):

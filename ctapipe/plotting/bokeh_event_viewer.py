@@ -323,8 +323,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
 class BokehEventViewer(Component):
     def __init__(
         self,
-        config=None,
-        parent=None,
         num_cameras=1,
         num_waveforms=2,
         **kwargs
@@ -337,21 +335,13 @@ class BokehEventViewer(Component):
 
         Parameters
         ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
         num_cameras : int
             Number of camera figures to handle
         num_waveforms : int
             Number of waveform figures to handle
         kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
 
         self._event = None
         self._view = 'r0'

@@ -22,21 +22,11 @@ class NectarCAMEventSource(EventSource):
     EventSource for NectarCam r0 data.
     """
 
-    def __init__(self, config=None, parent=None, **kwargs):
-
-
+    def __init__(self, **kwargs):
         """
         Constructor
         Parameters
         ----------
-        config: traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool: ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
         kwargs: dict
             Additional parameters to be passed.
             NOTE: The file mask of the data to read can be passed with
@@ -46,21 +36,19 @@ class NectarCAMEventSource(EventSource):
         # To overcome this we substitute the input_url with first file matching
         # the specified file mask (copied from  MAGICEventSourceROOT).
 
-
         if 'input_url' in kwargs.keys():
             self.file_list = glob.glob(kwargs['input_url'])
             self.file_list.sort()
             kwargs['input_url'] = self.file_list[0]
-            super().__init__(config=config, parent=parent, **kwargs)
+            super().__init__(**kwargs)
         else:
-            super().__init__(config=config, parent=parent, **kwargs)
+            super().__init__(**kwargs)
             self.file_list = [self.input_url]
 
         self.multi_file = MultiFiles(self.file_list)
         self.camera_config = self.multi_file.camera_config
 
         self.log.info("Read {} input files".format(self.multi_file.num_inputs()))
-
 
     def _generator(self):
 
@@ -70,7 +58,6 @@ class NectarCAMEventSource(EventSource):
 
         # fill data from the CameraConfig table
         self.fill_nectarcam_service_container_from_zfile()
-
 
         # Instrument information
         for tel_id in self.data.nectarcam.tels_with_data:

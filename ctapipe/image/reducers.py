@@ -15,18 +15,6 @@ class DataVolumeReducer(Component):
     """
     Base component for data volume reducers.
 
-    Parameters
-    ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
-    kwargs
-
     Attributes
     ----------
     extracted_samples : ndarray
@@ -40,17 +28,6 @@ class DataVolumeReducer(Component):
         List of neighbours for each pixel. Changes per telescope.
 
     """
-
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-
-        self._nchan = None
-        self._npix = None
-        self._nsamples = None
-
-        self.extracted_samples = None
-        self.peakpos = None
-        self.neighbours = None
 
     @staticmethod
     def requires_neighbours():

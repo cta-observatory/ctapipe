@@ -62,7 +62,7 @@ class ChargeResolutionPlotter(Component):
              'their resolution'
     ).tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         Plots the charge resolution HDF5 file obtained from
         `ctapipe.analysis.camera.charge_resolution`.
@@ -73,20 +73,8 @@ class ChargeResolutionPlotter(Component):
 
         `ctapipe.tools.plot_charge_resolution` demonstrated the use of this
         component.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
         self._df_pixel = None
         self._df_camera = None
 
@@ -324,24 +312,12 @@ class ChargeResolutionPlotter(Component):
 
 
 class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
-    def __init__(self, config=None, parent=None, **kwargs):
+    def __init__(self, **kwargs):
         """
         Plots the charge resolution similarly to ChargeResolutionPlotter, with
         the values divided by the CTA requirement.
-
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
         self.ax.set_xlabel("True Charge (p.e.)")
         self.ax.set_ylabel(r"$\frac{{\sigma_Q}}{{Q}}$ / Requirement")
 

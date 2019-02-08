@@ -18,24 +18,9 @@ __all__ = ['WaveformCleaner', 'CHECMWaveformCleanerAverage',
 
 
 class WaveformCleaner(Component):
-    """
+    '''
     Base component to handle the cleaning of the waveforms in an image.
-
-    Parameters
-    ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool or None
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
-    kwargs
-    """
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
-
+    '''
     @abstractmethod
     def apply(self, waveforms):
         """
@@ -74,26 +59,14 @@ class CHECMWaveformCleaner(WaveformCleaner):
     using the average of the first 32 samples in the waveforms, then a
     convolved baseline subtraction to remove and low frequency drifts in
     the baseline.
-
-    Parameters
-    ----------
-    config : traitlets.loader.Config
-        Configuration specified by config file or cmdline arguments.
-        Used to set traitlet values.
-        Set to None if no configuration to pass.
-    tool : ctapipe.core.Tool
-        Tool executable that is calling this component.
-        Passes the correct logger to the component.
-        Set to None if no Tool to pass.
-
     """
     window_width = Int(16, help='Define the width of the pulse '
                                 'window').tag(config=True)
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         # Cleaning steps for plotting
         self.stages = {}
@@ -184,9 +157,10 @@ class CHECMWaveformCleanerAverage(CHECMWaveformCleaner):
     """
 
     def get_extractor(self):
-        return AverageWfPeakIntegrator(None, self.parent,
-                                       window_width=self.window_width,
-                                       window_shift=self.window_shift)
+        return AverageWfPeakIntegrator(
+            window_width=self.window_width,
+            window_shift=self.window_shift
+        )
 
 
 class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
@@ -215,6 +189,7 @@ class CHECMWaveformCleanerLocal(CHECMWaveformCleaner):
     """
 
     def get_extractor(self):
-        return LocalPeakIntegrator(None, self.parent,
-                                   window_width=self.window_width,
-                                   window_shift=self.window_shift)
+        return LocalPeakIntegrator(
+            window_width=self.window_width,
+            window_shift=self.window_shift
+        )

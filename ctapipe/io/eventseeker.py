@@ -67,7 +67,7 @@ class EventSeeker(Component):
     >>> print([event.count for event in event_list])
     """
 
-    def __init__(self, reader, config=None, parent=None, **kwargs):
+    def __init__(self, reader, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
         generator, regardless of the type of file (either hessio or camera
@@ -79,17 +79,8 @@ class EventSeeker(Component):
             A subclass of `ctapipe.io.eventfilereader.EventFileReader` that
             defines how the event container is filled for a particular file
             format
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        kwargs
         """
-        super().__init__(config=config, parent=parent, **kwargs)
+        super().__init__(**kwargs)
 
         if reader.is_stream:
             raise IOError("Reader is not compatible as input to the "

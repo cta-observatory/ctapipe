@@ -16,8 +16,8 @@ __all__ = ['SimTelEventSource']
 
 class SimTelEventSource(EventSource):
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.metadata['is_simulation'] = True
         self.file_ = SimTelFile(self.input_url)
 

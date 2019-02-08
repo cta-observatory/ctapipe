@@ -33,8 +33,8 @@ def is_fits_in_header(file_path):
 
 class SST1MEventSource(EventSource):
 
-    def __init__(self, config=None, parent=None, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         from protozfits import File
         self.file = File(self.input_url)
         # TODO: Correct pixel ordering
