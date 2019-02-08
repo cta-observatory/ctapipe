@@ -1,4 +1,5 @@
 import copy
+import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 
