@@ -67,7 +67,7 @@ class EventSeeker(Component):
     >>> print([event.count for event in event_list])
     """
 
-    def __init__(self, reader, config=None, tool=None, **kwargs):
+    def __init__(self, reader, config=None, parent=None, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
         generator, regardless of the type of file (either hessio or camera
@@ -89,7 +89,7 @@ class EventSeeker(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
 
         if reader.is_stream:
             raise IOError("Reader is not compatible as input to the "

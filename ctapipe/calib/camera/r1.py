@@ -47,7 +47,7 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Parent class for the r1 calibrators. Fills the r1 container.
 
@@ -63,7 +63,7 @@ class CameraR1Calibrator(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         self._r0_empty_warn = False
 
     @abstractmethod
@@ -154,8 +154,8 @@ class NullR1Calibrator(CameraR1Calibrator):
     kwargs
     """
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config, tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config, parent, **kwargs)
         self.log.info("Using NullR1Calibrator, if event source is at "
                       "the R0 level, then r1 samples will equal r0 samples")
 
@@ -239,7 +239,7 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
         help='Path to a TargetCalib flat field file'
     ).tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         The R1 calibrator for targetio files (i.e. files containing data
         taken with a TARGET module, such as with CHEC)
@@ -258,7 +258,7 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         try:
             import target_calib
         except ImportError:

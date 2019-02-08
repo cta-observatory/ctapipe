@@ -26,7 +26,7 @@ class LSTEventSource(EventSource):
 
 
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
 
         """
         Constructor
@@ -55,9 +55,9 @@ class LSTEventSource(EventSource):
             self.file_list = glob.glob(kwargs['input_url'])
             self.file_list.sort()
             kwargs['input_url'] = self.file_list[0]
-            super().__init__(config=config, tool=tool, **kwargs)
+            super().__init__(config=config, parent=parent, **kwargs)
         else:
-            super().__init__(config=config, tool=tool, **kwargs)
+            super().__init__(config=config, parent=parent, **kwargs)
             self.file_list = [self.input_url]
 
 

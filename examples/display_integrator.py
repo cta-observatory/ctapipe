@@ -315,7 +315,7 @@ class DisplayIntegrator(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, tool=self)
+        kwargs = dict(config=self.config, parent=self)
 
         event_source = EventSource.from_config(**kwargs)
         self.eventseeker = EventSeeker(event_source, **kwargs)

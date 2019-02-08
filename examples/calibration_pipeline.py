@@ -26,7 +26,7 @@ class ImagePlotter(Component):
         'output.'
     ).tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Plotter for camera images.
 
@@ -42,7 +42,7 @@ class ImagePlotter(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         self._current_tel = None
         self.c_intensity = None
         self.c_peakpos = None
@@ -185,7 +185,7 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        kwargs = dict(config=self.config, tool=self)
+        kwargs = dict(config=self.config, parent=self)
 
         self.eventsource = event_source(
             get_dataset_path("gamma_test.simtel.gz"),

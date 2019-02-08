@@ -33,8 +33,8 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
     def apply(self, waveforms):
@@ -92,8 +92,8 @@ class CHECMWaveformCleaner(WaveformCleaner):
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
         # Cleaning steps for plotting
         self.stages = {}

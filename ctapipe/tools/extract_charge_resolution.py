@@ -75,7 +75,7 @@ class ChargeResolutionGenerator(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, tool=self)
+        kwargs = dict(config=self.config, parent=self)
 
         self.eventsource = SimTelEventSource(**kwargs)
 
