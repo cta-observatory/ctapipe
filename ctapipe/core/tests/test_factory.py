@@ -9,8 +9,8 @@ import warnings
 class ExampleComponentParent(Component):
     value = Int(123, help="").tag(config=True)
 
-    def __init__(self, config, parent, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, config, tool, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
 
 
 class ExampleComponent1(ExampleComponentParent):
@@ -24,8 +24,8 @@ class ExampleComponent2(ExampleComponentParent):
 class ExampleComponent3(ExampleComponentParent):
     value = Int(123333, help="").tag(config=True)
 
-    def __init__(self, config, parent, extra=0, **kwargs):
-        super().__init__(config=config, parent=parent, **kwargs)
+    def __init__(self, config, tool, extra=0, **kwargs):
+        super().__init__(config=config, tool=tool, **kwargs)
         self.extra = extra
 
 
