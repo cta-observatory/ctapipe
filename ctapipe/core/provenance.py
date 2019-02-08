@@ -63,7 +63,7 @@ class Provenance(metaclass=Singleton):
         activity = _ActivityProvenance(activity_name)
         activity.start()
         self._activities.append(activity)
-        log.debug("started activity: {}".format(activity_name))
+        log.debug(f"started activity: {activity_name}")
 
     def add_input_file(self, filename, role=None):
         """ register an input to the current activity
@@ -115,7 +115,7 @@ class Provenance(metaclass=Singleton):
 
         activity.finish(status)
         self._finished_activities.append(activity)
-        log.debug("finished activity: {}".format(activity.name))
+        log.debug(f"finished activity: {activity.name}")
 
     @contextmanager
     def activity(self, name):

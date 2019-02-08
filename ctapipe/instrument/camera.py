@@ -284,7 +284,7 @@ class CameraGeometry:
         if version is None:
             verstr = ''
         else:
-            verstr = "-{:03d}".format(version)
+            verstr = f"-{version:03d}"
 
         tabname = "{camera_id}{verstr}.camgeom".format(camera_id=camera_id,
                                                        verstr=verstr)
@@ -458,12 +458,12 @@ class CameraGeometry:
 
     def info(self, printer=print):
         """ print detailed info about this camera """
-        printer('CameraGeometry: "{}"'.format(self))
+        printer(f'CameraGeometry: "{self}"')
         printer('   - num-pixels: {}'.format(len(self.pix_id)))
-        printer('   - pixel-type: {}'.format(self.pix_type))
+        printer(f'   - pixel-type: {self.pix_type}')
         printer('   - sensitive-area: {}'.format(self.pix_area.sum()))
-        printer('   - pix-rotation: {}'.format(self.pix_rotation))
-        printer('   - cam-rotation: {}'.format(self.cam_rotation))
+        printer(f'   - pix-rotation: {self.pix_rotation}')
+        printer(f'   - cam-rotation: {self.cam_rotation}')
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),

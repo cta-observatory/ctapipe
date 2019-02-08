@@ -81,7 +81,7 @@ class SingleTelEventDisplay(Tool):
             config=self.config, tool=self, eventsource=self.event_source
         )
 
-        self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
+        self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
 
     def start(self):
 
@@ -89,13 +89,13 @@ class SingleTelEventDisplay(Tool):
 
         for event in tqdm(
             self.event_source,
-            desc='Tel{}'.format(self.tel),
+            desc=f'Tel{self.tel}',
             total=self.event_source.max_events,
             disable=~self.progress
         ):
 
             self.log.debug(event.trig)
-            self.log.debug("Energy: {}".format(event.mc.energy))
+            self.log.debug(f"Energy: {event.mc.energy}")
 
             self.calibrator.calibrate(event)
 
@@ -121,7 +121,7 @@ class SingleTelEventDisplay(Tool):
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)
-                    plt.suptitle("Sample {:03d}".format(ii))
+                    plt.suptitle(f"Sample {ii:03d}")
                     if self.display:
                         plt.pause(self.delay)
                     if self.write:

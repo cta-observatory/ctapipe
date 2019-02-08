@@ -34,7 +34,7 @@ class WaveformCleaner(Component):
     kwargs
     """
     def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
     @abstractmethod
     def apply(self, waveforms):

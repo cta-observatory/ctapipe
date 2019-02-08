@@ -42,7 +42,7 @@ class DataVolumeReducer(Component):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         self._nchan = None
         self._npix = None

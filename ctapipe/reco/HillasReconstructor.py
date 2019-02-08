@@ -9,7 +9,7 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 from itertools import combinations
 
-from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, project_to_ground
+from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, MissingFrameAttributeWarning, project_to_ground
 from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
 import warnings
 
@@ -91,7 +91,7 @@ class HillasReconstructor(Reconstructor):
     """
 
     def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self.hillas_planes = {}
 
     def predict(self, hillas_dict, inst, pointing_alt, pointing_az):
@@ -120,6 +120,9 @@ class HillasReconstructor(Reconstructor):
             if len(hillas_dict) < 2
         '''
 
+        # filter warnings for missing obs time. this is needed because MC data has no obs time
+        warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
+        
         # stereoscopy needs at least two telescopes
         if len(hillas_dict) < 2:
             raise TooFewTelescopesException(
@@ -160,7 +163,7 @@ class HillasReconstructor(Reconstructor):
         result.core_uncert = np.nan
 
         result.tel_ids = [h for h in hillas_dict.keys()]
-        result.average_size = np.mean([h.intensity for h in hillas_dict.values()])
+        result.average_intensity = np.mean([h.intensity for h in hillas_dict.values()])
         result.is_valid = True
 
         result.alt_uncert = err_est_dir
@@ -195,7 +198,6 @@ class HillasReconstructor(Reconstructor):
             dictionaries of the orientation angles of the telescopes
             needs to contain at least the same keys as in `hillas_dict`
         """
-
         self.hillas_planes = {}
         horizon_frame = HorizonFrame()
         for tel_id, moments in hillas_dict.items():

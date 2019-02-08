@@ -143,7 +143,7 @@ def plot(event, telid, chan, extractor_name):
     camera.image = nei_camera
     ax_img_nei.set_title("Neighbour Map")
     ax_img_nei.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -153,7 +153,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_nei.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -165,9 +165,9 @@ def plot(event, telid, chan, extractor_name):
     camera = CameraDisplay(geom, ax=ax_img_max)
     camera.image = dl0[:, max_time]
     camera.add_colorbar(ax=ax_img_max, label="DL0 Samples (ADC)")
-    ax_img_max.set_title("Max Timeslice (T = {})".format(max_time))
+    ax_img_max.set_title(f"Max Timeslice (T = {max_time})")
     ax_img_max.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -177,7 +177,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_max.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -192,7 +192,7 @@ def plot(event, telid, chan, extractor_name):
     camera.add_colorbar(ax=ax_img_true, label="True Charge (p.e.)")
     ax_img_true.set_title("True Charge")
     ax_img_true.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -202,7 +202,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_true.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -215,9 +215,9 @@ def plot(event, telid, chan, extractor_name):
     camera = CameraDisplay(geom, ax=ax_img_cal)
     camera.image = dl1
     camera.add_colorbar(ax=ax_img_cal, label="Calib Charge (Photo-electrons)")
-    ax_img_cal.set_title("Charge (integrator={})".format(extractor_name))
+    ax_img_cal.set_title(f"Charge (integrator={extractor_name})")
     ax_img_cal.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -227,7 +227,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_cal.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -237,8 +237,8 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
 
-    fig_waveforms.suptitle("Integrator = {}".format(extractor_name))
-    fig_camera.suptitle("Camera = {}".format(geom.cam_id))
+    fig_waveforms.suptitle(f"Integrator = {extractor_name}")
+    fig_camera.suptitle(f"Camera = {geom.cam_id}")
 
     plt.show()
 

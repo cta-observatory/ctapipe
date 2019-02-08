@@ -16,9 +16,9 @@ def get_array_layout(instrument_name):
     """
     name = instrument_name.lower()
     try:
-        layoutfile = get_dataset_path('{}_arraylayout.fits'.format(name))
+        layoutfile = get_dataset_path(f'{name}_arraylayout.fits')
     except KeyError:
-        layoutfile = get_dataset_path('{}_arraylayout.fits.gz'.format(name))
+        layoutfile = get_dataset_path(f'{name}_arraylayout.fits.gz')
     return load_array_layout_from_file(layoutfile)
 
 

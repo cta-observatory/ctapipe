@@ -25,7 +25,7 @@ def get_atmosphere_profile_table(atmosphere_name='paranal'):
     'altitude' (m), and 'thickness' (g cm-2) as well as others.
 
     """
-    table_name = '{}.atmprof'.format(atmosphere_name)
+    table_name = f'{atmosphere_name}.atmprof'
     table = get_table_dataset(table_name=table_name,
                               role='dl0.arr.svc.atmosphere')
     return table

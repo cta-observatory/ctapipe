@@ -75,7 +75,7 @@ class CameraCalibrator(Component):
             the appropriate R1Calibrator to use.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         extractor = ChargeExtractor.from_name(
             extractor_product,

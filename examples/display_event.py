@@ -37,17 +37,17 @@ def display_event(event):
     ntels = len(event.r0.tels_with_data)
     fig.clear()
 
-    plt.suptitle("EVENT {}".format(event.r0.event_id))
+    plt.suptitle(f"EVENT {event.r0.event_id}")
 
     disps = []
 
     for ii, tel_id in enumerate(event.r0.tels_with_data):
-        print("\t draw cam {}...".format(tel_id))
+        print(f"\t draw cam {tel_id}...")
         nn = int(ceil(sqrt(ntels)))
         ax = plt.subplot(nn, nn, ii + 1)
 
         geom = event.inst.subarray.tel[tel_id].camera
-        disp = CameraDisplay(geom, ax=ax, title="CT{0}".format(tel_id))
+        disp = CameraDisplay(geom, ax=ax, title=f"CT{tel_id}")
         disp.pixels.set_antialiaseds(False)
         disp.autoupdate = False
         disp.cmap = random.choice(cmaps)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
                             .format(tel_id, chan, npix, nsamp)
                         )
             elif response.startswith('s'):
-                filename = "event_{0:010d}.png".format(event.r0.event_id)
+                filename = f"event_{event.r0.event_id:010d}.png"
                 print("Saving to", filename)
                 plt.savefig(filename)
 

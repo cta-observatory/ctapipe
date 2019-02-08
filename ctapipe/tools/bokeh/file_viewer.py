@@ -187,7 +187,7 @@ class BokehFileViewer(Tool):
         try:
             self.event = self.seeker[val]
         except IndexError:
-            self.log.warning("Event Index {} does not exist".format(val))
+            self.log.warning(f"Event Index {val} does not exist")
 
     @property
     def event_id(self):
@@ -198,7 +198,7 @@ class BokehFileViewer(Tool):
         try:
             self.event = self.seeker[str(val)]
         except IndexError:
-            self.log.warning("Event ID {} does not exist".format(val))
+            self.log.warning(f"Event ID {val} does not exist")
 
     @property
     def telid(self):
@@ -421,7 +421,7 @@ class BokehFileViewer(Tool):
                 cmdline = []
                 for key, val in self.w_dl1_dict.items():
                     if val.value:
-                        cmdline.append('--{}'.format(key))
+                        cmdline.append(f'--{key}')
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)

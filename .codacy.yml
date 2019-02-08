@@ -3,8 +3,7 @@ engines:
  pylint:
    enabled: true
    python_version: 3
-
-exclude_paths:
-  - examples/brainstorm
-  - examples/obsolete
+ pyflakes:
+   disable:
+     - F999
 
