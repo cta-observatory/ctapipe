@@ -93,7 +93,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             TraitError is raised if kwargs contains a key that does not
             correspond to a traitlet.
         """
-
+        if parent is not None and config is not None:
+            raise ValueError('Only one of `config` or `parent` allowed')
         super().__init__(parent=parent, config=config, **kwargs)
 
         for key, value in kwargs.items():

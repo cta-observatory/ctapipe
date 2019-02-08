@@ -254,7 +254,7 @@ class EventSource(Component):
         )
 
     @classmethod
-    def from_config(cls, config, **kwargs):
+    def from_config(cls, config=None, parent=None, **kwargs):
         """
         Find compatible EventSource for the EventSource.input_url traitlet
         specified via the config.
@@ -274,6 +274,9 @@ class EventSource(Component):
         instance
             Instance of a compatible EventSource subclass
         """
+        if config is None:
+            config = parent.config
+
         if isinstance(config.EventSource.input_url, LazyConfigValue):
             config.EventSource.input_url = cls.input_url.default_value
         elif not isinstance(config.EventSource.input_url, str):

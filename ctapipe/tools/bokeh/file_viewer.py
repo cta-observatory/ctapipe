@@ -99,31 +99,30 @@ class BokehFileViewer(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, parent=self)
 
-        self.reader = EventSource.from_config(**kwargs)
-        self.seeker = EventSeeker(self.reader, **kwargs)
+        self.reader = EventSource.from_config(parent=self)
+        self.seeker = EventSeeker(self.reader, parent=self)
 
         self.extractor = ChargeExtractor.from_name(
             self.extractor_product,
-            **kwargs
+            parent=self
         )
         self.cleaner = WaveformCleaner.from_name(
             self.cleaner_product,
-            **kwargs
+            parent=self
         )
         self.r1 = CameraR1Calibrator.from_eventsource(
             eventsource=self.reader,
-            **kwargs
+            parent=self
         )
-        self.dl0 = CameraDL0Reducer(**kwargs)
+        self.dl0 = CameraDL0Reducer(parent=self)
         self.dl1 = CameraDL1Calibrator(
             extractor=self.extractor,
             cleaner=self.cleaner,
-            **kwargs
+            parent=self
         )
 
-        self.viewer = BokehEventViewer(**kwargs)
+        self.viewer = BokehEventViewer(parent=self)
 
         # Setup widgets
         self.viewer.create()
@@ -268,11 +267,10 @@ class BokehFileViewer(Tool):
         self.extractor = extractor
         self.cleaner = cleaner
 
-        kwargs = dict(config=self.config, parent=self)
         self.dl1 = CameraDL1Calibrator(
             extractor=self.extractor,
             cleaner=self.cleaner,
-            **kwargs
+            parent=self
         )
         self.dl1.calibrate(self.event)
         self.viewer.refresh()
@@ -424,13 +422,12 @@ class BokehFileViewer(Tool):
                         cmdline.append(f'--{key}')
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
-                kwargs = dict(config=self.config, parent=self)
                 extractor = ChargeExtractor.from_name(
                     self.extractor_product,
-                    **kwargs)
+                    parent=self)
                 cleaner = WaveformCleaner.from_name(
                     self.cleaner_product,
-                    **kwargs)
+                    parent=self)
                 self.update_dl1_calibrator(extractor, cleaner)
                 self.update_dl1_widget_values()
                 self._updating_dl1 = False
