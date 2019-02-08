@@ -78,7 +78,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp.some_option = 'test' # will fail validation
     """
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Parameters
         ----------
@@ -94,7 +94,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             correspond to a traitlet.
         """
 
-        super().__init__(parent=tool, config=config, **kwargs)
+        super().__init__(parent=parent, config=config, **kwargs)
 
         for key, value in kwargs.items():
             if not self.has_trait(key):
@@ -109,7 +109,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             )
 
     @classmethod
-    def from_name(cls, name, config=None, tool=None):
+    def from_name(cls, name, config=None, parent=None):
         """
         Obtain an instance of a subclass via its name
 
@@ -139,4 +139,4 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         }
         requested_subclass = subclasses[name]
 
-        return requested_subclass(config=config, tool=tool)
+        return requested_subclass(config=config, parent=parent)

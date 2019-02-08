@@ -40,12 +40,12 @@ class SimpleEventWriter(Tool):
 
         self.event_source = EventSource.from_config(
             config=self.config,
-            tool=self
+            parent=self
         )
         self.event_source.allowed_tels = self.config['Analysis']['allowed_tels']
 
         self.calibrator = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.event_source
+            config=self.config, parent=self, eventsource=self.event_source
         )
 
         self.writer = HDF5TableWriter(

@@ -99,7 +99,7 @@ class BokehFileViewer(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, tool=self)
+        kwargs = dict(config=self.config, parent=self)
 
         self.reader = EventSource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
@@ -268,7 +268,7 @@ class BokehFileViewer(Tool):
         self.extractor = extractor
         self.cleaner = cleaner
 
-        kwargs = dict(config=self.config, tool=self)
+        kwargs = dict(config=self.config, parent=self)
         self.dl1 = CameraDL1Calibrator(
             extractor=self.extractor,
             cleaner=self.cleaner,
@@ -424,7 +424,7 @@ class BokehFileViewer(Tool):
                         cmdline.append(f'--{key}')
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
-                kwargs = dict(config=self.config, tool=self)
+                kwargs = dict(config=self.config, parent=self)
                 extractor = ChargeExtractor.from_name(
                     self.extractor_product,
                     **kwargs)
