@@ -113,7 +113,7 @@ class HillasIntersection(Reconstructor):
         result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
 
         result.tel_ids = [h for h in hillas_parameters.keys()]
-        result.average_size = np.mean([h.intensity for h in hillas_parameters.values()])
+        result.average_intensity = np.mean([h.intensity for h in hillas_parameters.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x**2 + err_y**2)

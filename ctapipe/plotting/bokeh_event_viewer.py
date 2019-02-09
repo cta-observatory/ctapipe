@@ -57,11 +57,11 @@ class BokehEventViewerCamera(CameraDisplay):
         if t is None:
             t = tels[0]
         if t not in tels:
-            raise KeyError("Telescope {} has no data".format(t))
+            raise KeyError(f"Telescope {t} has no data")
 
         try:
             self.image = self._view_options[v](e, t, c, time)
-            self.fig.title.text = '{0} (T = {1})'.format(v, time)
+            self.fig.title.text = f'{v} (T = {time})'
         except TypeError:
             self.image = None
 
@@ -102,7 +102,7 @@ class BokehEventViewerCamera(CameraDisplay):
     @view.setter
     def view(self, val):
         if val not in list(self._view_options.keys()):
-            raise ValueError("View is not valid: {}".format(val))
+            raise ValueError(f"View is not valid: {val}")
         self._view = val
         self._set_image()
 
@@ -205,11 +205,11 @@ class BokehEventViewerWaveform(WaveformDisplay):
         if t is None:
             t = tels[0]
         if t not in tels:
-            raise KeyError("Telescope {} has no data".format(t))
+            raise KeyError(f"Telescope {t} has no data")
 
         try:
             self.waveform = self._view_options[v](e, t, c, p)
-            self.fig.title.text = '{0} (Pixel = {1})'.format(v, p)
+            self.fig.title.text = f'{v} (Pixel = {p})'
         except TypeError:
             self.waveform = None
 
@@ -265,7 +265,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
     @view.setter
     def view(self, val):
         if val not in list(self._view_options.keys()):
-            raise ValueError("View is not valid: {}".format(val))
+            raise ValueError(f"View is not valid: {val}")
         self._view = val
         self._set_waveform()
         self._set_integration_window()
@@ -351,7 +351,7 @@ class BokehEventViewer(Component):
             Number of waveform figures to handle
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         self._event = None
         self._view = 'r0'

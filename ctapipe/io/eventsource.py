@@ -118,17 +118,17 @@ class EventSource(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         self.metadata = dict(is_simulation=False)
 
         if not exists(self.input_url):
             raise FileNotFoundError("file path does not exist: '{}'"
                                     .format(self.input_url))
-        self.log.info("INPUT PATH = {}".format(self.input_url))
+        self.log.info(f"INPUT PATH = {self.input_url}")
 
         if self.max_events:
-            self.log.info("Max events being read = {}".format(self.max_events))
+            self.log.info(f"Max events being read = {self.max_events}")
 
         Provenance().add_input_file(self.input_url, role='dl0.sub.evt')
 

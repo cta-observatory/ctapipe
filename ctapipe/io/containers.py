@@ -347,7 +347,7 @@ class ReconstructedShowerContainer(Container):
         'list of the telescope ids used in the'
         ' reconstruction of the shower'
     ))
-    average_size = Field(0.0, 'average size of used')
+    average_intensity = Field(0.0, 'average intensity of the intensities used for reconstruction')
     goodness_of_fit = Field(0.0, 'measure of algorithm success (if fit)')
 
 

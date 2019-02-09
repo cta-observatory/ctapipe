@@ -111,7 +111,7 @@ class CameraDL1Calibrator(Component):
 
     def __init__(self, config=None, tool=None, extractor=None, cleaner=None,
                  **kwargs):
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
             self.extractor = NeighbourPeakIntegrator(config, tool)

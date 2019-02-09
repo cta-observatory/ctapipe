@@ -276,7 +276,7 @@ def analyze_muon_source(source):
     A ctapipe event container (MuonParameter) with muon information
 
     """
-    log.info("[FUNCTION] {}".format(__name__))
+    log.info(f"[FUNCTION] {__name__}")
 
     if geom_dict is None:
         geom_dict = {}
