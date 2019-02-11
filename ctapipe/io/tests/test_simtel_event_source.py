@@ -4,6 +4,19 @@ from ctapipe.io.simteleventsource import SimTelEventSource
 
 dataset = get_dataset_path("gamma_test.simtel.gz")
 
+
+def test_simtel_mc_header():
+    import numpy as np
+    with SimTelEventSource(input_url=dataset) as reader:
+        header_info = reader.mc_header_information
+        assert header_info
+
+        # make sure mc infor in event is the same as the one accessed by the reader
+        event = next(iter(reader))
+        for key, value in event.mcheader.as_dict().items():
+            assert np.array_equal(header_info[key], value)
+
+
 def test_hessio_file_reader():
     with SimTelEventSource(input_url=dataset) as reader:
         assert reader.is_compatible(dataset)
