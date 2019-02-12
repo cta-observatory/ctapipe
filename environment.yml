@@ -42,6 +42,6 @@ dependencies:
   - conda-forge::nbsphinx
   - pip:
       - pytest_runner
-      - eventio==0.11.0
+      - eventio==0.17.0
 
 

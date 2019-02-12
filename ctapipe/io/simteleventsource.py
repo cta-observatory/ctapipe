@@ -172,8 +172,8 @@ class SimTelEventSource(EventSource):
             data.mcheader.shower_prog_id = mc_run_head['shower_prog_id']
             data.mcheader.detector_prog_start = mc_run_head['detector_prog_start']
             data.mcheader.detector_prog_id = mc_run_head['detector_prog_id']
-            data.mcheader.num_showers = mc_run_head['num_showers']
-            data.mcheader.shower_reuse = mc_run_head['num_use']
+            data.mcheader.num_showers = mc_run_head['n_showers']
+            data.mcheader.shower_reuse = mc_run_head['n_use']
             data.mcheader.max_alt = mc_run_head['alt_range'][1] * u.rad
             data.mcheader.min_alt = mc_run_head['alt_range'][0] * u.rad
             data.mcheader.max_az = mc_run_head['az_range'][1] * u.rad
@@ -228,7 +228,7 @@ class SimTelEventSource(EventSource):
                     data.r0.tel[tel_id].trig_pix_id = pixel_lists[0]['pixel_list']
 
                 pixel_settings = telescope_description['pixel_settings']
-                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['refshape'].astype('float64')
+                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
                 data.mc.tel[tel_id].meta['refstep'] = float(pixel_settings['ref_step'])
                 data.mc.tel[tel_id].time_slice = float(pixel_settings['time_slice'])
 

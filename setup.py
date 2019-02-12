@@ -65,7 +65,7 @@ setup(name=PACKAGENAME,
           'pandas',
           'bokeh>=1.0.1',
           'scikit-learn',
-          'eventio==0.11.0',
+          'eventio==0.17.0',
       ],
       tests_require=[
           'pytest',
