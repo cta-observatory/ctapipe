@@ -1,8 +1,11 @@
 import copy
+import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 
 dataset = get_dataset_path("gamma_test.simtel.gz")
+
+pytest.importorskip('pyhessio')
 
 
 def test_hessio_file_reader():
