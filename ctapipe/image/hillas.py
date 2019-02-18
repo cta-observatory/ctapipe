@@ -46,7 +46,7 @@ def hillas_parameters(geom, image):
     >>> image_zeros[~clean_mask] = 0
     >>> hillas_zeros = hillas_parameters(geom, image_zeros)
     >>>
-    >>> # Slowest (2.73 times longer than fastest)
+    >>> # Slowest (1.51 times longer than fastest)
     >>> image_masked = np.ma.masked_array(image, mask=~clean_mask)
     >>> hillas_masked = hillas_parameters(geom, image_masked)
     >>>
@@ -71,6 +71,7 @@ def hillas_parameters(geom, image):
     pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
+    image = np.ma.filled(image, 0)
     msg = 'Image and pixel shape do not match'
     assert pix_x.shape == pix_y.shape == image.shape, msg
 
@@ -96,11 +97,7 @@ def hillas_parameters(geom, image):
     # The ddof=0 makes this comparable to the other methods,
     # but ddof=1 should be more correct, mostly affects small showers
     # on a percent level
-    try:
-        cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
-    except ValueError:
-        # Handle masked arrays
-        cov = np.cov(delta_x, delta_y, aweights=np.ma.filled(image, 0), ddof=0)
+    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # width and length are eigen values of the PCA
