@@ -8,8 +8,6 @@ import astropy.units as u
 import numpy as np
 from astropy.coordinates import Angle
 from astropy.units import Quantity
-
-from ctapipe.instrument import CameraGeometry
 from ..io.containers import HillasParametersContainer
 
 
@@ -32,12 +30,37 @@ def hillas_parameters(geom, image):
     from
     https://github.com/fact-project/fact-tools
 
+    The image passed to this function can be in three forms:
+
+    >>> from ctapipe.image.hillas import hillas_parameters
+    >>> from ctapipe.image.tests.test_hillas import create_sample_image, compare_hillas
+    >>> geom, image, clean_mask = create_sample_image(psi='0d')
+    >>>
+    >>> # Fastest
+    >>> geom_selected = geom[clean_mask]
+    >>> image_selected = image[clean_mask]
+    >>> hillas_selected = hillas_parameters(geom_selected, image_selected)
+    >>>
+    >>> # Mid (1.45 times longer than fastest)
+    >>> image_zeros = image.copy()
+    >>> image_zeros[~clean_mask] = 0
+    >>> hillas_zeros = hillas_parameters(geom, image_zeros)
+    >>>
+    >>> # Slowest (2.73 times longer than fastest)
+    >>> image_masked = np.ma.masked_array(image, mask=~clean_mask)
+    >>> hillas_masked = hillas_parameters(geom, image_masked)
+    >>>
+    >>> compare_hillas(hillas_selected, hillas_zeros)
+    >>> compare_hillas(hillas_selected, hillas_masked)
+
+    Each method gives the same result, but vary in efficiency
+
     Parameters
     ----------
     geom: ctapipe.instrument.CameraGeometry
         Camera geometry
     image : array_like
-        Pixel values
+        Charge in each pixel
 
     Returns
     -------
@@ -48,12 +71,15 @@ def hillas_parameters(geom, image):
     pix_x = Quantity(np.asanyarray(geom.pix_x, dtype=np.float64)).value
     pix_y = Quantity(np.asanyarray(geom.pix_y, dtype=np.float64)).value
     image = np.asanyarray(image, dtype=np.float64)
-    assert pix_x.shape == pix_y.shape == image.shape, 'Image and pixel shape do not match'
+    msg = 'Image and pixel shape do not match'
+    assert pix_x.shape == pix_y.shape == image.shape, msg
 
     size = np.sum(image)
 
     if size == 0.0:
-        raise HillasParameterizationError('size=0, cannot calculate HillasParameters')
+        raise HillasParameterizationError(
+            'size=0, cannot calculate HillasParameters'
+        )
 
     # calculate the cog as the mean of the coordinates weighted with the image
     cog_x = np.average(pix_x, weights=image)
@@ -70,7 +96,11 @@ def hillas_parameters(geom, image):
     # The ddof=0 makes this comparable to the other methods,
     # but ddof=1 should be more correct, mostly affects small showers
     # on a percent level
-    cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
+    try:
+        cov = np.cov(delta_x, delta_y, aweights=image, ddof=0)
+    except ValueError:
+        # Handle masked arrays
+        cov = np.cov(delta_x, delta_y, aweights=np.ma.filled(image, 0), ddof=0)
     eig_vals, eig_vecs = np.linalg.eigh(cov)
 
     # width and length are eigen values of the PCA
