@@ -94,6 +94,12 @@ def test_hillas_failure():
         hillas_parameters(geom, blank_image)
 
 
+def test_hillas_masked_array():
+    geom, image, clean_mask = create_sample_image(psi='0d')
+    cleaned_image = np.ma.masked_array(image, mask=~clean_mask)
+    hillas_parameters(geom, cleaned_image)
+
+
 def test_hillas_container():
     geom, image = create_sample_image_zeros(psi='0d')
 
