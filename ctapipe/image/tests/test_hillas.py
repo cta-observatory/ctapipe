@@ -95,9 +95,20 @@ def test_hillas_failure():
 
 
 def test_hillas_masked_array():
-    geom, image, clean_mask = create_sample_image(psi='0d')
-    cleaned_image = np.ma.masked_array(image, mask=~clean_mask)
-    hillas_parameters(geom, cleaned_image)
+    geom_zeros, image_zeros = create_sample_image_zeros()
+    hillas_zeros = hillas_parameters(geom_zeros, image_zeros)
+
+    geom_masked, image, clean_mask = create_sample_image(psi='0d')
+    image_masked = np.ma.masked_array(image, mask=~clean_mask)
+    hillas_masked = hillas_parameters(geom_masked, image_masked)
+
+    compare_result(hillas_zeros.length, hillas_masked.length)
+    compare_result(hillas_zeros.width, hillas_masked.width)
+    compare_result(hillas_zeros.r, hillas_masked.r)
+    compare_result(hillas_zeros.phi.deg, hillas_masked.phi.deg)
+    compare_result(hillas_zeros.psi.deg, hillas_masked.psi.deg)
+    compare_result(hillas_zeros.skewness, hillas_masked.skewness)
+    compare_result(hillas_zeros.kurtosis, hillas_masked.kurtosis)
 
 
 def test_hillas_container():
