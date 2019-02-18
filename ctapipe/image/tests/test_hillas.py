@@ -95,12 +95,14 @@ def test_hillas_failure():
 
 
 def test_hillas_masked_array():
-    geom_zeros, image_zeros = create_sample_image_zeros()
-    hillas_zeros = hillas_parameters(geom_zeros, image_zeros)
+    geom, image, clean_mask = create_sample_image(psi='0d')
 
-    geom_masked, image, clean_mask = create_sample_image(psi='0d')
+    image_zeros = image.copy()
+    image_zeros[~clean_mask] = 0
+    hillas_zeros = hillas_parameters(geom, image_zeros)
+
     image_masked = np.ma.masked_array(image, mask=~clean_mask)
-    hillas_masked = hillas_parameters(geom_masked, image_masked)
+    hillas_masked = hillas_parameters(geom, image_masked)
 
     compare_result(hillas_zeros.length, hillas_masked.length)
     compare_result(hillas_zeros.width, hillas_masked.width)
