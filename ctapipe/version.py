@@ -131,7 +131,7 @@ def update_release_version(pep440=False):
     """
     version = get_version(pep440=pep440)
     with open(VERSION_FILE, "w") as outfile:
-        outfile.write("version='{}'".format(version))
+        outfile.write(f"version='{version}'")
         outfile.write("\n")
 
 

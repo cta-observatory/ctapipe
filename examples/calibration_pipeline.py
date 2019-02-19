@@ -40,7 +40,7 @@ class ImagePlotter(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self._current_tel = None
         self.c_intensity = None
         self.c_peakpos = None
@@ -55,7 +55,7 @@ class ImagePlotter(Component):
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
         self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
-            self.log.info("Creating PDF: {}".format(self.output_path))
+            self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
 
     @staticmethod

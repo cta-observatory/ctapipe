@@ -8,7 +8,7 @@ from ctapipe.image import toymodel, tailcuts_clean
 
 def test_ChaudhuriKunduRingFitter_old():
 
-    fitter = muon_ring_finder.ChaudhuriKunduRingFitter(parent=None)
+    fitter = muon_ring_finder.ChaudhuriKunduRingFitter()
 
     points = np.linspace(-100, 100, 200)
 
@@ -37,7 +37,7 @@ def test_ChaudhuriKunduRingFitter_old():
 
 def test_ChaudhuriKunduRingFitterHline():
 
-    fitter = muon_ring_finder.ChaudhuriKunduRingFitter(parent=None)
+    fitter = muon_ring_finder.ChaudhuriKunduRingFitter()
 
     x = np.linspace(20, 30, 10) * u.deg   # Make linear array in x
     y = np.full_like(x, 15)               # Fill y array of same size with y

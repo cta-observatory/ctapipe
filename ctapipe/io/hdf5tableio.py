@@ -151,7 +151,7 @@ class HDF5TableWriter(TableWriter):
                     continue
 
                 if isinstance(value, Quantity):
-                    if self.add_prefix:
+                    if self.add_prefix and container.prefix:
                         key = col_name.replace(container.prefix + '_', '')
                     else:
                         key = col_name
@@ -159,10 +159,10 @@ class HDF5TableWriter(TableWriter):
 
                     if req_unit is not None:
                         tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                        meta['{}_UNIT'.format(col_name)] = str(req_unit)
+                        meta[f'{col_name}_UNIT'] = str(req_unit)
                     else:
                         tr = lambda x: x.value
-                        meta['{}_UNIT'.format(col_name)] = str(value.unit)
+                        meta[f'{col_name}_UNIT'] = str(value.unit)
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)

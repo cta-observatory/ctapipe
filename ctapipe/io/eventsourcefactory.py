@@ -71,7 +71,7 @@ class EventSourceFactory(Factory):
                 raise
 
 
-def event_source(input_url, config=None, parent=None, **kwargs):
+def event_source(input_url, config=None, tool=None, **kwargs):
     """
     Helper function to quickly construct an `EventSourceFactory` and produce
     an `EventSource`. This may be used in small scripts and demos for
@@ -97,7 +97,7 @@ def event_source(input_url, config=None, parent=None, **kwargs):
         input filename.
     """
 
-    reader = EventSourceFactory.produce(config, parent,
+    reader = EventSourceFactory.produce(config, tool,
                                         input_url=input_url,
                                         **kwargs)
 

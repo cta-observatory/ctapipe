@@ -55,11 +55,15 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         comp.some_option = 'test' # will fail validation
     """
 
-    def __init__(self, parent=None, config=None, **kwargs):
+    def __init__(self, config=None, tool=None, **kwargs):
         """
         Parameters
         ----------
-        parent: Tool or Component
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            Set to None if no configuration to pass.
+        tool : Tool or Component
             Tool or component that is the Parent of this one
         kwargs
             Traitlets to be overridden.
@@ -67,11 +71,11 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             correspond to a traitlet.
         """
 
-        super().__init__(parent=parent, config=config, **kwargs)
+        super().__init__(parent=tool, config=config, **kwargs)
 
         for key, value in kwargs.items():
             if not self.has_trait(key):
-                raise TraitError("Traitlet does not exist: {}".format(key))
+                raise TraitError(f"Traitlet does not exist: {key}")
 
         # set up logging
         if self.parent:

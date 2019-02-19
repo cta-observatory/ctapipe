@@ -157,10 +157,10 @@ class OpticsDescription:
         return self.tel_type, self.tel_subtype
 
     def info(self, printer=print):
-        printer('OpticsDescription: "{}"'.format(self))
-        printer('    - mirror_type: {}'.format(self.mirror_type))
-        printer('    - num_mirror_tiles: {}'.format(self.num_mirror_tiles))
-        printer('    - mirror_area: {}'.format(self.mirror_area))
+        printer(f'OpticsDescription: "{self}"')
+        printer(f'    - mirror_type: {self.mirror_type}')
+        printer(f'    - num_mirror_tiles: {self.num_mirror_tiles}')
+        printer(f'    - mirror_area: {self.mirror_area}')
 
     def __repr__(self):
         return "{}(tel_type='{}', tel_subtype='{}')".format(
@@ -168,7 +168,7 @@ class OpticsDescription:
 
     def __str__(self):
         if self.tel_subtype != '':
-            return "{}-{}".format(self.tel_type, self.tel_subtype)
+            return f"{self.tel_type}-{self.tel_subtype}"
         else:
             return self.tel_type
 

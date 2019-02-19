@@ -56,7 +56,7 @@ def get_all_descriptions():
                 descrip.replace("\n", "")
                 descriptions[name] = descrip
             except RuntimeError as err:
-                descriptions[name] = "[Couldn't parse docstring: {}]".format(err)
+                descriptions[name] = f"[Couldn't parse docstring: {err}]"
         else:
             descriptions[name] = "[no documentation. Please add a docstring]"
 
