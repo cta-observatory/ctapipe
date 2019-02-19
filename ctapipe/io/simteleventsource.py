@@ -6,10 +6,9 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
-import struct
-import gzip
 
 from eventio.simtel.simtelfile import SimTelFile
+from eventio.file_types import is_eventio
 
 __all__ = ['SimTelEventSource']
 
@@ -74,18 +73,7 @@ class SimTelEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        # read the first 4 bytes
-        with open(file_path, 'rb') as f:
-            marker_bytes = f.read(4)
-
-        # if file is gzip, read the first 4 bytes with gzip again
-        if marker_bytes[0] == 0x1f and marker_bytes[1] == 0x8b:
-            with gzip.open(file_path, 'rb') as f:
-                marker_bytes = f.read(4)
-
-        # check for the simtel magic marker
-        int_marker, = struct.unpack('I', marker_bytes)
-        return int_marker == 3558836791 or int_marker == 931798996
+        return is_eventio(file_path)
 
     def _generator(self):
         try:
