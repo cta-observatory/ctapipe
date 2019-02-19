@@ -16,12 +16,15 @@ __all__ = ['SimTelEventSource']
 
 
 class SimTelEventSource(EventSource):
-    skip_calibration = Bool(True, help='Skip calibration events').tag(config=True)
+    skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
         self.metadata['is_simulation'] = True
-        self.file_ = SimTelFile(self.input_url, skip_calibration=self.skip_calibration)
+        self.file_ = SimTelFile(
+            self.input_url,
+            skip_calibration=self.skip_calibration_events
+        )
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions,

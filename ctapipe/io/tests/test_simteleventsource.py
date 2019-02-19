@@ -197,6 +197,9 @@ def test_hessio_file_reader():
 
 
 def test_calibration_events():
-    with SimTelEventSource(input_url=calib_events_path, skip_calibration=False) as reader:
+    with SimTelEventSource(
+            input_url=calib_events_path,
+            skip_calibration_events=False,
+    ) as reader:
         for e in reader:
             pass
