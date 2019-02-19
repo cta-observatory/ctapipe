@@ -3,7 +3,7 @@ channels:
   - default
   - cta-observatory
 dependencies:
-  - ctapipe-extra=0.2.16
+  - ctapipe-extra=0.2.17
   - python=3.6 # nail the python version, so conda does not try upgrading / dowgrading
   - zeromq
   - pyzmq>=17  # needed for correct function of notebooks on OSX

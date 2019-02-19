@@ -6,6 +6,8 @@ from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from traitlets import Bool
+
 
 from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
@@ -14,11 +16,12 @@ __all__ = ['SimTelEventSource']
 
 
 class SimTelEventSource(EventSource):
+    skip_calibration = Bool(True, help='Skip calibration events').tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
         self.metadata['is_simulation'] = True
-        self.file_ = SimTelFile(self.input_url)
+        self.file_ = SimTelFile(self.input_url, skip_calibration=self.skip_calibration)
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions,
@@ -94,8 +97,14 @@ class SimTelEventSource(EventSource):
         for counter, array_event in enumerate(self.file_):
             # next lines are just for debugging
             self.array_event = array_event
+            data.event_type = array_event['type']
 
-            event_id = array_event['event_id']
+            # calibration events do not have an event id
+            if data.event_type == 'calibration':
+                event_id = -1
+            else:
+                event_id = array_event['event_id']
+
             data.inst.subarray = self._subarray_info
 
             obs_id = self.file_.header['run']
@@ -122,67 +131,14 @@ class SimTelEventSource(EventSource):
                 data.dl0.tels_with_data = selected
 
             trigger_information = array_event['trigger_information']
-            mc_event = array_event['mc_event']
-            mc_shower = array_event['mc_shower']
 
             data.trig.tels_with_trigger = trigger_information['triggered_telescopes']
             time_s, time_ns = trigger_information['gps_time']
             data.trig.gps_time = Time(time_s * u.s, time_ns * u.ns,
                                       format='unix', scale='utc')
 
-            data.mc.energy = mc_shower['energy'] * u.TeV
-            data.mc.alt = Angle(mc_shower['altitude'], u.rad)
-            data.mc.az = Angle(mc_shower['azimuth'], u.rad)
-            data.mc.core_x = mc_event['xcore'] * u.m
-            data.mc.core_y = mc_event['ycore'] * u.m
-            first_int = mc_shower['h_first_int'] * u.m
-            data.mc.h_first_int = first_int
-            data.mc.x_max = mc_shower['xmax'] * u.g / (u.cm**2)
-            data.mc.shower_primary_id = mc_shower['primary_id']
-
-            # mc run header data
-            data.mcheader.run_array_direction = Angle(
-                self.file_.header['direction'] * u.rad
-            )
-            mc_run_head = self.file_.mc_run_headers[-1]
-            data.mcheader.corsika_version = mc_run_head['shower_prog_vers']
-            data.mcheader.simtel_version = mc_run_head['detector_prog_vers']
-            data.mcheader.energy_range_min = mc_run_head['E_range'][0] * u.TeV
-            data.mcheader.energy_range_max = mc_run_head['E_range'][1] * u.TeV
-            data.mcheader.prod_site_B_total = mc_run_head['B_total'] * u.uT
-            data.mcheader.prod_site_B_declination = Angle(
-                mc_run_head['B_declination'] * u.rad)
-            data.mcheader.prod_site_B_inclination = Angle(
-                mc_run_head['B_inclination'] * u.rad)
-            data.mcheader.prod_site_alt = mc_run_head['obsheight'] * u.m
-            data.mcheader.spectral_index = mc_run_head['spectral_index']
-            data.mcheader.shower_prog_start = mc_run_head['shower_prog_start']
-            data.mcheader.shower_prog_id = mc_run_head['shower_prog_id']
-            data.mcheader.detector_prog_start = mc_run_head['detector_prog_start']
-            data.mcheader.detector_prog_id = mc_run_head['detector_prog_id']
-            data.mcheader.num_showers = mc_run_head['n_showers']
-            data.mcheader.shower_reuse = mc_run_head['n_use']
-            data.mcheader.max_alt = mc_run_head['alt_range'][1] * u.rad
-            data.mcheader.min_alt = mc_run_head['alt_range'][0] * u.rad
-            data.mcheader.max_az = mc_run_head['az_range'][1] * u.rad
-            data.mcheader.min_az = mc_run_head['az_range'][0] * u.rad
-            data.mcheader.diffuse = mc_run_head['diffuse']
-            data.mcheader.max_viewcone_radius = mc_run_head['viewcone'][1] * u.deg
-            data.mcheader.min_viewcone_radius = mc_run_head['viewcone'][0] * u.deg
-            data.mcheader.max_scatter_range = mc_run_head['core_range'][1] * u.m
-            data.mcheader.min_scatter_range = mc_run_head['core_range'][0] * u.m
-            data.mcheader.core_pos_mode = mc_run_head['core_pos_mode']
-            data.mcheader.injection_height = mc_run_head['injection_height'] * u.m
-            data.mcheader.atmosphere = mc_run_head['atmosphere']
-            data.mcheader.corsika_iact_options = mc_run_head['corsika_iact_options']
-            data.mcheader.corsika_low_E_model = mc_run_head['corsika_low_E_model']
-            data.mcheader.corsika_high_E_model = mc_run_head['corsika_high_E_model']
-            data.mcheader.corsika_bunchsize = mc_run_head['corsika_bunchsize']
-            data.mcheader.corsika_wlen_min = mc_run_head['corsika_wlen_min'] * u.nm
-            data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max'] * u.nm
-            data.mcheader.corsika_low_E_detail = mc_run_head['corsika_low_E_detail']
-            data.mcheader.corsika_high_E_detail = mc_run_head['corsika_high_E_detail']
-
+            if data.event_type == 'data':
+                self.fill_mc_information(data, array_event)
 
             # this should be done in a nicer way to not re-allocate the
             # data each time (right now it's just deleted and garbage
@@ -234,5 +190,60 @@ class SimTelEventSource(EventSource):
                 data.mc.tel[tel_id].altitude_cor = tracking_position.get('altitude_cor', 0)
             yield data
 
+    def fill_mc_information(self, data, array_event):
+        mc_event = array_event['mc_event']
+        mc_shower = array_event['mc_shower']
 
+        data.mc.energy = mc_shower['energy'] * u.TeV
+        data.mc.alt = Angle(mc_shower['altitude'], u.rad)
+        data.mc.az = Angle(mc_shower['azimuth'], u.rad)
+        data.mc.core_x = mc_event['xcore'] * u.m
+        data.mc.core_y = mc_event['ycore'] * u.m
+        first_int = mc_shower['h_first_int'] * u.m
+        data.mc.h_first_int = first_int
+        data.mc.x_max = mc_shower['xmax'] * u.g / (u.cm**2)
+        data.mc.shower_primary_id = mc_shower['primary_id']
+
+        # mc run header data
+        data.mcheader.run_array_direction = Angle(
+            self.file_.header['direction'] * u.rad
+        )
+        mc_run_head = self.file_.mc_run_headers[-1]
+        data.mcheader.corsika_version = mc_run_head['shower_prog_vers']
+        data.mcheader.simtel_version = mc_run_head['detector_prog_vers']
+        data.mcheader.energy_range_min = mc_run_head['E_range'][0] * u.TeV
+        data.mcheader.energy_range_max = mc_run_head['E_range'][1] * u.TeV
+        data.mcheader.prod_site_B_total = mc_run_head['B_total'] * u.uT
+        data.mcheader.prod_site_B_declination = Angle(
+            mc_run_head['B_declination'] * u.rad)
+        data.mcheader.prod_site_B_inclination = Angle(
+            mc_run_head['B_inclination'] * u.rad)
+        data.mcheader.prod_site_alt = mc_run_head['obsheight'] * u.m
+        data.mcheader.spectral_index = mc_run_head['spectral_index']
+        data.mcheader.shower_prog_start = mc_run_head['shower_prog_start']
+        data.mcheader.shower_prog_id = mc_run_head['shower_prog_id']
+        data.mcheader.detector_prog_start = mc_run_head['detector_prog_start']
+        data.mcheader.detector_prog_id = mc_run_head['detector_prog_id']
+        data.mcheader.num_showers = mc_run_head['n_showers']
+        data.mcheader.shower_reuse = mc_run_head['n_use']
+        data.mcheader.max_alt = mc_run_head['alt_range'][1] * u.rad
+        data.mcheader.min_alt = mc_run_head['alt_range'][0] * u.rad
+        data.mcheader.max_az = mc_run_head['az_range'][1] * u.rad
+        data.mcheader.min_az = mc_run_head['az_range'][0] * u.rad
+        data.mcheader.diffuse = mc_run_head['diffuse']
+        data.mcheader.max_viewcone_radius = mc_run_head['viewcone'][1] * u.deg
+        data.mcheader.min_viewcone_radius = mc_run_head['viewcone'][0] * u.deg
+        data.mcheader.max_scatter_range = mc_run_head['core_range'][1] * u.m
+        data.mcheader.min_scatter_range = mc_run_head['core_range'][0] * u.m
+        data.mcheader.core_pos_mode = mc_run_head['core_pos_mode']
+        data.mcheader.injection_height = mc_run_head['injection_height'] * u.m
+        data.mcheader.atmosphere = mc_run_head['atmosphere']
+        data.mcheader.corsika_iact_options = mc_run_head['corsika_iact_options']
+        data.mcheader.corsika_low_E_model = mc_run_head['corsika_low_E_model']
+        data.mcheader.corsika_high_E_model = mc_run_head['corsika_high_E_model']
+        data.mcheader.corsika_bunchsize = mc_run_head['corsika_bunchsize']
+        data.mcheader.corsika_wlen_min = mc_run_head['corsika_wlen_min'] * u.nm
+        data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max'] * u.nm
+        data.mcheader.corsika_low_E_detail = mc_run_head['corsika_low_E_detail']
+        data.mcheader.corsika_high_E_detail = mc_run_head['corsika_high_E_detail']
 
