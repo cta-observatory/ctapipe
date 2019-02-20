@@ -5,10 +5,10 @@ from abc import ABCMeta, abstractclassmethod
 
 import numpy as np
 
-from ...core import Component, Factory, traits
+from ...core import Component, traits
 from ...utils import get_table_dataset
 
-__all__ = ['GainSelectorFactory',
+__all__ = ['GainSelector',
            'ThresholdGainSelector',
            'SimpleGainSelector',
            'pick_gain_channel']
@@ -66,7 +66,6 @@ class GainSelector(Component, metaclass=ABCMeta):
     Base class for algorithms that reduce a 2-gain-channel waveform to a
     single waveform.
     """
-
     @abstractclassmethod
     def select_gains(self, cam_id, multi_gain_waveform):
         """
@@ -172,12 +171,3 @@ class ThresholdGainSelector(GainSelector):
         )
 
         return waveform, gain_mask
-
-
-class GainSelectorFactory(Factory):
-    """
-    Factory to obtain a GainSelector
-    """
-    base = GainSelector
-    default = 'ThresholdGainSelector'
-    custom_product_help = 'Gain-channel selection scheme to use.'

@@ -7,14 +7,15 @@ from bokeh.themes import Theme
 from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+from ctapipe.calib.camera.r1 import CameraR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.image.waveform_cleaning import WaveformCleanerFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.waveform_cleaning import WaveformCleaner
+from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
+import ctapipe.utils.tools as tool_utils
 
 
 class BokehFileViewer(Tool):
@@ -26,33 +27,44 @@ class BokehFileViewer(Tool):
     disable_server = Bool(False, help="Do not start the bokeh server "
                                       "(useful for testing)").tag(config=True)
 
+    default_url = get_dataset_path("gamma_test.simtel.gz")
+    EventSource.input_url.default_value = default_url
+
+    cleaner_product = tool_utils.enum_trait(
+        WaveformCleaner,
+        default='NullWaveformCleaner'
+    )
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
+
     aliases = Dict(dict(
         port='BokehFileViewer.port',
         disable_server='BokehFileViewer.disable_server',
-        r='EventSourceFactory.product',
-        f='EventSourceFactory.input_url',
-        max_events='EventSourceFactory.max_events',
-        ped='CameraR1CalibratorFactory.pedestal_path',
-        tf='CameraR1CalibratorFactory.tf_path',
-        pe='CameraR1CalibratorFactory.pe_path',
-        ff='CameraR1CalibratorFactory.ff_path',
-        extractor='ChargeExtractorFactory.product',
-        extractor_t0='ChargeExtractorFactory.t0',
-        extractor_window_width='ChargeExtractorFactory.window_width',
-        extractor_window_shift='ChargeExtractorFactory.window_shift',
-        extractor_sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        extractor_sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        extractor_lwt='ChargeExtractorFactory.lwt',
-        cleaner='WaveformCleanerFactory.product',
+        f='EventSource.input_url',
+        max_events='EventSource.max_events',
+        extractor='BokehFileViewer.extractor_product',
+        cleaner='BokehFileViewer.cleaner_product',
+        ped='TargetIOR1Calibrator.pedestal_path',
+        tf='TargetIOR1Calibrator.tf_path',
+        pe='TargetIOR1Calibrator.pe_path',
+        simpleintegrator_t0='SimpleIntegrator.t0',
+        window_width='WindowIntegrator.window_width',
+        window_shift='WindowIntegrator.window_shift',
+        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+        lwt='NeighbourPeakIntegrator.lwt',
     ))
 
-    classes = List([
-        EventSourceFactory,
-        ChargeExtractorFactory,
-        CameraR1CalibratorFactory,
-        CameraDL1Calibrator,
-        WaveformCleanerFactory
-    ])
+    classes = List(
+        [
+            EventSource,
+            CameraDL1Calibrator,
+        ] + tool_utils.classes_with_traits(WaveformCleaner)
+        + tool_utils.classes_with_traits(ChargeExtractor)
+        + tool_utils.classes_with_traits(CameraR1Calibrator)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -89,15 +101,18 @@ class BokehFileViewer(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        default_url = get_dataset_path("gamma_test.simtel.gz")
-        EventSourceFactory.input_url.default_value = default_url
-        self.reader = EventSourceFactory.produce(**kwargs)
+        self.reader = EventSource.from_config(**kwargs)
         self.seeker = EventSeeker(self.reader, **kwargs)
 
-        self.extractor = ChargeExtractorFactory.produce(**kwargs)
-        self.cleaner = WaveformCleanerFactory.produce(**kwargs)
-
-        self.r1 = CameraR1CalibratorFactory.produce(
+        self.extractor = ChargeExtractor.from_name(
+            self.extractor_product,
+            **kwargs
+        )
+        self.cleaner = WaveformCleaner.from_name(
+            self.cleaner_product,
+            **kwargs
+        )
+        self.r1 = CameraR1Calibrator.from_eventsource(
             eventsource=self.reader,
             **kwargs
         )
@@ -351,9 +366,9 @@ class BokehFileViewer(Tool):
     def create_dl1_widgets(self):
         self.w_dl1_dict = dict(
             cleaner=Select(title="Cleaner:", value='', width=5,
-                           options=WaveformCleanerFactory.subclass_names),
+                           options=BokehFileViewer.cleaner_product.values),
             extractor=Select(title="Extractor:", value='', width=5,
-                             options=ChargeExtractorFactory.subclass_names),
+                             options=BokehFileViewer.extractor_product.values),
             extractor_t0=TextInput(title="T0:", value=''),
             extractor_window_width=TextInput(title="Window Width:", value=''),
             extractor_window_shift=TextInput(title="Window Shift:", value=''),
@@ -410,8 +425,12 @@ class BokehFileViewer(Tool):
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 kwargs = dict(config=self.config, tool=self)
-                extractor = ChargeExtractorFactory.produce(**kwargs)
-                cleaner = WaveformCleanerFactory.produce(**kwargs)
+                extractor = ChargeExtractor.from_name(
+                    self.extractor_product,
+                    **kwargs)
+                cleaner = WaveformCleaner.from_name(
+                    self.cleaner_product,
+                    **kwargs)
                 self.update_dl1_calibrator(extractor, cleaner)
                 self.update_dl1_widget_values()
                 self._updating_dl1 = False

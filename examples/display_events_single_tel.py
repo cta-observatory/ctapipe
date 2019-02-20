@@ -21,7 +21,7 @@ from ctapipe.core.traits import Float, Dict, List
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
-from ctapipe.io import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -53,9 +53,9 @@ class SingleTelEventDisplay(Tool):
     ).tag(config=True)
 
     aliases = Dict({
-        'infile': 'EventSourceFactory.input_url',
+        'infile': 'EventSource.input_url',
         'tel': 'SingleTelEventDisplay.tel',
-        'max-events': 'EventSourceFactory.max_events',
+        'max-events': 'EventSource.max_events',
         'channel': 'SingleTelEventDisplay.channel',
         'write': 'SingleTelEventDisplay.write',
         'clean': 'SingleTelEventDisplay.clean',
@@ -66,12 +66,12 @@ class SingleTelEventDisplay(Tool):
         'progress': 'SingleTelEventDisplay.progress'
     })
 
-    classes = List([EventSourceFactory, CameraCalibrator])
+    classes = List([EventSource, CameraCalibrator])
 
     def setup(self):
-
-        self.event_source = EventSourceFactory.produce(
-            config=self.config, tool=self
+        self.event_source = EventSource.from_config(
+            config=self.config,
+            tool=self
         )
         self.event_source.allowed_tels = [
             self.tel,
