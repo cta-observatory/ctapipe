@@ -13,7 +13,7 @@ from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
                                              LocalPeakIntegrator)
 
 __all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
-           'CHECMWaveformCleanerLocal',
+           'CHECMWaveformCleanerLocal','BaselineWaveformCleaner',
            'NullWaveformCleaner']
 
 
@@ -65,6 +65,26 @@ class NullWaveformCleaner(WaveformCleaner):
 
     def apply(self, waveforms):
         return waveforms
+
+
+class BaselineWaveformCleaner(WaveformCleaner):
+    """
+    Basic waveform cleaner that simply returns the waveform baseline subtracted
+    with the baseline calculated in a window of width "baseline_width" samples, shifted of
+    "window_shift" samples
+    """
+    baseline_width = Int(10, help='Define then number of samples for estimating the '
+                                  'baseline').tag(config=True)
+
+    window_shift = Int(0, help='Define the shift of the window on which calculate '
+                               'the baseline.').tag(config=True)
+
+    def apply(self, waveforms):
+        # Subtract initial baseline
+        baseline_sub = waveforms - np.mean(waveforms[:, :, self.window_shift:self.baseline_width],
+                                           axis=2)[:, :, None]
+
+        return baseline_sub
 
 
 class CHECMWaveformCleaner(WaveformCleaner):
