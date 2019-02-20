@@ -240,13 +240,13 @@ class ArrayDisplay:
         r = np.array([-range, range])
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
-            x_0 = coords[idx].x.value
-            y_0 = coords[idx].y.value
+            x_0 = coords[idx].x.to_value(u.m)
+            y_0 = coords[idx].y.to_value(u.m)
             x = x_0 + np.cos(params.psi) * r
             y = y_0 + np.sin(params.psi) * r
             self.axes.plot(x, y, color=c[idx], **kwargs)
             self.axes.scatter(x_0, y_0, color=c[idx])
-
+q
     def add_labels(self):
         px = self.tel_coords.x.value
         py = self.tel_coords.y.value
