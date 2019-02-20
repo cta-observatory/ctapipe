@@ -59,13 +59,13 @@ def test_baseline_cleaner():
 
     cleaner = BaselineWaveformCleaner()
 
-    cleaner.sample_start = 0
-    cleaner.sample_end = 20
+    cleaner.baseline_start = 0
+    cleaner.baseline_end = 20
     cleaned = cleaner.apply(waveform)
     assert (cleaned.mean() == 5)
 
-    cleaner.sample_start = 20
-    cleaner.sample_end = 40
+    cleaner.baseline_start = 20
+    cleaner.baseline_end = 40
     cleaned = cleaner.apply(waveform)
     assert (cleaned.mean() == -5)
 
