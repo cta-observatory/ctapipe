@@ -13,7 +13,7 @@ from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
                                              LocalPeakIntegrator)
 
 __all__ = ['WaveformCleanerFactory', 'CHECMWaveformCleanerAverage',
-           'CHECMWaveformCleanerLocal','BaselineWaveformCleaner',
+           'CHECMWaveformCleanerLocal', 'BaselineWaveformCleaner',
            'NullWaveformCleaner']
 
 
