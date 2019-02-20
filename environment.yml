@@ -4,7 +4,6 @@ channels:
   - default
   - cta-observatory
 dependencies:
-  - ctapipe-extra=0.2.17
   - zeromq
   - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
@@ -43,5 +42,6 @@ dependencies:
   - pip:
       - pytest_runner
       - eventio==0.17.0
+      - https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.17.tar.gz
 
 
