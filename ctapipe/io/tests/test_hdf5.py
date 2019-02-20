@@ -1,5 +1,6 @@
 import tempfile
 
+import enum
 import numpy as np
 import pytest
 import tables
@@ -283,6 +284,76 @@ def test_write_to_any_location(temp_h5_file):
         for a in h5.read(loc + '/group_1/table', ContainerA()):
 
             assert a.a == 1
+
+
+class WithNormalEnum(Container):
+    class EventType(enum.Enum):
+        pedestal = 1
+        physics = 2
+        calibration = 3
+
+    event_type = Field(
+        EventType.calibration,
+        f'type of event, one of: {list(EventType.__members__.keys())}'
+    )
+
+
+def test_read_write_container_with_enum(tmp_path):
+    tmp_file = tmp_path / 'container_with_enum.hdf5'
+
+    def create_stream(n_event):
+        data = WithNormalEnum()
+        for i in range(n_event):
+            data.event_type = data.EventType(i % 3 + 1)
+            yield data
+
+    with HDF5TableWriter(tmp_file, group_name='data') as h5_table:
+        for data in create_stream(10):
+            h5_table.write('table', data)
+
+    with HDF5TableReader(tmp_file, mode='r') as h5_table:
+        for group_name in ['data/']:
+            group_name = '/{}table'.format(group_name)
+            for data in h5_table.read(group_name, WithNormalEnum()):
+                assert isinstance(
+                    data.event_type,
+                    WithNormalEnum.EventType
+                )
+
+
+class WithIntEnum(Container):
+    class EventType(enum.IntEnum):
+        pedestal = 1
+        physics = 2
+        calibration = 3
+
+    event_type = Field(
+        EventType.calibration,
+        f'type of event, one of: {list(EventType.__members__.keys())}'
+    )
+
+
+def test_read_write_container_with_int_enum(tmp_path):
+    tmp_file = tmp_path / 'container_with_int_enum.hdf5'
+
+    def create_stream(n_event):
+        data = WithIntEnum()
+        for i in range(n_event):
+            data.event_type = data.EventType(i % 3 + 1)
+            yield data
+
+    with HDF5TableWriter(tmp_file, group_name='data') as h5_table:
+        for data in create_stream(10):
+            h5_table.write('table', data)
+
+    with HDF5TableReader(tmp_file, mode='r') as h5_table:
+        for group_name in ['data/']:
+            group_name = '/{}table'.format(group_name)
+            for data in h5_table.read(group_name, WithIntEnum()):
+                assert isinstance(
+                    data.event_type,
+                    WithIntEnum.EventType
+                )
 
 
 if __name__ == '__main__':
