@@ -69,19 +69,16 @@ class NullWaveformCleaner(WaveformCleaner):
 
 class BaselineWaveformCleaner(WaveformCleaner):
     """
-    Basic waveform cleaner that subtracts the waveform baseline as
-    estimated  in a window of "baseline_width" samples, shifted of
-    "window_shift" samples
+    Basic waveform cleaner that subtracts the waveform baseline
+    estimated as the mean waveform value in the interval [sample_start,sample_end]
     """
-    baseline_width = Int(10, help='Define then number of samples for estimating the '
-                                  'baseline').tag(config=True)
+    sample_start = Int(0, help='Start sample for baseline estimation').tag(config=True)
 
-    window_shift = Int(0, help='Define the shift of the window on which calculate '
-                               'the baseline.').tag(config=True)
+    sample_end = Int(10, help='End sample for baseline estimation').tag(config=True)
 
     def apply(self, waveforms):
-        # Subtract initial baseline
-        baseline_sub = waveforms - np.mean(waveforms[:, :, self.window_shift:(self.window_shift+self.baseline_width)],
+        # Subtract baseline
+        baseline_sub = waveforms - np.mean(waveforms[:, :, self.sample_start:self.sample_end],
                                            axis=2)[:, :, None]
 
         return baseline_sub

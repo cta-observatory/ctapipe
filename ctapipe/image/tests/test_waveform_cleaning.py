@@ -52,19 +52,19 @@ def test_checm_cleaner_local(example_event):
 
 def test_baseline_cleaner():
 
-    # waveform : first 20 samples = 0, sencod 20 samples = 10
+    # waveform : first 20 samples = 0, second 20 samples = 10
     waveform = np.full((2, 1855, 40), 10)
     waveform[:, :, 0:20] = 0
 
     cleaner = BaselineWaveformCleaner()
 
-    cleaner.baseline_width = 20
-    cleaner.window_shift = 0
+    cleaner.sample_start = 0
+    cleaner.sample_end = 20
     cleaned = cleaner.apply(waveform)
     assert (cleaned.mean() == 5)
 
-    cleaner.baseline_width = 20
-    cleaner.window_shift = 20
+    cleaner.sample_start = 20
+    cleaner.sample_end = 40
     cleaned = cleaner.apply(waveform)
     assert (cleaned.mean() == -5)
 
