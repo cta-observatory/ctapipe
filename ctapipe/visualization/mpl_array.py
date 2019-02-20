@@ -242,11 +242,11 @@ class ArrayDisplay:
             x_0 = coords[idx].x.value
             y_0 = coords[idx].y.value
             m = np.tan(Angle(params.psi))
-            x = x_0 + np.linspace(-range, range, 50)
-            y = y_0 + m * (x - x_0)
-            distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
-            mask = np.ma.masked_where(distance < range, distance).mask
-            self.axes.plot(x[mask], y[mask], color=c[idx], **kwargs)
+            x_end = np.sqrt(range ** 2 / (1 + m ** 2))
+            y_end = m * x_end
+            x = [x_0 - x_end, x_0 + x_end]
+            y = [y_0 - y_end, y_0 + y_end]
+            self.axes.plot(x, y, color=c[idx], **kwargs)
             self.axes.scatter(x_0, y_0, color=c[idx])
 
     def add_labels(self):
