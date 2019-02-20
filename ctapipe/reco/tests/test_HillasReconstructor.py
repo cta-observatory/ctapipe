@@ -3,7 +3,7 @@ from astropy import units as u
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord
@@ -99,7 +99,7 @@ def test_reconstruction():
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = EventSourceFactory.produce(input_url=filename)
+    source = event_source(filename)
 
     for event in source:
 

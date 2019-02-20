@@ -1,8 +1,38 @@
+from abc import abstractmethod, ABC
 import pytest
 from traitlets import Float, TraitError
 from traitlets.config.loader import Config
 from ctapipe.core import Component
-from abc import abstractmethod
+
+
+def test_non_abstract_children():
+    from ctapipe.core import non_abstract_children
+
+    class AbstractBase(ABC):
+        @abstractmethod
+        def method(self):
+            pass
+
+    class Child1(AbstractBase):
+        def method(self):
+            print('method of Child1')
+
+    class Child2(AbstractBase):
+        def method(self):
+            print('method of Child2')
+
+    class GrandChild(Child2):
+        def method(self):
+            print('method of GrandChild')
+
+    class AbstractChild(AbstractBase):
+        pass
+
+    kids = non_abstract_children(AbstractBase)
+    assert Child1 in kids
+    assert Child2 in kids
+    assert GrandChild in kids
+    assert AbstractChild not in kids
 
 
 class ExampleComponent(Component):
@@ -232,3 +262,16 @@ def test_help_changed_default():
     help_msg = ExampleComponent.class_get_help()
     assert "Default: 199.0" in help_msg
     ExampleComponent.param.default_value = old_default
+
+
+def test_from_name():
+    subclass = ExampleComponent.from_name("ExampleSubclass1")
+    assert isinstance(subclass, ExampleSubclass1)
+    subclass = ExampleComponent.from_name("ExampleSubclass2")
+    assert isinstance(subclass, ExampleSubclass2)
+
+
+def test_from_name_config():
+    config = Config({'ExampleComponent': {'param': 229.}})
+    subclass = ExampleComponent.from_name("ExampleSubclass1", config=config)
+    assert subclass.param == 229.

@@ -1,7 +1,7 @@
 import copy
 import pytest
 from ctapipe.io.targetioeventsource import TargetIOEventSource
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import event_source
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.utils import get_dataset_path
 from ctapipe.calib.camera.calibrator import CameraCalibrator
@@ -123,7 +123,7 @@ def test_geom():
 
 def test_eventsourcefactory():
     dataset = get_dataset_path("chec_r1.tio")
-    source = EventSourceFactory.produce(input_url=dataset)
+    source = event_source(dataset)
     assert source.__class__.__name__ == "TargetIOEventSource"
     assert source.input_url == dataset
 

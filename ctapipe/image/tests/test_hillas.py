@@ -66,6 +66,13 @@ def compare_result(x, y):
     assert ux.unit == uy.unit
 
 
+def compare_hillas(hillas1, hillas2):
+    hillas1_dict = hillas1.as_dict()
+    hillas2_dict = hillas2.as_dict()
+    for key in hillas1_dict.keys():
+        compare_result(hillas1_dict[key], hillas2_dict[key])
+
+
 def test_hillas_selected():
     """
     test Hillas-parameter routines on a sample image with selected values
@@ -77,13 +84,7 @@ def test_hillas_selected():
     results = hillas_parameters(geom, image)
     results_selected = hillas_parameters(geom_selected, image_selected)
 
-    compare_result(results.length, results_selected.length)
-    compare_result(results.width, results_selected.width)
-    compare_result(results.r, results_selected.r)
-    compare_result(results.phi.deg, results_selected.phi.deg)
-    compare_result(results.psi.deg, results_selected.psi.deg)
-    compare_result(results.skewness, results_selected.skewness)
-    # compare_result(results.kurtosis, results_ma.kurtosis)
+    compare_hillas(results, results_selected)
 
 
 def test_hillas_failure():
@@ -92,6 +93,19 @@ def test_hillas_failure():
 
     with pytest.raises(HillasParameterizationError):
         hillas_parameters(geom, blank_image)
+
+
+def test_hillas_masked_array():
+    geom, image, clean_mask = create_sample_image(psi='0d')
+
+    image_zeros = image.copy()
+    image_zeros[~clean_mask] = 0
+    hillas_zeros = hillas_parameters(geom, image_zeros)
+
+    image_masked = np.ma.masked_array(image, mask=~clean_mask)
+    hillas_masked = hillas_parameters(geom, image_masked)
+
+    compare_hillas(hillas_zeros, hillas_masked)
 
 
 def test_hillas_container():
