@@ -1,6 +1,6 @@
 import astropy.units as u
 
-from ctapipe.io import EventSourceFactory
+from ctapipe.io import event_source
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image.cleaning import tailcuts_clean, number_of_islands
 from ctapipe.image import leakage, hillas_parameters
@@ -22,7 +22,7 @@ cleaning_level = {
 
 
 input_url = get_dataset_path('gamma_test_large.simtel.gz')
-event_source = EventSourceFactory.produce(input_url=input_url)
+event_source = event_source(input_url)
 
 calibrator = CameraCalibrator(
     eventsource=event_source,

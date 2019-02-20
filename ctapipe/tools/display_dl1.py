@@ -5,12 +5,13 @@ from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
 
-from ..calib import CameraCalibrator, CameraDL1Calibrator
-from ..core import Tool, Component
-from ..image.charge_extractors import ChargeExtractorFactory
-from ..io.eventsourcefactory import EventSourceFactory
-from ..utils import get_dataset_path
-from ..visualization import CameraDisplay
+from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
+from ctapipe.visualization import CameraDisplay
+from ctapipe.core import Tool, Component
+from ctapipe.utils import get_dataset_path
+from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.io import EventSource, event_source
+import ctapipe.utils.tools as tool_utils
 
 
 class ImagePlotter(Component):
@@ -43,7 +44,7 @@ class ImagePlotter(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self._current_tel = None
         self.c_intensity = None
         self.c_peakpos = None
@@ -140,16 +141,21 @@ class DisplayDL1Calib(Tool):
              'telescopes.'
     ).tag(config=True)
 
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
+
     aliases = Dict(
         dict(
-            max_events='EventSourceFactory.max_events',
-            extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            t0='ChargeExtractorFactory.t0',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            max_events='EventSource.max_events',
+            extractor='DisplayDL1Calib.extractor_product',
+            t0='SimpleIntegrator.t0',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
             O='ImagePlotter.output_path'
@@ -165,10 +171,13 @@ class DisplayDL1Calib(Tool):
                   "are produced.")
         )
     )
-    classes = List([
-        EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
-        ImagePlotter
-    ])
+    classes = List(
+        [
+            EventSource,
+            CameraDL1Calibrator,
+            ImagePlotter
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -179,8 +188,9 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = EventSourceFactory.produce(
-            input_url=get_dataset_path("gamma_test.simtel.gz"), **kwargs
+        self.eventsource = event_source(
+            get_dataset_path("gamma_test.simtel.gz"),
+            **kwargs
         )
 
         self.calibrator = CameraCalibrator(

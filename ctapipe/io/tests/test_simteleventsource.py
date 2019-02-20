@@ -11,6 +11,7 @@ gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 
 
 def compare_sources(input_url):
+    pytest.importorskip('pyhessio')
 
     with SimTelEventSource(input_url=input_url) as simtel_source, \
             HESSIOEventSource(input_url=input_url) as hessio_source:
