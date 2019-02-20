@@ -69,8 +69,8 @@ class NullWaveformCleaner(WaveformCleaner):
 
 class BaselineWaveformCleaner(WaveformCleaner):
     """
-    Basic waveform cleaner that simply returns the waveform baseline subtracted
-    with the baseline calculated in a window of width "baseline_width" samples, shifted of
+    Basic waveform cleaner that subtracts the waveform baseline as
+    estimated  in a window of "baseline_width" samples, shifted of
     "window_shift" samples
     """
     baseline_width = Int(10, help='Define then number of samples for estimating the '
