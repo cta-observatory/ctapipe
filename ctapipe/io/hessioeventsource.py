@@ -5,6 +5,8 @@ from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription
 
+from pyhessio import EventType
+
 __all__ = ['HESSIOEventSource']
 
 
@@ -51,7 +53,7 @@ class HESSIOEventSource(EventSource):
             # the container is initialized once, and data is replaced within
             # it after each yield
             counter = 0
-            eventstream = file.move_to_next_event()
+            eventstream = file.move_to_next_event(event_type=EventType.PEDESTAL.value)
             data = DataContainer()
             data.meta['origin'] = "hessio"
 
