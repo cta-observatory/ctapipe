@@ -246,7 +246,7 @@ class ArrayDisplay:
             y = y_0 + np.sin(params.psi) * r
             self.axes.plot(x, y, color=c[idx], **kwargs)
             self.axes.scatter(x_0, y_0, color=c[idx])
-q
+
     def add_labels(self):
         px = self.tel_coords.x.value
         py = self.tel_coords.y.value
