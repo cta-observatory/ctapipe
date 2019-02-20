@@ -78,11 +78,11 @@ class BaselineWaveformCleaner(WaveformCleaner):
 
     def apply(self, waveforms):
         # Subtract baseline
-        baseline_sub = waveforms - \
-                       np.mean(waveforms[:, :, self.sample_start:self.sample_end],
-                                           axis=2)[:, :, None]
+        baseline = waveforms - np.mean(
+            waveforms[:, :, self.sample_start:self.sample_end], axis=2
+        )[:, :, None]
 
-        return baseline_sub
+        return baseline
 
 
 class CHECMWaveformCleaner(WaveformCleaner):
