@@ -3,7 +3,8 @@ from numpy.testing import assert_almost_equal
 
 from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
                                              CHECMWaveformCleanerAverage,
-                                             CHECMWaveformCleanerLocal, BaselineWaveformCleaner)
+                                             CHECMWaveformCleanerLocal,
+                                             BaselineWaveformCleaner)
 
 
 def test_null_cleaner(example_event):
