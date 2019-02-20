@@ -6,8 +6,7 @@ from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
-from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import HorizonFrame
+from astropy.coordinates import SkyCoord, AltAz
 
 
 def test_estimator_results():
@@ -15,7 +14,7 @@ def test_estimator_results():
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
     0.1 m in one of the four cardinal directions """
-    horizon_frame = HorizonFrame()
+    horizon_frame = AltAz()
 
     p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame=horizon_frame)
     p2 = SkyCoord(alt=47 * u.deg, az=45 * u.deg, frame=horizon_frame)
@@ -49,7 +48,7 @@ def test_h_max_results():
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
     0.1 m in one of the four cardinal directions """
-    horizon_frame = HorizonFrame()
+    horizon_frame = AltAz()
 
     p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
     p2 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)

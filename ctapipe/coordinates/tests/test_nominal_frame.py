@@ -1,13 +1,12 @@
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 import astropy.units as u
 from pytest import approx
 
 
 def test_nominal_to_horizontal_alt0_az0():
     from ctapipe.coordinates.nominal_frame import NominalFrame
-    from ctapipe.coordinates.horizon_frame import HorizonFrame
 
-    horizon_frame = HorizonFrame()
+    horizon_frame = AltAz()
     pointing = SkyCoord(az=0 * u.deg, alt=0 * u.deg, frame=horizon_frame)
 
     nominal_frame = NominalFrame(origin=pointing)
@@ -41,9 +40,8 @@ def test_nominal_to_horizontal_alt0_az0():
 
 def test_nominal_to_horizontal_alt0_az180():
     from ctapipe.coordinates.nominal_frame import NominalFrame
-    from ctapipe.coordinates.horizon_frame import HorizonFrame
 
-    horizon_frame = HorizonFrame()
+    horizon_frame = AltAz()
     pointing = SkyCoord(az=180 * u.deg, alt=0 * u.deg, frame=horizon_frame)
 
     nominal_frame = NominalFrame(origin=pointing)
