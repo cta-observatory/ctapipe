@@ -81,7 +81,7 @@ class BaselineWaveformCleaner(WaveformCleaner):
 
     def apply(self, waveforms):
         # Subtract initial baseline
-        baseline_sub = waveforms - np.mean(waveforms[:, :, self.window_shift:self.baseline_width],
+        baseline_sub = waveforms - np.mean(waveforms[:, :, self.window_shift:(self.window_shift+self.baseline_width)],
                                            axis=2)[:, :, None]
 
         return baseline_sub
