@@ -533,33 +533,6 @@ class CameraGeometry:
         self.border_cache[width] = mask
         return mask
 
-    def get_shower_coordinates(self, x, y, psi):
-        '''
-        Return longitudinal and transverse coordinates of the pixels
-        for a given set of hillas parameters
-
-        Parameters
-        ----------
-        hillas_parameters: ctapipe.io.containers.HilllasContainer
-
-        Returns
-        -------
-        longitudinal: astropy.units.Quantity
-            longitudinal coordinates (along the shower axis)
-        transverse: astropy.units.Quantity
-            transverse coordinates (perpendicular to the shower axis)
-        '''
-        cos_psi = np.cos(psi)
-        sin_psi = np.sin(psi)
-
-        delta_x = self.pix_x - x
-        delta_y = self.pix_y - y
-
-        longi = delta_x * cos_psi + delta_y * sin_psi
-        trans = delta_x * -sin_psi + delta_y * cos_psi
-
-        return longi, trans
-
     def position_to_pix_index(self, x, y):
         '''
         Return the index of a camera pixel which contains a given position (x,y)
