@@ -126,8 +126,8 @@ class SingleTelEventDisplay(Tool):
                         plt.pause(self.delay)
                     if self.write:
                         plt.savefig(
-                            'CT{:03d}_EV{:10d}_S{:02d}.png'
-                                .format(self.tel, event.r0.event_id, ii)
+                            f'CT{self.tel:03d}_EV{event.r0.event_id:10d}'
+                            f'_S{ii:02d}.png'
                         )
             else:
                 # display integrated event:
@@ -158,8 +158,7 @@ class SingleTelEventDisplay(Tool):
                     plt.pause(self.delay)
                 if self.write:
                     plt.savefig(
-                        'CT{:03d}_EV{:010d}.png'
-                            .format(self.tel, event.r0.event_id)
+                        f'CT{self.tel:03d}_EV{event.r0.event_id:010d}.png'
                     )
 
         self.log.info("FINISHED READING DATA FILE")
