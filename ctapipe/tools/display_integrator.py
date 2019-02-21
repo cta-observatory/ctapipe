@@ -67,8 +67,8 @@ def plot(event, telid, chan, extractor_name):
     ax_max_pix.set_xlabel("Time (ns)")
     ax_max_pix.set_ylabel("DL0 Samples (ADC)")
     ax_max_pix.set_title(
-        "(Max) Pixel: {}, True: {}, Measured = {:.3f}"
-            .format(max_pix, t_pe[max_pix], dl1[max_pix])
+        f'(Max) Pixel: {max_pix}, True: {t_pe[max_pix]}, '
+        f'Measured = {dl1[max_pix]:.3f}'
     )
     max_ylim = ax_max_pix.get_ylim()
     ax_max_pix.plot([start[max_pix], start[max_pix]],
@@ -101,8 +101,8 @@ def plot(event, telid, chan, extractor_name):
     ax_min_pix.set_xlabel("Time (ns)")
     ax_min_pix.set_ylabel("DL0 Samples (ADC)")
     ax_min_pix.set_title(
-        "(Min) Pixel: {}, True: {}, Measured = {:.3f}"
-            .format(min_pix, t_pe[min_pix], dl1[min_pix])
+        f'(Min) Pixel: {min_pix}, True: {t_pe[min_pix]}, '
+        f'Measured = {dl1[min_pix]:.3f}'
     )
     ax_min_pix.set_ylim(max_ylim)
     ax_min_pix.plot([start[min_pix], start[min_pix]],
@@ -120,8 +120,8 @@ def plot(event, telid, chan, extractor_name):
             ax.set_xlabel("Time (ns)")
             ax.set_ylabel("DL0 Samples (ADC)")
             ax.set_title(
-                "(Min Nei) Pixel: {}, True: {}, Measured = {:.3f}"
-                    .format(pix, t_pe[pix], dl1[pix])
+                f'(Min Nei) Pixel: {pix}, True: {t_pe[pix]}, '
+                f'Measured = {dl1[pix]:.3f}'
             )
             ax.set_ylim(max_ylim)
             ax.plot([start[pix], start[pix]],
@@ -283,7 +283,8 @@ class DisplayIntegrator(Tool):
     )
     flags = Dict(
         dict(
-            id=({
+            id=(
+                {
                     'DisplayDL1Calib': {
                         'use_event_index': True
                     }
