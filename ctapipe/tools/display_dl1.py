@@ -163,12 +163,15 @@ class DisplayDL1Calib(Tool):
     )
     flags = Dict(
         dict(
-            D=({
-                   'ImagePlotter': {
-                       'display': True
-                   }
-               }, "Display the photoelectron images on-screen as they "
-                  "are produced.")
+            D=(
+                {
+                    'ImagePlotter': {
+                        'display': True
+                    }
+                },
+                "Display the photoelectron images on-screen as they "
+                "are produced."
+            )
         )
     )
     classes = List(
