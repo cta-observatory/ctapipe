@@ -6,13 +6,12 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 from astropy import units as u
 
 from ctapipe.calib import CameraCalibrator
-from ctapipe.coordinates import TiltedGroundFrame, HorizonFrame
-from ctapipe.image import hillas_parameters, tailcuts_clean, \
-    HillasParameterizationError
+from ctapipe.coordinates import TiltedGroundFrame
+from ctapipe.image import hillas_parameters, tailcuts_clean, HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.utils import datasets
 from ctapipe.visualization import ArrayDisplay
@@ -61,7 +60,7 @@ if __name__ == '__main__':
         # GroundFrame)
         point_dir = SkyCoord(
             *event.mcheader.run_array_direction,
-            frame=HorizonFrame()
+            frame=AltAz()
         )
         tiltedframe = TiltedGroundFrame(pointing_direction=point_dir)
         if markers:

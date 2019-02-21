@@ -21,10 +21,9 @@ from astropy.coordinates import (
     EarthLocationAttribute,
     RepresentationMapping,
     UnitSphericalRepresentation,
-    Angle
+    Angle,
+    AltAz,
 )
-
-from .horizon_frame import HorizonFrame
 
 
 class TelescopeFrame(BaseCoordinateFrame):
@@ -39,8 +38,8 @@ class TelescopeFrame(BaseCoordinateFrame):
     Attributes
     ----------
 
-    telescope_pointing: SkyCoord[HorizonFrame]
-        Coordinate of the telescope pointing in HorizonFrame
+    telescope_pointing: SkyCoord[AltAz]
+        Coordinate of the telescope pointing in AltAz
     obstime: Tiem
         Observation time
     location: EarthLocation
@@ -54,7 +53,7 @@ class TelescopeFrame(BaseCoordinateFrame):
     }
     default_representation = UnitSphericalRepresentation
 
-    telescope_pointing = CoordinateAttribute(default=None, frame=HorizonFrame)
+    telescope_pointing = CoordinateAttribute(default=None, frame=AltAz)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
@@ -80,7 +79,7 @@ def skyoffset_to_skyoffset(from_telescope_coord, to_telescope_frame):
     return intermediate_to.transform_to(to_telescope_frame)
 
 
-@frame_transform_graph.transform(DynamicMatrixTransform, HorizonFrame, TelescopeFrame)
+@frame_transform_graph.transform(DynamicMatrixTransform, AltAz, TelescopeFrame)
 def reference_to_skyoffset(reference_frame, telescope_frame):
     '''Convert a reference coordinate to an sky offset frame.'''
 
@@ -92,7 +91,7 @@ def reference_to_skyoffset(reference_frame, telescope_frame):
     return matrix_product(mat1, mat2)
 
 
-@frame_transform_graph.transform(DynamicMatrixTransform, TelescopeFrame, HorizonFrame)
+@frame_transform_graph.transform(DynamicMatrixTransform, TelescopeFrame, AltAz)
 def skyoffset_to_reference(skyoffset_coord, reference_frame):
     '''Convert an sky offset frame coordinate to the reference frame'''
 

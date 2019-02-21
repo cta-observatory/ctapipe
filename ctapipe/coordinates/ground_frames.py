@@ -20,12 +20,12 @@ from astropy.coordinates import (
     CartesianRepresentation,
     FunctionTransform,
     CoordinateAttribute,
+    AltAz,
 )
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
 
 from .representation import PlanarRepresentation
-from .horizon_frame import HorizonFrame
 
 __all__ = [
     'GroundFrame',
@@ -64,7 +64,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
-    pointing_direction = CoordinateAttribute(default=None, frame=HorizonFrame)
+    pointing_direction = CoordinateAttribute(default=None, frame=AltAz)
 
 
 def get_shower_trans_matrix(azimuth, altitude):
