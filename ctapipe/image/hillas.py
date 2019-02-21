@@ -17,6 +17,43 @@ __all__ = [
 ]
 
 
+def camera_to_shower_coordinates(x, y, cog_x, cog_y, psi):
+    '''
+    Return longitudinal and transverse coordinates for x and y
+    for a given set of hillas parameters
+
+    Parameters
+    ----------
+    x: u.Quantity[length]
+        x coordinate in camera coordinates
+    y: u.Quantity[length]
+        y coordinate in camera coordinates
+    cog_x: u.Quantity[length]
+        x coordinate of center of gravity
+    cog_y: u.Quantity[length]
+        y coordinate of center of gravity
+    psi: Angle
+        orientation angle
+
+    Returns
+    -------
+    longitudinal: astropy.units.Quantity
+        longitudinal coordinates (along the shower axis)
+    transverse: astropy.units.Quantity
+        transverse coordinates (perpendicular to the shower axis)
+    '''
+    cos_psi = np.cos(psi)
+    sin_psi = np.sin(psi)
+
+    delta_x = x - cog_x
+    delta_y = y - cog_y
+
+    longi = delta_x * cos_psi + delta_y * sin_psi
+    trans = delta_x * -sin_psi + delta_y * cos_psi
+
+    return longi, trans
+
+
 class HillasParameterizationError(RuntimeError):
     pass
 
