@@ -47,13 +47,6 @@ def test_load_hess_camera():
     assert len(geom.pix_x) == 1855
 
 
-def test_guess_camera():
-    px = np.linspace(-10, 10, 11328) * u.m
-    py = np.linspace(-10, 10, 11328) * u.m
-    geom = CameraGeometry.guess(px, py, 0 * u.m)
-    assert geom.pix_type.startswith('rect')
-
-
 def test_position_to_pix_index():
     geom = CameraGeometry.from_name("LSTCam")
     x, y = 0.80 * u.m, 0.79 * u.m,

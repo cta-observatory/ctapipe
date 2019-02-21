@@ -13,7 +13,6 @@ Todo:
   telescope :-))
 
 """
-
 from .optics import OpticsDescription
 from .camera import CameraGeometry
 
@@ -37,7 +36,6 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
-
     def __init__(self,
                  optics: OpticsDescription,
                  camera: CameraGeometry):
@@ -54,25 +52,6 @@ class TelescopeDescription:
     def camera(self):
         """ CameraGeometry for this telescope"""
         return self._camera
-
-    @classmethod
-    def guess(cls, pix_x, pix_y, equivalent_focal_length):
-        """
-        Construct a TelescopeDescription from metadata, filling in the
-        missing information using a lookup table.
-
-        Parameters
-        ----------
-        pix_x: array
-           array of pixel x-positions with units
-        pix_y: array
-           array of pixel y-positions with units
-        equivalent_focal_length: float
-           effective focal length of telescope with units (m)
-        """
-        camera = CameraGeometry.guess(pix_x, pix_y, equivalent_focal_length)
-        optics = OpticsDescription.guess(equivalent_focal_length)
-        return cls(optics=optics, camera=camera)
 
     @classmethod
     def from_name(cls, optics_name, camera_name):
@@ -101,6 +80,8 @@ class TelescopeDescription:
         return str(self.optics) + ":" + str(self.camera)
 
     def __repr__(self):
-        return "{}(optics={}, camera={})".format(self.__class__.__name__,
-                                                 str(self.optics),
-                                                 str(self.camera))
+        return "{}(optics={}, camera={})".format(
+            self.__class__.__name__,
+            str(self.optics),
+            str(self.camera),
+        )

@@ -9,20 +9,6 @@ import astropy.units as u
 
 logger = logging.getLogger(__name__)
 
-_FOCLEN_TO_TEL_INFO = {
-    # foclen: tel_type, tel_subtype, mirror_type
-    28.0: ('LST', '', 'DC'),
-    16.0: ('MST', '', 'DC'),
-    2.28: ('SST', 'GCT', 'SC'),
-    2.15: ('SST', 'ASTRI', 'SC'),
-    5.6: ('SST', '1M', 'DC'),
-    5.58: ('MST', 'SCT', 'SC'),
-    5.59: ('MST', 'SCT', 'SC'),
-    15.0: ('MST', 'HESS', 'DC'),
-    14.98: ('MST', 'HESS', 'DC'),
-    36.0: ('LST', 'HESS', 'DC')
-}
-
 
 class OpticsDescription:
     """
@@ -78,32 +64,6 @@ class OpticsDescription:
         self.num_mirror_tiles = num_mirror_tiles
 
     @classmethod
-    @u.quantity_input
-    def guess(cls, equivalent_focal_length: u.m):
-        """
-        Construct an OpticsDescription by guessing from metadata (e.g. when
-        using a simulation where the exact type is not known)
-
-        Parameters
-        ----------
-        equivalent_focal_length: Quantity('m')
-            effective optical focal-length in meters
-
-        Raises
-        ------
-        KeyError:
-            on unknown focal length
-        """
-
-        tel_type, tel_subtype, mir_type = \
-            telescope_info_from_metadata(equivalent_focal_length)
-
-        return cls(mirror_type=mir_type,
-                   tel_type=tel_type,
-                   tel_subtype=tel_subtype,
-                   equivalent_focal_length=equivalent_focal_length)
-
-    @classmethod
     def from_name(cls, name, optics_table='optics'):
         """
         Construct an OpticsDescription from the name. This is loaded from
@@ -123,8 +83,7 @@ class OpticsDescription:
         OpticsDescription
 
         """
-        table = get_table_dataset(optics_table,
-                                  role='dl0.tel.svc.optics')
+        table = get_table_dataset(optics_table, role='dl0.tel.svc.optics')
         mask = table['tel_description'] == name
 
         if 'equivalent_focal_length' in table.colnames:
@@ -134,11 +93,14 @@ class OpticsDescription:
             logger.warning("Optics table format out of date: "
                            "'effective_focal_length' "
                            "should be 'equivalent_focal_length'")
+        subtype = str(table['tel_subtype'][mask][0])
+        if subtype == '--':
+            subtype = ''
 
         optics = cls(
             mirror_type=table['mirror_type'][mask][0],
-            tel_type=table['tel_type'][mask][0],
-            tel_subtype=table['tel_subtype'][mask][0],
+            tel_type=str(table['tel_type'][mask][0]),
+            tel_subtype=subtype,
             equivalent_focal_length=flen,
             mirror_area=table['mirror_area'][mask].quantity[0],
             num_mirror_tiles=table['num_mirror_tiles'][mask][0],
@@ -171,27 +133,3 @@ class OpticsDescription:
             return f"{self.tel_type}-{self.tel_subtype}"
         else:
             return self.tel_type
-
-
-def telescope_info_from_metadata(focal_length):
-    """
-    helper func to return telescope and mirror info based on metadata
-
-    Parameters
-    ----------
-    focal_length: float
-        effective focal length
-
-    Returns
-    -------
-    str,str,str:
-        tel_type ('LST', 'MST' or 'SST'),
-        tel_subtype (model),
-        mirror_type ('SC' or 'DC')
-
-    Raises:
-    -------
-    KeyError:
-       if unable to find optics type
-    """
-    return _FOCLEN_TO_TEL_INFO[round(focal_length.to('m').value, 2)]
