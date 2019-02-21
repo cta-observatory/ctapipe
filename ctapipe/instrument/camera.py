@@ -21,19 +21,6 @@ __all__ = ['CameraGeometry']
 logger = logging.getLogger(__name__)
 
 
-def simtel_shape_to_type(pixel_shape):
-    if pixel_shape == 1:
-        return 'hexagonal', Angle(0, u.deg)
-
-    if pixel_shape == 2:
-        return 'rectangular', Angle(0, u.deg)
-
-    if pixel_shape == 3:
-        return 'hexagonal', Angle(30, u.deg)
-
-    raise ValueError(f'Unknown pixel_shape {pixel_shape}')
-
-
 class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
     Cherenkov Camera that us useful for imaging algorithms and
@@ -551,6 +538,19 @@ class CameraGeometry:
                                    points_searched[0][index, 1]))
 
         return pix_indices if len(pix_indices) > 1 else pix_indices[0]
+
+    @staticmethod
+    def simtel_shape_to_type(pixel_shape):
+        if pixel_shape == 1:
+            return 'hexagonal', Angle(0, u.deg)
+
+        if pixel_shape == 2:
+            return 'rectangular', Angle(0, u.deg)
+
+        if pixel_shape == 3:
+            return 'hexagonal', Angle(30, u.deg)
+
+        raise ValueError(f'Unknown pixel_shape {pixel_shape}')
 
 
 # ======================================================================

@@ -4,7 +4,7 @@ import astropy.units as u
 
 GuessingKey = namedtuple('GuessingKey', ['n_pixels', 'focal_length'])
 GuessingResult = namedtuple(
-    'GuessingResult', ['type', 'telescope_name', 'camera_name', 'mirror_type']
+    'GuessingResult', ['type', 'name', 'camera_name', 'mirror_type']
 )
 
 
@@ -22,6 +22,8 @@ TELESCOPE_NAMES = {
     GuessingKey(2048, 36.0): GuessingResult('LST', 'HESS-II', 'HESS-II', 'DC'),
     GuessingKey(1440, 4.998): GuessingResult('SST', 'FACT', 'FACT', 'DC'),
 }
+
+UNKNOWN_TELESCOPE = GuessingResult('UNKNOWN', 'UNKNOWN', 'UNKNOWN', 'UNKNOWN')
 
 
 def guess_telescope(n_pixels, focal_length):

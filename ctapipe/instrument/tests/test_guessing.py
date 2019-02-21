@@ -1,4 +1,3 @@
-from ctapipe.instrument import TelescopeDescription
 from astropy import units as u
 from pytest import raises
 
@@ -8,11 +7,11 @@ def test_guessing():
 
     guess = guess_telescope(2048, 2.28)
     assert guess.type == 'SST'
-    assert guess.telescope_name == 'GCT'
+    assert guess.name == 'GCT'
 
     guess = guess_telescope(2048, 2.28 * u.m)
     assert guess.type == 'SST'
-    assert guess.telescope_name == 'GCT'
+    assert guess.name == 'GCT'
 
     with raises(ValueError):
         guess = guess_telescope(100, 2.28 * u.m)

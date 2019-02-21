@@ -5,7 +5,13 @@ from ctapipe.io.containers import DataContainer
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import (
+    TelescopeDescription,
+    SubarrayDescription,
+    CameraGeometry,
+    OpticsDescription,
+)
+from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 import struct
 import gzip
 
@@ -50,18 +56,48 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description['camera_settings']
-            tel_description = TelescopeDescription.guess(
-                cam_settings['pixel_x'] * u.m,
-                cam_settings['pixel_y'] * u.m,
-                equivalent_focal_length=cam_settings['focal_length'] * u.m
+
+            n_pixels = cam_settings['n_pixels']
+            focal_length = u.Quantity(cam_settings['focal_length'], u.m)
+
+            try:
+                telescope = guess_telescope(n_pixels, focal_length)
+            except ValueError:
+                telescope = UNKNOWN_TELESCOPE
+
+            pixel_shape = cam_settings['pixel_shape'][0]
+            pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
+            camera = CameraGeometry(
+                telescope.camera_name,
+                pix_id=np.arange(n_pixels),
+                pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
+                pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
+                pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
+                pix_type=pix_type,
+                pix_rotation=pix_rotation,
+                cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
+                apply_derotation=True,
+
             )
-            tel_description.optics.mirror_area = (
-                cam_settings['mirror_area'] * u.m ** 2
+
+            if telescope.name != telescope.type:
+                subtype = telescope.name
+            else:
+                subtype = ''
+
+            optics = OpticsDescription(
+                mirror_type=telescope.mirror_type,
+                tel_type=telescope.type,
+                tel_subtype=subtype,
+                equivalent_focal_length=focal_length,
+                mirror_area=u.Quantity(cam_settings['mirror_area'], u.m**2),
+                num_mirror_tiles=cam_settings['n_mirrors'],
             )
-            tel_description.optics.num_mirror_tiles = (
-                cam_settings['n_mirrors']
+
+            tel_descriptions[tel_id] = TelescopeDescription(
+                camera=camera,
+                optics=optics,
             )
-            tel_descriptions[tel_id] = tel_description
 
             tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
             tel_positions[tel_id] = header['tel_pos'][tel_idx] * u.m
