@@ -1,6 +1,8 @@
 import gzip
 
-
+# This function is currently needed by some EventSource, which will soon
+# be removed and converted into plugins.
+# Then this can be removed from ctapipe
 def is_fits_in_header(file_path):
     '''quick check if file is a FITS file
 
