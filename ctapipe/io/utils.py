@@ -1,5 +1,6 @@
 import gzip
 
+
 # This function is currently needed by some EventSource, which will soon
 # be removed and converted into plugins.
 # Then this can be removed from ctapipe
