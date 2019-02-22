@@ -23,12 +23,8 @@ class OpticsDescription:
 
     Parameters
     ----------
-    mirror_type: str
-        'SC' or 'DC'
-    tel_type: str
-        'SST', 'MST','LST'
-    tel_subtype: str
-        subtype of telescope, e.g. '1M' or 'ASTRI'
+    num_mirrors: int
+        Number of mirrors, i. e. 2 for Schwarzschild-Couder else 1
     equivalent_focal_length: Quantity(float)
         effective focal-length of telescope, independent of which type of
         optics (as in the Monte-Carlo)
@@ -45,23 +41,34 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
-    def __init__(self, mirror_type, tel_type,
-                 tel_subtype, equivalent_focal_length,
-                 mirror_area=None, num_mirror_tiles=None):
+    @u.quantity_input(mirror_area=u.m**2, equivalent_focal_length=u.m)
+    def __init__(
+            self,
+            name,
+            num_mirrors,
+            equivalent_focal_length,
+            mirror_area=None,
+            num_mirror_tiles=None
+    ):
 
-        if tel_type not in ['LST', 'MST', 'SST']:
-            raise ValueError("Unknown tel_type %s", tel_type)
-
-        if mirror_type not in ['SC', 'DC']:
-            raise ValueError("Unknown mirror_type: %s", mirror_type)
-
-        self.mirror_type = mirror_type
-        self.tel_type = tel_type
-        self.tel_subtype = tel_subtype
+        self.name = name
         self.equivalent_focal_length = equivalent_focal_length.to(u.m)
         self.mirror_area = mirror_area
-
+        self.num_mirrors = num_mirrors
         self.num_mirror_tiles = num_mirror_tiles
+
+    def __hash__(self):
+        '''Make this hashable, so it can be used as dict keys or in sets'''
+        return hash((
+            self.equivalent_focal_length.to_value(u.m),
+            self.mirror_area,
+            self.num_mirrors,
+            self.num_mirror_tiles,
+        ))
+
+    def __eq__(self, other):
+        '''Make this hashable, so it can be used as dict keys or in sets'''
+        return hash(self) == hash(other)
 
     @classmethod
     def from_name(cls, name, optics_table='optics'):
@@ -86,21 +93,12 @@ class OpticsDescription:
         table = get_table_dataset(optics_table, role='dl0.tel.svc.optics')
         mask = table['tel_description'] == name
 
-        if 'equivalent_focal_length' in table.colnames:
-            flen = table['equivalent_focal_length'][mask].quantity[0]
-        else:
-            flen = table['effective_focal_length'][mask].quantity[0]
-            logger.warning("Optics table format out of date: "
-                           "'effective_focal_length' "
-                           "should be 'equivalent_focal_length'")
-        subtype = str(table['tel_subtype'][mask][0])
-        if subtype == '--':
-            subtype = ''
+        flen = table['equivalent_focal_length'][mask].quantity[0]
 
+        num_mirrors = 1 if table['mirror_type'][mask][0] == 'DC' else 2
         optics = cls(
-            mirror_type=table['mirror_type'][mask][0],
-            tel_type=str(table['tel_type'][mask][0]),
-            tel_subtype=subtype,
+            name=name,
+            num_mirrors=num_mirrors,
             equivalent_focal_length=flen,
             mirror_area=table['mirror_area'][mask].quantity[0],
             num_mirror_tiles=table['num_mirror_tiles'][mask][0],
@@ -112,24 +110,18 @@ class OpticsDescription:
         table = get_table_dataset(optics_table, 'get_known_optics')
         return np.array(table['tel_description'])
 
-    @property
-    def identifier(self):
-        """ returns a tuple of (tel_type, tel_subtype).  Use str(optics) to
-        get a text-based identifier."""
-        return self.tel_type, self.tel_subtype
-
-    def info(self, printer=print):
-        printer(f'OpticsDescription: "{self}"')
-        printer(f'    - mirror_type: {self.mirror_type}')
-        printer(f'    - num_mirror_tiles: {self.num_mirror_tiles}')
-        printer(f'    - mirror_area: {self.mirror_area}')
-
     def __repr__(self):
-        return "{}(tel_type='{}', tel_subtype='{}')".format(
-            str(self.__class__.__name__), self.tel_type, self.tel_subtype)
+        return (
+            f"{self.__class__.__name__}"
+            f"(name={self.name}"
+            f", equivalent_focal_length={self.equivalent_focal_length:.2f}"
+            f", num_mirros={self.num_mirrors}"
+            f", mirror_area={self.mirror_area:.2f}"
+            ")"
+        )
 
     def __str__(self):
-        if self.tel_subtype != '':
-            return f"{self.tel_type}-{self.tel_subtype}"
-        else:
-            return self.tel_type
+        return self.name
+
+    def __hash__(self):
+        return hash((self.equivalent_focal_length, self.num_mirrors, self.mirror_area))

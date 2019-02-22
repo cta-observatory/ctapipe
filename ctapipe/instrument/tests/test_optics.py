@@ -6,27 +6,27 @@ import pytest
 def test_guess_optics():
     from ctapipe.instrument import guess_telescope
     answer = guess_telescope(1855, 28.0 * u.m)
-    od = OpticsDescription.from_name(answer.telescope_name)
-    od.info()
 
-    assert od.tel_type == 'LST'
-    assert od.tel_subtype == ''
-    assert od.mirror_type == 'DC'
+    od = OpticsDescription.from_name(answer.name)
+
+    assert od.equivalent_focal_length.to_value(u.m) == 28
+    assert od.num_mirrors == 1
 
 
 def test_construct_optics():
-    with pytest.raises(ValueError):
-        OpticsDescription(
-            mirror_type="DC",
-            tel_type="bad",  # bad value
-            tel_subtype="1M",
-            equivalent_focal_length=10 * u.m,
-        )
+    OpticsDescription(
+        name='test',
+        num_mirrors=1,
+        num_mirror_tiles=100,
+        mirror_area=u.Quantity(550, u.m**2),
+        equivalent_focal_length=u.Quantity(10, u.m),
+    )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         OpticsDescription(
-            mirror_type="bad",  # bad value
-            tel_type="MST",
-            tel_subtype="1M",
-            equivalent_focal_length=10 * u.m,
+            name='test',
+            num_mirrors=1,
+            num_mirror_tiles=100,
+            mirror_area=550,
+            equivalent_focal_length=10,
         )

@@ -91,14 +91,14 @@ def test_reconstruction():
 
     in the end, proper units in the output are asserted """
 
-    filename = get_dataset_path("gamma_test.simtel.gz")
+    filename = get_dataset_path("gamma_test_large.simtel.gz")
 
     fit = HillasReconstructor()
 
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = event_source(filename)
+    source = event_source(filename, max_events=10)
 
     for event in source:
 

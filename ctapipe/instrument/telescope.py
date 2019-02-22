@@ -15,6 +15,7 @@ Todo:
 """
 from .optics import OpticsDescription
 from .camera import CameraGeometry
+from .guess import guess_telescope
 
 
 class TelescopeDescription:
@@ -30,28 +31,36 @@ class TelescopeDescription:
 
     Parameters
     ----------
+    name: str
+        Telescope name
+    type: str
+        Telescope type
     optics: OpticsDescription
        the optics associated with this telescope
     camera: CameraGeometry
        the camera associated with this telescope
     """
 
-    def __init__(self,
-                 optics: OpticsDescription,
-                 camera: CameraGeometry):
+    def __init__(
+        self,
+        name,
+        type,
+        optics: OpticsDescription,
+        camera: CameraGeometry
+    ):
 
-        self._optics = optics
-        self._camera = camera
+        self.name = name
+        self.type = type
+        self.optics = optics
+        self.camera = camera
 
-    @property
-    def optics(self):
-        """ OpticsDescription for this telescope """
-        return self._optics
+    def __hash__(self):
+        '''Make this hashable, so it can be used as dict keys or in sets'''
+        return hash((self.optics, self.camera))
 
-    @property
-    def camera(self):
-        """ CameraGeometry for this telescope"""
-        return self._camera
+    def __eq__(self, other):
+        '''Make this hashable, so it can be used as dict keys or in sets'''
+        return hash(self) == hash(other)
 
     @classmethod
     def from_name(cls, optics_name, camera_name):
@@ -72,15 +81,21 @@ class TelescopeDescription:
         TelescopeDescription
 
         """
+
         camera = CameraGeometry.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)
-        return cls(optics=optics, camera=camera)
+
+        t = guess_telescope(camera.n_pixels, optics.equivalent_focal_length)
+
+        return cls(name=t.name, type=t.type, optics=optics, camera=camera)
 
     def __str__(self):
         return str(self.optics) + ":" + str(self.camera)
 
     def __repr__(self):
-        return "{}(optics={}, camera={})".format(
+        return "{}({}, type={}, optics={}, camera={})".format(
+            self.name,
+            self.type,
             self.__class__.__name__,
             str(self.optics),
             str(self.camera),

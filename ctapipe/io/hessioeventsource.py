@@ -215,6 +215,7 @@ class HESSIOEventSource(EventSource):
         mirror_area = u.Quantity(file.get_mirror_area(tel_id), u.m**2)
         num_tiles = file.get_mirror_number(tel_id)
         cam_rot = file.get_camera_rotation_angle(tel_id)
+        num_mirrors = file.get_mirror_number(tel_id)
 
         camera = CameraGeometry(
             telescope.camera_name,
@@ -228,18 +229,15 @@ class HESSIOEventSource(EventSource):
             apply_derotation=True,
         )
 
-        if telescope.name != telescope.type:
-            subtype = telescope.name
-        else:
-            subtype = ''
-
         optics = OpticsDescription(
-            mirror_type=telescope.mirror_type,
-            tel_type=telescope.type,
-            tel_subtype=subtype,
+            name=telescope.name,
+            num_mirrors=num_mirrors,
             equivalent_focal_length=focal_length,
             mirror_area=mirror_area,
             num_mirror_tiles=num_tiles,
         )
 
-        return TelescopeDescription(camera=camera, optics=optics)
+        return TelescopeDescription(
+            name=telescope.name, type=telescope.type,
+            camera=camera, optics=optics,
+        )

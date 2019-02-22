@@ -95,13 +95,22 @@ class CameraGeometry:
         self.border_cache = {}
 
     def __eq__(self, other):
-        return ((self.cam_id == other.cam_id)
-                and (self.pix_x == other.pix_x).all()
-                and (self.pix_y == other.pix_y).all()
-                and (self.pix_type == other.pix_type)
-                and (self.pix_rotation == other.pix_rotation)
-                and (self.pix_type == other.pix_type)
-                )
+        return all(
+            self.cam_id == other.cam_id,
+            (self.pix_x == other.pix_x).all(),
+            (self.pix_y == other.pix_y).all(),
+            self.pix_type == other.pix_type,
+            self.pix_rotation == other.pix_rotation,
+        )
+
+    def __hash__(self):
+        return hash((
+            self.cam_id,
+            self.pix_x[0].to_value(u.m),
+            self.pix_y[0].to_value(u.m),
+            self.pix_type,
+            self.pix_rotation.deg,
+        ))
 
     def __len__(self):
         return self.n_pixels

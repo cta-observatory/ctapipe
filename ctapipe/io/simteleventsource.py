@@ -80,21 +80,17 @@ class SimTelEventSource(EventSource):
 
             )
 
-            if telescope.name != telescope.type:
-                subtype = telescope.name
-            else:
-                subtype = ''
-
             optics = OpticsDescription(
-                mirror_type=telescope.mirror_type,
-                tel_type=telescope.type,
-                tel_subtype=subtype,
+                name=telescope.name,
+                num_mirrors=cam_settings['n_mirrors'],
                 equivalent_focal_length=focal_length,
                 mirror_area=u.Quantity(cam_settings['mirror_area'], u.m**2),
                 num_mirror_tiles=cam_settings['n_mirrors'],
             )
 
             tel_descriptions[tel_id] = TelescopeDescription(
+                name=telescope.name,
+                type=telescope.type,
                 camera=camera,
                 optics=optics,
             )

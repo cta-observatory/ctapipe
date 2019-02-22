@@ -31,14 +31,14 @@ def test_manual_extractor():
 
 
 def test_eventsource_r1():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
     eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraCalibrator(eventsource=eventsource)
     assert isinstance(calibrator.r1, HESSIOR1Calibrator)
 
 
 def test_eventsource_override_r1():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
     eventsource = SimTelEventSource(input_url=dataset)
     calibrator = CameraCalibrator(
         eventsource=eventsource,
