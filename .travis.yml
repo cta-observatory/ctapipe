@@ -58,10 +58,6 @@ script:
     - pytest --cov=ctapipe
     - ctapipe-info --version # print out the version string
     - travis-sphinx -v --outdir=docbuild build --source=docs/
-    - echo "testing sst1m plugin - maybe not wanted?"
-    - pip install git+https://github.com/cta-sst-1m/protozfitsreader
-    - pip install git+https://github.com/cta-observatory/ctapipe_io_sst1m
-    - pytest ctapipe/io/tests/test_plugins.py
 
 after_script:
     - source deactivate
