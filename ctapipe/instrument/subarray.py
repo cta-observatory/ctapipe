@@ -4,7 +4,6 @@ Description of Arrays or Subarrays of telescopes
 
 __all__ = ['SubarrayDescription']
 
-import warnings
 from collections import defaultdict
 
 import numpy as np
@@ -175,19 +174,23 @@ class SubarrayDescription:
         elif kind == 'optics':
             unique_types = set(self.tels.values())
 
+            mirror_area = u.Quantity(
+                [t.optics.mirror_area.to_value(u.m**2) for t in unique_types],
+                u.m**2,
+            )
+            focal_length = u.Quantity(
+                [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
+                u.m,
+            )
             cols = {
                 'description': [str(t) for t in unique_types],
                 'name': [t.name for t in unique_types],
                 'type': [t.type for t in unique_types],
-                'mirror_area': [t.mirror_area.to(u.m**2) for t in unique_types],
-                'num_mirrors': [t.mirror_area for t in unique_types],
-                'num_mirror_tiles': [t.num_mirror_tiles for t in unique_types],
-                'equivalent_focal_length': [
-                    t.equivalent_focal_length.to(u.m)
-                    for t in unique_types
-                ],
+                'mirror_area': mirror_area,
+                'num_mirrors': [t.optics.num_mirrors for t in unique_types],
+                'num_mirror_tiles': [t.optics.num_mirror_tiles for t in unique_types],
+                'equivalent_focal_length': focal_length,
             }
-
             tab = Table(cols)
 
         else:

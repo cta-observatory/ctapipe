@@ -49,6 +49,8 @@ def test_subarray_description():
     assert subsub.tel_indices[6] == 3
     assert subsub.tel_ids[3] == 6
 
+    assert len(sub.to_table(kind='optics')) == 1
+
 
 if __name__ == '__main__':
     test_subarray_description()
