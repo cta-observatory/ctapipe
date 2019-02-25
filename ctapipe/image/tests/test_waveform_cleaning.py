@@ -7,7 +7,7 @@ from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
 
 
 def test_null_cleaner(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -21,7 +21,7 @@ def test_null_cleaner(example_event):
 
 
 def test_checm_cleaner_average(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -36,7 +36,7 @@ def test_checm_cleaner_average(example_event):
 
 
 def test_checm_cleaner_local(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal

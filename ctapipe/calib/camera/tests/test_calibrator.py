@@ -11,7 +11,7 @@ from ctapipe.utils import get_dataset_path
 
 
 def test_camera_calibrator(example_event):
-    telid = next(iter(example_event.r0.tel.keys()))
+    telid = list(example_event.r0.tel)[0]
 
     calibrator = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 

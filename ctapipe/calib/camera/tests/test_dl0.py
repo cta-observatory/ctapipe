@@ -12,7 +12,7 @@ def previous_calibration(event):
 def test_camera_dl0_reducer(example_event):
     previous_calibration(example_event)
 
-    telid = list(example_event.r0.tel.keys())[0]
+    telid = list(example_event.r0.tel)[0]
 
     reducer = CameraDL0Reducer()
     reducer.reduce(example_event)
@@ -21,7 +21,7 @@ def test_camera_dl0_reducer(example_event):
 
 
 def test_check_r1_exists(example_event):
-    telid = list(example_event.r0.tel.keys())[0]
+    telid = list(example_event.r0.tel)[0]
 
     previous_calibration(example_event)
     reducer = CameraDL0Reducer()

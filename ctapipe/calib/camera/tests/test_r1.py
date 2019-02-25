@@ -18,7 +18,7 @@ dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_hessio_r1_calibrator(example_event):
-    telid = list(example_event.r0.tel.keys())[0]
+    telid = list(example_event.r0.tel)[0]
 
     calibrator = HESSIOR1Calibrator()
     calibrator.calibrate(example_event)
@@ -27,7 +27,7 @@ def test_hessio_r1_calibrator(example_event):
 
 
 def test_null_r1_calibrator(example_event):
-    telid = list(example_event.r0.tel.keys())[0]
+    telid = list(example_event.r0.tel)[0]
 
     calibrator = NullR1Calibrator()
     calibrator.calibrate(example_event)
@@ -71,7 +71,7 @@ def test_targetio_calibrator_wrong_file(example_event):
 
 
 def test_check_r0_exists(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
 
     calibrator = HESSIOR1Calibrator()
     assert (calibrator.check_r0_exists(example_event, telid) is True)

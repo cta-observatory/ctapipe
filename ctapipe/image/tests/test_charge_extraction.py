@@ -13,7 +13,7 @@ from ctapipe.image.charge_extractors import (
 
 
 def test_full_integration(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -30,7 +30,7 @@ def test_full_integration(example_event):
 
 
 def test_simple_integration(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
 
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
@@ -48,7 +48,7 @@ def test_simple_integration(example_event):
 
 
 def test_global_peak_integration(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -65,7 +65,7 @@ def test_global_peak_integration(example_event):
 
 
 def test_local_peak_integration(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -82,7 +82,7 @@ def test_local_peak_integration(example_event):
 
 
 def test_nb_peak_integration(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -102,7 +102,7 @@ def test_nb_peak_integration(example_event):
 
 
 def test_averagewf_peak_integration(example_event):
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
@@ -121,7 +121,7 @@ def test_averagewf_peak_integration(example_event):
 def test_charge_extractor_factory(example_event):
     extractor = ChargeExtractor.from_name('LocalPeakIntegrator')
 
-    telid = 11
+    telid = list(example_event.r0.tel)[0]
     data = example_event.r0.tel[telid].waveform
     nsamples = data.shape[2]
     ped = example_event.mc.tel[telid].pedestal
