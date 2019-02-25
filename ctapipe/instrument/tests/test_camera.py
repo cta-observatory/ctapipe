@@ -177,3 +177,21 @@ def test_border_pixels():
     assert cam.get_border_pixel_mask(1)[0]
     assert cam.get_border_pixel_mask(1)[2351]
     assert not cam.get_border_pixel_mask(1)[521]
+
+
+def test_equals():
+    cam1 = CameraGeometry.from_name("LSTCam")
+    cam2 = CameraGeometry.from_name("LSTCam")
+    cam3 = CameraGeometry.from_name("ASTRICam")
+
+    assert cam1 is not cam2
+    assert cam1 == cam2
+    assert cam1 != cam3
+
+
+def test_hashing():
+    cam1 = CameraGeometry.from_name("LSTCam")
+    cam2 = CameraGeometry.from_name("LSTCam")
+    cam3 = CameraGeometry.from_name("ASTRICam")
+
+    len(set([cam1, cam2, cam3])) == 2
