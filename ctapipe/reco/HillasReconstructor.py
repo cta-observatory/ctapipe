@@ -95,66 +95,6 @@ class HillasReconstructor(Reconstructor):
         self.hillas_planes = {}
         self.event = event
 
-    def initialize_hillas_planes(
-            self,
-            hillas_dict,
-            subarray,
-            telescopes_pointings
-            # pointing_alt,
-            # pointing_az
-    ):
-        """
-        creates a dictionary of :class:`.HillasPlane` from a dictionary of
-        hillas
-        parameters
-
-        Parameters
-        ----------
-        hillas_dict : dictionary
-            dictionary of hillas moments
-        subarray : ctapipe.instrument.SubarrayDescription
-            subarray information
-        tel_phi, tel_theta : dictionaries
-            dictionaries of the orientation angles of the telescopes
-            needs to contain at least the same keys as in `hillas_dict`
-        """
-        self.hillas_planes = {}
-        horizon_frame = list(telescopes_pointings.values())[0].frame
-        for tel_id, moments in hillas_dict.items():
-            # we just need any point on the main shower axis a bit away from the cog
-            p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
-            p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
-            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
-
-            pointing = SkyCoord(
-                alt=telescopes_pointings[tel_id].alt,
-                az=telescopes_pointings[tel_id].az,
-                frame=horizon_frame,
-            )
-
-            camera_frame = CameraFrame(
-                focal_length=focal_length,
-                telescope_pointing=pointing
-            )
-
-            cog_coord = SkyCoord(
-                x=moments.x,
-                y=moments.y,
-                frame=camera_frame,
-            )
-            cog_coord = cog_coord.transform_to(horizon_frame)
-
-            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
-            p2_coord = p2_coord.transform_to(horizon_frame)
-
-            circle = HillasPlane(
-                p1=cog_coord,
-                p2=p2_coord,
-                telescope_position=subarray.positions[tel_id],
-                weight=moments.intensity * (moments.length / moments.width),
-            )
-            self.hillas_planes[tel_id] = circle
-
     def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
         '''
         The function you want to call for the reconstruction of the
@@ -232,6 +172,64 @@ class HillasReconstructor(Reconstructor):
         result.goodness_of_fit = np.nan
 
         return result
+
+    def initialize_hillas_planes(
+            self,
+            hillas_dict,
+            subarray,
+            telescopes_pointings
+    ):
+        """
+        creates a dictionary of :class:`.HillasPlane` from a dictionary of
+        hillas
+        parameters
+
+        Parameters
+        ----------
+        hillas_dict : dictionary
+            dictionary of hillas moments
+        subarray : ctapipe.instrument.SubarrayDescription
+            subarray information
+        tel_phi, tel_theta : dictionaries
+            dictionaries of the orientation angles of the telescopes
+            needs to contain at least the same keys as in `hillas_dict`
+        """
+        self.hillas_planes = {}
+        horizon_frame = list(telescopes_pointings.values())[0].frame
+        for tel_id, moments in hillas_dict.items():
+            # we just need any point on the main shower axis a bit away from the cog
+            p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
+            p2_y = moments.y + 0.1 * u.m * np.sin(moments.psi)
+            focal_length = subarray.tel[tel_id].optics.equivalent_focal_length
+
+            pointing = SkyCoord(
+                alt=telescopes_pointings[tel_id].alt,
+                az=telescopes_pointings[tel_id].az,
+                frame=horizon_frame,
+            )
+
+            camera_frame = CameraFrame(
+                focal_length=focal_length,
+                telescope_pointing=pointing
+            )
+
+            cog_coord = SkyCoord(
+                x=moments.x,
+                y=moments.y,
+                frame=camera_frame,
+            )
+            cog_coord = cog_coord.transform_to(horizon_frame)
+
+            p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
+            p2_coord = p2_coord.transform_to(horizon_frame)
+
+            circle = HillasPlane(
+                p1=cog_coord,
+                p2=p2_coord,
+                telescope_position=subarray.positions[tel_id],
+                weight=moments.intensity * (moments.length / moments.width),
+            )
+            self.hillas_planes[tel_id] = circle
 
     def estimate_direction(self):
         """calculates the origin of the gamma as the weighted average
