@@ -11,12 +11,13 @@ from ctapipe.utils import get_dataset_path
 
 
 def test_camera_calibrator(example_event):
-    telid = 11
+    telid = next(iter(example_event.r0.tel.keys()))
 
     calibrator = CameraCalibrator(r1_product="HESSIOR1Calibrator")
 
     calibrator.calibrate(example_event)
     image = example_event.dl1.tel[telid].image
+    # why do we test for this specific value?
     assert_allclose(image[0, 0], -2.216, 1e-3)
 
 
