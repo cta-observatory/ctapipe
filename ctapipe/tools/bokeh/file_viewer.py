@@ -27,7 +27,7 @@ class BokehFileViewer(Tool):
     disable_server = Bool(False, help="Do not start the bokeh server "
                                       "(useful for testing)").tag(config=True)
 
-    default_url = get_dataset_path("gamma_test.simtel.gz")
+    default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
     cleaner_product = tool_utils.enum_trait(

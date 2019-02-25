@@ -59,7 +59,7 @@ def test_bokeh_file_viewer():
     tool = BokehFileViewer(disable_server=True)
     tool.run()
 
-    assert tool.reader.input_url == get_dataset_path("gamma_test.simtel.gz")
+    assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_extract_charge_resolution(tmpdir):

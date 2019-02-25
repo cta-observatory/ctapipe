@@ -3,7 +3,7 @@ from ctapipe.io import SimTelEventSource
 from ctapipe.io.eventseeker import EventSeeker
 import pytest
 
-dataset = get_dataset_path("gamma_test.simtel.gz")
+dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
 
 def test_eventseeker():
