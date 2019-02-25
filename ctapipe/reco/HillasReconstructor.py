@@ -306,29 +306,6 @@ class HillasReconstructor(Reconstructor):
             for plane in self.hillas_planes.values()
         ]
 
-        # import matplotlib.pyplot as plt
-        #
-        # plt.figure()
-        #
-        # for count, position in enumerate(positions):
-        #     plt.scatter(position[0], position[1])
-        #     plt.plot([
-        #         position[0].value - 100 * uvw_vectors[count][0],
-        #         position[0].value + 100 * uvw_vectors[count][0]
-        #     ],
-        #         [(position[1].value - 100 * uvw_vectors[count][1]),
-        #          (position[1].value + 100 * uvw_vectors[count][1]),
-        #          ]
-        #     )
-        #
-        # ground_mc = GroundFrame(x=self.event.mc.core_x,
-        #                         y=self.event.mc.core_y,
-        #                         z=0 * u.m)
-        # tilted_mc = ground_mc.transform_to(tilted_frame)
-        #
-        # plt.scatter(tilted_mc.x, tilted_mc.y)
-        # plt.show()
-
         core_position = line_line_intersection_3d(uvw_vectors, positions)
 
         core_pos_tilted = SkyCoord(
