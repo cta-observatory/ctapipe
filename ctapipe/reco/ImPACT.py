@@ -656,9 +656,9 @@ class ImPACTReconstructor(Reconstructor):
 
         seed_list = spread_line_seed(self.hillas_parameters,
                                      self.tel_pos_x, self.tel_pos_y,
-                                     source_x[0], source_y[0], tilt_x, tilt_y,
+                                     source_x, source_y, tilt_x, tilt_y,
                                      energy_seed.energy.value,
-                                     shift_frac = shift)
+                                     shift_frac=shift)
 
         chosen_seed = self.choose_seed(seed_list)
         # Perform maximum likelihood fit
@@ -673,8 +673,8 @@ class ImPACTReconstructor(Reconstructor):
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
         nominal = SkyCoord(
-            x=fit_params[0] * u.rad,
-            y=fit_params[1] * u.rad,
+            delta_az=fit_params[0] * u.rad,
+            delta_alt=fit_params[1] * u.rad,
             frame=NominalFrame(origin=self.array_direction)
         )
         horizon = nominal.transform_to(HorizonFrame())
