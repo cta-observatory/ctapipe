@@ -191,27 +191,16 @@ class HillasReconstructor(Reconstructor):
                 .format(len(hillas_dict)))
 
         if telescopes_pointings is None:
-            telescopes_pointings = {tel_id: array_pointing for tel_id, _ in hillas_dict}
+            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
 
         self.initialize_hillas_planes(
             hillas_dict,
             inst.subarray,
             telescopes_pointings
-            #pointing_alt,
-            #pointing_az
         )
 
         # algebraic direction estimate
         direction, err_est_dir = self.estimate_direction()
-
-        # alt = u.Quantity(list(pointing_alt.values()))
-        # az = u.Quantity(list(pointing_az.values()))
-        # if np.any(alt != alt[0]) or np.any(az != az[0]):
-        #     warnings.warn('Divergent pointing not supported')
-
-        # telescope_pointing = SkyCoord(alt=alt[0], az=az[0], frame=HorizonFrame())
-        # core position estimate using a geometric approach
-        # core_pos = self.estimate_core_position(hillas_dict, telescope_pointing)
 
         # array pointing is needed to define the tilted frame
         core_pos = self.estimate_core_position(hillas_dict, array_pointing, telescopes_pointings)
@@ -317,28 +306,28 @@ class HillasReconstructor(Reconstructor):
             for plane in self.hillas_planes.values()
         ]
 
-        import matplotlib.pyplot as plt
-
-        plt.figure()
-
-        for count, position in enumerate(positions):
-            plt.scatter(position[0], position[1])
-            plt.plot([
-                position[0].value - 100 * uvw_vectors[count][0],
-                position[0].value + 100 * uvw_vectors[count][0]
-            ],
-                [(position[1].value - 100 * uvw_vectors[count][1]),
-                 (position[1].value + 100 * uvw_vectors[count][1]),
-                 ]
-            )
-
-        ground_mc = GroundFrame(x=self.event.mc.core_x,
-                                y=self.event.mc.core_y,
-                                z=0 * u.m)
-        tilted_mc = ground_mc.transform_to(tilted_frame)
-
-        plt.scatter(tilted_mc.x, tilted_mc.y)
-        plt.show()
+        # import matplotlib.pyplot as plt
+        #
+        # plt.figure()
+        #
+        # for count, position in enumerate(positions):
+        #     plt.scatter(position[0], position[1])
+        #     plt.plot([
+        #         position[0].value - 100 * uvw_vectors[count][0],
+        #         position[0].value + 100 * uvw_vectors[count][0]
+        #     ],
+        #         [(position[1].value - 100 * uvw_vectors[count][1]),
+        #          (position[1].value + 100 * uvw_vectors[count][1]),
+        #          ]
+        #     )
+        #
+        # ground_mc = GroundFrame(x=self.event.mc.core_x,
+        #                         y=self.event.mc.core_y,
+        #                         z=0 * u.m)
+        # tilted_mc = ground_mc.transform_to(tilted_frame)
+        #
+        # plt.scatter(tilted_mc.x, tilted_mc.y)
+        # plt.show()
 
         core_position = line_line_intersection_3d(uvw_vectors, positions)
 
