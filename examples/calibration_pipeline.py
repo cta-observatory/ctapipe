@@ -188,7 +188,7 @@ class DisplayDL1Calib(Tool):
         kwargs = dict(config=self.config, tool=self)
 
         self.eventsource = event_source(
-            get_dataset_path("gamma_test.simtel.gz"),
+            get_dataset_path("gamma_test_large.simtel.gz"),
             **kwargs
         )
 
