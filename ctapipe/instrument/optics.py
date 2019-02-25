@@ -92,6 +92,8 @@ class OpticsDescription:
         """
         table = get_table_dataset(optics_table, role='dl0.tel.svc.optics')
         mask = table['tel_description'] == name
+        if mask.sum() == 0:
+            raise ValueError(f'Unknown telescope name {name}')
 
         flen = table['equivalent_focal_length'][mask].quantity[0]
 
