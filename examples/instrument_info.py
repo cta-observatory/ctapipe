@@ -8,10 +8,10 @@ from ctapipe.utils import get_dataset_path
 if __name__ == '__main__':
 
     # load up one event so that we get the instrument info
-    infile = get_dataset_path("gamma_test.simtel.gz")
+    infile = get_dataset_path("gamma_test_large.simtel.gz")
+
     with event_source(infile) as source:
-        gsource = (x for x in source)
-        event = next(gsource)
+        event = next(iter(source))
 
     print("------ Input: ", infile)
 

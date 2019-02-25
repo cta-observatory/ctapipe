@@ -124,6 +124,3 @@ class OpticsDescription:
 
     def __str__(self):
         return self.name
-
-    def __hash__(self):
-        return hash((self.equivalent_focal_length, self.num_mirrors, self.mirror_area))

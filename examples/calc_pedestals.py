@@ -28,7 +28,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_dataset_path("gamma_test.simtel.gz")
+        filename = get_dataset_path("gamma_test_large.simtel.gz")
 
     # set a fixed window (for now from samples 20 to the end), which may not
     # be appropriate for all telescopes (this should eventually be
