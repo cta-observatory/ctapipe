@@ -231,6 +231,6 @@ class TargetIOEventSource(EventSource):
     def _get_event_by_id(self, event_id):
         if ((event_id < self._first_event_id) |
                 (event_id > self._last_event_id)):
-            raise IndexError("Event id {} not found in file".format(event_id))
+            raise IndexError(f"Event id {event_id} not found in file")
         index = self._reader.GetEventIndex(event_id)
         return self._get_event_by_index(index)

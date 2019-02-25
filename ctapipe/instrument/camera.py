@@ -284,7 +284,7 @@ class CameraGeometry:
         if version is None:
             verstr = ''
         else:
-            verstr = "-{:03d}".format(version)
+            verstr = f"-{version:03d}"
 
         tabname = "{camera_id}{verstr}.camgeom".format(camera_id=camera_id,
                                                        verstr=verstr)
@@ -458,12 +458,12 @@ class CameraGeometry:
 
     def info(self, printer=print):
         """ print detailed info about this camera """
-        printer('CameraGeometry: "{}"'.format(self))
+        printer(f'CameraGeometry: "{self}"')
         printer('   - num-pixels: {}'.format(len(self.pix_id)))
-        printer('   - pixel-type: {}'.format(self.pix_type))
+        printer(f'   - pixel-type: {self.pix_type}')
         printer('   - sensitive-area: {}'.format(self.pix_area.sum()))
-        printer('   - pix-rotation: {}'.format(self.pix_rotation))
-        printer('   - cam-rotation: {}'.format(self.cam_rotation))
+        printer(f'   - pix-rotation: {self.pix_rotation}')
+        printer(f'   - cam-rotation: {self.cam_rotation}')
 
     @classmethod
     def make_rectangular(cls, npix_x=40, npix_y=40, range_x=(-0.5, 0.5),
@@ -532,33 +532,6 @@ class CameraGeometry:
 
         self.border_cache[width] = mask
         return mask
-
-    def get_shower_coordinates(self, x, y, psi):
-        '''
-        Return longitudinal and transverse coordinates of the pixels
-        for a given set of hillas parameters
-
-        Parameters
-        ----------
-        hillas_parameters: ctapipe.io.containers.HilllasContainer
-
-        Returns
-        -------
-        longitudinal: astropy.units.Quantity
-            longitudinal coordinates (along the shower axis)
-        transverse: astropy.units.Quantity
-            transverse coordinates (perpendicular to the shower axis)
-        '''
-        cos_psi = np.cos(psi)
-        sin_psi = np.sin(psi)
-
-        delta_x = self.pix_x - x
-        delta_y = self.pix_y - y
-
-        longi = delta_x * cos_psi + delta_y * sin_psi
-        trans = delta_x * -sin_psi + delta_y * cos_psi
-
-        return longi, trans
 
     def position_to_pix_index(self, x, y):
         '''

@@ -5,9 +5,13 @@ This calibrator will apply the calibrations found in r1.py, dl0.py and dl1.py.
 """
 
 from ctapipe.core import Component
-from ctapipe.calib.camera import CameraR1CalibratorFactory, CameraDL0Reducer, \
-    CameraDL1Calibrator
-from ctapipe.image import ChargeExtractorFactory, WaveformCleanerFactory
+from ctapipe.calib.camera import (
+    CameraR1Calibrator,
+    CameraDL0Reducer,
+    CameraDL1Calibrator,
+)
+from ctapipe.image import ChargeExtractor, WaveformCleaner
+
 
 __all__ = ['CameraCalibrator']
 
@@ -44,8 +48,8 @@ class CameraCalibrator(Component):
     """
     def __init__(self, config=None, tool=None,
                  r1_product=None,
-                 extractor_product=None,
-                 cleaner_product=None,
+                 extractor_product='NeighbourPeakIntegrator',
+                 cleaner_product='NullWaveformCleaner',
                  eventsource=None,
                  **kwargs):
         """
@@ -71,35 +75,32 @@ class CameraCalibrator(Component):
             the appropriate R1Calibrator to use.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
-        kwargs_ = dict()
-        if extractor_product:
-            kwargs_['product'] = extractor_product
-        extractor = ChargeExtractorFactory.produce(
+        extractor = ChargeExtractor.from_name(
+            extractor_product,
             config=config,
-            tool=tool,
-            **kwargs_
+            tool=tool
         )
 
-        kwargs_ = dict()
-        if cleaner_product:
-            kwargs_['product'] = cleaner_product
-        cleaner = WaveformCleanerFactory.produce(
+        cleaner = WaveformCleaner.from_name(
+            cleaner_product,
             config=config,
             tool=tool,
-            **kwargs_
         )
 
-        kwargs_ = dict()
         if r1_product:
-            kwargs_['product'] = r1_product
-        self.r1 = CameraR1CalibratorFactory.produce(
-            config=config,
-            tool=tool,
-            eventsource=eventsource,
-            **kwargs_
-        )
+            self.r1 = CameraR1Calibrator.from_name(
+                r1_product,
+                config=config,
+                tool=tool,
+            )
+        else:
+            self.r1 = CameraR1Calibrator.from_eventsource(
+                eventsource,
+                config=config,
+                tool=tool,
+            )
 
         self.dl0 = CameraDL0Reducer(config=config, tool=tool)
         self.dl1 = CameraDL1Calibrator(config=config, tool=tool,

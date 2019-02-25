@@ -53,7 +53,7 @@ def traitlets_config_to_fits(config, fits_filename, overwrite=True):
     try:
         hdu_list.writeto(fits_filename, overwrite=overwrite)
     except OSError:
-        logging.exception('Could not do save {}'.format(fits_filename))
+        logging.exception(f'Could not do save {fits_filename}')
         raise
 
 
@@ -122,9 +122,9 @@ def json_to_fits(json_filename, fits_filename, overwrite=True):
         try:
             hduList.writeto(fits_filename, overwrite=overwrite)
         except OSError:
-            logging.exception('Could not do save {}'.format(fits_filename))
+            logging.exception(f'Could not do save {fits_filename}')
             raise
 
     except FileNotFoundError:
-        logging.exception('Could not open  {}'.format(fits_filename))
+        logging.exception(f'Could not open  {fits_filename}')
         raise

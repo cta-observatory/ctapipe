@@ -89,7 +89,7 @@ class EventSeeker(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
 
         if reader.is_stream:
             raise IOError("Reader is not compatible as input to the "
@@ -218,7 +218,7 @@ class EventSeeker(Component):
         for event in self._source:
             if event.count == index:
                 return event
-        raise IndexError("Event index {} not found in file".format(index))
+        raise IndexError(f"Event index {index} not found in file")
 
     def _get_event_by_id(self, event_id):
         """
@@ -243,7 +243,7 @@ class EventSeeker(Component):
         for event in self:  # Event Ids may not be in order
             if event.r0.event_id == event_id:
                 return event
-        raise IndexError("Event id {} not found in file".format(event_id))
+        raise IndexError(f"Event id {event_id} not found in file")
 
     def __len__(self):
         """

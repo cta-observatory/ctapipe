@@ -79,12 +79,12 @@ class DumpInstrumentTool(Tool):
                                                    'CAMGEOM',
                                                    cam_name)
 
-            self.log.debug("writing {}".format(cam_name))
+            self.log.debug(f"writing {cam_name}")
             tel_id = cam_types[cam_name].pop()
             geom = self.inst.subarray.tel[tel_id].camera
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
-            filename = "{}.camgeom.{}".format(cam_name, ext)
+            filename = f"{cam_name}.camgeom.{ext}"
 
             try:
                 table.write(filename, **args)
@@ -99,7 +99,7 @@ class DumpInstrumentTool(Tool):
 
         tab = sub.to_table(kind='optics')
         tab.meta['SOURCE'] = self.infile
-        filename = '{}.optics.{}'.format(sub.name, ext)
+        filename = f'{sub.name}.optics.{ext}'
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, 'dl0.sub.svc.optics')
@@ -113,7 +113,7 @@ class DumpInstrumentTool(Tool):
                                                'subarray')
         tab = sub.to_table(kind='subarray')
         tab.meta['SOURCE'] = self.infile
-        filename = '{}.subarray.{}'.format(sub.name, ext)
+        filename = f'{sub.name}.subarray.{ext}'
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, 'dl0.sub.svc.subarray')

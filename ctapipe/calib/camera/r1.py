@@ -9,21 +9,21 @@ the cameras.
 As the R1 calibration is camera specific, each camera (and seperately the MC)
 requires their own calibrator class with inherits from `CameraR1Calibrator`.
 `HessioR1Calibrator` is the calibrator for the MC data obtained from readhess.
-Through the use of `CameraR1CalibratorFactory`, the correct
+Through the use of `CameraR1Calibrator.from_eventsource()`, the correct
 `CameraR1Calibrator` can be obtained based on the origin (MC/Camera format)
 of the data.
 """
 from abc import abstractmethod
 import numpy as np
-from ...core import Component, Factory
+
+from ...core import Component
 from ...core.traits import Unicode
-from ...io import EventSource
 
 __all__ = [
     'NullR1Calibrator',
     'HESSIOR1Calibrator',
     'TargetIOR1Calibrator',
-    'CameraR1CalibratorFactory'
+    'CameraR1Calibrator',
 ]
 
 
@@ -47,7 +47,6 @@ class CameraR1Calibrator(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-
     def __init__(self, config=None, tool=None, **kwargs):
         """
         Parent class for the r1 calibrators. Fills the r1 container.
@@ -64,7 +63,7 @@ class CameraR1Calibrator(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self._r0_empty_warn = False
 
     @abstractmethod
@@ -109,6 +108,32 @@ class CameraR1Calibrator(Component):
                                  "R1 is unchanged in this circumstance.")
                 self._r0_empty_warn = True
             return False
+
+    @classmethod
+    def from_eventsource(cls, eventsource, **kwargs):
+        """
+        Obtain the correct `CameraR1Calibrator` according the the `EventSource`
+        of the file.
+
+        Parameters
+        ----------
+        eventsource : ctapipe.io.EventSource
+            Subclass of `ctapipe.io.EventSource`
+        kwargs
+            Named arguments to pass to the `CameraR1Calibrator`
+
+        Returns
+        -------
+        calibrator
+            Subclass of `CameraR1Calibrator`
+        """
+        if (hasattr(eventsource, 'metadata') and
+                eventsource.metadata['is_simulation']):
+            return HESSIOR1Calibrator(**kwargs)
+        elif eventsource.__class__.__name__ == "TargetIOEventSource":
+            return TargetIOR1Calibrator(**kwargs)
+
+        return NullR1Calibrator(**kwargs)
 
 
 class NullR1Calibrator(CameraR1Calibrator):
@@ -165,13 +190,13 @@ class HESSIOR1Calibrator(CameraR1Calibrator):
     """
     CALIB_SCALE is only relevant for MC calibration.
 
-    CALIB_SCALE is the factor needed to transform from mean p.e. units to 
-    units of the single-p.e. peak: Depends on the collection efficiency, 
-    the asymmetry of the single p.e. amplitude  distribution and the 
+    CALIB_SCALE is the factor needed to transform from mean p.e. units to
+    units of the single-p.e. peak: Depends on the collection efficiency,
+    the asymmetry of the single p.e. amplitude  distribution and the
     electronic noise added to the signals. Default value is for GCT.
 
     To correctly calibrate to number of photoelectron, a fresh SPE calibration
-    should be applied using a SPE sim_telarray run with an 
+    should be applied using a SPE sim_telarray run with an
     artificial light source.
     """
     # TODO: Handle calib_scale differently per simlated telescope
@@ -311,67 +336,3 @@ class TargetIOR1Calibrator(CameraR1Calibrator):
             r1 = event.r1.tel[self.telid].waveform[0]
             self.calibrator.ApplyEvent(samples[0], fci, self._r1_wf[0])
             event.r1.tel[self.telid].waveform = self._r1_wf
-
-
-class CameraR1CalibratorFactory(Factory):
-    """
-    The R1 calibrator `ctapipe.core.factory.Factory`. This
-    `ctapipe.core.factory.Factory` allows the correct
-    `CameraR1Calibrator` to be obtained for the data investigated.
-
-    Additional filepaths are required by some cameras for R1 calibration. Due
-    to the current inplementation of `ctapipe.core.factory.Factory`, every
-    trait that could
-    possibly be required for a child `ctapipe.core.component.Component` of
-    `CameraR1Calibrator` is
-    included in this `ctapipe.core.factory.Factory`. The
-    `CameraR1Calibrator` specific to a
-    camera type should then define how/if that filepath should be used. The
-    format of the file is not restricted, and the file can be read from inside
-    ctapipe, or can call a different library created by the camera teams for
-    the calibration of their camera.
-    """
-    base = CameraR1Calibrator
-    custom_product_help = ('R1 Calibrator to use. If None then a '
-                           'calibrator will either be selected based on the '
-                           'supplied EventSource, or will default to '
-                           '"NullR1Calibrator".')
-
-    def __init__(self, config=None, tool=None, eventsource=None, **kwargs):
-        """
-        Parameters
-        ----------
-        config : traitlets.loader.Config
-            Configuration specified by config file or cmdline arguments.
-            Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
-        eventsource : ctapipe.io.eventsource.EventSource
-            EventSource that is being used to read the events. The EventSource
-            contains information (such as metadata or inst) which indicates
-            the appropriate R1Calibrator to use.
-        kwargs
-
-        """
-
-        super().__init__(config, tool, **kwargs)
-        if eventsource and not issubclass(type(eventsource), EventSource):
-            raise TypeError(
-                "eventsource must be a ctapipe.io.eventsource.EventSource"
-            )
-        self.eventsource = eventsource
-
-    def _get_product_name(self):
-        try:
-            return super()._get_product_name()
-        except AttributeError:
-            es = self.eventsource
-            if es:
-                if es.metadata['is_simulation']:
-                    return 'HESSIOR1Calibrator'
-                elif es.__class__.__name__ == "TargetIOEventSource":
-                    return 'TargetIOR1Calibrator'
-            return 'NullR1Calibrator'

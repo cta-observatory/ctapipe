@@ -1,13 +1,15 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from ctapipe.image.charge_extractors import (FullIntegrator,
-                                             SimpleIntegrator,
-                                             GlobalPeakIntegrator,
-                                             LocalPeakIntegrator,
-                                             NeighbourPeakIntegrator,
-                                             ChargeExtractorFactory,
-                                             AverageWfPeakIntegrator)
+from ctapipe.image.charge_extractors import (
+    ChargeExtractor,
+    FullIntegrator,
+    SimpleIntegrator,
+    GlobalPeakIntegrator,
+    LocalPeakIntegrator,
+    NeighbourPeakIntegrator,
+    AverageWfPeakIntegrator,
+)
 
 
 def test_full_integration(example_event):
@@ -117,9 +119,7 @@ def test_averagewf_peak_integration(example_event):
 
 
 def test_charge_extractor_factory(example_event):
-    extractor = ChargeExtractorFactory.produce(
-        product='LocalPeakIntegrator'
-    )
+    extractor = ChargeExtractor.from_name('LocalPeakIntegrator')
 
     telid = 11
     data = example_event.r0.tel[telid].waveform
@@ -130,3 +130,29 @@ def test_charge_extractor_factory(example_event):
     integration, peakpos, window = extractor.extract_charge(data_ped)
 
     assert_almost_equal(integration[0][0], 76, 0)
+
+
+def test_charge_extractor_factory_args():
+    '''config is supposed to be created by a `Tool`
+    '''
+    from traitlets.config.loader import Config
+    config = Config(
+        {
+            'ChargeExtractor': {
+                'window_width': 20,
+                'window_shift': 3,
+            }
+        }
+    )
+
+    local_peak_integrator = ChargeExtractor.from_name(
+        'LocalPeakIntegrator',
+        config=config,
+    )
+    assert local_peak_integrator.window_width == 20
+    assert local_peak_integrator.window_shift == 3
+
+    ChargeExtractor.from_name(
+        'FullIntegrator',
+        config=config,
+    )

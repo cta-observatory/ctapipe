@@ -8,7 +8,6 @@ import numpy as np
 
 from astropy import units as u
 import glob
-from os import getcwd
 from ctapipe.core import Provenance
 from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
     CameraGeometry, OpticsDescription

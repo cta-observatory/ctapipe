@@ -7,16 +7,17 @@ import math
 import numpy as np
 import numpy.ma as ma
 from astropy import units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 from iminuit import Minuit
 from scipy.optimize import minimize, least_squares
 from scipy.stats import norm
 
-from ctapipe.coordinates import (HorizonFrame,
-                                 NominalFrame,
-                                 TiltedGroundFrame,
-                                 GroundFrame,
-                                 project_to_ground)
+from ctapipe.coordinates import (
+    NominalFrame,
+    TiltedGroundFrame,
+    GroundFrame,
+    project_to_ground,
+)
 from ctapipe.image import poisson_likelihood_gaussian, mean_poisson_likelihood_gaussian
 from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.io.containers import (ReconstructedShowerContainer,
@@ -632,7 +633,7 @@ class ImPACTReconstructor(Reconstructor):
         """
 
         horizon_seed = SkyCoord(
-            az=shower_seed.az, alt=shower_seed.alt, frame=HorizonFrame()
+            az=shower_seed.az, alt=shower_seed.alt, frame=AltAz()
         )
         nominal_seed = horizon_seed.transform_to(
             NominalFrame(origin=self.array_direction)
@@ -677,7 +678,7 @@ class ImPACTReconstructor(Reconstructor):
             y=fit_params[1] * u.rad,
             frame=NominalFrame(origin=self.array_direction)
         )
-        horizon = nominal.transform_to(HorizonFrame())
+        horizon = nominal.transform_to(AltAz())
 
         shower_result.alt, shower_result.az = horizon.alt, horizon.az
         tilted = TiltedGroundFrame(

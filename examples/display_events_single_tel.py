@@ -21,7 +21,7 @@ from ctapipe.core.traits import Float, Dict, List
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
-from ctapipe.io import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -53,9 +53,9 @@ class SingleTelEventDisplay(Tool):
     ).tag(config=True)
 
     aliases = Dict({
-        'infile': 'EventSourceFactory.input_url',
+        'infile': 'EventSource.input_url',
         'tel': 'SingleTelEventDisplay.tel',
-        'max-events': 'EventSourceFactory.max_events',
+        'max-events': 'EventSource.max_events',
         'channel': 'SingleTelEventDisplay.channel',
         'write': 'SingleTelEventDisplay.write',
         'clean': 'SingleTelEventDisplay.clean',
@@ -66,12 +66,12 @@ class SingleTelEventDisplay(Tool):
         'progress': 'SingleTelEventDisplay.progress'
     })
 
-    classes = List([EventSourceFactory, CameraCalibrator])
+    classes = List([EventSource, CameraCalibrator])
 
     def setup(self):
-
-        self.event_source = EventSourceFactory.produce(
-            config=self.config, tool=self
+        self.event_source = EventSource.from_config(
+            config=self.config,
+            tool=self
         )
         self.event_source.allowed_tels = [
             self.tel,
@@ -81,7 +81,7 @@ class SingleTelEventDisplay(Tool):
             config=self.config, tool=self, eventsource=self.event_source
         )
 
-        self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
+        self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
 
     def start(self):
 
@@ -89,13 +89,13 @@ class SingleTelEventDisplay(Tool):
 
         for event in tqdm(
             self.event_source,
-            desc='Tel{}'.format(self.tel),
+            desc=f'Tel{self.tel}',
             total=self.event_source.max_events,
             disable=~self.progress
         ):
 
             self.log.debug(event.trig)
-            self.log.debug("Energy: {}".format(event.mc.energy))
+            self.log.debug(f"Energy: {event.mc.energy}")
 
             self.calibrator.calibrate(event)
 
@@ -121,7 +121,7 @@ class SingleTelEventDisplay(Tool):
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)
-                    plt.suptitle("Sample {:03d}".format(ii))
+                    plt.suptitle(f"Sample {ii:03d}")
                     if self.display:
                         plt.pause(self.delay)
                     if self.write:

@@ -29,12 +29,11 @@ The following special frames are defined for CTA:
 * `CameraFrame`
 * `TelescopeFrame`
 * `NominalFrame`
-* `HorizonFrame`
 * `GroundFrame`
 * `TiltedGroundFrame`
 
 they can be transformed to and from any other `astropy.coordinates` frame, like
-`astropy.coordinates.ICRS` (RA/Dec)
+`astropy.coordinates.AltAz` or `astropy.coordinates.ICRS` (RA/Dec)
 
 
         

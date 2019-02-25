@@ -86,7 +86,7 @@ class ChargeResolutionPlotter(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, tool=tool, **kwargs)
         self._df_pixel = None
         self._df_camera = None
 
@@ -213,10 +213,10 @@ class ChargeResolutionPlotter(Component):
         """
         self.ax.set_xscale('log')
         self.ax.get_xaxis().set_major_formatter(
-            FuncFormatter(lambda x, _: '{:g}'.format(x)))
+            FuncFormatter(lambda x, _: f'{x:g}'))
         self.ax.set_yscale('log')
         self.ax.get_yaxis().set_major_formatter(
-            FuncFormatter(lambda y, _: '{:g}'.format(y)))
+            FuncFormatter(lambda y, _: f'{y:g}'))
 
     def save(self):
         """
@@ -226,11 +226,11 @@ class ChargeResolutionPlotter(Component):
 
         output_dir = os.path.dirname(self.output_path)
         if not os.path.exists(output_dir):
-            print("Creating directory: {}".format(output_dir))
+            print(f"Creating directory: {output_dir}")
             os.makedirs(output_dir)
 
         self.fig.savefig(self.output_path, bbox_inches='tight')
-        print("Figure saved to: {}".format(self.output_path))
+        print(f"Figure saved to: {self.output_path}")
         Provenance().add_output_file(self.output_path)
 
         plt.close(self.fig)
@@ -364,4 +364,4 @@ class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
     def _finish(self):
         self.ax.set_xscale('log')
         self.ax.get_xaxis().set_major_formatter(
-            FuncFormatter(lambda x, _: '{:g}'.format(x)))
+            FuncFormatter(lambda x, _: f'{x:g}'))

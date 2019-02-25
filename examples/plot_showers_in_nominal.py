@@ -1,4 +1,4 @@
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz
 import astropy.units as u
 from ctapipe.io import event_source
 from ctapipe.image.cleaning import tailcuts_clean
@@ -7,7 +7,7 @@ from ctapipe.utils.datasets import get_dataset_path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ctapipe.coordinates import HorizonFrame, CameraFrame, NominalFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame
 
 
 cleaning_level = {
@@ -30,7 +30,7 @@ with event_source(input_url=input_url) as source:
         calibrator.calibrate(event)
 
         nominal_frame = NominalFrame(
-            origin=SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=HorizonFrame)
+            origin=SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz)
         )
 
         nom_delta_az = []
@@ -48,7 +48,7 @@ with event_source(input_url=input_url) as source:
             telescope_pointing = SkyCoord(
                 alt=mc_tel['altitude_raw'],
                 az=mc_tel['azimuth_raw'],
-                unit='rad', frame=HorizonFrame(),
+                unit='rad', frame=AltAz(),
             )
             camera_frame = CameraFrame(
                 telescope_pointing=telescope_pointing, focal_length=focal_length

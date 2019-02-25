@@ -10,13 +10,13 @@ import numpy as np
 from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+import ctapipe.utils.tools as tool_utils
+from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
+    CameraDL1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -143,7 +143,7 @@ def plot(event, telid, chan, extractor_name):
     camera.image = nei_camera
     ax_img_nei.set_title("Neighbour Map")
     ax_img_nei.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -153,7 +153,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_nei.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -165,9 +165,9 @@ def plot(event, telid, chan, extractor_name):
     camera = CameraDisplay(geom, ax=ax_img_max)
     camera.image = dl0[:, max_time]
     camera.add_colorbar(ax=ax_img_max, label="DL0 Samples (ADC)")
-    ax_img_max.set_title("Max Timeslice (T = {})".format(max_time))
+    ax_img_max.set_title(f"Max Timeslice (T = {max_time})")
     ax_img_max.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -177,7 +177,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_max.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -192,7 +192,7 @@ def plot(event, telid, chan, extractor_name):
     camera.add_colorbar(ax=ax_img_true, label="True Charge (p.e.)")
     ax_img_true.set_title("True Charge")
     ax_img_true.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -202,7 +202,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_true.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -215,9 +215,9 @@ def plot(event, telid, chan, extractor_name):
     camera = CameraDisplay(geom, ax=ax_img_cal)
     camera.image = dl1
     camera.add_colorbar(ax=ax_img_cal, label="Calib Charge (Photo-electrons)")
-    ax_img_cal.set_title("Charge (integrator={})".format(extractor_name))
+    ax_img_cal.set_title(f"Charge (integrator={extractor_name})")
     ax_img_cal.annotate(
-        "Pixel: {}".format(max_pix),
+        f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
         xycoords='data',
         xytext=(0.05, 0.98),
@@ -227,7 +227,7 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
     ax_img_cal.annotate(
-        "Pixel: {}".format(min_pix),
+        f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
         xycoords='data',
         xytext=(0.05, 0.94),
@@ -237,8 +237,8 @@ def plot(event, telid, chan, extractor_name):
         verticalalignment='top'
     )
 
-    fig_waveforms.suptitle("Integrator = {}".format(extractor_name))
-    fig_camera.suptitle("Camera = {}".format(geom.cam_id))
+    fig_waveforms.suptitle(f"Integrator = {extractor_name}")
+    fig_camera.suptitle(f"Camera = {geom.cam_id}")
 
     plt.show()
 
@@ -265,17 +265,22 @@ class DisplayIntegrator(Tool):
     ).tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
+
     aliases = Dict(
         dict(
-            r='EventSourceFactory.product',
-            f='EventSourceFactory.input_url',
-            max_events='EventSourceFactory.max_events',
-            extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            f='EventSource.input_url',
+            max_events='EventSource.max_events',
+            extractor='DisplayIntegrator.extractor_product',
+            t0='SimpleIntegrator.t0',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             radius='CameraDL1Calibrator.radius',
             E='DisplayIntegrator.event_index',
@@ -293,11 +298,12 @@ class DisplayIntegrator(Tool):
                 'event_id instead of index.')
         )
     )
-    classes = List([
-        EventSourceFactory,
-        ChargeExtractorFactory,
-        CameraDL1Calibrator,
-    ])
+    classes = List(
+        [
+            EventSource,
+            CameraDL1Calibrator,
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -311,13 +317,15 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        eventsource = EventSourceFactory.produce(**kwargs)
-        self.eventseeker = EventSeeker(eventsource, **kwargs)
-
-        self.extractor = ChargeExtractorFactory.produce(**kwargs)
-
-        self.r1 = CameraR1CalibratorFactory.produce(
-            eventsource=eventsource, **kwargs
+        event_source = EventSource.from_config(**kwargs)
+        self.eventseeker = EventSeeker(event_source, **kwargs)
+        self.extractor = ChargeExtractor.from_name(
+            self.extractor_product,
+            **kwargs
+        )
+        self.r1 = CameraR1Calibrator.from_eventsource(
+            eventsource=event_source,
+            **kwargs
         )
 
         self.dl0 = CameraDL0Reducer(**kwargs)

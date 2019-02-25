@@ -7,14 +7,19 @@ import os
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from traitlets import Dict, List, Unicode
+
+from traitlets import Dict, List, Int, Unicode
+
+import ctapipe.utils.tools as tool_utils
+
 from ctapipe.analysis.camera.charge_resolution import \
     ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool, Provenance
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import ChargeExtractor
+
 from ctapipe.io.simteleventsource import SimTelEventSource
 
 
@@ -23,33 +28,42 @@ class ChargeResolutionGenerator(Tool):
     description = ("Calculate the Charge Resolution from a sim_telarray "
                    "simulation and store within a HDF5 file.")
 
+    telescopes = List(Int, None, allow_none=True,
+                      help='Telescopes to include from the event file. '
+                           'Default = All telescopes').tag(config=True)
     output_path = Unicode(
         'charge_resolution.h5',
         help='Path to store the output HDF5 file'
     ).tag(config=True)
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
 
     aliases = Dict(dict(
         f='SimTelEventSource.input_url',
         max_events='SimTelEventSource.max_events',
         T='SimTelEventSource.allowed_tels',
-        extractor='ChargeExtractorFactory.product',
-        window_width='ChargeExtractorFactory.window_width',
-        t0='ChargeExtractorFactory.t0',
-        window_shift='ChargeExtractorFactory.window_shift',
-        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        lwt='ChargeExtractorFactory.lwt',
+        extractor='ChargeResolutionGenerator.extractor_product',
+        window_width='WindowIntegrator.window_width',
+        window_shift='WindowIntegrator.window_shift',
+        t0='SimpleIntegrator.t0',
+        sig_amp_cut_HG='PeakFindngIntegrator.sig_amp_cut_HG',
+        sig_amp_cut_LG='PeakFindngIntegrator.sig_amp_cut_LG',
+        lwt='NeighbourPeakIntegrator.lwt',
         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
         radius='CameraDL1Calibrator.radius',
         max_pe='ChargeResolutionCalculator.max_pe',
-        o='ChargeResolutionGenerator.output_path',
+        O='ChargeResolutionGenerator.output_path',
     ))
-    classes = List([
-        SimTelEventSource,
-        ChargeExtractorFactory,
-        CameraDL1Calibrator,
-        ChargeResolutionCalculator
-    ])
+
+    classes = List(
+        [
+            SimTelEventSource,
+            CameraDL1Calibrator,
+            ChargeResolutionCalculator
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -65,7 +79,10 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(**kwargs)
 
-        extractor = ChargeExtractorFactory.produce(**kwargs)
+        extractor = ChargeExtractor.from_name(
+            self.extractor_product,
+            **kwargs
+        )
 
         self.r1 = HESSIOR1Calibrator(**kwargs)
 
@@ -105,7 +122,7 @@ class ChargeResolutionGenerator(Tool):
 
         output_directory = os.path.dirname(self.output_path)
         if not os.path.exists(output_directory):
-            self.log.info("Creating directory: {}".format(output_directory))
+            self.log.info(f"Creating directory: {output_directory}")
             os.makedirs(output_directory)
 
         with pd.HDFStore(self.output_path, 'w') as store:

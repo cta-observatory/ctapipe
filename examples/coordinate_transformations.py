@@ -14,7 +14,7 @@ from ctapipe.coordinates import (
     GroundFrame,
     TiltedGroundFrame,
     NominalFrame,
-    HorizonFrame,
+    AltAz,
     project_to_ground,
 )
 
@@ -56,7 +56,7 @@ def cam_to_nom():
     pix_x = np.ones(2048) * u.m
     pix_y = np.ones(2048) * u.m
 
-    pointing_direction = SkyCoord(alt=70 * u.deg, az=180 * u.deg, frame=HorizonFrame())
+    pointing_direction = SkyCoord(alt=70 * u.deg, az=180 * u.deg, frame=AltAz())
     camera_frame = CameraFrame(
         focal_length=15 * u.m,
         telescope_pointing=pointing_direction
@@ -65,11 +65,11 @@ def cam_to_nom():
 
     # In this case we bypass the telescope system
     nominal_frame = NominalFrame(
-        origin=HorizonFrame(alt=75 * u.deg, az=180 * u.deg)
+        origin=AltAz(alt=75 * u.deg, az=180 * u.deg)
     )
     nom_coord = camera_coord.transform_to(nominal_frame)
 
-    horizon = camera_coord.transform_to(HorizonFrame())
+    horizon = camera_coord.transform_to(AltAz())
 
     print("Nominal Coordinate", nom_coord)
     print("Horizon coordinate", horizon)
@@ -82,9 +82,9 @@ def nominal_to_altaz():
     nom = SkyCoord(
         x=0 * u.deg,
         y=0 * u.deg,
-        frame=NominalFrame(origin=HorizonFrame(alt=75 * u.deg, az=180 * u.deg))
+        frame=NominalFrame(origin=AltAz(alt=75 * u.deg, az=180 * u.deg))
     )
-    alt_az = nom.transform_to(HorizonFrame())
+    alt_az = nom.transform_to(AltAz())
     print("HorizonCoordinate", alt_az)
     # Provided we know when and where the AltAz was measured we can them
     # convert this to any astronomical
@@ -96,7 +96,7 @@ def grd_to_tilt():
     grd_coord = GroundFrame(x=1 * u.m, y=2 * u.m, z=0 * u.m)
     tilt_coord = grd_coord.transform_to(
         TiltedGroundFrame(
-            pointing_direction=HorizonFrame(alt=90 * u.deg, az=180 * u.deg)
+            pointing_direction=AltAz(alt=90 * u.deg, az=180 * u.deg)
         )
     )
     print(project_to_ground(tilt_coord))
