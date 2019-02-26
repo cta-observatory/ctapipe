@@ -12,8 +12,6 @@ from ctapipe.instrument import (
     OpticsDescription,
 )
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
-import struct
-import gzip
 from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
@@ -191,39 +189,43 @@ class SimTelEventSource(EventSource):
                 tel_index = self.file_.header['tel_id'].tolist().index(tel_id)
                 telescope_description = self.file_.telescope_descriptions[tel_id]
 
-                data.mc.tel[tel_id].dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
-                data.mc.tel[tel_id].pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
-                data.r0.tel[tel_id].waveform = adc_samples
-                data.r0.tel[tel_id].num_samples = adc_samples.shape[-1]
+
+                r0 = data.r0.tel[tel_id]
+                r0.waveform = adc_samples
+                r0.num_samples = adc_samples.shape[-1]
                 # We should not calculate stuff in an event source
                 # if this is not needed, we calculate it for nothing
-                data.r0.tel[tel_id].image = adc_samples.sum(axis=-1)
+                r0.image = adc_samples.sum(axis=-1)
 
                 pixel_lists = telescope_event['pixel_lists']
-                data.r0.tel[tel_id].num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
-                if data.r0.tel[tel_id].num_trig_pix > 0:
-                    data.r0.tel[tel_id].trig_pix_id = pixel_lists[0]['pixel_list']
+                r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
+                if r0.num_trig_pix > 0:
+                    r0.trig_pix_id = pixel_lists[0]['pixel_list']
 
                 pixel_settings = telescope_description['pixel_settings']
-                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
-                data.mc.tel[tel_id].meta['refstep'] = float(pixel_settings['ref_step'])
-                data.mc.tel[tel_id].time_slice = float(pixel_settings['time_slice'])
+                n_pixel = r0.waveform.shape[-2]
 
-                n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
-                data.mc.tel[tel_id].photo_electron_image = (
-                    array_event.get('photoelectrons', {})
-                               .get(tel_index, {})
-                               .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
+                mc = data.mc.tel[tel_id]
+                mc.dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
+                mc.pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
+                mc.reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
+                mc.meta['refstep'] = float(pixel_settings['ref_step'])
+                mc.time_slice = float(pixel_settings['time_slice'])
+                mc.photo_electron_image = (
+                    array_event
+                    .get('photoelectrons', {})
+                    .get(tel_index, {})
+                    .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
                 )
 
                 tracking_position = tracking_positions[tel_id]
-                data.mc.tel[tel_id].azimuth_raw = tracking_position['azimuth_raw']
-                data.mc.tel[tel_id].altitude_raw = tracking_position['altitude_raw']
-                data.mc.tel[tel_id].azimuth_cor = tracking_position.get('azimuth_cor', 0)
-                data.mc.tel[tel_id].altitude_cor = tracking_position.get('altitude_cor', 0)
+                mc.azimuth_raw = tracking_position['azimuth_raw']
+                mc.altitude_raw = tracking_position['altitude_raw']
+                mc.azimuth_cor = tracking_position.get('azimuth_cor', 0)
+                mc.altitude_cor = tracking_position.get('altitude_cor', 0)
             yield data
 
     def fill_mc_information(self, data, array_event):
@@ -282,4 +284,3 @@ class SimTelEventSource(EventSource):
         data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max'] * u.nm
         data.mcheader.corsika_low_E_detail = mc_run_head['corsika_low_E_detail']
         data.mcheader.corsika_high_E_detail = mc_run_head['corsika_high_E_detail']
-
