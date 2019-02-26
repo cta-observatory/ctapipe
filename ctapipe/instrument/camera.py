@@ -630,7 +630,6 @@ def _find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-
 def _neighbor_list_to_matrix(neighbors):
     """
     convert a neighbor adjacency list (list of list of neighbors) to a 2D
@@ -645,3 +644,7 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
+
+
+class UnknownPixelShapeWarning(UserWarning):
+    pass

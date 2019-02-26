@@ -9,8 +9,10 @@ from ctapipe.instrument import (
     OpticsDescription,
     CameraGeometry,
 )
+from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 import numpy as np
+import warnings
 
 __all__ = ['HESSIOEventSource']
 
@@ -209,7 +211,16 @@ class HESSIOEventSource(EventSource):
             telescope = UNKNOWN_TELESCOPE
 
         pixel_shape = file.get_pixel_shape(tel_id)[0]
-        pix_type, pix_rot = CameraGeometry.simtel_shape_to_type(pixel_shape)
+        try:
+            pix_type, pix_rot = CameraGeometry.simtel_shape_to_type(pixel_shape)
+        except ValueError:
+            warnings.warn(
+                f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
+                UnknownPixelShapeWarning,
+            )
+            pix_type = 'hexagon'
+            pix_rot = '0d'
+
         pix_area = u.Quantity(file.get_pixel_area(tel_id), u.m**2)
 
         mirror_area = u.Quantity(file.get_mirror_area(tel_id), u.m**2)

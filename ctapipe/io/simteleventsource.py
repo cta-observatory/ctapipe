@@ -11,6 +11,7 @@ from ctapipe.instrument import (
     CameraGeometry,
     OpticsDescription,
 )
+from ctapipe.instrument.camera import UnknownPixelShapeWarning
 from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from traitlets import Bool
 
@@ -70,7 +71,16 @@ class SimTelEventSource(EventSource):
                 telescope = UNKNOWN_TELESCOPE
 
             pixel_shape = cam_settings['pixel_shape'][0]
-            pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
+            try:
+                pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
+            except ValueError:
+                warnings.warn(
+                    f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
+                    UnknownPixelShapeWarning,
+                )
+                pix_type = 'hexagon'
+                pix_rotation = '0d'
+
             camera = CameraGeometry(
                 telescope.camera_name,
                 pix_id=np.arange(n_pixels),
