@@ -9,8 +9,19 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 from itertools import combinations
 
-from ctapipe.coordinates import HorizonFrame, CameraFrame, GroundFrame, TiltedGroundFrame, MissingFrameAttributeWarning, project_to_ground
-from astropy.coordinates import SkyCoord, spherical_to_cartesian, cartesian_to_spherical
+from ctapipe.coordinates import (
+    CameraFrame,
+    GroundFrame,
+    TiltedGroundFrame,
+    project_to_ground,
+    MissingFrameAttributeWarning,
+)
+from astropy.coordinates import (
+    SkyCoord,
+    spherical_to_cartesian,
+    cartesian_to_spherical,
+    AltAz,
+)
 import warnings
 
 import numpy as np
@@ -274,7 +285,11 @@ class HillasReconstructor(Reconstructor):
         -----------
         hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
+<<<<<<< HEAD
         array_pointing: SkyCoord[HorizonFrame]
+=======
+        telescope_pointing: SkyCoord[AltAz]
+>>>>>>> upstream/master
             Pointing direction of the array
         telescopes_pointings: dictionary
             dictionary of pointing direction per each telescope
@@ -351,10 +366,10 @@ class HillasPlane:
         -----------
         p1: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
+            This coordinate has to be defined in the ctapipe.coordinates.AltAz
         p2: astropy.coordinates.SkyCoord
             One of two direction vectors which define the plane.
-            This coordinate has to be defined in the ctapipe.coordinates.HorizonFrame
+            This coordinate has to be defined in the ctapipe.coordinates.AltAz
         telescope_position: np.array(3)
             Position of the telescope on the ground
         weight : float, optional

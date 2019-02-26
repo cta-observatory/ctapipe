@@ -428,6 +428,7 @@ class TelescopePointingContainer(Container):
 class DataContainer(Container):
     """ Top-level container for all event information """
 
+    event_type = Field('data', "Event type")
     r0 = Field(R0Container(), "Raw Data")
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")

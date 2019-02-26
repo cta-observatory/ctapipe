@@ -3,11 +3,37 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from os.path import exists
-from traitlets import Unicode, Int, Set
-from ctapipe.core import Component
+from traitlets import Unicode, Int, Set, TraitError
+from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
+from traitlets.config.loader import LazyConfigValue
 
-__all__ = ['EventSource', ]
+__all__ = [
+    'EventSource',
+    'event_source',
+]
+
+
+def event_source(input_url, **kwargs):
+    """
+    Helper function for EventSource.from_url
+
+    Find compatible EventSource for input_url via the `is_compatible` method
+    of the EventSource
+
+    Parameters
+    ----------
+    input_url : str
+        Filename or URL pointing to an event file
+    kwargs
+        Named arguments for the EventSource
+
+    Returns
+    -------
+    instance
+        Instance of a compatible EventSource subclass
+    """
+    return EventSource.from_url(input_url, **kwargs)
 
 
 class EventSource(Component):
@@ -27,8 +53,7 @@ class EventSource(Component):
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
     `ctapipe.io.SimTelEventSource` to read a hessio format
-    file). Alternatively you can use
-    `ctapipe.io.eventfilereader.EventSourceFactory` to automatically
+    file). Alternatively you can use `event_source()` to automatically
     select the correct EventFileReader subclass for the file format you wish
     to read.
 
@@ -38,9 +63,8 @@ class EventSource(Component):
 
     >>> event_source = EventSource(self.config, self)
 
-    An example of how to use `ctapipe.core.tool.Tool` and
-    `ctapipe.io.eventfilereader.EventSourceFactory` can be found in
-    ctapipe/examples/calibration_pipeline.py.
+    An example of how to use `ctapipe.core.tool.Tool` and `event_source()`
+    can be found in ctapipe/examples/calibration_pipeline.py.
 
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:
@@ -98,7 +122,6 @@ class EventSource(Component):
               'If left empty, all telescopes in the input stream '
               'will be included')
     ).tag(config=True)
-
 
     def __init__(self, config=None, tool=None, **kwargs):
         """
@@ -198,3 +221,65 @@ class EventSource(Component):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+    @classmethod
+    def from_url(cls, input_url, **kwargs):
+        """
+        Find compatible EventSource for input_url via the `is_compatible`
+        method of the EventSource
+
+        Parameters
+        ----------
+        input_url : str
+            Filename or URL pointing to an event file
+        kwargs
+            Named arguments for the EventSource
+
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        available_classes = non_abstract_children(cls)
+
+        for subcls in available_classes:
+            if subcls.is_compatible(input_url):
+                return subcls(input_url=input_url, **kwargs)
+
+        raise ValueError(
+            'Cannot find compatible EventSource for \n'
+            '\turl:{}\n'
+            'in available EventSources:\n'
+            '\t{}'.format(input_url, [c.__name__ for c in available_classes])
+        )
+
+    @classmethod
+    def from_config(cls, config, **kwargs):
+        """
+        Find compatible EventSource for the EventSource.input_url traitlet
+        specified via the config.
+
+        This method is typically used in Tools, where the input_url is chosen via
+        the command line using the traitlet configuration system.
+
+        Parameters
+        ----------
+        config : traitlets.config.loader.Config
+            Configuration created in the Tool
+        kwargs
+            Named arguments for the EventSource
+
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        if isinstance(config.EventSource.input_url, LazyConfigValue):
+            config.EventSource.input_url = cls.input_url.default_value
+        elif not isinstance(config.EventSource.input_url, str):
+            raise TraitError("Wrong type specified for input_url traitlet")
+        return event_source(
+            config.EventSource.input_url,
+            config=config,
+            **kwargs
+        )

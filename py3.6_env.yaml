@@ -3,7 +3,6 @@ channels:
   - default
   - cta-observatory
 dependencies:
-  - ctapipe-extra=0.2.16
   - python=3.6 # nail the python version, so conda does not try upgrading / dowgrading
   - zeromq
   - pyzmq>=17  # needed for correct function of notebooks on OSX
@@ -42,5 +41,6 @@ dependencies:
   - conda-forge::nbsphinx
   - pip:
       - pytest_runner
-      - eventio==0.11.0
+      - eventio==0.17.1
       - https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz
+      - https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.17.tar.gz
