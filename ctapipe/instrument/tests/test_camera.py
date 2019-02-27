@@ -194,4 +194,4 @@ def test_hashing():
     cam2 = CameraGeometry.from_name("LSTCam")
     cam3 = CameraGeometry.from_name("ASTRICam")
 
-    len(set([cam1, cam2, cam3])) == 2
+    assert len(set([cam1, cam2, cam3])) == 2
