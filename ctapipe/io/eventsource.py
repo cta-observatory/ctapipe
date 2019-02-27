@@ -64,7 +64,7 @@ class EventSource(Component):
     >>> event_source = EventSource(self.config, self)
 
     An example of how to use `ctapipe.core.tool.Tool` and `event_source()`
-    can be found in ctapipe/examples/calibration_pipeline.py.
+    can be found in ctapipe/tools/display_dl1.py.
 
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:

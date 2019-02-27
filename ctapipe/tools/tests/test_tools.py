@@ -1,8 +1,67 @@
 import os
 import sys
 import pytest
+import shlex
+import matplotlib as mpl
 
 from ctapipe.utils import get_dataset_path
+
+GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
+
+
+def test_muon_reconstruction(tmpdir):
+    from ctapipe.tools.muon_reconstruction import MuonDisplayerTool
+    MuonDisplayerTool().run(
+        argv=shlex.split(
+            f'--events={GAMMA_TEST_LARGE} '
+            '--max_events=2 '
+        )
+    )
+
+
+def test_display_summed_imaged(tmpdir):
+    from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
+    mpl.use('Agg')
+    ImageSumDisplayerTool().run(
+        argv=shlex.split(
+            f'--infile={GAMMA_TEST_LARGE} '
+            '--max-events=2 '
+        )
+    )
+
+
+def test_display_integrator(tmpdir):
+    from ctapipe.tools.display_integrator import DisplayIntegrator
+    mpl.use('Agg')
+    DisplayIntegrator().run(
+        argv=shlex.split(
+            f'--f={GAMMA_TEST_LARGE} '
+            '--max_events=1 '
+        )
+    )
+
+
+def test_display_events_single_tel(tmpdir):
+    from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
+    mpl.use('Agg')
+    SingleTelEventDisplay().run(
+        argv=shlex.split(
+            f'--infile={GAMMA_TEST_LARGE} '
+            '--tel=11 '
+            '--max-events=2 '  # <--- inconsistent!!!
+        )
+    )
+
+
+def test_display_dl1(tmpdir):
+    from ctapipe.tools.display_dl1 import DisplayDL1Calib
+    mpl.use('Agg')
+    DisplayDL1Calib().run(
+        argv=shlex.split(
+            '--max_events=1 '
+            '--telescope=11 '
+        )
+    )
 
 
 def test_info():
@@ -17,7 +76,7 @@ def test_dump_triggers(tmpdir):
     outfile = tmpdir.join("triggers.fits")
 
     tool = DumpTriggersTool(
-        infile=get_dataset_path("gamma_test_large.simtel.gz"),
+        infile=GAMMA_TEST_LARGE,
         outfile=str(outfile)
     )
 
@@ -33,7 +92,7 @@ def test_dump_instrument(tmpdir):
     tmpdir.chdir()
 
     tool = DumpInstrumentTool(
-        infile=get_dataset_path("gamma_test_large.simtel.gz"),
+        infile=GAMMA_TEST_LARGE,
     )
 
     tool.run(argv=[])
@@ -71,7 +130,7 @@ def test_extract_charge_resolution(tmpdir):
     tool = ChargeResolutionGenerator()
     with pytest.raises(KeyError):
         tool.run([
-            '-f', get_dataset_path("gamma_test_large.simtel.gz"),
+            '-f', GAMMA_TEST_LARGE,
             '-o', output_path,
         ])
     # TODO: Test files do not contain true charge, cannot test tool fully

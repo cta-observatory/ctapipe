@@ -34,7 +34,13 @@ entry_points['console_scripts'] = [
     'ctapipe-chargeres-extract = ctapipe.tools.extract_charge_resolution:main',
     'ctapipe-chargeres-plot = ctapipe.tools.plot_charge_resolution:main',
     'ctapipe-dump-instrument=ctapipe.tools.dump_instrument:main',
-    'ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main'
+    'ctapipe-event-viewer = ctapipe.tools.bokeh.file_viewer:main',
+    'ctapipe-display-tel-events = ctapipe.tools.display_events_single_tel:main',
+    'ctapipe-display-imagesums = ctapipe.tools.display_summed_images:main',
+    'ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main',
+    'ctapipe-display-integration = ctapipe.tools.display_integrator:main',
+    'ctapipe-display-dl1 = ctapipe.tools.display_dl1:main',
+
 ]
 
 package.version.update_release_version()

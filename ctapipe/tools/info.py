@@ -7,9 +7,9 @@ import sys
 
 import ctapipe_resources
 
-from ..utils import datasets
-from ..core import Provenance
 from .utils import get_parser
+from ..core import Provenance
+from ..utils import datasets
 
 __all__ = ['info']
 
@@ -19,7 +19,7 @@ _dependencies = sorted(['astropy', 'matplotlib',
                         'sklearn', 'scipy', 'numba',
                         'pytest', 'ctapipe_resources', 'iminuit', 'tables'])
 
-_optional_dependencies = sorted(['pytest', 'graphviz', #'pyzmq',
+_optional_dependencies = sorted(['pytest', 'graphviz',  # 'pyzmq',
                                  'fitsio', 'pyhessio', 'targetio',
                                  'matplotlib'])
 
@@ -173,10 +173,14 @@ def _info_system():
     prov = Provenance()
     system_prov = prov.current_activity.provenance['system']
 
-    for section in ['platform','python']:
+    for section in ['platform', 'python']:
 
-        print('\n====== ',section," ======== \n")
+        print('\n====== ', section, " ======== \n")
         sysinfo = system_prov[section]
 
         for name, val in sysinfo.items():
             print("{:>20.20s} -- {:<60.60s}".format(name, str(val)))
+
+
+if __name__ == '__main__':
+    main()

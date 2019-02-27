@@ -3,7 +3,8 @@ from numpy.testing import assert_almost_equal
 
 from ctapipe.image.waveform_cleaning import (NullWaveformCleaner,
                                              CHECMWaveformCleanerAverage,
-                                             CHECMWaveformCleanerLocal)
+                                             CHECMWaveformCleanerLocal,
+                                             BaselineWaveformCleaner)
 
 
 def test_null_cleaner(example_event):
@@ -48,3 +49,24 @@ def test_checm_cleaner_local(example_event):
 
     assert_almost_equal(data_ped[0, 0, 0], -2.8, 1)
     assert_almost_equal(cleaned[0, 0, 0], -15.9, 1)
+
+
+def test_baseline_cleaner():
+
+    # waveform : first 20 samples = 0, second 20 samples = 10
+    waveform = np.full((2, 1855, 40), 10)
+    waveform[:, :, 0:20] = 0
+
+    cleaner = BaselineWaveformCleaner()
+
+    cleaner.baseline_start = 0
+    cleaner.baseline_end = 20
+    cleaned = cleaner.apply(waveform)
+    assert (cleaned.mean() == 5)
+
+    cleaner.baseline_start = 20
+    cleaner.baseline_end = 40
+    cleaned = cleaner.apply(waveform)
+    assert (cleaned.mean() == -5)
+
+
