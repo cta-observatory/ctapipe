@@ -24,8 +24,6 @@ class LSTEventSource(EventSource):
     EventSource for LST r0 data.
     """
 
-
-
     def __init__(self, config=None, tool=None, **kwargs):
 
         """
