@@ -285,11 +285,7 @@ class HillasReconstructor(Reconstructor):
         -----------
         hillas_dict: dict[HillasContainer]
             dictionary of hillas moments
-<<<<<<< HEAD
         array_pointing: SkyCoord[HorizonFrame]
-=======
-        telescope_pointing: SkyCoord[AltAz]
->>>>>>> upstream/master
             Pointing direction of the array
         telescopes_pointings: dictionary
             dictionary of pointing direction per each telescope
