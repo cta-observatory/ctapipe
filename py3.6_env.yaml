@@ -42,3 +42,4 @@ dependencies:
   - eventio=0.17.1
   - pytest-runner
   - ctapipe-extra=0.2.17
+  - pyhessio=2.1
