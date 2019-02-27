@@ -6,7 +6,6 @@ from .tableio import TableWriter, TableReader
 
 # import event sources to make them visible to EventSource.from_url
 from .simteleventsource import SimTelEventSource
-from .lsteventsource import LSTEventSource
 from .targetioeventsource import TargetIOEventSource
 
 from ctapipe.core.plugins import detect_and_import_io_plugins
@@ -23,6 +22,5 @@ __all__ = [
     'EventSource',
     'event_source',
     'SimTelEventSource',
-    'LSTEventSource',
     'TargetIOEventSource',
 ]
