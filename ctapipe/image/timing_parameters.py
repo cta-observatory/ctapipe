@@ -4,6 +4,8 @@ Image timing-based shower image parametrization.
 
 import numpy as np
 from ctapipe.io.containers import TimingParametersContainer
+from .hillas import camera_to_shower_coordinates
+
 
 __all__ = [
     'timing_parameters'
@@ -31,26 +33,26 @@ def timing_parameters(geom, image, peakpos, hillas_parameters):
     """
 
     unit = geom.pix_x.unit
-    pix_x = geom.pix_x.value
-    pix_y = geom.pix_y.value
 
     # select only the pixels in the cleaned image that are greater than zero.
     # we need to exclude possible pixels with zero signal after cleaning.
     mask = image > 0
-    pix_x = pix_x[mask]
-    pix_y = pix_y[mask]
+    pix_x = geom.pix_x[mask]
+    pix_y = geom.pix_y[mask]
     image = image[mask]
     peakpos = peakpos[mask]
 
     assert pix_x.shape == image.shape, 'image shape must match geometry'
     assert pix_x.shape == peakpos.shape, 'peakpos shape must match geometry'
 
-    longi, trans = geom.get_shower_coordinates(
+    longi, trans = camera_to_shower_coordinates(
+        pix_x,
+        pix_y,
         hillas_parameters.x,
         hillas_parameters.y,
         hillas_parameters.psi
     )
-    slope, intercept = np.polyfit(longi[mask], peakpos, deg=1, w=np.sqrt(image))
+    slope, intercept = np.polyfit(longi.value, peakpos, deg=1, w=np.sqrt(image))
 
     return TimingParametersContainer(
         slope=slope / unit,

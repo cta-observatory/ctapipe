@@ -4,10 +4,10 @@ import warnings
 import numpy as np
 from astropy import log
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import Angle, SkyCoord, AltAz
 from astropy.utils.decorators import deprecated
 
-from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
@@ -102,7 +102,7 @@ def analyze_muon_event(event):
         telescope_pointing = SkyCoord(
             alt=altval,
             az=event.mcheader.run_array_direction[0],
-            frame=HorizonFrame()
+            frame=AltAz()
         )
         camera_coord = SkyCoord(
             x=x, y=y,

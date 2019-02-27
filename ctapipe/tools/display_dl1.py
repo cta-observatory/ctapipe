@@ -1,27 +1,31 @@
+"""
+Calibrate dl0 data to dl1, and plot the photoelectron images.
+"""
 from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
 
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
-from ctapipe.core import Tool, Component
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
-from ctapipe.io.eventsourcefactory import EventSourceFactory
-from ctapipe.utils import get_dataset_path
 from ctapipe.visualization import CameraDisplay
+from ctapipe.core import Tool, Component
+from ctapipe.utils import get_dataset_path
+from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.io import EventSource, event_source
+import ctapipe.utils.tools as tool_utils
 
 
 class ImagePlotter(Component):
     display = Bool(
-        False,
+        True,
         help='Display the photoelectron images on-screen as they '
-        'are produced.'
+             'are produced.'
     ).tag(config=True)
     output_path = Unicode(
         None,
         allow_none=True,
         help='Output path for the pdf containing all the '
-        'images. Set to None for no saved '
-        'output.'
+             'images. Set to None for no saved '
+             'output.'
     ).tag(config=True)
 
     def __init__(self, config=None, tool=None, **kwargs):
@@ -112,7 +116,7 @@ class ImagePlotter(Component):
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}"
-            .format(event.count, event.r0.event_id, telid)
+                .format(event.count, event.r0.event_id, telid)
         )
 
         if self.display:
@@ -127,27 +131,31 @@ class ImagePlotter(Component):
 
 
 class DisplayDL1Calib(Tool):
-    name = "DisplayDL1Calib"
-    description = "Calibrate dl0 data to dl1, and plot the photoelectron " \
-                  "images."
+    name = "ctapipe-display-dl1"
+    description = __doc__
 
     telescope = Int(
         None,
         allow_none=True,
         help='Telescope to view. Set to None to display all '
-        'telescopes.'
+             'telescopes.'
     ).tag(config=True)
+
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
 
     aliases = Dict(
         dict(
-            max_events='EventSourceFactory.max_events',
-            extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            t0='ChargeExtractorFactory.t0',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            max_events='EventSource.max_events',
+            extractor='DisplayDL1Calib.extractor_product',
+            t0='SimpleIntegrator.t0',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
             O='ImagePlotter.output_path'
@@ -155,18 +163,24 @@ class DisplayDL1Calib(Tool):
     )
     flags = Dict(
         dict(
-            D=({
-                'ImagePlotter': {
-                    'display': True
-                }
-            }, "Display the photoelectron images on-screen as they "
-               "are produced.")
+            D=(
+                {
+                    'ImagePlotter': {
+                        'display': True
+                    }
+                },
+                "Display the photoelectron images on-screen as they "
+                "are produced."
+            )
         )
     )
-    classes = List([
-        EventSourceFactory, ChargeExtractorFactory, CameraDL1Calibrator,
-        ImagePlotter
-    ])
+    classes = List(
+        [
+            EventSource,
+            CameraDL1Calibrator,
+            ImagePlotter
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -177,8 +191,9 @@ class DisplayDL1Calib(Tool):
     def setup(self):
         kwargs = dict(config=self.config, tool=self)
 
-        self.eventsource = EventSourceFactory.produce(
-            input_url=get_dataset_path("gamma_test.simtel.gz"), **kwargs
+        self.eventsource = event_source(
+            get_dataset_path("gamma_test.simtel.gz"),
+            **kwargs
         )
 
         self.calibrator = CameraCalibrator(
@@ -204,6 +219,6 @@ class DisplayDL1Calib(Tool):
         self.plotter.finish()
 
 
-if __name__ == '__main__':
+def main():
     exe = DisplayDL1Calib()
     exe.run()

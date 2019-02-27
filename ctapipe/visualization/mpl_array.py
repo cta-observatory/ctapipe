@@ -237,16 +237,14 @@ class ArrayDisplay:
         coords = self.tel_coords
         c = self.tel_colors
 
+        r = np.array([-range, range])
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
-            x_0 = coords[idx].x.value
-            y_0 = coords[idx].y.value
-            m = np.tan(Angle(params.psi))
-            x = x_0 + np.linspace(-range, range, 50)
-            y = y_0 + m * (x - x_0)
-            distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
-            mask = np.ma.masked_where(distance < range, distance).mask
-            self.axes.plot(x[mask], y[mask], color=c[idx], **kwargs)
+            x_0 = coords[idx].x.to_value(u.m)
+            y_0 = coords[idx].y.to_value(u.m)
+            x = x_0 + np.cos(params.psi) * r
+            y = y_0 + np.sin(params.psi) * r
+            self.axes.plot(x, y, color=c[idx], **kwargs)
             self.axes.scatter(x_0, y_0, color=c[idx])
 
     def add_labels(self):

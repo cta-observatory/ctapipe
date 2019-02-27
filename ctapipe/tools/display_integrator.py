@@ -1,22 +1,19 @@
 """
-Create a plot of where the integration window lays on the trace for the pixel
-with the highest charge, its neighbours, and the pixel with the lowest max
-charge and its neighbours. Also shows a disgram of which pixels count as a
-neighbour, the camera image for the max charge timeslice, the true pe camera
-image, and a calibrated camera image
+Calibrate dl0 data to dl1, and plot the various camera images that
+characterise the event and calibration. Also plot some examples of waveforms
+with the integration window.
 """
-
 import numpy as np
 from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1CalibratorFactory
+import ctapipe.utils.tools as tool_utils
+from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
+    CameraDL1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractorFactory
+from ctapipe.image.charge_extractors import ChargeExtractor
 from ctapipe.io.eventseeker import EventSeeker
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
@@ -70,8 +67,8 @@ def plot(event, telid, chan, extractor_name):
     ax_max_pix.set_xlabel("Time (ns)")
     ax_max_pix.set_ylabel("DL0 Samples (ADC)")
     ax_max_pix.set_title(
-        "(Max) Pixel: {}, True: {}, Measured = {:.3f}"
-        .format(max_pix, t_pe[max_pix], dl1[max_pix])
+        f'(Max) Pixel: {max_pix}, True: {t_pe[max_pix]}, '
+        f'Measured = {dl1[max_pix]:.3f}'
     )
     max_ylim = ax_max_pix.get_ylim()
     ax_max_pix.plot([start[max_pix], start[max_pix]],
@@ -90,7 +87,7 @@ def plot(event, telid, chan, extractor_name):
             ax.set_ylabel("DL0 Samples (ADC)")
             ax.set_title(
                 "(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}"
-                .format(pix, t_pe[pix], dl1[pix])
+                    .format(pix, t_pe[pix], dl1[pix])
             )
             ax.set_ylim(max_ylim)
             ax.plot([start[pix], start[pix]],
@@ -104,8 +101,8 @@ def plot(event, telid, chan, extractor_name):
     ax_min_pix.set_xlabel("Time (ns)")
     ax_min_pix.set_ylabel("DL0 Samples (ADC)")
     ax_min_pix.set_title(
-        "(Min) Pixel: {}, True: {}, Measured = {:.3f}"
-        .format(min_pix, t_pe[min_pix], dl1[min_pix])
+        f'(Min) Pixel: {min_pix}, True: {t_pe[min_pix]}, '
+        f'Measured = {dl1[min_pix]:.3f}'
     )
     ax_min_pix.set_ylim(max_ylim)
     ax_min_pix.plot([start[min_pix], start[min_pix]],
@@ -123,8 +120,8 @@ def plot(event, telid, chan, extractor_name):
             ax.set_xlabel("Time (ns)")
             ax.set_ylabel("DL0 Samples (ADC)")
             ax.set_title(
-                "(Min Nei) Pixel: {}, True: {}, Measured = {:.3f}"
-                .format(pix, t_pe[pix], dl1[pix])
+                f'(Min Nei) Pixel: {pix}, True: {t_pe[pix]}, '
+                f'Measured = {dl1[pix]:.3f}'
             )
             ax.set_ylim(max_ylim)
             ax.plot([start[pix], start[pix]],
@@ -244,38 +241,39 @@ def plot(event, telid, chan, extractor_name):
 
 
 class DisplayIntegrator(Tool):
-    name = "DisplayIntegrator"
-    description = "Calibrate dl0 data to dl1, and plot the various camera " \
-                  "images that characterise the event and calibration. Also " \
-                  "plot some examples of waveforms with the " \
-                  "integration window."
+    name = "ctapipe-display-integration"
+    description = __doc__
 
     event_index = Int(0, help='Event index to view.').tag(config=True)
     use_event_id = Bool(
         False,
-        help='event_index will obtain an event using'
-        'event_id instead of '
-        'index.'
+        help='event_index will obtain an event using event_id instead of '
+             'index.'
     ).tag(config=True)
     telescope = Int(
         None,
         allow_none=True,
         help='Telescope to view. Set to None to display the first'
-        'telescope with data.'
+             'telescope with data.'
     ).tag(config=True)
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
+    extractor_product = tool_utils.enum_trait(
+        ChargeExtractor,
+        default='NeighbourPeakIntegrator'
+    )
+
     aliases = Dict(
         dict(
-            r='EventSourceFactory.product',
-            f='EventSourceFactory.input_url',
-            max_events='EventSourceFactory.max_events',
-            extractor='ChargeExtractorFactory.product',
-            window_width='ChargeExtractorFactory.window_width',
-            window_shift='ChargeExtractorFactory.window_shift',
-            sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-            sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-            lwt='ChargeExtractorFactory.lwt',
+            f='EventSource.input_url',
+            max_events='EventSource.max_events',
+            extractor='DisplayIntegrator.extractor_product',
+            t0='SimpleIntegrator.t0',
+            window_width='WindowIntegrator.window_width',
+            window_shift='WindowIntegrator.window_shift',
+            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
+            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+            lwt='NeighbourPeakIntegrator.lwt',
             clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             radius='CameraDL1Calibrator.radius',
             E='DisplayIntegrator.event_index',
@@ -285,19 +283,21 @@ class DisplayIntegrator(Tool):
     )
     flags = Dict(
         dict(
-            id=({
-                'DisplayDL1Calib': {
-                    'use_event_index': True
-                }
-            }, 'event_index will obtain an event using '
-                'event_id instead of index.')
+            id=(
+                {
+                    'DisplayDL1Calib': {
+                        'use_event_index': True
+                    }
+                }, 'event_index will obtain an event using '
+                   'event_id instead of index.')
         )
     )
-    classes = List([
-        EventSourceFactory,
-        ChargeExtractorFactory,
-        CameraDL1Calibrator,
-    ])
+    classes = List(
+        [
+            EventSource,
+            CameraDL1Calibrator,
+        ] + tool_utils.classes_with_traits(ChargeExtractor)
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -311,13 +311,15 @@ class DisplayIntegrator(Tool):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
         kwargs = dict(config=self.config, tool=self)
 
-        eventsource = EventSourceFactory.produce(**kwargs)
-        self.eventseeker = EventSeeker(eventsource, **kwargs)
-
-        self.extractor = ChargeExtractorFactory.produce(**kwargs)
-
-        self.r1 = CameraR1CalibratorFactory.produce(
-            eventsource=eventsource, **kwargs
+        event_source = EventSource.from_config(**kwargs)
+        self.eventseeker = EventSeeker(event_source, **kwargs)
+        self.extractor = ChargeExtractor.from_name(
+            self.extractor_product,
+            **kwargs
+        )
+        self.r1 = CameraR1Calibrator.from_eventsource(
+            eventsource=event_source,
+            **kwargs
         )
 
         self.dl0 = CameraDL0Reducer(**kwargs)
@@ -355,6 +357,6 @@ class DisplayIntegrator(Tool):
         pass
 
 
-if __name__ == '__main__':
+def main():
     exe = DisplayIntegrator()
     exe.run()
