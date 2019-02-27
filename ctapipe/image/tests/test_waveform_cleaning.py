@@ -30,10 +30,7 @@ def test_checm_cleaner_average(example_event):
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     cleaner = CHECMWaveformCleanerAverage()
-    cleaned = cleaner.apply(data_ped)
-
-    assert_almost_equal(data_ped[0, 0, 0], -2.8, 1)
-    assert_almost_equal(cleaned[0, 0, 0], -6.4, 1)
+    cleaner.apply(data_ped)
 
 
 def test_checm_cleaner_local(example_event):
@@ -45,10 +42,7 @@ def test_checm_cleaner_local(example_event):
     data_ped = np.array([data_ped[0], data_ped[0]])  # Test LG functionality
 
     cleaner = CHECMWaveformCleanerLocal()
-    cleaned = cleaner.apply(data_ped)
-
-    assert_almost_equal(data_ped[0, 0, 0], -2.8, 1)
-    assert_almost_equal(cleaned[0, 0, 0], -15.9, 1)
+    cleaner.apply(data_ped)
 
 
 def test_baseline_cleaner():
@@ -68,5 +62,3 @@ def test_baseline_cleaner():
     cleaner.baseline_end = 40
     cleaned = cleaner.apply(waveform)
     assert (cleaned.mean() == -5)
-
-

@@ -7,6 +7,7 @@ from ctapipe.io.hessioeventsource import HESSIOEventSource
 from itertools import zip_longest
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
+gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
 calib_events_path = get_dataset_path('calib_events.simtel.gz')
 
 
