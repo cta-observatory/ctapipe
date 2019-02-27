@@ -20,9 +20,16 @@ class SimTelEventSource(EventSource):
 
     def __init__(self, config=None, tool=None, **kwargs):
         super().__init__(config=config, tool=tool, **kwargs)
+
         self.metadata['is_simulation'] = True
+
+        # traitlets creates an empty set as default,
+        # which ctapipe treats as no restriction on the telescopes
+        # but eventio treats an emty set as "no telescopes allowed"
+        # so we explicitly pass None in that case
         self.file_ = SimTelFile(
             self.input_url,
+            allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
             skip_calibration=self.skip_calibration_events
         )
 
