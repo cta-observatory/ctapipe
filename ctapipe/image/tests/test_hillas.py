@@ -11,11 +11,17 @@ from pytest import approx
 import pytest
 
 
+def quantity_approx(actual, expected, **kwargs):
+    unit = expected.unit
+    return actual.to_value(unit) == approx(expected.to_value(unit), **kwargs)
+
+
 def create_sample_image(
         psi='-30d',
-        centroid=(0.2, 0.3),
-        width=0.05,
-        length=0.15,
+        x=0.2 * u.m,
+        y=0.3 * u.m,
+        width=0.05 * u.m,
+        length=0.15 * u.m,
         intensity=1500
 ):
     seed(10)
@@ -23,16 +29,11 @@ def create_sample_image(
     geom = CameraGeometry.from_name('LSTCam')
 
     # make a toymodel shower model
-    model = toymodel.generate_2d_shower_model(
-        centroid=centroid,
-        width=width,
-        length=length,
-        psi=psi,
-    )
+    model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, signal, noise = toymodel.make_toymodel_shower_image(
-        geom, model.pdf,
+    image, signal, noise = model.generate_image(
+        geom,
         intensity=1500,
         nsb_level_pe=3,
     )
@@ -115,40 +116,42 @@ def test_hillas_container():
     assert isinstance(params, HillasParametersContainer)
 
 
+
+
 def test_with_toy():
     np.random.seed(42)
 
     geom = CameraGeometry.from_name('LSTCam')
 
-    width = 0.03
-    length = 0.15
+    width = 0.03 * u.m
+    length = 0.15 * u.m
     intensity = 500
 
-    xs = (0.5, 0.5, -0.5, -0.5)
-    ys = (0.5, -0.5, 0.5, -0.5)
+    xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
+    ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
     psis = Angle([-90, -45, 0, 45, 90], unit='deg')
 
     for x, y in zip(xs, ys):
         for psi in psis:
 
             # make a toymodel shower model
-            model = toymodel.generate_2d_shower_model(
-                centroid=(x, y),
+            model = toymodel.Gaussian(
+                x=x, y=y,
                 width=width, length=length,
                 psi=psi,
             )
 
-            image, signal, noise = toymodel.make_toymodel_shower_image(
-                geom, model.pdf, intensity=intensity, nsb_level_pe=5,
+            image, signal, noise = model.generate_image(
+                geom, intensity=intensity, nsb_level_pe=5,
             )
 
             result = hillas_parameters(geom, signal)
 
-            assert result.x.to_value(u.m) == approx(x, rel=0.1)
-            assert result.y.to_value(u.m) == approx(y, rel=0.1)
+            assert quantity_approx(result.x, x, rel=0.1)
+            assert quantity_approx(result.y, y, rel=0.1)
 
-            assert result.width.to_value(u.m) == approx(width, rel=0.1)
-            assert result.length.to_value(u.m) == approx(length, rel=0.1)
+            assert quantity_approx(result.width, width, rel=0.1)
+            assert quantity_approx(result.length, length, rel=0.1)
             assert (
                 (result.psi.to_value(u.deg) == approx(psi.deg, abs=2))
                 or abs(result.psi.to_value(u.deg) - psi.deg) == approx(180.0, abs=2)

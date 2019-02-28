@@ -94,25 +94,25 @@ class CameraDemo(Tool):
         disp.cmap = plt.cm.terrain
 
         def update(frame):
-
-
-            centroid = np.random.uniform(-fov, fov, size=2) * scale
-            width = np.random.uniform(0, maxwid-minwid) * scale + minwid
+            x, y = np.random.uniform(-fov, fov, size=2) * scale
+            width = np.random.uniform(0, maxwid - minwid) * scale + minwid
             length = np.random.uniform(0, maxlen) * scale + width
             angle = np.random.uniform(0, 360)
             intens = np.random.exponential(2) * 500
-            model = toymodel.generate_2d_shower_model(centroid=centroid,
-                                                      width=width,
-                                                      length=length,
-                                                      psi=angle * u.deg)
+            model = toymodel.Gaussian(
+                x=x * u.m,
+                y=y * u.m,
+                width=width * u.m,
+                length=length * u.m,
+                psi=angle * u.deg,
+            )
             self.log.debug(
                 "Frame=%d width=%03f length=%03f intens=%03d",
                 frame, width, length, intens
             )
 
-            image, sig, bg = toymodel.make_toymodel_shower_image(
+            image, sig, bg = model.generate_image(
                 geom,
-                model.pdf,
                 intensity=intens,
                 nsb_level_pe=3,
             )
