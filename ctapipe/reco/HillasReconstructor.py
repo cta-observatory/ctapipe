@@ -135,7 +135,7 @@ class HillasReconstructor(Reconstructor):
         warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
         
         # stereoscopy needs at least two telescopes with a valid width of the hillas ellipse
-        valid_telescopes = sum([1 if hillas_dict[x]['width'].value is not np.NaN else 0 for x in hillas_dict])
+        valid_telescopes = sum([1 if not np.isnan(hillas_dict[x]['width'].value) else 0 for x in hillas_dict])
 
         if valid_telescopes < 2:
             raise TooFewTelescopesException(
