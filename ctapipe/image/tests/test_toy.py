@@ -61,9 +61,34 @@ def test_skewed():
         geom, intensity=intensity, nsb_level_pe=5,
     )
 
-    a, loc, scale = model._momemts_to_parameters()
+    a, loc, scale = model._moments_to_parameters()
     mean, var, skew = skewnorm(a=a, loc=loc, scale=scale).stats(moments='mvs')
 
     assert np.isclose(mean, 0)
     assert np.isclose(var, length.to_value(u.m)**2)
     assert np.isclose(skew, skewness)
+
+
+def test_compare():
+    from ctapipe.image.toymodel import SkewedGaussian, Gaussian
+    geom = CameraGeometry.from_name('LSTCam')
+
+    x, y = u.Quantity([0.2, 0.3], u.m)
+    width = 0.05 * u.m
+    length = 0.15 * u.m
+    intensity = 50
+    psi = '30d'
+
+    skewed = SkewedGaussian(
+        x=x, y=y, width=width,
+        length=length, psi=psi, skewness=0
+    )
+    normal = Gaussian(
+        x=x, y=y, width=width,
+        length=length, psi=psi
+    )
+
+    signal_skewed = skewed.expected_signal(geom, intensity=intensity)
+    signal_normal = normal.expected_signal(geom, intensity=intensity)
+
+    assert np.isclose(signal_skewed, signal_normal).all()

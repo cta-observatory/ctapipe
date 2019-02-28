@@ -20,6 +20,7 @@ Examples:
 import numpy as np
 from ctapipe.utils import linalg
 import astropy.units as u
+from astropy.coordinates import Angle
 from scipy.stats import multivariate_normal, skewnorm, norm
 from abc import ABCMeta, abstractmethod
 
@@ -191,7 +192,7 @@ class SkewedGaussian(ImageModel):
         '''2d probability for photon electrons in the camera plane'''
         mu = u.Quantity([self.x, self.y]).to_value(u.m)
 
-        rotation = linalg.rotation_matrix_2d(-self.psi)
+        rotation = linalg.rotation_matrix_2d(-Angle(self.psi))
         pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
         long, trans = rotation @ (pos - mu).T
 
