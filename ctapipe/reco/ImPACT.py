@@ -536,20 +536,25 @@ class ImPACTReconstructor(Reconstructor):
 
         Parameters
         ----------
-        image: dictionary
+        image: dict
             Amplitude of pixels in camera images
-        pixel_x: dictionary
+        time: dict
+            Time information per each pixel in camera images
+        pixel_x: dict
             X position of pixels in nominal system
-        pixel_y: dictionary
+        pixel_y: dict
             Y position of pixels in nominal system
-        pixel_area: dictionary
-            Area of pixel in each telescope type
-        type_tel: dictionary
+        type_tel: dict
             Type of telescope
-        tel_x: dictionary
-            X position of telescope
-        tel_y: dictionary
-            Y position of telescope
+        tel_x: dict
+            X position of telescope in TiltedGroundFrame
+        tel_y: dict
+            Y position of telescope in TiltedGroundFrame
+        array_direction: SkyCoord[AltAz]
+            Array pointing direction in the AltAz Frame
+        hillas: dict
+            dictionary with telescope IDs as key and
+            HillasParametersContainer instances as values
 
         Returns
         -------
@@ -619,6 +624,10 @@ class ImPACTReconstructor(Reconstructor):
 
     def predict(self, shower_seed, energy_seed):
         """
+    def predict(self, shower_seed, energy_seed):
+        """Predict method for the ImPACT reconstructor.
+        Used to calculate the reconstructed ImPACT shower geometry and energy.
+
         Parameters
         ----------
         shower_seed: ReconstructedShowerContainer
@@ -629,7 +638,6 @@ class ImPACTReconstructor(Reconstructor):
         Returns
         -------
         ReconstructedShowerContainer, ReconstructedEnergyContainer:
-        Reconstructed ImPACT shower geometry and energy
         """
 
         horizon_seed = SkyCoord(
@@ -693,7 +701,7 @@ class ImPACTReconstructor(Reconstructor):
 
         shower_result.is_valid = True
 
-        # Currently no errors not availible to copy NaN
+        # Currently no errors not available to copy NaN
         shower_result.alt_uncert = np.nan
         shower_result.az_uncert = np.nan
         shower_result.core_uncert = np.nan
