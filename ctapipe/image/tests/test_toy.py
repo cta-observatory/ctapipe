@@ -6,7 +6,7 @@ import astropy.units as u
 
 
 def test_intensity():
-    from ..toymodel import Gaussian
+    from ctapipe.image.toymodel import Gaussian
 
     np.random.seed(0)
     geom = CameraGeometry.from_name('LSTCam')
@@ -40,7 +40,7 @@ def test_intensity():
 
 
 def test_skewed():
-    from ..toymodel import SkewedGaussian
+    from ctapipe.image.toymodel import SkewedGaussian
     # test if the parameters we calculated for the skew normal
     # distribution produce the correct moments
     np.random.seed(0)
