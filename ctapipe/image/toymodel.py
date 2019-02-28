@@ -172,7 +172,7 @@ class SkewedGaussian(ImageModel):
         self.psi = psi
         self.skewness = skewness
 
-    def _momemts_to_parameters(self):
+    def _moments_to_parameters(self):
         '''returns loc and scale from mean, std and skewnewss'''
         # see https://en.wikipedia.org/wiki/Skew_normal_distribution#Estimation
         skew23 = np.abs(self.skewness)**(2 / 3)
@@ -196,7 +196,7 @@ class SkewedGaussian(ImageModel):
 
         trans_pdf = norm(loc=0, scale=self.width).pdf(trans)
 
-        a, loc, scale = self._momemts_to_parameters()
+        a, loc, scale = self._moments_to_parameters()
 
         return trans_pdf * skewnorm(a=a, loc=loc, scale=scale).pdf(long)
 
