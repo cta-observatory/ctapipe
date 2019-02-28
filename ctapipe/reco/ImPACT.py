@@ -625,8 +625,15 @@ class ImPACTReconstructor(Reconstructor):
         self.get_hillas_mean()
         self.initialise_templates(type_tel)
 
-    def predict(self, shower_seed, energy_seed):
+    def reset_interpolator(self):
         """
+        This function is needed in order to reset some variables in the interpolator
+        at each new event. Without this reset, a new event starts with information
+        from the previous event.
+        :return:
+        """
+        list(self.prediction.values())[0].reset()
+
     def predict(self, shower_seed, energy_seed):
         """Predict method for the ImPACT reconstructor.
         Used to calculate the reconstructed ImPACT shower geometry and energy.
@@ -642,6 +649,7 @@ class ImPACTReconstructor(Reconstructor):
         -------
         ReconstructedShowerContainer, ReconstructedEnergyContainer:
         """
+        self.reset_interpolator()
 
         horizon_seed = SkyCoord(
             az=shower_seed.az, alt=shower_seed.alt, frame=AltAz()

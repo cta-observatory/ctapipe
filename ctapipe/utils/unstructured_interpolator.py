@@ -70,6 +70,11 @@ class UnstructuredInterpolator:
 
         return None
 
+    def reset(self):
+        self._previous_v = 0
+        self._previous_m = 0
+        self._previous_shape = 0
+
     def __call__(self, points, eval_points=None):
 
         # Convert to a numpy array here incase we get a list

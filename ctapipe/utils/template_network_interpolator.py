@@ -23,6 +23,9 @@ class TemplateNetworkInterpolator:
         self.interpolator = UnstructuredInterpolator(input_dict, remember_last=True,
                                                      bounds=((-5, 1),(-1.5, 1.5)))
 
+    def reset(self):
+        self.interpolator.reset()
+
     def __call__(self, energy, impact, xmax, xb, yb):
         """
         Evaluate interpolated templates for a set of shower parameters and pixel positions
