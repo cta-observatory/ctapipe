@@ -659,22 +659,16 @@ class ImPACTReconstructor(Reconstructor):
         tilt_y = tilted.y.to(u.m).value
         zenith = 90 * u.deg - self.array_direction.alt
 
-        if len(self.hillas_parameters) > 3:
-            shift = [1]
-        else:
-            shift = [1.5, 1, 0.5, 0, -0.5, -1, -1.5]
+        seeds = spread_line_seed(self.hillas_parameters,
+                                 self.tel_pos_x, self.tel_pos_y,
+                                 source_x, source_y, tilt_x, tilt_y,
+                                 energy_seed.energy.value,
+                                 shift_frac=[1])[0]
 
-        seed_list = spread_line_seed(self.hillas_parameters,
-                                     self.tel_pos_x, self.tel_pos_y,
-                                     source_x, source_y, tilt_x, tilt_y,
-                                     energy_seed.energy.value,
-                                     shift_frac=shift)
-
-        chosen_seed = self.choose_seed(seed_list)
         # Perform maximum likelihood fit
-        fit_params, errors, like = self.minimise(params=chosen_seed[0],
-                                                 step=chosen_seed[1],
-                                                 limits=chosen_seed[2],
+        fit_params, errors, like = self.minimise(params=seeds[0],
+                                                 step=seeds[1],
+                                                 limits=seeds[2],
                                                  minimiser_name=self.minimiser_name)
 
         # Create a container class for reconstructed shower
@@ -727,18 +721,6 @@ class ImPACTReconstructor(Reconstructor):
         energy_result.is_valid = True
 
         return shower_result, energy_result
-
-    def choose_seed(self, seed_list):
-
-        like = list()
-        for seed in seed_list:
-            #like.append(self.get_likelihood_min(seed[0]))
-            like.append(self.minimise(seed[0], seed[1], seed[2],
-                                      minimiser_name="nlopt",
-                                      max_calls=10)[2])
-
-        print("Choosing seed", np.argmin(like), like)
-        return seed_list[np.argmin(like)]
 
     def minimise(self, params, step, limits, minimiser_name="minuit", max_calls=0):
         """
