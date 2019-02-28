@@ -133,14 +133,16 @@ class HillasReconstructor(Reconstructor):
 
         # filter warnings for missing obs time. this is needed because MC data has no obs time
         warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
-        
-        # stereoscopy needs at least two telescopes with a valid width of the hillas ellipse
-        valid_telescopes = sum([1 if not np.isnan(hillas_dict[x]['width'].value) else 0 for x in hillas_dict])
+
+        # stereoscopy needs at least two telescopes with valid widths
+        valid_telescopes = sum([1 if not np.isnan(hillas_dict[x]['width'].value)
+                                else 0
+                                for x in hillas_dict])
 
         if valid_telescopes < 2:
             raise TooFewTelescopesException(
                 "need at least two telescopes, have {}"
-                .format(len(hillas_dict)))
+                .format(valid_telescopes))
 
         self.initialize_hillas_planes(
             hillas_dict,
