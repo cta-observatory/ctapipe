@@ -190,7 +190,8 @@ class SkewedGaussian(ImageModel):
     def pdf(self, x, y):
         '''2d probability for photon electrons in the camera plane'''
         mu = u.Quantity([self.x, self.y]).to_value(u.m)
-        rotation = linalg.rotation_matrix_2d(self.psi)
+
+        rotation = linalg.rotation_matrix_2d(-self.psi)
         pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
         long, trans = rotation @ (pos - mu).T
 

@@ -8,6 +8,7 @@ import numpy as np
 from numpy import isclose, zeros_like
 from numpy.random import seed
 from pytest import approx
+import itertools
 import pytest
 
 
@@ -116,8 +117,6 @@ def test_hillas_container():
     assert isinstance(params, HillasParametersContainer)
 
 
-
-
 def test_with_toy():
     np.random.seed(42)
 
@@ -158,3 +157,53 @@ def test_with_toy():
             )
 
             assert signal.sum() == result.intensity
+
+
+def test_skewness():
+    np.random.seed(42)
+
+    geom = CameraGeometry.from_name('LSTCam')
+
+    width = 0.03 * u.m
+    length = 0.15 * u.m
+    intensity = 2500
+
+    xs = u.Quantity([0.5, 0.5, -0.5, -0.5], u.m)
+    ys = u.Quantity([0.5, -0.5, 0.5, -0.5], u.m)
+    psis = Angle([-90, -45, 0, 45, 90], unit='deg')
+    skews = [0, 0.3, 0.6]
+
+    for x, y, psi, skew in itertools.product(xs, ys, psis, skews):
+        # make a toymodel shower model
+        model = toymodel.SkewedGaussian(
+            x=x, y=y,
+            width=width,
+            length=length,
+            psi=psi,
+            skewness=skew,
+        )
+
+        image, signal, noise = model.generate_image(
+            geom, intensity=intensity, nsb_level_pe=5,
+        )
+
+        result = hillas_parameters(geom, signal)
+
+        assert quantity_approx(result.x, x, rel=0.1)
+        assert quantity_approx(result.y, y, rel=0.1)
+
+        assert quantity_approx(result.width, width, rel=0.1)
+        assert quantity_approx(result.length, length, rel=0.1)
+
+        psi_same = result.psi.to_value(u.deg) == approx(psi.deg, abs=3)
+        psi_opposite = abs(result.psi.to_value(u.deg) - psi.deg) == approx(180.0, abs=3)
+        assert psi_same or psi_opposite
+
+        # if we have delta the other way around, we get a negative sign for skewness
+        # skewness is quite imprecise, maybe we could improve this somehow
+        if psi_same:
+            assert result.skewness == approx(skew, abs=0.3)
+        else:
+            assert result.skewness == approx(-skew, abs=0.3)
+
+        assert signal.sum() == result.intensity
