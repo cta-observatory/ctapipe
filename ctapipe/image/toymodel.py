@@ -42,7 +42,11 @@ class ImageModel(metaclass=ABCMeta):
 
     def generate_image(self, camera, intensity=50, nsb_level_pe=20):
         """
-        Generate a DL1 shower image
+        Generate a randomized DL1 shower image.
+        For the signal, poisson random numbers are drawn from
+        the expected signal distribution for each pixel.
+        For the background, for each pixel a poisson random number
+        if drawn with mean `nsb_level_pe`.
 
         Parameters
         ----------
@@ -59,14 +63,32 @@ class ImageModel(metaclass=ABCMeta):
         signal: only the signal part of image
         noise: only the noise part of image
         """
-        pdf = self.pdf(camera.pix_x, camera.pix_y)
-        expected_signal = pdf * intensity * camera.pix_area.value
+        expected_signal = self.expected_signal(camera, intensity)
 
         signal = np.random.poisson(expected_signal)
         noise = np.random.poisson(nsb_level_pe, size=signal.shape)
         image = (signal + noise) - np.mean(noise)
 
         return image, signal, noise
+
+    def expected_signal(self, camera, intensity):
+        '''
+        Expected signal in each pixel for the given camera
+        and total intensity.
+
+        Parameters
+        ----------
+        camera: `ctapipe.instrument.CameraGeometry`
+            camera geometry object
+        intensity: int
+            Total number of expected photo electrons
+
+        Returns
+        -------
+        image: array with length n_pixels containing the image
+        '''
+        pdf = self.pdf(camera.pix_x, camera.pix_y)
+        return pdf * intensity * camera.pix_area.value
 
 
 class Gaussian(ImageModel):
