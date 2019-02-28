@@ -134,6 +134,7 @@ class ImPACTReconstructor(Reconstructor):
 
         self.array_direction = None
         self.array_return = False
+        self.nominal_frame = None
 
         # For now these factors are required to fix problems in templates
         self.template_scale = template_scale
@@ -617,10 +618,12 @@ class ImPACTReconstructor(Reconstructor):
         self.image[mask] = ma.masked
         self.time[mask] = ma.masked
 
+        self.array_direction = array_direction
+        self.nominal_frame = NominalFrame(origin=self.array_direction)
+
         # Finally run some functions to get ready for the event
         self.get_hillas_mean()
         self.initialise_templates(type_tel)
-        self.array_direction = array_direction
 
     def predict(self, shower_seed, energy_seed):
         """
@@ -643,9 +646,7 @@ class ImPACTReconstructor(Reconstructor):
         horizon_seed = SkyCoord(
             az=shower_seed.az, alt=shower_seed.alt, frame=AltAz()
         )
-        nominal_seed = horizon_seed.transform_to(
-            NominalFrame(origin=self.array_direction)
-        )
+        nominal_seed = horizon_seed.transform_to(self.nominal_frame)
 
         source_x = nominal_seed.delta_az.to_value(u.rad)
         source_y = nominal_seed.delta_alt.to_value(u.rad)
@@ -684,7 +685,7 @@ class ImPACTReconstructor(Reconstructor):
         nominal = SkyCoord(
             delta_az=fit_params[0] * u.rad,
             delta_alt=fit_params[1] * u.rad,
-            frame=NominalFrame(origin=self.array_direction)
+            frame=self.nominal_frame
         )
         horizon = nominal.transform_to(AltAz())
 
