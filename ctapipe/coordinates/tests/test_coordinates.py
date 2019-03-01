@@ -150,7 +150,7 @@ def test_cam_to_hor():
     camera_coord2 = altaz_coord2.transform_to(camera_frame)
     
     # check transform
-    assert np.isclose(camera_coord.x.to_value(u.m), camera_coord2.to_value(u.m))
+    assert np.isclose(camera_coord.x.to_value(u.m), camera_coord2.y.to_value(u.m))
 
 
 def test_ground_to_tilt():
