@@ -11,6 +11,7 @@ GuessingResult = namedtuple(
 TELESCOPE_NAMES = {
     GuessingKey(2048, 2.28): GuessingResult('SST', 'GCT', 'CHEC', 2),
     GuessingKey(2368, 2.15): GuessingResult('SST', 'ASTRI', 'ASTRICam', 2),
+    GuessingKey(2048, 2.15): GuessingResult('SST', 'ASTRI', 'CHEC', 2),
     GuessingKey(1296, 5.60): GuessingResult('SST', '1M', 'DigiCam', 1),
     GuessingKey(1764, 16.0): GuessingResult('MST', 'MST', 'FlashCam', 1),
     GuessingKey(1855, 16.0): GuessingResult('MST', 'MST', 'NectarCam', 1),
