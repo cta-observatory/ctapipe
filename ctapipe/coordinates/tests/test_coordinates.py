@@ -138,18 +138,18 @@ def test_cam_to_hor():
 
     # first define the camera frame
     pointing = SkyCoord(alt=70*u.deg, az=0*u.deg,frame=AltAz())
-    camera_frame = CameraFrame(focal_length=focal_length)
+    camera_frame = CameraFrame(focal_length=focal_length, telescope_pointing=pointing)
 
     # transform
     camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
     altaz_coord = camera_coord.transform_to(AltAz())
 
     # transform back
-    altaz_coord2 = SkyCoord(az=altaz_coord.az, alt=altaz_coord.alt, frame=hf)
+    altaz_coord2 = SkyCoord(az=altaz_coord.az, alt=altaz_coord.alt, frame=AltAz())
     camera_coord2 = altaz_coord2.transform_to(camera_frame)
     
     # check transform
-    assert camera_coord.x == camera_coord2.x
+    assert np.isclose(camera_coord.x.to_value(u.m), camera_coord2.to_value(u.m))
 
 
 def test_ground_to_tilt():
