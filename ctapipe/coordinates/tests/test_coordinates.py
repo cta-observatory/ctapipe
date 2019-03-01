@@ -129,6 +129,7 @@ def test_cam_to_tel():
 
 
 def test_cam_to_hor():
+    from ctapipe.coordinates import CameraFrame
     # Coordinates in any frame can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
     pix_x = [1] * u.m
