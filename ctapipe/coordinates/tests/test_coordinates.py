@@ -129,7 +129,7 @@ def test_cam_to_tel():
 
 
 def test_cam_to_hor():
-    # Coordinates in any fram can be given as a numpy array of the xyz positions
+    # Coordinates in any frame can be given as a numpy array of the xyz positions
     # e.g. in this case the position on pixels in the camera
     pix_x = [1] * u.m
     pix_y = [1] * u.m
