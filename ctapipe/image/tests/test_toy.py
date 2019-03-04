@@ -57,7 +57,7 @@ def test_skewed():
         x=x, y=y, width=width,
         length=length, psi=psi, skewness=skewness
     )
-    image, signal, noise = model.generate_image(
+    image, signal, _ = model.generate_image(
         geom, intensity=intensity, nsb_level_pe=5,
     )
 

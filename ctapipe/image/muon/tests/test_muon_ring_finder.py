@@ -67,7 +67,7 @@ def test_ChaudhuriKunduRingFitter():
         sigma=ring_width, radius=ring_radius,
     )
 
-    image, signal, _ = muon_model.generate_image(
+    image, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
 
@@ -83,7 +83,7 @@ def test_ChaudhuriKunduRingFitter():
     # fit 3 times, first iteration use cleaning, after that use
     # distance to previous fit result
     result = None
-    for i in range(3):
+    for _ in range(3):
         if result is None:
             mask = clean_mask
         else:

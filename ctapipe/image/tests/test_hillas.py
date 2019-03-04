@@ -33,7 +33,7 @@ def create_sample_image(
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, signal, _ = model.generate_image(
+    image, _, _ = model.generate_image(
         geom,
         intensity=1500,
         nsb_level_pe=3,
@@ -183,7 +183,7 @@ def test_skewness():
             skewness=skew,
         )
 
-        image, signal, noise = model.generate_image(
+        _, signal, _ = model.generate_image(
             geom, intensity=intensity, nsb_level_pe=5,
         )
 

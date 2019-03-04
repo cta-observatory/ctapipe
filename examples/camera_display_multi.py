@@ -38,7 +38,7 @@ def draw_several_cams(geom, ncams=4):
             psi=ii * 20 * u.deg,
         )
 
-        image, sig, _ = model.generate_image(
+        image, _, _ = model.generate_image(
             geom,
             intensity=1500,
             nsb_level_pe=5,
