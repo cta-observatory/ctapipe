@@ -67,7 +67,7 @@ def test_ChaudhuriKunduRingFitter():
         sigma=ring_width, radius=ring_radius,
     )
 
-    image, signal, noise = muon_model.generate_image(
+    image, signal, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
 

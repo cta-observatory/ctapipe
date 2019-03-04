@@ -46,7 +46,7 @@ if __name__ == '__main__':
             length=length * u.m,
             psi=angle * u.deg,
         )
-        image, sig, bg = model.generate_image(
+        image, sig, _ = model.generate_image(
             geom,
             intensity=intens,
             nsb_level_pe=5,

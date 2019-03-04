@@ -111,7 +111,7 @@ class CameraDemo(Tool):
                 frame, width, length, intens
             )
 
-            image, sig, bg = model.generate_image(
+            image, sig, _ = model.generate_image(
                 geom,
                 intensity=intens,
                 nsb_level_pe=3,

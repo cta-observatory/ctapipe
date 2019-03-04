@@ -33,13 +33,13 @@ def create_sample_image(
     model = toymodel.Gaussian(x=x, y=y, width=width, length=length, psi=psi)
 
     # generate toymodel image in camera for this shower model.
-    image, signal, noise = model.generate_image(
+    image, signal, _ = model.generate_image(
         geom,
         intensity=1500,
         nsb_level_pe=3,
     )
 
-    # denoise the image, so we can calculate hillas params
+    # calculate pixels likely containing signal
     clean_mask = tailcuts_clean(geom, image, 10, 5)
 
     return geom, image, clean_mask
