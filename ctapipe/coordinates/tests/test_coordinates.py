@@ -128,6 +128,31 @@ def test_cam_to_tel():
     assert camera_coord.separation_3d(camera_coord2)[0] == 0 * u.m
 
 
+def test_cam_to_hor():
+    from ctapipe.coordinates import CameraFrame
+    # Coordinates in any frame can be given as a numpy array of the xyz positions
+    # e.g. in this case the position on pixels in the camera
+    pix_x = [1] * u.m
+    pix_y = [1] * u.m
+
+    focal_length = 15000 * u.mm
+
+    # first define the camera frame
+    pointing = SkyCoord(alt=70*u.deg, az=0*u.deg,frame=AltAz())
+    camera_frame = CameraFrame(focal_length=focal_length, telescope_pointing=pointing)
+
+    # transform
+    camera_coord = SkyCoord(pix_x, pix_y, frame=camera_frame)
+    altaz_coord = camera_coord.transform_to(AltAz())
+
+    # transform back
+    altaz_coord2 = SkyCoord(az=altaz_coord.az, alt=altaz_coord.alt, frame=AltAz())
+    camera_coord2 = altaz_coord2.transform_to(camera_frame)
+    
+    # check transform
+    assert np.isclose(camera_coord.x.to_value(u.m), camera_coord2.y.to_value(u.m))
+
+
 def test_ground_to_tilt():
     from ctapipe.coordinates import GroundFrame, TiltedGroundFrame
 
