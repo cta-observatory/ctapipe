@@ -63,7 +63,7 @@ class ImageSumDisplayerTool(Tool):
             break
 
         group = camtypes.groups[self.telgroup]
-        self._selected_tels = list(group['tel_id'].data)
+        self._selected_tels = list(group['id'].data)
         self._base_tel = self._selected_tels[0]
         self.log.info(
             "Telescope group %d: %s", self.telgroup,

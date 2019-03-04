@@ -6,7 +6,6 @@ import pytest
 
 from copy import deepcopy
 
-from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 
@@ -17,13 +16,12 @@ def _global_example_event():
     helper to get a single event from a MC file. Don't use this fixture
     directly, rather use `test_event`
     """
-    filename = get_dataset_path('gamma_test.simtel.gz')
+    filename = get_dataset_path('gamma_test_large.simtel.gz')
 
     print("******************** LOAD TEST EVENT ***********************")
 
     with SimTelEventSource(input_url=filename) as reader:
-        seeker = EventSeeker(reader)
-        event = seeker['409']
+        event = next(iter(reader))
 
     return event
 

@@ -58,7 +58,7 @@ def test_compatible():
     dataset = get_dataset_path("chec_r1.tio")
     assert TargetIOEventSource.is_compatible(dataset)
 
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
     assert not TargetIOEventSource.is_compatible(dataset)
 
 

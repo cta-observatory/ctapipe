@@ -20,29 +20,6 @@ __all__ = ['CameraGeometry']
 
 logger = logging.getLogger(__name__)
 
-# dictionary to convert number of pixels to camera + the focal length of the
-# telescope into a camera type for use in `CameraGeometry.guess()`
-#     Key = (num_pix, focal_length_in_meters)
-#     Value = (type, subtype, pixtype, pixrotation, camrotation)
-_CAMERA_GEOMETRY_TABLE = {
-    (2048, 2.3): ('SST', 'CHEC', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 2.2): ('SST', 'CHEC', 'rectangular', 0 * u.degree, 0 * u.degree),
-    (2048, 36.0): ('LST', 'HESS-II', 'hexagonal', 0 * u.degree,
-                   0 * u.degree),
-    (960, None): ('MST', 'HESS-I', 'hexagonal', 0 * u.degree,
-                  0 * u.degree),
-    (1855, 16.0): ('MST', 'NectarCam', 'hexagonal',
-                   0 * u.degree, -100.893 * u.degree),
-    (1855, 28.0): ('LST', 'LSTCam', 'hexagonal',
-                   0. * u.degree, -100.893 * u.degree),
-    (1296, None): ('SST', 'DigiCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (1764, None): ('MST', 'FlashCam', 'hexagonal', 30 * u.degree, 0 * u.degree),
-    (2368, None): ('SST', 'ASTRICam', 'rectangular', 0 * u.degree,
-                   0 * u.degree),
-    (11328, None): ('SCT', 'SCTCam', 'rectangular', 0 * u.degree, 0 * u.degree),
-}
-
-
 
 class CameraGeometry:
     """`CameraGeometry` is a class that stores information about a
@@ -118,13 +95,31 @@ class CameraGeometry:
         self.border_cache = {}
 
     def __eq__(self, other):
-        return ((self.cam_id == other.cam_id)
-                and (self.pix_x == other.pix_x).all()
-                and (self.pix_y == other.pix_y).all()
-                and (self.pix_type == other.pix_type)
-                and (self.pix_rotation == other.pix_rotation)
-                and (self.pix_type == other.pix_type)
-                )
+        if self.cam_id != other.cam_id:
+            return False
+
+        if self.n_pixels != other.n_pixels:
+            return False
+
+        if self.pix_type != other.pix_type:
+            return False
+
+        if self.pix_rotation != other.pix_rotation:
+            return False
+
+        return all([
+            (self.pix_x == other.pix_x).all(),
+            (self.pix_y == other.pix_y).all(),
+        ])
+
+    def __hash__(self):
+        return hash((
+            self.cam_id,
+            self.pix_x[0].to_value(u.m),
+            self.pix_y[0].to_value(u.m),
+            self.pix_type,
+            self.pix_rotation.deg,
+        ))
 
     def __len__(self):
         return self.n_pixels
@@ -142,47 +137,6 @@ class CameraGeometry:
             neighbors=None,
             apply_derotation=False,
         )
-
-    @classmethod
-    @u.quantity_input
-    def guess(cls, pix_x: u.m, pix_y: u.m, optical_foclen: u.m,
-              apply_derotation=True):
-        """
-        Construct a `CameraGeometry` by guessing the appropriate quantities
-        from a list of pixel positions and the focal length.
-        """
-        # only construct a new one if it has never been constructed before,
-        # to speed up access. Otherwise return the already constructed instance
-        # the identifier uses the values of pix_x (which are converted to a
-        # string to make them hashable) and the optical_foclen. So far,
-        # that is enough to uniquely identify a geometry.
-        identifier = (pix_x.value.tostring(), optical_foclen)
-        if identifier in CameraGeometry._geometry_cache:
-            return CameraGeometry._geometry_cache[identifier]
-
-        # now try to determine the camera type using the map defined at the
-        # top of this file.
-
-        tel_type, cam_id, pix_type, pix_rotation, cam_rotation = \
-            _guess_camera_type(len(pix_x), optical_foclen)
-
-        area = cls._calc_pixel_area(pix_x, pix_y, pix_type)
-
-        instance = cls(
-            cam_id=cam_id,
-            pix_id=np.arange(len(pix_x)),
-            pix_x=pix_x,
-            pix_y=pix_y,
-            pix_area=np.ones(pix_x.shape) * area,
-            neighbors=None,
-            pix_type=pix_type,
-            pix_rotation=Angle(pix_rotation),
-            cam_rotation=Angle(cam_rotation),
-            apply_derotation=apply_derotation
-        )
-        instance.cam_rotation = Angle(cam_rotation)
-        CameraGeometry._geometry_cache[identifier] = instance
-        return instance
 
     @staticmethod
     def _calc_pixel_area(pix_x, pix_y, pix_type):
@@ -603,6 +557,19 @@ class CameraGeometry:
 
         return pix_indices if len(pix_indices) > 1 else pix_indices[0]
 
+    @staticmethod
+    def simtel_shape_to_type(pixel_shape):
+        if pixel_shape == 1:
+            return 'hexagonal', Angle(0, u.deg)
+
+        if pixel_shape == 2:
+            return 'rectangular', Angle(0, u.deg)
+
+        if pixel_shape == 3:
+            return 'hexagonal', Angle(30, u.deg)
+
+        raise ValueError(f'Unknown pixel_shape {pixel_shape}')
+
 
 # ======================================================================
 # utility functions:
@@ -663,19 +630,6 @@ def _find_neighbor_pixels(pix_x, pix_y, rad):
     return neighbors
 
 
-def _guess_camera_type(npix, optical_foclen):
-    global _CAMERA_GEOMETRY_TABLE
-
-    try:
-        return _CAMERA_GEOMETRY_TABLE[(npix, None)]
-    except KeyError:
-        return _CAMERA_GEOMETRY_TABLE.get(
-            (npix, round(optical_foclen.value, 1)),
-            ('unknown', 'unknown', 'hexagonal',
-             0 * u.degree, 0 * u.degree)
-        )
-
-
 def _neighbor_list_to_matrix(neighbors):
     """
     convert a neighbor adjacency list (list of list of neighbors) to a 2D
@@ -690,3 +644,7 @@ def _neighbor_list_to_matrix(neighbors):
             neigh2d[ipix, neighbor] = True
 
     return neigh2d
+
+
+class UnknownPixelShapeWarning(UserWarning):
+    pass
