@@ -48,7 +48,7 @@ def get_module_version(name):
         return module.__version__
     except AttributeError:
         try:
-            get_distribution(name).version
+            return get_distribution(name).version
         except:
             return 'unknown'
     except ImportError:

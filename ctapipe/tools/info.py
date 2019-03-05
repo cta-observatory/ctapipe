@@ -6,7 +6,7 @@ import os
 import sys
 
 from .utils import get_parser
-from ..core import Provenance
+from ..core import Provenance, get_module_version
 from ..utils import datasets
 
 __all__ = ['info']
@@ -116,12 +116,7 @@ def _info_dependencies():
     print('\n*** ctapipe core dependencies ***\n')
 
     for name in _dependencies:
-        try:
-            module = importlib.import_module(name)
-            version = module.__version__
-        except ImportError:
-            version = 'not installed'
-
+        version = get_module_version(name)
         print(f'{name:>20s} -- {version}')
 
     print('\n*** ctapipe optional dependencies ***\n')
