@@ -79,33 +79,32 @@ class CameraCalibrator(Component):
 
         extractor = ChargeExtractor.from_name(
             extractor_product,
-            config=config,
-            parent=parent
+            parent=self,
         )
 
         cleaner = WaveformCleaner.from_name(
             cleaner_product,
-            config=config,
-            parent=parent,
+            parent=self,
         )
 
         if r1_product:
             self.r1 = CameraR1Calibrator.from_name(
                 r1_product,
                 config=config,
-                parent=parent,
+                parent=self,
             )
         else:
             self.r1 = CameraR1Calibrator.from_eventsource(
                 eventsource,
-                config=config,
-                parent=parent,
+                parent=self,
             )
 
-        self.dl0 = CameraDL0Reducer(config=config, parent=parent)
-        self.dl1 = CameraDL1Calibrator(config=config, parent=parent,
-                                       extractor=extractor,
-                                       cleaner=cleaner)
+        self.dl0 = CameraDL0Reducer(parent=parent)
+        self.dl1 = CameraDL1Calibrator(
+            parent=self,
+            extractor=extractor,
+            cleaner=cleaner,
+        )
 
     def calibrate(self, event):
         """
