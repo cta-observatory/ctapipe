@@ -53,7 +53,7 @@ class SingleTelEventDisplay(Tool):
     ).tag(config=True)
 
     aliases = Dict({
-        'infile': 'EventSource.input_url',
+        'infile': 'SingleTelEventDisplay.infile',
         'tel': 'SingleTelEventDisplay.tel',
         'max-events': 'EventSource.max_events',
         'channel': 'SingleTelEventDisplay.channel',
