@@ -453,8 +453,8 @@ class CameraGeometry:
 
         return cls(cam_id=-1,
                    pix_id=ids,
-                   pix_x=xx * u.m,
-                   pix_y=yy * u.m,
+                   pix_x=xx,
+                   pix_y=yy,
                    pix_area=(2 * rr) ** 2,
                    neighbors=None,
                    pix_type='rectangular')

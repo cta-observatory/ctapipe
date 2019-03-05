@@ -7,11 +7,7 @@ def test_available_sources():
     children = non_abstract_children(EventSource)
 
     from ctapipe.io.simteleventsource import SimTelEventSource
-    from ctapipe.io.lsteventsource import LSTEventSource
-    from ctapipe.io.nectarcameventsource import NectarCAMEventSource
     from ctapipe.io.targetioeventsource import TargetIOEventSource
 
     assert SimTelEventSource in children
-    assert LSTEventSource in children
-    assert NectarCAMEventSource in children
     assert TargetIOEventSource in children
