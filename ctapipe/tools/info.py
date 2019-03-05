@@ -5,8 +5,6 @@ import logging
 import os
 import sys
 
-import ctapipe_resources
-
 from .utils import get_parser
 from ..core import Provenance
 from ..utils import datasets
@@ -17,9 +15,9 @@ __all__ = ['info']
 _dependencies = sorted(['astropy', 'matplotlib',
                         'numpy', 'traitlets',
                         'sklearn', 'scipy', 'numba',
-                        'pytest', 'ctapipe_resources', 'iminuit', 'tables'])
+                        'pytest', 'iminuit', 'tables'])
 
-_optional_dependencies = sorted(['pytest', 'graphviz',  # 'pyzmq',
+_optional_dependencies = sorted(['ctapipe_resources', 'pytest', 'graphviz',  # 'pyzmq',
                                  'fitsio', 'pyhessio', 'targetio',
                                  'matplotlib'])
 
@@ -136,9 +134,6 @@ def _info_resources():
     """ display all known resources """
 
     print('\n*** ctapipe resources ***\n')
-
-    print(f"ctapipe_resources version: {ctapipe_resources.__version__}")
-
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
     if os.getenv('CTAPIPE_SVC_PATH') is not None:
         for directory in datasets.get_searchpath_dirs():
