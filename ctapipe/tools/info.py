@@ -12,14 +12,22 @@ from ..utils import datasets
 __all__ = ['info']
 
 # TODO: this list should be global (or generated at install time)
-_dependencies = sorted(['astropy', 'matplotlib',
-                        'numpy', 'traitlets',
-                        'sklearn', 'scipy', 'numba',
-                        'pytest', 'iminuit', 'tables'])
+_dependencies = sorted([
+    'astropy', 'matplotlib',
+    'numpy', 'traitlets',
+    'sklearn', 'scipy', 'numba',
+    'pytest', 'iminuit', 'tables',
+    'eventio',
+])
 
-_optional_dependencies = sorted(['ctapipe_resources', 'pytest', 'graphviz',  # 'pyzmq',
-                                 'fitsio', 'pyhessio', 'targetio',
-                                 'matplotlib'])
+_optional_dependencies = sorted([
+    'ctapipe_resources',
+    'pytest',
+    'graphviz',
+    'pyhessio',
+    'targetio',
+    'matplotlib'
+])
 
 
 def main(args=None):
