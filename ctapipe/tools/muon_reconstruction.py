@@ -68,7 +68,7 @@ class MuonDisplayerTool(Tool):
         self.log.debug("input: %s", self.events)
         self.source = event_source(self.events)
         self.calib = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.source
+            config=self.config, parent=self, eventsource=self.source
         )
         self.writer = HDF5TableWriter(self.outfile, "muons")
 

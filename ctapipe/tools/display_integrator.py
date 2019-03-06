@@ -309,22 +309,20 @@ class DisplayIntegrator(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, tool=self)
 
-        event_source = EventSource.from_config(**kwargs)
-        self.eventseeker = EventSeeker(event_source, **kwargs)
+        event_source = EventSource.from_config(parent=self)
+        self.eventseeker = EventSeeker(event_source, parent=self)
         self.extractor = ChargeExtractor.from_name(
             self.extractor_product,
-            **kwargs
+            parent=self,
         )
         self.r1 = CameraR1Calibrator.from_eventsource(
             eventsource=event_source,
-            **kwargs
+            parent=self,
         )
 
-        self.dl0 = CameraDL0Reducer(**kwargs)
-
-        self.dl1 = CameraDL1Calibrator(extractor=self.extractor, **kwargs)
+        self.dl0 = CameraDL0Reducer(parent=self)
+        self.dl1 = CameraDL1Calibrator(extractor=self.extractor, parent=self)
 
     def start(self):
         event_num = self.event_index

@@ -53,7 +53,7 @@ class SingleTelEventDisplay(Tool):
     ).tag(config=True)
 
     aliases = Dict({
-        'infile': 'EventSource.input_url',
+        'infile': 'SingleTelEventDisplay.infile',
         'tel': 'SingleTelEventDisplay.tel',
         'max-events': 'EventSource.max_events',
         'channel': 'SingleTelEventDisplay.channel',
@@ -68,17 +68,16 @@ class SingleTelEventDisplay(Tool):
 
     classes = List([EventSource, CameraCalibrator])
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def setup(self):
-        self.event_source = EventSource.from_config(
-            config=self.config,
-            tool=self
-        )
-        self.event_source.allowed_tels = [
-            self.tel,
-        ]
+        print('TOLLES INFILE', self.infile)
+        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.event_source.allowed_tels = {self.tel, }
 
         self.calibrator = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.event_source
+            parent=self, eventsource=self.event_source
         )
 
         self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')

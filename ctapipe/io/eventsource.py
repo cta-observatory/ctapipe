@@ -123,7 +123,7 @@ class EventSource(Component):
               'will be included')
     ).tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
         generator, regardless of the type of file (either hessio or camera
@@ -141,7 +141,7 @@ class EventSource(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
 
         self.metadata = dict(is_simulation=False)
 
@@ -254,7 +254,7 @@ class EventSource(Component):
         )
 
     @classmethod
-    def from_config(cls, config, **kwargs):
+    def from_config(cls, config=None, parent=None, **kwargs):
         """
         Find compatible EventSource for the EventSource.input_url traitlet
         specified via the config.
@@ -274,6 +274,9 @@ class EventSource(Component):
         instance
             Instance of a compatible EventSource subclass
         """
+        if config is None:
+            config = parent.config
+
         if isinstance(config.EventSource.input_url, LazyConfigValue):
             config.EventSource.input_url = cls.input_url.default_value
         elif not isinstance(config.EventSource.input_url, str):

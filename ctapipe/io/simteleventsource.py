@@ -24,9 +24,8 @@ __all__ = ['SimTelEventSource']
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
-
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.metadata['is_simulation'] = True
 
         # traitlets creates an empty set as default,
