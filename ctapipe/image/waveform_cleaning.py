@@ -13,7 +13,7 @@ from ctapipe.image.charge_extractors import (AverageWfPeakIntegrator,
                                              LocalPeakIntegrator)
 
 __all__ = ['WaveformCleaner', 'CHECMWaveformCleanerAverage',
-           'CHECMWaveformCleanerLocal',
+           'CHECMWaveformCleanerLocal', 'BaselineWaveformCleaner',
            'NullWaveformCleaner']
 
 
@@ -33,8 +33,8 @@ class WaveformCleaner(Component):
         Set to None if no Tool to pass.
     kwargs
     """
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
     @abstractmethod
     def apply(self, waveforms):
@@ -66,6 +66,24 @@ class NullWaveformCleaner(WaveformCleaner):
         return waveforms
 
 
+class BaselineWaveformCleaner(WaveformCleaner):
+    """
+    Basic waveform cleaner that subtracts the waveform baseline
+    estimated as the mean waveform value in the interval [baseline_start,baseline_end]
+    """
+    baseline_start = Int(0, help='Start sample for baseline estimation').tag(config=True)
+
+    baseline_end = Int(10, help='End sample for baseline estimation').tag(config=True)
+
+    def apply(self, waveforms):
+        # Subtract baseline
+        baseline_corrected = waveforms - np.mean(
+            waveforms[:, :, self.baseline_start:self.baseline_end], axis=2
+        )[:, :, None]
+
+        return baseline_corrected
+
+
 class CHECMWaveformCleaner(WaveformCleaner):
     """
     Waveform cleaner used by CHEC-M.
@@ -92,8 +110,8 @@ class CHECMWaveformCleaner(WaveformCleaner):
     window_shift = Int(8, help='Define the shift of the pulse window from the '
                                'peakpos (peakpos - shift).').tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
         # Cleaning steps for plotting
         self.stages = {}

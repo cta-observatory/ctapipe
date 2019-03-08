@@ -1,10 +1,9 @@
 """
-Example to load raw data (hessio format), calibrate and reconstruct muon
-ring parameters, and write the muon ring and intensity parameters to an output
-table.
+Detect and extract muon ring parameters, and write the muon ring and
+intensity parameters to an output table.
 
-The resulting output can be read e.g. using `pandas.read_hdf(filename,
-'muons/LSTCam')`
+The resulting output can be read e.g. using for example
+`pandas.read_hdf(filename, 'muons/LSTCam')`
 """
 
 import warnings
@@ -38,7 +37,7 @@ def _exclude_some_columns(subarray, writer):
 
 
 class MuonDisplayerTool(Tool):
-    name = 'ctapipe-display-muons'
+    name = 'ctapipe-reconstruct-muons'
     description = t.Unicode(__doc__)
 
     events = t.Unicode("",
@@ -69,7 +68,7 @@ class MuonDisplayerTool(Tool):
         self.log.debug("input: %s", self.events)
         self.source = event_source(self.events)
         self.calib = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.source
+            config=self.config, parent=self, eventsource=self.source
         )
         self.writer = HDF5TableWriter(self.outfile, "muons")
 
@@ -120,6 +119,6 @@ class MuonDisplayerTool(Tool):
         self.writer.close()
 
 
-if __name__ == '__main__':
+def main():
     tool = MuonDisplayerTool()
     tool.run()

@@ -8,6 +8,7 @@ from itertools import zip_longest
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
+calib_events_path = get_dataset_path('calib_events.simtel.gz')
 
 
 def compare_sources(input_url):
@@ -66,15 +67,101 @@ def compare_sources(input_url):
 
 
 def test_compare_event_hessio_and_simtel():
-    for input_url in (gamma_test_path, gamma_test_large_path):
-        compare_sources(input_url)
+    compare_sources(gamma_test_large_path)
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
-    with SimTelEventSource(input_url=gamma_test_path) as reader:
-        assert reader.is_compatible(gamma_test_path)
+    with SimTelEventSource(input_url=gamma_test_large_path) as reader:
+        assert reader.is_compatible(gamma_test_large_path)
         assert not reader.is_stream
 
+        for event in reader:
+            if event.count > 1:
+                break
+
+        for event in reader:
+            # Check generator has restarted from beginning
+            assert event.count == 0
+            break
+
+    # test that max_events works:
+    max_events = 5
+    with SimTelEventSource(input_url=gamma_test_large_path, max_events=max_events) as reader:
+        count = 0
+        for _ in reader:
+            count += 1
+        assert count == max_events
+
+    # test that the allowed_tels mask works:
+    with SimTelEventSource(
+        input_url=gamma_test_large_path,
+        allowed_tels={3, 4}
+    ) as reader:
+        for event in reader:
+            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+
+
+def test_that_event_is_not_modified_after_loop():
+
+    dataset = gamma_test_large_path
+    with SimTelEventSource(input_url=dataset, max_events=2) as source:
+        for event in source:
+            last_event = copy.deepcopy(event)
+
+        # now `event` should be identical with the deepcopy of itself from
+        # inside the loop.
+        # Unfortunately this does not work:
+        #      assert last_event == event
+        # So for the moment we just compare event ids
+        assert event.r0.event_id == last_event.r0.event_id
+
+
+def test_additional_meta_data_from_mc_header():
+    with SimTelEventSource(input_url=gamma_test_large_path) as reader:
+        data = next(iter(reader))
+
+    # for expectation values
+    from astropy import units as u
+    from astropy.coordinates import Angle
+
+    assert data.mcheader.corsika_version == 6990
+    assert data.mcheader.spectral_index == -2.0
+    assert data.mcheader.shower_reuse == 20
+    assert data.mcheader.core_pos_mode == 1
+    assert data.mcheader.diffuse == 1
+    assert data.mcheader.atmosphere == 26
+
+    # value read by hand from input card
+    name_expectation = {
+        'energy_range_min': u.Quantity(3.0e-03, u.TeV),
+        'energy_range_max': u.Quantity(3.3e+02, u.TeV),
+        'prod_site_B_total': u.Quantity(23.11772346496582, u.uT),
+        'prod_site_B_declination': Angle(0.0 * u.rad),
+        'prod_site_B_inclination': Angle(-0.39641156792640686 * u.rad),
+        'prod_site_alt': 2150.0 * u.m,
+        'max_scatter_range': 3000.0 * u.m,
+        'min_az': 0.0 * u.rad,
+        'min_alt': 1.2217305 * u.rad,
+        'max_viewcone_radius': 10.0 * u.deg,
+        'corsika_wlen_min': 240 * u.nm,
+
+    }
+
+    for name, expectation in name_expectation.items():
+        value = getattr(data.mcheader, name)
+
+        assert value.unit == expectation.unit
+        assert np.isclose(
+            value.to_value(expectation.unit),
+            expectation.to_value(expectation.unit)
+        )
+
+
+def test_hessio_file_reader():
+    dataset = gamma_test_path
+    with SimTelEventSource(input_url=dataset) as reader:
+        assert reader.is_compatible(dataset)
+        assert not reader.is_stream
         for event in reader:
             if event.count == 0:
                 assert event.r0.tels_with_data == {38, 47}
@@ -90,74 +177,22 @@ def test_simtel_event_source_on_gamma_test_one_event():
 
     # test that max_events works:
     max_events = 5
-    with SimTelEventSource(input_url=gamma_test_path, max_events=max_events) as reader:
+    with SimTelEventSource(input_url=dataset, max_events=max_events) as reader:
         count = 0
         for _ in reader:
             count += 1
         assert count == max_events
 
     # test that the allowed_tels mask works:
-    with pytest.warns(UserWarning):
-        with SimTelEventSource(
-            input_url=gamma_test_path,
-            allowed_tels={3, 4}
-        ) as reader:
-            for event in reader:
-                assert event.r0.tels_with_data.issubset(reader.allowed_tels)
+    with SimTelEventSource(input_url=dataset, allowed_tels={3, 4}) as reader:
+        for event in reader:
+            assert event.r0.tels_with_data.issubset(reader.allowed_tels)
 
 
-def test_that_event_is_not_modified_after_loop():
-
-    dataset = gamma_test_path
-    with SimTelEventSource(input_url=dataset, max_events=2) as source:
-        for event in source:
-            last_event = copy.deepcopy(event)
-
-        # now `event` should be identical with the deepcopy of itself from
-        # inside the loop.
-        # Unfortunately this does not work:
-        #      assert last_event == event
-        # So for the moment we just compare event ids
-        assert event.r0.event_id == last_event.r0.event_id
-
-
-def test_additional_meta_data_from_mc_header():
-    with SimTelEventSource(input_url=gamma_test_path) as reader:
-        data = next(iter(reader))
-
-    # for expectation values
-    from astropy import units as u
-    from astropy.coordinates import Angle
-
-    assert data.mcheader.corsika_version == 6990
-    assert data.mcheader.simtel_version == 1404919891
-    assert data.mcheader.spectral_index == -2.0
-    assert data.mcheader.shower_prog_start == 1408536000
-    assert data.mcheader.shower_reuse == 10
-    assert data.mcheader.core_pos_mode == 1
-    assert data.mcheader.diffuse == 0
-    assert data.mcheader.atmosphere == 24
-
-    name_expectation = {
-        'energy_range_min': u.Quantity(3.0e-03, u.TeV),
-        'energy_range_max': u.Quantity(3.3e+02, u.TeV),
-        'prod_site_B_total': u.Quantity(27.181243896484375, u.uT),
-        'prod_site_B_declination': Angle(0.0 * u.rad),
-        'prod_site_B_inclination': Angle(-1.1581752300262451 * u.rad),
-        'prod_site_alt': 1640.0 * u.m,
-        'max_scatter_range': 2500.0 * u.m,
-        'min_az': 0.0 * u.rad,
-        'min_alt': 1.2217305 * u.rad,
-        'max_viewcone_radius': 0.0 * u.deg,
-        'corsika_wlen_min': 250 * u.nm,
-
-    }
-
-    for name, expectation in name_expectation.items():
-        value = getattr(data.mcheader, name)
-
-        assert value.unit == expectation.unit
-        assert np.isclose(
-            value.to_value(expectation.unit),
-            expectation.to_value(expectation.unit)
-        )
+def test_calibration_events():
+    with SimTelEventSource(
+            input_url=calib_events_path,
+            skip_calibration_events=False,
+    ) as reader:
+        for e in reader:
+            pass

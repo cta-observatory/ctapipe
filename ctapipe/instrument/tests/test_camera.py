@@ -47,13 +47,6 @@ def test_load_hess_camera():
     assert len(geom.pix_x) == 1855
 
 
-def test_guess_camera():
-    px = np.linspace(-10, 10, 11328) * u.m
-    py = np.linspace(-10, 10, 11328) * u.m
-    geom = CameraGeometry.guess(px, py, 0 * u.m)
-    assert geom.pix_type.startswith('rect')
-
-
 def test_position_to_pix_index():
     geom = CameraGeometry.from_name("LSTCam")
     x, y = 0.80 * u.m, 0.79 * u.m,
@@ -184,3 +177,21 @@ def test_border_pixels():
     assert cam.get_border_pixel_mask(1)[0]
     assert cam.get_border_pixel_mask(1)[2351]
     assert not cam.get_border_pixel_mask(1)[521]
+
+
+def test_equals():
+    cam1 = CameraGeometry.from_name("LSTCam")
+    cam2 = CameraGeometry.from_name("LSTCam")
+    cam3 = CameraGeometry.from_name("ASTRICam")
+
+    assert cam1 is not cam2
+    assert cam1 == cam2
+    assert cam1 != cam3
+
+
+def test_hashing():
+    cam1 = CameraGeometry.from_name("LSTCam")
+    cam2 = CameraGeometry.from_name("LSTCam")
+    cam3 = CameraGeometry.from_name("ASTRICam")
+
+    assert len(set([cam1, cam2, cam3])) == 2
