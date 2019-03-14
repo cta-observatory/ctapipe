@@ -43,3 +43,4 @@ dependencies:
   - pytest-runner
   - ctapipe-extra=0.2.17
   - pyhessio=2.1
+  - nbconvert>=5.4
