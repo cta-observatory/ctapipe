@@ -195,3 +195,28 @@ def test_hashing():
     cam3 = CameraGeometry.from_name("ASTRICam")
 
     assert len(set([cam1, cam2, cam3])) == 2
+
+
+@pytest.fixture(scope="module")
+def rectangle_pixel_patch_geom():
+    pix_x = np.array([
+        -1.1, 0.1, 0.9,
+        -1, 0, 1,
+        -0.9, -0.1, 1.1
+    ]) * u.m
+    pix_y = np.array([
+        1.1, 1, 0.9,
+        -0.1, 0, 0.1,
+        -0.9, -1, -1.1
+    ]) * u.m
+    cam = CameraGeometry(cam_id=0, pix_id=np.arange(pix_x.size),
+                         pix_x=pix_x, pix_y=pix_y,
+                         pix_area=None,
+                         pix_type='rectangular')
+    return cam
+
+
+def test_rectangle_patch_neighbors(rectangle_pixel_patch_geom):
+    cam = rectangle_pixel_patch_geom
+    assert cam.neighbor_matrix.sum(0).max() == 4
+    assert cam.neighbor_matrix.sum(0).min() == 2
