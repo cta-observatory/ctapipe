@@ -33,21 +33,21 @@ if __name__ == '__main__':
     disp.add_colorbar(ax=ax)
 
     def update(frame):
-        centroid = np.random.uniform(-fov, fov, size=2)
+        x, y = np.random.uniform(-fov, fov, size=2)
         width = np.random.uniform(0.01, maxwid)
         length = np.random.uniform(width, maxlen)
         angle = np.random.uniform(0, 180)
         intens = width * length * (5e4 + 1e5 * np.random.exponential(2))
 
-        model = toymodel.generate_2d_shower_model(
-            centroid=centroid,
-            width=width,
-            length=length,
+        model = toymodel.Gaussian(
+            x=x * u.m,
+            y=y * u.m,
+            width=width * u.m,
+            length=length * u.m,
             psi=angle * u.deg,
         )
-        image, sig, bg = toymodel.make_toymodel_shower_image(
+        image, _, _ = model.generate_image(
             geom,
-            model.pdf,
             intensity=intens,
             nsb_level_pe=5,
         )

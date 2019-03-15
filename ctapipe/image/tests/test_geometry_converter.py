@@ -6,7 +6,8 @@ from ctapipe.image.geometry_converter import (convert_geometry_hex1d_to_rect2d,
                                               chec_to_2d_array, array_2d_to_chec)
 from ctapipe.image.hillas import hillas_parameters
 from ctapipe.instrument import CameraGeometry
-from ctapipe.image.toymodel import generate_2d_shower_model, make_toymodel_shower_image
+from ctapipe.image.toymodel import Gaussian
+import astropy.units as u
 
 
 cam_ids = CameraGeometry.get_known_camera_names()
@@ -18,15 +19,16 @@ def create_mock_image(geom):
     '''
 
     camera_r = np.max(np.sqrt(geom.pix_x**2 + geom.pix_y**2))
-    model = generate_2d_shower_model(
-        centroid=(0.3 * camera_r.value, 0),
-        width=0.03 * camera_r.value,
-        length=0.10 * camera_r.value,
+    model = Gaussian(
+        x=0.3 * camera_r,
+        y=0 * u.m,
+        width=0.03 * camera_r,
+        length=0.10 * camera_r,
         psi="25d"
     )
 
-    _, image, _ = make_toymodel_shower_image(
-        geom, model.pdf,
+    _, image, _ = model.generate_image(
+        geom,
         intensity=0.5 * geom.n_pixels,
         nsb_level_pe=3,
     )

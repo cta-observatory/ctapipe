@@ -80,7 +80,7 @@ class CameraDisplay:
     Output:
         Since CameraDisplay uses matplotlib, any display can be
         saved to any output file supported via
-        plt.savefig(filename). This includes `.pdf` and `.png`.
+        plt.savefig(filename). This includes ``.pdf`` and ``.png``.
 
     """
 

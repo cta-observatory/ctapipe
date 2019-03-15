@@ -18,8 +18,8 @@ class TableWriter(Component, metaclass=ABCMeta):
     - `ctapipe.io.HDF5TableWriter`
     """
 
-    def __init__(self, tool=None, add_prefix=False, **kwargs):
-        super().__init__(tool=tool, **kwargs)
+    def __init__(self, parent=None, add_prefix=False, **kwargs):
+        super().__init__(parent=parent, **kwargs)
         self._transforms = defaultdict(dict)
         self._exclusions = defaultdict(list)
         self.add_prefix = add_prefix
