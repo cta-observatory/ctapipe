@@ -4,6 +4,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.instrument.camera import (
     _find_neighbor_pixels,
     _get_min_pixel_seperation,
+    _rectangular_pixel_row_column,
 )
 import pytest
 
@@ -220,3 +221,14 @@ def test_rectangle_patch_neighbors(rectangle_pixel_patch_geom):
     cam = rectangle_pixel_patch_geom
     assert cam.neighbor_matrix.sum(0).max() == 4
     assert cam.neighbor_matrix.sum(0).min() == 2
+
+
+def test_rectangular_pixel_row_column(rectangle_pixel_patch_geom):
+    cam = rectangle_pixel_patch_geom
+    row, column = _rectangular_pixel_row_column(cam.pix_x, cam.pix_y)
+    assert np.unique(column).size == 3
+    assert np.unique(row).size == 3
+    sort_x = np.argsort(cam.pix_x.value)
+    sort_y = np.argsort(cam.pix_y.value)
+    assert (np.diff(column[sort_x]) >= 0).all()
+    assert (np.diff(row[sort_y]) >= 0).all()
