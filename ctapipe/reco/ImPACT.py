@@ -630,7 +630,6 @@ class ImPACTReconstructor(Reconstructor):
         This function is needed in order to reset some variables in the interpolator
         at each new event. Without this reset, a new event starts with information
         from the previous event.
-        :return:
         """
         list(self.prediction.values())[0].reset()
 
