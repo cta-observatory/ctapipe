@@ -39,9 +39,8 @@ dependencies:
   - pytables
   - tqdm
   - conda-forge::nbsphinx
-  - pip:
-      - pytest_runner
-      - eventio==0.17.1
-      - https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.17.tar.gz
+  - eventio=0.18
+  - ctapipe-extra=0.2.17
+  - pytest-runner
 
 

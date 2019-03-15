@@ -5,9 +5,15 @@ from ctapipe.io.containers import DataContainer
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import (
+    TelescopeDescription,
+    SubarrayDescription,
+    CameraGeometry,
+    OpticsDescription,
+)
+from ctapipe.instrument.camera import UnknownPixelShapeWarning
+from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
 from traitlets import Bool
-
 
 from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
@@ -18,11 +24,17 @@ __all__ = ['SimTelEventSource']
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.metadata['is_simulation'] = True
+
+        # traitlets creates an empty set as default,
+        # which ctapipe treats as no restriction on the telescopes
+        # but eventio treats an emty set as "no telescopes allowed"
+        # so we explicitly pass None in that case
         self.file_ = SimTelFile(
             self.input_url,
+            allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
             skip_calibration=self.skip_calibration_events
         )
 
@@ -30,6 +42,7 @@ class SimTelEventSource(EventSource):
             self.file_.telescope_descriptions,
             self.file_.header
         )
+        self.start_pos = self.file_.tell()
 
     @staticmethod
     def prepare_subarray_info(telescope_descriptions, header):
@@ -55,18 +68,53 @@ class SimTelEventSource(EventSource):
 
         for tel_id, telescope_description in telescope_descriptions.items():
             cam_settings = telescope_description['camera_settings']
-            tel_description = TelescopeDescription.guess(
-                cam_settings['pixel_x'] * u.m,
-                cam_settings['pixel_y'] * u.m,
-                equivalent_focal_length=cam_settings['focal_length'] * u.m
+
+            n_pixels = cam_settings['n_pixels']
+            focal_length = u.Quantity(cam_settings['focal_length'], u.m)
+
+            try:
+                telescope = guess_telescope(n_pixels, focal_length)
+            except ValueError:
+                telescope = UNKNOWN_TELESCOPE
+
+            pixel_shape = cam_settings['pixel_shape'][0]
+            try:
+                pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
+            except ValueError:
+                warnings.warn(
+                    f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
+                    UnknownPixelShapeWarning,
+                )
+                pix_type = 'hexagon'
+                pix_rotation = '0d'
+
+            camera = CameraGeometry(
+                telescope.camera_name,
+                pix_id=np.arange(n_pixels),
+                pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
+                pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
+                pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
+                pix_type=pix_type,
+                pix_rotation=pix_rotation,
+                cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
+                apply_derotation=True,
+
             )
-            tel_description.optics.mirror_area = (
-                cam_settings['mirror_area'] * u.m ** 2
+
+            optics = OpticsDescription(
+                name=telescope.name,
+                num_mirrors=cam_settings['n_mirrors'],
+                equivalent_focal_length=focal_length,
+                mirror_area=u.Quantity(cam_settings['mirror_area'], u.m**2),
+                num_mirror_tiles=cam_settings['n_mirrors'],
             )
-            tel_description.optics.num_mirror_tiles = (
-                cam_settings['n_mirrors']
+
+            tel_descriptions[tel_id] = TelescopeDescription(
+                name=telescope.name,
+                type=telescope.type,
+                camera=camera,
+                optics=optics,
             )
-            tel_descriptions[tel_id] = tel_description
 
             tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
             tel_positions[tel_id] = header['tel_pos'][tel_idx] * u.m
@@ -82,6 +130,10 @@ class SimTelEventSource(EventSource):
         return is_eventio(file_path)
 
     def _generator(self):
+        if self.file_.tell() > self.start_pos:
+            self.file_._next_header_pos = 0
+            warnings.warn('Backseeking to start of file.')
+
         try:
             yield from self.__generator()
         except EOFError:
@@ -158,39 +210,43 @@ class SimTelEventSource(EventSource):
                 tel_index = self.file_.header['tel_id'].tolist().index(tel_id)
                 telescope_description = self.file_.telescope_descriptions[tel_id]
 
-                data.mc.tel[tel_id].dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
-                data.mc.tel[tel_id].pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
-                data.r0.tel[tel_id].waveform = adc_samples
-                data.r0.tel[tel_id].num_samples = adc_samples.shape[-1]
+
+                r0 = data.r0.tel[tel_id]
+                r0.waveform = adc_samples
+                r0.num_samples = adc_samples.shape[-1]
                 # We should not calculate stuff in an event source
                 # if this is not needed, we calculate it for nothing
-                data.r0.tel[tel_id].image = adc_samples.sum(axis=-1)
+                r0.image = adc_samples.sum(axis=-1)
 
                 pixel_lists = telescope_event['pixel_lists']
-                data.r0.tel[tel_id].num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
-                if data.r0.tel[tel_id].num_trig_pix > 0:
-                    data.r0.tel[tel_id].trig_pix_id = pixel_lists[0]['pixel_list']
+                r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
+                if r0.num_trig_pix > 0:
+                    r0.trig_pix_id = pixel_lists[0]['pixel_list']
 
                 pixel_settings = telescope_description['pixel_settings']
-                data.mc.tel[tel_id].reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
-                data.mc.tel[tel_id].meta['refstep'] = float(pixel_settings['ref_step'])
-                data.mc.tel[tel_id].time_slice = float(pixel_settings['time_slice'])
+                n_pixel = r0.waveform.shape[-2]
 
-                n_pixel = data.r0.tel[tel_id].waveform.shape[-2]
-                data.mc.tel[tel_id].photo_electron_image = (
-                    array_event.get('photoelectrons', {})
-                               .get(tel_index, {})
-                               .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
+                mc = data.mc.tel[tel_id]
+                mc.dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
+                mc.pedestal = array_event['camera_monitorings'][tel_id]['pedestal']
+                mc.reference_pulse_shape = pixel_settings['ref_shape'].astype('float64')
+                mc.meta['refstep'] = float(pixel_settings['ref_step'])
+                mc.time_slice = float(pixel_settings['time_slice'])
+                mc.photo_electron_image = (
+                    array_event
+                    .get('photoelectrons', {})
+                    .get(tel_index, {})
+                    .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
                 )
 
                 tracking_position = tracking_positions[tel_id]
-                data.mc.tel[tel_id].azimuth_raw = tracking_position['azimuth_raw']
-                data.mc.tel[tel_id].altitude_raw = tracking_position['altitude_raw']
-                data.mc.tel[tel_id].azimuth_cor = tracking_position.get('azimuth_cor', 0)
-                data.mc.tel[tel_id].altitude_cor = tracking_position.get('altitude_cor', 0)
+                mc.azimuth_raw = tracking_position['azimuth_raw']
+                mc.altitude_raw = tracking_position['altitude_raw']
+                mc.azimuth_cor = tracking_position.get('azimuth_cor', 0)
+                mc.altitude_cor = tracking_position.get('altitude_cor', 0)
             yield data
 
     def fill_mc_information(self, data, array_event):
@@ -249,4 +305,3 @@ class SimTelEventSource(EventSource):
         data.mcheader.corsika_wlen_max = mc_run_head['corsika_wlen_max'] * u.nm
         data.mcheader.corsika_low_E_detail = mc_run_head['corsika_low_E_detail']
         data.mcheader.corsika_high_E_detail = mc_run_head['corsika_high_E_detail']
-

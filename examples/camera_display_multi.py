@@ -30,16 +30,16 @@ def draw_several_cams(geom, ncams=4):
         )
         disp.cmap = cmaps[ii]
 
-        model = toymodel.generate_2d_shower_model(
-            centroid=(0.2 - ii * 0.1, -ii * 0.05),
-            width=0.05 + 0.001 * ii,
-            length=0.15 + 0.05 * ii,
+        model = toymodel.Gaussian(
+            x=(0.2 - ii * 0.1) * u.m,
+            y=(-ii * 0.05) * u.m,
+            width=(0.05 + 0.001 * ii) * u.m,
+            length=(0.15 + 0.05 * ii) * u.m,
             psi=ii * 20 * u.deg,
         )
 
-        image, sig, bg = toymodel.make_toymodel_shower_image(
+        image, _, _ = model.generate_image(
             geom,
-            model.pdf,
             intensity=1500,
             nsb_level_pe=5,
         )

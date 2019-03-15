@@ -46,7 +46,7 @@ class CameraCalibrator(Component):
         ))
 
     """
-    def __init__(self, config=None, tool=None,
+    def __init__(self, config=None, parent=None,
                  r1_product=None,
                  extractor_product='NeighbourPeakIntegrator',
                  cleaner_product='NullWaveformCleaner',
@@ -75,37 +75,36 @@ class CameraCalibrator(Component):
             the appropriate R1Calibrator to use.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
 
         extractor = ChargeExtractor.from_name(
             extractor_product,
-            config=config,
-            tool=tool
+            parent=self,
         )
 
         cleaner = WaveformCleaner.from_name(
             cleaner_product,
-            config=config,
-            tool=tool,
+            parent=self,
         )
 
         if r1_product:
             self.r1 = CameraR1Calibrator.from_name(
                 r1_product,
                 config=config,
-                tool=tool,
+                parent=self,
             )
         else:
             self.r1 = CameraR1Calibrator.from_eventsource(
                 eventsource,
-                config=config,
-                tool=tool,
+                parent=self,
             )
 
-        self.dl0 = CameraDL0Reducer(config=config, tool=tool)
-        self.dl1 = CameraDL1Calibrator(config=config, tool=tool,
-                                       extractor=extractor,
-                                       cleaner=cleaner)
+        self.dl0 = CameraDL0Reducer(parent=parent)
+        self.dl1 = CameraDL1Calibrator(
+            parent=self,
+            extractor=extractor,
+            cleaner=cleaner,
+        )
 
     def calibrate(self, event):
         """

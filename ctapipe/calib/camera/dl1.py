@@ -109,15 +109,15 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config=None, tool=None, extractor=None, cleaner=None,
+    def __init__(self, config=None, parent=None, extractor=None, cleaner=None,
                  **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
-            self.extractor = NeighbourPeakIntegrator(config, tool)
+            self.extractor = NeighbourPeakIntegrator(config, parent)
         self.cleaner = cleaner
         if self.cleaner is None:
-            self.cleaner = NullWaveformCleaner(config, tool)
+            self.cleaner = NullWaveformCleaner(config, parent)
         self._dl0_empty_warn = False
 
     def check_dl0_exists(self, event, telid):

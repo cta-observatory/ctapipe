@@ -62,7 +62,7 @@ class ChargeResolutionPlotter(Component):
              'their resolution'
     ).tag(config=True)
 
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Plots the charge resolution HDF5 file obtained from
         `ctapipe.analysis.camera.charge_resolution`.
@@ -86,7 +86,7 @@ class ChargeResolutionPlotter(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         self._df_pixel = None
         self._df_camera = None
 
@@ -324,7 +324,7 @@ class ChargeResolutionPlotter(Component):
 
 
 class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Plots the charge resolution similarly to ChargeResolutionPlotter, with
         the values divided by the CTA requirement.
@@ -341,7 +341,7 @@ class ChargeResolutionWRRPlotter(ChargeResolutionPlotter):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, tool=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
         self.ax.set_xlabel("True Charge (p.e.)")
         self.ax.set_ylabel(r"$\frac{{\sigma_Q}}{{Q}}$ / Requirement")
 

@@ -101,8 +101,8 @@ class HillasReconstructor(Reconstructor):
 
     """
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         self.hillas_planes = {}
 
     def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):

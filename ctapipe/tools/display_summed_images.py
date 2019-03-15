@@ -1,7 +1,7 @@
 """
 Select a group of similar telescopes (with same camera type), Loop over
 events where telescopes in the group participate, sum the image from each
-telescope, and display it
+telescope, and display it.
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from ctapipe.visualization import CameraDisplay
 
 class ImageSumDisplayerTool(Tool):
     description = Unicode(__doc__)
-    name = "ctapipe-image-sum-display"
+    name = "ctapipe-display-imagesum"
 
     infile = Unicode(
         help='input simtelarray file',
@@ -33,9 +33,9 @@ class ImageSumDisplayerTool(Tool):
 
     output_suffix = Unicode(
         help='suffix (file extension) of output '
-        'filenames to write images '
-        'to (no writing is done if blank). '
-        'Images will be named [EVENTID][suffix]',
+             'filenames to write images '
+             'to (no writing is done if blank). '
+             'Images will be named [EVENTID][suffix]',
         default_value=""
     ).tag(config=True)
 
@@ -63,7 +63,7 @@ class ImageSumDisplayerTool(Tool):
             break
 
         group = camtypes.groups[self.telgroup]
-        self._selected_tels = list(group['tel_id'].data)
+        self._selected_tels = list(group['id'].data)
         self._base_tel = self._selected_tels[0]
         self.log.info(
             "Telescope group %d: %s", self.telgroup,
@@ -72,7 +72,7 @@ class ImageSumDisplayerTool(Tool):
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
         self.calibrator = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.reader
+            parent=self, eventsource=self.reader
         )
 
         self.reader.allowed_tels = self._selected_tels
@@ -117,6 +117,6 @@ class ImageSumDisplayerTool(Tool):
                 plt.savefig(filename)
 
 
-if __name__ == '__main__':
+def main():
     tool = ImageSumDisplayerTool()
     tool.run()

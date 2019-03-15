@@ -33,8 +33,8 @@ class CameraDL0Reducer(Component):
         will equal the r1 samples.
     kwargs
     """
-    def __init__(self, config=None, tool=None, reducer=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, reducer=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
         if reducer is None:
             self.log.info("Applying no data volume reduction in the "
                           "conversion from R1 to DL0")
