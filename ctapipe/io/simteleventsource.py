@@ -42,6 +42,7 @@ class SimTelEventSource(EventSource):
             self.file_.telescope_descriptions,
             self.file_.header
         )
+        self.start_pos = self.file_.tell()
 
     @staticmethod
     def prepare_subarray_info(telescope_descriptions, header):
@@ -129,6 +130,10 @@ class SimTelEventSource(EventSource):
         return is_eventio(file_path)
 
     def _generator(self):
+        if self.file_.tell() > self.start_pos:
+            self.file_._next_header_pos = 0
+            warnings.warn('Backseeking to start of file.')
+
         try:
             yield from self.__generator()
         except EOFError:

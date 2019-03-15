@@ -57,7 +57,7 @@ setup(name=PACKAGENAME,
       # don't need to list the sub-dependencies like numpy, since
       # astropy already depends on it)
       install_requires=[
-          'astropy>=1.3',
+          'astropy~=3.0',
           'iminuit',
           'numpy',
           'pytest_runner',
@@ -71,7 +71,7 @@ setup(name=PACKAGENAME,
           'pandas',
           'bokeh>=1.0.1',
           'scikit-learn',
-          'eventio==0.17.1',
+          'eventio~=0.18',
       ],
       tests_require=[
           'pytest',
