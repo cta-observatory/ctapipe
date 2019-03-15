@@ -319,11 +319,20 @@ class CameraGeometry:
         # otherwise compute the neighbors from the pixel list
         dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
 
-        neighbors = _find_neighbor_pixels(
-            self.pix_x.value,
-            self.pix_y.value,
-            rad=1.4 * dist.value
+        if self.pix_type.startswith('rect'):
+            row, column = _rectangular_pixel_row_column(
+                self.pix_x.value,
+                self.pix_y.value
+            )
+            neighbors = _find_neighbor_pixels(column, row, rad=1)
+        elif self.pix_type.startswith('hex'):
+            neighbors = _find_neighbor_pixels(
+                self.pix_x.value,
+                self.pix_y.value,
+                rad=1.4 * dist.value
         )
+        else:
+            raise KeyError("unsupported pixel type")
 
         return neighbors
 
@@ -701,6 +710,7 @@ def _rectangular_pixel_row_column(pix_x, pix_y):
     row = np.digitize(pix_y, edges_y) - 1
 
     return row, column
+
 
 class UnknownPixelShapeWarning(UserWarning):
     pass
