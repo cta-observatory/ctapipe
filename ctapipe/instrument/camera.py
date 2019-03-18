@@ -145,7 +145,7 @@ class CameraGeometry:
         Note this will not work on cameras with varying pixel sizes.
         """
 
-        dist = _get_min_pixel_seperation(pix_x, pix_y)
+        dist = _get_min_pixel_separation(pix_x, pix_y)
 
         if pix_type.startswith('hex'):
             rad = dist / np.sqrt(3)  # radius to vertex of hexagon
@@ -317,7 +317,7 @@ class CameraGeometry:
             return self._precalculated_neighbors
 
         # otherwise compute the neighbors from the pixel list
-        dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
+        dist = _get_min_pixel_separation(self.pix_x, self.pix_y)
 
         neighbors = _find_neighbor_pixels(
             self.pix_x.value,
@@ -571,13 +571,9 @@ class CameraGeometry:
         raise ValueError(f'Unknown pixel_shape {pixel_shape}')
 
 
-# ======================================================================
-# utility functions:
-# ======================================================================
-
-def _get_min_pixel_seperation(pix_x, pix_y):
+def _get_min_pixel_separation(pix_x, pix_y):
     """
-    Obtain the minimum seperation between two pixels on the camera
+    Obtain the minimum separation between two pixels on the camera
 
     Parameters
     ----------
