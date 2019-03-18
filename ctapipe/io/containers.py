@@ -20,8 +20,6 @@ __all__ = [
     'DL0CameraContainer',
     'DL1Container',
     'DL1CameraContainer',
-    'TargetIOContainer',
-    'TargetIOCameraContainer',
     'SST1MContainer',
     'SST1MCameraContainer',
     'MCEventContainer',
@@ -34,7 +32,6 @@ __all__ = [
     'ReconstructedEnergyContainer',
     'ParticleClassificationContainer',
     'DataContainer',
-    'TargetIODataContainer',
     'SST1MDataContainer',
     'HillasParametersContainer',
     'LeakageContainer',
@@ -440,30 +437,6 @@ class DataContainer(Container):
 
 class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
-
-
-class TargetIOCameraContainer(Container):
-    """
-    Container for Fields that are specific to cameras that use TARGET
-    """
-    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
-                                  "waveform in the camera image (n_pixels)"))
-
-
-class TargetIOContainer(Container):
-    """
-    Storage for the TargetIOCameraContainer for each telescope
-    """
-
-    tel = Field(Map(TargetIOCameraContainer),
-                "map of tel_id to TargetIOCameraContainer")
-
-
-class TargetIODataContainer(DataContainer):
-    """
-    Data container including targeto information
-    """
-    targetio = Field(TargetIOContainer(), "TARGET-specific Data")
 
 
 class MuonRingParameter(Container):
