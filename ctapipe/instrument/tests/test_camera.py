@@ -1,10 +1,6 @@
 import numpy as np
 from astropy import units as u
 from ctapipe.instrument import CameraGeometry
-from ctapipe.instrument.camera import (
-    _find_neighbor_pixels,
-    _get_min_pixel_seperation,
-)
 import pytest
 
 cam_ids = CameraGeometry.get_known_camera_names()
@@ -54,15 +50,23 @@ def test_position_to_pix_index():
     assert pix_id == 1790
 
 
-def test_get_min_pixel_seperation():
-    x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
-    pixsep = _get_min_pixel_seperation(x.ravel(), y.ravel())
-    assert pixsep == 2.5
-
-
 def test_find_neighbor_pixels():
-    x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
-    neigh = _find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
+    n_pixels = 5
+    x, y = u.Quantity(np.meshgrid(
+        np.linspace(-5, 5, n_pixels),
+        np.linspace(-5, 5, n_pixels)
+    ), u.cm)
+
+    geom = CameraGeometry(
+        'test',
+        pix_id=np.arange(n_pixels),
+        pix_area=u.Quantity(4, u.cm**2),
+        pix_x=x.ravel(),
+        pix_y=y.ravel(),
+        pix_type='rectangular',
+    )
+
+    neigh = geom.neighbors
     assert set(neigh[11]) == {16, 6, 10, 12}
 
 
@@ -87,7 +91,10 @@ def test_neighbor_pixels(cam_id):
         assert n_neighbors.count(5) == 0
         assert n_neighbors.count(6) == 0
 
-    assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
+    # whipple has inhomogenious pixels that mess with pixel neighborhood
+    # calculation
+    if cam_id != 'Whipple490':
+        assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
 
 def test_to_and_from_table():
