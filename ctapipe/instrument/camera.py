@@ -318,7 +318,7 @@ class CameraGeometry:
     @lazyproperty
     def neighbors(self):
         '''A list of the neighbors pixel_ids for each pixel'''
-        return [np.where(r)[0] for r in self.neighbor_matrix]
+        return [np.where(r)[0].tolist() for r in self.neighbor_matrix]
 
     @lazyproperty
     def neighbor_matrix(self):
