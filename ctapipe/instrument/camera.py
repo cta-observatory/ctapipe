@@ -337,27 +337,30 @@ class CameraGeometry:
         if self.pix_type.startswith('hex'):
             k = 7
             radius = 1.1
+            norm = 2  # use L2 norm for hex
         else:
+            norm = 1  # use L1 norm for rectangular
+
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max distance
             # < than 2 * the pixel size, else 4 neigbors with max distance
             # < sqrt(2) pixel size
             if diagonal:
                 k = 9
-                radius = 2
+                radius = 2.95
             else:
                 k = 5
-                radius = np.sqrt(2)
+                radius = 1.95
 
         for i, pixel in enumerate(self._kdtree.data):
-            d, n = self._kdtree.query(pixel, k=k)
+            d, n = self._kdtree.query(pixel, k=k, p=norm)
 
             # remove self-reference
             d = d[1:]
             n = n[1:]
 
             # remove too far away pixels
-            mask = d < (0.98 * radius * np.min(d))
+            mask = d < radius * np.min(d)
             neighbors[i, n[mask]] = True
 
         return neighbors.tocsr()
