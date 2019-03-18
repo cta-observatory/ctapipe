@@ -69,6 +69,9 @@ class CameraGeometry:
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True):
 
+        if pix_x.ndim != 1 or pix_y.ndim != 1:
+            raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
+
         assert len(pix_x) == len(pix_y), 'pix_x and pix_y must have same length'
         self.n_pixels = len(pix_x)
         self.cam_id = cam_id
