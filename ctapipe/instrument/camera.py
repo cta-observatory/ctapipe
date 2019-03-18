@@ -345,9 +345,9 @@ class CameraGeometry:
             norm = 1  # use L1 norm for rectangular
 
             # if diagonal should count as neighbor, we
-            # need to find at most 8 neighbors with a max distance
-            # < than 2 * the pixel size, else 4 neigbors with max distance
-            # < sqrt(2) pixel size
+            # need to find at most 8 neighbors with a max L1 distance
+            # < than 3 * the pixel size, else 4 neigbors with max distance
+            # < 2 pixel size
             if diagonal:
                 k = 9
                 radius = 2.95
