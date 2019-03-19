@@ -11,6 +11,7 @@ from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
 from scipy.sparse import lil_matrix, csr_matrix
+import warnings
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
@@ -352,7 +353,6 @@ class CameraGeometry:
             norm = 2  # use L2 norm for hex
         else:
 
-            radius = 1.95
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
             # < than 2 * the pixel size, else 4 neigbors with max L1 distance
@@ -361,8 +361,10 @@ class CameraGeometry:
             if diagonal:
                 k = 9
                 norm = 2
+                radius = 1.95
             else:
                 k = 5
+                radius = 1.5
                 norm = 1
 
         for i, pixel in enumerate(self._kdtree.data):
@@ -375,6 +377,16 @@ class CameraGeometry:
             # remove too far away pixels
             mask = d < radius * np.min(d)
             neighbors[i, n[mask]] = True
+
+        # filter annoying deprecation warning from within scipy
+        # scipy still uses np.matrix in scipy.sparse, but we do not
+        # explicitly use any feature of np.matrix, so we can ignore this here
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
+            if (neighbors.T != neighbors).sum() > 0:
+                warnings.warn(
+                    'Neighbor matrix is not symmetric. Is camera geometry irregular?'
+                )
 
         return neighbors.tocsr()
 
@@ -519,13 +531,19 @@ class CameraGeometry:
         if width in self.border_cache:
             return self.border_cache[width]
 
-        if width == 1:
-            n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
-            max_neighbors = n_neighbors.max()
-            mask = n_neighbors < max_neighbors
-        else:
-            n = self.neighbor_matrix
-            mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
+        # filter annoying deprecation warning from within scipy
+        # scipy still uses np.matrix in scipy.sparse, but we do not
+        # explicitly use any feature of np.matrix, so we can ignore this here
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
+
+            if width == 1:
+                n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
+                max_neighbors = n_neighbors.max()
+                mask = n_neighbors < max_neighbors
+            else:
+                n = self.neighbor_matrix
+                mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
 
         self.border_cache[width] = mask
         return mask

@@ -82,6 +82,7 @@ def test_neighbor_pixels(cam_id):
     n_pix = len(geom.pix_id)
     n_neighbors = [len(x) for x in geom.neighbors]
 
+
     if geom.pix_type.startswith('hex'):
         assert n_neighbors.count(6) > 0.5 * n_pix
         assert n_neighbors.count(6) > n_neighbors.count(4)
@@ -94,6 +95,7 @@ def test_neighbor_pixels(cam_id):
     # whipple has inhomogenious pixels that mess with pixel neighborhood
     # calculation
     if cam_id != 'Whipple490':
+        assert np.all(geom.neighbor_matrix == geom.neighbor_matrix.T)
         assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
 
@@ -112,6 +114,7 @@ def test_calc_pixel_neighbors_square():
 
     assert set(cam.neighbors[0]) == {1, 20}
     assert set(cam.neighbors[21]) == {1, 20, 22, 41}
+
 
 def test_calc_pixel_neighbors_square_diagonal():
     x, y = np.meshgrid(np.arange(20), np.arange(20))
@@ -174,6 +177,7 @@ def test_precal_neighbors():
 
     nmat = geom.neighbor_matrix
     assert nmat.shape == (len(geom.pix_x), len(geom.pix_x))
+    assert np.all(nmat.T == nmat)
 
 
 def test_slicing():
@@ -201,7 +205,7 @@ def test_slicing_rotation(cam_id):
     assert sliced1.pix_x[0] == cam.pix_x[5]
 
 
-def test_rectangle_patch_neighbors(rectangle_pixel_patch_geom):
+def test_rectangle_patch_neighbors():
     pix_x = np.array([
         -1.1, 0.1, 0.9,
         -1, 0, 1,
@@ -221,8 +225,9 @@ def test_rectangle_patch_neighbors(rectangle_pixel_patch_geom):
         pix_type='rectangular',
     )
 
-    assert cam.neighbor_matrix.sum(0).max() == 4
-    assert cam.neighbor_matrix.sum(0).min() == 2
+    assert np.all(cam.neighbor_matrix.T == cam.neighbor_matrix)
+    assert cam.neighbor_matrix.sum(axis=0).max() == 4
+    assert cam.neighbor_matrix.sum(axis=0).min() == 2
 
 
 def test_border_pixels():
