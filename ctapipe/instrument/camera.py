@@ -335,6 +335,15 @@ class CameraGeometry:
             return self.calc_pixel_neighbors(diagonal=False)
 
     def calc_pixel_neighbors(self, diagonal=False):
+        '''
+        Calculate the neighbors of pixels using
+        a kdtree for nearest neighbor lookup.
+
+        Parameters
+        ----------
+        diagonal: bool
+            If rectangular geometry, also add diagonal neighbors
+        '''
         neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
 
         if self.pix_type.startswith('hex'):
@@ -342,18 +351,19 @@ class CameraGeometry:
             radius = 1.1
             norm = 2  # use L2 norm for hex
         else:
-            norm = 1  # use L1 norm for rectangular
 
+            radius = 1.95
             # if diagonal should count as neighbor, we
-            # need to find at most 8 neighbors with a max L1 distance
-            # < than 3 * the pixel size, else 4 neigbors with max distance
+            # need to find at most 8 neighbors with a max L2 distance
+            # < than 2 * the pixel size, else 4 neigbors with max L1 distance
             # < 2 pixel size
+
             if diagonal:
                 k = 9
-                radius = 2.95
+                norm = 2
             else:
                 k = 5
-                radius = 1.95
+                norm = 1
 
         for i, pixel in enumerate(self._kdtree.data):
             d, n = self._kdtree.query(pixel, k=k, p=norm)
