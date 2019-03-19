@@ -349,7 +349,7 @@ class CameraGeometry:
 
         if self.pix_type.startswith('hex'):
             k = 7
-            radius = 1.1
+            radius = 1.4
             norm = 2  # use L2 norm for hex
         else:
 
