@@ -97,6 +97,38 @@ def test_neighbor_pixels(cam_id):
         assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
 
 
+def test_calc_pixel_neighbors_square():
+
+    x, y = np.meshgrid(np.arange(20), np.arange(20))
+
+    cam = CameraGeometry(
+        cam_id='test',
+        pix_id=np.arange(400),
+        pix_type='rectangular',
+        pix_x=u.Quantity(x.ravel(), u.cm),
+        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_area=u.Quantity(np.ones(400), u.cm**2),
+    )
+
+    assert set(cam.neighbors[0]) == {1, 20}
+    assert set(cam.neighbors[21]) == {1, 20, 22, 41}
+
+def test_calc_pixel_neighbors_square_diagonal():
+    x, y = np.meshgrid(np.arange(20), np.arange(20))
+
+    cam = CameraGeometry(
+        cam_id='test',
+        pix_id=np.arange(400),
+        pix_type='rectangular',
+        pix_x=u.Quantity(x.ravel(), u.cm),
+        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_area=u.Quantity(np.ones(400), u.cm**2),
+    )
+
+    cam._neighbors = cam.calc_pixel_neighbors(diagonal=True)
+    assert set(cam.neighbors[21]) == {0, 1, 2, 20, 22, 40, 41, 42}
+
+
 def test_to_and_from_table():
     geom = CameraGeometry.from_name("LSTCam")
     tab = geom.to_table()
@@ -167,6 +199,30 @@ def test_slicing_rotation(cam_id):
     sliced1 = cam[5:10]
 
     assert sliced1.pix_x[0] == cam.pix_x[5]
+
+
+def test_rectangle_patch_neighbors(rectangle_pixel_patch_geom):
+    pix_x = np.array([
+        -1.1, 0.1, 0.9,
+        -1, 0, 1,
+        -0.9, -0.1, 1.1
+    ]) * u.m
+    pix_y = np.array([
+        1.1, 1, 0.9,
+        -0.1, 0, 0.1,
+        -0.9, -1, -1.1
+    ]) * u.m
+    cam = CameraGeometry(
+        cam_id='testcam',
+        pix_id=np.arange(pix_x.size),
+        pix_x=pix_x,
+        pix_y=pix_y,
+        pix_area=None,
+        pix_type='rectangular',
+    )
+
+    assert cam.neighbor_matrix.sum(0).max() == 4
+    assert cam.neighbor_matrix.sum(0).min() == 2
 
 
 def test_border_pixels():
