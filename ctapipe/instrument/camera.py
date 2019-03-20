@@ -10,7 +10,8 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
-from scipy.sparse import csr_matrix
+from scipy.sparse import lil_matrix, csr_matrix
+import warnings
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
@@ -69,6 +70,9 @@ class CameraGeometry:
                  pix_rotation="0d", cam_rotation="0d",
                  neighbors=None, apply_derotation=True):
 
+        if pix_x.ndim != 1 or pix_y.ndim != 1:
+            raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
+
         assert len(pix_x) == len(pix_y), 'pix_x and pix_y must have same length'
         self.n_pixels = len(pix_x)
         self.cam_id = cam_id
@@ -79,17 +83,26 @@ class CameraGeometry:
         self.pix_type = pix_type
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
-        self._precalculated_neighbors = neighbors
+        self._neighbors = neighbors
+
+        if neighbors is not None:
+            if isinstance(neighbors, list):
+                lil = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
+                for pix_id, neighbors in enumerate(neighbors):
+                    lil[pix_id, neighbors] = True
+                self._neighbors = lil.tocsr()
+            else:
+                self._neighbors = csr_matrix(neighbors)
 
         if self.pix_area is None:
-            self.pix_area = CameraGeometry._calc_pixel_area(pix_x, pix_y,
-                                                            pix_type)
+            self.pix_area = CameraGeometry._calc_pixel_area(
+                pix_x, pix_y, pix_type
+            )
 
         if apply_derotation:
             # todo: this should probably not be done, but need to fix
             # GeometryConverter and reco algorithms if we change it.
-            if len(pix_x.shape) == 1:
-                self.rotate(cam_rotation)
+            self.rotate(cam_rotation)
 
         # cache border pixel mask per instance
         self.border_cache = {}
@@ -145,7 +158,7 @@ class CameraGeometry:
         Note this will not work on cameras with varying pixel sizes.
         """
 
-        dist = _get_min_pixel_seperation(pix_x, pix_y)
+        dist = np.min(np.sqrt((pix_x - pix_x[0])**2 + (pix_y - pix_y[0])**2))
 
         if pix_type.startswith('hex'):
             rad = dist / np.sqrt(3)  # radius to vertex of hexagon
@@ -308,32 +321,81 @@ class CameraGeometry:
 
     @lazyproperty
     def neighbors(self):
-        """" only calculate neighbors when needed or if not already
-        calculated"""
-
-        # return pre-calculated ones (e.g. those that were passed in during
-        # the object construction) if they exist
-        if self._precalculated_neighbors is not None:
-            return self._precalculated_neighbors
-
-        # otherwise compute the neighbors from the pixel list
-        dist = _get_min_pixel_seperation(self.pix_x, self.pix_y)
-
-        neighbors = _find_neighbor_pixels(
-            self.pix_x.value,
-            self.pix_y.value,
-            rad=1.4 * dist.value
-        )
-
-        return neighbors
+        '''A list of the neighbors pixel_ids for each pixel'''
+        return [np.where(r)[0].tolist() for r in self.neighbor_matrix]
 
     @lazyproperty
     def neighbor_matrix(self):
-        return _neighbor_list_to_matrix(self.neighbors)
+        return self.neighbor_matrix_sparse.A
 
     @lazyproperty
     def neighbor_matrix_sparse(self):
-        return csr_matrix(self.neighbor_matrix)
+        if self._neighbors is not None:
+            return self._neighbors
+        else:
+            return self.calc_pixel_neighbors(diagonal=False)
+
+    def calc_pixel_neighbors(self, diagonal=False):
+        '''
+        Calculate the neighbors of pixels using
+        a kdtree for nearest neighbor lookup.
+
+        Parameters
+        ----------
+        diagonal: bool
+            If rectangular geometry, also add diagonal neighbors
+        '''
+        neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
+
+        if self.pix_type.startswith('hex'):
+            max_neighbors = 6
+            # on a hexgrid, the closest pixel in the second circle is
+            # the diameter of the hexagon plus the inradius away
+            # in units of the diameter, this is 1 + np.sqrt(3) / 4 = 1.433
+            radius = 1.4
+            norm = 2  # use L2 norm for hex
+        else:
+
+            # if diagonal should count as neighbor, we
+            # need to find at most 8 neighbors with a max L2 distance
+            # < than 2 * the pixel size, else 4 neigbors with max L1 distance
+            # < 2 pixel size. We take a conservative 1.5 here,
+            # because that worked on the PROD4 CHEC camera that has
+            # irregular pixel positions.
+            if diagonal:
+                max_neighbors = 8
+                norm = 2
+                radius = 1.95
+            else:
+                max_neighbors = 4
+                radius = 1.5
+                norm = 1
+
+        for i, pixel in enumerate(self._kdtree.data):
+            # as the pixel itself is in the tree, look for max_neighbors + 1
+            distances, neighbor_candidates = self._kdtree.query(
+                pixel, k=max_neighbors + 1, p=norm
+            )
+
+            # remove self-reference
+            distances = distances[1:]
+            neighbor_candidates = neighbor_candidates[1:]
+
+            # remove too far away pixels
+            inside_max_distance = distances < radius * np.min(distances)
+            neighbors[i, neighbor_candidates[inside_max_distance]] = True
+
+        # filter annoying deprecation warning from within scipy
+        # scipy still uses np.matrix in scipy.sparse, but we do not
+        # explicitly use any feature of np.matrix, so we can ignore this here
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
+            if (neighbors.T != neighbors).sum() > 0:
+                warnings.warn(
+                    'Neighbor matrix is not symmetric. Is camera geometry irregular?'
+                )
+
+        return neighbors.tocsr()
 
     @lazyproperty
     def neighbor_matrix_where(self):
@@ -476,13 +538,19 @@ class CameraGeometry:
         if width in self.border_cache:
             return self.border_cache[width]
 
-        if width == 1:
-            n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
-            max_neighbors = n_neighbors.max()
-            mask = n_neighbors < max_neighbors
-        else:
-            n = self.neighbor_matrix
-            mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
+        # filter annoying deprecation warning from within scipy
+        # scipy still uses np.matrix in scipy.sparse, but we do not
+        # explicitly use any feature of np.matrix, so we can ignore this here
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=PendingDeprecationWarning)
+
+            if width == 1:
+                n_neighbors = self.neighbor_matrix_sparse.sum(axis=1).A1
+                max_neighbors = n_neighbors.max()
+                mask = n_neighbors < max_neighbors
+            else:
+                n = self.neighbor_matrix
+                mask = (n & self.get_border_pixel_mask(width - 1)).any(axis=1)
 
         self.border_cache[width] = mask
         return mask
@@ -569,81 +637,6 @@ class CameraGeometry:
             return 'hexagonal', Angle(30, u.deg)
 
         raise ValueError(f'Unknown pixel_shape {pixel_shape}')
-
-
-# ======================================================================
-# utility functions:
-# ======================================================================
-
-def _get_min_pixel_seperation(pix_x, pix_y):
-    """
-    Obtain the minimum seperation between two pixels on the camera
-
-    Parameters
-    ----------
-    pix_x : array_like
-        x position of each pixel
-    pix_y : array_like
-        y position of each pixels
-
-    Returns
-    -------
-    pixsep : astropy.units.Unit
-
-    """
-    #    dx = pix_x[1] - pix_x[0]    <=== Not adjacent for DC-SSTs!!
-    #    dy = pix_y[1] - pix_y[0]
-
-    dx = pix_x - pix_x[0]
-    dy = pix_y - pix_y[0]
-    pixsep = np.min(np.sqrt(dx ** 2 + dy ** 2)[1:])
-    return pixsep
-
-
-def _find_neighbor_pixels(pix_x, pix_y, rad):
-    """use a KD-Tree to quickly find nearest neighbors of the pixels in a
-    camera. This function can be used to find the neighbor pixels if
-    they are not already present in a camera geometry file.
-
-    Parameters
-    ----------
-    pix_x : array_like
-        x position of each pixel
-    pix_y : array_like
-        y position of each pixels
-    rad : float
-        radius to consider neighbor it should be slightly larger
-        than the pixel diameter.
-
-    Returns
-    -------
-    array of neighbor indices in a list for each pixel
-
-    """
-
-    points = np.array([pix_x, pix_y]).T
-    indices = np.arange(len(pix_x))
-    kdtree = KDTree(points)
-    neighbors = [kdtree.query_ball_point(p, r=rad) for p in points]
-    for nn, ii in zip(neighbors, indices):
-        nn.remove(ii)  # get rid of the pixel itself
-    return neighbors
-
-
-def _neighbor_list_to_matrix(neighbors):
-    """
-    convert a neighbor adjacency list (list of list of neighbors) to a 2D
-    numpy array, which is much faster (and can simply be multiplied)
-    """
-
-    npix = len(neighbors)
-    neigh2d = np.zeros(shape=(npix, npix), dtype=np.bool)
-
-    for ipix, neighbors in enumerate(neighbors):
-        for jn, neighbor in enumerate(neighbors):
-            neigh2d[ipix, neighbor] = True
-
-    return neigh2d
 
 
 class UnknownPixelShapeWarning(UserWarning):
