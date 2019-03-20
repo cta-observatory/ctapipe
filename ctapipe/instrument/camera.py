@@ -10,6 +10,7 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
+from scipy.sparse import lil_matrix, csr_matrix
 import warnings
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
