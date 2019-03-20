@@ -10,7 +10,6 @@ from astropy.coordinates import Angle
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
-from scipy.sparse import lil_matrix, csr_matrix
 import warnings
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
@@ -373,15 +372,17 @@ class CameraGeometry:
 
         for i, pixel in enumerate(self._kdtree.data):
             # as the pixel itself is in the tree, look for max_neighbors + 1
-            d, n = self._kdtree.query(pixel, k=max_neighbors + 1, p=norm)
+            distances, neighbor_candidates = self._kdtree.query(
+                pixel, k=max_neighbors + 1, p=norm
+            )
 
             # remove self-reference
-            d = d[1:]
-            n = n[1:]
+            distances = distances[1:]
+            neighbor_candidates = neighbor_candidates[1:]
 
             # remove too far away pixels
-            mask = d < radius * np.min(d)
-            neighbors[i, n[mask]] = True
+            inside_max_distance = distances < radius * np.min(distances)
+            neighbors[i, neighbor_candidates[inside_max_distance]] = True
 
         # filter annoying deprecation warning from within scipy
         # scipy still uses np.matrix in scipy.sparse, but we do not
