@@ -348,7 +348,10 @@ class CameraGeometry:
         neighbors = lil_matrix((self.n_pixels, self.n_pixels), dtype=bool)
 
         if self.pix_type.startswith('hex'):
-            k = 7
+            max_neighbors = 6
+            # on a hexgrid, the closest pixel in the second circle is
+            # the diameter of the hexagon plus the inradius away
+            # in units of the diameter, this is 1 + np.sqrt(3) / 4 = 1.433
             radius = 1.4
             norm = 2  # use L2 norm for hex
         else:
@@ -356,19 +359,21 @@ class CameraGeometry:
             # if diagonal should count as neighbor, we
             # need to find at most 8 neighbors with a max L2 distance
             # < than 2 * the pixel size, else 4 neigbors with max L1 distance
-            # < 2 pixel size
-
+            # < 2 pixel size. We take a conservative 1.5 here,
+            # because that worked on the PROD4 CHEC camera that has
+            # irregular pixel positions.
             if diagonal:
-                k = 9
+                max_neighbors = 8
                 norm = 2
                 radius = 1.95
             else:
-                k = 5
+                max_neighbors = 4
                 radius = 1.5
                 norm = 1
 
         for i, pixel in enumerate(self._kdtree.data):
-            d, n = self._kdtree.query(pixel, k=k, p=norm)
+            # as the pixel itself is in the tree, look for max_neighbors + 1
+            d, n = self._kdtree.query(pixel, k=max_neighbors + 1, p=norm)
 
             # remove self-reference
             d = d[1:]
