@@ -11,7 +11,8 @@ multiplicity = {'4nn': 4,
                 '2+1': 3,
                 '2nn': 2}
 
-def fill_IPR_from_calibration_file(geo, image, trace_length, IPR, mincharge=0,
+
+def fill_IPR_from_calibration_file(geo, image, trace_length, IPR_fill=None, mincharge=0,
                                    maxcharge=25, steps=50):
     """
     Count the number of pixels in images about a given charge threshold
@@ -23,12 +24,13 @@ def fill_IPR_from_calibration_file(geo, image, trace_length, IPR, mincharge=0,
     image: numpy.ndarray
     trace_length: astropy.units.Quantity
         total length of the trace, e.g. number of samples times sample_time
-    IPR: dictionary
+    IPR_fill: dictionary or None
         dictionary which should be filled with IPR graph for each camera.
     mincharge: float, integer
     maxcharge: float, integer
     steps: integer
     """
+    IPR = IPR_fill if IPR_fill else {}
 
     # RATE = np.zeros(IPRdim + 1)
     if geo.cam_id not in IPR:
@@ -42,14 +44,15 @@ def fill_IPR_from_calibration_file(geo, image, trace_length, IPR, mincharge=0,
 
     # count number of pixels
     IPR[geo.cam_id]["counter"] += np.sum(image >= 0)
+    for thbin, charge in enumerate(IPR[geo.cam_id]["charge"]):
+        IPR[geo.cam_id]["npix"][thbin] += np.sum(image > charge)
 
-    # loop over all thresholds
-    for thbin, val in enumerate(IPR[geo.cam_id]["charge"]):
-        IPR[geo.cam_id]["npix"][thbin] += np.sum(image > val)
-
+    # convert count of number of pixels above threshold into rate
     SampleToHz = (1 / (trace_length * IPR[geo.cam_id]["counter"])).to("Hz")
     IPR[geo.cam_id]["rate"] = IPR[geo.cam_id]["npix"] * SampleToHz
     IPR[geo.cam_id]["rate_err"] = np.sqrt(IPR[geo.cam_id]["npix"]) * SampleToHz
+
+    return IPR
 
 def scaled_combfactor_from_name(npix, neighbor_group):
     """
@@ -111,7 +114,7 @@ def combfactor_from_geometry(cam_id=None, neighbor_group=None,
                       DigiCam={'4nn': 51843, '3nn': 13327,
                                '2nn': 3744, '2+1': 49320},
                       FlashCam={'4nn': 71559, '3nn': 18319,
-                              '2nn': 5124, '2+1': 68112},
+                                '2nn': 5124, '2+1': 68112},
                       NectarCam={'4nn': 75302, '3nn': 19269,
                                  '2nn': 5394, '2+1': 71712},
                       CHEC={'4nn': 36289, '3nn': 11720,
@@ -123,13 +126,12 @@ def combfactor_from_geometry(cam_id=None, neighbor_group=None,
         from ctapipe.instrument import CameraGeometry
 
         geometry = CameraGeometry.from_name(cam_id)
-        mask = np.ones(geometry.n_pixels, bool)
 
-        comb_factor = len(get_combinations(geometry, mask=mask, nfold=neighbor_group, d2=2.4, d1=1.4))
+        comb_factor = len(get_combinations(geometry, mask=None, nfold=neighbor_group, d2=2.4, d1=1.4))
         if neighbor_group == "2+1":
             # current implementation returns 2+1 and 3nn combinations for
             # 2+1 group search. Need to correct to get correct number.
-            comb_3nn = len(get_combinations(geometry, mask=mask, nfold="3nn", d2=2.4, d1=1.4))
+            comb_3nn = len(get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4))
             comb_factor -= comb_3nn
 
     return comb_factor
@@ -204,7 +206,6 @@ def cut_time_charge(IPR, charge, time_difference, geometry,
     """
 
     time_coincidence = get_time_coincidence(geometry, IPR, charge, accidental_rate, neighbor_group)
-
     valid_pixels = time_difference < time_coincidence
 
     return valid_pixels
@@ -260,7 +261,6 @@ def pre_threshold_from_sample(geometry, IPR, neighbor_group, accidental_rate,
         Charge of pixels with rate below threshold
 
     """
-
     charges = np.linspace(0, 20, 1000)
     dT = get_time_coincidence(geometry, IPR, charges, accidental_rate, neighbor_group)
 
@@ -311,33 +311,41 @@ def add_neighbors_to_combinations(combinations, neighbors):
     result: numpy.array
         array with all possible combinations of M+1 pixels
     """
+    # Convert ndarray to list as adding values is faster
     if type(combinations) == np.ndarray:
         combinations = combinations.tolist()
 
     result = []
     for comb in combinations:
         neigh = []
+        # Found that it's faster to do this in two passes: first get
+        # the list of all neighbors to comb. This can have the same pixel
+        # multiple times so only unique are selected. This is faster than
+        # checking if this value already is in the array each time.
         for c in comb:
             neigh += neighbors[c]
         neigh = np.unique(neigh)
-        for c in comb:
-            neigh = neigh[neigh != c]
 
+        # Add the combinations of initial combination plus the neighbors
+        # of it to the result. If the neighbor is already in the combination
+        # this one will not be considered.
         for n in neigh:
+            if n in comb:
+                continue
             if type(comb) == tuple:
                 result.append(comb + (n,))
             elif type(comb) == list:
                 result.append(comb + [n])
 
+    # As it might happen, that a combination is added multiple times, those
+    # duplicates have to be removed.
     if len(result) > 0:
-        # remove duplicate combinations
         result = np.sort(result, axis=1)
         result = np.unique(result, axis=0)
     else:
         result = np.array(result)
 
     return result
-
 
 def get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4):
     """
@@ -353,7 +361,7 @@ def get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4):
     Parameters
     ----------
     geometry: ctapipe.instrument.CameraGeometry
-    mask: list
+    mask: numpy.ndarray
         boolean mask of pixels to consider for search
     d1: float
         Search for first neighbors in `d1` times the minimum distance between
@@ -363,7 +371,6 @@ def get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4):
         pixels.
     nfold: string
 
-
     Returns
     -------
     combs: numpy.ndarray
@@ -372,16 +379,20 @@ def get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4):
     if mask is None:
         mask = np.ones(geometry.n_pixels, bool)
 
+    # construct an kdtree that with only the points that are not masked.
+    # TODO: There were updates on the calculation of neighbors in ctapipe. Should be checked!
     kdtree, points = get_kdtree(geometry, mask)
     dist = _get_min_pixel_seperation(geometry.pix_x, geometry.pix_y)
 
-    # 2nn pairs of neighbors
+    # kdtree implementatin to get the possible combinations of pairs
+    # within a given distance.
     combs = kdtree.query_pairs(r=d1 * dist.value)
     if nfold == "2nn":
         combs = list(combs)
     elif nfold == "2+1":
         # Returns all possible 2+1 one AND 3nn combinations. As 3nn cut
-        # is looser than 2+1 cut anyway, this will not influence the result.
+        # is looser than 2+1 cut anyway, this will not influence the result but
+        # will imply some unnescessary testing of combinations.
         neighbors2 = [kdtree.query_ball_point(p, d2 * dist.value) for p in points]
         combs = add_neighbors_to_combinations(combs, neighbors2)
 
@@ -391,7 +402,8 @@ def get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4):
         combs = add_neighbors_to_combinations(combs, neighbors)
 
         if nfold == "4nn":
-            # add one more neighbor to the pairs
+            # add one more neighbor to the 3nn combinations to get possible
+            # 4nn combinations.
             combs = add_neighbors_to_combinations(combs, neighbors)
     else:
         NotImplementedError(f'Search for {nfold} pixel group not implemented.')
@@ -402,6 +414,27 @@ def get_combinations(geometry, mask=None, nfold="3nn", d2=2.4, d1=1.4):
         combs = np.array([])
 
     return combs
+
+
+def check_combinations(combinations, mask):
+    """
+    Check if all pixels of the combination already passed the cut. If so,
+    those don't need to be double checked for other neighbor groups
+    Faster than using numpy.all by factor ~3.
+
+    Parameters
+    ----------
+    combinations: numpy.ndarray
+        array storing the indices of the combinations.
+    mask: boolean ndarray
+    """
+    passed_pixel = mask[combinations]
+
+    all_pixels = np.zeros(len(combinations), bool)
+    for i in range(passed_pixel.shape[1]):
+        all_pixels += ~passed_pixel[:, i]
+
+    return all_pixels
 
 
 def time_next_neighbor_cleaning(IPR, sample_time, geometry, image,
@@ -415,10 +448,9 @@ def time_next_neighbor_cleaning(IPR, sample_time, geometry, image,
     pixels, the minimum charge and the maximum time difference are considered
     for checking the validity with the cut in the charge-time space.
 
-    It's very likely to have neighboring low charge pixels with exactly the
-    same sample time. However, as the charge-time cut will greater 0 for
-    all charges, those combinations would potentially pass this cut. To avoid
-    this, a pre cut on the charge is crucial.
+    Additionally a pre-cut on the charge can be applied. The strength of this
+    cut is specified by the factor. The cut is selected by evaluating the Q-dT
+    cut at a time difference of :math:`factor \times sampling time`
 
     Parameters
     ----------
@@ -429,6 +461,9 @@ def time_next_neighbor_cleaning(IPR, sample_time, geometry, image,
     image: numpy.ndarray
     arrival_times: numpy.ndarray
         arrival time in number of samples
+    fake_prob: float
+    sum_time: astropy.units.Quantity
+    factor: float
 
     Returns
     -------
@@ -440,34 +475,44 @@ def time_next_neighbor_cleaning(IPR, sample_time, geometry, image,
           "2+1": 3,
           "2nn": 2}
 
-    survived = np.zeros_like(geometry.pix_id, bool)
-    for neighbor_group in ["4nn", "3nn", "2+1", "2nn"]:
-        accidental_rate = fake_prob / (sum_time * nn[neighbor_group])
-
-        pre_threshold = pre_threshold_from_sample(geometry, IPR, neighbor_group, accidental_rate,
+    survived = np.zeros(geometry.n_pixels, bool)
+    #for nfold in ["4nn", "3nn", "2+1", "2nn"]:
+    for nfold in ["2nn", "3nn",  "4nn", "2+1"]:
+        # determine the accidental rate from fake proability
+        rate_acc = fake_prob / (sum_time * nn[nfold])
+        pre_threshold = pre_threshold_from_sample(geometry, IPR, nfold, rate_acc,
                                                   sample_time, factor=factor)
-
         candidates = image > pre_threshold
-
         if sum(candidates) == 0:
             continue
 
-        combinations = get_combinations(geometry, candidates, nfold=neighbor_group)
+        # Calculate the possible combinations form the candidates that
+        # passed the pre-threshold.
+        combinations = get_combinations(geometry, candidates, nfold=nfold)
         if len(combinations) < 1:
             continue
+        # It can be that all pixels of a found combination already passed the
+        # cuts fo a differen neighbor group. Those don't have to be double
+        # checked and are therefore removed.
+        checked_combinations = check_combinations(combinations, survived)
+        combinations = combinations[checked_combinations]
 
+        # Get the charges and times for all combinations. For the charge
+        # the minimum value of this group is considered while the time
+        # time difference is the maximum in this group. With this definitions
+        # the cuts applied whil be the most conservative ones.
         combination_image = np.array([image])[0, combinations]
         combination_times = np.array([arrival_times])[0, combinations]
-
         min_charge = np.min(combination_image, axis=1)
-        time_diff = np.max(combination_times, axis=1) -\
+        time_diff = np.max(combination_times, axis=1) - \
                     np.min(combination_times, axis=1)
         time_diff = time_diff * sample_time
 
+        # Apply the cut in the time and charge parameter space to check which
+        # group of pixels are valid. The pixels can appear in multiple groups.
         valid_groups = cut_time_charge(IPR, min_charge, time_diff, geometry,
-                                       accidental_rate.to("Hz"), neighbor_group)
+                                       rate_acc.to("Hz"), nfold)
         valid_pixels = np.unique(combinations[valid_groups])
-
         survived[valid_pixels] = True
 
     return survived
