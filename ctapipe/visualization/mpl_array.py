@@ -46,11 +46,13 @@ class ArrayDisplay:
     radius: Union[float, list, None]
         set telescope radius to value, list/array of values. If None, radius
         is taken from the telescope's mirror size.
+    plot_tels: bool
+        plot circles for telescope positions
     """
 
     def __init__(self, subarray, axes=None, autoupdate=True,
                  tel_scale=2.0, alpha=0.7, title=None,
-                 radius=None, frame=GroundFrame()):
+                 radius=None, frame=GroundFrame(), plot_tels=True):
 
         self.frame = frame
         self.subarray = subarray
@@ -103,7 +105,8 @@ class ArrayDisplay:
                        label=ttype, markersize=10, alpha=alpha,
                        linewidth=0)
             )
-        plt.legend(handles=legend_elements)
+        if plot_tels:
+            plt.legend(handles=legend_elements)
 
         self.tel_colors = tel_color
         self.autoupdate = autoupdate
@@ -111,7 +114,8 @@ class ArrayDisplay:
         self.telescopes.set_linewidth(2.0)
 
         self.axes = axes or plt.gca()
-        self.axes.add_collection(self.telescopes)
+        if plot_tels:
+            self.axes.add_collection(self.telescopes)
         self.axes.set_aspect(1.0)
         self.axes.set_title(title)
         self._labels = []
@@ -220,7 +224,8 @@ class ArrayDisplay:
 
         self.set_vector_rho_phi(rho=rho, phi=rot_angle_ellipse)
 
-    def set_line_hillas(self, hillas_dict, range, **kwargs):
+    def set_line_hillas(self, hillas_dict, range, color=None,
+                        weights=None, cmap="inferno", **kwargs):
         """
         Function to plot a segment of length 2*range for each telescope from a set of Hillas parameters.
         The segment is centered on the telescope position.
@@ -237,17 +242,57 @@ class ArrayDisplay:
         coords = self.tel_coords
         c = self.tel_colors
 
+        if weights is not None:
+            from matplotlib.cm import get_cmap
+            cmap = get_cmap(cmap)
+
+            min_w = min(weights.values())
+            max_w = max(weights.values())
+            c_weight = dict((tel_id, cmap((value - min_w) / (max_w - min_w)))
+                            for tel_id, value in weights.items())
+        else:
+            c_weight = dict((tel_id, None) for tel_id in hillas_dict.keys())
+
+        r = np.array([-range, range])
         for tel_id, params in hillas_dict.items():
             idx = self.subarray.tel_indices[tel_id]
+            cc = color or c_weight[tel_id] or c[idx]
+
+            x_0 = coords[idx].x.to_value(u.m)
+            y_0 = coords[idx].y.to_value(u.m)
+            x = x_0 + np.cos(params.psi) * r
+            y = y_0 + np.sin(params.psi) * r
+            #self.axes.plot(x[mask], y[mask], color=cc, **kwargs)
+            self.axes.plot(x, y, color=cc, **kwargs)
+            #self.axes.scatter(x_0, y_0, color=c[idx])
+
+
+    def set_ellips_hillas(self, hillas_dict, scale=1, color=None, **kwargs):
+        """
+        Function to plot the Hillas ellipse on the array from a set of Hillas
+        parameters. The total area of the ellipse is proportional to the
+        intensity. The size of all ellipses can be scaled.
+
+        Parameters
+        ----------
+        hillas_dict: Dict[int, HillasParametersContainer]
+        scale: float
+        """
+        coords = self.tel_coords
+        c = self.tel_colors
+
+        from matplotlib.patches import Ellipse
+
+        for tel_id, params in hillas_dict.items():
+            idx = self.subarray.tel_indices[tel_id]
+            ratio = params.width / params.length
+            a = np.sqrt(scale * params.intensity / (np.pi * ratio))
+            b = a * ratio
             x_0 = coords[idx].x.value
             y_0 = coords[idx].y.value
-            m = np.tan(Angle(params.psi))
-            x = x_0 + np.linspace(-range, range, 50)
-            y = y_0 + m * (x - x_0)
-            distance = np.sqrt((x - x_0) ** 2 + (y - y_0) ** 2)
-            mask = np.ma.masked_where(distance < range, distance).mask
-            self.axes.plot(x[mask], y[mask], color=c[idx], **kwargs)
-            self.axes.scatter(x_0, y_0, color=c[idx])
+            cc = color or c[idx]
+            e = Ellipse((x_0, y_0), a, b, Angle(params.psi), color=cc, **kwargs)
+            self.axes.add_patch(e)
 
     def add_labels(self):
         px = self.tel_coords.x.value
