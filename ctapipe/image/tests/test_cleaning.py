@@ -2,6 +2,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 from ctapipe.image import cleaning
 from ctapipe.instrument import CameraGeometry
+import pytest
 
 
 def test_tailcuts_clean_simple():
@@ -43,6 +44,58 @@ def test_dilate():
     # dilate a third row
     dmask = cleaning.dilate(geom, dmask)
     assert dmask.sum() == 1 + 6 + 12 + 18
+
+
+def test_component():
+    from ctapipe.image import ImageCleaning, tailcuts_clean, fact_image_cleaning
+
+    geom = CameraGeometry.from_name('LSTCam')
+    image = np.random.poisson(12, geom.n_pixels)
+    arrival_times = np.random.uniform(0, 30, geom.n_pixels)
+
+    # test default is tailcuts with defaults
+    cleaning = ImageCleaning()
+    comp_mask = cleaning(geom, image)
+    tail_mask = tailcuts_clean(geom, image)
+    assert np.all(comp_mask == tail_mask)
+
+    # test different thresholds
+    cleaning = ImageCleaning(settings={
+        'LSTCam': {'picture_thresh': 10, 'boundary_thresh': 5}
+    })
+    comp_mask = cleaning(geom, image)
+    tail_mask = tailcuts_clean(geom, image, picture_thresh=10, boundary_thresh=5)
+    assert np.all(comp_mask == tail_mask)
+
+    # test different algorithm
+
+    cleaning = ImageCleaning(settings={
+        'LSTCam': {'algorithm': 'fact', 'picture_threshold': 10, 'boundary_threshold': 5}
+    })
+    comp_mask = cleaning(geom, image, arrival_times)
+    fact_mask = fact_image_cleaning(
+        geom, image, arrival_times, picture_threshold=10, boundary_threshold=5
+    )
+    assert np.all(comp_mask == fact_mask)
+
+    # test unknown algorithm
+    with pytest.raises(ValueError):
+        # test different algorithm
+        cleaning = ImageCleaning(settings={
+            'LSTCam': {'algorithm': 'awesome_cleaning'}
+        })
+        comp_mask = cleaning(geom, image)
+
+    # test by telescope_id
+    cleaning = ImageCleaning(
+        key_type='telescope_id',
+        settings={
+            1: {'picture_thresh': 10, 'boundary_thresh': 5}
+        },
+    )
+    comp_mask = cleaning(geom, image, telescope_id=1)
+    tail_mask = tailcuts_clean(geom, image, picture_thresh=10, boundary_thresh=5)
+    assert np.all(comp_mask == tail_mask)
 
 
 def test_tailcuts_clean():

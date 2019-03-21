@@ -2,16 +2,65 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
-__all__ = ['tailcuts_clean', 'dilate']
+__all__ = ['tailcuts_clean', 'dilate', 'fact_image_cleaning', 'ImageCleaning']
 
 import numpy as np
 from scipy.sparse.csgraph import connected_components
+from ctapipe.core import Component
+from traitlets import Dict, CaselessStrEnum
 
 
-def tailcuts_clean(geom, image, picture_thresh=7, boundary_thresh=5,
-                   keep_isolated_pixels=False,
-                   min_number_picture_neighbors=0):
+class ImageCleaning(Component):
+    '''
+    A component to make image cleaning configurable using traitlets.
+    '''
 
+    key_type = CaselessStrEnum(
+        default_value='camera_id',
+        values=['camera_id', 'telescope_id'],
+        help='If the keys in settings are telescope ids or camera ids'
+    ).tag(config=True)
+    settings = Dict(
+        help='A dict mapping either camera_id or telescope_id to cleaning settings.'
+        ' This are keyword arguments for the actual cleaning function plus the'
+        ' the key algorithm which can be either "tailcuts" or "fact"'
+    ).tag(config=True)
+
+    def __call__(self, geom, image, arrival_times=None, telescope_id=None):
+
+        if self.key_type == 'camera_id':
+            kwargs = self.settings.get(geom.cam_id, {})
+        elif self.key_type == 'telescope_id':
+            if telescope_id is None:
+                raise ValueError(
+                    'telescope_id is required if using key_type="telescope_id"'
+                )
+            kwargs = self.settings.get(telescope_id, {})
+
+        algorithm = kwargs.pop('algorithm', 'tailcuts')
+
+        if algorithm == 'tailcuts':
+            return tailcuts_clean(geom, image, **kwargs)
+
+        elif algorithm == 'fact':
+            if arrival_times is None:
+                raise ValueError(
+                    'If using algorithm="fact", arrival_times must not be None'
+                )
+            return fact_image_cleaning(geom, image, arrival_times, **kwargs)
+
+        else:
+            raise ValueError(f'Unknown algorithm {algorithm}')
+
+
+def tailcuts_clean(
+    geom,
+    image,
+    picture_thresh=7,
+    boundary_thresh=5,
+    keep_isolated_pixels=False,
+    min_number_picture_neighbors=0,
+):
     """Clean an image by selection pixels that pass a two-threshold
     tail-cuts procedure.  The picture and boundary thresholds are
     defined with respect to the pedestal dispersion. All pixels that
