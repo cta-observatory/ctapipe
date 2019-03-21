@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from scipy.stats import norm
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_allclose
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.charge_extractors import (
     ChargeExtractor,
@@ -39,11 +39,17 @@ def test_full_integration(camera_waveforms):
     integrator = FullIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
+    assert_allclose(integration[0][0], 267.843, rtol=1e-3)
+    assert_allclose(integration[1][0], 6.194, rtol=1e-3)
+
 
 def test_simple_integration(camera_waveforms):
     waveforms, camera = camera_waveforms
     integrator = SimpleIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
+
+    assert_allclose(integration[0][0], 3.524e-06, rtol=1e-3)
+    assert_allclose(integration[1][0], 8.15e-08, rtol=1e-3)
 
 
 def test_global_peak_integration(camera_waveforms):
@@ -51,11 +57,17 @@ def test_global_peak_integration(camera_waveforms):
     integrator = GlobalPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
+    assert_allclose(integration[0][0], 51.647, rtol=1e-3)
+    assert_allclose(integration[1][0], 1.194, rtol=1e-3)
+
 
 def test_local_peak_integration(camera_waveforms):
     waveforms, camera = camera_waveforms
     integrator = LocalPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
+
+    assert_allclose(integration[0][0], 118.027, rtol=1e-3)
+    assert_allclose(integration[1][0], 2.729, rtol=1e-3)
 
 
 def test_nb_peak_integration(camera_waveforms):
@@ -65,14 +77,17 @@ def test_nb_peak_integration(camera_waveforms):
     integrator.neighbours = nei
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
+    assert_allclose(integration[0][0], 95.3, rtol=1e-3)
+    assert_allclose(integration[1][0], 0.2237, rtol=1e-3)
+
 
 def test_averagewf_peak_integration(camera_waveforms):
     waveforms, camera = camera_waveforms
     integrator = AverageWfPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_almost_equal(integration[0][0], 51.647, 3)
-    assert_almost_equal(integration[1][0], 1.194, 3)
+    assert_allclose(integration[0][0], 51.647, rtol=1e-3)
+    assert_allclose(integration[1][0], 1.194, rtol=1e-3)
 
 
 def test_charge_extractor_factory(camera_waveforms):
