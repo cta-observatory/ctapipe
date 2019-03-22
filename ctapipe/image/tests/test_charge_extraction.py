@@ -20,16 +20,26 @@ def camera_waveforms():
 
     n_pixels = camera.n_pixels
     n_samples = 96
+    mid = n_samples // 2
     pulse_sigma = 6
-    r = np.random.RandomState(1)
-    r.uniform(0, 10, 5)
+    r_hi = np.random.RandomState(1)
+    r_lo = np.random.RandomState(2)
 
     x = np.arange(n_samples)
-    y = norm.pdf(x, r.uniform(n_samples // 2 - 10, n_samples // 2 + 10, n_pixels)[:, None], pulse_sigma)
-    y *= r.uniform(100, 1000, n_pixels)[:, None]
 
-    # 2 Channels
-    y = np.stack([y, y * r.uniform(0, 0.5, n_pixels)[:, None]])
+    # Randomize times
+    t_pulse_hi = r_hi.uniform(mid - 10, mid + 10, n_pixels)[:, None]
+    t_pulse_lo = r_lo.uniform(mid - 10, mid + 10, n_pixels)[:, None]
+
+    # Create pulses
+    y_hi = norm.pdf(x, t_pulse_hi, pulse_sigma)
+    y_lo = norm.pdf(x, t_pulse_lo, pulse_sigma)
+
+    # Randomize amplitudes
+    y_hi *= r_hi.uniform(100, 1000, n_pixels)[:, None]
+    y_lo *= r_lo.uniform(100, 1000, n_pixels)[:, None]
+
+    y = np.stack([y_hi, y_lo])
 
     return y, camera
 
@@ -39,8 +49,8 @@ def test_full_integration(camera_waveforms):
     integrator = FullIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 267.843, rtol=1e-3)
-    assert_allclose(integration[1][0], 6.194, rtol=1e-3)
+    assert_allclose(integration[0][0], 545.945, rtol=1e-3)
+    assert_allclose(integration[1][0], 970.025, rtol=1e-3)
 
 
 def test_simple_integration(camera_waveforms):
@@ -48,8 +58,8 @@ def test_simple_integration(camera_waveforms):
     integrator = SimpleIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 3.524e-06, rtol=1e-3)
-    assert_allclose(integration[1][0], 8.15e-08, rtol=1e-3)
+    assert_allclose(integration[0][0], 8.125e-09, rtol=1e-3)
+    assert_allclose(integration[1][0], 9.372e-09, rtol=1e-3)
 
 
 def test_global_peak_integration(camera_waveforms):
@@ -57,8 +67,8 @@ def test_global_peak_integration(camera_waveforms):
     integrator = GlobalPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 51.647, rtol=1e-3)
-    assert_allclose(integration[1][0], 1.194, rtol=1e-3)
+    assert_allclose(integration[0][0], 232.559, rtol=1e-3)
+    assert_allclose(integration[1][0], 418.967, rtol=1e-3)
 
 
 def test_local_peak_integration(camera_waveforms):
@@ -66,8 +76,8 @@ def test_local_peak_integration(camera_waveforms):
     integrator = LocalPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 118.027, rtol=1e-3)
-    assert_allclose(integration[1][0], 2.729, rtol=1e-3)
+    assert_allclose(integration[0][0], 240.3, rtol=1e-3)
+    assert_allclose(integration[1][0], 427.158, rtol=1e-3)
 
 
 def test_nb_peak_integration(camera_waveforms):
@@ -77,8 +87,8 @@ def test_nb_peak_integration(camera_waveforms):
     integrator.neighbours = nei
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 95.3, rtol=1e-3)
-    assert_allclose(integration[1][0], 0.2237, rtol=1e-3)
+    assert_allclose(integration[0][0], 94.671, rtol=1e-3)
+    assert_allclose(integration[1][0], 400.856, rtol=1e-3)
 
 
 def test_averagewf_peak_integration(camera_waveforms):
@@ -86,8 +96,8 @@ def test_averagewf_peak_integration(camera_waveforms):
     integrator = AverageWfPeakIntegrator()
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 51.647, rtol=1e-3)
-    assert_allclose(integration[1][0], 1.194, rtol=1e-3)
+    assert_allclose(integration[0][0], 232.559, rtol=1e-3)
+    assert_allclose(integration[1][0], 427.158, rtol=1e-3)
 
 
 def test_charge_extractor_factory(camera_waveforms):
