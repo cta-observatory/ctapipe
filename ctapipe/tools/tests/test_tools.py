@@ -13,7 +13,7 @@ def test_muon_reconstruction(tmpdir):
     from ctapipe.tools.muon_reconstruction import MuonDisplayerTool
     return_code = MuonDisplayerTool().run(
         argv=shlex.split(
-            f'--events={GAMMA_TEST_LARGE} '
+            f'--input={GAMMA_TEST_LARGE} '
             '--max_events=2 '
         )
     )

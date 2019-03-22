@@ -66,9 +66,9 @@ class MuonDisplayerTool(Tool):
         if self.events == '':
             raise ToolConfigurationError("please specify --input <events file>")
         self.log.debug("input: %s", self.events)
-        self.source = event_source(self.events)
+        self.source = event_source(self.events, parent=self)
         self.calib = CameraCalibrator(
-            config=self.config, parent=self, eventsource=self.source
+            parent=self, eventsource=self.source
         )
         self.writer = HDF5TableWriter(self.outfile, "muons")
 
@@ -121,4 +121,4 @@ class MuonDisplayerTool(Tool):
 
 def main():
     tool = MuonDisplayerTool()
-    tool.run()
+    return tool.run()
