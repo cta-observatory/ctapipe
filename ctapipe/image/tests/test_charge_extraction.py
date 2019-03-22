@@ -29,7 +29,7 @@ def camera_waveforms():
 
     # Randomize times
     t_pulse_hi = r_hi.uniform(mid - 10, mid + 10, n_pixels)[:, None]
-    t_pulse_lo = r_lo.uniform(mid - 10, mid + 10, n_pixels)[:, None]
+    t_pulse_lo = r_lo.uniform(mid + 10, mid + 20, n_pixels)[:, None]
 
     # Create pulses
     y_hi = norm.pdf(x, t_pulse_hi, pulse_sigma)
@@ -55,11 +55,11 @@ def test_full_integration(camera_waveforms):
 
 def test_simple_integration(camera_waveforms):
     waveforms, camera = camera_waveforms
-    integrator = SimpleIntegrator()
+    integrator = SimpleIntegrator(t0=48)
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 8.125e-09, rtol=1e-3)
-    assert_allclose(integration[1][0], 9.372e-09, rtol=1e-3)
+    assert_allclose(integration[0][0], 232.559, rtol=1e-3)
+    assert_allclose(integration[1][0], 32.539, rtol=1e-3)
 
 
 def test_global_peak_integration(camera_waveforms):
@@ -68,7 +68,7 @@ def test_global_peak_integration(camera_waveforms):
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 232.559, rtol=1e-3)
-    assert_allclose(integration[1][0], 418.967, rtol=1e-3)
+    assert_allclose(integration[1][0], 425.406, rtol=1e-3)
 
 
 def test_local_peak_integration(camera_waveforms):
@@ -88,7 +88,7 @@ def test_nb_peak_integration(camera_waveforms):
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 94.671, rtol=1e-3)
-    assert_allclose(integration[1][0], 400.856, rtol=1e-3)
+    assert_allclose(integration[1][0], 426.887, rtol=1e-3)
 
 
 def test_averagewf_peak_integration(camera_waveforms):
@@ -97,7 +97,7 @@ def test_averagewf_peak_integration(camera_waveforms):
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 232.559, rtol=1e-3)
-    assert_allclose(integration[1][0], 427.158, rtol=1e-3)
+    assert_allclose(integration[1][0], 425.406, rtol=1e-3)
 
 
 def test_charge_extractor_factory(camera_waveforms):
