@@ -247,6 +247,9 @@ class NeighbourPeakIntegrator(ChargeExtractor):
                 '1: local pixel counts as much as any neighbour)'
     ).tag(config=True)
 
+    def requires_neighbours(self):
+        return True
+
     def extract_charge(self, waveforms):
         shape = waveforms.shape
         waveforms_32 = waveforms.astype(np.float32)

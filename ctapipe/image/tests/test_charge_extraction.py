@@ -55,7 +55,7 @@ def test_full_integration(camera_waveforms):
 
 def test_simple_integration(camera_waveforms):
     waveforms, camera = camera_waveforms
-    integrator = SimpleIntegrator(t0=48)
+    integrator = SimpleIntegrator(window_start=45)
     integration, peakpos, window = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 232.559, rtol=1e-3)

@@ -146,7 +146,7 @@ class CHECMWaveformCleaner(WaveformCleaner):
 
         # Obtain waveform with pulse masked
         baseline_sub_b = baseline_sub[None, ...]
-        window, _ = self.extractor.get_window_from_waveforms(waveforms)
+        _, _, window = self.extractor.extract_charge(waveforms)
         windowed = np.ma.array(baseline_sub_b, mask=window[0])
         no_pulse = np.ma.filled(windowed, 0)[0]
 
