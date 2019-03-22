@@ -45,36 +45,36 @@ def camera_waveforms():
 
 
 def test_full_integration(camera_waveforms):
-    waveforms, camera = camera_waveforms
+    waveforms, _ = camera_waveforms
     integrator = FullIntegrator()
-    integration, peakpos, window = integrator.extract_charge(waveforms)
+    integration, _, _ = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 545.945, rtol=1e-3)
     assert_allclose(integration[1][0], 970.025, rtol=1e-3)
 
 
 def test_simple_integration(camera_waveforms):
-    waveforms, camera = camera_waveforms
+    waveforms, _ = camera_waveforms
     integrator = SimpleIntegrator(window_start=45)
-    integration, peakpos, window = integrator.extract_charge(waveforms)
+    integration, _, _ = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 232.559, rtol=1e-3)
     assert_allclose(integration[1][0], 32.539, rtol=1e-3)
 
 
 def test_global_peak_integration(camera_waveforms):
-    waveforms, camera = camera_waveforms
+    waveforms, _ = camera_waveforms
     integrator = GlobalPeakIntegrator()
-    integration, peakpos, window = integrator.extract_charge(waveforms)
+    integration, _, _ = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 232.559, rtol=1e-3)
     assert_allclose(integration[1][0], 425.406, rtol=1e-3)
 
 
 def test_local_peak_integration(camera_waveforms):
-    waveforms, camera = camera_waveforms
+    waveforms, _ = camera_waveforms
     integrator = LocalPeakIntegrator()
-    integration, peakpos, window = integrator.extract_charge(waveforms)
+    integration, _, _ = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 240.3, rtol=1e-3)
     assert_allclose(integration[1][0], 427.158, rtol=1e-3)
@@ -85,23 +85,23 @@ def test_nb_peak_integration(camera_waveforms):
     nei = camera.neighbor_matrix_where
     integrator = NeighbourPeakIntegrator()
     integrator.neighbours = nei
-    integration, peakpos, window = integrator.extract_charge(waveforms)
+    integration, _, _ = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 94.671, rtol=1e-3)
     assert_allclose(integration[1][0], 426.887, rtol=1e-3)
 
 
 def test_averagewf_peak_integration(camera_waveforms):
-    waveforms, camera = camera_waveforms
+    waveforms, _ = camera_waveforms
     integrator = AverageWfPeakIntegrator()
-    integration, peakpos, window = integrator.extract_charge(waveforms)
+    integration, _, _ = integrator.extract_charge(waveforms)
 
     assert_allclose(integration[0][0], 232.559, rtol=1e-3)
     assert_allclose(integration[1][0], 425.406, rtol=1e-3)
 
 
 def test_charge_extractor_factory(camera_waveforms):
-    waveforms, camera = camera_waveforms
+    waveforms, _ = camera_waveforms
     extractor = ChargeExtractor.from_name('LocalPeakIntegrator')
     extractor.extract_charge(waveforms)
 
