@@ -11,12 +11,13 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 def test_muon_reconstruction(tmpdir):
     from ctapipe.tools.muon_reconstruction import MuonDisplayerTool
-    MuonDisplayerTool().run(
+    return_code = MuonDisplayerTool().run(
         argv=shlex.split(
             f'--events={GAMMA_TEST_LARGE} '
             '--max_events=2 '
         )
     )
+    assert return_code == 0
 
 
 def test_display_summed_imaged(tmpdir):
