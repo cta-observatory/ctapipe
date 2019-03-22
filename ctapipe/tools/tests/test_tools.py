@@ -71,8 +71,7 @@ def test_display_dl1(tmpdir):
 
 def test_info():
     from ctapipe.tools.info import info
-    return_code = info(show_all=True)
-    assert return_code == 0
+    info(show_all=True)
 
 
 def test_dump_triggers(tmpdir):
