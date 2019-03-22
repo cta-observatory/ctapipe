@@ -23,51 +23,56 @@ def test_muon_reconstruction(tmpdir):
 def test_display_summed_imaged(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
     mpl.use('Agg')
-    ImageSumDisplayerTool().run(
+    return_code = ImageSumDisplayerTool().run(
         argv=shlex.split(
             f'--infile={GAMMA_TEST_LARGE} '
             '--max-events=2 '
         )
     )
+    assert return_code == 0
 
 
 def test_display_integrator(tmpdir):
     from ctapipe.tools.display_integrator import DisplayIntegrator
     mpl.use('Agg')
-    DisplayIntegrator().run(
+    return_code = DisplayIntegrator().run(
         argv=shlex.split(
             f'--f={GAMMA_TEST_LARGE} '
             '--max_events=1 '
         )
     )
+    assert return_code == 0
 
 
 def test_display_events_single_tel(tmpdir):
     from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
     mpl.use('Agg')
-    SingleTelEventDisplay().run(
+    return_code = SingleTelEventDisplay().run(
         argv=shlex.split(
             f'--infile={GAMMA_TEST_LARGE} '
             '--tel=11 '
             '--max-events=2 '  # <--- inconsistent!!!
         )
     )
+    assert return_code == 0
 
 
 def test_display_dl1(tmpdir):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
     mpl.use('Agg')
-    DisplayDL1Calib().run(
+    return_code = DisplayDL1Calib().run(
         argv=shlex.split(
             '--max_events=1 '
             '--telescope=11 '
         )
     )
+    assert return_code == 0
 
 
 def test_info():
     from ctapipe.tools.info import info
-    info(show_all=True)
+    return_code = info(show_all=True)
+    assert return_code == 0
 
 
 def test_dump_triggers(tmpdir):
@@ -81,8 +86,8 @@ def test_dump_triggers(tmpdir):
         outfile=str(outfile)
     )
 
-    tool.run(argv=[])
-
+    return_code = tool.run(argv=[])
+    assert return_code == 0
     assert outfile.exists()
 
 
@@ -96,8 +101,8 @@ def test_dump_instrument(tmpdir):
         infile=GAMMA_TEST_LARGE,
     )
 
-    tool.run(argv=[])
-
+    return_code = tool.run(argv=[])
+    assert return_code == 0
     print(tmpdir.listdir())
     assert tmpdir.join('FlashCam.camgeom.fits.gz').exists()
 
@@ -109,7 +114,8 @@ def test_camdemo():
     tool.num_events = 10
     tool.cleanframes = 2
     tool.display = False
-    tool.run(argv=[])
+    return_code = tool.run(argv=[])
+    assert return_code == 0
 
 
 def test_bokeh_file_viewer():
@@ -117,8 +123,8 @@ def test_bokeh_file_viewer():
 
     sys.argv = ['bokeh_file_viewer']
     tool = BokehFileViewer(disable_server=True)
-    tool.run()
-
+    return_code = tool.run()
+    assert return_code == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
 
 
@@ -146,8 +152,9 @@ def test_plot_charge_resolution(tmpdir):
 
     output_path = os.path.join(str(tmpdir), "cr.pdf")
     tool = ChargeResolutionViewer()
-    tool.run([
+    return_code = tool.run([
         '-f', [path],
         '-o', output_path,
     ])
+    assert return_code == 0
     assert os.path.exists(output_path)
