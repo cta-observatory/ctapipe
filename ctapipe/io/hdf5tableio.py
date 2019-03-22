@@ -1,3 +1,4 @@
+'''Implementations of TableWriter and -Reader for HDF5 files'''
 import enum
 from functools import partial
 
@@ -153,6 +154,7 @@ class HDF5TableWriter(TableWriter):
 
                 if isinstance(value, enum.Enum):
                     def transform(enum_value):
+                        '''transform enum instance into its (integer) value'''
                         return enum_value.value
                     meta[f'{col_name}_ENUM'] = value.__class__
                     value = transform(value)
@@ -346,6 +348,7 @@ class HDF5TableReader(TableReader):
                 colname = attr[:-5]
 
                 def transform_int_to_enum(int_val):
+                    '''transform integer 'code' into enum instance'''
                     enum_class = tab.attrs[attr]
                     return enum_class(int_val)
 
@@ -354,7 +357,6 @@ class HDF5TableReader(TableReader):
                     colname,
                     transform_int_to_enum
                 )
-
 
     def _map_table_to_container(self, table_name, container):
         """ identifies which columns in the table to read into the container,
