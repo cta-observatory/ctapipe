@@ -1,7 +1,7 @@
 """
-Dump instrumental descriptions in a monte-carlo (simtelarray) input file to 
-FITS files that can be loaded independently (e.g. with 
-CameraGeometry.from_table()).  The name of the output files are 
+Dump instrumental descriptions in a monte-carlo (simtelarray) input file to
+FITS files that can be loaded independently (e.g. with
+CameraGeometry.from_table()).  The name of the output files are
 automatically generated.
 """
 
@@ -122,11 +122,9 @@ class DumpInstrumentTool(Tool):
                           "%s", filename, err)
 
 
-
-
 def main():
     tool = DumpInstrumentTool()
-    tool.run()
+    return tool.run()
 
 
 if __name__ == '__main__':

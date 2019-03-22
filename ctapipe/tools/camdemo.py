@@ -172,7 +172,7 @@ class CameraDemo(Tool):
 
 def main():
     app = CameraDemo()
-    app.run()
+    return app.run()
 
 
 if __name__ == '__main__':

@@ -357,4 +357,4 @@ class DisplayIntegrator(Tool):
 
 def main():
     exe = DisplayIntegrator()
-    exe.run()
+    return exe.run()
