@@ -156,6 +156,10 @@ class Tool(Application):
             command-line arguments, or None to get them
             from sys.argv automatically
         """
+
+        # return codes are taken from:
+        #  http://tldp.org/LDP/abs/html/exitcodes.html
+
         try:
             self.initialize(argv)
             self.log.info(f"Starting: {self.name}")
@@ -170,22 +174,27 @@ class Tool(Application):
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
             self.log.error(f'{err}.  Use --help for more info')
+            return 2  # wrong cmd line parameter
         except RuntimeError as err:
             self.log.error(f'Caught unexpected exception: {err}')
             self.finish()
             Provenance().finish_activity(activity_name=self.name,
                                          status='error')
+            return 1  # any other error
         except KeyboardInterrupt:
             self.log.warning("WAS INTERRUPTED BY CTRL-C")
             self.finish()
             Provenance().finish_activity(activity_name=self.name,
                                          status='interrupted')
+            return 130  # Script terminated by Control-C
         finally:
             for activity in Provenance().finished_activities:
                 output_str = ' '.join([x['url'] for x in activity.output])
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
+
+        return 0  # ok
 
     @property
     def version_string(self):
