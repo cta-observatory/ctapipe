@@ -46,18 +46,11 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
         Shape: (n_chan, n_pix)
 
     """
-    # Ensure window is within waveform
-    # width[width > n_samples] = n_samples
-    # start[start < 0] = 0
-    # sum_check = start + width > n_samples
-    # start[sum_check] = n_samples - width[sum_check]
-
     start = peakpos - shift
     end = start + width
     ind = np.indices(waveforms.shape)[2]
     integration_window = (ind >= start[..., None]) & (ind < end[..., None])
-    windowed = np.ma.array(waveforms, mask=~integration_window)
-    charge = windowed.sum(2).data
+    charge = (waveforms * integration_window).sum(axis=2)
 
     # TODO: remove integration window return
     return charge, integration_window
