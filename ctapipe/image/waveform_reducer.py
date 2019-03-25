@@ -3,13 +3,14 @@ Charge extraction algorithms to reduce the image to one value per pixel
 """
 
 __all__ = [
-    'ChargeExtractor',
-    'FullIntegrator',
-    'SimpleIntegrator',
-    'GlobalPeakIntegrator',
-    'LocalPeakIntegrator',
-    'NeighbourPeakIntegrator',
-    'AverageWfPeakIntegrator',
+    'WaveformReducer',
+    'FullWaveformSum',
+    'UserWindowSum',
+    'GlobalWindowSum',
+    'LocalWindowSum',
+    'NeighbourWindowSum',
+    'extract_charge_from_peakpos_array',
+    'extract_pulse_time_weighted_average',
 ]
 
 
@@ -46,12 +47,6 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
         Shape: (n_chan, n_pix)
 
     """
-    # Ensure window is within waveform
-    # width[width > n_samples] = n_samples
-    # start[start < 0] = 0
-    # sum_check = start + width > n_samples
-    # start[sum_check] = n_samples - width[sum_check]
-
     start = peakpos - shift
     end = start + width
     ind = np.indices(waveforms.shape)[2]
@@ -59,15 +54,38 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
     windowed = np.ma.array(waveforms, mask=~integration_window)
     charge = windowed.sum(2).data
 
-    # TODO: remove integration window return
-    return charge, integration_window
+    return charge
 
 
-class ChargeExtractor(Component):
+def extract_pulse_time_weighted_average(waveforms):
+    """
+    Use the weighted average of the waveforms to extract the time of the pulse
+    in each pixel
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_chan, n_pix, n_samples)
+
+    Returns
+    -------
+    pulse_time : ndarray
+        Floating point pulse time in each pixel
+        Shape: (n_chan, n_pix)
+
+    """
+    samples_i = np.indices(waveforms.shape)[2]
+    pulse_time = np.average(samples_i, weights=waveforms, axis=2)
+    return pulse_time
+
+
+class WaveformReducer(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
-        Base component to handle the extraction of charge from an image cube.
+        Base component to handle the extraction of charge and pulse time
+        from an image cube.
 
         Attributes
         ----------
@@ -97,7 +115,7 @@ class ChargeExtractor(Component):
     @staticmethod
     def requires_neighbours():
         """
-        Method used for callers of the ChargeExtractor to know if the extractor
+        Method used for callers of the WaveformReducer to know if the extractor
         requires knowledge of the pixel neighbours
 
         Returns
@@ -108,7 +126,7 @@ class ChargeExtractor(Component):
 
     def check_neighbour_set(self):
         """
-        Check if the pixel neighbours has been set for the extractor
+        Check if the pixel neighbours has been set for the reducer
 
         Raises
         -------
@@ -121,10 +139,10 @@ class ChargeExtractor(Component):
                 raise ValueError()
 
     @abstractmethod
-    def extract_charge(self, waveforms):
+    def __call__(self, waveforms):
         """
-        Call the relevant functions to fully extract the charge for the
-        particular extractor.
+        Call the relevant functions to fully extract the charge and time
+        for the particular extractor.
 
         Parameters
         ----------
@@ -147,21 +165,20 @@ class ChargeExtractor(Component):
         """
 
 
-class FullIntegrator(ChargeExtractor):
+class FullWaveformSum(WaveformReducer):
     """
-    Charge extractor that integrates the entire waveform.
+    Waveform reducer that integrates the entire waveform.
     """
 
-    def extract_charge(self, waveforms):
-        # TODO: remove integration window return
-        peakpos = np.zeros(waveforms.shape[:2], dtype=np.intp)
-        window = np.ones(waveforms.shape, dtype=np.bool)
-        return waveforms.sum(2), peakpos, window
+    def __call__(self, waveforms):
+        charge = waveforms.sum(2)
+        pulse_time = extract_pulse_time_weighted_average(waveforms)
+        return charge, pulse_time
 
 
-class SimpleIntegrator(ChargeExtractor):
+class UserWindowSum(WaveformReducer):
     """
-    Charge extractor that integrates within a window defined by the user.
+    Waveform reducer that integrates within a window defined by the user.
     """
     window_start = Int(
         0, help='Define the start position for the integration window'
@@ -170,19 +187,18 @@ class SimpleIntegrator(ChargeExtractor):
         7, help='Define the width of the integration window'
     ).tag(config=True)
 
-    def extract_charge(self, waveforms):
+    def __call__(self, waveforms):
         start = self.window_start
         end = self.window_start + self.window_width
-        # TODO: remove integration window return
-        peakpos = np.zeros(waveforms.shape[:2], dtype=np.intp)
-        window = np.ones(waveforms.shape, dtype=np.bool)
-        return waveforms[..., start:end].sum(2), peakpos, window
+        charge = waveforms[..., start:end].sum(2)
+        pulse_time = extract_pulse_time_weighted_average(waveforms)
+        return charge, pulse_time
 
 
-class GlobalPeakIntegrator(ChargeExtractor):
+class GlobalWindowSum(WaveformReducer):
     """
-    Charge extractor that defines an integration window about the global
-    peak in the image.
+    Waveform reducer that defines an integration window defined by the
+    average waveform across all pixels.
     """
     window_shift = Int(
         3, help='Define the shift of the integration window '
@@ -192,29 +208,21 @@ class GlobalPeakIntegrator(ChargeExtractor):
         7, help='Define the width of the integration window'
     ).tag(config=True)
 
-    def extract_charge(self, waveforms):
-        max_t = waveforms.argmax(2)
-        max_s = waveforms.max(2)
-        peakpos = np.round(
-            np.average(max_t, weights=max_s, axis=1)
-        ).astype(np.int)
+    def __call__(self, waveforms):
+        peakpos = waveforms.mean(1).argmax(1)
         start = peakpos - self.window_shift
         end = start + self.window_width
         charge = np.stack([
             waveforms[0, :, start[0]:end[0]].sum(1),  # HI channel
             waveforms[1, :, start[1]:end[1]].sum(1),  # LO channel
         ])
-
-        # TODO: remove integration window return
-        ind = np.indices(waveforms.shape)[2]
-        window = (ind >= start[..., None, None]) & (ind < end[..., None, None])
-
-        return charge, peakpos, window
+        pulse_time = extract_pulse_time_weighted_average(waveforms)
+        return charge, pulse_time
 
 
-class LocalPeakIntegrator(ChargeExtractor):
+class LocalWindowSum(WaveformReducer):
     """
-    Charge extractor that defines an integration window about the local
+    Waveform reducer that defines an integration window about the local
     peak in each pixel.
     """
     window_shift = Int(
@@ -225,17 +233,18 @@ class LocalPeakIntegrator(ChargeExtractor):
         7, help='Define the width of the integration window'
     ).tag(config=True)
 
-    def extract_charge(self, waveforms):
+    def __call__(self, waveforms):
         peakpos = waveforms.argmax(2).astype(np.int)
         charge, window = extract_charge_from_peakpos_array(
             waveforms, peakpos, self.window_width, self.window_shift
         )
-        return charge, peakpos, window
+        pulse_time = extract_pulse_time_weighted_average(waveforms)
+        return charge, pulse_time
 
 
-class NeighbourPeakIntegrator(ChargeExtractor):
+class NeighbourWindowSum(WaveformReducer):
     """
-    Charge extractor that defines an integration window defined by the
+    Waveform reducer that defines an integration window defined by the
     peaks in the neighbouring pixels.
     """
     window_shift = Int(
@@ -253,7 +262,7 @@ class NeighbourPeakIntegrator(ChargeExtractor):
     def requires_neighbours(self):
         return True
 
-    def extract_charge(self, waveforms):
+    def __call__(self, waveforms):
         shape = waveforms.shape
         waveforms_32 = waveforms.astype(np.float32)
         sum_data = np.zeros_like(waveforms_32)
@@ -263,33 +272,5 @@ class NeighbourPeakIntegrator(ChargeExtractor):
         charge, window = extract_charge_from_peakpos_array(
             waveforms, peakpos, self.window_width, self.window_shift
         )
-        return charge, peakpos, window
-
-
-class AverageWfPeakIntegrator(ChargeExtractor):
-    """
-    Charge extractor that defines an integration window defined by the
-    average waveform across all pixels.
-    """
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peakpos (peakpos - shift)'
-    ).tag(config=True)
-    window_width = Int(
-        7, help='Define the width of the integration window'
-    ).tag(config=True)
-
-    def extract_charge(self, waveforms):
-        peakpos = waveforms.mean(1).argmax(1)
-        start = peakpos - self.window_shift
-        end = start + self.window_width
-        charge = np.stack([
-            waveforms[0, :, start[0]:end[0]].sum(1),  # HI channel
-            waveforms[1, :, start[1]:end[1]].sum(1),  # LO channel
-        ])
-
-        # TODO: remove integration window return
-        ind = np.indices(waveforms.shape)[2]
-        window = (ind >= start[..., None, None]) & (ind < end[..., None, None])
-
-        return charge, peakpos, window
+        pulse_time = extract_pulse_time_weighted_average(waveforms)
+        return charge, pulse_time
