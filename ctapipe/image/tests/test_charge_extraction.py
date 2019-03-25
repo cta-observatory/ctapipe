@@ -126,7 +126,8 @@ def test_charge_extractor_factory_args():
     assert local_peak_integrator.window_width == 20
     assert local_peak_integrator.window_shift == 3
 
-    ChargeExtractor.from_name(
-        'FullIntegrator',
-        config=config,
-    )
+    with pytest.warns(UserWarning):
+        ChargeExtractor.from_name(
+            'FullIntegrator',
+            config=config,
+        )
