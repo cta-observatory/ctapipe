@@ -10,7 +10,7 @@ from ctapipe.calib.camera import (
     CameraDL0Reducer,
     CameraDL1Calibrator,
 )
-from ctapipe.image import ChargeExtractor, WaveformCleaner
+from ctapipe.image import WaveformExtractor
 
 
 __all__ = ['CameraCalibrator']
@@ -48,8 +48,7 @@ class CameraCalibrator(Component):
     """
     def __init__(self, config=None, parent=None,
                  r1_product=None,
-                 extractor_product='NeighbourPeakIntegrator',
-                 cleaner_product='NullWaveformCleaner',
+                 extractor_name='NeighborWindowSum',
                  eventsource=None,
                  **kwargs):
         """
@@ -65,10 +64,8 @@ class CameraCalibrator(Component):
             Set to None if no Tool to pass.
         r1_product : str
             The R1 calibrator to use. Manually overrides the Factory.
-        extractor_product : str
-            The ChargeExtractor to use. Manually overrides the Factory.
-        cleaner_product : str
-            The WaveformCleaner to use. Manually overrides the Factory.
+        extractor_name : str
+            The name of the WaveformExtractor to use.
         eventsource : ctapipe.io.eventsource.EventSource
             EventSource that is being used to read the events. The EventSource
             contains information (such as metadata or inst) which indicates
@@ -77,13 +74,8 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        extractor = ChargeExtractor.from_name(
-            extractor_product,
-            parent=self,
-        )
-
-        cleaner = WaveformCleaner.from_name(
-            cleaner_product,
+        extractor = WaveformExtractor.from_name(
+            extractor_name,
             parent=self,
         )
 
@@ -103,7 +95,6 @@ class CameraCalibrator(Component):
         self.dl1 = CameraDL1Calibrator(
             parent=self,
             extractor=extractor,
-            cleaner=cleaner,
         )
 
     def calibrate(self, event):

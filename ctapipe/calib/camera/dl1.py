@@ -11,7 +11,7 @@ import numpy as np
 
 from ...core import Component
 from ...core.traits import Float
-from ...image import NeighbourPeakIntegrator, NullWaveformCleaner
+from ...image import NeighborWindowSum
 
 __all__ = ['CameraDL1Calibrator']
 
@@ -91,13 +91,11 @@ class CameraDL1Calibrator(Component):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
-    extractor : ctapipe.calib.camera.charge_extractors.ChargeExtractor
-        The extractor to use to extract the charge from the waveforms.
-        By default the NeighbourPeakIntegrator with default configuration
+    extractor : ctapipe.calib.camera.waveform_reducer.WaveformExtractor
+        The reducer to use to extract the charge and pulse time from
+        the waveforms.
+        By default the NeighborWindowSum with default configuration
         is used.
-    cleaner : ctapipe.calib.camera.waveform_cleaners.Cleaner
-        The waveform cleaner to use. By default no cleaning is
-        applied to the waveforms.
     kwargs
     """
     radius = Float(None, allow_none=True,
@@ -109,15 +107,11 @@ class CameraDL1Calibrator(Component):
                                 'clipped. Set to None for no '
                                 'clipping.').tag(config=True)
 
-    def __init__(self, config=None, parent=None, extractor=None, cleaner=None,
-                 **kwargs):
+    def __init__(self, config=None, parent=None, extractor=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
-            self.extractor = NeighbourPeakIntegrator(config, parent)
-        self.cleaner = cleaner
-        if self.cleaner is None:
-            self.cleaner = NullWaveformCleaner(config, parent)
+            self.extractor = NeighborWindowSum(config, parent)
         self._dl0_empty_warn = False
 
     def check_dl0_exists(self, event, telid):
@@ -199,20 +193,13 @@ class CameraDL1Calibrator(Component):
                 if n_samples == 1:
                     # To handle ASTRI and dst
                     corrected = waveforms[..., 0]
-                    window = np.ones(waveforms.shape)
-                    peakpos = np.zeros(waveforms.shape[0:2])
-                    cleaned = waveforms
+                    pulse_time = np.zeros(waveforms.shape[0:2])
                 else:
-                    # Clean waveforms
-                    cleaned = self.cleaner.apply(waveforms)
-
-                    # Extract charge
-                    if self.extractor.requires_neighbours():
-                        e = self.extractor
+                    # Extract charge and pulse time
+                    if self.extractor.requires_neighbors():
                         g = event.inst.subarray.tel[telid].camera
-                        e.neighbours = g.neighbor_matrix_where
-                    extract = self.extractor.extract_charge
-                    charge, peakpos, window = extract(cleaned)
+                        self.extractor.neighbors = g.neighbor_matrix_where
+                    charge, pulse_time = self.extractor(waveforms)
 
                     # Apply integration correction
                     correction = self.get_correction(event, telid)[:, None]
@@ -225,6 +212,4 @@ class CameraDL1Calibrator(Component):
 
                 # Store into event container
                 event.dl1.tel[telid].image = corrected
-                event.dl1.tel[telid].extracted_samples = window
-                event.dl1.tel[telid].peakpos = peakpos
-                event.dl1.tel[telid].cleaned = cleaned
+                event.dl1.tel[telid].pulse_time = pulse_time
