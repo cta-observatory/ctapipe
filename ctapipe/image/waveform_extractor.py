@@ -3,14 +3,16 @@ Charge extraction algorithms to reduce the image to one value per pixel
 """
 
 __all__ = [
-    'WaveformReducer',
+    'WaveformExtractor',
     'FullWaveformSum',
     'UserWindowSum',
     'GlobalWindowSum',
     'LocalWindowSum',
-    'NeighbourWindowSum',
+    'NeighborWindowSum',
+    'BaselineSubtractedNeighborWindowSum',
     'extract_charge_from_peakpos_array',
     'extract_pulse_time_weighted_average',
+    'subtract_baseline',
 ]
 
 
@@ -80,7 +82,34 @@ def extract_pulse_time_weighted_average(waveforms):
     return pulse_time
 
 
-class WaveformReducer(Component):
+def subtract_baseline(waveforms, baseline_start, baseline_end):
+    """
+    Subtracts the waveform baseline, estimated as the mean waveform value
+    in the interval [baseline_start:baseline_end]
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_chan, n_pix, n_samples)
+    baseline_start : int
+        Sample where the baseline window starts
+    baseline_end : int
+        Sample where the baseline window ends
+
+    Returns
+    -------
+    baseline_corrected : ndarray
+        Waveform with the baseline subtracted
+    """
+    baseline_corrected = waveforms - np.mean(
+        waveforms[..., baseline_start:baseline_end], axis=2
+    )[..., None]
+
+    return baseline_corrected
+
+
+class WaveformExtractor(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
@@ -89,8 +118,8 @@ class WaveformReducer(Component):
 
         Attributes
         ----------
-        neighbours : ndarray
-            2D array where each row is [pixel index, one neighbour
+        neighbors : ndarray
+            2D array where each row is [pixel index, one neighbor
             of that pixel].
             Changes per telescope.
             Can be obtained from
@@ -110,13 +139,13 @@ class WaveformReducer(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        self.neighbours = None
+        self.neighbors = None
 
     @staticmethod
-    def requires_neighbours():
+    def requires_neighbors():
         """
-        Method used for callers of the WaveformReducer to know if the extractor
-        requires knowledge of the pixel neighbours
+        Method used for callers of the WaveformExtractor to know if the
+        extractor requires knowledge of the pixel neighbors
 
         Returns
         -------
@@ -124,18 +153,18 @@ class WaveformReducer(Component):
         """
         return False
 
-    def check_neighbour_set(self):
+    def check_neighbor_set(self):
         """
-        Check if the pixel neighbours has been set for the reducer
+        Check if the pixel neighbors has been set for the extractor
 
         Raises
         -------
         ValueError
-            If neighbours has not been set
+            If neighbors has not been set
         """
-        if self.requires_neighbours():
-            if self.neighbours is None:
-                self.log.exception("neighbours attribute must be set")
+        if self.requires_neighbors():
+            if self.neighbors is None:
+                self.log.exception("neighbors attribute must be set")
                 raise ValueError()
 
     @abstractmethod
@@ -165,9 +194,9 @@ class WaveformReducer(Component):
         """
 
 
-class FullWaveformSum(WaveformReducer):
+class FullWaveformSum(WaveformExtractor):
     """
-    Waveform reducer that integrates the entire waveform.
+    Waveform extractor that integrates the entire waveform.
     """
 
     def __call__(self, waveforms):
@@ -176,9 +205,9 @@ class FullWaveformSum(WaveformReducer):
         return charge, pulse_time
 
 
-class UserWindowSum(WaveformReducer):
+class UserWindowSum(WaveformExtractor):
     """
-    Waveform reducer that integrates within a window defined by the user.
+    Waveform extractor that integrates within a window defined by the user.
     """
     window_start = Int(
         0, help='Define the start position for the integration window'
@@ -195,9 +224,9 @@ class UserWindowSum(WaveformReducer):
         return charge, pulse_time
 
 
-class GlobalWindowSum(WaveformReducer):
+class GlobalWindowSum(WaveformExtractor):
     """
-    Waveform reducer that defines an integration window defined by the
+    Waveform extractor that defines an integration window defined by the
     average waveform across all pixels.
     """
     window_shift = Int(
@@ -220,9 +249,9 @@ class GlobalWindowSum(WaveformReducer):
         return charge, pulse_time
 
 
-class LocalWindowSum(WaveformReducer):
+class LocalWindowSum(WaveformExtractor):
     """
-    Waveform reducer that defines an integration window about the local
+    Waveform extractor that defines an integration window about the local
     peak in each pixel.
     """
     window_shift = Int(
@@ -235,17 +264,17 @@ class LocalWindowSum(WaveformReducer):
 
     def __call__(self, waveforms):
         peakpos = waveforms.argmax(2).astype(np.int)
-        charge, window = extract_charge_from_peakpos_array(
+        charge = extract_charge_from_peakpos_array(
             waveforms, peakpos, self.window_width, self.window_shift
         )
         pulse_time = extract_pulse_time_weighted_average(waveforms)
         return charge, pulse_time
 
 
-class NeighbourWindowSum(WaveformReducer):
+class NeighborWindowSum(WaveformExtractor):
     """
-    Waveform reducer that defines an integration window defined by the
-    peaks in the neighbouring pixels.
+    Waveform extractor that defines an integration window defined by the
+    peaks in the neighboring pixels.
     """
     window_shift = Int(
         3, help='Define the shift of the integration window '
@@ -255,22 +284,41 @@ class NeighbourWindowSum(WaveformReducer):
         7, help='Define the width of the integration window'
     ).tag(config=True)
     lwt = Int(
-        0, help='Weight of the local pixel (0: peak from neighbours only, '
-                '1: local pixel counts as much as any neighbour)'
+        0, help='Weight of the local pixel (0: peak from neighbors only, '
+                '1: local pixel counts as much as any neighbor)'
     ).tag(config=True)
 
-    def requires_neighbours(self):
+    def requires_neighbors(self):
         return True
 
     def __call__(self, waveforms):
         shape = waveforms.shape
         waveforms_32 = waveforms.astype(np.float32)
         sum_data = np.zeros_like(waveforms_32)
-        n = self.neighbours.astype(np.uint16)
+        n = self.neighbors.astype(np.uint16)
         get_sum_array(waveforms_32, sum_data, *shape, n, n.shape[0], self.lwt)
         peakpos = sum_data.argmax(2).astype(np.int)
-        charge, window = extract_charge_from_peakpos_array(
+        charge = extract_charge_from_peakpos_array(
             waveforms, peakpos, self.window_width, self.window_shift
         )
         pulse_time = extract_pulse_time_weighted_average(waveforms)
         return charge, pulse_time
+
+
+class BaselineSubtractedNeighborWindowSum(NeighborWindowSum):
+    """
+    Waveform extractor that first subtracts the baseline before integrating in
+    a window defined by the peaks in neighboring pixels.
+    """
+    baseline_start = Int(
+        0, help='Start sample for baseline estimation'
+    ).tag(config=True)
+    baseline_end = Int(
+        10, help='End sample for baseline estimation'
+    ).tag(config=True)
+
+    def __call__(self, waveforms):
+        baseline_corrected = subtract_baseline(
+            waveforms, self.baseline_start, self.baseline_end
+        )
+        return super().__call__(baseline_corrected)
