@@ -49,11 +49,9 @@ class BokehFileViewer(Tool):
         ped='TargetIOR1Calibrator.pedestal_path',
         tf='TargetIOR1Calibrator.tf_path',
         pe='TargetIOR1Calibrator.pe_path',
-        simpleintegrator_t0='SimpleIntegrator.t0',
         window_width='WindowIntegrator.window_width',
-        window_shift='WindowIntegrator.window_shift',
-        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
-        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
+        window_shift='PeakFindingIntegrator.window_shift',
+        window_start='SimpleIntegrator.window_start',
         lwt='NeighbourPeakIntegrator.lwt',
     ))
 
@@ -370,10 +368,6 @@ class BokehFileViewer(Tool):
             extractor_t0=TextInput(title="T0:", value=''),
             extractor_window_width=TextInput(title="Window Width:", value=''),
             extractor_window_shift=TextInput(title="Window Shift:", value=''),
-            extractor_sig_amp_cut_HG=TextInput(title="Significant Amplitude "
-                                                     "Cut (HG):", value=''),
-            extractor_sig_amp_cut_LG=TextInput(title="Significant Amplitude "
-                                                     "Cut (LG):", value=''),
             extractor_lwt=TextInput(title="Local Pixel Weight:", value=''))
 
         for val in self.w_dl1_dict.values():
@@ -386,8 +380,6 @@ class BokehFileViewer(Tool):
             self.w_dl1_dict['extractor_t0'],
             self.w_dl1_dict['extractor_window_width'],
             self.w_dl1_dict['extractor_window_shift'],
-            self.w_dl1_dict['extractor_sig_amp_cut_HG'],
-            self.w_dl1_dict['extractor_sig_amp_cut_LG'],
             self.w_dl1_dict['extractor_lwt'])
 
     def update_dl1_widget_values(self):
@@ -418,8 +410,9 @@ class BokehFileViewer(Tool):
                 self._updating_dl1 = True
                 cmdline = []
                 for key, val in self.w_dl1_dict.items():
+                    k = key.replace("extractor_", "").replace("cleaner_", "")
                     if val.value:
-                        cmdline.append(f'--{key}')
+                        cmdline.append(f'--{k}')
                         cmdline.append(val.value)
                 self.parse_command_line(cmdline)
                 extractor = ChargeExtractor.from_name(
