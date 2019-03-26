@@ -3,6 +3,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 """
 
 __all__ = [
+    'neighbor_average_waveform',
     'ChargeExtractor',
     'FullIntegrator',
     'SimpleIntegrator',
@@ -17,7 +18,7 @@ from abc import abstractmethod
 import numpy as np
 from traitlets import Int
 from ctapipe.core import Component
-from ctapipe.utils.neighbour_sum import get_sum_array
+from numba import njit, prange, float64, int64
 
 
 def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
@@ -54,6 +55,44 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
 
     # TODO: remove integration window return
     return charge, integration_window
+
+
+@njit(float64[:, :, :](float64[:, :, :], int64[:, :], int64), parallel=True)
+def neighbor_average_waveform(waveforms, neighbors, lwt):
+    """
+    Obtain the average waveform built from the neighbors of each pixel
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_chan, n_pix, n_samples)
+    neighbors : ndarray
+        2D array where each row is [pixel index, one neighbor of that pixel].
+        Changes per telescope.
+        Can be obtained from
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
+    lwt: int
+        Weight of the local pixel (0: peak from neighbours only,
+        1: local pixel counts as much as any neighbour)
+
+    Returns
+    -------
+    average_wf : ndarray
+        Average of neighbor waveforms for each pixel.
+        Shape: (n_chan, n_pix, n_samples)
+
+    """
+    n_neighbors = neighbors.shape[0]
+    sum_ = waveforms * lwt
+    n = np.zeros(waveforms.shape)
+    for i in prange(n_neighbors):
+        pixel = neighbors[i, 0]
+        neighbor = neighbors[i, 1]
+        for channel in range(waveforms.shape[0]):
+            sum_[channel, pixel] += waveforms[channel, neighbor]
+            n[channel, pixel] += 1
+    return sum_ / n
 
 
 class ChargeExtractor(Component):
@@ -247,12 +286,10 @@ class NeighbourPeakIntegrator(ChargeExtractor):
         return True
 
     def extract_charge(self, waveforms):
-        shape = waveforms.shape
-        waveforms_32 = waveforms.astype(np.float32)
-        sum_data = np.zeros_like(waveforms_32)
-        n = self.neighbours.astype(np.uint16)
-        get_sum_array(waveforms_32, sum_data, *shape, n, n.shape[0], self.lwt)
-        peakpos = sum_data.argmax(2).astype(np.int)
+        average_wfs = neighbor_average_waveform(
+            waveforms, self.neighbours, self.lwt
+        )
+        peakpos = average_wfs.argmax(2)
         charge, window = extract_charge_from_peakpos_array(
             waveforms, peakpos, self.window_width, self.window_shift
         )
