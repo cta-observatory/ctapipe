@@ -10,10 +10,10 @@ from ctapipe.image.waveform_extractor import (
     WaveformExtractor,
     FullWaveformSum,
     UserWindowSum,
-    GlobalWindowSum,
-    LocalWindowSum,
-    NeighborWindowSum,
-    BaselineSubtractedNeighborWindowSum,
+    GlobalPeakWindowSum,
+    LocalPeakWindowSum,
+    NeighborPeakWindowSum,
+    BaselineSubtractedNeighborPeakWindowSum,
 )
 
 
@@ -99,9 +99,9 @@ def test_user_window_sum(camera_waveforms):
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
 
 
-def test_global_window_sum(camera_waveforms):
+def test_global_peak_window_sum(camera_waveforms):
     waveforms, _ = camera_waveforms
-    extractor = GlobalWindowSum()
+    extractor = GlobalPeakWindowSum()
     charge, pulse_time = extractor(waveforms)
 
     assert_allclose(charge[0][0], 232.559, rtol=1e-3)
@@ -110,9 +110,9 @@ def test_global_window_sum(camera_waveforms):
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
 
 
-def test_local_window_sum(camera_waveforms):
+def test_local_peak_window_sum(camera_waveforms):
     waveforms, _ = camera_waveforms
-    extractor = LocalWindowSum()
+    extractor = LocalPeakWindowSum()
     charge, pulse_time = extractor(waveforms)
 
     assert_allclose(charge[0][0], 240.3, rtol=1e-3)
@@ -121,10 +121,10 @@ def test_local_window_sum(camera_waveforms):
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
 
 
-def test_neighbor_window_sum(camera_waveforms):
+def test_neighbor_peak_window_sum(camera_waveforms):
     waveforms, camera = camera_waveforms
     nei = camera.neighbor_matrix_where
-    extractor = NeighborWindowSum()
+    extractor = NeighborPeakWindowSum()
     extractor.neighbors = nei
     charge, pulse_time = extractor(waveforms)
 
@@ -134,10 +134,10 @@ def test_neighbor_window_sum(camera_waveforms):
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
 
 
-def test_baseline_subtracted_neighbor_window_sum(camera_waveforms):
+def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
     waveforms, camera = camera_waveforms
     nei = camera.neighbor_matrix_where
-    extractor = BaselineSubtractedNeighborWindowSum()
+    extractor = BaselineSubtractedNeighborPeakWindowSum()
     extractor.neighbors = nei
     charge, pulse_time = extractor(waveforms)
 
@@ -149,7 +149,7 @@ def test_baseline_subtracted_neighbor_window_sum(camera_waveforms):
 
 def test_waveform_extractor_factory(camera_waveforms):
     waveforms, _ = camera_waveforms
-    extractor = WaveformExtractor.from_name('LocalWindowSum')
+    extractor = WaveformExtractor.from_name('LocalPeakWindowSum')
     extractor(waveforms)
 
 
@@ -168,7 +168,7 @@ def test_waveform_extractor_factory_args():
     )
 
     extractor = WaveformExtractor.from_name(
-        'LocalWindowSum',
+        'LocalPeakWindowSum',
         config=config,
     )
     assert extractor.window_width == 20

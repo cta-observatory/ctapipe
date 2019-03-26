@@ -143,7 +143,7 @@ class DisplayDL1Calib(Tool):
 
     extractor_product = tool_utils.enum_trait(
         WaveformExtractor,
-        default='NeighborWindowSum'
+        default='NeighborPeakWindowSum'
     )
 
     aliases = Dict(

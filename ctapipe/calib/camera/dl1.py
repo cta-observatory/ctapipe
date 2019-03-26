@@ -9,7 +9,7 @@ import numpy as np
 
 from ...core import Component
 from ...core.traits import Float
-from ...image import NeighborWindowSum
+from ...image import NeighborPeakWindowSum
 
 __all__ = ['CameraDL1Calibrator']
 
@@ -92,7 +92,7 @@ class CameraDL1Calibrator(Component):
     extractor : ctapipe.calib.camera.waveform_reducer.WaveformExtractor
         The reducer to use to extract the charge and pulse time from
         the waveforms.
-        By default the NeighborWindowSum with default configuration
+        By default the NeighborPeakWindowSum with default configuration
         is used.
     kwargs
     """
@@ -109,7 +109,7 @@ class CameraDL1Calibrator(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self.extractor = extractor
         if self.extractor is None:
-            self.extractor = NeighborWindowSum(config, parent)
+            self.extractor = NeighborPeakWindowSum(config, parent)
         self._dl0_empty_warn = False
 
     def check_dl0_exists(self, event, telid):

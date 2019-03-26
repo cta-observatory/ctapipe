@@ -18,7 +18,7 @@ def test_enum_trait():
     # function under test
     from ctapipe.utils.tools import enum_trait
 
-    trait = enum_trait(WaveformExtractor, default='NeighborWindowSum')
+    trait = enum_trait(WaveformExtractor, default='NeighborPeakWindowSum')
     assert isinstance(trait, traitlets.traitlets.CaselessStrEnum)
 
 

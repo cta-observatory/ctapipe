@@ -26,7 +26,7 @@ class CameraCalibrator(Component):
     """
     def __init__(self, config=None, parent=None,
                  r1_product=None,
-                 extractor_name='NeighborWindowSum',
+                 extractor_name='NeighborPeakWindowSum',
                  eventsource=None,
                  **kwargs):
         """

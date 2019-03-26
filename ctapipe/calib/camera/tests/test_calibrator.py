@@ -5,7 +5,7 @@ from ctapipe.calib.camera import (
     HESSIOR1Calibrator,
     NullR1Calibrator
 )
-from ctapipe.image.waveform_extractor import LocalWindowSum
+from ctapipe.image.waveform_extractor import LocalPeakWindowSum
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 
@@ -26,8 +26,8 @@ def test_manual_r1():
 
 
 def test_manual_extractor():
-    calibrator = CameraCalibrator(extractor_name="LocalWindowSum")
-    assert isinstance(calibrator.dl1.extractor, LocalWindowSum)
+    calibrator = CameraCalibrator(extractor_name="LocalPeakWindowSum")
+    assert isinstance(calibrator.dl1.extractor, LocalPeakWindowSum)
 
 
 def test_eventsource_r1():
