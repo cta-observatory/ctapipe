@@ -147,13 +147,13 @@ def test_baseline_subtracted_neighbor_window_sum(camera_waveforms):
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
 
 
-def test_charge_extractor_factory(camera_waveforms):
+def test_waveform_extractor_factory(camera_waveforms):
     waveforms, _ = camera_waveforms
     extractor = WaveformExtractor.from_name('LocalWindowSum')
     extractor(waveforms)
 
 
-def test_charge_extractor_factory_args():
+def test_waveform_extractor_factory_args():
     """
     Config is supposed to be created by a `Tool`
     """

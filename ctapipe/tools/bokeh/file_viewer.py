@@ -234,7 +234,7 @@ class BokehFileViewer(Tool):
 
         Parameters
         ----------
-        extractor : ctapipe.image.charge_extractors.ChargeExtractor
+        extractor : ctapipe.image.waveform_extractors.WaveformExtractor
         """
         if extractor is None:
             extractor = self.dl1.extractor

@@ -2,10 +2,8 @@
 Calibrator for the DL0 -> DL1 data level transition.
 
 This module handles the calibration from the DL0 data level to DL1. This
-transition involves the waveform cleaning (such as filtering, smoothing,
-or basline subtraction) performed by a cleaner from
-`ctapipe.image.waveform_cleaning`, and the charge extraction technique
-from `ctapipe.image.charge_extractors`.
+transition involves the extraction of parameters from the waveform using a
+`ctapipe.image.waveform_extractor.WaveformExtractor`.
 """
 import numpy as np
 
