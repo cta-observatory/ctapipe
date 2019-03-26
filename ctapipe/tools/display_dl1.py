@@ -9,7 +9,7 @@ from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
 from ctapipe.visualization import CameraDisplay
 from ctapipe.core import Tool, Component
 from ctapipe.utils import get_dataset_path
-from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.waveform_extractor import WaveformExtractor
 from ctapipe.io import EventSource
 import ctapipe.utils.tools as tool_utils
 
@@ -142,8 +142,8 @@ class DisplayDL1Calib(Tool):
     ).tag(config=True)
 
     extractor_product = tool_utils.enum_trait(
-        ChargeExtractor,
-        default='NeighbourPeakIntegrator'
+        WaveformExtractor,
+        default='NeighborWindowSum'
     )
 
     aliases = Dict(
@@ -172,7 +172,7 @@ class DisplayDL1Calib(Tool):
             EventSource,
             CameraDL1Calibrator,
             ImagePlotter
-        ] + tool_utils.classes_with_traits(ChargeExtractor)
+        ] + tool_utils.classes_with_traits(WaveformExtractor)
     )
 
     def __init__(self, **kwargs):
