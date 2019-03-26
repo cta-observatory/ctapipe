@@ -204,7 +204,7 @@ class FullWaveformSum(WaveformExtractor):
         return charge, pulse_time
 
 
-class SimpleIntegrator(WaveformExtractor):
+class UserWindowSum(WaveformExtractor):
     """
     Waveform extractor that integrates within a window defined by the user.
     """
@@ -223,9 +223,9 @@ class SimpleIntegrator(WaveformExtractor):
         return charge, pulse_time
 
 
-class GlobalPeakIntegrator(WaveformExtractor):
+class GlobalWindowSum(WaveformExtractor):
     """
-    Charge extractor that defines an integration window about the global
+    Waveform extractor that defines an integration window about the global
     peak in the image.
     """
     window_width = Int(
@@ -236,7 +236,7 @@ class GlobalPeakIntegrator(WaveformExtractor):
                 'from the peakpos (peakpos - shift)'
     ).tag(config=True)
 
-    def extract_charge(self, waveforms):
+    def __call__(self, waveforms):
         max_t = waveforms.argmax(2)
         max_s = waveforms.max(2)
         peakpos = np.round(
