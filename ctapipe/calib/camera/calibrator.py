@@ -23,28 +23,6 @@ class CameraCalibrator(Component):
     This calibrator will apply the calibrations found in r1.py, dl0.py and
     dl1.py.
 
-    The following traitlet alias configuration is suggestion for configuring
-    the calibration inside a `ctapipe.core.Tool`:
-
-    .. code-block:: python
-
-        aliases = Dict(dict(
-        ped='CameraR1CalibratorFactory.pedestal_path',
-        tf='CameraR1CalibratorFactory.tf_path',
-        pe='CameraR1CalibratorFactory.adc2pe_path',
-        extractor='ChargeExtractorFactory.extractor',
-        extractor_t0='ChargeExtractorFactory.t0',
-        window_width='ChargeExtractorFactory.window_width',
-        window_shift='ChargeExtractorFactory.window_shift',
-        sig_amp_cut_HG='ChargeExtractorFactory.sig_amp_cut_HG',
-        sig_amp_cut_LG='ChargeExtractorFactory.sig_amp_cut_LG',
-        lwt='ChargeExtractorFactory.lwt',
-        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-        radius='CameraDL1Calibrator.radius',
-        cleaner='WaveformCleanerFactory.cleaner',
-        cleaner_t0='WaveformCleanerFactory.t0',
-        ))
-
     """
     def __init__(self, config=None, parent=None,
                  r1_product=None,
