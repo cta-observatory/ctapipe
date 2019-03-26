@@ -90,6 +90,12 @@ def test_nb_peak_integration(camera_waveforms):
     assert_allclose(integration[0][0], 94.671, rtol=1e-3)
     assert_allclose(integration[1][0], 426.887, rtol=1e-3)
 
+    integrator.lwt = 4
+    integration, _, _ = integrator.extract_charge(waveforms)
+
+    assert_allclose(integration[0][0], 220.418657, rtol=1e-3)
+    assert_allclose(integration[1][0], 426.887, rtol=1e-3)
+
 
 def test_averagewf_peak_integration(camera_waveforms):
     waveforms, _ = camera_waveforms
