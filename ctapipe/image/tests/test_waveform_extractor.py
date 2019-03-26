@@ -5,6 +5,7 @@ from numpy.testing import assert_allclose
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.waveform_extractor import (
     extract_charge_from_peakpos_array,
+    neighbor_average_waveform,
     extract_pulse_time_weighted_average,
     subtract_baseline,
     WaveformExtractor,
@@ -56,6 +57,20 @@ def test_extract_charge_from_peakpos_array(camera_waveforms):
 
     assert_allclose(charge[0][0], 146.022991, rtol=1e-3)
     assert_allclose(charge[1][0], 22.393974, rtol=1e-3)
+
+
+def test_neighbor_average_waveform(camera_waveforms):
+    waveforms, camera = camera_waveforms
+    nei = camera.neighbor_matrix_where
+    average_wf = neighbor_average_waveform(waveforms, nei, 0)
+
+    assert_allclose(average_wf[0, 0, 48], 28.690154, rtol=1e-3)
+    assert_allclose(average_wf[1, 0, 48], 2.221035, rtol=1e-3)
+
+    average_wf = neighbor_average_waveform(waveforms, nei, 4)
+
+    assert_allclose(average_wf[0, 0, 48], 98.565743, rtol=1e-3)
+    assert_allclose(average_wf[1, 0, 48], 9.578896, rtol=1e-3)
 
 
 def test_extract_pulse_time_weighted_average(camera_waveforms):
@@ -129,6 +144,14 @@ def test_neighbor_peak_window_sum(camera_waveforms):
     charge, pulse_time = extractor(waveforms)
 
     assert_allclose(charge[0][0], 94.671, rtol=1e-3)
+    assert_allclose(charge[1][0], 426.887, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+
+    extractor.lwt = 4
+    charge, pulse_time = extractor(waveforms)
+
+    assert_allclose(charge[0][0], 220.418657, rtol=1e-3)
     assert_allclose(charge[1][0], 426.887, rtol=1e-3)
     assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)

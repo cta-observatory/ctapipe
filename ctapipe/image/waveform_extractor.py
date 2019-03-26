@@ -11,6 +11,7 @@ __all__ = [
     'NeighborPeakWindowSum',
     'BaselineSubtractedNeighborPeakWindowSum',
     'extract_charge_from_peakpos_array',
+    'neighbor_average_waveform',
     'extract_pulse_time_weighted_average',
     'subtract_baseline',
 ]
@@ -20,7 +21,7 @@ from abc import abstractmethod
 import numpy as np
 from traitlets import Int
 from ctapipe.core import Component
-from ctapipe.utils.neighbour_sum import get_sum_array
+from numba import njit, prange, float64, float32, int64
 
 
 def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
@@ -56,6 +57,47 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
     charge = (waveforms * integration_window).sum(axis=2)
 
     return charge
+
+
+@njit([
+    float64[:, :, :](float64[:, :, :], int64[:, :], int64),
+    float64[:, :, :](float32[:, :, :], int64[:, :], int64),
+], parallel=True)
+def neighbor_average_waveform(waveforms, neighbors, lwt):
+    """
+    Obtain the average waveform built from the neighbors of each pixel
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_chan, n_pix, n_samples)
+    neighbors : ndarray
+        2D array where each row is [pixel index, one neighbor of that pixel].
+        Changes per telescope.
+        Can be obtained from
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
+    lwt: int
+        Weight of the local pixel (0: peak from neighbors only,
+        1: local pixel counts as much as any neighbor)
+
+    Returns
+    -------
+    average_wf : ndarray
+        Average of neighbor waveforms for each pixel.
+        Shape: (n_chan, n_pix, n_samples)
+
+    """
+    n_neighbors = neighbors.shape[0]
+    sum_ = waveforms * lwt
+    n = np.zeros(waveforms.shape)
+    for i in prange(n_neighbors):
+        pixel = neighbors[i, 0]
+        neighbor = neighbors[i, 1]
+        for channel in range(waveforms.shape[0]):
+            sum_[channel, pixel] += waveforms[channel, neighbor]
+            n[channel, pixel] += 1
+    return sum_ / n
 
 
 def extract_pulse_time_weighted_average(waveforms):
@@ -239,11 +281,7 @@ class GlobalPeakWindowSum(WaveformExtractor):
     ).tag(config=True)
 
     def __call__(self, waveforms):
-        max_t = waveforms.argmax(2)
-        max_s = waveforms.max(2)
-        peakpos = np.round(
-            np.average(max_t, weights=max_s, axis=1)
-        ).astype(np.int)
+        peakpos = waveforms.mean(1).argmax(1)
         start = peakpos - self.window_shift
         end = start + self.window_width
         charge = np.stack([
@@ -297,12 +335,10 @@ class NeighborPeakWindowSum(WaveformExtractor):
         return True
 
     def __call__(self, waveforms):
-        shape = waveforms.shape
-        waveforms_32 = waveforms.astype(np.float32)
-        sum_data = np.zeros_like(waveforms_32)
-        n = self.neighbors.astype(np.uint16)
-        get_sum_array(waveforms_32, sum_data, *shape, n, n.shape[0], self.lwt)
-        peakpos = sum_data.argmax(2).astype(np.int)
+        average_wfs = neighbor_average_waveform(
+            waveforms, self.neighbors, self.lwt
+        )
+        peakpos = average_wfs.argmax(2)
         charge = extract_charge_from_peakpos_array(
             waveforms, peakpos, self.window_width, self.window_shift
         )
