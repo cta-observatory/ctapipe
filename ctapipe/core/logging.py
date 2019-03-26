@@ -32,4 +32,4 @@ class ColoredFormatter(logging.Formatter):
         else:
             record.highlevel = ""
 
-        return super(ColoredFormatter, self).format(record)
+        return super().format(record)

@@ -7,13 +7,9 @@ automatically generated.
 
 from collections import defaultdict
 
-import numpy as np
-from astropy import units as u
-from astropy.table import Table
-
 from ctapipe.core import Tool, Provenance
 from ctapipe.core.traits import (Unicode, Dict, Enum)
-from ctapipe.io.hessio import hessio_event_source
+from ctapipe.io import event_source
 
 
 def get_camera_types(subarray):
@@ -48,13 +44,11 @@ class DumpInstrumentTool(Tool):
     aliases = Dict(dict(infile='DumpInstrumentTool.infile',
                         format='DumpInstrumentTool.format'))
 
-
     def setup(self):
-        source = hessio_event_source(self.infile)
-        data = next(source)  # get one event, so the instrument table is there
-        del source
-        self.inst = data.inst  # keep a pointer to the instrument stuff
-        pass
+        with event_source(self.infile) as source:
+            data = next(iter(source))  # get one event, so the instrument table is there
+
+        self.inst = data.inst  # keep a reference to the instrument stuff
 
     def start(self):
         self.write_camera_geometries()
@@ -66,7 +60,7 @@ class DumpInstrumentTool(Tool):
 
     @staticmethod
     def _get_file_format_info(format_name, table_type, table_name):
-        """ returns file extension + dict of required parameters for 
+        """ returns file extension + dict of required parameters for
         Table.write"""
         if format_name == 'fits':
             return 'fits.gz', dict()
@@ -85,12 +79,12 @@ class DumpInstrumentTool(Tool):
                                                    'CAMGEOM',
                                                    cam_name)
 
-            self.log.debug("writing {}".format(cam_name))
+            self.log.debug(f"writing {cam_name}")
             tel_id = cam_types[cam_name].pop()
             geom = self.inst.subarray.tel[tel_id].camera
             table = geom.to_table()
             table.meta['SOURCE'] = self.infile
-            filename = "{}.camgeom.{}".format(cam_name, ext)
+            filename = f"{cam_name}.camgeom.{ext}"
 
             try:
                 table.write(filename, **args)
@@ -105,7 +99,7 @@ class DumpInstrumentTool(Tool):
 
         tab = sub.to_table(kind='optics')
         tab.meta['SOURCE'] = self.infile
-        filename = '{}.optics.{}'.format(sub.name, ext)
+        filename = f'{sub.name}.optics.{ext}'
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, 'dl0.sub.svc.optics')
@@ -119,7 +113,7 @@ class DumpInstrumentTool(Tool):
                                                'subarray')
         tab = sub.to_table(kind='subarray')
         tab.meta['SOURCE'] = self.infile
-        filename = '{}.subarray.{}'.format(sub.name, ext)
+        filename = f'{sub.name}.subarray.{ext}'
         try:
             tab.write(filename, **args)
             Provenance().add_output_file(filename, 'dl0.sub.svc.subarray')

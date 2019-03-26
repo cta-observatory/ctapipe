@@ -7,8 +7,9 @@ import logging
 import numpy as np
 from ctapipe.image import toymodel
 from scipy.stats import norm
+import astropy.units as u
 
-from .containers import DataContainer, R0CameraContainer
+from .containers import DataContainer
 
 logger = logging.getLogger(__name__)
 
@@ -67,20 +68,20 @@ def toymodel_event_source(geoms, max_events=100, single_tel=False, n_channels=1,
                     geom.pix_y.value,
                 )
 
-            centroid = np.random.uniform(geom.pix_x.min(), geom.pix_y.max(), 2)
+            x, y = np.random.uniform(geom.pix_x.min(), geom.pix_y.max(), 2)
             length = np.random.uniform(0.02, 0.2)
             width = np.random.uniform(0.01, length)
             psi = np.random.randint(0, 360)
             intensity = np.random.poisson(int(10000 * width * length))
-            model = toymodel.generate_2d_shower_model(
-                centroid,
-                width,
-                length,
-                '{}d'.format(psi)
+            model = toymodel.Gaussian(
+                x=x * u.m,
+                y=y * u.m,
+                length=length * u.m,
+                width=width * u.m,
+                psi=f'{psi}d',
             )
-            image, _, _ = toymodel.make_toymodel_shower_image(
+            image, _, _ = model.generate_image(
                 geom,
-                model.pdf,
                 intensity,
             )
 

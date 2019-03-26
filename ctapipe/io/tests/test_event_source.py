@@ -1,14 +1,11 @@
+import pytest
 from ctapipe.utils import get_dataset_path
 from ctapipe.io.eventsource import EventSource
 
 
 def test_construct():
-    try:
-        EventSource(config=None, tool=None)
-    except TypeError:
-        return
-    raise TypeError("EventSource should raise a TypeError when "
-                    "instantiated due to its abstract methods")
+    with pytest.raises(TypeError):
+        EventSource()
 
 
 class DummyReader(EventSource):
@@ -25,13 +22,13 @@ class DummyReader(EventSource):
 
 
 def test_can_be_implemented():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
     test_reader = DummyReader(input_url=dataset)
     assert test_reader is not None
 
 
 def test_is_iterable():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
     test_reader = DummyReader(input_url=dataset)
     for _ in test_reader:
         pass

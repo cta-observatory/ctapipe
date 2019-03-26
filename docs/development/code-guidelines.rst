@@ -2,7 +2,7 @@ Code Guidelines
 ===============
 
 Coding should follow the CTA coding guidelines from the **CTA Code
-Standards** document. 
+Standards** document.
 
 Here, we list useful guidelines for the logical structure of code (see
 also the style-guide for code style).  This guide is subject to change
@@ -23,7 +23,7 @@ Several static analysis packages exist to help look for common coding
 errors, and these should be used frequently.
 
 .. code-block:: sh
-		
+
 	% pip install hacking  # installs all checker tools
 
 	% pyflakes file.py # checks for code errors
@@ -101,7 +101,7 @@ basic guidelines:
 
 Logging and debugging
 ---------------------
-  
+
 * do not use `print()` statements to output text. Instead use the
   common logging failities of `ctapipe`.  Log messages should be
   simple, and no not include the filename, function name, time, or any
@@ -207,7 +207,7 @@ Note however, that this introduces some overhead as the units are
 tested and converted for each function call. For functions that are
 called frequently, it's best to enforce a unit earlier (e.g when the
 parameters are defined), and assume it.
-   
+
 
 Writing Algorithms
 ------------------
@@ -216,7 +216,7 @@ Note that if you write an algorithm, it may be used in many ways: in a
 command-line tool used in a batch-based system, in a server that
 processes events or data in real-time on-line, or in a variety of
 other data processing systems (map-reduce, Spark, dask,
-etc). Therefore the main request of `ctapipe` mangers is that
+etc). Therefore the main request of `ctapipe` managers is that
 algorithms should be written as simply as possible without depending
 on any particular data flow mechanism. The following guidelines can
 help when writing algorithms:
@@ -228,9 +228,7 @@ help when writing algorithms:
 * Separate algorithms cleanly from the framework: Do not try to
   implement any *framework* features in your algorithm:
   - do not parse command-line or other options
-  - do not make a way to choose a method from an input parameters
-  (there will be a common factory class for that in the framework for
-  all algorothms that have multiple implementations)
+  - do not make a way to choose a method from input parameters
   - do not write data streams to disk yourself (use framework
   features, or just `print()` until they are available) data flow
   between algorithms, etc).
@@ -238,14 +236,14 @@ help when writing algorithms:
   tracker.
 
 * If the algorithm needs no *state* to be stored between calls, use a
-  simple function with explicit parameters as keyword arguments. 
+  simple function with explicit parameters as keyword arguments.
 
   .. code-block:: python
 
 	 def mangle_signal(signal, px, py, centerpoint=(0,0), setpoint=2.0*u.m):
 		 """
 	 Mangles an image
-		  
+
 	 Parameters:
 	 -----------
 	 signal : np.ndarray
@@ -306,26 +304,20 @@ help when writing algorithms:
 
 	 source = calibrated_event_source(filename)
 	 ImageMangler mangler(geom.pix_x, geom.pix_y, "transformtable.fits")
-	 Serializer serializer = ...
 
 	 # simple loop over events, calling each algorithm and directly
 	 #passing data
 
 	 for event in source:
-  
+
 		 image = event.dl1.tel[tel_id].image
 		 mangled_image = mangler.mangle(image)
 		 image_parameters = parameterize_image(mangled_image)
 
-		 # here you may here pack your output values into a Container if
-		 # they are not already in one. We assume here that mangled_image
-		 # and image_parameters are already Container subclasses
-
-		 serializer.write([mangled_image, image_parameters])
 
 * When your algorithm test code (as above) works well and you are
   happy with the results, you can do two things:
-  
+
   1. convert your test code into a `ctapipe.core.Tool` so that it
 	 becomes a command-line program released with ctapipe (with no
 	 modification to the data flow).  This should be done anyway, if

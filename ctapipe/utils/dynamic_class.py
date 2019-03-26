@@ -20,7 +20,7 @@ class DynamicClassError(Exception):
 # def dynamic_class_from_module(class_name, module,  configuration=None):
 
 
-def dynamic_class_from_module(class_name, module, tool=None):
+def dynamic_class_from_module(class_name, module, parent=None):
     """
     Create an instance of a class from a configuration service section name
 

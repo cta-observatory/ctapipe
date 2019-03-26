@@ -1,8 +1,10 @@
 """
 This module defines any reference systems which may be needed in addition
 """
-
-from astropy.coordinates import BaseRepresentation, CartesianRepresentation
+from astropy.coordinates import (
+    BaseRepresentation,
+    CartesianRepresentation,
+)
 import astropy.units as u
 from collections import OrderedDict
 from numpy import broadcast_arrays
@@ -30,17 +32,16 @@ class PlanarRepresentation(BaseRepresentation):
 
     def __init__(self, x, y, copy=True, **kwargs):
 
-
         if x is None or y is None:
             raise ValueError(
                 'x and y are required to instantiate CartesianRepresentation'
             )
 
         if not isinstance(x, self.attr_classes['x']):
-            raise TypeError('x should be a {0}'.format(self.attr_classes['x'].__name__))
+            raise TypeError('x should be a {}'.format(self.attr_classes['x'].__name__))
 
         if not isinstance(y, self.attr_classes['y']):
-            raise TypeError('y should be a {0}'.format(self.attr_classes['y'].__name__))
+            raise TypeError('y should be a {}'.format(self.attr_classes['y'].__name__))
 
         x = self.attr_classes['x'](x, copy=copy)
         y = self.attr_classes['y'](y, copy=copy)
@@ -56,7 +57,6 @@ class PlanarRepresentation(BaseRepresentation):
         self._x = x
         self._y = y
         self._differentials = {}
-
 
     @property
     def x(self):

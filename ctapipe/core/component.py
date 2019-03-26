@@ -1,9 +1,32 @@
 """ Class to handle configuration for algorithms """
-
-from traitlets.config import Configurable
-from traitlets import TraitError
 from abc import ABCMeta
 from logging import getLogger
+from inspect import isabstract
+from traitlets.config import Configurable
+from traitlets import TraitError
+
+
+def non_abstract_children(base):
+    """
+    Return all non-abstract subclasses of a base class recursively.
+
+    Parameters
+    ----------
+    base : class
+        High level class object that is inherited by the
+        desired subclasses
+    Returns
+    -------
+    non_abstract : dict
+        dict of all non-abstract subclasses
+     """
+    subclasses = base.__subclasses__() + [
+        g for s in base.__subclasses__()
+        for g in non_abstract_children(s)
+    ]
+    non_abstract = [g for g in subclasses if not isabstract(g)]
+
+    return non_abstract
 
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
@@ -15,10 +38,10 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
 
 
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
-    """Base class of all Components (sometimes called
-    workers, makers, etc).  Components are classes that do some sort
-    of processing and contain user-configurable parameters, which are
-    implemented using `traitlets`.
+    """Base class of all Components.
+
+    Components are classes that are configurable via traitlets
+    and setup a logger in the ctapipe logging hierarchy.
 
     `traitlets` can validate values and provide defaults and
     descriptions. These will be automatically translated into
@@ -36,7 +59,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     subclasses, which provide configuration handling and command-line
     tool generation.
 
-
     For example:
 
     .. code:: python
@@ -50,28 +72,40 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                                   help='a value to set').tag(config=True)
 
 
-        comp = MyComponent(None)
+        comp = MyComponent()
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
     """
 
-    def __init__(self, parent=None, config=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Parameters
         ----------
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
         parent: Tool or Component
-            Tool or component that is the Parent of this one
+            If a Component is created by another Component or Tool,
+            you need to pass the creating Component as parent, e.g.
+            `parent=self`. This makes sure the config is correctly
+            handed down to the child components.
+            Do not pass config in this case.
         kwargs
             Traitlets to be overridden.
             TraitError is raised if kwargs contains a key that does not
             correspond to a traitlet.
         """
-
+        if parent is not None and config is not None:
+            raise ValueError(
+                'Only one of `config` or `parent` allowed'
+                ' If you create a Component as part of another, give `parent=self`'
+                ' and not `config`'
+            )
         super().__init__(parent=parent, config=config, **kwargs)
 
         for key, value in kwargs.items():
             if not self.has_trait(key):
-                raise TraitError("Traitlet does not exist: {}".format(key))
+                raise TraitError(f"Traitlet does not exist: {key}")
 
         # set up logging
         if self.parent:
@@ -80,3 +114,36 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             self.log = getLogger(
                 self.__class__.__module__ + '.' + self.__class__.__name__
             )
+
+    @classmethod
+    def from_name(cls, name, config=None, parent=None):
+        """
+        Obtain an instance of a subclass via its name
+
+        Parameters
+        ----------
+        name : str
+            Name of the subclass to obtain
+        config : traitlets.loader.Config
+            Configuration specified by config file or cmdline arguments.
+            Used to set traitlet values.
+            This argument is typically only specified when using this method
+            from within a Tool.
+        tool : ctapipe.core.Tool
+            Tool executable that is calling this component.
+            Passes the correct logger to the component.
+            This argument is typically only specified when using this method
+            from within a Tool.
+
+        Returns
+        -------
+        instace
+            Instance of subclass to this class
+        """
+        subclasses = {
+            base.__name__: base
+            for base in non_abstract_children(cls)
+        }
+        requested_subclass = subclasses[name]
+
+        return requested_subclass(config=config, parent=parent)

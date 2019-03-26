@@ -167,3 +167,32 @@ def test_number_of_islands():
     n_islands_true = 5
     assert n_islands == n_islands_true
     assert_allclose(island_mask, island_mask_true)
+
+
+def test_fact_image_cleaning():
+    # use LST pixel geometry
+    geom = CameraGeometry.from_name("LSTCam")
+    # create some signal pixels
+    values = np.zeros(len(geom))
+    timing = np.zeros(len(geom))
+    signal_pixels = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                             10, 11, 12, 13, 14, 37, 38, 111, 222])
+    values[signal_pixels] = 5
+    timing[signal_pixels] = 10
+    # manipulate some of those
+    values[[1, 2]] = 3
+    values[7] = 1
+    timing[[5, 6, 13, 111]] = 20
+
+    mask = cleaning.fact_image_cleaning(geom,
+                                        values,
+                                        timing,
+                                        boundary_threshold=2,
+                                        picture_threshold=4,
+                                        min_number_neighbors=2,
+                                        time_limit=5)
+
+    expected_pixels = np.array([0, 1, 2, 3, 4, 8, 9, 10, 11])
+    expected_mask = np.zeros(len(geom)).astype(bool)
+    expected_mask[expected_pixels] = 1
+    assert_allclose(mask, expected_mask)

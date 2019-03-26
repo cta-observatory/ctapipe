@@ -22,7 +22,7 @@ expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
-* Example notebooks: https://github.com/cta-observatory/ctapipe/tree/master/examples/notebooks
+
 
 Installation for Users
 ----------------------
@@ -41,7 +41,7 @@ Note this is *pre-alpha* software and is not yet stable enough for end-users (ex
 ::
 
   conda env create -n cta -f environment.yml
-  source activate cta
+  conda activate cta
   conda install -c cta-observatory ctapipe
 
 

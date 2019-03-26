@@ -51,12 +51,11 @@ def get_all_descriptions():
         module = importlib.import_module(info.module_name)
         if hasattr(module, '__doc__') and module.__doc__ is not None:
             try:
-                descrip = re.match(r'(?:[^.:;]+[.:;]){1}',
-                                   module.__doc__).group()
+                descrip = module.__doc__
                 descrip.replace("\n", "")
                 descriptions[name] = descrip
-            except RuntimeError as err:
-                descriptions[name] = "[Couldn't parse docstring: {}]".format(err)
+            except Exception as err:
+                descriptions[name] = f"[Couldn't parse docstring: {err}]"
         else:
             descriptions[name] = "[no documentation. Please add a docstring]"
 

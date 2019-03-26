@@ -1,10 +1,6 @@
 import numpy as np
 from astropy import units as u
 from ctapipe.instrument import CameraGeometry
-from ctapipe.instrument.camera import (
-    _find_neighbor_pixels,
-    _get_min_pixel_seperation,
-)
 import pytest
 
 cam_ids = CameraGeometry.get_known_camera_names()
@@ -47,23 +43,31 @@ def test_load_hess_camera():
     assert len(geom.pix_x) == 1855
 
 
-def test_guess_camera():
-    px = np.linspace(-10, 10, 11328) * u.m
-    py = np.linspace(-10, 10, 11328) * u.m
-    geom = CameraGeometry.guess(px, py, 0 * u.m)
-    assert geom.pix_type.startswith('rect')
-
-
-def test_get_min_pixel_seperation():
-    x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
-    pixsep = _get_min_pixel_seperation(x.ravel(), y.ravel())
-    assert pixsep == 2.5
+def test_position_to_pix_index():
+    geom = CameraGeometry.from_name("LSTCam")
+    x, y = 0.80 * u.m, 0.79 * u.m,
+    pix_id = geom.position_to_pix_index(x, y)
+    assert pix_id == 1790
 
 
 def test_find_neighbor_pixels():
-    x, y = np.meshgrid(np.linspace(-5, 5, 5), np.linspace(-5, 5, 5))
-    neigh = _find_neighbor_pixels(x.ravel(), y.ravel(), rad=3.1)
-    assert set(neigh[11]) == set([16, 6, 10, 12])
+    n_pixels = 5
+    x, y = u.Quantity(np.meshgrid(
+        np.linspace(-5, 5, n_pixels),
+        np.linspace(-5, 5, n_pixels)
+    ), u.cm)
+
+    geom = CameraGeometry(
+        'test',
+        pix_id=np.arange(n_pixels),
+        pix_area=u.Quantity(4, u.cm**2),
+        pix_x=x.ravel(),
+        pix_y=y.ravel(),
+        pix_type='rectangular',
+    )
+
+    neigh = geom.neighbors
+    assert set(neigh[11]) == {16, 6, 10, 12}
 
 
 @pytest.mark.parametrize("cam_id", cam_ids)
@@ -78,6 +82,7 @@ def test_neighbor_pixels(cam_id):
     n_pix = len(geom.pix_id)
     n_neighbors = [len(x) for x in geom.neighbors]
 
+
     if geom.pix_type.startswith('hex'):
         assert n_neighbors.count(6) > 0.5 * n_pix
         assert n_neighbors.count(6) > n_neighbors.count(4)
@@ -87,7 +92,44 @@ def test_neighbor_pixels(cam_id):
         assert n_neighbors.count(5) == 0
         assert n_neighbors.count(6) == 0
 
-    assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
+    # whipple has inhomogenious pixels that mess with pixel neighborhood
+    # calculation
+    if cam_id != 'Whipple490':
+        assert np.all(geom.neighbor_matrix == geom.neighbor_matrix.T)
+        assert n_neighbors.count(1) == 0  # no pixel should have a single neighbor
+
+
+def test_calc_pixel_neighbors_square():
+
+    x, y = np.meshgrid(np.arange(20), np.arange(20))
+
+    cam = CameraGeometry(
+        cam_id='test',
+        pix_id=np.arange(400),
+        pix_type='rectangular',
+        pix_x=u.Quantity(x.ravel(), u.cm),
+        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_area=u.Quantity(np.ones(400), u.cm**2),
+    )
+
+    assert set(cam.neighbors[0]) == {1, 20}
+    assert set(cam.neighbors[21]) == {1, 20, 22, 41}
+
+
+def test_calc_pixel_neighbors_square_diagonal():
+    x, y = np.meshgrid(np.arange(20), np.arange(20))
+
+    cam = CameraGeometry(
+        cam_id='test',
+        pix_id=np.arange(400),
+        pix_type='rectangular',
+        pix_x=u.Quantity(x.ravel(), u.cm),
+        pix_y=u.Quantity(y.ravel(), u.cm),
+        pix_area=u.Quantity(np.ones(400), u.cm**2),
+    )
+
+    cam._neighbors = cam.calc_pixel_neighbors(diagonal=True)
+    assert set(cam.neighbors[21]) == {0, 1, 2, 20, 22, 40, 41, 42}
 
 
 def test_to_and_from_table():
@@ -135,6 +177,7 @@ def test_precal_neighbors():
 
     nmat = geom.neighbor_matrix
     assert nmat.shape == (len(geom.pix_x), len(geom.pix_x))
+    assert np.all(nmat.T == nmat)
 
 
 def test_slicing():
@@ -162,6 +205,31 @@ def test_slicing_rotation(cam_id):
     assert sliced1.pix_x[0] == cam.pix_x[5]
 
 
+def test_rectangle_patch_neighbors():
+    pix_x = np.array([
+        -1.1, 0.1, 0.9,
+        -1, 0, 1,
+        -0.9, -0.1, 1.1
+    ]) * u.m
+    pix_y = np.array([
+        1.1, 1, 0.9,
+        -0.1, 0, 0.1,
+        -0.9, -1, -1.1
+    ]) * u.m
+    cam = CameraGeometry(
+        cam_id='testcam',
+        pix_id=np.arange(pix_x.size),
+        pix_x=pix_x,
+        pix_y=pix_y,
+        pix_area=None,
+        pix_type='rectangular',
+    )
+
+    assert np.all(cam.neighbor_matrix.T == cam.neighbor_matrix)
+    assert cam.neighbor_matrix.sum(axis=0).max() == 4
+    assert cam.neighbor_matrix.sum(axis=0).min() == 2
+
+
 def test_border_pixels():
     from ctapipe.instrument.camera import CameraGeometry
 
@@ -177,3 +245,21 @@ def test_border_pixels():
     assert cam.get_border_pixel_mask(1)[0]
     assert cam.get_border_pixel_mask(1)[2351]
     assert not cam.get_border_pixel_mask(1)[521]
+
+
+def test_equals():
+    cam1 = CameraGeometry.from_name("LSTCam")
+    cam2 = CameraGeometry.from_name("LSTCam")
+    cam3 = CameraGeometry.from_name("ASTRICam")
+
+    assert cam1 is not cam2
+    assert cam1 == cam2
+    assert cam1 != cam3
+
+
+def test_hashing():
+    cam1 = CameraGeometry.from_name("LSTCam")
+    cam2 = CameraGeometry.from_name("LSTCam")
+    cam3 = CameraGeometry.from_name("ASTRICam")
+
+    assert len(set([cam1, cam2, cam3])) == 2

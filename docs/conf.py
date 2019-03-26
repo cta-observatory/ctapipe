@@ -48,10 +48,13 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.githubpages',
               'sphinx.ext.mathjax',
               'sphinx_automodapi.automodapi',
+              'nbsphinx',
               'matplotlib.sphinxext.plot_directive',
               'numpydoc']
 
 numpydoc_show_class_members = False
+nbsphinx_timeout = 120  # allow max 2 minutes to build each notebook
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -72,7 +75,7 @@ default_role = 'py:obj'
 
 project = setup_cfg['package_name']
 author = setup_cfg['author']
-copyright = '{0}.  Last updated {1}'.format(
+copyright = '{}.  Last updated {}'.format(
     setup_cfg['author'], datetime.datetime.now().strftime('%d %b %Y %H:%M'), )
 
 # The version info for the project you're documenting, acts as replacement for
@@ -93,7 +96,7 @@ language = 'en'
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '**.ipynb_checkpoints']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -125,7 +128,7 @@ html_theme = 'default'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = '{0} v{1}'.format(project, release)
+html_title = f'{project} v{release}'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = project + 'doc'
@@ -154,14 +157,14 @@ latex_elements = {
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
-latex_documents = [('index', project + '.tex', project + u' Documentation',
+latex_documents = [('index', project + '.tex', project + ' Documentation',
                     author, 'manual')]
 
 # -- Options for manual page output --------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [('index', project.lower(), project + u' Documentation',
+man_pages = [('index', project.lower(), project + ' Documentation',
               [author], 1)]
 
 # -- Options for Texinfo output -------------------------------------------
@@ -186,7 +189,7 @@ intersphinx_mapping = {
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable/', None),
     'matplotlib': ('http://matplotlib.org/', None),
     'cython': ('http://docs.cython.org/en/latest/', None),
-    'iminuit': ('http://iminuit.readthedocs.io/en/latest/', None)
+    'iminuit': ('https://iminuit.readthedocs.io/en/latest/', None)
 }
 
 # on_rtd is whether we are on readthedocs.org

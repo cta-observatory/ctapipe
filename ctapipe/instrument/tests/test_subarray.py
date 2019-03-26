@@ -13,16 +13,20 @@ def test_subarray_description():
     tel = {}
     n_tels = 10
 
-    for ii in range(n_tels):
-        tel[ii + 1] = TelescopeDescription.from_name(optics_name="MST",
-                                                     camera_name="NectarCam")
-        pos[ii + 1] = np.random.uniform(-100, 100, size=3) * u.m
+    for tel_id in range(1, n_tels + 1):
+        tel[tel_id] = TelescopeDescription.from_name(
+            optics_name="MST",
+            camera_name="NectarCam",
+        )
+        pos[tel_id] = np.random.uniform(-100, 100, size=3) * u.m
 
-    sub = SubarrayDescription("test array",
-                              tel_positions=pos,
-                              tel_descriptions=tel)
+    sub = SubarrayDescription(
+        "test array",
+        tel_positions=pos,
+        tel_descriptions=tel
+    )
 
-    sub.info()
+    assert len(sub.telescope_types) == 1
 
     assert str(sub) == "test array"
     assert sub.num_tels == n_tels
@@ -31,9 +35,9 @@ def test_subarray_description():
     assert sub.tel[1].camera is not None
     assert 0 not in sub.tel  # check that there is no tel 0 (1 is first above)
     assert len(sub.to_table()) == n_tels
-    assert len(set(sub.camera_types)) == 1  # only 1 camera type
+    assert len(sub.camera_types) == 1  # only 1 camera type
     assert sub.camera_types[0] == 'NectarCam'
-    assert sub.optics_types[0] == 'MST'
+    assert sub.optics_types[0].equivalent_focal_length.to_value(u.m) == 16.0
     assert sub.telescope_types[0] == 'MST:NectarCam'
     assert sub.tel_coords
     assert isinstance(sub.tel_coords, SkyCoord)
@@ -45,5 +49,8 @@ def test_subarray_description():
     assert subsub.tel_indices[6] == 3
     assert subsub.tel_ids[3] == 6
 
+    assert len(sub.to_table(kind='optics')) == 1
 
 
+if __name__ == '__main__':
+    test_subarray_description()

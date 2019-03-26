@@ -3,11 +3,37 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from os.path import exists
-from traitlets import Unicode, Int, Set
-from ctapipe.core import Component
+from traitlets import Unicode, Int, Set, TraitError
+from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
+from traitlets.config.loader import LazyConfigValue
 
-__all__ = ['EventSource', ]
+__all__ = [
+    'EventSource',
+    'event_source',
+]
+
+
+def event_source(input_url, **kwargs):
+    """
+    Helper function for EventSource.from_url
+
+    Find compatible EventSource for input_url via the `is_compatible` method
+    of the EventSource
+
+    Parameters
+    ----------
+    input_url : str
+        Filename or URL pointing to an event file
+    kwargs
+        Named arguments for the EventSource
+
+    Returns
+    -------
+    instance
+        Instance of a compatible EventSource subclass
+    """
+    return EventSource.from_url(input_url, **kwargs)
 
 
 class EventSource(Component):
@@ -15,7 +41,7 @@ class EventSource(Component):
     Parent class for EventFileReaders of different sources.
 
     A new EventFileReader should be created for each type of event file read
-    into ctapipe, e.g. sim_telarray files are read by the `HESSIOEventSource`.
+    into ctapipe, e.g. sim_telarray files are read by the `SimTelEventSource`.
 
     EventFileReader provides a common high-level interface for accessing event
     information from different data sources (simulation or different camera
@@ -26,9 +52,8 @@ class EventSource(Component):
     EventFileReader itself is an abstract class. To use an EventFileReader you
     must use a subclass that is relevant for the file format you
     are reading (for example you must use
-    `ctapipe.io.hessiofilereader.HESSIOEventSource` to read a hessio format
-    file). Alternatively you can use
-    `ctapipe.io.eventfilereader.EventSourceFactory` to automatically
+    `ctapipe.io.SimTelEventSource` to read a hessio format
+    file). Alternatively you can use `event_source()` to automatically
     select the correct EventFileReader subclass for the file format you wish
     to read.
 
@@ -38,9 +63,8 @@ class EventSource(Component):
 
     >>> event_source = EventSource(self.config, self)
 
-    An example of how to use `ctapipe.core.tool.Tool` and
-    `ctapipe.io.eventfilereader.EventSourceFactory` can be found in
-    ctapipe/examples/calibration_pipeline.py.
+    An example of how to use `ctapipe.core.tool.Tool` and `event_source()`
+    can be found in ctapipe/tools/display_dl1.py.
 
     However if you are not inside a Tool, you can still create an instance and
     supply an input_url via:
@@ -99,8 +123,7 @@ class EventSource(Component):
               'will be included')
     ).tag(config=True)
 
-
-    def __init__(self, config=None, tool=None, **kwargs):
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Class to handle generic input files. Enables obtaining the "source"
         generator, regardless of the type of file (either hessio or camera
@@ -118,17 +141,17 @@ class EventSource(Component):
             Set to None if no Tool to pass.
         kwargs
         """
-        super().__init__(config=config, parent=tool, **kwargs)
+        super().__init__(config=config, parent=parent, **kwargs)
 
         self.metadata = dict(is_simulation=False)
 
         if not exists(self.input_url):
             raise FileNotFoundError("file path does not exist: '{}'"
                                     .format(self.input_url))
-        self.log.info("INPUT PATH = {}".format(self.input_url))
+        self.log.info(f"INPUT PATH = {self.input_url}")
 
         if self.max_events:
-            self.log.info("Max events being read = {}".format(self.max_events))
+            self.log.info(f"Max events being read = {self.max_events}")
 
         Provenance().add_input_file(self.input_url, role='dl0.sub.evt')
 
@@ -198,3 +221,68 @@ class EventSource(Component):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
+
+    @classmethod
+    def from_url(cls, input_url, **kwargs):
+        """
+        Find compatible EventSource for input_url via the `is_compatible`
+        method of the EventSource
+
+        Parameters
+        ----------
+        input_url : str
+            Filename or URL pointing to an event file
+        kwargs
+            Named arguments for the EventSource
+
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        available_classes = non_abstract_children(cls)
+
+        for subcls in available_classes:
+            if subcls.is_compatible(input_url):
+                return subcls(input_url=input_url, **kwargs)
+
+        raise ValueError(
+            'Cannot find compatible EventSource for \n'
+            '\turl:{}\n'
+            'in available EventSources:\n'
+            '\t{}'.format(input_url, [c.__name__ for c in available_classes])
+        )
+
+    @classmethod
+    def from_config(cls, config=None, parent=None, **kwargs):
+        """
+        Find compatible EventSource for the EventSource.input_url traitlet
+        specified via the config.
+
+        This method is typically used in Tools, where the input_url is chosen via
+        the command line using the traitlet configuration system.
+
+        Parameters
+        ----------
+        config : traitlets.config.loader.Config
+            Configuration created in the Tool
+        kwargs
+            Named arguments for the EventSource
+
+        Returns
+        -------
+        instance
+            Instance of a compatible EventSource subclass
+        """
+        if config is None:
+            config = parent.config
+
+        if isinstance(config.EventSource.input_url, LazyConfigValue):
+            config.EventSource.input_url = cls.input_url.default_value
+        elif not isinstance(config.EventSource.input_url, str):
+            raise TraitError("Wrong type specified for input_url traitlet")
+        return event_source(
+            config.EventSource.input_url,
+            config=config,
+            **kwargs
+        )

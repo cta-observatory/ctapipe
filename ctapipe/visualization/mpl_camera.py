@@ -80,7 +80,7 @@ class CameraDisplay:
     Output:
         Since CameraDisplay uses matplotlib, any display can be
         saved to any output file supported via
-        plt.savefig(filename). This includes `.pdf` and `.png`.
+        plt.savefig(filename). This includes ``.pdf`` and ``.png``.
 
     """
 
@@ -153,8 +153,8 @@ class CameraDisplay:
 
         self.axes.set_aspect('equal', 'datalim')
         self.axes.set_title(title)
-        self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
-        self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
+        self.axes.set_xlabel(f"X position ({self.geom.pix_x.unit})")
+        self.axes.set_ylabel(f"Y position ({self.geom.pix_y.unit})")
         self.axes.autoscale_view()
 
         # set up a patch to display when a pixel is clicked (and
@@ -439,7 +439,7 @@ class CameraDisplay:
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
         self._active_pixel_label.set_y(yy)
-        self._active_pixel_label.set_text("{:003d}".format(pix_id))
+        self._active_pixel_label.set_text(f"{pix_id:003d}")
         self._active_pixel_label.set_visible(True)
         self._update()
         self.on_pixel_clicked(pix_id)  # call user-function
@@ -448,7 +448,7 @@ class CameraDisplay:
         """virtual function to overide in sub-classes to do something special
         when a pixel is clicked
         """
-        print("Clicked pixel_id {}".format(pix_id))
+        print(f"Clicked pixel_id {pix_id}")
 
     def show(self):
         self.axes.figure.show()

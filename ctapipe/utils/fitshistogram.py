@@ -85,14 +85,14 @@ class Histogram:
         if self.ndims < 1:
             raise ValueError("No dimensions specified")
         if self.ndims != len(self._ranges):
-            raise ValueError("Dimensions of ranges {0} don't match bins {1}"
+            raise ValueError("Dimensions of ranges {} don't match bins {}"
                              .format(len(self._ranges), self.ndims))
 
         if self.axis_names is not None:  # ensure the array is size ndims
             self.axis_names = np.array(self.axis_names)
             self.axis_names.resize(self.ndims)
         else:
-            self.axis_names = ["axis{}".format(x) for x in range(self.ndims)]
+            self.axis_names = [f"axis{x}" for x in range(self.ndims)]
 
     def __str__(self,):
         return ("Histogram(name='{name}', axes={axnames}, "

@@ -1,15 +1,15 @@
+# A conda environment with all useful package for ctapipe developers
 name: cta-dev
 channels:
   - default
   - cta-observatory
-  - conda-forge
 dependencies:
-  - zeromq=4.2.2
-  - ctapipe-extra=0.2.*
+  - zeromq
+  - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
   - bokeh
   - cython
-  - gammapy
+  - conda-forge::gammapy
   - graphviz
   - h5py
   - iminuit
@@ -18,19 +18,16 @@ dependencies:
   - jupyter
   - matplotlib
   - numba
-  - numpy=1.15.1   # frozen for now due to bug in 1.15.3
+  - numpy>=1.15.4
   - numpydoc
   - pandas
-  - pyhessio
   - pytest
   - pytest-cov
   - psutil
-  - readline
   - scikit-learn
-  - scikit-image
   - scipy
   - setuptools
-  - sphinx=1.7
+  - sphinx
   - sphinx_rtd_theme
   - sphinx-automodapi
   - traitlets
@@ -41,6 +38,9 @@ dependencies:
   - iminuit
   - pytables
   - tqdm
-  - tornado=4.5.3
-  - pip:
-      - pytest_runner
+  - conda-forge::nbsphinx
+  - eventio=0.18
+  - ctapipe-extra=0.2.17
+  - pytest-runner
+
+

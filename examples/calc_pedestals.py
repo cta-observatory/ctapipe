@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ctapipe.calib import pedestals
-from ctapipe.io.eventsourcefactory import event_source
+from ctapipe.io import event_source
 from ctapipe.utils import get_dataset_path
 
 
@@ -15,11 +15,11 @@ def plot_peds(peds, pedvars):
     pixid = np.arange(len(peds))
     plt.subplot(1, 2, 1)
     plt.scatter(pixid, peds)
-    plt.title("Pedestals for event {}".format(event.r0.event_id))
+    plt.title(f"Pedestals for event {event.r0.event_id}")
 
     plt.subplot(1, 2, 2)
     plt.scatter(pixid, pedvars)
-    plt.title("Ped Variances for event {}".format(event.r0.event_id))
+    plt.title(f"Ped Variances for event {event.r0.event_id}")
 
 
 if __name__ == '__main__':
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv.pop(1)
     else:
-        filename = get_dataset_path("gamma_test.simtel.gz")
+        filename = get_dataset_path("gamma_test_large.simtel.gz")
 
     # set a fixed window (for now from samples 20 to the end), which may not
     # be appropriate for all telescopes (this should eventually be
@@ -44,7 +44,7 @@ if __name__ == '__main__':
         for telid in event.r0.tels_with_data:
             for chan in range(event.r0.tel[telid].waveform.shape[0]):
 
-                print("CT{} chan {}:".format(telid, chan))
+                print(f"CT{telid} chan {chan}:")
 
                 traces = event.r0.tel[telid].waveform[chan, ...]
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                 )
 
                 print("Number of samples: {}".format(traces.shape[1]))
-                print("Calculate over window:({},{})".format(start, end))
+                print(f"Calculate over window:({start},{end})")
                 print("PEDS:", peds)
                 print("VARS:", pedvars)
                 print("-----")

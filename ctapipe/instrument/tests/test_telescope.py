@@ -1,17 +1,22 @@
-from ctapipe.instrument import TelescopeDescription
-from astropy import units as u
-import numpy as np
+def test_hash():
+    from ctapipe.instrument.telescope import TelescopeDescription
+    from ctapipe.instrument.optics import OpticsDescription
+    from ctapipe.instrument.camera import CameraGeometry
 
+    types = ['LST', 'MST', 'SST']
+    names = ['LST', 'MST', 'SST-1M']
+    cameras = ['LSTCam', 'FlashCam', 'DigiCam']
 
-def test_telescope_description():
+    telescopes = []
+    for name, type, camera in zip(names, types, cameras):
+        for i in range(3):
 
-    # setup a dummy telescope that look like an MST with FlashCam
-    foclen = 16 * u.m
-    pix_x = np.arange(1764, dtype=np.float) * u.m
-    pix_y = np.arange(1764, dtype=np.float) * u.m
+            telescopes.append(TelescopeDescription(
+                name=name,
+                type=type,
+                optics=OpticsDescription.from_name(name),
+                camera=CameraGeometry.from_name(camera)
+            ))
 
-    tel = TelescopeDescription.guess(pix_x, pix_y, foclen)
-
-    assert tel.camera.cam_id == 'FlashCam'
-    assert tel.optics.tel_type == 'MST'
-    assert str(tel) == 'MST:FlashCam'
+    assert len(telescopes) == 9
+    assert len(set(telescopes)) == 3

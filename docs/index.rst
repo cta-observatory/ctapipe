@@ -42,35 +42,18 @@ General documentation
 
   getting_started/index
   development/index
-  tools/index
-  */index
+  tutorials/index
+  examples/index
   FAQ
+  ctapipe_api/index
   bibliography
   changelog
 
 Module API Status (relative to next release)
 ============================================
 
-* **stable** = should not change drastically in next release
-* **caution** = mostly stable, but expect some changes
-* **unstable** = expect large changes and avoid heavy reliance
-* **experimental** = stable feature, but under evaluation
-* **deprecated** = do not use
-
-================  ===============
- Module           Status
-================  ===============
-`analysis`        **stable**
-`calib`           **stable**
-`coordinates`     caution
-`core`            **stable**
-`flow`            experimental
-`instrument`      **stable**
-`io`              **stable** 
-`reco`            **stable**
-`utils`           **stable**
-`visualization`   **stable**
-================  ===============
+ctapipe is under activate developement and we will make breaking changes from release to release until
+we reach version 1.0.
 
 
 Development Help

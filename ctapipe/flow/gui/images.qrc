@@ -1,5 +1,0 @@
-<RCC>
-  <qresource prefix="/images">
-    <file alias='cta-logo-mini.png'>images/CTA-LOGO_80heigh.png</file>
-  </qresource>
-</RCC>
