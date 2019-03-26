@@ -204,21 +204,15 @@ class FullWaveformSum(WaveformExtractor):
         return charge, pulse_time
 
 
-class WindowIntegrator(ChargeExtractor):
-    """
-    Abstract class for defining the integration window width traitlet
-    """
-    window_width = Int(
-        7, help='Define the width of the integration window'
-    ).tag(config=True)
-
-
-class UserWindowSum(WindowIntegrator):
+class SimpleIntegrator(WaveformExtractor):
     """
     Waveform extractor that integrates within a window defined by the user.
     """
     window_start = Int(
         0, help='Define the start position for the integration window'
+    ).tag(config=True)
+    window_width = Int(
+        7, help='Define the width of the integration window'
     ).tag(config=True)
 
     def __call__(self, waveforms):
@@ -229,24 +223,25 @@ class UserWindowSum(WindowIntegrator):
         return charge, pulse_time
 
 
-class PeakFindingIntegrator(WindowIntegrator):
+class GlobalPeakIntegrator(WaveformExtractor):
     """
-    Abstract class for defining the integration window shift traitlet
+    Charge extractor that defines an integration window about the global
+    peak in the image.
     """
+    window_width = Int(
+        7, help='Define the width of the integration window'
+    ).tag(config=True)
     window_shift = Int(
         3, help='Define the shift of the integration window '
                 'from the peakpos (peakpos - shift)'
     ).tag(config=True)
 
-
-class GlobalWindowSum(PeakFindingIntegrator):
-    """
-    Waveform extractor that defines an integration window defined by the
-    average waveform across all pixels.
-    """
-
-    def __call__(self, waveforms):
-        peakpos = waveforms.mean(1).argmax(1)
+    def extract_charge(self, waveforms):
+        max_t = waveforms.argmax(2)
+        max_s = waveforms.max(2)
+        peakpos = np.round(
+            np.average(max_t, weights=max_s, axis=1)
+        ).astype(np.int)
         start = peakpos - self.window_shift
         end = start + self.window_width
         charge = np.stack([
@@ -257,11 +252,18 @@ class GlobalWindowSum(PeakFindingIntegrator):
         return charge, pulse_time
 
 
-class LocalWindowSum(PeakFindingIntegrator):
+class LocalWindowSum(WaveformExtractor):
     """
     Waveform extractor that defines an integration window about the local
     peak in each pixel.
     """
+    window_width = Int(
+        7, help='Define the width of the integration window'
+    ).tag(config=True)
+    window_shift = Int(
+        3, help='Define the shift of the integration window '
+                'from the peakpos (peakpos - shift)'
+    ).tag(config=True)
 
     def __call__(self, waveforms):
         peakpos = waveforms.argmax(2).astype(np.int)
@@ -272,11 +274,18 @@ class LocalWindowSum(PeakFindingIntegrator):
         return charge, pulse_time
 
 
-class NeighborWindowSum(PeakFindingIntegrator):
+class NeighborWindowSum(WaveformExtractor):
     """
     Waveform extractor that defines an integration window defined by the
     peaks in the neighboring pixels.
     """
+    window_width = Int(
+        7, help='Define the width of the integration window'
+    ).tag(config=True)
+    window_shift = Int(
+        3, help='Define the shift of the integration window '
+                'from the peakpos (peakpos - shift)'
+    ).tag(config=True)
     lwt = Int(
         0, help='Weight of the local pixel (0: peak from neighbors only, '
                 '1: local pixel counts as much as any neighbor)'

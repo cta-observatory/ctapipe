@@ -46,13 +46,6 @@ class BokehFileViewer(Tool):
         max_events='EventSource.max_events',
         extractor='BokehFileViewer.extractor_product',
         cleaner='BokehFileViewer.cleaner_product',
-        ped='TargetIOR1Calibrator.pedestal_path',
-        tf='TargetIOR1Calibrator.tf_path',
-        pe='TargetIOR1Calibrator.pe_path',
-        window_width='WindowIntegrator.window_width',
-        window_shift='PeakFindingIntegrator.window_shift',
-        window_start='SimpleIntegrator.window_start',
-        lwt='NeighbourPeakIntegrator.lwt',
     ))
 
     classes = List(
@@ -410,10 +403,10 @@ class BokehFileViewer(Tool):
                 self._updating_dl1 = True
                 cmdline = []
                 for key, val in self.w_dl1_dict.items():
-                    k = key.replace("extractor_", "").replace("cleaner_", "")
+                    k = key.replace("extractor_", "ChargeExtractor.")
+                    k = k.replace("cleaner_", "WaveformCleaner.")
                     if val.value:
-                        cmdline.append(f'--{k}')
-                        cmdline.append(val.value)
+                        cmdline.append(f'--{k}={val.value}')
                 self.parse_command_line(cmdline)
                 extractor = ChargeExtractor.from_name(
                     self.extractor_product,
