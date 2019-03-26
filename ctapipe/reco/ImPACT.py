@@ -293,7 +293,8 @@ class ImPACTReconstructor(Reconstructor):
                             (pixel_pos_y - y_trans) * cosine_angle
         return pixel_pos_trans_x, pixel_pos_trans_y
 
-    def image_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
+    def image_prediction(self, tel_type, zenith, azimuth, energy, impact, x_max,
+                        pix_x, pix_y):
         """Creates predicted image for the specified pixels, interpolated
         from the template library.
 
@@ -301,6 +302,10 @@ class ImPACTReconstructor(Reconstructor):
         ----------
         tel_type: string
             Telescope type specifier
+        zenith: float
+            Zenith angle of shower
+        azimuth: float
+            Azimuth angle of shower
         energy: float
             Event energy (TeV)
         impact: float
@@ -318,7 +323,8 @@ class ImPACTReconstructor(Reconstructor):
 
         """
 
-        return self.prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
+        return self.prediction[tel_type](zenith, azimuth, energy, impact, x_max,
+                                         pix_x, pix_y)
 
     def predict_time(self, tel_type, energy, impact, x_max):
         """Creates predicted image for the specified pixels, interpolated
