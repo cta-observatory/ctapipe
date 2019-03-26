@@ -18,7 +18,7 @@ from abc import abstractmethod
 import numpy as np
 from traitlets import Int
 from ctapipe.core import Component
-from numba import njit, prange, float64, int64
+from numba import njit, prange, float64, float32, int64
 
 
 def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
@@ -57,7 +57,10 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
     return charge, integration_window
 
 
-@njit(float64[:, :, :](float64[:, :, :], int64[:, :], int64), parallel=True)
+@njit([
+    float64[:, :, :](float64[:, :, :], int64[:, :], int64),
+    float64[:, :, :](float32[:, :, :], int64[:, :], int64),
+], parallel=True)
 def neighbor_average_waveform(waveforms, neighbors, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
