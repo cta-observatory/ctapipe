@@ -37,7 +37,7 @@ class ChargeResolutionGenerator(Tool):
     ).tag(config=True)
     extractor_product = tool_utils.enum_trait(
         WaveformExtractor,
-        default='NeighbourPeakIntegrator'
+        default='NeighborWindowSum'
     )
 
     aliases = Dict(dict(

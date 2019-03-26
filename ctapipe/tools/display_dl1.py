@@ -47,9 +47,9 @@ class ImagePlotter(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self._current_tel = None
         self.c_intensity = None
-        self.c_peakpos = None
+        self.c_pulse_time = None
         self.cb_intensity = None
-        self.cb_peakpos = None
+        self.cb_pulse_time = None
         self.pdf = None
 
         self._init_figure()
@@ -57,7 +57,7 @@ class ImagePlotter(Component):
     def _init_figure(self):
         self.fig = plt.figure(figsize=(16, 7))
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
-        self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
+        self.ax_pulse_time = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
             self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
@@ -69,21 +69,21 @@ class ImagePlotter(Component):
     def plot(self, event, telid):
         chan = 0
         image = event.dl1.tel[telid].image[chan]
-        peakpos = event.dl1.tel[telid].peakpos[chan]
+        pulse_time = event.dl1.tel[telid].pulse_time[chan]
 
         if self._current_tel != telid:
             self._current_tel = telid
 
             self.ax_intensity.cla()
-            self.ax_peakpos.cla()
+            self.ax_pulse_time.cla()
 
             # Redraw camera
             geom = self.get_geometry(event, telid)
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
-            self.c_peakpos = CameraDisplay(geom, ax=self.ax_peakpos)
+            self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
 
             tmaxmin = event.dl0.tel[telid].waveform.shape[2]
-            t_chargemax = peakpos[image.argmax()]
+            t_chargemax = pulse_time[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 'cmap_t',
                 [(0 / tmaxmin, 'darkgreen'),
@@ -91,7 +91,7 @@ class ImagePlotter(Component):
                  (t_chargemax / tmaxmin, 'yellow'),
                  (1.4 * t_chargemax / tmaxmin, 'blue'), (1, 'darkblue')]
             )
-            self.c_peakpos.pixels.set_cmap(cmap_time)
+            self.c_pulse_time.pixels.set_cmap(cmap_time)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
@@ -101,18 +101,18 @@ class ImagePlotter(Component):
             else:
                 self.c_intensity.colorbar = self.cb_intensity
                 self.c_intensity.update(True)
-            if not self.cb_peakpos:
-                self.c_peakpos.add_colorbar(
-                    ax=self.ax_peakpos, label='Peakpos (ns)'
+            if not self.cb_pulse_time:
+                self.c_pulse_time.add_colorbar(
+                    ax=self.ax_pulse_time, label='Pulse Time (ns)'
                 )
-                self.cb_peakpos = self.c_peakpos.colorbar
+                self.cb_pulse_time = self.c_pulse_time.colorbar
             else:
-                self.c_peakpos.colorbar = self.cb_peakpos
-                self.c_peakpos.update(True)
+                self.c_pulse_time.colorbar = self.cb_pulse_time
+                self.c_pulse_time.update(True)
 
         self.c_intensity.image = image
-        if peakpos is not None:
-            self.c_peakpos.image = peakpos
+        if pulse_time is not None:
+            self.c_pulse_time.image = pulse_time
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}"
