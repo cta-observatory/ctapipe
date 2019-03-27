@@ -397,8 +397,8 @@ def convert_geometry_hex1d_to_rect2d(geom, signal, key=None, add_rot=0):
         new_geom = CameraGeometry(
             cam_id=geom.cam_id + "_rect",
             pix_id=ids,  # this is a list of all the valid coordinate pairs now
-            pix_x=grid_x * u.meter,
-            pix_y=grid_y * u.meter,
+            pix_x=u.Quantity(grid_x.ravel(),  u.meter),
+            pix_y=u.Quantity(grid_y.ravel(),  u.meter),
             pix_area=pix_area * u.meter ** 2,
             neighbors=geom.neighbors,
             pix_type='rectangular', apply_derotation=False)
