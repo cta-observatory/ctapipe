@@ -48,12 +48,9 @@ class ChargeResolutionGenerator(Tool):
         window_width='WindowIntegrator.window_width',
         window_shift='WindowIntegrator.window_shift',
         t0='SimpleIntegrator.t0',
-        sig_amp_cut_HG='PeakFindngIntegrator.sig_amp_cut_HG',
-        sig_amp_cut_LG='PeakFindngIntegrator.sig_amp_cut_LG',
         lwt='NeighbourPeakIntegrator.lwt',
         clip_amplitude='CameraDL1Calibrator.clip_amplitude',
         radius='CameraDL1Calibrator.radius',
-        max_pe='ChargeResolutionCalculator.max_pe',
         O='ChargeResolutionGenerator.output_path',
     ))
 
@@ -61,7 +58,6 @@ class ChargeResolutionGenerator(Tool):
         [
             SimTelEventSource,
             CameraDL1Calibrator,
-            ChargeResolutionCalculator
         ] + tool_utils.classes_with_traits(ChargeExtractor)
     )
 
@@ -75,20 +71,19 @@ class ChargeResolutionGenerator(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, parent=self)
 
-        self.eventsource = SimTelEventSource(**kwargs)
+        self.eventsource = SimTelEventSource(parent=self)
 
         extractor = ChargeExtractor.from_name(
             self.extractor_product,
-            **kwargs
+            parent=self
         )
 
-        self.r1 = HESSIOR1Calibrator(**kwargs)
+        self.r1 = HESSIOR1Calibrator(parent=self)
 
-        self.dl0 = CameraDL0Reducer(**kwargs)
+        self.dl0 = CameraDL0Reducer(parent=self)
 
-        self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
+        self.dl1 = CameraDL1Calibrator(extractor=extractor, parent=self)
 
         self.calculator = ChargeResolutionCalculator()
 
