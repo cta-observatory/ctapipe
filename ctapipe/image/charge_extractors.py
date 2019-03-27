@@ -22,7 +22,8 @@ from ctapipe.utils.neighbour_sum import get_sum_array
 
 def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
     """
-    Build the numpy array of bools defining the integration window.
+    Sum the samples from the waveform using the window defined by a
+    peak postion, window width, and window shift.
 
     Parameters
     ----------
@@ -44,12 +45,17 @@ def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
     charge : ndarray
         Extracted charge.
         Shape: (n_chan, n_pix)
+    integration_window : ndarray
+        Boolean array indicating which samples were included in the
+        charge extraction
+        Shape: (n_chan, n_pix, n_samples)
 
     """
     start = peakpos - shift
     end = start + width
     ind = np.indices(waveforms.shape)[2]
-    integration_window = (ind >= start[..., None]) & (ind < end[..., None])
+    integration_window = ((ind >= start[..., np.newaxis]) &
+                          (ind < end[..., np.newaxis]))
     charge = (waveforms * integration_window).sum(axis=2)
 
     # TODO: remove integration window return
@@ -200,7 +206,8 @@ class GlobalPeakIntegrator(ChargeExtractor):
 
         # TODO: remove integration window return
         ind = np.indices(waveforms.shape)[2]
-        window = (ind >= start[..., None, None]) & (ind < end[..., None, None])
+        window = ((ind >= start[..., np.newaxis, np.newaxis]) &
+                  (ind < end[..., np.newaxis, np.newaxis]))
 
         return charge, peakpos, window
 
@@ -283,6 +290,7 @@ class AverageWfPeakIntegrator(ChargeExtractor):
 
         # TODO: remove integration window return
         ind = np.indices(waveforms.shape)[2]
-        window = (ind >= start[..., None, None]) & (ind < end[..., None, None])
+        window = ((ind >= start[..., np.newaxis, np.newaxis]) &
+                  (ind < end[..., np.newaxis, np.newaxis]))
 
         return charge, peakpos, window
