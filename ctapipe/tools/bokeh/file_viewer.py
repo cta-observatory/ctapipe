@@ -46,12 +46,6 @@ class BokehFileViewer(Tool):
         max_events='EventSource.max_events',
         extractor='BokehFileViewer.extractor_product',
         cleaner='BokehFileViewer.cleaner_product',
-        simpleintegrator_t0='SimpleIntegrator.t0',
-        window_width='WindowIntegrator.window_width',
-        window_shift='WindowIntegrator.window_shift',
-        sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
-        sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
-        lwt='NeighbourPeakIntegrator.lwt',
     ))
 
     classes = List(
@@ -367,10 +361,6 @@ class BokehFileViewer(Tool):
             extractor_t0=TextInput(title="T0:", value=''),
             extractor_window_width=TextInput(title="Window Width:", value=''),
             extractor_window_shift=TextInput(title="Window Shift:", value=''),
-            extractor_sig_amp_cut_HG=TextInput(title="Significant Amplitude "
-                                                     "Cut (HG):", value=''),
-            extractor_sig_amp_cut_LG=TextInput(title="Significant Amplitude "
-                                                     "Cut (LG):", value=''),
             extractor_lwt=TextInput(title="Local Pixel Weight:", value=''))
 
         for val in self.w_dl1_dict.values():
@@ -383,8 +373,6 @@ class BokehFileViewer(Tool):
             self.w_dl1_dict['extractor_t0'],
             self.w_dl1_dict['extractor_window_width'],
             self.w_dl1_dict['extractor_window_shift'],
-            self.w_dl1_dict['extractor_sig_amp_cut_HG'],
-            self.w_dl1_dict['extractor_sig_amp_cut_LG'],
             self.w_dl1_dict['extractor_lwt'])
 
     def update_dl1_widget_values(self):
@@ -415,9 +403,10 @@ class BokehFileViewer(Tool):
                 self._updating_dl1 = True
                 cmdline = []
                 for key, val in self.w_dl1_dict.items():
+                    k = key.replace("extractor_", "ChargeExtractor.")
+                    k = k.replace("cleaner_", "WaveformCleaner.")
                     if val.value:
-                        cmdline.append(f'--{key}')
-                        cmdline.append(val.value)
+                        cmdline.append(f'--{k}={val.value}')
                 self.parse_command_line(cmdline)
                 extractor = ChargeExtractor.from_name(
                     self.extractor_product,

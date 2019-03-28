@@ -150,13 +150,6 @@ class DisplayDL1Calib(Tool):
         dict(
             max_events='EventSource.max_events',
             extractor='DisplayDL1Calib.extractor_product',
-            t0='SimpleIntegrator.t0',
-            window_width='WindowIntegrator.window_width',
-            window_shift='WindowIntegrator.window_shift',
-            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
-            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
-            lwt='NeighbourPeakIntegrator.lwt',
-            clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
             O='ImagePlotter.output_path'
         )

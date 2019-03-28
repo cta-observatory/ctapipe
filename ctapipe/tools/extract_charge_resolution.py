@@ -45,12 +45,6 @@ class ChargeResolutionGenerator(Tool):
         max_events='SimTelEventSource.max_events',
         T='SimTelEventSource.allowed_tels',
         extractor='ChargeResolutionGenerator.extractor_product',
-        window_width='WindowIntegrator.window_width',
-        window_shift='WindowIntegrator.window_shift',
-        t0='SimpleIntegrator.t0',
-        lwt='NeighbourPeakIntegrator.lwt',
-        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-        radius='CameraDL1Calibrator.radius',
         O='ChargeResolutionGenerator.output_path',
     ))
 
