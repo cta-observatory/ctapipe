@@ -29,16 +29,16 @@ def camera_waveforms():
     x = np.arange(n_samples)
 
     # Randomize times
-    t_pulse_hi = r_hi.uniform(mid - 10, mid + 10, n_pixels)[:, None]
-    t_pulse_lo = r_lo.uniform(mid + 10, mid + 20, n_pixels)[:, None]
+    t_pulse_hi = r_hi.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
+    t_pulse_lo = r_lo.uniform(mid + 10, mid + 20, n_pixels)[:, np.newaxis]
 
     # Create pulses
     y_hi = norm.pdf(x, t_pulse_hi, pulse_sigma)
     y_lo = norm.pdf(x, t_pulse_lo, pulse_sigma)
 
     # Randomize amplitudes
-    y_hi *= r_hi.uniform(100, 1000, n_pixels)[:, None]
-    y_lo *= r_lo.uniform(100, 1000, n_pixels)[:, None]
+    y_hi *= r_hi.uniform(100, 1000, n_pixels)[:, np.newaxis]
+    y_lo *= r_lo.uniform(100, 1000, n_pixels)[:, np.newaxis]
 
     y = np.stack([y_hi, y_lo])
 
@@ -62,37 +62,37 @@ def test_neighbor_average_waveform(camera_waveforms):
 def test_full_integration(camera_waveforms):
     waveforms, _ = camera_waveforms
     integrator = FullIntegrator()
-    integration, _, _ = integrator.extract_charge(waveforms)
+    charge, _, _ = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 545.945, rtol=1e-3)
-    assert_allclose(integration[1][0], 970.025, rtol=1e-3)
+    assert_allclose(charge[0][0], 545.945, rtol=1e-3)
+    assert_allclose(charge[1][0], 970.025, rtol=1e-3)
 
 
 def test_simple_integration(camera_waveforms):
     waveforms, _ = camera_waveforms
     integrator = SimpleIntegrator(window_start=45)
-    integration, _, _ = integrator.extract_charge(waveforms)
+    charge, _, _ = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 232.559, rtol=1e-3)
-    assert_allclose(integration[1][0], 32.539, rtol=1e-3)
+    assert_allclose(charge[0][0], 232.559, rtol=1e-3)
+    assert_allclose(charge[1][0], 32.539, rtol=1e-3)
 
 
 def test_global_peak_integration(camera_waveforms):
     waveforms, _ = camera_waveforms
     integrator = GlobalPeakIntegrator()
-    integration, _, _ = integrator.extract_charge(waveforms)
+    charge, _, _ = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 232.559, rtol=1e-3)
-    assert_allclose(integration[1][0], 425.406, rtol=1e-3)
+    assert_allclose(charge[0][0], 232.559, rtol=1e-3)
+    assert_allclose(charge[1][0], 425.406, rtol=1e-3)
 
 
 def test_local_peak_integration(camera_waveforms):
     waveforms, _ = camera_waveforms
     integrator = LocalPeakIntegrator()
-    integration, _, _ = integrator.extract_charge(waveforms)
+    charge, _, _ = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 240.3, rtol=1e-3)
-    assert_allclose(integration[1][0], 427.158, rtol=1e-3)
+    assert_allclose(charge[0][0], 240.3, rtol=1e-3)
+    assert_allclose(charge[1][0], 427.158, rtol=1e-3)
 
 
 def test_nb_peak_integration(camera_waveforms):
@@ -100,10 +100,10 @@ def test_nb_peak_integration(camera_waveforms):
     nei = camera.neighbor_matrix_where
     integrator = NeighbourPeakIntegrator()
     integrator.neighbours = nei
-    integration, _, _ = integrator.extract_charge(waveforms)
+    charge, _, _ = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 94.671, rtol=1e-3)
-    assert_allclose(integration[1][0], 426.887, rtol=1e-3)
+    assert_allclose(charge[0][0], 94.671, rtol=1e-3)
+    assert_allclose(charge[1][0], 426.887, rtol=1e-3)
 
     integrator.lwt = 4
     integration, _, _ = integrator.extract_charge(waveforms)
@@ -115,10 +115,10 @@ def test_nb_peak_integration(camera_waveforms):
 def test_averagewf_peak_integration(camera_waveforms):
     waveforms, _ = camera_waveforms
     integrator = AverageWfPeakIntegrator()
-    integration, _, _ = integrator.extract_charge(waveforms)
+    charge, _, _ = integrator.extract_charge(waveforms)
 
-    assert_allclose(integration[0][0], 232.559, rtol=1e-3)
-    assert_allclose(integration[1][0], 425.406, rtol=1e-3)
+    assert_allclose(charge[0][0], 232.559, rtol=1e-3)
+    assert_allclose(charge[1][0], 425.406, rtol=1e-3)
 
 
 def test_charge_extractor_factory(camera_waveforms):
