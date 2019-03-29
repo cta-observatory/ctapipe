@@ -9,7 +9,7 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import CameraR1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.waveform_extractor import WaveformExtractor
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
@@ -30,7 +30,7 @@ class BokehFileViewer(Tool):
     EventSource.input_url.default_value = default_url
 
     extractor_product = tool_utils.enum_trait(
-        WaveformExtractor,
+        ImageExtractor,
         default='NeighborPeakWindowSum'
     )
 
@@ -46,7 +46,7 @@ class BokehFileViewer(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + tool_utils.classes_with_traits(WaveformExtractor)
+        ] + tool_utils.classes_with_traits(ImageExtractor)
         + tool_utils.classes_with_traits(CameraR1Calibrator)
     )
 
@@ -86,7 +86,7 @@ class BokehFileViewer(Tool):
         self.reader = EventSource.from_config(parent=self)
         self.seeker = EventSeeker(self.reader, parent=self)
 
-        self.extractor = WaveformExtractor.from_name(
+        self.extractor = ImageExtractor.from_name(
             self.extractor_product,
             parent=self
         )
@@ -234,7 +234,7 @@ class BokehFileViewer(Tool):
 
         Parameters
         ----------
-        extractor : ctapipe.image.waveform_extractors.WaveformExtractor
+        extractor : ctapipe.image.extractor.ImageExtractor
         """
         if extractor is None:
             extractor = self.dl1.extractor
@@ -373,11 +373,11 @@ class BokehFileViewer(Tool):
                 self._updating_dl1 = True
                 cmdline = []
                 for key, val in self.w_dl1_dict.items():
-                    k = key.replace("extractor_", "WaveformExtractor.")
+                    k = key.replace("extractor_", "ImageExtractor.")
                     if val.value:
                         cmdline.append(f'--{k}={val.value}')
                 self.parse_command_line(cmdline)
-                extractor = WaveformExtractor.from_name(
+                extractor = ImageExtractor.from_name(
                     self.extractor_product,
                     parent=self)
                 self.update_dl1_calibrator(extractor)

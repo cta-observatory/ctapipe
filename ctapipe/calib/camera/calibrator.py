@@ -10,7 +10,7 @@ from ctapipe.calib.camera import (
     CameraDL0Reducer,
     CameraDL1Calibrator,
 )
-from ctapipe.image import WaveformExtractor
+from ctapipe.image import ImageExtractor
 
 
 __all__ = ['CameraCalibrator']
@@ -43,7 +43,7 @@ class CameraCalibrator(Component):
         r1_product : str
             The R1 calibrator to use. Manually overrides the Factory.
         extractor_name : str
-            The name of the WaveformExtractor to use.
+            The name of the ImageExtractor to use.
         eventsource : ctapipe.io.eventsource.EventSource
             EventSource that is being used to read the events. The EventSource
             contains information (such as metadata or inst) which indicates
@@ -52,7 +52,7 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        extractor = WaveformExtractor.from_name(
+        extractor = ImageExtractor.from_name(
             extractor_name,
             parent=self,
         )

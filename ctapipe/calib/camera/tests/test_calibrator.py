@@ -5,7 +5,7 @@ from ctapipe.calib.camera import (
     HESSIOR1Calibrator,
     NullR1Calibrator
 )
-from ctapipe.image.waveform_extractor import LocalPeakWindowSum
+from ctapipe.image.extractor import LocalPeakWindowSum
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
 

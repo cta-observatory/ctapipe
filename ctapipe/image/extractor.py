@@ -3,7 +3,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 """
 
 __all__ = [
-    'WaveformExtractor',
+    'ImageExtractor',
     'FullWaveformSum',
     'UserWindowSum',
     'GlobalPeakWindowSum',
@@ -158,7 +158,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
     return baseline_corrected
 
 
-class WaveformExtractor(Component):
+class ImageExtractor(Component):
 
     def __init__(self, config=None, parent=None, **kwargs):
         """
@@ -193,7 +193,7 @@ class WaveformExtractor(Component):
     @staticmethod
     def requires_neighbors():
         """
-        Method used for callers of the WaveformExtractor to know if the
+        Method used for callers of the ImageExtractor to know if the
         extractor requires knowledge of the pixel neighbors
 
         Returns
@@ -243,9 +243,9 @@ class WaveformExtractor(Component):
         """
 
 
-class FullWaveformSum(WaveformExtractor):
+class FullWaveformSum(ImageExtractor):
     """
-    Waveform extractor that integrates the entire waveform.
+    Extractor that sums the entire waveform.
     """
 
     def __call__(self, waveforms):
@@ -254,9 +254,9 @@ class FullWaveformSum(WaveformExtractor):
         return charge, pulse_time
 
 
-class UserWindowSum(WaveformExtractor):
+class UserWindowSum(ImageExtractor):
     """
-    Waveform extractor that integrates within a window defined by the user.
+    Extractor that sums within a window defined by the user.
     """
     window_start = Int(
         0, help='Define the start position for the integration window'
@@ -273,10 +273,10 @@ class UserWindowSum(WaveformExtractor):
         return charge, pulse_time
 
 
-class GlobalPeakWindowSum(WaveformExtractor):
+class GlobalPeakWindowSum(ImageExtractor):
     """
-    Waveform extractor that defines an integration window about the global
-    peak in the image.
+    Extractor which sums in a window about the
+    peak from the global average waveform.
     """
     window_width = Int(
         7, help='Define the width of the integration window'
@@ -298,10 +298,10 @@ class GlobalPeakWindowSum(WaveformExtractor):
         return charge, pulse_time
 
 
-class LocalPeakWindowSum(WaveformExtractor):
+class LocalPeakWindowSum(ImageExtractor):
     """
-    Waveform extractor that defines an integration window about the local
-    peak in each pixel.
+    Extractor which sums in a window about the
+    peak in each pixel's waveform.
     """
     window_width = Int(
         7, help='Define the width of the integration window'
@@ -320,10 +320,10 @@ class LocalPeakWindowSum(WaveformExtractor):
         return charge, pulse_time
 
 
-class NeighborPeakWindowSum(WaveformExtractor):
+class NeighborPeakWindowSum(ImageExtractor):
     """
-    Waveform extractor that defines an integration window defined by the
-    peaks in the neighboring pixels.
+    Extractor which sums in a window about the
+    peak defined by the wavefroms in neighboring pixels.
     """
     window_width = Int(
         7, help='Define the width of the integration window'
@@ -354,8 +354,8 @@ class NeighborPeakWindowSum(WaveformExtractor):
 
 class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
     """
-    Waveform extractor that first subtracts the baseline before integrating in
-    a window defined by the peaks in neighboring pixels.
+    Extractor that first subtracts the baseline before summing in a
+    window about the peak defined by the wavefroms in neighboring pixels.
     """
     baseline_start = Int(
         0, help='Start sample for baseline estimation'

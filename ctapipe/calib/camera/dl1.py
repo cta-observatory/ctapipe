@@ -3,7 +3,7 @@ Calibrator for the DL0 -> DL1 data level transition.
 
 This module handles the calibration from the DL0 data level to DL1. This
 transition involves the extraction of parameters from the waveform using a
-`ctapipe.image.waveform_extractor.WaveformExtractor`.
+`ctapipe.image.extractor.ImageExtractor`.
 """
 import numpy as np
 
@@ -89,7 +89,7 @@ class CameraDL1Calibrator(Component):
         Tool executable that is calling this component.
         Passes the correct logger to the component.
         Set to None if no Tool to pass.
-    extractor : ctapipe.calib.camera.waveform_reducer.WaveformExtractor
+    extractor : ctapipe.calib.camera.waveform_reducer.ImageExtractor
         The reducer to use to extract the charge and pulse time from
         the waveforms.
         By default the NeighborPeakWindowSum with default configuration

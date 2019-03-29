@@ -92,7 +92,7 @@ class DL1CameraContainer(Container):
     pulse_time = Field(
         None,
         "Numpy array containing position of the pulse as determined by "
-        "the waveform extractor."
+        "the extractor."
         "Shape: (n_chan, n_pixel, n_samples)"
     )
     #TODO: Remove when gain selection added?

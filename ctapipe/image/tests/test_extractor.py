@@ -3,12 +3,12 @@ import numpy as np
 from scipy.stats import norm
 from numpy.testing import assert_allclose
 from ctapipe.instrument import CameraGeometry
-from ctapipe.image.waveform_extractor import (
+from ctapipe.image.extractor import (
     extract_charge_from_peakpos_array,
     neighbor_average_waveform,
     extract_pulse_time_weighted_average,
     subtract_baseline,
-    WaveformExtractor,
+    ImageExtractor,
     FullWaveformSum,
     UserWindowSum,
     GlobalPeakWindowSum,
@@ -172,7 +172,7 @@ def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
 
 def test_waveform_extractor_factory(camera_waveforms):
     waveforms, _ = camera_waveforms
-    extractor = WaveformExtractor.from_name('LocalPeakWindowSum')
+    extractor = ImageExtractor.from_name('LocalPeakWindowSum')
     extractor(waveforms)
 
 
@@ -183,14 +183,14 @@ def test_waveform_extractor_factory_args():
     from traitlets.config.loader import Config
     config = Config(
         {
-            'WaveformExtractor': {
+            'ImageExtractor': {
                 'window_width': 20,
                 'window_shift': 3,
             }
         }
     )
 
-    extractor = WaveformExtractor.from_name(
+    extractor = ImageExtractor.from_name(
         'LocalPeakWindowSum',
         config=config,
     )
@@ -198,7 +198,7 @@ def test_waveform_extractor_factory_args():
     assert extractor.window_shift == 3
 
     with pytest.warns(UserWarning):
-        WaveformExtractor.from_name(
+        ImageExtractor.from_name(
             'FullWaveformSum',
             config=config,
         )

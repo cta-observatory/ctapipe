@@ -11,7 +11,7 @@ import ctapipe.utils.tools as tool_utils
 from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
     CameraDL1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.waveform_extractor import WaveformExtractor
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
@@ -227,7 +227,7 @@ class DisplayIntegrator(Tool):
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
     extractor_product = tool_utils.enum_trait(
-        WaveformExtractor,
+        ImageExtractor,
         default='NeighborPeakWindowSum'
     )
 
@@ -256,7 +256,7 @@ class DisplayIntegrator(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + tool_utils.classes_with_traits(WaveformExtractor)
+        ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -272,7 +272,7 @@ class DisplayIntegrator(Tool):
 
         event_source = EventSource.from_config(parent=self)
         self.eventseeker = EventSeeker(event_source, parent=self)
-        self.extractor = WaveformExtractor.from_name(
+        self.extractor = ImageExtractor.from_name(
             self.extractor_product,
             parent=self,
         )
