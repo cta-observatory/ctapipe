@@ -32,16 +32,16 @@ def camera_waveforms():
     x = np.arange(n_samples)
 
     # Randomize times
-    t_pulse_hi = r_hi.uniform(mid - 10, mid + 10, n_pixels)[:, None]
-    t_pulse_lo = r_lo.uniform(mid + 10, mid + 20, n_pixels)[:, None]
+    t_pulse_hi = r_hi.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
+    t_pulse_lo = r_lo.uniform(mid + 10, mid + 20, n_pixels)[:, np.newaxis]
 
     # Create pulses
     y_hi = norm.pdf(x, t_pulse_hi, pulse_sigma)
     y_lo = norm.pdf(x, t_pulse_lo, pulse_sigma)
 
     # Randomize amplitudes
-    y_hi *= r_hi.uniform(100, 1000, n_pixels)[:, None]
-    y_lo *= r_lo.uniform(100, 1000, n_pixels)[:, None]
+    y_hi *= r_hi.uniform(100, 1000, n_pixels)[:, np.newaxis]
+    y_lo *= r_lo.uniform(100, 1000, n_pixels)[:, np.newaxis]
 
     y = np.stack([y_hi, y_lo])
 
@@ -85,7 +85,7 @@ def test_baseline_subtractor(camera_waveforms):
     waveforms, _ = camera_waveforms
     n_chan, n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
-    offset = np.arange(n_pixels)[None, :, None]
+    offset = np.arange(n_pixels)[np.newaxis, :, np.newaxis]
     waveforms = rand.normal(0, 0.1, waveforms.shape) + offset
     assert_allclose(waveforms[0, 3].mean(), 3, rtol=1e-2)
     baseline_subtracted = subtract_baseline(waveforms, 0, 10)

@@ -38,10 +38,10 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
 
 
 class Component(Configurable, metaclass=AbstractConfigurableMeta):
-    """Base class of all Components (sometimes called
-    workers, makers, etc).  Components are classes that do some sort
-    of processing and contain user-configurable parameters, which are
-    implemented using `traitlets`.
+    """Base class of all Components.
+
+    Components are classes that are configurable via traitlets
+    and setup a logger in the ctapipe logging hierarchy.
 
     `traitlets` can validate values and provide defaults and
     descriptions. These will be automatically translated into
@@ -59,7 +59,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
     subclasses, which provide configuration handling and command-line
     tool generation.
 
-
     For example:
 
     .. code:: python
@@ -73,7 +72,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
                                   help='a value to set').tag(config=True)
 
 
-        comp = MyComponent(None)
+        comp = MyComponent()
         comp.some_option = 6      # ok
         comp.some_option = 'test' # will fail validation
     """
@@ -85,16 +84,23 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
-            Set to None if no configuration to pass.
-        tool : Tool or Component
-            Tool or component that is the Parent of this one
+        parent: Tool or Component
+            If a Component is created by another Component or Tool,
+            you need to pass the creating Component as parent, e.g.
+            `parent=self`. This makes sure the config is correctly
+            handed down to the child components.
+            Do not pass config in this case.
         kwargs
             Traitlets to be overridden.
             TraitError is raised if kwargs contains a key that does not
             correspond to a traitlet.
         """
         if parent is not None and config is not None:
-            raise ValueError('Only one of `config` or `parent` allowed')
+            raise ValueError(
+                'Only one of `config` or `parent` allowed'
+                ' If you create a Component as part of another, give `parent=self`'
+                ' and not `config`'
+            )
         super().__init__(parent=parent, config=config, **kwargs)
 
         for key, value in kwargs.items():

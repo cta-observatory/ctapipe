@@ -45,7 +45,6 @@ class ChargeResolutionGenerator(Tool):
         max_events='SimTelEventSource.max_events',
         T='SimTelEventSource.allowed_tels',
         extractor='ChargeResolutionGenerator.extractor_product',
-        max_pe='ChargeResolutionCalculator.max_pe',
         O='ChargeResolutionGenerator.output_path',
     ))
 
@@ -53,7 +52,6 @@ class ChargeResolutionGenerator(Tool):
         [
             SimTelEventSource,
             CameraDL1Calibrator,
-            ChargeResolutionCalculator
         ] + tool_utils.classes_with_traits(WaveformExtractor)
     )
 
@@ -67,20 +65,19 @@ class ChargeResolutionGenerator(Tool):
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, parent=self)
 
-        self.eventsource = SimTelEventSource(**kwargs)
+        self.eventsource = SimTelEventSource(parent=self)
 
         extractor = WaveformExtractor.from_name(
             self.extractor_product,
-            **kwargs
+            parent=self
         )
 
-        self.r1 = HESSIOR1Calibrator(**kwargs)
+        self.r1 = HESSIOR1Calibrator(parent=self)
 
-        self.dl0 = CameraDL0Reducer(**kwargs)
+        self.dl0 = CameraDL0Reducer(parent=self)
 
-        self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
+        self.dl1 = CameraDL1Calibrator(extractor=extractor, parent=self)
 
         self.calculator = ChargeResolutionCalculator()
 
