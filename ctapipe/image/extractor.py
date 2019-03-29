@@ -163,7 +163,7 @@ class ImageExtractor(Component):
     def __init__(self, config=None, parent=None, **kwargs):
         """
         Base component to handle the extraction of charge and pulse time
-        from an image cube.
+        from an image cube (waveforms).
 
         Attributes
         ----------
