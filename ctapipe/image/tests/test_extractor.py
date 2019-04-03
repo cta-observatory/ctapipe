@@ -4,7 +4,7 @@ from scipy.stats import norm
 from numpy.testing import assert_allclose
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.extractor import (
-    extract_charge_from_peakpos_array,
+    sum_samples_around_peakpos,
     neighbor_average_waveform,
     extract_pulse_time_weighted_average,
     subtract_baseline,
@@ -48,12 +48,12 @@ def camera_waveforms():
     return y, camera
 
 
-def test_extract_charge_from_peakpos_array(camera_waveforms):
+def test_sum_samples_around_peakpos(camera_waveforms):
     waveforms, _ = camera_waveforms
     _, n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
     peakpos = rand.uniform(0, n_samples, (2, n_pixels)).astype(np.int)
-    charge = extract_charge_from_peakpos_array(waveforms, peakpos, 7, 3)
+    charge = sum_samples_around_peakpos(waveforms, peakpos, 7, 3)
 
     assert_allclose(charge[0][0], 146.022991, rtol=1e-3)
     assert_allclose(charge[1][0], 22.393974, rtol=1e-3)
