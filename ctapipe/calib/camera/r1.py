@@ -128,6 +128,7 @@ class CameraR1Calibrator(Component):
                 eventsource.metadata['is_simulation']):
             return HESSIOR1Calibrator(**kwargs)
         elif eventsource.__class__.__name__ == "TargetIOEventSource":
+            from ctapipe_io_targetio import TargetIOR1Calibrator
             return TargetIOR1Calibrator(**kwargs)
 
         return NullR1Calibrator(**kwargs)
