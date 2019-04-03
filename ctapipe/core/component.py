@@ -4,6 +4,7 @@ from logging import getLogger
 from inspect import isabstract
 from traitlets.config import Configurable
 from traitlets import TraitError
+from ctapipe.core.plugins import detect_and_import_io_plugins
 
 
 def non_abstract_children(base):
@@ -140,6 +141,7 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         instace
             Instance of subclass to this class
         """
+        detect_and_import_io_plugins()
         subclasses = {
             base.__name__: base
             for base in non_abstract_children(cls)
