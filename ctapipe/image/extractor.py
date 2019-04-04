@@ -37,6 +37,16 @@ def sum_samples_around_peakpos(waveforms, peakpos, width, shift, ret):
     Sum the samples from the waveform using the window defined by a
     peak position, window width, and window shift.
 
+    This function is a numpy universal function which defines the operation
+    applied on the waveform for every channel and pixel. Therefore in the
+    code body of this function:
+        - waveforms is a 1D array of size n_samples.
+        - Peakpos, width and shift are integers, corresponding to the correct
+            value for the current pixel
+
+    The ret argument is required by numpy to creae the numpy array which is
+    returned. It can be ignored when calling this function.
+
     Parameters
     ----------
     waveforms : ndarray
