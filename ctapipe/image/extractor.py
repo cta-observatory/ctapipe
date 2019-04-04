@@ -126,8 +126,8 @@ def extract_pulse_time_weighted_average(waveforms):
     """
     samples_i = np.indices(waveforms.shape)[2]
     pulse_time = np.average(samples_i, weights=waveforms, axis=2)
-    pulse_time[pulse_time < 0] = 0
-    pulse_time[pulse_time > waveforms.shape[2]] = waveforms.shape[2]
+    outside = np.logical_or(pulse_time < 0, pulse_time >= waveforms.shape[2])
+    pulse_time[outside] = np.nan
     return pulse_time
 
 
