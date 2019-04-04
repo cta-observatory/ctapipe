@@ -5,7 +5,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 __all__ = [
     'ImageExtractor',
     'FullWaveformSum',
-    'UserWindowSum',
+    'FixedWindowSum',
     'GlobalPeakWindowSum',
     'LocalPeakWindowSum',
     'NeighborPeakWindowSum',
@@ -254,9 +254,9 @@ class FullWaveformSum(ImageExtractor):
         return charge, pulse_time
 
 
-class UserWindowSum(ImageExtractor):
+class FixedWindowSum(ImageExtractor):
     """
-    Extractor that sums within a window defined by the user.
+    Extractor that sums within a fixed window defined by the user.
     """
     window_start = Int(
         0, help='Define the start position for the integration window'
