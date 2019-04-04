@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from scipy.stats import norm
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_equal
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.extractor import (
     sum_samples_around_peakpos,
@@ -57,6 +57,48 @@ def test_sum_samples_around_peakpos(camera_waveforms):
 
     assert_allclose(charge[0][0], 146.022991, rtol=1e-3)
     assert_allclose(charge[1][0], 22.393974, rtol=1e-3)
+
+
+def test_sum_samples_around_peakpos_expected(camera_waveforms):
+    waveforms, _ = camera_waveforms
+    waveforms = np.ones(waveforms.shape)
+    n_samples = waveforms.shape[-1]
+
+    peakpos = 0
+    width = 10
+    shift = 0
+    charge = sum_samples_around_peakpos(waveforms, peakpos, width, shift)
+    assert_equal(charge, 10)
+
+    peakpos = 0
+    width = 10
+    shift = 10
+    charge = sum_samples_around_peakpos(waveforms, peakpos, width, shift)
+    assert_equal(charge, 0)
+
+    peakpos = 0
+    width = 20
+    shift = 10
+    charge = sum_samples_around_peakpos(waveforms, peakpos, width, shift)
+    assert_equal(charge, 10)
+
+    peakpos = n_samples
+    width = 10
+    shift = 0
+    charge = sum_samples_around_peakpos(waveforms, peakpos, width, shift)
+    assert_equal(charge, 0)
+
+    peakpos = n_samples
+    width = 20
+    shift = 10
+    charge = sum_samples_around_peakpos(waveforms, peakpos, width, shift)
+    assert_equal(charge, 10)
+
+    peakpos = 0
+    width = n_samples*3
+    shift = n_samples
+    charge = sum_samples_around_peakpos(waveforms, peakpos, width, shift)
+    assert_equal(charge, n_samples)
 
 
 def test_neighbor_average_waveform(camera_waveforms):
