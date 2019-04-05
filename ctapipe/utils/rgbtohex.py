@@ -26,7 +26,7 @@ def intensity_to_rgb(array, minval=None, maxval=None):
     if minval is None:
         minval = np.nanmin(array)
     if maxval is None:
-        maxval = np.nanmin(array)
+        maxval = np.nanmax(array)
     if maxval == minval:
         minval -= 1
         maxval += 1
