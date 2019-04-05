@@ -17,7 +17,7 @@ def test_hex():
     max_ = 10
     output = intensity_to_hex(input_, min_, max_)
 
-    assert (output == np.array(["#29788e"])).all()
+    assert (output == np.array(["#29788eff"])).all()
 
 
 def test_rgb_nan():
