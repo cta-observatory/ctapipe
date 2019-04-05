@@ -119,8 +119,8 @@ class CameraDisplay:
         if val is None:
             val = np.zeros(self._n_pixels)
 
-        image_min = val.min()
-        image_max = val.max()
+        image_min = np.nanmin(val)
+        image_max = np.nanmax(val)
         if image_max == image_min:
             image_min -= 1
             image_max += 1
