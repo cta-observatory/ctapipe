@@ -10,7 +10,7 @@ from ctapipe.image.extractor import (
     subtract_baseline,
     ImageExtractor,
     FullWaveformSum,
-    UserWindowSum,
+    FixedWindowSum,
     GlobalPeakWindowSum,
     LocalPeakWindowSum,
     NeighborPeakWindowSum,
@@ -145,9 +145,9 @@ def test_full_waveform_sum(camera_waveforms):
     assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
 
 
-def test_user_window_sum(camera_waveforms):
+def test_fixed_window_sum(camera_waveforms):
     waveforms, _ = camera_waveforms
-    extractor = UserWindowSum(window_start=45)
+    extractor = FixedWindowSum(window_start=45)
     charge, pulse_time = extractor(waveforms)
 
     assert_allclose(charge[0][0], 232.559, rtol=1e-3)

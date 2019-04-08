@@ -5,7 +5,7 @@ Charge extraction algorithms to reduce the image to one value per pixel
 __all__ = [
     'ImageExtractor',
     'FullWaveformSum',
-    'UserWindowSum',
+    'FixedWindowSum',
     'GlobalPeakWindowSum',
     'LocalPeakWindowSum',
     'NeighborPeakWindowSum',
@@ -138,8 +138,8 @@ def extract_pulse_time_weighted_average(waveforms):
     """
     samples_i = np.indices(waveforms.shape)[2]
     pulse_time = np.average(samples_i, weights=waveforms, axis=2)
-    pulse_time[pulse_time < 0] = 0
-    pulse_time[pulse_time > waveforms.shape[2]] = waveforms.shape[2]
+    outside = np.logical_or(pulse_time < 0, pulse_time >= waveforms.shape[2])
+    pulse_time[outside] = -1
     return pulse_time
 
 
@@ -266,9 +266,9 @@ class FullWaveformSum(ImageExtractor):
         return charge, pulse_time
 
 
-class UserWindowSum(ImageExtractor):
+class FixedWindowSum(ImageExtractor):
     """
-    Extractor that sums within a window defined by the user.
+    Extractor that sums within a fixed window defined by the user.
     """
     window_start = Int(
         0, help='Define the start position for the integration window'
