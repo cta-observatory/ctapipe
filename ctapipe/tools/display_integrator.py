@@ -11,7 +11,7 @@ import ctapipe.utils.tools as tool_utils
 from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
     CameraDL1Calibrator
 from ctapipe.core import Tool
-from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
@@ -34,12 +34,6 @@ def plot(event, telid, chan, extractor_name):
     # Get Neighbours
     max_pixel_nei = nei[max_pix]
     min_pixel_nei = nei[min_pix]
-
-    # Get Windows
-    windows = event.dl1.tel[telid].extracted_samples[chan]
-    length = np.sum(windows, axis=1)
-    start = np.argmax(windows, axis=1)
-    end = start + length - 1
 
     # Draw figures
     ax_max_nei = {}
@@ -71,14 +65,6 @@ def plot(event, telid, chan, extractor_name):
         f'Measured = {dl1[max_pix]:.3f}'
     )
     max_ylim = ax_max_pix.get_ylim()
-    ax_max_pix.plot([start[max_pix], start[max_pix]],
-                    ax_max_pix.get_ylim(),
-                    color='r',
-                    alpha=1)
-    ax_max_pix.plot([end[max_pix], end[max_pix]],
-                    ax_max_pix.get_ylim(),
-                    color='r',
-                    alpha=1)
     for i, ax in ax_max_nei.items():
         if len(max_pixel_nei) > i:
             pix = max_pixel_nei[i]
@@ -90,11 +76,6 @@ def plot(event, telid, chan, extractor_name):
                     .format(pix, t_pe[pix], dl1[pix])
             )
             ax.set_ylim(max_ylim)
-            ax.plot([start[pix], start[pix]],
-                    ax.get_ylim(),
-                    color='r',
-                    alpha=1)
-            ax.plot([end[pix], end[pix]], ax.get_ylim(), color='r', alpha=1)
 
     # Draw min pixel traces
     ax_min_pix.plot(dl0[min_pix])
@@ -105,14 +86,6 @@ def plot(event, telid, chan, extractor_name):
         f'Measured = {dl1[min_pix]:.3f}'
     )
     ax_min_pix.set_ylim(max_ylim)
-    ax_min_pix.plot([start[min_pix], start[min_pix]],
-                    ax_min_pix.get_ylim(),
-                    color='r',
-                    alpha=1)
-    ax_min_pix.plot([end[min_pix], end[min_pix]],
-                    ax_min_pix.get_ylim(),
-                    color='r',
-                    alpha=1)
     for i, ax in ax_min_nei.items():
         if len(min_pixel_nei) > i:
             pix = min_pixel_nei[i]
@@ -124,11 +97,6 @@ def plot(event, telid, chan, extractor_name):
                 f'Measured = {dl1[pix]:.3f}'
             )
             ax.set_ylim(max_ylim)
-            ax.plot([start[pix], start[pix]],
-                    ax.get_ylim(),
-                    color='r',
-                    alpha=1)
-            ax.plot([end[pix], end[pix]], ax.get_ylim(), color='r', alpha=1)
 
     # Draw cameras
     nei_camera = np.zeros_like(max_charges, dtype=np.int)
@@ -259,8 +227,8 @@ class DisplayIntegrator(Tool):
     channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
 
     extractor_product = tool_utils.enum_trait(
-        ChargeExtractor,
-        default='NeighbourPeakIntegrator'
+        ImageExtractor,
+        default='NeighborPeakWindowSum'
     )
 
     aliases = Dict(
@@ -288,7 +256,7 @@ class DisplayIntegrator(Tool):
         [
             EventSource,
             CameraDL1Calibrator,
-        ] + tool_utils.classes_with_traits(ChargeExtractor)
+        ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -304,7 +272,7 @@ class DisplayIntegrator(Tool):
 
         event_source = EventSource.from_config(parent=self)
         self.eventseeker = EventSeeker(event_source, parent=self)
-        self.extractor = ChargeExtractor.from_name(
+        self.extractor = ImageExtractor.from_name(
             self.extractor_product,
             parent=self,
         )

@@ -80,31 +80,27 @@ class InstrumentContainer(Container):
 
 
 class DL1CameraContainer(Container):
-    """Storage of output of camera calibration e.g the final calibrated
-    image in intensity units and other per-event calculated
-    calibration information.
+    """
+    Storage of output of camera calibration e.g the final calibrated
+    image in intensity units and the pulse time.
     """
     image = Field(
         None,
-        "np array of camera image, after waveform integration (N_pix)"
+        "Numpy array of camera image, after waveform extraction."
+        "Shape: (n_chan, n_pixel)"
     )
-    gain_channel = Field(None, "boolean numpy array of which gain channel was "
-                               "used for each pixel in the image ")
-    extracted_samples = Field(
+    pulse_time = Field(
         None,
-        "numpy array of bools indicating which samples were included in the "
-        "charge extraction as a result of the charge extractor chosen. "
-        "Shape=(nchan, npix, nsamples)."
+        "Numpy array containing position of the pulse as determined by "
+        "the extractor."
+        "Shape: (n_chan, n_pixel, n_samples)"
     )
-    peakpos = Field(
+    #TODO: Remove when gain selection added?
+    gain_channel = Field(
         None,
-        "numpy array containing position of the peak as determined by "
-        "the peak-finding algorithm for each pixel"
+        "boolean numpy array of which gain channel was used for each pixel "
+        "in the image "
     )
-    cleaned = Field(
-        None, "numpy array containing the waveform after cleaning"
-    )
-
 
 class CameraCalibrationContainer(Container):
     """

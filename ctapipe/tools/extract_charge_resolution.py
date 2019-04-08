@@ -18,7 +18,7 @@ from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
 from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool, Provenance
-from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.extractor import ImageExtractor
 
 from ctapipe.io.simteleventsource import SimTelEventSource
 
@@ -36,8 +36,8 @@ class ChargeResolutionGenerator(Tool):
         help='Path to store the output HDF5 file'
     ).tag(config=True)
     extractor_product = tool_utils.enum_trait(
-        ChargeExtractor,
-        default='NeighbourPeakIntegrator'
+        ImageExtractor,
+        default='NeighborPeakWindowSum'
     )
 
     aliases = Dict(dict(
@@ -52,7 +52,7 @@ class ChargeResolutionGenerator(Tool):
         [
             SimTelEventSource,
             CameraDL1Calibrator,
-        ] + tool_utils.classes_with_traits(ChargeExtractor)
+        ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -68,7 +68,7 @@ class ChargeResolutionGenerator(Tool):
 
         self.eventsource = SimTelEventSource(parent=self)
 
-        extractor = ChargeExtractor.from_name(
+        extractor = ImageExtractor.from_name(
             self.extractor_product,
             parent=self
         )

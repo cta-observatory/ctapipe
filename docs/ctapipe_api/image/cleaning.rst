@@ -1,11 +1,10 @@
 .. _image_cleaning:
 
 ===========================
-Image and Waveform Cleaning
+Image Cleaning
 ===========================
 
-Cleaning/denoising of images in time (applying filters, convolutions,
-or baseline subtractions) and space (tailcuts cleaning, dilation,
+Cleaning/denoising of images (tailcuts cleaning, dilation,
 filtering).
 
 An example of image cleaning and dilation:
@@ -18,7 +17,5 @@ API Reference
 	   
 .. automodapi:: ctapipe.image.cleaning
 
-
-.. automodapi:: ctapipe.image.waveform_cleaning
 
 

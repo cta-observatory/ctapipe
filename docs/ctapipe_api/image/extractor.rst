@@ -4,8 +4,8 @@
 Charge Extraction (cube to image) 
 ==================================
 
-extracts charge from the waveform, resulting in a single number per pixel
+Extracts charge and time per pixel from the waveform.
 
 
-.. automodapi:: ctapipe.image.charge_extractors
+.. automodapi:: ctapipe.image.extractor
 
