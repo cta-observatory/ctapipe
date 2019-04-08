@@ -61,4 +61,4 @@ def test_config():
         config=config
     )
     assert calibrator.dl1.extractor.window_shift == window_shift
-    assert calibrator.dl1.extractor.window_shift == window_width
+    assert calibrator.dl1.extractor.window_width == window_width
