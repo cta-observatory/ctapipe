@@ -55,8 +55,8 @@ class DataVolumeReducer(Component):
     @staticmethod
     def requires_neighbours():
         """
-        Method used for callers of the ChargeExtractor to know if the extractor
-        requires knowledge of the pixel neighbours
+        Method used for callers of the ImageExtractor to know if the
+        extractor requires knowledge of the pixel neighbours
 
         Returns
         -------

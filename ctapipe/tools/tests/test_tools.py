@@ -11,40 +11,53 @@ GAMMA_TEST_LARGE = get_dataset_path("gamma_test_large.simtel.gz")
 
 def test_muon_reconstruction(tmpdir):
     from ctapipe.tools.muon_reconstruction import MuonDisplayerTool
-    MuonDisplayerTool().run(
+    tool = MuonDisplayerTool()
+    tool.run(
         argv=shlex.split(
             f'--events={GAMMA_TEST_LARGE} '
             '--max_events=2 '
         )
     )
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_display_summed_imaged(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
     mpl.use('Agg')
-    ImageSumDisplayerTool().run(
+    tool = ImageSumDisplayerTool()
+    tool.run(
         argv=shlex.split(
             f'--infile={GAMMA_TEST_LARGE} '
             '--max-events=2 '
         )
     )
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_display_integrator(tmpdir):
     from ctapipe.tools.display_integrator import DisplayIntegrator
     mpl.use('Agg')
-    DisplayIntegrator().run(
+    tool = DisplayIntegrator()
+    tool.run(
         argv=shlex.split(
             f'--f={GAMMA_TEST_LARGE} '
             '--max_events=1 '
         )
     )
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_display_events_single_tel(tmpdir):
     from ctapipe.tools.display_events_single_tel import SingleTelEventDisplay
     mpl.use('Agg')
-    SingleTelEventDisplay().run(
+    tool = SingleTelEventDisplay()
+    tool.run(
         argv=shlex.split(
             f'--infile={GAMMA_TEST_LARGE} '
             '--tel=11 '
@@ -52,16 +65,23 @@ def test_display_events_single_tel(tmpdir):
         )
     )
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_display_dl1(tmpdir):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
     mpl.use('Agg')
-    DisplayDL1Calib().run(
+    tool = DisplayDL1Calib()
+    tool.run(
         argv=shlex.split(
             '--max_events=1 '
             '--telescope=11 '
         )
     )
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_info():
@@ -84,6 +104,9 @@ def test_dump_triggers(tmpdir):
 
     assert outfile.exists()
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_dump_instrument(tmpdir):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
@@ -100,6 +123,9 @@ def test_dump_instrument(tmpdir):
     print(tmpdir.listdir())
     assert tmpdir.join('FlashCam.camgeom.fits.gz').exists()
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_camdemo():
     from ctapipe.tools.camdemo import CameraDemo
@@ -110,6 +136,9 @@ def test_camdemo():
     tool.display = False
     tool.run(argv=[])
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_bokeh_file_viewer():
     from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
@@ -119,6 +148,9 @@ def test_bokeh_file_viewer():
     tool.run()
 
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_extract_charge_resolution(tmpdir):
@@ -131,10 +163,13 @@ def test_extract_charge_resolution(tmpdir):
     with pytest.raises(KeyError):
         tool.run([
             '-f', GAMMA_TEST_LARGE,
-            '-o', output_path,
+            '-O', output_path,
         ])
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_plot_charge_resolution(tmpdir):
@@ -150,3 +185,6 @@ def test_plot_charge_resolution(tmpdir):
         '-o', output_path,
     ])
     assert os.path.exists(output_path)
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])

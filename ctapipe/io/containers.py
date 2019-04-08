@@ -20,8 +20,6 @@ __all__ = [
     'DL0CameraContainer',
     'DL1Container',
     'DL1CameraContainer',
-    'TargetIOContainer',
-    'TargetIOCameraContainer',
     'SST1MContainer',
     'SST1MCameraContainer',
     'MCEventContainer',
@@ -34,7 +32,6 @@ __all__ = [
     'ReconstructedEnergyContainer',
     'ParticleClassificationContainer',
     'DataContainer',
-    'TargetIODataContainer',
     'SST1MDataContainer',
     'HillasParametersContainer',
     'LeakageContainer',
@@ -83,31 +80,27 @@ class InstrumentContainer(Container):
 
 
 class DL1CameraContainer(Container):
-    """Storage of output of camera calibration e.g the final calibrated
-    image in intensity units and other per-event calculated
-    calibration information.
+    """
+    Storage of output of camera calibration e.g the final calibrated
+    image in intensity units and the pulse time.
     """
     image = Field(
         None,
-        "np array of camera image, after waveform integration (N_pix)"
+        "Numpy array of camera image, after waveform extraction."
+        "Shape: (n_chan, n_pixel)"
     )
-    gain_channel = Field(None, "boolean numpy array of which gain channel was "
-                               "used for each pixel in the image ")
-    extracted_samples = Field(
+    pulse_time = Field(
         None,
-        "numpy array of bools indicating which samples were included in the "
-        "charge extraction as a result of the charge extractor chosen. "
-        "Shape=(nchan, npix, nsamples)."
+        "Numpy array containing position of the pulse as determined by "
+        "the extractor."
+        "Shape: (n_chan, n_pixel, n_samples)"
     )
-    peakpos = Field(
+    #TODO: Remove when gain selection added?
+    gain_channel = Field(
         None,
-        "numpy array containing position of the peak as determined by "
-        "the peak-finding algorithm for each pixel"
+        "boolean numpy array of which gain channel was used for each pixel "
+        "in the image "
     )
-    cleaned = Field(
-        None, "numpy array containing the waveform after cleaning"
-    )
-
 
 class CameraCalibrationContainer(Container):
     """
@@ -440,30 +433,6 @@ class DataContainer(Container):
 
 class SST1MDataContainer(DataContainer):
     sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
-
-
-class TargetIOCameraContainer(Container):
-    """
-    Container for Fields that are specific to cameras that use TARGET
-    """
-    first_cell_ids = Field(None, ("numpy array of the first_cell_id of each"
-                                  "waveform in the camera image (n_pixels)"))
-
-
-class TargetIOContainer(Container):
-    """
-    Storage for the TargetIOCameraContainer for each telescope
-    """
-
-    tel = Field(Map(TargetIOCameraContainer),
-                "map of tel_id to TargetIOCameraContainer")
-
-
-class TargetIODataContainer(DataContainer):
-    """
-    Data container including targeto information
-    """
-    targetio = Field(TargetIOContainer(), "TARGET-specific Data")
 
 
 class MuonRingParameter(Container):

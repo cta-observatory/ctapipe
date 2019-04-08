@@ -5,23 +5,29 @@ import logging
 import os
 import sys
 
-import ctapipe_resources
-
 from .utils import get_parser
-from ..core import Provenance
+from ..core import Provenance, get_module_version
 from ..utils import datasets
 
 __all__ = ['info']
 
 # TODO: this list should be global (or generated at install time)
-_dependencies = sorted(['astropy', 'matplotlib',
-                        'numpy', 'traitlets',
-                        'sklearn', 'scipy', 'numba',
-                        'pytest', 'ctapipe_resources', 'iminuit', 'tables'])
+_dependencies = sorted([
+    'astropy', 'matplotlib',
+    'numpy', 'traitlets',
+    'sklearn', 'scipy', 'numba',
+    'pytest', 'iminuit', 'tables',
+    'eventio',
+])
 
-_optional_dependencies = sorted(['pytest', 'graphviz',  # 'pyzmq',
-                                 'fitsio', 'pyhessio', 'targetio',
-                                 'matplotlib'])
+_optional_dependencies = sorted([
+    'ctapipe_resources',
+    'pytest',
+    'graphviz',
+    'pyhessio',
+    'targetio',
+    'matplotlib'
+])
 
 
 def main(args=None):
@@ -110,12 +116,7 @@ def _info_dependencies():
     print('\n*** ctapipe core dependencies ***\n')
 
     for name in _dependencies:
-        try:
-            module = importlib.import_module(name)
-            version = module.__version__
-        except ImportError:
-            version = 'not installed'
-
+        version = get_module_version(name)
         print(f'{name:>20s} -- {version}')
 
     print('\n*** ctapipe optional dependencies ***\n')
@@ -136,9 +137,6 @@ def _info_resources():
     """ display all known resources """
 
     print('\n*** ctapipe resources ***\n')
-
-    print(f"ctapipe_resources version: {ctapipe_resources.__version__}")
-
     print("CTAPIPE_SVC_PATH: (directories where resources are searched)")
     if os.getenv('CTAPIPE_SVC_PATH') is not None:
         for directory in datasets.get_searchpath_dirs():
