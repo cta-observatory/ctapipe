@@ -8,6 +8,7 @@ from ctapipe.calib.camera import (
 from ctapipe.image.extractor import LocalPeakWindowSum
 from ctapipe.io import SimTelEventSource
 from ctapipe.utils import get_dataset_path
+from traitlets.config.configurable import Config
 
 
 def test_camera_calibrator(example_event):
@@ -45,3 +46,19 @@ def test_eventsource_override_r1():
         r1_product="NullR1Calibrator"
     )
     assert isinstance(calibrator.r1, NullR1Calibrator)
+
+
+def test_config():
+    window_shift = 3
+    window_width = 9
+    config = Config({"LocalPeakWindowSum": {
+        "window_shift": window_shift,
+        "window_width": window_width,
+    }})
+    calibrator = CameraCalibrator(
+        r1_product='HESSIOR1Calibrator',
+        extractor_name='LocalPeakWindowSum',
+        config=config
+    )
+    assert calibrator.dl1.extractor.window_shift == window_shift
+    assert calibrator.dl1.extractor.window_shift == window_width
