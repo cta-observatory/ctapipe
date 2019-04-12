@@ -213,17 +213,8 @@ class SimTelEventSource(EventSource):
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
-
-                r0 = data.r0.tel[tel_id]
-                r0.waveform = adc_samples
-
-                pixel_lists = telescope_event['pixel_lists']
-                r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
-                if r0.num_trig_pix > 0:
-                    r0.trig_pix_id = pixel_lists[0]['pixel_list']
-
+                n_channel, n_pixels, n_samples = adc_samples.shape
                 pixel_settings = telescope_description['pixel_settings']
-                n_pixel = r0.waveform.shape[-2]
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
@@ -235,7 +226,7 @@ class SimTelEventSource(EventSource):
                     array_event
                     .get('photoelectrons', {})
                     .get(tel_index, {})
-                    .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
+                    .get('photoelectrons', np.zeros(n_pixels, dtype='float32'))
                 )
 
                 tracking_position = tracking_positions[tel_id]
@@ -243,6 +234,19 @@ class SimTelEventSource(EventSource):
                 mc.altitude_raw = tracking_position['altitude_raw']
                 mc.azimuth_cor = tracking_position.get('azimuth_cor', 0)
                 mc.altitude_cor = tracking_position.get('altitude_cor', 0)
+
+                r0 = data.r0.tel[tel_id]
+                r1 = data.r1.tel[tel_id]
+                r0.waveform = adc_samples
+                ped = mc.pedestal[..., np.newaxis] / n_samples
+                gain = mc.dc_to_pe[..., np.newaxis]
+                r1.waveform = (adc_samples - ped) * gain
+
+                pixel_lists = telescope_event['pixel_lists']
+                r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
+                if r0.num_trig_pix > 0:
+                    r0.trig_pix_id = pixel_lists[0]['pixel_list']
+
             yield data
 
     def fill_mc_information(self, data, array_event):
