@@ -128,7 +128,6 @@ class R0CameraContainer(Container):
         "numpy array containing ADC samples"
         "(n_channels x n_pixels, n_samples)"
     ))
-    num_samples = Field(None, "number of time samples for telescope")
 
 
 class R0Container(Container):

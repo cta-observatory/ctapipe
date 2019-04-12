@@ -147,11 +147,6 @@ class HESSIOEventSource(EventSource):
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))
 
-                    nsamples = file.get_event_num_samples(tel_id)
-                    if nsamples <= 0:
-                        nsamples = 1
-                    data.r0.tel[tel_id].num_samples = nsamples
-
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
                     data.mc.tel[tel_id].photo_electron_image = hessio_mc_npe
