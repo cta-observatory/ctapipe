@@ -12,7 +12,7 @@ __all__ = [
     'BaselineSubtractedNeighborPeakWindowSum',
     'extract_charge_from_peakpos_array',
     'neighbor_average_waveform',
-    'extract_pulse_time_around_peakpos',
+    'extract_pulse_time_around_peak',
     'subtract_baseline',
 ]
 

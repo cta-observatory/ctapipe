@@ -6,7 +6,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.image.extractor import (
     extract_charge_from_peakpos_array,
     neighbor_average_waveform,
-    extract_pulse_time_around_peakpos,
+    extract_pulse_time_around_peak,
     subtract_baseline,
     ImageExtractor,
     FullWaveformSum,
@@ -73,10 +73,10 @@ def test_neighbor_average_waveform(camera_waveforms):
     assert_allclose(average_wf[1, 0, 48], 9.578896, rtol=1e-3)
 
 
-def test_extract_pulse_time_weighted_average(camera_waveforms):
+def test_extract_pulse_time_around_peak(camera_waveforms):
     x = np.arange(100)
     y = norm.pdf(x, 41.2, 6)
-    pulse_time = extract_pulse_time_around_peakpos(
+    pulse_time = extract_pulse_time_around_peak(
         y[np.newaxis, :], 0, x.size, 0
     )
 
