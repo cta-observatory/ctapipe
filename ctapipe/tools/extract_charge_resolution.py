@@ -16,7 +16,6 @@ from ctapipe.analysis.camera.charge_resolution import \
     ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool, Provenance
 from ctapipe.image.extractor import ImageExtractor
 
@@ -58,7 +57,6 @@ class ChargeResolutionGenerator(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.eventsource = None
-        self.r1 = None
         self.dl0 = None
         self.dl1 = None
         self.calculator = None
@@ -73,8 +71,6 @@ class ChargeResolutionGenerator(Tool):
             parent=self
         )
 
-        self.r1 = HESSIOR1Calibrator(parent=self)
-
         self.dl0 = CameraDL0Reducer(parent=self)
 
         self.dl1 = CameraDL1Calibrator(extractor=extractor, parent=self)
@@ -84,7 +80,6 @@ class ChargeResolutionGenerator(Tool):
     def start(self):
         desc = "Extracting Charge Resolution"
         for event in tqdm(self.eventsource, desc=desc):
-            self.r1.calibrate(event)
             self.dl0.reduce(event)
             self.dl1.calibrate(event)
 

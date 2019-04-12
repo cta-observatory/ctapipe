@@ -28,7 +28,6 @@ def test_config():
         "window_width": window_width,
     }})
     calibrator = CameraCalibrator(
-        r1_product='HESSIOR1Calibrator',
         extractor_name='LocalPeakWindowSum',
         config=config
     )

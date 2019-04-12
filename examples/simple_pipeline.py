@@ -14,7 +14,7 @@ if __name__ == '__main__':
 
     source = event_source(filename, max_events=None)
 
-    cal = CameraCalibrator(r1_product="HESSIOR1Calibrator")
+    cal = CameraCalibrator()
 
     for ii, event in enumerate(source):
 
