@@ -187,10 +187,7 @@ class DisplayDL1Calib(Tool):
             parent=self,
         )
 
-        self.calibrator = CameraCalibrator(
-            eventsource=self.eventsource,
-            parent=self,
-        )
+        self.calibrator = CameraCalibrator(parent=self)
 
         self.plotter = ImagePlotter(parent=self)
 

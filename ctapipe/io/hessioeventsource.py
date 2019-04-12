@@ -139,8 +139,8 @@ class HESSIOEventSource(EventSource):
                     pedestal = file.get_pedestal(tel_id)
                     data.r0.tel[tel_id].waveform = adc_samples
                     data.r1.tel[tel_id].waveform = (
-                            (adc_samples - pedestal[:, np.newaxis])
-                            * dc_to_pe[:, np.newaxis]
+                            (adc_samples - pedestal[..., np.newaxis])
+                            * dc_to_pe[..., np.newaxis]
                     )
 
                     data.mc.tel[tel_id].dc_to_pe = dc_to_pe
