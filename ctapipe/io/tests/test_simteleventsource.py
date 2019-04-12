@@ -51,6 +51,7 @@ def compare_sources(input_url):
                 assert (h.mc.tel[tel_id].dc_to_pe == s.mc.tel[tel_id].dc_to_pe).all()
                 assert (h.mc.tel[tel_id].pedestal == s.mc.tel[tel_id].pedestal).all()
                 assert h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
+                assert h.r1.tel[tel_id].waveform.shape == s.r1.tel[tel_id].waveform.shape
                 assert np.allclose(h.r0.tel[tel_id].waveform, s.r0.tel[tel_id].waveform)
                 assert (h.r0.tel[tel_id].num_samples == s.r0.tel[tel_id].num_samples)
                 assert (h.r0.tel[tel_id].image == s.r0.tel[tel_id].image).all()
