@@ -217,9 +217,6 @@ class SimTelEventSource(EventSource):
                 r0 = data.r0.tel[tel_id]
                 r0.waveform = adc_samples
                 r0.num_samples = adc_samples.shape[-1]
-                # We should not calculate stuff in an event source
-                # if this is not needed, we calculate it for nothing
-                r0.image = adc_samples.sum(axis=-1)
 
                 pixel_lists = telescope_event['pixel_lists']
                 r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
