@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.core import Component
-from ctapipe.image.reducers import NullDataVolumeReducer
+from ctapipe.image.reducer import NullDataVolumeReducer
 from ctapipe.image.extractor import NeighborPeakWindowSum
 
 __all__ = ['CameraCalibrator']
@@ -66,10 +66,10 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
 
 class CameraCalibrator(Component):
     """
-    Calibrator to handle the full camera calibration chain.
+    Calibrator to handle the full camera calibration chain, in order to fill
+    the DL1 data level in the event container.
     """
     def __init__(self, config=None, parent=None,
-                 # gain_selector=None,
                  data_volume_reducer=None,
                  image_extractor=None,
                  **kwargs):
@@ -95,10 +95,6 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        # if gain_selector is None:
-        #     gain_selector = ???(parent=self)
-        # self.gain_selector = gain_selector
-
         if data_volume_reducer is None:
             data_volume_reducer = NullDataVolumeReducer(parent=self)
         self.data_volume_reducer = data_volume_reducer
@@ -106,23 +102,6 @@ class CameraCalibrator(Component):
         if image_extractor is None:
             image_extractor = NeighborPeakWindowSum(parent=self)
         self.image_extractor = image_extractor
-
-    # def _select_gain(self, waveforms):
-    #     """
-    #     Gain selection should be done in the R1 Calibration, however if
-    #     it hasn't been done (as may be the case for MC files) then do it now.
-    #
-    #     Parameters
-    #     ----------
-    #     waveforms
-    #
-    #     Returns
-    #     -------
-    #
-    #     """
-    #     if len(waveforms.shape) == 3:
-    #         waveforms = self.gain_selector(waveforms)
-    #     return waveforms
 
     def _get_correction(self, event, telid):
         """
@@ -159,7 +138,6 @@ class CameraCalibrator(Component):
     def _calibrate_dl0(self, event, telid):
         waveforms = event.r1.tel[telid].waveform
         # TODO: Add gain selection
-        # single_gain_waveforms = self._select_gain(waveforms)
         reduced_waveforms = self.data_volume_reducer(waveforms)
         event.dl0.tel[telid].waveform = reduced_waveforms
 
