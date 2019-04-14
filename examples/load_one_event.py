@@ -19,6 +19,6 @@ if __name__ == '__main__':
 
     with event_source(filename, max_events=1) as source:
         for event in source:
-            calib.calibrate(event)
+            calib(event)
 
     print(event)

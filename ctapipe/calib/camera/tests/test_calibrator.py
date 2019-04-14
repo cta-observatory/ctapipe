@@ -31,7 +31,7 @@ def test_config():
         config=config
     )
     assert calibrator.image_extractor.window_shift == window_shift
-    assert calibrator.image_extractor.extractor.window_width == window_width
+    assert calibrator.image_extractor.window_width == window_width
 
 
 def test_integration_correction(example_event):
@@ -49,8 +49,9 @@ def test_integration_correction(example_event):
 
 
 def test_integration_correction_no_ref_pulse(example_event):
-    telid = list(example_event.dl0.tel)[0]
+    telid = list(example_event.r0.tel)[0]
     delattr(example_event, 'mc')
     calibrator = CameraCalibrator()
+    calibrator._calibrate_dl0(example_event, telid)
     correction = calibrator._get_correction(example_event, telid)
     assert correction[0] == 1

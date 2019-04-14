@@ -183,6 +183,6 @@ class CameraCalibrator(Component):
             A `ctapipe` event container
         """
         # TODO: How to handle different calibrations depending on telid?
-        for telid in event.r1.tels.keys():
+        for telid in event.r1.tel.keys():
             self._calibrate_dl0(event, telid)
             self._calibrate_dl1(event, telid)

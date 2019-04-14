@@ -34,7 +34,7 @@ off_angles = []
 for event in source:
 
     # calibrating the event
-    calib.calibrate(event)
+    calib(event)
     hillas_params = {}
     subarray = event.inst.subarray
 

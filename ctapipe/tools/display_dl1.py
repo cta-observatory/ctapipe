@@ -193,7 +193,7 @@ class DisplayDL1Calib(Tool):
 
     def start(self):
         for event in self.eventsource:
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             tel_list = event.r0.tels_with_data
 
