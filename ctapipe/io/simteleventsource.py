@@ -213,7 +213,7 @@ class SimTelEventSource(EventSource):
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
-                n_channel, n_pixels, n_samples = adc_samples.shape
+                _, n_pixels, n_samples = adc_samples.shape
                 pixel_settings = telescope_description['pixel_settings']
 
                 mc = data.mc.tel[tel_id]
