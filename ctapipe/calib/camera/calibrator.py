@@ -155,6 +155,7 @@ class CameraCalibrator(Component):
             corrected_charge = waveforms[..., 0]
             pulse_time = np.zeros(waveforms.shape[0:2])
         else:
+            # TODO: pass camera to ImageExtractor.__init__
             if self.image_extractor.requires_neighbors():
                 g = event.inst.subarray.tel[telid].camera
                 self.image_extractor.neighbors = g.neighbor_matrix_where
@@ -181,6 +182,7 @@ class CameraCalibrator(Component):
         event : container
             A `ctapipe` event container
         """
+        # TODO: How to handle different calibrations depending on telid?
         for telid in event.r1.tels.keys():
             self._calibrate_dl0(event, telid)
             self._calibrate_dl1(event, telid)
