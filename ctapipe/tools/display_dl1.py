@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
 
-from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.visualization import CameraDisplay
 from ctapipe.core import Tool, Component
 from ctapipe.utils import get_dataset_path
@@ -170,7 +170,6 @@ class DisplayDL1Calib(Tool):
     classes = List(
         [
             EventSource,
-            CameraDL1Calibrator,
             ImagePlotter
         ] + tool_utils.classes_with_traits(ImageExtractor)
     )
