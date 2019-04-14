@@ -46,7 +46,9 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
         ref_x = np.arange(0, pshape.size * refstep, refstep)
         edges = np.arange(0, pshape.size * refstep + 1, time_slice)
 
-        sampled, se = np.histogram(ref_x, edges, weights=pshape, density=True)
+        sampled, sampled_edges = np.histogram(
+            ref_x, edges, weights=pshape, density=True
+        )
         n_samples = sampled.size
         start = sampled.argmax() - window_shift
         end = start + window_width
@@ -58,7 +60,7 @@ def integration_correction(n_chan, pulse_shape, refstep, time_slice,
         if start + window_width > n_samples:
             start = n_samples - window_width
 
-        integration = np.diff(se)[start:end] * sampled[start:end]
+        integration = np.diff(sampled_edges)[start:end] * sampled[start:end]
         correction[chan] = 1 / np.sum(integration)
 
     return correction
@@ -157,8 +159,8 @@ class CameraCalibrator(Component):
         else:
             # TODO: pass camera to ImageExtractor.__init__
             if self.image_extractor.requires_neighbors():
-                g = event.inst.subarray.tel[telid].camera
-                self.image_extractor.neighbors = g.neighbor_matrix_where
+                camera = event.inst.subarray.tel[telid].camera
+                self.image_extractor.neighbors = camera.neighbor_matrix_where
             charge, pulse_time = self.image_extractor(waveforms)
 
             # Apply integration correction
