@@ -1,8 +1,9 @@
 import logging
+import textwrap
 from abc import abstractmethod
 
 from traitlets import Unicode
-from traitlets.config import Application
+from traitlets.config import Application, Configurable
 
 from ctapipe import __version__ as version
 from .logging import ColoredFormatter
@@ -101,8 +102,8 @@ class Tool(Application):
     """
 
     config_file = Unicode('', help=("name of a configuration file with "
-                                     "parameters to load in addition to "
-                                     "command-line parameters")).tag(config=True)
+                                    "parameters to load in addition to "
+                                    "command-line parameters")).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -191,3 +192,77 @@ class Tool(Application):
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
         return f"{version}"
+
+
+def export_component_config_to_yaml(component, classes=None):
+    """
+    Turn the config of a single Component into a commented YAML string.
+
+    This is a modified version of
+    traitlets.config.Configurable._class_config_section() changed to
+    output a default Yaml file
+
+    Parameters
+    ----------
+    classes: list, optional
+        The list of other classes in the config file.
+        Used to reduce redundant information.
+    """
+
+    def commented(text, indent_level=2, width=60):
+        """return a commented, wrapped block."""
+        return textwrap.fill(
+            text,
+            initial_indent="  " * indent_level + "# ",
+            subsequent_indent="  " * indent_level + "# ",
+        )
+
+    # section header
+    breaker = '#' + '-' * 78
+    parent_classes = ', '.join(
+        p.__name__ for p in component.__bases__
+        if issubclass(p, Configurable)
+    )
+
+    s = f"# {component.__name__}({parent_classes}) configuration"
+
+    lines = [breaker, s]
+    # get the description trait
+    desc = component.class_traits().get('description')
+    if desc:
+        desc = desc.default_value
+    if not desc:
+        # no description from trait, use __doc__
+        desc = getattr(component, '__doc__', '')
+    if desc:
+        lines.append(commented(desc, indent_level=0))
+    lines.append(breaker)
+    lines.append(f'{component.__name__}:')
+
+    for name, trait in sorted(component.class_traits(config=True).items()):
+        default_repr = trait.default_value_repr()
+
+        if classes:
+            defining_class = component._defining_class(trait, classes)
+        else:
+            defining_class = component
+        if defining_class is component:
+            # cls owns the trait, show full help
+            if trait.help:
+                lines.append(commented(trait.help))
+            if 'Enum' in type(trait).__name__:
+                # include Enum choices
+                lines.append(commented(f'Choices: {trait.info()}'))
+            lines.append(commented(f'Default: {default_repr}'))
+        else:
+            # Trait appears multiple times and isn't defined here.
+            # Truncate help to first line + "See also Original.trait"
+            if trait.help:
+                lines.append(commented(trait.help.split('\n', 1)[0]))
+            lines.append(
+                f'    # See also: {defining_class.__name__}.{name}')
+
+        lines.append(
+            f'    {name}: {default_repr}')
+        lines.append('')
+    return '\n'.join(lines)

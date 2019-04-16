@@ -2,6 +2,7 @@ import pytest
 from traitlets import Float, TraitError
 
 from .. import Tool
+from ..tool import export_component_config_to_yaml
 
 
 def test_tool_simple():
@@ -31,3 +32,17 @@ def test_tool_version():
 
     tool = MyTool()
     assert tool.version_string != ""
+
+
+def test_export_config_to_yaml():
+    import yaml
+    from ctapipe.tools.camdemo import CameraDemo
+
+    c = CameraDemo()
+    c.num_events = 2
+    yaml_string = export_component_config_to_yaml(CameraDemo)
+
+    #check round-trip back from yaml:
+    config_dict = yaml.load(yaml_string, Loader=yaml.SafeLoader)
+
+    assert config_dict['CameraDemo']['num_events'] == 2
