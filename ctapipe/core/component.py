@@ -1,8 +1,7 @@
 """ Class to handle configuration for algorithms """
 from abc import ABCMeta
-from logging import getLogger
 from inspect import isabstract
-from traitlets.config import Configurable
+from traitlets.config import Configurable, LoggingConfigurable
 from traitlets import TraitError
 from ctapipe.core.plugins import detect_and_import_io_plugins
 
@@ -38,7 +37,7 @@ class AbstractConfigurableMeta(type(Configurable), ABCMeta):
     pass
 
 
-class Component(Configurable, metaclass=AbstractConfigurableMeta):
+class Component(LoggingConfigurable, metaclass=AbstractConfigurableMeta):
     """Base class of all Components.
 
     Components are classes that are configurable via traitlets
@@ -108,13 +107,6 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             if not self.has_trait(key):
                 raise TraitError(f"Traitlet does not exist: {key}")
 
-        # set up logging
-        if self.parent:
-            self.log = self.parent.log.getChild(self.__class__.__name__)
-        else:
-            self.log = getLogger(
-                self.__class__.__module__ + '.' + self.__class__.__name__
-            )
 
     @classmethod
     def from_name(cls, name, config=None, parent=None):
