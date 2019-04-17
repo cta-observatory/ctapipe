@@ -194,7 +194,7 @@ class Tool(Application):
         return f"{version}"
 
 
-def export_component_config_to_yaml(component, classes=None):
+def export_component_config_to_yaml(component, config, classes=None):
     """
     Turn the config of a single Component into a commented YAML string.
 
@@ -207,6 +207,9 @@ def export_component_config_to_yaml(component, classes=None):
     classes: list, optional
         The list of other classes in the config file.
         Used to reduce redundant information.
+    config: dict
+        the config from an instance of the class, in order to fill in actual
+        config values instead of defaults
     """
 
     def commented(text, indent_level=2, width=60):
@@ -262,7 +265,9 @@ def export_component_config_to_yaml(component, classes=None):
             lines.append(
                 f'    # See also: {defining_class.__name__}.{name}')
 
-        lines.append(
-            f'    {name}: {default_repr}')
+        if name in config:
+            lines.append(f'    {name}: {config[name]}')
+        else: # add the default
+            lines.append(f'    {name}: {default_repr}')
         lines.append('')
     return '\n'.join(lines)
