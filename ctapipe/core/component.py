@@ -141,3 +141,31 @@ class Component(LoggingConfigurable, metaclass=AbstractConfigurableMeta):
         requested_subclass = subclasses[name]
 
         return requested_subclass(config=config, parent=parent)
+
+    def get_current_config(self):
+        """ return the current configuration as a dict (e.g. the values
+        of all traits, even if they were not set during configuration)
+        """
+        return {
+            self.__class__.__name__: {
+                k: v.get(self) for k,v in self.traits(config=True).items()
+            }
+        }
+
+    def _repr_html_(self):
+        """ nice HTML rep, with blue for non-default values"""
+        traits = self.traits()
+        name = self.__class__.__name__
+        lines = [f"<b>{name}</b>"]
+        lines.append(f"<p> {self.__class__.__doc__ or self.description} </p>")
+        lines.append("<table>")
+        for key, val in self.get_current_config()[name].items():
+            thehelp = f'{traits[key].help} (default: {traits[key].default_value})'
+            lines.append(f"<tr><th>{key}</th>")
+            if val != traits[key].default_value:
+                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+            else:
+                lines.append(f"<td>{val}</td>")
+            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+        lines.append("</table>")
+        return "\n".join(lines)

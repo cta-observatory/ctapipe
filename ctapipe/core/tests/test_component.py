@@ -36,6 +36,7 @@ def test_non_abstract_children():
 
 
 class ExampleComponent(Component):
+    """ An Example Component, this is the help text"""
     description = "this is a test"
     param = Float(default_value=1.0,
                   help="float parameter").tag(config=True)
@@ -275,3 +276,15 @@ def test_from_name_config():
     config = Config({'ExampleComponent': {'param': 229.}})
     subclass = ExampleComponent.from_name("ExampleSubclass1", config=config)
     assert subclass.param == 229.
+
+def test_component_full_config():
+    comp = ExampleComponent()
+    full_config = comp.get_current_config()
+    assert "ExampleComponent" in full_config
+    assert param in full_config['ExampleComponent']
+    assert full_config["ExampleComponent"]['param'] == 1.0
+
+def test_component_html_repr():
+    comp = ExampleComponent()
+    html = comp._repr_html_()
+    assert len(html)>10
