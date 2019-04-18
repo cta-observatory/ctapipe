@@ -11,7 +11,7 @@ __all__ = ['Path', 'Int', 'Integer', 'Float', 'Unicode', 'Enum', 'Long', 'List',
 
 class Path(TraitType):
     def __init__(self, exists=None, directory_ok=True, file_ok=True):
-        '''
+        """
         A path Trait for input/output files.
 
         Parameters
@@ -23,7 +23,7 @@ class Path(TraitType):
             If False, path must not be a directory
         file_ok: boolean
             If False, path must not be a file
-        '''
+        """
         super().__init__()
         self.exists = exists
         self.directory_ok = directory_ok

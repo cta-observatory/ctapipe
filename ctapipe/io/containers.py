@@ -124,15 +124,10 @@ class R0CameraContainer(Container):
     trigger_type = Field(0o0, "camera's event trigger type if applicable")
     num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
     trig_pix_id = Field(None, "pixels involved in the camera trigger")
-    image = Field(None, (
-        "numpy array containing integrated ADC data "
-        "(n_channels x n_pixels) DEPRECATED"
-    ))  # to be removed, since this doesn't exist in real data and useless in mc
     waveform = Field(None, (
         "numpy array containing ADC samples"
         "(n_channels x n_pixels, n_samples)"
     ))
-    num_samples = Field(None, "number of time samples for telescope")
 
 
 class R0Container(Container):

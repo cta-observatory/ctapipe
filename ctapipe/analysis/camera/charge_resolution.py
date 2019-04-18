@@ -1,41 +1,44 @@
 import numpy as np
 import pandas as pd
 
+from ...core import Component
+
 __all__ = ['ChargeResolutionCalculator']
 
 
 class ChargeResolutionCalculator:
+    """
+    Calculates the charge resolution with an efficient, low-memory,
+    interative approach, allowing the contribution of data/events
+    without reading the entire dataset into memory.
+
+    Utilises Pandas DataFrames, and makes no assumptions on the order of
+    the data, and does not require the true charge to be integer (as may
+    be the case for lab measurements where an average illumination
+    is used).
+
+    A list is filled with a dataframe for each contribution, and only
+    amalgamated into a single dataframe (reducing memory) once the memory
+    of the list becomes large (or at the end of the filling),
+    reducing the time required to produce the output.
+
+    Parameters
+    ----------
+    mc_true : bool
+        Indicate if the "true charge" values are from the sim_telarray
+        files, and therefore without poisson error. The poisson error will
+        therefore be included in the charge resolution calculation.
+
+    Attributes
+    ----------
+    self._mc_true : bool
+    self._df_list : list
+    self._df : pd.DataFrame
+    self._n_bytes : int
+        Monitors the number of bytes being held in memory
+    """
+
     def __init__(self, mc_true=True):
-        """
-        Calculates the charge resolution with an efficient, low-memory,
-        interative approach, allowing the contribution of data/events
-        without reading the entire dataset into memory.
-
-        Utilises Pandas DataFrames, and makes no assumptions on the order of
-        the data, and does not require the true charge to be integer (as may
-        be the case for lab measurements where an average illumination
-        is used).
-
-        A list is filled with a dataframe for each contribution, and only
-        amalgamated into a single dataframe (reducing memory) once the memory
-        of the list becomes large (or at the end of the filling),
-        reducing the time required to produce the output.
-
-        Parameters
-        ----------
-        mc_true : bool
-            Indicate if the "true charge" values are from the sim_telarray
-            files, and therefore without poisson error. The poisson error will
-            therefore be included in the charge resolution calculation.
-
-        Attributes
-        ----------
-        self._mc_true : bool
-        self._df_list : list
-        self._df : pd.DataFrame
-        self._n_bytes : int
-            Monitors the number of bytes being held in memory
-        """
         self._mc_true = mc_true
         self._df_list = []
         self._df = pd.DataFrame()

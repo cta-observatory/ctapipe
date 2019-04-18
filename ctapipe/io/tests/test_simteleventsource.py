@@ -51,9 +51,8 @@ def compare_sources(input_url):
                 assert (h.mc.tel[tel_id].dc_to_pe == s.mc.tel[tel_id].dc_to_pe).all()
                 assert (h.mc.tel[tel_id].pedestal == s.mc.tel[tel_id].pedestal).all()
                 assert h.r0.tel[tel_id].waveform.shape == s.r0.tel[tel_id].waveform.shape
+                assert h.r1.tel[tel_id].waveform.shape == s.r1.tel[tel_id].waveform.shape
                 assert np.allclose(h.r0.tel[tel_id].waveform, s.r0.tel[tel_id].waveform)
-                assert (h.r0.tel[tel_id].num_samples == s.r0.tel[tel_id].num_samples)
-                assert (h.r0.tel[tel_id].image == s.r0.tel[tel_id].image).all()
 
                 assert h.r0.tel[tel_id].num_trig_pix == s.r0.tel[tel_id].num_trig_pix
                 assert (h.r0.tel[tel_id].trig_pix_id == s.r0.tel[tel_id].trig_pix_id).all()
@@ -196,3 +195,11 @@ def test_calibration_events():
     ) as reader:
         for e in reader:
             pass
+
+
+def test_camera_caching():
+    '''Test if same telescope types share a single instance of CameraGeometry'''
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+    event = next(iter(source))
+    subarray = event.inst.subarray
+    assert subarray.tel[1].camera is subarray.tel[2].camera

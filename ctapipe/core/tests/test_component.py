@@ -1,7 +1,9 @@
 from abc import abstractmethod, ABC
+
 import pytest
 from traitlets import Float, TraitError
 from traitlets.config.loader import Config
+
 from ctapipe.core import Component
 
 
@@ -55,7 +57,6 @@ class ExampleSubclass2(ExampleComponent):
 
 
 def test_component_is_abstract():
-
     class AbstractComponent(Component):
         @abstractmethod
         def test(self):
@@ -80,7 +81,6 @@ def test_component_simple():
 
 
 def test_component_kwarg_setting():
-
     comp = ExampleComponent(param=3)
     assert comp.param == 3
 
@@ -266,6 +266,7 @@ def test_help_changed_default():
 
 
 def test_from_name():
+    """ Make sure one can construct a Component subclass by name"""
     subclass = ExampleComponent.from_name("ExampleSubclass1")
     assert isinstance(subclass, ExampleSubclass1)
     subclass = ExampleComponent.from_name("ExampleSubclass2")
@@ -273,18 +274,22 @@ def test_from_name():
 
 
 def test_from_name_config():
+    """ make sure one can construct a Component subclass by name + config"""
     config = Config({'ExampleComponent': {'param': 229.}})
     subclass = ExampleComponent.from_name("ExampleSubclass1", config=config)
     assert subclass.param == 229.
 
-def test_component_full_config():
+
+def test_component_current_config():
+    """ make sure one can get the full current configuration"""
     comp = ExampleComponent()
     full_config = comp.get_current_config()
     assert "ExampleComponent" in full_config
-    assert param in full_config['ExampleComponent']
+    assert 'param' in full_config['ExampleComponent']
     assert full_config["ExampleComponent"]['param'] == 1.0
+
 
 def test_component_html_repr():
     comp = ExampleComponent()
     html = comp._repr_html_()
-    assert len(html)>10
+    assert len(html) > 10

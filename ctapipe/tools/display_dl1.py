@@ -5,16 +5,17 @@ from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
 
+import ctapipe.utils.tools as tool_utils
 from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
-from ctapipe.visualization import CameraDisplay
 from ctapipe.core import Tool, Component
-from ctapipe.utils import get_dataset_path
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
-import ctapipe.utils.tools as tool_utils
+from ctapipe.utils import get_dataset_path
+from ctapipe.visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
+    """ Plotter for camera images """
     display = Bool(
         True,
         help='Display the photoelectron images on-screen as they '
@@ -182,17 +183,20 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = EventSource.from_url(
-            get_dataset_path("gamma_test_large.simtel.gz"),
-            parent=self,
+        self.eventsource = self.add_component(
+            EventSource.from_url(
+                get_dataset_path("gamma_test_large.simtel.gz"),
+                parent=self,
+            )
         )
 
-        self.calibrator = CameraCalibrator(
-            eventsource=self.eventsource,
-            parent=self,
+        self.calibrator = self.add_component(
+            CameraCalibrator(
+                parent=self,
+            )
         )
 
-        self.plotter = ImagePlotter(parent=self)
+        self.plotter = self.add_component(ImagePlotter(parent=self))
 
     def start(self):
         for event in self.eventsource:

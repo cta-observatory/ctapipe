@@ -4,22 +4,19 @@ within a HDF5 file.
 """
 
 import os
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-
 from traitlets import Dict, List, Int, Unicode
 
 import ctapipe.utils.tools as tool_utils
-
 from ctapipe.analysis.camera.charge_resolution import \
     ChargeResolutionCalculator
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
 from ctapipe.core import Tool, Provenance
 from ctapipe.image.extractor import ImageExtractor
-
 from ctapipe.io.simteleventsource import SimTelEventSource
 
 
@@ -58,7 +55,6 @@ class ChargeResolutionGenerator(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.eventsource = None
-        self.r1 = None
         self.dl0 = None
         self.dl1 = None
         self.calculator = None
@@ -66,25 +62,27 @@ class ChargeResolutionGenerator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        self.eventsource = SimTelEventSource(parent=self)
+        self.eventsource = self.add_component(SimTelEventSource(parent=self))
 
-        extractor = ImageExtractor.from_name(
-            self.extractor_product,
-            parent=self
+        extractor = self.add_component(
+            ImageExtractor.from_name(
+                self.extractor_product,
+                parent=self
+            )
         )
 
-        self.r1 = HESSIOR1Calibrator(parent=self)
+        self.r1 = self.add_component(HESSIOR1Calibrator(parent=self))
 
-        self.dl0 = CameraDL0Reducer(parent=self)
+        self.dl0 = self.add_component(CameraDL0Reducer(parent=self))
 
-        self.dl1 = CameraDL1Calibrator(extractor=extractor, parent=self)
+        self.dl1 = self.add_component(CameraDL1Calibrator(extractor=extractor,
+                                                          parent=self))
 
-        self.calculator = ChargeResolutionCalculator()
+        self.calculator = self.add_component(ChargeResolutionCalculator())
 
     def start(self):
         desc = "Extracting Charge Resolution"
         for event in tqdm(self.eventsource, desc=desc):
-            self.r1.calibrate(event)
             self.dl0.reduce(event)
             self.dl1.calibrate(event)
 

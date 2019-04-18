@@ -17,7 +17,7 @@ from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
-from ctapipe.io import EventSource, event_source
+from ctapipe.io import EventSource
 from ctapipe.io import HDF5TableWriter
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
@@ -40,11 +40,10 @@ class MuonDisplayerTool(Tool):
     name = 'ctapipe-reconstruct-muons'
     description = t.Unicode(__doc__)
 
-    events = t.Unicode("",
-                       help="input event data file").tag(config=True)
-
-    outfile = t.Unicode("muons.hdf5", help='HDF5 output file name').tag(
-        config=True)
+    outfile = t.Unicode(
+        "muons.hdf5",
+        help='HDF5 output file name'
+    ).tag(config=True)
 
     display = t.Bool(
         help='display the camera events', default=False
@@ -55,7 +54,7 @@ class MuonDisplayerTool(Tool):
     ])
 
     aliases = t.Dict({
-        'input': 'MuonDisplayerTool.events',
+        'input': 'EventSource.input_url',
         'outfile': 'MuonDisplayerTool.outfile',
         'display': 'MuonDisplayerTool.display',
         'max_events': 'EventSource.max_events',
@@ -63,14 +62,18 @@ class MuonDisplayerTool(Tool):
     })
 
     def setup(self):
-        if self.events == '':
-            raise ToolConfigurationError("please specify --input <events file>")
-        self.log.debug("input: %s", self.events)
-        self.source = event_source(self.events)
-        self.calib = CameraCalibrator(
-            config=self.config, parent=self, eventsource=self.source
+        self.source: EventSource = self.add_component(
+            EventSource.from_config(parent=self)
         )
-        self.writer = HDF5TableWriter(self.outfile, "muons")
+        if self.source.input_url == '':
+            raise ToolConfigurationError("please specify --input <events file>")
+
+        self.calib = self.add_component(
+            CameraCalibrator(parent=self)
+        )
+        self.writer = self.add_component(
+            HDF5TableWriter(self.outfile, "muons")
+        )
 
     def start(self):
 

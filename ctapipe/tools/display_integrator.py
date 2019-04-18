@@ -8,12 +8,11 @@ from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
 import ctapipe.utils.tools as tool_utils
-from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
-    CameraDL1Calibrator
+from ctapipe.calib.camera import CameraDL0Reducer, CameraDL1Calibrator
 from ctapipe.core import Tool
 from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io import EventSource
+from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.visualization import CameraDisplay
 
 
@@ -262,7 +261,6 @@ class DisplayIntegrator(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.eventseeker = None
-        self.r1 = None
         self.dl0 = None
         self.extractor = None
         self.dl1 = None
@@ -270,19 +268,29 @@ class DisplayIntegrator(Tool):
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = EventSource.from_config(parent=self)
-        self.eventseeker = EventSeeker(event_source, parent=self)
-        self.extractor = ImageExtractor.from_name(
-            self.extractor_product,
-            parent=self,
+        event_source = self.add_component(
+            EventSource.from_config(parent=self)
         )
-        self.r1 = CameraR1Calibrator.from_eventsource(
-            eventsource=event_source,
-            parent=self,
+        self.eventseeker = self.add_component(
+            EventSeeker(event_source, parent=self)
+        )
+        self.extractor = self.add_component(
+            ImageExtractor.from_name(
+                self.extractor_product,
+                parent=self,
+            )
+        )
+        self.r1 = self.add_component(
+            CameraR1Calibrator.from_eventsource(
+                eventsource=event_source,
+                parent=self,
+            )
         )
 
-        self.dl0 = CameraDL0Reducer(parent=self)
-        self.dl1 = CameraDL1Calibrator(extractor=self.extractor, parent=self)
+        self.dl0 = self.add_component(CameraDL0Reducer(parent=self))
+        self.dl1 = self.add_component(
+            CameraDL1Calibrator(extractor=self.extractor, parent=self)
+        )
 
     def start(self):
         event_num = self.event_index
@@ -291,7 +299,6 @@ class DisplayIntegrator(Tool):
         event = self.eventseeker[event_num]
 
         # Calibrate
-        self.r1.calibrate(event)
         self.dl0.reduce(event)
         self.dl1.calibrate(event)
 
