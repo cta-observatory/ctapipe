@@ -44,7 +44,7 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
         - peak_index, width and shift are integers, corresponding to the
             correct value for the current pixel
 
-    The ret argument is required by numpy to creae the numpy array which is
+    The ret argument is required by numpy to create the numpy array which is
     returned. It can be ignored when calling this function.
 
     Parameters
