@@ -60,7 +60,6 @@ class CameraCalibrator(Component):
         if r1_product:
             self.r1 = CameraR1Calibrator.from_name(
                 r1_product,
-                config=config,
                 parent=self,
             )
         else:
