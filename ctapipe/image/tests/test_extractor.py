@@ -6,7 +6,7 @@ from ctapipe.instrument import CameraGeometry
 from ctapipe.image.extractor import (
     extract_charge_from_peakpos_array,
     neighbor_average_waveform,
-    extract_pulse_time_weighted_average,
+    extract_pulse_time_around_peak,
     subtract_baseline,
     ImageExtractor,
     FullWaveformSum,
@@ -73,12 +73,14 @@ def test_neighbor_average_waveform(camera_waveforms):
     assert_allclose(average_wf[1, 0, 48], 9.578896, rtol=1e-3)
 
 
-def test_extract_pulse_time_weighted_average(camera_waveforms):
-    waveforms, _ = camera_waveforms
-    pulse_time = extract_pulse_time_weighted_average(waveforms)
+def test_extract_pulse_time_around_peak(camera_waveforms):
+    x = np.arange(100)
+    y = norm.pdf(x, 41.2, 6)
+    pulse_time = extract_pulse_time_around_peak(
+        y[np.newaxis, :], 0, x.size, 0
+    )
 
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
 def test_baseline_subtractor(camera_waveforms):
@@ -110,8 +112,8 @@ def test_fixed_window_sum(camera_waveforms):
 
     assert_allclose(charge[0][0], 232.559, rtol=1e-3)
     assert_allclose(charge[1][0], 32.539, rtol=1e-3)
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 47.823488, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 49.370007, rtol=1e-3)
 
 
 def test_global_peak_window_sum(camera_waveforms):
@@ -121,8 +123,8 @@ def test_global_peak_window_sum(camera_waveforms):
 
     assert_allclose(charge[0][0], 232.559, rtol=1e-3)
     assert_allclose(charge[1][0], 425.406, rtol=1e-3)
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 47.823488, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 62.931829, rtol=1e-3)
 
 
 def test_local_peak_window_sum(camera_waveforms):
@@ -132,8 +134,8 @@ def test_local_peak_window_sum(camera_waveforms):
 
     assert_allclose(charge[0][0], 240.3, rtol=1e-3)
     assert_allclose(charge[1][0], 427.158, rtol=1e-3)
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 46.036266, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 62.038344, rtol=1e-3)
 
 
 def test_neighbor_peak_window_sum(camera_waveforms):
@@ -145,16 +147,16 @@ def test_neighbor_peak_window_sum(camera_waveforms):
 
     assert_allclose(charge[0][0], 94.671, rtol=1e-3)
     assert_allclose(charge[1][0], 426.887, rtol=1e-3)
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 54.116092, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 62.038344, rtol=1e-3)
 
     extractor.lwt = 4
     charge, pulse_time = extractor(waveforms)
 
     assert_allclose(charge[0][0], 220.418657, rtol=1e-3)
     assert_allclose(charge[1][0], 426.887, rtol=1e-3)
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 48.717848, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 62.038344, rtol=1e-3)
 
 
 def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
@@ -166,8 +168,8 @@ def test_baseline_subtracted_neighbor_peak_window_sum(camera_waveforms):
 
     assert_allclose(charge[0][0], 94.671, rtol=1e-3)
     assert_allclose(charge[1][0], 426.887, rtol=1e-3)
-    assert_allclose(pulse_time[0][0], 46.34044, rtol=1e-3)
-    assert_allclose(pulse_time[1][0], 62.359948, rtol=1e-3)
+    assert_allclose(pulse_time[0][0], 54.116092, rtol=1e-3)
+    assert_allclose(pulse_time[1][0], 62.038344, rtol=1e-3)
 
 
 def test_waveform_extractor_factory(camera_waveforms):
