@@ -24,15 +24,15 @@ def intensity_to_rgb(array, minval=None, maxval=None):
 
     """
     if minval is None:
-        minval = array.min()
+        minval = np.nanmin(array)
     if maxval is None:
-        maxval = array.max()
+        maxval = np.nanmax(array)
     if maxval == minval:
         minval -= 1
         maxval += 1
     scaled = (array - minval) / (maxval - minval)
 
-    rgb = (255 * viridis(scaled)).astype(np.uint8)
+    rgb = (255 * viridis(np.ma.masked_invalid(scaled))).astype(np.uint8)
     return rgb
 
 
@@ -58,13 +58,13 @@ def intensity_to_hex(array, minval=None, maxval=None):
         hex strings representing the intensity as a color
 
     """
-    hex_ = np.zeros((array.size, 8), dtype='B')
+    hex_ = np.zeros((array.size, 9), dtype='B')
     rgb = intensity_to_rgb(array, minval, maxval)
 
     hex_encoded = codecs.encode(rgb, 'hex')
     bytes_ = np.frombuffer(hex_encoded, 'B')
     bytes_2d = bytes_.reshape(-1, 8)
     hex_[:, 0] = ord('#')
-    hex_[:, 1:7] = bytes_2d[:, 0:6]
+    hex_[:, 1:9] = bytes_2d
 
-    return hex_.view('S8').astype('U8')[:, 0]
+    return hex_.view('S9').astype('U9')[:, 0]
