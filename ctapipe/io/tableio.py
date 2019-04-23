@@ -15,7 +15,7 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     See Also
     --------
-    - `ctapipe.io.HDF5TableWriter`
+    ctapipe.io.HDF5TableWriter: Implementation of this base class for writing HDF5 files
     """
 
     def __init__(self, parent=None, add_prefix=False, **kwargs):
