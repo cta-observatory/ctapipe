@@ -21,12 +21,41 @@ from eventio.file_types import is_eventio
 __all__ = ['SimTelEventSource']
 
 
+def build_camera_geometry(cam_settings, telescope):
+    pixel_shape = cam_settings['pixel_shape'][0]
+    try:
+        pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
+    except ValueError:
+        warnings.warn(
+            f'Unkown pixel_shape {pixel_shape} for camera_type {telescope.camera_name}',
+            UnknownPixelShapeWarning,
+        )
+        pix_type = 'hexagon'
+        pix_rotation = '0d'
+
+    camera = CameraGeometry(
+        telescope.camera_name,
+        pix_id=np.arange(cam_settings['n_pixels']),
+        pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
+        pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
+        pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
+        pix_type=pix_type,
+        pix_rotation=pix_rotation,
+        cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
+        apply_derotation=True,
+
+    )
+
+    return camera
+
+
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.metadata['is_simulation'] = True
+        self._camera_cache = {}
 
         # traitlets creates an empty set as default,
         # which ctapipe treats as no restriction on the telescopes
@@ -44,8 +73,7 @@ class SimTelEventSource(EventSource):
         )
         self.start_pos = self.file_.tell()
 
-    @staticmethod
-    def prepare_subarray_info(telescope_descriptions, header):
+    def prepare_subarray_info(self, telescope_descriptions, header):
         """
         Constructs a SubarrayDescription object from the
         ``telescope_descriptions`` given by ``SimTelFile``
@@ -77,29 +105,10 @@ class SimTelEventSource(EventSource):
             except ValueError:
                 telescope = UNKNOWN_TELESCOPE
 
-            pixel_shape = cam_settings['pixel_shape'][0]
-            try:
-                pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
-            except ValueError:
-                warnings.warn(
-                    f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
-                    UnknownPixelShapeWarning,
-                )
-                pix_type = 'hexagon'
-                pix_rotation = '0d'
-
-            camera = CameraGeometry(
-                telescope.camera_name,
-                pix_id=np.arange(n_pixels),
-                pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
-                pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
-                pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
-                pix_type=pix_type,
-                pix_rotation=pix_rotation,
-                cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
-                apply_derotation=True,
-
-            )
+            camera = self._camera_cache.get(telescope.camera_name)
+            if camera is None:
+                camera = build_camera_geometry(cam_settings, telescope)
+                self._camera_cache[telescope.camera_name] = camera
 
             optics = OpticsDescription(
                 name=telescope.name,
