@@ -10,7 +10,7 @@ __all__ = [
     'LocalPeakWindowSum',
     'NeighborPeakWindowSum',
     'BaselineSubtractedNeighborPeakWindowSum',
-    'extract_charge_from_peakpos_array',
+    'sum_samples_around_peak',
     'neighbor_average_waveform',
     'extract_pulse_time_around_peak',
     'subtract_baseline',
@@ -24,45 +24,57 @@ from ctapipe.core import Component
 from numba import njit, prange, guvectorize, float64, float32, int64
 
 
-def extract_charge_from_peakpos_array(waveforms, peakpos, width, shift):
+@guvectorize(
+    [
+        (float64[:], int64, int64, int64, float64[:]),
+        (float32[:], int64, int64, int64, float64[:]),
+    ],
+    '(s),(),(),()->()',
+    nopython=True,
+)
+def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
     """
     Sum the samples from the waveform using the window defined by a
-    peak postion, window width, and window shift.
+    peak position, window width, and window shift.
+
+    This function is a numpy universal function which defines the operation
+    applied on the waveform for every channel and pixel. Therefore in the
+    code body of this function:
+        - waveforms is a 1D array of size n_samples.
+        - peak_index, width and shift are integers, corresponding to the
+            correct value for the current pixel
+
+    The ret argument is required by numpy to create the numpy array which is
+    returned. It can be ignored when calling this function.
 
     Parameters
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
         Shape: (n_chan, n_pix, n_samples)
-    peakpos : ndarray
-        Numpy array of the peak position for each pixel.
-        Shape: (n_chan, n_pix)
+    peak_index : ndarray or int
+        Peak index for each pixel.
     width : ndarray or int
-        Window size of integration window.
-        Shape (if numpy array): (n_chan, n_pix)
+        Window size of integration window for each pixel.
     shift : ndarray or int
-        Window size of integration window.
-        Shape (if numpy array): (n_chan, n_pix)
+        Window size of integration window for each pixel.
+    ret : ndarray
+        Return argument for ufunc (ignore)
 
     Returns
     -------
     charge : ndarray
         Extracted charge.
         Shape: (n_chan, n_pix)
-    integration_window : ndarray
-        Boolean array indicating which samples were included in the
-        charge extraction
-        Shape: (n_chan, n_pix, n_samples)
 
     """
-    start = peakpos - shift
+    n_samples = waveforms.size
+    start = peak_index - shift
     end = start + width
-    ind = np.indices(waveforms.shape)[2]
-    integration_window = ((ind >= start[..., np.newaxis]) &
-                          (ind < end[..., np.newaxis]))
-    charge = (waveforms * integration_window).sum(axis=2)
-
-    return charge
+    ret[0] = 0
+    for sample in prange(start, end):
+        if 0 <= sample < n_samples:
+            ret[0] += waveforms[sample]
 
 
 @njit([
@@ -126,7 +138,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
         - Peakpos, width and shift are integers, corresponding to the correct
             value for the current pixel
 
-    The ret argument is required by numpy to creae the numpy array which is
+    The ret argument is required by numpy to create the numpy array which is
     returned. It can be ignored when calling this function.
 
     Parameters
@@ -267,13 +279,9 @@ class ImageExtractor(Component):
         charge : ndarray
             Extracted charge.
             Shape: (n_chan, n_pix)
-        peakpos : ndarray
-            Position of the peak found in each pixel.
+        pulse_time : ndarray
+            Floating point pulse time in each pixel.
             Shape: (n_chan, n_pix)
-        window : ndarray
-            Bool numpy array defining the samples included in the integration
-            window.
-            Shape: (n_chan, n_pix, n_samples)
         """
 
 
@@ -321,19 +329,17 @@ class GlobalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
     window_shift = Int(
         3, help='Define the shift of the integration window '
-                'from the peakpos (peakpos - shift)'
+                'from the peak_index (peak_index - shift)'
     ).tag(config=True)
 
     def __call__(self, waveforms):
-        peakpos = waveforms.mean(1).argmax(1)
-        start = peakpos - self.window_shift
-        end = start + self.window_width
-        charge = np.stack([
-            waveforms[0, :, start[0]:end[0]].sum(1),  # HI channel
-            waveforms[1, :, start[1]:end[1]].sum(1),  # LO channel
-        ])
+        peak_index = waveforms.mean(1).argmax(1)
+        charge = sum_samples_around_peak(
+            waveforms, peak_index[:, np.newaxis],
+            self.window_width, self.window_shift
+        )
         pulse_time = extract_pulse_time_around_peak(
-            waveforms, peakpos[:, np.newaxis],
+            waveforms, peak_index[:, np.newaxis],
             self.window_width, self.window_shift
         )
         return charge, pulse_time
@@ -349,16 +355,16 @@ class LocalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
     window_shift = Int(
         3, help='Define the shift of the integration window '
-                'from the peakpos (peakpos - shift)'
+                'from the peak_index (peak_index - shift)'
     ).tag(config=True)
 
     def __call__(self, waveforms):
-        peakpos = waveforms.argmax(2).astype(np.int)
-        charge = extract_charge_from_peakpos_array(
-            waveforms, peakpos, self.window_width, self.window_shift
+        peak_index = waveforms.argmax(2).astype(np.int)
+        charge = sum_samples_around_peak(
+            waveforms, peak_index, self.window_width, self.window_shift
         )
         pulse_time = extract_pulse_time_around_peak(
-            waveforms, peakpos, self.window_width, self.window_shift
+            waveforms, peak_index, self.window_width, self.window_shift
         )
         return charge, pulse_time
 
@@ -373,7 +379,7 @@ class NeighborPeakWindowSum(ImageExtractor):
     ).tag(config=True)
     window_shift = Int(
         3, help='Define the shift of the integration window '
-                'from the peakpos (peakpos - shift)'
+                'from the peak_index (peak_index - shift)'
     ).tag(config=True)
     lwt = Int(
         0, help='Weight of the local pixel (0: peak from neighbors only, '
@@ -387,12 +393,12 @@ class NeighborPeakWindowSum(ImageExtractor):
         average_wfs = neighbor_average_waveform(
             waveforms, self.neighbors, self.lwt
         )
-        peakpos = average_wfs.argmax(2)
-        charge = extract_charge_from_peakpos_array(
-            waveforms, peakpos, self.window_width, self.window_shift
+        peak_index = average_wfs.argmax(2)
+        charge = sum_samples_around_peak(
+            waveforms, peak_index, self.window_width, self.window_shift
         )
         pulse_time = extract_pulse_time_around_peak(
-            waveforms, peakpos, self.window_width, self.window_shift
+            waveforms, peak_index, self.window_width, self.window_shift
         )
         return charge, pulse_time
 
