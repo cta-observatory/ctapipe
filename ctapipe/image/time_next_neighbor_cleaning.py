@@ -447,6 +447,7 @@ class TimeNextNeighborCleaning:
         if type(combinations) == np.ndarray:
             combinations = combinations.tolist()
 
+        '''
         result = []
         for comb in combinations:
             neigh = []
@@ -468,6 +469,22 @@ class TimeNextNeighborCleaning:
                     result.append(comb + (n,))
                 elif type(comb) == list:
                     result.append(comb + [n])
+        '''
+        # Factor ~2 faster when doing when generating neighbor list on the fly.
+        result = []
+        for comb in combinations:
+            for c in comb:
+                for n in neighbors[c]:
+                    if n in comb:
+                        # make sure each pixel is only once in a combination
+                        continue
+                    # same speed but works with lists and tuples
+                    for c in comb:
+                        result.append(c)
+                    result.append(n)
+
+        # bring the result into the correct shape
+        result = np.reshape(result, (-1, len(combinations[0]) + 1))
 
         # As it might happen, that a combination is added multiple times, those
         # duplicates are removed.
