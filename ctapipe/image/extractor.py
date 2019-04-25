@@ -79,7 +79,7 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
 
 @njit([
     float64[:, :, :](float64[:, :, :], int64[:, :], int64),
-    float64[:, :, :](float32[:, :, :], int32[:, :], int64),
+    float64[:, :, :](float64[:, :, :], int32[:, :], int64),
     float64[:, :, :](float32[:, :, :], int64[:, :], int64),
 ], parallel=True)
 def neighbor_average_waveform(waveforms, neighbors, lwt):
