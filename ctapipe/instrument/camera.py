@@ -407,10 +407,8 @@ class CameraGeometry:
         -------
         ndarray
         """
-        return np.column_stack([
-            self.neighbor_matrix_sparse.tocoo().row,
-            self.neighbor_matrix_sparse.tocoo().col,
-        ])
+        coo = self.neighbor_matrix_sparse.tocoo()
+        return np.column_stack([coo.row, coo.col])
 
     @lazyproperty
     def pixel_moment_matrix(self):
