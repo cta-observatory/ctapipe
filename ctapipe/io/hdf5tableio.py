@@ -152,6 +152,11 @@ class HDF5TableWriter(TableWriter):
                     )
                     continue
 
+                # apply any user-defined transforms first
+                value = self._apply_col_transform(
+                    table_name, col_name, value
+                )
+
                 if isinstance(value, enum.Enum):
                     def transform(enum_value):
                         '''transform enum instance into its (integer) value'''
