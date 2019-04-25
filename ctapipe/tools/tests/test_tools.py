@@ -23,7 +23,7 @@ def test_muon_reconstruction(tmpdir):
         tool.run(['--help-all'])
 
 
-def test_display_summed_imaged(tmpdir):
+def test_display_summed_images(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
     mpl.use('Agg')
     tool = ImageSumDisplayerTool()

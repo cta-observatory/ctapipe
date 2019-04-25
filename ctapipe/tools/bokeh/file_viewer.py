@@ -7,7 +7,6 @@ from bokeh.themes import Theme
 from traitlets import Dict, List, Int, Bool
 from ctapipe.calib.camera.dl0 import CameraDL0Reducer
 from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1Calibrator
 from ctapipe.core import Tool
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
@@ -47,7 +46,6 @@ class BokehFileViewer(Tool):
             EventSource,
             CameraDL1Calibrator,
         ] + tool_utils.classes_with_traits(ImageExtractor)
-        + tool_utils.classes_with_traits(CameraR1Calibrator)
     )
 
     def __init__(self, **kwargs):
@@ -73,7 +71,6 @@ class BokehFileViewer(Tool):
         self.reader = None
         self.seeker = None
         self.extractor = None
-        self.r1 = None
         self.dl0 = None
         self.dl1 = None
         self.viewer = None
@@ -88,10 +85,6 @@ class BokehFileViewer(Tool):
 
         self.extractor = ImageExtractor.from_name(
             self.extractor_product,
-            parent=self
-        )
-        self.r1 = CameraR1Calibrator.from_eventsource(
-            eventsource=self.reader,
             parent=self
         )
         self.dl0 = CameraDL0Reducer(parent=self)
@@ -209,7 +202,6 @@ class BokehFileViewer(Tool):
     def event(self, val):
 
         # Calibrate
-        self.r1.calibrate(val)
         self.dl0.reduce(val)
         self.dl1.calibrate(val)
 
