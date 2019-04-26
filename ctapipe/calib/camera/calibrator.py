@@ -2,6 +2,7 @@ import numpy as np
 from ctapipe.core import Component
 from ctapipe.image.reducer import NullDataVolumeReducer
 from ctapipe.image.extractor import NeighborPeakWindowSum
+import warnings
 
 __all__ = ['CameraCalibrator']
 
@@ -143,8 +144,8 @@ class CameraCalibrator(Component):
     def _check_r1_empty(self, waveforms):
         if waveforms is None:
             if not self._r1_empty_warn:
-                self.log.warning("Encountered an event with no R1 data. "
-                                 "DL0 is unchanged in this circumstance.")
+                warnings.warn("Encountered an event with no R1 data. "
+                              "DL0 is unchanged in this circumstance.")
                 self._r1_empty_warn = True
             return True
         else:
@@ -153,8 +154,8 @@ class CameraCalibrator(Component):
     def _check_dl0_empty(self, waveforms):
         if waveforms is None:
             if not self._dl0_empty_warn:
-                self.log.warning("Encountered an event with no DL0 data. "
-                                 "DL1 is unchanged in this circumstance.")
+                warnings.warn("Encountered an event with no DL0 data. "
+                              "DL1 is unchanged in this circumstance.")
                 self._dl0_empty_warn = True
             return True
         else:

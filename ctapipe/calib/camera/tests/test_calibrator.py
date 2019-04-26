@@ -4,6 +4,7 @@ from ctapipe.calib.camera.calibrator import (
 )
 from ctapipe.image.extractor import LocalPeakWindowSum
 from traitlets.config.configurable import Config
+import pytest
 
 
 def test_camera_calibrator(example_event):
@@ -55,3 +56,30 @@ def test_integration_correction_no_ref_pulse(example_event):
     calibrator._calibrate_dl0(example_event, telid)
     correction = calibrator._get_correction(example_event, telid)
     assert correction[0] == 1
+
+
+def test_check_r1_empty(example_event):
+    calibrator = CameraCalibrator()
+    telid = list(example_event.r0.tel)[0]
+    waveform = example_event.r1.tel[telid].waveform.copy()
+    with pytest.warns(UserWarning):
+        example_event.r1.tel[telid].waveform = None
+        calibrator._calibrate_dl0(example_event, telid)
+        assert example_event.dl0.tel[telid].waveform == None
+
+    assert calibrator._check_r1_empty(None) is True
+    assert calibrator._check_r1_empty(waveform) is False
+
+
+def test_check_dl0_empty(example_event):
+    calibrator = CameraCalibrator()
+    telid = list(example_event.r0.tel)[0]
+    calibrator._calibrate_dl0(example_event, telid)
+    waveform = example_event.dl0.tel[telid].waveform.copy()
+    with pytest.warns(UserWarning):
+        example_event.dl0.tel[telid].waveform = None
+        calibrator._calibrate_dl1(example_event, telid)
+        assert example_event.dl1.tel[telid].image == None
+
+    assert calibrator._check_dl0_empty(None) is True
+    assert calibrator._check_dl0_empty(waveform) is False
