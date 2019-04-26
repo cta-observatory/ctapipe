@@ -151,7 +151,7 @@ class Tool(Application):
         -------
         Component:
             the same component instance that was passed in, so that the call
-            can be chained. 
+            can be chained.
 
         Example
         -------
