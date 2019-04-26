@@ -97,6 +97,9 @@ class CameraCalibrator(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
+        self._r1_empty_warn = False
+        self._dl0_empty_warn = False
+
         if data_volume_reducer is None:
             data_volume_reducer = NullDataVolumeReducer(parent=self)
         self.data_volume_reducer = data_volume_reducer
@@ -137,15 +140,38 @@ class CameraCalibrator(Component):
             # a reference pulse shape
             return np.ones(event.dl0.tel[telid].waveform.shape[0])
 
+    def _check_r1_empty(self, waveforms):
+        if waveforms is None:
+            if not self._r1_empty_warn:
+                self.log.warning("Encountered an event with no R1 data. "
+                                 "DL0 is unchanged in this circumstance.")
+                self._r1_empty_warn = True
+            return True
+        else:
+            return False
+
+    def _check_dl0_empty(self, waveforms):
+        if waveforms is None:
+            if not self._dl0_empty_warn:
+                self.log.warning("Encountered an event with no DL0 data. "
+                                 "DL1 is unchanged in this circumstance.")
+                self._dl0_empty_warn = True
+            return True
+        else:
+            return False
+
     def _calibrate_dl0(self, event, telid):
         waveforms = event.r1.tel[telid].waveform
+        if self._check_r1_empty(waveforms):
+            return
         # TODO: Add gain selection
         reduced_waveforms = self.data_volume_reducer(waveforms)
         event.dl0.tel[telid].waveform = reduced_waveforms
 
     def _calibrate_dl1(self, event, telid):
         waveforms = event.dl0.tel[telid].waveform
-
+        if self._check_dl0_empty(waveforms):
+            return
         n_samples = waveforms.shape[2]
         if n_samples == 1:
             # To handle ASTRI and dst
