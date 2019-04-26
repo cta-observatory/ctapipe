@@ -280,13 +280,6 @@ class DisplayIntegrator(Tool):
                 parent=self,
             )
         )
-        self.r1 = self.add_component(
-            CameraR1Calibrator.from_eventsource(
-                eventsource=event_source,
-                parent=self,
-            )
-        )
-
         self.dl0 = self.add_component(CameraDL0Reducer(parent=self))
         self.dl1 = self.add_component(
             CameraDL1Calibrator(extractor=self.extractor, parent=self)
