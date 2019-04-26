@@ -71,14 +71,10 @@ class ChargeResolutionGenerator(Tool):
             )
         )
 
-        self.r1 = self.add_component(HESSIOR1Calibrator(parent=self))
-
         self.dl0 = self.add_component(CameraDL0Reducer(parent=self))
-
         self.dl1 = self.add_component(CameraDL1Calibrator(extractor=extractor,
                                                           parent=self))
-
-        self.calculator = self.add_component(ChargeResolutionCalculator())
+        self.calculator = ChargeResolutionCalculator()
 
     def start(self):
         desc = "Extracting Charge Resolution"

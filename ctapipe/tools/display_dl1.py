@@ -195,7 +195,6 @@ class DisplayDL1Calib(Tool):
                 parent=self,
             )
         )
-
         self.plotter = self.add_component(ImagePlotter(parent=self))
 
     def start(self):
