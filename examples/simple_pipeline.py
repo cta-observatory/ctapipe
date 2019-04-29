@@ -25,6 +25,6 @@ if __name__ == '__main__':
             )
         )
 
-        cal.calibrate(event)
+        cal(event)
 
         # now the calibrated images are in data.dl1.tel[x].image

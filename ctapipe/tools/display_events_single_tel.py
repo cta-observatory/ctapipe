@@ -94,7 +94,7 @@ class SingleTelEventDisplay(Tool):
             self.log.debug(event.trig)
             self.log.debug(f"Energy: {event.mc.energy}")
 
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             if disp is None:
                 geom = event.inst.subarray.tel[self.tel].camera
