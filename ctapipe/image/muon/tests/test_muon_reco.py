@@ -15,7 +15,7 @@ def test_basic_muon_reco(example_event):
     """
 
     calib = CameraCalibrator()
-    calib.calibrate(example_event)
+    calib(example_event)
 
     muon_params = muon.analyze_muon_event(example_event)
     assert muon_params is not None

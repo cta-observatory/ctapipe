@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
 import ctapipe.utils.tools as tool_utils
-from ctapipe.calib.camera import CameraDL0Reducer, CameraDL1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io.eventseeker import EventSeeker
@@ -254,16 +254,14 @@ class DisplayIntegrator(Tool):
     classes = List(
         [
             EventSource,
-            CameraDL1Calibrator,
         ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.eventseeker = None
-        self.dl0 = None
         self.extractor = None
-        self.dl1 = None
+        self.calibrator = None
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
@@ -274,8 +272,10 @@ class DisplayIntegrator(Tool):
             self.extractor_product,
             parent=self,
         )
-        self.dl0 = CameraDL0Reducer(parent=self)
-        self.dl1 = CameraDL1Calibrator(extractor=self.extractor, parent=self)
+        self.calibrator = CameraCalibrator(
+            parent=self,
+            image_extractor=self.extractor,
+        )
 
     def start(self):
         event_num = self.event_index
@@ -284,8 +284,7 @@ class DisplayIntegrator(Tool):
         event = self.eventseeker[event_num]
 
         # Calibrate
-        self.dl0.reduce(event)
-        self.dl1.calibrate(event)
+        self.calibrator(event)
 
         # Select telescope
         tels = list(event.r0.tels_with_data)
