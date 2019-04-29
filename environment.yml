@@ -42,6 +42,6 @@ dependencies:
   - ctapipe-extra=0.2.17
   - pytest-runner
   - pip:
-    - eventio==0.20
+    - eventio~=0.20.1
 
 

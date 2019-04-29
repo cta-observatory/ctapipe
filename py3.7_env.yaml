@@ -44,4 +44,4 @@ dependencies:
   - pyhessio=2.1
   - nbconvert>=5.4
   - pip:
-    - eventio==0.20
+    - eventio~=0.20.1
