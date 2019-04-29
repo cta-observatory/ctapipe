@@ -17,6 +17,8 @@ from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
+from gzip import GzipFile
+from io import BufferedReader
 
 __all__ = ['SimTelEventSource']
 
@@ -51,6 +53,10 @@ def build_camera_geometry(cam_settings, telescope):
 
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
+    zcat = Bool(
+        True,
+        help='Use zcat for faster reading of gzipped files, only forward reading possible'
+    ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -64,7 +70,8 @@ class SimTelEventSource(EventSource):
         self.file_ = SimTelFile(
             self.input_url,
             allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
-            skip_calibration=self.skip_calibration_events
+            skip_calibration=self.skip_calibration_events,
+            zcat=self.zcat,
         )
 
         self._subarray_info = self.prepare_subarray_info(
@@ -72,6 +79,10 @@ class SimTelEventSource(EventSource):
             self.file_.header
         )
         self.start_pos = self.file_.tell()
+
+    @property
+    def is_stream(self):
+        return isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
