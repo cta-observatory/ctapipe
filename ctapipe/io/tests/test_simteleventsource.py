@@ -203,3 +203,11 @@ def test_camera_caching():
     event = next(iter(source))
     subarray = event.inst.subarray
     assert subarray.tel[1].camera is subarray.tel[2].camera
+
+
+def test_instrument():
+    '''Test if same telescope types share a single instance of CameraGeometry'''
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+    event = next(iter(source))
+    subarray = event.inst.subarray
+    assert subarray.tel[1].optics.num_mirrors == 1

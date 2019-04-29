@@ -112,7 +112,7 @@ class SimTelEventSource(EventSource):
 
             optics = OpticsDescription(
                 name=telescope.name,
-                num_mirrors=cam_settings['n_mirrors'],
+                num_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=focal_length,
                 mirror_area=u.Quantity(cam_settings['mirror_area'], u.m**2),
                 num_mirror_tiles=cam_settings['n_mirrors'],
