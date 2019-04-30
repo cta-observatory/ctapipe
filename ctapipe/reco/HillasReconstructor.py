@@ -104,8 +104,10 @@ class HillasReconstructor(Reconstructor):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.hillas_planes = {}
+        self.divergent_mode = None
+        self.corrected_angle_dict = None
 
-    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
+    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None, divergent_mode=True):
         """
         The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
@@ -124,6 +126,8 @@ class HillasReconstructor(Reconstructor):
             pointing direction of the array
         telescopes_pointings: dict[SkyCoord[AltAz]]
             dictionary of pointing direction per each telescope
+        divergent_mode: bool
+            If True, then then divergent pointing routine is used in the reconstruction
 
         Raises
         ------
@@ -140,13 +144,20 @@ class HillasReconstructor(Reconstructor):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
+        # need the single telescope pointing to have the the divergent pointing reconstruction
+        if telescopes_pointings is not None and divergent_mode is True:
+            self.divergent_mode = divergent_mode
+            self.corrected_angle_dict = {}
+
+        # use the single telescope pointing also for parallel pointing: code is more general
         if telescopes_pointings is None:
             telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
 
         self.initialize_hillas_planes(
             hillas_dict,
             inst.subarray,
-            telescopes_pointings
+            telescopes_pointings,
+            array_pointing
         )
 
         # algebraic direction estimate
@@ -187,7 +198,8 @@ class HillasReconstructor(Reconstructor):
             self,
             hillas_dict,
             subarray,
-            telescopes_pointings
+            telescopes_pointings,
+            array_pointing
     ):
         """
         Creates a dictionary of :class:`.HillasPlane` from a dictionary of
@@ -201,7 +213,10 @@ class HillasReconstructor(Reconstructor):
             subarray information
         telescopes_pointings: dictionary
             dictionary of pointing direction per each telescope
+        array_pointing: SkyCoord[AltAz]
+            pointing direction of the array
         """
+
         self.hillas_planes = {}
         horizon_frame = list(telescopes_pointings.values())[0].frame
         for tel_id, moments in hillas_dict.items():
@@ -230,6 +245,19 @@ class HillasReconstructor(Reconstructor):
 
             p2_coord = SkyCoord(x=p2_x, y=p2_y, frame=camera_frame)
             p2_coord = p2_coord.transform_to(horizon_frame)
+
+            # re-project from sky to a "fake"-parallel-pointing telescope
+            # then recalculate the psi angle
+            if self.divergent_mode:
+                camera_frame_parallel = CameraFrame(
+                    focal_length=focal_length,
+                    telescope_pointing=array_pointing
+                )
+                cog_sky_to_parallel = cog_coord.transform_to(camera_frame_parallel)
+                p2_sky_to_parallel = p2_coord.transform_to(camera_frame_parallel)
+                angle_psi_corr = np.arctan2(cog_sky_to_parallel.y - p2_sky_to_parallel.y,
+                                            cog_sky_to_parallel.x - p2_sky_to_parallel.x)
+                self.corrected_angle_dict[tel_id] = angle_psi_corr
 
             circle = HillasPlane(
                 p1=cog_coord,
@@ -298,7 +326,11 @@ class HillasReconstructor(Reconstructor):
             estimated y position of impact
 
         """
-        psi = u.Quantity([h.psi for h in hillas_dict.values()])
+        if self.divergent_mode:
+            psi = u.Quantity(list(self.corrected_angle_dict.values()))
+        else:
+            psi = u.Quantity([h.psi for h in hillas_dict.values()])
+
         z = np.zeros(len(psi))
         uvw_vectors = np.column_stack([np.cos(psi).value, np.sin(psi).value, z])
 
