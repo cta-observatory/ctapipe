@@ -68,8 +68,6 @@ class UnstructuredInterpolator:
         self._previous_shape = 0
         self._bounds = bounds
 
-        return None
-
     def reset(self):
         self._previous_v = 0
         self._previous_m = 0
@@ -108,7 +106,6 @@ class UnstructuredInterpolator:
                     self._previous_shape = eval_points.shape
         else:
             s = self._tri.find_simplex(points)
-            print("here")
             # get the vertices for each simplex
             v = self._tri.vertices[s]
             # get transform matrices for each simplex
