@@ -115,7 +115,7 @@ def test_reconstruction():
             telescope_pointings[tel_id] = SkyCoord(alt=event.mc.tel[tel_id].altitude_raw * u.rad,
                                                    az=event.mc.tel[tel_id].azimuth_raw * u.rad,
                                                    frame=horizon_frame)
-            pmt_signal = event.r0.tel[tel_id].image[0]
+            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)

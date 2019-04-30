@@ -134,8 +134,8 @@ def test_view_camera(example_event):
     viewer.create()
     viewer.event = example_event
 
-    c = CameraCalibrator()
-    c.calibrate(example_event)
+    calibrator = CameraCalibrator()
+    calibrator(example_event)
 
     t = list(example_event.r0.tels_with_data)[0]
 
@@ -152,8 +152,8 @@ def test_view_wf(example_event):
     viewer.create()
     viewer.event = example_event
 
-    c = CameraCalibrator()
-    c.calibrate(example_event)
+    calibrator = CameraCalibrator()
+    calibrator(example_event)
 
     t = list(example_event.r0.tels_with_data)[0]
 

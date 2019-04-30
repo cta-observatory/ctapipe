@@ -7,6 +7,7 @@ from traitlets import Unicode, Int, Set, TraitError
 from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
 from traitlets.config.loader import LazyConfigValue
+from ctapipe.core.plugins import detect_and_import_io_plugins
 
 __all__ = [
     'EventSource',
@@ -240,6 +241,7 @@ class EventSource(Component):
         instance
             Instance of a compatible EventSource subclass
         """
+        detect_and_import_io_plugins()
         available_classes = non_abstract_children(cls)
 
         for subcls in available_classes:

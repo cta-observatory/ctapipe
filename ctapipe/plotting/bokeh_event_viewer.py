@@ -30,8 +30,7 @@ class BokehEventViewerCamera(CameraDisplay):
             'r1': lambda e, t, c, time: e.r1.tel[t].waveform[c, :, time],
             'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[c, :, time],
             'dl1': lambda e, t, c, time: e.dl1.tel[t].image[c, :],
-            'peakpos': lambda e, t, c, time: e.dl1.tel[t].peakpos[c, :],
-            'cleaned': lambda e, t, c, time: e.dl1.tel[t].cleaned[c, :, time],
+            'pulse_time': lambda e, t, c, time: e.dl1.tel[t].pulse_time[c, :],
         }
 
         self.w_view = None
@@ -174,13 +173,11 @@ class BokehEventViewerWaveform(WaveformDisplay):
         self._channel = 0
         self._pixel = 0
         super().__init__(fig=fig)
-        self._draw_integration_window()
 
         self._view_options = {
             'r0': lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
             'r1': lambda e, t, c, p: e.r1.tel[t].waveform[c, p],
             'dl0': lambda e, t, c, p: e.dl0.tel[t].waveform[c, p],
-            'cleaned': lambda e, t, c, p: e.dl1.tel[t].cleaned[c, p],
         }
 
         self.w_view = None
@@ -213,34 +210,8 @@ class BokehEventViewerWaveform(WaveformDisplay):
         except TypeError:
             self.waveform = None
 
-    def _draw_integration_window(self):
-        self.intwin1 = Span(location=0, dimension='height',
-                            line_color='green', line_dash='dotted')
-        self.intwin2 = Span(location=0, dimension='height',
-                            line_color='green', line_dash='dotted')
-        self.fig.add_layout(self.intwin1)
-        self.fig.add_layout(self.intwin2)
-
-    def _set_integration_window(self):
-        e = self.event
-        t = self.telid
-        c = self.channel
-        p = self.pixel
-        if e:
-            if e.dl1.tel[t].extracted_samples is not None:
-                # Get Windows
-                windows = e.dl1.tel[t].extracted_samples[c, p]
-                length = np.sum(windows)
-                start = np.argmax(windows)
-                end = start + length - 1
-                self.intwin1.location = start
-                self.intwin2.location = end
-        else:
-            self.event_viewer.log.warning("No event has been provided")
-
     def refresh(self):
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def event(self):
@@ -250,7 +221,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def event(self, val):
         self._event = val
         self._set_waveform()
-        self._set_integration_window()
 
     def change_event(self, event, telid):
         if self.event:  # Only reset when an event exists
@@ -268,7 +238,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
             raise ValueError(f"View is not valid: {val}")
         self._view = val
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def telid(self):
@@ -280,7 +249,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
             self._reset()
         self._telid = val
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def channel(self):
@@ -290,7 +258,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def channel(self, val):
         self._channel = val
         self._set_waveform()
-        self._set_integration_window()
 
     @property
     def pixel(self):
@@ -300,7 +267,6 @@ class BokehEventViewerWaveform(WaveformDisplay):
     def pixel(self, val):
         self._pixel = val
         self._set_waveform()
-        self._set_integration_window()
 
     def _on_waveform_click(self, time):
         super()._on_waveform_click(time)

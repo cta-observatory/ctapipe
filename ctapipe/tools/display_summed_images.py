@@ -71,9 +71,7 @@ class ImageSumDisplayerTool(Tool):
         )
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
-        self.calibrator = CameraCalibrator(
-            parent=self, eventsource=self.reader
-        )
+        self.calibrator = CameraCalibrator(parent=self)
 
         self.reader.allowed_tels = self._selected_tels
 
@@ -84,7 +82,7 @@ class ImageSumDisplayerTool(Tool):
 
         for event in self.reader:
 
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             if geom is None:
                 geom = event.inst.subarray.tel[self._base_tel].camera

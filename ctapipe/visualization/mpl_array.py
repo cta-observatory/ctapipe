@@ -126,7 +126,7 @@ class ArrayDisplay:
     @values.setter
     def values(self, values):
         """ set the telescope colors to display  """
-        self.telescopes.set_array(values)
+        self.telescopes.set_array(np.ma.masked_invalid(values))
         self._update()
 
     def set_vector_uv(self, u, v, c=None, **kwargs):

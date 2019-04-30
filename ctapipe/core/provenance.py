@@ -13,8 +13,9 @@ import sys
 import uuid
 from contextlib import contextmanager
 from os.path import abspath
+from importlib import import_module
+from pkg_resources import get_distribution
 
-import ctapipe_resources
 import psutil
 from astropy.time import Time
 
@@ -39,6 +40,19 @@ _interesting_env_vars = [
     'HOME',
     'SHELL',
 ]
+
+
+def get_module_version(name):
+    try:
+        module = import_module(name)
+        return module.__version__
+    except AttributeError:
+        try:
+            return get_distribution(name).version
+        except:
+            return 'unknown'
+    except ImportError:
+        return 'not installed'
 
 
 class Provenance(metaclass=Singleton):
@@ -256,7 +270,9 @@ def _get_system_provenance():
 
     return dict(
         ctapipe_version=ctapipe.__version__,
-        ctapipe_resources_version=ctapipe_resources.__version__,
+        ctapipe_resources_version=get_module_version('ctapipe_resources'),
+        pyhessio_version=get_module_version('pyhessio'),
+        eventio_version=get_module_version('eventio'),
         ctapipe_svc_path=os.getenv("CTAPIPE_SVC_PATH"),
         executable=sys.executable,
         platform=dict(
