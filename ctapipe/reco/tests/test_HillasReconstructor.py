@@ -95,20 +95,26 @@ def test_reconstruction():
 
     fit = HillasReconstructor()
 
-    tel_azimuth = {}
-    tel_altitude = {}
-
     source = event_source(filename, max_events=10)
+    horizon_frame = AltAz()
 
     for event in source:
+        array_pointing = SkyCoord(
+            az=event.mc.az,
+            alt=event.mc.alt,
+            frame=horizon_frame
+        )
 
         hillas_dict = {}
+        telescope_pointings = {}
+
         for tel_id in event.dl0.tels_with_data:
 
             geom = event.inst.subarray.tel[tel_id].camera
-            tel_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-            tel_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
 
+            telescope_pointings[tel_id] = SkyCoord(alt=event.mc.tel[tel_id].altitude_raw * u.rad,
+                                                   az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+                                                   frame=horizon_frame)
             pmt_signal = event.r0.tel[tel_id].image[0]
 
             mask = tailcuts_clean(geom, pmt_signal,
@@ -125,7 +131,8 @@ def test_reconstruction():
         if len(hillas_dict) < 2:
             continue
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_azimuth, tel_altitude)
+        # divergent mode put to on even though the file has parallel pointing.
+        fit_result = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings, divergent_mode=True)
 
         print(fit_result)
         fit_result.alt.to(u.deg)
