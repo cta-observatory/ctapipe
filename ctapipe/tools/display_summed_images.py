@@ -55,7 +55,7 @@ class ImageSumDisplayerTool(Tool):
         # make sure gzip files are seekable
 
         self.reader = SimTelEventSource(
-            input_url=self.infile, max_events=self.max_events, zcat=False
+            input_url=self.infile, max_events=self.max_events, back_seekable=True
         )
 
         for event in self.reader:

@@ -260,7 +260,7 @@ class DisplayIntegrator(Tool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # make sure gzip files are seekable
-        self.config.SimTelEventSource.zcat = False
+        self.config.SimTelEventSource.back_seekable = True
         self.eventseeker = None
         self.extractor = None
         self.calibrator = None

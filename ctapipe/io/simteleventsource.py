@@ -53,9 +53,13 @@ def build_camera_geometry(cam_settings, telescope):
 
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
-    zcat = Bool(
-        True,
-        help='Use zcat for faster reading of gzipped files, only forward reading possible'
+    back_seekable = Bool(
+        False,
+        help=(
+            'Require the event source to be backwards seekable.'
+            ' This will reduce in slower read speed for gzipped files'
+            ' and is not possible for zstd compressed files'
+        )
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -71,8 +75,10 @@ class SimTelEventSource(EventSource):
             self.input_url,
             allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
             skip_calibration=self.skip_calibration_events,
-            zcat=self.zcat,
+            zcat=not self.back_seekable,
         )
+        if self.back_seekable and self.is_stream:
+            raise IOError('back seekable was required but not possible for inputfile')
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions,

@@ -74,7 +74,7 @@ class BokehFileViewer(Tool):
 
         self._updating_dl1 = False
         # make sure, gzip files are seekable
-        self.config.SimTelEventSource.zcat = False
+        self.config.SimTelEventSource.back_seekable = True
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"

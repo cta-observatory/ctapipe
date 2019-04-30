@@ -70,7 +70,7 @@ def test_compare_event_hessio_and_simtel():
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
-    with SimTelEventSource(input_url=gamma_test_large_path, zcat=False) as reader:
+    with SimTelEventSource(input_url=gamma_test_large_path, back_seekable=True) as reader:
         assert reader.is_compatible(gamma_test_large_path)
         assert not reader.is_stream
 
