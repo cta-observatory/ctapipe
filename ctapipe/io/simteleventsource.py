@@ -82,7 +82,7 @@ class SimTelEventSource(EventSource):
 
     @property
     def is_stream(self):
-        return isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
+        return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
