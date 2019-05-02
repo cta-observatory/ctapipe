@@ -160,7 +160,7 @@ class SubarrayDescription:
             tel_coords = self.tel_coords
 
             tab = Table(dict(
-                id=np.array(ids, dtype=np.short),
+                tel_id=np.array(ids, dtype=np.short),
                 pos_x=tel_coords.x,
                 pos_y=tel_coords.y,
                 pos_z=tel_coords.z,
