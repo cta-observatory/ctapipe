@@ -351,6 +351,32 @@ def test_read_write_container_with_int_enum(tmp_path):
                     WithIntEnum.EventType
                 )
 
+def test_column_transforms(tmp_path):
+    """ ensure a user-added column transform is applied """
+    tmp_file = tmp_path / 'test_column_transforms.hdf5'
+
+    class SomeContainer(Container):
+        value = Field(-1, "some value that should be transformed")
+
+    cont = SomeContainer()
+
+    def my_transform(x):
+        """ makes a length-3 array from x"""
+        return np.ones(3) * x
+
+    with HDF5TableWriter(tmp_file, group_name='data') as writer:
+        # add user generated transform for the "value" column
+        cont.value = 6.0
+        writer.add_column_transform('mytable', 'value', my_transform)
+        writer.write('mytable', cont)
+
+    # check that we get a length-3 array when reading back
+    with HDF5TableReader(tmp_file, mode='r') as reader:
+        for data in reader.read("/data/mytable", SomeContainer()):
+            print(data)
+            assert data.value.shape == (3,)
+            assert np.allclose(data.value, [6.0,6.0,6.0])
+
 
 if __name__ == '__main__':
 
