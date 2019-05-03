@@ -46,9 +46,7 @@ class SimpleEventWriter(Tool):
         )
 
         self.calibrator = self.add_component(
-            CameraCalibrator(
-                config=self.config, parent=self, eventsource=self.event_source
-            )
+            CameraCalibrator(parent=self)
         )
 
         self.writer = self.add_component(
@@ -84,7 +82,7 @@ class SimpleEventWriter(Tool):
                 disable=~self.progress):
 
             self.event_cutflow.count('no_sel')
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')

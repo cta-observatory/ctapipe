@@ -62,18 +62,15 @@ class MuonDisplayerTool(Tool):
     })
 
     def setup(self):
+        if self.source.input_url == '':
+            raise ToolConfigurationError("please specify --input <events file>")
+        self.log.debug("input: %s", self.events)
         self.source: EventSource = self.add_component(
             EventSource.from_config(parent=self)
         )
-        if self.source.input_url == '':
-            raise ToolConfigurationError("please specify --input <events file>")
+        self.calib = self.add_component(CameraCalibrator(parent=self))
+        self.writer = self.add_component(HDF5TableWriter(self.outfile, "muons"))
 
-        self.calib = self.add_component(
-            CameraCalibrator(parent=self)
-        )
-        self.writer = self.add_component(
-            HDF5TableWriter(self.outfile, "muons")
-        )
 
     def start(self):
 
@@ -82,7 +79,7 @@ class MuonDisplayerTool(Tool):
 
         for event in tqdm(self.source, desc='detecting muons'):
 
-            self.calib.calibrate(event)
+            self.calib(event)
             muon_evt = analyze_muon_event(event)
 
             if numev == 0:

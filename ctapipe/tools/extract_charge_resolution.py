@@ -13,8 +13,7 @@ from traitlets import Dict, List, Int, Unicode
 import ctapipe.utils.tools as tool_utils
 from ctapipe.analysis.camera.charge_resolution import \
     ChargeResolutionCalculator
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool, Provenance
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io.simteleventsource import SimTelEventSource
@@ -48,15 +47,13 @@ class ChargeResolutionGenerator(Tool):
     classes = List(
         [
             SimTelEventSource,
-            CameraDL1Calibrator,
         ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.eventsource = None
-        self.dl0 = None
-        self.dl1 = None
+        self.calibrator = None
         self.calculator = None
 
     def setup(self):
@@ -71,16 +68,18 @@ class ChargeResolutionGenerator(Tool):
             )
         )
 
-        self.dl0 = self.add_component(CameraDL0Reducer(parent=self))
-        self.dl1 = self.add_component(CameraDL1Calibrator(extractor=extractor,
-                                                          parent=self))
+        self.calibrator = self.add_component(
+            CameraCalibrator(
+                parent=self,
+                image_extractor=extractor,
+            )
+        )
         self.calculator = ChargeResolutionCalculator()
 
     def start(self):
         desc = "Extracting Charge Resolution"
         for event in tqdm(self.eventsource, desc=desc):
-            self.dl0.reduce(event)
-            self.dl1.calibrate(event)
+            self.calibrator(event)
 
             # Check events have true charge included
             if event.count == 0:

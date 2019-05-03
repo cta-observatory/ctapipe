@@ -31,7 +31,7 @@ if __name__ == '__main__':
     point_azimuth = {}
     point_altitude = {}
 
-    calib = CameraCalibrator(eventsource=source)
+    calib = CameraCalibrator()
     off_angles = []
     first_event = True
     markers = None
@@ -52,7 +52,7 @@ if __name__ == '__main__':
             continue
 
         # calibrating the event
-        calib.calibrate(event)
+        calib(event)
         hillas_dict = {}
 
         # plot the core position, which must be transformed from the tilted
