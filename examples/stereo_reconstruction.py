@@ -24,15 +24,13 @@ cleaning_level = {
 input_url = get_dataset_path('gamma_test_large.simtel.gz')
 event_source = event_source(input_url)
 
-calibrator = CameraCalibrator(
-    eventsource=event_source,
-)
+calibrator = CameraCalibrator()
 
 reco = HillasReconstructor()
 
 for event in event_source:
     print('Event', event.count)
-    calibrator.calibrate(event)
+    calibrator(event)
 
     # mapping of telescope_id to parameters for stereo reconstruction
     hillas_containers = {}

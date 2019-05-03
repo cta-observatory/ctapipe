@@ -35,20 +35,6 @@ Reference/API
 
 ------------------------------
 
-.. automodapi:: ctapipe.calib.camera.r1
-
-------------------------------
-
-.. automodapi:: ctapipe.calib.camera.dl0
-    :no-inheritance-diagram:
-
-------------------------------
-
-.. automodapi:: ctapipe.calib.camera.dl1
-    :no-inheritance-diagram:
-
-------------------------------
-
 .. automodapi:: ctapipe.calib.camera.calibrator
     :no-inheritance-diagram:
 

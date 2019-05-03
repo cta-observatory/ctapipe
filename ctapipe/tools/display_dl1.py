@@ -5,11 +5,11 @@ from matplotlib import pyplot as plt, colors
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Dict, List, Int, Bool, Unicode
 
-from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.visualization import CameraDisplay
 from ctapipe.core import Tool, Component
 from ctapipe.utils import get_dataset_path
-from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 import ctapipe.utils.tools as tool_utils
 
@@ -47,9 +47,9 @@ class ImagePlotter(Component):
         super().__init__(config=config, parent=parent, **kwargs)
         self._current_tel = None
         self.c_intensity = None
-        self.c_peakpos = None
+        self.c_pulse_time = None
         self.cb_intensity = None
-        self.cb_peakpos = None
+        self.cb_pulse_time = None
         self.pdf = None
 
         self._init_figure()
@@ -57,7 +57,7 @@ class ImagePlotter(Component):
     def _init_figure(self):
         self.fig = plt.figure(figsize=(16, 7))
         self.ax_intensity = self.fig.add_subplot(1, 2, 1)
-        self.ax_peakpos = self.fig.add_subplot(1, 2, 2)
+        self.ax_pulse_time = self.fig.add_subplot(1, 2, 2)
         if self.output_path:
             self.log.info(f"Creating PDF: {self.output_path}")
             self.pdf = PdfPages(self.output_path)
@@ -69,21 +69,21 @@ class ImagePlotter(Component):
     def plot(self, event, telid):
         chan = 0
         image = event.dl1.tel[telid].image[chan]
-        peakpos = event.dl1.tel[telid].peakpos[chan]
+        pulse_time = event.dl1.tel[telid].pulse_time[chan]
 
         if self._current_tel != telid:
             self._current_tel = telid
 
             self.ax_intensity.cla()
-            self.ax_peakpos.cla()
+            self.ax_pulse_time.cla()
 
             # Redraw camera
             geom = self.get_geometry(event, telid)
             self.c_intensity = CameraDisplay(geom, ax=self.ax_intensity)
-            self.c_peakpos = CameraDisplay(geom, ax=self.ax_peakpos)
+            self.c_pulse_time = CameraDisplay(geom, ax=self.ax_pulse_time)
 
             tmaxmin = event.dl0.tel[telid].waveform.shape[2]
-            t_chargemax = peakpos[image.argmax()]
+            t_chargemax = pulse_time[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
                 'cmap_t',
                 [(0 / tmaxmin, 'darkgreen'),
@@ -91,7 +91,7 @@ class ImagePlotter(Component):
                  (t_chargemax / tmaxmin, 'yellow'),
                  (1.4 * t_chargemax / tmaxmin, 'blue'), (1, 'darkblue')]
             )
-            self.c_peakpos.pixels.set_cmap(cmap_time)
+            self.c_pulse_time.pixels.set_cmap(cmap_time)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
@@ -101,18 +101,18 @@ class ImagePlotter(Component):
             else:
                 self.c_intensity.colorbar = self.cb_intensity
                 self.c_intensity.update(True)
-            if not self.cb_peakpos:
-                self.c_peakpos.add_colorbar(
-                    ax=self.ax_peakpos, label='Peakpos (ns)'
+            if not self.cb_pulse_time:
+                self.c_pulse_time.add_colorbar(
+                    ax=self.ax_pulse_time, label='Pulse Time (ns)'
                 )
-                self.cb_peakpos = self.c_peakpos.colorbar
+                self.cb_pulse_time = self.c_pulse_time.colorbar
             else:
-                self.c_peakpos.colorbar = self.cb_peakpos
-                self.c_peakpos.update(True)
+                self.c_pulse_time.colorbar = self.cb_pulse_time
+                self.c_pulse_time.update(True)
 
         self.c_intensity.image = image
-        if peakpos is not None:
-            self.c_peakpos.image = peakpos
+        if pulse_time is not None:
+            self.c_pulse_time.image = pulse_time
 
         self.fig.suptitle(
             "Event_index={}  Event_id={}  Telescope={}"
@@ -142,21 +142,14 @@ class DisplayDL1Calib(Tool):
     ).tag(config=True)
 
     extractor_product = tool_utils.enum_trait(
-        ChargeExtractor,
-        default='NeighbourPeakIntegrator'
+        ImageExtractor,
+        default='NeighborPeakWindowSum'
     )
 
     aliases = Dict(
         dict(
             max_events='EventSource.max_events',
             extractor='DisplayDL1Calib.extractor_product',
-            t0='SimpleIntegrator.t0',
-            window_width='WindowIntegrator.window_width',
-            window_shift='WindowIntegrator.window_shift',
-            sig_amp_cut_HG='PeakFindingIntegrator.sig_amp_cut_HG',
-            sig_amp_cut_LG='PeakFindingIntegrator.sig_amp_cut_LG',
-            lwt='NeighbourPeakIntegrator.lwt',
-            clip_amplitude='CameraDL1Calibrator.clip_amplitude',
             T='DisplayDL1Calib.telescope',
             O='ImagePlotter.output_path'
         )
@@ -177,9 +170,8 @@ class DisplayDL1Calib(Tool):
     classes = List(
         [
             EventSource,
-            CameraDL1Calibrator,
             ImagePlotter
-        ] + tool_utils.classes_with_traits(ChargeExtractor)
+        ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -194,16 +186,13 @@ class DisplayDL1Calib(Tool):
             parent=self,
         )
 
-        self.calibrator = CameraCalibrator(
-            eventsource=self.eventsource,
-            parent=self,
-        )
+        self.calibrator = CameraCalibrator(parent=self)
 
         self.plotter = ImagePlotter(parent=self)
 
     def start(self):
         for event in self.eventsource:
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             tel_list = event.r0.tels_with_data
 

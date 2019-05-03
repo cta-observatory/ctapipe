@@ -132,24 +132,23 @@ class HESSIOEventSource(EventSource):
 
                     # event.mc.tel[tel_id] = MCCameraContainer()
 
-                    data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
-                    data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
-                    data.r0.tel[tel_id].waveform = (file.
-                                                    get_adc_sample(tel_id))
-                    if data.r0.tel[tel_id].waveform.size == 0:
-                        # To handle ASTRI and dst files
-                        data.r0.tel[tel_id].waveform = (file.
-                                                        get_adc_sum(tel_id)[..., None])
-                    data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
+                    adc_samples = file.get_adc_sample(tel_id)
+                    if adc_samples.size == 0:
+                        adc_samples = file.get_adc_sum(tel_id)[..., None]
+                    dc_to_pe = file.get_calibration(tel_id)
+                    pedestal = file.get_pedestal(tel_id)
+                    data.r0.tel[tel_id].waveform = adc_samples
+                    data.r1.tel[tel_id].waveform = (
+                            (adc_samples - pedestal[..., np.newaxis])
+                            * dc_to_pe[..., np.newaxis]
+                    )
+
+                    data.mc.tel[tel_id].dc_to_pe = dc_to_pe
+                    data.mc.tel[tel_id].pedestal = pedestal
                     data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
                     data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))
-
-                    nsamples = file.get_event_num_samples(tel_id)
-                    if nsamples <= 0:
-                        nsamples = 1
-                    data.r0.tel[tel_id].num_samples = nsamples
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
