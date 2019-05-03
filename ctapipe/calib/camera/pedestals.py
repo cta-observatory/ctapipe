@@ -12,6 +12,7 @@ from ctapipe.image.extractor import ImageExtractor
 from ctapipe.core.traits import Int, Unicode, List
 
 __all__ = [
+    'calc_pedestals_from_traces',
     'PedestalCalculator',
     'PedestalIntegrator'
 ]
