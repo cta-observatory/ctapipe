@@ -162,7 +162,6 @@ class BaseTemplate:
         zenith_lower, zenith_upper = zenith_bounds
         azimuth_lower, azimuth_upper = azimuth_bounds
 
-
         # First lower azimuth bound
         if self.interpolator[zenith_lower][azimuth_lower] is None:
             self._create_interpolator(zenith_lower, azimuth_lower)
@@ -247,13 +246,13 @@ class TemplateNetworkInterpolator(BaseTemplate):
             Location of pickle file containing ImPACT NN templates
         """
 
+        super().__init__()
         file_list = gzip.open(template_file)
         input_dict = pickle.load(file_list)
 
         keys = np.array(list(input_dict.keys()))
         values = np.array(list(input_dict.values()), dtype=np.float32)
         self.no_zenaz = False
-        input_dict = None
 
         # First check if we even have a zen and azimuth entry
         if len(keys[0]) > 3:
@@ -294,7 +293,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
         else:
             interpolated_value = self.perform_interpolation(zenith, azimuth, array, points)
 
-        interpolated_value[interpolated_value<0] = 0
+        interpolated_value[interpolated_value < 0] = 0
         interpolated_value = interpolated_value
 
         return interpolated_value
