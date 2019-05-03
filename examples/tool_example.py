@@ -94,6 +94,9 @@ class MyTool(Tool):
         self.a_component()
 
 
-if __name__ == "__main__":
+def main():
     tool = MyTool()
     tool.run()
+
+if __name__ == '__main__':
+    main()
