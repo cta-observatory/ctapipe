@@ -39,7 +39,8 @@ from scipy.special import factorial
 __all__ = [
     'poisson_likelihood_gaussian', 'poisson_likelihood_full',
     'poisson_likelihood', 'mean_poisson_likelihood_gaussian',
-    'mean_poisson_likelihood_full', 'PixelLikelihoodError', 'chi_squared'
+    'mean_poisson_likelihood_full', 'shower_fluctuation_likelihood_gaussian',
+    'PixelLikelihoodError', 'chi_squared'
 ]
 
 
@@ -376,3 +377,44 @@ def chi_squared(image, prediction, ped, error_factor=2.9):
     chi_square *= 1. / error_factor
 
     return chi_square
+
+
+def shower_fluctuation_likelihood_gaussian(image, prediction, shower_rms, ped):
+    """
+    Calculate likelihood of prediction as the sum of two gaussian uncertainties,
+    one representing the shower fluctuations and the other the pedestal
+
+    Parameters
+    ----------
+    image: ndarray
+        Pixel amplitudes from image
+    prediction: ndarray
+        Predicted pixel amplitudes from model
+    shower_rms: ndarray
+        Shower fluctuation uncertainty
+    ped: ndarray
+        width of pedestal
+
+    Returns
+    -------
+    ndarray: likelihood for each pixel
+    """
+    image = np.asarray(image)
+    prediction = np.asarray(prediction)
+    shower_rms = np.asarray(shower_rms)
+    ped = np.asarray(ped)
+
+    sq = 1. / np.sqrt(
+        2 * math.pi *
+        (np.power(ped, 2) + np.power(shower_rms, 2))
+    )
+
+    diff = np.power(image - prediction, 2.)
+    denomination = 2 * (np.power(ped, 2) + np.power(shower_rms, 2))
+    expo = np.asarray(np.exp(-1 * diff / denomination))
+
+    # If we are outside of the range of data type, fix to lower bound
+    min_prob = np.finfo(expo.dtype).tiny
+    expo[expo < min_prob] = min_prob
+
+    return -2 * np.log(sq * expo)

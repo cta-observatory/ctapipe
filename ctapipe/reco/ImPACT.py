@@ -18,7 +18,9 @@ from ctapipe.coordinates import (
     GroundFrame,
     project_to_ground,
 )
-from ctapipe.image import poisson_likelihood_gaussian, mean_poisson_likelihood_gaussian
+from ctapipe.image import poisson_likelihood_gaussian, \
+    mean_poisson_likelihood_gaussian, shower_fluctuation_likelihood_gaussian
+
 from ctapipe.instrument import get_atmosphere_profile_functions
 from ctapipe.io.containers import (ReconstructedShowerContainer,
                                    ReconstructedEnergyContainer)
@@ -93,7 +95,8 @@ class ImPACTReconstructor(Reconstructor):
     spe = 0.5  # Also hard code single p.e. distribution width
 
     def __init__(self, root_dir=".", minimiser="minuit", prior="",
-                 template_scale=1., xmax_offset=0, use_time_gradient=False):
+                 template_scale=1., xmax_offset=0, use_time_gradient=False,
+                 use_shower_variance=False):
 
         # First we create a dictionary of image template interpolators
         # for each telescope type
@@ -102,11 +105,14 @@ class ImPACTReconstructor(Reconstructor):
         self.minimiser_name = minimiser
 
         self.file_names = {"CHEC": ["GCT_05deg_ada.template.gz",
-                                    "GCT_05deg_time.template.gz"],
+                                    "GCT_05deg_time.template.gz",
+                                    "GCT_05deg_variance.template.gz"],
                            "LSTCam": ["LST_05deg.template.gz",
-                                      "LST_05deg_time.template.gz"],
+                                      "LST_05deg_time.template.gz",
+                                      "LST_05deg_variance.template.gz"],
                            "NectarCam": ["MST_05deg.template.gz",
-                                         "MST_05deg_time.template.gz"],
+                                         "MST_05deg_time.template.gz",
+                                         "MST_05deg_variance.template.gz"],
                            "FlashCam": ["MST_xm_full.fits"]}
 
         # We also need a conversion function from height above ground to
@@ -131,6 +137,7 @@ class ImPACTReconstructor(Reconstructor):
 
         self.prediction = dict()
         self.time_prediction = dict()
+        self.rms_prediction = dict()
 
         self.array_direction = None
         self.array_return = False
@@ -139,6 +146,7 @@ class ImPACTReconstructor(Reconstructor):
         self.template_scale = template_scale
         self.xmax_offset = xmax_offset
         self.use_time_gradient = use_time_gradient
+        self.use_shower_variance = use_shower_variance
 
     def initialise_templates(self, tel_type):
         """Check if templates for a given telescope type has been initialised
@@ -165,7 +173,10 @@ class ImPACTReconstructor(Reconstructor):
                 self.time_prediction[tel_type[t]] = \
                     TimeGradientInterpolator(self.root_dir + "/" +
                                              self.file_names[tel_type[t]][1])
-
+            if self.use_shower_variance:
+                self.rms_prediction[tel_type[t]] = \
+                    TemplateNetworkInterpolator(self.root_dir + "/" +
+                                             self.file_names[tel_type[t]][3])
         return True
 
     def get_hillas_mean(self):
@@ -322,6 +333,33 @@ class ImPACTReconstructor(Reconstructor):
 
         return self.prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
 
+    def image_rms_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
+        """Creates predicted image RMS for the specified pixels, interpolated
+        from the template library.
+
+        Parameters
+        ----------
+        tel_type: string
+            Telescope type specifier
+        energy: float
+            Event energy (TeV)
+        impact: float
+            Impact diance of shower (metres)
+        x_max: float
+            Depth of shower maximum (num bins from expectation)
+        pix_x: ndarray
+            X coordinate of pixels
+        pix_y: ndarray
+            Y coordinate of pixels
+
+        Returns
+        -------
+        ndarray: predicted amplitude for all pixels
+
+        """
+
+        return self.rms_prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
+
     def predict_time(self, tel_type, energy, impact, x_max):
         """Creates predicted image for the specified pixels, interpolated
         from the template library.
@@ -416,6 +454,11 @@ class ImPACTReconstructor(Reconstructor):
         prediction = ma.zeros(self.image.shape)
         prediction.mask = ma.getmask(self.image)
 
+        # If we are using the shower variance we need that too
+        if self.use_shower_variance:
+            rms_prediction = ma.zeros(self.image.shape)
+            rms_prediction.mask = ma.getmask(self.image)
+
         time_gradients = np.zeros((self.image.shape[0],2))
 
         # Loop over all telescope types and get prediction
@@ -429,12 +472,21 @@ class ImPACTReconstructor(Reconstructor):
                                       pix_x_rot[type_mask] * (180 / math.pi) * -1,
                                       pix_y_rot[type_mask] * (180 / math.pi))
 
+            if self.use_shower_variance:
+                rms_prediction[type_mask] = \
+                    self.image_prediction(tel_type, energy *
+                                          np.ones_like(impact[type_mask]),
+                                          impact[type_mask], x_max_bin *
+                                          np.ones_like(impact[type_mask]),
+                                          pix_x_rot[type_mask] * (180 / math.pi) * -1,
+                                          pix_y_rot[type_mask] * (180 / math.pi))
             if self.use_time_gradient:
                 time_gradients[type_mask] = \
-                    self.predict_time(tel_type,
-                                      energy * np.ones_like(impact[type_mask]),
-                                      impact[type_mask],
-                                      x_max_bin * np.ones_like(impact[type_mask]))
+                    self.image_rms_prediction(tel_type,
+                                              energy * np.ones_like(impact[type_mask]),
+                                              impact[type_mask],
+                                               x_max_bin * np.ones_like(impact[
+                                                                            type_mask]))
 
         if self.use_time_gradient:
             time_mask = np.logical_and(np.invert(ma.getmask(self.image)),
@@ -459,8 +511,14 @@ class ImPACTReconstructor(Reconstructor):
         prediction[prediction < 1e-8] = 1e-8
         prediction *= self.template_scale
 
-        # Get likelihood that the prediction matched the camera image
-        like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
+        if self.use_shower_variance:
+            rms_prediction *= self.template_scale
+            like = shower_fluctuation_likelihood_gaussian(self.image, prediction,
+                                                          rms_prediction, self.ped)
+        else:
+            # Get likelihood that the prediction matched the camera image
+            like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
+
         like[np.isnan(like)] = 1e9
         like *= np.invert(ma.getmask(self.image))
         like = ma.MaskedArray(like, mask=ma.getmask(self.image))
@@ -821,6 +879,7 @@ class ImPACTReconstructor(Reconstructor):
                            )
 
             return np.array(min.x), (0, 0, 0, 0, 0, 0), self.get_likelihood_min(min.x)
+
 
 def spread_line_seed(hillas, tel_x, tel_y, source_x, source_y, tilt_x, tilt_y, energy,
                      shift_frac = [2, 1.5, 1, 0.5, 0 ,-0.5, -1, -1.5]):
