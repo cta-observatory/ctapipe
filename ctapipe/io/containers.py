@@ -42,7 +42,8 @@ __all__ = [
     'PixelStatusContainer',
     'WaveformCalibrationContainer',
     'MonitoringCameraContainer',
-    'MonitoringContainer'
+    'MonitoringContainer',
+    'EventAndMonDataContainer'
 ]
 
 
@@ -796,3 +797,10 @@ class MonitoringContainer(Container):
     tel = Field(
         Map(MonitoringCameraContainer),
         "map of tel_id to MonitoringCameraContainer")
+
+
+class EventAndMonDataContainer(DataContainer):
+    """
+    Data container including monitoring information
+    """
+    mon = Field(MonitoringContainer(), "container for monitoring data (MON)")
