@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy import units as u
 from astropy.coordinates.angle_utilities import angular_separation
+from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.image import hillas_parameters
@@ -29,6 +30,9 @@ source = event_source(filename, allowed_tels={1, 2, 3, 4})
 
 reco = HillasReconstructor()
 calib = CameraCalibrator()
+
+horizon_frame = AltAz()
+
 off_angles = []
 
 for event in source:
@@ -38,16 +42,17 @@ for event in source:
     hillas_params = {}
     subarray = event.inst.subarray
 
-    # pointing direction of the telescopes
-    point_azimuth = {}
-    point_altitude = {}
-
+    # dictionary for the pointing directions of the telescopes
+    telescope_pointings = {}
+    
     for tel_id in event.dl0.tels_with_data:
 
-        # telescope pointing direction
-        point_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-        point_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
-        #        print(point_azimuth,point_altitude)
+        # telescope pointing direction as dictionary of SkyCoord
+        telescope_pointings[telescope_id] = SkyCoord(
+            alt=event.mc.tel[telescope_id].altitude_raw * u.rad,
+            az=event.mc.tel[telescope_id].azimuth_raw * u.rad,
+            frame=horizon_frame
+        )  
 
         # Camera Geometry required for hillas parametrization
         camgeom = subarray.tel[tel_id].camera
@@ -71,10 +76,16 @@ for event in source:
         except:
             pass
 
+    array_pointing = SkyCoord(
+        az=event.mcheader.run_array_direction[0],
+        alt=event.mcheader.run_array_direction[1],
+        frame=horizon_frame
+    )
+
     if len(hillas_params) < 2:
         continue
 
-    reco_result = reco.predict(hillas_params, event.inst, point_altitude, point_azimuth)
+    reco_result = reco.predict(hillas_params, event.inst, array_pointing, telescope_pointings)
 
     # get angular offset between reconstructed shower direction and MC
     # generated shower direction
