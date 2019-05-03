@@ -8,6 +8,7 @@ from ctapipe.core import Component
 
 
 def test_non_abstract_children():
+    """ check that we can find all constructable children """
     from ctapipe.core import non_abstract_children
 
     class AbstractBase(ABC):
@@ -39,17 +40,17 @@ def test_non_abstract_children():
 
 class ExampleComponent(Component):
     """ An Example Component, this is the help text"""
-    description = "this is a test"
     param = Float(default_value=1.0,
                   help="float parameter").tag(config=True)
 
 
 class ExampleSubclass1(ExampleComponent):
-    description = "this is a test"
-
+    """ a subclass of ExampleComponent"""
+    pass
 
 class ExampleSubclass2(ExampleComponent):
-    description = "this is a test"
+    """ Another ExampleComponent """
+    description = "A shorter description"
     param = Float(default_value=3.0,
                   help="float parameter").tag(config=True)
     extra = Float(default_value=5.0,
@@ -57,6 +58,7 @@ class ExampleSubclass2(ExampleComponent):
 
 
 def test_component_is_abstract():
+    """ check that we can make an abstract component """
     class AbstractComponent(Component):
         @abstractmethod
         def test(self):
@@ -81,6 +83,7 @@ def test_component_simple():
 
 
 def test_component_kwarg_setting():
+    """ check that we can construct a component by setting traits via kwargs """
     comp = ExampleComponent(param=3)
     assert comp.param == 3
 
@@ -94,11 +97,13 @@ def test_component_kwarg_setting():
 
 
 def test_help():
+    """ check that component help strings are generated correctly """
     help_msg = ExampleComponent.class_get_help()
     assert "Default: 1.0" in help_msg
 
 
 def test_config():
+    """ check that components can be constructed by config dict """
     config = Config()
     config['ExampleComponent'] = Config()
     config['ExampleComponent']['param'] = 199.
@@ -107,6 +112,7 @@ def test_config():
 
 
 def test_config_baseclass():
+    """ check that parent and subclass configuration works """
     config = Config()
     config['ExampleComponent'] = Config()
     config['ExampleComponent']['param'] = 199.
@@ -117,6 +123,7 @@ def test_config_baseclass():
 
 
 def test_config_subclass1():
+    """check sub-class config"""
     config = Config()
     config['ExampleSubclass1'] = Config()
     config['ExampleSubclass1']['param'] = 199.
@@ -125,6 +132,7 @@ def test_config_subclass1():
 
 
 def test_config_subclass2():
+    """check another sub-class config"""
     config = Config()
     config['ExampleSubclass2'] = Config()
     config['ExampleSubclass2']['param'] = 199.
@@ -133,6 +141,7 @@ def test_config_subclass2():
 
 
 def test_config_sibling1():
+    """ check sibling config """
     config = Config()
     config['ExampleSubclass1'] = Config()
     config['ExampleSubclass1']['param'] = 199.
@@ -143,6 +152,7 @@ def test_config_sibling1():
 
 
 def test_config_sibling2():
+    """ check sibling config """
     config = Config()
     config['ExampleSubclass2'] = Config()
     config['ExampleSubclass2']['param'] = 199.
@@ -153,6 +163,7 @@ def test_config_sibling2():
 
 
 def test_config_baseclass_then_subclass():
+    """ check base and subclass config """
     config = Config()
     config['ExampleComponent'] = Config()
     config['ExampleComponent']['param'] = 199.
@@ -163,6 +174,7 @@ def test_config_baseclass_then_subclass():
 
 
 def test_config_subclass_then_baseclass():
+    """ check subclass and base config """
     config = Config()
     config['ExampleSubclass1'] = Config()
     config['ExampleSubclass1']['param'] = 229.
@@ -173,6 +185,7 @@ def test_config_subclass_then_baseclass():
 
 
 def test_config_override():
+    """ check that we can override a trait set in the config """
     config = Config()
     config['ExampleComponent'] = Config()
     config['ExampleComponent']['param'] = 199.
@@ -181,6 +194,7 @@ def test_config_override():
 
 
 def test_config_override_subclass():
+    """ check that we can override a trait set in the config """
     config = Config()
     config['ExampleComponent'] = Config()
     config['ExampleComponent']['param'] = 199.
@@ -189,12 +203,14 @@ def test_config_override_subclass():
 
 
 def test_extra():
+    """ check that traits are settable """
     comp = ExampleSubclass2(extra=229.)
     assert comp.has_trait('extra') is True
     assert comp.extra == 229.
 
 
 def test_extra_config():
+    """ check setting trait via config """
     config = Config()
     config['ExampleSubclass2'] = Config()
     config['ExampleSubclass2']['extra'] = 229.
@@ -203,11 +219,16 @@ def test_extra_config():
 
 
 def test_extra_missing():
+    """ check that setting an incorrect trait raises an exception """
     with pytest.raises(TraitError):
         ExampleSubclass1(extra=229.)
 
 
 def test_extra_config_missing():
+    """
+    check that setting an incorrect trait via config also raises
+    an exception
+    """
     config = Config()
     config['ExampleSubclass1'] = Config()
     config['ExampleSubclass1']['extra'] = 199.
@@ -219,21 +240,25 @@ def test_extra_config_missing():
 
 
 def test_default():
+    """ check default values work"""
     comp = ExampleComponent()
     assert comp.param == 1.
 
 
 def test_default_subclass():
+    """ check default values work in subclasses"""
     comp = ExampleSubclass1()
     assert comp.param == 1.
 
 
 def test_default_subclass_override():
+    """ check overrides work in subclasses"""
     comp = ExampleSubclass2()
     assert comp.param == 3.
 
 
 def test_change_default():
+    """ check we can change a default value"""
     old_default = ExampleComponent.param.default_value
     ExampleComponent.param.default_value = 199.
     comp = ExampleComponent()
@@ -242,6 +267,7 @@ def test_change_default():
 
 
 def test_change_default_subclass():
+    """ check we can change a default value in subclass """
     old_default = ExampleComponent.param.default_value
     ExampleComponent.param.default_value = 199.
     comp = ExampleSubclass1()
@@ -250,6 +276,7 @@ def test_change_default_subclass():
 
 
 def test_change_default_subclass_override():
+    """ check override default value  """
     old_default = ExampleComponent.param.default_value
     ExampleComponent.param.default_value = 199.
     comp = ExampleSubclass2()
@@ -258,6 +285,7 @@ def test_change_default_subclass_override():
 
 
 def test_help_changed_default():
+    """ check that the help text is updated if the default is changed """
     old_default = ExampleComponent.param.default_value
     ExampleComponent.param.default_value = 199.
     help_msg = ExampleComponent.class_get_help()
@@ -290,6 +318,7 @@ def test_component_current_config():
 
 
 def test_component_html_repr():
+    """ check the HTML repr for Jupyter notebooks """
     comp = ExampleComponent()
     html = comp._repr_html_()
     assert len(html) > 10

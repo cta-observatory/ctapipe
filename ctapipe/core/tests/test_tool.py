@@ -25,6 +25,7 @@ def test_tool_simple():
 
 
 def test_tool_version():
+    """ check that the tool gets an automatic version string"""
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
@@ -34,6 +35,7 @@ def test_tool_version():
 
 
 def test_export_config_to_yaml():
+    """ test that we can export a Tool's config to YAML"""
     import yaml
     from ctapipe.tools.camdemo import CameraDemo
 
@@ -48,6 +50,7 @@ def test_export_config_to_yaml():
 
 
 def test_tool_html_rep():
+    """ check that the HTML rep for Jupyter notebooks works"""
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
@@ -63,6 +66,7 @@ def test_tool_html_rep():
 
 
 def test_tool_current_config():
+    """ Check that we can get the full instance configuration """
     class MyTool(Tool):
         description = "test"
         userparam = Float(5.0, help="parameter").tag(config=True)
