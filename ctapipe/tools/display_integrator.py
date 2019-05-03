@@ -278,13 +278,11 @@ class DisplayIntegrator(Tool):
                 parent=self,
             )
         )
-        self.dl0 = self.add_component(CameraDL0Reducer(parent=self))
-        self.dl1 = self.add_component(
-            CameraDL1Calibrator(extractor=self.extractor, parent=self)
-        )
-        self.calibrate = CameraCalibrator(
-            parent=self,
-            image_extractor=self.extractor,
+        self.calibrate = self.add_component(
+            CameraCalibrator(
+                parent=self,
+                image_extractor=self.extractor,
+            )
         )
 
     def start(self):
@@ -294,7 +292,7 @@ class DisplayIntegrator(Tool):
         event = self.eventseeker[event_num]
 
         # Calibrate
-        self.calibrator(event)
+        self.calibrate(event)
 
         # Select telescope
         tels = list(event.r0.tels_with_data)
