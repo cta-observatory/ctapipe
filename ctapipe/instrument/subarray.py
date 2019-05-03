@@ -236,7 +236,7 @@ class SubarrayDescription:
 
         with quantity_support():
             for tel_type in types:
-                tels = tab[tab['tel_description'] == str(tel_type)]['id']
+                tels = tab[tab['tel_description'] == str(tel_type)]['tel_id']
                 sub = self.select_subarray(tel_type, tels)
                 tel_coords = sub.tel_coords
                 radius = np.array([
