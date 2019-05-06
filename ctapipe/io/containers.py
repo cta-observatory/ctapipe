@@ -80,31 +80,27 @@ class InstrumentContainer(Container):
 
 
 class DL1CameraContainer(Container):
-    """Storage of output of camera calibration e.g the final calibrated
-    image in intensity units and other per-event calculated
-    calibration information.
+    """
+    Storage of output of camera calibration e.g the final calibrated
+    image in intensity units and the pulse time.
     """
     image = Field(
         None,
-        "np array of camera image, after waveform integration (N_pix)"
+        "Numpy array of camera image, after waveform extraction."
+        "Shape: (n_chan, n_pixel)"
     )
-    gain_channel = Field(None, "boolean numpy array of which gain channel was "
-                               "used for each pixel in the image ")
-    extracted_samples = Field(
+    pulse_time = Field(
         None,
-        "numpy array of bools indicating which samples were included in the "
-        "charge extraction as a result of the charge extractor chosen. "
-        "Shape=(nchan, npix, nsamples)."
+        "Numpy array containing position of the pulse as determined by "
+        "the extractor."
+        "Shape: (n_chan, n_pixel, n_samples)"
     )
-    peakpos = Field(
+    #TODO: Remove when gain selection added?
+    gain_channel = Field(
         None,
-        "numpy array containing position of the peak as determined by "
-        "the peak-finding algorithm for each pixel"
+        "boolean numpy array of which gain channel was used for each pixel "
+        "in the image "
     )
-    cleaned = Field(
-        None, "numpy array containing the waveform after cleaning"
-    )
-
 
 class CameraCalibrationContainer(Container):
     """
@@ -128,15 +124,10 @@ class R0CameraContainer(Container):
     trigger_type = Field(0o0, "camera's event trigger type if applicable")
     num_trig_pix = Field(0, "Number of trigger groups (sectors) listed")
     trig_pix_id = Field(None, "pixels involved in the camera trigger")
-    image = Field(None, (
-        "numpy array containing integrated ADC data "
-        "(n_channels x n_pixels) DEPRECATED"
-    ))  # to be removed, since this doesn't exist in real data and useless in mc
     waveform = Field(None, (
         "numpy array containing ADC samples"
         "(n_channels x n_pixels, n_samples)"
     ))
-    num_samples = Field(None, "number of time samples for telescope")
 
 
 class R0Container(Container):

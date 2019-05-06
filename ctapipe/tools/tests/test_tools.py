@@ -19,8 +19,11 @@ def test_muon_reconstruction(tmpdir):
     )
     assert return_code == 0
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
-def test_display_summed_imaged(tmpdir):
+
+def test_display_summed_images(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
     mpl.use('Agg')
     return_code = ImageSumDisplayerTool().run(
@@ -30,6 +33,9 @@ def test_display_summed_imaged(tmpdir):
         )
     )
     assert return_code == 0
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_display_integrator(tmpdir):
@@ -42,6 +48,9 @@ def test_display_integrator(tmpdir):
         )
     )
     assert return_code == 0
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_display_events_single_tel(tmpdir):
@@ -56,6 +65,9 @@ def test_display_events_single_tel(tmpdir):
     )
     assert return_code == 0
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_display_dl1(tmpdir):
     from ctapipe.tools.display_dl1 import DisplayDL1Calib
@@ -67,6 +79,9 @@ def test_display_dl1(tmpdir):
         )
     )
     assert return_code == 0
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_info():
@@ -89,6 +104,9 @@ def test_dump_triggers(tmpdir):
     assert return_code == 0
     assert outfile.exists()
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_dump_instrument(tmpdir):
     from ctapipe.tools.dump_instrument import DumpInstrumentTool
@@ -105,6 +123,9 @@ def test_dump_instrument(tmpdir):
     print(tmpdir.listdir())
     assert tmpdir.join('FlashCam.camgeom.fits.gz').exists()
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_camdemo():
     from ctapipe.tools.camdemo import CameraDemo
@@ -116,6 +137,9 @@ def test_camdemo():
     return_code = tool.run(argv=[])
     assert return_code == 0
 
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
+
 
 def test_bokeh_file_viewer():
     from ctapipe.tools.bokeh.file_viewer import BokehFileViewer
@@ -125,6 +149,9 @@ def test_bokeh_file_viewer():
     return_code = tool.run()
     assert return_code == 0
     assert tool.reader.input_url == get_dataset_path("gamma_test_large.simtel.gz")
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_extract_charge_resolution(tmpdir):
@@ -137,10 +164,13 @@ def test_extract_charge_resolution(tmpdir):
     with pytest.raises(KeyError):
         tool.run([
             '-f', GAMMA_TEST_LARGE,
-            '-o', output_path,
+            '-O', output_path,
         ])
     # TODO: Test files do not contain true charge, cannot test tool fully
     # assert os.path.exists(output_path)
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])
 
 
 def test_plot_charge_resolution(tmpdir):
@@ -157,3 +187,6 @@ def test_plot_charge_resolution(tmpdir):
     ])
     assert return_code == 0
     assert os.path.exists(output_path)
+
+    with pytest.raises(SystemExit):
+        tool.run(['--help-all'])

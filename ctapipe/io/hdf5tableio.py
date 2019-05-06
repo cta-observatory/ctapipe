@@ -1,3 +1,5 @@
+'''Implementations of TableWriter and -Reader for HDF5 files'''
+import enum
 from functools import partial
 
 import numpy as np
@@ -150,6 +152,14 @@ class HDF5TableWriter(TableWriter):
                     )
                     continue
 
+                if isinstance(value, enum.Enum):
+                    def transform(enum_value):
+                        '''transform enum instance into its (integer) value'''
+                        return enum_value.value
+                    meta[f'{col_name}_ENUM'] = value.__class__
+                    value = transform(value)
+                    self.add_column_transform(table_name, col_name, transform)
+
                 if isinstance(value, Quantity):
                     if self.add_prefix and container.prefix:
                         key = col_name.replace(container.prefix + '_', '')
@@ -184,6 +194,7 @@ class HDF5TableWriter(TableWriter):
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
                     Schema.columns[col_name] = coltype()
+
 
                 self.log.debug("Table %s: added col: %s type: %s shape: %s",
                                table_name, col_name, typename, shape)
@@ -331,6 +342,21 @@ class HDF5TableReader(TableReader):
                 colname = attr[:-5]
                 tr = partial(tr_add_unit, unitname=tab.attrs[attr])
                 self.add_column_transform(table_name, colname, tr)
+
+        for attr in tab.attrs._f_list():
+            if attr.endswith("_ENUM"):
+                colname = attr[:-5]
+
+                def transform_int_to_enum(int_val):
+                    '''transform integer 'code' into enum instance'''
+                    enum_class = tab.attrs[attr]
+                    return enum_class(int_val)
+
+                self.add_column_transform(
+                    table_name,
+                    colname,
+                    transform_int_to_enum
+                )
 
     def _map_table_to_container(self, table_name, container):
         """ identifies which columns in the table to read into the container,

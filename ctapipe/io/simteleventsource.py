@@ -17,16 +17,55 @@ from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
+from gzip import GzipFile
+from io import BufferedReader
 
 __all__ = ['SimTelEventSource']
 
 
+def build_camera_geometry(cam_settings, telescope):
+    pixel_shape = cam_settings['pixel_shape'][0]
+    try:
+        pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
+    except ValueError:
+        warnings.warn(
+            f'Unkown pixel_shape {pixel_shape} for camera_type {telescope.camera_name}',
+            UnknownPixelShapeWarning,
+        )
+        pix_type = 'hexagon'
+        pix_rotation = '0d'
+
+    camera = CameraGeometry(
+        telescope.camera_name,
+        pix_id=np.arange(cam_settings['n_pixels']),
+        pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
+        pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
+        pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
+        pix_type=pix_type,
+        pix_rotation=pix_rotation,
+        cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
+        apply_derotation=True,
+
+    )
+
+    return camera
+
+
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
+    back_seekable = Bool(
+        False,
+        help=(
+            'Require the event source to be backwards seekable.'
+            ' This will reduce in slower read speed for gzipped files'
+            ' and is not possible for zstd compressed files'
+        )
+    ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.metadata['is_simulation'] = True
+        self._camera_cache = {}
 
         # traitlets creates an empty set as default,
         # which ctapipe treats as no restriction on the telescopes
@@ -35,8 +74,11 @@ class SimTelEventSource(EventSource):
         self.file_ = SimTelFile(
             self.input_url,
             allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
-            skip_calibration=self.skip_calibration_events
+            skip_calibration=self.skip_calibration_events,
+            zcat=not self.back_seekable,
         )
+        if self.back_seekable and self.is_stream:
+            raise IOError('back seekable was required but not possible for inputfile')
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions,
@@ -44,8 +86,11 @@ class SimTelEventSource(EventSource):
         )
         self.start_pos = self.file_.tell()
 
-    @staticmethod
-    def prepare_subarray_info(telescope_descriptions, header):
+    @property
+    def is_stream(self):
+        return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
+
+    def prepare_subarray_info(self, telescope_descriptions, header):
         """
         Constructs a SubarrayDescription object from the
         ``telescope_descriptions`` given by ``SimTelFile``
@@ -77,33 +122,14 @@ class SimTelEventSource(EventSource):
             except ValueError:
                 telescope = UNKNOWN_TELESCOPE
 
-            pixel_shape = cam_settings['pixel_shape'][0]
-            try:
-                pix_type, pix_rotation = CameraGeometry.simtel_shape_to_type(pixel_shape)
-            except ValueError:
-                warnings.warn(
-                    f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
-                    UnknownPixelShapeWarning,
-                )
-                pix_type = 'hexagon'
-                pix_rotation = '0d'
-
-            camera = CameraGeometry(
-                telescope.camera_name,
-                pix_id=np.arange(n_pixels),
-                pix_x=u.Quantity(cam_settings['pixel_x'], u.m),
-                pix_y=u.Quantity(cam_settings['pixel_y'], u.m),
-                pix_area=u.Quantity(cam_settings['pixel_area'], u.m**2),
-                pix_type=pix_type,
-                pix_rotation=pix_rotation,
-                cam_rotation=-Angle(cam_settings['cam_rot'], u.rad),
-                apply_derotation=True,
-
-            )
+            camera = self._camera_cache.get(telescope.camera_name)
+            if camera is None:
+                camera = build_camera_geometry(cam_settings, telescope)
+                self._camera_cache[telescope.camera_name] = camera
 
             optics = OpticsDescription(
                 name=telescope.name,
-                num_mirrors=cam_settings['n_mirrors'],
+                num_mirrors=telescope.n_mirrors,
                 equivalent_focal_length=focal_length,
                 mirror_area=u.Quantity(cam_settings['mirror_area'], u.m**2),
                 num_mirror_tiles=cam_settings['n_mirrors'],
@@ -213,21 +239,8 @@ class SimTelEventSource(EventSource):
                 adc_samples = telescope_event.get('adc_samples')
                 if adc_samples is None:
                     adc_samples = telescope_event['adc_sums'][:, :, np.newaxis]
-
-                r0 = data.r0.tel[tel_id]
-                r0.waveform = adc_samples
-                r0.num_samples = adc_samples.shape[-1]
-                # We should not calculate stuff in an event source
-                # if this is not needed, we calculate it for nothing
-                r0.image = adc_samples.sum(axis=-1)
-
-                pixel_lists = telescope_event['pixel_lists']
-                r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
-                if r0.num_trig_pix > 0:
-                    r0.trig_pix_id = pixel_lists[0]['pixel_list']
-
+                _, n_pixels, n_samples = adc_samples.shape
                 pixel_settings = telescope_description['pixel_settings']
-                n_pixel = r0.waveform.shape[-2]
 
                 mc = data.mc.tel[tel_id]
                 mc.dc_to_pe = array_event['laser_calibrations'][tel_id]['calib']
@@ -239,7 +252,7 @@ class SimTelEventSource(EventSource):
                     array_event
                     .get('photoelectrons', {})
                     .get(tel_index, {})
-                    .get('photoelectrons', np.zeros(n_pixel, dtype='float32'))
+                    .get('photoelectrons', np.zeros(n_pixels, dtype='float32'))
                 )
 
                 tracking_position = tracking_positions[tel_id]
@@ -247,6 +260,19 @@ class SimTelEventSource(EventSource):
                 mc.altitude_raw = tracking_position['altitude_raw']
                 mc.azimuth_cor = tracking_position.get('azimuth_cor', 0)
                 mc.altitude_cor = tracking_position.get('altitude_cor', 0)
+
+                r0 = data.r0.tel[tel_id]
+                r1 = data.r1.tel[tel_id]
+                r0.waveform = adc_samples
+                ped = mc.pedestal[..., np.newaxis] / n_samples
+                gain = mc.dc_to_pe[..., np.newaxis]
+                r1.waveform = (adc_samples - ped) * gain
+
+                pixel_lists = telescope_event['pixel_lists']
+                r0.num_trig_pix = pixel_lists.get(0, {'pixels': 0})['pixels']
+                if r0.num_trig_pix > 0:
+                    r0.trig_pix_id = pixel_lists[0]['pixel_list']
+
             yield data
 
     def fill_mc_information(self, data, array_event):

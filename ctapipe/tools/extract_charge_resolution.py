@@ -14,11 +14,9 @@ import ctapipe.utils.tools as tool_utils
 
 from ctapipe.analysis.camera.charge_resolution import \
     ChargeResolutionCalculator
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import HESSIOR1Calibrator
+from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool, Provenance
-from ctapipe.image.charge_extractors import ChargeExtractor
+from ctapipe.image.extractor import ImageExtractor
 
 from ctapipe.io.simteleventsource import SimTelEventSource
 
@@ -36,8 +34,8 @@ class ChargeResolutionGenerator(Tool):
         help='Path to store the output HDF5 file'
     ).tag(config=True)
     extractor_product = tool_utils.enum_trait(
-        ChargeExtractor,
-        default='NeighbourPeakIntegrator'
+        ImageExtractor,
+        default='NeighborPeakWindowSum'
     )
 
     aliases = Dict(dict(
@@ -45,59 +43,41 @@ class ChargeResolutionGenerator(Tool):
         max_events='SimTelEventSource.max_events',
         T='SimTelEventSource.allowed_tels',
         extractor='ChargeResolutionGenerator.extractor_product',
-        window_width='WindowIntegrator.window_width',
-        window_shift='WindowIntegrator.window_shift',
-        t0='SimpleIntegrator.t0',
-        sig_amp_cut_HG='PeakFindngIntegrator.sig_amp_cut_HG',
-        sig_amp_cut_LG='PeakFindngIntegrator.sig_amp_cut_LG',
-        lwt='NeighbourPeakIntegrator.lwt',
-        clip_amplitude='CameraDL1Calibrator.clip_amplitude',
-        radius='CameraDL1Calibrator.radius',
-        max_pe='ChargeResolutionCalculator.max_pe',
         O='ChargeResolutionGenerator.output_path',
     ))
 
     classes = List(
         [
             SimTelEventSource,
-            CameraDL1Calibrator,
-            ChargeResolutionCalculator
-        ] + tool_utils.classes_with_traits(ChargeExtractor)
+        ] + tool_utils.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.eventsource = None
-        self.r1 = None
-        self.dl0 = None
-        self.dl1 = None
+        self.calibrator = None
         self.calculator = None
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
-        kwargs = dict(config=self.config, parent=self)
 
-        self.eventsource = SimTelEventSource(**kwargs)
+        self.eventsource = SimTelEventSource(parent=self)
 
-        extractor = ChargeExtractor.from_name(
+        extractor = ImageExtractor.from_name(
             self.extractor_product,
-            **kwargs
+            parent=self
         )
 
-        self.r1 = HESSIOR1Calibrator(**kwargs)
-
-        self.dl0 = CameraDL0Reducer(**kwargs)
-
-        self.dl1 = CameraDL1Calibrator(extractor=extractor, **kwargs)
-
+        self.calibrator = CameraCalibrator(
+            parent=self,
+            image_extractor=extractor,
+        )
         self.calculator = ChargeResolutionCalculator()
 
     def start(self):
         desc = "Extracting Charge Resolution"
         for event in tqdm(self.eventsource, desc=desc):
-            self.r1.calibrate(event)
-            self.dl0.reduce(event)
-            self.dl1.calibrate(event)
+            self.calibrator(event)
 
             # Check events have true charge included
             if event.count == 0:
