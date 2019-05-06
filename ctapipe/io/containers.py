@@ -619,6 +619,7 @@ class TimingParametersContainer(Container):
     slope = Field(nan, 'Slope of arrival times along main shower axis')
     intercept = Field(nan, 'intercept of arrival times along main shower axis')
 
+
 class FlatFieldContainer(Container):
     """
     Container for flat-field parameters obtained from a set of
@@ -755,7 +756,7 @@ class WaveformCalibrationContainer(Container):
         unit=u.s
     )
 
-    dc_to_phe = Field(
+    dc_to_pe = Field(
         None,
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)"
     )
@@ -765,7 +766,7 @@ class WaveformCalibrationContainer(Container):
         "np array of time correction values (n_chan, n_pix)"
     )
 
-    n_phe = Field(
+    n_pe = Field(
         None,
         "np array of photo-electrons in calibration signal (n_chan, n_pix)"
     )
