@@ -2,7 +2,6 @@ import numpy as np
 from ctapipe.calib.camera.flatfield import *
 from ctapipe.io.containers import EventAndMonDataContainer
 
-
 def test_flasherflatfieldcalculator():
     tel_id = 0
     n_events = 10
