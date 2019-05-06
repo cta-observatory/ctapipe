@@ -40,7 +40,6 @@ class BaseTemplate:
         # First lets store the unique zeniths and azimuths stored in our table
         zeniths = np.sort(np.unique(keys.T[0]))
         azimuths = np.sort(np.unique(keys.T[1]))
-
         # Assuming these are created on a grid create an array to hold the unstructured
         # interpolator objects for each zenith and azimuth
         # Don't create any yet though as they are slow!
@@ -127,6 +126,7 @@ class BaseTemplate:
         None
         """
         # Get our requested zenith and azimuth
+
         zenith = self.zeniths[zenith_bin]
         azimuth = self.azimuths[azimuth_bin]
 
@@ -157,6 +157,7 @@ class BaseTemplate:
         -------
 
         """
+
         zenith_bounds, azimuth_bounds = self._get_bounds(zenith, azimuth)
 
         zenith_lower, zenith_upper = zenith_bounds
@@ -167,6 +168,9 @@ class BaseTemplate:
             self._create_interpolator(zenith_lower, azimuth_lower)
         evaluate_azimuth_lower1 = self.interpolator[zenith_lower][azimuth_lower]\
             (interpolation_array, points)
+
+        if len(self.zeniths) == 1 and len(self.zeniths) == 1:
+            return evaluate_azimuth_lower1
 
         if self.interpolator[zenith_upper][azimuth_lower] is None:
             self._create_interpolator(zenith_upper, azimuth_lower)

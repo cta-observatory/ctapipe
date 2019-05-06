@@ -74,15 +74,17 @@ class HillasIntersection(Reconstructor):
 
         """
         src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_parameters)
+        print(src_x, src_y)
+
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
             hillas_parameters, tel_x, tel_y)
         err_x *= u.rad
         err_y *= u.rad
 
         nom = SkyCoord(
-            x=src_x * u.rad,
-            y=src_y * u.rad,
-            frame=NominalFrame(array_direction=array_direction)
+            delta_alt=src_x * u.rad,
+            delta_az=src_y * u.rad,
+            frame=NominalFrame(origin=array_direction)
         )
         horiz = nom.transform_to(AltAz())
 
@@ -99,7 +101,7 @@ class HillasIntersection(Reconstructor):
         result.core_y = grd.y
 
         x_max = self.reconstruct_xmax(
-            nom.x, nom.y,
+            nom.delta_alt, nom.delta_az,
             tilt.x, tilt.y,
             hillas_parameters,
             tel_x, tel_y,
@@ -149,8 +151,8 @@ class HillasIntersection(Reconstructor):
         h1 = list(
             map(
                 lambda h: [h[0].psi.to(u.rad).value,
-                           h[0].x.value,
-                           h[0].y.value,
+                           h[0].x.to(u.rad).value,
+                           h[0].y.to(u.rad).value,
                            h[0].intensity], hillas_pairs
             )
         )
@@ -159,8 +161,8 @@ class HillasIntersection(Reconstructor):
 
         h2 = list(
             map(lambda h: [h[1].psi.to(u.rad).value,
-                           h[1].x.value,
-                           h[1].y.value,
+                           h[1].x.to(u.rad).value,
+                           h[1].y.to(u.rad).value,
                            h[1].intensity], hillas_pairs)
         )
         h2 = np.array(h2)

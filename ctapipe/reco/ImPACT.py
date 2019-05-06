@@ -28,6 +28,8 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.utils.template_network_interpolator import TemplateNetworkInterpolator, \
     TimeGradientInterpolator
 
+import matplotlib.pyplot as plt
+
 __all__ = ['ImPACTReconstructor', 'energy_prior', 'xmax_prior', 'guess_shower_depth']
 
 
@@ -176,7 +178,7 @@ class ImPACTReconstructor(Reconstructor):
             if self.use_shower_variance:
                 self.rms_prediction[tel_type[t]] = \
                     TemplateNetworkInterpolator(self.root_dir + "/" +
-                                             self.file_names[tel_type[t]][3])
+                                             self.file_names[tel_type[t]][2])
         return True
 
     def get_hillas_mean(self):
@@ -339,7 +341,8 @@ class ImPACTReconstructor(Reconstructor):
         return self.prediction[tel_type](zenith, azimuth, energy, impact, x_max,
                                          pix_x, pix_y)
 
-    def image_rms_prediction(self, tel_type, energy, impact, x_max, pix_x, pix_y):
+    def image_rms_prediction(self, tel_type, zenith, azimuth, energy, impact, x_max,
+                             pix_x, pix_y):
         """Creates predicted image RMS for the specified pixels, interpolated
         from the template library.
 
@@ -347,6 +350,10 @@ class ImPACTReconstructor(Reconstructor):
         ----------
         tel_type: string
             Telescope type specifier
+        zenith: float
+            Zenith angle of shower
+        azimuth: float
+            Azimuth angle of shower
         energy: float
             Event energy (TeV)
         impact: float
@@ -364,7 +371,8 @@ class ImPACTReconstructor(Reconstructor):
 
         """
 
-        return self.rms_prediction[tel_type](energy, impact, x_max, pix_x, pix_y)
+        return np.sqrt(self.rms_prediction[tel_type](zenith, azimuth, energy, impact,
+                                                     x_max, pix_x, pix_y))
 
     def predict_time(self, tel_type, energy, impact, x_max):
         """Creates predicted image for the specified pixels, interpolated
@@ -435,8 +443,8 @@ class ImPACTReconstructor(Reconstructor):
         x_max_bin = x_max - x_max_exp
 
         # Check for range
-        if x_max_bin > 200:
-            x_max_bin = 200
+        if x_max_bin > 150:
+            x_max_bin = 150
         if x_max_bin < -100:
             x_max_bin = -100
 
@@ -471,24 +479,26 @@ class ImPACTReconstructor(Reconstructor):
         for tel_type in np.unique(self.tel_types).tolist():
             type_mask = self.tel_types == tel_type
             prediction[type_mask] = \
-                self.image_prediction(tel_type, energy *
+                self.image_prediction(tel_type, zenith * (180 / math.pi),
+                                      azimuth.to(u.deg).value, energy *
                                       np.ones_like(impact[type_mask]),
                                       impact[type_mask], x_max_bin *
                                       np.ones_like(impact[type_mask]),
-                                      pix_x_rot[type_mask] * (180 / math.pi) * -1,
-                                      pix_y_rot[type_mask] * (180 / math.pi))
+                                      pix_y_rot[type_mask] * (180 / math.pi),
+                                      pix_x_rot[type_mask] * (180 / math.pi)*-1)
 
             if self.use_shower_variance:
                 rms_prediction[type_mask] = \
-                    self.image_prediction(tel_type, energy *
-                                          np.ones_like(impact[type_mask]),
-                                          impact[type_mask], x_max_bin *
-                                          np.ones_like(impact[type_mask]),
-                                          pix_x_rot[type_mask] * (180 / math.pi) * -1,
-                                          pix_y_rot[type_mask] * (180 / math.pi))
+                    self.image_rms_prediction(tel_type, zenith * (180 / math.pi),
+                                              azimuth.to(u.deg).value, energy *
+                                              np.ones_like(impact[type_mask]),
+                                              impact[type_mask], x_max_bin *
+                                              np.ones_like(impact[type_mask]),
+                                              pix_y_rot[type_mask] * (180 / math.pi),
+                                              pix_x_rot[type_mask] * (180 / math.pi)*-1)
             if self.use_time_gradient:
                 time_gradients[type_mask] = \
-                    self.image_rms_prediction(tel_type,
+                    self.predict_time(tel_type,
                                               energy * np.ones_like(impact[type_mask]),
                                               impact[type_mask],
                                                x_max_bin * np.ones_like(impact[
@@ -512,15 +522,25 @@ class ImPACTReconstructor(Reconstructor):
             chi2 = -2 * np.log(rv.pdf((time_fit - time_gradients.T[0])/
                                         time_gradients.T[1]))
 
+
+
         # Likelihood function will break if we find a NaN or a 0
         prediction[np.isnan(prediction)] = 1e-8
         prediction[prediction < 1e-8] = 1e-8
         prediction *= self.template_scale
 
         if self.use_shower_variance:
-            rms_prediction *= self.template_scale
+            #rms_prediction *= self.template_scale
             like = shower_fluctuation_likelihood_gaussian(self.image, prediction,
                                                           rms_prediction, self.ped)
+
+            #fig, (ax1, ax2) = plt.subplots(1, 2)
+            #ax1.scatter(pix_x_rot[0] * (180 / math.pi), pix_y_rot[0] * (180 / math.pi),
+            #            c=self.image[0])
+            #ax2.scatter(pix_x_rot[0] * (180 / math.pi), pix_y_rot[0] * (180 / math.pi),
+            #            c=rms_prediction[0])
+            #plt.show()
+
         else:
             # Get likelihood that the prediction matched the camera image
             like = poisson_likelihood_gaussian(self.image, prediction, self.spe, self.ped)
@@ -705,6 +725,7 @@ class ImPACTReconstructor(Reconstructor):
 
         source_x = nominal_seed.delta_az.to_value(u.rad)
         source_y = nominal_seed.delta_alt.to_value(u.rad)
+
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
         tilted = ground.transform_to(
@@ -721,7 +742,7 @@ class ImPACTReconstructor(Reconstructor):
 
         seed_list = spread_line_seed(self.hillas_parameters,
                                      self.tel_pos_x, self.tel_pos_y,
-                                     source_x[0], source_y[0], tilt_x, tilt_y,
+                                     source_x, source_y, tilt_x, tilt_y,
                                      energy_seed.energy.value,
                                      shift_frac = shift)
 
@@ -738,8 +759,8 @@ class ImPACTReconstructor(Reconstructor):
         # Convert the best fits direction and core to Horizon and ground systems and
         # copy to the shower container
         nominal = SkyCoord(
-            x=fit_params[0] * u.rad,
-            y=fit_params[1] * u.rad,
+            delta_alt=fit_params[0] * u.rad,
+            delta_az=fit_params[1] * u.rad,
             frame=NominalFrame(origin=self.array_direction)
         )
         horizon = nominal.transform_to(AltAz())
