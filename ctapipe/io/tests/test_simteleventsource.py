@@ -70,7 +70,7 @@ def test_compare_event_hessio_and_simtel():
 
 
 def test_simtel_event_source_on_gamma_test_one_event():
-    with SimTelEventSource(input_url=gamma_test_large_path) as reader:
+    with SimTelEventSource(input_url=gamma_test_large_path, back_seekable=True) as reader:
         assert reader.is_compatible(gamma_test_large_path)
         assert not reader.is_stream
 
@@ -158,9 +158,11 @@ def test_additional_meta_data_from_mc_header():
 
 def test_hessio_file_reader():
     dataset = gamma_test_path
+
     with SimTelEventSource(input_url=dataset) as reader:
         assert reader.is_compatible(dataset)
-        assert not reader.is_stream
+        assert reader.is_stream  # using gzip subprocess makes it a stream
+
         for event in reader:
             if event.count == 0:
                 assert event.r0.tels_with_data == {38, 47}
@@ -169,10 +171,6 @@ def test_hessio_file_reader():
                                                    119}
             else:
                 break
-        for event in reader:
-            # Check generator has restarted from beginning
-            assert event.count == 0
-            break
 
     # test that max_events works:
     max_events = 5

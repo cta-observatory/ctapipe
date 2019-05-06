@@ -17,6 +17,8 @@ from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
+from gzip import GzipFile
+from io import BufferedReader
 
 __all__ = ['SimTelEventSource']
 
@@ -51,6 +53,14 @@ def build_camera_geometry(cam_settings, telescope):
 
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
+    back_seekable = Bool(
+        False,
+        help=(
+            'Require the event source to be backwards seekable.'
+            ' This will reduce in slower read speed for gzipped files'
+            ' and is not possible for zstd compressed files'
+        )
+    ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -64,14 +74,21 @@ class SimTelEventSource(EventSource):
         self.file_ = SimTelFile(
             self.input_url,
             allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
-            skip_calibration=self.skip_calibration_events
+            skip_calibration=self.skip_calibration_events,
+            zcat=not self.back_seekable,
         )
+        if self.back_seekable and self.is_stream:
+            raise IOError('back seekable was required but not possible for inputfile')
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions,
             self.file_.header
         )
         self.start_pos = self.file_.tell()
+
+    @property
+    def is_stream(self):
+        return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """

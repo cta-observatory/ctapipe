@@ -52,9 +52,10 @@ class ImageSumDisplayerTool(Tool):
         # load up the telescope types table (need to first open a file, a bit of
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
+        # make sure gzip files are seekable
 
         self.reader = SimTelEventSource(
-            input_url=self.infile, max_events=self.max_events
+            input_url=self.infile, max_events=self.max_events, back_seekable=True
         )
 
         for event in self.reader:
