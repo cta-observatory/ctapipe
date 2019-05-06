@@ -533,13 +533,10 @@ class ImPACTReconstructor(Reconstructor):
             #rms_prediction *= self.template_scale
             like = shower_fluctuation_likelihood_gaussian(self.image, prediction,
                                                           rms_prediction, self.ped)
+            likep = poisson_likelihood_gaussian(self.image, prediction, self.spe,
+                                                self.ped)
 
-            #fig, (ax1, ax2) = plt.subplots(1, 2)
-            #ax1.scatter(pix_x_rot[0] * (180 / math.pi), pix_y_rot[0] * (180 / math.pi),
-            #            c=self.image[0])
-            #ax2.scatter(pix_x_rot[0] * (180 / math.pi), pix_y_rot[0] * (180 / math.pi),
-            #            c=rms_prediction[0])
-            #plt.show()
+            like[likep>like] = likep[likep>like]
 
         else:
             # Get likelihood that the prediction matched the camera image
@@ -855,8 +852,8 @@ class ImPACTReconstructor(Reconstructor):
                               goodness_of_fit=False, fix_goodness_of_fit=True,
                               errordef=1)
 
-            self.min.tol *= 1000
-            self.min.set_strategy(1)
+            #self.min.tol *= 1000
+            self.min.set_strategy(2)
 
             migrad = self.min.migrad()
             fit_params = self.min.values
