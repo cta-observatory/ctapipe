@@ -1,6 +1,7 @@
 import tempfile
 
 from pytest import raises
+from traitlets import HasTraits
 
 from ctapipe.core import Component
 from ctapipe.core.traits import Path, TraitError

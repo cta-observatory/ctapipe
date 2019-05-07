@@ -1,20 +1,19 @@
 import os
-from bokeh.layouts import widgetbox, layout
-from bokeh.models import Select, TextInput, PreText, Button
-from bokeh.server.server import Server
-from bokeh.document.document import jinja2
-from bokeh.themes import Theme
-from traitlets import Dict, List, Int, Bool
 
-from ctapipe.core import traits
+from bokeh.document.document import jinja2
+from bokeh.layouts import layout, widgetbox
+from bokeh.models import Button, PreText, Select, TextInput
+from bokeh.server.server import Server
+from bokeh.themes import Theme
+from traitlets import Bool, Dict, Int, List
+
 from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Tool
+from ctapipe.core import Tool, traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
-import ctapipe.utils.tools as tool_utils
 
 
 class BokehFileViewer(Tool):
