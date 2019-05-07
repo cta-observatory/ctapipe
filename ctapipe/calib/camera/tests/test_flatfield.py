@@ -15,8 +15,8 @@ def test_flasherflatfieldcalculator():
     data = EventAndMonDataContainer()
 
     # fill the values necessary for the pedestal calculation
-    data.mon.tel[tel_id].pixel_status.hardware_mask = np.zeros(n_pixels, dtype=bool)
-    data.mon.tel[tel_id].pixel_status.pedestal_mask = np.zeros(n_pixels, dtype=bool)
+    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(n_pixels, dtype=bool)
+    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels = np.zeros(n_pixels, dtype=bool)
     data.r1.tel[tel_id].waveform = np.zeros((2, n_pixels, 40))
 
     # flat-field signal put == delta function of height ff_level at sample 20
@@ -33,7 +33,7 @@ def test_flasherflatfieldcalculator():
     # Second test: introduce some failing pixels
     failing_pixels_id = np.array([10, 20, 30, 40])
     data.r1.tel[tel_id].waveform[:, failing_pixels_id, :] = 0
-    data.mon.tel[tel_id].pixel_status.pedestal_mask[failing_pixels_id] = True
+    data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels[failing_pixels_id] = True
 
     for counts in np.arange(n_events):
         if ff_calculator.calculate_relative_gain(data):

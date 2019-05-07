@@ -727,21 +727,21 @@ class PixelStatusContainer(Container):
     """
     Container for pixel status information
     It contains masks obtained by several data analysis steps
-    At r0 level only the hardware_mask is initialized
+    At r0/r1 level only the hardware_mask is initialized
     """
-    hardware_mask = Field(
+    hardware_failing_pixels = Field(
         None,
-        "Boolean np array (mask) from the hardware pixel status data (n_chan, n_pix)"
+        "Boolean np array (True = failing pixel) from the hardware pixel status data (n_chan, n_pix)"
     )
 
-    pedestal_mask = Field(
+    pedestal_failing_pixels = Field(
         None,
-        "Boolean np array (mask) from the pedestal data analysis (n_chan, n_pix)"
+        "Boolean np array (True = failing pixel) from the pedestal data analysis (n_chan, n_pix)"
     )
 
-    flatfield_mask = Field(
+    flatfield_failing_pixels = Field(
         None,
-        "Boolean np array (mask) from the flat-flield data analysis (n_chan, n_pix)"
+        "Boolean np array (True = failing pixel) from the flat-field data analysis (n_chan, n_pix)"
     )
 
 
@@ -771,9 +771,9 @@ class WaveformCalibrationContainer(Container):
         "np array of photo-electrons in calibration signal (n_chan, n_pix)"
     )
 
-    pixel_status_mask = Field(
+    unusable_pixels = Field(
         None,
-        "Boolean np array (mask) of final calibration data analysis (n_chan, n_pix)"
+        "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)"
     )
 
 class MonitoringCameraContainer(Container):

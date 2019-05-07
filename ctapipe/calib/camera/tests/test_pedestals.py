@@ -16,7 +16,7 @@ def test_pedestal_calculator():
     data = EventAndMonDataContainer()
 
     # fill the values necessary for the pedestal calculation
-    data.mon.tel[tel_id].pixel_status.hardware_mask = np.zeros(n_pixels, dtype=bool)
+    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(n_pixels, dtype=bool)
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
 
     for counts in np.arange(n_events):
