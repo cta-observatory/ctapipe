@@ -7,7 +7,7 @@ import numpy as np
 from astropy import units as u
 from ctapipe.core import Component
 from ctapipe.image.extractor import ImageExtractor
-from ctapipe.core.traits import Int, Unicode, Float, List
+from ctapipe.core.traits import Int, Unicode, List
 
 
 __all__ = [
