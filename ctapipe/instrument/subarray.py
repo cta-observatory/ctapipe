@@ -160,7 +160,7 @@ class SubarrayDescription:
             tel_coords = self.tel_coords
 
             tab = Table(dict(
-                id=np.array(ids, dtype=np.short),
+                tel_id=np.array(ids, dtype=np.short),
                 pos_x=tel_coords.x,
                 pos_y=tel_coords.y,
                 pos_z=tel_coords.z,
@@ -236,7 +236,7 @@ class SubarrayDescription:
 
         with quantity_support():
             for tel_type in types:
-                tels = tab[tab['tel_description'] == str(tel_type)]['id']
+                tels = tab[tab['tel_description'] == str(tel_type)]['tel_id']
                 sub = self.select_subarray(tel_type, tels)
                 tel_coords = sub.tel_coords
                 radius = np.array([
