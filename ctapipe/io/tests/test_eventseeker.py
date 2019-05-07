@@ -8,7 +8,7 @@ dataset = get_dataset_path("gamma_test_large.simtel.gz")
 
 def test_eventseeker():
 
-    with SimTelEventSource(input_url=dataset) as reader:
+    with SimTelEventSource(input_url=dataset, back_seekable=True) as reader:
 
         seeker = EventSeeker(reader=reader)
 
@@ -44,7 +44,7 @@ def test_eventseeker():
         with pytest.raises(TypeError):
             event = seeker[dict()]
 
-    with SimTelEventSource(input_url=dataset, max_events=5) as reader:
+    with SimTelEventSource(input_url=dataset, max_events=5, back_seekable=True) as reader:
         seeker = EventSeeker(reader=reader)
         with pytest.raises(IndexError):
             event = seeker[5]

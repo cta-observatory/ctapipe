@@ -39,8 +39,9 @@ dependencies:
   - pytables
   - tqdm
   - conda-forge::nbsphinx
-  - eventio=0.18
   - ctapipe-extra=0.2.17
   - pytest-runner
+  - pip:
+    - eventio~=0.20.1
 
 
