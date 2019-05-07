@@ -51,9 +51,32 @@ def calc_pedestals_from_traces(traces, start_sample, end_sample):
 class PedestalCalculator(Component):
     """
     Parent class for the pedestal calculators.
-    Fills the MON.pedestal container on the base of
-    pedestal events (preliminary version)
-    """
+    Fills the MonitoringCameraContainer.PedestalContainer on the base of a given pedestal sample.
+    The sample is defined by a maximal interval of time (sample_duration) or a
+    minimal number of events (sample_duration).
+    The calculator is supposed to act in an event loop, extract and collect the
+    event charge and fill the PedestalContainer
+
+    Parameters
+    ----------
+    tel_id : int
+          id of the telescope (default 0)
+    sample_duration : int
+         interval of time (s) used to gather the pedestal statistics
+    sample_size : int
+         number of pedestal events requested for the statistics
+    n_channels : int
+         number of waveform channel to be considered
+    charge_product : str
+        Name of the charge extractor to be used
+    config : traitlets.loader.Config
+        Configuration specified by config file or cmdline arguments.
+        Used to set traitlet values.
+        Set to None if no configuration to pass.
+
+    kwargs
+
+"""
 
     tel_id = Int(
         0,
@@ -71,14 +94,6 @@ class PedestalCalculator(Component):
         2,
         help='number of channels to be treated'
     ).tag(config=True)
-    charge_median_cut_outliers = List(
-        [-3,3],
-        help='Interval (number of std) of accepted charge values around camera median value'
-    ).tag(config=True)
-    charge_std_cut_outliers = List(
-        [-3,3],
-        help='Interval (number of std) of accepted charge standard deviation around camera median value'
-    ).tag(config=True)
     charge_product= Unicode(
         'FixedWindowSum',
         help='Name of the charge extractor to be used'
@@ -89,22 +104,34 @@ class PedestalCalculator(Component):
         **kwargs
     ):
         """
-        Parent class for pedestal calculators.
-        Fills the MON.pedestal container.
+        Parent class for the pedestal calculators.
+        Fills the MonitoringCameraContainer.PedestalContainer on the base of a given pedestal sample.
+        The sample is defined by a maximal interval of time (sample_duration) or a
+        minimal number of events (sample_duration).
+        The calculator is supposed to act in an event loop, extract and collect the
+        event charge and fill the PedestalContainer
 
         Parameters
         ----------
+        tel_id : int
+              id of the telescope (default 0)
+        sample_duration : int
+             interval of time (s) used to gather the pedestal statistics
+        sample_size : int
+             number of pedestal events requested for the statistics
+        n_channels : int
+             number of waveform channel to be considered
+        charge_product : str
+            Name of the charge extractor to be used
         config : traitlets.loader.Config
             Configuration specified by config file or cmdline arguments.
             Used to set traitlet values.
             Set to None if no configuration to pass.
-        tool : ctapipe.core.Tool
-            Tool executable that is calling this component.
-            Passes the correct logger to the component.
-            Set to None if no Tool to pass.
+
         kwargs
 
-        """
+    """
+
         super().__init__(**kwargs)
 
         # load the waveform charge extractor
@@ -116,25 +143,63 @@ class PedestalCalculator(Component):
 
     @abstractmethod
     def calculate_pedestals(self, event):
-        """calculate relative gain from event
+        """
+        Calculate the pedestal statistics and fill the
+        mon.tel[tel_id].pedestal container
+
         Parameters
         ----------
-        event: DataContainer
+        event: general DataContainer
 
-        Returns: PedestalCameraContainer or None
+        Returns: True if the mon.tel[tel_id].pedestal is updated,
+                 False otherwise
 
-            None is returned if no new pedestal were calculated
-            e.g. due to insufficient statistics.
         """
 
 
 class PedestalIntegrator(PedestalCalculator):
+    """Calculates pedestal parameters integrating the charge of pedestal events:
+       the pedestal value corresponds to the charge estimated with the selected
+       charge extractor
+       The pixels are set as outliers on the base of a cut on the pixel charge median
+       over the pedestal sample and the pixel charge standard deviation over
+       the pedestal sample with respect to the camera median values
+
+
+     Parameters:
+     ----------
+     charge_median_cut_outliers : List[2]
+         Interval (number of std) of accepted charge values around camera median value
+     charge_std_cut_outliers : List[2]
+         Interval (number of std) of accepted charge standard deviation around camera median value
+
+     """
+    charge_median_cut_outliers = List(
+        [-3,3],
+        help='Interval (number of std) of accepted charge values around camera median value'
+    ).tag(config=True)
+    charge_std_cut_outliers = List(
+        [-3,3],
+        help='Interval (number of std) of accepted charge standard deviation around camera median value'
+    ).tag(config=True)
 
     def __init__(self, **kwargs):
-        """Calculates pedestal parameters from pedestal events
+        """Calculates pedestal parameters integrating the charge of pedestal events:
+           the pedestal value corresponds to the charge estimated with the selected
+           charge extractor
+           The pixels are set as outliers on the base of a cut on the pixel charge median
+           over the pedestal sample and the pixel charge standard deviation over
+           the pedestal sample with respect to the camera median values
 
-        Parameters: see base class PedestalCalculator
+
+         Parameters:
+         ----------
+         charge_median_cut_outliers : List[2]
+             Interval (number of std) of accepted charge values around camera median value
+         charge_std_cut_outliers : List[2]
+             Interval (number of std) of accepted charge standard deviation around camera median value
         """
+
         super().__init__(**kwargs)
 
         self.log.info("Used events statistics : %d", self.sample_size)
@@ -171,7 +236,9 @@ class PedestalIntegrator(PedestalCalculator):
 
     def calculate_pedestals(self, event):
         """
-        calculate the pedestal statistical values
+        calculate the pedestal statistical values from
+        the charge extracted from pedestal events
+        and fill the mon.tel[tel_id].pedestal container
 
         Parameters
         ----------
@@ -185,7 +252,7 @@ class PedestalIntegrator(PedestalCalculator):
         # real data
         if not event.mcheader.simtel_version:
             trigger_time = event.r1.tel[self.tel_id].trigger_time
-            pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_mask
+            pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
 
         else: # patches for MC data
             if event.trig.tels_with_trigger:
@@ -237,6 +304,8 @@ class PedestalIntegrator(PedestalCalculator):
             return False
 
     def setup_sample_buffers(self, waveform, sample_size):
+        """Initialize sample buffers"""
+
         n_channels = waveform.shape[0]
         n_pix = waveform.shape[1]
         shape = (sample_size, n_channels, n_pix)
@@ -246,6 +315,7 @@ class PedestalIntegrator(PedestalCalculator):
         self.sample_masked_pixels = np.zeros(shape)
 
     def collect_sample(self, charge, pixel_mask):
+        """Collect the sample data"""
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
@@ -265,7 +335,7 @@ def calculate_time_results(
     time_start,
     trigger_time,
 ):
-
+    """Calculate and return the sample time"""
     return {
         'sample_time': (trigger_time - time_start) / 2 * u.s,
         'sample_time_range': [time_start, trigger_time] * u.s,
@@ -276,6 +346,7 @@ def calculate_pedestal_results(self,
     trace_integral,
     masked_pixels_of_sample,
 ):
+    """Calculate and return the sample statistics"""
     masked_trace_integral = np.ma.array(
         trace_integral,
         mask=masked_pixels_of_sample
