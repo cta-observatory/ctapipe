@@ -5,6 +5,8 @@ from bokeh.server.server import Server
 from bokeh.document.document import jinja2
 from bokeh.themes import Theme
 from traitlets import Dict, List, Int, Bool
+
+from ctapipe.core import traits
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.image.extractor import ImageExtractor
@@ -27,7 +29,7 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    extractor_product = tool_utils.enum_trait(
+    extractor_product = traits.enum_trait(
         ImageExtractor,
         default='NeighborPeakWindowSum'
     )
@@ -43,7 +45,7 @@ class BokehFileViewer(Tool):
     classes = List(
         [
             EventSource,
-        ] + tool_utils.classes_with_traits(ImageExtractor)
+        ] + traits.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
