@@ -1,14 +1,14 @@
 """
 Calibrate dl0 data to dl1, and plot the photoelectron images.
 """
-from matplotlib import pyplot as plt, colors
+from matplotlib import colors
+from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Dict, List, Int, Bool, Unicode
+from traitlets import Bool, Dict, Int, List, Unicode
 
 import ctapipe.utils.tools as tool_utils
 from ctapipe.calib import CameraCalibrator
-from ctapipe.visualization import CameraDisplay
-from ctapipe.core import Tool, Component
+from ctapipe.core import Component, Tool
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
