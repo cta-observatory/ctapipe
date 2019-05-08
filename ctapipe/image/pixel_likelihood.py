@@ -404,6 +404,7 @@ def shower_fluctuation_likelihood_gaussian(image, prediction, shower_rms, ped):
     shower_rms = np.asarray(shower_rms)
     ped = np.asarray(ped)
 
+    shower_rms[shower_rms == 0] = 0.01
     sq = 1. / np.sqrt(2 * math.pi * (np.power(ped, 2) + np.power(shower_rms, 2)))
 
     diff = np.power(image - prediction, 2.)

@@ -106,9 +106,9 @@ class ImPACTReconstructor(Reconstructor):
         self.priors = prior
         self.minimiser_name = minimiser
 
-        self.file_names = {"CHEC": ["GCT_05deg_ada.template.gz",
+        self.file_names = {"CHEC": ["GCT_05deg_ada_ex.template.gz",
                                     "GCT_05deg_time.template.gz",
-                                    "GCT_05deg_variance.template.gz"],
+                                    "GCT_05deg_variance_ex.template.gz"],
                            "LSTCam": ["LST_05deg.template.gz",
                                       "LST_05deg_time.template.gz",
                                       "LST_05deg_variance.template.gz"],
@@ -170,7 +170,8 @@ class ImPACTReconstructor(Reconstructor):
 
             self.prediction[tel_type[t]] = \
                 TemplateNetworkInterpolator(self.root_dir + "/" +
-                                            self.file_names[tel_type[t]][0])
+                                            self.file_names[tel_type[t]][0],
+                                            bounds=((-1.5,1.5),(-5,1)))
             if self.use_time_gradient:
                 self.time_prediction[tel_type[t]] = \
                     TimeGradientInterpolator(self.root_dir + "/" +
@@ -178,7 +179,8 @@ class ImPACTReconstructor(Reconstructor):
             if self.use_shower_variance:
                 self.rms_prediction[tel_type[t]] = \
                     TemplateNetworkInterpolator(self.root_dir + "/" +
-                                             self.file_names[tel_type[t]][2])
+                                                self.file_names[tel_type[t]][2],
+                                                bounds=((-1.5,1.5),(-5,1)))
         return True
 
     def get_hillas_mean(self):
@@ -535,8 +537,22 @@ class ImPACTReconstructor(Reconstructor):
                                                           rms_prediction, self.ped)
             likep = poisson_likelihood_gaussian(self.image, prediction, self.spe,
                                                 self.ped)
+            if False:
 
-            like[likep>like] = likep[likep>like]
+                for i in range(pix_x_rot.shape[0]):
+
+                    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4, figsize=(16,4))
+                    print(like.shape)
+                    ax1.scatter(pix_x_rot[i], pix_y_rot[i], c=self.image[i],s=100)
+                    ax2.scatter(pix_x_rot[i], pix_y_rot[i], c=prediction[i],s=100)
+                    ax3.scatter(pix_x_rot[i], pix_y_rot[i], c=like[i],s=100)
+                    ax4.scatter(pix_x_rot[i], pix_y_rot[i], c=like[i]/likep[i],s=100)
+                    plt.show()
+
+            like[likep<like] = likep[likep<like]
+            like[self.image<1] = likep[self.image<1]
+
+
 
         else:
             # Get likelihood that the prediction matched the camera image
@@ -720,8 +736,8 @@ class ImPACTReconstructor(Reconstructor):
             NominalFrame(origin=self.array_direction)
         )
 
-        source_x = nominal_seed.delta_az.to_value(u.rad)
-        source_y = nominal_seed.delta_alt.to_value(u.rad)
+        source_x = nominal_seed.delta_alt.to_value(u.rad)
+        source_y = nominal_seed.delta_az.to_value(u.rad)
 
         ground = GroundFrame(x=shower_seed.core_x,
                              y=shower_seed.core_y, z=0 * u.m)
@@ -749,6 +765,26 @@ class ImPACTReconstructor(Reconstructor):
                                                  step=chosen_seed[1],
                                                  limits=chosen_seed[2],
                                                  minimiser_name=self.minimiser_name)
+        self.get_likelihood(fit_params[0], fit_params[1],
+                            fit_params[2], fit_params[3],
+                            fit_params[4], fit_params[5],
+                            goodness_of_fit=True)
+
+        # xr, yr = np.linspace(-0.2,0.2,40), np.linspace(-0.2,0.2,40)
+        # lm = np.zeros((40,40))
+        # for i in range(xr.shape[0]):
+        #     for j in range(yr.shape[0]):
+        #         lm[i][j] = self.get_likelihood(yr[i]/57.3, xr[j]/57.3,
+        #                                        fit_params[2], fit_params[3],
+        #                                        fit_params[4], fit_params[5],
+        #                                        goodness_of_fit=True)
+        #
+        # plt.contour(xr, yr, lm, levels=100)
+        # plt.plot(fit_params[1]*57.3, fit_params[0]*57.3, 'b+')
+        # plt.plot(source_y * 57.3, source_x*57.3, 'r+')
+        #
+        # plt.show()
+
 
         # Create a container class for reconstructed shower
         shower_result = ReconstructedShowerContainer()
@@ -808,7 +844,7 @@ class ImPACTReconstructor(Reconstructor):
             #like.append(self.get_likelihood_min(seed[0]))
             like.append(self.minimise(seed[0], seed[1], seed[2],
                                       minimiser_name="nlopt",
-                                      max_calls=10)[2])
+                                      max_calls=1)[2])
 
         print("Choosing seed", np.argmin(like), like)
         return seed_list[np.argmin(like)]
@@ -852,8 +888,8 @@ class ImPACTReconstructor(Reconstructor):
                               goodness_of_fit=False, fix_goodness_of_fit=True,
                               errordef=1)
 
-            #self.min.tol *= 1000
-            self.min.set_strategy(2)
+            self.min.tol *= 1000
+            self.min.set_strategy(1)
 
             migrad = self.min.migrad()
             fit_params = self.min.values
@@ -995,7 +1031,7 @@ def create_seed(source_x, source_y, tilt_x, tilt_y, energy):
             tilt_y, en_seed, 1)
 
     # Take a reasonable first guess at step size
-    step = [0.04 / 57.3, 0.04 / 57.3, 5, 5, en_seed * 0.1, 0.05]
+    step = [0.01 / 57.3, 0.01 / 57.3, 2, 2, en_seed * 0.02, 0.05]
     # And some sensible limits of the fit range
     limits = [[source_x - 0.1, source_x + 0.1],
               [source_y - 0.1, source_y + 0.1],

@@ -19,6 +19,7 @@ class BaseTemplate:
         self.interpolator = None
         self.keys = None
         self.values = None
+        self.bounds = None
 
     def _create_table_matrix(self, keys, values):
         """
@@ -135,9 +136,10 @@ class BaseTemplate:
                                    self.keys.T[1] == azimuth)
 
         # Create interpolator using this selection
+        print(self.bounds)
         self.interpolator[zenith_bin][azimuth_bin] = \
             UnstructuredInterpolator(self.keys[selection].T[2:].T, self.values[selection],
-                                     remember_last=True, bounds=((-1.5, 1.5), (-5, 1)))
+                                     remember_last=True, bounds=self.bounds)
 
         # We can now remove these entries.
         self.keys = self.keys[np.invert(selection)]
@@ -241,7 +243,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
     """
     Class for interpolating between the the predictions
     """
-    def __init__(self, template_file):
+    def __init__(self, template_file, bounds=((-5, 1), (-1.5, 1.5))):
         """
 
         Parameters
@@ -257,6 +259,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
         keys = np.array(list(input_dict.keys()))
         values = np.array(list(input_dict.values()), dtype=np.float32)
         self.no_zenaz = False
+        self.bounds = bounds
 
         # First check if we even have a zen and azimuth entry
         if len(keys[0]) > 3:
@@ -265,7 +268,7 @@ class TemplateNetworkInterpolator(BaseTemplate):
         else:
             # If not we work as before
             self.interpolator = UnstructuredInterpolator(keys, values, remember_last=True,
-                                                         bounds=((-5, 1), (-1.5, 1.5)))
+                                                         bounds=bounds)
             self.no_zenaz = True
 
     def __call__(self, zenith, azimuth, energy, impact, xmax, xb, yb):

@@ -41,7 +41,7 @@ class UnstructuredInterpolator:
             Name of class member function to call in the case we are interpolating
             between class predictions, for numpy arrays leave blank
         """
-
+        print("bounds",bounds)
         self.keys = keys
         if dtype:
             self.values = np.array(values, dtype=dtype)
