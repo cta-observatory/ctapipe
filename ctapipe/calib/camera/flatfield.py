@@ -150,7 +150,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         help='Interval of accepted charge values (fraction with respect to camera median value)'
     ).tag(config=True)
     time_cut_outliers = List(
-        [10,30],
+        [0,60],
         help='Interval (in waveform samples) of accepted time values'
     ).tag(config=True)
 
@@ -244,6 +244,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
         charge, arrival_time = self._extract_charge(event)
+
         self.collect_sample(charge, pixel_mask, arrival_time)
 
         sample_age = trigger_time - self.time_start
