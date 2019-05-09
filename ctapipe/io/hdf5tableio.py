@@ -1,6 +1,7 @@
 """Implementations of TableWriter and -Reader for HDF5 files"""
 import enum
 from functools import partial
+from pathlib import PurePath
 
 import numpy as np
 import tables
@@ -78,7 +79,13 @@ class HDF5TableWriter(TableWriter):
     """
 
     def __init__(
-        self, filename, group_name, add_prefix=False, mode="w", root_uep="/", **kwargs
+        self,
+        filename,
+        group_name="",
+        add_prefix=False,
+        mode="w",
+        root_uep="/",
+        **kwargs,
     ):
 
         super().__init__(add_prefix=add_prefix)
@@ -91,14 +98,7 @@ class HDF5TableWriter(TableWriter):
         kwargs.update(mode=mode, root_uep=root_uep)
 
         self.open(filename, **kwargs)
-
-        if root_uep + group_name in self._h5file:
-
-            self._group = self._h5file.get_node(root_uep + group_name)
-
-        else:
-
-            self._group = self._h5file.create_group(root_uep, group_name)
+        self._group = "/" + group_name
 
         self.log.debug("h5file: %s", self._h5file)
 
@@ -205,20 +205,29 @@ class HDF5TableWriter(TableWriter):
     def _setup_new_table(self, table_name, containers):
         """ set up the table. This is called the first time `write()`
         is called on a new table """
-        self.log.debug("Initializing table '%s'", table_name)
+        self.log.debug("Initializing table '%s' in group '%s'", table_name, self._group)
         meta = self._create_hdf5_table_schema(table_name, containers)
+
+        if table_name.startswith("/"):
+            raise ValueError("Table name must not start with '/'")
+
+        table_path = PurePath(self._group) / PurePath(table_name)
+        table_group = str(table_path.parent)
+        table_basename = table_path.stem
 
         for container in containers:
             meta.update(container.meta)  # copy metadata from container
 
         table = self._h5file.create_table(
-            where=self._group,
-            name=table_name,
+            where=table_group,
+            name=table_basename,
             title="Storage of {}".format(
                 ",".join(c.__class__.__name__ for c in containers)
             ),
             description=self._schemas[table_name],
+            createparents=True,
         )
+        self.log.debug("CREATED TABLE: %s", table)
         for key, val in meta.items():
             table.attrs[key] = val
 
