@@ -43,11 +43,13 @@ class AComponent(Component):
 
 class BComponent(Component):
     """ Some Other Component """
+
     enabled = Bool(True, help="Enable bar.").tag(config=True)
 
 
 class MyTool(Tool):
     """ My Tool """
+
     name = Unicode("myapp")
     running = Bool(False, help="Is the app running?").tag(config=True)
     classes = List([BComponent, AComponent])
@@ -95,9 +97,10 @@ class MyTool(Tool):
 
 
 def main():
-    """ run the app """ 
+    """ run the app """
     tool = MyTool()
     tool.run()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

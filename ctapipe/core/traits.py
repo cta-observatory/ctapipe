@@ -1,8 +1,21 @@
 import os
 
-from traitlets import (Bool, CaselessStrEnum, CRegExp, Dict, Enum, Float, Int,
-                       Integer, List, Long, TraitError, TraitType, Unicode,
-                       observe)
+from traitlets import (
+    Bool,
+    CaselessStrEnum,
+    CRegExp,
+    Dict,
+    Enum,
+    Float,
+    Int,
+    Integer,
+    List,
+    Long,
+    TraitError,
+    TraitType,
+    Unicode,
+    observe,
+)
 from traitlets.config import boolean_flag as flag
 
 from .component import non_abstract_children
