@@ -16,59 +16,59 @@ from ctapipe.image import ImageExtractor
 
 def test_path_exists():
     class C1(Component):
-        p = Path(exists=False)
+        thepath = Path(exists=False)
 
     c1 = C1()
-    c1.p = "test"
+    c1.thepath = "test"
 
     with tempfile.NamedTemporaryFile() as f:
         with pytest.raises(TraitError):
-            c1.p = f.name
+            c1.thepath = f.name
 
     class C2(Component):
-        p = Path(exists=True)
+        thepath = Path(exists=True)
 
     c2 = C2()
 
     with tempfile.TemporaryDirectory() as d:
-        c2.p = d
+        c2.thepath = d
 
     with tempfile.NamedTemporaryFile() as f:
-        c2.p = f.name
+        c2.thepath = f.name
 
 
 def test_path_directory_ok():
     class C(Component):
-        p = Path(exists=True, directory_ok=False)
+        thepath = Path(exists=True, directory_ok=False)
 
     c = C()
 
     with pytest.raises(TraitError):
-        c.p = "lknasdlakndlandslknalkndslakndslkan"
+        c.thepath = "lknasdlakndlandslknalkndslakndslkan"
 
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(TraitError):
-            c.p = d
+            c.thepath = d
 
     with tempfile.NamedTemporaryFile() as f:
-        c.p = f.name
+        c.thepath = f.name
 
 
 def test_path_file_ok():
     class C(Component):
-        p = Path(exists=True, file_ok=False)
+        thepath = Path(exists=True, file_ok=False)
 
     c = C()
 
     with pytest.raises(TraitError):
-        c.p = "lknasdlakndlandslknalkndslakndslkan"
+        c.thepath = "lknasdlakndlandslknalkndslakndslkan"
 
     with tempfile.TemporaryDirectory() as d:
-        c.p = d
+        c.thepath = d
 
     with tempfile.NamedTemporaryFile() as f:
         with pytest.raises(TraitError):
-            c.p = f.name
+            c.thepath = f.name
 
 
 def test_enum_trait_default_is_right():
@@ -93,9 +93,11 @@ def test_has_traits():
     """ test the has_traits func """
 
     class WithoutTraits(HasTraits):
+        """ a traits class that has no traits """
         pass
 
     class WithATrait(HasTraits):
+        """ a traits class that has a trait """
         my_trait = Int()
 
     assert not has_traits(WithoutTraits)

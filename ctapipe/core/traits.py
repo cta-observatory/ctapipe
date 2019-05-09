@@ -97,6 +97,8 @@ def enum_trait(base_class, default, help_str=None):
 
 
 def classes_with_traits(base_class):
+    """ Returns a list of the base class plus its non-abstract children 
+    if they have traits """
     all_classes = [base_class] + non_abstract_children(base_class)
     return [cls for cls in all_classes if has_traits(cls)]
 

@@ -95,6 +95,7 @@ class MyTool(Tool):
 
 
 def main():
+    """ run the app """ 
     tool = MyTool()
     tool.run()
 
