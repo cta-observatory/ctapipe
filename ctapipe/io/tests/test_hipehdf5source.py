@@ -3,11 +3,10 @@ import os
 import numpy as np
 
 import pytest
-pytest.importorskip("hipedata")#, minversion="1.4.0")
-pytest.importorskip("hipedata_resources", minversion="0.0.1")
 
-import hipedata_resources
-example_file_path = hipedata_resources.gamma_test_file
+from ctapipe.utils import get_dataset_path
+
+example_file_path = get_dataset_path('gamma_test_large.h5')
 FIRST_EVENT_NUMBER_IN_TEL = [4907, 4907, 9508, 4907, 10104, 12202, 9508, 409,
                              9508, 4907, 4907, 10104, 803, 4907, 409, 409,
                              9508, 409, 10109, 408, 408, 409, 12202, 409,
@@ -17,14 +16,11 @@ FIRST_EVENT_NUMBER_IN_TEL = [4907, 4907, 9508, 4907, 10104, 12202, 9508, 409,
 
 def test_compare_with_simtel():
     from ctapipe.io import event_source
-    from hipedata_resources import get as  hipe_get
-    from ctapipe.utils import get_dataset_path
-
-    hipefile = hipe_get('gamma_test_large.mcrun')
+    hipefile = get_dataset_path('gamma_test_large.h5')
     simfile = get_dataset_path('gamma_test_large.simtel.gz')
     event_id = 880610
-    sim_source = event_source(simfile, )
-    hipe_source = event_source(hipefile, )
+    sim_source = event_source(simfile)
+    hipe_source = event_source(hipefile)
 
     for sim_event in sim_source:
         if sim_event.r0.event_id == event_id:
@@ -94,10 +90,11 @@ def test_loop_over_telescopes():
         max_events=n_events
     )
     i = 0
-    for tel in inputfile_reader.run.tabTel:
-        if tel.tabEvent:
-            assert (tel.tabEvent[0].eventId == FIRST_EVENT_NUMBER_IN_TEL[i])
-            i += 1
+    for tel in fileIn.walk_nodes('/Tel', 'Group'):
+        tabEventId = tel.eventId.read()
+        tabEventId = ["tabEventId"]
+        assert (tabEventId[0] == FIRST_EVENT_NUMBER_IN_TEL[i])
+        i += 1
 
 
 def test_is_compatible():
@@ -105,10 +102,4 @@ def test_is_compatible():
     assert HiPeHDF5EventSource.is_compatible(example_file_path)
 
 
-def test_factory_for_hipedata_file():
-    from ctapipe.io.eventsourcefactory import EventSourceFactory
-    from ctapipe.io.hipehdf5eventsource import HiPeHDF5EventSource
 
-    reader = EventSourceFactory.produce(input_url=example_file_path)
-    assert isinstance(reader, HiPeHDF5EventSource)
-    assert reader.input_url == example_file_path

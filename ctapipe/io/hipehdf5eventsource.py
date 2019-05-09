@@ -5,6 +5,7 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
 	OpticsDescription
 from ctapipe.instrument.camera import CameraGeometry
 from astropy import units as u
+import tables
 
 __all__ = ['HiPeHDF5EventSource']
 HI_GAIN = 0
@@ -58,13 +59,6 @@ class HiPeHDF5EventSource(EventSource):
 	def __init__(self, config=None, tool=None, **kwargs):
 		super().__init__(config=config, tool=tool, **kwargs)
 
-		try:
-			import tables
-		except ImportError:
-			msg = "The `tables` python module is required to access this file"
-			self.log.error(msg)
-			raise
-
 		self.metadata['is_simulation'] = True
 
 		# Create MCRun isntance and load file into memory
@@ -73,11 +67,12 @@ class HiPeHDF5EventSource(EventSource):
 	@staticmethod
 	def is_compatible(file_path):
 		try:
-			hfile = tables.open_file(file_path)
+			hfile = tables.open_file(file_path, "r")
 			runHeader = hfile.root.RunHeader
-			tels = runHeader = hfile.root.Tel
-			corsika = runHeader = hfile.root.Corsika
+			tels = hfile.root.Tel
+			corsika = hfile.root.Corsika
 			hfile.close()
+			return True
 		except Exception:
 			return False
 
@@ -224,9 +219,8 @@ class HiPeHDF5EventSource(EventSource):
 		
 		tabPoslXYZ = np.ascontiguousarray(np.vstack((tabPosX, tabPosY, tabPosZ)).T)
 		
-		try:
-			for telNode in fileIn.walk_nodes('/Tel', 'Group'):
-			for tel in run.tabTel:
+		for telNode in fileIn.walk_nodes('/Tel', 'Group'):
+			try:
 				'''
 				# Correspance HiPeData.Telscope.Type and camera name
 				# 0  LSTCam, 1 NectarCam, 2 FlashCam, 3 SCTCam,
@@ -256,7 +250,7 @@ class HiPeHDF5EventSource(EventSource):
 				#tel.optics.num_mirror_tiles = num_tiles
 				subarray.tels[telId] = telescope_description
 				subarray.positions[telId] = tel_pos
-		except tables.exceptions.NoSuchNodeError as e:
-			pass
+			except tables.exceptions.NoSuchNodeError as e:
+				pass
 
 		return subarray
