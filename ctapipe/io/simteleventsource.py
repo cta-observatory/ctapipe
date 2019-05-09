@@ -75,7 +75,7 @@ class SimTelEventSource(EventSource):
             self.input_url,
             allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
             skip_calibration=self.skip_calibration_events,
-            zcat=not self.back_seekable,
+            #zcat=not self.back_seekable,
         )
         if self.back_seekable and self.is_stream:
             raise IOError('back seekable was required but not possible for inputfile')

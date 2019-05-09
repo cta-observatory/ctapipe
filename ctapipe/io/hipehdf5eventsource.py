@@ -5,6 +5,8 @@ from ctapipe.instrument import TelescopeDescription, SubarrayDescription, \
 	OpticsDescription
 from ctapipe.instrument.camera import CameraGeometry
 from astropy import units as u
+from astropy.coordinates import Angle
+import numpy as np
 import tables
 
 __all__ = ['HiPeHDF5EventSource']
@@ -22,8 +24,8 @@ def _convert_per_events_to_per_telescope(hfile):
 		dictionary which contains the events with the proper telescopes
 	'''
 	events=dict()
-	try:
-		for telNode in fileIn.walk_nodes('/Tel', 'Group'):
+	for telNode in hfile.walk_nodes('/Tel', 'Group'):
+		try:
 			tabEventId = telNode.eventId.read()
 			tabEventId = tabEventId["eventId"]
 			telescopeIndex = uint64(telNode.telIndex.read())
@@ -33,17 +35,16 @@ def _convert_per_events_to_per_telescope(hfile):
 					events[eventId].append((telescopeId, telescopeIndex, i))
 				except KeyError:
 					events[eventId] = [(telescopeId, telescopeIndex, i)]
-	except tables.exceptions.NoSuchNodeError as e:
-		#For the Tel dataset only
-		pass
+		except tables.exceptions.NoSuchNodeError as e:
+			#For the Tel dataset only
+			pass
 	return events
 
 
 class HiPeHDF5EventSource(EventSource):
 	"""
-	EventSource for the hiPeData file format.
-	https://gitlab.in2p3.fr/CTA-LAPP/HiPeData
-	HiPeData is a data format for Cherenkov Telescope Array (CTA)
+	EventSource for the hiPeHDF5 file format.
+	hiPeHDF5 is a data format for Cherenkov Telescope Array (CTA)
 	that provides a memory access patterns
 	adapted for high performance computing algorithms.
 	It allows algorithms to take advantage of the latest SIMD
@@ -56,8 +57,8 @@ class HiPeHDF5EventSource(EventSource):
 	the information into the event containers.
 	"""
 
-	def __init__(self, config=None, tool=None, **kwargs):
-		super().__init__(config=config, tool=tool, **kwargs)
+	def __init__(self, config=None, parent=None, **kwargs):
+		super().__init__(config=config, parent=parent, **kwargs)
 
 		self.metadata['is_simulation'] = True
 
@@ -99,14 +100,14 @@ class HiPeHDF5EventSource(EventSource):
 		MC data are valid for the whole run
 		'''
 		data.mc.tel.clear()  # clear the previous telescopes
-		try:
-			for telNode in fileIn.walk_nodes('/Tel', 'Group'):
+		for telNode in self.run.walk_nodes('/Tel', 'Group'):
+			try:
 				tel_id = uint64(telNode.telId.read())
 				data.mc.tel[tel_id].dc_to_pe = telNode.tabGain.read()
 				data.mc.tel[tel_id].pedestal = telNode.tabPed.read()
 				data.mc.tel[tel_id].reference_pulse_shape = telNode.tabRefShape.read()
-		except tables.exceptions.NoSuchNodeError as e:
-			pass
+			except tables.exceptions.NoSuchNodeError as e:
+				pass
 		
 		corsika = self.run.root.Corsika
 		tabEvent = corsika.tabCorsikaEvent.read()
@@ -119,7 +120,7 @@ class HiPeHDF5EventSource(EventSource):
 			if counter == 0:
 				# subarray info is only available when an event is loaded,
 				# so load it on the first event.
-				 data.inst.subarray = self._build_subarray_info(self.run)
+				data.inst.subarray = self._build_subarray_info(self.run)
 
 			obs_id = 0
 			tels_with_data = set([info[0] for info in event_list])
@@ -174,22 +175,18 @@ class HiPeHDF5EventSource(EventSource):
 
 			for telescopeId, telescopeIndex, event in event_list:
 				
-				telNode = fileh.get_node("/Tel", 'Tel_' + str(telescopeIndex))
+				telNode = self.run.get_node("/Tel", 'Tel_' + str(telescopeIndex))
 				
 				matWaveform = telNode.waveform.read(event, event + 1)
 				matWaveform = matWaveform["waveform"]
 				
 				matSignalPS = matWaveform[0].swapaxes(1, 2)
 				data.r0.tel[telescopeId].waveform = matSignalPS
-
-				data.r0.tel[telescopeId].image= matSignalPS.sum(axis=2)
+				
+				#data.r0.tel[telescopeId].image= matSignalPS.sum(axis=2)
 				#data.r0.tel[telescopeId].num_trig_pix = file.get_num_trig_pixels(telescopeId)
 				#data.r0.tel[telescopeId].trig_pix_id = file.get_trig_pixels(telescopeId)
 				
-				#nsamples = file.get_event_num_samples(telescopeId)
-				#if nsamples <= 0:
-				#	nsamples = 1
-				data.r0.tel[telescopeId].num_samples = event.matSliceHi.shape[0]
 				
 			yield data
 			counter += 1
@@ -217,25 +214,29 @@ class HiPeHDF5EventSource(EventSource):
 		tabPosTelY = runHeader.tabPosTelY.read()
 		tabPosTelZ = runHeader.tabPosTelZ.read()
 		
-		tabPoslXYZ = np.ascontiguousarray(np.vstack((tabPosX, tabPosY, tabPosZ)).T)
+		tabPoslXYZ = np.ascontiguousarray(np.vstack((tabPosTelX, tabPosTelY, tabPosTelZ)).T)
 		
-		for telNode in fileIn.walk_nodes('/Tel', 'Group'):
+		'''
+		# Correspance HiPeData.Telscope.Type and camera name
+		# 0  LSTCam, 1 NectarCam, 2 FlashCam, 3 SCTCam,
+		# 4 ASTRICam, 5 DigiCam, 6 CHEC
+		'''
+		mapping_camera = {0: 'LSTCam', 1: 'NectarCam', 2: 'FlashCam',
+						3: 'SCTCam', 4: 'ASTRICam', 5: 'DigiCam',
+						6: 'CHEC'}
+		
+		mapping_telName = {0:'LST', 1:'MST', 2:'MST', 3:'MST', 4:'SST-ASTRI', 5:'SST-1M', 6:'SST-2M'}
+		
+		for telNode in self.run.walk_nodes('/Tel', 'Group'):
 			try:
-				'''
-				# Correspance HiPeData.Telscope.Type and camera name
-				# 0  LSTCam, 1 NectarCam, 2 FlashCam, 3 SCTCam,
-				# 4 ASTRICam, 5 DigiCam, 6 CHEC
-				'''
-				mapping_camera = {0: 'LSTCam', 1: 'NectarCam', 2: 'FlashCam',
-								3: 'SCTCam', 4: 'ASTRICam', 5: 'DigiCam',
-								6: 'CHEC'}
+				telType = uint64(telNode.telType.read())
+				telIndex = uint64(telNode.telIndex.read())
+				telId = uint64(telNode.telId.read())
 				
-				telType = telNode.telType.read()
-				telIndex = telNode.telIndex.read()
-				telId = telNode.telId.read()
-				
-				camera = CameraGeometry.from_name(mapping_camera[telType])
-				camera.cam_id = mapping_camera[telType]
+				cameraName = mapping_camera[telType]
+				telName = mapping_telName[telType]
+				camera = CameraGeometry.from_name(cameraName)
+				camera.cam_id = cameraName
 				
 				foclen = tabFocalTel[telIndex] * u.m
 				
@@ -243,8 +244,9 @@ class HiPeHDF5EventSource(EventSource):
 				
 				camera.pix_y = telNode.tabPixelX.read() * u.m
 				camera.pix_x = telNode.tabPixelY.read() * u.m
-				optic = OpticsDescription.guess(foclen)
-				telescope_description = TelescopeDescription(optic, camera)
+				optic = OpticsDescription.from_name(telName)
+				optic.equivalent_focal_length = foclen
+				telescope_description = TelescopeDescription(telName, telName, optics=optic, camera=camera)
 
 				#tel.optics.mirror_area = mirror_area
 				#tel.optics.num_mirror_tiles = num_tiles
