@@ -26,6 +26,8 @@ def test_subarray_description():
         tel_descriptions=tel
     )
 
+    sub.peek()
+
     assert len(sub.telescope_types) == 1
 
     assert str(sub) == "test array"
@@ -50,6 +52,7 @@ def test_subarray_description():
     assert subsub.tel_ids[3] == 6
 
     assert len(sub.to_table(kind='optics')) == 1
+
 
 
 if __name__ == '__main__':
