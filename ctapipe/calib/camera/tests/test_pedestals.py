@@ -6,6 +6,7 @@ from ctapipe.io.containers import EventAndMonDataContainer
 def test_pedestal_calculator():
     tel_id = 0
     n_events = 10
+    n_gain = 2
     n_pixels = 1855
     ped_level = 300
 
@@ -14,10 +15,13 @@ def test_pedestal_calculator():
                                         tel_id=tel_id)
     # create one event
     data = EventAndMonDataContainer()
+    data.meta['origin'] = 'test'
 
     # fill the values necessary for the pedestal calculation
-    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros(n_pixels, dtype=bool)
+    data.mon.tel[tel_id].pixel_status.hardware_failing_pixels = np.zeros((n_gain, n_pixels), dtype=bool)
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
+    data.r1.tel[tel_id].trigger_time = 1000
+
 
     for counts in np.arange(n_events):
 

@@ -250,11 +250,13 @@ class PedestalIntegrator(PedestalCalculator):
         container = event.mon.tel[self.tel_id].pedestal
 
         # real data
-        if not event.mcheader.simtel_version:
+        if event.meta['origin'] != 'hessio':
+
             trigger_time = event.r1.tel[self.tel_id].trigger_time
             pixel_mask = event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels
 
         else: # patches for MC data
+
             if event.trig.tels_with_trigger:
                 trigger_time = event.trig.gps_time.unix
             else:
@@ -269,6 +271,7 @@ class PedestalIntegrator(PedestalCalculator):
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
         charge, arrival_time = self._extract_charge(event)
+
         self.collect_sample(charge, pixel_mask)
 
         sample_age = trigger_time - self.time_start
@@ -317,16 +320,11 @@ class PedestalIntegrator(PedestalCalculator):
     def collect_sample(self, charge, pixel_mask):
         """Collect the sample data"""
 
-        # extract the charge of the event and
-        # the peak position (assumed as time for the moment)
-        masked_pixels = np.zeros(charge.shape, dtype=np.bool)
-        masked_pixels[:] = pixel_mask == 1
-
-        good_charge = np.ma.array(charge, mask=masked_pixels)
+        good_charge = np.ma.array(charge, mask=pixel_mask)
         charge_median = np.ma.median(good_charge, axis=1)
 
         self.charges[self.num_events_seen] = charge
-        self.sample_masked_pixels[self.num_events_seen] = masked_pixels
+        self.sample_masked_pixels[self.num_events_seen] = pixel_mask
         self.charge_medians[self.num_events_seen] = charge_median
         self.num_events_seen += 1
 
@@ -388,7 +386,6 @@ def calculate_pedestal_results(self,
         'charge_std': np.ma.getdata(pixel_std),
         'charge_std_outliers': np.ma.getdata(charge_std_outliers),
         'charge_median_outliers': np.ma.getdata(charge_median_outliers)
-
     }
 
 

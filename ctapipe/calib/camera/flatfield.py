@@ -220,7 +220,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         container = event.mon.tel[self.tel_id].flatfield
 
         # real data
-        if not event.mcheader.simtel_version:
+        if event.meta['origin'] != 'hessio':
             trigger_time = event.r1.tel[self.tel_id].trigger_time
             hardware_or_pedestal_mask = np.logical_or(
                 event.mon.tel[self.tel_id].pixel_status.hardware_failing_pixels,
@@ -297,15 +297,13 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        masked_pixels = np.zeros(charge.shape, dtype=np.bool)
-        masked_pixels[:] = pixel_mask == 1
 
-        good_charge = np.ma.array(charge, mask=masked_pixels)
+        good_charge = np.ma.array(charge, mask=pixel_mask)
         charge_median = np.ma.median(good_charge, axis=1)
 
         self.charges[self.num_events_seen] = charge
         self.arrival_times[self.num_events_seen] = arrival_time
-        self.sample_masked_pixels[self.num_events_seen] = masked_pixels
+        self.sample_masked_pixels[self.num_events_seen] = pixel_mask
         self.charge_medians[self.num_events_seen] = charge_median
         self.num_events_seen += 1
 
@@ -371,7 +369,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # std over the sample per pixel
         pixel_std = np.ma.std(masked_trace_integral, axis=0)
 
-        # median of the std over the camera
+        # median of the median over the camera
         median_of_pixel_median = np.ma.median(pixel_median, axis=1)
 
         # relative gain
