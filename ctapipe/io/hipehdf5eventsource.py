@@ -242,8 +242,9 @@ class HiPeHDF5EventSource(EventSource):
 				
 				tel_pos = tabPoslXYZ[telIndex] * u.m
 				
-				camera.pix_y = telNode.tabPixelX.read() * u.m
-				camera.pix_x = telNode.tabPixelY.read() * u.m
+				camera.pix_x = telNode.tabPixelX.read() * u.m
+				camera.pix_y = telNode.tabPixelY.read() * u.m
+				#camera.rotate(-90.0*u.deg)
 				optic = OpticsDescription.from_name(telName)
 				optic.equivalent_focal_length = foclen
 				telescope_description = TelescopeDescription(telName, telName, optics=optic, camera=camera)
