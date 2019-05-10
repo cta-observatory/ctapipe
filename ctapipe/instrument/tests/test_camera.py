@@ -263,3 +263,8 @@ def test_hashing():
     cam3 = CameraGeometry.from_name("ASTRICam")
 
     assert len(set([cam1, cam2, cam3])) == 2
+
+@pytest.mark.parametrize("camera_name", CameraGeometry.get_known_camera_names())
+def test_camera_from_name(camera_name):
+    camera = CameraGeometry.from_name(camera_name)
+    assert str(camera) == camera_name

@@ -85,18 +85,25 @@ class TelescopeDescription:
         camera = CameraGeometry.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)
 
-        t = guess_telescope(camera.n_pixels, optics.equivalent_focal_length)
+        tel_type='unknown'
+        tel_name='unknown'
+        try:
+            t = guess_telescope(camera.n_pixels, optics.equivalent_focal_length)
+            tel_type = t.type
+            tel_name = t.name
+        except ValueError:
+            pass # couldn't detect name
 
-        return cls(name=t.name, type=t.type, optics=optics, camera=camera)
+        return cls(name=tel_name, type=tel_type, optics=optics, camera=camera)
 
     def __str__(self):
-        return str(self.optics) + ":" + str(self.camera)
+        return f"{self.type}_{self.optics}_{self.camera}"
 
     def __repr__(self):
-        return "{}({}, type={}, optics={}, camera={})".format(
-            self.name,
-            self.type,
+        return "{}(type={}, name={}, optics={}, camera={})".format(
             self.__class__.__name__,
+            self.type,
+            self.name,
             str(self.optics),
             str(self.camera),
         )

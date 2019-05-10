@@ -12,7 +12,9 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 import ctapipe
+
 from ..coordinates import GroundFrame
+from . import TelescopeDescription
 
 
 class SubarrayDescription:
@@ -125,6 +127,37 @@ class SubarrayDescription:
         lists based on tel_ids into fixed-length arrays"""
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
+    @property
+    def tel_index_array(self):
+        """ 
+        returns an expanded array that maps tel_id to tel_index. I.e. for a given
+        telescope, this array maps the tel_id to a flat index starting at 0 for
+        the first telescope. `tel_index = tel_id_to_index_array[tel_id]`
+        If the tel_ids are not contiguous, gaps will be filled in by -1. 
+        For a more compact representation use the `tel_indices` 
+        """
+        idx = np.zeros(np.max(self.tel_ids)+1, dtype=int) - 1 # start with -1
+        for key,val in self.tel_indices.items():
+            idx[key] = val
+        return idx
+
+    def tel_ids_to_indices(self, tel_ids):
+        """maps a telescope id (or array of them) to flat indices
+
+        Parameters
+        ----------
+        tel_ids : int or List[int]
+            array of tel IDs
+
+        Returns
+        -------
+        np.array:
+            array of corresponding tel indices
+        """
+        tel_ids = np.asanyarray(tel_ids).ravel()
+        index_map = self.tel_index_array
+        return index_map[tel_ids]
+  
     @property
     def footprint(self):
         """area of smallest circle containing array on ground"""
@@ -259,17 +292,17 @@ class SubarrayDescription:
     @property
     def telescope_types(self):
         """ list of telescope types in the array"""
-        return [t.type + ':' + t.camera.cam_id for t in set(self.tel.values())]
+        return list({tel for tel in self.tel.values()})
 
     @property
     def camera_types(self):
         """ list of camera types in the array """
-        return [t.camera.cam_id for t in set(self.tel.values())]
+        return list({tel.camera for tel in self.tel.values()})
 
     @property
     def optics_types(self):
         """ list of optics types in the array """
-        return [t.optics for t in set(self.tel.values())]
+        return list({tel.optics for tel in self.tel.values()})
 
     def get_tel_ids_for_type(self, tel_type):
         """
@@ -277,8 +310,13 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_type: str
+        tel_type: str or TelescopeDescription
            telescope type string (e.g. 'MST:NectarCam')
 
         """
-        return [id for id, descr in self.tels.items() if str(descr) == tel_type]
+        if isinstance(tel_type, TelescopeDescription):
+            tel_str = str(tel_type)
+        else:
+            tel_str = tel_type
+
+        return [id for id, descr in self.tels.items() if str(descr) == tel_str]
