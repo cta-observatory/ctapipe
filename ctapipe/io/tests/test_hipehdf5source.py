@@ -7,7 +7,7 @@ import tables
 
 from ctapipe.utils import get_dataset_path
 
-example_file_path = get_dataset_path('gamma_test_large.h5')
+example_file_path = get_dataset_path('gamma_test_large_hipecta.h5')
 FIRST_EVENT_NUMBER_IN_TEL = [153614, 31012, 31012, 31012, 23703, 31012, 46705, 31007,
 135104, 31012, 31007, 31012, 31012, 23703, 46705, 135104, 229110, 23703, 277618, 46705,
 31007, 135104, 394306, 90914, 135104, 135104, 135104, 23703, 46705, 31007, 1864717, 394306,
@@ -20,7 +20,7 @@ FIRST_EVENT_NUMBER_IN_TEL = [153614, 31012, 31012, 31012, 23703, 31012, 46705, 3
 
 def test_compare_with_simtel():
 	from ctapipe.io import event_source
-	hipefile = get_dataset_path('gamma_test_large.h5')
+	hipefile = get_dataset_path('gamma_test_large_hipecta.h5')
 	simfile = get_dataset_path('gamma_test_large.simtel.gz')
 	event_id = 880610
 	sim_source = event_source(simfile)
