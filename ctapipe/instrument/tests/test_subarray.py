@@ -2,8 +2,12 @@ import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 
-from ctapipe.instrument import (CameraGeometry, OpticsDescription,
-                                SubarrayDescription, TelescopeDescription)
+from ctapipe.instrument import (
+    CameraGeometry,
+    OpticsDescription,
+    SubarrayDescription,
+    TelescopeDescription,
+)
 
 
 def example_subarray(n_tels=10):

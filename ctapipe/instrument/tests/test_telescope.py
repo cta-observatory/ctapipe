@@ -1,5 +1,3 @@
-import itertools
-
 import pytest
 
 from ctapipe.instrument.camera import CameraGeometry
@@ -33,6 +31,7 @@ def test_hash():
 optics_names = OpticsDescription.get_known_optics_names()
 camera_names = CameraGeometry.get_known_camera_names()
 
+
 @pytest.mark.parametrize("camera_name", camera_names)
 @pytest.mark.parametrize("optics_name", optics_names)
 def test_telescope_from_name(optics_name, camera_name):
@@ -41,4 +40,4 @@ def test_telescope_from_name(optics_name, camera_name):
     assert camera_name in str(tel)
     assert tel.camera.pix_x.shape[0] > 0
     assert tel.optics.equivalent_focal_length.to("m") > 0
-    assert tel.type in ['MST', 'SST', 'LST', 'unknown']
+    assert tel.type in ["MST", "SST", "LST", "unknown"]
