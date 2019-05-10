@@ -55,6 +55,8 @@ class HiPeHDF5EventSource(EventSource):
 
 	This class utilises `hipedata` library to read the mcrun file, and stores
 	the information into the event containers.
+	
+	You can get the converter from simtel to hdf5 at : https://gitlab.in2p3.fr/CTA-LAPP/simtel2r1_hdf5.git
 	"""
 
 	def __init__(self, config=None, parent=None, **kwargs):
