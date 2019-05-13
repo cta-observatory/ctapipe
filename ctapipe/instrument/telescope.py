@@ -13,9 +13,9 @@ Todo:
   telescope :-))
 
 """
-from .optics import OpticsDescription
 from .camera import CameraGeometry
-from .guess import guess_telescope
+from .guess import UNKNOWN_TELESCOPE, guess_telescope
+from .optics import OpticsDescription
 
 
 class TelescopeDescription:
@@ -41,13 +41,7 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
-    def __init__(
-        self,
-        name,
-        type,
-        optics: OpticsDescription,
-        camera: CameraGeometry
-    ):
+    def __init__(self, name, type, optics: OpticsDescription, camera: CameraGeometry):
 
         self.name = name
         self.type = type
@@ -55,11 +49,11 @@ class TelescopeDescription:
         self.camera = camera
 
     def __hash__(self):
-        '''Make this hashable, so it can be used as dict keys or in sets'''
+        """Make this hashable, so it can be used as dict keys or in sets"""
         return hash((self.optics, self.camera))
 
     def __eq__(self, other):
-        '''Make this hashable, so it can be used as dict keys or in sets'''
+        """Make this hashable, so it can be used as dict keys or in sets"""
         return hash(self) == hash(other)
 
     @classmethod
@@ -85,16 +79,12 @@ class TelescopeDescription:
         camera = CameraGeometry.from_name(camera_name)
         optics = OpticsDescription.from_name(optics_name)
 
-        tel_type='unknown'
-        tel_name='unknown'
         try:
-            t = guess_telescope(camera.n_pixels, optics.equivalent_focal_length)
-            tel_type = t.type
-            tel_name = t.name
+            result = guess_telescope(camera.n_pixels, optics.equivalent_focal_length)
         except ValueError:
-            pass # couldn't detect name
+            result = UNKNOWN_TELESCOPE
 
-        return cls(name=tel_name, type=tel_type, optics=optics, camera=camera)
+        return cls(name=result.name, type=result.type, optics=optics, camera=camera)
 
     def __str__(self):
         return f"{self.type}_{self.optics}_{self.camera}"
