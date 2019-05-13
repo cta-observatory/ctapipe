@@ -37,7 +37,7 @@ def test_flasherflatfieldcalculator():
     print(data.r1.tel[tel_id].waveform[0, 0, 20])
 
     # First test: good event
-    for counts in np.arange(n_events):
+    while ff_calculator.num_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
             assert data.mon.tel[tel_id].flatfield
 
@@ -51,7 +51,7 @@ def test_flasherflatfieldcalculator():
     data.r1.tel[tel_id].waveform[:, failing_pixels_id, :] = 0
     data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels[:,failing_pixels_id] = True
 
-    while ff_calculator.num_events_seen < n_events :
+    while ff_calculator.num_events_seen < n_events:
         if ff_calculator.calculate_relative_gain(data):
 
             # working pixel have good gain
