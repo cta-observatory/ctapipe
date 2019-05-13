@@ -40,4 +40,4 @@ def test_telescope_from_name(optics_name, camera_name):
     assert camera_name in str(tel)
     assert tel.camera.pix_x.shape[0] > 0
     assert tel.optics.equivalent_focal_length.to("m") > 0
-    assert tel.type in ["MST", "SST", "LST", "unknown"]
+    assert tel.type in ["MST", "SST", "LST", "UNKNOWN"]
