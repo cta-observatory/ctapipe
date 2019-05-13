@@ -63,7 +63,7 @@ class FlatFieldCalculator(Component):
         2,
         help='number of channels to be treated'
     ).tag(config=True)
-    charge_product= Unicode(
+    charge_product = Unicode(
         'LocalPeakWindowSum',
         help='Name of the charge extractor to be used'
     ).tag(config=True)
@@ -146,11 +146,11 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
     """
 
     charge_cut_outliers = List(
-        [-0.3,0.3],
+        [-0.3, 0.3],
         help='Interval of accepted charge values (fraction with respect to camera median value)'
     ).tag(config=True)
     time_cut_outliers = List(
-        [0,60],
+        [0, 60],
         help='Interval (in waveform samples) of accepted time values'
     ).tag(config=True)
 
@@ -195,10 +195,12 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         waveforms = event.r1.tel[self.tel_id].waveform
 
         # Extract charge and time
+        charge = 0
+        peak_pos = 0
         if self.extractor:
             if self.extractor.requires_neighbors():
-                g = event.inst.subarray.tel[self.tel_id].camera
-                self.extractor.neighbours = g.neighbor_matrix_where
+                camera = event.inst.subarray.tel[self.tel_id].camera
+                self.extractor.neighbours = camera.neighbor_matrix_where
 
             charge, peak_pos = self.extractor(waveforms)
 
@@ -219,6 +221,10 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         waveform = event.r1.tel[self.tel_id].waveform
         container = event.mon.tel[self.tel_id].flatfield
 
+        # re-initialize counter
+        if self.num_events_seen == self.sample_size:
+            self.num_events_seen = 0
+
         # real data
         if event.meta['origin'] != 'hessio':
             trigger_time = event.r1.tel[self.tel_id].trigger_time
@@ -229,7 +235,7 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
                 hardware_or_pedestal_mask,
                 event.mon.tel[self.tel_id].pixel_status.flatfield_failing_pixels)
 
-        else: # patches for MC data
+        else:  # patches for MC data
             if event.trig.tels_with_trigger:
                 trigger_time = event.trig.gps_time.unix
             else:
@@ -274,7 +280,6 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
             for key, value in result.items():
                 setattr(container, key, value)
 
-            self.num_events_seen = 0
             return True
 
         else:
@@ -379,8 +384,9 @@ class FlasherFlatFieldCalculator(FlatFieldCalculator):
         # outliers from median
         charge_deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
 
-        charge_median_outliers = np.logical_or(charge_deviation < self.charge_cut_outliers[0] * median_of_pixel_median[:,np.newaxis],
-                                               charge_deviation > self.charge_cut_outliers[1] * median_of_pixel_median[:,np.newaxis])
+        charge_median_outliers = (
+            np.logical_or(charge_deviation < self.charge_cut_outliers[0] * median_of_pixel_median[:,np.newaxis],
+                          charge_deviation > self.charge_cut_outliers[1] * median_of_pixel_median[:,np.newaxis]))
 
         return {
             'relative_gain_median': np.ma.getdata(np.ma.median(relative_gain_event, axis=0)),

@@ -94,7 +94,7 @@ class PedestalCalculator(Component):
         2,
         help='number of channels to be treated'
     ).tag(config=True)
-    charge_product= Unicode(
+    charge_product = Unicode(
         'FixedWindowSum',
         help='Name of the charge extractor to be used'
     ).tag(config=True)
@@ -175,11 +175,11 @@ class PedestalIntegrator(PedestalCalculator):
 
      """
     charge_median_cut_outliers = List(
-        [-3,3],
+        [-3, 3],
         help='Interval (number of std) of accepted charge values around camera median value'
     ).tag(config=True)
     charge_std_cut_outliers = List(
-        [-3,3],
+        [-3, 3],
         help='Interval (number of std) of accepted charge standard deviation around camera median value'
     ).tag(config=True)
 
@@ -225,10 +225,12 @@ class PedestalIntegrator(PedestalCalculator):
         waveforms = event.r1.tel[self.tel_id].waveform
 
         # Extract charge and time
+        charge = 0
+        peak_pos = 0
         if self.extractor:
             if self.extractor.requires_neighbors():
-                g = event.inst.subarray.tel[self.tel_id].camera
-                self.extractor.neighbours = g.neighbor_matrix_where
+                camera = event.inst.subarray.tel[self.tel_id].camera
+                self.extractor.neighbours = camera.neighbor_matrix_where
 
             charge, peak_pos = self.extractor(waveforms)
 
@@ -248,6 +250,10 @@ class PedestalIntegrator(PedestalCalculator):
         # initialize the np array at each cycle
         waveform = event.r1.tel[self.tel_id].waveform
         container = event.mon.tel[self.tel_id].pedestal
+
+        # re-initialize counter
+        if self.num_events_seen == self.sample_size:
+            self.num_events_seen = 0
 
         # real data
         if event.meta['origin'] != 'hessio':
@@ -270,7 +276,7 @@ class PedestalIntegrator(PedestalCalculator):
 
         # extract the charge of the event and
         # the peak position (assumed as time for the moment)
-        charge, arrival_time = self._extract_charge(event)
+        charge = self._extract_charge(event)[0]
 
         self.collect_sample(charge, pixel_mask)
 
@@ -299,7 +305,6 @@ class PedestalIntegrator(PedestalCalculator):
             for key, value in result.items():
                 setattr(container, key, value)
 
-            self.num_events_seen = 0
             return True
 
         else:
@@ -341,8 +346,8 @@ def calculate_time_results(
 
 
 def calculate_pedestal_results(self,
-    trace_integral,
-    masked_pixels_of_sample,
+                               trace_integral,
+                               masked_pixels_of_sample,
 ):
     """Calculate and return the sample statistics"""
     masked_trace_integral = np.ma.array(
@@ -372,13 +377,15 @@ def calculate_pedestal_results(self,
 
     # outliers from standard deviation
     deviation = pixel_std - median_of_pixel_std[:, np.newaxis]
-    charge_std_outliers = np.logical_or(deviation < self.charge_std_cut_outliers[0] * std_of_pixel_std[:,np.newaxis],
-                                        deviation > self.charge_std_cut_outliers[1] * std_of_pixel_std[:,np.newaxis])
+    charge_std_outliers = (
+        np.logical_or(deviation < self.charge_std_cut_outliers[0] * std_of_pixel_std[:,np.newaxis],
+                      deviation > self.charge_std_cut_outliers[1] * std_of_pixel_std[:,np.newaxis]))
 
     # outliers from median
     deviation = pixel_median - median_of_pixel_median[:, np.newaxis]
-    charge_median_outliers = np.logical_or(deviation < self.charge_median_cut_outliers[0] * std_of_pixel_median[:,np.newaxis],
-                                           deviation > self.charge_median_cut_outliers[1] * std_of_pixel_median[:,np.newaxis])
+    charge_median_outliers = (
+        np.logical_or(deviation < self.charge_median_cut_outliers[0] * std_of_pixel_median[:,np.newaxis],
+                      deviation > self.charge_median_cut_outliers[1] * std_of_pixel_median[:,np.newaxis]))
 
     return {
         'charge_median': np.ma.getdata(pixel_median),

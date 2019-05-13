@@ -3,7 +3,9 @@ from ctapipe.calib.camera.flatfield import *
 from ctapipe.io.containers import EventAndMonDataContainer
 from traitlets.config.loader import Config
 
+
 def test_flasherflatfieldcalculator():
+    """test of flasherFlatFieldCalculator"""
     tel_id = 0
     n_gain = 2
     n_events = 10
@@ -49,7 +51,7 @@ def test_flasherflatfieldcalculator():
     data.r1.tel[tel_id].waveform[:, failing_pixels_id, :] = 0
     data.mon.tel[tel_id].pixel_status.pedestal_failing_pixels[:,failing_pixels_id] = True
 
-    for counts in np.arange(n_events):
+    while ff_calculator.num_events_seen < n_events :
         if ff_calculator.calculate_relative_gain(data):
 
             # working pixel have good gain

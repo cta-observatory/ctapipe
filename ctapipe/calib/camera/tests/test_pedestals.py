@@ -4,6 +4,8 @@ from ctapipe.io.containers import EventAndMonDataContainer
 
 
 def test_pedestal_calculator():
+    """ test of PedestalIntegrator """
+
     tel_id = 0
     n_events = 10
     n_gain = 2
@@ -22,9 +24,7 @@ def test_pedestal_calculator():
     data.r1.tel[tel_id].waveform = np.full((2, n_pixels, 40), ped_level)
     data.r1.tel[tel_id].trigger_time = 1000
 
-
-    for counts in np.arange(n_events):
-
+    while ped_calculator.num_events_seen < n_events :
         if ped_calculator.calculate_pedestals(data):
             assert data.mon.tel[tel_id].pedestal
             assert np.mean(data.mon.tel[tel_id].pedestal.charge_median) == (
@@ -33,7 +33,7 @@ def test_pedestal_calculator():
 
 
 def test_calc_pedestals_from_traces():
-
+    """ test calc_pedestals_from_traces """
     # create some test data (all ones, but with a 2 stuck in for good measure):
     npix = 1000
     nsamp = 32
