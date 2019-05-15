@@ -151,7 +151,7 @@ class DisplayDL1Calib(Tool):
 
     aliases = Dict(
         dict(
-            input="EventSource.input_path",
+            input="EventSource.input_url",
             max_events="EventSource.max_events",
             extractor="DisplayDL1Calib.extractor_product",
             T="DisplayDL1Calib.telescope",
