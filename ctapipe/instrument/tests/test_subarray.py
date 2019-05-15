@@ -77,9 +77,9 @@ def test_tel_indexing(example_event):
 
 
 def test_get_tel_ids_for_type(example_event):
-    """ 
+    """
     check that we can get a list of telescope ids by a telescope type, which can
-    be passed by string or TelscopeDescription instance 
+    be passed by string or `TelescopeDescription` instance
     """
     sub: SubarrayDescription = example_event.inst.subarray
 
