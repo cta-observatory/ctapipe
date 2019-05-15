@@ -215,7 +215,7 @@ class DisplayIntegrator(Tool):
     event_index = Int(0, help="Event index to view.").tag(config=True)
     use_event_id = Bool(
         False,
-        help="event_index will obtain an event using event_id instead of " "index.",
+        help="event_index will obtain an event using event_id instead of index.",
     ).tag(config=True)
     telescope = Int(
         None,
@@ -243,7 +243,7 @@ class DisplayIntegrator(Tool):
         dict(
             id=(
                 {"DisplayDL1Calib": {"use_event_index": True}},
-                "event_index will obtain an event using " "event_id instead of index.",
+                "event_index will obtain an event using event_id instead of index.",
             )
         )
     )

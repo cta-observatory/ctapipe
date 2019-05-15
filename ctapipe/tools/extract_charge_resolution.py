@@ -28,7 +28,7 @@ class ChargeResolutionGenerator(Tool):
         Int,
         None,
         allow_none=True,
-        help="Telescopes to include from the event file. " "Default = All telescopes",
+        help="Telescopes to include from the event file. Default = All telescopes",
     ).tag(config=True)
     output_path = Unicode(
         "charge_resolution.h5", help="Path to store the output HDF5 file"

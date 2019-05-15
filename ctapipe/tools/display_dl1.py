@@ -6,9 +6,9 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from traitlets import Bool, Dict, Int, List, Unicode
 
-from ctapipe.core import traits
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Component, Tool
+from ctapipe.core import traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.utils import get_dataset_path
@@ -19,7 +19,7 @@ class ImagePlotter(Component):
     """ Plotter for camera images """
 
     display = Bool(
-        True, help="Display the photoelectron images on-screen as they " "are produced."
+        True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
     output_path = Unicode(
         None,
@@ -142,7 +142,7 @@ class DisplayDL1Calib(Tool):
     telescope = Int(
         None,
         allow_none=True,
-        help="Telescope to view. Set to None to display all " "telescopes.",
+        help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
     extractor_product = traits.enum_trait(
@@ -151,6 +151,7 @@ class DisplayDL1Calib(Tool):
 
     aliases = Dict(
         dict(
+            input="EventSource.input_path",
             max_events="EventSource.max_events",
             extractor="DisplayDL1Calib.extractor_product",
             T="DisplayDL1Calib.telescope",
@@ -161,7 +162,7 @@ class DisplayDL1Calib(Tool):
         dict(
             D=(
                 {"ImagePlotter": {"display": True}},
-                "Display the photoelectron images on-screen as they " "are produced.",
+                "Display the photo-electron images on-screen as they are produced.",
             )
         )
     )
