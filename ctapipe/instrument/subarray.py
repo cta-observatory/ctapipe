@@ -69,6 +69,7 @@ class SubarrayDescription:
 
     @property
     def num_tels(self):
+        """number of telescopes in this subarray"""
         return len(self.tels)
 
     def __len__(self):
@@ -121,12 +122,12 @@ class SubarrayDescription:
 
     @property
     def tel_index_array(self):
-        """ 
+        """
         returns an expanded array that maps tel_id to tel_index. I.e. for a given
         telescope, this array maps the tel_id to a flat index starting at 0 for
         the first telescope. `tel_index = tel_id_to_index_array[tel_id]`
-        If the tel_ids are not contiguous, gaps will be filled in by -1. 
-        For a more compact representation use the `tel_indices` 
+        If the tel_ids are not contiguous, gaps will be filled in by -1.
+        For a more compact representation use the `tel_indices`
         """
         idx = np.zeros(np.max(self.tel_ids) + 1, dtype=int) - 1  # start with -1
         for key, val in self.tel_indices.items():
@@ -153,9 +154,9 @@ class SubarrayDescription:
     @property
     def footprint(self):
         """area of smallest circle containing array on ground"""
-        x = self.tel_coords.x
-        y = self.tel_coords.y
-        return (np.hypot(x, y).max() ** 2 * np.pi).to("km^2")
+        pos_x = self.tel_coords.x
+        pos_y = self.tel_coords.y
+        return (np.hypot(pos_x, pos_y).max() ** 2 * np.pi).to("km^2")
 
     def to_table(self, kind="subarray"):
         """
