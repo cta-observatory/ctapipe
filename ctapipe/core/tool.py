@@ -108,11 +108,6 @@ class Tool(Application):
         help='The Logging format template'
     ).tag(config=True)
 
-    log_format = Unicode(
-        '%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s',
-        help='The Logging format template'
-    ).tag(config=True)
-
     _log_formatter_cls = ColoredFormatter
 
     def __init__(self, **kwargs):
