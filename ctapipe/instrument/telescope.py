@@ -33,7 +33,7 @@ class TelescopeDescription:
     ----------
     name: str
         Telescope name
-    type: str
+    tel_type: str
         Telescope type
     optics: OpticsDescription
        the optics associated with this telescope
@@ -41,10 +41,10 @@ class TelescopeDescription:
        the camera associated with this telescope
     """
 
-    def __init__(self, name, type, optics: OpticsDescription, camera: CameraGeometry):
+    def __init__(self, name, tel_type, optics: OpticsDescription, camera: CameraGeometry):
 
         self.name = name
-        self.type = type
+        self.type = tel_type
         self.optics = optics
         self.camera = camera
 

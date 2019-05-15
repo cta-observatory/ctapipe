@@ -135,12 +135,9 @@ class SimTelEventSource(EventSource):
                 num_mirror_tiles=cam_settings['n_mirrors'],
             )
 
-            tel_descriptions[tel_id] = TelescopeDescription(
-                name=telescope.name,
-                type=telescope.type,
-                camera=camera,
-                optics=optics,
-            )
+            tel_descriptions[tel_id] = TelescopeDescription(name=telescope.name,
+                                                            tel_type=telescope.type,
+                                                            optics=optics, camera=camera)
 
             tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
             tel_positions[tel_id] = header['tel_pos'][tel_idx] * u.m
