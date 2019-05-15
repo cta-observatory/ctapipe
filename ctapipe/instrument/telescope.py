@@ -84,7 +84,7 @@ class TelescopeDescription:
         except ValueError:
             result = UNKNOWN_TELESCOPE
 
-        return cls(name=result.name, type=result.type, optics=optics, camera=camera)
+        return cls(name=result.name, tel_type=result.type, optics=optics, camera=camera)
 
     def __str__(self):
         return f"{self.type}_{self.optics}_{self.camera}"
