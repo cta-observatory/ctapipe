@@ -37,6 +37,13 @@ __all__ = [
     'LeakageContainer',
     'ConcentrationContainer',
     'TimingParametersContainer',
+    'FlatFieldContainer',
+    'PedestalContainer',
+    'PixelStatusContainer',
+    'WaveformCalibrationContainer',
+    'MonitoringCameraContainer',
+    'MonitoringContainer',
+    'EventAndMonDataContainer'
 ]
 
 
@@ -611,3 +618,190 @@ class TimingParametersContainer(Container):
     """
     slope = Field(nan, 'Slope of arrival times along main shower axis')
     intercept = Field(nan, 'intercept of arrival times along main shower axis')
+
+
+class FlatFieldContainer(Container):
+    """
+    Container for flat-field parameters obtained from a set of
+    [n_events] flat-field events
+    """
+
+    sample_time = Field(0, 'Time associated to the flat-field event set ', unit=u.s)
+    sample_time_range = Field(
+        [],
+        'Range of time of the flat-field events [t_min, t_max]',
+        unit=u.s
+    )
+    n_events = Field(0, 'Number of events used for statistics')
+
+    charge_mean = Field(
+        None,
+        "np array of signal charge mean (n_chan, n_pix)"
+    )
+    charge_median = Field(
+        None,
+        "np array of signal charge median (n_chan, n_pix)"
+    )
+    charge_std = Field(
+        None,
+        "np array of signal charge standard deviation (n_chan, n_pix)"
+    )
+    time_mean = Field(
+        None,
+        "np array of signal time mean (n_chan, n_pix)",
+        unit=u.ns,
+    )
+    time_median = Field(
+        None,
+        "np array of signal time median (n_chan, n_pix)",
+        unit=u.ns
+    )
+    time_std = Field(
+        None,
+        "np array of signal time standard deviation (n_chan, n_pix)",
+        unit=u.ns
+
+    )
+    relative_gain_mean = Field(
+        None,
+        "np array of the relative flat-field coefficient mean (n_chan, n_pix)"
+    )
+    relative_gain_median = Field(
+        None,
+        "np array of the relative flat-field coefficient  median (n_chan, n_pix)"
+    )
+    relative_gain_std = Field(
+        None,
+        "np array of the relative flat-field coefficient standard deviation (n_chan, n_pix)"
+    )
+    relative_time_median = Field(
+        None,
+        "np array of time (median) - time median averaged over camera (n_chan, n_pix)",
+        unit=u.ns)
+
+    charge_median_outliers = Field(
+        None,
+        "Boolean np array of charge (median) outliers (n_chan, n_pix)"
+    )
+    time_median_outliers = Field(
+        None,
+        "Boolean np array of pixel time (median) outliers (n_chan, n_pix)"
+    )
+
+
+class PedestalContainer(Container):
+    """
+    Container for pedestal parameters obtained from a set of
+    [n_pedestal] pedestal events
+    """
+    n_events = Field(0, 'Number of events used for statistics')
+    sample_time = Field(0, 'Time associated to the pedestal event set', unit=u.s)
+    sample_time_range = Field(
+        [],
+        'Range of time of the pedestal events [t_min, t_max]',
+        unit=u.s
+    )
+    charge_mean = Field(
+        None,
+        "np array of pedestal average (n_chan, n_pix)"
+    )
+    charge_median = Field(
+        None,
+        "np array of the pedestal  median (n_chan, n_pix)"
+    )
+    charge_std = Field(
+        None,
+        "np array of the pedestal standard deviation (n_chan, n_pix)"
+    )
+    charge_median_outliers = Field(
+        None,
+        "Boolean np array of the pedestal median outliers (n_chan, n_pix)"
+    )
+    charge_std_outliers = Field(
+        None,
+        "Boolean np array of the pedestal std outliers (n_chan, n_pix)"
+    )
+
+
+class PixelStatusContainer(Container):
+    """
+    Container for pixel status information
+    It contains masks obtained by several data analysis steps
+    At r0/r1 level only the hardware_mask is initialized
+    """
+    hardware_failing_pixels = Field(
+        None,
+        "Boolean np array (True = failing pixel) from the hardware pixel status data (n_chan, n_pix)"
+    )
+
+    pedestal_failing_pixels = Field(
+        None,
+        "Boolean np array (True = failing pixel) from the pedestal data analysis (n_chan, n_pix)"
+    )
+
+    flatfield_failing_pixels = Field(
+        None,
+        "Boolean np array (True = failing pixel) from the flat-field data analysis (n_chan, n_pix)"
+    )
+
+
+class WaveformCalibrationContainer(Container):
+    """
+    Container for the pixel calibration coefficients
+    """
+    time = Field(0, 'Time associated to the calibration event', unit=u.s)
+    time_range = Field(
+        [],
+        'Range of time of validity for the calibration event [t_min, t_max]',
+        unit=u.s
+    )
+
+    dc_to_pe = Field(
+        None,
+        "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)"
+    )
+
+    time_correction = Field(
+        None,
+        "np array of time correction values (n_chan, n_pix)"
+    )
+
+    n_pe = Field(
+        None,
+        "np array of photo-electrons in calibration signal (n_chan, n_pix)"
+    )
+
+    unusable_pixels = Field(
+        None,
+        "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)"
+    )
+
+class MonitoringCameraContainer(Container):
+    """
+    Container for camera monitoring data
+    """
+
+    flatfield = Field(FlatFieldContainer(), "Data from flat-field event distributions")
+    pedestal = Field(PedestalContainer(), "Data from pedestal event distributions")
+    pixel_status = Field(PixelStatusContainer(), "Container for masks with pixel status")
+    calibration = Field(WaveformCalibrationContainer(), "Container for calibration coefficients")
+
+
+class MonitoringContainer(Container):
+    """
+    Root container for monitoring data (MON)
+    """
+
+    tels_with_data = Field([], "list of telescopes with data")
+
+    # create the camera container
+    tel = Field(
+        Map(MonitoringCameraContainer),
+        "map of tel_id to MonitoringCameraContainer")
+
+
+class EventAndMonDataContainer(DataContainer):
+    """
+    Data container including monitoring information
+    """
+    mon = Field(MonitoringContainer(), "container for monitoring data (MON)")
