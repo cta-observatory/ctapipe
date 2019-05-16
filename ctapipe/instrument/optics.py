@@ -113,6 +113,11 @@ class OpticsDescription:
 
     @classmethod
     def get_known_optics_names(cls, optics_table="optics"):
+        """
+        return the list of optics names from ctapipe resources, i.e. those that can be
+        constructed by name (this does not return the list of known names from an
+        already open Monte-Carlo file)
+        """
         table = get_table_dataset(optics_table, "get_known_optics")
         return np.array(table["tel_description"])
 

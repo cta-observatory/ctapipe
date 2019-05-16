@@ -1,3 +1,4 @@
+""" Tests for TelescopeDescriptions """
 import pytest
 
 from ctapipe.instrument.camera import CameraGeometry
@@ -25,13 +26,14 @@ def test_hash():
     assert len(set(telescopes)) == 3
 
 
-optics_names = OpticsDescription.get_known_optics_names()
-camera_names = CameraGeometry.get_known_camera_names()
+OPTICS_NAMES = OpticsDescription.get_known_optics_names()
+CAMERA_NAMES = CameraGeometry.get_known_camera_names()
 
 
-@pytest.mark.parametrize("camera_name", camera_names)
-@pytest.mark.parametrize("optics_name", optics_names)
+@pytest.mark.parametrize("camera_name", CAMERA_NAMES)
+@pytest.mark.parametrize("optics_name", OPTICS_NAMES)
 def test_telescope_from_name(optics_name, camera_name):
+    """ Check we can construct all telescopes from their names """
     tel = TelescopeDescription.from_name(optics_name, camera_name)
     assert optics_name in str(tel)
     assert camera_name in str(tel)

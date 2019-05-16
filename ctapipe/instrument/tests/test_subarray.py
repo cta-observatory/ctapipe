@@ -1,3 +1,4 @@
+""" Tests for SubarrayDescriptions """
 import numpy as np
 from astropy import units as u
 from astropy.coordinates import SkyCoord
@@ -11,6 +12,7 @@ from ctapipe.instrument import (
 
 
 def example_subarray(n_tels=10):
+    """ generate a simple subarray for testing purposes """
     pos = {}
     tel = {}
 
@@ -24,6 +26,7 @@ def example_subarray(n_tels=10):
 
 
 def test_subarray_description():
+    """ Test SubarrayDescription functionality """
     n_tels = 10
     sub = example_subarray(n_tels)
     sub.peek()
@@ -58,6 +61,7 @@ def test_subarray_description():
 
 
 def test_to_table(example_event):
+    """ Check that we can generate astropy Tables from the SubarrayDescription """
     sub: SubarrayDescription = example_event.inst.subarray
 
     assert len(sub.to_table(kind="subarray")) == sub.num_tels
