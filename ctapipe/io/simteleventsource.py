@@ -73,7 +73,7 @@ class SimTelEventSource(EventSource):
         # so we explicitly pass None in that case
         self.file_ = SimTelFile(
             self.input_url,
-            allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
+            allowed_telescopes=set(self.allowed_tels) if self.allowed_tels else None,
             skip_calibration=self.skip_calibration_events,
             zcat=not self.back_seekable,
         )

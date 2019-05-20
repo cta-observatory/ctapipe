@@ -1,4 +1,7 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+"""
+Core functionality of ctapipe
+"""
 
 from .component import Component, non_abstract_children
 from .container import Container, Field, Map

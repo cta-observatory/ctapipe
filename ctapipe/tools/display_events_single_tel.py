@@ -73,10 +73,14 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
         print('TOLLES INFILE', self.infile)
-        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.event_source = self.add_component(
+            EventSource.from_url(self.infile, parent=self)
+        )
         self.event_source.allowed_tels = {self.tel, }
 
-        self.calibrator = CameraCalibrator(parent=self)
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self)
+        )
 
         self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
 
