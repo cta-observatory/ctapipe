@@ -5,7 +5,7 @@ import numpy as np
 
 
 def test_eventplotter():
-    dataset = get_dataset_path("gamma_test.simtel.gz")
+    dataset = get_dataset_path("gamma_test_large.simtel.gz")
     with event_source(dataset, max_events=1) as source:
         event = next(iter(source))
 

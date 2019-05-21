@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from ctapipe.core import Component, Container
 
-__all__ = ['TableReader', 'TableWriter']
+__all__ = ["TableReader", "TableWriter"]
 
 
 class TableWriter(Component, metaclass=ABCMeta):
@@ -15,11 +15,11 @@ class TableWriter(Component, metaclass=ABCMeta):
 
     See Also
     --------
-    - `ctapipe.io.HDF5TableWriter`
+    ctapipe.io.HDF5TableWriter: Implementation of this base class for writing HDF5 files
     """
 
     def __init__(self, parent=None, add_prefix=False, **kwargs):
-        super().__init__(parent, **kwargs)
+        super().__init__(parent=parent, **kwargs)
         self._transforms = defaultdict(dict)
         self._exclusions = defaultdict(list)
         self.add_prefix = add_prefix
@@ -66,9 +66,9 @@ class TableWriter(Component, metaclass=ABCMeta):
             function that take a value and returns a new one
         """
         self._transforms[table_name][col_name] = transform
-        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
-                                                             col_name,
-                                                             transform))
+        self.log.debug(
+            "Added transform: {}/{} -> {}".format(table_name, col_name, transform)
+        )
 
     @abstractmethod
     def write(self, table_name, containers):
@@ -151,9 +151,9 @@ class TableReader(Component, metaclass=ABCMeta):
             function that take a value and returns a new one
         """
         self._transforms[table_name][col_name] = transform
-        self.log.debug("Added transform: {}/{} -> {}".format(table_name,
-                                                             col_name,
-                                                             transform))
+        self.log.debug(
+            "Added transform: {}/{} -> {}".format(table_name, col_name, transform)
+        )
 
     def _apply_col_transform(self, table_name, col_name, value):
         """

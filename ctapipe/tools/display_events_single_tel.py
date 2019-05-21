@@ -16,17 +16,17 @@ from tqdm import tqdm
 
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
-from ctapipe.core.traits import Unicode, Int, Integer, Bool
 from ctapipe.core.traits import Float, Dict, List
+from ctapipe.core.traits import Unicode, Int, Integer, Bool
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
-from ctapipe.io import EventSourceFactory
+from ctapipe.io import EventSource
 from ctapipe.visualization import CameraDisplay
 
 
 class SingleTelEventDisplay(Tool):
-    name = "ctapipe-display-single-tel"
+    name = "ctapipe-display-televents"
     description = Unicode(__doc__)
 
     infile = Unicode(help="input file to read", default='').tag(config=True)
@@ -53,9 +53,9 @@ class SingleTelEventDisplay(Tool):
     ).tag(config=True)
 
     aliases = Dict({
-        'infile': 'EventSourceFactory.input_url',
+        'infile': 'SingleTelEventDisplay.infile',
         'tel': 'SingleTelEventDisplay.tel',
-        'max-events': 'EventSourceFactory.max_events',
+        'max-events': 'EventSource.max_events',
         'channel': 'SingleTelEventDisplay.channel',
         'write': 'SingleTelEventDisplay.write',
         'clean': 'SingleTelEventDisplay.clean',
@@ -66,38 +66,35 @@ class SingleTelEventDisplay(Tool):
         'progress': 'SingleTelEventDisplay.progress'
     })
 
-    classes = List([EventSourceFactory, CameraCalibrator])
+    classes = List([EventSource, CameraCalibrator])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def setup(self):
+        print('TOLLES INFILE', self.infile)
+        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.event_source.allowed_tels = {self.tel, }
 
-        self.event_source = EventSourceFactory.produce(
-            config=self.config, tool=self
-        )
-        self.event_source.allowed_tels = [
-            self.tel,
-        ]
+        self.calibrator = CameraCalibrator(parent=self)
 
-        self.calibrator = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.event_source
-        )
-
-        self.log.info('SELECTING EVENTS FROM TELESCOPE {}'.format(self.tel))
+        self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
 
     def start(self):
 
         disp = None
 
         for event in tqdm(
-            self.event_source,
-            desc='Tel{}'.format(self.tel),
-            total=self.event_source.max_events,
-            disable=~self.progress
+                self.event_source,
+                desc=f'Tel{self.tel}',
+                total=self.event_source.max_events,
+                disable=~self.progress
         ):
 
             self.log.debug(event.trig)
-            self.log.debug("Energy: {}".format(event.mc.energy))
+            self.log.debug(f"Energy: {event.mc.energy}")
 
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             if disp is None:
                 geom = event.inst.subarray.tel[self.tel].camera
@@ -121,13 +118,13 @@ class SingleTelEventDisplay(Tool):
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)
-                    plt.suptitle("Sample {:03d}".format(ii))
+                    plt.suptitle(f"Sample {ii:03d}")
                     if self.display:
                         plt.pause(self.delay)
                     if self.write:
                         plt.savefig(
-                            'CT{:03d}_EV{:10d}_S{:02d}.png'
-                            .format(self.tel, event.r0.event_id, ii)
+                            f'CT{self.tel:03d}_EV{event.r0.event_id:10d}'
+                            f'_S{ii:02d}.png'
                         )
             else:
                 # display integrated event:
@@ -158,8 +155,7 @@ class SingleTelEventDisplay(Tool):
                     plt.pause(self.delay)
                 if self.write:
                     plt.savefig(
-                        'CT{:03d}_EV{:010d}.png'
-                        .format(self.tel, event.r0.event_id)
+                        f'CT{self.tel:03d}_EV{event.r0.event_id:010d}.png'
                     )
 
         self.log.info("FINISHED READING DATA FILE")
@@ -168,10 +164,10 @@ class SingleTelEventDisplay(Tool):
             self.log.warning(
                 'No events for tel {} were found in {}. Try a '
                 'different EventIO file or another telescope'
-                .format(self.tel, self.infile),
+                    .format(self.tel, self.infile),
             )
 
 
-if __name__ == '__main__':
+def main():
     tool = SingleTelEventDisplay()
     tool.run()

@@ -10,9 +10,9 @@ from astropy.coordinates import (
     frame_transform_graph,
     CartesianRepresentation,
     UnitSphericalRepresentation,
+    AltAz,
 )
 
-from .horizon_frame import HorizonFrame
 from .telescope_frame import TelescopeFrame
 from .representation import PlanarRepresentation
 
@@ -41,8 +41,8 @@ class CameraFrame(BaseCoordinateFrame):
         Focal length of the telescope as a unit quantity (usually meters)
     rotation : u.Quantity[angle]
         Rotation angle of the camera (0 deg in most cases)
-    telescope_pointing : SkyCoord[HorizonFrame]
-        Pointing direction of the telescope as SkyCoord in HorizonFrame
+    telescope_pointing : SkyCoord[AltAz]
+        Pointing direction of the telescope as SkyCoord in AltAz
     obstime : Time
         Observation time
     location : EarthLocation
@@ -52,7 +52,7 @@ class CameraFrame(BaseCoordinateFrame):
 
     focal_length = QuantityAttribute(default=0, unit=u.m)
     rotation = QuantityAttribute(default=0 * u.deg, unit=u.rad)
-    telescope_pointing = CoordinateAttribute(frame=HorizonFrame, default=None)
+    telescope_pointing = CoordinateAttribute(frame=AltAz, default=None)
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
@@ -85,8 +85,8 @@ def camera_to_telescope(camera_coord, telescope_frame):
     # as an Attribute of `CameraFrame` that maps f(r, focal_length) -> theta,
     # where theta is the angle to the optical axis and r is the distance
     # to the camera center in the focal plane
-    delta_alt = u.Quantity((x_rotated / focal_length).to_value(), u.rad)
-    delta_az = u.Quantity((y_rotated / focal_length).to_value(), u.rad)
+    delta_alt = u.Quantity((x_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad)
+    delta_az = u.Quantity((y_rotated / focal_length).to_value(u.dimensionless_unscaled), u.rad)
 
     representation = UnitSphericalRepresentation(lat=delta_alt, lon=delta_az)
 

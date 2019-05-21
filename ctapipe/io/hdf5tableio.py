@@ -1,3 +1,5 @@
+"""Implementations of TableWriter and -Reader for HDF5 files"""
+import enum
 from functools import partial
 
 import numpy as np
@@ -9,19 +11,22 @@ import ctapipe
 from .tableio import TableWriter, TableReader
 from ..core import Container
 
-__all__ = [
-    'HDF5TableWriter',
-    'HDF5TableReader'
-]
+__all__ = ["HDF5TableWriter", "HDF5TableReader"]
 
 PYTABLES_TYPE_MAP = {
-    'float': tables.Float64Col,
-    'float64': tables.Float64Col,
-    'float32': tables.Float32Col,
-    'int': tables.IntCol,
-    'int32': tables.Int32Col,
-    'int64': tables.Int64Col,
-    'bool': tables.BoolCol,
+    "float": tables.Float64Col,
+    "float64": tables.Float64Col,
+    "float32": tables.Float32Col,
+    "int": tables.IntCol,
+    "int8": tables.Int8Col,
+    "int16": tables.Int16Col,
+    "int32": tables.Int32Col,
+    "int64": tables.Int64Col,
+    "uint8": tables.UInt8Col,
+    "uint16": tables.UInt16Col,
+    "uint32": tables.UInt32Col,
+    "uint64": tables.UInt64Col,
+    "bool": tables.UInt8Col,
 }
 
 
@@ -75,22 +80,15 @@ class HDF5TableWriter(TableWriter):
     """
 
     def __init__(
-        self,
-        filename,
-        group_name,
-        add_prefix=False,
-        mode='w',
-        root_uep='/',
-        **kwargs
+        self, filename, group_name, add_prefix=False, mode="w", root_uep="/", **kwargs
     ):
 
         super().__init__(add_prefix=add_prefix)
         self._schemas = {}
         self._tables = {}
 
-        if mode not in ['a', 'w', 'r+']:
-            raise IOError('The mode {} is not supported for writing'.
-                          format(mode))
+        if mode not in ["a", "w", "r+"]:
+            raise IOError(f"The mode {mode} is not supported for writing")
 
         kwargs.update(mode=mode, root_uep=root_uep)
 
@@ -145,24 +143,35 @@ class HDF5TableWriter(TableWriter):
                 shape = 1
 
                 if self._is_column_excluded(table_name, col_name):
-                    self.log.debug(
-                        "excluded column: %s/%s", table_name, col_name
-                    )
+                    self.log.debug("excluded column: %s/%s", table_name, col_name)
                     continue
 
+                # apply any user-defined transforms first
+                value = self._apply_col_transform(table_name, col_name, value)
+
+                if isinstance(value, enum.Enum):
+
+                    def transform(enum_value):
+                        """transform enum instance into its (integer) value"""
+                        return enum_value.value
+
+                    meta[f"{col_name}_ENUM"] = value.__class__
+                    value = transform(value)
+                    self.add_column_transform(table_name, col_name, transform)
+
                 if isinstance(value, Quantity):
-                    if self.add_prefix:
-                        key = col_name.replace(container.prefix + '_', '')
+                    if self.add_prefix and container.prefix:
+                        key = col_name.replace(container.prefix + "_", "")
                     else:
                         key = col_name
                     req_unit = container.fields[key].unit
 
                     if req_unit is not None:
                         tr = partial(tr_convert_and_strip_unit, unit=req_unit)
-                        meta['{}_UNIT'.format(col_name)] = str(req_unit)
+                        meta[f"{col_name}_UNIT"] = str(req_unit)
                     else:
                         tr = lambda x: x.value
-                        meta['{}_UNIT'.format(col_name)] = str(value.unit)
+                        meta[f"{col_name}_UNIT"] = str(value.unit)
 
                     value = tr(value)
                     self.add_column_transform(table_name, col_name, tr)
@@ -176,20 +185,23 @@ class HDF5TableWriter(TableWriter):
                 if isinstance(value, Time):
                     # TODO: really should use MET, but need a func for that
                     Schema.columns[col_name] = tables.Float64Col()
-                    self.add_column_transform(
-                        table_name, col_name, tr_time_to_float
-                    )
+                    self.add_column_transform(table_name, col_name, tr_time_to_float)
 
                 elif type(value).__name__ in PYTABLES_TYPE_MAP:
                     typename = type(value).__name__
                     coltype = PYTABLES_TYPE_MAP[typename]
                     Schema.columns[col_name] = coltype()
 
-                self.log.debug("Table %s: added col: %s type: %s shape: %s",
-                               table_name, col_name, typename, shape)
+                self.log.debug(
+                    "Table %s: added col: %s type: %s shape: %s",
+                    table_name,
+                    col_name,
+                    typename,
+                    shape,
+                )
 
         self._schemas[table_name] = Schema
-        meta['CTAPIPE_VERSION'] = ctapipe.__version__
+        meta["CTAPIPE_VERSION"] = ctapipe.__version__
         return meta
 
     def _setup_new_table(self, table_name, containers):
@@ -207,7 +219,7 @@ class HDF5TableWriter(TableWriter):
             title="Storage of {}".format(
                 ",".join(c.__class__.__name__ for c in containers)
             ),
-            description=self._schemas[table_name]
+            description=self._schemas[table_name],
         )
         for key, val in meta.items():
             table.attrs[key] = val
@@ -225,13 +237,11 @@ class HDF5TableWriter(TableWriter):
         for container in containers:
             selected_fields = filter(
                 lambda kv: kv[0] in table.colnames,
-                container.items(add_prefix=self.add_prefix)
+                container.items(add_prefix=self.add_prefix),
             )
             for colname, value in selected_fields:
 
-                value = self._apply_col_transform(
-                    table_name, colname, value
-                )
+                value = self._apply_col_transform(table_name, colname, value)
 
                 row[colname] = value
         row.append()
@@ -302,7 +312,7 @@ class HDF5TableReader(TableReader):
 
         super().__init__()
         self._tables = {}
-        kwargs.update(mode='r')
+        kwargs.update(mode="r")
 
         self.open(filename, **kwargs)
 
@@ -332,6 +342,17 @@ class HDF5TableReader(TableReader):
                 tr = partial(tr_add_unit, unitname=tab.attrs[attr])
                 self.add_column_transform(table_name, colname, tr)
 
+        for attr in tab.attrs._f_list():
+            if attr.endswith("_ENUM"):
+                colname = attr[:-5]
+
+                def transform_int_to_enum(int_val):
+                    """transform integer 'code' into enum instance"""
+                    enum_class = tab.attrs[attr]
+                    return enum_class(int_val)
+
+                self.add_column_transform(table_name, colname, transform_int_to_enum)
+
     def _map_table_to_container(self, table_name, container):
         """ identifies which columns in the table to read into the container,
         by comparing their names."""
@@ -340,17 +361,25 @@ class HDF5TableReader(TableReader):
             if colname in container.fields:
                 self._cols_to_read[table_name].append(colname)
             else:
-                self.log.warning("Table '%s' has column '%s' that is not in "
-                                 "container %s. It will be skipped",
-                                 table_name, colname, container.__class__.__name__)
+                self.log.warning(
+                    "Table '%s' has column '%s' that is not in "
+                    "container %s. It will be skipped",
+                    table_name,
+                    colname,
+                    container.__class__.__name__,
+                )
 
         # also check that the container doesn't have fields that are not
         # in the table:
         for colname in container.fields:
             if colname not in self._cols_to_read[table_name]:
-                self.log.warning("Table '%s' is missing column '%s' that is "
-                                 "in container %s. It will be skipped.",
-                                 table_name, colname, container.__class__.__name__)
+                self.log.warning(
+                    "Table '%s' is missing column '%s' that is "
+                    "in container %s. It will be skipped.",
+                    table_name,
+                    colname,
+                    container.__class__.__name__,
+                )
 
         # copy all user-defined attributes back to Container.mets
         for key in tab.attrs._f_list():
@@ -384,9 +413,9 @@ class HDF5TableReader(TableReader):
                 return  # stop generator when done
 
             for colname in self._cols_to_read[table_name]:
-                container[colname] = self._apply_col_transform(table_name,
-                                                               colname,
-                                                               row[colname])
+                container[colname] = self._apply_col_transform(
+                    table_name, colname, row[colname]
+                )
 
             yield container
             row_count += 1

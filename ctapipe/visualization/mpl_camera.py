@@ -80,7 +80,7 @@ class CameraDisplay:
     Output:
         Since CameraDisplay uses matplotlib, any display can be
         saved to any output file supported via
-        plt.savefig(filename). This includes `.pdf` and `.png`.
+        plt.savefig(filename). This includes ``.pdf`` and ``.png``.
 
     """
 
@@ -153,8 +153,8 @@ class CameraDisplay:
 
         self.axes.set_aspect('equal', 'datalim')
         self.axes.set_title(title)
-        self.axes.set_xlabel("X position ({})".format(self.geom.pix_x.unit))
-        self.axes.set_ylabel("Y position ({})".format(self.geom.pix_y.unit))
+        self.axes.set_xlabel(f"X position ({self.geom.pix_x.unit})")
+        self.axes.set_ylabel(f"Y position ({self.geom.pix_y.unit})")
         self.axes.autoscale_view()
 
         # set up a patch to display when a pixel is clicked (and
@@ -228,8 +228,8 @@ class CameraDisplay:
 
     def set_limits_percent(self, percent=95):
         """ auto-scale the color range to percent of maximum """
-        zmin = self.pixels.get_array().min()
-        zmax = self.pixels.get_array().max()
+        zmin = np.nanmin(self.pixels.get_array())
+        zmax = np.nanmax(self.pixels.get_array())
         dz = zmax - zmin
         frac = percent / 100.0
         self.autoscale = False
@@ -300,13 +300,12 @@ class CameraDisplay:
         """
         image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
-            raise ValueError(
+            raise ValueError((
                 "Image has a different shape {} than the "
                 "given CameraGeometry {}"
-                    .format(image.shape, self.geom.pix_x.shape)
-            )
+            ).format(image.shape, self.geom.pix_x.shape))
 
-        self.pixels.set_array(image[self.geom.mask])
+        self.pixels.set_array(np.ma.masked_invalid(image[self.geom.mask]))
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()
@@ -439,7 +438,7 @@ class CameraDisplay:
         self._active_pixel.set_visible(True)
         self._active_pixel_label.set_x(xx)
         self._active_pixel_label.set_y(yy)
-        self._active_pixel_label.set_text("{:003d}".format(pix_id))
+        self._active_pixel_label.set_text(f"{pix_id:003d}")
         self._active_pixel_label.set_visible(True)
         self._update()
         self.on_pixel_clicked(pix_id)  # call user-function
@@ -448,7 +447,7 @@ class CameraDisplay:
         """virtual function to overide in sub-classes to do something special
         when a pixel is clicked
         """
-        print("Clicked pixel_id {}".format(pix_id))
+        print(f"Clicked pixel_id {pix_id}")
 
     def show(self):
         self.axes.figure.show()

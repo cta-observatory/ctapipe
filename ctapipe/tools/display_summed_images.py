@@ -1,7 +1,7 @@
 """
 Select a group of similar telescopes (with same camera type), Loop over
 events where telescopes in the group participate, sum the image from each
-telescope, and display it
+telescope, and display it.
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from ctapipe.visualization import CameraDisplay
 
 class ImageSumDisplayerTool(Tool):
     description = Unicode(__doc__)
-    name = "ctapipe-image-sum-display"
+    name = "ctapipe-display-imagesum"
 
     infile = Unicode(
         help='input simtelarray file',
@@ -33,9 +33,9 @@ class ImageSumDisplayerTool(Tool):
 
     output_suffix = Unicode(
         help='suffix (file extension) of output '
-        'filenames to write images '
-        'to (no writing is done if blank). '
-        'Images will be named [EVENTID][suffix]',
+             'filenames to write images '
+             'to (no writing is done if blank). '
+             'Images will be named [EVENTID][suffix]',
         default_value=""
     ).tag(config=True)
 
@@ -52,9 +52,10 @@ class ImageSumDisplayerTool(Tool):
         # load up the telescope types table (need to first open a file, a bit of
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
+        # make sure gzip files are seekable
 
         self.reader = SimTelEventSource(
-            input_url=self.infile, max_events=self.max_events
+            input_url=self.infile, max_events=self.max_events, back_seekable=True
         )
 
         for event in self.reader:
@@ -69,11 +70,9 @@ class ImageSumDisplayerTool(Tool):
             "Telescope group %d: %s", self.telgroup,
             str(event.inst.subarray.tel[self._selected_tels[0]])
         )
-        self.log.info("SELECTED TELESCOPES:{}".format(self._selected_tels))
+        self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
-        self.calibrator = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.reader
-        )
+        self.calibrator = CameraCalibrator(parent=self)
 
         self.reader.allowed_tels = self._selected_tels
 
@@ -84,7 +83,7 @@ class ImageSumDisplayerTool(Tool):
 
         for event in self.reader:
 
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             if geom is None:
                 geom = event.inst.subarray.tel[self._base_tel].camera
@@ -113,10 +112,10 @@ class ImageSumDisplayerTool(Tool):
                 filename = "{:020d}{}".format(
                     event.r0.event_id, self.output_suffix
                 )
-                self.log.info("saving: '{}'".format(filename))
+                self.log.info(f"saving: '{filename}'")
                 plt.savefig(filename)
 
 
-if __name__ == '__main__':
+def main():
     tool = ImageSumDisplayerTool()
     tool.run()

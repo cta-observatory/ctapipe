@@ -6,13 +6,13 @@ For generic use with all muon algorithms
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.coordinates import SkyCoord
 from astropy import units as u
 from astropy.table import Table
 from matplotlib import colors
 from scipy.stats import norm
 
-from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
+from astropy.coordinates import SkyCoord, AltAz
+from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.plotting.camera import CameraPlotter
 from ctapipe.utils.fitshistogram import Histogram
@@ -75,7 +75,7 @@ def plot_muon_efficiency(outputpath):
     contrw = axrw.hist(t['RingWidth'], nbins)
     axrw.set_xlim(0.2 * min(t['RingWidth']), 1.2 * max(t['RingWidth']))
     axrw.set_ylim(0., 1.2 * max(contrw[0]))
-    axrw.set_xlabel('Ring Width ($^\circ$)')
+    axrw.set_xlabel(r'Ring Width ($^\circ$)')
 
     plt.draw()
 
@@ -134,7 +134,7 @@ def plot_muon_event(event, muonparams):
 #                rotr_angle = 0. * u.deg
 
             # Convert to camera frame (centre & radius)
-            altaz = HorizonFrame(alt=event.mc.alt, az=event.mc.az)
+            altaz = AltAz(alt=event.mc.alt, az=event.mc.az)
 
             ring_nominal = SkyCoord(
                 delta_az=muonparams['MuonRingParams'][idx].ring_center_x,

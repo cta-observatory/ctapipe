@@ -1,10 +1,9 @@
 """
-Example to load raw data (hessio format), calibrate and reconstruct muon
-ring parameters, and write the muon ring and intensity parameters to an output
-table.
+Detect and extract muon ring parameters, and write the muon ring and
+intensity parameters to an output table.
 
-The resulting output can be read e.g. using `pandas.read_hdf(filename,
-'muons/LSTCam')`
+The resulting output can be read e.g. using for example
+`pandas.read_hdf(filename, 'muons/LSTCam')`
 """
 
 import warnings
@@ -18,7 +17,7 @@ from ctapipe.core import Tool, ToolConfigurationError
 from ctapipe.core import traits as t
 from ctapipe.image.muon.muon_diagnostic_plots import plot_muon_event
 from ctapipe.image.muon.muon_reco_functions import analyze_muon_event
-from ctapipe.io import EventSourceFactory
+from ctapipe.io import EventSource, event_source
 from ctapipe.io import HDF5TableWriter
 
 warnings.filterwarnings("ignore")  # Supresses iminuit warnings
@@ -38,7 +37,7 @@ def _exclude_some_columns(subarray, writer):
 
 
 class MuonDisplayerTool(Tool):
-    name = 'ctapipe-display-muons'
+    name = 'ctapipe-reconstruct-muons'
     description = t.Unicode(__doc__)
 
     events = t.Unicode("",
@@ -52,25 +51,23 @@ class MuonDisplayerTool(Tool):
     ).tag(config=True)
 
     classes = t.List([
-        CameraCalibrator, EventSourceFactory
+        CameraCalibrator, EventSource
     ])
 
     aliases = t.Dict({
         'input': 'MuonDisplayerTool.events',
         'outfile': 'MuonDisplayerTool.outfile',
         'display': 'MuonDisplayerTool.display',
-        'max_events': 'EventSourceFactory.max_events',
-        'allowed_tels': 'EventSourceFactory.allowed_tels',
+        'max_events': 'EventSource.max_events',
+        'allowed_tels': 'EventSource.allowed_tels',
     })
 
     def setup(self):
         if self.events == '':
             raise ToolConfigurationError("please specify --input <events file>")
         self.log.debug("input: %s", self.events)
-        self.source = EventSourceFactory.produce(input_url=self.events)
-        self.calib = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.source
-        )
+        self.source = event_source(self.events)
+        self.calib = CameraCalibrator(parent=self)
         self.writer = HDF5TableWriter(self.outfile, "muons")
 
     def start(self):
@@ -80,7 +77,7 @@ class MuonDisplayerTool(Tool):
 
         for event in tqdm(self.source, desc='detecting muons'):
 
-            self.calib.calibrate(event)
+            self.calib(event)
             muon_evt = analyze_muon_event(event)
 
             if numev == 0:
@@ -120,6 +117,6 @@ class MuonDisplayerTool(Tool):
         self.writer.close()
 
 
-if __name__ == '__main__':
+def main():
     tool = MuonDisplayerTool()
     tool.run()

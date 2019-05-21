@@ -3,7 +3,16 @@ from astropy.coordinates import Angle
 from astropy.time import Time
 from ctapipe.io.eventsource import EventSource
 from ctapipe.io.containers import DataContainer
-from ctapipe.instrument import TelescopeDescription, SubarrayDescription
+from ctapipe.instrument import (
+    TelescopeDescription,
+    SubarrayDescription,
+    OpticsDescription,
+    CameraGeometry,
+)
+from ctapipe.instrument.camera import UnknownPixelShapeWarning
+from ctapipe.instrument.guess import guess_telescope, UNKNOWN_TELESCOPE
+import numpy as np
+import warnings
 
 __all__ = ['HESSIOEventSource']
 
@@ -17,8 +26,8 @@ class HESSIOEventSource(EventSource):
     """
     _count = 0
 
-    def __init__(self, config=None, tool=None, **kwargs):
-        super().__init__(config=config, tool=tool, **kwargs)
+    def __init__(self, config=None, parent=None, **kwargs):
+        super().__init__(config=config, parent=parent, **kwargs)
 
         try:
             import pyhessio
@@ -39,7 +48,7 @@ class HESSIOEventSource(EventSource):
 
     @staticmethod
     def is_compatible(file_path):
-        '''This class should never be chosen by the EventSourceFactory'''
+        '''This class should never be chosen in event_source()'''
         return False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -123,24 +132,23 @@ class HESSIOEventSource(EventSource):
 
                     # event.mc.tel[tel_id] = MCCameraContainer()
 
-                    data.mc.tel[tel_id].dc_to_pe = file.get_calibration(tel_id)
-                    data.mc.tel[tel_id].pedestal = file.get_pedestal(tel_id)
-                    data.r0.tel[tel_id].waveform = (file.
-                                                    get_adc_sample(tel_id))
-                    if data.r0.tel[tel_id].waveform.size == 0:
-                        # To handle ASTRI and dst files
-                        data.r0.tel[tel_id].waveform = (file.
-                                                        get_adc_sum(tel_id)[..., None])
-                    data.r0.tel[tel_id].image = file.get_adc_sum(tel_id)
+                    adc_samples = file.get_adc_sample(tel_id)
+                    if adc_samples.size == 0:
+                        adc_samples = file.get_adc_sum(tel_id)[..., None]
+                    dc_to_pe = file.get_calibration(tel_id)
+                    pedestal = file.get_pedestal(tel_id)
+                    data.r0.tel[tel_id].waveform = adc_samples
+                    data.r1.tel[tel_id].waveform = (
+                            (adc_samples - pedestal[..., np.newaxis])
+                            * dc_to_pe[..., np.newaxis]
+                    )
+
+                    data.mc.tel[tel_id].dc_to_pe = dc_to_pe
+                    data.mc.tel[tel_id].pedestal = pedestal
                     data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
                     data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
                     data.mc.tel[tel_id].reference_pulse_shape = (file.
                                                                  get_ref_shapes(tel_id))
-
-                    nsamples = file.get_event_num_samples(tel_id)
-                    if nsamples <= 0:
-                        nsamples = 1
-                    data.r0.tel[tel_id].num_samples = nsamples
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
@@ -182,21 +190,64 @@ class HESSIOEventSource(EventSource):
 
         for tel_id in telescope_ids:
             try:
-
-                pix_pos = file.get_pixel_position(tel_id) * u.m
-                foclen = file.get_optical_foclen(tel_id) * u.m
-                mirror_area = file.get_mirror_area(tel_id) * u.m ** 2
-                num_tiles = file.get_mirror_number(tel_id)
-                tel_pos = file.get_telescope_position(tel_id) * u.m
-
-                tel = TelescopeDescription.guess(*pix_pos,
-                                                 equivalent_focal_length=foclen)
-                tel.optics.mirror_area = mirror_area
-                tel.optics.num_mirror_tiles = num_tiles
+                tel = self._build_telescope_description(file, tel_id)
+                tel_pos = u.Quantity(file.get_telescope_position(tel_id), u.m)
                 subarray.tels[tel_id] = tel
                 subarray.positions[tel_id] = tel_pos
-
             except self.pyhessio.HessioGeneralError:
                 pass
 
         return subarray
+
+    def _build_telescope_description(self, file, tel_id):
+        pix_x, pix_y = u.Quantity(file.get_pixel_position(tel_id), u.m)
+        focal_length = u.Quantity(file.get_optical_foclen(tel_id), u.m)
+        n_pixels = len(pix_x)
+
+        try:
+            telescope = guess_telescope(n_pixels, focal_length)
+        except ValueError:
+            telescope = UNKNOWN_TELESCOPE
+
+        pixel_shape = file.get_pixel_shape(tel_id)[0]
+        try:
+            pix_type, pix_rot = CameraGeometry.simtel_shape_to_type(pixel_shape)
+        except ValueError:
+            warnings.warn(
+                f'Unkown pixel_shape {pixel_shape} for tel_id {tel_id}',
+                UnknownPixelShapeWarning,
+            )
+            pix_type = 'hexagon'
+            pix_rot = '0d'
+
+        pix_area = u.Quantity(file.get_pixel_area(tel_id), u.m**2)
+
+        mirror_area = u.Quantity(file.get_mirror_area(tel_id), u.m**2)
+        num_tiles = file.get_mirror_number(tel_id)
+        cam_rot = file.get_camera_rotation_angle(tel_id)
+        num_mirrors = file.get_mirror_number(tel_id)
+
+        camera = CameraGeometry(
+            telescope.camera_name,
+            pix_id=np.arange(n_pixels),
+            pix_x=pix_x,
+            pix_y=pix_y,
+            pix_area=pix_area,
+            pix_type=pix_type,
+            pix_rotation=pix_rot,
+            cam_rotation=-Angle(cam_rot, u.rad),
+            apply_derotation=True,
+        )
+
+        optics = OpticsDescription(
+            name=telescope.name,
+            num_mirrors=num_mirrors,
+            equivalent_focal_length=focal_length,
+            mirror_area=mirror_area,
+            num_mirror_tiles=num_tiles,
+        )
+
+        return TelescopeDescription(
+            name=telescope.name, type=telescope.type,
+            camera=camera, optics=optics,
+        )

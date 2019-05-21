@@ -2,13 +2,13 @@ from ctapipe.image.muon import muon_ring_finder
 import numpy as np
 import astropy.units as u
 from ctapipe.instrument import CameraGeometry
-from functools import partial
-from ctapipe.image import toymodel, tailcuts_clean
+from ctapipe.image import tailcuts_clean
+from ctapipe.image.toymodel import RingGaussian
 
 
 def test_ChaudhuriKunduRingFitter_old():
 
-    fitter = muon_ring_finder.ChaudhuriKunduRingFitter(parent=None)
+    fitter = muon_ring_finder.ChaudhuriKunduRingFitter()
 
     points = np.linspace(-100, 100, 200)
 
@@ -37,7 +37,7 @@ def test_ChaudhuriKunduRingFitter_old():
 
 def test_ChaudhuriKunduRingFitterHline():
 
-    fitter = muon_ring_finder.ChaudhuriKunduRingFitter(parent=None)
+    fitter = muon_ring_finder.ChaudhuriKunduRingFitter()
 
     x = np.linspace(20, 30, 10) * u.deg   # Make linear array in x
     y = np.full_like(x, 15)               # Fill y array of same size with y
@@ -54,49 +54,58 @@ def test_ChaudhuriKunduRingFitterHline():
 
 def test_ChaudhuriKunduRingFitter():
 
-    geom = CameraGeometry.from_name('HESS-I')
+    geom = CameraGeometry.from_name('LSTCam')
+    focal_length = u.Quantity(28, u.m)
 
-    ring_rad = np.deg2rad(1. * u.deg) * 15.  # make sure this is in camera coordinates
-    ring_width = np.deg2rad(0.05 * u.deg) * 15.
-    geom_pixall = np.empty(geom.pix_x.shape + (2,))
-    geom_pixall[..., 0] = geom.pix_x.value
-    geom_pixall[..., 1] = geom.pix_y.value
+    ring_radius = u.Quantity(0.4, u.m)  # make sure this is in camera coordinates
+    ring_width = u.Quantity(0.03, u.m)
+    center_x = u.Quantity(-0.2, u.m)
+    center_y = u.Quantity(-0.3, u.m)
 
-    # image = generate_muon_model(geom_pixall, ring_rad, ring_width, 0.3, 0.2)
-    muon_model = partial(toymodel.generate_muon_model, radius=ring_rad.value,
-                         width=ring_width.value, centre_x=-0.2, centre_y=-0.3)
+    muon_model = RingGaussian(
+        x=center_x, y=center_y,
+        sigma=ring_width, radius=ring_radius,
+    )
 
-    toymodel_image, toy_signal, toy_noise = \
-        toymodel.make_toymodel_shower_image(geom, muon_model)
+    image, _, _ = muon_model.generate_image(
+        geom, intensity=1000, nsb_level_pe=5,
+    )
 
-    clean_toy_mask = tailcuts_clean(geom, toymodel_image,
-                                    boundary_thresh=5, picture_thresh=10)
+    clean_mask = tailcuts_clean(
+        geom, image, boundary_thresh=5, picture_thresh=10
+    )
 
-    muonring = muon_ring_finder.ChaudhuriKunduRingFitter(None)
+    fitter = muon_ring_finder.ChaudhuriKunduRingFitter()
 
-    x = np.rad2deg((geom.pix_x.value / 15.) * u.rad)  # .value
-    y = np.rad2deg((geom.pix_y.value / 15.) * u.rad)  # .value
+    x = geom.pix_x / focal_length * u.rad
+    y = geom.pix_y / focal_length * u.rad
 
-    muonringparam = muonring.fit(x, y, toymodel_image * clean_toy_mask)
+    # fit 3 times, first iteration use cleaning, after that use
+    # distance to previous fit result
+    result = None
+    for _ in range(3):
+        if result is None:
+            mask = clean_mask
+        else:
+            dist = np.sqrt((x - result.ring_center_x)**2 + (y - result.ring_center_y)**2)
+            ring_dist = np.abs(dist - result.ring_radius)
+            mask = ring_dist < (result.ring_radius * 0.4)
 
-    dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2)
-                   + np.power(y - muonringparam.ring_center_y, 2))
-    ring_dist = np.abs(dist - muonringparam.ring_radius)
-    muonringparam = muonring.fit(x, y, toymodel_image * (ring_dist <
-                                                         muonringparam.ring_radius * 0.4))
+        result = fitter.fit(x[mask], y[mask], image[mask])
 
-    dist = np.sqrt(np.power(x - muonringparam.ring_center_x, 2) +
-                   np.power(y - muonringparam.ring_center_y, 2))
-    ring_dist = np.abs(dist - muonringparam.ring_radius)
-    muonringparam = muonring.fit(x, y, toymodel_image * (ring_dist <
-                                                         muonringparam.ring_radius * 0.4))
+    assert np.isclose(
+        result.ring_radius.to_value(u.rad), ring_radius / focal_length,
+        rtol=0.05,
+    )
+    assert np.isclose(
+        result.ring_center_x.to_value(u.rad), center_x / focal_length,
+        rtol=0.05
+    )
+    assert np.isclose(
+        result.ring_center_y.to_value(u.rad), center_y / focal_length,
+        rtol=0.05,
+    )
 
-    print('Fitted ring radius', muonringparam.ring_radius, 'c.f.', ring_rad)
-    print('Fitted ring centre', muonringparam.ring_center_x, muonringparam.ring_center_y)
-
-    assert muonringparam.ring_radius is not ring_rad  # .value
-    assert muonringparam.ring_center_x is not -0.2
-    assert muonringparam.ring_center_y is not -0.3
 
 if __name__ == '__main__':
     test_ChaudhuriKunduRingFitter_old()

@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+import astropy.units as u
 
 from ctapipe.image import toymodel
 from ctapipe.instrument import CameraGeometry
@@ -15,12 +16,16 @@ if __name__ == '__main__':
     disp = CameraDisplay(geom, ax=ax)
     disp.add_colorbar()
 
-    model = toymodel.generate_2d_shower_model(
-        centroid=(0.05, 0.0), width=0.05, length=0.15, psi='35d'
+    model = toymodel.Gaussian(
+        x=0.05 * u.m,
+        y=0 * u.m,
+        width=0.05 * u.m,
+        length=0.15 * u.m,
+        psi='35d'
     )
 
-    image, sig, bg = toymodel.make_toymodel_shower_image(
-        geom, model.pdf, intensity=1500, nsb_level_pe=5
+    image, sig, bg = model.generate_image(
+        geom, intensity=1500, nsb_level_pe=5
     )
 
     disp.image = image

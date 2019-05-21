@@ -28,9 +28,9 @@ class Field:
         self.ucd = ucd
 
     def __repr__(self):
-        desc = '{}'.format(self.description)
+        desc = f'{self.description}'
         if self.unit is not None:
-            desc += ' [{}]'.format(self.unit)
+            desc += f' [{self.unit}]'
         return desc
 
 
@@ -122,12 +122,12 @@ class Container(metaclass=ContainerMeta):
     def __init__(self, **fields):
         self.meta = {}
         # __slots__ cannot be provided with defaults
-        # via class variables, so we use a `__prefix` class variable
-        # and a `_prefix` in `__slots__` together with a property.
+        # via class variables, so we use a `container_prefix` class variable
+        # and an instance variable `prefix` in `__slots__`
         self.prefix = self.container_prefix
 
-        for k, v in self.fields.items():
-            setattr(self, k, deepcopy(v.default))
+        for k in set(self.fields).difference(fields):
+            setattr(self, k, deepcopy(self.fields[k].default))
 
         for k, v in fields.items():
             setattr(self, k, v)
@@ -173,7 +173,7 @@ class Container(metaclass=ContainerMeta):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({
-                            "{}_{}".format(key, k): v
+                            f"{key}_{k}": v
                             for k, v in val.as_dict(
                                 recursive,
                                 add_prefix=add_prefix
@@ -236,7 +236,7 @@ class Map(defaultdict):
                 if isinstance(val, Container) or isinstance(val, Map):
                     if flatten:
                         d.update({
-                            "{}_{}".format(key, k): v
+                            f"{key}_{k}": v
                             for k, v in val.as_dict(
                                 recursive, add_prefix=add_prefix
                             ).items()

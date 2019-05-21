@@ -3,11 +3,10 @@ from astropy import units as u
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
-from ctapipe.io.eventsourcefactory import EventSourceFactory
+from ctapipe.io import event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
 from ctapipe.utils import get_dataset_path
-from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import HorizonFrame
+from astropy.coordinates import SkyCoord, AltAz
 
 
 def test_estimator_results():
@@ -15,7 +14,7 @@ def test_estimator_results():
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
     0.1 m in one of the four cardinal directions """
-    horizon_frame = HorizonFrame()
+    horizon_frame = AltAz()
 
     p1 = SkyCoord(alt=43 * u.deg, az=45 * u.deg, frame=horizon_frame)
     p2 = SkyCoord(alt=47 * u.deg, az=45 * u.deg, frame=horizon_frame)
@@ -49,7 +48,7 @@ def test_h_max_results():
     creating some planes pointing in different directions (two
     north-south, two east-west) and that have a slight position errors (+-
     0.1 m in one of the four cardinal directions """
-    horizon_frame = HorizonFrame()
+    horizon_frame = AltAz()
 
     p1 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
     p2 = SkyCoord(alt=0 * u.deg, az=45 * u.deg, frame=horizon_frame)
@@ -92,14 +91,14 @@ def test_reconstruction():
 
     in the end, proper units in the output are asserted """
 
-    filename = get_dataset_path("gamma_test.simtel.gz")
+    filename = get_dataset_path("gamma_test_large.simtel.gz")
 
     fit = HillasReconstructor()
 
     tel_azimuth = {}
     tel_altitude = {}
 
-    source = EventSourceFactory.produce(input_url=filename)
+    source = event_source(filename, max_events=10)
 
     for event in source:
 
@@ -110,7 +109,7 @@ def test_reconstruction():
             tel_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
             tel_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
 
-            pmt_signal = event.r0.tel[tel_id].image[0]
+            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(geom, pmt_signal,
                                   picture_thresh=10., boundary_thresh=5.)

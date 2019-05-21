@@ -15,8 +15,8 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
-from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame, HorizonFrame
+from astropy.coordinates import SkyCoord, AltAz
+from ctapipe.coordinates import NominalFrame
 from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
 
 __all__ = [
@@ -65,7 +65,7 @@ class HillasIntersection(Reconstructor):
         tel_y: dict
             Dictionary containing telescope position on ground for all
             telescopes in reconstruction
-        array_direction: HorizonFrame
+        array_direction: AltAz
             Pointing direction of the array
 
         Returns
@@ -84,7 +84,7 @@ class HillasIntersection(Reconstructor):
             y=src_y * u.rad,
             frame=NominalFrame(array_direction=array_direction)
         )
-        horiz = nom.transform_to(HorizonFrame())
+        horiz = nom.transform_to(AltAz())
 
         result = ReconstructedShowerContainer()
         result.alt, result.az = horiz.alt, horiz.az
@@ -109,7 +109,7 @@ class HillasIntersection(Reconstructor):
         result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
 
         result.tel_ids = [h for h in hillas_parameters.keys()]
-        result.average_size = np.mean([h.intensity for h in hillas_parameters.values()])
+        result.average_intensity = np.mean([h.intensity for h in hillas_parameters.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x**2 + err_y**2)

@@ -23,7 +23,7 @@ The main classes are:
 Getting Started
 ===============
 
-.. plot:: ../examples/camera_display.py
+.. plot:: ../examples/plot_hillas_parameters.py
     :include-source:
 
 

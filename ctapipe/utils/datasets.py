@@ -9,16 +9,16 @@ from astropy.table import Table
 from astropy.utils.decorators import deprecated
 from pkg_resources import resource_listdir
 
+try:
+    import ctapipe_resources
+    has_resources = True
+except ImportError:
+    has_resources = False
+
+
 from ..core import Provenance
 
 logger = logging.getLogger(__name__)
-
-try:
-    import ctapipe_resources
-except ImportError:
-    raise RuntimeError("Please install the 'ctapipe-extra' package, "
-                       "which contains the ctapipe_resources module "
-                       "needed by ctapipe. (conda install ctapipe-extra)")
 
 __all__ = ['get_dataset_path', 'find_in_path', 'find_all_matching_datasets']
 
@@ -72,13 +72,14 @@ def find_all_matching_datasets(pattern,
                             results.add(filename)
 
     # then check resources module
-    for resource in resource_listdir('ctapipe_resources', ''):
-        match = re.match(pattern, resource)
-        if match:
-            if regexp_group is not None:
-                results.add(match.group(regexp_group))
-            else:
-                results.add(resource)
+    if has_resources:
+        for resource in resource_listdir('ctapipe_resources', ''):
+            match = re.match(pattern, resource)
+            if match:
+                if regexp_group is not None:
+                    results.add(match.group(regexp_group))
+                else:
+                    results.add(resource)
 
     return list(results)
 
@@ -110,13 +111,13 @@ def find_in_path(filename, searchpath):
 
 def get_dataset_path(filename):
     """
-    Returns the full file path to an auxiliary dataset needed by 
+    Returns the full file path to an auxiliary dataset needed by
     ctapipe, given the dataset's full name (filename with no directory).
 
-    This will first search for the file in directories listed in 
-    tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,  
-    will look in the ctapipe_resources module 
-    (installed with the ctapipe-extra package), which contains the defaults.
+    This will first search for the file in directories listed in
+    tne environment variable CTAPIPE_SVC_PATH (if set), and if not found,
+    will look in the ctapipe_resources module
+    (if installed with the ctapipe-extra package), which contains the defaults.
 
     Parameters
     ----------
@@ -131,18 +132,20 @@ def get_dataset_path(filename):
 
     if searchpath:
         filepath = find_in_path(filename=filename, searchpath=searchpath)
+
         if filepath:
             return filepath
 
-    logger.debug("Resource '{}' not found in CTAPIPE_SVC_PATH, looking in "
-                 "ctapipe_resources...".format(filename))
+    if has_resources:
+        logger.debug("Resource '{}' not found in CTAPIPE_SVC_PATH, looking in "
+                     "ctapipe_resources...".format(filename))
 
-    return ctapipe_resources.get(filename)
+        return ctapipe_resources.get(filename)
 
-
-@deprecated(0.6, "use get_dataset_path instead")
-def get_dataset(filename):
-    return get_dataset_path(filename)
+    raise FileNotFoundError(
+        f"Couldn't find resource: '{filename}',"
+        " You might want to install ctapipe_resources"
+    )
 
 
 def get_table_dataset(table_name, role='resource', **kwargs):
@@ -239,12 +242,3 @@ def get_structured_dataset(basename, role='resource', **kwargs):
 
     raise FileNotFoundError("couldn't locate structed dataset: {}[{}]".format(
         basename, ', '.join(types_to_try)))
-
-
-@deprecated("ctapipe-0.5", alternative='get_dataset()')
-def get_path(filename):
-    return get_dataset_path(filename)
-
-
-if __name__ == '__main__':
-    get_table_dataset("NectarCam.camgeom")

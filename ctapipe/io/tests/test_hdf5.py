@@ -1,5 +1,6 @@
 import tempfile
 
+import enum
 import numpy as np
 import pytest
 import tables
@@ -27,8 +28,6 @@ def test_write_container(temp_h5_file):
     mc = MCEventContainer()
     mc.reset()
     r0tel.waveform = np.random.uniform(size=(50, 10))
-    r0tel.image = np.random.uniform(size=50)
-    r0tel.num_samples = 10
     r0tel.meta['test_attribute'] = 3.14159
     r0tel.meta['date'] = "2020-10-10"
 
@@ -41,8 +40,6 @@ def test_write_container(temp_h5_file):
 
         for ii in range(100):
             r0tel.waveform[:] = np.random.uniform(size=(50, 10))
-            r0tel.image[:] = np.random.uniform(size=50)
-            r0tel.num_samples = 10
             mc.energy = 10**np.random.uniform(1, 2) * u.TeV
             mc.core_x = np.random.uniform(-1, 1) * u.m
             mc.core_y = np.random.uniform(-1, 1) * u.m
@@ -118,8 +115,8 @@ def test_read_container(temp_h5_file):
             r0_2 = next(r0tab2)
 
             print("MC:", m)
-            print("t0:", r0_1.image)
-            print("t1:", r0_2.image)
+            print("t0:", r0_1.waveform)
+            print("t1:", r0_2.waveform)
             print("---------------------------")
 
         assert 'test_attribute' in r0_1.meta
@@ -283,6 +280,102 @@ def test_write_to_any_location(temp_h5_file):
         for a in h5.read(loc + '/group_1/table', ContainerA()):
 
             assert a.a == 1
+
+
+class WithNormalEnum(Container):
+    class EventType(enum.Enum):
+        pedestal = 1
+        physics = 2
+        calibration = 3
+
+    event_type = Field(
+        EventType.calibration,
+        f'type of event, one of: {list(EventType.__members__.keys())}'
+    )
+
+
+def test_read_write_container_with_enum(tmp_path):
+    tmp_file = tmp_path / 'container_with_enum.hdf5'
+
+    def create_stream(n_event):
+        data = WithNormalEnum()
+        for i in range(n_event):
+            data.event_type = data.EventType(i % 3 + 1)
+            yield data
+
+    with HDF5TableWriter(tmp_file, group_name='data') as h5_table:
+        for data in create_stream(10):
+            h5_table.write('table', data)
+
+    with HDF5TableReader(tmp_file, mode='r') as h5_table:
+        for group_name in ['data/']:
+            group_name = '/{}table'.format(group_name)
+            for data in h5_table.read(group_name, WithNormalEnum()):
+                assert isinstance(
+                    data.event_type,
+                    WithNormalEnum.EventType
+                )
+
+
+class WithIntEnum(Container):
+    class EventType(enum.IntEnum):
+        pedestal = 1
+        physics = 2
+        calibration = 3
+
+    event_type = Field(
+        EventType.calibration,
+        f'type of event, one of: {list(EventType.__members__.keys())}'
+    )
+
+
+def test_read_write_container_with_int_enum(tmp_path):
+    tmp_file = tmp_path / 'container_with_int_enum.hdf5'
+
+    def create_stream(n_event):
+        data = WithIntEnum()
+        for i in range(n_event):
+            data.event_type = data.EventType(i % 3 + 1)
+            yield data
+
+    with HDF5TableWriter(tmp_file, group_name='data') as h5_table:
+        for data in create_stream(10):
+            h5_table.write('table', data)
+
+    with HDF5TableReader(tmp_file, mode='r') as h5_table:
+        for group_name in ['data/']:
+            group_name = '/{}table'.format(group_name)
+            for data in h5_table.read(group_name, WithIntEnum()):
+                assert isinstance(
+                    data.event_type,
+                    WithIntEnum.EventType
+                )
+
+def test_column_transforms(tmp_path):
+    """ ensure a user-added column transform is applied """
+    tmp_file = tmp_path / 'test_column_transforms.hdf5'
+
+    class SomeContainer(Container):
+        value = Field(-1, "some value that should be transformed")
+
+    cont = SomeContainer()
+
+    def my_transform(x):
+        """ makes a length-3 array from x"""
+        return np.ones(3) * x
+
+    with HDF5TableWriter(tmp_file, group_name='data') as writer:
+        # add user generated transform for the "value" column
+        cont.value = 6.0
+        writer.add_column_transform('mytable', 'value', my_transform)
+        writer.write('mytable', cont)
+
+    # check that we get a length-3 array when reading back
+    with HDF5TableReader(tmp_file, mode='r') as reader:
+        for data in reader.read("/data/mytable", SomeContainer()):
+            print(data)
+            assert data.value.shape == (3,)
+            assert np.allclose(data.value, [6.0,6.0,6.0])
 
 
 if __name__ == '__main__':

@@ -4,10 +4,10 @@ import warnings
 import numpy as np
 from astropy import log
 from astropy import units as u
-from astropy.coordinates import Angle, SkyCoord
+from astropy.coordinates import Angle, SkyCoord, AltAz
 from astropy.utils.decorators import deprecated
 
-from ctapipe.coordinates import CameraFrame, NominalFrame, HorizonFrame
+from ctapipe.coordinates import CameraFrame, NominalFrame
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.muon.features import ring_containment
 from ctapipe.image.muon.features import ring_completeness
@@ -36,7 +36,7 @@ def analyze_muon_event(event):
     """
 
     names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
-             'SST-1M:DigiCam', 'SST-GCT:CHEC', 'SST-ASTRI:ASTRICam', 'SST-ASTRI:CHEC']
+             '1M:DigiCam', 'GCT:CHEC', 'ASTRI:ASTRICam', 'ASTRI:CHEC']
     tail_cuts = [(5, 7), (5, 7), (10, 12), (5, 7),
                 (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
@@ -102,7 +102,7 @@ def analyze_muon_event(event):
         telescope_pointing = SkyCoord(
             alt=altval,
             az=event.mcheader.run_array_direction[0],
-            frame=HorizonFrame()
+            frame=AltAz()
         )
         camera_coord = SkyCoord(
             x=x, y=y,
@@ -276,7 +276,7 @@ def analyze_muon_source(source):
     A ctapipe event container (MuonParameter) with muon information
 
     """
-    log.info("[FUNCTION] {}".format(__name__))
+    log.info(f"[FUNCTION] {__name__}")
 
     if geom_dict is None:
         geom_dict = {}

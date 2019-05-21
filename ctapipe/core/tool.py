@@ -24,14 +24,14 @@ class Tool(Application):
     and provenance meta-data handling. It is based on
     `traitlets.config.Application`. Tools may contain configurable
     `ctapipe.core.Component` classes that do work, and their
-    configuration parameters will propegate automatically to the
+    configuration parameters will propagate automatically to the
     `Tool`.
 
     Tool developers should create sub-classes, and a name,
     description, usage examples should be added by defining the
     `name`, `description` and `examples` class attributes as
     strings. The `aliases` attribute can be set to cause a lower-level
-    `Component` parameter to become a high-plevel command-line
+    `Component` parameter to become a high-level command-line
     parameter (See example below). The `setup()`, `start()`, and
     `finish()` methods should be defined in the sub-class.
 
@@ -100,7 +100,7 @@ class Tool(Application):
 
     """
 
-    config_file = Unicode(u'', help=("name of a configuration file with "
+    config_file = Unicode('', help=("name of a configuration file with "
                                      "parameters to load in addition to "
                                      "command-line parameters")).tag(config=True)
 
@@ -122,9 +122,9 @@ class Tool(Application):
         """ handle config and any other low-level setup """
         self.parse_command_line(argv)
         if self.config_file != '':
-            self.log.debug("Loading config from '{}'".format(self.config_file))
+            self.log.debug(f"Loading config from '{self.config_file}'")
             self.load_config_file(self.config_file)
-        self.log.info("ctapipe version {}".format(self.version_string))
+        self.log.info(f"ctapipe version {self.version_string}")
 
     @abstractmethod
     def setup(self):
@@ -158,20 +158,20 @@ class Tool(Application):
         """
         try:
             self.initialize(argv)
-            self.log.info("Starting: {}".format(self.name))
-            self.log.debug("CONFIG: {}".format(self.config))
+            self.log.info(f"Starting: {self.name}")
+            self.log.debug(f"CONFIG: {self.config}")
             Provenance().start_activity(self.name)
             Provenance().add_config(self.config)
             self.setup()
             self.is_setup = True
             self.start()
             self.finish()
-            self.log.info("Finished: {}".format(self.name))
+            self.log.info(f"Finished: {self.name}")
             Provenance().finish_activity(activity_name=self.name)
         except ToolConfigurationError as err:
-            self.log.error('{}.  Use --help for more info'.format(err))
+            self.log.error(f'{err}.  Use --help for more info')
         except RuntimeError as err:
-            self.log.error('Caught unexpected exception: {}'.format(err))
+            self.log.error(f'Caught unexpected exception: {err}')
             self.finish()
             Provenance().finish_activity(activity_name=self.name,
                                          status='error')
@@ -190,4 +190,4 @@ class Tool(Application):
     @property
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
-        return "{}".format(version)
+        return f"{version}"

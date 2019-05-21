@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 from ctapipe.core import Tool
 from ctapipe.core.traits import Unicode, List, Dict, Bool
-from ctapipe.io import EventSourceFactory, HDF5TableWriter
+from ctapipe.io import EventSource, HDF5TableWriter
+
 from ctapipe.calib import CameraCalibrator
 from ctapipe.utils.CutFlow import CutFlow
 from ctapipe.image import hillas_parameters, tailcuts_clean
@@ -27,23 +28,24 @@ class SimpleEventWriter(Tool):
     progress = Bool(help='display progress bar', default_value=True).tag(config=True)
 
     aliases = Dict({
-        'infile': 'EventSourceFactory.input_url',
+        'infile': 'EventSource.input_url',
         'outfile': 'SimpleEventWriter.outfile',
-        'max-events': 'EventSourceFactory.max_events',
+        'max-events': 'EventSource.max_events',
         'progress': 'SimpleEventWriter.progress'
     })
-    classes = List([EventSourceFactory, CameraCalibrator, CutFlow])
+    classes = List([EventSource, CameraCalibrator, CutFlow])
 
     def setup(self):
-        self.log.info('Configure EventSourceFactory...')
+        self.log.info('Configure EventSource...')
 
-        self.event_source = EventSourceFactory.produce(
-            config=self.config, tool=self, product='SimTelEventSource'
+        self.event_source = EventSource.from_config(
+            config=self.config,
+            parent=self
         )
         self.event_source.allowed_tels = self.config['Analysis']['allowed_tels']
 
         self.calibrator = CameraCalibrator(
-            config=self.config, tool=self, eventsource=self.event_source
+            parent=self
         )
 
         self.writer = HDF5TableWriter(
@@ -75,7 +77,7 @@ class SimpleEventWriter(Tool):
                 disable=~self.progress):
 
             self.event_cutflow.count('no_sel')
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')
