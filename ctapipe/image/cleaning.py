@@ -133,7 +133,8 @@ def mars_image_cleaning(
 
     """
 
-    print("Original image: {}".format(image))
+    # For debug
+    # print("Original image: {}".format(image))
 
     pixels_from_tailcuts_clean = tailcuts_clean(
         geom,
@@ -144,11 +145,12 @@ def mars_image_cleaning(
         min_number_picture_neighbors,
     )  # this does checks for core pixels and first neighbors
 
-    print(
+    # For debug
+    '''print(
         "After tailcuts_clean [{},{}]: {}".format(
             picture_thresh, boundary_thresh[1], pixels_from_tailcuts_clean
         )
-    )
+    )'''
 
     # ++++++++++++++++++++++++++++++++++++
     # THIS PART IS NOT USED FOR THE MOMENT
@@ -171,7 +173,7 @@ def mars_image_cleaning(
     # the mask we got from 'tailcuts_clean'.
 
     pixels_above_2nd_boundary = image >= boundary_thresh[1]
-    print("pixels_above_2nd_boundary: {}".format(pixels_above_2nd_boundary))
+    # print("pixels_above_2nd_boundary: {}".format(pixels_above_2nd_boundary))
     # and now it's the same as the last part of 'tailcuts_clean', but without
     # the core pixels, i.e. we start from the neighbors of the core pixels.
     pixels_with_previous_neighbors = geom.neighbor_matrix_sparse.dot(
