@@ -618,6 +618,8 @@ class TimingParametersContainer(Container):
     """
     slope = Field(nan, 'Slope of arrival times along main shower axis')
     intercept = Field(nan, 'intercept of arrival times along main shower axis')
+    deviation = Field(nan, 'Root-mean-square deviation of the pulse times '
+                           'with respect to the predicted time')
 
 
 class FlatFieldContainer(Container):
