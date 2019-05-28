@@ -72,12 +72,12 @@ def test_prefix(tmp_path):
 
 def test_write_containers(temp_h5_file):
     class C1(Container):
-        a = Field("a", None)
-        b = Field("b", None)
+        a = Field(None, "a")
+        b = Field(None, "b")
 
     class C2(Container):
-        c = Field("c", None)
-        d = Field("d", None)
+        c = Field(None, "c")
+        d = Field(None, "d")
 
     with tempfile.NamedTemporaryFile() as f:
         with HDF5TableWriter(f.name, "test") as writer:
@@ -88,6 +88,26 @@ def test_write_containers(temp_h5_file):
                 c1.b = np.random.normal()
 
                 writer.write("tel_001", [c1, c2])
+
+
+def test_write_bool():
+    class C(Container):
+        boolean = Field(True, 'Boolean value')
+
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, "test") as writer:
+            for i in range(2):
+                c = C(boolean=(i % 2 == 0))
+                writer.write("c", c)
+
+        c = C()
+        with HDF5TableReader(f.name) as reader:
+            c_reader = reader.read('/test/c', c)
+            for i in range(2):
+                cur = next(c_reader)
+                expected = (i % 2) == 0
+                assert isinstance(cur.boolean, np.bool_)
+                assert cur.boolean == expected
 
 
 def test_read_container(temp_h5_file):

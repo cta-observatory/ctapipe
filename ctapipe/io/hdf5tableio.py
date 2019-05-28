@@ -27,7 +27,7 @@ PYTABLES_TYPE_MAP = {
     "uint16": tables.UInt16Col,
     "uint32": tables.UInt32Col,
     "uint64": tables.UInt64Col,
-    "bool": tables.UInt8Col,
+    "bool": tables.BoolCol,
 }
 
 
