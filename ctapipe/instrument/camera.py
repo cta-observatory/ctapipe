@@ -6,7 +6,7 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 from astropy.table import Table
 from astropy.utils import lazyproperty
 from scipy.spatial import cKDTree as KDTree
@@ -15,6 +15,7 @@ import warnings
 
 from ctapipe.utils import get_table_dataset, find_all_matching_datasets
 from ctapipe.utils.linalg import rotation_matrix_2d
+from ctapipe.coordinates import CameraFrame
 
 
 __all__ = ['CameraGeometry']
@@ -68,7 +69,7 @@ class CameraGeometry:
 
     def __init__(self, cam_id, pix_id, pix_x, pix_y, pix_area, pix_type,
                  pix_rotation="0d", cam_rotation="0d",
-                 neighbors=None, apply_derotation=True):
+                 neighbors=None, apply_derotation=True, frame=None):
 
         if pix_x.ndim != 1 or pix_y.ndim != 1:
             raise ValueError(f'Pixel coordinates must be 1 dimensional, got {pix_x.ndim}')
@@ -84,6 +85,7 @@ class CameraGeometry:
         self.pix_rotation = Angle(pix_rotation)
         self.cam_rotation = Angle(cam_rotation)
         self._neighbors = neighbors
+        self.frame = frame
 
         if neighbors is not None:
             if isinstance(neighbors, list):
@@ -124,6 +126,45 @@ class CameraGeometry:
             (self.pix_x == other.pix_x).all(),
             (self.pix_y == other.pix_y).all(),
         ])
+
+    def transform_to(self, frame):
+        '''
+        Transform the pixel coordinates stored in this geometry
+        and the pixel and camera rotations to another camera coordinate frame.
+
+        Parameters
+        ----------
+        frame: ctapipe.coordinates.CameraFrame
+            The coordinate frame to transform to.
+        '''
+        if self.frame is None:
+            self.frame = CameraFrame()
+
+        coord = SkyCoord(x=self.pix_x, y=self.pix_y, frame=self.frame)
+        trans = coord.transform_to(frame)
+
+        # also transform the unit vectors, to get rotation / mirroring
+        uv = SkyCoord(x=[1, 0], y=[0, 1], unit=u.m, frame=self.frame)
+        uv_trans = uv.transform_to(frame)
+        rot = np.arctan2(uv_trans[0].y, uv_trans[1].y)
+        det = np.linalg.det([uv_trans.x.value, uv_trans.y.value])
+
+        cam_rotation = rot + det * self.cam_rotation
+        pix_rotation = rot + det * self.pix_rotation
+
+        return CameraGeometry(
+            cam_id=self.cam_id,
+            pix_id=self.pix_id,
+            pix_x=trans.x,
+            pix_y=trans.y,
+            pix_area=self.pix_area,
+            pix_type=self.pix_type,
+            pix_rotation=pix_rotation,
+            cam_rotation=cam_rotation,
+            neighbors=None,
+            apply_derotation=False,
+            frame=frame,
+        )
 
     def __hash__(self):
         return hash((

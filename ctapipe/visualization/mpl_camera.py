@@ -14,8 +14,6 @@ from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
 from numpy import sqrt
 
-from ..coordinates import CameraFrame, EngineeringCameraFrame
-
 __all__ = ['CameraDisplay']
 
 logger = logging.getLogger(__name__)
@@ -59,8 +57,9 @@ class CameraDisplay:
         rescale the vmin/vmax values when the image changes.
         This is set to False if `set_limits_*` is called to explicity
         set data limits.
-    engineering_frame : bool (default False)
-        Transform camera coordinates into the engineering frame
+    frame : A CameraFrame instance (default None)
+        If given, transform pixel coordinates into this frame
+        before plotting the camera.
 
     Notes
     -----
@@ -100,10 +99,9 @@ class CameraDisplay:
             allow_pick=False,
             autoupdate=True,
             autoscale=True,
-            engineering_frame=False,
+            frame=None,
     ):
         self.axes = ax if ax is not None else plt.gca()
-        self.geom = geometry
         self.pixels = None
         self.colorbar = None
         self.autoupdate = autoupdate
@@ -111,6 +109,10 @@ class CameraDisplay:
         self._active_pixel = None
         self._active_pixel_label = None
         self._axes_overlays = []
+
+        self.geom = geometry
+        if frame is not None:
+            self.geom = self.geom.transform_to(frame)
 
         if title is None:
             title = geometry.cam_id
@@ -123,23 +125,16 @@ class CameraDisplay:
         if not hasattr(self.geom, "mask"):
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
-        pix_x = self.geom.pix_x[self.geom.mask]
-        pix_y = self.geom.pix_y[self.geom.mask]
-        pix_area = self.geom.pix_area[self.geom.mask]
-        pix_rotation = self.geom.pix_rotation
-        if engineering_frame:
-            from_frame = CameraFrame()
-            coord = SkyCoord(x=pix_x, y=pix_y, frame=from_frame)
-            trans = coord.transform_to(EngineeringCameraFrame())
-            pix_x, pix_y = trans.x, trans.y
-            pix_rotation = 90 * u.deg - pix_rotation
+        pix_x = self.geom.pix_x.value[self.geom.mask]
+        pix_y = self.geom.pix_y.value[self.geom.mask]
+        pix_area = self.geom.pix_area.value[self.geom.mask]
 
-        for x, y, area in zip(pix_x.value, pix_y.value, pix_area.value):
+        for x, y, area in zip(pix_x, pix_y, pix_area):
             if self.geom.pix_type.startswith("hex"):
                 r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
                     (x, y), 6, radius=r,
-                    orientation=pix_rotation.to_value(u.rad),
+                    orientation=self.geom.pix_rotation.to_value(u.rad),
                     fill=True,
                 )
             else:
@@ -148,7 +143,7 @@ class CameraDisplay:
                     (x - r / 2, y - r / 2),
                     width=r,
                     height=r,
-                    angle=pix_rotation.to_value(u.deg),
+                    angle=self.geom.pix_rotation.to_value(u.deg),
                     fill=True,
                 )
 

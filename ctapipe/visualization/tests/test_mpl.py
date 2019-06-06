@@ -6,6 +6,7 @@ plt = pytest.importorskip("matplotlib.pyplot")
 from ctapipe.instrument import (CameraGeometry, SubarrayDescription,
                                 TelescopeDescription)
 from ctapipe.io.containers import HillasParametersContainer
+from ctapipe.coordinates import EngineeringCameraFrame
 from numpy import ones
 from astropy import units as u
 
@@ -60,12 +61,12 @@ def test_camera_engineering_frame():
     geom = CameraGeometry.from_name("LSTCam")
     fig, ax = plt.subplots(1, 1)
 
-    CameraDisplay(geom, ax=ax, engineering_frame=True)
+    CameraDisplay(geom, ax=ax, frame=EngineeringCameraFrame())
 
     geom = CameraGeometry.from_name("CHEC")
     fig, ax = plt.subplots(1, 1)
 
-    CameraDisplay(geom, ax=ax, engineering_frame=True)
+    CameraDisplay(geom, ax=ax, frame=EngineeringCameraFrame())
 
 
 def test_array_display():
