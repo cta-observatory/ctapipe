@@ -11,10 +11,20 @@ from astropy.coordinates import (
     CartesianRepresentation,
     UnitSphericalRepresentation,
     AltAz,
+    AffineTransform,
 )
 
 from .telescope_frame import TelescopeFrame
 from .representation import PlanarRepresentation
+
+
+# Go from SimTel / HESS to MAGIC/FACT/Engineering frame and back
+CAMERA_FRAME_TRANSFORM_MATRIX = np.array([
+    [0, -1, 0],
+    [-1, 0, 0],
+    [0, 0, 1]
+])
+CAMERA_FRAME_TRANSFORM_OFFSET = CartesianRepresentation(0, 0, 0, unit=u.m)
 
 
 class CameraFrame(BaseCoordinateFrame):
@@ -56,6 +66,34 @@ class CameraFrame(BaseCoordinateFrame):
 
     obstime = TimeAttribute(default=None)
     location = EarthLocationAttribute(default=None)
+
+
+class EngineeringCameraFrame(CameraFrame):
+    '''
+    Engineering camera coordinate frame.
+
+    The camera frame is a 2d cartesian frame,
+    describing position of objects in the focal plane of the telescope.
+
+    The frame is defined as in MAGIC and FACT.
+    Standing in the dish, looking onto the camera, x points right and y points up.
+
+    HESS, ctapipe and sim_telarray use a different camera coordinate system:
+    To transform H.E.S.S./ctapipe -> FACT/MAGIC, do x' = -y, y' = -x.
+
+    Attributes
+    ----------
+    focal_length : u.Quantity[length]
+        Focal length of the telescope as a unit quantity (usually meters)
+    rotation : u.Quantity[angle]
+        Rotation angle of the camera (0 deg in most cases)
+    telescope_pointing : SkyCoord[AltAz]
+        Pointing direction of the telescope as SkyCoord in AltAz
+    obstime : Time
+        Observation time
+    location : EarthLocation
+        location of the telescope
+    '''
 
 
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
@@ -132,3 +170,13 @@ def telescope_to_camera(telescope_coord, camera_frame):
     )
 
     return camera_frame.realize_frame(representation)
+
+
+@frame_transform_graph.transform(AffineTransform, CameraFrame, EngineeringCameraFrame)
+def camera_to_engineering(from_coord, to_frame):
+    return CAMERA_FRAME_TRANSFORM_MATRIX, CAMERA_FRAME_TRANSFORM_OFFSET
+
+
+@frame_transform_graph.transform(AffineTransform, EngineeringCameraFrame, CameraFrame)
+def engineering_to_camera(from_coord, to_frame):
+    return CAMERA_FRAME_TRANSFORM_MATRIX, CAMERA_FRAME_TRANSFORM_OFFSET
