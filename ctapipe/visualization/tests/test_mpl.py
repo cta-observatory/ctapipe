@@ -53,6 +53,21 @@ def test_camera_display_multiple():
     d2.image = image
 
 
+def test_camera_engineering_frame():
+    """ create a figure with 2 subplots, each with a CameraDisplay """
+    from ..mpl_camera import CameraDisplay
+
+    geom = CameraGeometry.from_name("LSTCam")
+    fig, ax = plt.subplots(1, 1)
+
+    CameraDisplay(geom, ax=ax, engineering_frame=True)
+
+    geom = CameraGeometry.from_name("CHEC")
+    fig, ax = plt.subplots(1, 1)
+
+    CameraDisplay(geom, ax=ax, engineering_frame=True)
+
+
 def test_array_display():
     from ctapipe.visualization.mpl_array import ArrayDisplay
     from ctapipe.image.timing_parameters import timing_parameters

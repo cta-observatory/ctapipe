@@ -7,11 +7,14 @@ import logging
 
 import numpy as np
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
 from matplotlib.patches import Ellipse, RegularPolygon, Rectangle
 from numpy import sqrt
+
+from ..coordinates import CameraFrame, EngineeringCameraFrame
 
 __all__ = ['CameraDisplay']
 
@@ -56,6 +59,8 @@ class CameraDisplay:
         rescale the vmin/vmax values when the image changes.
         This is set to False if `set_limits_*` is called to explicity
         set data limits.
+    engineering_frame : bool (default False)
+        Transform camera coordinates into the engineering frame
 
     Notes
     -----
@@ -94,7 +99,8 @@ class CameraDisplay:
             cmap=None,
             allow_pick=False,
             autoupdate=True,
-            autoscale=True
+            autoscale=True,
+            engineering_frame=False,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.geom = geometry
@@ -117,25 +123,32 @@ class CameraDisplay:
         if not hasattr(self.geom, "mask"):
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
-        for xx, yy, aa in zip(
-                u.Quantity(self.geom.pix_x[self.geom.mask]).value,
-                u.Quantity(self.geom.pix_y[self.geom.mask]).value,
-                u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
+        pix_x = self.geom.pix_x[self.geom.mask]
+        pix_y = self.geom.pix_y[self.geom.mask]
+        pix_area = self.geom.pix_area[self.geom.mask]
+        pix_rotation = self.geom.pix_rotation
+        if engineering_frame:
+            from_frame = CameraFrame()
+            coord = SkyCoord(x=pix_x, y=pix_y, frame=from_frame)
+            trans = coord.transform_to(EngineeringCameraFrame())
+            pix_x, pix_y = trans.x, trans.y
+            pix_rotation = 90 * u.deg - pix_rotation
 
+        for x, y, area in zip(pix_x.value, pix_y.value, pix_area.value):
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
+                r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
-                    (xx, yy), 6, radius=rr,
-                    orientation=self.geom.pix_rotation.rad,
+                    (x, y), 6, radius=r,
+                    orientation=pix_rotation.to_value(u.rad),
                     fill=True,
                 )
             else:
-                rr = sqrt(aa) + PIXEL_EPSILON
+                r = sqrt(area) + PIXEL_EPSILON
                 poly = Rectangle(
-                    (xx - rr / 2., yy - rr / 2.),
-                    width=rr,
-                    height=rr,
-                    angle=self.geom.pix_rotation.deg,
+                    (x - r / 2, y - r / 2),
+                    width=r,
+                    height=r,
+                    angle=pix_rotation.to_value(u.deg),
                     fill=True,
                 )
 
