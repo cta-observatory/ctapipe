@@ -57,9 +57,6 @@ class CameraDisplay:
         rescale the vmin/vmax values when the image changes.
         This is set to False if `set_limits_*` is called to explicity
         set data limits.
-    frame : A CameraFrame instance (default None)
-        If given, transform pixel coordinates into this frame
-        before plotting the camera.
 
     Notes
     -----
@@ -99,7 +96,6 @@ class CameraDisplay:
             allow_pick=False,
             autoupdate=True,
             autoscale=True,
-            frame=None,
     ):
         self.axes = ax if ax is not None else plt.gca()
         self.pixels = None
@@ -111,8 +107,6 @@ class CameraDisplay:
         self._axes_overlays = []
 
         self.geom = geometry
-        if frame is not None:
-            self.geom = self.geom.transform_to(frame)
 
         if title is None:
             title = geometry.cam_id
