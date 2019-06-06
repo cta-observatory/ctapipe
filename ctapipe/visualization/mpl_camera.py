@@ -7,7 +7,6 @@ import logging
 
 import numpy as np
 from astropy import units as u
-from astropy.coordinates import SkyCoord
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import Normalize, LogNorm, SymLogNorm
