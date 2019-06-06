@@ -19,12 +19,12 @@ from .representation import PlanarRepresentation
 
 
 # Go from SimTel / HESS to MAGIC/FACT/Engineering frame and back
-CAMERA_FRAME_TRANSFORM_MATRIX = np.array([
+ENGINEERING_FRAME_TRANSFORM_MATRIX = np.array([
     [0, -1, 0],
     [-1, 0, 0],
     [0, 0, 1]
 ])
-CAMERA_FRAME_TRANSFORM_OFFSET = CartesianRepresentation(0, 0, 0, unit=u.m)
+ENGINEERING_FRAME_TRANSFORM_OFFSET = CartesianRepresentation(0, 0, 0, unit=u.m)
 
 
 class CameraFrame(BaseCoordinateFrame):
@@ -174,9 +174,9 @@ def telescope_to_camera(telescope_coord, camera_frame):
 
 @frame_transform_graph.transform(AffineTransform, CameraFrame, EngineeringCameraFrame)
 def camera_to_engineering(from_coord, to_frame):
-    return CAMERA_FRAME_TRANSFORM_MATRIX, CAMERA_FRAME_TRANSFORM_OFFSET
+    return ENGINEERING_FRAME_TRANSFORM_MATRIX, ENGINEERING_FRAME_TRANSFORM_OFFSET
 
 
 @frame_transform_graph.transform(AffineTransform, EngineeringCameraFrame, CameraFrame)
 def engineering_to_camera(from_coord, to_frame):
-    return CAMERA_FRAME_TRANSFORM_MATRIX, CAMERA_FRAME_TRANSFORM_OFFSET
+    return ENGINEERING_FRAME_TRANSFORM_MATRIX, ENGINEERING_FRAME_TRANSFORM_OFFSET
