@@ -4,6 +4,7 @@ from astropy.coordinates import (
     BaseCoordinateFrame,
     CoordinateAttribute,
     QuantityAttribute,
+    Attribute,
     TimeAttribute,
     EarthLocationAttribute,
     FunctionTransform,
@@ -18,13 +19,28 @@ from .telescope_frame import TelescopeFrame
 from .representation import PlanarRepresentation
 
 
+class MirrorAttribute(Attribute):
+    def convert_input(self, value):
+        if value in (1, 2):
+            return value, False
+
+        raise ValueError('Only 1 or 2 mirrors supported')
+
+
 # Go from SimTel / HESS to MAGIC/FACT/Engineering frame and back
-ENGINEERING_FRAME_TRANSFORM_MATRIX = np.array([
+CAMERA_TO_ENGINEERING_1M_MATRIX = np.array([
     [0, -1, 0],
     [-1, 0, 0],
     [0, 0, 1]
 ])
-ENGINEERING_FRAME_TRANSFORM_OFFSET = CartesianRepresentation(0, 0, 0, unit=u.m)
+ENGINEERING_1M_TO_CAMERA_MATRIX = CAMERA_TO_ENGINEERING_1M_MATRIX
+CAMERA_TO_ENGINEERING_2M_MATRIX = np.array([
+    [0, 1, 0],
+    [-1, 0, 0],
+    [0, 0, 1]
+])
+ENGINEERING_2M_TO_CAMERA_MATRIX = CAMERA_TO_ENGINEERING_2M_MATRIX.T
+ZERO_OFFSET = CartesianRepresentation(0, 0, 0, unit=u.m)
 
 
 class CameraFrame(BaseCoordinateFrame):
@@ -94,6 +110,7 @@ class EngineeringCameraFrame(CameraFrame):
     location : EarthLocation
         location of the telescope
     '''
+    n_mirrors = MirrorAttribute(default=1)
 
 
 @frame_transform_graph.transform(FunctionTransform, CameraFrame, TelescopeFrame)
@@ -174,9 +191,14 @@ def telescope_to_camera(telescope_coord, camera_frame):
 
 @frame_transform_graph.transform(AffineTransform, CameraFrame, EngineeringCameraFrame)
 def camera_to_engineering(from_coord, to_frame):
-    return ENGINEERING_FRAME_TRANSFORM_MATRIX, ENGINEERING_FRAME_TRANSFORM_OFFSET
+    if to_frame.n_mirrors == 1:
+        return CAMERA_TO_ENGINEERING_1M_MATRIX, ZERO_OFFSET
+
+    return CAMERA_TO_ENGINEERING_2M_MATRIX, ZERO_OFFSET
 
 
 @frame_transform_graph.transform(AffineTransform, EngineeringCameraFrame, CameraFrame)
 def engineering_to_camera(from_coord, to_frame):
-    return ENGINEERING_FRAME_TRANSFORM_MATRIX, ENGINEERING_FRAME_TRANSFORM_OFFSET
+    if from_coord.n_mirrors == 1:
+        return ENGINEERING_1M_TO_CAMERA_MATRIX, ZERO_OFFSET
+    return ENGINEERING_2M_TO_CAMERA_MATRIX, ZERO_OFFSET
