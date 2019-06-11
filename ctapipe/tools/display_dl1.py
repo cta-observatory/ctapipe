@@ -1,31 +1,32 @@
 """
 Calibrate dl0 data to dl1, and plot the photoelectron images.
 """
-from matplotlib import pyplot as plt, colors
+from matplotlib import colors
+from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from traitlets import Dict, List, Int, Bool, Unicode
+from traitlets import Bool, Dict, Int, List, Unicode
 
-from ctapipe.calib import CameraCalibrator, CameraDL1Calibrator
-from ctapipe.visualization import CameraDisplay
-from ctapipe.core import Tool, Component
-from ctapipe.utils import get_dataset_path
+from ctapipe.calib import CameraCalibrator
+from ctapipe.core import Component, Tool
+from ctapipe.core import traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
-import ctapipe.utils.tools as tool_utils
+from ctapipe.utils import get_dataset_path
+from ctapipe.visualization import CameraDisplay
 
 
 class ImagePlotter(Component):
+    """ Plotter for camera images """
+
     display = Bool(
-        True,
-        help='Display the photoelectron images on-screen as they '
-             'are produced.'
+        True, help="Display the photoelectron images on-screen as they are produced."
     ).tag(config=True)
     output_path = Unicode(
         None,
         allow_none=True,
-        help='Output path for the pdf containing all the '
-             'images. Set to None for no saved '
-             'output.'
+        help="Output path for the pdf containing all the "
+        "images. Set to None for no saved "
+        "output.",
     ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
@@ -85,17 +86,20 @@ class ImagePlotter(Component):
             tmaxmin = event.dl0.tel[telid].waveform.shape[2]
             t_chargemax = pulse_time[image.argmax()]
             cmap_time = colors.LinearSegmentedColormap.from_list(
-                'cmap_t',
-                [(0 / tmaxmin, 'darkgreen'),
-                 (0.6 * t_chargemax / tmaxmin, 'green'),
-                 (t_chargemax / tmaxmin, 'yellow'),
-                 (1.4 * t_chargemax / tmaxmin, 'blue'), (1, 'darkblue')]
+                "cmap_t",
+                [
+                    (0 / tmaxmin, "darkgreen"),
+                    (0.6 * t_chargemax / tmaxmin, "green"),
+                    (t_chargemax / tmaxmin, "yellow"),
+                    (1.4 * t_chargemax / tmaxmin, "blue"),
+                    (1, "darkblue"),
+                ],
             )
             self.c_pulse_time.pixels.set_cmap(cmap_time)
 
             if not self.cb_intensity:
                 self.c_intensity.add_colorbar(
-                    ax=self.ax_intensity, label='Intensity (p.e.)'
+                    ax=self.ax_intensity, label="Intensity (p.e.)"
                 )
                 self.cb_intensity = self.c_intensity.colorbar
             else:
@@ -103,7 +107,7 @@ class ImagePlotter(Component):
                 self.c_intensity.update(True)
             if not self.cb_pulse_time:
                 self.c_pulse_time.add_colorbar(
-                    ax=self.ax_pulse_time, label='Pulse Time (ns)'
+                    ax=self.ax_pulse_time, label="Pulse Time (ns)"
                 )
                 self.cb_pulse_time = self.c_pulse_time.colorbar
             else:
@@ -115,8 +119,9 @@ class ImagePlotter(Component):
             self.c_pulse_time.image = pulse_time
 
         self.fig.suptitle(
-            "Event_index={}  Event_id={}  Telescope={}"
-                .format(event.count, event.r0.event_id, telid)
+            "Event_index={}  Event_id={}  Telescope={}".format(
+                event.count, event.r0.event_id, telid
+            )
         )
 
         if self.display:
@@ -137,42 +142,32 @@ class DisplayDL1Calib(Tool):
     telescope = Int(
         None,
         allow_none=True,
-        help='Telescope to view. Set to None to display all '
-             'telescopes.'
+        help="Telescope to view. Set to None to display all telescopes.",
     ).tag(config=True)
 
-    extractor_product = tool_utils.enum_trait(
-        ImageExtractor,
-        default='NeighborPeakWindowSum'
+    extractor_product = traits.enum_trait(
+        ImageExtractor, default="NeighborPeakWindowSum"
     )
 
     aliases = Dict(
         dict(
-            max_events='EventSource.max_events',
-            extractor='DisplayDL1Calib.extractor_product',
-            T='DisplayDL1Calib.telescope',
-            O='ImagePlotter.output_path'
+            input="EventSource.input_url",
+            max_events="EventSource.max_events",
+            extractor="DisplayDL1Calib.extractor_product",
+            T="DisplayDL1Calib.telescope",
+            O="ImagePlotter.output_path",
         )
     )
     flags = Dict(
         dict(
             D=(
-                {
-                    'ImagePlotter': {
-                        'display': True
-                    }
-                },
-                "Display the photoelectron images on-screen as they "
-                "are produced."
+                {"ImagePlotter": {"display": True}},
+                "Display the photo-electron images on-screen as they are produced.",
             )
         )
     )
     classes = List(
-        [
-            EventSource,
-            CameraDL1Calibrator,
-            ImagePlotter
-        ] + tool_utils.classes_with_traits(ImageExtractor)
+        [EventSource, ImagePlotter] + traits.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -182,21 +177,18 @@ class DisplayDL1Calib(Tool):
         self.plotter = None
 
     def setup(self):
-        self.eventsource = EventSource.from_url(
-            get_dataset_path("gamma_test_large.simtel.gz"),
-            parent=self,
+        self.eventsource = self.add_component(
+            EventSource.from_url(
+                get_dataset_path("gamma_test_large.simtel.gz"), parent=self
+            )
         )
 
-        self.calibrator = CameraCalibrator(
-            eventsource=self.eventsource,
-            parent=self,
-        )
-
-        self.plotter = ImagePlotter(parent=self)
+        self.calibrator = self.add_component(CameraCalibrator(parent=self))
+        self.plotter = self.add_component(ImagePlotter(parent=self))
 
     def start(self):
         for event in self.eventsource:
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             tel_list = event.r0.tels_with_data
 

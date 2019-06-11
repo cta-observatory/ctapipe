@@ -52,9 +52,10 @@ class ImageSumDisplayerTool(Tool):
         # load up the telescope types table (need to first open a file, a bit of
         # a hack until a proper insturment module exists) and select only the
         # telescopes with the same camera type
+        # make sure gzip files are seekable
 
         self.reader = SimTelEventSource(
-            input_url=self.infile, max_events=self.max_events
+            input_url=self.infile, max_events=self.max_events, back_seekable=True
         )
 
         for event in self.reader:
@@ -63,7 +64,7 @@ class ImageSumDisplayerTool(Tool):
             break
 
         group = camtypes.groups[self.telgroup]
-        self._selected_tels = list(group['id'].data)
+        self._selected_tels = list(group['tel_id'].data)
         self._base_tel = self._selected_tels[0]
         self.log.info(
             "Telescope group %d: %s", self.telgroup,
@@ -71,9 +72,7 @@ class ImageSumDisplayerTool(Tool):
         )
         self.log.info(f"SELECTED TELESCOPES:{self._selected_tels}")
 
-        self.calibrator = CameraCalibrator(
-            parent=self, eventsource=self.reader
-        )
+        self.calibrator = CameraCalibrator(parent=self)
 
         self.reader.allowed_tels = self._selected_tels
 
@@ -84,7 +83,7 @@ class ImageSumDisplayerTool(Tool):
 
         for event in self.reader:
 
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             if geom is None:
                 geom = event.inst.subarray.tel[self._base_tel].camera

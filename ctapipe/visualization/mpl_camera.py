@@ -228,8 +228,8 @@ class CameraDisplay:
 
     def set_limits_percent(self, percent=95):
         """ auto-scale the color range to percent of maximum """
-        zmin = self.pixels.get_array().min()
-        zmax = self.pixels.get_array().max()
+        zmin = np.nanmin(self.pixels.get_array())
+        zmax = np.nanmax(self.pixels.get_array())
         dz = zmax - zmin
         frac = percent / 100.0
         self.autoscale = False
@@ -300,13 +300,12 @@ class CameraDisplay:
         """
         image = np.asanyarray(image)
         if image.shape != self.geom.pix_x.shape:
-            raise ValueError(
+            raise ValueError((
                 "Image has a different shape {} than the "
                 "given CameraGeometry {}"
-                    .format(image.shape, self.geom.pix_x.shape)
-            )
+            ).format(image.shape, self.geom.pix_x.shape))
 
-        self.pixels.set_array(image[self.geom.mask])
+        self.pixels.set_array(np.ma.masked_invalid(image[self.geom.mask]))
         self.pixels.changed()
         if self.autoscale:
             self.pixels.autoscale()

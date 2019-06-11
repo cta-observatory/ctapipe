@@ -1,20 +1,19 @@
 import os
-from bokeh.layouts import widgetbox, layout
-from bokeh.models import Select, TextInput, PreText, Button
-from bokeh.server.server import Server
+
 from bokeh.document.document import jinja2
+from bokeh.layouts import layout, widgetbox
+from bokeh.models import Button, PreText, Select, TextInput
+from bokeh.server.server import Server
 from bokeh.themes import Theme
-from traitlets import Dict, List, Int, Bool
-from ctapipe.calib.camera.dl0 import CameraDL0Reducer
-from ctapipe.calib.camera.dl1 import CameraDL1Calibrator
-from ctapipe.calib.camera.r1 import CameraR1Calibrator
-from ctapipe.core import Tool
+from traitlets import Bool, Dict, Int, List
+
+from ctapipe.calib import CameraCalibrator
+from ctapipe.core import Tool, traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
-import ctapipe.utils.tools as tool_utils
 
 
 class BokehFileViewer(Tool):
@@ -29,7 +28,7 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    extractor_product = tool_utils.enum_trait(
+    extractor_product = traits.enum_trait(
         ImageExtractor,
         default='NeighborPeakWindowSum'
     )
@@ -45,9 +44,7 @@ class BokehFileViewer(Tool):
     classes = List(
         [
             EventSource,
-            CameraDL1Calibrator,
-        ] + tool_utils.classes_with_traits(ImageExtractor)
-        + tool_utils.classes_with_traits(CameraR1Calibrator)
+        ] + traits.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -73,12 +70,12 @@ class BokehFileViewer(Tool):
         self.reader = None
         self.seeker = None
         self.extractor = None
-        self.r1 = None
-        self.dl0 = None
-        self.dl1 = None
+        self.calibrator = None
         self.viewer = None
 
         self._updating_dl1 = False
+        # make sure, gzip files are seekable
+        self.config.SimTelEventSource.back_seekable = True
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
@@ -90,14 +87,9 @@ class BokehFileViewer(Tool):
             self.extractor_product,
             parent=self
         )
-        self.r1 = CameraR1Calibrator.from_eventsource(
-            eventsource=self.reader,
-            parent=self
-        )
-        self.dl0 = CameraDL0Reducer(parent=self)
-        self.dl1 = CameraDL1Calibrator(
-            extractor=self.extractor,
-            parent=self
+        self.calibrator = CameraCalibrator(
+            parent=self,
+            image_extractor=self.extractor,
         )
 
         self.viewer = BokehEventViewer(parent=self)
@@ -207,11 +199,7 @@ class BokehFileViewer(Tool):
 
     @event.setter
     def event(self, val):
-
-        # Calibrate
-        self.r1.calibrate(val)
-        self.dl0.reduce(val)
-        self.dl1.calibrate(val)
+        self.calibrator(val)
 
         self._event = val
 
@@ -237,15 +225,14 @@ class BokehFileViewer(Tool):
         extractor : ctapipe.image.extractor.ImageExtractor
         """
         if extractor is None:
-            extractor = self.dl1.extractor
+            extractor = self.calibrator.image_extractor
 
         self.extractor = extractor
 
-        self.dl1 = CameraDL1Calibrator(
-            extractor=self.extractor,
-            parent=self
+        self.calibrator = CameraCalibrator(
+            parent=self,
+            image_extractor=self.extractor,
         )
-        self.dl1.calibrate(self.event)
         self.viewer.refresh()
 
     def create_next_event_widget(self):

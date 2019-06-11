@@ -407,7 +407,8 @@ class CameraGeometry:
         -------
         ndarray
         """
-        return np.ascontiguousarray(np.array(np.where(self.neighbor_matrix)).T)
+        coo = self.neighbor_matrix_sparse.tocoo()
+        return np.column_stack([coo.row, coo.col])
 
     @lazyproperty
     def pixel_moment_matrix(self):

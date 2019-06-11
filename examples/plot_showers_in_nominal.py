@@ -21,13 +21,11 @@ input_url = get_dataset_path('gamma_test_large.simtel.gz')
 
 
 with event_source(input_url=input_url) as source:
-    calibrator = CameraCalibrator(
-        eventsource=source,
-    )
+    calibrator = CameraCalibrator()
 
     for event in source:
 
-        calibrator.calibrate(event)
+        calibrator(event)
 
         nominal_frame = NominalFrame(
             origin=SkyCoord(alt=70 * u.deg, az=0 * u.deg, frame=AltAz)

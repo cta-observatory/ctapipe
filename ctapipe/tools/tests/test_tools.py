@@ -1,8 +1,9 @@
 import os
-import sys
-import pytest
 import shlex
+import sys
+
 import matplotlib as mpl
+import pytest
 
 from ctapipe.utils import get_dataset_path
 
@@ -14,7 +15,7 @@ def test_muon_reconstruction(tmpdir):
     tool = MuonDisplayerTool()
     tool.run(
         argv=shlex.split(
-            f'--events={GAMMA_TEST_LARGE} '
+            f'--input={GAMMA_TEST_LARGE} '
             '--max_events=2 '
         )
     )
@@ -23,7 +24,7 @@ def test_muon_reconstruction(tmpdir):
         tool.run(['--help-all'])
 
 
-def test_display_summed_imaged(tmpdir):
+def test_display_summed_images(tmpdir):
     from ctapipe.tools.display_summed_images import ImageSumDisplayerTool
     mpl.use('Agg')
     tool = ImageSumDisplayerTool()

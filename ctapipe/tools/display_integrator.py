@@ -7,13 +7,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from traitlets import Dict, List, Int, Bool, Enum
 
-import ctapipe.utils.tools as tool_utils
-from ctapipe.calib.camera import CameraR1Calibrator, CameraDL0Reducer, \
-    CameraDL1Calibrator
+from ctapipe.core import traits
+from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.image.extractor import ImageExtractor
-from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.io import EventSource
+from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.visualization import CameraDisplay
 
 
@@ -39,7 +38,7 @@ def plot(event, telid, chan, extractor_name):
     ax_max_nei = {}
     ax_min_nei = {}
     fig_waveforms = plt.figure(figsize=(18, 9))
-    fig_waveforms.subplots_adjust(hspace=.5)
+    fig_waveforms.subplots_adjust(hspace=0.5)
     fig_camera = plt.figure(figsize=(15, 12))
 
     ax_max_pix = fig_waveforms.add_subplot(4, 2, 1)
@@ -61,8 +60,8 @@ def plot(event, telid, chan, extractor_name):
     ax_max_pix.set_xlabel("Time (ns)")
     ax_max_pix.set_ylabel("DL0 Samples (ADC)")
     ax_max_pix.set_title(
-        f'(Max) Pixel: {max_pix}, True: {t_pe[max_pix]}, '
-        f'Measured = {dl1[max_pix]:.3f}'
+        f"(Max) Pixel: {max_pix}, True: {t_pe[max_pix]}, "
+        f"Measured = {dl1[max_pix]:.3f}"
     )
     max_ylim = ax_max_pix.get_ylim()
     for i, ax in ax_max_nei.items():
@@ -72,8 +71,9 @@ def plot(event, telid, chan, extractor_name):
             ax.set_xlabel("Time (ns)")
             ax.set_ylabel("DL0 Samples (ADC)")
             ax.set_title(
-                "(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}"
-                    .format(pix, t_pe[pix], dl1[pix])
+                "(Max Nei) Pixel: {}, True: {}, Measured = {:.3f}".format(
+                    pix, t_pe[pix], dl1[pix]
+                )
             )
             ax.set_ylim(max_ylim)
 
@@ -82,8 +82,8 @@ def plot(event, telid, chan, extractor_name):
     ax_min_pix.set_xlabel("Time (ns)")
     ax_min_pix.set_ylabel("DL0 Samples (ADC)")
     ax_min_pix.set_title(
-        f'(Min) Pixel: {min_pix}, True: {t_pe[min_pix]}, '
-        f'Measured = {dl1[min_pix]:.3f}'
+        f"(Min) Pixel: {min_pix}, True: {t_pe[min_pix]}, "
+        f"Measured = {dl1[min_pix]:.3f}"
     )
     ax_min_pix.set_ylim(max_ylim)
     for i, ax in ax_min_nei.items():
@@ -93,8 +93,8 @@ def plot(event, telid, chan, extractor_name):
             ax.set_xlabel("Time (ns)")
             ax.set_ylabel("DL0 Samples (ADC)")
             ax.set_title(
-                f'(Min Nei) Pixel: {pix}, True: {t_pe[pix]}, '
-                f'Measured = {dl1[pix]:.3f}'
+                f"(Min Nei) Pixel: {pix}, True: {t_pe[pix]}, "
+                f"Measured = {dl1[pix]:.3f}"
             )
             ax.set_ylim(max_ylim)
 
@@ -110,22 +110,22 @@ def plot(event, telid, chan, extractor_name):
     ax_img_nei.annotate(
         f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.98),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="red", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
     ax_img_nei.annotate(
         f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.94),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="orange", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
     camera = CameraDisplay(geom, ax=ax_img_max)
     camera.image = dl0[:, max_time]
@@ -134,22 +134,22 @@ def plot(event, telid, chan, extractor_name):
     ax_img_max.annotate(
         f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.98),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="red", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
     ax_img_max.annotate(
         f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.94),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="orange", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
 
     camera = CameraDisplay(geom, ax=ax_img_true)
@@ -159,22 +159,22 @@ def plot(event, telid, chan, extractor_name):
     ax_img_true.annotate(
         f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.98),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="red", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
     ax_img_true.annotate(
         f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.94),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="orange", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
 
     camera = CameraDisplay(geom, ax=ax_img_cal)
@@ -184,22 +184,22 @@ def plot(event, telid, chan, extractor_name):
     ax_img_cal.annotate(
         f"Pixel: {max_pix}",
         xy=(geom.pix_x.value[max_pix], geom.pix_y.value[max_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.98),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='red', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="red", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
     ax_img_cal.annotate(
         f"Pixel: {min_pix}",
         xy=(geom.pix_x.value[min_pix], geom.pix_y.value[min_pix]),
-        xycoords='data',
+        xycoords="data",
         xytext=(0.05, 0.94),
-        textcoords='axes fraction',
-        arrowprops=dict(facecolor='orange', width=2, alpha=0.4),
-        horizontalalignment='left',
-        verticalalignment='top'
+        textcoords="axes fraction",
+        arrowprops=dict(facecolor="orange", width=2, alpha=0.4),
+        horizontalalignment="left",
+        verticalalignment="top",
     )
 
     fig_waveforms.suptitle(f"Integrator = {extractor_name}")
@@ -212,77 +212,62 @@ class DisplayIntegrator(Tool):
     name = "ctapipe-display-integration"
     description = __doc__
 
-    event_index = Int(0, help='Event index to view.').tag(config=True)
+    event_index = Int(0, help="Event index to view.").tag(config=True)
     use_event_id = Bool(
         False,
-        help='event_index will obtain an event using event_id instead of '
-             'index.'
+        help="event_index will obtain an event using event_id instead of index.",
     ).tag(config=True)
     telescope = Int(
         None,
         allow_none=True,
-        help='Telescope to view. Set to None to display the first'
-             'telescope with data.'
+        help="Telescope to view. Set to None to display the first"
+        "telescope with data.",
     ).tag(config=True)
-    channel = Enum([0, 1], 0, help='Channel to view').tag(config=True)
+    channel = Enum([0, 1], 0, help="Channel to view").tag(config=True)
 
-    extractor_product = tool_utils.enum_trait(
-        ImageExtractor,
-        default='NeighborPeakWindowSum'
+    extractor_product = traits.enum_trait(
+        ImageExtractor, default="NeighborPeakWindowSum"
     )
 
     aliases = Dict(
         dict(
-            f='EventSource.input_url',
-            max_events='EventSource.max_events',
-            extractor='DisplayIntegrator.extractor_product',
-            E='DisplayIntegrator.event_index',
-            T='DisplayIntegrator.telescope',
-            C='DisplayIntegrator.channel',
+            f="EventSource.input_url",
+            max_events="EventSource.max_events",
+            extractor="DisplayIntegrator.extractor_product",
+            E="DisplayIntegrator.event_index",
+            T="DisplayIntegrator.telescope",
+            C="DisplayIntegrator.channel",
         )
     )
     flags = Dict(
         dict(
             id=(
-                {
-                    'DisplayDL1Calib': {
-                        'use_event_index': True
-                    }
-                }, 'event_index will obtain an event using '
-                   'event_id instead of index.')
+                {"DisplayDL1Calib": {"use_event_index": True}},
+                "event_index will obtain an event using event_id instead of index.",
+            )
         )
     )
-    classes = List(
-        [
-            EventSource,
-            CameraDL1Calibrator,
-        ] + tool_utils.classes_with_traits(ImageExtractor)
-    )
+    classes = List([EventSource] + traits.classes_with_traits(ImageExtractor))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # make sure gzip files are seekable
+        self.config.SimTelEventSource.back_seekable = True
         self.eventseeker = None
-        self.r1 = None
-        self.dl0 = None
         self.extractor = None
-        self.dl1 = None
+        self.calibrator = None
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"
 
-        event_source = EventSource.from_config(parent=self)
-        self.eventseeker = EventSeeker(event_source, parent=self)
-        self.extractor = ImageExtractor.from_name(
-            self.extractor_product,
-            parent=self,
+        event_source = self.add_component(EventSource.from_config(parent=self))
+        self.eventseeker = self.add_component(EventSeeker(event_source, parent=self))
+        self.extractor = self.add_component(
+            ImageExtractor.from_name(self.extractor_product, parent=self)
         )
-        self.r1 = CameraR1Calibrator.from_eventsource(
-            eventsource=event_source,
-            parent=self,
+        self.calibrate = self.add_component(
+            CameraCalibrator(parent=self, image_extractor=self.extractor)
         )
-
-        self.dl0 = CameraDL0Reducer(parent=self)
-        self.dl1 = CameraDL1Calibrator(extractor=self.extractor, parent=self)
 
     def start(self):
         event_num = self.event_index
@@ -291,9 +276,7 @@ class DisplayIntegrator(Tool):
         event = self.eventseeker[event_num]
 
         # Calibrate
-        self.r1.calibrate(event)
-        self.dl0.reduce(event)
-        self.dl1.calibrate(event)
+        self.calibrate(event)
 
         # Select telescope
         tels = list(event.r0.tels_with_data)

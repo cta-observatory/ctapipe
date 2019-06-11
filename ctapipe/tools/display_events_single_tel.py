@@ -73,11 +73,13 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
         print('TOLLES INFILE', self.infile)
-        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.event_source = self.add_component(
+            EventSource.from_url(self.infile, parent=self)
+        )
         self.event_source.allowed_tels = {self.tel, }
 
-        self.calibrator = CameraCalibrator(
-            parent=self, eventsource=self.event_source
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self)
         )
 
         self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
@@ -96,7 +98,7 @@ class SingleTelEventDisplay(Tool):
             self.log.debug(event.trig)
             self.log.debug(f"Energy: {event.mc.energy}")
 
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             if disp is None:
                 geom = event.inst.subarray.tel[self.tel].camera

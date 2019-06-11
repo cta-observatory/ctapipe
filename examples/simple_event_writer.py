@@ -38,18 +38,23 @@ class SimpleEventWriter(Tool):
     def setup(self):
         self.log.info('Configure EventSource...')
 
-        self.event_source = EventSource.from_config(
-            config=self.config,
-            parent=self
-        )
-        self.event_source.allowed_tels = self.config['Analysis']['allowed_tels']
-
-        self.calibrator = CameraCalibrator(
-            config=self.config, parent=self, eventsource=self.event_source
+        self.event_source = self.add_component(
+            EventSource.from_config(
+                config=self.config,
+                parent=self
+            )
         )
 
-        self.writer = HDF5TableWriter(
-            filename=self.outfile, group_name='image_infos', overwrite=True
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self)
+        )
+
+        self.writer = self.add_component(
+            HDF5TableWriter(
+                filename=self.outfile,
+                group_name='image_infos',
+                overwrite=True
+            )
         )
 
         # Define Pre-selection for images
@@ -77,7 +82,7 @@ class SimpleEventWriter(Tool):
                 disable=~self.progress):
 
             self.event_cutflow.count('no_sel')
-            self.calibrator.calibrate(event)
+            self.calibrator(event)
 
             for tel_id in event.dl0.tels_with_data:
                 self.image_cutflow.count('no_sel')

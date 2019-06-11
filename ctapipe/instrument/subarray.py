@@ -2,7 +2,7 @@
 Description of Arrays or Subarrays of telescopes
 """
 
-__all__ = ['SubarrayDescription']
+__all__ = ["SubarrayDescription"]
 
 from collections import defaultdict
 
@@ -12,7 +12,9 @@ from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
 import ctapipe
+
 from ..coordinates import GroundFrame
+from . import TelescopeDescription
 
 
 class SubarrayDescription:
@@ -50,16 +52,14 @@ class SubarrayDescription:
         self.tels = tel_descriptions or dict()
 
         if self.positions.keys() != self.tels.keys():
-            raise ValueError('Telescope ids in positions and descriptions do not match')
+            raise ValueError("Telescope ids in positions and descriptions do not match")
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return "{}(name='{}', num_tels={})".format(
-            self.__class__.__name__,
-            self.name,
-            self.num_tels,
+            self.__class__.__name__, self.name, self.num_tels
         )
 
     @property
@@ -69,6 +69,7 @@ class SubarrayDescription:
 
     @property
     def num_tels(self):
+        """number of telescopes in this subarray"""
         return len(self.tels)
 
     def __len__(self):
@@ -92,27 +93,21 @@ class SubarrayDescription:
         printer("=====================================")
 
         for teltype, tels in teltypes.items():
-            printer("{:>20s} {:4d} {:4d} ..{:4d}".format(
-                teltype, len(tels), min(tels), max(tels)
-            ))
+            printer(
+                "{:>20s} {:4d} {:4d} ..{:4d}".format(
+                    teltype, len(tels), min(tels), max(tels)
+                )
+            )
 
     @property
     def tel_coords(self):
         """ returns telescope positions as astropy.coordinates.SkyCoord"""
 
-        pos_x = np.array([p[0].to('m').value
-                          for p in self.positions.values()]) * u.m
-        pos_y = np.array([p[1].to('m').value
-                          for p in self.positions.values()]) * u.m
-        pos_z = np.array([p[2].to('m').value
-                          for p in self.positions.values()]) * u.m
+        pos_x = np.array([p[0].to("m").value for p in self.positions.values()]) * u.m
+        pos_y = np.array([p[1].to("m").value for p in self.positions.values()]) * u.m
+        pos_z = np.array([p[2].to("m").value for p in self.positions.values()]) * u.m
 
-        return SkyCoord(
-            x=pos_x,
-            y=pos_y,
-            z=pos_z,
-            frame=GroundFrame()
-        )
+        return SkyCoord(x=pos_x, y=pos_y, z=pos_z, frame=GroundFrame())
 
     @property
     def tel_ids(self):
@@ -126,11 +121,42 @@ class SubarrayDescription:
         return {tel_id: ii for ii, tel_id in enumerate(self.tels.keys())}
 
     @property
+    def tel_index_array(self):
+        """
+        returns an expanded array that maps tel_id to tel_index. I.e. for a given
+        telescope, this array maps the tel_id to a flat index starting at 0 for
+        the first telescope. `tel_index = tel_id_to_index_array[tel_id]`
+        If the tel_ids are not contiguous, gaps will be filled in by -1.
+        For a more compact representation use the `tel_indices`
+        """
+        idx = np.zeros(np.max(self.tel_ids) + 1, dtype=int) - 1  # start with -1
+        for key, val in self.tel_indices.items():
+            idx[key] = val
+        return idx
+
+    def tel_ids_to_indices(self, tel_ids):
+        """maps a telescope id (or array of them) to flat indices
+
+        Parameters
+        ----------
+        tel_ids : int or List[int]
+            array of tel IDs
+
+        Returns
+        -------
+        np.array:
+            array of corresponding tel indices
+        """
+        tel_ids = np.asanyarray(tel_ids).ravel()
+        index_map = self.tel_index_array
+        return index_map[tel_ids]
+
+    @property
     def footprint(self):
         """area of smallest circle containing array on ground"""
-        x = self.tel_coords.x
-        y = self.tel_coords.y
-        return (np.hypot(x, y).max() ** 2 * np.pi).to('km^2')
+        pos_x = self.tel_coords.x
+        pos_y = self.tel_coords.y
+        return (np.hypot(pos_x, pos_y).max() ** 2 * np.pi).to("km^2")
 
     def to_table(self, kind="subarray"):
         """
@@ -143,13 +169,13 @@ class SubarrayDescription:
         """
 
         meta = {
-            'ORIGIN': 'ctapipe.inst.SubarrayDescription',
-            'SUBARRAY': self.name,
-            'SOFT_VER': ctapipe.__version__,
-            'TAB_TYPE': kind,
+            "ORIGIN": "ctapipe.inst.SubarrayDescription",
+            "SUBARRAY": self.name,
+            "SOFT_VER": ctapipe.__version__,
+            "TAB_TYPE": kind,
         }
 
-        if kind == 'subarray':
+        if kind == "subarray":
 
             ids = list(self.tels.keys())
             descs = [str(t) for t in self.tels.values()]
@@ -159,37 +185,39 @@ class SubarrayDescription:
             cam_types = [t.camera.cam_id for t in self.tels.values()]
             tel_coords = self.tel_coords
 
-            tab = Table(dict(
-                id=np.array(ids, dtype=np.short),
-                pos_x=tel_coords.x,
-                pos_y=tel_coords.y,
-                pos_z=tel_coords.z,
-                name=tel_names,
-                type=tel_types,
-                num_mirrors=num_mirrors,
-                camera_type=cam_types,
-                tel_description=descs,
-            ))
+            tab = Table(
+                dict(
+                    tel_id=np.array(ids, dtype=np.short),
+                    pos_x=tel_coords.x,
+                    pos_y=tel_coords.y,
+                    pos_z=tel_coords.z,
+                    name=tel_names,
+                    type=tel_types,
+                    num_mirrors=num_mirrors,
+                    camera_type=cam_types,
+                    tel_description=descs,
+                )
+            )
 
-        elif kind == 'optics':
+        elif kind == "optics":
             unique_types = set(self.tels.values())
 
             mirror_area = u.Quantity(
-                [t.optics.mirror_area.to_value(u.m**2) for t in unique_types],
-                u.m**2,
+                [t.optics.mirror_area.to_value(u.m ** 2) for t in unique_types],
+                u.m ** 2,
             )
             focal_length = u.Quantity(
                 [t.optics.equivalent_focal_length.to_value(u.m) for t in unique_types],
                 u.m,
             )
             cols = {
-                'description': [str(t) for t in unique_types],
-                'name': [t.name for t in unique_types],
-                'type': [t.type for t in unique_types],
-                'mirror_area': mirror_area,
-                'num_mirrors': [t.optics.num_mirrors for t in unique_types],
-                'num_mirror_tiles': [t.optics.num_mirror_tiles for t in unique_types],
-                'equivalent_focal_length': focal_length,
+                "description": [str(t) for t in unique_types],
+                "name": [t.name for t in unique_types],
+                "type": [t.type for t in unique_types],
+                "mirror_area": mirror_area,
+                "num_mirrors": [t.optics.num_mirrors for t in unique_types],
+                "num_mirror_tiles": [t.optics.num_mirror_tiles for t in unique_types],
+                "equivalent_focal_length": focal_length,
             }
             tab = Table(cols)
 
@@ -218,8 +246,9 @@ class SubarrayDescription:
         tel_positions = {tid: self.positions[tid] for tid in tel_ids}
         tel_descriptions = {tid: self.tel[tid] for tid in tel_ids}
 
-        newsub = SubarrayDescription(name, tel_positions=tel_positions,
-                                     tel_descriptions=tel_descriptions)
+        newsub = SubarrayDescription(
+            name, tel_positions=tel_positions, tel_descriptions=tel_descriptions
+        )
         return newsub
 
     def peek(self):
@@ -236,40 +265,38 @@ class SubarrayDescription:
 
         with quantity_support():
             for tel_type in types:
-                tels = tab[tab['tel_description'] == str(tel_type)]['id']
+                tels = tab[tab["tel_description"] == str(tel_type)]["tel_id"]
                 sub = self.select_subarray(tel_type, tels)
                 tel_coords = sub.tel_coords
-                radius = np.array([
-                    np.sqrt(tel.optics.mirror_area / np.pi).value
-                    for tel in sub.tels.values()
-                ])
-
-                plt.scatter(
-                    tel_coords.x,
-                    tel_coords.y,
-                    s=radius * 8,
-                    alpha=0.5,
-                    label=tel_type,
+                radius = np.array(
+                    [
+                        np.sqrt(tel.optics.mirror_area / np.pi).value
+                        for tel in sub.tels.values()
+                    ]
                 )
 
-            plt.legend(loc='best')
+                plt.scatter(
+                    tel_coords.x, tel_coords.y, s=radius * 8, alpha=0.5, label=tel_type
+                )
+
+            plt.legend(loc="best")
             plt.title(self.name)
             plt.tight_layout()
 
     @property
     def telescope_types(self):
         """ list of telescope types in the array"""
-        return [t.type + ':' + t.camera.cam_id for t in set(self.tel.values())]
+        return list({tel for tel in self.tel.values()})
 
     @property
     def camera_types(self):
         """ list of camera types in the array """
-        return [t.camera.cam_id for t in set(self.tel.values())]
+        return list({tel.camera for tel in self.tel.values()})
 
     @property
     def optics_types(self):
         """ list of optics types in the array """
-        return [t.optics for t in set(self.tel.values())]
+        return list({tel.optics for tel in self.tel.values()})
 
     def get_tel_ids_for_type(self, tel_type):
         """
@@ -277,8 +304,13 @@ class SubarrayDescription:
 
         Parameters
         ----------
-        tel_type: str
+        tel_type: str or TelescopeDescription
            telescope type string (e.g. 'MST:NectarCam')
 
         """
-        return [id for id, descr in self.tels.items() if str(descr) == tel_type]
+        if isinstance(tel_type, TelescopeDescription):
+            tel_str = str(tel_type)
+        else:
+            tel_str = tel_type
+
+        return [id for id, descr in self.tels.items() if str(descr) == tel_str]
