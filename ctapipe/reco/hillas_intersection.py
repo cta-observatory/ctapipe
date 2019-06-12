@@ -404,7 +404,7 @@ class HillasIntersection(Reconstructor):
 
     @staticmethod
     def weight_sin(phi1, phi2):
-        return np.abs(np.sin(np.fabs(phi1 - phi2)))
+        return np.abs(np.sin(phi1 - phi2))
 
 
 def get_shower_height(source_x, source_y, cog_x, cog_y,
