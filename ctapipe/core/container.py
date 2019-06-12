@@ -35,7 +35,7 @@ class Field:
 
 
 class ContainerMeta(type):
-    '''
+    """
     The MetaClass for the Containers
 
     It reserves __slots__ for every class variable,
@@ -44,7 +44,8 @@ class ContainerMeta(type):
 
     This makes sure, that the metadata is immutable,
     and no new fields can be added to a container by accident.
-    '''
+    """
+
     def __new__(cls, name, bases, dct):
         field_names = [
             k for k, v in dct.items()
@@ -100,7 +101,7 @@ class Container(metaclass=ContainerMeta):
     >>>
     >>>    cont = MyContainer()
     >>>    print(cont.x)
-    >>>    # metdata will become header keywords in an output file:
+    >>>    # metadata will become header keywords in an output file:
     >>>    cont.meta['KEY'] = value
 
     `Field`s inside `Containers` can contain instances of other
@@ -119,6 +120,7 @@ class Container(metaclass=ContainerMeta):
     `meta` attribute, which is a `dict` of keywords to values.
 
     """
+
     def __init__(self, **fields):
         self.meta = {}
         # __slots__ cannot be provided with defaults
@@ -164,6 +166,8 @@ class Container(metaclass=ContainerMeta):
         flatten: type
             return a flat dictionary, with any sub-field keys generated
             by appending the sub-Container name.
+        add_prefix: bool
+            include the container's prefix in the name of each item
         """
         if not recursive:
             return dict(self.items(add_prefix=add_prefix))

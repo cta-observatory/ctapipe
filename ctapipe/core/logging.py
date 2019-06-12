@@ -1,3 +1,5 @@
+""" helpers for better logging """
+
 import logging
 
 
@@ -14,17 +16,19 @@ class ColoredFormatter(logging.Formatter):
         reset_seq = "\033[0m"
         color_seq = "\033[1;%dm"
         colors = {
-            'WARNING': yellow,
             'INFO': green,
             'DEBUG': blue,
-            'CRITICAL': yellow,
+            'WARNING': yellow,
+            'CRITICAL': magenta,
             'ERROR': red
         }
 
         levelname = record.levelname
         if levelname in colors:
-            levelname_color = color_seq % (30 + colors[levelname]) \
+            levelname_color = (
+                color_seq % (30 + colors[levelname])
                 + levelname + reset_seq
+            )
             record.levelname = levelname_color
 
         if record.levelno >= self.highlevel_limit:

@@ -1,8 +1,9 @@
 import os
-import sys
-import pytest
 import shlex
+import sys
+
 import matplotlib as mpl
+import pytest
 
 from ctapipe.utils import get_dataset_path
 
@@ -14,7 +15,7 @@ def test_muon_reconstruction(tmpdir):
     tool = MuonDisplayerTool()
     tool.run(
         argv=shlex.split(
-            f'--events={GAMMA_TEST_LARGE} '
+            f'--input={GAMMA_TEST_LARGE} '
             '--max_events=2 '
         )
     )

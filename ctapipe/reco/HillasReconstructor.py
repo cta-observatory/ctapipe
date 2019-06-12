@@ -29,10 +29,14 @@ import numpy as np
 from astropy import units as u
 
 
-__all__ = ['HillasReconstructor', 'TooFewTelescopesException', 'HillasPlane']
+__all__ = ['HillasReconstructor', 'TooFewTelescopesException', 'HillasPlane', 'InvalidWidthException']
 
 
 class TooFewTelescopesException(Exception):
+    pass
+
+
+class InvalidWidthException(Exception):
     pass
 
 
@@ -133,6 +137,8 @@ class HillasReconstructor(Reconstructor):
         ------
         TooFewTelescopesException
             if len(hillas_dict) < 2
+        InvalidWidthException
+            if any width is np.nan or 0
         """
 
         # filter warnings for missing obs time. this is needed because MC data has no obs time
@@ -144,6 +150,15 @@ class HillasReconstructor(Reconstructor):
                 "need at least two telescopes, have {}"
                 .format(len(hillas_dict)))
 
+        # check for np.nan or 0 width's as these screw up weights
+        if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width==np.nan")
+
+        if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width==0")
+
         # need the single telescope pointing to have the the divergent pointing reconstruction
         if telescopes_pointings is not None and divergent_mode is True:
             self.divergent_mode = divergent_mode
@@ -154,10 +169,10 @@ class HillasReconstructor(Reconstructor):
             telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
 
         self.initialize_hillas_planes(
-            hillas_dict,
-            inst.subarray,
-            telescopes_pointings,
-            array_pointing
+                hillas_dict,
+                inst.subarray,
+                telescopes_pointings,
+                array_pointing
         )
 
         # algebraic direction estimate
