@@ -103,7 +103,8 @@ class HillasIntersection(Reconstructor):
         result.core_y = grd.y
 
         x_max = self.reconstruct_xmax(
-            nom.altaz.az, nom.altaz.alt,
+            nom.delta_az,
+            nom.delta_alt,
             tilt.x, tilt.y,
             hillas_parameters,
             tel_x, tel_y,
