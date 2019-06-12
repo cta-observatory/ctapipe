@@ -44,12 +44,19 @@ class HillasIntersection(Reconstructor):
     for multiplicity 2 events.
     """
 
-    def __init__(self, atmosphere_profile_name="paranal"):
+    def __init__(self, atmosphere_profile_name="paranal", weighting="Konrad"):
+        """
+        Weighting must be a function similar to the weight_konrad already implemented
+        """
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
         _ = get_atmosphere_profile_functions(atmosphere_profile_name)
         self.thickness_profile, self.altitude_profile = _
+
+        # other weighting schemes can be implemented. just add them as additional methods
+        if weighting == "Konrad":
+            self._weighting = self.weight_konrad
 
     def predict(self, hillas_parameters, tel_x, tel_y, array_direction):
         """
@@ -126,7 +133,7 @@ class HillasIntersection(Reconstructor):
 
         return result
 
-    def reconstruct_nominal(self, hillas_parameters, weighting="Konrad"):
+    def reconstruct_nominal(self, hillas_parameters):
         """
         Perform event reconstruction by simple Hillas parameter intersection
         in the nominal system
@@ -135,8 +142,6 @@ class HillasIntersection(Reconstructor):
         ----------
         hillas_parameters: dict
             Hillas parameter objects
-        weighting: string
-            Specify image weighting scheme used (HESS or Konrad style)
 
         Returns
         -------
@@ -174,13 +179,9 @@ class HillasIntersection(Reconstructor):
         # Perform intersection
         sx, sy = self.intersect_lines(h1[1], h1[2], h1[0],
                                       h2[1], h2[2], h2[0])
-        if weighting == "Konrad":
-            weight_fn = self.weight_konrad
-        elif weighting == "HESS":
-            weight_fn = self.weight_HESS
 
         # Weight by chosen method
-        weight = weight_fn(h1[3], h2[3])
+        weight = self._weighting(h1[3], h2[3])
         # And sin of interception angle
         weight *= self.weight_sin(h1[0], h2[0])
 
@@ -192,8 +193,7 @@ class HillasIntersection(Reconstructor):
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
-    def reconstruct_tilted(self, hillas_parameters, tel_x, tel_y,
-                           weighting="Konrad"):
+    def reconstruct_tilted(self, hillas_parameters, tel_x, tel_y):
         """
         Core position reconstruction by image axis intersection in the tilted
         system
@@ -206,8 +206,6 @@ class HillasIntersection(Reconstructor):
             Telescope X positions, tilted system
         tel_y: dict
             Telescope Y positions, tilted system
-        weighting: str
-            Weighting scheme for averaging of crossing points
 
         Returns
         -------
@@ -254,13 +252,8 @@ class HillasIntersection(Reconstructor):
         cx, cy = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], h1[0],
                                       tel_x[:, 1], tel_y[:, 1], h2[0])
 
-        if weighting == "Konrad":
-            weight_fn = self.weight_konrad
-        elif weighting == "HESS":
-            weight_fn = self.weight_hess
-
         # Weight by chosen method
-        weight = weight_fn(h1[1], h2[1])
+        weight = self._weighting(h1[1], h2[1])
         # And sin of interception angle
         weight *= self.weight_sin(h1[0], h2[0])
 
@@ -397,10 +390,6 @@ class HillasIntersection(Reconstructor):
     @staticmethod
     def weight_konrad(p1, p2):
         return (p1 * p2) / (p1 + p2)
-
-    @staticmethod
-    def weight_hess(p1, p2):
-        return 1 / ((1 / p1) + (1 / p2))
 
     @staticmethod
     def weight_sin(phi1, phi2):
