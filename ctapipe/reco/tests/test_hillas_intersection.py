@@ -146,3 +146,30 @@ def test_intersection_weighting_spoiled_parameters():
 
     np.testing.assert_allclose(reco_konrad_spoiled[0], delta.to_value(u.m), atol=1e-1)
     np.testing.assert_allclose(reco_konrad_spoiled[1], -delta.to_value(u.m), atol=1e-1)
+
+
+def test_intersection_nominal_reconstruction():
+    hill_inter = HillasIntersection()
+
+    delta = 0.04 * u.rad
+    alt = 70 * u.deg
+    az = 10 * u.deg
+
+    hillas_dict = {
+        1: HillasParametersContainer(x=0 * u.rad + az,
+                                     y=delta + alt,
+                                     intensity=100,
+                                     psi=-90 * u.deg),
+        2: HillasParametersContainer(x=0.7*delta + az,
+                                     y=-0.7*delta + alt,
+                                     intensity=100,
+                                     psi=-45 * u.deg),
+        3: HillasParametersContainer(x=delta + az,
+                                     y=0 * u.rad + alt,
+                                     intensity=100,
+                                     psi=0 * u.deg)
+    }
+    reco_nominal = hill_inter.reconstruct_nominal(hillas_parameters=hillas_dict)
+
+    np.testing.assert_allclose(u.Quantity(reco_nominal[0], u.rad).to_value(u.deg), az.to_value(u.deg), atol=1e-8)
+    np.testing.assert_allclose(u.Quantity(reco_nominal[1], u.rad).to_value(u.deg), alt.to_value(u.deg), atol=1e-8)
