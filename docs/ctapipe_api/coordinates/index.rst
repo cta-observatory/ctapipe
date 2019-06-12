@@ -41,8 +41,10 @@ The two different coordinate frames are shown here:
 .. plot:: ../examples/plot_camera_frames.py
     :include-source:
 
-The `CameraFrame` is used internally and is used by H.E.S.S. and `sim_telarray`,
-the `EngineeringCameraFrame` is used by `MAGIC` and `FACT`.
+The `CameraFrame` is used internally in `ctapipe` and comes from `sim_telarray`.
+It abstracts the transformation differences between 1 and 2 mirror telescopes away.
+The `EngineeringCameraFrame` is used by `MAGIC`, `FACT` and the `H.E.S.S.` analysis
+software.
 
         
 Reference/API
