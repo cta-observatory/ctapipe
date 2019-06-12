@@ -153,9 +153,9 @@ class HillasIntersection(Reconstructor):
         # Copy parameters we need to a numpy array to speed things up
         h1 = list(
             map(
-                lambda h: [h[0].psi.to(u.rad).value,
-                           h[0].x.value,
-                           h[0].y.value,
+                lambda h: [h[0].psi.to_value(u.rad),
+                           h[0].x.to_value(u.m),
+                           h[0].y.to_value(u.m),
                            h[0].intensity], hillas_pairs
             )
         )
@@ -163,9 +163,9 @@ class HillasIntersection(Reconstructor):
         h1 = np.transpose(h1)
 
         h2 = list(
-            map(lambda h: [h[1].psi.to(u.rad).value,
-                           h[1].x.value,
-                           h[1].y.value,
+            map(lambda h: [h[1].psi.to_value(u.rad),
+                           h[1].x.to_value(u.m),
+                           h[1].y.to_value(u.m),
                            h[1].intensity], hillas_pairs)
         )
         h2 = np.array(h2)
@@ -235,18 +235,18 @@ class HillasIntersection(Reconstructor):
         tx = np.zeros((len(tel_x), 2))
         ty = np.zeros((len(tel_y), 2))
         for i, _ in enumerate(tel_x):
-            tx[i][0], tx[i][1] = tel_x[i][0].value, tel_x[i][1].value
-            ty[i][0], ty[i][1] = tel_y[i][0].value, tel_y[i][1].value
+            tx[i][0], tx[i][1] = tel_x[i][0].to_value(u.m), tel_x[i][1].to_value(u.m)
+            ty[i][0], ty[i][1] = tel_y[i][0].to_value(u.m), tel_y[i][1].to_value(u.m)
 
         tel_x = np.array(tx)
         tel_y = np.array(ty)
 
         # Copy parameters we need to a numpy array to speed things up
-        h1 = map(lambda h: [h[0].psi.to(u.rad).value, h[0].intensity], hillas_pairs)
+        h1 = map(lambda h: [h[0].psi.to_value(u.rad), h[0].intensity], hillas_pairs)
         h1 = np.array(list(h1))
         h1 = np.transpose(h1)
 
-        h2 = map(lambda h: [h[1].psi.to(u.rad).value, h[1].intensity], hillas_pairs)
+        h2 = map(lambda h: [h[1].psi.to_value(u.rad), h[1].intensity], hillas_pairs)
         h2 = np.array(list(h2))
         h2 = np.transpose(h2)
 
@@ -311,19 +311,19 @@ class HillasIntersection(Reconstructor):
 
         # Loops over telescopes in event
         for tel in hillas_parameters.keys():
-            cog_x.append(hillas_parameters[tel].x.to(u.rad).value)
-            cog_y.append(hillas_parameters[tel].y.to(u.rad).value)
+            cog_x.append(hillas_parameters[tel].x.to_value(u.rad))
+            cog_y.append(hillas_parameters[tel].y.to_value(u.rad))
             amp.append(hillas_parameters[tel].intensity)
 
-            tx.append(tel_x[tel].to(u.m).value)
-            ty.append(tel_y[tel].to(u.m).value)
+            tx.append(tel_x[tel].to_value(u.m))
+            ty.append(tel_y[tel].to_value(u.m))
 
-        height = get_shower_height(source_x.to(u.rad).value,
-                                   source_y.to(u.rad).value,
+        height = get_shower_height(source_x.to_value(u.rad),
+                                   source_y.to_value(u.rad),
                                    np.array(cog_x),
                                    np.array(cog_y),
-                                   core_x.to(u.m).value,
-                                   core_y.to(u.m).value,
+                                   core_x.to_value(u.m),
+                                   core_y.to_value(u.m),
                                    np.array(tx),
                                    np.array(ty))
         weight = np.array(amp)
