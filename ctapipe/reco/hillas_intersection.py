@@ -257,7 +257,7 @@ class HillasIntersection(Reconstructor):
         if weighting == "Konrad":
             weight_fn = self.weight_konrad
         elif weighting == "HESS":
-            weight_fn = self.weight_HESS
+            weight_fn = self.weight_hess
 
         # Weight by chosen method
         weight = weight_fn(h1[1], h2[1])
