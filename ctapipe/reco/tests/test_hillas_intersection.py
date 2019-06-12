@@ -22,7 +22,6 @@ def test_intersect():
 
     assert_allclose(sx, 0, atol=1e-6)
     assert_allclose(sy, 0, atol=1e-6)
-    print("ciao")
 
 
 def test_parallel():
