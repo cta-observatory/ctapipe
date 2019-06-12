@@ -22,6 +22,7 @@ def test_intersect():
 
     assert_allclose(sx, 0, atol=1e-6)
     assert_allclose(sy, 0, atol=1e-6)
+    print("ciao")
 
 
 def test_parallel():
@@ -41,6 +42,3 @@ def test_parallel():
     sx, sy = hill.intersect_lines(x1, y1, theta1, x2, y2, theta2)
     assert_allclose(sx, np.nan, atol=1e-6)
     assert_allclose(sy, np.nan, atol=1e-6)
-
-test_intersect()
-test_parallel()
