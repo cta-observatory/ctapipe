@@ -91,3 +91,58 @@ def test_intersection_xmax_reco():
         zen=zen_pointing
     )
     # TODO: ADD A PROPER ASSERT
+
+
+def test_intersection_reco_impact_point_tilted():
+    """
+    Function to test the reconstruction of the impact point in the tilted frame.
+    This is done using a squared configuration, of which the impact point occupies a vertex,
+    ad the three telescopes the other three vertices.
+    """
+    hill_inter = HillasIntersection()
+
+    delta = 100 * u.m
+    tel_x_dict = {1: delta, 2: -delta, 3: -delta}
+    tel_y_dict = {1: delta, 2: delta, 3: -delta}
+
+    hillas_dict = {
+        1: HillasParametersContainer(intensity=100, psi=-90 * u.deg),
+        2: HillasParametersContainer(intensity=100, psi=-45 * u.deg),
+        3: HillasParametersContainer(intensity=100, psi=0 * u.deg)
+    }
+
+    reco_konrad = hill_inter.reconstruct_tilted(
+        hillas_parameters=hillas_dict,
+        tel_x=tel_x_dict,
+        tel_y=tel_y_dict
+    )
+
+    np.testing.assert_allclose(reco_konrad[0], delta.to_value(u.m), atol=1e-8)
+    np.testing.assert_allclose(reco_konrad[1], -delta.to_value(u.m), atol=1e-8)
+
+
+def test_intersection_weighting_spoiled_parameters():
+    """
+    Test that the weighting scheme is useful especially when a telescope is 90 deg with respect to the other two
+    """
+    hill_inter = HillasIntersection()
+
+    delta = 100 * u.m
+    tel_x_dict = {1: delta, 2: -delta, 3: -delta}
+    tel_y_dict = {1: delta, 2: delta, 3: -delta}
+
+    # telescope 2 have a spoiled reconstruction (45 instead of -45)
+    hillas_dict = {
+        1: HillasParametersContainer(intensity=10000, psi=-90 * u.deg),
+        2: HillasParametersContainer(intensity=1, psi=45 * u.deg),
+        3: HillasParametersContainer(intensity=10000, psi=0 * u.deg)
+    }
+
+    reco_konrad_spoiled = hill_inter.reconstruct_tilted(
+        hillas_parameters=hillas_dict,
+        tel_x=tel_x_dict,
+        tel_y=tel_y_dict
+    )
+
+    np.testing.assert_allclose(reco_konrad_spoiled[0], delta.to_value(u.m), atol=1e-1)
+    np.testing.assert_allclose(reco_konrad_spoiled[1], -delta.to_value(u.m), atol=1e-1)
