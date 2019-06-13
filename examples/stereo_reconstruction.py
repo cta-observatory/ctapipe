@@ -91,12 +91,10 @@ for event in event_source:
         alt=event.mcheader.run_array_direction[1],
         frame=horizon_frame
     )
-    
     stereo = reco.predict(
         hillas_containers,
         event.inst,
         array_pointing,
-        telescope_pointings,
     )
 
     plt.figure()

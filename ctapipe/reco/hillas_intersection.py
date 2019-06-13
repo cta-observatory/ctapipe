@@ -44,10 +44,11 @@ class HillasIntersection(Reconstructor):
     for multiplicity 2 events.
     """
 
-    def __init__(self, atmosphere_profile_name="paranal", weighting="Konrad"):
+    def __init__(self, atmosphere_profile_name="paranal", weighting="Konrad", config=None, parent=None, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
+        super().__init__(config=config, parent=parent, **kwargs)
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
@@ -216,18 +217,18 @@ class HillasIntersection(Reconstructor):
         """
         if len(hillas_parameters) < 2:
             return None  # Throw away events with < 2 images
-        h = list()
+        hill_list = list()
         tx = list()
         ty = list()
 
         # Need to loop here as dict is unordered
         for tel in hillas_parameters.keys():
-            h.append(hillas_parameters[tel])
+            hill_list.append(hillas_parameters[tel])
             tx.append(tel_x[tel])
             ty.append(tel_y[tel])
 
         # Find all pairs of Hillas parameters
-        hillas_pairs = list(itertools.combinations(h, 2))
+        hillas_pairs = list(itertools.combinations(hill_list, 2))
         tel_x = list(itertools.combinations(tx, 2))
         tel_y = list(itertools.combinations(ty, 2))
 
@@ -241,22 +242,22 @@ class HillasIntersection(Reconstructor):
         tel_y = np.array(ty)
 
         # Copy parameters we need to a numpy array to speed things up
-        h1 = map(lambda h: [h[0].psi.to_value(u.rad), h[0].intensity], hillas_pairs)
-        h1 = np.array(list(h1))
-        h1 = np.transpose(h1)
+        hillas1 = map(lambda h: [h[0].psi.to_value(u.rad), h[0].intensity], hillas_pairs)
+        hillas1 = np.array(list(hillas1))
+        hillas1 = np.transpose(hillas1)
 
-        h2 = map(lambda h: [h[1].psi.to_value(u.rad), h[1].intensity], hillas_pairs)
-        h2 = np.array(list(h2))
-        h2 = np.transpose(h2)
+        hillas2 = map(lambda h: [h[1].psi.to_value(u.rad), h[1].intensity], hillas_pairs)
+        hillas2 = np.array(list(hillas2))
+        hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        cx, cy = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], h1[0],
-                                      tel_x[:, 1], tel_y[:, 1], h2[0])
+        cx, cy = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], hillas1[0],
+                                      tel_x[:, 1], tel_y[:, 1], hillas2[0])
 
         # Weight by chosen method
-        weight = self._weighting(h1[1], h2[1])
+        weight = self._weighting(hillas1[1], hillas2[1])
         # And sin of interception angle
-        weight *= self.weight_sin(h1[0], h2[0])
+        weight *= self.weight_sin(hillas1[0], hillas2[0])
 
         # Make weighted average of all possible pairs
         x_pos = np.average(cx, weights=weight)

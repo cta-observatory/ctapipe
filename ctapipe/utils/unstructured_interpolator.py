@@ -69,6 +69,9 @@ class UnstructuredInterpolator:
         self._bounds = bounds
 
     def reset(self):
+        """
+        Function used to reset some class values stored after previous event
+        """
         self._previous_v = 0
         self._previous_m = 0
         self._previous_shape = 0

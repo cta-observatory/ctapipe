@@ -149,27 +149,32 @@ def test_intersection_weighting_spoiled_parameters():
 
 
 def test_intersection_nominal_reconstruction():
+    """
+    Testing the reconstruction of the position in the nominal frame with a three-telescopes system.
+    This is done using a squared configuration, of which the impact point occupies a vertex,
+    ad the three telescopes the other three vertices.
+    """
     hill_inter = HillasIntersection()
 
     delta = 0.04 * u.rad
-    alt = 70 * u.deg
-    az = 10 * u.deg
+    altitude = 70 * u.deg
+    azimuth = 10 * u.deg
 
     hillas_dict = {
-        1: HillasParametersContainer(x=0 * u.rad + az,
-                                     y=delta + alt,
+        1: HillasParametersContainer(x=0 * u.rad + azimuth,
+                                     y=delta + altitude,
                                      intensity=100,
                                      psi=-90 * u.deg),
-        2: HillasParametersContainer(x=0.7*delta + az,
-                                     y=-0.7*delta + alt,
+        2: HillasParametersContainer(x=0.7*delta + azimuth,
+                                     y=-0.7*delta + altitude,
                                      intensity=100,
                                      psi=-45 * u.deg),
-        3: HillasParametersContainer(x=delta + az,
-                                     y=0 * u.rad + alt,
+        3: HillasParametersContainer(x=delta + azimuth,
+                                     y=0 * u.rad + altitude,
                                      intensity=100,
                                      psi=0 * u.deg)
     }
     reco_nominal = hill_inter.reconstruct_nominal(hillas_parameters=hillas_dict)
 
-    np.testing.assert_allclose(u.Quantity(reco_nominal[0], u.rad).to_value(u.deg), az.to_value(u.deg), atol=1e-8)
-    np.testing.assert_allclose(u.Quantity(reco_nominal[1], u.rad).to_value(u.deg), alt.to_value(u.deg), atol=1e-8)
+    np.testing.assert_allclose(u.Quantity(reco_nominal[0], u.rad).to_value(u.deg), azimuth.to_value(u.deg), atol=1e-8)
+    np.testing.assert_allclose(u.Quantity(reco_nominal[1], u.rad).to_value(u.deg), altitude.to_value(u.deg), atol=1e-8)
