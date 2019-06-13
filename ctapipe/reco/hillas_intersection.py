@@ -15,7 +15,7 @@ from ctapipe.reco.reco_algorithms import Reconstructor
 from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
-from astropy.coordinates import SkyCoord, AltAz
+from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame
 from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
 
