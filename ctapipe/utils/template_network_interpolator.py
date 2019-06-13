@@ -24,6 +24,9 @@ class TemplateNetworkInterpolator:
                                                      bounds=((-5, 1),(-1.5, 1.5)))
 
     def reset(self):
+        """
+        Reset method to delete some saved results from the previous event
+        """
         self.interpolator.reset()
 
     def __call__(self, energy, impact, xmax, xb, yb):

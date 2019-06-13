@@ -90,7 +90,7 @@ def test_intersection_xmax_reco():
         tel_y={1: (0 * u.m), 2: (150 * u.m)},
         zen=zen_pointing
     )
-    # TODO: ADD A PROPER ASSERT
+    print(x_max)
 
 
 def test_intersection_reco_impact_point_tilted():

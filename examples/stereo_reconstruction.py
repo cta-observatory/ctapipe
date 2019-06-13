@@ -36,7 +36,7 @@ for event in event_source:
 
     # mapping of telescope_id to parameters for stereo reconstruction
     hillas_containers = {}
-    
+
     time_gradients = {}
 
     for telescope_id, dl1 in event.dl1.tel.items():
@@ -70,7 +70,7 @@ for event in event_source:
 
         # store parameters for stereo reconstruction
         hillas_containers[telescope_id] = hillas_c
-        
+
         # store timegradients for plotting
         # ASTRI has no timing in PROD3b, so we use skewness instead
         if camera.cam_id != 'ASTRICam':

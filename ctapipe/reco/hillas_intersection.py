@@ -251,8 +251,8 @@ class HillasIntersection(Reconstructor):
         hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        cx, cy = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], hillas1[0],
-                                      tel_x[:, 1], tel_y[:, 1], hillas2[0])
+        crossing_x, crossing_y = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], hillas1[0],
+                                                      tel_x[:, 1], tel_y[:, 1], hillas2[0])
 
         # Weight by chosen method
         weight = self._weighting(hillas1[1], hillas2[1])
@@ -260,10 +260,10 @@ class HillasIntersection(Reconstructor):
         weight *= self.weight_sin(hillas1[0], hillas2[0])
 
         # Make weighted average of all possible pairs
-        x_pos = np.average(cx, weights=weight)
-        y_pos = np.average(cy, weights=weight)
-        var_x = np.average((cx - x_pos) ** 2, weights=weight)
-        var_y = np.average((cy - y_pos) ** 2, weights=weight)
+        x_pos = np.average(crossing_x, weights=weight)
+        y_pos = np.average(crossing_y, weights=weight)
+        var_x = np.average((crossing_x - x_pos) ** 2, weights=weight)
+        var_y = np.average((crossing_y - y_pos) ** 2, weights=weight)
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
@@ -323,7 +323,7 @@ class HillasIntersection(Reconstructor):
                                    np.array(ty))
         weight = np.array(amp)
         mean_height = np.sum(height * weight) / np.sum(weight)
-
+        print(mean_height)
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
         mean_height *= np.cos(zen)
