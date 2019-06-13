@@ -179,7 +179,7 @@ class HillasReconstructor(Reconstructor):
         direction, err_est_dir = self.estimate_direction()
 
         # array pointing is needed to define the tilted frame
-        core_pos = self.estimate_core_position(hillas_dict, array_pointing, telescopes_pointings)
+        core_pos = self.estimate_core_position(hillas_dict, array_pointing)
 
         # container class for reconstructed showers
         result = ReconstructedShowerContainer()
@@ -320,7 +320,7 @@ class HillasReconstructor(Reconstructor):
 
         return result, err_est_dir
 
-    def estimate_core_position(self, hillas_dict, array_pointing, telescopes_pointings):
+    def estimate_core_position(self, hillas_dict, array_pointing):
         """
         Estimate the core position by intersection the major ellipse lines of each telescope.
 
@@ -330,8 +330,6 @@ class HillasReconstructor(Reconstructor):
             dictionary of hillas moments
         array_pointing: SkyCoord[HorizonFrame]
             Pointing direction of the array
-        telescopes_pointings: dictionary
-            dictionary of pointing direction per each telescope
 
         Returns
         -----------
