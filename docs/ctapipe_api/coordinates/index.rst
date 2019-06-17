@@ -27,6 +27,7 @@ Coordinates should be described using an `astropy.coordinates.SkyCoord` in the a
 The following special frames are defined for CTA:
 
 * `CameraFrame`
+* `EngineeringCameraFrame`
 * `TelescopeFrame`
 * `NominalFrame`
 * `GroundFrame`
@@ -35,6 +36,15 @@ The following special frames are defined for CTA:
 they can be transformed to and from any other `astropy.coordinates` frame, like
 `astropy.coordinates.AltAz` or `astropy.coordinates.ICRS` (RA/Dec)
 
+The two different coordinate frames are shown here:
+
+.. plot:: ../examples/plot_camera_frames.py
+    :include-source:
+
+The `CameraFrame` is used internally in `ctapipe` and comes from `sim_telarray`.
+It abstracts the transformation differences between 1 and 2 mirror telescopes away.
+The `EngineeringCameraFrame` is used by `MAGIC`, `FACT` and the `H.E.S.S.` analysis
+software.
 
         
 Reference/API

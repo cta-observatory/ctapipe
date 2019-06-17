@@ -287,8 +287,22 @@ def test_hashing():
 
     assert len(set([cam1, cam2, cam3])) == 2
 
+
 @pytest.mark.parametrize("camera_name", CameraGeometry.get_known_camera_names())
 def test_camera_from_name(camera_name):
     """ check we can construct all cameras from name"""
     camera = CameraGeometry.from_name(camera_name)
     assert str(camera) == camera_name
+
+
+@pytest.mark.parametrize("camera_name", CameraGeometry.get_known_camera_names())
+def test_camera_coordinate_transform(camera_name):
+    '''test conversion of the coordinates stored in a camera frame'''
+    from ctapipe.coordinates import EngineeringCameraFrame
+
+    geom = CameraGeometry.from_name(camera_name)
+    trans_geom = geom.transform_to(EngineeringCameraFrame())
+
+    unit = geom.pix_x.unit
+    assert np.allclose(geom.pix_x.to_value(unit), -trans_geom.pix_y.to_value(unit))
+    assert np.allclose(geom.pix_y.to_value(unit), -trans_geom.pix_x.to_value(unit))
