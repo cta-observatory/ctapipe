@@ -110,6 +110,25 @@ def test_write_bool():
                 assert cur.boolean == expected
 
 
+def test_write_large_integer():
+    class C(Container):
+        value = Field(True, 'Integer value')
+
+    exps = [15, 31, 63]
+    with tempfile.NamedTemporaryFile() as f:
+        with HDF5TableWriter(f.name, "test") as writer:
+            for exp in exps:
+                c = C(value=2**exp - 1)
+                writer.write("c", c)
+
+        c = C()
+        with HDF5TableReader(f.name) as reader:
+            c_reader = reader.read('/test/c', c)
+            for exp in exps:
+                cur = next(c_reader)
+                assert cur.value == 2**exp - 1
+
+
 def test_read_container(temp_h5_file):
     r0tel1 = R0CameraContainer()
     r0tel2 = R0CameraContainer()
