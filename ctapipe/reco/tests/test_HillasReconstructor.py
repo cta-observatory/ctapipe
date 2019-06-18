@@ -95,8 +95,6 @@ def test_reconstruction():
 
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    fit = HillasReconstructor()
-
     source = event_source(filename, max_events=10)
     horizon_frame = AltAz()
 
@@ -133,14 +131,23 @@ def test_reconstruction():
         if len(hillas_dict) < 2:
             continue
 
-        # divergent mode put to on even though the file has parallel pointing.
-        fit_result = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings, divergent_mode=True)
+        # The three reconstructions below gives the same results
+        fit = HillasReconstructor()
+        fit_result_parall = fit.predict(hillas_dict, event.inst, array_pointing)
 
-        print(fit_result)
-        fit_result.alt.to(u.deg)
-        fit_result.az.to(u.deg)
-        fit_result.core_x.to(u.m)
-        assert fit_result.is_valid
+        fit = HillasReconstructor()
+        fit_result_tel_point = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+
+        fit = HillasReconstructor()
+        fit_result_div = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings, divergent_mode=True)
+
+        for key in fit_result_parall.keys():
+            print(key, fit_result_parall[key], fit_result_tel_point[key], fit_result_div[key])
+
+        fit_result_parall.alt.to(u.deg)
+        fit_result_parall.az.to(u.deg)
+        fit_result_parall.core_x.to(u.m)
+        assert fit_result_parall.is_valid
 
 
 def test_invalid_events():
