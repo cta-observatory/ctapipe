@@ -16,8 +16,8 @@ from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame
-from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
+from ctapipe.coordinates import NominalFrame, CameraFrame
+from ctapipe.coordinates import TiltedGroundFrame, project_to_ground, GroundFrame
 
 __all__ = [
     'HillasIntersection'
@@ -59,7 +59,7 @@ class HillasIntersection(Reconstructor):
         if weighting == "Konrad":
             self._weighting = self.weight_konrad
 
-    def predict(self, hillas_parameters, tel_x, tel_y, array_direction):
+    def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
@@ -68,10 +68,10 @@ class HillasIntersection(Reconstructor):
             Dictionary containing Hillas parameters for all telescopes
             in reconstruction
         tel_x: dict
-            Dictionary containing telescope position on ground for all
+            Dictionary containing telescope position in TiltedGroundFrame for all
             telescopes in reconstruction
         tel_y: dict
-            Dictionary containing telescope position on ground for all
+            Dictionary containing telescope position in TiltedGroundFrame for all
             telescopes in reconstruction
         array_direction: AltAz
             Pointing direction of the array
@@ -81,31 +81,62 @@ class HillasIntersection(Reconstructor):
         ReconstructedShowerContainer:
 
         """
-        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_parameters)
+
+        if telescopes_pointings is None:
+            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+
+        tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
+
+        ground_positions = inst.subarray.tel_coords
+        grd_coord = GroundFrame(x=ground_positions.x,
+                                y=ground_positions.y,
+                                z=ground_positions.z)
+
+        tilt_coord = grd_coord.transform_to(tilted_frame)
+
+        tel_x = {tel_id: tilt_coord.x[tel_id-1] for tel_id in list(hillas_dict.keys())}
+        tel_y = {tel_id: tilt_coord.y[tel_id-1] for tel_id in list(hillas_dict.keys())}
+
+        nom_frame = NominalFrame(origin=array_pointing)
+
+        for tel_id, hillas in hillas_dict.items():
+            # prevent from using rads instead of meters as inputs
+            assert hillas.x.to(u.m).unit == u.Unit('m')
+
+            focal_length = inst.subarray.tel[tel_id].optics.equivalent_focal_length
+
+            camera_frame = CameraFrame(
+                telescope_pointing=telescopes_pointings[tel_id],
+                focal_length=focal_length,
+            )
+            cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
+            cog_coords_nom = cog_coords.transform_to(nom_frame)
+            hillas.x = cog_coords_nom.delta_alt
+            hillas.y = cog_coords_nom.delta_az
+
+        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
-            hillas_parameters, tel_x, tel_y)
+            hillas_dict, tel_x, tel_y)
 
         err_x *= u.rad
         err_y *= u.rad
 
-        sky_pos = SkyCoord(
-            az=src_x * u.rad,
-            alt=src_y * u.rad,
-            frame=array_direction.frame
+        nom = SkyCoord(
+            delta_az=src_x * u.rad,
+            delta_alt=src_y * u.rad,
+            frame=nom_frame
         )
-
-        nom_frame = NominalFrame(origin=array_direction)
-
-        nom = sky_pos.transform_to(nom_frame)
+        # nom = sky_pos.transform_to(nom_frame)
+        sky_pos = nom.transform_to(array_pointing.frame)
 
         result = ReconstructedShowerContainer()
-        result.alt = nom.altaz.alt  # src_y * u.deg
-        result.az = nom.altaz.az   # src_x * u.deg
+        result.alt = sky_pos.altaz.alt.to(u.rad)
+        result.az = sky_pos.altaz.az.to(u.rad)
 
         tilt = SkyCoord(
             x=core_x * u.m,
             y=core_y * u.m,
-            frame=TiltedGroundFrame(pointing_direction=array_direction),
+            frame=tilted_frame,
         )
         grd = project_to_ground(tilt)
         result.core_x = grd.x
@@ -115,20 +146,20 @@ class HillasIntersection(Reconstructor):
             nom.delta_az,
             nom.delta_alt,
             tilt.x, tilt.y,
-            hillas_parameters,
+            hillas_dict,
             tel_x, tel_y,
-            90 * u.deg - array_direction.alt,
+            90 * u.deg - array_pointing.alt,
         )
 
         result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
 
-        result.tel_ids = [h for h in hillas_parameters.keys()]
-        result.average_intensity = np.mean([h.intensity for h in hillas_parameters.values()])
+        result.tel_ids = [h for h in hillas_dict.keys()]
+        result.average_intensity = np.mean([h.intensity for h in hillas_dict.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x**2 + err_y**2)
-        result.alt_uncert = src_error.to(u.deg)
-        result.az_uncert = src_error.to(u.deg)
+        result.alt_uncert = src_error.to(u.rad)
+        result.az_uncert = src_error.to(u.rad)
         result.h_max = x_max
         result.h_max_uncert = np.nan
         result.goodness_of_fit = np.nan
@@ -323,7 +354,7 @@ class HillasIntersection(Reconstructor):
                                    np.array(ty))
         weight = np.array(amp)
         mean_height = np.sum(height * weight) / np.sum(weight)
-        print(mean_height)
+
         # This value is height above telescope in the tilted system,
         # we should convert to height above ground
         mean_height *= np.cos(zen)
@@ -336,11 +367,11 @@ class HillasIntersection(Reconstructor):
 
         mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.thickness_profile(mean_height.to(u.km))
+        # x_max = self.thickness_profile(mean_height.to(u.km))
         # Convert to slant depth
-        x_max /= np.cos(zen)
+        # x_max /= np.cos(zen)
 
-        return x_max
+        return mean_height
 
     @staticmethod
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):
