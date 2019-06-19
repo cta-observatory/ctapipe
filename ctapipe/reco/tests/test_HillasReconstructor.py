@@ -82,7 +82,8 @@ def test_h_max_results():
     # np.testing.assert_allclose(fitted_core_position.value, [0, 0], atol=1e-3)
 
 
-def test_reconstruction():
+@pytest.mark.parametrize("max_events, reco_num_events_expected", [(10, 0)])
+def test_reconstruction(max_events, reco_num_events_expected):
     """
     a test of the complete fit procedure on one event including:
     • tailcut cleaning
@@ -91,12 +92,17 @@ def test_reconstruction():
     • direction fit
     • position fit
 
-    in the end, proper units in the output are asserted """
+    in the end, proper units in the output are asserted.
 
+    :param max_events: number of events to load from the test file
+    :param reco_num_events_expected: minimum number of reconstructed events required
+    """
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    source = event_source(filename, max_events=10)
+    source = event_source(filename, max_events=max_events)
     horizon_frame = AltAz()
+
+    reconstructed_events = 0
 
     for event in source:
         array_pointing = SkyCoord(
@@ -130,6 +136,8 @@ def test_reconstruction():
 
         if len(hillas_dict) < 2:
             continue
+        else:
+            reconstructed_events += 1
 
         # The three reconstructions below gives the same results
         fit = HillasReconstructor()
@@ -145,6 +153,8 @@ def test_reconstruction():
         fit_result_parall.az.to(u.deg)
         fit_result_parall.core_x.to(u.m)
         assert fit_result_parall.is_valid
+
+    assert reconstructed_events > reco_num_events_expected
 
 
 def test_invalid_events():

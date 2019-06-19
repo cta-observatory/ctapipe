@@ -165,10 +165,10 @@ class HillasReconstructor(Reconstructor):
             self.corrected_angle_dict = {}
 
         self.initialize_hillas_planes(
-                hillas_dict,
-                inst.subarray,
-                telescopes_pointings,
-                array_pointing
+            hillas_dict,
+            inst.subarray,
+            telescopes_pointings,
+            array_pointing
         )
 
         # algebraic direction estimate
@@ -229,7 +229,8 @@ class HillasReconstructor(Reconstructor):
         """
 
         self.hillas_planes = {}
-        horizon_frame = list(telescopes_pointings.values())[0].frame
+        k = next(iter(telescopes_pointings))
+        horizon_frame = telescopes_pointings[k].frame
         for tel_id, moments in hillas_dict.items():
             # we just need any point on the main shower axis a bit away from the cog
             p2_x = moments.x + 0.1 * u.m * np.cos(moments.psi)
