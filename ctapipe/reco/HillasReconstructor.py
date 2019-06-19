@@ -5,7 +5,11 @@ Contact: Tino Michael <Tino.Michael@cea.fr>
 """
 
 
-from ctapipe.reco.reco_algorithms import Reconstructor
+from ctapipe.reco.reco_algorithms import (
+    Reconstructor,
+    InvalidWidthException,
+    TooFewTelescopesException
+)
 from ctapipe.io.containers import ReconstructedShowerContainer
 from itertools import combinations
 
@@ -28,16 +32,7 @@ import numpy as np
 
 from astropy import units as u
 
-
-__all__ = ['HillasReconstructor', 'TooFewTelescopesException', 'HillasPlane', 'InvalidWidthException']
-
-
-class TooFewTelescopesException(Exception):
-    pass
-
-
-class InvalidWidthException(Exception):
-    pass
+__all__ = ['HillasReconstructor', 'HillasPlane']
 
 
 def angle(v1, v2):

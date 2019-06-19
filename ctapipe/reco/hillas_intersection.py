@@ -11,14 +11,25 @@ performance
 import numpy as np
 import itertools
 import astropy.units as u
-from ctapipe.reco.reco_algorithms import Reconstructor
+from ctapipe.reco.reco_algorithms import (
+    Reconstructor,
+    InvalidWidthException,
+    TooFewTelescopesException
+)
 from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
 from astropy.coordinates import SkyCoord
-from ctapipe.coordinates import NominalFrame, CameraFrame
-from ctapipe.coordinates import TiltedGroundFrame, project_to_ground, GroundFrame
+from ctapipe.coordinates import (
+    NominalFrame,
+    CameraFrame,
+    TiltedGroundFrame,
+    project_to_ground,
+    GroundFrame,
+    MissingFrameAttributeWarning
+)
 import copy
+import warnings
 
 __all__ = [
     'HillasIntersection'
@@ -82,6 +93,24 @@ class HillasIntersection(Reconstructor):
         ReconstructedShowerContainer:
 
         """
+
+        # filter warnings for missing obs time. this is needed because MC data has no obs time
+        warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
+
+        # stereoscopy needs at least two telescopes
+        if len(hillas_dict) < 2:
+            raise TooFewTelescopesException(
+                "need at least two telescopes, have {}"
+                .format(len(hillas_dict)))
+
+        # check for np.nan or 0 width's as these screw up weights
+        if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width==np.nan")
+
+        if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width==0")
 
         if telescopes_pointings is None:
             telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
