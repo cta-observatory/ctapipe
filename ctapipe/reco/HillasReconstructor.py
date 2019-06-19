@@ -108,10 +108,10 @@ class HillasReconstructor(Reconstructor):
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
         self.hillas_planes = {}
-        self.divergent_mode = None
-        self.corrected_angle_dict = None
+        self.divergent_mode = False
+        self.corrected_angle_dict = {}
 
-    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None, divergent_mode=True):
+    def predict(self, hillas_dict, inst,  array_pointing, telescopes_pointings=None):
         """
         The function you want to call for the reconstruction of the
         event. It takes care of setting up the event and consecutively
@@ -130,8 +130,6 @@ class HillasReconstructor(Reconstructor):
             pointing direction of the array
         telescopes_pointings: dict[SkyCoord[AltAz]]
             dictionary of pointing direction per each telescope
-        divergent_mode: bool
-            If True, then then divergent pointing routine is used in the reconstruction
 
         Raises
         ------
@@ -159,14 +157,12 @@ class HillasReconstructor(Reconstructor):
             raise InvalidWidthException(
                 "A HillasContainer contains an ellipse of width==0")
 
-        # need the single telescope pointing to have the the divergent pointing reconstruction
-        if telescopes_pointings is not None and divergent_mode is True:
-            self.divergent_mode = divergent_mode
-            self.corrected_angle_dict = {}
-
         # use the single telescope pointing also for parallel pointing: code is more general
         if telescopes_pointings is None:
             telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+        else:
+            self.divergent_mode = True
+            self.corrected_angle_dict = {}
 
         self.initialize_hillas_planes(
                 hillas_dict,
