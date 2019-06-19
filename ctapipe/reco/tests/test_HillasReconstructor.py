@@ -138,11 +138,8 @@ def test_reconstruction():
         fit = HillasReconstructor()
         fit_result_tel_point = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
 
-        fit = HillasReconstructor()
-        fit_result_div = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings, divergent_mode=True)
-
         for key in fit_result_parall.keys():
-            print(key, fit_result_parall[key], fit_result_tel_point[key], fit_result_div[key])
+            print(key, fit_result_parall[key], fit_result_tel_point[key])
 
         fit_result_parall.alt.to(u.deg)
         fit_result_parall.az.to(u.deg)
