@@ -88,17 +88,15 @@ class HillasIntersection(Reconstructor):
 
         Parameters
         ----------
-        hillas_parameters: dict
+        hillas_dict: dict
             Dictionary containing Hillas parameters for all telescopes
             in reconstruction
-        tel_x: dict
-            Dictionary containing telescope position in TiltedGroundFrame for all
-            telescopes in reconstruction
-        tel_y: dict
-            Dictionary containing telescope position in TiltedGroundFrame for all
-            telescopes in reconstruction
-        array_direction: AltAz
-            Pointing direction of the array
+        inst : ctapipe.io.InstrumentContainer
+            instrumental description
+        array_pointing: SkyCoord[AltAz]
+            pointing direction of the array
+        telescopes_pointings: dict[SkyCoord[AltAz]]
+            dictionary of pointing direction per each telescope
 
         Returns
         -------
@@ -361,9 +359,9 @@ class HillasIntersection(Reconstructor):
         hillas_parameters: dict
             Dictionary of hillas parameters objects
         tel_x: dict
-            Dictionary of telescope X positions
+            Dictionary of telescope X positions in tilted frame
         tel_y: dict
-            Dictionary of telescope X positions
+            Dictionary of telescope Y positions in tilted frame
         zen: float
             Zenith angle of shower
 
@@ -484,12 +482,19 @@ def get_shower_height(source_x, source_y, cog_x, cog_y,
         Event source position in nominal frame
     source_y: float
         Event source position in nominal frame
+    cog_x: list[float]
+        Center of gravity x-position for all the telescopes in rad
+    cog_y: list[float]
+        Center of gravity y-position for all the telescopes in rad
     core_x: float
         Event core position in telescope tilted frame
     core_y: float
         Event core position in telescope tilted frame
-    zen: float
-        Zenith angle of event
+    tel_pos_x: list
+        List of telescope X positions in tilted frame
+    tel_pos_y: list
+        List of telescope Y positions in tilted frame
+
     Returns
     -------
     float: Depth of maximum of air shower
