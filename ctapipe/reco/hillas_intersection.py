@@ -18,6 +18,7 @@ from ctapipe.instrument import get_atmosphere_profile_functions
 from astropy.coordinates import SkyCoord
 from ctapipe.coordinates import NominalFrame, CameraFrame
 from ctapipe.coordinates import TiltedGroundFrame, project_to_ground, GroundFrame
+import copy
 
 __all__ = [
     'HillasIntersection'
@@ -99,7 +100,9 @@ class HillasIntersection(Reconstructor):
 
         nom_frame = NominalFrame(origin=array_pointing)
 
-        for tel_id, hillas in hillas_dict.items():
+        hillas_dict_mod = copy.deepcopy(hillas_dict)
+
+        for tel_id, hillas in hillas_dict_mod.items():
             # prevent from using rads instead of meters as inputs
             assert hillas.x.to(u.m).unit == u.Unit('m')
 
@@ -114,9 +117,9 @@ class HillasIntersection(Reconstructor):
             hillas.x = cog_coords_nom.delta_alt
             hillas.y = cog_coords_nom.delta_az
 
-        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict)
+        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
-            hillas_dict, tel_x, tel_y)
+            hillas_dict_mod, tel_x, tel_y)
 
         err_x *= u.rad
         err_y *= u.rad
@@ -146,15 +149,15 @@ class HillasIntersection(Reconstructor):
             nom.delta_az,
             nom.delta_alt,
             tilt.x, tilt.y,
-            hillas_dict,
+            hillas_dict_mod,
             tel_x, tel_y,
             90 * u.deg - array_pointing.alt,
         )
 
         result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
 
-        result.tel_ids = [h for h in hillas_dict.keys()]
-        result.average_intensity = np.mean([h.intensity for h in hillas_dict.values()])
+        result.tel_ids = [h for h in hillas_dict_mod.keys()]
+        result.average_intensity = np.mean([h.intensity for h in hillas_dict_mod.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x**2 + err_y**2)
