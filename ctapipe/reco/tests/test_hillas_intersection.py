@@ -13,6 +13,7 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 
+import pytest
 
 def test_intersect():
     """
@@ -236,6 +237,8 @@ def test_reconstruction():
 
     horizon_frame = AltAz()
 
+    reconstructed_events = 0
+
     for event in source:
         array_pointing = SkyCoord(
             az=event.mc.az,
@@ -268,6 +271,8 @@ def test_reconstruction():
 
         if len(hillas_dict) < 2:
             continue
+        else:
+            reconstructed_events += 1
 
         # divergent mode put to on even though the file has parallel pointing.
         fit_result = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
@@ -278,3 +283,5 @@ def test_reconstruction():
         fit_result.az.to(u.deg)
         fit_result.core_x.to(u.m)
         assert fit_result.is_valid
+
+    assert reconstructed_events > 0
