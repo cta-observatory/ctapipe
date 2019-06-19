@@ -31,9 +31,9 @@ from ctapipe.coordinates import (
 import copy
 import warnings
 
-__all__ = [
-    'HillasIntersection'
-]
+from ctapipe.core import traits
+
+__all__ = ['HillasIntersection']
 
 
 class HillasIntersection(Reconstructor):
@@ -56,7 +56,19 @@ class HillasIntersection(Reconstructor):
     for multiplicity 2 events.
     """
 
-    def __init__(self, atmosphere_profile_name="paranal", weighting="Konrad", config=None, parent=None, **kwargs):
+    atmosphere_profile_name = traits.CaselessStrEnum(
+        ['paranal', ],
+        default_value="paranal",
+        help="name of atmosphere profile to use"
+    ).tag(config=True)
+
+    weighting = traits.CaselessStrEnum(
+        ['Konrad', 'hess'],
+        default_value='Konrad',
+        help='Weighting Method name'
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
         """
         Weighting must be a function similar to the weight_konrad already implemented
         """
@@ -64,12 +76,12 @@ class HillasIntersection(Reconstructor):
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        _ = get_atmosphere_profile_functions(atmosphere_profile_name)
+        _ = get_atmosphere_profile_functions(self.atmosphere_profile_name)
         self.thickness_profile, self.altitude_profile = _
 
         # other weighting schemes can be implemented. just add them as additional methods
-        if weighting == "Konrad":
-            self._weighting = self.weight_konrad
+        if self.weighting == "Konrad":
+            self._weight_method = self.weight_konrad
 
     def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
         """
@@ -246,7 +258,7 @@ class HillasIntersection(Reconstructor):
                                       h2[1], h2[2], h2[0])
 
         # Weight by chosen method
-        weight = self._weighting(h1[3], h2[3])
+        weight = self._weight_method(h1[3], h2[3])
         # And sin of interception angle
         weight *= self.weight_sin(h1[0], h2[0])
 
@@ -318,7 +330,7 @@ class HillasIntersection(Reconstructor):
                                                       tel_x[:, 1], tel_y[:, 1], hillas2[0])
 
         # Weight by chosen method
-        weight = self._weighting(hillas1[1], hillas2[1])
+        weight = self._weight_method(hillas1[1], hillas2[1])
         # And sin of interception angle
         weight *= self.weight_sin(hillas1[0], hillas2[0])
 
