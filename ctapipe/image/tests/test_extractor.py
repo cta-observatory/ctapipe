@@ -114,7 +114,7 @@ def test_extract_pulse_time_around_peak(camera_waveforms):
 
 def test_baseline_subtractor(camera_waveforms):
     waveforms, _ = camera_waveforms
-    n_pixels, n_samples = waveforms.shape
+    n_pixels, _ = waveforms.shape
     rand = np.random.RandomState(1)
     offset = np.arange(n_pixels)[:, np.newaxis]
     waveforms = rand.normal(0, 0.1, waveforms.shape) + offset

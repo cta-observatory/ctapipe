@@ -17,7 +17,7 @@ from tqdm import tqdm
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.core.traits import Float, Dict, List
-from ctapipe.core.traits import Unicode, Int, Integer, Bool
+from ctapipe.core.traits import Unicode, Int, Bool
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
