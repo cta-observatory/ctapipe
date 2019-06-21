@@ -1,7 +1,19 @@
 import numpy as np
 from ctapipe.calib.camera.flatfield import *
-from ctapipe.io.containers import EventAndMonDataContainer
+from ctapipe.io.containers import DataContainer
 from traitlets.config.loader import Config
+
+
+# class FixedWindowSum2Chan(FixedWindowSum):
+#
+#     def __call__(self, waveforms):
+#         start = self.window_start
+#         end = self.window_start + self.window_width
+#         charge = waveforms[..., start:end].sum(2)
+#         pulse_time = extract_pulse_time_around_peak(
+#             waveforms, self.window_start, self.window_width, 0
+#         )
+#         return charge, pulse_time
 
 
 def test_flasherflatfieldcalculator():
@@ -22,7 +34,7 @@ def test_flasherflatfieldcalculator():
                                                sample_size=n_events,
                                                tel_id=tel_id, config=config)
     # create one event
-    data = EventAndMonDataContainer()
+    data = DataContainer()
     data.meta['origin'] = 'test'
 
     # initialize mon and r1 data
