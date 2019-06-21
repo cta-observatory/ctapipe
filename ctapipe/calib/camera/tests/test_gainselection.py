@@ -14,12 +14,15 @@ def test_gain_selector():
     waveforms[1] *= 2
 
     gain_selector = TestGainSelector()
-    waveforms_gs = gain_selector(waveforms)
+    waveforms_gs, pixel_channel = gain_selector(waveforms)
     np.testing.assert_equal(waveforms[GainChannel.HIGH], waveforms_gs)
-    waveforms_gs = gain_selector(waveforms[0])
+    np.testing.assert_equal(pixel_channel, 0)
+    waveforms_gs, pixel_channel = gain_selector(waveforms[0])
     np.testing.assert_equal(waveforms_gs, waveforms[0])
-    waveforms_gs = gain_selector(waveforms[[0]])
+    np.testing.assert_equal(pixel_channel, 0)
+    waveforms_gs, pixel_channel = gain_selector(waveforms[[0]])
     np.testing.assert_equal(waveforms_gs, waveforms[0])
+    np.testing.assert_equal(pixel_channel, 0)
 
 
 def test_manual_gain_selector():
@@ -28,12 +31,14 @@ def test_manual_gain_selector():
     waveforms[1] *= 2
 
     gs_high = ManualGainSelector(channel="HIGH")
-    waveforms_gs_high = gs_high(waveforms)
-    np.testing.assert_equal(waveforms[GainChannel.HIGH], waveforms_gs_high)
+    waveforms_gs, pixel_channel = gs_high(waveforms)
+    np.testing.assert_equal(waveforms[GainChannel.HIGH], waveforms_gs)
+    np.testing.assert_equal(pixel_channel, 0)
 
-    gs_high = ManualGainSelector(channel="LOW")
-    waveforms_gs_low = gs_high(waveforms)
-    np.testing.assert_equal(waveforms[GainChannel.LOW], waveforms_gs_low)
+    gs_low = ManualGainSelector(channel="LOW")
+    waveforms_gs, pixel_channel = gs_low(waveforms)
+    np.testing.assert_equal(waveforms[GainChannel.LOW], waveforms_gs)
+    np.testing.assert_equal(pixel_channel, 1)
 
 
 def test_threshold_gain_selector():
@@ -43,6 +48,8 @@ def test_threshold_gain_selector():
     waveforms[0, 0] = 100
 
     gain_selector = ThresholdGainSelector(threshold=50)
-    waveforms_gs = gain_selector(waveforms)
+    waveforms_gs, pixel_channel = gain_selector(waveforms)
     assert (waveforms_gs[0] == 1).all()
     assert (waveforms_gs[np.arange(1, 2048)] == 0).all()
+    assert pixel_channel[0] == 1
+    assert (pixel_channel[np.arange(1, 2048)] == 0).all()

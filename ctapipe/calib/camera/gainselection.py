@@ -45,14 +45,18 @@ class GainSelector(Component):
             Shape: (n_pix, n_samples)
         """
         if waveforms.ndim == 2:  # Return if already gain selected
-            return waveforms
+            n_pixels = waveforms.shape[0]
+            pixel_channel = np.zeros(n_pixels)  # TODO: Sourced elsewhere?
+            return waveforms, pixel_channel
         elif waveforms.ndim == 3:
             n_channels, n_pixels, _ = waveforms.shape
             if n_channels == 1:  # Reduce if already single channel
-                return waveforms[0]
+                pixel_channel = np.zeros(n_pixels)
+                return waveforms[0], pixel_channel
             else:
                 pixel_channel = self.select_channel(waveforms)
-                return waveforms[pixel_channel, np.arange(n_pixels)]
+                gain_selected = waveforms[pixel_channel, np.arange(n_pixels)]
+                return gain_selected, pixel_channel
         else:
             raise ValueError(
                 f"Cannot handle waveform array of shape: {waveforms.ndim}"
@@ -92,7 +96,8 @@ class ManualGainSelector(GainSelector):
     ).tag(config=True)
 
     def select_channel(self, waveforms):
-        return GainChannel[self.channel]
+        n_pixels = waveforms.shape[1]
+        return np.full(n_pixels, GainChannel[self.channel])
 
 
 class ThresholdGainSelector(GainSelector):
