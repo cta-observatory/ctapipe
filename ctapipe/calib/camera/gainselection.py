@@ -45,13 +45,12 @@ class GainSelector(Component):
             Shape: (n_pix, n_samples)
         """
         if waveforms.ndim == 2:  # Return if already gain selected
-            n_pixels = waveforms.shape[0]
-            pixel_channel = np.zeros(n_pixels)  # TODO: Sourced elsewhere?
+            pixel_channel = None  # Provided by EventSource
             return waveforms, pixel_channel
         elif waveforms.ndim == 3:
             n_channels, n_pixels, _ = waveforms.shape
             if n_channels == 1:  # Reduce if already single channel
-                pixel_channel = np.zeros(n_pixels)
+                pixel_channel = np.zeros(n_pixels, dtype=int)
                 return waveforms[0], pixel_channel
             else:
                 pixel_channel = self.select_channel(waveforms)

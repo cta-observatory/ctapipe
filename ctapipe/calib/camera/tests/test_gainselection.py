@@ -17,12 +17,26 @@ def test_gain_selector():
     waveforms_gs, pixel_channel = gain_selector(waveforms)
     np.testing.assert_equal(waveforms[GainChannel.HIGH], waveforms_gs)
     np.testing.assert_equal(pixel_channel, 0)
-    waveforms_gs, pixel_channel = gain_selector(waveforms[0])
-    np.testing.assert_equal(waveforms_gs, waveforms[0])
-    np.testing.assert_equal(pixel_channel, 0)
-    waveforms_gs, pixel_channel = gain_selector(waveforms[[0]])
-    np.testing.assert_equal(waveforms_gs, waveforms[0])
-    np.testing.assert_equal(pixel_channel, 0)
+
+
+def test_pre_selected():
+    shape = (2048, 128)
+    waveforms = np.zeros(shape)
+
+    gain_selector = TestGainSelector()
+    waveforms_gs, pixel_channel = gain_selector(waveforms)
+    assert waveforms.shape == waveforms_gs.shape
+    assert pixel_channel is None
+
+
+def test_single_channel():
+    shape = (1, 2048, 128)
+    waveforms = np.zeros(shape)
+
+    gain_selector = TestGainSelector()
+    waveforms_gs, pixel_channel = gain_selector(waveforms)
+    assert waveforms_gs.shape == (2048, 128)
+    assert (pixel_channel == 0).all()
 
 
 def test_manual_gain_selector():
