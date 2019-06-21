@@ -15,6 +15,9 @@ __all__ = [
 
 
 class GainChannel(IntEnum):
+    """
+    Possible gain channels
+    """
     HIGH = 0
     LOW = 1
 
@@ -44,7 +47,7 @@ class GainSelector(Component):
         if waveforms.ndim == 2:  # Return if already gain selected
             return waveforms
         elif waveforms.ndim == 3:
-            n_channels, n_pixels, n_samples = waveforms.shape
+            n_channels, n_pixels, _ = waveforms.shape
             if n_channels == 1:  # Reduce if already single channel
                 return waveforms[0]
             else:

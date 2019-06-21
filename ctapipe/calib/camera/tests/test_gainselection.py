@@ -13,12 +13,12 @@ def test_gain_selector():
     waveforms = np.indices(shape)[1]
     waveforms[1] *= 2
 
-    gs = TestGainSelector()
-    waveforms_gs = gs(waveforms)
+    gain_selector = TestGainSelector()
+    waveforms_gs = gain_selector(waveforms)
     np.testing.assert_equal(waveforms[GainChannel.HIGH], waveforms_gs)
-    waveforms_gs = gs(waveforms[0])
+    waveforms_gs = gain_selector(waveforms[0])
     np.testing.assert_equal(waveforms_gs, waveforms[0])
-    waveforms_gs = gs(waveforms[[0]])
+    waveforms_gs = gain_selector(waveforms[[0]])
     np.testing.assert_equal(waveforms_gs, waveforms[0])
 
 
@@ -42,7 +42,7 @@ def test_threshold_gain_selector():
     waveforms[1] = 1
     waveforms[0, 0] = 100
 
-    gs = ThresholdGainSelector(threshold=50)
-    waveforms_gs = gs(waveforms)
+    gain_selector = ThresholdGainSelector(threshold=50)
+    waveforms_gs = gain_selector(waveforms)
     assert (waveforms_gs[0] == 1).all()
     assert (waveforms_gs[np.arange(1, 2048)] == 0).all()
