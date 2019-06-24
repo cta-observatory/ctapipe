@@ -72,8 +72,8 @@ def test_tailcuts_clean():
         assert (result == mask).all()
 
 
-def test_mars_image_cleaning():
-    """Test the MARS-like cleaning."""
+def test_mars_cleaning_1st_pass():
+    """Test the MARS-like cleaning 1st pass."""
 
     # start with simple 3-pixel camera
     geom = CameraGeometry.make_rectangular(3, 1, (-1, 1))
@@ -113,7 +113,7 @@ def test_mars_image_cleaning():
     }
 
     for image, mask in testcases.items():
-        result = cleaning.mars_image_cleaning(
+        result = cleaning.mars_cleaning_1st_pass(
             geom,
             np.array(image),
             picture_thresh=10,

@@ -87,7 +87,7 @@ def tailcuts_clean(
         )
 
 
-def mars_image_cleaning(
+def mars_cleaning_1st_pass(
     geom,
     image,
     picture_thresh=7,
@@ -133,9 +133,6 @@ def mars_image_cleaning(
 
     """
 
-    # For debug
-    # print("Original image: {}".format(image))
-
     pixels_from_tailcuts_clean = tailcuts_clean(
         geom,
         image,
@@ -143,27 +140,7 @@ def mars_image_cleaning(
         boundary_thresh[0],
         keep_isolated_pixels,
         min_number_picture_neighbors,
-    )  # this does checks for core pixels and first neighbors
-
-    # For debug
-    '''print(
-        "After tailcuts_clean [{},{}]: {}".format(
-            picture_thresh, boundary_thresh[1], pixels_from_tailcuts_clean
-        )
-    )'''
-
-    # ++++++++++++++++++++++++++++++++++++
-    # THIS PART IS NOT USED FOR THE MOMENT
-    # ++++++++++++++++++++++++++++++++++++
-    # Call dilate on this set of pixels and add all next neighbors,
-    # regardless of their value
-    # extended_image = dilate(geom, pixels_from_tailcuts_clean)
-    #
-    # if extended_image is None:
-    #     print("No extend image available!")
-    # else:
-    #     print("Extended image = {}".format(extended_image))
-    # ++++++++++++++++++++++++++++++++++++
+    )  # this selects any core pixel and first neighbors
 
     # At this point we don't know yet which ones should be kept.
     # In principle, the pixel thresholds should be hierarchical from core to
@@ -173,7 +150,7 @@ def mars_image_cleaning(
     # the mask we got from 'tailcuts_clean'.
 
     pixels_above_2nd_boundary = image >= boundary_thresh[1]
-    # print("pixels_above_2nd_boundary: {}".format(pixels_above_2nd_boundary))
+
     # and now it's the same as the last part of 'tailcuts_clean', but without
     # the core pixels, i.e. we start from the neighbors of the core pixels.
     pixels_with_previous_neighbors = geom.neighbor_matrix_sparse.dot(
