@@ -275,7 +275,6 @@ def fact_image_cleaning(
     min_number_neighbors=2,
     time_limit=5,
 ):
-
     """Clean an image by selection pixels that pass the fact cleaning procedure.
     Cleaning contains the following steps:
     1: Find pixels containing more photons than a threshold t1
