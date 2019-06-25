@@ -41,7 +41,7 @@ def test_select_gain():
 
     event = DataContainer()
     event.r1.tel[telid].waveform = np.ones((n_pixels, n_samples))
-    event.mon.tel[telid].gain_selection = np.zeros(n_pixels)
+    event.r1.tel[telid].gain_selection = np.zeros(n_pixels)
     calibrator._calibrate_dl0(event, telid)
     assert event.dl0.tel[telid].waveform.shape == (n_pixels, n_samples)
 

@@ -135,7 +135,7 @@ class CameraCalibrator(Component):
         ndarray
         """
         try:
-            gain_selection = event.mon.tel[telid].gain_selection
+            gain_selection = event.r1.tel[telid].gain_selection
             shift = self.image_extractor.window_shift
             width = self.image_extractor.window_width
             shape = event.mc.tel[telid].reference_pulse_shape
@@ -185,12 +185,12 @@ class CameraCalibrator(Component):
         # waveform dimensions.
         waveforms_gs, pixel_channel = self.gain_selector(waveforms)
         if pixel_channel is not None:
-            event.mon.tel[telid].gain_selection = pixel_channel
+            event.r1.tel[telid].gain_selection = pixel_channel
         else:
             # If pixel_channel is None, then waveforms has already been
             # pre-gainselected, and presumably the gain_selection container is
             # filled by the EventSource
-            if event.mon.tel[telid].gain_selection is None:
+            if event.r1.tel[telid].gain_selection is None:
                 raise ValueError(
                     "EventSource is loading pre-gainselected waveforms "
                     "without filling the gain_selection container"

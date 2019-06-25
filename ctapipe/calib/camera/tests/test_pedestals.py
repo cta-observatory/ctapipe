@@ -1,6 +1,6 @@
 import numpy as np
 from ctapipe.calib.camera.pedestals import *
-from ctapipe.io.containers import DataContainer
+from ctapipe.io.containers import EventAndMonDataContainer
 
 
 def test_pedestal_calculator():
@@ -16,7 +16,7 @@ def test_pedestal_calculator():
                                         sample_size=n_events,
                                         tel_id=tel_id)
     # create one event
-    data = DataContainer()
+    data = EventAndMonDataContainer()
     data.meta['origin'] = 'test'
 
     # fill the values necessary for the pedestal calculation

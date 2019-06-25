@@ -43,6 +43,7 @@ __all__ = [
     'WaveformCalibrationContainer',
     'MonitoringCameraContainer',
     'MonitoringContainer',
+    'EventAndMonDataContainer'
 ]
 
 
@@ -153,7 +154,10 @@ class R1CameraContainer(Container):
         "numpy array containing a set of images, one per ADC sample"
         "Shape: (n_channels, n_pixels, n_samples)"
     ))
-
+    gain_selection = Field(None, (
+        "Numpy array containing the gain channel chosen for each pixel. "
+        "Shape: (n_pixels)"
+    ))
 
 class R1Container(Container):
     """
@@ -406,6 +410,28 @@ class TelescopePointingContainer(Container):
     """
     azimuth = Field(nan * u.rad, 'Azimuth, measured N->E', unit=u.rad)
     altitude = Field(nan * u.rad, 'Altitude', unit=u.rad)
+
+
+class DataContainer(Container):
+    """ Top-level container for all event information """
+
+    event_type = Field('data', "Event type")
+    r0 = Field(R0Container(), "Raw Data")
+    r1 = Field(R1Container(), "R1 Calibrated Data")
+    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
+    dl1 = Field(DL1Container(), "DL1 Calibrated image")
+    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
+    mc = Field(MCEventContainer(), "Monte-Carlo data")
+    mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
+    trig = Field(CentralTriggerContainer(), "central trigger information")
+    count = Field(0, "number of events processed")
+    inst = Field(InstrumentContainer(), "instrumental information (deprecated")
+    pointing = Field(Map(TelescopePointingContainer),
+                     'Telescope pointing positions')
+
+
+class SST1MDataContainer(DataContainer):
+    sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
 
 
 class MuonRingParameter(Container):
@@ -749,16 +775,11 @@ class WaveformCalibrationContainer(Container):
         "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)"
     )
 
-
 class MonitoringCameraContainer(Container):
     """
     Container for camera monitoring data
     """
 
-    gain_selection = Field(None, (
-        "Numpy array containing the gain channel chosen for each pixel. "
-        "Shape: (n_pixels)"
-    ))
     flatfield = Field(FlatFieldContainer(), "Data from flat-field event distributions")
     pedestal = Field(PedestalContainer(), "Data from pedestal event distributions")
     pixel_status = Field(PixelStatusContainer(), "Container for masks with pixel status")
@@ -778,24 +799,8 @@ class MonitoringContainer(Container):
         "map of tel_id to MonitoringCameraContainer")
 
 
-class DataContainer(Container):
-    """ Top-level container for all event information """
-
-    event_type = Field('data', "Event type")
-    r0 = Field(R0Container(), "Raw Data")
-    r1 = Field(R1Container(), "R1 Calibrated Data")
-    dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
-    dl1 = Field(DL1Container(), "DL1 Calibrated image")
-    dl2 = Field(ReconstructedContainer(), "Reconstructed Shower Information")
-    mc = Field(MCEventContainer(), "Monte-Carlo data")
-    mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
-    trig = Field(CentralTriggerContainer(), "central trigger information")
-    count = Field(0, "number of events processed")
-    inst = Field(InstrumentContainer(), "instrumental information (deprecated")
-    pointing = Field(Map(TelescopePointingContainer),
-                     'Telescope pointing positions')
+class EventAndMonDataContainer(DataContainer):
+    """
+    Data container including monitoring information
+    """
     mon = Field(MonitoringContainer(), "container for monitoring data (MON)")
-
-
-class SST1MDataContainer(DataContainer):
-    sst1m = Field(SST1MContainer(), "optional SST1M Specific Information")
