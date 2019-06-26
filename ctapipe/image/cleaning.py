@@ -275,8 +275,7 @@ def fact_image_cleaning(
     Cleaning contains the following steps:
     1: Find pixels containing more photons than a threshold t1
     2: Remove pixels with less than N neighbors
-    3: Add neighbors of the remaining pixels that are
-       above a lower threshold t2
+    3: Add neighbors of the remaining pixels that are above a lower threshold t2
     4: Remove pixels with less than N neighbors arriving within a given timeframe
     5: Remove pixels with less than N neighbors
     6: Remove pixels with less than N neighbors arriving within a given timeframe
