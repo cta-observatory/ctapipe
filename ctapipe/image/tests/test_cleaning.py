@@ -80,7 +80,7 @@ def test_mars_cleaning_1st_pass():
 
     p = 10  # picture value
     b1 = 7  # 1st boundary value
-    b2 = 5  # 2nd boundary value
+    b2 = 7  # 2nd boundary value
 
     # The following test-cases are a superset of those used to test
     # 'tailcuts_clean': since 'mars_image_cleaning' uses it internally, so it
@@ -117,7 +117,7 @@ def test_mars_cleaning_1st_pass():
             geom,
             np.array(image),
             picture_thresh=10,
-            boundary_thresh=[7, 5],
+            boundary_thresh=7,
             keep_isolated_pixels=False,
         )
         assert (result == mask).all()
