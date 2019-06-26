@@ -91,7 +91,7 @@ def mars_cleaning_1st_pass(
     geom,
     image,
     picture_thresh=7,
-    boundary_thresh=[5, 5],
+    boundary_thresh=5,
     keep_isolated_pixels=False,
     min_number_picture_neighbors=0,
 ):
@@ -110,12 +110,12 @@ def mars_cleaning_1st_pass(
         Camera geometry information
     image: array
         pixel values
-    picture_thresh: float or array
+    picture_thresh: float
         threshold above which all pixels are retained
-    boundary_thresh: array
-        array of 2 thresholds, first the one above which pixels are retained if
-        they have a neighbor already above the picture_thresh, then the one
-        applied iteratively to the neighbor of the neighbor
+    boundary_thresh: float
+        threshold above which pixels are retained if
+        they have a neighbor already above the picture_thresh; it is then
+        reapplied iteratively to the neighbor of the neighbor
     keep_isolated_pixels: bool
         If True, pixels above the picture threshold will be included always,
         if not they are only included if a neighbor is in the picture or
@@ -137,19 +137,19 @@ def mars_cleaning_1st_pass(
         geom,
         image,
         picture_thresh,
-        boundary_thresh[0],
+        boundary_thresh,
         keep_isolated_pixels,
         min_number_picture_neighbors,
-    )  # this selects any core pixel and first neighbors
+    )  # this selects any core pixel and any of its first neighbors
 
     # At this point we don't know yet which ones should be kept.
     # In principle, the pixel thresholds should be hierarchical from core to
     # boundaries (this should be true for every type of particle triggering
     # the image), so we can just check which pixels have more than
-    # boundary_thresh[1] photo-electrons in the same image, but starting from
+    # boundary_thresh photo-electrons in the same image, but starting from
     # the mask we got from 'tailcuts_clean'.
 
-    pixels_above_2nd_boundary = image >= boundary_thresh[1]
+    pixels_above_2nd_boundary = image >= boundary_thresh
 
     # and now it's the same as the last part of 'tailcuts_clean', but without
     # the core pixels, i.e. we start from the neighbors of the core pixels.
