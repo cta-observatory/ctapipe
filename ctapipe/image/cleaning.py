@@ -276,6 +276,7 @@ def fact_image_cleaning(
     time_limit=5,
 ):
     """Clean an image by selection pixels that pass the fact cleaning procedure.
+
     Cleaning contains the following steps:
     1: Find pixels containing more photons than a threshold t1
     2: Remove pixels with less than N neighbors
@@ -284,13 +285,6 @@ def fact_image_cleaning(
     4: Remove pixels with less than N neighbors arriving within a given timeframe
     5: Remove pixels with less than N neighbors
     6: Remove pixels with less than N neighbors arriving within a given timeframe
-
-    Reference:
-        On the hunt for photons: analysis of Crab Nebula data obtained
-        by the first G-APD Cherenkov telescope, Thomas Fabian Temme
-        http://dx.doi.org/10.17877/DE290R-17773
-    Implementation:
-        https://github.com/fact-project/fact-tools
 
     Parameters
     ----------
@@ -313,11 +307,14 @@ def fact_image_cleaning(
 
     Returns
     -------
-
     A boolean mask of *clean* pixels.  To get a zero-suppressed image and pixel
     list, use `image[mask], geom.pix_id[mask]`, or to keep the same
     image size and just set unclean pixels to 0 or similar, use
     `image[~mask] = 0`
+
+    References
+    ----------
+    See  [temme2016]_ and for implementation [factcleaning]_
 
     """
 
