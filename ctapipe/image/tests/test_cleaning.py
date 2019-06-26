@@ -100,15 +100,15 @@ def test_mars_cleaning_1st_pass():
         (b1, b1, b1): [False, False, False],
         (0, b1, 0): [False, False, False],  # to put in test_tailcuts_clean!
         # specific for 'mars_image_cleaning'
-        (p, b2, p): [False, False, False],
-        (p, b2, 0): [False, False, False],
+        (p, b2, p): [True, True, True],
+        (p, b2, 0): [True, True, False],
         (b1, b2, 0): [False, False, False],
         (b2, b2, 0): [False, False, False],
         (0, b2, 0): [False, False, False],
         (p, b1, b2): [True, True, True],
-        (p, b2, b1): [False, False, False],
+        (p, b2, b1): [True, True, True],
         (p, b1, b1): [True, True, True],
-        (p, b2, b2): [False, False, False],
+        (p, b2, b2): [True, True, True],
         (p, b1, b2 - 1): [True, True, False],
     }
 
