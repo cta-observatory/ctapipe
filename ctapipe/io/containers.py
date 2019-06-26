@@ -154,10 +154,11 @@ class R1CameraContainer(Container):
         "numpy array containing a set of images, one per ADC sample"
         "Shape: (n_channels, n_pixels, n_samples)"
     ))
-    gain_selection = Field(None, (
+    selected_gain_channel = Field(None, (
         "Numpy array containing the gain channel chosen for each pixel. "
         "Shape: (n_pixels)"
     ))
+
 
 class R1Container(Container):
     """

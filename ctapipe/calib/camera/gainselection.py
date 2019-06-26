@@ -45,17 +45,19 @@ class GainSelector(Component):
             Shape: (n_pix, n_samples)
         """
         if waveforms.ndim == 2:  # Return if already gain selected
-            pixel_channel = None  # Provided by EventSource
-            return waveforms, pixel_channel
+            selected_gain_channel = None  # Provided by EventSource
+            return waveforms, selected_gain_channel
         elif waveforms.ndim == 3:
             n_channels, n_pixels, _ = waveforms.shape
             if n_channels == 1:  # Reduce if already single channel
-                pixel_channel = np.zeros(n_pixels, dtype=int)
-                return waveforms[0], pixel_channel
+                selected_gain_channel = np.zeros(n_pixels, dtype=int)
+                return waveforms[0], selected_gain_channel
             else:
-                pixel_channel = self.select_channel(waveforms)
-                gain_selected = waveforms[pixel_channel, np.arange(n_pixels)]
-                return gain_selected, pixel_channel
+                selected_gain_channel = self.select_channel(waveforms)
+                selected_gain_waveforms = waveforms[
+                    selected_gain_channel, np.arange(n_pixels)
+                ]
+                return selected_gain_waveforms, selected_gain_channel
         else:
             raise ValueError(
                 f"Cannot handle waveform array of shape: {waveforms.ndim}"
@@ -77,7 +79,7 @@ class GainSelector(Component):
 
         Returns
         -------
-        pixel_channel : ndarray
+        selected_gain_channel : ndarray
             Gain channel to use for each pixel
             Shape: n_pix
             Dtype: int

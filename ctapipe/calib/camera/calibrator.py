@@ -135,7 +135,7 @@ class CameraCalibrator(Component):
         ndarray
         """
         try:
-            gain_selection = event.r1.tel[telid].gain_selection
+            selected_gain_channel = event.r1.tel[telid].selected_gain_channel
             shift = self.image_extractor.window_shift
             width = self.image_extractor.window_width
             shape = event.mc.tel[telid].reference_pulse_shape
@@ -144,7 +144,7 @@ class CameraCalibrator(Component):
             time_slice = event.mc.tel[telid].time_slice
             correction = integration_correction(n_chan, shape, step,
                                                 time_slice, width, shift)
-            pixel_correction = correction[gain_selection]
+            pixel_correction = correction[selected_gain_channel]
             return pixel_correction
         except (AttributeError, KeyError):
             # Don't apply correction when window_shift or window_width
@@ -183,17 +183,17 @@ class CameraCalibrator(Component):
         # simtelarray do not have the gain selection applied, and so must be
         # done as part of the calibration step to ensure the correct
         # waveform dimensions.
-        waveforms_gs, pixel_channel = self.gain_selector(waveforms)
-        if pixel_channel is not None:
-            event.r1.tel[telid].gain_selection = pixel_channel
+        waveforms_gs, selected_gain_channel = self.gain_selector(waveforms)
+        if selected_gain_channel is not None:
+            event.r1.tel[telid].selected_gain_channel = selected_gain_channel
         else:
             # If pixel_channel is None, then waveforms has already been
-            # pre-gainselected, and presumably the gain_selection container is
-            # filled by the EventSource
-            if event.r1.tel[telid].gain_selection is None:
+            # pre-gainselected, and presumably the selected_gain_channel
+            # container is filled by the EventSource
+            if event.r1.tel[telid].selected_gain_channel is None:
                 raise ValueError(
                     "EventSource is loading pre-gainselected waveforms "
-                    "without filling the gain_selection container"
+                    "without filling the selected_gain_channel container"
                 )
 
         reduced_waveforms = self.data_volume_reducer(waveforms_gs)
