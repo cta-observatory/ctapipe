@@ -183,11 +183,6 @@ def dilate(geom, mask):
     mask: ndarray
         input mask (array of booleans) to be dilated
     """
-    print("Dilate : input mask = {}".format(mask))
-    print(
-        "Dilate : mask + neighbors = {}".format(geom.neighbor_matrix_sparse.dot(mask))
-    )
-    print("Dilate : return = {}".format(mask | geom.neighbor_matrix_sparse.dot(mask)))
     return mask | geom.neighbor_matrix_sparse.dot(mask)
 
 
