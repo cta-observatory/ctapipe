@@ -94,19 +94,13 @@ class DL1CameraContainer(Container):
     image = Field(
         None,
         "Numpy array of camera image, after waveform extraction."
-        "Shape: (n_chan, n_pixel)"
+        "Shape: (n_pixel)"
     )
     pulse_time = Field(
         None,
         "Numpy array containing position of the pulse as determined by "
         "the extractor."
-        "Shape: (n_chan, n_pixel, n_samples)"
-    )
-    #TODO: Remove when gain selection added?
-    gain_channel = Field(
-        None,
-        "boolean numpy array of which gain channel was used for each pixel "
-        "in the image "
+        "Shape: (n_pixel, n_samples)"
     )
 
 class CameraCalibrationContainer(Container):
@@ -133,7 +127,7 @@ class R0CameraContainer(Container):
     trig_pix_id = Field(None, "pixels involved in the camera trigger")
     waveform = Field(None, (
         "numpy array containing ADC samples"
-        "(n_channels x n_pixels, n_samples)"
+        "(n_channels, n_pixels, n_samples)"
     ))
 
 
@@ -158,7 +152,11 @@ class R1CameraContainer(Container):
 
     waveform = Field(None, (
         "numpy array containing a set of images, one per ADC sample"
-        "(n_channels x n_pixels, n_samples)"
+        "Shape: (n_channels, n_pixels, n_samples)"
+    ))
+    selected_gain_channel = Field(None, (
+        "Numpy array containing the gain channel chosen for each pixel. "
+        "Shape: (n_pixels)"
     ))
 
 

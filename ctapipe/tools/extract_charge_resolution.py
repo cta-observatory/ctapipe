@@ -86,7 +86,7 @@ class ChargeResolutionGenerator(Tool):
 
             for mc, dl1 in zip(event.mc.tel.values(), event.dl1.tel.values()):
                 true_charge = mc.photo_electron_image
-                measured_charge = dl1.image[0]
+                measured_charge = dl1.image
                 pixels = np.arange(measured_charge.size)
                 self.calculator.add(pixels, true_charge, measured_charge)
 

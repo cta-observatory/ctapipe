@@ -27,13 +27,13 @@ class DataVolumeReducer(Component):
         ----------
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
-            (n_chan, n_pix, n_samples).
+            (n_pix, n_samples).
 
         Returns
         -------
         reduced_waveforms : ndarray
             Reduced waveforms stored in a numpy array of shape
-            (n_chan, n_pix, n_samples).
+            (n_pix, n_samples).
         """
 
 

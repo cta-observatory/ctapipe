@@ -100,7 +100,7 @@ class EventViewer(Component):
             ax = plt.subplot(camera_grid[ii])
             geom = event.inst.subarray.tel[tel_id].camera
             self.get_camera_view(tel_id,
-                                 image=images.tel[tel_id].image[0],
+                                 image=images.tel[tel_id].image,
                                  axis=ax,
                                  geom=geom)
 

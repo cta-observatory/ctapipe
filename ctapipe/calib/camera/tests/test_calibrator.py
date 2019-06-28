@@ -2,9 +2,11 @@ from ctapipe.calib.camera.calibrator import (
     CameraCalibrator,
     integration_correction,
 )
+from ctapipe.io.containers import DataContainer
 from ctapipe.image.extractor import LocalPeakWindowSum
 from traitlets.config.configurable import Config
 import pytest
+import numpy as np
 
 
 def test_camera_calibrator(example_event):
@@ -12,7 +14,36 @@ def test_camera_calibrator(example_event):
     calibrator = CameraCalibrator()
     calibrator(example_event)
     image = example_event.dl1.tel[telid].image
+    pulse_time = example_event.dl1.tel[telid].pulse_time
     assert image is not None
+    assert pulse_time is not None
+    assert image.shape == (1764,)
+    assert pulse_time.shape == (1764,)
+
+
+def test_select_gain():
+    n_channels = 2
+    n_pixels = 2048
+    n_samples = 128
+    telid = 0
+
+    calibrator = CameraCalibrator()
+
+    event = DataContainer()
+    event.r1.tel[telid].waveform = np.ones((n_channels, n_pixels, n_samples))
+    calibrator._calibrate_dl0(event, telid)
+    assert event.dl0.tel[telid].waveform.shape == (n_pixels, n_samples)
+
+    event = DataContainer()
+    event.r1.tel[telid].waveform = np.ones((n_pixels, n_samples))
+    with pytest.raises(ValueError):
+        calibrator._calibrate_dl0(event, telid)
+
+    event = DataContainer()
+    event.r1.tel[telid].waveform = np.ones((n_pixels, n_samples))
+    event.r1.tel[telid].selected_gain_channel = np.zeros(n_pixels)
+    calibrator._calibrate_dl0(event, telid)
+    assert event.dl0.tel[telid].waveform.shape == (n_pixels, n_samples)
 
 
 def test_manual_extractor():
@@ -55,7 +86,7 @@ def test_integration_correction_no_ref_pulse(example_event):
     calibrator = CameraCalibrator()
     calibrator._calibrate_dl0(example_event, telid)
     correction = calibrator._get_correction(example_event, telid)
-    assert correction[0] == 1
+    assert (correction == 1).all()
 
 
 def test_check_r1_empty(example_event):
