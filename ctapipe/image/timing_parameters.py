@@ -3,7 +3,7 @@ Image timing-based shower image parametrization.
 """
 
 import numpy as np
-from numpy.polynomial.polynomial import polyfit, polyval
+from numpy.polynomial.polynomial import polyval
 from ctapipe.io.containers import TimingParametersContainer
 from .hillas import camera_to_shower_coordinates
 
@@ -50,7 +50,7 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters):
         hillas_parameters.y,
         hillas_parameters.psi
     )
-    (intercept, slope), cov = polyfit(
+    (intercept, slope), cov = np.polyfit(
         longi.value, pulse_time, deg=1, w=np.sqrt(image), cov=True,
     )
     slope_err, intercept_err = np.sqrt(np.diag(cov))
