@@ -50,7 +50,7 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters):
         hillas_parameters.y,
         hillas_parameters.psi
     )
-    (intercept, slope), cov = np.polyfit(
+    (slope, intercept), cov = np.polyfit(
         longi.value, pulse_time, deg=1, w=np.sqrt(image), cov=True,
     )
     slope_err, intercept_err = np.sqrt(np.diag(cov))
