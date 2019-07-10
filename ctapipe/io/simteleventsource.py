@@ -86,6 +86,12 @@ class SimTelEventSource(EventSource):
         )
         self.start_pos = self.file_.tell()
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self.file_.close()
+
     @property
     def is_stream(self):
         return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
