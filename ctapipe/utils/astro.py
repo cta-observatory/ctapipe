@@ -42,7 +42,7 @@ def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icr
     from astropy.table import Table
     from ctapipe.utils import get_dataset_path
 
-    hdulist = fits.open(get_dataset_path("brightstars.fits.gz"))
+    hdulist = fits.open(get_dataset_path("yale_bright_star_catalog5.fits.gz"))
     table = Table(hdulist[1].data)
 
     starpositions = SkyCoord(ra=Angle(table['RAJ2000'], unit=u.deg),
