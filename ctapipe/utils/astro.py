@@ -6,17 +6,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
-    import ctapipe_resources
-except ImportError:
-    raise RuntimeError("Please install the 'ctapipe-extra' package, "
-                       "which contains the ctapipe_resources module "
-                       "needed by ctapipe. (conda install ctapipe-extra)")
-
 __all__ = ['get_bright_stars']
 
 
-def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icrs'), 
+def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icrs'),
                      radius=180. * u.deg, magnitude_cut=7.96):
     """
     Returns an astropy table containing star positions above a given magnitude within
@@ -35,14 +28,15 @@ def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icr
     Returns
     -------
     Astropy table:
-       List of all stars after cuts with names, catalog numbers, magnitudes, 
+       List of all stars after cuts with names, catalog numbers, magnitudes,
        and coordinates
     """
     from astropy.io import fits
     from astropy.table import Table
     from ctapipe.utils import get_dataset_path
 
-    hdulist = fits.open(get_dataset_path("yale_bright_star_catalog5.fits.gz"))
+    catalog = get_dataset_path("yale_brigh2t_star_catalog5.fits.gz")
+    hdulist = fits.open(catalog)
     table = Table(hdulist[1].data)
 
     starpositions = SkyCoord(ra=Angle(table['RAJ2000'], unit=u.deg),
