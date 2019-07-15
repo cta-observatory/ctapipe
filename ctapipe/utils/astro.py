@@ -15,8 +15,8 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     a given radius around a position in the sky, using the Yale bright star catalog
     which needs to be present in the ctapipe-extra package. The included Yale bright
     star catalog contains all 9096 stars, excluding the Nova objects present in the
-    original catalog from  Hoffleit & Jaschek (1991), 
-    http://adsabs.harvard.edu/abs/1991bsc..book.....H, and is complete down to 
+    original catalog from  Hoffleit & Jaschek (1991),
+    http://adsabs.harvard.edu/abs/1991bsc..book.....H, and is complete down to
     magnitude ~6.5, while the faintest included star has mag=7.96.
 
     Parameters
@@ -41,14 +41,14 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     table = Table.read(catalog)
 
     starpositions = SkyCoord(ra=Angle(table['RAJ2000'], unit=u.deg),
-                             dec=Angle(table['DEJ2000'], unit=u.deg), 
+                             dec=Angle(table['DEJ2000'], unit=u.deg),
                              frame='icrs', copy=False)
     table['ra_dec'] = starpositions
 
-    if magnitude_cut != None:
+    if magnitude_cut is not None:
         table = table[table['Vmag'] < magnitude_cut]
-        
-    if radius != None:
+
+    if radius is not None:
         separations = starpositions.separation(pointing)
         table['separation'] = separations
         table = table[separations < radius]
