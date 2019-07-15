@@ -9,12 +9,15 @@ logger = logging.getLogger(__name__)
 __all__ = ['get_bright_stars']
 
 
-def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icrs'),
-                     radius=180. * u.deg, magnitude_cut=7.96):
+def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     """
     Returns an astropy table containing star positions above a given magnitude within
     a given radius around a position in the sky, using the Yale bright star catalog
-    which needs to be present in the ctapipe-extra package.
+    which needs to be present in the ctapipe-extra package. The included Yale bright
+    star catalog contains all 9096 stars, excluding the Nova objects present in the
+    original catalog from  Hoffleit & Jaschek (1991), 
+    http://adsabs.harvard.edu/abs/1991bsc..book.....H, and is complete down to 
+    magnitude ~6.5, while the faintest included star has mag=7.96.
 
     Parameters
     ----------
@@ -23,7 +26,7 @@ def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icr
     radius: astropy angular units
        Radius of the sky region around pointing position. Default: full sky
     magnitude_cut: float
-        Return only stars above a given magnitude. Default: 7.96 (all entries)
+        Return only stars above a given magnitude. Default: None (all entries)
 
     Returns
     -------
@@ -31,24 +34,25 @@ def get_bright_stars(pointing=SkyCoord(ra=0. * u.rad, dec=0. * u.rad, frame='icr
        List of all stars after cuts with names, catalog numbers, magnitudes,
        and coordinates
     """
-    from astropy.io import fits
     from astropy.table import Table
     from ctapipe.utils import get_dataset_path
 
-    catalog = get_dataset_path("yale_brigh2t_star_catalog5.fits.gz")
-    hdulist = fits.open(catalog)
-    table = Table(hdulist[1].data)
+    catalog = get_dataset_path("yale_bright_star_catalog5.fits.gz")
+    table = Table.read(catalog)
 
     starpositions = SkyCoord(ra=Angle(table['RAJ2000'], unit=u.deg),
-                             dec=Angle(table['DEJ2000'], unit=u.deg), frame='icrs')
+                             dec=Angle(table['DEJ2000'], unit=u.deg), 
+                             frame='icrs', copy=False)
     table['ra_dec'] = starpositions
 
-    if radius < 180. * u.deg:
+    if magnitude_cut != None:
+        table = table[table['Vmag'] < magnitude_cut]
+        
+    if radius != None:
         separations = starpositions.separation(pointing)
         table['separation'] = separations
         table = table[separations < radius]
-    if magnitude_cut < 7.96:
-        table = table[table['Vmag'] < magnitude_cut]
+
     table.remove_columns(['RAJ2000', 'DEJ2000'])
 
     return table
