@@ -49,6 +49,8 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
         table = table[table['Vmag'] < magnitude_cut]
 
     if radius is not None:
+        if pointing is None:
+            raise ValueError('Sky pointing, pointing=SkyCoord(), must be provided if radius is given.')
         separations = starpositions.separation(pointing)
         table['separation'] = separations
         table = table[separations < radius]
