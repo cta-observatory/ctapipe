@@ -305,8 +305,6 @@ def test_apply_time_delta_cleaning():
     assert (test_mask == td_mask).all()
 
     # Test min_number_neighbours
-    noise_neighbour = neighbours[0]
-    pulse_time[noise_neighbour] += 10
     td_mask = cleaning.apply_time_delta_cleaning(
         geom,
         mask,
