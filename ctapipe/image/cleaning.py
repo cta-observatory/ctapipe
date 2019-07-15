@@ -229,9 +229,10 @@ def number_of_islands(geom, mask):
 
 
 def apply_time_delta_cleaning(
-    geom, mask, arrival_times, min_number_neighbors, time_limit
+        geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
-    """ Remove all pixels from selection that have less than N
+    """
+    Identify all pixels from selection that have less than N
     neighbors that arrived within a given timeframe.
 
     Parameters
@@ -258,6 +259,7 @@ def apply_time_delta_cleaning(
 
     """
     pixels_to_remove = []
+    mask = mask.copy()  # Create copy so orginal is unchanged
     for pixel in np.where(mask)[0]:
         neighbors = geom.neighbor_matrix_sparse[pixel].indices
         time_diff = np.abs(arrival_times[neighbors] - arrival_times[pixel])
