@@ -35,28 +35,28 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
        and coordinates
     """
     from astropy.table import Table
-    from ctapipe.utils import get_dataset_path
+    from ctapipe.utils import get_table_dataset
 
-    catalog = get_dataset_path("yale_bright_star_catalog5.fits.gz")
-    table = Table.read(catalog)
+    catalog = get_table_dataset("yale_bright_star_catalog5", 
+                                role="bright star catalog")
 
-    starpositions = SkyCoord(ra=Angle(table['RAJ2000'], unit=u.deg),
-                             dec=Angle(table['DEJ2000'], unit=u.deg),
+    starpositions = SkyCoord(ra=Angle(catalog['RAJ2000'], unit=u.deg),
+                             dec=Angle(catalog['DEJ2000'], unit=u.deg),
                              frame='icrs', copy=False)
-    table['ra_dec'] = starpositions
+    catalog['ra_dec'] = starpositions
 
     if magnitude_cut is not None:
-        table = table[table['Vmag'] < magnitude_cut]
+        catalog = catalog[catalog['Vmag'] < magnitude_cut]
 
     if radius is not None:
         if pointing is None:
             raise ValueError('Sky pointing, pointing=SkyCoord(), must be '
                              'provided if radius is given.')
-        separations = table['ra_dec'].separation(pointing)
-        table['separation'] = separations
-        table = table[separations < radius]
+        separations = catalog['ra_dec'].separation(pointing)
+        catalog['separation'] = separations
+        catalog = catalog[separations < radius]
 
-    table.remove_columns(['RAJ2000', 'DEJ2000'])
+    catalog.remove_columns(['RAJ2000', 'DEJ2000'])
 
-    return table
+    return catalog
 
