@@ -37,7 +37,7 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     from astropy.table import Table
     from ctapipe.utils import get_table_dataset
 
-    catalog = get_table_dataset("yale_bright_star_catalog5", 
+    catalog = get_table_dataset("yale_bright_star_catalog5",
                                 role="bright star catalog")
 
     starpositions = SkyCoord(ra=Angle(catalog['RAJ2000'], unit=u.deg),
