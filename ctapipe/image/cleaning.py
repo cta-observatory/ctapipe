@@ -2,7 +2,13 @@
 Image Cleaning Algorithms (identification of noisy pixels)
 """
 
-__all__ = ["tailcuts_clean", "dilate", "mars_cleaning_1st_pass", "fact_image_cleaning"]
+__all__ = [
+    "tailcuts_clean",
+    "dilate",
+    "mars_cleaning_1st_pass",
+    "fact_image_cleaning",
+    "apply_time_delta_cleaning",
+]
 
 import numpy as np
 from scipy.sparse.csgraph import connected_components
@@ -222,10 +228,11 @@ def number_of_islands(geom, mask):
     return num_islands, island_labels
 
 
-def _apply_time_delta_cleaning(
-    geom, mask, arrival_times, min_number_neighbors, time_limit
+def apply_time_delta_cleaning(
+        geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
-    """ Remove all pixels from selection that have less than N
+    """
+    Identify all pixels from selection that have less than N
     neighbors that arrived within a given timeframe.
 
     Parameters
@@ -252,6 +259,7 @@ def _apply_time_delta_cleaning(
 
     """
     pixels_to_remove = []
+    mask = mask.copy()  # Create copy so orginal is unchanged
     for pixel in np.where(mask)[0]:
         neighbors = geom.neighbor_matrix_sparse[pixel].indices
         time_diff = np.abs(arrival_times[neighbors] - arrival_times[pixel])
@@ -332,7 +340,7 @@ def fact_image_cleaning(
         return pixels_to_keep
 
     # Step 4
-    pixels_to_keep = _apply_time_delta_cleaning(
+    pixels_to_keep = apply_time_delta_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
 
@@ -343,7 +351,7 @@ def fact_image_cleaning(
     pixels_to_keep = pixels_to_keep & (number_of_neighbors >= min_number_neighbors)
 
     # Step 6
-    pixels_to_keep = _apply_time_delta_cleaning(
+    pixels_to_keep = apply_time_delta_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
     return pixels_to_keep

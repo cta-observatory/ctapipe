@@ -267,3 +267,51 @@ def test_fact_image_cleaning():
     expected_mask = np.zeros(len(geom)).astype(bool)
     expected_mask[expected_pixels] = 1
     assert_allclose(mask, expected_mask)
+
+
+def test_apply_time_delta_cleaning():
+    geom = CameraGeometry.from_name("LSTCam")
+    pulse_time = np.zeros(geom.n_pixels, dtype=np.float)
+
+    pixel = 40
+    neighbours = geom.neighbors[pixel]
+    pulse_time[neighbours] = 32.0
+    pulse_time[pixel] = 30.0
+    mask = pulse_time > 0
+
+    # Test unchanged
+    td_mask = cleaning.apply_time_delta_cleaning(
+        geom,
+        mask,
+        pulse_time,
+        min_number_neighbors=1,
+        time_limit=5,
+    )
+    test_mask = mask.copy()
+    assert (test_mask == td_mask).all()
+
+    # Test time_limit
+    noise_neighbour = neighbours[0]
+    pulse_time[noise_neighbour] += 10
+    td_mask = cleaning.apply_time_delta_cleaning(
+        geom,
+        mask,
+        pulse_time,
+        min_number_neighbors=1,
+        time_limit=5,
+    )
+    test_mask = mask.copy()
+    test_mask[noise_neighbour] = 0
+    assert (test_mask == td_mask).all()
+
+    # Test min_number_neighbours
+    td_mask = cleaning.apply_time_delta_cleaning(
+        geom,
+        mask,
+        pulse_time,
+        min_number_neighbors=4,
+        time_limit=5,
+    )
+    test_mask = mask.copy()
+    test_mask[neighbours] = 0
+    assert (test_mask == td_mask).all()
