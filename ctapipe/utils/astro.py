@@ -7,9 +7,6 @@ usage within ctapipe.
 from astropy.coordinates import Angle
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-import logging
-
-logger = logging.getLogger(__name__)
 
 __all__ = ['get_bright_stars']
 
@@ -39,7 +36,6 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
        List of all stars after cuts with names, catalog numbers, magnitudes,
        and coordinates
     """
-    from astropy.table import Table
     from ctapipe.utils import get_table_dataset
 
     catalog = get_table_dataset("yale_bright_star_catalog5",
