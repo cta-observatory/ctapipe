@@ -1,4 +1,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
+"""
+This module is intended to contain astronomy-related helper tools which are
+not provided by external packages and/or to satisfy particular needs of
+usage within ctapipe.
+"""
 from astropy.coordinates import Angle
 from astropy.coordinates import SkyCoord
 from astropy import units as u
@@ -22,7 +27,7 @@ def get_bright_stars(pointing=None, radius=None, magnitude_cut=None):
     Parameters
     ----------
     pointing: astropy Skycoord
-       pointing direction in the sky
+       pointing direction in the sky (if none is given, full sky is returned)
     radius: astropy angular units
        Radius of the sky region around pointing position. Default: full sky
     magnitude_cut: float
