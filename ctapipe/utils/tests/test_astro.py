@@ -4,7 +4,7 @@ from astropy import units as u
 
 def test_get_bright_stars():
 
-    # test that only Zeta Tauri is returned close to the Crab Nebula
+    # test that only Zeta Tau is returned close to the Crab Nebula
     # as object brighter than mag=3.5
     pointing = SkyCoord(ra=83.275 * u.deg, dec=21.791 * u.deg, frame='icrs')
 
