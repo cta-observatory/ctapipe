@@ -2,6 +2,14 @@ from ..astro import get_bright_stars
 from astropy.coordinates import SkyCoord
 from astropy import units as u
 
+try:
+    import ctapipe_resources
+except ImportError:
+    raise RuntimeError("Please install the 'ctapipe-extra' package, "
+                       "which contains the ctapipe_resources module "
+                       "needed by ctapipe. (conda install ctapipe-extra)")
+
+
 def test_get_bright_stars():
 
     pointing = SkyCoord(ra=83.275 * u.deg, dec=21.791 * u.deg, frame='icrs')
