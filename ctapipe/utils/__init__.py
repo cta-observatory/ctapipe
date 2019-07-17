@@ -20,6 +20,7 @@ __all__ = [
     'get_table_dataset',
     'get_dataset_path',
     'find_in_path',
+    'get_bright_stars'
     'CutFlow',
     'PureCountingCut',
     'UndefinedCut',
