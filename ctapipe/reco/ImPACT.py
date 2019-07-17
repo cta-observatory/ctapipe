@@ -137,6 +137,8 @@ class ImPACTReconstructor(Reconstructor):
         self.peak_x, self.peak_y, self.peak_amp = None, None, None
         self.hillas_parameters, self.ped = None, None
 
+        self._prev_phi, self._prev_x, self._prev_y = 0, 0, 0
+
         self.prediction = dict()
         self.time_prediction = dict()
         self.rms_prediction = dict()
@@ -276,8 +278,8 @@ class ImPACTReconstructor(Reconstructor):
 
         return x_max + self.xmax_offset
 
-    @staticmethod
-    def rotate_translate(pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi):
+    def rotate_translate(self, pixel_pos_x, pixel_pos_y, x_trans, y_trans, phi,
+                         small_angle_validity=0.35):
         """
         Function to perform rotation and translation of pixel lists
 
@@ -299,15 +301,20 @@ class ImPACTReconstructor(Reconstructor):
             ndarray,ndarray: Transformed pixel x and y coordinates
 
         """
+        #print(phi*57.3, x_trans*57.3, y_trans*57.3)
 
         cosine_angle = np.cos(phi[..., np.newaxis])
         sin_angle = np.sin(phi[..., np.newaxis])
+        #print(cosine_angle, sin_angle)
+        #print("x4", pixel_pos_x, cosine_angle, x_trans)
 
-        pixel_pos_trans_x = (x_trans - pixel_pos_x ) * cosine_angle - \
-                            (y_trans - pixel_pos_y ) * sin_angle
+        pixel_pos_trans_x = ((pixel_pos_x - x_trans) * cosine_angle) - \
+                            ((pixel_pos_y - y_trans) * sin_angle)
 
-        pixel_pos_trans_y = (pixel_pos_x - x_trans) * sin_angle + \
-                            (pixel_pos_y - y_trans) * cosine_angle
+        pixel_pos_trans_y = ((pixel_pos_x - x_trans) * sin_angle) + \
+                            ((pixel_pos_y - y_trans) * cosine_angle)
+
+        #print("x3", pixel_pos_trans_x)
         return pixel_pos_trans_x, pixel_pos_trans_y
 
     def image_prediction(self, tel_type, zenith, azimuth, energy, impact, x_max,
@@ -457,13 +464,27 @@ class ImPACTReconstructor(Reconstructor):
         phi = np.arctan2((self.tel_pos_x - core_x),
                          (self.tel_pos_y - core_y)) * u.rad
 
+        #print("x1", self.pixel_x)
         # Rotate and translate all pixels such that they match the
         # template orientation
-        pix_y_rot, pix_x_rot = self.rotate_translate(
-            self.pixel_x,
-            self.pixel_y,
-            source_x, source_y, phi
+        #pix_x_rot, pix_y_rot = self.rotate_translate(
+        #    self.pixel_x, self.pixel_y,
+        #    source_x - self._prev_x,
+        #    source_y - self._prev_y, phi - self._prev_phi
+        #)
+        pix_x_rot, pix_y_rot = self.rotate_translate(
+            self.pixel_x, self.pixel_y,
+            source_x,
+            source_y, phi
         )
+
+        # OK lets use the small angle approx here if we can
+        #self.pixel_x = pix_x_rot
+        #self.pixel_y = pix_y_rot
+
+        self._prev_phi = phi
+        self._prev_x, self._prev_y = source_x, source_y
+        #print("x2", self.pixel_x)
 
         # In the interpolator class we can gain speed advantages by using masked arrays
         # so we need to make sure here everything is masked
@@ -486,8 +507,8 @@ class ImPACTReconstructor(Reconstructor):
                                       np.ones_like(impact[type_mask]),
                                       impact[type_mask], x_max_bin *
                                       np.ones_like(impact[type_mask]),
-                                      pix_y_rot[type_mask] * (180 / math.pi),
-                                      pix_x_rot[type_mask] * (180 / math.pi)*-1)
+                                      pix_x_rot[type_mask] * (180 / math.pi)*-1,
+                                      pix_y_rot[type_mask] * (180 / math.pi))
 
             if self.use_shower_variance:
                 rms_prediction[type_mask] = \
@@ -496,8 +517,8 @@ class ImPACTReconstructor(Reconstructor):
                                               np.ones_like(impact[type_mask]),
                                               impact[type_mask], x_max_bin *
                                               np.ones_like(impact[type_mask]),
-                                              pix_y_rot[type_mask] * (180 / math.pi),
-                                              pix_x_rot[type_mask] * (180 / math.pi)*-1)
+                                              pix_x_rot[type_mask] * (180 / math.pi),
+                                              pix_y_rot[type_mask] * (180 / math.pi)*-1)
             if self.use_time_gradient:
                 time_gradients[type_mask] = \
                     self.predict_time(tel_type,
@@ -531,28 +552,21 @@ class ImPACTReconstructor(Reconstructor):
         prediction[prediction < 1e-8] = 1e-8
         prediction *= self.template_scale
 
+        if goodness_of_fit:
+            fig, (ax1, ax2) = plt.subplots(1,2, figsize=(8,4))
+            ax1.scatter(pix_x_rot[0], pix_y_rot[0], c=self.image[0])
+            ax2.scatter(pix_x_rot[0], pix_y_rot[0], c=prediction[0])
+            plt.show()
+
         if self.use_shower_variance:
             #rms_prediction *= self.template_scale
             like = shower_fluctuation_likelihood_gaussian(self.image, prediction,
                                                           rms_prediction, self.ped)
             likep = poisson_likelihood_gaussian(self.image, prediction, self.spe,
                                                 self.ped)
-            if False:
-
-                for i in range(pix_x_rot.shape[0]):
-
-                    fig, (ax1, ax2, ax3, ax4) = plt.subplots(1,4, figsize=(16,4))
-                    print(like.shape)
-                    ax1.scatter(pix_x_rot[i], pix_y_rot[i], c=self.image[i],s=100)
-                    ax2.scatter(pix_x_rot[i], pix_y_rot[i], c=prediction[i],s=100)
-                    ax3.scatter(pix_x_rot[i], pix_y_rot[i], c=like[i],s=100)
-                    ax4.scatter(pix_x_rot[i], pix_y_rot[i], c=like[i]/likep[i],s=100)
-                    plt.show()
 
             like[likep<like] = likep[likep<like]
             like[self.image<1] = likep[self.image<1]
-
-
 
         else:
             # Get likelihood that the prediction matched the camera image
@@ -769,22 +783,6 @@ class ImPACTReconstructor(Reconstructor):
                             fit_params[2], fit_params[3],
                             fit_params[4], fit_params[5],
                             goodness_of_fit=True)
-
-        # xr, yr = np.linspace(-0.2,0.2,40), np.linspace(-0.2,0.2,40)
-        # lm = np.zeros((40,40))
-        # for i in range(xr.shape[0]):
-        #     for j in range(yr.shape[0]):
-        #         lm[i][j] = self.get_likelihood(yr[i]/57.3, xr[j]/57.3,
-        #                                        fit_params[2], fit_params[3],
-        #                                        fit_params[4], fit_params[5],
-        #                                        goodness_of_fit=True)
-        #
-        # plt.contour(xr, yr, lm, levels=100)
-        # plt.plot(fit_params[1]*57.3, fit_params[0]*57.3, 'b+')
-        # plt.plot(source_y * 57.3, source_x*57.3, 'r+')
-        #
-        # plt.show()
-
 
         # Create a container class for reconstructed shower
         shower_result = ReconstructedShowerContainer()
