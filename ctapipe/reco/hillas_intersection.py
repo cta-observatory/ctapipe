@@ -11,17 +11,29 @@ performance
 import numpy as np
 import itertools
 import astropy.units as u
-from ctapipe.reco.reco_algorithms import Reconstructor
+from ctapipe.reco.reco_algorithms import (
+    Reconstructor,
+    InvalidWidthException,
+    TooFewTelescopesException
+)
 from ctapipe.io.containers import ReconstructedShowerContainer
 from ctapipe.instrument import get_atmosphere_profile_functions
 
-from astropy.coordinates import SkyCoord, AltAz
-from ctapipe.coordinates import NominalFrame
-from ctapipe.coordinates import TiltedGroundFrame, project_to_ground
+from astropy.coordinates import SkyCoord
+from ctapipe.coordinates import (
+    NominalFrame,
+    CameraFrame,
+    TiltedGroundFrame,
+    project_to_ground,
+    GroundFrame,
+    MissingFrameAttributeWarning
+)
+import copy
+import warnings
 
-__all__ = [
-    'HillasIntersection'
-]
+from ctapipe.core import traits
+
+__all__ = ['HillasIntersection']
 
 
 class HillasIntersection(Reconstructor):
@@ -44,84 +56,159 @@ class HillasIntersection(Reconstructor):
     for multiplicity 2 events.
     """
 
-    def __init__(self, atmosphere_profile_name="paranal"):
+    atmosphere_profile_name = traits.CaselessStrEnum(
+        ['paranal', ],
+        default_value="paranal",
+        help="name of atmosphere profile to use"
+    ).tag(config=True)
+
+    weighting = traits.CaselessStrEnum(
+        ['Konrad', 'hess'],
+        default_value='Konrad',
+        help='Weighting Method name'
+    ).tag(config=True)
+
+    def __init__(self, config=None, parent=None, **kwargs):
+        """
+        Weighting must be a function similar to the weight_konrad already implemented
+        """
+        super().__init__(config=config, parent=parent, **kwargs)
 
         # We need a conversion function from height above ground to depth of maximum
         # To do this we need the conversion table from CORSIKA
-        _ = get_atmosphere_profile_functions(atmosphere_profile_name)
+        _ = get_atmosphere_profile_functions(self.atmosphere_profile_name)
         self.thickness_profile, self.altitude_profile = _
 
-    def predict(self, hillas_parameters, tel_x, tel_y, array_direction):
+        # other weighting schemes can be implemented. just add them as additional methods
+        if self.weighting == "Konrad":
+            self._weight_method = self.weight_konrad
+
+    def predict(self, hillas_dict, inst, array_pointing, telescopes_pointings=None):
         """
 
         Parameters
         ----------
-        hillas_parameters: dict
+        hillas_dict: dict
             Dictionary containing Hillas parameters for all telescopes
             in reconstruction
-        tel_x: dict
-            Dictionary containing telescope position on ground for all
-            telescopes in reconstruction
-        tel_y: dict
-            Dictionary containing telescope position on ground for all
-            telescopes in reconstruction
-        array_direction: AltAz
-            Pointing direction of the array
+        inst : ctapipe.io.InstrumentContainer
+            instrumental description
+        array_pointing: SkyCoord[AltAz]
+            pointing direction of the array
+        telescopes_pointings: dict[SkyCoord[AltAz]]
+            dictionary of pointing direction per each telescope
 
         Returns
         -------
         ReconstructedShowerContainer:
 
         """
-        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_parameters)
+
+        # filter warnings for missing obs time. this is needed because MC data has no obs time
+        warnings.filterwarnings(action='ignore', category=MissingFrameAttributeWarning)
+
+        # stereoscopy needs at least two telescopes
+        if len(hillas_dict) < 2:
+            raise TooFewTelescopesException(
+                "need at least two telescopes, have {}"
+                .format(len(hillas_dict)))
+
+        # check for np.nan or 0 width's as these screw up weights
+        if any([np.isnan(hillas_dict[tel]['width'].value) for tel in hillas_dict]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width==np.nan")
+
+        if any([hillas_dict[tel]['width'].value == 0 for tel in hillas_dict]):
+            raise InvalidWidthException(
+                "A HillasContainer contains an ellipse of width==0")
+
+        if telescopes_pointings is None:
+            telescopes_pointings = {tel_id: array_pointing for tel_id in hillas_dict.keys()}
+
+        tilted_frame = TiltedGroundFrame(pointing_direction=array_pointing)
+
+        ground_positions = inst.subarray.tel_coords
+        grd_coord = GroundFrame(x=ground_positions.x,
+                                y=ground_positions.y,
+                                z=ground_positions.z)
+
+        tilt_coord = grd_coord.transform_to(tilted_frame)
+
+        tel_x = {tel_id: tilt_coord.x[tel_id-1] for tel_id in list(hillas_dict.keys())}
+        tel_y = {tel_id: tilt_coord.y[tel_id-1] for tel_id in list(hillas_dict.keys())}
+
+        nom_frame = NominalFrame(origin=array_pointing)
+
+        hillas_dict_mod = copy.deepcopy(hillas_dict)
+
+        for tel_id, hillas in hillas_dict_mod.items():
+            # prevent from using rads instead of meters as inputs
+            assert hillas.x.to(u.m).unit == u.Unit('m')
+
+            focal_length = inst.subarray.tel[tel_id].optics.equivalent_focal_length
+
+            camera_frame = CameraFrame(
+                telescope_pointing=telescopes_pointings[tel_id],
+                focal_length=focal_length,
+            )
+            cog_coords = SkyCoord(x=hillas.x, y=hillas.y, frame=camera_frame)
+            cog_coords_nom = cog_coords.transform_to(nom_frame)
+            hillas.x = cog_coords_nom.delta_alt
+            hillas.y = cog_coords_nom.delta_az
+
+        src_x, src_y, err_x, err_y = self.reconstruct_nominal(hillas_dict_mod)
         core_x, core_y, core_err_x, core_err_y = self.reconstruct_tilted(
-            hillas_parameters, tel_x, tel_y)
+            hillas_dict_mod, tel_x, tel_y)
+
         err_x *= u.rad
         err_y *= u.rad
 
         nom = SkyCoord(
-            x=src_x * u.rad,
-            y=src_y * u.rad,
-            frame=NominalFrame(array_direction=array_direction)
+            delta_az=src_x * u.rad,
+            delta_alt=src_y * u.rad,
+            frame=nom_frame
         )
-        horiz = nom.transform_to(AltAz())
+        # nom = sky_pos.transform_to(nom_frame)
+        sky_pos = nom.transform_to(array_pointing.frame)
 
         result = ReconstructedShowerContainer()
-        result.alt, result.az = horiz.alt, horiz.az
+        result.alt = sky_pos.altaz.alt.to(u.rad)
+        result.az = sky_pos.altaz.az.to(u.rad)
 
         tilt = SkyCoord(
             x=core_x * u.m,
             y=core_y * u.m,
-            frame=TiltedGroundFrame(pointing_direction=array_direction),
+            frame=tilted_frame,
         )
         grd = project_to_ground(tilt)
         result.core_x = grd.x
         result.core_y = grd.y
 
         x_max = self.reconstruct_xmax(
-            nom.x, nom.y,
+            nom.delta_az,
+            nom.delta_alt,
             tilt.x, tilt.y,
-            hillas_parameters,
+            hillas_dict_mod,
             tel_x, tel_y,
-            90 * u.deg - array_direction.alt,
+            90 * u.deg - array_pointing.alt,
         )
 
         result.core_uncert = np.sqrt(core_err_x**2 + core_err_y**2) * u.m
 
-        result.tel_ids = [h for h in hillas_parameters.keys()]
-        result.average_intensity = np.mean([h.intensity for h in hillas_parameters.values()])
+        result.tel_ids = [h for h in hillas_dict_mod.keys()]
+        result.average_intensity = np.mean([h.intensity for h in hillas_dict_mod.values()])
         result.is_valid = True
 
         src_error = np.sqrt(err_x**2 + err_y**2)
-        result.alt_uncert = src_error.to(u.deg)
-        result.az_uncert = src_error.to(u.deg)
+        result.alt_uncert = src_error.to(u.rad)
+        result.az_uncert = src_error.to(u.rad)
         result.h_max = x_max
         result.h_max_uncert = np.nan
         result.goodness_of_fit = np.nan
 
         return result
 
-    def reconstruct_nominal(self, hillas_parameters, weighting="Konrad"):
+    def reconstruct_nominal(self, hillas_parameters):
         """
         Perform event reconstruction by simple Hillas parameter intersection
         in the nominal system
@@ -130,12 +217,10 @@ class HillasIntersection(Reconstructor):
         ----------
         hillas_parameters: dict
             Hillas parameter objects
-        weighting: string
-            Specify image weighting scheme used (HESS or Konrad style)
 
         Returns
         -------
-        Reconstructed event position in the nominal system
+        Reconstructed event position in the horizon system
 
         """
         if len(hillas_parameters) < 2:
@@ -148,9 +233,9 @@ class HillasIntersection(Reconstructor):
         # Copy parameters we need to a numpy array to speed things up
         h1 = list(
             map(
-                lambda h: [h[0].psi.to(u.rad).value,
-                           h[0].x.value,
-                           h[0].y.value,
+                lambda h: [h[0].psi.to_value(u.rad),
+                           h[0].x.to_value(u.rad),
+                           h[0].y.to_value(u.rad),
                            h[0].intensity], hillas_pairs
             )
         )
@@ -158,9 +243,9 @@ class HillasIntersection(Reconstructor):
         h1 = np.transpose(h1)
 
         h2 = list(
-            map(lambda h: [h[1].psi.to(u.rad).value,
-                           h[1].x.value,
-                           h[1].y.value,
+            map(lambda h: [h[1].psi.to_value(u.rad),
+                           h[1].x.to_value(u.rad),
+                           h[1].y.to_value(u.rad),
                            h[1].intensity], hillas_pairs)
         )
         h2 = np.array(h2)
@@ -169,13 +254,9 @@ class HillasIntersection(Reconstructor):
         # Perform intersection
         sx, sy = self.intersect_lines(h1[1], h1[2], h1[0],
                                       h2[1], h2[2], h2[0])
-        if weighting == "Konrad":
-            weight_fn = self.weight_konrad
-        elif weighting == "HESS":
-            weight_fn = self.weight_HESS
 
         # Weight by chosen method
-        weight = weight_fn(h1[3], h2[3])
+        weight = self._weight_method(h1[3], h2[3])
         # And sin of interception angle
         weight *= self.weight_sin(h1[0], h2[0])
 
@@ -185,12 +266,9 @@ class HillasIntersection(Reconstructor):
         var_x = np.average((sx - x_pos) ** 2, weights=weight)
         var_y = np.average((sy - y_pos) ** 2, weights=weight)
 
-        # Copy into nominal coordinate
-
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
-    def reconstruct_tilted(self, hillas_parameters, tel_x, tel_y,
-                           weighting="Konrad"):
+    def reconstruct_tilted(self, hillas_parameters, tel_x, tel_y):
         """
         Core position reconstruction by image axis intersection in the tilted
         system
@@ -203,8 +281,6 @@ class HillasIntersection(Reconstructor):
             Telescope X positions, tilted system
         tel_y: dict
             Telescope Y positions, tilted system
-        weighting: str
-            Weighting scheme for averaging of crossing points
 
         Returns
         -------
@@ -214,58 +290,53 @@ class HillasIntersection(Reconstructor):
         """
         if len(hillas_parameters) < 2:
             return None  # Throw away events with < 2 images
-        h = list()
+        hill_list = list()
         tx = list()
         ty = list()
 
         # Need to loop here as dict is unordered
         for tel in hillas_parameters.keys():
-            h.append(hillas_parameters[tel])
+            hill_list.append(hillas_parameters[tel])
             tx.append(tel_x[tel])
             ty.append(tel_y[tel])
 
         # Find all pairs of Hillas parameters
-        hillas_pairs = list(itertools.combinations(h, 2))
+        hillas_pairs = list(itertools.combinations(hill_list, 2))
         tel_x = list(itertools.combinations(tx, 2))
         tel_y = list(itertools.combinations(ty, 2))
 
         tx = np.zeros((len(tel_x), 2))
         ty = np.zeros((len(tel_y), 2))
         for i, _ in enumerate(tel_x):
-            tx[i][0], tx[i][1] = tel_x[i][0].value, tel_x[i][1].value
-            ty[i][0], ty[i][1] = tel_y[i][0].value, tel_y[i][1].value
+            tx[i][0], tx[i][1] = tel_x[i][0].to_value(u.m), tel_x[i][1].to_value(u.m)
+            ty[i][0], ty[i][1] = tel_y[i][0].to_value(u.m), tel_y[i][1].to_value(u.m)
 
         tel_x = np.array(tx)
         tel_y = np.array(ty)
 
         # Copy parameters we need to a numpy array to speed things up
-        h1 = map(lambda h: [h[0].psi.to(u.rad).value, h[0].intensity], hillas_pairs)
-        h1 = np.array(list(h1))
-        h1 = np.transpose(h1)
+        hillas1 = map(lambda h: [h[0].psi.to_value(u.rad), h[0].intensity], hillas_pairs)
+        hillas1 = np.array(list(hillas1))
+        hillas1 = np.transpose(hillas1)
 
-        h2 = map(lambda h: [h[1].psi.to(u.rad).value, h[1].intensity], hillas_pairs)
-        h2 = np.array(list(h2))
-        h2 = np.transpose(h2)
+        hillas2 = map(lambda h: [h[1].psi.to_value(u.rad), h[1].intensity], hillas_pairs)
+        hillas2 = np.array(list(hillas2))
+        hillas2 = np.transpose(hillas2)
 
         # Perform intersection
-        cx, cy = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], h1[0],
-                                      tel_x[:, 1], tel_y[:, 1], h2[0])
-
-        if weighting == "Konrad":
-            weight_fn = self.weight_konrad
-        elif weighting == "HESS":
-            weight_fn = self.weight_HESS
+        crossing_x, crossing_y = self.intersect_lines(tel_x[:, 0], tel_y[:, 0], hillas1[0],
+                                                      tel_x[:, 1], tel_y[:, 1], hillas2[0])
 
         # Weight by chosen method
-        weight = weight_fn(h1[1], h2[1])
+        weight = self._weight_method(hillas1[1], hillas2[1])
         # And sin of interception angle
-        weight *= self.weight_sin(h1[0], h2[0])
+        weight *= self.weight_sin(hillas1[0], hillas2[0])
 
         # Make weighted average of all possible pairs
-        x_pos = np.average(cx, weights=weight)
-        y_pos = np.average(cy, weights=weight)
-        var_x = np.average((cx - x_pos) ** 2, weights=weight)
-        var_y = np.average((cy - y_pos) ** 2, weights=weight)
+        x_pos = np.average(crossing_x, weights=weight)
+        y_pos = np.average(crossing_y, weights=weight)
+        var_x = np.average((crossing_x - x_pos) ** 2, weights=weight)
+        var_y = np.average((crossing_y - y_pos) ** 2, weights=weight)
 
         return x_pos, y_pos, np.sqrt(var_x), np.sqrt(var_y)
 
@@ -288,9 +359,9 @@ class HillasIntersection(Reconstructor):
         hillas_parameters: dict
             Dictionary of hillas parameters objects
         tel_x: dict
-            Dictionary of telescope X positions
+            Dictionary of telescope X positions in tilted frame
         tel_y: dict
-            Dictionary of telescope X positions
+            Dictionary of telescope Y positions in tilted frame
         zen: float
             Zenith angle of shower
 
@@ -308,19 +379,19 @@ class HillasIntersection(Reconstructor):
 
         # Loops over telescopes in event
         for tel in hillas_parameters.keys():
-            cog_x.append(hillas_parameters[tel].x.to(u.rad).value)
-            cog_y.append(hillas_parameters[tel].y.to(u.rad).value)
+            cog_x.append(hillas_parameters[tel].x.to_value(u.rad))
+            cog_y.append(hillas_parameters[tel].y.to_value(u.rad))
             amp.append(hillas_parameters[tel].intensity)
 
-            tx.append(tel_x[tel].to(u.m).value)
-            ty.append(tel_y[tel].to(u.m).value)
+            tx.append(tel_x[tel].to_value(u.m))
+            ty.append(tel_y[tel].to_value(u.m))
 
-        height = get_shower_height(source_x.to(u.rad).value,
-                                   source_y.to(u.rad).value,
+        height = get_shower_height(source_x.to_value(u.rad),
+                                   source_y.to_value(u.rad),
                                    np.array(cog_x),
                                    np.array(cog_y),
-                                   core_x.to(u.m).value,
-                                   core_y.to(u.m).value,
+                                   core_x.to_value(u.m),
+                                   core_y.to_value(u.m),
                                    np.array(tx),
                                    np.array(ty))
         weight = np.array(amp)
@@ -338,11 +409,11 @@ class HillasIntersection(Reconstructor):
 
         mean_height *= u.m
         # Lookup this height in the depth tables, the convert Hmax to Xmax
-        x_max = self.thickness_profile(mean_height.to(u.km))
+        # x_max = self.thickness_profile(mean_height.to(u.km))
         # Convert to slant depth
-        x_max /= np.cos(zen)
+        # x_max /= np.cos(zen)
 
-        return x_max
+        return mean_height
 
     @staticmethod
     def intersect_lines(xp1, yp1, phi1, xp2, yp2, phi2):
@@ -396,12 +467,8 @@ class HillasIntersection(Reconstructor):
         return (p1 * p2) / (p1 + p2)
 
     @staticmethod
-    def weight_hess(p1, p2):
-        return 1 / ((1 / p1) + (1 / p2))
-
-    @staticmethod
     def weight_sin(phi1, phi2):
-        return np.abs(np.sin(np.fabs(phi1 - phi2)))
+        return np.abs(np.sin(phi1 - phi2))
 
 
 def get_shower_height(source_x, source_y, cog_x, cog_y,
@@ -415,12 +482,19 @@ def get_shower_height(source_x, source_y, cog_x, cog_y,
         Event source position in nominal frame
     source_y: float
         Event source position in nominal frame
+    cog_x: list[float]
+        Center of gravity x-position for all the telescopes in rad
+    cog_y: list[float]
+        Center of gravity y-position for all the telescopes in rad
     core_x: float
         Event core position in telescope tilted frame
     core_y: float
         Event core position in telescope tilted frame
-    zen: float
-        Zenith angle of event
+    tel_pos_x: list
+        List of telescope X positions in tilted frame
+    tel_pos_y: list
+        List of telescope Y positions in tilted frame
+
     Returns
     -------
     float: Depth of maximum of air shower

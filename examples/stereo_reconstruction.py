@@ -1,4 +1,5 @@
 import astropy.units as u
+from astropy.coordinates import SkyCoord, AltAz
 
 from ctapipe.io import event_source
 from ctapipe.calib import CameraCalibrator
@@ -25,6 +26,7 @@ input_url = get_dataset_path('gamma_test_large.simtel.gz')
 event_source = event_source(input_url)
 
 calibrator = CameraCalibrator()
+horizon_frame = AltAz()
 
 reco = HillasReconstructor()
 
@@ -34,8 +36,7 @@ for event in event_source:
 
     # mapping of telescope_id to parameters for stereo reconstruction
     hillas_containers = {}
-    pointing_azimuth = {}
-    pointing_altitude = {}
+
     time_gradients = {}
 
     for telescope_id, dl1 in event.dl1.tel.items():
@@ -69,8 +70,6 @@ for event in event_source:
 
         # store parameters for stereo reconstruction
         hillas_containers[telescope_id] = hillas_c
-        pointing_azimuth[telescope_id] = event.mc.tel[telescope_id].azimuth_raw * u.rad
-        pointing_altitude[telescope_id] = event.mc.tel[telescope_id].altitude_raw * u.rad
 
         # store timegradients for plotting
         # ASTRI has no timing in PROD3b, so we use skewness instead
@@ -87,12 +86,15 @@ for event in event_source:
     # ignore events with less than two telescopes
     if len(hillas_containers) < 2:
         continue
-
+    array_pointing = SkyCoord(
+        az=event.mcheader.run_array_direction[0],
+        alt=event.mcheader.run_array_direction[1],
+        frame=horizon_frame
+    )
     stereo = reco.predict(
         hillas_containers,
         event.inst,
-        pointing_alt=pointing_altitude,
-        pointing_az=pointing_azimuth
+        array_pointing,
     )
 
     plt.figure()

@@ -5,8 +5,8 @@ import pytest
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import event_source
-from ctapipe.reco.HillasReconstructor import (
-    HillasReconstructor, HillasPlane, InvalidWidthException, TooFewTelescopesException)
+from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
+from ctapipe.reco.reco_algorithms import TooFewTelescopesException, InvalidWidthException
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
 
@@ -92,25 +92,30 @@ def test_reconstruction():
     • position fit
 
     in the end, proper units in the output are asserted """
-
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
-    fit = HillasReconstructor()
-
-    tel_azimuth = {}
-    tel_altitude = {}
-
     source = event_source(filename, max_events=10)
+    horizon_frame = AltAz()
+
+    reconstructed_events = 0
 
     for event in source:
+        array_pointing = SkyCoord(
+            az=event.mc.az,
+            alt=event.mc.alt,
+            frame=horizon_frame
+        )
 
         hillas_dict = {}
+        telescope_pointings = {}
+
         for tel_id in event.dl0.tels_with_data:
 
             geom = event.inst.subarray.tel[tel_id].camera
-            tel_azimuth[tel_id] = event.mc.tel[tel_id].azimuth_raw * u.rad
-            tel_altitude[tel_id] = event.mc.tel[tel_id].altitude_raw * u.rad
 
+            telescope_pointings[tel_id] = SkyCoord(alt=event.mc.tel[tel_id].altitude_raw * u.rad,
+                                                   az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+                                                   frame=horizon_frame)
             pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
 
             mask = tailcuts_clean(geom, pmt_signal,
@@ -126,14 +131,25 @@ def test_reconstruction():
 
         if len(hillas_dict) < 2:
             continue
+        else:
+            reconstructed_events += 1
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_azimuth, tel_altitude)
+        # The three reconstructions below gives the same results
+        fit = HillasReconstructor()
+        fit_result_parall = fit.predict(hillas_dict, event.inst, array_pointing)
 
-        print(fit_result)
-        fit_result.alt.to(u.deg)
-        fit_result.az.to(u.deg)
-        fit_result.core_x.to(u.m)
-        assert fit_result.is_valid
+        fit = HillasReconstructor()
+        fit_result_tel_point = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+
+        for key in fit_result_parall.keys():
+            print(key, fit_result_parall[key], fit_result_tel_point[key])
+
+        fit_result_parall.alt.to(u.deg)
+        fit_result_parall.az.to(u.deg)
+        fit_result_parall.core_x.to(u.m)
+        assert fit_result_parall.is_valid
+
+    assert reconstructed_events > 0
 
 
 def test_invalid_events():
