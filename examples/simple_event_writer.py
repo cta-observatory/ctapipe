@@ -38,18 +38,23 @@ class SimpleEventWriter(Tool):
     def setup(self):
         self.log.info('Configure EventSource...')
 
-        self.event_source = EventSource.from_config(
-            config=self.config,
-            parent=self
-        )
-        self.event_source.allowed_tels = self.config['Analysis']['allowed_tels']
-
-        self.calibrator = CameraCalibrator(
-            parent=self
+        self.event_source = self.add_component(
+            EventSource.from_config(
+                config=self.config,
+                parent=self
+            )
         )
 
-        self.writer = HDF5TableWriter(
-            filename=self.outfile, group_name='image_infos', overwrite=True
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self)
+        )
+
+        self.writer = self.add_component(
+            HDF5TableWriter(
+                filename=self.outfile,
+                group_name='image_infos',
+                overwrite=True
+            )
         )
 
         # Define Pre-selection for images
@@ -86,7 +91,7 @@ class SimpleEventWriter(Tool):
                 dl1_tel = event.dl1.tel[tel_id]
 
                 # Image cleaning
-                image = dl1_tel.image[0]  # Waiting for automatic gain selection
+                image = dl1_tel.image  # Waiting for automatic gain selection
                 mask = tailcuts_clean(camera, image, picture_thresh=10, boundary_thresh=5)
                 cleaned = image.copy()
                 cleaned[~mask] = 0

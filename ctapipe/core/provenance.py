@@ -12,12 +12,12 @@ import platform
 import sys
 import uuid
 from contextlib import contextmanager
-from os.path import abspath
 from importlib import import_module
-from pkg_resources import get_distribution
+from os.path import abspath
 
 import psutil
 from astropy.time import Time
+from pkg_resources import get_distribution
 
 import ctapipe
 from .support import Singleton
@@ -157,7 +157,13 @@ class Provenance(metaclass=Singleton):
     def as_json(self, **kwargs):
         """ return all finished provenance as JSON.  Kwargs for `json.dumps`
         may be included, e.g. `indent=4`"""
-        return json.dumps(self.provenance, **kwargs)
+
+        def set_default(obj):
+            """ handle sets (not part of JSON) by converting to list"""
+            if isinstance(obj, set):
+                return list(obj)
+
+        return json.dumps(self.provenance, default=set_default, **kwargs)
 
     @property
     def active_activity_names(self):

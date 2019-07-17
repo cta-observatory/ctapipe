@@ -41,8 +41,8 @@ for event in event_source:
     for telescope_id, dl1 in event.dl1.tel.items():
         camera = event.inst.subarray.tels[telescope_id].camera
 
-        image = dl1.image[0]
-        peakpos = dl1.peakpos[0]
+        image = dl1.image
+        peakpos = dl1.pulse_time
 
         # cleaning
         boundary, picture, min_neighbors = cleaning_level[camera.cam_id]

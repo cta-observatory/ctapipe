@@ -95,7 +95,7 @@ def test_array_display():
     timing_rot20 = timing_parameters(
         geom,
         image=ones(geom.n_pixels),
-        peakpos=intercept + grad * geom.pix_x.value,
+        pulse_time=intercept + grad * geom.pix_x.value,
         hillas_parameters=hillas,
     )
     gradient_dict = {

@@ -94,7 +94,7 @@ if __name__ == '__main__':
             camgeom = subarray.tel[tel_id].camera
 
             # note the [0] is for channel 0 which is high-gain channel
-            image = event.dl1.tel[tel_id].image[0]
+            image = event.dl1.tel[tel_id].image
 
             # Cleaning  of the image
             cleaned_image = image.copy()

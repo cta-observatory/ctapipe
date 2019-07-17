@@ -11,12 +11,13 @@ import warnings
 from .telescope_frame import TelescopeFrame
 from .nominal_frame import NominalFrame
 from .ground_frames import GroundFrame, TiltedGroundFrame, project_to_ground
-from .camera_frame import CameraFrame
+from .camera_frame import CameraFrame, EngineeringCameraFrame
 
 
 __all__ = [
     'TelescopeFrame',
     'CameraFrame',
+    'EngineeringCameraFrame',
     'NominalFrame',
     'GroundFrame',
     'TiltedGroundFrame',

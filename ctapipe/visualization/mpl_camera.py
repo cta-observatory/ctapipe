@@ -94,10 +94,9 @@ class CameraDisplay:
             cmap=None,
             allow_pick=False,
             autoupdate=True,
-            autoscale=True
+            autoscale=True,
     ):
         self.axes = ax if ax is not None else plt.gca()
-        self.geom = geometry
         self.pixels = None
         self.colorbar = None
         self.autoupdate = autoupdate
@@ -105,6 +104,8 @@ class CameraDisplay:
         self._active_pixel = None
         self._active_pixel_label = None
         self._axes_overlays = []
+
+        self.geom = geometry
 
         if title is None:
             title = geometry.cam_id
@@ -117,25 +118,25 @@ class CameraDisplay:
         if not hasattr(self.geom, "mask"):
             self.geom.mask = np.ones_like(self.geom.pix_x.value, dtype=bool)
 
-        for xx, yy, aa in zip(
-                u.Quantity(self.geom.pix_x[self.geom.mask]).value,
-                u.Quantity(self.geom.pix_y[self.geom.mask]).value,
-                u.Quantity(np.array(self.geom.pix_area)[self.geom.mask]).value):
+        pix_x = self.geom.pix_x.value[self.geom.mask]
+        pix_y = self.geom.pix_y.value[self.geom.mask]
+        pix_area = self.geom.pix_area.value[self.geom.mask]
 
+        for x, y, area in zip(pix_x, pix_y, pix_area):
             if self.geom.pix_type.startswith("hex"):
-                rr = sqrt(aa * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
+                r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
                 poly = RegularPolygon(
-                    (xx, yy), 6, radius=rr,
-                    orientation=self.geom.pix_rotation.rad,
+                    (x, y), 6, radius=r,
+                    orientation=self.geom.pix_rotation.to_value(u.rad),
                     fill=True,
                 )
             else:
-                rr = sqrt(aa) + PIXEL_EPSILON
+                r = sqrt(area) + PIXEL_EPSILON
                 poly = Rectangle(
-                    (xx - rr / 2., yy - rr / 2.),
-                    width=rr,
-                    height=rr,
-                    angle=self.geom.pix_rotation.deg,
+                    (x - r / 2, y - r / 2),
+                    width=r,
+                    height=r,
+                    angle=self.geom.pix_rotation.to_value(u.deg),
                     fill=True,
                 )
 

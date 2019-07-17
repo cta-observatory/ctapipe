@@ -28,9 +28,9 @@ class BokehEventViewerCamera(CameraDisplay):
         self._view_options = {
             'r0': lambda e, t, c, time: e.r0.tel[t].waveform[c, :, time],
             'r1': lambda e, t, c, time: e.r1.tel[t].waveform[c, :, time],
-            'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[c, :, time],
-            'dl1': lambda e, t, c, time: e.dl1.tel[t].image[c, :],
-            'pulse_time': lambda e, t, c, time: e.dl1.tel[t].pulse_time[c, :],
+            'dl0': lambda e, t, c, time: e.dl0.tel[t].waveform[:, time],
+            'dl1': lambda e, t, c, time: e.dl1.tel[t].image[:],
+            'pulse_time': lambda e, t, c, time: e.dl1.tel[t].pulse_time[:],
         }
 
         self.w_view = None
@@ -177,7 +177,7 @@ class BokehEventViewerWaveform(WaveformDisplay):
         self._view_options = {
             'r0': lambda e, t, c, p: e.r0.tel[t].waveform[c, p],
             'r1': lambda e, t, c, p: e.r1.tel[t].waveform[c, p],
-            'dl0': lambda e, t, c, p: e.dl0.tel[t].waveform[c, p],
+            'dl0': lambda e, t, c, p: e.dl0.tel[t].waveform[p],
         }
 
         self.w_view = None

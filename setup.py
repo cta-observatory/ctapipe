@@ -49,6 +49,7 @@ setup(name=PACKAGENAME,
       packages=find_packages(),
       version=package.version.get_version(pep440=True),
       description=DESCRIPTION,
+      python_requires='>=3.6',
       # these should be minimum list of what is needed to run (note
       # don't need to list the sub-dependencies like numpy, since
       # astropy already depends on it)
@@ -66,7 +67,7 @@ setup(name=PACKAGENAME,
           'pandas',
           'bokeh>=1.0.1',
           'scikit-learn',
-          'eventio~=0.18',
+          'eventio~=0.20.1',
       ],
       tests_require=[
           'pytest',
