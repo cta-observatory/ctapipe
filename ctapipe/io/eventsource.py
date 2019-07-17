@@ -3,10 +3,12 @@ Handles reading of different event/waveform containing files
 """
 from abc import abstractmethod
 from os.path import exists
+
 from traitlets import Unicode, Int, Set, TraitError
+from traitlets.config.loader import LazyConfigValue
+
 from ctapipe.core import Component, non_abstract_children
 from ctapipe.core import Provenance
-from traitlets.config.loader import LazyConfigValue
 from ctapipe.core.plugins import detect_and_import_io_plugins
 
 __all__ = [

@@ -38,7 +38,7 @@ with event_source(input_url=input_url) as source:
         for tel_id, dl1 in event.dl1.tel.items():
             camera = event.inst.subarray.tels[tel_id].camera
             focal_length = event.inst.subarray.tels[tel_id].optics.equivalent_focal_length
-            image = dl1.image[0]
+            image = dl1.image
 
             # telescope mc info
             mc_tel = event.mc.tel[tel_id]

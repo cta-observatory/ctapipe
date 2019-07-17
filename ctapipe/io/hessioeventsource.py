@@ -247,7 +247,5 @@ class HESSIOEventSource(EventSource):
             num_mirror_tiles=num_tiles,
         )
 
-        return TelescopeDescription(
-            name=telescope.name, type=telescope.type,
-            camera=camera, optics=optics,
-        )
+        return TelescopeDescription(name=telescope.name, tel_type=telescope.type,
+                                    optics=optics, camera=camera)

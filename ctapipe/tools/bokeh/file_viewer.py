@@ -1,18 +1,19 @@
 import os
-from bokeh.layouts import widgetbox, layout
-from bokeh.models import Select, TextInput, PreText, Button
-from bokeh.server.server import Server
+
 from bokeh.document.document import jinja2
+from bokeh.layouts import layout, widgetbox
+from bokeh.models import Button, PreText, Select, TextInput
+from bokeh.server.server import Server
 from bokeh.themes import Theme
-from traitlets import Dict, List, Int, Bool
+from traitlets import Bool, Dict, Int, List
+
 from ctapipe.calib import CameraCalibrator
-from ctapipe.core import Tool
+from ctapipe.core import Tool, traits
 from ctapipe.image.extractor import ImageExtractor
 from ctapipe.io import EventSource
 from ctapipe.io.eventseeker import EventSeeker
 from ctapipe.plotting.bokeh_event_viewer import BokehEventViewer
 from ctapipe.utils import get_dataset_path
-import ctapipe.utils.tools as tool_utils
 
 
 class BokehFileViewer(Tool):
@@ -27,7 +28,7 @@ class BokehFileViewer(Tool):
     default_url = get_dataset_path("gamma_test_large.simtel.gz")
     EventSource.input_url.default_value = default_url
 
-    extractor_product = tool_utils.enum_trait(
+    extractor_product = traits.enum_trait(
         ImageExtractor,
         default='NeighborPeakWindowSum'
     )
@@ -43,7 +44,7 @@ class BokehFileViewer(Tool):
     classes = List(
         [
             EventSource,
-        ] + tool_utils.classes_with_traits(ImageExtractor)
+        ] + traits.classes_with_traits(ImageExtractor)
     )
 
     def __init__(self, **kwargs):
@@ -73,6 +74,8 @@ class BokehFileViewer(Tool):
         self.viewer = None
 
         self._updating_dl1 = False
+        # make sure, gzip files are seekable
+        self.config.SimTelEventSource.back_seekable = True
 
     def setup(self):
         self.log_format = "%(levelname)s: %(message)s [%(name)s.%(funcName)s]"

@@ -17,7 +17,7 @@ from tqdm import tqdm
 from ctapipe.calib import CameraCalibrator
 from ctapipe.core import Tool
 from ctapipe.core.traits import Float, Dict, List
-from ctapipe.core.traits import Unicode, Int, Integer, Bool
+from ctapipe.core.traits import Unicode, Int, Bool
 from ctapipe.image import (
     tailcuts_clean, hillas_parameters, HillasParameterizationError
 )
@@ -31,9 +31,6 @@ class SingleTelEventDisplay(Tool):
 
     infile = Unicode(help="input file to read", default='').tag(config=True)
     tel = Int(help='Telescope ID to display', default=0).tag(config=True)
-    channel = Integer(
-        help="channel number to display", min=0, max=1
-    ).tag(config=True)
     write = Bool(
         help="Write out images to PNG files", default=False
     ).tag(config=True)
@@ -56,7 +53,6 @@ class SingleTelEventDisplay(Tool):
         'infile': 'SingleTelEventDisplay.infile',
         'tel': 'SingleTelEventDisplay.tel',
         'max-events': 'EventSource.max_events',
-        'channel': 'SingleTelEventDisplay.channel',
         'write': 'SingleTelEventDisplay.write',
         'clean': 'SingleTelEventDisplay.clean',
         'hillas': 'SingleTelEventDisplay.hillas',
@@ -73,10 +69,14 @@ class SingleTelEventDisplay(Tool):
 
     def setup(self):
         print('TOLLES INFILE', self.infile)
-        self.event_source = EventSource.from_url(self.infile, parent=self)
+        self.event_source = self.add_component(
+            EventSource.from_url(self.infile, parent=self)
+        )
         self.event_source.allowed_tels = {self.tel, }
 
-        self.calibrator = CameraCalibrator(parent=self)
+        self.calibrator = self.add_component(
+            CameraCalibrator(parent=self)
+        )
 
         self.log.info(f'SELECTING EVENTS FROM TELESCOPE {self.tel}')
 
@@ -114,7 +114,7 @@ class SingleTelEventDisplay(Tool):
 
             if self.samples:
                 # display time-varying event
-                data = event.dl0.tel[self.tel].waveform[self.channel]
+                data = event.dl0.tel[self.tel].waveform
                 for ii in range(data.shape[1]):
                     disp.image = data[:, ii]
                     disp.set_limits_percent(70)
@@ -128,7 +128,7 @@ class SingleTelEventDisplay(Tool):
                         )
             else:
                 # display integrated event:
-                im = event.dl1.tel[self.tel].image[self.channel]
+                im = event.dl1.tel[self.tel].image
 
                 if self.clean:
                     mask = tailcuts_clean(

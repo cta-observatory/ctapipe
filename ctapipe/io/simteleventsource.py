@@ -17,6 +17,8 @@ from traitlets import Bool
 
 from eventio.simtel.simtelfile import SimTelFile
 from eventio.file_types import is_eventio
+from gzip import GzipFile
+from io import BufferedReader
 
 __all__ = ['SimTelEventSource']
 
@@ -51,6 +53,14 @@ def build_camera_geometry(cam_settings, telescope):
 
 class SimTelEventSource(EventSource):
     skip_calibration_events = Bool(True, help='Skip calibration events').tag(config=True)
+    back_seekable = Bool(
+        False,
+        help=(
+            'Require the event source to be backwards seekable.'
+            ' This will reduce in slower read speed for gzipped files'
+            ' and is not possible for zstd compressed files'
+        )
+    ).tag(config=True)
 
     def __init__(self, config=None, parent=None, **kwargs):
         super().__init__(config=config, parent=parent, **kwargs)
@@ -63,15 +73,28 @@ class SimTelEventSource(EventSource):
         # so we explicitly pass None in that case
         self.file_ = SimTelFile(
             self.input_url,
-            allowed_telescopes=self.allowed_tels if self.allowed_tels else None,
-            skip_calibration=self.skip_calibration_events
+            allowed_telescopes=set(self.allowed_tels) if self.allowed_tels else None,
+            skip_calibration=self.skip_calibration_events,
+            zcat=not self.back_seekable,
         )
+        if self.back_seekable and self.is_stream:
+            raise IOError('back seekable was required but not possible for inputfile')
 
         self._subarray_info = self.prepare_subarray_info(
             self.file_.telescope_descriptions,
             self.file_.header
         )
         self.start_pos = self.file_.tell()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self.file_.close()
+
+    @property
+    def is_stream(self):
+        return not isinstance(self.file_._filehandle, (BufferedReader, GzipFile))
 
     def prepare_subarray_info(self, telescope_descriptions, header):
         """
@@ -118,12 +141,9 @@ class SimTelEventSource(EventSource):
                 num_mirror_tiles=cam_settings['n_mirrors'],
             )
 
-            tel_descriptions[tel_id] = TelescopeDescription(
-                name=telescope.name,
-                type=telescope.type,
-                camera=camera,
-                optics=optics,
-            )
+            tel_descriptions[tel_id] = TelescopeDescription(name=telescope.name,
+                                                            tel_type=telescope.type,
+                                                            optics=optics, camera=camera)
 
             tel_idx = np.where(header['tel_id'] == tel_id)[0][0]
             tel_positions[tel_id] = header['tel_pos'][tel_idx] * u.m
