@@ -1,6 +1,5 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 from .fitshistogram import Histogram
-from .json2fits import json_to_fits
 from .table_interpolator import TableInterpolator
 from .unstructured_interpolator import UnstructuredInterpolator
 from .datasets import (
@@ -13,7 +12,6 @@ from .CutFlow import CutFlow, PureCountingCut, UndefinedCut
 
 __all__ = [
     'Histogram',
-    'json_to_fits',
     'TableInterpolator',
     'UnstructuredInterpolator',
     'find_all_matching_datasets',
