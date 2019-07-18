@@ -683,8 +683,13 @@ class FlatFieldContainer(Container):
 
     charge_median_outliers = Field(
         None,
-        "Boolean np array of charge (median) outliers (n_chan, n_pix)"
+        "Boolean np array of charge median outliers (n_chan, n_pix)"
     )
+    charge_std_outliers = Field(
+        None,
+        "Boolean np array of charge std outliers (n_chan, n_pix)"
+    )
+
     time_median_outliers = Field(
         None,
         "Boolean np array of pixel time (median) outliers (n_chan, n_pix)"
@@ -762,6 +767,12 @@ class WaveformCalibrationContainer(Container):
         None,
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)"
     )
+
+    pedestal_per_sample = Field(
+        None,
+        "np array of average pedestal value per sample (digital count) (n_chan, n_pix)"
+    )
+
 
     time_correction = Field(
         None,
