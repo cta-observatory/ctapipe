@@ -768,6 +768,12 @@ class WaveformCalibrationContainer(Container):
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)"
     )
 
+    pedestal_per_sample = Field(
+        None,
+        "np array of average pedestal value per sample (digital count) (n_chan, n_pix)"
+    )
+
+
     time_correction = Field(
         None,
         "np array of time correction values (n_chan, n_pix)"
