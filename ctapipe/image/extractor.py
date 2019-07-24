@@ -78,16 +78,46 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
             ret[0] += waveforms[sample]
 
 
-@njit([
-    float64[:, :](float64[:, :], int64[:, :], int64),
-    float64[:, :](float64[:, :], int32[:, :], int64),
-    float64[:, :](float32[:, :], int32[:, :], int64),
-    float64[:, :](float32[:, :], int64[:, :], int64),
-    float64[:, :, :](float64[:, :, :], int64[:, :], int64),  # TODO: deprecate
-    float64[:, :, :](float64[:, :, :], int32[:, :], int64),  # TODO: deprecate
-    float64[:, :, :](float32[:, :, :], int32[:, :], int64),  # TODO: deprecate
-    float64[:, :, :](float32[:, :, :], int64[:, :], int64),  # TODO: deprecate
-], parallel=True)
+@njit(parallel=True)
+def neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt):
+    """
+    # TODO: deprecate
+    Obtain the average waveform built from the neighbors of each pixel
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_chan, n_pix, n_samples)
+    neighbors : ndarray
+        2D array where each row is [pixel index, one neighbor of that pixel].
+        Changes per telescope.
+        Can be obtained from
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
+    lwt: int
+        Weight of the local pixel (0: peak from neighbors only,
+        1: local pixel counts as much as any neighbor)
+
+    Returns
+    -------
+    average_wf : ndarray
+        Average of neighbor waveforms for each pixel.
+        Shape: (n_pix, n_samples)
+
+    """
+    n_neighbors = neighbors.shape[0]
+    sum_ = waveforms * lwt
+    n = np.zeros(waveforms.shape, dtype=np.int32)
+    for i in prange(n_neighbors):
+        pixel = neighbors[i, 0]
+        neighbor = neighbors[i, 1]
+        for channel in range(waveforms.shape[0]):
+            sum_[channel, pixel] += waveforms[channel, neighbor]
+            n[channel, pixel] += 1
+    return sum_ / n
+
+
+@njit(parallel=True)
 def neighbor_average_waveform_jit(waveforms, neighbors, lwt):
     """
     Obtain the average waveform built from the neighbors of each pixel
@@ -113,22 +143,9 @@ def neighbor_average_waveform_jit(waveforms, neighbors, lwt):
         Shape: (n_pix, n_samples)
 
     """
-    # TODO: deprecate
-    if waveforms.ndim == 3:
-        n_neighbors = neighbors.shape[0]
-        sum_ = waveforms * lwt
-        n = np.zeros(waveforms.shape)
-        for i in prange(n_neighbors):
-            pixel = neighbors[i, 0]
-            neighbor = neighbors[i, 1]
-            for channel in range(waveforms.shape[0]):
-                sum_[channel, pixel] += waveforms[channel, neighbor]
-                n[channel, pixel] += 1
-        return sum_ / n
-
     n_neighbors = neighbors.shape[0]
     sum_ = waveforms * lwt
-    n = np.zeros(waveforms.shape)
+    n = np.zeros(waveforms.shape, dtype=np.int32)
     for i in prange(n_neighbors):
         pixel = neighbors[i, 0]
         neighbor = neighbors[i, 1]
@@ -146,6 +163,7 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
             "This will raise an error in future versions.",
             DeprecationWarning
         )
+        return neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt)
     return neighbor_average_waveform_jit(waveforms, neighbors, lwt)
 
 
