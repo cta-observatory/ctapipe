@@ -4,15 +4,10 @@ channels:
   - cta-observatory
 dependencies:
   - python=3.6 # nail the python version, so conda does not try upgrading / dowgrading
-  - zeromq
-  - pyzmq>=17  # needed for correct function of notebooks on OSX
   - astropy
   - bokeh
   - cython
-  - conda-forge::gammapy
   - graphviz
-  - h5py
-  - iminuit
   - ipython
   - ipywidgets
   - jupyter
