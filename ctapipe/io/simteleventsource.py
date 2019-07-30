@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 from ctapipe.io.eventsource import EventSource
-from ctapipe.io.containers import DataContainer
+from ctapipe.io.containers import EventAndMonDataContainer
 from astropy import units as u
 from astropy.coordinates import Angle
 from astropy.time import Time
@@ -173,7 +173,7 @@ class SimTelEventSource(EventSource):
             warnings.warn(msg)
 
     def __generator(self):
-        data = DataContainer()
+        data = EventAndMonDataContainer()
         data.meta['origin'] = 'hessio'
         data.meta['input_url'] = self.input_url
         data.meta['max_events'] = self.max_events
