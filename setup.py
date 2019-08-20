@@ -40,7 +40,6 @@ entry_points['console_scripts'] = [
     'ctapipe-reconstruct-muons = ctapipe.tools.muon_reconstruction:main',
     'ctapipe-display-integration = ctapipe.tools.display_integrator:main',
     'ctapipe-display-dl1 = ctapipe.tools.display_dl1:main',
-
 ]
 
 package.version.update_release_version()
@@ -55,23 +54,26 @@ setup(name=PACKAGENAME,
       # astropy already depends on it)
       install_requires=[
           'astropy~=3.0',
-          'iminuit',
-          'numpy',
-          'scipy>=0.19',
-          'tables',
-          'tqdm',
-          'traitlets',
+          'bokeh~=1.0',
+          'eventio>=0.20.1,<0.21',
+          'iminuit>=1.3',
+          'matplotlib~=3.0',
+          'numba>=0.43',
+          'numpy~=1.11',
+          'pandas>=0.24.0',
           'psutil',
-          'matplotlib>=2.0',
-          'numba',
-          'pandas',
-          'bokeh>=1.0.1',
           'scikit-learn',
-          'eventio~=0.20.1',
+          'scipy~=1.2',
+          'tables~=3.4',
+          'tqdm>=4.32',
+          'traitlets>=4.1,<5.0',
       ],
+      # here are optional dependencies (as "tag" : "dependency spec")
+      extras_require={
+      },
       tests_require=[
           'pytest',
-          'ctapipe-extra>=0.2.11',
+          'ctapipe-extra>=0.2.11,<0.3',
           'pyhessio>=2.1',
       ],
       setup_requires=['pytest_runner'],
@@ -83,8 +85,6 @@ setup(name=PACKAGENAME,
       classifiers=[
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: BSD License',
-          'Programming Language :: C',
-          'Programming Language :: Cython',
           'Programming Language :: Python :: 3',
           'Programming Language :: Python :: Implementation :: CPython',
           'Topic :: Scientific/Engineering :: Astronomy',
