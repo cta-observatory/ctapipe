@@ -2,10 +2,10 @@
 Container structures for data that should be read or written to disk
 """
 
+import numpy as np
 from astropy import units as u
 from astropy.time import Time
 from numpy import nan
-import numpy as np
 
 from ..core import Container, Field, Map
 from ..instrument import SubarrayDescription
@@ -44,7 +44,27 @@ __all__ = [
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "EventAndMonDataContainer",
+    "EventIndexContainer",
+    "TelEventIndexContainer",
+    "ImageParametersContainer",
 ]
+
+
+class EventIndexContainer(Container):
+    """ index columns to include in event lists """
+
+    container_prefix = ""  # don't want to prefix these
+
+    event_id = Field(0, "event identifier")
+    obs_id = Field(0, "observation identifier")
+
+
+class TelEventIndexContainer(EventIndexContainer):
+    """ index columns to include in telescope-wise event lists """
+
+    container_prefix = ""  # don't want to prefix these
+
+    tel_id = Field(0, "telescope identifier")
 
 
 class SST1MCameraContainer(Container):
@@ -653,6 +673,7 @@ class TimingParametersContainer(Container):
 
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
+
     container_prefix = "params"
     hillas = Field(HillasParametersContainer(), "Hillas Parameters")
     timing = Field(TimingParametersContainer(), "Timing Parameters")
