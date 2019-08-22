@@ -45,6 +45,6 @@ def leakage(geom, image, cleaning_mask):
     return LeakageContainer(
         one_pixel_percent=leakage_pixel1 / geom.n_pixels,
         two_pixel_percent=leakage_pixel2 / geom.n_pixels,
-        one_intensity=leakage_intensity1 / size,
-        two_intensity=leakage_intensity2 / size,
+        one_pixel_intensity=leakage_intensity1 / size,
+        two_pixel_intensity=leakage_intensity2 / size,
     )
