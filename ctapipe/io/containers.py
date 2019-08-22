@@ -651,6 +651,15 @@ class TimingParametersContainer(Container):
     )
 
 
+class ImageParametersContainer(Container):
+    """ Collection of image parameters """
+    container_prefix = "params"
+    hillas = Field(HillasParametersContainer(), "Hillas Parameters")
+    timing = Field(TimingParametersContainer(), "Timing Parameters")
+    leakage = Field(LeakageContainer(), "Leakage Parameters")
+    concentration = Field(ConcentrationContainer(), "Concentration Parameters")
+
+
 class FlatFieldContainer(Container):
     """
     Container for flat-field parameters obtained from a set of
