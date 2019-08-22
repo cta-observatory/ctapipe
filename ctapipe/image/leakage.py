@@ -6,11 +6,11 @@ import numpy as np
 from ..io.containers import LeakageContainer
 
 
-__all__ = ['leakage']
+__all__ = ["leakage"]
 
 
 def leakage(geom, image, cleaning_mask):
-    '''
+    """
     Calculating the leakage-values for a given image.
     Image must be cleaned for example with tailcuts_clean.
     Leakage describes how strong a shower is on the edge of a telescope.
@@ -27,7 +27,7 @@ def leakage(geom, image, cleaning_mask):
     Returns
     -------
     LeakageContainer
-    '''
+    """
     border1 = geom.get_border_pixel_mask(1)
     border2 = geom.get_border_pixel_mask(2)
 
@@ -43,8 +43,8 @@ def leakage(geom, image, cleaning_mask):
     size = np.sum(image[cleaning_mask])
 
     return LeakageContainer(
-        leakage1_pixel=leakage_pixel1 / geom.n_pixels,
-        leakage2_pixel=leakage_pixel2 / geom.n_pixels,
-        leakage1_intensity=leakage_intensity1 / size,
-        leakage2_intensity=leakage_intensity2 / size,
+        one_pixel_percent=leakage_pixel1 / geom.n_pixels,
+        two_pixel_percent=leakage_pixel2 / geom.n_pixels,
+        one_intensity=leakage_intensity1 / size,
+        two_intensity=leakage_intensity2 / size,
     )
