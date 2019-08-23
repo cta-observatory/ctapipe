@@ -65,6 +65,7 @@ class TelEventIndexContainer(EventIndexContainer):
     container_prefix = ""  # don't want to prefix these
 
     tel_id = Field(0, "telescope identifier")
+    tel_type_id = Field(0, "telescope type id number")
 
 
 class SST1MCameraContainer(Container):
