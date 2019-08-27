@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask):
+def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=None):
     """
     Function to extract timing parameters from a cleaned image.
 
@@ -27,7 +27,7 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask)
         Time of the pulse extracted from each pixels waveform
     hillas_parameters: ctapipe.io.containers.HillasParametersContainer
         Result of hillas_parameters
-    cleaning_mask: array, dtype=bool
+    cleaning_mask: optionnal, array, dtype=bool
         The pixels that survived cleaning, e.g. tailcuts_clean
         The non-masked pixels must verify signal > 0
 
@@ -36,7 +36,10 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask)
     timing_parameters: TimingParametersContainer
     """
 
-    assert (image[cleaning_mask] >= 0).all(), "The non-masked pixels must verify signal > 0"
+    cleaning_mask = np.ones(image.shape, dtype=bool) if cleaning_mask is None else cleaning_mask
+
+    if (image[cleaning_mask] < 0).any():
+        raise ValueError("The non-masked pixels must verify signal >= 0")
 
     unit = geom.pix_x.unit
 
