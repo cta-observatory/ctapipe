@@ -36,9 +36,11 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=
     timing_parameters: TimingParametersContainer
     """
 
-    cleaning_mask = np.ones(image.shape, dtype=bool) if cleaning_mask is None else cleaning_mask
+    if cleaning_mask is not None:
+        image = image[cleaning_mask]
+        geom = geom[cleaning_mask]
 
-    if (image[cleaning_mask] < 0).any():
+    if (image < 0).any():
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
     unit = geom.pix_x.unit
