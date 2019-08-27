@@ -36,19 +36,18 @@ def timing_parameters(geom, image, pulse_time, hillas_parameters, cleaning_mask=
     timing_parameters: TimingParametersContainer
     """
 
+    unit = geom.pix_x.unit
+
     if cleaning_mask is not None:
         image = image[cleaning_mask]
         geom = geom[cleaning_mask]
+        pulse_time = pulse_time[cleaning_mask]
 
     if (image < 0).any():
         raise ValueError("The non-masked pixels must verify signal >= 0")
 
-    unit = geom.pix_x.unit
-
-    pix_x = geom.pix_x[cleaning_mask]
-    pix_y = geom.pix_y[cleaning_mask]
-    image = image[cleaning_mask]
-    pulse_time = pulse_time[cleaning_mask]
+    pix_x = geom.pix_x
+    pix_y = geom.pix_y
 
     longi, trans = camera_to_shower_coordinates(
         pix_x,
