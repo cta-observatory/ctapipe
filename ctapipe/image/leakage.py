@@ -43,8 +43,8 @@ def leakage(geom, image, cleaning_mask):
     size = np.sum(image[cleaning_mask])
 
     return LeakageContainer(
-        one_pixel_percent=leakage_pixel1 / geom.n_pixels,
-        two_pixel_percent=leakage_pixel2 / geom.n_pixels,
-        one_pixel_intensity=leakage_intensity1 / size,
-        two_pixel_intensity=leakage_intensity2 / size,
+        percent_1pix=leakage_pixel1 / geom.n_pixels,
+        percent_2pix=leakage_pixel2 / geom.n_pixels,
+        intensity_1pix=leakage_intensity1 / size,
+        intensity_2pix=leakage_intensity2 / size,
     )
