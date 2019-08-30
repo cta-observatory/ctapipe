@@ -27,6 +27,7 @@ def test_psi_0():
         image=np.ones(geom.n_pixels),
         pulse_time=pulse_time,
         hillas_parameters=hillas,
+        cleaning_mask=np.ones(geom.n_pixels, dtype=bool)
     )
 
     # Test we get the values we put in back out again
@@ -56,6 +57,7 @@ def test_psi_20():
         image=np.ones(geom.n_pixels),
         pulse_time=pulse_time,
         hillas_parameters=hillas,
+        cleaning_mask=np.ones(geom.n_pixels, dtype=bool)
     )
 
     # Test we get the values we put in back out again
@@ -79,11 +81,14 @@ def test_ignore_negative():
     image = np.ones(geom.n_pixels)
     image[5:10] = -1.0
 
+    cleaning_mask = image >= 0
+
     timing = timing_parameters(
         geom,
         image,
         pulse_time=pulse_time,
         hillas_parameters=hillas,
+        cleaning_mask=cleaning_mask,
     )
 
     # Test we get the values we put in back out again

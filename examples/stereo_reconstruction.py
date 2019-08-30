@@ -65,7 +65,7 @@ for event in event_source:
         n_islands, island_ids = number_of_islands(camera, clean)
 
         timing_c = timing_parameters(
-            camera[clean], image[clean], peakpos[clean], hillas_c
+            camera[clean], image[clean], peakpos[clean], hillas_c, clean,
         )
 
         # store parameters for stereo reconstruction
