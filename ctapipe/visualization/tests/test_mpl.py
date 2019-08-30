@@ -97,6 +97,7 @@ def test_array_display():
         image=ones(geom.n_pixels),
         pulse_time=intercept + grad * geom.pix_x.value,
         hillas_parameters=hillas,
+        cleaning_mask=ones(geom.n_pixels, dtype=bool)
     )
     gradient_dict = {
         1: timing_rot20.slope.value,
