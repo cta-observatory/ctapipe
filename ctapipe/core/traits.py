@@ -15,6 +15,7 @@ from traitlets import (
     Unicode,
     observe,
     Set,
+    CRegExp,
 )
 from traitlets.config import boolean_flag as flag
 
@@ -44,20 +45,21 @@ __all__ = [
 
 
 class Path(TraitType):
+    """
+    A path Trait for input/output files.
+
+    Parameters
+    ----------
+    exists: boolean or None
+        If True, path must exist, if False path must not exist
+
+    directory_ok: boolean
+        If False, path must not be a directory
+    file_ok: boolean
+        If False, path must not be a file
+    """
+
     def __init__(self, exists=None, directory_ok=True, file_ok=True):
-        """
-        A path Trait for input/output files.
-
-        Parameters
-        ----------
-        exists: boolean or None
-            If True, path must exist, if False path must not exist
-
-        directory_ok: boolean
-            If False, path must not be a directory
-        file_ok: boolean
-            If False, path must not be a file
-        """
         super().__init__()
         self.exists = exists
         self.directory_ok = directory_ok

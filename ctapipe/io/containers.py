@@ -784,17 +784,20 @@ class PixelStatusContainer(Container):
 
     hardware_failing_pixels = Field(
         None,
-        "Boolean np array (True = failing pixel) from the hardware pixel status data (n_chan, n_pix)",
+        "Boolean np array (True = failing pixel) from the hardware pixel status data ("
+        "n_chan, n_pix)",
     )
 
     pedestal_failing_pixels = Field(
         None,
-        "Boolean np array (True = failing pixel) from the pedestal data analysis (n_chan, n_pix)",
+        "Boolean np array (True = failing pixel) from the pedestal data analysis ("
+        "n_chan, n_pix)",
     )
 
     flatfield_failing_pixels = Field(
         None,
-        "Boolean np array (True = failing pixel) from the flat-field data analysis (n_chan, n_pix)",
+        "Boolean np array (True = failing pixel) from the flat-field data analysis ("
+        "n_chan, n_pix)",
     )
 
 
@@ -815,7 +818,7 @@ class WaveformCalibrationContainer(Container):
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)",
     )
 
-    pedestal_per_sample = Field(
+    pedestal_per_sample =    Field(
         None,
         "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
     )

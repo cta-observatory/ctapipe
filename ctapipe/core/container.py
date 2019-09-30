@@ -36,7 +36,9 @@ class Field:
 
 class DeprecatedField(Field):
     """ used to mark which fields may be removed in next version """
+
     pass
+
 
 class ContainerMeta(type):
     """
