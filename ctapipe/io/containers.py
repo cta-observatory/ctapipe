@@ -7,7 +7,7 @@ from astropy import units as u
 from astropy.time import Time
 from numpy import nan
 
-from ..core import Container, Field, Map
+from ..core import Container, Field, DeprecatedField, Map
 from ..instrument import SubarrayDescription
 
 __all__ = [
@@ -36,6 +36,7 @@ __all__ = [
     "HillasParametersContainer",
     "LeakageContainer",
     "ConcentrationContainer",
+    "MorphologyContainer",
     "TimingParametersContainer",
     "FlatFieldContainer",
     "PedestalContainer",
@@ -47,11 +48,12 @@ __all__ = [
     "EventIndexContainer",
     "TelEventIndexContainer",
     "ImageParametersContainer",
+    "SimulatedShowerDistribution",
 ]
 
 
 class EventIndexContainer(Container):
-    """ index columns to include in event lists """
+    """ index columns to include in event lists, common to all data levels"""
 
     container_prefix = ""  # don't want to prefix these
 
@@ -60,12 +62,15 @@ class EventIndexContainer(Container):
 
 
 class TelEventIndexContainer(EventIndexContainer):
-    """ index columns to include in telescope-wise event lists """
+    """
+    index columns to include in telescope-wise event lists, common to all data
+    levels that have telescope-wise information
+    """
 
     container_prefix = ""  # don't want to prefix these
 
     tel_id = Field(0, "telescope identifier")
-    tel_type_id = Field(0, "telescope type id number")
+    tel_type_id = Field(0, "telescope type id number (integer)")
 
 
 class SST1MCameraContainer(Container):
@@ -157,8 +162,8 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    obs_id = Field(-1, "observation ID")
-    event_id = Field(-1, "event id number")
+    obs_id = DeprecatedField(-1, "observation ID")
+    event_id = DeprecatedField(-1, "event id number")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
@@ -192,8 +197,8 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    obs_id = Field(-1, "observation ID")
-    event_id = Field(-1, "event id number")
+    obs_id = DeprecatedField(-1, "observation ID")
+    event_id = DeprecatedField(-1, "event id number")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
@@ -222,8 +227,8 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    obs_id = Field(-1, "observation ID")
-    event_id = Field(-1, "event id number")
+    obs_id = DeprecatedField(-1, "observation ID")  # use event.index.obs_id
+    event_id = DeprecatedField(-1, "event id number")  # use event.index.event_id
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
@@ -467,6 +472,7 @@ class DataContainer(Container):
     """ Top-level container for all event information """
 
     event_type = Field("data", "Event type")
+    index = Field(EventIndexContainer(), "event indexing information")
     r0 = Field(R0Container(), "Raw Data")
     r1 = Field(R1Container(), "R1 Calibrated Data")
     dl0 = Field(DL0Container(), "DL0 Data Volume Reduced Data")
@@ -476,7 +482,9 @@ class DataContainer(Container):
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
-    inst = Field(InstrumentContainer(), "instrumental information (deprecated")
+    inst = DeprecatedField(
+        InstrumentContainer(), "instrumental information (deprecated"
+    )
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
 
 
@@ -569,9 +577,9 @@ class MuonIntensityParameter(Container):
 
     """
 
-    obs_id = Field(0, "run identification number")
-    event_id = Field(0, "event identification number")
-    tel_id = Field(0, "telescope identification number")
+    obs_id = DeprecatedField(0, "run identification number")
+    event_id = DeprecatedField(0, "event identification number")
+    tel_id = DeprecatedField(0, "telescope identification number")
     ring_completeness = Field(0.0, "fraction of ring present")
     ring_pix_completeness = Field(0.0, "fraction of pixels present in the ring")
     ring_num_pixel = Field(0, "number of pixels in the ring image")
@@ -629,7 +637,7 @@ class LeakageContainer(Container):
     intensity_1pix = Field(
         nan,
         "Intensity in photo-electrons after cleaning"
-        " that are in the camera border of width=1 pixel" ,
+        " that are in the camera border of width=1 pixel",
     )
     intensity_2pix = Field(
         nan,
@@ -670,6 +678,16 @@ class TimingParametersContainer(Container):
     )
 
 
+class MorphologyContainer(Container):
+    """ Parameters related to pixels surviving image cleaning """
+
+    num_pixels = Field(np.nan, "Number of usable pixels")
+    num_islands = Field(np.nan, "Number of distinct islands in the image")
+    num_small_islands = Field(np.nan, "Number of <= 2 pixel islands")
+    num_medium_islands = Field(np.nan, "Number of 2-50 pixel islands")
+    num_large_islands = Field(np.nan, "Number of > 10 pixel islands")
+
+
 class ImageParametersContainer(Container):
     """ Collection of image parameters """
 
@@ -678,6 +696,7 @@ class ImageParametersContainer(Container):
     timing = Field(TimingParametersContainer(), "Timing Parameters")
     leakage = Field(LeakageContainer(), "Leakage Parameters")
     concentration = Field(ConcentrationContainer(), "Concentration Parameters")
+    morphology = Field(MorphologyContainer(), "Morphology Parameters")
 
 
 class FlatFieldContainer(Container):
@@ -847,3 +866,23 @@ class EventAndMonDataContainer(DataContainer):
     """
 
     mon = Field(MonitoringContainer(), "container for monitoring data (MON)")
+
+
+class SimulatedShowerDistribution(Container):
+    """
+    2D histogram of simulated number of showers simulated as function of energy and
+    core distance.
+    """
+
+    container_prefix = ""
+
+    obs_id = Field(-1, "links to which events this corresponds to")
+    hist_id = Field(-1, "Histogram ID")
+    num_entries = Field(-1, "Number of entries in the histogram")
+    bins_energy = Field(
+        None, "array of energy bin lower edges, as in np.histogram", unit=u.TeV
+    )
+    bins_core_dist = Field(
+        None, "array of core-distance bin lower edges, as in np.histogram", unit=u.m
+    )
+    histogram = Field(None, "array of histogram entries, size (n_bins_x, n_bins_y)")
