@@ -3,7 +3,6 @@ import os
 from traitlets import (
     Bool,
     CaselessStrEnum,
-    CRegExp,
     Dict,
     Enum,
     Float,
@@ -15,6 +14,7 @@ from traitlets import (
     TraitType,
     Unicode,
     observe,
+    Set,
 )
 from traitlets.config import boolean_flag as flag
 
@@ -30,6 +30,7 @@ __all__ = [
     "Long",
     "List",
     "Bool",
+    "Set",
     "CRegExp",
     "Dict",
     "flag",
