@@ -228,6 +228,8 @@ class Tool(Application):
                 self.log.info("Output: %s", output_str)
 
             self.log.debug("PROVENANCE: '%s'", Provenance().as_json(indent=3))
+            with open("provenance.log", mode="w+") as provlog:
+                provlog.write(Provenance().as_json(indent=3))
 
     @property
     def version_string(self):
