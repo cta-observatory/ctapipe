@@ -10,8 +10,6 @@ from ctapipe import __version__ as version
 from . import Provenance
 from .logging import ColoredFormatter
 
-# logging.addLevelName()
-
 
 class ToolConfigurationError(Exception):
     def __init__(self, message):
@@ -127,7 +125,7 @@ class Tool(Application):
         self.is_setup = False
         self._registered_components = []
         self.version = version
-        self.raise_config_file_errors = True # override traitlets.Application default
+        self.raise_config_file_errors = True  # override traitlets.Application default
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
