@@ -17,5 +17,5 @@ def test_leakage():
 
     assert l.intensity_1pix == ratio1
     assert l.intensity_2pix == ratio2
-    assert l.percent_1pix == ratio1
-    assert l.percent_2pix == ratio2
+    assert l.fraction_1pix == ratio1
+    assert l.fraction_2pix == ratio2

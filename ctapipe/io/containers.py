@@ -628,11 +628,11 @@ class LeakageContainer(Container):
 
     container_prefix = "leakage"
 
-    percent_1pix = Field(
-        nan, "Percentage of pixels after cleaning that are in camera border of width=1"
+    fraction_1pix = Field(
+        nan, "fraction of pixels after cleaning that are in camera border of width=1"
     )
-    percent_2pix = Field(
-        nan, "Percentage of pixels after cleaning that are in camera border of width=2"
+    fraction_2pix = Field(
+        nan, "fraction of pixels after cleaning that are in camera border of width=2"
     )
     intensity_1pix = Field(
         nan,

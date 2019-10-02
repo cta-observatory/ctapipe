@@ -56,8 +56,8 @@ def test_prefix(tmp_path):
     )
 
     leakage_container = LeakageContainer(
-        percent_1pix=0.1,
-        percent_2pix=0.1,
+        fraction_1pix=0.1,
+        fraction_2pix=0.1,
         intensity_1pix=0.1,
         intensity_2pix=0.1,
     )
