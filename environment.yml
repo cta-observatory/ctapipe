@@ -36,6 +36,7 @@ dependencies:
   - wheel
   - xz
   - zlib
-  - eventio~=1
+  - pip:
+    - eventio~=1.0
 
 

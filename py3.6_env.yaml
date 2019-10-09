@@ -38,4 +38,5 @@ dependencies:
   - zlib
   - pyhessio=2.1
   - nbconvert>=5.4
-  - eventio~=1
+  - pip:
+    - eventio~=1.0
