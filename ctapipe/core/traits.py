@@ -138,7 +138,7 @@ class TelescopeParameter(List):
     form: `[(command, argument, value), ...]`.
 
     Command can be one of:
-    - 'default' match all telescopes,  Here argument is ignored.
+    - '*' match all telescopes,  Here argument is ignored.
     - 'type': argument is then a telescope type  string (e.g.
        `('type', 'SST_ASTRI_CHEC', 4.0)`,  to apply to all telescopes of that type
     - 'id':  argument is a specific telescope ID `['id', 89, 5.0]`)
@@ -151,7 +151,7 @@ class TelescopeParameter(List):
 
     .. code-block: python
     [
-        ('default', '', 5.0),                       # default
+        ('*', '', 5.0),                       # default
         ('type', 'LST_LST_LSTCam', 5.2,
         ('type', 'MST_MST_NectarCam', 4.0,
         ('type', 'MST_MST_FlashCam', 4.5,
