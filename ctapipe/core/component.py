@@ -1,9 +1,11 @@
 """ Class to handle configuration for algorithms """
 from abc import ABCMeta
-from logging import getLogger
 from inspect import isabstract
-from traitlets.config import Configurable
+from logging import getLogger
+
 from traitlets import TraitError
+from traitlets.config import Configurable
+
 from ctapipe.core.plugins import detect_and_import_io_plugins
 
 
@@ -31,10 +33,10 @@ def non_abstract_children(base):
 
 
 class AbstractConfigurableMeta(type(Configurable), ABCMeta):
-    '''
+    """
     Metaclass to be able to make Component abstract
     see: http://stackoverflow.com/a/7314847/3838691
-    '''
+    """
     pass
 
 
@@ -108,7 +110,8 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             if not self.has_trait(key):
                 raise TraitError(f"Traitlet does not exist: {key}")
 
-        # set up logging
+        # set up logging (for some reason the logger registered by LoggingConfig
+        # doesn't use a child logger of the parent by default)
         if self.parent:
             self.log = self.parent.log.getChild(self.__class__.__name__)
         else:
@@ -130,11 +133,11 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
             Used to set traitlet values.
             This argument is typically only specified when using this method
             from within a Tool.
-        tool : ctapipe.core.Tool
+        parent : ctapipe.core.Tool
             Tool executable that is calling this component.
-            Passes the correct logger to the component.
+            Passes the correct logger and configuration to the component.
             This argument is typically only specified when using this method
-            from within a Tool.
+            from within a Tool (config need not be passed if parent is used).
 
         Returns
         -------
@@ -149,3 +152,33 @@ class Component(Configurable, metaclass=AbstractConfigurableMeta):
         requested_subclass = subclasses[name]
 
         return requested_subclass(config=config, parent=parent)
+
+    def get_current_config(self):
+        """ return the current configuration as a dict (e.g. the values
+        of all traits, even if they were not set during configuration)
+        """
+        return {
+            self.__class__.__name__: {
+                k: v.get(self) for k, v in self.traits(config=True).items()
+            }
+        }
+
+    def _repr_html_(self):
+        """ nice HTML rep, with blue for non-default values"""
+        traits = self.traits()
+        name = self.__class__.__name__
+        lines = [
+            f"<b>{name}</b>",
+            f"<p> {self.__class__.__doc__ or 'Undocumented!'} </p>",
+            "<table>"
+        ]
+        for key, val in self.get_current_config()[name].items():
+            thehelp = f'{traits[key].help} (default: {traits[key].default_value})'
+            lines.append(f"<tr><th>{key}</th>")
+            if val != traits[key].default_value:
+                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+            else:
+                lines.append(f"<td>{val}</td>")
+            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+        lines.append("</table>")
+        return "\n".join(lines)

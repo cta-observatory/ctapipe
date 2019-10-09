@@ -22,6 +22,7 @@ import numpy as np
 from traitlets import Int
 from ctapipe.core import Component
 from numba import njit, prange, guvectorize, float64, float32, int64, int32
+import warnings
 
 
 @guvectorize(
@@ -51,7 +52,7 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     peak_index : ndarray or int
         Peak index for each pixel.
     width : ndarray or int
@@ -65,7 +66,7 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
     -------
     charge : ndarray
         Extracted charge.
-        Shape: (n_chan, n_pix)
+        Shape: (n_pix)
 
     """
     n_samples = waveforms.size
@@ -77,14 +78,10 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
             ret[0] += waveforms[sample]
 
 
-@njit([
-    float64[:, :, :](float64[:, :, :], int64[:, :], int64),
-    float64[:, :, :](float64[:, :, :], int32[:, :], int64),
-    float64[:, :, :](float32[:, :, :], int32[:, :], int64),
-    float64[:, :, :](float32[:, :, :], int64[:, :], int64),
-], parallel=True)
-def neighbor_average_waveform(waveforms, neighbors, lwt):
+@njit(parallel=True)
+def neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt):
     """
+    # TODO: deprecate
     Obtain the average waveform built from the neighbors of each pixel
 
     Parameters
@@ -105,12 +102,12 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
     -------
     average_wf : ndarray
         Average of neighbor waveforms for each pixel.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
 
     """
     n_neighbors = neighbors.shape[0]
     sum_ = waveforms * lwt
-    n = np.zeros(waveforms.shape)
+    n = np.zeros(waveforms.shape, dtype=np.int32)
     for i in prange(n_neighbors):
         pixel = neighbors[i, 0]
         neighbor = neighbors[i, 1]
@@ -118,6 +115,56 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
             sum_[channel, pixel] += waveforms[channel, neighbor]
             n[channel, pixel] += 1
     return sum_ / n
+
+
+@njit(parallel=True)
+def neighbor_average_waveform_jit(waveforms, neighbors, lwt):
+    """
+    Obtain the average waveform built from the neighbors of each pixel
+
+    Parameters
+    ----------
+    waveforms : ndarray
+        Waveforms stored in a numpy array.
+        Shape: (n_pix, n_samples)
+    neighbors : ndarray
+        2D array where each row is [pixel index, one neighbor of that pixel].
+        Changes per telescope.
+        Can be obtained from
+        `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
+    lwt: int
+        Weight of the local pixel (0: peak from neighbors only,
+        1: local pixel counts as much as any neighbor)
+
+    Returns
+    -------
+    average_wf : ndarray
+        Average of neighbor waveforms for each pixel.
+        Shape: (n_pix, n_samples)
+
+    """
+    n_neighbors = neighbors.shape[0]
+    sum_ = waveforms * lwt
+    n = np.zeros(waveforms.shape, dtype=np.int32)
+    for i in prange(n_neighbors):
+        pixel = neighbors[i, 0]
+        neighbor = neighbors[i, 1]
+        sum_[pixel] += waveforms[neighbor]
+        n[pixel] += 1
+    return sum_ / n
+
+
+def neighbor_average_waveform(waveforms, neighbors, lwt):
+    if waveforms.ndim == 3:
+        warnings.warn(
+            "A 3 dimensional waveforms array was passed "
+            "to neighbor_average_waveform. "
+            "Waveforms should be shape (n_pixels, n_samples). "
+            "This will raise an error in future versions.",
+            DeprecationWarning
+        )
+        return neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt)
+    return neighbor_average_waveform_jit(waveforms, neighbors, lwt)
 
 
 @guvectorize(
@@ -147,7 +194,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     peak_index : ndarray or int
         Peak index in waveform for each pixel.
     width : ndarray or int
@@ -161,7 +208,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     -------
     pulse_time : ndarray
         Floating point pulse time in each pixel
-        Shape: (n_chan, n_pix)
+        Shape: (n_pix)
 
     """
     n_samples = waveforms.size
@@ -188,7 +235,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
     ----------
     waveforms : ndarray
         Waveforms stored in a numpy array.
-        Shape: (n_chan, n_pix, n_samples)
+        Shape: (n_pix, n_samples)
     baseline_start : int
         Sample where the baseline window starts
     baseline_end : int
@@ -200,7 +247,7 @@ def subtract_baseline(waveforms, baseline_start, baseline_end):
         Waveform with the baseline subtracted
     """
     baseline_corrected = waveforms - np.mean(
-        waveforms[..., baseline_start:baseline_end], axis=2
+        waveforms[..., baseline_start:baseline_end], axis=-1
     )[..., None]
 
     return baseline_corrected
@@ -274,16 +321,16 @@ class ImageExtractor(Component):
         ----------
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
-            (n_chan, n_pix, n_samples).
+            (n_pix, n_samples).
 
         Returns
         -------
         charge : ndarray
             Extracted charge.
-            Shape: (n_chan, n_pix)
+            Shape: (n_pix)
         pulse_time : ndarray
             Floating point pulse time in each pixel.
-            Shape: (n_chan, n_pix)
+            Shape: (n_pix)
         """
 
 
@@ -293,7 +340,7 @@ class FullWaveformSum(ImageExtractor):
     """
 
     def __call__(self, waveforms):
-        charge = waveforms.sum(2)
+        charge = waveforms.sum(axis=-1)
         pulse_time = extract_pulse_time_around_peak(
             waveforms, 0, waveforms.shape[-1], 0
         )
@@ -314,7 +361,7 @@ class FixedWindowSum(ImageExtractor):
     def __call__(self, waveforms):
         start = self.window_start
         end = self.window_start + self.window_width
-        charge = waveforms[..., start:end].sum(2)
+        charge = waveforms[..., start:end].sum(axis=-1)
         pulse_time = extract_pulse_time_around_peak(
             waveforms, self.window_start, self.window_width, 0
         )
@@ -335,13 +382,22 @@ class GlobalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     def __call__(self, waveforms):
-        peak_index = waveforms.mean(1).argmax(1)
+        peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
+        if waveforms.ndim == 3:
+            warnings.warn(
+                "A 3 dimensional waveforms array was passed "
+                "to GlobalPeakWindowSum. "
+                "Waveforms should be shape (n_pixels, n_samples). "
+                "This will raise an error in future versions.",
+                DeprecationWarning
+            )
+            peak_index = peak_index[:, np.newaxis]
         charge = sum_samples_around_peak(
-            waveforms, peak_index[:, np.newaxis],
+            waveforms, peak_index,
             self.window_width, self.window_shift
         )
         pulse_time = extract_pulse_time_around_peak(
-            waveforms, peak_index[:, np.newaxis],
+            waveforms, peak_index,
             self.window_width, self.window_shift
         )
         return charge, pulse_time
@@ -361,7 +417,7 @@ class LocalPeakWindowSum(ImageExtractor):
     ).tag(config=True)
 
     def __call__(self, waveforms):
-        peak_index = waveforms.argmax(2).astype(np.int)
+        peak_index = waveforms.argmax(axis=-1).astype(np.int)
         charge = sum_samples_around_peak(
             waveforms, peak_index, self.window_width, self.window_shift
         )
@@ -395,7 +451,7 @@ class NeighborPeakWindowSum(ImageExtractor):
         average_wfs = neighbor_average_waveform(
             waveforms, self.neighbors, self.lwt
         )
-        peak_index = average_wfs.argmax(2)
+        peak_index = average_wfs.argmax(axis=-1)
         charge = sum_samples_around_peak(
             waveforms, peak_index, self.window_width, self.window_shift
         )

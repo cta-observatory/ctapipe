@@ -35,8 +35,8 @@ def analyze_muon_event(event):
 
     """
 
-    names = ['LST:LSTCam', 'MST:NectarCam', 'MST:FlashCam', 'MST-SCT:SCTCam',
-             '1M:DigiCam', 'GCT:CHEC', 'ASTRI:ASTRICam', 'ASTRI:CHEC']
+    names = ['LST_LST_LSTCam', 'MST_MST_NectarCam', 'MST_MST_FlashCam', 'MST_SCT_SCTCam',
+             'SST_1M_DigiCam', 'SST_GCT_CHEC', 'SST_ASTRI_ASTRICam', 'SST_ASTRI_CHEC']
     tail_cuts = [(5, 7), (5, 7), (10, 12), (5, 7),
                 (5, 7), (5, 7), (5, 7), (5, 7)]  # 10, 12?
     impact = [(0.2, 0.9), (0.1, 0.95), (0.2, 0.9), (0.2, 0.9),
@@ -76,7 +76,7 @@ def analyze_muon_event(event):
     for telid in event.dl0.tels_with_data:
 
         logger.debug("Analysing muon event for tel %d", telid)
-        image = event.dl1.tel[telid].image[0]
+        image = event.dl1.tel[telid].image
 
         # Get geometry
         teldes = event.inst.subarray.tel[telid]

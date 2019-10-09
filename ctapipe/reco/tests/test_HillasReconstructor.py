@@ -1,10 +1,12 @@
 import numpy as np
 from astropy import units as u
+import pytest
 
 from ctapipe.image.cleaning import tailcuts_clean
 from ctapipe.image.hillas import hillas_parameters, HillasParameterizationError
 from ctapipe.io import event_source
 from ctapipe.reco.HillasReconstructor import HillasReconstructor, HillasPlane
+from ctapipe.reco.reco_algorithms import TooFewTelescopesException, InvalidWidthException
 from ctapipe.utils import get_dataset_path
 from astropy.coordinates import SkyCoord, AltAz
 
@@ -90,6 +92,80 @@ def test_reconstruction():
     • position fit
 
     in the end, proper units in the output are asserted """
+    filename = get_dataset_path("gamma_test_large.simtel.gz")
+
+    source = event_source(filename, max_events=10)
+    horizon_frame = AltAz()
+
+    reconstructed_events = 0
+
+    for event in source:
+        array_pointing = SkyCoord(
+            az=event.mc.az,
+            alt=event.mc.alt,
+            frame=horizon_frame
+        )
+
+        hillas_dict = {}
+        telescope_pointings = {}
+
+        for tel_id in event.dl0.tels_with_data:
+
+            geom = event.inst.subarray.tel[tel_id].camera
+
+            telescope_pointings[tel_id] = SkyCoord(alt=event.mc.tel[tel_id].altitude_raw * u.rad,
+                                                   az=event.mc.tel[tel_id].azimuth_raw * u.rad,
+                                                   frame=horizon_frame)
+            pmt_signal = event.r0.tel[tel_id].waveform[0].sum(axis=1)
+
+            mask = tailcuts_clean(geom, pmt_signal,
+                                  picture_thresh=10., boundary_thresh=5.)
+            pmt_signal[mask == 0] = 0
+
+            try:
+                moments = hillas_parameters(geom, pmt_signal)
+                hillas_dict[tel_id] = moments
+            except HillasParameterizationError as e:
+                print(e)
+                continue
+
+        if len(hillas_dict) < 2:
+            continue
+        else:
+            reconstructed_events += 1
+
+        # The three reconstructions below gives the same results
+        fit = HillasReconstructor()
+        fit_result_parall = fit.predict(hillas_dict, event.inst, array_pointing)
+
+        fit = HillasReconstructor()
+        fit_result_tel_point = fit.predict(hillas_dict, event.inst, array_pointing, telescope_pointings)
+
+        for key in fit_result_parall.keys():
+            print(key, fit_result_parall[key], fit_result_tel_point[key])
+
+        fit_result_parall.alt.to(u.deg)
+        fit_result_parall.az.to(u.deg)
+        fit_result_parall.core_x.to(u.m)
+        assert fit_result_parall.is_valid
+
+    assert reconstructed_events > 0
+
+
+def test_invalid_events():
+    """
+    The HillasReconstructor is supposed to fail
+    in these cases:
+    - less than two teleskopes
+    - any width is NaN
+    - any width is 0
+
+    This test uses the same sample simtel file as 
+    test_reconstruction(). As there are no invalid events in this
+    file, multiple hillas_dicts are constructed to make sure 
+    Exceptions get thrown in the mentioned edge cases.
+
+    Test will fail if no Exception or another Exception gets thrown."""
 
     filename = get_dataset_path("gamma_test_large.simtel.gz")
 
@@ -119,16 +195,25 @@ def test_reconstruction():
                 moments = hillas_parameters(geom, pmt_signal)
                 hillas_dict[tel_id] = moments
             except HillasParameterizationError as e:
-                print(e)
                 continue
 
-        if len(hillas_dict) < 2:
-            continue
+        # construct a dict only containing the last telescope events 
+        # (#telescopes < 2)
+        hillas_dict_only_one_tel = dict()
+        hillas_dict_only_one_tel[tel_id] = hillas_dict[tel_id]
+        with pytest.raises(TooFewTelescopesException):
+            fit.predict(hillas_dict_only_one_tel, event.inst, tel_azimuth, tel_altitude)
 
-        fit_result = fit.predict(hillas_dict, event.inst, tel_azimuth, tel_altitude)
+        # construct a hillas dict with the width of the last event set to 0 
+        # (any width == 0)
+        hillas_dict_zero_width = hillas_dict.copy()
+        hillas_dict_zero_width[tel_id]['width'] = 0 * u.m
+        with pytest.raises(InvalidWidthException):
+            fit.predict(hillas_dict_zero_width, event.inst, tel_azimuth, tel_altitude)
 
-        print(fit_result)
-        fit_result.alt.to(u.deg)
-        fit_result.az.to(u.deg)
-        fit_result.core_x.to(u.m)
-        assert fit_result.is_valid
+        # construct a hillas dict with the width of the last event set to np.nan 
+        # (any width == nan)
+        hillas_dict_nan_width = hillas_dict.copy()
+        hillas_dict_zero_width[tel_id]['width'] = np.nan * u.m
+        with pytest.raises(InvalidWidthException):
+            fit.predict(hillas_dict_nan_width, event.inst, tel_azimuth, tel_altitude)

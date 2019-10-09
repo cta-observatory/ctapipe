@@ -1,14 +1,14 @@
+""" Classes to handle configurable command-line user interfaces """
 import logging
+import textwrap
 from abc import abstractmethod
 
 from traitlets import Unicode
-from traitlets.config import Application
+from traitlets.config import Application, Configurable
 
 from ctapipe import __version__ as version
-from .logging import ColoredFormatter
 from . import Provenance
-
-logging.basicConfig(level=logging.WARNING)
+from .logging import ColoredFormatter
 
 
 class ToolConfigurationError(Exception):
@@ -101,8 +101,12 @@ class Tool(Application):
     """
 
     config_file = Unicode('', help=("name of a configuration file with "
-                                     "parameters to load in addition to "
-                                     "command-line parameters")).tag(config=True)
+                                    "parameters to load in addition to "
+                                    "command-line parameters")).tag(config=True)
+    log_format = Unicode(
+        '%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s',
+        help='The Logging format template'
+    ).tag(config=True)
 
     _log_formatter_cls = ColoredFormatter
 
@@ -113,10 +117,9 @@ class Tool(Application):
             self.aliases['config'] = 'Tool.config_file'
 
         super().__init__(**kwargs)
-        self.log_format = ('%(levelname)8s [%(name)s] '
-                           '(%(module)s/%(funcName)s): %(message)s')
         self.log_level = logging.INFO
         self.is_setup = False
+        self._registered_components = []
 
     def initialize(self, argv=None):
         """ handle config and any other low-level setup """
@@ -126,6 +129,35 @@ class Tool(Application):
             self.load_config_file(self.config_file)
         self.log.info(f"ctapipe version {self.version_string}")
 
+    def add_component(self, component_instance):
+        """
+        constructs and adds a component to the list of registered components,
+        so that later we can ask for the current configuration of all instances,
+        e.g. in`get_full_config()`.  All sub-components of a tool should be
+        constructed using this function, in order to ensure the configuration is
+        properly traced.
+
+        Parameters
+        ----------
+        component_instance: Component
+            constructed instance of a component
+
+        Returns
+        -------
+        Component:
+            the same component instance that was passed in, so that the call
+            can be chained.
+
+        Example
+        -------
+        .. code-block:: python3
+
+            self.mycomp = self.add_component(MyComponent(parent=self))
+
+        """
+        self._registered_components.append(component_instance)
+        return component_instance
+
     @abstractmethod
     def setup(self):
         """set up the tool (override in subclass). Here the user should
@@ -134,14 +166,14 @@ class Tool(Application):
 
     @abstractmethod
     def start(self):
-        """main body of tool (override in subclass). This is automatially
+        """main body of tool (override in subclass). This is  automatically
         called after `initialize()` when the `run()` is called.
         """
         pass
 
     @abstractmethod
     def finish(self):
-        """finish up (override in subclass). This is called automatially
+        """finish up (override in subclass). This is called automatically
         after `start()` when `run()` is called."""
         self.log.info("Goodbye")
 
@@ -163,11 +195,11 @@ class Tool(Application):
         try:
             self.initialize(argv)
             self.log.info(f"Starting: {self.name}")
-            self.log.debug(f"CONFIG: {self.config}")
             Provenance().start_activity(self.name)
-            Provenance().add_config(self.config)
             self.setup()
             self.is_setup = True
+            self.log.info(f"CONFIG: {self.get_current_config()}")
+            Provenance().add_config(self.get_current_config())
             self.start()
             self.finish()
             self.log.info(f"Finished: {self.name}")
@@ -200,3 +232,123 @@ class Tool(Application):
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
         return f"{version}"
+
+    def get_current_config(self):
+        """ return the current configuration as a dict (e.g. the values
+        of all traits, even if they were not set during configuration)
+        """
+        conf = {
+            self.__class__.__name__: {
+                k: v.get(self) for k, v in self.traits(config=True).items()
+            }
+        }
+        for component in self._registered_components:
+            conf.update(component.get_current_config())
+
+        return conf
+
+    def _repr_html_(self):
+        """ nice HTML rep, with blue for non-default values"""
+        traits = self.traits()
+        name = self.__class__.__name__
+        lines = [
+            f"<b>{name}</b>",
+            f"<p> {self.__class__.__doc__ or self.description} </p>",
+            "<table>",
+        ]
+        for key, val in self.get_current_config()[name].items():
+            default = traits[key].default_value
+            thehelp = f'{traits[key].help} (default: {default})'
+            lines.append(f"<tr><th>{key}</th>")
+            if val != default:
+                lines.append(f"<td><span style='color:blue'>{val}</span></td>")
+            else:
+                lines.append(f"<td>{val}</td>")
+            lines.append(f'<td style="text-align:left"><i>{thehelp}</i></td></tr>')
+        lines.append("</table>")
+        lines.append("<p><i>Components:</i>")
+        lines.append(", ".join([x.__name__ for x in self.classes]))
+        lines.append("</p>")
+
+        return "\n".join(lines)
+
+
+def export_tool_config_to_commented_yaml(tool_instance: Tool, classes=None):
+    """
+    Turn the config of a single Component into a commented YAML string.
+
+    This is a hacked version of
+    traitlets.config.Configurable._class_config_section() changed to
+    output a  YAML file with defaults *and* current values filled in.
+
+    Parameters
+    ----------
+    tool_instance: Tool
+        a constructed Tool instance
+    classes: list, optional
+        The list of other classes in the config file.
+        Used to reduce redundant information.
+    """
+
+    tool = tool_instance.__class__
+    config = tool_instance.get_current_config()[tool_instance.__class__.__name__]
+
+    def commented(text, indent_level=2, width=70):
+        """return a commented, wrapped block."""
+        return textwrap.fill(
+            text,
+            width=width,
+            initial_indent="  " * indent_level + "# ",
+            subsequent_indent="  " * indent_level + "# ",
+        )
+
+    # section header
+    breaker = '#' + '-' * 78
+    parent_classes = ', '.join(
+        p.__name__ for p in tool.__bases__
+        if issubclass(p, Configurable)
+    )
+
+    section_header = f"# {tool.__name__}({parent_classes}) configuration"
+
+    lines = [breaker, section_header]
+    # get the description trait
+    desc = tool.class_traits().get('description')
+    if desc:
+        desc = desc.default_value
+    if not desc:
+        # no description from trait, use __doc__
+        desc = getattr(tool, '__doc__', '')
+    if desc:
+        lines.append(commented(desc, indent_level=0))
+    lines.append(breaker)
+    lines.append(f'{tool.__name__}:')
+
+    for name, trait in sorted(tool.class_traits(config=True).items()):
+        default_repr = trait.default_value_repr()
+        current_repr = config.get(name, "")
+        if isinstance(current_repr, str):
+            current_repr = f'"{current_repr}"'
+
+        if classes:
+            defining_class = tool._defining_class(trait, classes)
+        else:
+            defining_class = tool
+        if defining_class is tool:
+            # cls owns the trait, show full help
+            if trait.help:
+                lines.append(commented(trait.help))
+            if 'Enum' in type(trait).__name__:
+                # include Enum choices
+                lines.append(commented(f'Choices: {trait.info()}'))
+            lines.append(commented(f'Default: {default_repr}'))
+        else:
+            # Trait appears multiple times and isn't defined here.
+            # Truncate help to first line + "See also Original.trait"
+            if trait.help:
+                lines.append(commented(trait.help.split('\n', 1)[0]))
+            lines.append(
+                f'    # See also: {defining_class.__name__}.{name}')
+        lines.append(f'    {name}: {current_repr}')
+        lines.append('')
+    return '\n'.join(lines)

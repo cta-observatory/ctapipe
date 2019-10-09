@@ -58,6 +58,9 @@ Reference/API
 .. automodapi:: ctapipe.utils
     :no-inheritance-diagram:
 
+.. automodapi:: ctapipe.utils.astro
+    :no-inheritance-diagram:
+
 .. automodapi:: ctapipe.utils.linalg
     :no-inheritance-diagram:
 

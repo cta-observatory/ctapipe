@@ -3,9 +3,11 @@ Classes and functions related to telescope Optics
 """
 
 import logging
-from ..utils import get_table_dataset
-import numpy as np
+
 import astropy.units as u
+import numpy as np
+
+from ..utils import get_table_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +43,14 @@ class OpticsDescription:
         if the units of one of the inputs are missing or incompatible
     """
 
-    @u.quantity_input(mirror_area=u.m**2, equivalent_focal_length=u.m)
+    @u.quantity_input(mirror_area=u.m ** 2, equivalent_focal_length=u.m)
     def __init__(
-            self,
-            name,
-            num_mirrors,
-            equivalent_focal_length,
-            mirror_area=None,
-            num_mirror_tiles=None
+        self,
+        name,
+        num_mirrors,
+        equivalent_focal_length,
+        mirror_area=None,
+        num_mirror_tiles=None,
     ):
 
         self.name = name
@@ -58,20 +60,22 @@ class OpticsDescription:
         self.num_mirror_tiles = num_mirror_tiles
 
     def __hash__(self):
-        '''Make this hashable, so it can be used as dict keys or in sets'''
-        return hash((
-            self.equivalent_focal_length.to_value(u.m),
-            self.mirror_area,
-            self.num_mirrors,
-            self.num_mirror_tiles,
-        ))
+        """Make this hashable, so it can be used as dict keys or in sets"""
+        return hash(
+            (
+                self.equivalent_focal_length.to_value(u.m),
+                self.mirror_area,
+                self.num_mirrors,
+                self.num_mirror_tiles,
+            )
+        )
 
     def __eq__(self, other):
-        '''Make this hashable, so it can be used as dict keys or in sets'''
+        """Make this hashable, so it can be used as dict keys or in sets"""
         return hash(self) == hash(other)
 
     @classmethod
-    def from_name(cls, name, optics_table='optics'):
+    def from_name(cls, name, optics_table="optics"):
         """
         Construct an OpticsDescription from the name. This is loaded from
         `optics.fits.gz`, which should be in `ctapipe_resources` or in a
@@ -90,27 +94,32 @@ class OpticsDescription:
         OpticsDescription
 
         """
-        table = get_table_dataset(optics_table, role='dl0.tel.svc.optics')
-        mask = table['tel_description'] == name
+        table = get_table_dataset(optics_table, role="dl0.tel.svc.optics")
+        mask = table["tel_description"] == name
         if mask.sum() == 0:
-            raise ValueError(f'Unknown telescope name {name}')
+            raise ValueError(f"Unknown telescope name {name}")
 
-        flen = table['equivalent_focal_length'][mask].quantity[0]
+        flen = table["equivalent_focal_length"][mask].quantity[0]
 
-        num_mirrors = 1 if table['mirror_type'][mask][0] == 'DC' else 2
+        num_mirrors = 1 if table["mirror_type"][mask][0] == "DC" else 2
         optics = cls(
             name=name,
             num_mirrors=num_mirrors,
             equivalent_focal_length=flen,
-            mirror_area=table['mirror_area'][mask].quantity[0],
-            num_mirror_tiles=table['num_mirror_tiles'][mask][0],
+            mirror_area=table["mirror_area"][mask].quantity[0],
+            num_mirror_tiles=table["num_mirror_tiles"][mask][0],
         )
         return optics
 
     @classmethod
-    def get_known_optics_names(cls, optics_table='optics'):
-        table = get_table_dataset(optics_table, 'get_known_optics')
-        return np.array(table['tel_description'])
+    def get_known_optics_names(cls, optics_table="optics"):
+        """
+        return the list of optics names from ctapipe resources, i.e. those that can be
+        constructed by name (this does not return the list of known names from an
+        already open Monte-Carlo file)
+        """
+        table = get_table_dataset(optics_table, "get_known_optics")
+        return np.array(table["tel_description"])
 
     def __repr__(self):
         return (
