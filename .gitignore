@@ -85,5 +85,3 @@ target
 examples/notebooks/*.html
 examples/notebooks/*.png
 
-# Visual Studio Code config files
-.vscode
