@@ -1,6 +1,7 @@
 import tempfile
 
 import pytest
+from unittest.mock import MagicMock
 from traitlets import CaselessStrEnum, HasTraits, Int
 
 from ctapipe.core import Component
@@ -10,6 +11,10 @@ from ctapipe.core.traits import (
     classes_with_traits,
     enum_trait,
     has_traits,
+    TelescopeParameter,
+    FloatTelescopeParameter,
+    IntTelescopeParameter,
+    TelescopeParameterResolver,
 )
 from ctapipe.image import ImageExtractor
 
@@ -94,11 +99,98 @@ def test_has_traits():
 
     class WithoutTraits(HasTraits):
         """ a traits class that has no traits """
+
         pass
 
     class WithATrait(HasTraits):
         """ a traits class that has a trait """
+
         my_trait = Int()
 
     assert not has_traits(WithoutTraits)
     assert has_traits(WithATrait)
+
+
+def test_telescope_parameter_patterns():
+    class SomeComponent(Component):
+        tel_param = TelescopeParameter()
+        tel_param_int = IntTelescopeParameter()
+
+    comp = SomeComponent()
+
+    # single value allowed (converted to ("default","",val) )
+    comp.tel_param = 4.5
+    assert comp.tel_param[0][2] == 4.5
+
+    comp.tel_param = [
+        ("*", "", 1.0),
+        ("type", "LST_LST_LSTCam", 16.0),
+        ("id", 16, 10.0),
+    ]
+
+    with pytest.raises(TraitError):
+        comp.tel_param = [("badcommand", "", 1.0)]
+
+    with pytest.raises(TraitError):
+        comp.tel_param = [("type", 12, 1.5)]  # bad argument
+
+    with pytest.raises(TraitError):
+        comp.tel_param_int = [("type", "LST_LST_LSTCam", 1.5)]  # not int
+
+    comp.tel_param_int = [("type", "LST_LST_LSTCam", 1)]
+
+
+def test_telescope_parameter_resolver():
+    class SomeComponent(Component):
+        tel_param1 = IntTelescopeParameter(
+            default_value=[("*", "", 10), ("type", "LST_LST_LSTCam", 100)]
+        )
+
+        tel_param2 = FloatTelescopeParameter(
+            default_value=[
+                ("*", "", 10.0),
+                ("type", "LST_LST_LSTCam", 100.0),
+                ("id", 3, 200.0),
+            ]
+        )
+
+        tel_param3 = FloatTelescopeParameter(
+            default_value=[
+                ("*", "", 10.0),
+                ("type", "LST_LST_LSTCam", 100.0),
+                ("*", "*", 200.0),  # should overwrite everything with 200.0
+                ("id", 100, 300.0),
+            ]
+        )
+
+    comp = SomeComponent()
+
+    # need to mock a SubarrayDescription
+    subarray = MagicMock()
+    subarray.tel_ids = [1, 2, 3, 4]
+    subarray.get_tel_ids_for_type.return_value = [3, 4]
+
+    resolver1 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param1)
+    resolver2 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param2)
+    resolver3 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param3)
+
+    assert resolver1.value_for_tel_id(1) == 10
+    assert resolver1.value_for_tel_id(3) == 100
+
+    assert list(map(resolver2.value_for_tel_id, [1, 2, 3, 4])) == [
+        10.0,
+        10.0,
+        200.0,
+        100.0,
+    ]
+
+    assert list(map(resolver3.value_for_tel_id, [1, 2, 3, 4, 100])) == [
+        200.0,
+        200.0,
+        200.0,
+        200.0,
+        300.0,
+    ]
+
+    with pytest.raises(KeyError):
+        resolver1.value_for_tel_id(200)
