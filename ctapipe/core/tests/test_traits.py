@@ -21,6 +21,7 @@ from ctapipe.image import ImageExtractor
 
 def test_path_exists():
     """ require existence of path """
+
     class C1(Component):
         thepath = Path(exists=False)
 
@@ -45,6 +46,7 @@ def test_path_exists():
 
 def test_path_directory_ok():
     """ test path is a directory """
+
     class C(Component):
         thepath = Path(exists=True, directory_ok=False)
 
@@ -63,6 +65,7 @@ def test_path_directory_ok():
 
 def test_path_file_ok():
     """ check that the file is there and not a directory, etc"""
+
     class C(Component):
         thepath = Path(exists=True, file_ok=False)
 
@@ -116,6 +119,7 @@ def test_has_traits():
 
 def test_telescope_parameter_patterns():
     """ Test validation of TelescopeParameters"""
+
     class SomeComponent(Component):
         tel_param = TelescopeParameter()
         tel_param_int = IntTelescopeParameter()
@@ -143,10 +147,17 @@ def test_telescope_parameter_patterns():
 
     comp.tel_param_int = [("type", "LST_LST_LSTCam", 1)]
 
+    with pytest.raises(TraitError):
+        comp.tel_param_int = [("*", 5)]  # wrong number of args
+
+    with pytest.raises(TraitError):
+        comp.tel_param_int = [(12, "", 5)]  # command not string
+
 
 def test_telescope_parameter_resolver():
     """ check that you can resolve the rules specified in a
     TelescopeParameter trait"""
+
     class SomeComponent(Component):
         tel_param1 = IntTelescopeParameter(
             default_value=[("*", "", 10), ("type", "LST_LST_LSTCam", 100)]
@@ -200,3 +211,7 @@ def test_telescope_parameter_resolver():
 
     with pytest.raises(KeyError):
         resolver1.value_for_tel_id(200)
+
+    with pytest.raises(ValueError):
+        bad_config = [("unknown", "a", 15.0)]
+        resolver = TelescopeParameterResolver(subarray=subarray, tel_param=bad_config)
