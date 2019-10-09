@@ -120,6 +120,9 @@ def test_has_traits():
 def test_telescope_parameter_patterns():
     """ Test validation of TelescopeParameters"""
 
+    with pytest.raises(ValueError):
+        TelescopeParameter(dtype="notatype")
+
     class SomeComponent(Component):
         tel_param = TelescopeParameter()
         tel_param_int = IntTelescopeParameter()
