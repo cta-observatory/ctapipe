@@ -1,7 +1,7 @@
 import tempfile
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
 from traitlets import CaselessStrEnum, HasTraits, Int
 
 from ctapipe.core import Component
@@ -20,6 +20,7 @@ from ctapipe.image import ImageExtractor
 
 
 def test_path_exists():
+    """ require existence of path """
     class C1(Component):
         thepath = Path(exists=False)
 
@@ -43,6 +44,7 @@ def test_path_exists():
 
 
 def test_path_directory_ok():
+    """ test path is a directory """
     class C(Component):
         thepath = Path(exists=True, directory_ok=False)
 
@@ -60,6 +62,7 @@ def test_path_directory_ok():
 
 
 def test_path_file_ok():
+    """ check that the file is there and not a directory, etc"""
     class C(Component):
         thepath = Path(exists=True, file_ok=False)
 
@@ -112,6 +115,7 @@ def test_has_traits():
 
 
 def test_telescope_parameter_patterns():
+    """ Test validation of TelescopeParameters"""
     class SomeComponent(Component):
         tel_param = TelescopeParameter()
         tel_param_int = IntTelescopeParameter()
@@ -141,6 +145,8 @@ def test_telescope_parameter_patterns():
 
 
 def test_telescope_parameter_resolver():
+    """ check that you can resolve the rules specified in a
+    TelescopeParameter trait"""
     class SomeComponent(Component):
         tel_param1 = IntTelescopeParameter(
             default_value=[("*", "", 10), ("type", "LST_LST_LSTCam", 100)]
