@@ -161,13 +161,13 @@ class TelescopeParameter(List):
 
     def __init__(self, dtype=float, **kwargs):
         super().__init__(**kwargs)
-        if type(dtype) is not type:
+        if not isinstance(dtype, type):
             raise ValueError("dtype should be a type")
         self._dtype = dtype
 
     def validate(self, obj, value):
         # support a single value for all (convert into a default value)
-        if type(value) == self._dtype:
+        if isinstance(value, self._dtype):
             value = [["*", "", value]]
 
         # check that it is a list
@@ -181,14 +181,14 @@ class TelescopeParameter(List):
                     "pattern should be a tuple of (command, argument, value)"
                 )
             command, arg, val = pattern
-            if type(val) is not self._dtype:
+            if not isinstance(val, self._dtype):
                 raise TraitError(f"Value should be a {self._dtype}")
-            if type(command) is not str:
+            if not isinstance(command, str):
                 raise TraitError("command must be a string")
             if command not in ["*", "type", "id"]:
                 raise TraitError("command must be one of: '*', 'type', 'id'")
             if command == "type":
-                if type(arg) is not str:
+                if not isinstance(arg, str):
                     raise TraitError("'type' argument should be a string")
             if command == "id":
                 arg = int(arg)

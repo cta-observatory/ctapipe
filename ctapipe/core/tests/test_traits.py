@@ -214,4 +214,4 @@ def test_telescope_parameter_resolver():
 
     with pytest.raises(ValueError):
         bad_config = [("unknown", "a", 15.0)]
-        resolver = TelescopeParameterResolver(subarray=subarray, tel_param=bad_config)
+        TelescopeParameterResolver(subarray=subarray, tel_param=bad_config)
