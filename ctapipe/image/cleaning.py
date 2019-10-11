@@ -355,3 +355,41 @@ def fact_image_cleaning(
         geom, pixels_to_keep, arrival_times, min_number_neighbors, time_limit
     )
     return pixels_to_keep
+
+
+def biggest_island(geom, image, mask):
+    """Find biggest island and filter it from the image.
+
+    This function finds the biggest island in the cleaned image and isolates it
+    for subsequent parametrization.
+
+    Parameters
+    ----------
+    geom: `ctapipe.instrument.CameraGeometry`
+        Camera geometry information.
+    image: array
+        pixel values of the calibrated image.
+    mask : array
+        A boolean mask of previously cleaned pixels.
+
+    Returns
+    -------
+
+    selected_geom : `ctapipe.instrument.CameraGeometry`
+        Camera geometry information filtered for the biggest island
+    selected_image : array
+        Pixel values of the calibrated image filtered for the biggest island.
+
+    """
+    # Finds all islands from the cleaned pixels and label them
+    num_islands, labels = number_of_islands(geom, mask)
+
+    # Get the label of the biggest island and create a new mask
+    biggest_label = np.argmax(np.bincount(labels))
+    biggest_mask = labels == (biggest_label + 1)
+
+    # Filter camera geometry and image for the biggest island
+    selected_geom = geom[biggest_mask]
+    selected_image = image[biggest_mask]
+
+    return selected_geom, selected_image
