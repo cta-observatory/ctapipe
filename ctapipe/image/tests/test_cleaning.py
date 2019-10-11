@@ -218,6 +218,30 @@ def test_number_of_islands():
     # test with LST geometry (1855 pixels)
     geom = CameraGeometry.from_name("LSTCam")
 
+    # create a toy image with several islands
+    np.random.seed(42)
+
+    image = np.zeros(camera.n_pixels)
+
+    for i in range(9):
+
+        model = toymodel.Gaussian(
+            x=np.random.uniform(-0.8, 0.8) * u.m,
+            y=np.random.uniform(-0.8, 0.8) * u.m,
+            width=np.random.uniform(0.05, 0.075) * u.m,
+            length=np.random.uniform(0.1, 0.15) * u.m,
+            psi=np.random.uniform(0, 2 * np.pi) * u.rad,
+        )
+
+        new_image, sig, bg = model.generate_image(
+            camera,
+            intensity=np.random.uniform(1000, 3000),
+            nsb_level_pe=5
+        )
+        image += new_image
+
+    # use the function 'number of islands' to get the islands and find biggest
+
     # create 18 triggered pixels grouped to 5 clusters
     island_mask_true = np.zeros(geom.n_pixels)
     mask = np.zeros(geom.n_pixels).astype("bool")
@@ -235,6 +259,32 @@ def test_number_of_islands():
     n_islands_true = 5
     assert n_islands == n_islands_true
     assert_allclose(island_mask, island_mask_true)
+
+
+def test_biggest_island():
+    # Create a simple camera
+    geom = CameraGeometry.make_rectangular(17, 1)
+    # Create a simple image made of ones and zero "photoelectrons"
+    image = np.array([2, 1, 1, 1, 1, 2, 2, 1, 0, 2, 1, 1, 1, 0, 2, 2, 2])
+    # Let's say that we require p = 2, b = 1 with no min neighbors
+    # This means that after cleaning the islands are labelled as
+    labels = np.zeros(geom.n_pixels).astype("bool")
+    labels[[0, 1]] = 1
+    labels[[4, 5, 6, 7]] = 2  # this is the biggest
+    labels[[9, 10]] = 3
+    labels[[14, 15, 16]] = 4
+
+    mask = np.zeros(geom.n_pixels).astype("bool")
+    biggest_island_mask_true = mask[[4,5,6,7]] = 1
+
+    biggest_geom_true = geom[biggest_island_mask_true]
+    biggest_image_true = image[biggest_island_mask_true]
+
+    # Apply function
+    biggest_geom, biggest_image = cleaning.biggest_island(geom, image, mask)
+    # Check if the function recovers the truth
+    assert biggest_geom == biggest_geom_true
+    assert_allclose(biggest_image, biggest_image_true)
 
 
 def test_fact_image_cleaning():
