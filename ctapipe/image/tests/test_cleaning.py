@@ -218,28 +218,6 @@ def test_number_of_islands():
     # test with LST geometry (1855 pixels)
     geom = CameraGeometry.from_name("LSTCam")
 
-    # create a toy image with several islands
-    np.random.seed(42)
-
-    image = np.zeros(geom.n_pixels)
-
-    for i in range(9):
-
-        model = toymodel.Gaussian(
-            x=np.random.uniform(-0.8, 0.8) * u.m,
-            y=np.random.uniform(-0.8, 0.8) * u.m,
-            width=np.random.uniform(0.05, 0.075) * u.m,
-            length=np.random.uniform(0.1, 0.15) * u.m,
-            psi=np.random.uniform(0, 2 * np.pi) * u.rad,
-        )
-
-        new_image, sig, bg = model.generate_image(
-            camera, intensity=np.random.uniform(1000, 3000), nsb_level_pe=5
-        )
-        image += new_image
-
-    # use the function 'number of islands' to get the islands and find biggest
-
     # create 18 triggered pixels grouped to 5 clusters
     island_mask_true = np.zeros(geom.n_pixels)
     mask = np.zeros(geom.n_pixels).astype("bool")
