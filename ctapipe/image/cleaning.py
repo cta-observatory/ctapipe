@@ -120,7 +120,7 @@ def number_of_islands(geom, mask):
     # compress sparse neighbor matrix
     neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
     # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels)
+    island_labels = np.zeros(geom.n_pixels, dtype='int32')
 
     num_islands, island_labels_compressed = connected_components(
         neighbor_matrix_compressed,
