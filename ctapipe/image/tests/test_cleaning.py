@@ -234,9 +234,7 @@ def test_number_of_islands():
         )
 
         new_image, sig, bg = model.generate_image(
-            camera,
-            intensity=np.random.uniform(1000, 3000),
-            nsb_level_pe=5
+            camera, intensity=np.random.uniform(1000, 3000), nsb_level_pe=5
         )
         image += new_image
 
@@ -263,27 +261,30 @@ def test_number_of_islands():
 
 def test_biggest_island():
     # Create a simple camera
-    geom = CameraGeometry.make_rectangular(17, 1)
+    cam = CameraGeometry.make_rectangular(17, 1)
+    cam.cam_id = "test"  # this overwrites the default -1 set by the function
     # Create a simple image made of ones and zero "photoelectrons"
     image = np.array([2, 1, 1, 1, 1, 2, 2, 1, 0, 2, 1, 1, 1, 0, 2, 2, 2])
-    # Let's say that we require p = 2, b = 1 with no min neighbors
-    # This means that after cleaning the islands are labelled as
-    labels = np.zeros(geom.n_pixels).astype("bool")
-    labels[[0, 1]] = 1
-    labels[[4, 5, 6, 7]] = 2  # this is the biggest
-    labels[[9, 10]] = 3
-    labels[[14, 15, 16]] = 4
+    # Let's say that we clean with a simple tailut with the following parameters
+    # p = 2, b = 1, min neighbors=0
+    # This cleaning would find the following islands
+    clean_mask = np.zeros(cam.n_pixels).astype("bool")
+    clean_mask[[0, 1]] = 1
+    clean_mask[[4, 5, 6, 7]] = 2  # this is the biggest
+    clean_mask[[9, 10]] = 3
+    clean_mask[[14, 15, 16]] = 4
 
-    mask = np.zeros(geom.n_pixels).astype("bool")
-    biggest_island_mask_true = mask[[4,5,6,7]] = 1
-
-    biggest_geom_true = geom[biggest_island_mask_true]
+    # Now we create the mask which takes into account only the biggest island
+    biggest_island_mask_true = np.zeros(cam.n_pixels).astype("bool")
+    biggest_island_mask_true[[4, 5, 6, 7]] = 1
+    # So the true selected geometry and image are the following
+    biggest_cam_true = cam[biggest_island_mask_true]
     biggest_image_true = image[biggest_island_mask_true]
 
-    # Apply function
-    biggest_geom, biggest_image = cleaning.biggest_island(geom, image, mask)
+    # Apply function to test
+    biggest_cam, biggest_image = cleaning.biggest_island(cam, image, clean_mask)
     # Check if the function recovers the truth
-    assert biggest_geom == biggest_geom_true
+    assert biggest_cam == biggest_cam_true
     assert_allclose(biggest_image, biggest_image_true)
 
 
@@ -331,11 +332,7 @@ def test_apply_time_delta_cleaning():
 
     # Test unchanged
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom,
-        mask,
-        pulse_time,
-        min_number_neighbors=1,
-        time_limit=5,
+        geom, mask, pulse_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
     assert (test_mask == td_mask).all()
@@ -344,11 +341,7 @@ def test_apply_time_delta_cleaning():
     noise_neighbour = neighbours[0]
     pulse_time[noise_neighbour] += 10
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom,
-        mask,
-        pulse_time,
-        min_number_neighbors=1,
-        time_limit=5,
+        geom, mask, pulse_time, min_number_neighbors=1, time_limit=5
     )
     test_mask = mask.copy()
     test_mask[noise_neighbour] = 0
@@ -356,11 +349,7 @@ def test_apply_time_delta_cleaning():
 
     # Test min_number_neighbours
     td_mask = cleaning.apply_time_delta_cleaning(
-        geom,
-        mask,
-        pulse_time,
-        min_number_neighbors=4,
-        time_limit=5,
+        geom, mask, pulse_time, min_number_neighbors=4, time_limit=5
     )
     test_mask = mask.copy()
     test_mask[neighbours] = 0

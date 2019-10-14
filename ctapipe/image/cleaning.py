@@ -229,7 +229,7 @@ def number_of_islands(geom, mask):
 
 
 def apply_time_delta_cleaning(
-        geom, mask, arrival_times, min_number_neighbors, time_limit
+    geom, mask, arrival_times, min_number_neighbors, time_limit
 ):
     """
     Identify all pixels from selection that have less than N
@@ -383,10 +383,12 @@ def biggest_island(geom, image, mask):
     """
     # Finds all islands from the cleaned pixels and label them
     num_islands, labels = number_of_islands(geom, mask)
+    labels = labels.astype("int64")  # this is temporaneus: I think it's better
+    # to do it directly in "number_of_islands", since these are just labels
 
     # Get the label of the biggest island and create a new mask
-    biggest_label = np.argmax(np.bincount(labels))
-    biggest_mask = labels == (biggest_label + 1)
+    biggest_label = np.argmax(np.bincount(labels[np.where(labels > 0)]))
+    biggest_mask = labels == biggest_label
 
     # Filter camera geometry and image for the biggest island
     selected_geom = geom[biggest_mask]
