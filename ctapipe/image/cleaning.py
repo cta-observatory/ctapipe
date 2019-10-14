@@ -357,41 +357,23 @@ def fact_image_cleaning(
     return pixels_to_keep
 
 
-def biggest_island(geom, image, mask):
-    """Find biggest island and filter it from the image.
+def largest_island(islands_labels):
+    """Find the biggest island and filter it from the image.
 
-    This function finds the biggest island in the cleaned image and isolates it
-    for subsequent parametrization.
+    This function takes a list of islands in an image and isolates the largest one
+    for later parametrization.
 
     Parameters
     ----------
-    geom: `ctapipe.instrument.CameraGeometry`
-        Camera geometry information.
-    image: array
-        pixel values of the calibrated image.
-    mask : array
-        A boolean mask of previously cleaned pixels.
+
+    islands_labels : array
+        Flattened array containing a list of labelled islands from a cleaned image.
 
     Returns
     -------
 
-    selected_geom : `ctapipe.instrument.CameraGeometry`
-        Camera geometry information filtered for the biggest island
-    selected_image : array
-        Pixel values of the calibrated image filtered for the biggest island.
+    islands_labels : array
+        A boolean mask created from the input labels and filtered for the largest island.
 
     """
-    # Finds all islands from the cleaned pixels and label them
-    num_islands, labels = number_of_islands(geom, mask)
-    labels = labels.astype("int64")  # this is temporaneus: I think it's better
-    # to do it directly in "number_of_islands", since these are just labels
-
-    # Get the label of the biggest island and create a new mask
-    biggest_label = np.argmax(np.bincount(labels[np.where(labels > 0)]))
-    biggest_mask = labels == biggest_label
-
-    # Filter camera geometry and image for the biggest island
-    selected_geom = geom[biggest_mask]
-    selected_image = image[biggest_mask]
-
-    return selected_geom, selected_image
+    return islands_labels == np.argmax(np.bincount(islands_labels[islands_labels > 0]))
