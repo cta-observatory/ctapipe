@@ -221,7 +221,7 @@ def test_number_of_islands():
     # create a toy image with several islands
     np.random.seed(42)
 
-    image = np.zeros(camera.n_pixels)
+    image = np.zeros(geom.n_pixels)
 
     for i in range(9):
 
