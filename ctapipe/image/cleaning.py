@@ -368,6 +368,7 @@ def largest_island(islands_labels):
 
     islands_labels : array
         Flattened array containing a list of labelled islands from a cleaned image.
+        Second returned value of the function 'number_of_islands'.
 
     Returns
     -------
