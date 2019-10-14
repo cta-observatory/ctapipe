@@ -15,7 +15,7 @@ def test_leakage():
     ratio1 = np.sum(geom.get_border_pixel_mask(1)) / geom.n_pixels
     ratio2 = np.sum(geom.get_border_pixel_mask(2)) / geom.n_pixels
 
-    assert l.intensity_1pix == ratio1
-    assert l.intensity_2pix == ratio2
-    assert l.pixels_1pix == ratio1
-    assert l.pixels_2pix == ratio2
+    assert l.intensity_width_1 == ratio1
+    assert l.intensity_width_2 == ratio2
+    assert l.pixels_width_1 == ratio1
+    assert l.pixels_width_2 == ratio2

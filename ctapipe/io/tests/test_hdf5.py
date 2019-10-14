@@ -56,10 +56,10 @@ def test_prefix(tmp_path):
     )
 
     leakage_container = LeakageContainer(
-        fraction_1pix=0.1,
-        fraction_2pix=0.1,
-        intensity_1pix=0.1,
-        intensity_2pix=0.1,
+        fraction_width_1=0.1,
+        fraction_width_2=0.1,
+        intensity_width_1=0.1,
+        intensity_width_2=0.1,
     )
 
     with HDF5TableWriter(tmp_file.name, group_name="blabla", add_prefix=True) as writer:
@@ -67,7 +67,7 @@ def test_prefix(tmp_path):
 
     df = pd.read_hdf(tmp_file.name, key="/blabla/events")
     assert "hillas_x" in df.columns
-    assert "leakage_pixels_1pix" in df.columns
+    assert "leakage_pixels_width_1" in df.columns
 
 
 def test_write_containers(temp_h5_file):
