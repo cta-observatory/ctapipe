@@ -237,33 +237,37 @@ def test_number_of_islands():
     assert_allclose(island_mask, island_mask_true)
 
 
-def test_biggest_island():
-    # Create a simple camera
-    cam = CameraGeometry.make_rectangular(17, 1)
-    cam.cam_id = "test"  # this overwrites the default -1 set by the function
-    # Create a simple image made of ones and zero "photoelectrons"
+def test_largest_island():
+    """Test selection of largest island in an image for given cleaning mask."""
+
+    # Create a simple rectangular camera made of 17 pixels
+    camera = CameraGeometry.make_rectangular(17, 1)
+
+    # Create a simple image made of 0, 1 or 2 photoelectrons
     image = np.array([2, 1, 1, 1, 1, 2, 2, 1, 0, 2, 1, 1, 1, 0, 2, 2, 2])
-    # Let's say that we clean with a simple tailut with the following parameters
-    # p = 2, b = 1, min neighbors=0
-    # This cleaning would find the following islands
-    clean_mask = np.zeros(cam.n_pixels).astype("bool")
+    # Assume a virtual tailcut cleaning that requires:
+    # - picture_threshold = 2 photoelectrons,
+    # - boundary_threshold = 1 photoelectron,
+    # - min_number_picture_neighbors = 0
+
+    # 4 islands left after cleaning:
+    clean_mask = np.zeros(camera.n_pixels).astype("bool")  # initialization
     clean_mask[[0, 1]] = 1
     clean_mask[[4, 5, 6, 7]] = 2  # this is the biggest
     clean_mask[[9, 10]] = 3
     clean_mask[[14, 15, 16]] = 4
 
-    # Now we create the mask which takes into account only the biggest island
-    biggest_island_mask_true = np.zeros(cam.n_pixels).astype("bool")
-    biggest_island_mask_true[[4, 5, 6, 7]] = 1
-    # So the true selected geometry and image are the following
-    biggest_cam_true = cam[biggest_island_mask_true]
-    biggest_image_true = image[biggest_island_mask_true]
+    # Label islands (their number is not important here)
+    _, islands_labels = cleaning.number_of_islands(camera, clean_mask)
 
-    # Apply function to test
-    biggest_cam, biggest_image = cleaning.biggest_island(cam, image, clean_mask)
-    # Check if the function recovers the truth
-    assert biggest_cam == biggest_cam_true
-    assert_allclose(biggest_image, biggest_image_true)
+    # Create the true mask which takes into account only the biggest island
+    true_mask_largest = np.zeros(camera.n_pixels).astype("bool")  # initialization
+    true_mask_largest[[4, 5, 6, 7]] = 1
+
+    # Apply the function to test
+    mask_largest = cleaning.largest_island(islands_labels)
+    # Check if the function recovers the ground truth
+    assert_allclose(mask_largest, true_mask_largest)
 
 
 def test_fact_image_cleaning():
