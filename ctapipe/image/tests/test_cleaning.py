@@ -243,8 +243,8 @@ def test_largest_island():
     # Create a simple rectangular camera made of 17 pixels
     camera = CameraGeometry.make_rectangular(17, 1)
 
-    # Create a simple image made of 0, 1 or 2 photoelectrons
-    image = np.array([2, 1, 1, 1, 1, 2, 2, 1, 0, 2, 1, 1, 1, 0, 2, 2, 2])
+    # Assume a simple image (flattened array) made of 0, 1 or 2 photoelectrons
+    # [2, 1, 1, 1, 1, 2, 2, 1, 0, 2, 1, 1, 1, 0, 2, 2, 2]
     # Assume a virtual tailcut cleaning that requires:
     # - picture_threshold = 2 photoelectrons,
     # - boundary_threshold = 1 photoelectron,
