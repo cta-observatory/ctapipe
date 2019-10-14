@@ -150,13 +150,17 @@ class TelescopeParameter(List):
     --------
 
     .. code-block: python
-    [
+    tel_param = [
         ('*', '', 5.0),                       # default
-        ('type', 'LST_LST_LSTCam', 5.2,
-        ('type', 'MST_MST_NectarCam', 4.0,
-        ('type', 'MST_MST_FlashCam', 4.5,
+        ('type', 'LST_LST_LSTCam', 5.2),
+        ('type', 'MST_MST_NectarCam', 4.0),
+        ('type', 'MST_MST_FlashCam', 4.5),
         ('id', 34' 4.0),                   # override telescope 34 specifically
     ]
+
+    .. code-block: python
+    tel_param = 4.0  # sets this value for all telescopes
+
     """
 
     def __init__(self, dtype=float, **kwargs):
