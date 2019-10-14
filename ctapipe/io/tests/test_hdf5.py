@@ -67,7 +67,7 @@ def test_prefix(tmp_path):
 
     df = pd.read_hdf(tmp_file.name, key="/blabla/events")
     assert "hillas_x" in df.columns
-    assert "leakage_fraction_1pix" in df.columns
+    assert "leakage_pixels_1pix" in df.columns
 
 
 def test_write_containers(temp_h5_file):

@@ -623,15 +623,16 @@ class HillasParametersContainer(Container):
 
 class LeakageContainer(Container):
     """
-    Leakage
+    Fraction of signal in 1-pix or 2-pix border from the edge of the camera,
+    measured in number of signal pixels or in intensity.
     """
 
     container_prefix = "leakage"
 
-    fraction_1pix = Field(
+    pixels_1pix = Field(
         nan, "fraction of pixels after cleaning that are in camera border of width=1"
     )
-    fraction_2pix = Field(
+    pixels_2pix = Field(
         nan, "fraction of pixels after cleaning that are in camera border of width=2"
     )
     intensity_1pix = Field(
