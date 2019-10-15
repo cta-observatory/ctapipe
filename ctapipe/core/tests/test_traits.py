@@ -133,11 +133,7 @@ def test_telescope_parameter_patterns():
     comp.tel_param = 4.5
     assert comp.tel_param[0][2] == 4.5
 
-    comp.tel_param = [
-        ("*", "", 1.0),
-        ("type", "LST_LST_LSTCam", 16.0),
-        ("id", 16, 10.0),
-    ]
+    comp.tel_param = [("type", "*", 1.0), ("type", "*LSTCam", 16.0), ("id", 16, 10.0)]
 
     with pytest.raises(TraitError):
         comp.tel_param = [("badcommand", "", 1.0)]
@@ -163,12 +159,12 @@ def test_telescope_parameter_resolver():
 
     class SomeComponent(Component):
         tel_param1 = IntTelescopeParameter(
-            default_value=[("*", "", 10), ("type", "LST_LST_LSTCam", 100)]
+            default_value=[("type", "*", 10), ("type", "LST*", 100)]
         )
 
         tel_param2 = FloatTelescopeParameter(
             default_value=[
-                ("*", "", 10.0),
+                ("type", "*", 10.0),
                 ("type", "LST_LST_LSTCam", 100.0),
                 ("id", 3, 200.0),
             ]
@@ -176,9 +172,9 @@ def test_telescope_parameter_resolver():
 
         tel_param3 = FloatTelescopeParameter(
             default_value=[
-                ("*", "", 10.0),
+                ("type", "*", 10.0),
                 ("type", "LST_LST_LSTCam", 100.0),
-                ("*", "*", 200.0),  # should overwrite everything with 200.0
+                ("type", "*", 200.0),  # should overwrite everything with 200.0
                 ("id", 100, 300.0),
             ]
         )
@@ -188,7 +184,14 @@ def test_telescope_parameter_resolver():
     # need to mock a SubarrayDescription
     subarray = MagicMock()
     subarray.tel_ids = [1, 2, 3, 4]
-    subarray.get_tel_ids_for_type.return_value = [3, 4]
+    subarray.get_tel_ids_for_type = (
+        lambda x: [3, 4] if x == "LST_LST_LSTCam" else [1, 2]
+    )
+    subarray.telescope_types = [
+        "LST_LST_LSTCam",
+        "MST_MST_NectarCam",
+        "MST_MST_FlashCam",
+    ]
 
     resolver1 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param1)
     resolver2 = TelescopeParameterResolver(subarray=subarray, tel_param=comp.tel_param2)

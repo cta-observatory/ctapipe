@@ -1,4 +1,5 @@
 import os
+from fnmatch import fnmatch
 
 from traitlets import (
     Bool,
@@ -44,6 +45,10 @@ __all__ = [
     "IntTelescopeParameter",
     "TelescopeParameterResolver",
 ]
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Path(TraitType):
@@ -138,9 +143,10 @@ class TelescopeParameter(List):
     form: `[(command, argument, value), ...]`.
 
     Command can be one of:
-    - '*' match all telescopes,  Here argument is ignored.
     - 'type': argument is then a telescope type  string (e.g.
-       `('type', 'SST_ASTRI_CHEC', 4.0)`,  to apply to all telescopes of that type
+       `('type', 'SST_ASTRI_CHEC', 4.0)` to apply to all telescopes of that type,
+       or use a wildcard like "LST*", or "*" to set a pure default value for all
+       telescopes.
     - 'id':  argument is a specific telescope ID `['id', 89, 5.0]`)
 
     These are evaluated in-order, so you can first set a default value, and then set
@@ -151,11 +157,11 @@ class TelescopeParameter(List):
 
     .. code-block: python
     tel_param = [
-        ('*', '', 5.0),                       # default
-        ('type', 'LST_LST_LSTCam', 5.2),
+        ('type', '*', 5.0),                       # default for all
+        ('type', 'LST_*', 5.2),
         ('type', 'MST_MST_NectarCam', 4.0),
         ('type', 'MST_MST_FlashCam', 4.5),
-        ('id', 34' 4.0),                   # override telescope 34 specifically
+        ('id', 34, 4.0),                   # override telescope 34 specifically
     ]
 
     .. code-block: python
@@ -172,7 +178,7 @@ class TelescopeParameter(List):
     def validate(self, obj, value):
         # support a single value for all (convert into a default value)
         if isinstance(value, self._dtype):
-            value = [["*", "", value]]
+            value = [("type", "*", value)]
 
         # check that it is a list
         super().validate(obj, value)
@@ -189,7 +195,7 @@ class TelescopeParameter(List):
                 raise TraitError(f"Value should be a {self._dtype}")
             if not isinstance(command, str):
                 raise TraitError("command must be a string")
-            if command not in ["*", "type", "id"]:
+            if command not in ["type", "id"]:
                 raise TraitError("command must be one of: '*', 'type', 'id'")
             if command == "type":
                 if not isinstance(arg, str):
@@ -212,6 +218,7 @@ class FloatTelescopeParameter(TelescopeParameter):
 
 class IntTelescopeParameter(TelescopeParameter):
     """ a `TelescopeParameter` with int type (see docs for `TelescopeParameter`)"""
+
     def __init__(self, **kwargs):
         super().__init__(dtype=int, **kwargs)
 
@@ -241,12 +248,20 @@ class TelescopeParameterResolver:
         self._value_for_tel_id = {}
 
         for command, argument, value in tel_param:
-            if command == "*":
-                for tel_id in subarray.tel_ids:
-                    self._value_for_tel_id[tel_id] = value
-            elif command == "type":
-                for tel_id in subarray.get_tel_ids_for_type(argument):
-                    self._value_for_tel_id[tel_id] = value
+            if command == "type":
+                matched_tel_types = [
+                    t for t in subarray.telescope_types if fnmatch(t, argument)
+                ]
+                logger.debug(f"argument '{argument}' matched: {matched_tel_types}")
+                if len(matched_tel_types) == 0:
+                    logger.warning(
+                        "TelescopeParameter type argument '%s' did not match "
+                        "any known telescope types",
+                        argument,
+                    )
+                for tel_type in matched_tel_types:
+                    for tel_id in subarray.get_tel_ids_for_type(tel_type):
+                        self._value_for_tel_id[tel_id] = value
             elif command == "id":
                 self._value_for_tel_id[int(argument)] = value
             else:
