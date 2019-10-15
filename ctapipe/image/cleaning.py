@@ -8,6 +8,7 @@ __all__ = [
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
+    "number_of_islands",
 ]
 
 import numpy as np
