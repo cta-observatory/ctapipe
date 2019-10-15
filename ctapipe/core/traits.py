@@ -137,8 +137,8 @@ def has_traits(cls, ignore=("config", "parent")):
 
 class TelescopeParameter(List):
     """
-    Allow a parameter value to be specified as a simple float, or as a list of
-    patterns that match different telescopes.
+    Allow a parameter value to be specified as a simple value (of type *dtype*),
+    or as a list of patterns that match different telescopes.
     The patterns are given as a list of 3-tuples in in the
     form: `[(command, argument, value), ...]`.
 
