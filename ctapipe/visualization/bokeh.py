@@ -148,7 +148,7 @@ class CameraDisplay:
     def image_min(self, val):
         self._image_min = val
         if self.cb:
-            self.cm.low = np.asscalar(val)
+            self.cm.low = val.item()
 
     @property
     def image_max(self):
@@ -158,7 +158,7 @@ class CameraDisplay:
     def image_max(self, val):
         self._image_max = val
         if self.cb:
-            self.cm.high = np.asscalar(val)
+            self.cm.high = val.item()
 
     @property
     def active_pixels(self):
@@ -240,8 +240,8 @@ class CameraDisplay:
                            major_label_text_color='green',
                            location=(0, 0))
         self.fig.add_layout(self.cb, 'right')
-        self.cm.low = np.asscalar(self.image_min)
-        self.cm.high = np.asscalar(self.image_max)
+        self.cm.low = self.image_min.item()
+        self.cm.high = self.image_max.item()
 
 
 class FastCameraDisplay:
