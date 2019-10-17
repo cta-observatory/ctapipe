@@ -232,6 +232,7 @@ def test_number_of_islands():
     n_islands_true = 5
     assert n_islands == n_islands_true
     assert_allclose(island_mask, island_mask_true)
+    assert island_mask.dtype == np.int32
 
 
 def test_fact_image_cleaning():
