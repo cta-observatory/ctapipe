@@ -6,7 +6,6 @@ import re
 
 import yaml
 from astropy.table import Table
-from astropy.utils.decorators import deprecated
 from pkg_resources import resource_listdir
 
 try:
@@ -231,7 +230,7 @@ def get_structured_dataset(basename, role='resource', **kwargs):
 
                 with open(fullname) as infile:
                     if data_type == '.yaml' or data_type == '.yml':
-                        dataset = yaml.load(infile, **args)
+                        dataset = yaml.safe_load(infile, **args)
                     elif data_type == '.json':
                         dataset = json.load(infile, **args)
 
