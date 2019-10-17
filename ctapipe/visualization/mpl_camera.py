@@ -122,6 +122,7 @@ class CameraDisplay:
         pix_y = self.geom.pix_y.value[self.geom.mask]
         pix_area = self.geom.pix_area.value[self.geom.mask]
 
+
         for x, y, area in zip(pix_x, pix_y, pix_area):
             if self.geom.pix_type.startswith("hex"):
                 r = sqrt(area * 2 / 3 / sqrt(3)) + 2 * PIXEL_EPSILON
@@ -418,6 +419,34 @@ class CameraDisplay:
             )
 
             self._axes_overlays.append(text)
+
+
+    def overlay_point_source(self, x, y, **kwargs):
+        """
+        Overlay the source in the camera frame
+
+        Parameters
+        ----------
+        x: x source position in the camera frame
+        y: y source position in the camera frame
+        kwargs: args for `matplotlib.pyplot.scatter`
+        """
+
+        w = self.axes.figure.get_figwidth()
+        if 'marker' not in kwargs:
+            kwargs['marker'] = '*'
+        if 's' not in kwargs:
+            kwargs['s'] = 20 * w
+        if 'linewidth' not in kwargs:
+            kwargs['linewidth'] = 0.2 * w
+        if 'color' not in kwargs:
+            kwargs['color'] = 'red'
+
+        src_point = self.axes.scatter(x, y, **kwargs)
+        self._axes_overlays.append(src_point)
+
+        return src_point
+
 
     def clear_overlays(self):
         """ Remove added overlays from the axes """
