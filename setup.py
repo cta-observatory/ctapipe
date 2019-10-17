@@ -41,6 +41,11 @@ entry_points['console_scripts'] = [
     'ctapipe-display-integration = ctapipe.tools.display_integrator:main',
     'ctapipe-display-dl1 = ctapipe.tools.display_dl1:main',
 ]
+tests_require = [
+    'pytest',
+    'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.18.tar.gz',
+    'pyhessio @ https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz',
+]
 
 package.version.update_release_version()
 
@@ -70,12 +75,10 @@ setup(name=PACKAGENAME,
       ],
       # here are optional dependencies (as "tag" : "dependency spec")
       extras_require={
+          'all': tests_require,
+          'tests': tests_require,
       },
-      tests_require=[
-          'pytest',
-          'ctapipe-extra>=0.2.11,<0.3',
-          'pyhessio>=2.1',
-      ],
+      tests_require=tests_require,
       setup_requires=['pytest_runner'],
       author=AUTHOR,
       author_email=AUTHOR_EMAIL,
