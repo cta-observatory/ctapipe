@@ -46,6 +46,9 @@ tests_require = [
     'ctapipe-extra @ https://github.com/cta-observatory/ctapipe-extra/archive/v0.2.18.tar.gz',
     'pyhessio @ https://github.com/cta-observatory/pyhessio/archive/v2.1.1.tar.gz',
 ]
+docs_require = [
+    'sphinx_rtd_theme', 'sphinx_automodapi', 'sphinx', 'nbsphinx', 'numpydoc',
+]
 
 package.version.update_release_version()
 
@@ -75,8 +78,9 @@ setup(name=PACKAGENAME,
       ],
       # here are optional dependencies (as "tag" : "dependency spec")
       extras_require={
-          'all': tests_require,
+          'all': tests_require + docs_require,
           'tests': tests_require,
+          'docs': docs_require,
       },
       tests_require=tests_require,
       setup_requires=['pytest_runner'],

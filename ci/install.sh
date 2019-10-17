@@ -27,6 +27,5 @@ if [[ "$CONDA" == "true" ]]; then
 	travis_wait 20 conda env update -n cta-dev --file py${PYTHON_VERSION}_env.yaml
 	conda activate cta-dev
 else
-	pip install -e .[tests]
-	pip install sphinx_rtd_theme sphinx_automodapi sphinx nbsphinx numpydoc
+	pip install -e .[all]
 fi
