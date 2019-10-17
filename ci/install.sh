@@ -28,5 +28,5 @@ if [[ "$CONDA" == "true" ]]; then
 	conda activate cta-dev
 else
 	pip install -e .[tests]
-	pip install sphinx_rtd_theme sphinx_automodapi sphinx nbsphinx
+	pip install sphinx_rtd_theme sphinx_automodapi sphinx nbsphinx numpydoc
 fi
