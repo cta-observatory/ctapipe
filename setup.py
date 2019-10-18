@@ -48,7 +48,7 @@ tests_require = [
 ]
 docs_require = [
     'sphinx_rtd_theme', 'sphinx_automodapi', 'sphinx', 'nbsphinx', 'numpydoc',
-    'jupyter', 'notebook', 'travis-sphinx',
+    'jupyter', 'notebook', 'travis-sphinx', 'graphviz',
 ]
 
 package.version.update_release_version()

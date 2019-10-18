@@ -26,6 +26,7 @@ matrix:
         apt:
           packages:
             - pandoc
+            - graphviz
 
     - os: linux
       language: python
@@ -34,6 +35,7 @@ matrix:
         apt:
           packages:
             - pandoc
+            - graphviz
 
 
 before_install:
