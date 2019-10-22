@@ -148,8 +148,8 @@ class Tool(Application):
             the same component instance that was passed in, so that the call
             can be chained.
 
-        Example
-        -------
+        Examples
+        --------
         .. code-block:: python3
 
             self.mycomp = self.add_component(MyComponent(parent=self))

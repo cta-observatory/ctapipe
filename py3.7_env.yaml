@@ -13,6 +13,7 @@ dependencies:
   - iminuit
   - ipython
   - ipywidgets
+  - joblib
   - jupyter
   - matplotlib
   - numba
