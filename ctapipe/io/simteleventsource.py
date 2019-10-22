@@ -263,6 +263,8 @@ class SimTelEventSource(EventSource):
                 mc.altitude_raw = tracking_position['altitude_raw']
                 mc.azimuth_cor = tracking_position.get('azimuth_cor', 0)
                 mc.altitude_cor = tracking_position.get('altitude_cor', 0)
+                data.pointing[tel_id].altitude = (mc.altitude_raw - mc.altitude_cor) * u.rad
+                data.pointing[tel_id].azimuth = (mc.azimuth_raw - mc.azimuth_cor) * u.rad
 
                 r0 = data.r0.tel[tel_id]
                 r1 = data.r1.tel[tel_id]
