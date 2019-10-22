@@ -165,6 +165,11 @@ class HESSIOEventSource(EventSource):
                                                        get_azimuth_cor(tel_id))
                     data.mc.tel[tel_id].altitude_cor = (file.
                                                         get_altitude_cor(tel_id))
+                    data.pointing[tel_id].altitude = (data.mc.tel[tel_id].altitude_raw
+                                                      - data.mc.tel[tel_id].altitude_cor) * u.rad
+                    data.pointing[tel_id].azimuth = (data.mc.tel[tel_id].azimuth_raw
+                                                     - data.mc.tel[tel_id].azimuth_cor) * u.rad
+
                 yield data
                 counter += 1
 
