@@ -159,7 +159,8 @@ def test_to_and_from_table():
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
-
+    assert geom.sampling_rate == geom2.sampling_rate
+    
 
 def test_write_read(tmpdir):
     """ Check that serialization to disk doesn't lose info """
@@ -174,6 +175,7 @@ def test_write_read(tmpdir):
     assert (geom.pix_y == geom2.pix_y).all()
     assert (geom.pix_area == geom2.pix_area).all()
     assert geom.pix_type == geom2.pix_type
+    assert geom.sampling_rate == geom2.sampling_rate
 
 
 def test_precal_neighbors():

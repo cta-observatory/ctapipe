@@ -312,6 +312,7 @@ class CameraGeometry:
                                TAB_TYPE='ctapipe.instrument.CameraGeometry',
                                TAB_VER='1.0',
                                CAM_ID=self.cam_id,
+                               SAMP_RATE=self.sampling_rate,
                                PIX_ROT=self.pix_rotation.deg,
                                CAM_ROT=self.cam_rotation.deg,
                                ))
@@ -337,6 +338,12 @@ class CameraGeometry:
         if not isinstance(url_or_table, Table):
             tab = Table.read(url_or_table, **kwargs)
 
+        try:
+            sampling_rate = u.Quantity(tab.meta["SAMP_RATE"], u.GHz)
+        except KeyError:
+            logger.warn("Sampling rate is not in file, defaulting to 1.0 GHz")
+            sampling_rate = u.Quantity(1, u.GHz)
+
         return cls(
             cam_id=tab.meta.get('CAM_ID', 'Unknown'),
             pix_id=tab['pix_id'],
@@ -344,7 +351,7 @@ class CameraGeometry:
             pix_y=tab['pix_y'].quantity,
             pix_area=tab['pix_area'].quantity,
             pix_type=tab.meta['PIX_TYPE'],
-            sampling_rate=u.Quantity(tab.meta["SAMP_RATE"], u.GHz),
+            sampling_rate=sampling_rate,
             pix_rotation=Angle(tab.meta['PIX_ROT'] * u.deg),
             cam_rotation=Angle(tab.meta['CAM_ROT'] * u.deg),
         )
