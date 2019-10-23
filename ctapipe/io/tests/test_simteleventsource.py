@@ -64,6 +64,9 @@ def compare_sources(input_url):
                 assert h.mc.tel[tel_id].azimuth_raw == s.mc.tel[tel_id].azimuth_raw
                 assert h.mc.tel[tel_id].altitude_raw == s.mc.tel[tel_id].altitude_raw
 
+                assert (h.inst.subarray.tel[tel_id].camera.sampling_rate ==
+                        s.inst.subarray.tel[tel_id].camera.sampling_rate)
+
 
 def test_compare_event_hessio_and_simtel():
     compare_sources(gamma_test_large_path)

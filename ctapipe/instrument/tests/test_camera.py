@@ -15,6 +15,7 @@ def test_construct():
                           pix_x=x * u.m, pix_y=y * u.m,
                           pix_area=x * u.m**2,
                           pix_type='rectangular',
+                          sampling_rate=u.Quantity(1, u.GHz),
                           pix_rotation="10d",
                           cam_rotation="12d")
 
@@ -72,6 +73,7 @@ def test_find_neighbor_pixels():
         pix_x=x.ravel(),
         pix_y=y.ravel(),
         pix_type='rectangular',
+        sampling_rate=u.Quantity(1, u.GHz),
     )
 
     neigh = geom.neighbors
@@ -118,6 +120,7 @@ def test_calc_pixel_neighbors_square():
         pix_x=u.Quantity(x.ravel(), u.cm),
         pix_y=u.Quantity(y.ravel(), u.cm),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
+        sampling_rate=u.Quantity(1, u.GHz),
     )
 
     assert set(cam.neighbors[0]) == {1, 20}
@@ -138,6 +141,7 @@ def test_calc_pixel_neighbors_square_diagonal():
         pix_x=u.Quantity(x.ravel(), u.cm),
         pix_y=u.Quantity(y.ravel(), u.cm),
         pix_area=u.Quantity(np.ones(400), u.cm**2),
+        sampling_rate=u.Quantity(1, u.GHz),
     )
 
     cam._neighbors = cam.calc_pixel_neighbors(diagonal=True)
@@ -186,6 +190,7 @@ def test_precal_neighbors():
                               [1, ], [0, 2], [1, ]
                           ],
                           pix_type='rectangular',
+                          sampling_rate=u.Quantity(1, u.GHz),
                           pix_rotation="0deg",
                           cam_rotation="0deg")
 
@@ -243,6 +248,7 @@ def test_rectangle_patch_neighbors():
         pix_y=pix_y,
         pix_area=None,
         pix_type='rectangular',
+        sampling_rate=u.Quantity(1, u.GHz),
     )
 
     assert np.all(cam.neighbor_matrix.T == cam.neighbor_matrix)
