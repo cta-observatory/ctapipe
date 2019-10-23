@@ -162,8 +162,8 @@ class R0Container(Container):
     Storage of a Merged Raw Data Event
     """
 
-    obs_id = DeprecatedField(-1, "observation ID")
-    event_id = DeprecatedField(-1, "event id number")
+    obs_id = DeprecatedField(-1, "observation ID", reason="moved to event.index")
+    event_id = DeprecatedField(-1, "event id number", reason="moved to event.index")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R0CameraContainer), "map of tel_id to R0CameraContainer")
 
@@ -197,8 +197,8 @@ class R1Container(Container):
     Storage of a r1 calibrated Data Event
     """
 
-    obs_id = DeprecatedField(-1, "observation ID")
-    event_id = DeprecatedField(-1, "event id number")
+    obs_id = DeprecatedField(-1, "observation ID", reason="moved to event.index")
+    event_id = DeprecatedField(-1, "event id number", reason="moved to event.index")
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(R1CameraContainer), "map of tel_id to R1CameraContainer")
 
@@ -227,8 +227,12 @@ class DL0Container(Container):
     Storage of a data volume reduced Event
     """
 
-    obs_id = DeprecatedField(-1, "observation ID")  # use event.index.obs_id
-    event_id = DeprecatedField(-1, "event id number")  # use event.index.event_id
+    obs_id = DeprecatedField(
+        -1, "observation ID", reason="moved to event.index"
+    )  # use event.index.obs_id
+    event_id = DeprecatedField(
+        -1, "event id number", reason="moved to event.index"
+    )  # use event.index.event_id
     tels_with_data = Field([], "list of telescopes with data")
     tel = Field(Map(DL0CameraContainer), "map of tel_id to DL0CameraContainer")
 
@@ -483,7 +487,9 @@ class DataContainer(Container):
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
     inst = DeprecatedField(
-        InstrumentContainer(), "instrumental information (deprecated"
+        InstrumentContainer(),
+        "instrumental information ",
+        reason="will be separated from event structure in future version",
     )
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
 
@@ -577,9 +583,15 @@ class MuonIntensityParameter(Container):
 
     """
 
-    obs_id = DeprecatedField(0, "run identification number")
-    event_id = DeprecatedField(0, "event identification number")
-    tel_id = DeprecatedField(0, "telescope identification number")
+    obs_id = DeprecatedField(
+        0, "run identification number", reason="moved to event.index"
+    )
+    event_id = DeprecatedField(
+        0, "event identification number", reason="moved to event.index"
+    )
+    tel_id = DeprecatedField(
+        0, "telescope identification number", reason="moved to event.index"
+    )
     ring_completeness = Field(0.0, "fraction of ring present")
     ring_pix_completeness = Field(0.0, "fraction of pixels present in the ring")
     ring_num_pixel = Field(0, "number of pixels in the ring image")
@@ -819,7 +831,7 @@ class WaveformCalibrationContainer(Container):
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)",
     )
 
-    pedestal_per_sample =    Field(
+    pedestal_per_sample = Field(
         None,
         "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
     )

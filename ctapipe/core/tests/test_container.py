@@ -175,3 +175,7 @@ def test_container_brackets():
 
     with pytest.raises(AttributeError):
         t["foo"] = 5
+
+def test_deprecated_field():
+    class  ExampleContainer(Container):
+        answer = DeprecatedField(-1, "The answer to all questions")
