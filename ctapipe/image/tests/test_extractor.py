@@ -4,9 +4,8 @@ from scipy.stats import norm
 from numpy.testing import assert_allclose, assert_equal
 from ctapipe.instrument import CameraGeometry
 from ctapipe.image.extractor import (
-    sum_samples_around_peak,
+    extract_around_peak,
     neighbor_average_waveform,
-    extract_pulse_time_around_peak,
     subtract_baseline,
     ImageExtractor,
     FullWaveformSum,
@@ -42,16 +41,23 @@ def camera_waveforms():
     return y, camera
 
 
-def test_sum_samples_around_peak(camera_waveforms):
+def test_extract_around_peak(camera_waveforms):
     waveforms, _ = camera_waveforms
     n_pixels, n_samples = waveforms.shape
     rand = np.random.RandomState(1)
     peak_index = rand.uniform(0, n_samples, n_pixels).astype(np.int)
-    charge = sum_samples_around_peak(waveforms, peak_index, 7, 3)
+    charge, pulse_time = extract_around_peak(waveforms, peak_index, 7, 3)
     assert_allclose(charge[0], 146.022991, rtol=1e-3)
+    assert_allclose(pulse_time[0], 40.659884, rtol=1e-3)
+
+    x = np.arange(100)
+    y = norm.pdf(x, 41.2, 6)
+    charge, pulse_time = extract_around_peak(y[np.newaxis, :], 0, x.size, 0)
+    assert_allclose(charge[0], 1.0, rtol=1e-3)
+    assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
-def test_sum_samples_around_peak_expected(camera_waveforms):
+def test_extract_around_peak_charge_expected(camera_waveforms):
     waveforms, _ = camera_waveforms
     waveforms = np.ones(waveforms.shape)
     n_samples = waveforms.shape[-1]
@@ -59,37 +65,37 @@ def test_sum_samples_around_peak_expected(camera_waveforms):
     peak_index = 0
     width = 10
     shift = 0
-    charge = sum_samples_around_peak(waveforms, peak_index, width, shift)
+    charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, 10)
 
     peak_index = 0
     width = 10
     shift = 10
-    charge = sum_samples_around_peak(waveforms, peak_index, width, shift)
+    charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, 0)
 
     peak_index = 0
     width = 20
     shift = 10
-    charge = sum_samples_around_peak(waveforms, peak_index, width, shift)
+    charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, 10)
 
     peak_index = n_samples
     width = 10
     shift = 0
-    charge = sum_samples_around_peak(waveforms, peak_index, width, shift)
+    charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, 0)
 
     peak_index = n_samples
     width = 20
     shift = 10
-    charge = sum_samples_around_peak(waveforms, peak_index, width, shift)
+    charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, 10)
 
     peak_index = 0
     width = n_samples*3
     shift = n_samples
-    charge = sum_samples_around_peak(waveforms, peak_index, width, shift)
+    charge, _ = extract_around_peak(waveforms, peak_index, width, shift)
     assert_equal(charge, n_samples)
 
 
@@ -101,15 +107,6 @@ def test_neighbor_average_waveform(camera_waveforms):
 
     average_wf = neighbor_average_waveform(waveforms, nei, 4)
     assert_allclose(average_wf[0, 48], 98.565743, rtol=1e-3)
-
-
-def test_extract_pulse_time_around_peak(camera_waveforms):
-    x = np.arange(100)
-    y = norm.pdf(x, 41.2, 6)
-    pulse_time = extract_pulse_time_around_peak(
-        y[np.newaxis, :], 0, x.size, 0
-    )
-    assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
 def test_baseline_subtractor(camera_waveforms):

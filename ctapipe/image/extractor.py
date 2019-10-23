@@ -20,16 +20,15 @@ from abc import abstractmethod
 import numpy as np
 from traitlets import Int
 from ctapipe.core import Component
-from numba import njit, prange, guvectorize, float64, float32, int64, int32
-import warnings
+from numba import njit, prange, guvectorize, float64, float32, int64
 
 
 @guvectorize(
     [
-        (float64[:], int64, int64, int64, float64[:]),
-        (float32[:], int64, int64, int64, float64[:]),
+        (float64[:], int64, int64, int64, float64[:], float64[:]),
+        (float32[:], int64, int64, int64, float64[:], float64[:]),
     ],
-    '(s),(),(),()->()',
+    '(s),(),(),()->(),()',
     nopython=True,
 )
 def extract_around_peak(waveforms, peak_index, width, shift, sum, pulse_time):
