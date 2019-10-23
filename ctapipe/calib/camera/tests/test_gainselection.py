@@ -3,7 +3,7 @@ from ctapipe.calib.camera.gainselection import ManualGainSelector, \
     ThresholdGainSelector, GainChannel, GainSelector
 
 
-class TestGainSelector(GainSelector):
+class DummyGainSelector(GainSelector):
     def select_channel(self, waveforms):
         return GainChannel.HIGH
 
@@ -13,7 +13,7 @@ def test_gain_selector():
     waveforms = np.indices(shape)[1]
     waveforms[1] *= 2
 
-    gain_selector = TestGainSelector()
+    gain_selector = DummyGainSelector()
     waveforms_gs, selected_gain_channel = gain_selector(waveforms)
     np.testing.assert_equal(waveforms[GainChannel.HIGH], waveforms_gs)
     np.testing.assert_equal(selected_gain_channel, 0)
@@ -23,7 +23,7 @@ def test_pre_selected():
     shape = (2048, 128)
     waveforms = np.zeros(shape)
 
-    gain_selector = TestGainSelector()
+    gain_selector = DummyGainSelector()
     waveforms_gs, selected_gain_channel = gain_selector(waveforms)
     assert waveforms.shape == waveforms_gs.shape
     assert selected_gain_channel is None
@@ -33,7 +33,7 @@ def test_single_channel():
     shape = (1, 2048, 128)
     waveforms = np.zeros(shape)
 
-    gain_selector = TestGainSelector()
+    gain_selector = DummyGainSelector()
     waveforms_gs, selected_gain_channel = gain_selector(waveforms)
     assert waveforms_gs.shape == (2048, 128)
     assert (selected_gain_channel == 0).all()

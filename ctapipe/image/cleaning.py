@@ -8,6 +8,7 @@ __all__ = [
     "mars_cleaning_1st_pass",
     "fact_image_cleaning",
     "apply_time_delta_cleaning",
+    "number_of_islands",
 ]
 
 import numpy as np
@@ -216,7 +217,7 @@ def number_of_islands(geom, mask):
     # compress sparse neighbor matrix
     neighbor_matrix_compressed = geom.neighbor_matrix_sparse[mask][:, mask]
     # pixels in no cluster have label == 0
-    island_labels = np.zeros(geom.n_pixels)
+    island_labels = np.zeros(geom.n_pixels, dtype='int32')
 
     num_islands, island_labels_compressed = connected_components(
         neighbor_matrix_compressed, directed=False

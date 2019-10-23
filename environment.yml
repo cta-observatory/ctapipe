@@ -13,6 +13,7 @@ dependencies:
   - iminuit
   - ipython
   - ipywidgets
+  - joblib
   - jupyter
   - matplotlib
   - numba
@@ -36,7 +37,8 @@ dependencies:
   - wheel
   - xz
   - zlib
+  - pip
   - pip:
-    - eventio~=0.20.1
+    - eventio~=1.0
 
 

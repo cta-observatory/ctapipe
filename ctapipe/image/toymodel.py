@@ -196,7 +196,7 @@ class SkewedGaussian(ImageModel):
         pos = np.column_stack([x.to_value(u.m), y.to_value(u.m)])
         long, trans = rotation @ (pos - mu).T
 
-        trans_pdf = norm(loc=0, scale=self.width).pdf(trans)
+        trans_pdf = norm(loc=0, scale=self.width.to_value(u.m)).pdf(trans)
 
         a, loc, scale = self._moments_to_parameters()
 
