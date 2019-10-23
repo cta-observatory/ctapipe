@@ -4,7 +4,7 @@ Core functionality of ctapipe
 """
 
 from .component import Component, non_abstract_children
-from .container import Container, Field, DeprecatedField, Map
+from .container import Container, Field, Deprecated, Map
 from .provenance import Provenance, get_module_version
 from .tool import Tool, ToolConfigurationError
 
@@ -13,7 +13,7 @@ __all__ = [
     'Container',
     'Tool',
     'Field',
-    'DeprecatedField',
+    'Deprecated',
     'Map',
     'Provenance',
     'ToolConfigurationError',

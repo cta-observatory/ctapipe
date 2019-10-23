@@ -1,0 +1,298 @@
+[
+   {
+      "activity_name": "test2",
+      "activity_uuid": "46f49d8d-4a94-4250-89c9-540855dc03b9",
+      "start": {
+         "time_utc": "2019-10-23T07:33:50.636"
+      },
+      "stop": {
+         "time_utc": "2019-10-23T07:33:50.652"
+      },
+      "system": {
+         "ctapipe_version": "0.7.0.post34+git92816b6",
+         "ctapipe_resources_version": "0.2.18",
+         "pyhessio_version": "2.1.1",
+         "eventio_version": "0.20.1",
+         "ctapipe_svc_path": null,
+         "executable": "/Users/kkosack/anaconda3/envs/cta-dev/bin/python",
+         "platform": {
+            "architecture_bits": "64bit",
+            "architecture_linkage": "",
+            "machine": "x86_64",
+            "processor": "i386",
+            "node": "dapmcw186",
+            "version": "Darwin Kernel Version 19.0.0: Wed Sep 25 20:18:50 PDT 2019; root:xnu-6153.11.26~2/RELEASE_X86_64",
+            "system": "Darwin",
+            "release": "19.0.0",
+            "libcver": [
+               "",
+               ""
+            ],
+            "num_cpus": 12,
+            "boot_time": "2019-10-16T15:02:24.000"
+         },
+         "python": {
+            "version_string": "3.7.3 | packaged by conda-forge | (default, Jul  1 2019, 14:38:56) \n[Clang 4.0.1 (tags/RELEASE_401/final)]",
+            "version": [
+               "3",
+               "7",
+               "3"
+            ],
+            "compiler": "Clang 4.0.1 (tags/RELEASE_401/final)",
+            "implementation": "CPython"
+         },
+         "environment": {
+            "CONDA_DEFAULT_ENV": "cta-dev",
+            "CONDA_PREFIX": "/Users/kkosack/anaconda3/envs/cta-dev",
+            "CONDA_PYTHON_EXE": "/Users/kkosack/anaconda3/bin/python",
+            "CONDA_EXE": "/Users/kkosack/anaconda3/bin/conda",
+            "CONDA_PROMPT_MODIFIER": "(cta-dev) ",
+            "CONDA_SHLVL": "2",
+            "PATH": "/Users/kkosack/anaconda3/envs/cta-dev/bin:/usr/local/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/bin:/usr/local/texlive/2017/bin/x86_64-darwin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/texbin:/Users/kosack/bin:/Users/kosack/.local/bin:.:/Users/kkosack/bin:/Users/kkosack/.local/bin:/usr/local/sbin:/Library/TeX/texbin:.",
+            "LD_LIBRARY_PATH": ":/usr/local/lib:/usr/local/lib",
+            "DYLD_LIBRARY_PATH": null,
+            "USER": "kkosack",
+            "HOME": "/Users/kkosack",
+            "SHELL": "/bin/zsh"
+         },
+         "arguments": [
+            "/Users/kkosack/anaconda3/envs/cta-dev/bin/pytest",
+            "ctapipe/core"
+         ],
+         "start_time_utc": "2019-10-23T07:33:50.652"
+      },
+      "input": [
+         {
+            "url": "/Users/kkosack/Projects/CTA/Working/ctapipe/input_a.txt",
+            "role": null
+         },
+         {
+            "url": "/Users/kkosack/Projects/CTA/Working/ctapipe/input_b.txt",
+            "role": null
+         }
+      ],
+      "output": [],
+      "status": "test2",
+      "duration_min": 0.00026666666666841365
+   },
+   {
+      "activity_name": "test1",
+      "activity_uuid": "fdd1fc54-1626-4247-9d7f-4d7af5781478",
+      "start": {
+         "time_utc": "2019-10-23T07:33:50.595"
+      },
+      "stop": {
+         "time_utc": "2019-10-23T07:33:50.653"
+      },
+      "system": {
+         "ctapipe_version": "0.7.0.post34+git92816b6",
+         "ctapipe_resources_version": "0.2.18",
+         "pyhessio_version": "2.1.1",
+         "eventio_version": "0.20.1",
+         "ctapipe_svc_path": null,
+         "executable": "/Users/kkosack/anaconda3/envs/cta-dev/bin/python",
+         "platform": {
+            "architecture_bits": "64bit",
+            "architecture_linkage": "",
+            "machine": "x86_64",
+            "processor": "i386",
+            "node": "dapmcw186",
+            "version": "Darwin Kernel Version 19.0.0: Wed Sep 25 20:18:50 PDT 2019; root:xnu-6153.11.26~2/RELEASE_X86_64",
+            "system": "Darwin",
+            "release": "19.0.0",
+            "libcver": [
+               "",
+               ""
+            ],
+            "num_cpus": 12,
+            "boot_time": "2019-10-16T15:02:24.000"
+         },
+         "python": {
+            "version_string": "3.7.3 | packaged by conda-forge | (default, Jul  1 2019, 14:38:56) \n[Clang 4.0.1 (tags/RELEASE_401/final)]",
+            "version": [
+               "3",
+               "7",
+               "3"
+            ],
+            "compiler": "Clang 4.0.1 (tags/RELEASE_401/final)",
+            "implementation": "CPython"
+         },
+         "environment": {
+            "CONDA_DEFAULT_ENV": "cta-dev",
+            "CONDA_PREFIX": "/Users/kkosack/anaconda3/envs/cta-dev",
+            "CONDA_PYTHON_EXE": "/Users/kkosack/anaconda3/bin/python",
+            "CONDA_EXE": "/Users/kkosack/anaconda3/bin/conda",
+            "CONDA_PROMPT_MODIFIER": "(cta-dev) ",
+            "CONDA_SHLVL": "2",
+            "PATH": "/Users/kkosack/anaconda3/envs/cta-dev/bin:/usr/local/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/bin:/usr/local/texlive/2017/bin/x86_64-darwin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/texbin:/Users/kosack/bin:/Users/kosack/.local/bin:.:/Users/kkosack/bin:/Users/kkosack/.local/bin:/usr/local/sbin:/Library/TeX/texbin:.",
+            "LD_LIBRARY_PATH": ":/usr/local/lib:/usr/local/lib",
+            "DYLD_LIBRARY_PATH": null,
+            "USER": "kkosack",
+            "HOME": "/Users/kkosack",
+            "SHELL": "/bin/zsh"
+         },
+         "arguments": [
+            "/Users/kkosack/anaconda3/envs/cta-dev/bin/pytest",
+            "ctapipe/core"
+         ],
+         "start_time_utc": "2019-10-23T07:33:50.635"
+      },
+      "input": [
+         {
+            "url": "/Users/kkosack/Projects/CTA/Working/ctapipe/input.txt",
+            "role": null
+         }
+      ],
+      "output": [
+         {
+            "url": "/Users/kkosack/Projects/CTA/Working/ctapipe/output.txt",
+            "role": null
+         }
+      ],
+      "status": "test1",
+      "duration_min": 0.0009666666665530954
+   },
+   {
+      "activity_name": "myactivity",
+      "activity_uuid": "4ff0f808-4330-4d01-bd2e-f2614b37dd7b",
+      "start": {
+         "time_utc": "2019-10-23T07:33:50.677"
+      },
+      "stop": {
+         "time_utc": "2019-10-23T07:33:50.695"
+      },
+      "system": {
+         "ctapipe_version": "0.7.0.post34+git92816b6",
+         "ctapipe_resources_version": "0.2.18",
+         "pyhessio_version": "2.1.1",
+         "eventio_version": "0.20.1",
+         "ctapipe_svc_path": null,
+         "executable": "/Users/kkosack/anaconda3/envs/cta-dev/bin/python",
+         "platform": {
+            "architecture_bits": "64bit",
+            "architecture_linkage": "",
+            "machine": "x86_64",
+            "processor": "i386",
+            "node": "dapmcw186",
+            "version": "Darwin Kernel Version 19.0.0: Wed Sep 25 20:18:50 PDT 2019; root:xnu-6153.11.26~2/RELEASE_X86_64",
+            "system": "Darwin",
+            "release": "19.0.0",
+            "libcver": [
+               "",
+               ""
+            ],
+            "num_cpus": 12,
+            "boot_time": "2019-10-16T15:02:24.000"
+         },
+         "python": {
+            "version_string": "3.7.3 | packaged by conda-forge | (default, Jul  1 2019, 14:38:56) \n[Clang 4.0.1 (tags/RELEASE_401/final)]",
+            "version": [
+               "3",
+               "7",
+               "3"
+            ],
+            "compiler": "Clang 4.0.1 (tags/RELEASE_401/final)",
+            "implementation": "CPython"
+         },
+         "environment": {
+            "CONDA_DEFAULT_ENV": "cta-dev",
+            "CONDA_PREFIX": "/Users/kkosack/anaconda3/envs/cta-dev",
+            "CONDA_PYTHON_EXE": "/Users/kkosack/anaconda3/bin/python",
+            "CONDA_EXE": "/Users/kkosack/anaconda3/bin/conda",
+            "CONDA_PROMPT_MODIFIER": "(cta-dev) ",
+            "CONDA_SHLVL": "2",
+            "PATH": "/Users/kkosack/anaconda3/envs/cta-dev/bin:/usr/local/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/bin:/usr/local/texlive/2017/bin/x86_64-darwin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/texbin:/Users/kosack/bin:/Users/kosack/.local/bin:.:/Users/kkosack/bin:/Users/kkosack/.local/bin:/usr/local/sbin:/Library/TeX/texbin:.",
+            "LD_LIBRARY_PATH": ":/usr/local/lib:/usr/local/lib",
+            "DYLD_LIBRARY_PATH": null,
+            "USER": "kkosack",
+            "HOME": "/Users/kkosack",
+            "SHELL": "/bin/zsh"
+         },
+         "arguments": [
+            "/Users/kkosack/anaconda3/envs/cta-dev/bin/pytest",
+            "ctapipe/core"
+         ],
+         "start_time_utc": "2019-10-23T07:33:50.695"
+      },
+      "input": [],
+      "output": [],
+      "status": "myactivity",
+      "duration_min": 0.0002999999998820613
+   },
+   {
+      "activity_name": "application",
+      "activity_uuid": "79b20249-9ed6-4c8e-b3db-be9f976b39ab",
+      "start": {
+         "time_utc": "2019-10-23T07:33:50.701"
+      },
+      "stop": {
+         "time_utc": "2019-10-23T07:33:50.720"
+      },
+      "system": {
+         "ctapipe_version": "0.7.0.post34+git92816b6",
+         "ctapipe_resources_version": "0.2.18",
+         "pyhessio_version": "2.1.1",
+         "eventio_version": "0.20.1",
+         "ctapipe_svc_path": null,
+         "executable": "/Users/kkosack/anaconda3/envs/cta-dev/bin/python",
+         "platform": {
+            "architecture_bits": "64bit",
+            "architecture_linkage": "",
+            "machine": "x86_64",
+            "processor": "i386",
+            "node": "dapmcw186",
+            "version": "Darwin Kernel Version 19.0.0: Wed Sep 25 20:18:50 PDT 2019; root:xnu-6153.11.26~2/RELEASE_X86_64",
+            "system": "Darwin",
+            "release": "19.0.0",
+            "libcver": [
+               "",
+               ""
+            ],
+            "num_cpus": 12,
+            "boot_time": "2019-10-16T15:02:24.000"
+         },
+         "python": {
+            "version_string": "3.7.3 | packaged by conda-forge | (default, Jul  1 2019, 14:38:56) \n[Clang 4.0.1 (tags/RELEASE_401/final)]",
+            "version": [
+               "3",
+               "7",
+               "3"
+            ],
+            "compiler": "Clang 4.0.1 (tags/RELEASE_401/final)",
+            "implementation": "CPython"
+         },
+         "environment": {
+            "CONDA_DEFAULT_ENV": "cta-dev",
+            "CONDA_PREFIX": "/Users/kkosack/anaconda3/envs/cta-dev",
+            "CONDA_PYTHON_EXE": "/Users/kkosack/anaconda3/bin/python",
+            "CONDA_EXE": "/Users/kkosack/anaconda3/bin/conda",
+            "CONDA_PROMPT_MODIFIER": "(cta-dev) ",
+            "CONDA_SHLVL": "2",
+            "PATH": "/Users/kkosack/anaconda3/envs/cta-dev/bin:/usr/local/bin:/usr/local/opt/coreutils/libexec/gnubin:/usr/local/bin:/usr/local/texlive/2017/bin/x86_64-darwin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/texbin:/Users/kosack/bin:/Users/kosack/.local/bin:.:/Users/kkosack/bin:/Users/kkosack/.local/bin:/usr/local/sbin:/Library/TeX/texbin:.",
+            "LD_LIBRARY_PATH": ":/usr/local/lib:/usr/local/lib",
+            "DYLD_LIBRARY_PATH": null,
+            "USER": "kkosack",
+            "HOME": "/Users/kkosack",
+            "SHELL": "/bin/zsh"
+         },
+         "arguments": [
+            "/Users/kkosack/anaconda3/envs/cta-dev/bin/pytest",
+            "ctapipe/core"
+         ],
+         "start_time_utc": "2019-10-23T07:33:50.719"
+      },
+      "input": [],
+      "output": [],
+      "config": {
+         "MyTool": {
+            "config_file": "",
+            "log_datefmt": "%Y-%m-%d %H:%M:%S",
+            "log_format": "%(levelname)s [%(name)s] (%(module)s/%(funcName)s): %(message)s",
+            "log_level": 10,
+            "userparam": 1.0
+         }
+      },
+      "status": "completed",
+      "duration_min": 0.0003166666666487572
+   }
+]
