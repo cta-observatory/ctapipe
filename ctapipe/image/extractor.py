@@ -10,9 +10,8 @@ __all__ = [
     'LocalPeakWindowSum',
     'NeighborPeakWindowSum',
     'BaselineSubtractedNeighborPeakWindowSum',
-    'sum_samples_around_peak',
+    'extract_around_peak',
     'neighbor_average_waveform',
-    'extract_pulse_time_around_peak',
     'subtract_baseline',
 ]
 
@@ -33,10 +32,14 @@ import warnings
     '(s),(),(),()->()',
     nopython=True,
 )
-def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
+def extract_around_peak(waveforms, peak_index, width, shift, sum, pulse_time):
     """
-    Sum the samples from the waveform using the window defined by a
+    This function performs the following operations:
+
+    - Sum the samples from the waveform using the window defined by a
     peak position, window width, and window shift.
+    - Obtain the pulse time within a window defined by a peak finding
+    algorithm, using the weighted average of the samples.
 
     This function is a numpy universal function which defines the operation
     applied on the waveform for every channel and pixel. Therefore in the
@@ -59,8 +62,12 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
         Window size of integration window for each pixel.
     shift : ndarray or int
         Window size of integration window for each pixel.
-    ret : ndarray
+    sum : ndarray
         Return argument for ufunc (ignore)
+        Returns the sum
+    pulse_time : ndarray
+        Return argument for ufunc (ignore)
+        Returns the pulse_time
 
     Returns
     -------
@@ -72,10 +79,17 @@ def sum_samples_around_peak(waveforms, peak_index, width, shift, ret):
     n_samples = waveforms.size
     start = peak_index - shift
     end = start + width
-    ret[0] = 0
-    for sample in prange(start, end):
-        if 0 <= sample < n_samples:
-            ret[0] += waveforms[sample]
+    sum[0] = 0
+    time_num = 0
+    time_den = 0
+    for isample in prange(start, end):
+        if 0 <= isample < n_samples:
+            sum[0] += waveforms[isample]
+            time_num += waveforms[isample] * isample
+            time_den += waveforms[isample]
+
+    # TODO: Return pulse time in units of ns instead of isample
+    pulse_time[0] = time_num / time_den if time_den > 0 else peak_index
 
 
 @njit(parallel=True)
@@ -165,65 +179,6 @@ def neighbor_average_waveform(waveforms, neighbors, lwt):
         )
         return neighbor_average_waveform_jit_3d(waveforms, neighbors, lwt)
     return neighbor_average_waveform_jit(waveforms, neighbors, lwt)
-
-
-@guvectorize(
-    [
-        (float64[:], int64, int64, int64, float64[:]),
-        (float32[:], int64, int64, int64, float64[:]),
-    ],
-    '(s),(),(),()->()',
-    nopython=True,
-)
-def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
-    """
-    Obtain the pulse time within a window defined by a peak finding algorithm,
-    using the weighted average of the samples.
-
-    This function is a numpy universal function which defines the operation
-    applied on the waveform for every channel and pixel. Therefore in the
-    code body of this function:
-        - waveforms is a 1D array of size n_samples.
-        - Peakpos, width and shift are integers, corresponding to the correct
-            value for the current pixel
-
-    The ret argument is required by numpy to create the numpy array which is
-    returned. It can be ignored when calling this function.
-
-    Parameters
-    ----------
-    waveforms : ndarray
-        Waveforms stored in a numpy array.
-        Shape: (n_pix, n_samples)
-    peak_index : ndarray or int
-        Peak index in waveform for each pixel.
-    width : ndarray or int
-        Window size of integration window for each pixel.
-    shift : ndarray or int
-        Window size of integration window for each pixel.
-    ret : ndarray
-        Return argument for ufunc (ignore)
-
-    Returns
-    -------
-    pulse_time : ndarray
-        Floating point pulse time in each pixel
-        Shape: (n_pix)
-
-    """
-    n_samples = waveforms.size
-    start = peak_index - shift
-    end = start + width
-
-    num = 0
-    den = 0
-    for isample in prange(start, end):
-        if 0 <= isample < n_samples:
-            num += waveforms[isample] * isample
-            den += waveforms[isample]
-
-    # TODO: Return pulse time in units of ns instead of isample
-    ret[0] = num / den if den > 0 else peak_index
 
 
 def subtract_baseline(waveforms, baseline_start, baseline_end):
@@ -340,8 +295,7 @@ class FullWaveformSum(ImageExtractor):
     """
 
     def __call__(self, waveforms):
-        charge = waveforms.sum(axis=-1)
-        pulse_time = extract_pulse_time_around_peak(
+        charge, pulse_time = extract_around_peak(
             waveforms, 0, waveforms.shape[-1], 0
         )
         return charge, pulse_time
@@ -361,8 +315,7 @@ class FixedWindowSum(ImageExtractor):
     def __call__(self, waveforms):
         start = self.window_start
         end = self.window_start + self.window_width
-        charge = waveforms[..., start:end].sum(axis=-1)
-        pulse_time = extract_pulse_time_around_peak(
+        charge, pulse_time = extract_around_peak(
             waveforms, self.window_start, self.window_width, 0
         )
         return charge, pulse_time
@@ -392,11 +345,7 @@ class GlobalPeakWindowSum(ImageExtractor):
                 DeprecationWarning
             )
             peak_index = peak_index[:, np.newaxis]
-        charge = sum_samples_around_peak(
-            waveforms, peak_index,
-            self.window_width, self.window_shift
-        )
-        pulse_time = extract_pulse_time_around_peak(
+        charge, pulse_time = extract_around_peak(
             waveforms, peak_index,
             self.window_width, self.window_shift
         )
@@ -418,10 +367,7 @@ class LocalPeakWindowSum(ImageExtractor):
 
     def __call__(self, waveforms):
         peak_index = waveforms.argmax(axis=-1).astype(np.int)
-        charge = sum_samples_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
-        )
-        pulse_time = extract_pulse_time_around_peak(
+        charge, pulse_time = extract_around_peak(
             waveforms, peak_index, self.window_width, self.window_shift
         )
         return charge, pulse_time
@@ -452,10 +398,7 @@ class NeighborPeakWindowSum(ImageExtractor):
             waveforms, self.neighbors, self.lwt
         )
         peak_index = average_wfs.argmax(axis=-1)
-        charge = sum_samples_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
-        )
-        pulse_time = extract_pulse_time_around_peak(
+        charge, pulse_time = extract_around_peak(
             waveforms, peak_index, self.window_width, self.window_shift
         )
         return charge, pulse_time
