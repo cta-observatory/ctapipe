@@ -103,7 +103,7 @@ def test_neighbor_average_waveform(camera_waveforms):
     assert_allclose(average_wf[0, 48], 98.565743, rtol=1e-3)
 
 
-def test_extract_pulse_time_around_peak(camera_waveforms):
+def test_extract_pulse_time_around_peak():
     x = np.arange(100)
     y = norm.pdf(x, 41.2, 6)
     pulse_time = extract_pulse_time_around_peak(
@@ -112,12 +112,11 @@ def test_extract_pulse_time_around_peak(camera_waveforms):
     assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
-def test_extract_pulse_time_around_peak_with_negative(camera_waveforms):
-    y = np.array([3.97, 0.22,  1.47, 3.09, -3.9, -4.78])
-    pulse_time = extract_pulse_time_around_peak(
-        y[np.newaxis, :], 0, 6, 0
-    )
-    assert (pulse_time > 0) & (pulse_time < y.size)
+def test_extract_pulse_time_around_peak_within_range(example_event):
+    telid = list(example_event.r0.tel)[0]
+    waveforms = example_event.r1.tel[telid].waveform
+    pulse_time = extract_pulse_time_around_peak(waveforms, 20, 6, 0)
+    assert (pulse_time > 0).all() & (pulse_time < waveforms.shape[1]).all()
 
 
 def test_baseline_subtractor(camera_waveforms):
