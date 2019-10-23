@@ -482,11 +482,8 @@ class DataContainer(Container):
     mcheader = Field(MCHeaderContainer(), "Monte-Carlo run header data")
     trig = Field(CentralTriggerContainer(), "central trigger information")
     count = Field(0, "number of events processed")
-    inst = Deprecated(
-        Field(InstrumentContainer(), "instrumental information"),
-        help="to be moved outside of event structure",
-        version="1.0.0",
-    )
+    inst = Deprecated(Field(InstrumentContainer(), "instrumental information"),
+                      reason="to be moved outside of event structure", version="1.0.0")
     pointing = Field(Map(TelescopePointingContainer), "Telescope pointing positions")
 
 
@@ -579,15 +576,11 @@ class MuonIntensityParameter(Container):
 
     """
 
-    obs_id = Deprecated(
-        Field(0, "run identification number"), "use event.index instead"
-    )
-    event_id = Deprecated(
-        Field(0, "event identification number"), "use event.index instead"
-    )
-    tel_id = Deprecated(
-        Field(0, "telescope identification number"), "use event.index instead"
-    )
+    obs_id = Deprecated(Field(0, "run identification number"), "use event.index instead")
+    event_id = Deprecated(Field(0, "event identification number"),
+                          "use event.index instead")
+    tel_id = Deprecated(Field(0, "telescope identification number"),
+                        "use event.index instead")
     ring_completeness = Field(0.0, "fraction of ring present")
     ring_pix_completeness = Field(0.0, "fraction of pixels present in the ring")
     ring_num_pixel = Field(0, "number of pixels in the ring image")

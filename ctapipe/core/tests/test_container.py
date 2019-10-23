@@ -178,10 +178,10 @@ def test_container_brackets():
 
 
 def test_deprecated_fields():
+    """ check that deprecated fields generate DeprecationWarning on access """
     class ExampleContainer(Container):
-        deprecated_field = Deprecated(
-            Field(-1, "going away"), help="replaced later", version="1.0.0"
-        )
+        deprecated_field = Deprecated(Field(-1, "going away"), reason="replaced later",
+                                      version="1.0.0")
 
     cont = ExampleContainer()
     with pytest.warns(DeprecationWarning):

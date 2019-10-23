@@ -14,7 +14,7 @@ class Deprecated:
     ----------
     field: Field
         Field class to deprecate
-    help: str
+    reason: str
         Description of what the user should use instead, or reason for deprecation
     version:
         version number above which this is deprecated.
@@ -25,9 +25,9 @@ class Deprecated:
         my_field = Deprecated(Field(default=None), help='Use B.field instead.')
     """
 
-    def __init__(self, field, help="", version="next"):
+    def __init__(self, field, reason="", version="next"):
         self.field = field
-        self.help = help
+        self.reason = reason
         self.value = field.default
         self.version = version
 
@@ -38,7 +38,7 @@ class Deprecated:
     def __get__(self, instance, owner=None):
         warnings.warn(
             f"Using field {self.name} of container {self.owner}"
-            f" is deprecated (since v{self.version}. {self.help}",
+            f" is deprecated (since v{self.version}. {self.reason}",
             DeprecationWarning,
         )
         return self.value
@@ -46,7 +46,7 @@ class Deprecated:
     def __set__(self, instance, value):
         warnings.warn(
             f"Using field {self.name} of container {self.owner}"
-            f" is deprecated. {self.help}",
+            f" is deprecated. {self.reason}",
             DeprecationWarning,
         )
         self.value = value
