@@ -310,7 +310,7 @@ class CameraGeometry:
                      names=['pix_id', 'pix_x', 'pix_y', 'pix_area'],
                      meta=dict(PIX_TYPE=self.pix_type,
                                TAB_TYPE='ctapipe.instrument.CameraGeometry',
-                               TAB_VER='1.0',
+                               TAB_VER='1.1',
                                CAM_ID=self.cam_id,
                                SAMPFREQ=self.sampling_rate,
                                PIX_ROT=self.pix_rotation.deg,
