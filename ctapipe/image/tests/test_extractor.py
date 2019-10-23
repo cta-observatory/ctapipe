@@ -112,6 +112,14 @@ def test_extract_pulse_time_around_peak(camera_waveforms):
     assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
+def test_extract_pulse_time_around_peak_with_negative(camera_waveforms):
+    y = np.array([3.97, 0.22,  1.47, 3.09, -3.9, -4.78])
+    pulse_time = extract_pulse_time_around_peak(
+        y[np.newaxis, :], 0, 6, 0
+    )
+    assert (pulse_time > 0) & (pulse_time < y.size)
+
+
 def test_baseline_subtractor(camera_waveforms):
     waveforms, _ = camera_waveforms
     n_pixels, _ = waveforms.shape
