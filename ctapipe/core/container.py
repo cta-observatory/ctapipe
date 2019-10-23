@@ -5,53 +5,6 @@ from textwrap import wrap
 import warnings
 
 
-class Deprecated:
-    """
-    Decorate a field that is to be deprecated. Issues a UserWarning if the Field is
-    accessed.
-
-    Parameters
-    ----------
-    field: Field
-        Field class to deprecate
-    reason: str
-        Description of what the user should use instead, or reason for deprecation
-    version:
-        version number above which this is deprecated.
-
-    Examples
-    --------
-    .. code-block: python
-        my_field = Deprecated(Field(default=None), help='Use B.field instead.')
-    """
-
-    def __init__(self, field, reason="", version="next"):
-        self.field = field
-        self.reason = reason
-        self.value = field.default
-        self.version = version
-
-    def __set_name__(self, owner, name):
-        self.owner = owner
-        self.name = name
-
-    def __get__(self, instance, owner=None):
-        warnings.warn(
-            f"Using field {self.name} of container {self.owner}"
-            f" is deprecated (since v{self.version}. {self.reason}",
-            DeprecationWarning,
-        )
-        return self.value
-
-    def __set__(self, instance, value):
-        warnings.warn(
-            f"Using field {self.name} of container {self.owner}"
-            f" is deprecated. {self.reason}",
-            DeprecationWarning,
-        )
-        self.value = value
-
-
 class Field:
     """
     Class for storing data in `Containers`.
@@ -80,6 +33,12 @@ class Field:
         if self.unit is not None:
             desc += f" [{self.unit}]"
         return desc
+
+
+class DeprecatedField(Field):
+    """ used to mark which fields may be removed in next version """
+
+    pass
 
 
 class ContainerMeta(type):
