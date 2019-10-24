@@ -112,8 +112,10 @@ def test_extract_pulse_time_around_peak():
     assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
-def test_extract_pulse_time_around_peak_negatives():
+def test_extract_pulse_time_around_peak_within_range():
     x = np.arange(100)
+    # Generic waveform that goes from positive to negative in window
+    # Can cause extreme values with incorrect handling of weighted average
     y = -1.2 * x + 20
     pulse_time = extract_pulse_time_around_peak(
         y[np.newaxis, :], 12, 10, 0
