@@ -112,11 +112,13 @@ def test_extract_pulse_time_around_peak():
     assert_allclose(pulse_time[0], 41.2, rtol=1e-3)
 
 
-def test_extract_pulse_time_around_peak_within_range(example_event):
-    telid = list(example_event.r0.tel)[0]
-    waveforms = example_event.r1.tel[telid].waveform
-    pulse_time = extract_pulse_time_around_peak(waveforms, 20, 6, 0)
-    assert (pulse_time > 0).all() & (pulse_time < waveforms.shape[1]).all()
+def test_extract_pulse_time_around_peak_negatives():
+    x = np.arange(100)
+    y = -1.2 * x + 20
+    pulse_time = extract_pulse_time_around_peak(
+        y[np.newaxis, :], 12, 10, 0
+    )
+    assert (pulse_time > 0).all() & (pulse_time < x.size).all()
 
 
 def test_baseline_subtractor(camera_waveforms):
