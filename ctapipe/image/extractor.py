@@ -166,7 +166,7 @@ def extract_pulse_time_around_peak(waveforms, peak_index, width, shift, ret):
     num = 0
     den = 0
     for isample in prange(start, end):
-        if 0 <= isample < n_samples:
+        if (0 <= isample < n_samples) & (waveforms[isample] > 0):
             num += waveforms[isample] * isample
             den += waveforms[isample]
 
