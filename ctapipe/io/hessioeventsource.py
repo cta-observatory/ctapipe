@@ -161,14 +161,23 @@ class HESSIOEventSource(EventSource):
                                                        get_azimuth_raw(tel_id))
                     data.mc.tel[tel_id].altitude_raw = (file.
                                                         get_altitude_raw(tel_id))
-                    data.mc.tel[tel_id].azimuth_cor = (file.
-                                                       get_azimuth_cor(tel_id))
-                    data.mc.tel[tel_id].altitude_cor = (file.
-                                                        get_altitude_cor(tel_id))
-                    data.pointing[tel_id].altitude = (data.mc.tel[tel_id].altitude_raw
-                                                      - data.mc.tel[tel_id].altitude_cor) * u.rad
-                    data.pointing[tel_id].azimuth = (data.mc.tel[tel_id].azimuth_raw
-                                                     - data.mc.tel[tel_id].azimuth_cor) * u.rad
+                    azimuth_cor = file.get_azimuth_cor(tel_id)
+                    altitude_cor = file.get_altitude_cor(tel_id)
+
+                    # hessioeventsource pass 0 if there is no altitude/azimuth correction
+                    if azimuth_cor == 0 and data.mc.tel[tel_id].azimuth_raw != 0:
+                        data.mc.tel[tel_id].azimuth_cor = np.nan
+                        data.pointing[tel_id].azimuth = u.Quantity(data.mc.tel[tel_id].azimuth_raw, u.rad)
+                    else:
+                        data.mc.tel[tel_id].azimuth_cor = azimuth_cor
+                        data.pointing[tel_id].azimuth = u.Quantity(azimuth_cor, u.rad)
+
+                    if altitude_cor == 0 and data.mc.tel[tel_id].altitude_raw != 0:
+                        data.mc.tel[tel_id].altitude_cor = np.nan
+                        data.pointing[tel_id].altitude = u.Quantity(data.mc.tel[tel_id].altitude_raw, u.rad)
+                    else:
+                        data.mc.tel[tel_id].altitude_cor = altitude_cor
+                        data.pointing[tel_id].altitude = u.Quantity(data.mc.tel[tel_id].altitude_cor, u.rad)
 
                 yield data
                 counter += 1
