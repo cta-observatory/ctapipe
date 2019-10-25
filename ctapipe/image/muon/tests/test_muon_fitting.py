@@ -66,7 +66,7 @@ def test_taubin_with_units():
 
     geom = CameraGeometry.from_name("FlashCam")
     flashcam_focal_length = u.Quantity(16, u.m)
-    image, sig, bg = muon_model.generate_image(
+    image, sig, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
     mask = tailcuts_clean(geom, image, 10, 12)
@@ -85,6 +85,6 @@ def test_taubin_with_units():
     r_fit = muon_ring_parameters.ring_radius
 
     assert np.isclose(xc_fit * flashcam_focal_length / u.m, center_xs / u.m, 1e-1)
-    assert np.isclose(xc_fit * flashcam_focal_length / u.m, center_xs / u.m, 1e-1)
+    assert np.isclose(yc_fit * flashcam_focal_length / u.m, center_ys / u.m, 1e-1)
     assert np.isclose(r_fit * flashcam_focal_length / u.m, ring_radius / u.m, 1e-1)
 
