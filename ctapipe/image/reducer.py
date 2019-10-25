@@ -5,8 +5,12 @@ Algorithms for the data volume reduction.
 from abc import abstractmethod
 
 import numpy as np
-from ctapipe.core import Component
-from ctapipe.image.cleaning import tailcuts_clean, dilate
+from ctapipe.core import Component, traits
+from ctapipe.image.extractor import NeighborPeakWindowSum
+from ctapipe.image.cleaning import (
+    tailcuts_clean,
+    dilate
+)
 
 __all__ = [
     'DataVolumeReducer',
@@ -20,7 +24,6 @@ class DataVolumeReducer(Component):
     Base component for data volume reducers.
     """
 
-    @abstractmethod
     def __call__(self, waveforms):
         """
         Call the relevant functions to perform data volume reduction on the
@@ -34,9 +37,29 @@ class DataVolumeReducer(Component):
 
         Returns
         -------
-        reduced_waveforms : ndarray
-            Reduced waveforms stored in a numpy array of shape
+        reduced_waveforms : masked array
+            Masked array of selected pixels.
+        """
+        reduced_waveforms = self.select_pixels(waveforms)
+        return reduced_waveforms
+
+    @abstractmethod
+    def select_pixels(self, waveforms):
+        """
+        Abstract method to be defined by a DataVolumeReducer subclass.
+
+        Call the relevant functions for the required pixel selection.
+
+        Parameters
+        ----------
+        waveforms : ndarray
+            Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
+
+        Returns
+        -------
+        reduced_waveforms : masked array
+            Masked array of selected pixels.
         """
 
 
@@ -45,43 +68,68 @@ class NullDataVolumeReducer(DataVolumeReducer):
     Perform no data volume reduction
     """
 
-    def __call__(self, waveforms):
+    def select_pixels(self, waveforms):
         return waveforms
 
 
 class TailCutsDataVolumeReducer(DataVolumeReducer):
+    """
+    Reduce a time integrated shower image in 3 Steps:
 
-    def __call__(
-        self,
-        geom,
-        waveforms,
-        end_dilates=1,
-        picture_thresh=7,
-        boundary_thresh=5,
-        iteration_thresh=5,
-        keep_isolated_pixels=True,
-        min_number_picture_neighbors=0,
-    ):
+    1) Select pixels with tailcuts_clean.
+    2) Add iteratively all pixels with Signal S >= boundary_thresh
+       with ctapipe module dilate until no new pixels were added.
+    3) Adding new pixels with dilate to get more conservative.
+    """
+    camera_geom = traits.Any(
+        help="Get camera geometry information from "
+             "ctapipe.instrument.CameraGeometry."
+    ).tag(config=True)
+    end_dilates = traits.Integer(
+        default_value=1,
+        help="Number of how many times to dilate at the end."
+    ).tag(config=True)
+    picture_thresh = traits.Float(
+        default_value=7,
+        help="Picture threshold for the first tailcuts_clean step. All "
+             "pixels above are selected."
+    ).tag(config=True)
+    boundary_thresh = traits.Float(
+        default_value=3,
+        help="Boundary threshold for the first tailcuts_clean step and "
+             "also for the second iteration step."
+    ).tag(config=True)
+    keep_isolated_pixels = traits.Bool(
+        default_value=True,
+        help="If True, pixels above the picture threshold will be included "
+             "always, if not they are only included if a neighbor is in "
+             "the picture or boundary."
+    ).tag(config=True)
+    min_number_picture_neighbors = traits.Integer(
+        default_value=0,
+        help="A picture pixel survives tailcuts_clean only if it has at "
+             "least this number of picture neighbors. This has no effect "
+             "in case keep_isolated_pixels is True."
+    ).tag(config=True)
+
+    def select_pixels(self, waveforms):
         """
-        Reduce the image in 3 Steps:
-
-        1) Select pixels with tailcuts_clean.
-        2) Add iteratively all pixels with Signal S >= iteration_thresh
-           with ctapipe module dilate until no new pixels were added.
-        3) Adding new pixels with dilate to get more conservative.
-
         Parameters
         ----------
-        geom: `ctapipe.instrument.CameraGeometry`
+        waveforms : ndarray
+                Waveforms stored in a numpy array of shape
+                (n_pix, n_samples).
+
+        Traitlets:
+        camera_geom: 'ctapipe.instrument.CameraGeometry'
             Camera geometry information
-        waveforms: ndarray
-            Waveforms stored in a numpy array of shape
-            (n_pix, n_samples).
-        picture_thresh: float or array
-            threshold for tailcuts_clean above which all pixels are retained
+        picture_thresh: float
+            threshold for tailcuts_clean. All pixels above are retained
         boundary_thresh: float or array.
-            threshold for tailcuts_clean above which pixels are retained if
+            1)Threshold for tailcuts_clean. All pixels above are retained if
             they have a neighbor already above the picture_thresh.
+            2)Threshold for the iteration step 2). All pixels above are
+            selected.
         keep_isolated_pixels: bool
             For tailcuts_clean: If True, pixels above the picture threshold
             will be included always, if not they are only included if a
@@ -90,47 +138,41 @@ class TailCutsDataVolumeReducer(DataVolumeReducer):
             For tailcuts_clean: A picture pixel survives cleaning only if it
             has at least this number of picture neighbors. This has no effect
             in case keep_isolated_pixels is True
-        iteration_thresh: float
-            Threshold for the iteration step 2), above which pixels are
-            selected.
         end_dilates: int
             Number of how many times to dilate at the end in Step 3).
-
         Returns
         -------
-        reduced_waveforms : ndarray
-            Reduced waveforms stored in a numpy array of shape
-            (n_pix, n_samples).
-
+        reduced_waveforms : masked array
+                Masked array of selected pixels.
         """
+        #  Pulse-integrate waveforms
+        image_extractor = NeighborPeakWindowSum()
+        image_extractor.neighbors = self.camera_geom.neighbor_matrix_where
+        charge, pulse_time = image_extractor(waveforms)
 
-        reduced_waveforms_mask = np.empty([waveforms.shape[0], 0], dtype=bool)
+        # 1) Step: TailcutCleaning at first
+        mask = tailcuts_clean(
+            geom=self.camera_geom,
+            image=charge,
+            picture_thresh=self.picture_thresh,
+            boundary_thresh=self.boundary_thresh,
+            keep_isolated_pixels=self.keep_isolated_pixels,
+            min_number_picture_neighbors=self.min_number_picture_neighbors
+        )
+        pixels_above_boundary_thresh = charge >= self.boundary_thresh
+        mask_in_loop = np.array([])
+        # 2) Step: Add iteratively all pixels with Signal
+        #          S > boundary_thresh with ctapipe module
+        #          'dilate' until no new pixels were added.
+        while not np.array_equal(mask, mask_in_loop):
+            mask_in_loop = mask
+            mask = dilate(self.camera_geom, mask) & pixels_above_boundary_thresh
 
-        for i in range(waveforms.shape[1]):
-            image = waveforms[:, [i]]
-            # 1) Step: TailcutCleaning at first
-            mask = tailcuts_clean(
-                geom=geom,
-                image=image,
-                picture_thresh=picture_thresh,
-                boundary_thresh=boundary_thresh,
-                keep_isolated_pixels=keep_isolated_pixels,
-                min_number_picture_neighbors=min_number_picture_neighbors
-            )
-            pixels_above_iteration_thresh = image >= iteration_thresh
-            mask_for_loop = np.array([])
-            # 2) Step: Add iteratively all pixels with Signal
-            #          S > iteration_thresh with ctapipe module
-            #          'dilate' until no new pixels were added.
-            while not np.array_equal(mask, mask_for_loop):
-                mask_for_loop = mask
-                mask = dilate(geom, mask) & pixels_above_iteration_thresh
+        # 3) Step: Adding Pixels with 'dilate' to get more conservative.
+        for _ in range(self.end_dilates):
+            mask = dilate(self.camera_geom, mask)
 
-            # 3) Step: Adding Pixels with 'dilate' to get more conservative.
-            for p in range(end_dilates):
-                mask = dilate(geom, mask)
+        waveforms_copy = waveforms.copy()
+        waveforms_copy[~mask] = 0
 
-            reduced_waveforms_mask = np.column_stack((reduced_waveforms_mask,
-                                                      mask))
-
-        return np.ma.masked_array(waveforms, mask=reduced_waveforms_mask)
+        return waveforms_copy

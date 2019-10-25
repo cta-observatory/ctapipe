@@ -17,6 +17,7 @@ from traitlets import (
     observe,
     Set,
     CRegExp,
+    Any,
 )
 from traitlets.config import boolean_flag as flag
 
@@ -46,6 +47,7 @@ __all__ = [
     "TelescopeParameter",
     "FloatTelescopeParameter",
     "IntTelescopeParameter",
+    "Any",
 ]
 
 import logging

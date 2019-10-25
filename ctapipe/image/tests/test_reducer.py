@@ -1,8 +1,12 @@
 import numpy as np
-from numpy.testing import assert_array_equal
-from ctapipe.image.reducer import NullDataVolumeReducer
-from ctapipe.image.reducer import TailCutsDataVolumeReducer
+from numpy.testing import assert_array_equal, assert_allclose
+from scipy.stats import norm
+from ctapipe.image.extractor import NeighborPeakWindowSum
 from ctapipe.instrument import CameraGeometry
+from ctapipe.image.reducer import (
+    NullDataVolumeReducer,
+    TailCutsDataVolumeReducer
+)
 
 
 def test_null_data_volume_reducer():
@@ -13,35 +17,60 @@ def test_null_data_volume_reducer():
 
 
 def test_tailcuts_data_volume_reducer():
-    # create set of waveforms and expected masks
-    geom = CameraGeometry.from_name("LSTCam")
-    image = np.zeros_like(geom.pix_id, dtype=np.float)
-    mask = np.zeros_like(geom.pix_id, dtype=np.bool)
-    expected_masks = np.empty([geom.pix_id.shape[0], 0], dtype=bool)
-    created_waveforms = np.empty([geom.pix_id.shape[0], 0], dtype=float)
+    # Create waveforms like 'test_extractor'
+    camera = CameraGeometry.from_name("LSTCam")
+    n_pixels = camera.n_pixels
+    n_samples = 30
+    mid = n_samples // 2
+    pulse_sigma = 6
+    random = np.random.RandomState(1)
+
+    x = np.arange(n_samples)
+
+    # Randomize times
+    t_pulse = random.uniform(mid - 10, mid + 10, n_pixels)[:, np.newaxis]
+
+    # Create pulses
+    waveforms_values = norm.pdf(x, t_pulse, pulse_sigma)
+
+    # Randomize amplitudes
+    waveforms_values *= random.uniform(100, 1000, n_pixels)[:, np.newaxis]
+
+    # to test the used image_extractor in TailcutsDataVolumeReducer
+    image_extractor = NeighborPeakWindowSum()
+    image_extractor.neighbors = camera.neighbor_matrix_where
+    charge, pulse_time = image_extractor(waveforms_values)
+
+    # create image
+    waveforms = np.zeros_like(waveforms_values, dtype=np.float)
+
     # created set of pixels are connected in one line, not in a blob
-    image[9] = 10.0
     # Should be selected as core-pixel from Step 1) tailcuts_clean
-    image[[10, 8, 6, 5]] = 4.0
-    mask[[10, 9, 8, 6, 5]] = True
+    waveforms[9] = waveforms_values[3]
+
     # 10 and 8 as boundary-pixel from Step 1) tailcuts_clean
     # 6 and 5 as iteration-pixel in Step 2)
-    mask[geom.neighbor_matrix_sparse.dot(mask)] = True
+    waveforms[[10, 8, 6, 5]] = waveforms_values[0]
+
     # pixels from dilate at the end in Step 3)
+    waveforms[[0, 1, 4, 7, 11, 13, 121, 122,
+               136, 137, 257, 258, 267, 272]] = waveforms_values[2]
+    expected_waveforms = waveforms.copy()
 
-    for i in range(42):  # more dim
-        expected_masks = np.column_stack((expected_masks, mask))
-        created_waveforms = np.column_stack((created_waveforms, image))
+    # add some random pixels, which should not be selected
+    waveforms[[50, 51, 52, 53, 54, 170, 210, 400]] = waveforms_values[2]
 
-    expected_return = np.ma.masked_array(created_waveforms,
-                                         mask=expected_masks)
     reducer = TailCutsDataVolumeReducer()
-    reduced_waveforms = reducer(
-        geom=geom,
-        waveforms=created_waveforms,
-        picture_thresh=7,
-        boundary_thresh=3,
-        iteration_thresh=3,
-        end_dilates=1
-    )
-    assert_array_equal(expected_return, reduced_waveforms)
+    reducer.camera_geom = camera
+    reducer.picture_thresh = 400
+    reducer.boundary_thresh = 100
+    reducer.end_dilates = 1
+    reducer.keep_isolated_pixels = True
+    reducer.min_number_picture_neighbors = 0
+    reduced_waveforms = reducer(waveforms)
+
+    assert (reduced_waveforms != 0).sum() == 19 * n_samples
+    assert_allclose(charge[0], 191.6570529, rtol=1e-3)
+    assert_allclose(charge[2], 65.61672762, rtol=1e-3)
+    assert_allclose(charge[3], 404.559261, rtol=1e-3)
+    assert_array_equal(expected_waveforms, reduced_waveforms)
