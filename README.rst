@@ -1,5 +1,5 @@
 =======
-ctapipe |teststatus| |codacy| |coverage| |conda| 
+ctapipe |teststatus| |codacy| |coverage| |conda| |doiv07|
 =======
 
 .. |teststatus| image:: https://travis-ci.org/cta-observatory/ctapipe.svg?branch=master
@@ -11,10 +11,11 @@ ctapipe |teststatus| |codacy| |coverage| |conda|
 .. |conda| image:: https://anaconda.org/cta-observatory/ctapipe/badges/installer/conda.svg
 .. |coverage| image:: https://codecov.io/gh/cta-observatory/ctapipe/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/cta-observatory/ctapipe
+.. |doiv07| image:: https://zenodo.org/badge/37927055.svg
+  :target: https://zenodo.org/badge/latestdoi/37927055
 
 Low-level data processing pipeline software for
 `CTA <www.cta-observatory.org>`_ (the Cherenkov Telescope Array)
-
 
 This is code is a prototype data processing framework and is under rapid
 development. It is not recommended for production use unless you are an
@@ -22,6 +23,12 @@ expert or developer!
 
 * Code: https://github.com/cta-observatory/ctapipe
 * Docs: https://cta-observatory.github.io/ctapipe/
+
+Citing this software
+--------------------
+If you use this software for a publication, please cite using the following DOIs: 
+
+- v0.7.0 : |doiv07|
 
 
 Installation for Users
