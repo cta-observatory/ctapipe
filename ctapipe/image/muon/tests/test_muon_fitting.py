@@ -1,7 +1,10 @@
 import numpy as np
 import astropy.units as u
+from ctapipe.image import toymodel,tailcuts_clean
+from ctapipe.instrument import CameraGeometry
 
 from ctapipe.image.muon import kundu_chaudhuri_circle_fit
+from ctapipe.image.muon.muon_ring_finder import TaubinFitter
 
 np.random.seed(0)
 
@@ -45,4 +48,30 @@ def test_kundu_chaudhuri_with_units():
     assert fit_x.unit == center_x.unit
     assert fit_y.unit == center_y.unit
     assert fit_radius.unit == radius.unit
+
+
+def test_taubin_with_units():
+    # flashCam example
+    # for this test, values are selectively chosen knowing that they converge
+    center_xs = 0.3 * u.m
+    center_ys = 0.6 * u.m
+    ring_radius = 0.3 * u.m
+    ring_width = 0.05 * u.m
+    muon_model = toymodel.RingGaussian(x=center_xs, y=center_ys, radius=ring_radius, sigma=ring_width)
+
+    geom = CameraGeometry.from_name("FlashCam")
+    flashcam_focal_length = u.Quantity(16, u.m)
+    image, sig, bg = muon_model.generate_image(
+        geom, intensity=1000, nsb_level_pe=5,
+    )
+    mask = tailcuts_clean(geom, image, 10, 12)
+    x = (geom.pix_x / flashcam_focal_length) * u.rad
+    y = (geom.pix_y / flashcam_focal_length) * u.rad
+
+    taubinfit = TaubinFitter(pixx=x[mask], pixy=y[mask], radius=0.03, error=0.03, limit=(-0.0625, 0.0625))
+    xc_fit, yc_fit, r_fit = taubinfit.fit()
+
+    assert np.isclose(xc_fit * flashcam_focal_length / u.m, center_xs / u.m, 1e-1)
+    assert np.isclose(xc_fit * flashcam_focal_length / u.m, center_xs / u.m, 1e-1)
+    assert np.isclose(r_fit * flashcam_focal_length / u.m, ring_radius / u.m, 1e-1)
 
