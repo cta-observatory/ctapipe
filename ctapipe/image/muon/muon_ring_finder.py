@@ -18,12 +18,12 @@ class ChaudhuriKunduRingFitter(RingFitter):
 
         Parameters
         ----------
-        x: ndarray 
+        x: ndarray
             X position of pixel
         y: ndarray
             Y position of pixel
         weight: ndarray
-            weighting of pixel in fit 
+            weighting of pixel in fit
 
         Returns
         -------
@@ -88,40 +88,58 @@ class TaubinFitter():
        r: radius of fitted ring
     """
 
-    def __init__(self, pixx, pixy, radius, error, limit, xc=0, yc=0):
-        self.xi_list = pixx
-        self.yi_list = pixy
-        self.params = radius
-        self.errs = error
-        self.constrain = limit
-        self.xc = xc
-        self.yc = yc
+    @classmethod
+    def fit(
+        self,
+        pixx,
+        pixy,
+        radius,
+        error,
+        limit,
+        xc=0,
+        yc=0,
+    ):
+        init_params = {
+            'xc': xc,
+            'yc': yc,
+            'r': radius,
+        }
 
-    def fitFormula(self, xc, yc, r):
-        # taubin fit formula
-        upper_term = sum(((np.array(self.xi_list) - xc) ** 2 + (np.array(self.yi_list) - yc) ** 2 - r ** 2) ** 2)
-        lower_term = sum(((np.array(self.xi_list) - xc) ** 2 + (np.array(self.yi_list) - yc) ** 2))
+        init_errs = {
+            'error_xc': error,
+            'error_yc': error,
+            'error_r': error,
+        }
 
-        return (np.abs(upper_term) / np.abs(lower_term))
+        init_limits = {
+            'limit_xc': limit,
+            'limit_yc': limit,
+        }
 
-    def fit(self):
-        init_params = {}
-        init_errs = {}
-        init_constrain = {}
-        init_params['xc'] = self.xc
-        init_params['yc'] = self.yc
-        init_params['r'] = self.params
-        init_errs['error_xc'] = self.errs
-        init_errs['error_yc'] = self.errs
-        init_errs['error_r'] = self.errs
-        init_constrain['limit_xc'] = self.constrain
-        init_constrain['limit_yc'] = self.constrain
+
+        def fitFormula(xc, yc, r):
+            # taubin fit formula
+            upper_term = sum(
+                (
+                    (np.array(pixx) - xc) ** 2 +
+                    (np.array(pixy) - yc) ** 2
+                    - r ** 2
+                ) ** 2
+            )
+            lower_term = sum(
+                (
+                    (np.array(pixx) - xc) ** 2 +
+                    (np.array(pixy) - yc) ** 2
+                )
+            )
+
+            return np.abs(upper_term) / np.abs(lower_term)
 
         # minimization method
-        m = Minuit(self.fitFormula,
+        m = Minuit(fitFormula,
                    **init_params,
                    **init_errs,
-                   **init_constrain,
+                   **init_limits,
                    pedantic=False)
         m.migrad()
         # calculate xc, yc, r
@@ -130,4 +148,10 @@ class TaubinFitter():
         yc_fit = fitparams['yc']
         r_fit = fitparams['r']
 
-        return (xc_fit, yc_fit, r_fit)
+        output = MuonRingParameter()
+        output.ring_center_x = xc_fit  # *u.deg
+        output.ring_center_y = yc_fit  # *u.deg
+        output.ring_radius = r_fit  # *u.deg
+        output.ring_fit_method = "Taubin"
+
+        return output

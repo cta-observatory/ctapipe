@@ -57,7 +57,12 @@ def test_taubin_with_units():
     center_ys = 0.6 * u.m
     ring_radius = 0.3 * u.m
     ring_width = 0.05 * u.m
-    muon_model = toymodel.RingGaussian(x=center_xs, y=center_ys, radius=ring_radius, sigma=ring_width)
+    muon_model = toymodel.RingGaussian(
+        x=center_xs,
+        y=center_ys,
+        radius=ring_radius,
+        sigma=ring_width,
+    )
 
     geom = CameraGeometry.from_name("FlashCam")
     flashcam_focal_length = u.Quantity(16, u.m)
@@ -68,8 +73,16 @@ def test_taubin_with_units():
     x = (geom.pix_x / flashcam_focal_length) * u.rad
     y = (geom.pix_y / flashcam_focal_length) * u.rad
 
-    taubinfit = TaubinFitter(pixx=x[mask], pixy=y[mask], radius=0.03, error=0.03, limit=(-0.0625, 0.0625))
-    xc_fit, yc_fit, r_fit = taubinfit.fit()
+    muon_ring_parameters = TaubinFitter.fit(
+        pixx=x[mask],
+        pixy=y[mask],
+        radius=0.03,
+        error=0.03,
+        limit=(-0.0625, 0.0625),
+    )
+    xc_fit = muon_ring_parameters.ring_center_x
+    yc_fit = muon_ring_parameters.ring_center_y
+    r_fit = muon_ring_parameters.ring_radius
 
     assert np.isclose(xc_fit * flashcam_focal_length / u.m, center_xs / u.m, 1e-1)
     assert np.isclose(xc_fit * flashcam_focal_length / u.m, center_xs / u.m, 1e-1)
