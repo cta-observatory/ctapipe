@@ -1,0 +1,6 @@
+# This file defines the primary maintainers for areas of the ctapipe codebase
+# Utilises the Github codeowner functionality to automatically request reviews for PRs that edit corresponding code
+# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+
+ctapipe/calib/camera  @watsonjj
+ctapipe/image/reducer.py @watsonjj
