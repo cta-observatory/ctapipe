@@ -20,9 +20,10 @@ __all__ = [
 from abc import abstractmethod
 import numpy as np
 from traitlets import Int
+from ctapipe.core.traits import TelescopeParameterResolver, \
+    IntTelescopeParameter
 from ctapipe.core import Component
-from numba import njit, prange, guvectorize, float64, float32, int64, int32
-import warnings
+from numba import njit, prange, guvectorize, float64, float32, int64
 
 
 @guvectorize(
@@ -208,15 +209,6 @@ class ImageExtractor(Component):
         Base component to handle the extraction of charge and pulse time
         from an image cube (waveforms).
 
-        Attributes
-        ----------
-        neighbors : ndarray
-            2D array where each row is [pixel index, one neighbor
-            of that pixel].
-            Changes per telescope.
-            Can be obtained from
-            `ctapipe.instrument.CameraGeometry.neighbor_matrix_where`.
-
         Parameters
         ----------
         config : traitlets.loader.Config
@@ -231,36 +223,8 @@ class ImageExtractor(Component):
         """
         super().__init__(config=config, parent=parent, **kwargs)
 
-        self.neighbors = None
-
-    @staticmethod
-    def requires_neighbors():
-        """
-        Method used for callers of the ImageExtractor to know if the
-        extractor requires knowledge of the pixel neighbors
-
-        Returns
-        -------
-        bool
-        """
-        return False
-
-    def check_neighbor_set(self):
-        """
-        Check if the pixel neighbors has been set for the extractor
-
-        Raises
-        -------
-        ValueError
-            If neighbors has not been set
-        """
-        if self.requires_neighbors():
-            if self.neighbors is None:
-                self.log.exception("neighbors attribute must be set")
-                raise ValueError()
-
     @abstractmethod
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid, camera):
         """
         Call the relevant functions to fully extract the charge and time
         for the particular extractor.
@@ -270,6 +234,10 @@ class ImageExtractor(Component):
         waveforms : ndarray
             Waveforms stored in a numpy array of shape
             (n_pix, n_samples).
+        telid : int
+            The telescope id. Used to obtain to correct traitlet configuration
+        camera: ctapipe.instrument.CameraGeometry
+            Geometry of the camera
 
         Returns
         -------
@@ -287,7 +255,7 @@ class FullWaveformSum(ImageExtractor):
     Extractor that sums the entire waveform.
     """
 
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid, subarray):
         charge = waveforms.sum(axis=-1)
         pulse_time = extract_pulse_time_around_peak(
             waveforms, 0, waveforms.shape[-1], 0
@@ -299,16 +267,33 @@ class FixedWindowSum(ImageExtractor):
     """
     Extractor that sums within a fixed window defined by the user.
     """
-    window_start = Int(
-        0, help='Define the start position for the integration window'
+    window_start = IntTelescopeParameter(
+        default_value=0,
+        help='Define the start position for the integration window'
     ).tag(config=True)
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
-        start = self.window_start
-        end = self.window_start + self.window_width
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._window_start_resolver = None
+        self._window_width_resolver = None
+
+    def __call__(self, waveforms, telid, subarray):
+        if self._window_start_resolver is None:
+            self._window_start_resolver = TelescopeParameterResolver(
+                subarray, self.window_start
+            )
+        if self._window_width_resolver is None:
+            self._window_width_resolver = TelescopeParameterResolver(
+                subarray, self.window_width
+            )
+
+        start = self._window_start_resolver.value_for_tel_id(telid)
+        width = self._window_width_resolver.value_for_tel_id(telid)
+        end = self.window_start + width
         charge = waveforms[..., start:end].sum(axis=-1)
         pulse_time = extract_pulse_time_around_peak(
             waveforms, self.window_start, self.window_width, 0
@@ -321,23 +306,41 @@ class GlobalPeakWindowSum(ImageExtractor):
     Extractor which sums in a window about the
     peak from the global average waveform.
     """
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peak_index (peak_index - shift)'
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help='Define the shift of the integration window from the peak_index '
+             '(peak_index - shift)'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._window_width_resolver = None
+        self._window_shift_resolver = None
+
+    def __call__(self, waveforms, telid, subarray):
+        if self._window_width_resolver is None:
+            self._window_width_resolver = TelescopeParameterResolver(
+                subarray, self.window_width
+            )
+        if self._window_shift_resolver is None:
+            self._window_shift_resolver = TelescopeParameterResolver(
+                subarray, self.window_shift
+            )
+
+        width = self._window_width_resolver.value_for_tel_id(telid)
+        shift = self._window_shift_resolver.value_for_tel_id(telid)
         peak_index = waveforms.mean(axis=-2).argmax(axis=-1)
         charge = sum_samples_around_peak(
             waveforms, peak_index,
-            self.window_width, self.window_shift
+            width, shift
         )
         pulse_time = extract_pulse_time_around_peak(
             waveforms, peak_index,
-            self.window_width, self.window_shift
+            width, shift
         )
         return charge, pulse_time
 
@@ -347,21 +350,39 @@ class LocalPeakWindowSum(ImageExtractor):
     Extractor which sums in a window about the
     peak in each pixel's waveform.
     """
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peak_index (peak_index - shift)'
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help='Define the shift of the integration window'
+             'from the peak_index (peak_index - shift)'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._window_width_resolver = None
+        self._window_shift_resolver = None
+
+    def __call__(self, waveforms, telid, subarray):
+        if self._window_width_resolver is None:
+            self._window_width_resolver = TelescopeParameterResolver(
+                subarray, self.window_width
+            )
+        if self._window_shift_resolver is None:
+            self._window_shift_resolver = TelescopeParameterResolver(
+                subarray, self.window_shift
+            )
+
+        width = self._window_width_resolver.value_for_tel_id(telid)
+        shift = self._window_shift_resolver.value_for_tel_id(telid)
         peak_index = waveforms.argmax(axis=-1).astype(np.int)
         charge = sum_samples_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
+            waveforms, peak_index, width, shift
         )
         pulse_time = extract_pulse_time_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
+            waveforms, peak_index, width, shift
         )
         return charge, pulse_time
 
@@ -371,31 +392,54 @@ class NeighborPeakWindowSum(ImageExtractor):
     Extractor which sums in a window about the
     peak defined by the wavefroms in neighboring pixels.
     """
-    window_width = Int(
-        7, help='Define the width of the integration window'
+    window_width = IntTelescopeParameter(
+        default_value=7,
+        help='Define the width of the integration window'
     ).tag(config=True)
-    window_shift = Int(
-        3, help='Define the shift of the integration window '
-                'from the peak_index (peak_index - shift)'
+    window_shift = IntTelescopeParameter(
+        default_value=3,
+        help='Define the shift of the integration window '
+             'from the peak_index (peak_index - shift)'
     ).tag(config=True)
-    lwt = Int(
-        0, help='Weight of the local pixel (0: peak from neighbors only, '
-                '1: local pixel counts as much as any neighbor)'
+    lwt = IntTelescopeParameter(
+        default_value=0,
+        help='Weight of the local pixel (0: peak from neighbors only, '
+             '1: local pixel counts as much as any neighbor)'
     ).tag(config=True)
 
-    def requires_neighbors(self):
-        return True
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._window_width_resolver = None
+        self._window_shift_resolver = None
+        self._lwt_resolver = None
 
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid, subarray):
+        if self._window_width_resolver is None:
+            self._window_width_resolver = TelescopeParameterResolver(
+                subarray, self.window_width
+            )
+        if self._window_shift_resolver is None:
+            self._window_shift_resolver = TelescopeParameterResolver(
+                subarray, self.window_shift
+            )
+        if self._lwt_resolver is None:
+            self._lwt_resolver = TelescopeParameterResolver(
+                subarray, self.lwt
+            )
+
+        width = self._window_width_resolver.value_for_tel_id(telid)
+        shift = self._window_shift_resolver.value_for_tel_id(telid)
+        lwt = self._lwt_resolver.value_for_tel_id(telid)
+        neighbors = subarray.tel[telid].camera.neighbor_matrix_where
         average_wfs = neighbor_average_waveform(
-            waveforms, self.neighbors, self.lwt
+            waveforms, neighbors, lwt
         )
         peak_index = average_wfs.argmax(axis=-1)
         charge = sum_samples_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
+            waveforms, peak_index, width, shift
         )
         pulse_time = extract_pulse_time_around_peak(
-            waveforms, peak_index, self.window_width, self.window_shift
+            waveforms, peak_index, width, shift
         )
         return charge, pulse_time
 
@@ -412,8 +456,8 @@ class BaselineSubtractedNeighborPeakWindowSum(NeighborPeakWindowSum):
         10, help='End sample for baseline estimation'
     ).tag(config=True)
 
-    def __call__(self, waveforms):
+    def __call__(self, waveforms, telid, subarray):
         baseline_corrected = subtract_baseline(
             waveforms, self.baseline_start, self.baseline_end
         )
-        return super().__call__(baseline_corrected)
+        return super().__call__(baseline_corrected, telid, subarray)
