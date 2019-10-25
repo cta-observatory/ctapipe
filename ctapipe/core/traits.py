@@ -253,7 +253,7 @@ class TelescopeParameterResolver:
         for command, argument, value in tel_param:
             if command == "type":
                 matched_tel_types = [
-                    t for t in subarray.telescope_types if fnmatch(t, argument)
+                    str(t) for t in subarray.telescope_types if fnmatch(str(t), argument)
                 ]
                 logger.debug(f"argument '{argument}' matched: {matched_tel_types}")
                 if len(matched_tel_types) == 0:
