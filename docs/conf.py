@@ -53,7 +53,7 @@ extensions = ['sphinx.ext.autodoc',
               'numpydoc']
 
 numpydoc_show_class_members = False
-nbsphinx_timeout = 120  # allow max 2 minutes to build each notebook
+nbsphinx_timeout = 200  # allow max 2 minutes to build each notebook
 
 
 # Add any paths that contain templates here, relative to this directory.
