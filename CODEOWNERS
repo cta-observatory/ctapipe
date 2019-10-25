@@ -3,4 +3,4 @@
 # https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
 ctapipe/calib/camera  @watsonjj
-ctapipe/image/extractor.py @watsonjj
+ctapipe/image/extractor.py  @watsonjj
