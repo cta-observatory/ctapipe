@@ -2,6 +2,7 @@ import numpy as np
 import astropy.units as u
 from ctapipe.image.muon.ring_fitter import RingFitter
 from ctapipe.io.containers import MuonRingParameter
+from iminuit import Minuit
 
 __all__ = ['ChaudhuriKunduRingFitter']
 
@@ -69,3 +70,64 @@ class ChaudhuriKunduRingFitter(RingFitter):
         output.ring_fit_method = "ChaudhuriKundu"
 
         return output
+
+
+class TaubinFitter():
+    """
+        Parameters
+        ----------
+        xi_list: array
+           vector of pixel x-coordinates
+        yi_list: array
+           vector of pixel y-coordinates
+
+        Returns
+        -------
+       xc: x coordinate of fitted ring center
+       yc: y coordinate of fitted ring center
+       r: radius of fitted ring
+    """
+
+    def __init__(self, pixx, pixy, radius, error, limit, xc=0, yc=0):
+        self.xi_list = pixx
+        self.yi_list = pixy
+        self.params = radius
+        self.errs = error
+        self.constrain = limit
+        self.xc = xc
+        self.yc = yc
+
+    def fitFormula(self, xc, yc, r):
+        # taubin fit formula
+        upper_term = sum(((np.array(self.xi_list) - xc) ** 2 + (np.array(self.yi_list) - yc) ** 2 - r ** 2) ** 2)
+        lower_term = sum(((np.array(self.xi_list) - xc) ** 2 + (np.array(self.yi_list) - yc) ** 2))
+
+        return (np.abs(upper_term) / np.abs(lower_term))
+
+    def fit(self):
+        init_params = {}
+        init_errs = {}
+        init_constrain = {}
+        init_params['xc'] = self.xc
+        init_params['yc'] = self.yc
+        init_params['r'] = self.params
+        init_errs['error_xc'] = self.errs
+        init_errs['error_yc'] = self.errs
+        init_errs['error_r'] = self.errs
+        init_constrain['limit_xc'] = self.constrain
+        init_constrain['limit_yc'] = self.constrain
+
+        # minimization method
+        m = Minuit(self.fitFormula,
+                   **init_params,
+                   **init_errs,
+                   **init_constrain,
+                   pedantic=False)
+        m.migrad()
+        # calculate xc, yc, r
+        fitparams = m.values
+        xc_fit = fitparams['xc']
+        yc_fit = fitparams['yc']
+        r_fit = fitparams['r']
+
+        return (xc_fit, yc_fit, r_fit)
