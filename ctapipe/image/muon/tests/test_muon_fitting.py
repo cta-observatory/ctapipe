@@ -51,8 +51,10 @@ def test_kundu_chaudhuri_with_units():
 
 
 def test_taubin_with_units():
-    # flashCam example
-    # for this test, values are selectively chosen knowing that they converge
+    """
+    flashCam example
+    for this test, values are selectively chosen knowing that they converge
+    """
     center_xs = 0.3 * u.m
     center_ys = 0.6 * u.m
     ring_radius = 0.3 * u.m
@@ -66,7 +68,7 @@ def test_taubin_with_units():
 
     geom = CameraGeometry.from_name("FlashCam")
     flashcam_focal_length = u.Quantity(16, u.m)
-    image, sig, _ = muon_model.generate_image(
+    image, _, _ = muon_model.generate_image(
         geom, intensity=1000, nsb_level_pe=5,
     )
     mask = tailcuts_clean(geom, image, 10, 12)
