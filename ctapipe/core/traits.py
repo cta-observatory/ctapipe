@@ -158,7 +158,8 @@ class TelescopeParameterList(list):
         for command, arg, value in self:
             if command == "type":
                 matched_tel_types = [
-                    str(t) for t in subarray.telescope_types if fnmatch(str(t), argument)
+                    str(t) for t in subarray.telescope_types
+                    if fnmatch(str(t), arg)
                 ]
                 logger.debug(f"argument '{arg}' matched: {matched_tel_types}")
                 if len(matched_tel_types) == 0:
