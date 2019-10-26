@@ -5,6 +5,7 @@ from ctapipe.utils import get_dataset_path
 from ctapipe.io.simteleventsource import SimTelEventSource
 from ctapipe.io.hessioeventsource import HESSIOEventSource
 from itertools import zip_longest
+from copy import deepcopy
 
 gamma_test_large_path = get_dataset_path("gamma_test_large.simtel.gz")
 gamma_test_path = get_dataset_path("gamma_test.simtel.gz")
@@ -209,3 +210,13 @@ def test_instrument():
     event = next(iter(source))
     subarray = event.inst.subarray
     assert subarray.tel[1].optics.num_mirrors == 1
+
+
+def test_subarray_property():
+    source = SimTelEventSource(input_url=gamma_test_large_path)
+    subarray = deepcopy(source.subarray)
+    event = next(iter(source))
+    subarray_event = event.inst.subarray
+    assert subarray.tel.keys() == subarray_event.tel.keys()
+    assert (subarray.tel[1].camera.pix_x ==
+            subarray_event.tel[1].camera.pix_x).all()
