@@ -833,37 +833,42 @@ class PixelStatusContainer(Container):
     )
 
 
-class WaveformCalibrationContainer(Container):
+class CameraCalibrationContainer(Container):
     """
-    Container for the pixel calibration coefficients
+    Container for the calibration coefficients
     """
-
-    time = Field(0, "Time associated to the calibration event", unit=u.s)
-    time_range = Field(
+    time = DeprecatedField(0, "Time associated to the calibration event", unit=u.s)
+    time_range = DeprecatedField(
         [],
         "Range of time of validity for the calibration event [t_min, t_max]",
         unit=u.s,
     )
 
-    dc_to_pe = Field(
+    dc_to_pe = DeprecatedField(
         None,
         "np array of (digital count) to (photon electron) coefficients (n_chan, n_pix)",
     )
 
-    pedestal_per_sample = Field(
+    pedestal_per_sample = DeprecatedField(
         None,
         "np array of average pedestal value per sample (digital count) (n_chan, n_pix)",
     )
 
-    time_correction = Field(None, "np array of time correction values (n_chan, n_pix)")
+    time_correction = DeprecatedField(
+        None, "np array of time correction values (n_chan, n_pix)"
+    )
 
-    n_pe = Field(
+    n_pe = DeprecatedField(
         None, "np array of photo-electrons in calibration signal (n_chan, n_pix)"
     )
 
-    unusable_pixels = Field(
+    unusable_pixels = DeprecatedField(
         None,
         "Boolean np array of final calibration data analysis, True = failing pixels (n_chan, n_pix)",
+    )
+
+    dl1 = Field(
+        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
     )
 
 
@@ -877,11 +882,8 @@ class MonitoringCameraContainer(Container):
     pixel_status = Field(
         PixelStatusContainer(), "Container for masks with pixel status"
     )
-    calibration = DeprecatedField(
-        WaveformCalibrationContainer(), "Container for calibration coefficients"
-    )
-    dl1 = Field(
-        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
+    calibration = Field(
+        CameraCalibrationContainer(), "Container for calibration coefficients"
     )
 
 
