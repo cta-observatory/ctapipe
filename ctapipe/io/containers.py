@@ -150,8 +150,8 @@ class DL1CameraCalibrationContainer(Container):
     relative = Field(
         1,
         "Coefficients for the relative correction between pixels to achieve a "
-        "uniform charge response from a uniform illumination, following the "
-        "application of the absolute calibration."
+        "uniform charge response (post absolute calibration) from a "
+        "uniform illumination."
     )
     time = Field(
         0,
