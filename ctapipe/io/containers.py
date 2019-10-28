@@ -153,7 +153,7 @@ class DL1CameraCalibrationContainer(Container):
         "uniform charge response (post absolute calibration) from a "
         "uniform illumination."
     )
-    time_offset = Field(
+    time_shift = Field(
         0,
         "Additive coefficients for the timing correction before charge extraction "
         "for each pixel"

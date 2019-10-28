@@ -146,8 +146,14 @@ def test_dl1_charge_calib():
     event = EventAndMonDataContainer()
     telid = 0
     event.r1.tel[telid].waveform = y[np.newaxis, ...]
-    event.mon.tel[telid].calibration.dl1.time_offset = time_offset
-    event.mon.tel[telid].calibration.dl1.pedestal_offest = pedestal * n_samples
+
+    # Test default
+    calibrator = CameraCalibrator(image_extractor=FullWaveformSum())
+    calibrator(event)
+    np.testing.assert_allclose(event.dl1.tel[telid].image, y.sum(1))
+
+    event.mon.tel[telid].calibration.dl1.time_shift = time_offset
+    event.mon.tel[telid].calibration.dl1.pedestal_offset = pedestal * n_samples
     event.mon.tel[telid].calibration.dl1.absolute_factor = absolute
     event.mon.tel[telid].calibration.dl1.relative_factor = relative
 
