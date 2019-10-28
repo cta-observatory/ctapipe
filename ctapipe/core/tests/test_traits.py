@@ -134,14 +134,14 @@ def test_telescope_parameter_list():
     )
 
     with pytest.raises(ValueError):
-        telparam_list.resolve(1)
+        telparam_list[1]
 
     telparam_list.attach_subarray(subarray)
-    assert telparam_list.resolve(1) == 10
-    assert telparam_list.resolve(3) == 100
+    assert telparam_list[1] == 10
+    assert telparam_list[3] == 100
 
     with pytest.raises(KeyError):
-        telparam_list.resolve(200)
+        telparam_list[200]
 
     with pytest.raises(ValueError):
         bad_config = TelescopeParameterList([("unknown", "a", 15.0)])
@@ -162,7 +162,7 @@ def test_telescope_parameter_patterns():
 
     # single value allowed (converted to ("default","",val) )
     comp.tel_param = 4.5
-    assert comp.tel_param[0][2] == 4.5
+    assert list(comp.tel_param)[0][2] == 4.5
 
     comp.tel_param = [("type", "*", 1.0), ("type", "*LSTCam", 16.0), ("id", 16, 10.0)]
 
@@ -230,17 +230,17 @@ def test_telescope_parameter_resolver():
     comp.tel_param2.attach_subarray(subarray)
     comp.tel_param3.attach_subarray(subarray)
 
-    assert comp.tel_param1.resolve(1) == 10
-    assert comp.tel_param1.resolve(3) == 100
+    assert comp.tel_param1[1] == 10
+    assert comp.tel_param1[3] == 100
 
-    assert list(map(comp.tel_param2.resolve, [1, 2, 3, 4])) == [
+    assert list(map(comp.tel_param2.__getitem__, [1, 2, 3, 4])) == [
         10.0,
         10.0,
         200.0,
         100.0,
     ]
 
-    assert list(map(comp.tel_param3.resolve, [1, 2, 3, 4, 100])) == [
+    assert list(map(comp.tel_param3.__getitem__, [1, 2, 3, 4, 100])) == [
         200.0,
         200.0,
         200.0,

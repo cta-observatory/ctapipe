@@ -176,7 +176,7 @@ class TelescopeParameterList(list):
             else:
                 raise ValueError(f"Unrecognized command: {command}")
 
-    def resolve(self, tel_id: int):
+    def __getitem__(self, tel_id: int):
         """
         Returns the resolved parameter for the given telescope id
         """
