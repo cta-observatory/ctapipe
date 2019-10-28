@@ -138,23 +138,23 @@ class DL1CameraCalibrationContainer(Container):
     """
 
     pedestal = Field(
-        None,
+        0,
         "Coefficients for the pedestal calibration of extracted charge "
         "for each pixel"
     )
     absolute = Field(
-        None,
+        1,
         "Coefficients for the absolute calibration of extracted charge into "
         "physical units (e.g. photoelectrons or photons) for each pixel"
     )
     relative = Field(
-        None,
+        1,
         "Coefficients for the relative correction between pixels to achieve a "
         "uniform charge response from a uniform illumination, following the "
         "application of the absolute calibration."
     )
     time = Field(
-        None,
+        0,
         "Coefficients for the timing correction before charge extraction "
         "for each pixel"
     )
