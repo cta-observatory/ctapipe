@@ -130,57 +130,52 @@ class HESSIOEventSource(EventSource):
 
                 for tel_id in tels_with_data:
 
-                    # event.mc.tel[tel_id] = MCCameraContainer()
+                    mc = data.mc.tel[tel_id]
+                    r0 = data.r0.tel[tel_id]
+                    r1 = data.r1.tel[tel_id]
+                    pointing = data.pointing[tel_id]
 
                     adc_samples = file.get_adc_sample(tel_id)
                     if adc_samples.size == 0:
                         adc_samples = file.get_adc_sum(tel_id)[..., None]
                     dc_to_pe = file.get_calibration(tel_id)
                     pedestal = file.get_pedestal(tel_id)
-                    data.r0.tel[tel_id].waveform = adc_samples
-                    data.r1.tel[tel_id].waveform = (
+                    r0.waveform = adc_samples
+                    r1.waveform = (
                             (adc_samples - pedestal[..., np.newaxis])
                             * dc_to_pe[..., np.newaxis]
                     )
 
-                    data.mc.tel[tel_id].dc_to_pe = dc_to_pe
-                    data.mc.tel[tel_id].pedestal = pedestal
-                    data.r0.tel[tel_id].num_trig_pix = file.get_num_trig_pixels(tel_id)
-                    data.r0.tel[tel_id].trig_pix_id = file.get_trig_pixels(tel_id)
-                    data.mc.tel[tel_id].reference_pulse_shape = (file.
-                                                                 get_ref_shapes(tel_id))
+                    mc.dc_to_pe = dc_to_pe
+                    mc.pedestal = pedestal
+                    r0.num_trig_pix = file.get_num_trig_pixels(tel_id)
+                    r0.trig_pix_id = file.get_trig_pixels(tel_id)
+                    mc.reference_pulse_shape = (file.get_ref_shapes(tel_id))
 
                     # load the data per telescope/pixel
                     hessio_mc_npe = file.get_mc_number_photon_electron(tel_id)
-                    data.mc.tel[tel_id].photo_electron_image = hessio_mc_npe
-                    data.mc.tel[tel_id].meta['refstep'] = (file.
-                                                           get_ref_step(tel_id))
-                    data.mc.tel[tel_id].time_slice = (file.
-                                                      get_time_slice(tel_id))
-                    data.mc.tel[tel_id].azimuth_raw = (file.
-                                                       get_azimuth_raw(tel_id))
-                    data.mc.tel[tel_id].altitude_raw = (file.
-                                                        get_altitude_raw(tel_id))
+                    mc.photo_electron_image = hessio_mc_npe
+                    mc.meta['refstep'] = (file.get_ref_step(tel_id))
+                    mc.time_slice = (file.get_time_slice(tel_id))
+                    mc.azimuth_raw = (file.get_azimuth_raw(tel_id))
+                    mc.altitude_raw = (file.get_altitude_raw(tel_id))
                     azimuth_cor = file.get_azimuth_cor(tel_id)
                     altitude_cor = file.get_altitude_cor(tel_id)
 
                     # hessioeventsource pass 0 if there is no altitude/azimuth correction
-                    if azimuth_cor == 0 and data.mc.tel[tel_id].azimuth_raw != 0:
-                        data.mc.tel[tel_id].azimuth_cor = np.nan
-                        data.pointing[tel_id].azimuth = \
-                            u.Quantity(data.mc.tel[tel_id].azimuth_raw, u.rad)
+                    if azimuth_cor == 0 and mc.azimuth_raw != 0:
+                        mc.azimuth_cor = np.nan
+                        pointing.azimuth = u.Quantity(mc.azimuth_raw, u.rad)
                     else:
-                        data.mc.tel[tel_id].azimuth_cor = azimuth_cor
-                        data.pointing[tel_id].azimuth = u.Quantity(azimuth_cor, u.rad)
+                        mc.azimuth_cor = azimuth_cor
+                        pointing.azimuth = u.Quantity(azimuth_cor, u.rad)
 
-                    if altitude_cor == 0 and data.mc.tel[tel_id].altitude_raw != 0:
-                        data.mc.tel[tel_id].altitude_cor = np.nan
-                        data.pointing[tel_id].altitude = \
-                            u.Quantity(data.mc.tel[tel_id].altitude_raw, u.rad)
+                    if altitude_cor == 0 and mc.altitude_raw != 0:
+                        mc.altitude_cor = np.nan
+                        pointing.altitude = u.Quantity(mc.altitude_raw, u.rad)
                     else:
-                        data.mc.tel[tel_id].altitude_cor = altitude_cor
-                        data.pointing[tel_id].altitude = \
-                            u.Quantity(data.mc.tel[tel_id].altitude_cor, u.rad)
+                        mc.altitude_cor = altitude_cor
+                        pointing.altitude = u.Quantity(mc.altitude_cor, u.rad)
 
                 yield data
                 counter += 1
