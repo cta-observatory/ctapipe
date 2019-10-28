@@ -41,7 +41,7 @@ __all__ = [
     "FlatFieldContainer",
     "PedestalContainer",
     "PixelStatusContainer",
-    "WaveformCalibrationContainer",
+    "CameraCalibrationContainer",
     "MonitoringCameraContainer",
     "MonitoringContainer",
     "EventAndMonDataContainer",
