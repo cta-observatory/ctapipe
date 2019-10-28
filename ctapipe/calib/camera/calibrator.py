@@ -218,6 +218,7 @@ class CameraCalibrator(Component):
             if self.image_extractor.requires_neighbors():
                 camera = event.inst.subarray.tel[telid].camera
                 self.image_extractor.neighbors = camera.neighbor_matrix_where
+            # TODO: apply timing correction to waveforms before charge extraction
             charge, pulse_time = self.image_extractor(waveforms)
 
             # Apply integration correction
@@ -225,7 +226,13 @@ class CameraCalibrator(Component):
             correction = self._get_correction(event, telid)
             corrected_charge = charge * correction
 
-        event.dl1.tel[telid].image = corrected_charge
+        # Calibrate extracted charge
+        pedestal = event.mon.tel[telid].dl1.pedestal
+        absolute = event.mon.tel[telid].dl1.absolute
+        relative = event.mon.tel[telid].dl1.relative
+        calibrated_charge = (corrected_charge - pedestal) * relative / absolute
+
+        event.dl1.tel[telid].image = calibrated_charge
         event.dl1.tel[telid].pulse_time = pulse_time
 
         # TODO: Add charge calibration
