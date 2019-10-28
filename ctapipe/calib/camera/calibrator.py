@@ -211,7 +211,7 @@ class CameraCalibrator(Component):
             #   - Read into dl1 container directly?
             #   - Don't do anything if dl1 container already filled
             #   - Update on SST review decision
-            corrected_charge = waveforms[..., 0]
+            charge = waveforms[..., 0]
             pulse_time = np.zeros(n_pixels)
         else:
             # TODO: pass camera to ImageExtractor.__init__
@@ -224,19 +224,19 @@ class CameraCalibrator(Component):
             # Apply integration correction
             # TODO: Remove integration correction
             correction = self._get_correction(event, telid)
-            corrected_charge = charge * correction
+            charge = charge * correction
 
         # Calibrate extracted charge
         try:
-            pedestal = event.mon.tel[telid].dl1.pedestal
-            absolute = event.mon.tel[telid].dl1.absolute
-            relative = event.mon.tel[telid].dl1.relative
-            calibrated_charge = (corrected_charge - pedestal) * relative / absolute
+            pedestal = event.mon.tel[telid].dl1.pedestal_offset
+            absolute = event.mon.tel[telid].dl1.absolute_factor
+            relative = event.mon.tel[telid].dl1.relative_factor
+            charge = (charge - pedestal) * relative / absolute
         except AttributeError:
             pass
             # TODO: Switch to EventAndMonDataContainer for mon
 
-        event.dl1.tel[telid].image = calibrated_charge
+        event.dl1.tel[telid].image = charge
         event.dl1.tel[telid].pulse_time = pulse_time
 
     def __call__(self, event):
