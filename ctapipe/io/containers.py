@@ -25,7 +25,7 @@ __all__ = [
     "MCEventContainer",
     "MCHeaderContainer",
     "MCCameraEventContainer",
-    "CameraCalibrationContainer",
+    "DL1CameraCalibrationContainer",
     "CentralTriggerContainer",
     "ReconstructedContainer",
     "ReconstructedShowerContainer",
@@ -158,15 +158,6 @@ class DL1CameraCalibrationContainer(Container):
         None,
         "Coefficients for the timing correction before charge extraction "
         "for each pixel"
-    )
-
-
-class DL1CalibrationContainer(Container):
-    """ DL1 Calibrated Camera Images and associated data"""
-
-    tel = Field(
-        Map(DL1CameraCalibrationContainer),
-        "map of tel_id to DL1CameraCalibrationContainer"
     )
 
 
@@ -889,6 +880,9 @@ class MonitoringCameraContainer(Container):
     )
     calibration = Field(
         WaveformCalibrationContainer(), "Container for calibration coefficients"
+    )
+    dl1 = Field(
+        DL1CameraCalibrationContainer(), "Container for DL1 calibration coefficients"
     )
 
 
